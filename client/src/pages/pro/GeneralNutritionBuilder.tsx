@@ -887,7 +887,7 @@ export default function WeeklyMealBoard() {
         </div>
       </div>
 
-      <div className="pb-10 grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
+      <div className="pb-10 grid grid-cols-1 xl:grid-cols-2 gap-4 xl:gap-6">
         {/* Render day view or week view based on mode */}
         {FEATURES.dayPlanning === 'alpha' && planningMode === 'day' && activeDayISO && board ? (
           // DAY MODE: Show Meal 1/2/3, dynamic Meal 4+, and Snack Creator
