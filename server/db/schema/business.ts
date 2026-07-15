@@ -42,6 +42,7 @@ export const businessMembers = pgTable("business_members", {
   status: text("status").$type<"active" | "removed">().notNull().default("active"),
   joinedAt: timestamp("joined_at", { withTimezone: true }).defaultNow(),
   removedAt: timestamp("removed_at", { withTimezone: true }),
+  noticeDismissedAt: timestamp("notice_dismissed_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => ({
   uniqBusinessUser: unique().on(t.businessId, t.userId),

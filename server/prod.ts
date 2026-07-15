@@ -828,6 +828,7 @@ async function initializeApp() {
         await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS personal_entitlements text[] NOT NULL DEFAULT ARRAY[]::text[]`);
         await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS personal_subscription_status text`);
         await db.execute(sql`ALTER TABLE business_members ADD COLUMN IF NOT EXISTS removed_at timestamptz`);
+        await db.execute(sql`ALTER TABLE business_members ADD COLUMN IF NOT EXISTS notice_dismissed_at timestamptz`);
         console.log("✅ [prod] Business tables boot migration complete");
       } catch (err: any) {
         console.error("❌ [prod] Business tables boot migration failed:", err.message);

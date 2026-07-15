@@ -27,7 +27,7 @@ import { studioMemberships, studios } from "./db/schema/studio";
 import { mealImageCache } from "./db/schema/mealImageCache";
 import { companionProfileImages } from "./db/schema/companionProfiles";
 import { db } from "./db";
-import { and, eq, gte, lte, desc, sql, inArray } from "drizzle-orm";
+import { and, eq, gte, lte, desc, sql, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { reminderService } from "./reminderService";
 import { generateMealPlan } from "./ai-service";
@@ -2401,12 +2401,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (authReq.authUser.sponsoredByBusinessId) return null;
           try {
             const { businesses: biz, businessMembers: bm } = await import("./db/schema/business");
-            const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
             const [removed] = await db
               .select({ businessId: biz.id, businessName: biz.name, removedAt: bm.removedAt })
               .from(bm)
               .innerJoin(biz, eq(biz.id, bm.businessId))
-              .where(and(eq(bm.userId, userId), eq(bm.status, "removed"), gte(bm.removedAt, thirtyDaysAgo)))
+              .where(and(eq(bm.userId, userId), eq(bm.status, "removed"), isNull(bm.noticeDismissedAt)))
               .orderBy(desc(bm.removedAt))
               .limit(1);
             if (removed?.removedAt) {

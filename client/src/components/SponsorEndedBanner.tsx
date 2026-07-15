@@ -2,22 +2,33 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { Building2, X, ChevronRight, Users, User, Star, Briefcase } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { getAuthHeaders } from "@/lib/auth";
+import { apiUrl } from "@/lib/resolveApiBase";
+import type { User as UserType } from "@/lib/auth";
 
-const DISMISS_KEY = "mpm.dismiss.sponsorEnded";
+function resolveProviderRoute(user: UserType | null): { route: string; description: string } {
+  if (!user) return { route: "/pro-portal", description: "Launch your independent ProCare account" };
 
-function getDismissedIds(): string[] {
-  try {
-    return JSON.parse(localStorage.getItem(DISMISS_KEY) || "[]");
-  } catch {
-    return [];
+  if (user.procareTrainingCompleted && user.attestedAt) {
+    return { route: "/pro-portal", description: "Open your independent studio" };
   }
+  if (user.isProCare && user.procareTrainingCompleted && !user.attestedAt) {
+    return { route: "/pro-portal", description: "Complete credential verification" };
+  }
+  if (user.isProCare && !user.procareTrainingCompleted) {
+    return { route: "/learning", description: "Continue Platform Mastery training" };
+  }
+  return { route: "/pro-portal", description: "Launch your independent ProCare account" };
 }
 
-function dismissId(businessId: string) {
-  const existing = getDismissedIds();
-  if (!existing.includes(businessId)) {
-    localStorage.setItem(DISMISS_KEY, JSON.stringify([...existing, businessId]));
-  }
+async function serverDismiss() {
+  try {
+    await fetch(apiUrl("/api/business/removal-notice/dismiss"), {
+      method: "POST",
+      headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
+      credentials: "include",
+    });
+  } catch (_) {}
 }
 
 export function SponsorEndedBanner() {
@@ -26,23 +37,21 @@ export function SponsorEndedBanner() {
   const [dismissed, setDismissed] = useState(false);
 
   const removal = user?.recentlyRemovedFromBusiness;
-
   if (!removal || dismissed) return null;
 
-  const alreadyDismissed = getDismissedIds().includes(removal.businessId);
-  if (alreadyDismissed) return null;
-
   function handleDismiss() {
-    if (removal) dismissId(removal.businessId);
     setDismissed(true);
+    serverDismiss();
   }
+
+  const providerPath = resolveProviderRoute(user ?? null);
 
   const actions = [
     {
       icon: Briefcase,
       label: "Start My Own Practice",
-      description: "Launch your independent ProCare account",
-      onClick: () => { handleDismiss(); setLocation("/pro-portal"); },
+      description: providerPath.description,
+      onClick: () => { handleDismiss(); setLocation(providerPath.route); },
     },
     {
       icon: User,
@@ -66,7 +75,6 @@ export function SponsorEndedBanner() {
 
   return (
     <div className="mx-4 mb-4 rounded-xl overflow-hidden border border-amber-500/30 bg-gradient-to-br from-black via-amber-950/20 to-black shadow-lg">
-      {/* Header */}
       <div className="flex items-start justify-between p-4 pb-3">
         <div className="flex items-start gap-3">
           <div className="mt-0.5 p-2 rounded-lg bg-amber-500/20 shrink-0">
@@ -77,7 +85,7 @@ export function SponsorEndedBanner() {
               Your {removal.businessName}-sponsored access has ended
             </p>
             <p className="text-xs text-white/60 mt-0.5 leading-relaxed">
-              Your personal data, meal history, and progress are all still here.
+              Your personal account, meal history, Academy progress, and certifications are all still here.
               Choose how you'd like to continue.
             </p>
           </div>
@@ -90,7 +98,6 @@ export function SponsorEndedBanner() {
         </button>
       </div>
 
-      {/* Action list */}
       <div className="px-4 pb-4 space-y-2">
         {actions.map((action) => {
           const Icon = action.icon;
