@@ -1081,8 +1081,8 @@ export default function PricingPage() {
         {/* Clinical Business Section */}
         <div className="mb-12">
           <div className="text-center mb-6">
-            <div className="inline-flex items-center gap-2 bg-orange-600/20 border border-orange-500/30 rounded-full px-4 py-2 mb-4">
-              <span className="text-orange-300 text-sm font-semibold tracking-wide uppercase">
+            <div className="inline-flex items-center gap-2 bg-teal-600/20 border border-teal-500/30 rounded-full px-4 py-2 mb-4">
+              <span className="text-teal-300 text-sm font-semibold tracking-wide uppercase">
                 Clinical Business
               </span>
             </div>
@@ -1093,14 +1093,14 @@ export default function PricingPage() {
           </div>
 
           <div className="max-w-lg mx-auto">
-            <Card className="relative bg-black/30 backdrop-blur-lg border border-orange-500/30 text-white shadow-xl">
+            <Card className="relative bg-black/30 backdrop-blur-lg border border-teal-500/30 text-white shadow-xl">
               <CardHeader className="pb-4">
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
                     <h3 className="text-xl font-bold">Clinical Business</h3>
-                    <Badge className="bg-orange-600/80 text-white border border-orange-400/30">Team Plan</Badge>
+                    <Badge className="bg-teal-600/80 text-white border border-teal-400/30">Team Plan</Badge>
                   </div>
-                  <p className="text-orange-300 text-sm font-medium">$44.99 per seat / month</p>
+                  <p className="text-teal-300 text-sm font-medium">$44.99 per seat / month</p>
                   <div className="flex items-baseline gap-1 pt-1">
                     <span className="text-3xl font-bold">${(44.99 * businessSeats).toFixed(2)}</span>
                     <span className="text-white text-sm">/ month</span>
@@ -1124,7 +1124,7 @@ export default function PricingPage() {
                         onClick={() => setBusinessSeats(n)}
                         className={`flex-1 py-2 rounded-full text-sm font-semibold border transition-colors ${
                           businessSeats === n
-                            ? "bg-orange-600 text-white border-orange-500"
+                            ? "bg-teal-600 text-white border-teal-500"
                             : "bg-white/5 text-white/60 border-white/15"
                         }`}
                       >
@@ -1147,7 +1147,7 @@ export default function PricingPage() {
                     "All Pro & Essential features included",
                   ].map((feat, i) => (
                     <div key={i} className="flex items-start gap-2">
-                      <Check className="w-4 h-4 text-orange-400 mt-0.5 flex-shrink-0" />
+                      <Check className="w-4 h-4 text-teal-400 mt-0.5 flex-shrink-0" />
                       <span className="text-sm text-white/90">{feat}</span>
                     </div>
                   ))}
@@ -1158,7 +1158,7 @@ export default function PricingPage() {
 
               <div className="p-5">
                 <Button
-                  className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold"
+                  className="w-full bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white font-semibold"
                   size="lg"
                   disabled={businessCheckoutLoading}
                   onClick={handleBusinessCheckout}
