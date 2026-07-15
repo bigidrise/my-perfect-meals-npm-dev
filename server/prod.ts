@@ -820,6 +820,13 @@ async function initializeApp() {
             created_at timestamptz NOT NULL DEFAULT now()
           )
         `);
+        // ── Phase 1 additive columns on businesses ────────────────────────
+        await db.execute(sql`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS organization_id uuid`);
+        await db.execute(sql`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS independent_client_policy text NOT NULL DEFAULT 'allowed_with_disclosure'`);
+        // ── Phase 1 personal plan snapshot columns on users ───────────────
+        await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS personal_plan_lookup_key varchar(100)`);
+        await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS personal_entitlements text[] NOT NULL DEFAULT ARRAY[]::text[]`);
+        await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS personal_subscription_status text`);
         console.log("✅ [prod] Business tables boot migration complete");
       } catch (err: any) {
         console.error("❌ [prod] Business tables boot migration failed:", err.message);
