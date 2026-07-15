@@ -14,7 +14,8 @@ export type LookupKey =
   | "mpm_guidance"
   | "signature_kitchen_starter_monthly"
   | "signature_kitchen_pro_monthly"
-  | "signature_kitchen_partner_monthly";
+  | "signature_kitchen_partner_monthly"
+  | "clinical_business_monthly";
 
 export type BillingCycle = "monthly";
 
