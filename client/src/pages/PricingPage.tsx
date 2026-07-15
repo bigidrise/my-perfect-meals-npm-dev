@@ -541,7 +541,11 @@ export default function PricingPage() {
         return;
       }
       if (data.url) {
-        window.location.href = data.url;
+        if (window.self !== window.top) {
+          window.open(data.url, "_blank", "noopener,noreferrer");
+        } else {
+          window.location.assign(data.url);
+        }
       }
     } catch (err: any) {
       toast({ title: "Checkout Error", description: "Something went wrong. Please try again.", variant: "destructive" });
