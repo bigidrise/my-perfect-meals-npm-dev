@@ -122,6 +122,7 @@ import { diabetesRouter } from "./routes/diabetes"; // Diabetes profile and gluc
 import stripeCheckoutRouter from "./routes/stripeCheckout";
 import stripeRouter from "./routes/stripe";
 import stripeWebhookRouter from "./routes/stripeWebhook"; // Added import for stripeWebhookRouter
+import businessRouter from "./routes/businessRoutes";
 import iosVerifyRouter from "./routes/iosVerify";
 import lockedDaysRouter from "./routes/lockedDays";
 import usersProfileRouter from "./routes/usersProfile";
@@ -453,6 +454,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/affiliate', affiliateRouter);
   app.post('/api/webhooks/rewardful', handleRewardfulWebhook);
   app.use('/api/white-label', whiteLabelRouter);
+  app.use('/api/business', businessRouter);
 
   // Dev-only: seed certification / affiliate state without taking the test
   if (process.env.NODE_ENV !== "production") {

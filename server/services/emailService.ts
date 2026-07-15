@@ -790,3 +790,81 @@ export async function sendWhiteLabelApplicantConfirmation({
     return null;
   }
 }
+
+export async function sendBusinessInviteEmail({
+  to,
+  businessName,
+  inviterName,
+  inviteLink,
+  role,
+  expiresAt,
+}: {
+  to: string;
+  businessName: string;
+  inviterName: string;
+  inviteLink: string;
+  role: string;
+  expiresAt: Date;
+}) {
+  if (!resend) {
+    console.log('⚠️ Resend service not available - skipping business invite email');
+    return null;
+  }
+
+  const roleLabel = role.charAt(0).toUpperCase() + role.slice(1);
+  const expiryStr = expiresAt.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: EMAIL_FROM,
+      to: [to],
+      subject: `You've been invited to join ${businessName} on My Perfect Meals`,
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 26px;">Team Invitation</h1>
+            <p style="color: #bfdbfe; margin: 8px 0 0; font-size: 15px;">My Perfect Meals Clinical Business</p>
+          </div>
+          <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 12px 12px; border: 1px solid #e5e7eb; border-top: none;">
+            <h2 style="color: #111827; font-size: 20px; margin-top: 0;">You've been invited!</h2>
+            <p style="color: #374151; font-size: 16px; line-height: 1.6;">
+              <strong>${inviterName}</strong> has invited you to join <strong>${businessName}</strong> as a <strong>${roleLabel}</strong> on My Perfect Meals.
+            </p>
+            <p style="color: #374151; font-size: 15px; line-height: 1.6;">
+              As a team member, you'll get full Clinical-level access to AI-powered meal generation, dietary tracking, biometric monitoring, and all professional tools.
+            </p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${inviteLink}" style="display: inline-block; background: #2563eb; color: white; padding: 14px 36px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
+                Accept Invitation
+              </a>
+            </div>
+            <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; margin: 20px 0; border-radius: 4px;">
+              <p style="color: #92400e; font-size: 14px; margin: 0; line-height: 1.6;">
+                <strong>Expires:</strong> This invitation expires on ${expiryStr}. If you already have a My Perfect Meals account, you'll be asked to log in first.
+              </p>
+            </div>
+            <p style="color: #6b7280; font-size: 13px; line-height: 1.6;">
+              If the button doesn't work, copy and paste this link into your browser:<br/>
+              <span style="word-break: break-all; color: #2563eb;">${inviteLink}</span>
+            </p>
+            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
+            <p style="color: #9ca3af; font-size: 12px; text-align: center; margin-bottom: 0;">
+              My Perfect Meals — Personalized Nutrition &amp; Meal Planning
+            </p>
+          </div>
+        </div>
+      `,
+    });
+
+    if (error) {
+      console.error('❌ [business invite] Resend error:', error);
+      return null;
+    }
+
+    console.log('✅ [business invite] Email sent:', data?.id);
+    return data;
+  } catch (err) {
+    console.error('❌ [business invite] Email failed:', err);
+    return null;
+  }
+}
