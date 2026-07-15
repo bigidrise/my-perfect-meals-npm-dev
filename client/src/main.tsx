@@ -3,6 +3,11 @@
  * Production-safe: web + iOS
  */
 
+// Apply dark theme before first paint so CSS variables always use dark-mode values.
+// Without this, --card and related vars default to the :root (light) definitions,
+// causing transparent gradient stops to bleed white onto every card.
+document.documentElement.classList.add("dark");
+
 import { Capacitor } from "@capacitor/core";
 import { patchFetchForCredentials } from "@/lib/fetch-credentials-patch";
 
