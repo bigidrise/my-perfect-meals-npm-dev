@@ -76,6 +76,7 @@ router.post("/checkout", requireAuth, async (req, res) => {
     );
 
     const appUrl =
+      process.env.PUBLIC_APP_URL ||
       process.env.APP_URL ||
       (process.env.RAILWAY_STATIC_URL
         ? `https://${process.env.RAILWAY_STATIC_URL}`
