@@ -480,7 +480,7 @@ export default function MorePage() {
             </Card>
           </div>
 
-          {/* Clinical Business Card — only shown when user owns or belongs to a business account */}
+          {/* Organization Card — only shown when user owns or belongs to a business account */}
           {businessCard && (
             <Card
               className="cursor-pointer active:scale-[0.98] bg-gradient-to-r from-black via-blue-950/40 to-black backdrop-blur-lg border border-blue-500/40 transition-all duration-300 rounded-xl shadow-md overflow-hidden"
@@ -495,7 +495,7 @@ export default function MorePage() {
                   <div className="flex-1 min-w-0">
                     {businessCard.mode === "owner" ? (
                       <>
-                        <h3 className="text-sm font-semibold text-white">Clinical Business Dashboard</h3>
+                        <h3 className="text-sm font-semibold text-white">Organization Dashboard</h3>
                         <p className="text-xs text-white/60 truncate">
                           {businessCard.name} · {businessCard.usedSeats} of {businessCard.seatLimit} seats used
                         </p>

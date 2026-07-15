@@ -244,7 +244,7 @@ export default function BusinessInviteAccept() {
 
         {/* What you get */}
         <div className="bg-blue-950/50 border border-blue-500/30 rounded-2xl p-5">
-          <p className="text-blue-300 text-sm font-semibold mb-3">As a Clinical Business member, you'll have access to:</p>
+          <p className="text-blue-300 text-sm font-semibold mb-3">As an Organization member, you'll have access to:</p>
           <div className="space-y-2">
             {[
               "AI-powered meal generation & customization",
