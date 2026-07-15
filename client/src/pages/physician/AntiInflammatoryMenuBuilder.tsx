@@ -1443,7 +1443,7 @@ export default function AntiInflammatoryMenuBuilder() {
           </div>
         </div>
 
-        <div className="max-w-[1600px] mx-auto px-4 pb-10 grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
+        <div className="max-w-[1600px] mx-auto px-4 pb-10 grid grid-cols-1 xl:grid-cols-2 gap-4 xl:gap-6">
           {/* Render day view or week view based on mode */}
           {planningMode === "day" &&
           activeDayISO &&
