@@ -26,6 +26,7 @@ import {
   Loader2,
   CheckCircle,
   Crown,
+  Settings,
 } from "lucide-react";
 
 const ROLE_OPTIONS = [
@@ -107,6 +108,11 @@ export default function BusinessDashboard() {
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState("");
   const [savingName, setSavingName] = useState(false);
+
+  // Manage seats modal
+  const [seatModalOpen, setSeatModalOpen] = useState(false);
+  const [managedSeats, setManagedSeats] = useState(4);
+  const [managingSeats, setManagingSeats] = useState(false);
 
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollCount = useRef(0);
@@ -312,6 +318,30 @@ export default function BusinessDashboard() {
       toast({ title: "Error", description: "Could not update name.", variant: "destructive" });
     } finally {
       setSavingName(false);
+    }
+  };
+
+  const handleManageSeats = async () => {
+    setManagingSeats(true);
+    try {
+      const res = await fetch("/api/business/seats", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
+        body: JSON.stringify({ seats: managedSeats }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast({ title: "Could not update seats", description: data.error || "Please try again.", variant: "destructive" });
+        return;
+      }
+      toast({ title: `Seats updated to ${managedSeats}`, description: "Your Stripe subscription has been adjusted." });
+      setSeatModalOpen(false);
+      fetchData();
+    } catch {
+      toast({ title: "Error", description: "Something went wrong. Please try again.", variant: "destructive" });
+    } finally {
+      setManagingSeats(false);
     }
   };
 
@@ -541,11 +571,20 @@ export default function BusinessDashboard() {
               style={{ width: `${Math.min((usedSeats / business.seatLimit) * 100, 100)}%` }}
             />
           </div>
-          {seatsFull ? (
-            <p className="text-red-400 text-xs">All seats are in use. Remove a member to invite someone new.</p>
-          ) : (
-            <p className="text-white/50 text-xs">{availableSeats} seat{availableSeats !== 1 ? "s" : ""} available</p>
-          )}
+          <div className="flex items-center justify-between">
+            {seatsFull ? (
+              <p className="text-red-400 text-xs">All seats are in use. Remove a member or add more seats.</p>
+            ) : (
+              <p className="text-white/50 text-xs">{availableSeats} seat{availableSeats !== 1 ? "s" : ""} available</p>
+            )}
+            <button
+              className="text-blue-400 text-xs font-semibold flex items-center gap-1 active:opacity-60 transition-opacity"
+              onClick={() => { setManagedSeats(business.seatLimit); setSeatModalOpen(true); }}
+            >
+              <Settings className="w-3 h-3" />
+              Manage
+            </button>
+          </div>
         </Card>
 
         {/* Invite Button */}
@@ -636,6 +675,60 @@ export default function BusinessDashboard() {
         )}
 
       </div>
+
+      {/* Manage Seats Modal */}
+      <Dialog open={seatModalOpen} onOpenChange={setSeatModalOpen}>
+        <DialogContent className="bg-gray-900 border border-blue-500/30 text-white max-w-sm mx-auto">
+          <DialogHeader>
+            <DialogTitle className="text-white">Manage Seats</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-5 pt-2">
+            <div>
+              <p className="text-white/60 text-sm mb-4">
+                Adjust your team size. Stripe will prorate the change immediately.
+                You currently have <span className="text-white font-semibold">{ownerData?.usedSeats ?? 0}</span> active member{(ownerData?.usedSeats ?? 0) !== 1 ? "s" : ""} using seats.
+              </p>
+              <div className="flex items-center justify-between bg-white/5 border border-white/15 rounded-xl px-4 py-4">
+                <button
+                  onClick={() => setManagedSeats((s) => Math.max(ownerData?.usedSeats ?? 1, s - 1))}
+                  className="w-10 h-10 rounded-full bg-white/10 text-white font-bold text-xl flex items-center justify-center active:bg-white/20 select-none"
+                >
+                  −
+                </button>
+                <div className="text-center">
+                  <span className="text-3xl font-bold text-white">{managedSeats}</span>
+                  <p className="text-white/50 text-xs mt-1">seat{managedSeats !== 1 ? "s" : ""} · ${(44.99 * managedSeats).toFixed(2)}/mo</p>
+                </div>
+                <button
+                  onClick={() => setManagedSeats((s) => Math.min(250, s + 1))}
+                  className="w-10 h-10 rounded-full bg-white/10 text-white font-bold text-xl flex items-center justify-center active:bg-white/20 select-none"
+                >
+                  +
+                </button>
+              </div>
+              {managedSeats >= 11 && managedSeats <= 50 && (
+                <p className="text-amber-400/80 text-xs mt-2">For 11–50 seats, reach out to us for smooth team onboarding.</p>
+              )}
+              {managedSeats > 50 && (
+                <p className="text-amber-400/80 text-xs mt-2">For 50+ seats, contact us for enterprise pricing.</p>
+              )}
+            </div>
+            <button
+              className="w-full py-3 rounded-lg bg-blue-600 text-white font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50 active:bg-blue-700"
+              onClick={handleManageSeats}
+              disabled={managingSeats || managedSeats === (ownerData?.business?.seatLimit ?? 0)}
+            >
+              {managingSeats ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Updating…</>
+              ) : (
+                managedSeats === (ownerData?.business?.seatLimit ?? 0)
+                  ? "No change"
+                  : `Update to ${managedSeats} seat${managedSeats !== 1 ? "s" : ""} — $${(44.99 * managedSeats).toFixed(2)}/mo`
+              )}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Invite Modal */}
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>

@@ -150,7 +150,9 @@ router.post("/checkout", requireAuth, async (req, res) => {
 /**
  * POST /api/stripe/checkout/business
  * Creates a Stripe Checkout Session for Clinical Business (multi-seat).
- * Seat count is validated server-side (1–4). Price ID is read from env only.
+ * Seat count is validated server-side (1–250). Price ID is read from env only.
+ * Soft tier guidance (11-50: recommend call; 51+: contact sales) is enforced in UI only —
+ * the backend accepts any value up to 250 so enterprise orders via sales can still proceed.
  */
 router.post("/checkout/business", requireAuth, async (req, res) => {
   if (!stripe) {
@@ -165,9 +167,9 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
   }
 
   const requestedSeats = Number(req.body.seats);
-  if (!Number.isInteger(requestedSeats) || requestedSeats < 1 || requestedSeats > 4) {
+  if (!Number.isInteger(requestedSeats) || requestedSeats < 1 || requestedSeats > 250) {
     return res.status(400).json({
-      error: "Clinical Business supports 1–4 seats. Please provide a valid seat count.",
+      error: "Seat count must be between 1 and 250. Contact us for larger teams.",
     });
   }
 
