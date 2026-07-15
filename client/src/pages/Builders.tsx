@@ -24,7 +24,10 @@ export default function Builders() {
 
   useEffect(() => {
     document.title = "Meal Builders | My Perfect Meals";
+    // On mobile, window is the scroll container. On desktop, it's the <main> element.
     window.scrollTo({ top: 0, behavior: "instant" });
+    const main = document.querySelector("main");
+    if (main) main.scrollTop = 0;
   }, []);
 
   const builderFeatures: BuilderFeature[] = [
