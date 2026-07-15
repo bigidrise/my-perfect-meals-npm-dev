@@ -587,6 +587,7 @@ export default function Router() {
     "/partners",
     "/profile", "/settings",
     "/home",
+    "/business/join",
   ];
 
   const isUngatedRoute = ungatedRoutes.some(r => location === r || location.startsWith(r + "/"));
@@ -681,6 +682,8 @@ export default function Router() {
         <Route path="/onboarding/extended" component={ExtendedOnboarding} />
         <Route path="/checkout/success" component={CheckoutSuccess} />
         <Route path="/billing/success" component={CheckoutSuccess} />
+        <Route path="/business/dashboard" component={lazy(() => import("@/pages/BusinessDashboard"))} />
+        <Route path="/business/join/:token" component={lazy(() => import("@/pages/BusinessInviteAccept"))} />
         <Route path="/family-info" component={FamilyInfoPage} />
         <Route path="/household-profiles" component={HouseholdProfilesPage} />
         <Route path="/procare-info" component={ProCareInfoPage} />

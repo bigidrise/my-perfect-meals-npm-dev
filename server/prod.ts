@@ -628,6 +628,10 @@ async function initializeApp() {
     const aiVoiceJournalRoutes = (await import("./routes/ai-voice-journal")).default;
     app.use("/api/ai-voice-journal", aiVoiceJournalRoutes);
 
+    // business — Clinical Business multi-seat subscription management
+    const businessRouter = (await import("./routes/businessRoutes")).default;
+    app.use("/api/business", businessRouter);
+
     // legal-pages — privacy policy, terms-of-service rendered pages
     const legalPagesRouter = (await import("./routes/legal-pages")).default;
     app.use(legalPagesRouter);
@@ -763,6 +767,58 @@ async function initializeApp() {
         console.warn("⚠️ [BG] Warmup service failed to start:", bgErr);
       }
     }, 7000);
+
+    // Business tables boot migration — idempotent
+    setTimeout(async () => {
+      try {
+        const { db } = await import("./db");
+        const { sql } = await import("drizzle-orm");
+        await db.execute(sql`
+          CREATE TABLE IF NOT EXISTS businesses (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            name text NOT NULL,
+            owner_user_id text NOT NULL UNIQUE,
+            stripe_customer_id text,
+            stripe_subscription_id text,
+            plan text NOT NULL DEFAULT 'clinical_business_monthly',
+            seat_limit int NOT NULL DEFAULT 4,
+            status text NOT NULL DEFAULT 'active',
+            created_at timestamptz NOT NULL DEFAULT now(),
+            updated_at timestamptz NOT NULL DEFAULT now()
+          )
+        `);
+        await db.execute(sql`
+          CREATE TABLE IF NOT EXISTS business_members (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            business_id uuid NOT NULL,
+            user_id text NOT NULL,
+            role text NOT NULL DEFAULT 'staff',
+            status text NOT NULL DEFAULT 'active',
+            joined_at timestamptz DEFAULT now(),
+            created_at timestamptz NOT NULL DEFAULT now(),
+            UNIQUE (business_id, user_id)
+          )
+        `);
+        await db.execute(sql`
+          CREATE TABLE IF NOT EXISTS business_invitations (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            business_id uuid NOT NULL,
+            email text NOT NULL,
+            token text NOT NULL UNIQUE,
+            role text NOT NULL DEFAULT 'staff',
+            status text NOT NULL DEFAULT 'pending',
+            invited_by_user_id text NOT NULL,
+            expires_at timestamptz NOT NULL,
+            accepted_at timestamptz,
+            accepted_by_user_id text,
+            created_at timestamptz NOT NULL DEFAULT now()
+          )
+        `);
+        console.log("✅ [prod] Business tables boot migration complete");
+      } catch (err: any) {
+        console.error("❌ [prod] Business tables boot migration failed:", err.message);
+      }
+    }, 4000);
   } catch (error) {
     console.error("❌ [INIT] Initialization failed:", error);
     initError = error instanceof Error ? error : new Error(String(error));

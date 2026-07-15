@@ -130,6 +130,41 @@ router.post("/", async (req, res) => {
         });
 
         if (subscriptionType === "business_seat") {
+          // Create (or update) the Business record and add owner as seat 1
+          try {
+            const { businesses, businessMembers } = await import("../db/schema/business");
+            const { eq } = await import("drizzle-orm");
+            const [existing] = await db.select().from(businesses).where(eq(businesses.ownerUserId, userId)).limit(1);
+            if (!existing) {
+              const [newBiz] = await db.insert(businesses).values({
+                name: "My Business Team",
+                ownerUserId: userId,
+                stripeCustomerId: customerId,
+                stripeSubscriptionId: subscriptionId,
+                plan: sku,
+                seatLimit: seatCount,
+                status: "active",
+              }).returning();
+              await db.insert(businessMembers).values({
+                businessId: newBiz.id,
+                userId,
+                role: "owner",
+                status: "active",
+              });
+              console.log(`✅ [webhook] Business created | id=${newBiz.id} | owner=${userId} | seats=${seatCount}`);
+            } else {
+              await db.update(businesses).set({
+                seatLimit: seatCount,
+                stripeSubscriptionId: subscriptionId,
+                stripeCustomerId: customerId,
+                status: "active",
+                updatedAt: new Date(),
+              }).where(eq(businesses.id, existing.id));
+              console.log(`✅ [webhook] Business updated | id=${existing.id} | seats=${seatCount}`);
+            }
+          } catch (bizErr) {
+            console.error("❌ [webhook] Business creation failed:", bizErr);
+          }
           console.log(
             `✅ [webhook] checkout.session.completed — business_seat | user ${userId} → ${sku} | seats=${seatCount} | total=$${(44.99 * seatCount).toFixed(2)}/mo`,
           );
