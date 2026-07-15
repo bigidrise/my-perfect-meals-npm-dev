@@ -261,7 +261,7 @@ router.delete("/members/:memberId", requireAuth, async (req, res) => {
 
     await db
       .update(businessMembers)
-      .set({ status: "removed" })
+      .set({ status: "removed", removedAt: new Date() })
       .where(eq(businessMembers.id, memberId));
 
     console.log(`✅ [business] Member removed | business=${business.id} | member=${memberId}`);

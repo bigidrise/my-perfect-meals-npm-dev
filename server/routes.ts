@@ -2393,6 +2393,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         activeProtocolTrack: (user as any).activeProtocolTrack ?? null,
         weeklyTrainingSchedule: (user as any).weeklyTrainingSchedule ?? null,
         performanceProtocolConfig: (user as any).performanceProtocolConfig ?? null,
+        // Business sponsorship — from effective access (computed per-request, not cached)
+        sponsoredByBusinessId: authReq.authUser.sponsoredByBusinessId ?? null,
+        sponsoredByBusinessName: authReq.authUser.sponsoredByBusinessName ?? null,
+        // If user is no longer sponsored, check for a removal within the last 30 days
+        recentlyRemovedFromBusiness: await (async () => {
+          if (authReq.authUser.sponsoredByBusinessId) return null;
+          try {
+            const { businesses: biz, businessMembers: bm } = await import("./db/schema/business");
+            const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+            const [removed] = await db
+              .select({ businessId: biz.id, businessName: biz.name, removedAt: bm.removedAt })
+              .from(bm)
+              .innerJoin(biz, eq(biz.id, bm.businessId))
+              .where(and(eq(bm.userId, userId), eq(bm.status, "removed"), gte(bm.removedAt, thirtyDaysAgo)))
+              .orderBy(desc(bm.removedAt))
+              .limit(1);
+            if (removed?.removedAt) {
+              return {
+                businessId: removed.businessId,
+                businessName: removed.businessName,
+                removedAt: removed.removedAt.toISOString(),
+              };
+            }
+          } catch (_) {}
+          return null;
+        })(),
       });
     } catch (error: any) {
       console.error("Error fetching user profile:", error);
