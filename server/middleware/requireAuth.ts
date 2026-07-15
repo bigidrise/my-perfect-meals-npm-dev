@@ -4,6 +4,7 @@ import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { resolveAccessTier, getTrialDaysRemaining, type AccessTier } from "../lib/accessTier";
 import { loadOrgContext } from "../lib/orgContext";
+import { computeEffectiveAccess } from "../services/effectiveAccess";
 
 // ── Idle session timeout thresholds ───────────────────────────────────────────
 // Clinical roles (coach, admin) require a shorter timeout to meet HIPAA
@@ -36,13 +37,20 @@ export interface AuthenticatedUser {
   activeSystem: string;
   /** Effective org ID. Null means the user belongs to MPM_PUBLIC_ORG_ID. */
   organizationId: string | null;
+  /**
+   * Non-null when this user's access is sponsored by an active business seat.
+   * Cleared immediately when membership status changes to "removed" — the next
+   * authenticated request will recompute from the personal plan.
+   */
+  sponsoredByBusinessId: string | null;
+  sponsoredByBusinessName: string | null;
 }
 
 export interface AuthenticatedRequest extends Request {
   authUser: AuthenticatedUser;
 }
 
-function buildAuthUser(user: any): AuthenticatedUser {
+function buildAuthUser(user: any): Omit<AuthenticatedUser, "sponsoredByBusinessId" | "sponsoredByBusinessName"> {
   const now = new Date();
   const accessTier = resolveAccessTier(user, now);
   const trialDaysRemaining = getTrialDaysRemaining(user, now);
@@ -73,6 +81,43 @@ function buildAuthUser(user: any): AuthenticatedUser {
   };
 }
 
+async function buildAuthUserWithEffectiveAccess(user: any): Promise<AuthenticatedUser> {
+  const base = buildAuthUser(user);
+
+  try {
+    const effective = await computeEffectiveAccess({
+      id: user.id,
+      planLookupKey: user.planLookupKey,
+      personalPlanLookupKey: user.personalPlanLookupKey,
+      isSandbox: user.isSandbox,
+      isFounder: user.isFounder,
+      isTester: user.isTester,
+    });
+
+    const now = new Date();
+    const accessTier = resolveAccessTier(
+      { ...user, planLookupKey: effective.planLookupKey },
+      now
+    );
+
+    return {
+      ...base,
+      planLookupKey: effective.planLookupKey,
+      entitlements: effective.entitlements,
+      accessTier,
+      sponsoredByBusinessId: effective.sponsoredByBusinessId,
+      sponsoredByBusinessName: effective.sponsoredByBusinessName,
+    };
+  } catch (err) {
+    console.error("[requireAuth] effectiveAccess computation failed, falling back to raw plan:", err);
+    return {
+      ...base,
+      sponsoredByBusinessId: null,
+      sponsoredByBusinessName: null,
+    };
+  }
+}
+
 export async function requireAuth(
   req: Request,
   res: Response,
@@ -94,7 +139,7 @@ export async function requireAuth(
         .limit(1);
 
       if (user) {
-        (req as AuthenticatedRequest).authUser = buildAuthUser(user);
+        (req as AuthenticatedRequest).authUser = await buildAuthUserWithEffectiveAccess(user);
         (req as any).orgContext = await loadOrgContext(user.organizationId ?? null);
         return next();
       }
@@ -136,7 +181,7 @@ export async function requireAuth(
         }
         // ── End idle timeout ──────────────────────────────────────────────────
 
-        (req as AuthenticatedRequest).authUser = buildAuthUser(user);
+        (req as AuthenticatedRequest).authUser = await buildAuthUserWithEffectiveAccess(user);
         (req as any).orgContext = await loadOrgContext(user.organizationId ?? null);
         return next();
       }

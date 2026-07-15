@@ -40,6 +40,8 @@ const PAID_PLAN_KEYS = [
   // Internal / contributor / special-access keys — never expire
   "mpm_contributor",
   "mpm_special_access",
+  // Clinical Business — org-sponsored seat (same clinical tier as ultimate)
+  "clinical_business_monthly",
 ];
 
 // BILLING_ENFORCED=true in env means real paywalls are live.

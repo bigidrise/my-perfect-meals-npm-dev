@@ -318,6 +318,14 @@ export const users = pgTable("users", {
   entitlements: text("entitlements").array().default(sql`ARRAY[]::text[]`), // Feature entitlements array
   stripeCustomerId: varchar("stripe_customer_id", { length: 255 }), // Stripe customer ID
   stripeSubscriptionId: varchar("stripe_subscription_id", { length: 255 }), // Stripe subscription ID
+  // ── Personal plan snapshot (preserved across business membership changes) ──
+  // When a user accepts a business invite their personal plan is snapshotted
+  // here so it can be restored if they leave or are removed. Access tier is
+  // computed at runtime by effectiveAccess.ts — never inferred from planLookupKey
+  // alone when a business membership is active.
+  personalPlanLookupKey: varchar("personal_plan_lookup_key", { length: 100 }),
+  personalEntitlements: text("personal_entitlements").array().default(sql`ARRAY[]::text[]`),
+  personalSubscriptionStatus: text("personal_subscription_status"), // active | cancelled | null
   autoGenerateWeeklyPlan: boolean("auto_generate_weekly_plan").default(true), // auto-generate new 7-day plans
   // Enhanced notification system fields
   timezone: text("timezone").default("America/Chicago"),

@@ -5,7 +5,6 @@ import { eq, and, sql } from "drizzle-orm";
 import { businesses, businessMembers, businessInvitations } from "../db/schema/business";
 import { users } from "@shared/schema";
 import { requireAuth } from "../middleware/requireAuth";
-import { updateUserSubscription } from "../services/subscriptionService";
 import { sendBusinessInviteEmail } from "../services/emailService";
 
 const router = Router();
@@ -459,6 +458,32 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
       .where(and(eq(businessMembers.businessId, business.id), eq(businessMembers.userId, userId)))
       .limit(1);
 
+    // ── Snapshot personal plan before activating membership ───────────────────
+    // We NEVER overwrite the user's Stripe planLookupKey with the business plan.
+    // Effective access is computed at runtime from the membership row itself.
+    // We only snapshot the personal plan once (idempotent) so it can be restored
+    // if the user is ever removed from this or any future business.
+    const [currentUser] = await db
+      .select({
+        planLookupKey: users.planLookupKey,
+        personalPlanLookupKey: users.personalPlanLookupKey,
+        entitlements: users.entitlements,
+      })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (currentUser && currentUser.personalPlanLookupKey === null) {
+      await db
+        .update(users)
+        .set({
+          personalPlanLookupKey: currentUser.planLookupKey ?? null,
+          personalEntitlements: (currentUser.entitlements ?? []) as any,
+          personalSubscriptionStatus: "active",
+        } as any)
+        .where(eq(users.id, userId));
+    }
+
     if (existing) {
       if (existing.status === "active") {
         return res.status(400).json({ error: "You are already a member of this business." });
@@ -480,11 +505,9 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
       .set({ status: "accepted", acceptedAt: new Date(), acceptedByUserId: userId })
       .where(eq(businessInvitations.id, invite.id));
 
-    // Grant the user the business plan
-    await updateUserSubscription({
-      userId,
-      lookupKey: business.plan as any,
-    });
+    // NOTE: Do NOT call updateUserSubscription here. The user's planLookupKey
+    // stays as their personal plan. Access tier is computed at runtime by
+    // effectiveAccess.ts which checks for an active businessMembers row.
 
     console.log(`✅ [business] Invite accepted | business=${business.id} | user=${userId} | role=${invite.role}`);
     return res.json({ success: true, businessName: business.name, role: invite.role });
@@ -545,8 +568,8 @@ router.post("/dev-seed", requireAuth, async (req, res) => {
       VALUES (${randomBytes(12).toString("hex")}, ${businessId}, ${userId}, ${"owner"}, ${"active"}, NOW())
     `);
 
-    // Bump the user's subscription tier
-    await updateUserSubscription(userId, "clinical_business_monthly");
+    // NOTE: Do NOT write clinical_business_monthly to the user's planLookupKey.
+    // Effective access is computed at runtime from the businessMembers row.
 
     console.log(`[dev-seed] Created test business ${businessId} for user ${userId}`);
     return res.json({ success: true, businessId, seats: seatCount });
