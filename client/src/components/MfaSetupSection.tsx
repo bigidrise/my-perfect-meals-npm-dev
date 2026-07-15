@@ -47,10 +47,11 @@ export function MfaSetupSection() {
   async function fetchStatus() {
     setPhase("loading");
     try {
-      const data = await apiRequest("GET", "/api/auth/mfa/status");
+      const data = await apiRequest("/api/auth/mfa/status");
       setStatus(data as MfaStatus);
       setPhase("idle");
-    } catch {
+    } catch (e: any) {
+      console.error("[MFA] fetchStatus failed:", e?.message, e);
       setPhase("idle");
     }
   }
@@ -59,12 +60,13 @@ export function MfaSetupSection() {
     setBusy(true);
     setErr(null);
     try {
-      const data = await apiRequest("POST", "/api/auth/mfa/setup/begin");
+      const data = await apiRequest("/api/auth/mfa/setup/begin", { method: "POST" });
       setQrDataUri((data as any).qrDataUri);
       setSecret((data as any).secret);
       setPhase("setup-qr");
     } catch (e: any) {
-      setErr(e?.message || "Failed to start setup.");
+      console.error("[MFA] beginSetup failed:", e?.message, e);
+      setErr(e?.message || "Failed to start setup. Please try again.");
     } finally {
       setBusy(false);
     }
@@ -75,7 +77,7 @@ export function MfaSetupSection() {
     setBusy(true);
     setErr(null);
     try {
-      const data = await apiRequest("POST", "/api/auth/mfa/setup/confirm", { code: confirmCode.trim() });
+      const data = await apiRequest("/api/auth/mfa/setup/confirm", { method: "POST", body: JSON.stringify({ code: confirmCode.trim() }) });
       setBackupCodes((data as any).backupCodes || []);
       setPhase("setup-backup");
       setStatus({ mfaEnabled: true, enrolledAt: new Date().toISOString() });
@@ -91,7 +93,7 @@ export function MfaSetupSection() {
     setBusy(true);
     setErr(null);
     try {
-      await apiRequest("DELETE", "/api/auth/mfa", { code: disableCode.trim() });
+      await apiRequest("/api/auth/mfa", { method: "DELETE", body: JSON.stringify({ code: disableCode.trim() }) });
       setStatus({ mfaEnabled: false, enrolledAt: null });
       setPhase("idle");
       setDisableCode("");
@@ -368,6 +370,13 @@ export function MfaSetupSection() {
           <p className="text-xs text-white/40">Add a second layer of security to your account.</p>
         </div>
       </div>
+
+      {err && (
+        <div className="flex items-start gap-2 bg-red-900/30 border border-red-500/30 rounded-xl px-3 py-2.5">
+          <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
+          <span className="text-sm text-red-300">{err}</span>
+        </div>
+      )}
 
       <button
         type="button"
