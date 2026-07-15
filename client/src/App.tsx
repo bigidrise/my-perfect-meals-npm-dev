@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { OrgProvider } from "@/contexts/OrgContext";
 import { FontSizeProvider } from "@/contexts/FontSizeContext";
+import { NarrationSpeedProvider } from "@/contexts/NarrationSpeedContext";
 import { HouseholdProvider } from "@/contexts/HouseholdContext";
 import { ProClientProvider } from "@/contexts/ProClientContext";
 import { UpgradeModalProvider } from "@/contexts/UpgradeModalContext";
@@ -185,6 +186,7 @@ export default function App() {
             <OrgProvider>
             <HouseholdProvider>
             <FontSizeProvider>
+            <NarrationSpeedProvider>
             <AudioProvider>
               <VoiceProvider>
                 <VisibilityRefreshMount />
@@ -211,6 +213,7 @@ export default function App() {
               </CopilotSystem>
               </VoiceProvider>
             </AudioProvider>
+            </NarrationSpeedProvider>
             </FontSizeProvider>
             </HouseholdProvider>
             </OrgProvider>

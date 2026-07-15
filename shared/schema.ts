@@ -387,6 +387,7 @@ export const users = pgTable("users", {
   cuisineIntensity: text("cuisine_intensity").$type<"light"|"balanced"|"authentic">(), // how strongly to apply the cuisine
   // Display Preferences - accessibility settings
   fontSizePreference: text("font_size_preference").$type<"standard"|"large"|"xl">().default("standard"),
+  narrationSpeedPreference: text("narration_speed_preference").$type<"0.75"|"1.0"|"1.25"|"1.5">().default("1.0"),
   // International / Metric Support
   measurementSystem: text("measurement_system").$type<"imperial"|"metric">().default("imperial"),
   countryCode: text("country_code").$type<"US"|"CA"|"AU"|"UK"|"NZ">().default("US"),

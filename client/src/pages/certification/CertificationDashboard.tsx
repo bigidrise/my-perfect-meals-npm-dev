@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useParams } from "wouter";
 import { ArrowLeft, CheckCircle2, Circle, Clock, Lock, Award, X, PlayCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { AFFILIATE_MODULES } from "@/data/affiliateCertification";
+import { AFFILIATE_MODULES, COACHING_MODULES } from "@/data/affiliateCertification";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
 import { BC_HEADER } from "@/components/BusinessCenterShell";
@@ -99,33 +99,35 @@ export default function CertificationDashboard() {
       .catch(() => {});
   }, []);
 
+  const modules = pathId === "coaching" ? COACHING_MODULES : AFFILIATE_MODULES;
+
   const progressMap = new Map(
     (data?.moduleProgress ?? []).map((p) => [p.moduleId, p])
   );
 
-  const completedCount = AFFILIATE_MODULES.filter(
+  const completedCount = modules.filter(
     (m) => progressMap.get(m.id)?.status === "completed"
   ).length;
 
-  const totalModules = AFFILIATE_MODULES.length;
+  const totalModules = modules.length;
   const progressPct = Math.round((completedCount / totalModules) * 100);
   const allDone = completedCount === totalModules;
 
   // Find the first module the user should work on next
-  const currentModuleIndex = AFFILIATE_MODULES.findIndex((m) => {
+  const currentModuleIndex = modules.findIndex((m) => {
     const s = progressMap.get(m.id)?.status;
     return s === "in_progress" || s === "quiz_failed";
   });
-  const nextNotStartedIndex = AFFILIATE_MODULES.findIndex((m, i) => {
+  const nextNotStartedIndex = modules.findIndex((m, i) => {
     const s = progressMap.get(m.id)?.status ?? "not_started";
-    const prevDone = i === 0 || progressMap.get(AFFILIATE_MODULES[i - 1].id)?.status === "completed";
+    const prevDone = i === 0 || progressMap.get(modules[i - 1].id)?.status === "completed";
     return s === "not_started" && prevDone;
   });
   const continueIndex = currentModuleIndex !== -1 ? currentModuleIndex : nextNotStartedIndex;
-  const continueModule = continueIndex !== -1 ? AFFILIATE_MODULES[continueIndex] : null;
+  const continueModule = continueIndex !== -1 ? modules[continueIndex] : null;
 
   const handleModuleClick = (moduleId: string, moduleIndex: number) => {
-    const prevModule = moduleIndex > 0 ? AFFILIATE_MODULES[moduleIndex - 1] : null;
+    const prevModule = moduleIndex > 0 ? modules[moduleIndex - 1] : null;
     const prevStatus = prevModule ? progressMap.get(prevModule.id)?.status : "completed";
     if (moduleIndex > 0 && prevStatus !== "completed") return;
     setLocation(`/business-center/affiliate/${pathId}/certification/${moduleId}`);
@@ -250,7 +252,7 @@ export default function CertificationDashboard() {
             <div className="flex flex-col items-start gap-0.5">
               <span className="text-xs text-orange-200 font-medium uppercase tracking-wide">Continue Certification</span>
               <span className="text-base font-bold text-white">
-                {continueIndex === AFFILIATE_MODULES.length - 1
+                {continueIndex === modules.length - 1
                   ? "Final Assessment"
                   : `Module ${continueIndex + 1} — ${continueModule.title}`}
               </span>
@@ -266,11 +268,11 @@ export default function CertificationDashboard() {
           </div>
         ) : (
           <div className="space-y-2">
-            {AFFILIATE_MODULES.map((module, i) => {
+            {modules.map((module, i) => {
               const progress = progressMap.get(module.id);
               const status = progress?.status ?? "not_started";
               const isFirstModule = i === 0;
-              const prevCompleted = i === 0 || progressMap.get(AFFILIATE_MODULES[i - 1].id)?.status === "completed";
+              const prevCompleted = i === 0 || progressMap.get(modules[i - 1].id)?.status === "completed";
               const isLocked = !isFirstModule && !prevCompleted && status === "not_started";
               const isFinal = module.id === "final-assessment";
               const isCurrent = i === continueIndex && !allDone;

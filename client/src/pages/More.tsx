@@ -258,8 +258,10 @@ export default function MorePage() {
           
 
           {/* Tips & Strategies — always visible */}
+          <div className="relative">
+            <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(249,115,22,0.5), rgba(249,115,22,0.25), rgba(0,0,0,0))" }} />
           <Card
-            className="cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg border border-orange-500/40 transition-all duration-300 rounded-xl shadow-md relative overflow-hidden"
+            className="relative cursor-pointer active:scale-[0.98] bg-gradient-to-r from-black via-orange-950/30 to-black backdrop-blur-lg border border-orange-500/30 hover:border-orange-500/60 hover:shadow-[0_0_30px_rgba(249,115,22,0.45)] transition-all duration-300 rounded-xl shadow-md overflow-hidden"
             onClick={() => setLocation("/tips")}
             data-testid="card-tips-strategies"
           >
@@ -278,51 +280,58 @@ export default function MorePage() {
               </div>
             </CardContent>
           </Card>
+          </div>
 
           {/* Household Profiles — Family plan only */}
           {isHouseholdPlan(user?.planLookupKey) && (
-            <Card
-              className="cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg border border-orange-500/30 transition-all duration-300 rounded-xl shadow-md relative overflow-hidden"
-              onClick={() => setLocation("/household-profiles")}
-              data-testid="card-household-profiles"
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-orange-500/20">
-                    <Users className="h-5 w-5 text-orange-400" />
+            <div className="relative">
+              <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(245,158,11,0.5), rgba(245,158,11,0.25), rgba(0,0,0,0))" }} />
+              <Card
+                className="relative cursor-pointer active:scale-[0.98] bg-gradient-to-r from-black via-amber-950/30 to-black backdrop-blur-lg border border-amber-500/30 hover:border-amber-500/60 hover:shadow-[0_0_30px_rgba(245,158,11,0.45)] transition-all duration-300 rounded-xl shadow-md overflow-hidden"
+                onClick={() => setLocation("/household-profiles")}
+                data-testid="card-household-profiles"
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-amber-500/20">
+                      <Users className="h-5 w-5 text-amber-400" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-sm font-semibold text-white">Household Profiles</h3>
+                      <p className="text-xs text-white/70">Generate meals for any household member</p>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <h3 className="text-sm font-semibold text-white">Household Profiles</h3>
-                    <p className="text-xs text-white/70">Generate meals for any household member</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           )}
 
           {/* Switch to Workspace — only for professionals */}
           {(userRole === "trainer" || userRole === "physician") && (
-            <Card
-              className="cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg border border-orange-500/30 transition-all duration-300 rounded-xl shadow-md relative overflow-hidden"
-              onClick={() => {
-                setShowWorkspaceChooser(true);
-              }}
-              data-testid="card-switch-workspace"
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-orange-500/20">
-                    <Briefcase className="h-5 w-5 text-orange-400" />
+            <div className="relative">
+              <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(6,182,212,0.5), rgba(6,182,212,0.25), rgba(0,0,0,0))" }} />
+              <Card
+                className="relative cursor-pointer active:scale-[0.98] bg-gradient-to-r from-black via-cyan-950/30 to-black backdrop-blur-lg border border-cyan-500/30 hover:border-cyan-500/60 hover:shadow-[0_0_30px_rgba(6,182,212,0.45)] transition-all duration-300 rounded-xl shadow-md overflow-hidden"
+                onClick={() => {
+                  setShowWorkspaceChooser(true);
+                }}
+                data-testid="card-switch-workspace"
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-cyan-500/20">
+                      <Briefcase className="h-5 w-5 text-cyan-400" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-sm font-semibold text-white">
+                        Switch Workspace
+                      </h3>
+                      <p className="text-xs text-white/70">Go to Workspace Chooser</p>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <h3 className="text-sm font-semibold text-white">
-                      Switch Workspace
-                    </h3>
-                    <p className="text-xs text-white/70">Go to Workspace Chooser</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           )}
 
           {/* Workspace Chooser Overlay */}
@@ -349,71 +358,80 @@ export default function MorePage() {
 
           {/* Become a Provider — only for users who are NOT already providers */}
           {!userRole && (
-            <Card
-              className="cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg border border-blue-500/30 transition-all duration-300 rounded-xl shadow-md relative overflow-hidden"
-              onClick={() => setShowProviderModal(true)}
-              data-testid="card-become-provider"
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-blue-500/20">
-                    <UserPlus className="h-5 w-5 text-blue-400" />
+            <div className="relative">
+              <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(59,130,246,0.5), rgba(59,130,246,0.25), rgba(0,0,0,0))" }} />
+              <Card
+                className="relative cursor-pointer active:scale-[0.98] bg-gradient-to-r from-black via-blue-950/30 to-black backdrop-blur-lg border border-blue-500/30 hover:border-blue-500/60 hover:shadow-[0_0_30px_rgba(59,130,246,0.45)] transition-all duration-300 rounded-xl shadow-md overflow-hidden"
+                onClick={() => setShowProviderModal(true)}
+                data-testid="card-become-provider"
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-blue-500/20">
+                      <UserPlus className="h-5 w-5 text-blue-400" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-sm font-semibold text-white">Become a Provider</h3>
+                      <p className="text-xs text-white/70">Apply to work with clients inside My Perfect Meals</p>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <h3 className="text-sm font-semibold text-white">Become a Provider</h3>
-                    <p className="text-xs text-white/70">Apply to work with clients inside My Perfect Meals</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           )}
 
           {/* Saved Meals / Favorites — Essential+ only */}
           {(() => {
             const favLocked = !hasActivePaidSubscription(user);
             return (
-              <Card
-                className="cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg border border-red-500/20 transition-all duration-300 rounded-xl shadow-md relative overflow-hidden"
-                onClick={() => {
-                  if (favLocked) { requestUpgrade({ requiredTier: "essential", featureName: "Saved Meals" }); return; }
-                  setLocation("/saved-meals");
-                }}
-                data-testid="card-saved-meals"
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${favLocked ? "bg-red-500/10" : "bg-red-500/20"}`}>
-                      <Heart className={`h-5 w-5 ${favLocked ? "text-red-400/50" : "text-red-400"}`} fill="currentColor" />
+              <div className="relative">
+                <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(244,63,94,0.5), rgba(244,63,94,0.25), rgba(0,0,0,0))" }} />
+                <Card
+                  className="relative cursor-pointer active:scale-[0.98] bg-gradient-to-r from-black via-rose-950/30 to-black backdrop-blur-lg border border-rose-500/30 hover:border-rose-500/60 hover:shadow-[0_0_30px_rgba(244,63,94,0.45)] transition-all duration-300 rounded-xl shadow-md overflow-hidden"
+                  onClick={() => {
+                    if (favLocked) { requestUpgrade({ requiredTier: "essential", featureName: "Saved Meals" }); return; }
+                    setLocation("/saved-meals");
+                  }}
+                  data-testid="card-saved-meals"
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${favLocked ? "bg-red-500/10" : "bg-red-500/20"}`}>
+                        <Heart className={`h-5 w-5 ${favLocked ? "text-red-400/50" : "text-red-400"}`} fill="currentColor" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className={`text-sm font-semibold ${favLocked ? "text-white/50" : "text-white"}`}>Favorites</h3>
+                        <p className={`text-xs ${favLocked ? "text-white/40" : "text-white/70"}`}>Your saved meals — tap to view and reuse</p>
+                      </div>
+                      {favLocked && <Lock className="h-4 w-4 text-orange-400/70 flex-shrink-0" />}
                     </div>
-                    <div className="flex-1">
-                      <h3 className={`text-sm font-semibold ${favLocked ? "text-white/50" : "text-white"}`}>Favorites</h3>
-                      <p className={`text-xs ${favLocked ? "text-white/40" : "text-white/70"}`}>Your saved meals — tap to view and reuse</p>
-                    </div>
-                    {favLocked && <Lock className="h-4 w-4 text-orange-400/70 flex-shrink-0" />}
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </div>
             );
           })()}
 
           {/* Business Center */}
-          <Card
-            className="cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg border border-orange-500/30 transition-all duration-300 rounded-xl shadow-md relative overflow-hidden"
-            onClick={() => setLocation("/business-center")}
-            data-testid="card-business-center"
-          >
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-orange-500/20">
-                  <TrendingUp className="h-5 w-5 text-orange-400" />
+          <div className="relative">
+            <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(245,158,11,0.5), rgba(245,158,11,0.25), rgba(0,0,0,0))" }} />
+            <Card
+              className="relative cursor-pointer active:scale-[0.98] bg-gradient-to-r from-black via-amber-950/30 to-black backdrop-blur-lg border border-amber-500/30 hover:border-amber-500/60 hover:shadow-[0_0_30px_rgba(245,158,11,0.45)] transition-all duration-300 rounded-xl shadow-md overflow-hidden"
+              onClick={() => setLocation("/business-center")}
+              data-testid="card-business-center"
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-amber-500/20">
+                    <TrendingUp className="h-5 w-5 text-amber-400" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-sm font-semibold text-white">Business Suite</h3>
+                    <p className="text-xs text-white/70">Affiliates, coaching, academy &amp; partnerships</p>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <h3 className="text-sm font-semibold text-white">Business Suite</h3>
-                  <p className="text-xs text-white/70">Affiliates, coaching, academy &amp; partnerships</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
 
           {/* ProCare Features - Vertical Stack */}
           <div className="flex flex-col gap-3">
@@ -558,11 +576,14 @@ export default function MorePage() {
             )}
 
             {/* 3. Account Security — Two-Factor Authentication */}
-            <GlassCard className="border border-white/10">
-              <GlassCardContent className="p-5">
-                <MfaSetupSection />
-              </GlassCardContent>
-            </GlassCard>
+            <div className="relative">
+              <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(139,92,246,0.5), rgba(139,92,246,0.25), rgba(0,0,0,0))" }} />
+              <GlassCard className="relative border border-violet-500/30">
+                <GlassCardContent className="p-5">
+                  <MfaSetupSection />
+                </GlassCardContent>
+              </GlassCard>
+            </div>
 
             {/* 4. Other features (Supplement Hub, etc.) */}
             {proCareFeatures.filter(f => f.roleKey === null).map((feature) => {

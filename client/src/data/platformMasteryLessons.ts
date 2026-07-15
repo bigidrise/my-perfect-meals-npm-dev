@@ -400,6 +400,10 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
         heading: "Building Your Week",
         body: "**The planning board:**\n- Seven tabs — Monday through Sunday\n- Each day has five meal slots (Breakfast, Morning Snack, Lunch, Afternoon Snack, Dinner)\n- The Remaining Macros bar at the bottom updates in real time as you fill slots\n- Tap any empty slot → describe what you want → Generate → Add to Plan\n\n**Managing your week:**\n- **Duplicate** — copy any day's full meal set to another day\n- **Replace** — tap any filled slot and generate something new\n- **Save Plan** — saves your current week; your Shopping List updates\n- **Shopping List** — accessible from the builder or from the Smart Grocery List on your Dashboard\n\nThe goal isn't a perfect week on paper. Build a plan you can actually follow.",
       },
+      {
+        heading: "Pro Tips — Short Coaching Lessons",
+        body: "Throughout the Builders you'll see **Pro Tips**. These are short audio coaching lessons that teach techniques, shortcuts, and best practices for getting better results from My Perfect Meals.\n\nTap **Listen** to start. Each Pro Tip is broken into short sections — you can pause, rewind, or read along.\n\n- **10s Back** — rewinds the audio ten seconds if you missed something, without losing your place\n- **Transcript** — displays the full text of the current section so you can read along or read instead of listening\n- **Start Over** — replays the section from the beginning\n\nPro Tip sections stand on their own — you don't have to listen in order. Your narration speed preference from My Hub applies automatically.",
+      },
     ],
     exercise: {
       steps: [
@@ -414,6 +418,7 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
         "Tap **Duplicate** to copy today's meals to tomorrow.",
         "Open tomorrow's plan and tap one filled slot. Generate a different meal to replace it.",
         "Tap **Save Plan**.",
+        "Scroll to find the **Pro Tip** card at the bottom of your builder. Tap **Listen** and let it play through one section. Tap **10s Back** to rewind and hear it again. Then tap **Transcript** to read along while it plays.",
       ],
     },
     remember:
@@ -568,8 +573,8 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
         body: "My Perfect Meals includes a set of specialty creators for specific types of food and drink. They all work the same way — describe what you want, generate, get a result built around your profile. Here's how to think about which one to reach for:\n\n**When you're craving something**\n- **Craving Creator** — you're not hungry for a meal, you're hungry for something specific; the platform builds a version of it that fits your targets\n- **Dessert Creator** — dessert, built around your dietary identity and macros\n\n**When you need something quick**\n- **Snack Creator** — between-meal nutrition designed to fit your remaining macros for the day\n- **Beverage Creator** — smoothies, protein shakes, coffee drinks, mocktails, cocktails, and sports drinks generated around your profile\n\n**When you're looking for something specific**\n- **Sushi Creator** — specialty generation for sushi and Japanese-inspired meals, with dietary and allergy compliance built in\n- **Spirit & Wine Pairing Hub** — pairs food with wine or spirits, and includes a drink reduction tool",
       },
       {
-        heading: "Socializing Hub",
-        body: "One meal away from home shouldn't make you feel like you've failed.\n\nWhether you're eating at a restaurant, grabbing fast food, or looking for healthy options nearby, the **Socializing Hub** helps you make the best decision available instead of giving up on your plan.\n\nInside, you'll find three tools:\n\n**Restaurant Guide** — Enter where you're going or browse by cuisine, and get meal recommendations from that restaurant's menu that fit your profile.\n\n**Fast Food Guide** — The same guidance for fast food and quick-service chains. Useful when there aren't better options.\n\n**Find Meals Near Me** — Uses your location to surface nearby dining options with meals that match your profile.\n\nThe Socializing Hub isn't about being perfect when you eat out. It's about staying connected to your plan in the situations where most people abandon it.",
+        heading: "Meals Away From Home",
+        body: "One meal away from home shouldn't make you feel like you've failed.\n\nWhether you're eating at a restaurant, grabbing fast food, or looking for healthy options nearby, **Meals Away From Home** helps you make the best decision available instead of giving up on your plan.\n\nInside, you'll find three tools:\n\n**Restaurant Guide** — Enter where you're going or browse by cuisine, and get meal recommendations from that restaurant's menu that fit your profile.\n\n**Fast Food Guide** — The same guidance for fast food and quick-service chains. Useful when there aren't better options.\n\n**Find Meals Near Me** — Uses your location to surface nearby dining options with meals that match your profile.\n\nMeals Away From Home isn't about being perfect when you eat out. It's about staying connected to your plan in the situations where most people abandon it.",
       },
       {
         heading: "Lifestyle Collections",
@@ -581,7 +586,7 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
         "Open the **Lifestyle** page.",
         "Tap **Create a Dish**. Describe any meal you'd actually want to eat and generate it. When the Meal Card appears, read the entire card from top to bottom — the description, the badges, the ingredients, and the **Why This Works For You** section.",
         "Return to Lifestyle and tap **Fridge Rescue**. Enter three ingredients you have available. Generate a meal from them.",
-        "Return to Lifestyle and tap the **Socializing Hub**. Open the **Restaurant Guide** and browse it — enter a cuisine or restaurant type to see how it responds.",
+        "Return to Lifestyle and tap the **Meals Away From Home**. Open the **Restaurant Guide** and browse it — enter a cuisine or restaurant type to see how it responds.",
       ],
     },
     remember:
@@ -656,7 +661,7 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
         options: [
           "Create a Dish — describe what the restaurant typically serves.",
           "Fridge Rescue — enter the restaurant name to see what it generates.",
-          "The Restaurant Guide in the Socializing Hub — get profile-aligned recommendations from that restaurant's menu.",
+          "The Restaurant Guide in the Meals Away From Home — get profile-aligned recommendations from that restaurant's menu.",
           "Find Meals Near Me — to locate the restaurant by proximity.",
         ],
         correctIndex: 2,
@@ -664,7 +669,7 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
       {
         id: "l4-q7",
         question:
-          "A coach explains the Socializing Hub to a client who worries that eating out always ruins her plan. What is the most accurate description of what the Socializing Hub does?",
+          "A coach explains the Meals Away From Home to a client who worries that eating out always ruins her plan. What is the most accurate description of what the Meals Away From Home does?",
         options: [
           "It helps clients avoid restaurants entirely when they're on a strict plan.",
           "It helps clients make the best decision available when eating out — so they stay connected to their plan instead of abandoning it.",
@@ -743,6 +748,10 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
         heading: "Account & Security",
         body: "The account and security section handles the practical essentials:\n\n- **Password** — update your login credentials\n- **Two-Factor Authentication** — add a second layer of protection to your account\n- **Notifications** — control what the app communicates to you and how\n- **Privacy** — manage your data and privacy preferences\n\nIf you haven't set up two-factor authentication yet, it's worth doing before you continue.",
       },
+      {
+        heading: "Accessibility & Experience",
+        body: "My Hub includes two global preferences that apply throughout the entire app.\n\n**Text Size** — Choose from Standard, A+, or A++. Once set, every screen in My Perfect Meals displays at that size.\n\n**Narration Speed** — Choose from 0.75×, 1×, 1.25×, or 1.5×. Your narration speed is used throughout My Perfect Meals — including Pro Tips, Copilot guidance, and every other narrated experience in the app. Set it once and it applies everywhere, automatically.",
+      },
     ],
     exercise: {
       steps: [
@@ -752,6 +761,7 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
         "Tap **Business Suite**. Take note of what's inside. Return.",
         "Locate **Connect With Your Provider** on the More page.",
         "Locate **Account Security**. Confirm two-factor authentication is set up, or note to do it before continuing.",
+        "In My Hub, find **Text Size**. Try a different size and see how it feels. Then find **Narration Speed** — choose the speed that feels most natural to you when listening.",
       ],
     },
     remember:
@@ -903,7 +913,7 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
       },
       {
         heading: '"I want to understand the platform better."',
-        body: "**App Library** is your knowledge center.\n\nEverything in this Academy taught you how to use My Perfect Meals. The App Library teaches you how it works — and continues teaching as the platform grows. Whenever you're curious about why something behaves a certain way, or want to go deeper on any system, feature, or concept, start here.\n\nThe App Library is organized into six sections:\n\n**Start Here** — Begin here if you're new or want to understand the philosophy behind it. Covers why My Perfect Meals exists, why you're on your specific builder, and what makes this platform different.\n\n**Core Systems** — The major systems that work together: how meals are generated, how macro targets are calculated, how coaching works.\n\n**Nutrition Strategy** — The nutrition principles that influence your meals — the tools the platform uses to keep your eating satisfying, consistent, and effective.\n\n**Health & Safety** — SafetyGuard™, GlucoseGuard™, specialty nutrition support, and the tools that keep your recommendations aligned with your profile.\n\n**Specialized Systems** — The lifestyle tools and specialty creators available throughout the app.\n\n**Performance Modes** — How the platform adapts for athletic training, competition preparation, and performance nutrition goals.\n\nThe Academy teaches you how to use My Perfect Meals. The App Library continues teaching you as the platform grows.",
+        body: "**App Library** is your knowledge center.\n\nEverything in this Academy taught you how to use My Perfect Meals. The App Library teaches you how it works — and continues teaching as the platform grows. Whenever you're curious about why something behaves a certain way, or want to go deeper on any system, feature, or concept, start here.\n\nThe App Library is organized into six sections:\n\n**Start Here** — Begin here if you're new or want to understand the philosophy behind it. Covers why My Perfect Meals exists, why you're on your specific builder, and what makes this platform different.\n\n**Core Systems** — The major systems that work together: how meals are generated, how macro targets are calculated, how coaching works.\n\n**Nutrition Strategy** — The nutrition principles that influence your meals — the tools the platform uses to keep your eating satisfying, consistent, and effective.\n\n**Health & Safety** — SafetyGuard™, GlucoseGuard™, specialty nutrition support, and the tools that keep your recommendations aligned with your profile.\n\n**Specialized Systems** — The lifestyle tools and specialty creators available throughout the app.\n\n**Performance Modes** — How the platform adapts for athletic training, competition preparation, and performance nutrition goals.\n\nThe Academy teaches you how to use My Perfect Meals. The App Library continues teaching you as the platform grows.\n\nThe App Library is a living knowledge base. When features like Pro Tips, Coach's Corner, or new A.I. systems evolve, the App Library is updated so you always have the latest guidance in one place.",
       },
       {
         heading: '"I want professional help."',

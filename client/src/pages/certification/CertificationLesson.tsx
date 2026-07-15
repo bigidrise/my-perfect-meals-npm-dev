@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation, useParams } from "wouter";
 import { ArrowLeft, BookOpen, CheckCircle2, Clock } from "lucide-react";
 import { motion } from "framer-motion";
-import { getModuleById } from "@/data/affiliateCertification";
+import { getModuleById, getCoachingModuleById } from "@/data/affiliateCertification";
 import { apiRequest } from "@/lib/queryClient";
 import { BC_HEADER } from "@/components/BusinessCenterShell";
+import { NarrationBar } from "@/components/NarrationBar";
 
 export default function CertificationLesson() {
   const [, setLocation] = useLocation();
@@ -12,11 +13,12 @@ export default function CertificationLesson() {
   const pathId = params.pathId ?? "social";
   const moduleId = params.moduleId ?? "";
   const certType = `affiliate_${pathId}`;
-  const module = getModuleById(moduleId);
+  const module = pathId === "coaching" ? getCoachingModuleById(moduleId) : getModuleById(moduleId);
   const viewedRef = useRef(false);
 
   const [moduleStatus, setModuleStatus] = useState<string | null>(null);
   const [moduleScore, setModuleScore] = useState<number | null>(null);
+  const [highlightedSection, setHighlightedSection] = useState<number | null>(null);
 
   useEffect(() => {
     if (!moduleId) return;
@@ -106,14 +108,20 @@ export default function CertificationLesson() {
         )}
 
         {/* Module header */}
-        <div className="bg-white/5 border border-white/10 rounded-2xl px-5 py-5 flex items-start gap-4">
-          <div className="p-3 rounded-xl bg-orange-500/20 flex-shrink-0">
-            <BookOpen className="h-6 w-6 text-orange-400" />
+        <div className="bg-white/5 border border-white/10 rounded-2xl px-5 py-5 space-y-4">
+          <div className="flex items-start gap-4">
+            <div className="p-3 rounded-xl bg-orange-500/20 flex-shrink-0">
+              <BookOpen className="h-6 w-6 text-orange-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h2 className="text-lg font-bold text-white">{module.title}</h2>
+              <p className="text-sm text-gray-300 mt-1 leading-relaxed">{module.description}</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-lg font-bold text-white">{module.title}</h2>
-            <p className="text-sm text-gray-300 mt-1 leading-relaxed">{module.description}</p>
-          </div>
+          <NarrationBar
+            sections={module.sections}
+            onSectionChange={(i) => setHighlightedSection(i)}
+          />
         </div>
 
         {/* Content sections */}
@@ -121,7 +129,9 @@ export default function CertificationLesson() {
           {module.sections.map((section, i) => (
             <motion.div
               key={i}
-              className={`px-5 py-5 space-y-3 ${i < module.sections.length - 1 ? "border-b border-white/5" : ""}`}
+              className={`px-5 py-5 space-y-3 transition-colors duration-300 ${
+                i < module.sections.length - 1 ? "border-b border-white/5" : ""
+              } ${highlightedSection === i ? "bg-orange-500/10" : ""}`}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}

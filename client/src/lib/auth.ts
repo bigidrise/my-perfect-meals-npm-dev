@@ -101,6 +101,7 @@ export interface User {
   dailyFatTarget?: number | null;
   // Display preferences
   fontSizePreference?: "standard" | "large" | "xl";
+  narrationSpeedPreference?: "0.75" | "1.0" | "1.25" | "1.5";
   // ProCare Professional fields
   professionalRole?: "trainer" | "physician" | null;
   professionalCategory?: "certified" | "experienced" | "non_certified" | null;

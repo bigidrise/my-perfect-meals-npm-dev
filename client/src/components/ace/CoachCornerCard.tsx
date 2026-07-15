@@ -18,7 +18,9 @@ export default function CoachCornerCard() {
   const completed = !!data?.completed;
 
   return (
-    <div className="mb-4 rounded-2xl border border-orange-400/20 bg-gradient-to-r from-black/60 via-orange-600/20 to-black/60 backdrop-blur-sm p-4">
+    <div className="mb-4 relative">
+      <div className="pointer-events-none absolute -inset-1 rounded-2xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(249,115,22,0.5), rgba(249,115,22,0.25), rgba(0,0,0,0))" }} />
+    <div className="relative rounded-2xl border border-orange-400/30 bg-gradient-to-r from-black via-orange-950/30 to-black backdrop-blur-sm p-4">
       <div className="flex items-center gap-3 mb-3">
         <div className="w-11 h-11 rounded-full bg-orange-500/20 border border-orange-400/40 flex items-center justify-center shrink-0">
           <ChefHat className="w-5 h-5 text-orange-300" />
@@ -43,6 +45,7 @@ export default function CoachCornerCard() {
       >
         {completed ? "Open Coach's Corner" : "Open Coach's Corner"}
       </PillButton>
+    </div>
     </div>
   );
 }

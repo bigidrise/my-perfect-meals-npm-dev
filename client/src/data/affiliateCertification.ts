@@ -640,6 +640,479 @@ export const AFFILIATE_MODULES: CertificationModule[] = [
   },
 ];
 
+export const COACHING_MODULES: CertificationModule[] = [
+  {
+    id: "coaching-module-1",
+    title: "The My Perfect Meals Philosophy",
+    description: "Why My Perfect Meals exists — and why understanding that changes every coaching conversation you'll ever have.",
+    estimatedMinutes: 20,
+    sections: [
+      {
+        heading: "The Problem with Nutrition Advice Today",
+        text: "Most people aren't uninformed about nutrition. They're overwhelmed by it.\n\nOne source says keto. Another says vegan. Another says carnivore. Another says intermittent fasting. Another says just count calories. And every few months, something that was supposed to be true turns out to be wrong.\n\nThe problem isn't that people don't care. The problem is that they don't know what's true — and they don't know which advice applies to them specifically.\n\nThat's the environment your clients are living in. Before you explain what My Perfect Meals does, you need to understand the problem it was designed to solve.",
+      },
+      {
+        heading: "We're Not Building Another Diet",
+        text: "My Perfect Meals is not a diet.\n\nIt doesn't tell everyone to eat keto. It doesn't require you to go vegan. It doesn't hand you a 30-day plan and tell you to follow it.\n\nMost nutrition products give everyone the same answer and ask them to fit their life into it. My Perfect Meals asks a different question first: Who are you?\n\nYour goals. Your health conditions. Your medications. Your dietary identity. Your allergies. Your preferences. Your lifestyle. The restaurants near you. The foods you actually enjoy.\n\nAnd then it builds around that.",
+      },
+      {
+        heading: "The Central Message",
+        text: "Here is the sentence that defines everything about My Perfect Meals:\n\n\"We're not asking people to become nutrition experts. We're asking them to trust a system that already contains that expertise.\"\n\nThat's a different message than almost every other nutrition company.\n\nInstead of teaching users about protein absorption, glycemic index, or macro ratios — My Perfect Meals says: you don't need to know any of that. We've already built that knowledge into the system. Your job is to honestly tell the app who you are, and let it do what it was designed to do.\n\nPeople understand this immediately. And it immediately separates My Perfect Meals from everything else.",
+      },
+      {
+        heading: "What the App Does — So You Don't Have To",
+        text: "Every time a user generates a meal, the app is doing significant work behind the scenes:\n\nIt considers their primary health goal. It applies their medical conditions. It respects their dietary identity as an absolute boundary. It blocks their allergies. It incorporates their cuisine preferences. It accounts for their biometrics. It observes their patterns over time. It adapts restaurant recommendations to their profile. It remembers what they've asked for and what they've ignored.\n\nNone of that requires the user to understand nutrition science.\nNone of it requires the coach to calculate macros or design meal plans.\n\nThe system handles the expertise. The user handles the honesty. The coach handles the human side.",
+      },
+      {
+        heading: "Your Role in the Philosophy",
+        text: "Once you understand why My Perfect Meals exists, your role becomes clear.\n\nYou're not here to teach people about nutrition. The app does that.\nYou're not here to design meal plans. The app does that.\nYou're not here to police what someone eats. That's not coaching — that's control.\n\nYou're here to help people trust the process.\n\nWhen someone is confused, you explain. When someone is frustrated, you problem-solve. When someone is tempted to quit, you remind them what they're building. When someone is using the app in a way that's working against them, you help them use it better.\n\nThat's what a My Perfect Meals coach does.",
+        tip: "The goal isn't to teach every user everything we know about nutrition. The goal is to build enough intelligence into My Perfect Meals that people can stop worrying about nutrition and start trusting the decisions the app helps them make.",
+      },
+    ],
+    quiz: {
+      passingScore: 80,
+      questions: [
+        {
+          id: "cm1q1",
+          question: "What specific problem does My Perfect Meals exist to solve?",
+          options: [
+            "People lack access to affordable groceries.",
+            "People are overwhelmed by conflicting nutrition advice and don't know what actually applies to their specific situation.",
+            "People don't have enough healthy recipes to choose from.",
+            "People eat too many processed foods and need a stricter diet.",
+          ],
+          correctIndex: 1,
+          explanation: "My Perfect Meals wasn't built because people don't know what food is — it was built because they've heard too many conflicting answers and can't tell which one applies to them. Understanding that problem is what shapes everything about how you explain and coach the platform.",
+        },
+        {
+          id: "cm1q2",
+          question: "Which statement best captures the central message of My Perfect Meals?",
+          options: [
+            "We've built the most advanced calorie tracker available.",
+            "We teach people the right way to eat so they never have to guess again.",
+            "We're not asking people to become nutrition experts — we're asking them to trust a system that already contains that expertise.",
+            "We provide a proven 90-day meal plan that works for everyone.",
+          ],
+          correctIndex: 2,
+          explanation: "This is the single most important sentence in the My Perfect Meals philosophy. It explains why the platform is different: it doesn't ask users to learn nutrition science. It asks them to trust a system that has already done that work. Everything else follows from this.",
+        },
+        {
+          id: "cm1q3",
+          question: "A potential client says: \"I've tried every diet. Nothing sticks for me.\" Which response reflects the My Perfect Meals philosophy?",
+          options: [
+            "\"You probably haven't been disciplined enough. This app will help you stay accountable.\"",
+            "\"Most diets fail because they ask you to follow a plan someone else built. My Perfect Meals works differently — it builds a plan around who you actually are.\"",
+            "\"My Perfect Meals is a scientifically proven diet that gets results in 30 days.\"",
+            "\"The problem is probably your consistency. Once you commit, this will work.\"",
+          ],
+          correctIndex: 1,
+          explanation: "The philosophy-aligned response doesn't blame the person or promise a quick fix. It explains the real difference: My Perfect Meals doesn't hand everyone the same answer and ask them to conform. It starts with who the person is. That's the message that resonates with someone who has been let down before.",
+        },
+        {
+          id: "cm1q4",
+          question: "What is the coach's primary responsibility under the My Perfect Meals philosophy?",
+          options: [
+            "To calculate and verify clients' macro targets.",
+            "To design personalized meal plans that override the app's recommendations.",
+            "To help clients trust the process and use the app honestly.",
+            "To teach clients about protein synthesis, glycemic load, and nutrient timing.",
+          ],
+          correctIndex: 2,
+          explanation: "The app handles the nutrition science. The coach's job is not to replicate that work — it's to help people engage honestly with the system and trust that it's doing what it was designed to do. When clients are confused, frustrated, or tempted to quit, the coach is the human presence that keeps them moving.",
+        },
+        {
+          id: "cm1q5",
+          question: "My Perfect Meals is described as fundamentally different from traditional nutrition programs. What is that core difference?",
+          options: [
+            "It's cheaper than other nutrition apps on the market.",
+            "It uses artificial intelligence, which other apps don't.",
+            "Instead of giving everyone the same plan and asking them to conform, it starts with who the person actually is and builds around that.",
+            "It doesn't require users to log their meals like other apps do.",
+          ],
+          correctIndex: 2,
+          explanation: "Traditional nutrition programs hand everyone the same answer and ask them to fit into it. My Perfect Meals inverts this: it starts with the individual — their goals, conditions, preferences, and lifestyle — and builds around that. This distinction is the foundation of every coaching conversation you'll have.",
+        },
+      ],
+    },
+  },
+  {
+    id: "coaching-module-2",
+    title: "How to Talk About My Perfect Meals",
+    description: "How to explain what makes My Perfect Meals different — starting with the person in front of you, not the app.",
+    estimatedMinutes: 20,
+    sections: [
+      {
+        heading: "Start With the Person, Not the App",
+        text: "The most common mistake people make when sharing something they believe in is leading with features.\n\n\"It uses AI.\" \"It tracks macros.\" \"It has a restaurant feature.\"\n\nNone of those statements create connection. People don't care about features. They care about their problem.\n\nBefore you say a single word about My Perfect Meals, find out what's actually hard for the person in front of you. Ask questions. Listen. Let them tell you what they're dealing with.\n\nThen My Perfect Meals becomes the solution to their specific problem — not a product you're trying to sell.",
+      },
+      {
+        heading: "The Three-Part Structure",
+        text: "When you're ready to explain My Perfect Meals, use this structure:\n\n**Pain Zone → My Perfect Meals → Solution**\n\n**Pain Zone** is the specific struggle this person is experiencing. Not a generic problem — their problem. \"You mentioned you eat out constantly and feel like your nutrition falls apart every time.\" That's a Pain Zone.\n\n**My Perfect Meals** is why the app was built for exactly that. \"That's one of the things My Perfect Meals was designed for — it gives you personalized restaurant recommendations based on your goals and preferences, so eating out doesn't mean starting over.\"\n\n**Solution** is what changes when that problem is solved. \"Imagine never having to choose between your social life and your nutrition plan.\" That's the outcome they actually want.",
+      },
+      {
+        heading: "Finding the Pain Zone",
+        text: "Real problems create real connection. Here are conversation starters that work:\n\n\"How many times have you started over because life got busy?\"\n\n\"Have you ever been at a restaurant and felt like your whole nutrition plan fell apart?\"\n\n\"Wouldn't it be nice if there was something that could help you whether you're cooking at home, eating fast food, traveling, or celebrating a birthday?\"\n\n\"What's the hardest part of eating well for you right now?\"\n\nThese questions aren't manipulation — they're honest curiosity. When someone answers, you find out what they actually need. That's the basis of a real coaching conversation.",
+      },
+      {
+        heading: "What to Avoid",
+        text: "A few things that consistently kill My Perfect Meals conversations before they start:\n\n**Leading with features before the problem.** \"It uses AI\" means nothing to someone who doesn't yet care.\n\n**Overwhelming people with everything the app does.** Pick the one or two things that directly address what they just told you.\n\n**Using the word \"algorithm.\"** No one knows what to do with that in a conversation about food.\n\n**Talking price before value.** Once someone understands what changes for them, price becomes a much smaller conversation.\n\n**Explaining instead of asking.** The more you talk, the less you learn. Let them tell you what matters.",
+      },
+      {
+        heading: "The Message That Separates My Perfect Meals",
+        text: "If you take only one idea from this lesson into every conversation, make it this:\n\nMy Perfect Meals doesn't ask people to change who they are. It learns who they are and works with that.\n\nThat message is fundamentally different from every other nutrition product.\n\nMost nutrition programs hand people a plan and ask them to comply. My Perfect Meals asks: what do you like? What's your life actually like? What do you eat? What do you avoid? What are you dealing with medically?\n\nAnd then it builds a plan for that person.\n\nWhen you communicate that clearly, people lean in. Because most of them have been trying to fit themselves into someone else's plan — and it hasn't worked.",
+        tip: "Personalization is the hardest thing to communicate and the most important. The simplest explanation: 'It's not a meal plan someone else built. It's built for you, using your goals, your health, your preferences, and the way you actually live.'",
+      },
+    ],
+    quiz: {
+      passingScore: 80,
+      questions: [
+        {
+          id: "cm2q1",
+          question: "A friend tells you: \"I eat out all the time. I travel constantly. I could never do a healthy eating program.\" What is the correct My Perfect Meals response?",
+          options: [
+            "\"Then this probably isn't the right time for you to start.\"",
+            "\"My Perfect Meals actually has tools specifically for that — restaurant recommendations personalized to your goals, so eating out doesn't have to mean falling off track.\"",
+            "\"You should try to cook more at home. This app will help with that.\"",
+            "\"The app works best for people who have a more consistent home routine.\"",
+          ],
+          correctIndex: 1,
+          explanation: "Eating out frequently isn't a disqualifier — it's a use case. My Perfect Meals is designed for real-world eating, including restaurants. The correct response turns what sounds like an obstacle into a reason the app was built for them specifically.",
+        },
+        {
+          id: "cm2q2",
+          question: "Which of these is the best opening for a My Perfect Meals conversation?",
+          options: [
+            "\"This app uses AI to track your macros and generate personalized meals based on your goals.\"",
+            "\"How many times have you started a nutrition plan and then had to start over because life got in the way?\"",
+            "\"My Perfect Meals is $14.99 a month and has a free trial period.\"",
+            "\"It's an app for people who want to lose weight.\"",
+          ],
+          correctIndex: 1,
+          explanation: "Starting with a problem creates connection. Starting with features or pricing creates sales resistance. The question about starting over resonates immediately because almost everyone has experienced it. It opens a real conversation rather than triggering a polite decline.",
+        },
+        {
+          id: "cm2q3",
+          question: "What does the framework Pain Zone → My Perfect Meals → Solution guide you to do?",
+          options: [
+            "Identify what's painful about the app experience, report it to support, and wait for a solution.",
+            "Identify the person's specific struggle → connect it to why My Perfect Meals was built for exactly that → describe what changes when that problem is solved.",
+            "Sell the three subscription tiers in sequence, starting with the free option.",
+            "Follow a scripted three-step onboarding call with every new prospect.",
+          ],
+          correctIndex: 1,
+          explanation: "The framework keeps your conversation grounded in the other person's experience. You're not presenting a product — you're connecting their real problem to a solution that was built for it. That's the difference between a pitch and a conversation.",
+        },
+        {
+          id: "cm2q4",
+          question: "Which of the following should you avoid when explaining My Perfect Meals to someone for the first time?",
+          options: [
+            "Asking what's currently hard for them.",
+            "Sharing something the app does that directly addresses a problem they mentioned.",
+            "Explaining the AI algorithms, macro science, and personalization engine in technical detail.",
+            "Mentioning that the app adapts to their actual lifestyle.",
+          ],
+          correctIndex: 2,
+          explanation: "Technical explanations create distance. People don't need to understand how the technology works — they need to understand what changes for them. Lead with the problem and the outcome. Save technical depth for the rare person who specifically asks for it.",
+        },
+        {
+          id: "cm2q5",
+          question: "What is the most important message to communicate about how My Perfect Meals works?",
+          options: [
+            "It has one of the largest food databases of any nutrition app.",
+            "It was developed with input from certified dietitians and physicians.",
+            "Unlike programs that hand everyone the same plan, My Perfect Meals learns who you actually are and builds around that.",
+            "It integrates with most major fitness trackers and health platforms.",
+          ],
+          correctIndex: 2,
+          explanation: "This is the message that separates My Perfect Meals from everything else. Most people have tried programs that handed them a fixed plan and asked them to fit into it. The idea that the plan is built for them — not for a generic user — is the message that makes people lean in.",
+        },
+      ],
+    },
+  },
+  {
+    id: "coaching-module-3",
+    title: "Coaching the My Perfect Meals Way",
+    description: "Understanding your real role as a coach — and the clear line between what the app handles and what you handle.",
+    estimatedMinutes: 20,
+    sections: [
+      {
+        heading: "What the App Handles",
+        text: "My Perfect Meals was built to carry a significant load — and it does. Before you spend time worrying about what you're supposed to do as a coach, understand what you are not responsible for:\n\n**Nutrition science.** The app knows the nutritional properties of thousands of ingredients. You don't need to.\n\n**Macro calculations.** Every user's targets are calculated by the system based on their profile. You don't verify or adjust these.\n\n**Recipe adaptation.** If a user is keto, every generated meal is keto. If they're vegetarian, every meal is vegetarian. The system enforces this.\n\n**Allergy blocking.** Hard allergens are blocked at the system level. You don't track them manually.\n\n**Behavioral patterns over time.** The platform observes what users generate, save, and act on — and adapts accordingly.\n\nYour clients don't need you to manage any of this. The app does it.",
+      },
+      {
+        heading: "What You Handle",
+        text: "The app cannot call someone who is having a hard week.\nThe app cannot notice that someone is skipping every meal it generates.\nThe app cannot ask why someone keeps struggling on weekends.\nThe app cannot hear that a client is going through something difficult and adjust accordingly.\n\nThat's you.\n\nYour job is the human side of the coaching relationship:\n\n**Attention.** Noticing what the app can't see — emotional state, life circumstances, consistency patterns.\n\n**Questions.** Asking what's actually happening, not assuming.\n\n**Presence.** Being someone the client can be honest with about what's working and what isn't.\n\n**Accountability.** Following up. Checking in. Staying engaged.\n\nThe app does the nutrition. You do the coaching.",
+      },
+      {
+        heading: "The Questions That Matter",
+        text: "Effective My Perfect Meals coaching starts with behavioral questions — not nutritional ones.\n\n\"Are you actually eating the meals you generate?\"\n\"Are you enjoying what the app is making for you?\"\n\"What situations keep causing you to eat off-plan?\"\n\"Are you using the restaurant feature when you eat out?\"\n\"What happened last week when you didn't log anything?\"\n\"What's going on in your life right now that's making this harder?\"\n\nThese questions are not about macros. They're about reality.\n\nWhen you know what's actually happening in your client's life, you can actually help. When you only know their macro targets, you can't.",
+      },
+      {
+        heading: "How a My Perfect Meals Coach Responds",
+        text: "One of the clearest illustrations of the coaching philosophy is this scenario:\n\nA client says: \"I hate broccoli. Every meal I generate has broccoli in it.\"\n\nThe wrong response: \"Broccoli is high in fiber and very important for your goals. Try roasting it — you might like it better.\"\n\nThe right response: \"Great. Let's update your profile so it stops showing up. The app will still build everything correctly — it just won't use broccoli.\"\n\nThat's it.\n\nMy Perfect Meals can build a complete, nutritionally sound meal plan without a single ingredient the client dislikes. Your job is not to convince people to tolerate foods they hate. Your job is to help them use the app honestly — which means making sure their profile reflects who they actually are.\n\nWhen the profile is accurate, the meals are accurate. When the meals are accurate, people eat them.",
+      },
+      {
+        heading: "The Coaching Philosophy in One Sentence",
+        text: "Your job isn't to force people to follow a meal plan.\nYour job is to help them build one they'll actually follow.\n\nThat distinction is everything.\n\nA plan that someone will realistically follow — even if it's imperfect by some external standard — produces better outcomes than a technically perfect plan that sits ignored.\n\nMy Perfect Meals can adapt to almost any realistic lifestyle. Your job is to make sure the app knows who your client actually is. When it does, it builds something they'll genuinely use. That's where results come from.",
+        tip: "The most effective thing you can do as a My Perfect Meals coach is make someone feel understood — not lectured. When people feel understood, they open up. When they open up, you find out what's actually getting in the way. When you know that, you can actually help.",
+      },
+    ],
+    quiz: {
+      passingScore: 80,
+      questions: [
+        {
+          id: "cm3q1",
+          question: "Which of the following is the app's responsibility — NOT the coach's?",
+          options: [
+            "Noticing that a client hasn't logged a meal in three days.",
+            "Calculating macro targets based on a client's goals, profile, and body composition.",
+            "Understanding why a client keeps struggling on weekends.",
+            "Recognizing that a client is emotionally stressed and eating off-plan.",
+          ],
+          correctIndex: 1,
+          explanation: "Macro calculations are the app's job. Coaches do not verify or adjust these — the system handles that based on the client's profile. The coach's role is behavioral and relational: noticing patterns, asking the right questions, and helping clients use the app honestly.",
+        },
+        {
+          id: "cm3q2",
+          question: "A client says: \"I hate chicken. Every meal I generate has chicken in it.\" What is the correct coaching response?",
+          options: [
+            "\"Chicken is an excellent lean protein. Try a different preparation — you might like it more.\"",
+            "\"Let's update your profile so chicken is excluded. The app will still generate nutritionally complete meals — it just won't use it.\"",
+            "\"The app's recommendations are nutritionally optimized. I'd encourage you to follow them.\"",
+            "\"I'll request a custom meal plan from the support team.\"",
+          ],
+          correctIndex: 1,
+          explanation: "My Perfect Meals generates meals based on the profile. If a client keeps seeing an ingredient they dislike, the profile doesn't reflect who they are. Update the profile. The app will still build nutritionally sound meals — it simply won't use the disliked ingredient. The coach's job is to help clients use the app honestly, not to convince them to eat things they hate.",
+        },
+        {
+          id: "cm3q3",
+          question: "A client hasn't logged anything in five days. You reach out and they say: \"I was traveling.\" What is the most effective coaching response?",
+          options: [
+            "\"You need to stay consistent even while traveling. Skipping five days is a setback.\"",
+            "\"That's okay — just start fresh today.\"",
+            "\"Tell me about the trip — were you using the restaurant feature, or did you feel like you had no options while you were away?\"",
+            "\"I'll reset your weekly targets to account for the missed days.\"",
+          ],
+          correctIndex: 2,
+          explanation: "Effective coaching investigates what actually happened. Travel is a situation My Perfect Meals has tools for — restaurant recommendations, personalized to the client's profile. If those tools weren't used, the coach has an opportunity to close that gap. Judgment doesn't move anyone forward. Understanding does.",
+        },
+        {
+          id: "cm3q4",
+          question: "What does \"help them build a plan they'll actually follow\" mean in practice?",
+          options: [
+            "Allow clients to eat whatever they want as long as they feel good about it.",
+            "Give clients a strict meal plan and hold them accountable to following it exactly.",
+            "Ensure the client's profile accurately reflects their real lifestyle, preferences, and constraints — so the app generates meals they can genuinely sustain.",
+            "Create custom meal plans using external tools that override the app's recommendations.",
+          ],
+          correctIndex: 2,
+          explanation: "The philosophy isn't permissiveness — it's realism. A plan only works if a person will actually follow it. My Perfect Meals can adapt to almost any realistic lifestyle. The coach's job is to make sure the app knows who this person really is — not an idealized version of who they hope to become. When the profile is honest, the output is usable.",
+        },
+        {
+          id: "cm3q5",
+          question: "Which best describes the division of labor between the coach and My Perfect Meals?",
+          options: [
+            "The coach designs the nutrition plan; the app delivers it.",
+            "The coach and app share equal responsibility for all aspects of a client's nutrition.",
+            "The coach provides the nutrition expertise the app lacks, while the app tracks compliance.",
+            "The app manages nutrition science, calculations, and personalization; the coach manages the human side — behavior, consistency, and real-life obstacles.",
+          ],
+          correctIndex: 3,
+          explanation: "This is the core division of labor. The app doesn't need the coach to verify its nutrition recommendations — the system handles that. The coach brings what the app cannot: human presence, behavioral observation, empathy, and real-time responsiveness to what's happening in a client's life.",
+        },
+      ],
+    },
+  },
+  {
+    id: "coaching-module-4",
+    title: "Building Trust",
+    description: "How to represent My Perfect Meals honestly, set realistic expectations, and earn the trust that builds a lasting coaching practice.",
+    estimatedMinutes: 15,
+    sections: [
+      {
+        heading: "Set Realistic Expectations From the Start",
+        text: "Every coaching relationship starts with a set of expectations. Your job is to make sure those expectations are honest.\n\nMy Perfect Meals is a powerful personalized nutrition tool. It helps people make better food decisions consistently, over time. That's a real and meaningful benefit.\n\nIt does not guarantee specific weight loss by a specific date. It does not replace a physician or registered dietitian for medical conditions. It does not produce dramatic transformation in two weeks.\n\nWhat it does — consistent, personalized nutrition support over time — is genuinely valuable. And it's enough. You don't need to add anything to make it compelling.\n\nClients who enter the relationship with honest expectations stay. Clients who were promised something the platform couldn't deliver leave — and often say so publicly.",
+      },
+      {
+        heading: "Represent My Perfect Meals Accurately",
+        text: "There are things My Perfect Meals does and things it doesn't do. Know the difference, and never blur that line.\n\n**What it does:**\nGenerates personalized meals, snacks, beverages, and shopping lists. Adapts to goals, medical profiles, dietary identity, and lifestyle. Provides restaurant recommendations aligned to the user's profile. Tracks macros and nutrition over time. Supports clinical nutrition strategies for specific conditions.\n\n**What it doesn't do:**\nDiagnose or treat medical conditions. Replace a physician's care. Guarantee specific health outcomes. Provide emergency nutrition support.\n\nEvery claim you make creates an expectation. Claims you can stand behind build trust. Claims you can't eventually damage it — and your reputation along with it.",
+      },
+      {
+        heading: "Never Overpromise Results",
+        text: "The fastest way to lose a client's trust is to promise something the platform — or you — can't deliver.\n\nResults vary. Individual outcomes depend on many factors: starting point, adherence, health conditions, consistency, and more. The honest version of this conversation is also the more powerful one:\n\n\"My Perfect Meals is designed to help you make better food decisions, consistently, over time. That consistency is what produces real results — not a 30-day sprint.\"\n\nThat's true. And it resonates with anyone who has been let down by a dramatic promise before — which is most of the people you'll talk to.",
+      },
+      {
+        heading: "Focus on Consistency, Not Quick Fixes",
+        text: "People want fast results. That's human. And it's your job to gently redirect that toward something that will actually work.\n\nThe platform is designed for the long term. Position it that way.\n\nA client who achieves modest, real progress — and understands why — will stay, grow, and refer others. A client who expected dramatic results in two weeks and got steady improvement instead will feel disappointed, even if the steady improvement is exactly what was needed.\n\nYour job is to help clients understand what they're actually building: a sustainable relationship with food. That's worth more than a quick fix — and it lasts.",
+      },
+      {
+        heading: "Trust Is Earned Through Results, Not Promises",
+        text: "Your reputation as a coach is built one honest result at a time.\n\nWhen a client succeeds — even modestly — they talk about it. That word of mouth is worth more than any marketing campaign you'll ever run. When a client feels misled, they also talk about it.\n\nThe most powerful marketing tool you have is a client who genuinely improved their life and wants others to experience the same thing.\n\nYou build that by helping people honestly. By representing the platform accurately. By setting expectations they can realistically meet. By celebrating consistent progress.\n\nThat's not just ethics — it's strategy.",
+        tip: "If you don't know the answer to a client's question, say so. 'I'm not sure — let me find out' builds more trust than a confident answer that turns out to be wrong.",
+      },
+    ],
+    quiz: {
+      passingScore: 80,
+      questions: [
+        {
+          id: "cm4q1",
+          question: "A potential client asks: \"How much weight will I lose in the first month?\" What is the correct response?",
+          options: [
+            "\"Most users lose between 8 and 12 pounds in the first month.\"",
+            "\"Results vary because every person's body, goals, and starting point are different. What I can tell you is that My Perfect Meals helps you make better food decisions consistently — and consistency is what produces real results over time.\"",
+            "\"The app is scientifically proven to produce results within 30 days.\"",
+            "\"You'll definitely see results. Everyone I've coached has.\"",
+          ],
+          correctIndex: 1,
+          explanation: "Individual results vary significantly. Promising specific outcomes is both inaccurate and harmful to trust. The honest answer — that consistency produces results over time — is also the more resonant one for someone who has been let down by dramatic promises before.",
+        },
+        {
+          id: "cm4q2",
+          question: "Which of the following accurately represents what My Perfect Meals does?",
+          options: [
+            "\"This app will reverse your diabetes if you follow it correctly.\"",
+            "\"My Perfect Meals is a personalized nutrition tool that helps you make better food decisions based on your goals, health profile, and real-life lifestyle — consistently, over time.\"",
+            "\"Everyone who uses this app sees significant health improvement. It's guaranteed.\"",
+            "\"This replaces the need to see a doctor or nutritionist.\"",
+          ],
+          correctIndex: 1,
+          explanation: "Accurate representation describes what the app actually does: personalized nutrition support for better, more consistent food decisions. It doesn't make medical claims, guarantee outcomes, or overstate its role relative to healthcare professionals. Every claim you make sets an expectation — only make claims you can stand behind.",
+        },
+        {
+          id: "cm4q3",
+          question: "Why should coaches focus on consistency rather than quick results?",
+          options: [
+            "Quick results are physiologically unhealthy and should be avoided.",
+            "Regulatory requirements prevent coaches from discussing rapid transformation.",
+            "Clients who achieve real, consistent progress stay longer, trust more, and refer others — while clients who expected dramatic results and got steady improvement often feel disappointed and leave.",
+            "My Perfect Meals is not optimized for rapid results at any timeline.",
+          ],
+          correctIndex: 2,
+          explanation: "Focusing on consistency isn't just ethical — it's strategic. Clients who experience real, gradual progress understand what they're building and stick with it. Clients chasing quick fixes often quit when results slow down and blame the coach or product. The long-term relationship is built on honest, sustainable progress.",
+        },
+        {
+          id: "cm4q4",
+          question: "A client shows you a dramatic before/after photo they found online and asks: \"Will I get results like that?\" What is the appropriate coaching response?",
+          options: [
+            "\"Absolutely — those results are typical for people who commit to My Perfect Meals.\"",
+            "\"Results like that are possible, but individual outcomes vary based on goals, starting point, consistency, and health factors. What I can tell you is what My Perfect Meals actually does and how to use it well.\"",
+            "\"Those results are probably exaggerated. Don't compare yourself to that.\"",
+            "\"That person worked with a coach. That's exactly why you're working with me.\"",
+          ],
+          correctIndex: 1,
+          explanation: "You can't validate someone else's results as typical — because they're not. The honest response acknowledges that significant results are possible while setting accurate expectations. This protects both the client and the coaching relationship.",
+        },
+        {
+          id: "cm4q5",
+          question: "What is the most durable source of trust in a coaching relationship?",
+          options: [
+            "Sharing impressive credentials and professional certifications.",
+            "Providing detailed nutrition science explanations that demonstrate expertise.",
+            "Helping clients achieve genuine improvement — honestly, consistently, and without overpromising.",
+            "Maintaining frequent social media presence that demonstrates coaching authority.",
+          ],
+          correctIndex: 2,
+          explanation: "Trust is built through results, not promises or credentials. When someone's life genuinely improves, they trust the person who helped them get there. That trust is what generates referrals, longevity, and a coaching reputation that grows over time.",
+        },
+      ],
+    },
+  },
+  {
+    id: "coaching-module-5",
+    title: "Growing Your Business",
+    description: "Practical tools and the mindset for building a My Perfect Meals coaching practice — starting with one person.",
+    estimatedMinutes: 15,
+    sections: [
+      {
+        heading: "Start With One",
+        text: "The most common mistake new coaches make is trying to build a system before they have a client.\n\nThey want the perfect pitch, the polished social media presence, the professional website, the booking system, the intake forms — all before they've coached a single person.\n\nNone of that matters yet.\n\nStart with one person. Someone you know. Someone in your life who is struggling with nutrition right now. Offer to help them — not as a transaction, but as an act of coaching.\n\nHelp them honestly. Help them well. Let that be the foundation.\n\nOne real result — one person who says \"this actually worked for me\" — creates more momentum than the most polished launch you'll ever execute.",
+      },
+      {
+        heading: "Where Your First Clients Come From",
+        text: "Your first clients almost always come from your existing network. People who already know you, already trust you, and are more likely to take a chance on a new service.\n\n**Your personal network.** Who in your life is actively struggling with nutrition right now? That's your starting point.\n\n**Your existing professional relationships.** If you already work in a health, fitness, or wellness role, you already have a warm audience.\n\n**Your own visible results.** When people see that something is working for you, they ask. Have an honest answer ready.\n\n**Online communities.** Groups where your target audience spends time — fitness communities, health-focused forums, local Facebook groups. Be genuinely helpful there before you ever mention My Perfect Meals.",
+      },
+      {
+        heading: "Using Your Affiliate Tools",
+        text: "You have specific tools available to you as a My Perfect Meals affiliate coach. Use them.\n\n**Your promo code.** Share it with people who are genuinely interested. It gives them an incentive to try My Perfect Meals and ties their account to your affiliate record. Think of it as a gift, not a sales tactic.\n\n**The marketing library.** Monthly marketing resources are available to you — graphics, copy, and templates designed to be shared. Use them as-is or adapt them for your specific audience. You don't need to create everything from scratch.\n\n**Your affiliate dashboard.** This shows who has signed up through your link, what actions they've taken, and how your network is growing. Check it. Use it to understand what's working.",
+      },
+      {
+        heading: "Building Referrals",
+        text: "Referrals don't happen automatically. They happen when you ask — at the right moment, in the right way.\n\n**Ask at the right moment.** When a client shares good news — a milestone, a compliment, a week that finally clicked — that's your moment. \"Would you know anyone who might benefit from something like this?\"\n\n**Make it easy.** \"I have a promo code you can share with them — it gives them a discount to get started.\" One sentence. That's it.\n\n**Follow up once.** If a client mentioned someone who was interested, check back in a week. One follow-up often makes the difference between a warm lead and a converted one.\n\nReferrals aren't aggressive. They're a natural extension of something that's working. When your clients are genuinely succeeding, asking feels easy because you're offering something real.",
+      },
+      {
+        heading: "Let Results Become Your Marketing",
+        text: "Every successful client is a story.\n\nNot a case study. Not a testimonial you manufactured. A real person who experienced real improvement — and now talks about it because they want other people to experience the same thing.\n\nYou don't need to manufacture urgency. You don't need bold claims or transformation photos. You need to help people genuinely — and let that speak.\n\nMy Perfect Meals is growing. The coaching platform is expanding. Coaches who are excellent and honest now will be well-positioned as the network grows and the platform becomes better known.\n\nThe business you build through genuine results compounds over time. Every client who succeeds becomes a source of referrals. Every referral becomes a potential client. Every client who succeeds becomes another source.\n\nThat's the model. Start with one. Help them well. Everything else follows.",
+        tip: "Don't wait until you have a perfect marketing plan or a fully built social presence. Start by helping one person. Everything else follows from that.",
+      },
+    ],
+    quiz: {
+      passingScore: 80,
+      questions: [
+        {
+          id: "cm5q1",
+          question: "What is the most important thing a new My Perfect Meals coach should focus on first?",
+          options: [
+            "Building a social media following before taking on any clients.",
+            "Designing a professional website, booking system, and intake forms.",
+            "Helping one real person achieve genuine improvement — and letting that become the foundation everything else builds on.",
+            "Completing every available certification before coaching anyone.",
+          ],
+          correctIndex: 2,
+          explanation: "The foundation of a coaching business is a real result. Before systems, marketing, and social presence — you need one person whose life improved because of your coaching. That result is your proof of concept and your most powerful referral story. Everything else is easier once you have that.",
+        },
+        {
+          id: "cm5q2",
+          question: "A client tells you: \"I had a great week — I actually enjoyed what I was eating for the first time in years.\" What is the right coaching response?",
+          options: [
+            "\"Great! Keep it up.\"",
+            "\"That's exactly what My Perfect Meals is designed to do — would you know anyone who might benefit from something like this? I have a promo code they can use to get started.\"",
+            "\"That's just the beginning — wait until you see what happens at 90 days.\"",
+            "\"Tell me about your macros this week.\"",
+          ],
+          correctIndex: 1,
+          explanation: "Positive momentum is exactly the right moment to ask for a referral — naturally and without pressure. Offering your promo code makes it easy for the client to share. Referrals grow from real results. This is how.",
+        },
+        {
+          id: "cm5q3",
+          question: "What is the correct use of a My Perfect Meals promo code?",
+          options: [
+            "Post it publicly everywhere to maximize reach.",
+            "Reserve it for clients who specifically ask for a discount.",
+            "Share it with people who are genuinely interested — it gives them an incentive to try and ties their account to your affiliate record.",
+            "Use it internally to unlock premium features for your existing clients.",
+          ],
+          correctIndex: 2,
+          explanation: "Your promo code serves two purposes: it gives potential clients a reason to act, and it connects their account to your affiliate record. Share it with people who are genuinely curious — and frame it as a gift, not a tactic. That framing makes it far more effective.",
+        },
+        {
+          id: "cm5q4",
+          question: "A new coach asks: \"I have no clients yet. Where do I start?\" What is the best answer?",
+          options: [
+            "\"Build your social media presence first so people can find you.\"",
+            "\"Get more certifications. The more credentials you have, the easier it is.\"",
+            "\"Start with your existing network. Who in your life is struggling with nutrition right now? Offer to genuinely help them. One real result creates more momentum than any marketing launch.\"",
+            "\"Focus on paid advertising — organic growth takes too long to build a real business.\"",
+          ],
+          correctIndex: 2,
+          explanation: "The first client almost always comes from the coach's existing network. Someone who already knows and trusts you is more likely to take a chance on something new. Start by genuinely helping someone — not as a transaction, but as an act of coaching. A real result is the most powerful thing you can have.",
+        },
+        {
+          id: "cm5q5",
+          question: "Which statement best describes what \"let results become your marketing\" means in practice?",
+          options: [
+            "Collect client testimonials and run them as paid social media ads.",
+            "Build a documented case study library for your website.",
+            "Help clients achieve genuine improvement — and allow their authentic enthusiasm to generate referrals naturally, without manufactured urgency or bold claims.",
+            "Ask every client to post about their progress on social media weekly.",
+          ],
+          correctIndex: 2,
+          explanation: "Real results, honestly achieved, create authentic word-of-mouth. When someone's life genuinely improves, they talk about it without being prompted — and that unsolicited recommendation carries more credibility than any campaign. Your job is to produce the result. The marketing follows from that.",
+        },
+      ],
+    },
+  },
+];
+
 export function getModuleById(moduleId: string): CertificationModule | undefined {
   return AFFILIATE_MODULES.find((m) => m.id === moduleId);
 }
@@ -658,4 +1131,24 @@ export function getPrevModuleId(moduleId: string): string | null {
   const idx = getModuleIndex(moduleId);
   if (idx <= 0) return null;
   return AFFILIATE_MODULES[idx - 1].id;
+}
+
+export function getCoachingModuleById(moduleId: string): CertificationModule | undefined {
+  return COACHING_MODULES.find((m) => m.id === moduleId);
+}
+
+export function getCoachingModuleIndex(moduleId: string): number {
+  return COACHING_MODULES.findIndex((m) => m.id === moduleId);
+}
+
+export function getNextCoachingModuleId(moduleId: string): string | null {
+  const idx = getCoachingModuleIndex(moduleId);
+  if (idx === -1 || idx >= COACHING_MODULES.length - 1) return null;
+  return COACHING_MODULES[idx + 1].id;
+}
+
+export function getPrevCoachingModuleId(moduleId: string): string | null {
+  const idx = getCoachingModuleIndex(moduleId);
+  if (idx <= 0) return null;
+  return COACHING_MODULES[idx - 1].id;
 }
