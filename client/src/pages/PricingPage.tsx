@@ -23,6 +23,7 @@ import {
   IOS_DISPLAY_FEATURES,
 } from "@shared/planFeatures";
 import { startCheckout, IOS_BLOCK_ERROR } from "@/lib/checkout";
+import { getAuthHeaders } from "@/lib/auth";
 import {
   isIosNativeShell,
   IOS_PAYMENT_MESSAGE,
@@ -530,7 +531,7 @@ export default function PricingPage() {
     try {
       const res = await fetch(apiUrl("/api/stripe/checkout/business"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
         body: JSON.stringify({ seats: businessSeats }),
       });
