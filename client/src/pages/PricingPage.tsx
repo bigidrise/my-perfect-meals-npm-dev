@@ -1102,9 +1102,9 @@ export default function PricingPage() {
                   <p className="text-orange-300 text-sm font-medium">$44.99 per seat / month</p>
                   <div className="flex items-baseline gap-1 pt-1">
                     <span className="text-3xl font-bold">${(44.99 * businessSeats).toFixed(2)}</span>
-                    <span className="text-white/50 text-sm">/ month</span>
+                    <span className="text-white text-sm">/ month</span>
                   </div>
-                  <p className="text-white/50 text-xs">
+                  <p className="text-white text-xs">
                     {businessSeats} seat{businessSeats > 1 ? "s" : ""} · Full Clinical access for each assigned user
                   </p>
                 </div>
