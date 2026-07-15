@@ -119,6 +119,9 @@ router.post("/", async (req, res) => {
         const subscriptionId = session.subscription as string;
         const customerId = session.customer as string;
 
+        const subscriptionType = metadata.subscriptionType ?? "individual";
+        const seatCount = metadata.seatCount ? Number(metadata.seatCount) : 1;
+
         await updateUserSubscription({
           userId,
           lookupKey: sku,
@@ -126,7 +129,13 @@ router.post("/", async (req, res) => {
           stripeSubscriptionId: subscriptionId,
         });
 
-        console.log(`✅ [webhook] checkout.session.completed — user ${userId} → ${sku}`);
+        if (subscriptionType === "business_seat") {
+          console.log(
+            `✅ [webhook] checkout.session.completed — business_seat | user ${userId} → ${sku} | seats=${seatCount} | total=$${(44.99 * seatCount).toFixed(2)}/mo`,
+          );
+        } else {
+          console.log(`✅ [webhook] checkout.session.completed — user ${userId} → ${sku}`);
+        }
         break;
       }
 

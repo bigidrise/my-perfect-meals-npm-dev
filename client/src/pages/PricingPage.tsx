@@ -49,6 +49,8 @@ export default function PricingPage() {
     null,
   );
   const [restoringPurchases, setRestoringPurchases] = useState(false);
+  const [businessSeats, setBusinessSeats] = useState(4);
+  const [businessCheckoutLoading, setBusinessCheckoutLoading] = useState(false);
 
   const [procareRole, setProcareRole] = useState<"trainer" | "physician">(
     () => (localStorage.getItem("procare_role") as "trainer" | "physician" | null) || "trainer"
@@ -518,6 +520,34 @@ export default function PricingPage() {
       });
     }
   };
+
+  async function handleBusinessCheckout() {
+    if (!user) {
+      setLocation("/welcome");
+      return;
+    }
+    setBusinessCheckoutLoading(true);
+    try {
+      const res = await fetch(apiUrl("/api/stripe/checkout/business"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ seats: businessSeats }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast({ title: "Checkout Error", description: data.error || "Please try again.", variant: "destructive" });
+        return;
+      }
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (err: any) {
+      toast({ title: "Checkout Error", description: "Something went wrong. Please try again.", variant: "destructive" });
+    } finally {
+      setBusinessCheckoutLoading(false);
+    }
+  }
 
   const getButtonText = (sku: string): string => {
     const currentPlan = user?.planLookupKey;
@@ -1046,6 +1076,105 @@ export default function PricingPage() {
               })}
             </div>
           </div>
+
+        {/* Clinical Business Section */}
+        <div className="mb-12">
+          <div className="text-center mb-6">
+            <div className="inline-flex items-center gap-2 bg-orange-600/20 border border-orange-500/30 rounded-full px-4 py-2 mb-4">
+              <span className="text-orange-300 text-sm font-semibold tracking-wide uppercase">
+                Clinical Business
+              </span>
+            </div>
+            <h2 className="text-2xl font-bold text-white">Clinical Access for Your Whole Team</h2>
+            <p className="text-white/60 text-sm mt-2 max-w-xl mx-auto">
+              For coaching businesses, wellness organizations, and healthcare practices. One subscription — centralized billing, full Clinical access for every assigned seat.
+            </p>
+          </div>
+
+          <div className="max-w-lg mx-auto">
+            <Card className="relative bg-black/30 backdrop-blur-lg border border-orange-500/30 text-white shadow-xl">
+              <CardHeader className="pb-4">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xl font-bold">Clinical Business</h3>
+                    <Badge className="bg-orange-600/80 text-white border border-orange-400/30">Team Plan</Badge>
+                  </div>
+                  <p className="text-orange-300 text-sm font-medium">$44.99 per seat / month</p>
+                  <div className="flex items-baseline gap-1 pt-1">
+                    <span className="text-3xl font-bold">${(44.99 * businessSeats).toFixed(2)}</span>
+                    <span className="text-white/50 text-sm">/ month</span>
+                  </div>
+                  <p className="text-white/50 text-xs">
+                    {businessSeats} seat{businessSeats > 1 ? "s" : ""} · Full Clinical access for each assigned user
+                  </p>
+                </div>
+              </CardHeader>
+
+              <Separator className="bg-white/10" />
+
+              <CardContent className="pt-5">
+                {/* Seat selector */}
+                <div className="mb-5">
+                  <p className="text-sm text-white/70 mb-3 font-medium">Number of seats</p>
+                  <div className="flex gap-2">
+                    {[1, 2, 3, 4].map((n) => (
+                      <button
+                        key={n}
+                        onClick={() => setBusinessSeats(n)}
+                        className={`flex-1 py-2 rounded-full text-sm font-semibold border transition-colors ${
+                          businessSeats === n
+                            ? "bg-orange-600 text-white border-orange-500"
+                            : "bg-white/5 text-white/60 border-white/15"
+                        }`}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Features */}
+                <div className="space-y-2.5">
+                  {[
+                    "Full Clinical access for every assigned user",
+                    "Clinical Lab Results Integration",
+                    "Care Team Access (physician & trainer)",
+                    "Performance Nutrition Builder",
+                    "Clinical Advisory System",
+                    "Centralized business billing",
+                    "Add and manage team members",
+                    "All Pro & Essential features included",
+                  ].map((feat, i) => (
+                    <div key={i} className="flex items-start gap-2">
+                      <Check className="w-4 h-4 text-orange-400 mt-0.5 flex-shrink-0" />
+                      <span className="text-sm text-white/90">{feat}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+
+              <Separator className="bg-white/10" />
+
+              <div className="p-5">
+                <Button
+                  className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold"
+                  size="lg"
+                  disabled={businessCheckoutLoading}
+                  onClick={handleBusinessCheckout}
+                >
+                  {businessCheckoutLoading ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Processing…</>
+                  ) : (
+                    `Start a Clinical Business Team — $${(44.99 * businessSeats).toFixed(2)}/mo`
+                  )}
+                </Button>
+                <p className="text-white/40 text-xs text-center mt-2">
+                  Web billing only · Manage seats from your account dashboard
+                </p>
+              </div>
+            </Card>
+          </div>
+        </div>
 
         {/* Signature Kitchen Section */}
         <div className="mb-12">

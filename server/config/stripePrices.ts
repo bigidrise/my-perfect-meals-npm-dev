@@ -84,6 +84,14 @@ const guidance = safePrice(
   "Personal Guidance",
 );
 
+/* Clinical Business (OPTIONAL — web-only, never crashes server) */
+
+const clinicalBusinessMonthly = safePrice(
+  "STRIPE_CLINICAL_BUSINESS_MONTHLY_PRICE_ID",
+  "Clinical Business Monthly",
+  false,
+);
+
 /* Signature Kitchen (OPTIONAL — NEVER crashes server) */
 
 const signatureKitchenStarter = safePrice(
@@ -126,4 +134,6 @@ export const STRIPE_PRICE_IDS: Record<LookupKey, string> = {
   signature_kitchen_starter_monthly: signatureKitchenStarter,
   signature_kitchen_pro_monthly: signatureKitchenPro,
   signature_kitchen_partner_monthly: signatureKitchenPartner,
+
+  clinical_business_monthly: clinicalBusinessMonthly,
 };
