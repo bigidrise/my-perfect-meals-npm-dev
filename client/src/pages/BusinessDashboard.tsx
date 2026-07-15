@@ -27,6 +27,8 @@ import {
   CheckCircle,
   Crown,
   Settings,
+  BookOpen,
+  ChevronRight,
 } from "lucide-react";
 
 const ROLE_OPTIONS = [
@@ -369,7 +371,7 @@ export default function BusinessDashboard() {
         <Building2 className="w-14 h-14 text-blue-400 mb-4" />
         <h2 className="text-white text-xl font-bold mb-2">No Business Account Found</h2>
         <p className="text-white/60 text-sm mb-6 max-w-xs">
-          A business account is created automatically when you purchase a Clinical Business plan.
+          A business account is created automatically when you purchase an Organization plan.
         </p>
         <button
           className="px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors"
@@ -393,7 +395,7 @@ export default function BusinessDashboard() {
           </button>
           <div>
             <h1 className="text-white font-bold text-base leading-tight">My Business Team</h1>
-            <p className="text-white/50 text-xs">Clinical Business Member</p>
+            <p className="text-white/50 text-xs">Organization Member</p>
           </div>
         </div>
         <div className="px-4 pt-6 max-w-sm mx-auto space-y-4">
@@ -410,7 +412,7 @@ export default function BusinessDashboard() {
             <div className="flex items-center justify-between">
               <span className="text-white/50 text-sm">Access</span>
               <span className="text-green-400 text-sm font-medium flex items-center gap-1">
-                <CheckCircle className="w-3.5 h-3.5" /> Clinical Business
+                <CheckCircle className="w-3.5 h-3.5" /> Organization Access
               </span>
             </div>
             <div className="flex items-center justify-between">
@@ -442,7 +444,7 @@ export default function BusinessDashboard() {
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-600/20 border border-blue-500/30 mb-4">
               <Crown className="w-8 h-8 text-blue-400" />
             </div>
-            <h1 className="text-white text-2xl font-bold">Welcome to Clinical Business</h1>
+            <h1 className="text-white text-2xl font-bold">Welcome to Your Organization</h1>
             <p className="text-white/60 text-sm mt-2">
               Your {business.seatLimit}-seat team account is active. Let's get set up.
             </p>
@@ -511,7 +513,7 @@ export default function BusinessDashboard() {
           <ChevronLeft className="w-5 h-5" />
         </button>
         <div>
-          <h1 className="text-white font-bold text-base leading-tight">Clinical Business Dashboard</h1>
+          <h1 className="text-white font-bold text-base leading-tight">Organization Dashboard</h1>
           <p className="text-white/50 text-xs">Manage team members, seats &amp; invitations</p>
         </div>
       </div>
@@ -595,6 +597,21 @@ export default function BusinessDashboard() {
         >
           <UserPlus className="w-4 h-4" />
           {seatsFull ? "No Seats Available" : "Invite a Team Member"}
+        </button>
+
+        {/* Organization Success Center */}
+        <button
+          className="w-full flex items-center gap-3 p-3.5 rounded-xl bg-gradient-to-r from-orange-600/15 via-orange-600/10 to-transparent border border-orange-500/25 active:opacity-80 transition-opacity text-left"
+          onClick={() => setLocation("/org-success-center")}
+        >
+          <div className="w-9 h-9 rounded-full bg-orange-600/20 border border-orange-500/30 flex items-center justify-center flex-shrink-0">
+            <BookOpen className="w-5 h-5 text-orange-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-white text-sm font-semibold">Organization Success Center</p>
+            <p className="text-white/50 text-xs mt-0.5">How-to guides · Read or listen</p>
+          </div>
+          <ChevronRight className="w-4 h-4 text-white/30 flex-shrink-0" />
         </button>
 
         {/* Active Members */}

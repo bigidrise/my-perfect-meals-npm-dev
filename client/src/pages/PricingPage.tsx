@@ -1082,15 +1082,15 @@ export default function PricingPage() {
             </div>
           </div>
 
-        {/* Clinical Business Section */}
+        {/* Organization Section */}
         <div className="mb-12">
           <div className="text-center mb-6">
             <div className="inline-flex items-center gap-2 bg-blue-600/20 border border-blue-500/30 rounded-full px-4 py-2 mb-4">
               <span className="text-blue-300 text-sm font-semibold tracking-wide uppercase">
-                Clinical Business
+                Organization
               </span>
             </div>
-            <h2 className="text-2xl font-bold text-white">Clinical Access for Your Whole Team</h2>
+            <h2 className="text-2xl font-bold text-white">Full Access for Your Whole Team</h2>
             <p className="text-white/60 text-sm mt-2 max-w-xl mx-auto">
               For coaching businesses, wellness organizations, and healthcare practices. One subscription — centralized billing, full Clinical access for every assigned seat.
             </p>
@@ -1101,7 +1101,7 @@ export default function PricingPage() {
               <CardHeader className="pb-4">
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-xl font-bold">Clinical Business</h3>
+                    <h3 className="text-xl font-bold">Organization</h3>
                     <Badge className="bg-blue-600/80 text-white border border-blue-400/30">Team Plan</Badge>
                   </div>
                   <p className="text-blue-300 text-sm font-medium">$44.99 per seat / month</p>
@@ -1182,7 +1182,7 @@ export default function PricingPage() {
                   {businessCheckoutLoading ? (
                     <><Loader2 className="w-4 h-4 animate-spin" />Processing…</>
                   ) : (
-                    `Start a Clinical Business Team — $${(44.99 * businessSeats).toFixed(2)}/mo`
+                    `Start an Organization — $${(44.99 * businessSeats).toFixed(2)}/mo`
                   )}
                 </button>
                 <p className="text-white/40 text-xs text-center mt-2">
