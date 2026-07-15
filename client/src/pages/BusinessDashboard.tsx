@@ -148,6 +148,8 @@ export default function BusinessDashboard() {
     }
   };
 
+  const refreshIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   useEffect(() => {
     const init = async () => {
       const found = await fetchData();
@@ -173,7 +175,16 @@ export default function BusinessDashboard() {
       }
     };
     init();
-    return () => { if (pollRef.current) clearTimeout(pollRef.current); };
+
+    // Auto-refresh owner dashboard every 30s so accepted invites appear without manual reload
+    refreshIntervalRef.current = setInterval(() => {
+      fetchData();
+    }, 30000);
+
+    return () => {
+      if (pollRef.current) clearTimeout(pollRef.current);
+      if (refreshIntervalRef.current) clearInterval(refreshIntervalRef.current);
+    };
   }, []);
 
   const handleSaveSetup = async () => {
