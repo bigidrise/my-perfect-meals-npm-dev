@@ -30,7 +30,7 @@ async function getActiveSeats(businessId: string): Promise<number> {
 
 // ── GET /api/business/mine — owner fetches their business dashboard data
 router.get("/mine", requireAuth, async (req, res) => {
-  const userId = (req as any).userId as string;
+  const userId = (req as any).authUser?.id as string;
   try {
     const [business] = await db
       .select()
@@ -78,7 +78,7 @@ router.get("/mine", requireAuth, async (req, res) => {
 
 // ── GET /api/business/membership — member (non-owner) checks if they're in a business
 router.get("/membership", requireAuth, async (req, res) => {
-  const userId = (req as any).userId as string;
+  const userId = (req as any).authUser?.id as string;
   try {
     const [membership] = await db
       .select({
@@ -109,7 +109,7 @@ router.get("/membership", requireAuth, async (req, res) => {
 
 // ── POST /api/business/invite — owner sends an invite
 router.post("/invite", requireAuth, async (req, res) => {
-  const userId = (req as any).userId as string;
+  const userId = (req as any).authUser?.id as string;
   const { email, role = "staff" } = req.body as { email: string; role?: string };
 
   if (!email || !email.includes("@")) {
@@ -226,7 +226,7 @@ router.post("/invite", requireAuth, async (req, res) => {
 
 // ── DELETE /api/business/members/:memberId — owner removes a member
 router.delete("/members/:memberId", requireAuth, async (req, res) => {
-  const userId = (req as any).userId as string;
+  const userId = (req as any).authUser?.id as string;
   const { memberId } = req.params;
 
   try {
@@ -269,7 +269,7 @@ router.delete("/members/:memberId", requireAuth, async (req, res) => {
 
 // ── DELETE /api/business/invitations/:token — owner cancels a pending invite
 router.delete("/invitations/:token", requireAuth, async (req, res) => {
-  const userId = (req as any).userId as string;
+  const userId = (req as any).authUser?.id as string;
   const { token } = req.params;
 
   try {
@@ -303,7 +303,7 @@ router.delete("/invitations/:token", requireAuth, async (req, res) => {
 
 // ── POST /api/business/invitations/:token/resend — owner resends an invite
 router.post("/invitations/:token/resend", requireAuth, async (req, res) => {
-  const userId = (req as any).userId as string;
+  const userId = (req as any).authUser?.id as string;
   const { token } = req.params;
 
   try {
@@ -415,7 +415,7 @@ router.get("/invite/:token", async (req, res) => {
 
 // ── POST /api/business/invite/:token/accept — authenticated user accepts invite
 router.post("/invite/:token/accept", requireAuth, async (req, res) => {
-  const userId = (req as any).userId as string;
+  const userId = (req as any).authUser?.id as string;
   const { token } = req.params;
 
   try {
@@ -496,7 +496,7 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
 
 // ── PATCH /api/business/name — owner renames the business
 router.patch("/name", requireAuth, async (req, res) => {
-  const userId = (req as any).userId as string;
+  const userId = (req as any).authUser?.id as string;
   const { name } = req.body as { name: string };
 
   if (!name || name.trim().length < 2) {
@@ -521,7 +521,7 @@ router.post("/dev-seed", requireAuth, async (req, res) => {
   if (process.env.NODE_ENV === "production") {
     return res.status(404).json({ error: "Not found." });
   }
-  const userId = (req as any).userId as string;
+  const userId = (req as any).authUser?.id as string;
   try {
     // Check if already an owner
     const [existing] = await db.select().from(businesses).where(eq(businesses.ownerUserId, userId)).limit(1);
@@ -561,7 +561,7 @@ router.delete("/dev-seed", requireAuth, async (req, res) => {
   if (process.env.NODE_ENV === "production") {
     return res.status(404).json({ error: "Not found." });
   }
-  const userId = (req as any).userId as string;
+  const userId = (req as any).authUser?.id as string;
   try {
     const [biz] = await db.select().from(businesses).where(eq(businesses.ownerUserId, userId)).limit(1);
     if (!biz) return res.json({ success: true, message: "Nothing to delete." });
