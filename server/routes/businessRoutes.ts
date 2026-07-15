@@ -2,7 +2,7 @@ import { Router } from "express";
 import { randomBytes } from "crypto";
 import Stripe from "stripe";
 import { db } from "../db";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, isNull } from "drizzle-orm";
 import { businesses, businessMembers, businessInvitations } from "../db/schema/business";
 import { users } from "@shared/schema";
 import { requireAuth } from "../middleware/requireAuth";
@@ -142,9 +142,14 @@ router.post("/invite", requireAuth, async (req, res) => {
     }
 
     const usedSeats = await getActiveSeats(business.id);
-    if (usedSeats >= business.seatLimit) {
+    const [pendingInvCount] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(businessInvitations)
+      .where(and(eq(businessInvitations.businessId, business.id), eq(businessInvitations.status, "pending")));
+    const occupiedSeats = usedSeats + (pendingInvCount?.count ?? 0);
+    if (occupiedSeats >= business.seatLimit) {
       return res.status(400).json({
-        error: `No seats available. Your plan includes ${business.seatLimit} seats and all are in use.`,
+        error: `No seats available. Your plan includes ${business.seatLimit} seats and all are filled or reserved by pending invitations.`,
         code: "SEATS_FULL",
       });
     }
@@ -268,6 +273,29 @@ router.delete("/members/:memberId", requireAuth, async (req, res) => {
     return res.json({ success: true });
   } catch (err) {
     console.error("[business/members/remove] error:", err);
+    return res.status(500).json({ error: "Server error." });
+  }
+});
+
+// ── POST /api/business/removal-notice/dismiss — member acknowledges their removal notice
+// Sets noticeDismissedAt on the most recent undismissed removed membership row.
+// Tied to the specific removal event so a future re-removal generates a fresh notice.
+router.post("/removal-notice/dismiss", requireAuth, async (req, res) => {
+  const userId = (req as any).authUser?.id as string;
+  try {
+    await db
+      .update(businessMembers)
+      .set({ noticeDismissedAt: new Date() })
+      .where(
+        and(
+          eq(businessMembers.userId, userId),
+          eq(businessMembers.status, "removed"),
+          isNull(businessMembers.noticeDismissedAt)
+        )
+      );
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("[business/removal-notice/dismiss] error:", err);
     return res.status(500).json({ error: "Server error." });
   }
 });
