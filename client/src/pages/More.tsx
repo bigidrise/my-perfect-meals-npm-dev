@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { GlassCard, GlassCardContent } from "@/components/glass/GlassCard";
-import { Crown, Lock, Stethoscope, Dumbbell, LogOut, KeyRound, ClipboardEdit, CheckCircle2, Heart, Briefcase, UserPlus, X, Link2Off, ShieldCheck, Users, TrendingUp, Lightbulb } from "lucide-react";
+import { Crown, Lock, Stethoscope, Dumbbell, LogOut, KeyRound, ClipboardEdit, CheckCircle2, Heart, Briefcase, UserPlus, X, Link2Off, ShieldCheck, Users, TrendingUp, Lightbulb, Building2 } from "lucide-react";
 import { MfaSetupSection } from "@/components/MfaSetupSection";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasActivePaidSubscription, isClinicalOrAbove } from "@/lib/subscriptionCheck";
@@ -67,6 +67,51 @@ export default function MorePage() {
   const isProCareClient = !!user?.isProCare;
   const [showClientLegalModal, setShowClientLegalModal] = useState(false);
   const [pendingLegalFlow, setPendingLegalFlow] = useState<"client" | "patient_physician">("client");
+
+  // Business account — owner or member
+  const [businessCard, setBusinessCard] = useState<{
+    mode: "owner" | "member";
+    name: string;
+    usedSeats?: number;
+    seatLimit?: number;
+    role?: string;
+  } | null>(null);
+
+  useEffect(() => {
+    async function fetchBusiness() {
+      try {
+        const ownerRes = await fetch("/api/business/mine", {
+          headers: getAuthHeaders() as HeadersInit,
+          credentials: "include",
+        });
+        if (ownerRes.ok) {
+          const data = await ownerRes.json();
+          setBusinessCard({
+            mode: "owner",
+            name: data.business.name,
+            usedSeats: data.usedSeats,
+            seatLimit: data.business.seatLimit,
+          });
+          return;
+        }
+        const memberRes = await fetch("/api/business/membership", {
+          headers: getAuthHeaders() as HeadersInit,
+          credentials: "include",
+        });
+        if (memberRes.ok) {
+          const data = await memberRes.json();
+          setBusinessCard({
+            mode: "member",
+            name: data.membership.businessName,
+            role: data.membership.role,
+          });
+        }
+      } catch {
+        // Non-fatal
+      }
+    }
+    if (user) fetchBusiness();
+  }, [user]);
 
   useEffect(() => {
     document.title = "More | My Perfect Meals";
@@ -432,6 +477,40 @@ export default function MorePage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Clinical Business Card — only shown when user owns or belongs to a business account */}
+          {businessCard && (
+            <Card
+              className="cursor-pointer active:scale-[0.98] bg-gradient-to-r from-black via-blue-950/40 to-black backdrop-blur-lg border border-blue-500/40 transition-all duration-300 rounded-xl shadow-md overflow-hidden"
+              onClick={() => setLocation("/business-dashboard")}
+              data-testid="card-clinical-business"
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-blue-600/20">
+                    <Building2 className="h-5 w-5 text-blue-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    {businessCard.mode === "owner" ? (
+                      <>
+                        <h3 className="text-sm font-semibold text-white">Clinical Business Dashboard</h3>
+                        <p className="text-xs text-white/60 truncate">
+                          {businessCard.name} · {businessCard.usedSeats} of {businessCard.seatLimit} seats used
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <h3 className="text-sm font-semibold text-white">My Business Team</h3>
+                        <p className="text-xs text-white/60 truncate">
+                          {businessCard.name} · {businessCard.role ? businessCard.role.charAt(0).toUpperCase() + businessCard.role.slice(1) : "Member"}
+                        </p>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* ProCare Features - Vertical Stack */}
           <div className="flex flex-col gap-3">
