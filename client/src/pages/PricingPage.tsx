@@ -1157,18 +1157,17 @@ export default function PricingPage() {
               <Separator className="bg-white/10" />
 
               <div className="p-5">
-                <Button
-                  className="w-full bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white font-semibold"
-                  size="lg"
+                <button
+                  className="w-full py-3 px-4 rounded-lg bg-teal-600 hover:bg-teal-500 text-white font-semibold text-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   disabled={businessCheckoutLoading}
                   onClick={handleBusinessCheckout}
                 >
                   {businessCheckoutLoading ? (
-                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Processing…</>
+                    <><Loader2 className="w-4 h-4 animate-spin" />Processing…</>
                   ) : (
                     `Start a Clinical Business Team — $${(44.99 * businessSeats).toFixed(2)}/mo`
                   )}
-                </Button>
+                </button>
                 <p className="text-white/40 text-xs text-center mt-2">
                   Web billing only · Manage seats from your account dashboard
                 </p>
