@@ -462,6 +462,12 @@ async function initializeApp() {
     app.use(requestId);
     app.use(logger);
 
+    // CRITICAL: Stripe webhook MUST be registered before express.json() so the
+    // raw Buffer body is preserved for signature verification. express.json()
+    // would parse it into an object, making constructEvent() throw a 400.
+    const stripeWebhookRouter = (await import("./routes/stripeWebhook")).default;
+    app.use("/api/stripe/webhook", express.raw({ type: "application/json" }), stripeWebhookRouter);
+
     app.use(express.json({ limit: "10mb" }));
     app.use(express.urlencoded({ extended: false }));
 
