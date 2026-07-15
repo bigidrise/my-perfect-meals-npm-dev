@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
-import { apiRequest } from "@/lib/apiRequest";
 import { getAuthHeaders } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
@@ -25,6 +24,8 @@ import {
   Check,
   X,
   Loader2,
+  CheckCircle,
+  Crown,
 } from "lucide-react";
 
 const ROLE_OPTIONS = [
@@ -62,17 +63,44 @@ interface BusinessData {
   availableSeats: number;
 }
 
+interface MembershipData {
+  membership: {
+    role: string;
+    businessName: string;
+    seatLimit: number;
+    joinedAt: string;
+  };
+}
+
+const DEFAULT_BUSINESS_NAME = "My Business Team";
+
 export default function BusinessDashboard() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
-  const [data, setData] = useState<BusinessData | null>(null);
+  const params = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+  const fromCheckout = params.get("checkout") === "success";
+
+  const [ownerData, setOwnerData] = useState<BusinessData | null>(null);
+  const [memberData, setMemberData] = useState<MembershipData | null>(null);
+  const [viewMode, setViewMode] = useState<"owner" | "member" | "none" | null>(null);
   const [loading, setLoading] = useState(true);
+  const [polling, setPolling] = useState(fromCheckout);
+
+  // Setup screen state
+  const [setupMode, setSetupMode] = useState(false);
+  const [setupName, setSetupName] = useState("");
+  const [setupRole, setSetupRole] = useState("coach");
+  const [savingSetup, setSavingSetup] = useState(false);
+
+  // Invite modal
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("staff");
   const [inviteLoading, setInviteLoading] = useState(false);
+
+  // Actions
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [cancellingToken, setCancellingToken] = useState<string | null>(null);
   const [resendingToken, setResendingToken] = useState<string | null>(null);
@@ -80,29 +108,99 @@ export default function BusinessDashboard() {
   const [nameInput, setNameInput] = useState("");
   const [savingName, setSavingName] = useState(false);
 
-  const fetchData = async () => {
+  const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pollCount = useRef(0);
+
+  const fetchData = async (): Promise<boolean> => {
     try {
-      const res = await fetch("/api/business/mine", {
+      // Try owner first
+      const ownerRes = await fetch("/api/business/mine", {
         headers: { ...getAuthHeaders() },
         credentials: "include",
       });
-      if (res.status === 404) {
-        setData(null);
-        setLoading(false);
-        return;
+      if (ownerRes.ok) {
+        const json = await ownerRes.json();
+        setOwnerData(json);
+        setViewMode("owner");
+        if (json.business?.name === DEFAULT_BUSINESS_NAME) {
+          setSetupMode(true);
+        }
+        return true;
       }
-      const json = await res.json();
-      setData(json);
+
+      // Try member
+      const memberRes = await fetch("/api/business/membership", {
+        headers: { ...getAuthHeaders() },
+        credentials: "include",
+      });
+      if (memberRes.ok) {
+        const json = await memberRes.json();
+        setMemberData(json);
+        setViewMode("member");
+        return true;
+      }
+
+      setViewMode("none");
+      return false;
     } catch {
-      toast({ title: "Error", description: "Could not load business data.", variant: "destructive" });
-    } finally {
-      setLoading(false);
+      setViewMode("none");
+      return false;
     }
   };
 
   useEffect(() => {
-    fetchData();
+    const init = async () => {
+      const found = await fetchData();
+      setLoading(false);
+
+      // If came from checkout and business not ready yet, poll for up to 30s
+      if (!found && fromCheckout) {
+        setPolling(true);
+        const tryAgain = async () => {
+          pollCount.current += 1;
+          if (pollCount.current > 15) {
+            setPolling(false);
+            return;
+          }
+          const ok = await fetchData();
+          if (ok) {
+            setPolling(false);
+          } else {
+            pollRef.current = setTimeout(tryAgain, 2000);
+          }
+        };
+        pollRef.current = setTimeout(tryAgain, 2000);
+      }
+    };
+    init();
+    return () => { if (pollRef.current) clearTimeout(pollRef.current); };
   }, []);
+
+  const handleSaveSetup = async () => {
+    if (setupName.trim().length < 2) {
+      toast({ title: "Name too short", description: "Enter at least 2 characters.", variant: "destructive" });
+      return;
+    }
+    setSavingSetup(true);
+    try {
+      const res = await fetch("/api/business/name", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
+        body: JSON.stringify({ name: setupName.trim() }),
+      });
+      if (res.ok) {
+        setSetupMode(false);
+        await fetchData();
+        // Clean up URL without reload
+        window.history.replaceState({}, "", "/business-dashboard");
+      }
+    } catch {
+      toast({ title: "Error", description: "Could not save. Please try again.", variant: "destructive" });
+    } finally {
+      setSavingSetup(false);
+    }
+  };
 
   const handleInvite = async () => {
     if (!inviteEmail.includes("@")) {
@@ -143,7 +241,7 @@ export default function BusinessDashboard() {
         credentials: "include",
       });
       if (res.ok) {
-        toast({ title: "Member removed", description: "They've been removed from your team." });
+        toast({ title: "Member removed" });
         fetchData();
       } else {
         const json = await res.json();
@@ -164,10 +262,7 @@ export default function BusinessDashboard() {
         headers: { ...getAuthHeaders() },
         credentials: "include",
       });
-      if (res.ok) {
-        toast({ title: "Invite cancelled" });
-        fetchData();
-      }
+      if (res.ok) { toast({ title: "Invite cancelled" }); fetchData(); }
     } catch {
       toast({ title: "Error", description: "Could not cancel invite.", variant: "destructive" });
     } finally {
@@ -183,9 +278,7 @@ export default function BusinessDashboard() {
         headers: { ...getAuthHeaders() },
         credentials: "include",
       });
-      if (res.ok) {
-        toast({ title: "Invite resent!", description: "A fresh email has been sent." });
-      }
+      if (res.ok) toast({ title: "Invite resent!" });
     } catch {
       toast({ title: "Error", description: "Could not resend invite.", variant: "destructive" });
     } finally {
@@ -203,11 +296,7 @@ export default function BusinessDashboard() {
         credentials: "include",
         body: JSON.stringify({ name: nameInput.trim() }),
       });
-      if (res.ok) {
-        toast({ title: "Business name updated" });
-        setEditingName(false);
-        fetchData();
-      }
+      if (res.ok) { toast({ title: "Business name updated" }); setEditingName(false); fetchData(); }
     } catch {
       toast({ title: "Error", description: "Could not update name.", variant: "destructive" });
     } finally {
@@ -215,15 +304,25 @@ export default function BusinessDashboard() {
     }
   };
 
-  if (loading) {
+  // ── Polling / Loading screen ────────────────────────────────────────────────
+  if (loading || polling) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-black/60 via-blue-900/40 to-black/80 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-blue-400 animate-spin" />
+      <div className="min-h-screen bg-gradient-to-br from-black/60 via-blue-900/40 to-black/80 flex flex-col items-center justify-center px-4 text-center">
+        <Loader2 className="w-10 h-10 text-blue-400 animate-spin mb-4" />
+        {polling && fromCheckout ? (
+          <>
+            <h2 className="text-white text-lg font-bold mb-1">Setting up your business account…</h2>
+            <p className="text-white/50 text-sm">Confirming payment and creating your team. This takes just a moment.</p>
+          </>
+        ) : (
+          <p className="text-white/50 text-sm">Loading…</p>
+        )}
       </div>
     );
   }
 
-  if (!data) {
+  // ── No business found (and not polling) ────────────────────────────────────
+  if (viewMode === "none" || viewMode === null) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-black/60 via-blue-900/40 to-black/80 flex flex-col items-center justify-center px-4 text-center">
         <Building2 className="w-14 h-14 text-blue-400 mb-4" />
@@ -232,7 +331,7 @@ export default function BusinessDashboard() {
           A business account is created automatically when you purchase a Clinical Business plan.
         </p>
         <button
-          className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors"
+          className="px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors"
           onClick={() => setLocation("/pricing")}
         >
           View Plans
@@ -241,25 +340,144 @@ export default function BusinessDashboard() {
     );
   }
 
-  const { business, members, invitations, usedSeats, availableSeats } = data;
+  // ── Member view (non-owner) ─────────────────────────────────────────────────
+  if (viewMode === "member" && memberData) {
+    const { membership } = memberData;
+    const roleLabel = membership.role.charAt(0).toUpperCase() + membership.role.slice(1);
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-black/60 via-blue-900/40 to-black/80 pb-24">
+        <div className="sticky top-0 z-10 bg-black/60 backdrop-blur-md border-b border-white/10 px-4 py-3 flex items-center gap-3">
+          <button onClick={() => setLocation("/more")} className="text-white/60 hover:text-white transition-colors">
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <div>
+            <h1 className="text-white font-bold text-base leading-tight">My Business Team</h1>
+            <p className="text-white/50 text-xs">Clinical Business Member</p>
+          </div>
+        </div>
+        <div className="px-4 pt-6 max-w-sm mx-auto space-y-4">
+          <Card className="bg-white/5 border border-blue-500/30 text-white p-5 text-center">
+            <Building2 className="w-10 h-10 text-blue-400 mx-auto mb-3" />
+            <h2 className="text-white font-bold text-lg">{membership.businessName}</h2>
+            <p className="text-white/50 text-sm mt-1">You are a member of this team</p>
+          </Card>
+          <Card className="bg-white/5 border border-white/10 text-white p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-white/50 text-sm">Your Role</span>
+              <Badge className="bg-blue-600/80 text-white border-0 text-xs">{roleLabel}</Badge>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-white/50 text-sm">Access</span>
+              <span className="text-green-400 text-sm font-medium flex items-center gap-1">
+                <CheckCircle className="w-3.5 h-3.5" /> Clinical Business
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-white/50 text-sm">Joined</span>
+              <span className="text-white/70 text-sm">
+                {new Date(membership.joinedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+              </span>
+            </div>
+          </Card>
+          <p className="text-white/30 text-xs text-center px-4">
+            Seat management and billing are controlled by your team owner. Contact them to make changes.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Owner view ──────────────────────────────────────────────────────────────
+  if (!ownerData) return null;
+  const { business, members, invitations, usedSeats, availableSeats } = ownerData;
   const seatsFull = availableSeats <= 0;
 
+  // ── First-time setup screen ─────────────────────────────────────────────────
+  if (setupMode) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-black/60 via-blue-900/40 to-black/80 flex flex-col items-center justify-center px-4">
+        <div className="w-full max-w-sm space-y-6">
+          <div className="text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-600/20 border border-blue-500/30 mb-4">
+              <Crown className="w-8 h-8 text-blue-400" />
+            </div>
+            <h1 className="text-white text-2xl font-bold">Welcome to Clinical Business</h1>
+            <p className="text-white/60 text-sm mt-2">
+              Your {business.seatLimit}-seat team account is active. Let's get set up.
+            </p>
+          </div>
+
+          <Card className="bg-white/5 border border-blue-500/30 text-white p-5 space-y-4">
+            <div className="flex items-center gap-2 text-blue-300 text-sm font-semibold">
+              <CheckCircle className="w-4 h-4" />
+              1 of {business.seatLimit} seats used (you)
+            </div>
+
+            <div>
+              <label className="text-white/70 text-xs font-semibold uppercase tracking-wide block mb-1.5">
+                Business or Team Name
+              </label>
+              <input
+                className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-blue-400 placeholder-white/30"
+                placeholder="e.g. Metroflex Performance Nutrition"
+                value={setupName}
+                onChange={(e) => setSetupName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSaveSetup()}
+                autoFocus
+              />
+            </div>
+
+            <div>
+              <label className="text-white/70 text-xs font-semibold uppercase tracking-wide block mb-1.5">
+                Your Role
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {ROLE_OPTIONS.map((r) => (
+                  <button
+                    key={r.value}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                      setupRole === r.value
+                        ? "bg-blue-600 text-white"
+                        : "bg-white/10 text-white/70 hover:bg-white/15"
+                    }`}
+                    onClick={() => setSetupRole(r.value)}
+                  >
+                    {r.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </Card>
+
+          <button
+            className="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-base transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+            onClick={handleSaveSetup}
+            disabled={savingSetup || setupName.trim().length < 2}
+          >
+            {savingSetup ? <><Loader2 className="w-5 h-5 animate-spin" /> Saving…</> : "Set Up My Business Dashboard"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Full owner dashboard ────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gradient-to-br from-black/60 via-blue-900/40 to-black/80 pb-24">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-black/60 backdrop-blur-md border-b border-white/10 px-4 py-3 flex items-center gap-3">
-        <button onClick={() => setLocation("/dashboard")} className="text-white/60 hover:text-white transition-colors">
+        <button onClick={() => setLocation("/more")} className="text-white/60 hover:text-white transition-colors">
           <ChevronLeft className="w-5 h-5" />
         </button>
         <div>
-          <h1 className="text-white font-bold text-base leading-tight">Business Dashboard</h1>
-          <p className="text-white/50 text-xs">Clinical Business Plan</p>
+          <h1 className="text-white font-bold text-base leading-tight">Clinical Business Dashboard</h1>
+          <p className="text-white/50 text-xs">Manage team members, seats &amp; invitations</p>
         </div>
       </div>
 
       <div className="px-4 pt-5 space-y-4 max-w-2xl mx-auto">
 
-        {/* Business Name Card */}
+        {/* Business Name */}
         <Card className="bg-white/5 border border-blue-500/30 text-white p-4">
           <div className="flex items-center justify-between">
             {editingName ? (
@@ -271,17 +489,10 @@ export default function BusinessDashboard() {
                   autoFocus
                   onKeyDown={(e) => e.key === "Enter" && handleSaveName()}
                 />
-                <button
-                  className="p-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-50"
-                  onClick={handleSaveName}
-                  disabled={savingName}
-                >
+                <button className="p-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-50" onClick={handleSaveName} disabled={savingName}>
                   {savingName ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                 </button>
-                <button
-                  className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white"
-                  onClick={() => setEditingName(false)}
-                >
+                <button className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white" onClick={() => setEditingName(false)}>
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -366,7 +577,7 @@ export default function BusinessDashboard() {
               </Card>
             ))}
             {members.length === 0 && (
-              <p className="text-white/40 text-sm text-center py-4">No members yet. Invite someone to get started.</p>
+              <p className="text-white/40 text-sm text-center py-4">No members yet.</p>
             )}
           </div>
         </div>
@@ -385,8 +596,7 @@ export default function BusinessDashboard() {
                     <div className="min-w-0">
                       <p className="text-sm truncate">{inv.email}</p>
                       <p className="text-white/40 text-xs">
-                        {inv.role.charAt(0).toUpperCase() + inv.role.slice(1)} · Expires{" "}
-                        {new Date(inv.expiresAt).toLocaleDateString()}
+                        {inv.role.charAt(0).toUpperCase() + inv.role.slice(1)} · Expires {new Date(inv.expiresAt).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
@@ -424,9 +634,7 @@ export default function BusinessDashboard() {
           </DialogHeader>
           <div className="space-y-4 pt-2">
             <div>
-              <label className="text-white/70 text-xs font-semibold uppercase tracking-wide block mb-1.5">
-                Email Address
-              </label>
+              <label className="text-white/70 text-xs font-semibold uppercase tracking-wide block mb-1.5">Email Address</label>
               <input
                 type="email"
                 className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-blue-400 placeholder-white/30"
@@ -437,17 +645,13 @@ export default function BusinessDashboard() {
               />
             </div>
             <div>
-              <label className="text-white/70 text-xs font-semibold uppercase tracking-wide block mb-1.5">
-                Role
-              </label>
+              <label className="text-white/70 text-xs font-semibold uppercase tracking-wide block mb-1.5">Role</label>
               <div className="flex flex-wrap gap-2">
                 {ROLE_OPTIONS.map((r) => (
                   <button
                     key={r.value}
                     className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                      inviteRole === r.value
-                        ? "bg-blue-600 text-white"
-                        : "bg-white/10 text-white/70 hover:bg-white/15"
+                      inviteRole === r.value ? "bg-blue-600 text-white" : "bg-white/10 text-white/70 hover:bg-white/15"
                     }`}
                     onClick={() => setInviteRole(r.value)}
                   >

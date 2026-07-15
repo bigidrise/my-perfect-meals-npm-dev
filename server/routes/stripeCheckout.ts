@@ -198,8 +198,8 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
           quantity: requestedSeats,
         },
       ],
-      success_url: `${appUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${appUrl}/billing/cancel`,
+      success_url: `${appUrl}/business-dashboard?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${appUrl}/pricing`,
       metadata: {
         userId,
         sku: "clinical_business_monthly",
