@@ -12,14 +12,39 @@ import {
   Lock,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
+import { BC_GRADIENT } from "@/components/BusinessCenterShell";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   PLATFORM_MASTERY_LESSONS,
   getLessonById,
   type QuizQuestion,
+  type PlatformMasteryLesson,
 } from "@/data/platformMasteryLessons";
+import { NarrationBar } from "@/components/NarrationBar";
+
+// ── Lesson → Narration converter ─────────────────────────────────────────────
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/\*(.+?)\*/g, "$1")
+    .replace(/^#{1,6}\s+/gm, "")
+    .trim();
+}
+
+function lessonToNarrationSections(lesson: PlatformMasteryLesson) {
+  const out: Array<{ heading: string; text: string }> = [];
+  if (lesson.opening) {
+    out.push({ heading: "Introduction", text: stripMarkdown(lesson.opening) });
+  }
+  for (const section of lesson.sections) {
+    out.push({
+      heading: section.heading || "Continued",
+      text: stripMarkdown(section.body),
+    });
+  }
+  return out;
+}
 
 const LESSONS_ORDER = PLATFORM_MASTERY_LESSONS.map((l) => l.id);
 
@@ -542,9 +567,9 @@ export default function LessonReader() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
-      {/* Fixed header */}
+      {/* Sticky header — visible on both mobile and desktop */}
       <div
-        className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`}
+        className="sticky top-0 z-10 bg-black/55 backdrop-blur-md border-b border-white/10"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
@@ -574,30 +599,30 @@ export default function LessonReader() {
         </div>
       </div>
 
-      <div
-        className="px-4 max-w-2xl mx-auto space-y-5"
-        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5.5rem)" }}
-      >
+      <div className="px-4 max-w-2xl mx-auto space-y-5 pt-5">
         {/* Lesson header card */}
         <motion.div
-          className="bg-white/5 border border-white/10 rounded-2xl px-5 py-5 flex items-start gap-4"
+          className="bg-white/5 border border-white/10 rounded-2xl px-5 py-5 space-y-4"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <div className="p-3 rounded-xl bg-orange-500/20 flex-shrink-0">
-            <BookOpen className="h-6 w-6 text-orange-400" />
+          <div className="flex items-start gap-4">
+            <div className="p-3 rounded-xl bg-orange-500/20 flex-shrink-0">
+              <BookOpen className="h-6 w-6 text-orange-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-orange-400 uppercase tracking-widest mb-1">
+                Lesson {lesson.lessonNumber} · My Perfect Meals Basics
+              </p>
+              <h2 className="text-lg font-bold text-white leading-tight">
+                {lesson.title}
+              </h2>
+              <p className="text-sm text-white/50 mt-1 leading-relaxed">
+                {lesson.subtitle}
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="text-xs font-semibold text-orange-400 uppercase tracking-widest mb-1">
-              Lesson {lesson.lessonNumber} · My Perfect Meals Basics
-            </p>
-            <h2 className="text-lg font-bold text-white leading-tight">
-              {lesson.title}
-            </h2>
-            <p className="text-sm text-white/50 mt-1 leading-relaxed">
-              {lesson.subtitle}
-            </p>
-          </div>
+          <NarrationBar sections={lessonToNarrationSections(lesson)} />
         </motion.div>
 
         {/* Opening paragraph */}
