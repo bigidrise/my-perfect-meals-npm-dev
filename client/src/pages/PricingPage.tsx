@@ -23,6 +23,7 @@ import {
   IOS_DISPLAY_FEATURES,
 } from "@shared/planFeatures";
 import { startCheckout, IOS_BLOCK_ERROR } from "@/lib/checkout";
+import { getAuthHeaders } from "@/lib/auth";
 import {
   isIosNativeShell,
   IOS_PAYMENT_MESSAGE,
@@ -49,6 +50,8 @@ export default function PricingPage() {
     null,
   );
   const [restoringPurchases, setRestoringPurchases] = useState(false);
+  const [businessSeats, setBusinessSeats] = useState(4);
+  const [businessCheckoutLoading, setBusinessCheckoutLoading] = useState(false);
 
   const [procareRole, setProcareRole] = useState<"trainer" | "physician">(
     () => (localStorage.getItem("procare_role") as "trainer" | "physician" | null) || "trainer"
@@ -518,6 +521,38 @@ export default function PricingPage() {
       });
     }
   };
+
+  async function handleBusinessCheckout() {
+    if (!user) {
+      setLocation("/welcome");
+      return;
+    }
+    setBusinessCheckoutLoading(true);
+    try {
+      const res = await fetch(apiUrl("/api/stripe/checkout/business"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
+        body: JSON.stringify({ seats: businessSeats }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast({ title: "Checkout Error", description: data.error || "Please try again.", variant: "destructive" });
+        return;
+      }
+      if (data.url) {
+        if (window.self !== window.top) {
+          window.open(data.url, "_blank", "noopener,noreferrer");
+        } else {
+          window.location.assign(data.url);
+        }
+      }
+    } catch (err: any) {
+      toast({ title: "Checkout Error", description: "Something went wrong. Please try again.", variant: "destructive" });
+    } finally {
+      setBusinessCheckoutLoading(false);
+    }
+  }
 
   const getButtonText = (sku: string): string => {
     const currentPlan = user?.planLookupKey;
@@ -1046,6 +1081,104 @@ export default function PricingPage() {
               })}
             </div>
           </div>
+
+        {/* Clinical Business Section */}
+        <div className="mb-12">
+          <div className="text-center mb-6">
+            <div className="inline-flex items-center gap-2 bg-blue-600/20 border border-blue-500/30 rounded-full px-4 py-2 mb-4">
+              <span className="text-blue-300 text-sm font-semibold tracking-wide uppercase">
+                Clinical Business
+              </span>
+            </div>
+            <h2 className="text-2xl font-bold text-white">Clinical Access for Your Whole Team</h2>
+            <p className="text-white/60 text-sm mt-2 max-w-xl mx-auto">
+              For coaching businesses, wellness organizations, and healthcare practices. One subscription — centralized billing, full Clinical access for every assigned seat.
+            </p>
+          </div>
+
+          <div className="max-w-lg mx-auto">
+            <Card className="relative bg-black/30 backdrop-blur-lg border border-blue-500/30 text-white shadow-xl">
+              <CardHeader className="pb-4">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xl font-bold">Clinical Business</h3>
+                    <Badge className="bg-blue-600/80 text-white border border-blue-400/30">Team Plan</Badge>
+                  </div>
+                  <p className="text-blue-300 text-sm font-medium">$44.99 per seat / month</p>
+                  <div className="flex items-baseline gap-1 pt-1">
+                    <span className="text-3xl font-bold">${(44.99 * businessSeats).toFixed(2)}</span>
+                    <span className="text-white text-sm">/ month</span>
+                  </div>
+                  <p className="text-white text-xs">
+                    {businessSeats} seat{businessSeats > 1 ? "s" : ""} · Full Clinical access for each assigned user
+                  </p>
+                </div>
+              </CardHeader>
+
+              <Separator className="bg-white/10" />
+
+              <CardContent className="pt-5">
+                {/* Seat selector */}
+                <div className="mb-5">
+                  <p className="text-sm text-white/70 mb-3 font-medium">Number of seats</p>
+                  <div className="flex gap-2">
+                    {[1, 2, 3, 4].map((n) => (
+                      <button
+                        key={n}
+                        onClick={() => setBusinessSeats(n)}
+                        className={`flex-1 py-2 rounded-full text-sm font-semibold border transition-colors ${
+                          businessSeats === n
+                            ? "bg-blue-600 text-white border-blue-500"
+                            : "bg-white/5 text-white/60 border-white/15"
+                        }`}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Features */}
+                <div className="space-y-2.5">
+                  {[
+                    "Full Clinical access for every assigned user",
+                    "Clinical Lab Results Integration",
+                    "Care Team Access (physician & trainer)",
+                    "Performance Nutrition Builder",
+                    "Clinical Advisory System",
+                    "Centralized business billing",
+                    "Add and manage team members",
+                    "All Pro & Essential features included",
+                  ].map((feat, i) => (
+                    <div key={i} className="flex items-start gap-2">
+                      <Check className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                      <span className="text-sm text-white/90">{feat}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+
+              <Separator className="bg-white/10" />
+
+              <div className="p-5">
+                <button
+                  className="w-full py-3 px-4 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  disabled={businessCheckoutLoading}
+                  onClick={handleBusinessCheckout}
+                >
+                  {businessCheckoutLoading ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" />Processing…</>
+                  ) : (
+                    `Start a Clinical Business Team — $${(44.99 * businessSeats).toFixed(2)}/mo`
+                  )}
+                </button>
+                <p className="text-white/40 text-xs text-center mt-2">
+                  Web billing only · Manage seats from your account dashboard
+                </p>
+              </div>
+            </Card>
+          </div>
+        </div>
 
         {/* Signature Kitchen Section */}
         <div className="mb-12">

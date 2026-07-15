@@ -252,6 +252,8 @@ export const LOOKUP_KEY_TO_TIER: Record<string, PlanTier> = {
   mpm_physician_50: "ultimate",
   mpm_physician_150: "ultimate",
   mpm_guidance: "premium",
+  // Clinical Business — same Clinical (ultimate) access, business billing type
+  clinical_business_monthly: "ultimate",
 };
 
 export const TRIAL_UNLOCKS_TIER: PlanTier = "ultimate";

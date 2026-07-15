@@ -460,20 +460,35 @@ export default function InspirationCaptureModal({
           {(phase === "capture" || phase === "error") && (
             <div className="space-y-5">
               <div className="flex gap-2 justify-center flex-wrap">
-                <PillButton
-                  active={mode === "upload"}
-                  onClick={() => switchMode("upload")}
-                >
-                  <ImagePlus className="h-3 w-3 mr-1" />
-                  Choose Photo
-                </PillButton>
-                <PillButton
-                  active={mode === "camera"}
-                  onClick={() => switchMode("camera")}
-                >
-                  <Camera className="h-3 w-3 mr-1" />
-                  Camera
-                </PillButton>
+                {/* "Choose Photo" pill — overlay input covers the button so the tap lands directly on the input */}
+                <div className="relative overflow-hidden rounded-full inline-flex">
+                  <PillButton active={mode === "upload"} onClick={() => switchMode("upload")}>
+                    <ImagePlus className="h-3 w-3 mr-1" />
+                    Choose Photo
+                  </PillButton>
+                  <input
+                    ref={uploadInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => { switchMode("upload"); handleUploadCapture(e); }}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                </div>
+                {/* "Camera" pill — same overlay pattern with capture */}
+                <div className="relative overflow-hidden rounded-full inline-flex">
+                  <PillButton active={mode === "camera"} onClick={() => switchMode("camera")}>
+                    <Camera className="h-3 w-3 mr-1" />
+                    Camera
+                  </PillButton>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={(e) => { switchMode("camera"); handleCameraCapture(e); }}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                </div>
                 <PillButton
                   active={mode === "voice"}
                   onClick={() => switchMode("voice")}
@@ -490,40 +505,29 @@ export default function InspirationCaptureModal({
                 </PillButton>
               </div>
 
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={handleCameraCapture}
-              />
-              <input
-                ref={uploadInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleUploadCapture}
-              />
-
               {mode === "upload" && (
                 <div className="space-y-3">
                   <p className="text-white/60 text-sm text-center">
                     Pick a screenshot, saved food photo, or image from your
                     camera roll or gallery.
                   </p>
-                  <button
-                    onClick={() => uploadInputRef.current?.click()}
-                    className="w-full py-5 rounded-xl border-2 border-dashed border-orange-500/40 bg-orange-500/5 hover:bg-orange-500/10 hover:border-orange-500/60 transition-all flex flex-col items-center gap-2 active:scale-95"
-                  >
-                    <ImagePlus className="h-8 w-8 text-orange-400" />
-                    <span className="text-sm font-medium text-orange-300">
-                      Choose from Gallery
-                    </span>
-                    <span className="text-xs text-white/40">
-                      Screenshots, saved photos, any food image
-                    </span>
-                  </button>
+                  <div className="relative overflow-hidden w-full rounded-xl">
+                    <div className="w-full py-5 rounded-xl border-2 border-dashed border-orange-500/40 bg-orange-500/5 flex flex-col items-center gap-2">
+                      <ImagePlus className="h-8 w-8 text-orange-400" />
+                      <span className="text-sm font-medium text-orange-300">
+                        Choose from Gallery
+                      </span>
+                      <span className="text-xs text-white/40">
+                        Screenshots, saved photos, any food image
+                      </span>
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleUploadCapture}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                  </div>
                 </div>
               )}
 
@@ -533,18 +537,24 @@ export default function InspirationCaptureModal({
                     Point your camera at any recipe, menu, screen, or food
                     photo.
                   </p>
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-full py-5 rounded-xl border-2 border-dashed border-orange-500/40 bg-orange-500/5 hover:bg-orange-500/10 hover:border-orange-500/60 transition-all flex flex-col items-center gap-2 active:scale-95"
-                  >
-                    <Camera className="h-8 w-8 text-orange-400" />
-                    <span className="text-sm font-medium text-orange-300">
-                      Open Camera
-                    </span>
-                    <span className="text-xs text-white/40">
-                      Take a live photo of any food idea
-                    </span>
-                  </button>
+                  <div className="relative overflow-hidden w-full rounded-xl">
+                    <div className="w-full py-5 rounded-xl border-2 border-dashed border-orange-500/40 bg-orange-500/5 flex flex-col items-center gap-2">
+                      <Camera className="h-8 w-8 text-orange-400" />
+                      <span className="text-sm font-medium text-orange-300">
+                        Open Camera
+                      </span>
+                      <span className="text-xs text-white/40">
+                        Take a live photo of any food idea
+                      </span>
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={handleCameraCapture}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                  </div>
                 </div>
               )}
 
