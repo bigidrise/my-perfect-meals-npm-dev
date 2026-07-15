@@ -288,6 +288,23 @@ router.post("/", async (req, res) => {
             stripeSubscriptionId: subscription.id,
           });
           console.log(`✅ [webhook] customer.subscription.updated — user ${user.id} → ${lookupKey} (${subscription.status})`);
+
+          // Sync seat count for business subscriptions when quantity changes
+          if (lookupKey === "clinical_business_monthly") {
+            try {
+              const { businesses } = await import("../db/schema/business");
+              const newQty = subscription.items.data[0]?.quantity ?? null;
+              if (newQty !== null && newQty > 0) {
+                await db
+                  .update(businesses)
+                  .set({ seatLimit: newQty, updatedAt: new Date() })
+                  .where(eq(businesses.ownerUserId, user.id));
+                console.log(`✅ [webhook] business seatLimit synced → ${newQty} | owner=${user.id}`);
+              }
+            } catch (seatErr) {
+              console.error("❌ [webhook] failed to sync business seatLimit:", seatErr);
+            }
+          }
         } else if (subscription.status === "canceled" || subscription.status === "unpaid") {
           await cancelUserSubscription(customerId);
           console.log(`⚠️ [webhook] customer.subscription.updated — user ${user.id} revoked (status: ${subscription.status})`);

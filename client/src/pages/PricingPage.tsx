@@ -1121,21 +1121,34 @@ export default function PricingPage() {
                 {/* Seat selector */}
                 <div className="mb-5">
                   <p className="text-sm text-white/70 mb-3 font-medium">Number of seats</p>
-                  <div className="flex gap-2">
-                    {[1, 2, 3, 4].map((n) => (
-                      <button
-                        key={n}
-                        onClick={() => setBusinessSeats(n)}
-                        className={`flex-1 py-2 rounded-full text-sm font-semibold border transition-colors ${
-                          businessSeats === n
-                            ? "bg-blue-600 text-white border-blue-500"
-                            : "bg-white/5 text-white/60 border-white/15"
-                        }`}
-                      >
-                        {n}
-                      </button>
-                    ))}
+                  <div className="flex items-center justify-between bg-white/5 border border-white/15 rounded-xl px-4 py-3">
+                    <button
+                      onClick={() => setBusinessSeats(Math.max(1, businessSeats - 1))}
+                      className="w-9 h-9 rounded-full bg-white/10 text-white font-bold text-xl flex items-center justify-center active:bg-white/20 select-none"
+                    >
+                      −
+                    </button>
+                    <div className="text-center">
+                      <span className="text-2xl font-bold text-white">{businessSeats}</span>
+                      <p className="text-white/50 text-xs mt-0.5">seat{businessSeats !== 1 ? "s" : ""}</p>
+                    </div>
+                    <button
+                      onClick={() => setBusinessSeats(Math.min(250, businessSeats + 1))}
+                      className="w-9 h-9 rounded-full bg-white/10 text-white font-bold text-xl flex items-center justify-center active:bg-white/20 select-none"
+                    >
+                      +
+                    </button>
                   </div>
+                  {businessSeats >= 11 && businessSeats <= 50 && (
+                    <p className="text-amber-400/80 text-xs mt-2 px-1">
+                      For 11–50 seats, we recommend a quick setup call so your team gets onboarded smoothly.
+                    </p>
+                  )}
+                  {businessSeats > 50 && (
+                    <p className="text-amber-400/80 text-xs mt-2 px-1">
+                      For 50+ seats, contact us for enterprise pricing and a dedicated onboarding experience.
+                    </p>
+                  )}
                 </div>
 
                 {/* Features */}
