@@ -2,7 +2,9 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "wouter";
 
-const STORAGE_KEY = "mpm_trial_expired_modal_seen";
+function getDismissKey(userId: string) {
+  return `mpm.dismiss.trialExpired.${userId}`;
+}
 
 export function TrialExpiredModal() {
   const { user } = useAuth();
@@ -14,22 +16,17 @@ export function TrialExpiredModal() {
     if (user.accessTier !== "FREE") return;
     if (!user.hasHadTrial) return;
     if (!user.onboardingCompletedAt) return;
-    if (localStorage.getItem(STORAGE_KEY) === "true") return;
+    if (localStorage.getItem(getDismissKey(String(user.id))) === "true") return;
 
     setShow(true);
   }, [user]);
 
   if (!show) return null;
 
-  const handleUpgrade = () => {
-    localStorage.setItem(STORAGE_KEY, "true");
+  const dismiss = (goToPricing = false) => {
+    localStorage.setItem(getDismissKey(String(user!.id)), "true");
     setShow(false);
-    setLocation("/pricing");
-  };
-
-  const handleContinueFree = () => {
-    localStorage.setItem(STORAGE_KEY, "true");
-    setShow(false);
+    if (goToPricing) setLocation("/pricing");
   };
 
   return (
@@ -45,13 +42,13 @@ export function TrialExpiredModal() {
         </p>
         <div className="space-y-3 pt-2">
           <button
-            onClick={handleUpgrade}
+            onClick={() => dismiss(true)}
             className="w-full py-3 px-4 bg-orange-600 hover:bg-orange-500 text-white font-semibold rounded-xl transition-colors"
           >
             Upgrade Now
           </button>
           <button
-            onClick={handleContinueFree}
+            onClick={() => dismiss(false)}
             className="w-full py-3 px-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium rounded-xl transition-colors"
           >
             Continue with Free Membership
