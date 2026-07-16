@@ -496,7 +496,7 @@ export default function LessonReader() {
           const priorId = LESSONS_ORDER[idx - 1];
           const priorDone = prog[priorId]?.status === "completed";
           if (!priorDone) {
-            setLocation("/academy/platform-mastery");
+            setLocation("/academy");
             return;
           }
         }
@@ -574,11 +574,11 @@ export default function LessonReader() {
       >
         <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
           <button
-            onClick={() => setLocation("/academy/platform-mastery")}
+            onClick={() => setLocation("/academy")}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back
+            Academy
           </button>
           <div className="flex-1 min-w-0">
             <p className="text-xs text-white/40 font-medium">
@@ -820,10 +820,10 @@ export default function LessonReader() {
               // Last lesson — go to dashboard to claim cert
               return (
                 <button
-                  onClick={() => setLocation("/academy/platform-mastery")}
+                  onClick={() => setLocation("/academy")}
                   className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-orange-600 text-white font-bold text-sm active:scale-[0.98] transition-transform"
                 >
-                  View Progress & Certificate
+                  Back to Academy
                   <ChevronRight className="h-4 w-4" />
                 </button>
               );
@@ -869,10 +869,10 @@ export default function LessonReader() {
           })()}
 
           <button
-            onClick={() => setLocation("/academy/platform-mastery")}
+            onClick={() => setLocation("/academy")}
             className="w-full text-center text-xs text-white/30 py-2 active:text-white/50 transition-colors"
           >
-            Back to lesson list
+            Back to Academy
           </button>
         </motion.div>
       </div>
