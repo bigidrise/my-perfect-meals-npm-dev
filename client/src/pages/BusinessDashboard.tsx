@@ -558,7 +558,7 @@ export default function BusinessDashboard() {
                   },
                   {
                     done: false,
-                    label: "Complete Platform Mastery Academy",
+                    label: "Complete My Perfect Meals Academy",
                     link: "/business-center/academy",
                   },
                 ].map(({ done, label, action, link }) => (
