@@ -622,10 +622,10 @@ export default function DashboardNew() {
   useEffect(() => {
     if (!user) return;
     if (hasPaidPlan(user)) return;
-    const hasShown = localStorage.getItem("mpm_subscription_modal_shown");
-    if (!hasShown) {
-      setShowSubscriptionModal(true);
-    }
+    if (user.accessTier === "TRIAL_FULL" || user.isTester) return;
+    const dismissKey = `mpm.dismiss.subscriptionModal.${user.id}`;
+    if (localStorage.getItem(dismissKey) === "true") return;
+    setShowSubscriptionModal(true);
   }, [user]);
 
 
@@ -1551,7 +1551,7 @@ export default function DashboardNew() {
             <Button
               className="w-full bg-orange-600 hover:bg-orange-700"
               onClick={() => {
-                localStorage.setItem("mpm_subscription_modal_shown", "true");
+                if (user) localStorage.setItem(`mpm.dismiss.subscriptionModal.${user.id}`, "true");
                 setShowSubscriptionModal(false);
                 setLocation("/pricing");
               }}
@@ -1562,7 +1562,7 @@ export default function DashboardNew() {
               variant="ghost"
               className="w-full text-orange-400 hover:bg-orange-500/10"
               onClick={() => {
-                localStorage.setItem("mpm_subscription_modal_shown", "true");
+                if (user) localStorage.setItem(`mpm.dismiss.subscriptionModal.${user.id}`, "true");
                 setShowSubscriptionModal(false);
               }}
             >
