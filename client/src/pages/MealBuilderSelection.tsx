@@ -390,10 +390,10 @@ export default function MealBuilderSelection() {
                 key={option.id}
                 className={`w-full p-4 rounded-2xl border-2 transition-all ${
                   !isUnlocked
-                    ? "border-zinc-700 bg-black/85 opacity-60"
+                    ? "border-zinc-700 bg-zinc-950 opacity-60"
                     : selected === option.id
-                    ? "border-emerald-500/50 bg-emerald-950/80"
-                    : "border-white/20 bg-black/85"
+                    ? "border-emerald-500/50 bg-emerald-950"
+                    : "border-white/20 bg-zinc-950"
                 }`}
               >
                 <div className="flex items-start gap-4">
