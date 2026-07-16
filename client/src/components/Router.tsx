@@ -420,6 +420,8 @@ import CatProfileSetup from "@/pages/companion/CatProfileSetup";
 // Admin Dashboard
 import AdminDashboard from "@/pages/AdminDashboard";
 
+import { COACHES_CORNER_ENABLED } from "@/features/coachCornerFlag";
+
 // Wrapper components for Performance Competition Builder boards
 const PerformanceCompetitionBuilderStandalone = (_props: any) => (
   <PerformanceCompetitionBuilder mode="athlete" />
@@ -708,12 +710,12 @@ export default function Router() {
         <Route path="/procare-certified" component={CertifiedProfessionalUnlock} />
         <Route path="/procare-training" component={ProCareTraining} />
         <Route path="/ace-profile" component={lazy(() => import("@/pages/AceProfilePage"))} />
-        <Route path="/coach-corner/welcome" component={lazy(() => import("@/pages/CoachCornerWelcome"))} />
-        <Route path="/coach-corner/intake" component={lazy(() => import("@/pages/CoachCornerIntake"))} />
-        <Route path="/coach-corner/complete" component={lazy(() => import("@/pages/CoachCornerComplete"))} />
-        <Route path="/coach-corner/home" component={lazy(() => import("@/pages/CoachCornerHome"))} />
-        <Route path="/coach-corner/progress-slowed" component={lazy(() => import("@/pages/CoachCornerProgressSlowed"))} />
-        <Route path="/coach-corner/tired" component={lazy(() => import("@/pages/CoachCornerTired"))} />
+        {COACHES_CORNER_ENABLED && <Route path="/coach-corner/welcome" component={lazy(() => import("@/pages/CoachCornerWelcome"))} />}
+        {COACHES_CORNER_ENABLED && <Route path="/coach-corner/intake" component={lazy(() => import("@/pages/CoachCornerIntake"))} />}
+        {COACHES_CORNER_ENABLED && <Route path="/coach-corner/complete" component={lazy(() => import("@/pages/CoachCornerComplete"))} />}
+        {COACHES_CORNER_ENABLED && <Route path="/coach-corner/home" component={lazy(() => import("@/pages/CoachCornerHome"))} />}
+        {COACHES_CORNER_ENABLED && <Route path="/coach-corner/progress-slowed" component={lazy(() => import("@/pages/CoachCornerProgressSlowed"))} />}
+        {COACHES_CORNER_ENABLED && <Route path="/coach-corner/tired" component={lazy(() => import("@/pages/CoachCornerTired"))} />}
         {/* DELETED: CommunityTestPage, CommunityPage routes */}
         <Route path="/onboarding" component={SafeOnboarding} />
         <Route path="/onboarding-v2" component={SafeOnboardingV2} />
