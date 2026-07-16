@@ -325,7 +325,7 @@ export default function OrganizationSuccessCenter() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-blue-950 pb-28" style={{ paddingBottom: "max(7rem, calc(env(safe-area-inset-bottom) + 6rem))" }}>
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-blue-950/80 backdrop-blur-md border-b border-white/10" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+      <div className="fixed top-0 left-0 right-0 z-10 bg-blue-950/80 backdrop-blur-md border-b border-white/10" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <div className="px-4 py-3 flex items-center gap-3">
           <button
             onClick={() => setLocation("/business-dashboard")}
@@ -341,7 +341,7 @@ export default function OrganizationSuccessCenter() {
       </div>
 
       {/* Hero */}
-      <div className="px-4 pt-6 pb-4">
+      <div className="px-4 pb-4" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 4.5rem)" }}>
         <div className="bg-gradient-to-br from-orange-600/20 via-orange-600/10 to-transparent border border-orange-500/20 rounded-2xl p-5">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 rounded-full bg-orange-600/30 border border-orange-500/40 flex items-center justify-center">
