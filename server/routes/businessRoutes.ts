@@ -227,6 +227,11 @@ router.post("/invite", requireAuth, async (req, res) => {
       expiresAt,
     });
 
+    // Stamp the current policy at time of invite (raw SQL — column added via boot migration)
+    await db.execute(
+      sql`UPDATE business_invitations SET policy_snapshot = ${business.independentClientPolicy} WHERE token = ${token}`
+    );
+
     const [owner] = await db
       .select({ username: users.username })
       .from(users)
@@ -414,6 +419,46 @@ router.post("/invitations/:token/resend", requireAuth, async (req, res) => {
   }
 });
 
+// ── PATCH /api/business/policy — owner updates independent_client_policy
+router.patch("/policy", requireAuth, async (req, res) => {
+  const userId = (req as any).authUser?.id as string;
+  const { policy } = req.body as { policy: string };
+
+  const validPolicies = ["org_only", "allowed_with_disclosure", "allowed"];
+  if (!policy || !validPolicies.includes(policy)) {
+    return res.status(400).json({ error: "Invalid policy value. Must be one of: org_only, allowed_with_disclosure, allowed." });
+  }
+
+  try {
+    const [business] = await db
+      .select()
+      .from(businesses)
+      .where(eq(businesses.ownerUserId, userId))
+      .limit(1);
+
+    if (!business) {
+      return res.status(403).json({ error: "No business account found." });
+    }
+
+    const oldPolicy = business.independentClientPolicy;
+
+    await db
+      .update(businesses)
+      .set({ independentClientPolicy: policy as any, updatedAt: new Date() })
+      .where(eq(businesses.id, business.id));
+
+    await db.execute(
+      sql`INSERT INTO business_policy_history (business_id, changed_by_user_id, old_policy, new_policy) VALUES (${business.id}, ${userId}, ${oldPolicy}, ${policy})`
+    );
+
+    console.log(`✅ [business] Policy updated | business=${business.id} | ${oldPolicy} → ${policy}`);
+    return res.json({ success: true, policy });
+  } catch (err) {
+    console.error("[business/policy] error:", err);
+    return res.status(500).json({ error: "Server error." });
+  }
+});
+
 // ── GET /api/business/invite/:token — public: get invite details for accept page
 router.get("/invite/:token", async (req, res) => {
   const { token } = req.params;
@@ -427,6 +472,7 @@ router.get("/invite/:token", async (req, res) => {
         status: businessInvitations.status,
         expiresAt: businessInvitations.expiresAt,
         businessName: businesses.name,
+        independentClientPolicy: businesses.independentClientPolicy,
       })
       .from(businessInvitations)
       .innerJoin(businesses, eq(businesses.id, businessInvitations.businessId))
@@ -457,6 +503,7 @@ router.get("/invite/:token", async (req, res) => {
       role: invite.role,
       businessName: invite.businessName,
       expiresAt: invite.expiresAt,
+      independentClientPolicy: invite.independentClientPolicy,
     });
   } catch (err) {
     console.error("[business/invite/get] error:", err);
@@ -677,6 +724,100 @@ router.post("/dev-seed", requireAuth, async (req, res) => {
   } catch (err) {
     console.error("[business/dev-seed] error:", err);
     return res.status(500).json({ error: "Seed failed.", detail: String(err) });
+  }
+});
+
+// ── GET /api/business/members/:memberId/clients — owner views a member's client accounting
+router.get("/members/:memberId/clients", requireAuth, async (req, res) => {
+  const userId = (req as any).authUser?.id as string;
+  const { memberId } = req.params;
+
+  try {
+    const [business] = await db
+      .select()
+      .from(businesses)
+      .where(eq(businesses.ownerUserId, userId))
+      .limit(1);
+
+    if (!business) {
+      return res.status(403).json({ error: "No business account found." });
+    }
+
+    const [member] = await db
+      .select({
+        id: businessMembers.id,
+        userId: businessMembers.userId,
+        role: businessMembers.role,
+        status: businessMembers.status,
+        name: users.username,
+        email: users.email,
+      })
+      .from(businessMembers)
+      .leftJoin(users, eq(users.id, businessMembers.userId))
+      .where(
+        and(
+          eq(businessMembers.id, memberId),
+          eq(businessMembers.businessId, business.id),
+          eq(businessMembers.status, "active")
+        )
+      )
+      .limit(1);
+
+    if (!member) {
+      return res.status(404).json({ error: "Member not found in this organization." });
+    }
+
+    const policy = business.independentClientPolicy ?? "allowed_with_disclosure";
+
+    // Count via studio memberships — no ownership stamp exists yet, all are unclassified
+    const studioResult = await db.execute(sql`
+      SELECT COUNT(sm.id)::int AS count
+      FROM studio_memberships sm
+      INNER JOIN studios s ON s.id = sm.studio_id
+      WHERE s.owner_user_id = ${member.userId}
+        AND sm.status = 'active'
+    `);
+
+    // Count via direct care team links — also unclassified
+    const careResult = await db.execute(sql`
+      SELECT COUNT(id)::int AS count
+      FROM client_links
+      WHERE pro_user_id = ${member.userId}
+        AND active = true
+    `);
+
+    const studioCount = Number((studioResult.rows[0] as any)?.count ?? 0);
+    const careCount = Number((careResult.rows[0] as any)?.count ?? 0);
+    const unknownClientCount = studioCount + careCount;
+
+    // Compliance is deterministic only once ownership stamping exists.
+    // With no stamps, zero clients = compliant; any unclassified clients = indeterminate.
+    const compliance: "compliant" | "unknown" | "violation" =
+      unknownClientCount === 0 ? "compliant" : "unknown";
+
+    return res.json({
+      member: {
+        id: member.id,
+        name: member.name || member.email || "Unknown",
+        email: member.email || "",
+        role: member.role,
+        seatStatus: member.status,
+      },
+      policy,
+      organizationClients: {
+        count: 0,
+        clients: [],
+      },
+      personalClients: {
+        count: 0,
+        identitiesVisible: false,
+      },
+      unknownClientCount,
+      compliance,
+    });
+  } catch (err) {
+    console.error("[business/members/clients] error:", err);
+    return res.status(500).json({ error: "Server error." });
   }
 });
 

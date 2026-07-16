@@ -21,12 +21,14 @@ interface NarrationBarProps {
   sections: NarrationSection[];
   onSectionChange?: (index: number) => void;
   className?: string;
+  speedOverride?: string;
 }
 
 export function NarrationBar({
   sections,
   onSectionChange,
   className = "",
+  speedOverride,
 }: NarrationBarProps) {
   const [hasStarted, setHasStarted] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
@@ -46,6 +48,7 @@ export function NarrationBar({
   } = useNarration(sections, {
     onSectionChange,
     onEnd: () => setHasStarted(false),
+    speedOverride,
   });
 
   const handleListen = () => {

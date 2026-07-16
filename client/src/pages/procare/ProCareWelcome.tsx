@@ -1,27 +1,14 @@
-import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
-import { ArrowRight, ArrowLeft, Play, Pause, GraduationCap, User, Rocket, CheckCircle2 } from "lucide-react";
+import { ArrowRight, ArrowLeft, GraduationCap, User, Rocket, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { voiceManager } from "@/voice/VoiceManager";
-import { PillButton } from "@/components/ui/pill-button";
+import { NarrationBar } from "@/components/NarrationBar";
 
-const COPILOT_SCRIPT = `Welcome to My Perfect Meals Professional.
-
-I'm Chef Copilot, and before you dive in, I want you to understand exactly what's about to happen — and why it's designed this way.
-
-Every My Perfect Meals professional completes a three-step onboarding before accessing the Studio. Not because it's a requirement. Because it works.
-
-Step one: You'll complete your own My Perfect Meals profile. You'll generate your own nutrition plan, explore the meal builders, and experience the app exactly the way your future clients will. This matters because you can't confidently guide someone through an experience you haven't had yourself.
-
-Step two: You'll complete Professional Certification — Phase 1, Platform Fundamentals. You'll learn every feature of the platform, how to personalize nutrition, how to use AI responsibly, and how to onboard clients efficiently.
-
-Step three: Phase 2, Business and ProCare Success. You'll learn how to build your practice, manage clients, use the Studio, grow recurring revenue, and get the most from every tool in the platform.
-
-When you're finished, your Professional Studio and Business Suite will unlock — and you'll enter them prepared, not guessing.
-
-Professionals who complete this onboarding are more confident, provide better client outcomes, and grow their businesses faster. That's not marketing. That's what we've seen.
-
-When you're ready, tap Begin Your Professional Journey.`;
+const COPILOT_SECTIONS = [
+  {
+    heading: "Welcome to My Perfect Meals Professional",
+    text: "I'm Chef Copilot, and before you dive in, I want you to understand exactly what's about to happen and why it's designed this way. Every My Perfect Meals professional completes a three-step onboarding before accessing the Studio. Not because it's a requirement. Because it works. Step one: you'll complete your own My Perfect Meals profile, generate your own nutrition plan, and experience the app exactly the way your future clients will. Step two: you'll complete Professional Certification, Platform Fundamentals, where you'll learn every feature of the platform, how to personalize nutrition, and how to onboard clients efficiently. Step three: Business and ProCare Success, where you'll learn to build your practice, manage clients, use the Studio, and grow recurring revenue. When you're finished, your Professional Studio and Business Suite will unlock and you'll enter them prepared, not guessing. Professionals who complete this onboarding are more confident, provide better client outcomes, and grow their businesses faster. That's not marketing. That's what we've seen.",
+  },
+];
 
 const JOURNEY_STEPS = [
   {
@@ -68,38 +55,6 @@ export default function ProCareWelcome() {
     : isPhysicianWelcome
       ? "physician"
       : null;
-
-  const [isPlaying, setIsPlaying] = useState(false);
-  const voiceRef = useRef<boolean>(false);
-
-  useEffect(() => {
-    return () => {
-      if (voiceRef.current) {
-        voiceManager.stop();
-        voiceRef.current = false;
-      }
-    };
-  }, []);
-
-  const toggleCopilot = async () => {
-    if (isPlaying) {
-      voiceManager.stop();
-      voiceRef.current = false;
-      setIsPlaying(false);
-    } else {
-      setIsPlaying(true);
-      voiceRef.current = true;
-      await voiceManager.preload();
-      const result = await voiceManager.speak(COPILOT_SCRIPT, () => {
-        setIsPlaying(false);
-        voiceRef.current = false;
-      });
-      if (result.status !== "playing") {
-        setIsPlaying(false);
-        voiceRef.current = false;
-      }
-    }
-  };
 
   const handleBegin = () => {
     if (role === "trainer" || role === "physician") {
@@ -149,23 +104,11 @@ export default function ProCareWelcome() {
         </div>
 
         {/* Copilot */}
-        <div className="mb-6">
-          <button
-            onClick={toggleCopilot}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-black/30 border border-orange-500/30 active:scale-[0.98] transition-transform ${!isPlaying ? "animate-pulse-glow-blue" : ""}`}
-          >
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isPlaying ? "bg-red-500/20 border border-red-400/30" : "bg-orange-500/20 border border-orange-400/30"}`}>
-              {isPlaying ? <Pause className="w-5 h-5 text-red-400" /> : <Play className="w-5 h-5 text-orange-400 ml-0.5" />}
-            </div>
-            <div className="text-left flex-1">
-              <p className="text-sm font-medium text-white">
-                {isPlaying ? "Listening to Professional Overview..." : "Listen to Professional Overview"}
-              </p>
-              <p className="text-xs text-white/50">
-                {isPlaying ? "Tap to stop" : "Hear the full journey explained by Chef Copilot"}
-              </p>
-            </div>
-          </button>
+        <div className="mb-6 px-4 py-3 rounded-xl bg-black/30 border border-orange-500/30">
+          <p className="text-xs text-white/50 mb-2">
+            Hear the full journey explained by Chef Copilot
+          </p>
+          <NarrationBar sections={COPILOT_SECTIONS} speedOverride="1.0" />
         </div>
 
         {/* 3-Step Journey */}

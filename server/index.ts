@@ -860,6 +860,20 @@ setTimeout(async () => {
     await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS personal_subscription_status text`);
     await db.execute(sql`ALTER TABLE business_members ADD COLUMN IF NOT EXISTS removed_at timestamptz`);
     await db.execute(sql`ALTER TABLE business_members ADD COLUMN IF NOT EXISTS notice_dismissed_at timestamptz`);
+    // ── Phase 0 client ownership policy columns ───────────────────────────────
+    await db.execute(sql`ALTER TABLE business_invitations ADD COLUMN IF NOT EXISTS policy_snapshot text`);
+    await db.execute(sql`ALTER TABLE business_members ADD COLUMN IF NOT EXISTS policy_snapshot text`);
+    await db.execute(sql`ALTER TABLE business_members ADD COLUMN IF NOT EXISTS policy_acknowledged_at timestamptz`);
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS business_policy_history (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        business_id uuid NOT NULL,
+        changed_by_user_id text NOT NULL,
+        old_policy text,
+        new_policy text NOT NULL,
+        changed_at timestamptz NOT NULL DEFAULT now()
+      )
+    `);
     console.log('✅ Business tables boot migration complete');
   } catch (err: any) {
     console.error('❌ Business tables boot migration failed:', err.message);

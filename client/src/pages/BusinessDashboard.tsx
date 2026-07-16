@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { getAuthHeaders } from "@/lib/auth";
+import MemberClientAccountingModal from "@/components/business/MemberClientAccountingModal";
 import { useToast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +30,7 @@ import {
   Settings,
   BookOpen,
   ChevronRight,
+  Shield,
 } from "lucide-react";
 
 const ROLE_OPTIONS = [
@@ -38,6 +40,24 @@ const ROLE_OPTIONS = [
   { value: "staff", label: "Staff" },
 ];
 
+const POLICY_OPTIONS = [
+  {
+    value: "org_only",
+    label: "Organization Clients Only",
+    description: "Members may not take personal clients outside this organization.",
+  },
+  {
+    value: "allowed_with_disclosure",
+    label: "Personal Clients Allowed — With Disclosure",
+    description: "Members may have personal clients but must disclose the relationship to you.",
+  },
+  {
+    value: "allowed",
+    label: "Personal Clients Allowed",
+    description: "Members may freely maintain personal clients without restriction.",
+  },
+];
+
 interface BusinessData {
   business: {
     id: string;
@@ -45,6 +65,7 @@ interface BusinessData {
     seatLimit: number;
     status: string;
     plan: string;
+    independentClientPolicy?: string;
   };
   members: {
     id: string;
@@ -105,6 +126,7 @@ export default function BusinessDashboard() {
 
   // Actions
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [cancellingToken, setCancellingToken] = useState<string | null>(null);
   const [resendingToken, setResendingToken] = useState<string | null>(null);
   const [editingName, setEditingName] = useState(false);
@@ -115,6 +137,10 @@ export default function BusinessDashboard() {
   const [seatModalOpen, setSeatModalOpen] = useState(false);
   const [managedSeats, setManagedSeats] = useState(4);
   const [managingSeats, setManagingSeats] = useState(false);
+
+  // Client ownership policy
+  const [policyValue, setPolicyValue] = useState<string>("allowed_with_disclosure");
+  const [savingPolicy, setSavingPolicy] = useState(false);
 
   // Launch guide checklist
   const [launchGuideDismissed, setLaunchGuideDismissed] = useState(
@@ -127,6 +153,35 @@ export default function BusinessDashboard() {
 
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollCount = useRef(0);
+
+  useEffect(() => {
+    if (ownerData?.business?.independentClientPolicy) {
+      setPolicyValue(ownerData.business.independentClientPolicy);
+    }
+  }, [ownerData]);
+
+  const handleSavePolicy = async () => {
+    setSavingPolicy(true);
+    try {
+      const res = await fetch("/api/business/policy", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
+        body: JSON.stringify({ policy: policyValue }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast({ title: "Could not save policy", description: data.error, variant: "destructive" });
+        return;
+      }
+      toast({ title: "Policy updated", description: "Your client ownership policy has been saved." });
+      fetchData();
+    } catch {
+      toast({ title: "Error", description: "Could not save policy.", variant: "destructive" });
+    } finally {
+      setSavingPolicy(false);
+    }
+  };
 
   const fetchData = async (): Promise<boolean> => {
     try {
@@ -769,6 +824,51 @@ export default function BusinessDashboard() {
           <ChevronRight className="w-4 h-4 text-white/30 flex-shrink-0" />
         </button>
 
+        {/* Client Ownership Policy */}
+        <Card className="bg-white/5 border border-blue-500/30 text-white p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Shield className="w-4 h-4 text-blue-400 flex-shrink-0" />
+            <span className="font-semibold text-sm">Client Ownership Policy</span>
+          </div>
+          <p className="text-white/50 text-xs leading-relaxed">
+            Sets the rules for whether members may maintain personal clients outside of this organization. Members see this when they accept their invitation.
+          </p>
+          <div className="space-y-2">
+            {POLICY_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                className={`w-full text-left px-3 py-2.5 rounded-xl transition-colors border ${
+                  policyValue === opt.value
+                    ? "bg-blue-600/25 border-blue-500/50"
+                    : "bg-white/5 border-white/10"
+                }`}
+                onClick={() => setPolicyValue(opt.value)}
+              >
+                <span className={`block text-sm font-semibold ${policyValue === opt.value ? "text-white" : "text-white/60"}`}>
+                  {opt.label}
+                </span>
+                <span className="block text-xs text-white/40 mt-0.5">{opt.description}</span>
+              </button>
+            ))}
+          </div>
+          {policyValue !== (ownerData?.business?.independentClientPolicy ?? "allowed_with_disclosure") && (
+            <button
+              className="w-full py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
+              onClick={handleSavePolicy}
+              disabled={savingPolicy}
+            >
+              {savingPolicy ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>
+              ) : (
+                <><Check className="w-4 h-4" /> Save Policy</>
+              )}
+            </button>
+          )}
+          {policyValue === (ownerData?.business?.independentClientPolicy ?? "allowed_with_disclosure") && (
+            <p className="text-white/30 text-xs text-center">Policy is active — change a selection above to update</p>
+          )}
+        </Card>
+
         {/* Active Members */}
         <div>
           <h2 className="text-white/70 text-xs font-semibold uppercase tracking-wide mb-2 px-1">
@@ -776,25 +876,37 @@ export default function BusinessDashboard() {
           </h2>
           <div className="space-y-2">
             {members.map((m) => (
-              <Card key={m.id} className="bg-white/5 border border-white/10 text-white p-3 flex items-center justify-between">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">{m.name || m.email || "Unknown"}</p>
-                  <p className="text-white/50 text-xs truncate">{m.email || ""}</p>
-                </div>
-                <div className="flex items-center gap-2 ml-2 flex-shrink-0">
-                  <Badge className={`text-xs border-0 ${m.role === "owner" ? "bg-blue-600/80 text-white" : "bg-white/10 text-white/70"}`}>
-                    {m.role.charAt(0).toUpperCase() + m.role.slice(1)}
-                  </Badge>
-                  {m.role !== "owner" && (
+              <Card key={m.id} className="bg-white/5 border border-white/10 text-white p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <button
+                    className="flex-1 min-w-0 text-left"
+                    onClick={() => setSelectedMemberId(m.id)}
+                  >
+                    <p className="text-sm font-medium truncate">{m.name || m.email || "Unknown"}</p>
+                    <p className="text-white/50 text-xs truncate">{m.email || ""}</p>
+                  </button>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <Badge className={`text-xs border-0 ${m.role === "owner" ? "bg-blue-600/80 text-white" : "bg-white/10 text-white/70"}`}>
+                      {m.role.charAt(0).toUpperCase() + m.role.slice(1)}
+                    </Badge>
                     <button
-                      className="p-1.5 rounded-lg bg-red-900/30 hover:bg-red-900/50 text-red-400 transition-colors disabled:opacity-40"
-                      onClick={() => handleRemoveMember(m.id)}
-                      disabled={removingId === m.id}
-                      title="Remove member"
+                      className="p-1.5 rounded-lg bg-white/10 text-white/60 transition-colors"
+                      onClick={() => setSelectedMemberId(m.id)}
+                      title="View client accounting"
                     >
-                      {removingId === m.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                      <ChevronRight className="w-3.5 h-3.5" />
                     </button>
-                  )}
+                    {m.role !== "owner" && (
+                      <button
+                        className="p-1.5 rounded-lg bg-red-900/30 text-red-400 transition-colors disabled:opacity-40"
+                        onClick={() => handleRemoveMember(m.id)}
+                        disabled={removingId === m.id}
+                        title="Remove member"
+                      >
+                        {removingId === m.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </Card>
             ))}
@@ -946,6 +1058,13 @@ export default function BusinessDashboard() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {selectedMemberId && (
+        <MemberClientAccountingModal
+          memberId={selectedMemberId}
+          onClose={() => setSelectedMemberId(null)}
+        />
+      )}
     </div>
   );
 }

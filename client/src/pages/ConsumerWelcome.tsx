@@ -1,55 +1,21 @@
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Play, Pause } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { voiceManager } from "@/voice/VoiceManager";
+import { NarrationBar } from "@/components/NarrationBar";
 
-const COPILOT_SCRIPT = `Hey, welcome to My Perfect Meals.
-
-I'm Chef — your AI nutrition coach in your pocket.
-
-I’m here to help guide your food decisions so you can enjoy the meals you love while staying aligned with your goals.
-
-Before we get started, take a moment to read the information below. It will explain how the system works and what to expect.
-
-When you're ready, continue to onboarding so we can set up your personal nutrition plan.`;
+const COPILOT_SECTIONS = [
+  {
+    heading: "A quick intro from Chef",
+    text: "Hey, welcome to My Perfect Meals. I'm Chef — your AI nutrition coach in your pocket. I'm here to help guide your food decisions so you can enjoy the meals you love while staying aligned with your goals. Before we get started, take a moment to read the information below. It will explain how the system works and what to expect. When you're ready, continue to onboarding so we can set up your personal nutrition plan.",
+  },
+];
 
 export default function ConsumerWelcome() {
   const [, setLocation] = useLocation();
-  const [isPlaying, setIsPlaying] = useState(false);
   const [hasReadExplanation, setHasReadExplanation] = useState(false);
   const [hasAcceptedDisclaimer, setHasAcceptedDisclaimer] = useState(false);
-  const voiceRef = useRef<boolean>(false);
-
-  useEffect(() => {
-    return () => {
-      if (voiceRef.current) {
-        voiceManager.stop();
-        voiceRef.current = false;
-      }
-    };
-  }, []);
-
-  const toggleCopilot = async () => {
-    if (isPlaying) {
-      voiceManager.stop();
-      voiceRef.current = false;
-      setIsPlaying(false);
-    } else {
-      setIsPlaying(true);
-      voiceRef.current = true;
-      await voiceManager.preload();
-      const result = await voiceManager.speak(COPILOT_SCRIPT, () => {
-        setIsPlaying(false);
-        voiceRef.current = false;
-      });
-      if (result.status !== "playing") {
-        setIsPlaying(false);
-        voiceRef.current = false;
-      }
-    }
-  };
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
@@ -70,29 +36,11 @@ export default function ConsumerWelcome() {
           </p>
         </div>
 
-        <div className="mb-6">
-          <button
-            onClick={toggleCopilot}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-orange-900/50 to-amber-900/50 border border-orange-400/20 active:scale-[0.98] transition-transform ${!isPlaying ? "animate-pulse-glow-orange" : ""}`}
-          >
-            <div
-              className={`w-10 h-10 rounded-full flex items-center justify-center ${isPlaying ? "bg-red-500/20 border border-red-400/30" : "bg-orange-500/20 border border-orange-400/30"}`}
-            >
-              {isPlaying ? (
-                <Pause className="w-5 h-5 text-red-400" />
-              ) : (
-                <Play className="w-5 h-5 text-orange-400 ml-0.5" />
-              )}
-            </div>
-            <div className="text-left flex-1">
-              <p className="text-sm font-medium text-white">
-                {isPlaying ? "Listening to Chef..." : "Meet Chef"}
-              </p>
-              <p className="text-xs text-white/50">
-                {isPlaying ? "Tap to stop" : "A quick intro from our Copilot"}
-              </p>
-            </div>
-          </button>
+        <div className="mb-6 px-4 py-3 rounded-xl bg-gradient-to-r from-orange-900/50 to-amber-900/50 border border-orange-400/20">
+          <p className="text-xs text-white/50 mb-2">
+            Hear a quick intro from Chef — your AI nutrition coach
+          </p>
+          <NarrationBar sections={COPILOT_SECTIONS} speedOverride="1.0" />
         </div>
 
         <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-5 mb-6">

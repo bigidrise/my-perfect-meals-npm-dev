@@ -74,7 +74,7 @@ export default function Builders() {
       icon: Trophy,
       route: "/performance",
       testId: "card-performance-nutrition-hub",
-      builderId: "performance_nutrition",
+      builderId: "beach_body",
     },
     {
       title: "General Nutrition Builder",
@@ -144,7 +144,7 @@ export default function Builders() {
       hoverShadow: "hover:shadow-[0_0_30px_rgba(16,185,129,0.45)]",
       cardBg: "from-black via-emerald-950/30 to-black",
     },
-    performance_nutrition: {
+    beach_body: {
       glowBg: "radial-gradient(120% 120% at 50% 0%, rgba(245,158,11,0.5), rgba(245,158,11,0.25), rgba(0,0,0,0))",
       border: "border-amber-500/30",
       hoverBorder: "hover:border-amber-500/60",
