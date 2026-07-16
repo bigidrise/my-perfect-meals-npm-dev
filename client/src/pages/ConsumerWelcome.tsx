@@ -5,6 +5,8 @@ import { ArrowRight, Play, Pause } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { voiceManager } from "@/voice/VoiceManager";
 
+type AudioState = "idle" | "playing" | "paused";
+
 const COPILOT_SCRIPT = `Hey, welcome to My Perfect Meals.
 
 I'm Chef — your AI nutrition coach in your pocket.
@@ -17,7 +19,7 @@ When you're ready, continue to onboarding so we can set up your personal nutriti
 
 export default function ConsumerWelcome() {
   const [, setLocation] = useLocation();
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [audioState, setAudioState] = useState<AudioState>("idle");
   const [hasReadExplanation, setHasReadExplanation] = useState(false);
   const [hasAcceptedDisclaimer, setHasAcceptedDisclaimer] = useState(false);
   const voiceRef = useRef<boolean>(false);
@@ -31,25 +33,31 @@ export default function ConsumerWelcome() {
     };
   }, []);
 
-  const toggleCopilot = async () => {
-    if (isPlaying) {
-      voiceManager.stop();
+  const startCopilot = async () => {
+    setAudioState("playing");
+    voiceRef.current = true;
+    await voiceManager.preload();
+    const result = await voiceManager.speak(COPILOT_SCRIPT, () => {
+      setAudioState("idle");
       voiceRef.current = false;
-      setIsPlaying(false);
-    } else {
-      setIsPlaying(true);
-      voiceRef.current = true;
-      await voiceManager.preload();
-      const result = await voiceManager.speak(COPILOT_SCRIPT, () => {
-        setIsPlaying(false);
-        voiceRef.current = false;
-      });
-      if (result.status !== "playing") {
-        setIsPlaying(false);
-        voiceRef.current = false;
-      }
+    });
+    if (result.status !== "playing") {
+      setAudioState("idle");
+      voiceRef.current = false;
     }
   };
+
+  const togglePause = () => {
+    if (audioState === "playing") {
+      voiceManager.pause();
+      setAudioState("paused");
+    } else if (audioState === "paused") {
+      voiceManager.resume();
+      setAudioState("playing");
+    }
+  };
+
+  const skipForward = () => voiceManager.skipForward(10);
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
@@ -71,28 +79,47 @@ export default function ConsumerWelcome() {
         </div>
 
         <div className="mb-6">
-          <button
-            onClick={toggleCopilot}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-orange-900/50 to-amber-900/50 border border-orange-400/20 active:scale-[0.98] transition-transform ${!isPlaying ? "animate-pulse-glow-orange" : ""}`}
-          >
-            <div
-              className={`w-10 h-10 rounded-full flex items-center justify-center ${isPlaying ? "bg-red-500/20 border border-red-400/30" : "bg-orange-500/20 border border-orange-400/30"}`}
+          {audioState === "idle" ? (
+            <button
+              onClick={startCopilot}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-orange-900/50 to-amber-900/50 border border-orange-400/20 active:scale-[0.98] transition-transform animate-pulse-glow-orange"
             >
-              {isPlaying ? (
-                <Pause className="w-5 h-5 text-red-400" />
-              ) : (
+              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-orange-500/20 border border-orange-400/30">
                 <Play className="w-5 h-5 text-orange-400 ml-0.5" />
-              )}
+              </div>
+              <div className="text-left flex-1">
+                <p className="text-sm font-medium text-white">Meet Chef</p>
+                <p className="text-xs text-white/50">A quick intro from our Copilot</p>
+              </div>
+            </button>
+          ) : (
+            <div className="w-full flex items-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-orange-900/50 to-amber-900/50 border border-orange-400/20">
+              <button
+                onClick={togglePause}
+                className="w-10 h-10 rounded-full flex items-center justify-center bg-orange-500/20 border border-orange-400/30 active:scale-90 transition-transform shrink-0"
+              >
+                {audioState === "playing" ? (
+                  <Pause className="w-5 h-5 text-orange-400" />
+                ) : (
+                  <Play className="w-5 h-5 text-orange-400 ml-0.5" />
+                )}
+              </button>
+              <div className="text-left flex-1 min-w-0">
+                <p className="text-sm font-medium text-white truncate">
+                  {audioState === "playing" ? "Listening to Chef..." : "Paused"}
+                </p>
+                <p className="text-xs text-white/50">
+                  {audioState === "playing" ? "Tap to pause" : "Tap to resume"}
+                </p>
+              </div>
+              <button
+                onClick={skipForward}
+                className="px-3 py-1.5 rounded-lg bg-white/10 border border-white/10 text-xs font-bold text-white/80 active:scale-90 transition-transform shrink-0"
+              >
+                +10s
+              </button>
             </div>
-            <div className="text-left flex-1">
-              <p className="text-sm font-medium text-white">
-                {isPlaying ? "Listening to Chef..." : "Meet Chef"}
-              </p>
-              <p className="text-xs text-white/50">
-                {isPlaying ? "Tap to stop" : "A quick intro from our Copilot"}
-              </p>
-            </div>
-          </button>
+          )}
         </div>
 
         <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-5 mb-6">
