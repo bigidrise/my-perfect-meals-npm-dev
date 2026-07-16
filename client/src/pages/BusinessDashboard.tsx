@@ -400,7 +400,7 @@ export default function BusinessDashboard() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-black/60 via-blue-900/40 to-black/80 pb-24" style={{ paddingBottom: "max(6rem, calc(env(safe-area-inset-bottom) + 5rem))" }}>
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-black/60 backdrop-blur-md border-b border-white/10" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+        <div className="fixed top-0 left-0 right-0 z-10 bg-black/60 backdrop-blur-md border-b border-white/10" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
           <div className="px-4 py-3 flex items-center gap-3">
             <button onClick={() => setLocation("/more")} className="text-white/60 active:text-white transition-colors">
               <ChevronLeft className="w-5 h-5" />
@@ -412,7 +412,7 @@ export default function BusinessDashboard() {
           </div>
         </div>
 
-        <div className="px-4 pt-5 pb-10 max-w-lg mx-auto space-y-4">
+        <div className="px-4 pb-10 max-w-lg mx-auto space-y-4" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 4.5rem)" }}>
 
           {/* Welcome banner */}
           <div className="bg-gradient-to-r from-blue-900/70 to-blue-700/50 border border-blue-500/30 rounded-2xl p-5 text-center">
@@ -576,7 +576,7 @@ export default function BusinessDashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-black/60 via-blue-900/40 to-black/80 pb-24" style={{ paddingBottom: "max(6rem, calc(env(safe-area-inset-bottom) + 5rem))" }}>
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-black/60 backdrop-blur-md border-b border-white/10" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+      <div className="fixed top-0 left-0 right-0 z-10 bg-black/60 backdrop-blur-md border-b border-white/10" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <div className="px-4 py-3 flex items-center gap-3">
           <button onClick={() => setLocation("/more")} className="text-white/60 active:text-white transition-colors">
             <ChevronLeft className="w-5 h-5" />
@@ -595,7 +595,7 @@ export default function BusinessDashboard() {
         </div>
       </div>
 
-      <div className="px-4 pt-5 space-y-4 max-w-2xl mx-auto">
+      <div className="px-4 space-y-4 max-w-2xl mx-auto" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 4.5rem)" }}>
 
         {/* Launch Guide Checklist — shown until dismissed */}
         {!launchGuideDismissed && (() => {
