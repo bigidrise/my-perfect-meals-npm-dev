@@ -113,6 +113,7 @@ router.get("/membership", requireAuth, async (req, res) => {
         businessName: businesses.name,
         seatLimit: businesses.seatLimit,
         ownerUserId: businesses.ownerUserId,
+        independentClientPolicy: businesses.independentClientPolicy,
       })
       .from(businessMembers)
       .innerJoin(businesses, eq(businesses.id, businessMembers.businessId))
