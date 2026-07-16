@@ -227,6 +227,11 @@ router.post("/invite", requireAuth, async (req, res) => {
       expiresAt,
     });
 
+    // Stamp the current policy at time of invite (raw SQL — column added via boot migration)
+    await db.execute(
+      sql`UPDATE business_invitations SET policy_snapshot = ${business.independentClientPolicy} WHERE token = ${token}`
+    );
+
     const [owner] = await db
       .select({ username: users.username })
       .from(users)
@@ -414,6 +419,46 @@ router.post("/invitations/:token/resend", requireAuth, async (req, res) => {
   }
 });
 
+// ── PATCH /api/business/policy — owner updates independent_client_policy
+router.patch("/policy", requireAuth, async (req, res) => {
+  const userId = (req as any).authUser?.id as string;
+  const { policy } = req.body as { policy: string };
+
+  const validPolicies = ["org_only", "allowed_with_disclosure", "allowed"];
+  if (!policy || !validPolicies.includes(policy)) {
+    return res.status(400).json({ error: "Invalid policy value. Must be one of: org_only, allowed_with_disclosure, allowed." });
+  }
+
+  try {
+    const [business] = await db
+      .select()
+      .from(businesses)
+      .where(eq(businesses.ownerUserId, userId))
+      .limit(1);
+
+    if (!business) {
+      return res.status(403).json({ error: "No business account found." });
+    }
+
+    const oldPolicy = business.independentClientPolicy;
+
+    await db
+      .update(businesses)
+      .set({ independentClientPolicy: policy as any, updatedAt: new Date() })
+      .where(eq(businesses.id, business.id));
+
+    await db.execute(
+      sql`INSERT INTO business_policy_history (business_id, changed_by_user_id, old_policy, new_policy) VALUES (${business.id}, ${userId}, ${oldPolicy}, ${policy})`
+    );
+
+    console.log(`✅ [business] Policy updated | business=${business.id} | ${oldPolicy} → ${policy}`);
+    return res.json({ success: true, policy });
+  } catch (err) {
+    console.error("[business/policy] error:", err);
+    return res.status(500).json({ error: "Server error." });
+  }
+});
+
 // ── GET /api/business/invite/:token — public: get invite details for accept page
 router.get("/invite/:token", async (req, res) => {
   const { token } = req.params;
@@ -427,6 +472,7 @@ router.get("/invite/:token", async (req, res) => {
         status: businessInvitations.status,
         expiresAt: businessInvitations.expiresAt,
         businessName: businesses.name,
+        independentClientPolicy: businesses.independentClientPolicy,
       })
       .from(businessInvitations)
       .innerJoin(businesses, eq(businesses.id, businessInvitations.businessId))
@@ -457,6 +503,7 @@ router.get("/invite/:token", async (req, res) => {
       role: invite.role,
       businessName: invite.businessName,
       expiresAt: invite.expiresAt,
+      independentClientPolicy: invite.independentClientPolicy,
     });
   } catch (err) {
     console.error("[business/invite/get] error:", err);
