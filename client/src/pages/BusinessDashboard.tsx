@@ -867,6 +867,12 @@ export default function BusinessDashboard() {
           {policyValue === (ownerData?.business?.independentClientPolicy ?? "allowed_with_disclosure") && (
             <p className="text-white/30 text-xs text-center">Policy is active — change a selection above to update</p>
           )}
+          <button
+            className="w-full text-xs text-blue-400 text-center py-1"
+            onClick={() => setLocation("/org-success-center")}
+          >
+            Learn how policies work →
+          </button>
         </Card>
 
         {/* Active Members */}
