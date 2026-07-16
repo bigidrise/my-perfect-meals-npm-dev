@@ -11,11 +11,13 @@ interface Section {
 interface UseNarrationOptions {
   onSectionChange?: (index: number) => void;
   onEnd?: () => void;
+  speedOverride?: string;
 }
 
 export function useNarration(sections: Section[], options: UseNarrationOptions = {}) {
-  const { onSectionChange, onEnd } = options;
-  const { narrationSpeed } = useNarrationSpeed();
+  const { onSectionChange, onEnd, speedOverride } = options;
+  const { narrationSpeed: contextSpeed } = useNarrationSpeed();
+  const narrationSpeed = speedOverride ?? contextSpeed;
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
