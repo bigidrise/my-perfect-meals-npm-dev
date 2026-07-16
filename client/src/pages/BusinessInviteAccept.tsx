@@ -105,9 +105,9 @@ export default function BusinessInviteAccept() {
   if (accepted && acceptedData) {
     const roleLabel = acceptedData.role.charAt(0).toUpperCase() + acceptedData.role.slice(1);
     return (
-      <div className="min-h-screen bg-gradient-to-br from-black/60 via-blue-900/40 to-black/80 pb-16">
+      <div className="min-h-screen bg-gradient-to-br from-black/60 via-blue-900/40 to-black/80 pb-16" style={{ paddingBottom: "max(4rem, calc(env(safe-area-inset-bottom) + 3rem))" }}>
         {/* Success header */}
-        <div className="bg-gradient-to-r from-blue-900/80 to-blue-700/60 border-b border-blue-500/30 px-6 py-10 text-center">
+        <div className="bg-gradient-to-r from-blue-900/80 to-blue-700/60 border-b border-blue-500/30 px-6 py-10 text-center" style={{ paddingTop: "max(2.5rem, calc(env(safe-area-inset-top, 0px) + 2rem))" }}>
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-500/20 border border-green-400/40 mb-4">
             <CheckCircle className="w-8 h-8 text-green-400" />
           </div>
@@ -216,10 +216,10 @@ export default function BusinessInviteAccept() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black/60 via-blue-900/40 to-black/80 pb-16">
+    <div className="min-h-screen bg-gradient-to-br from-black/60 via-blue-900/40 to-black/80 pb-16" style={{ paddingBottom: "max(4rem, calc(env(safe-area-inset-bottom) + 3rem))" }}>
 
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-900/80 to-blue-700/60 border-b border-blue-500/30 px-6 py-10 text-center">
+      <div className="bg-gradient-to-r from-blue-900/80 to-blue-700/60 border-b border-blue-500/30 px-6 py-10 text-center" style={{ paddingTop: "max(2.5rem, calc(env(safe-area-inset-top, 0px) + 2rem))" }}>
         <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-blue-600/20 border border-blue-500/30 mb-4">
           <Building2 className="w-7 h-7 text-blue-400" />
         </div>

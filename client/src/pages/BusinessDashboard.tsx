@@ -396,26 +396,41 @@ export default function BusinessDashboard() {
   if (viewMode === "member" && memberData) {
     const { membership } = memberData;
     const roleLabel = membership.role.charAt(0).toUpperCase() + membership.role.slice(1);
+
     return (
-      <div className="min-h-screen bg-gradient-to-br from-black/60 via-blue-900/40 to-black/80 pb-24">
-        <div className="sticky top-0 z-10 bg-black/60 backdrop-blur-md border-b border-white/10 px-4 py-3 flex items-center gap-3">
-          <button onClick={() => setLocation("/more")} className="text-white/60 hover:text-white transition-colors">
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <div>
-            <h1 className="text-white font-bold text-base leading-tight">My Business Team</h1>
-            <p className="text-white/50 text-xs">Organization Member</p>
+      <div className="min-h-screen bg-gradient-to-br from-black/60 via-blue-900/40 to-black/80 pb-24" style={{ paddingBottom: "max(6rem, calc(env(safe-area-inset-bottom) + 5rem))" }}>
+        {/* Header */}
+        <div className="sticky top-0 z-10 bg-black/60 backdrop-blur-md border-b border-white/10" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+          <div className="px-4 py-3 flex items-center gap-3">
+            <button onClick={() => setLocation("/more")} className="text-white/60 active:text-white transition-colors">
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <div>
+              <h1 className="text-white font-bold text-base leading-tight">My Business Team</h1>
+              <p className="text-white/50 text-xs">Organization Member</p>
+            </div>
           </div>
         </div>
-        <div className="px-4 pt-6 max-w-sm mx-auto space-y-4">
-          <Card className="bg-white/5 border border-blue-500/30 text-white p-5 text-center">
+
+        <div className="px-4 pt-5 pb-10 max-w-lg mx-auto space-y-4">
+
+          {/* Welcome banner */}
+          <div className="bg-gradient-to-r from-blue-900/70 to-blue-700/50 border border-blue-500/30 rounded-2xl p-5 text-center">
             <Building2 className="w-10 h-10 text-blue-400 mx-auto mb-3" />
-            <h2 className="text-white font-bold text-lg">{membership.businessName}</h2>
-            <p className="text-white/50 text-sm mt-1">You are a member of this team</p>
-          </Card>
-          <Card className="bg-white/5 border border-white/10 text-white p-4 space-y-3">
+            <h2 className="text-white font-bold text-xl">{membership.businessName}</h2>
+            <p className="text-blue-200 text-sm mt-1">
+              Welcome to the team as a <span className="text-white font-semibold">{roleLabel}</span>
+            </p>
+            <div className="flex items-center justify-center gap-2 mt-3">
+              <CheckCircle className="w-4 h-4 text-green-400" />
+              <span className="text-green-300 text-sm font-medium">Organization Access Active</span>
+            </div>
+          </div>
+
+          {/* Membership details */}
+          <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-white/50 text-sm">Your Role</span>
+              <span className="text-white/50 text-sm">Role</span>
               <Badge className="bg-blue-600/80 text-white border-0 text-xs">{roleLabel}</Badge>
             </div>
             <div className="flex items-center justify-between">
@@ -430,9 +445,53 @@ export default function BusinessDashboard() {
                 {new Date(membership.joinedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
               </span>
             </div>
-          </Card>
-          <p className="text-white/30 text-xs text-center px-4">
-            Seat management and billing are controlled by your team owner. Contact them to make changes.
+          </div>
+
+          {/* Path to working with clients */}
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-3">
+            <h3 className="text-white font-bold text-base">
+              Your Path to Working with Clients
+            </h3>
+            <p className="text-white/70 text-sm leading-relaxed">
+              Now that you're officially part of the team, your first step is to complete the{" "}
+              <span className="text-white font-semibold">My Perfect Meals Academy</span>. The Academy walks you through the entire platform — meal builders, dietary protocols, clinical nutrition tools, client management, marketing, and how to get the most out of every feature for the people you coach.
+            </p>
+            <p className="text-white/70 text-sm leading-relaxed">
+              Once you finish all the lessons, you'll earn your certification. At that point,{" "}
+              <span className="text-white font-semibold">your ProCare Studio unlocks automatically</span> — no extra steps needed. Your Studio is where you'll manage your clients, track progress, communicate, and deliver your coaching programs.
+            </p>
+            <p className="text-white/70 text-sm leading-relaxed">
+              After that, head to the{" "}
+              <span className="text-white font-semibold">More page</span> to set up your Studio and get started. By the time you finish the Academy, you'll know exactly where the More page is and what everything does — because you just went through the whole app.
+            </p>
+          </div>
+
+          {/* Studio unlock callout */}
+          <div className="bg-blue-950/60 border border-blue-500/30 rounded-2xl p-4">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-blue-600/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Crown className="w-4 h-4 text-blue-400" />
+              </div>
+              <div className="flex-1">
+                <p className="text-white text-sm font-semibold">
+                  Complete the Academy to unlock your ProCare Studio
+                </p>
+                <p className="text-blue-200/70 text-xs mt-1 leading-relaxed">
+                  Your organization requires Academy certification before you can begin working with clients. Once you finish, your Studio activates automatically.
+                </p>
+                <button
+                  className="mt-3 w-full py-2.5 rounded-xl bg-blue-600 border border-blue-500/40 text-white text-sm font-semibold flex items-center justify-center gap-2"
+                  onClick={() => setLocation("/academy")}
+                >
+                  Launch Academy
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <p className="text-white/25 text-xs text-center px-4">
+            Seat management and billing are controlled by your team owner. Contact them with any questions.
           </p>
         </div>
       </div>
@@ -515,23 +574,25 @@ export default function BusinessDashboard() {
 
   // ── Full owner dashboard ────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black/60 via-blue-900/40 to-black/80 pb-24">
+    <div className="min-h-screen bg-gradient-to-br from-black/60 via-blue-900/40 to-black/80 pb-24" style={{ paddingBottom: "max(6rem, calc(env(safe-area-inset-bottom) + 5rem))" }}>
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-black/60 backdrop-blur-md border-b border-white/10 px-4 py-3 flex items-center gap-3">
-        <button onClick={() => setLocation("/more")} className="text-white/60 active:text-white transition-colors">
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-        <div className="flex-1">
-          <h1 className="text-white font-bold text-base leading-tight">Organization Dashboard</h1>
-          <p className="text-white/50 text-xs">Manage team members, seats &amp; invitations</p>
+      <div className="sticky top-0 z-10 bg-black/60 backdrop-blur-md border-b border-white/10" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+        <div className="px-4 py-3 flex items-center gap-3">
+          <button onClick={() => setLocation("/more")} className="text-white/60 active:text-white transition-colors">
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <div className="flex-1">
+            <h1 className="text-white font-bold text-base leading-tight">Organization Dashboard</h1>
+            <p className="text-white/50 text-xs">Manage team members, seats &amp; invitations</p>
+          </div>
+          <button
+            onClick={() => fetchData()}
+            className="text-white/50 active:text-white transition-colors p-1.5 rounded-lg active:bg-white/10"
+            title="Refresh"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
         </div>
-        <button
-          onClick={() => fetchData()}
-          className="text-white/50 active:text-white transition-colors p-1.5 rounded-lg active:bg-white/10"
-          title="Refresh"
-        >
-          <RefreshCw className="w-4 h-4" />
-        </button>
       </div>
 
       <div className="px-4 pt-5 space-y-4 max-w-2xl mx-auto">

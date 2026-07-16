@@ -1,13 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import {
   ArrowLeft,
   Award,
-  BookOpen,
-  CheckCircle2,
-  Circle,
-  ChevronRight,
-  Lock,
   Loader2,
   X,
   GraduationCap,
@@ -40,18 +35,7 @@ function getLessonStatus(progress: Record<string, { status: string; score: numbe
   return progress?.[lessonId]?.status ?? "not_started";
 }
 
-function getQuizStatus(progress: Record<string, { status: string; score: number | null }> | undefined, lessonId: string) {
-  const qid = `${lessonId}-quiz`;
-  return {
-    status: progress?.[qid]?.status ?? "not_started",
-    score: progress?.[qid]?.score ?? null,
-  };
-}
 
-function getExerciseStatus(progress: Record<string, { status: string; score: number | null }> | undefined, lessonId: string) {
-  const eid = `${lessonId}-exercise`;
-  return progress?.[eid]?.status ?? "not_started";
-}
 
 export default function PlatformMasteryDashboard() {
   const [location, setLocation] = useLocation();
@@ -59,15 +43,10 @@ export default function PlatformMasteryDashboard() {
   const [status, setStatus] = useState<AcademyStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const [showEnrollModal, setShowEnrollModal] = useState(false);
   const [showNameModal, setShowNameModal] = useState(false);
   const [certFirstName, setCertFirstName] = useState("");
   const [certLastName, setCertLastName] = useState("");
   const [nameSaving, setNameSaving] = useState(false);
-  const [enrolling, setEnrolling] = useState(false);
-
-  const dashPath = "/academy/platform-mastery";
-  const prevLocationRef = useRef<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -84,48 +63,12 @@ export default function PlatformMasteryDashboard() {
     if (user) load();
   }, [user, load]);
 
-  useEffect(() => {
-    if (prevLocationRef.current !== null && location === dashPath) {
-      setLoading(true);
-      load();
-    }
-    prevLocationRef.current = location;
-  }, [location, load]);
-
   const prog = status?.progress ?? {};
   const completedCount = LESSONS.filter((l) => getLessonStatus(prog, l.id) === "completed").length;
   const allDone = completedCount === LESSONS.length;
   const isCertified = status?.certStatus === "completed";
   const isCertTrack = status?.isCertificationTrack ?? false;
   const progressPct = Math.round((completedCount / LESSONS.length) * 100);
-
-  const continueLesson = LESSONS.find((l) => getLessonStatus(prog, l.id) !== "completed");
-
-  const isLessonLocked = (idx: number) => {
-    if (!isCertTrack) return false;
-    if (idx === 0) return false;
-    return getLessonStatus(prog, LESSONS[idx - 1].id) !== "completed";
-  };
-
-  const handleEnroll = async (certTrack: boolean) => {
-    setEnrolling(true);
-    try {
-      await apiRequest("/api/academy/platform-mastery/enroll", {
-        method: "POST",
-        body: JSON.stringify({ isCertificationTrack: certTrack }),
-        headers: { "Content-Type": "application/json" },
-      });
-      setShowEnrollModal(false);
-      await load();
-      if (certTrack && continueLesson) {
-        setLocation(`/academy/platform-mastery/lesson/${continueLesson.id}`);
-      } else if (!certTrack && continueLesson) {
-        setLocation(`/academy/platform-mastery/lesson/${continueLesson.id}`);
-      }
-    } catch {
-      setEnrolling(false);
-    }
-  };
 
   const handleCompleteWithName = async () => {
     const fullName = `${certFirstName.trim()} ${certLastName.trim()}`.trim();
@@ -233,174 +176,6 @@ export default function PlatformMasteryDashboard() {
           )}
         </div>
 
-        {/* Enrollment CTA / Continue button */}
-        {!loading && !status?.enrolled && (
-          <motion.div
-            className="space-y-2"
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <button
-              onClick={() => setShowEnrollModal(true)}
-              className="w-full p-4 rounded-2xl bg-orange-600 text-white font-bold text-sm flex items-center justify-between active:scale-[0.98] transition-transform"
-            >
-              <div className="flex flex-col items-start gap-0.5">
-                <span className="text-xs text-orange-200 font-medium uppercase tracking-wide">
-                  My Perfect Meals Basics
-                </span>
-                <span className="text-base font-bold text-white">
-                  Start Learning
-                </span>
-              </div>
-              <BookOpen className="h-6 w-6 text-white/80 flex-shrink-0" />
-            </button>
-          </motion.div>
-        )}
-
-        {!loading && status?.enrolled && !allDone && continueLesson && (
-          <motion.button
-            className="w-full p-4 rounded-2xl bg-orange-600 text-white font-bold text-sm flex items-center justify-between active:scale-[0.98] transition-transform"
-            onClick={() =>
-              setLocation(`/academy/platform-mastery/lesson/${continueLesson.id}`)
-            }
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <div className="flex flex-col items-start gap-0.5">
-              <span className="text-xs text-orange-200 font-medium uppercase tracking-wide">
-                Continue — Lesson {continueLesson.num}
-              </span>
-              <span className="text-base font-bold text-white">
-                {continueLesson.title}
-              </span>
-            </div>
-            <ChevronRight className="h-6 w-6 text-white/80 flex-shrink-0" />
-          </motion.button>
-        )}
-
-        {/* Lesson list */}
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <Loader2 className="w-6 h-6 text-orange-400 animate-spin" />
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {LESSONS.map((lesson, i) => {
-              const lessonSt = getLessonStatus(prog, lesson.id);
-              const quiz = getQuizStatus(prog, lesson.id);
-              const exerciseSt = getExerciseStatus(prog, lesson.id);
-              const done = lessonSt === "completed";
-              const locked = isLessonLocked(i);
-              const isCurrent =
-                !done && !locked && continueLesson?.id === lesson.id;
-              const showSeparator = isCurrent && completedCount > 0 && i > 0;
-
-              return (
-                <div key={lesson.id}>
-                  {showSeparator && (
-                    <div className="flex items-center gap-3 py-2">
-                      <div className="flex-1 h-px bg-white/10" />
-                      <span className="text-[10px] text-white/30 uppercase tracking-widest font-semibold">
-                        Up Next
-                      </span>
-                      <div className="flex-1 h-px bg-white/10" />
-                    </div>
-                  )}
-                  <motion.button
-                    className={`w-full text-left p-4 rounded-2xl border transition-all duration-200 ${
-                      locked
-                        ? "bg-black/20 border-white/5 opacity-50 cursor-default"
-                        : isCurrent
-                        ? "bg-orange-500/10 border-orange-500/30"
-                        : done
-                        ? "bg-black/30 border-white/10"
-                        : "bg-black/50 backdrop-blur-md border-white/10 active:scale-[0.98]"
-                    }`}
-                    onClick={() =>
-                      !locked &&
-                      setLocation(
-                        `/academy/platform-mastery/lesson/${lesson.id}`
-                      )
-                    }
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.04 }}
-                  >
-                    <div className="flex items-center gap-3">
-                      {locked ? (
-                        <Lock className="h-5 w-5 text-white/20 flex-shrink-0" />
-                      ) : done ? (
-                        <CheckCircle2 className="h-5 w-5 text-emerald-400 flex-shrink-0" />
-                      ) : isCurrent ? (
-                        <div className="h-5 w-5 rounded-full border-2 border-orange-400 bg-orange-400/20 flex-shrink-0" />
-                      ) : (
-                        <Circle className="h-5 w-5 text-white/20 flex-shrink-0" />
-                      )}
-
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-white/25 flex-shrink-0 font-mono">
-                            {String(lesson.num).padStart(2, "0")}
-                          </span>
-                          <h3
-                            className={`text-sm font-semibold truncate ${done ? "text-white/50" : "text-white"}`}
-                          >
-                            {lesson.title}
-                          </h3>
-                        </div>
-                        <p className="text-xs text-white/35 mt-0.5 ml-6 leading-snug">
-                          {lesson.subtitle}
-                        </p>
-                        {/* Sub-status for cert track */}
-                        {isCertTrack && !locked && (
-                          <div className="flex items-center gap-3 mt-1.5 ml-6">
-                            <span
-                              className={`text-[10px] font-medium ${exerciseSt === "completed" ? "text-emerald-400" : "text-white/25"}`}
-                            >
-                              Exercise {exerciseSt === "completed" ? "✓" : "○"}
-                            </span>
-                            <span
-                              className={`text-[10px] font-medium ${quiz.status === "completed" ? "text-emerald-400" : quiz.status === "quiz_failed" ? "text-red-400" : "text-white/25"}`}
-                            >
-                              Quiz{" "}
-                              {quiz.status === "completed"
-                                ? `✓ ${quiz.score}%`
-                                : quiz.status === "quiz_failed"
-                                ? `✗ ${quiz.score}%`
-                                : "○"}
-                            </span>
-                          </div>
-                        )}
-                        {/* Lesson status label */}
-                        {!locked && (
-                          <div className="mt-0.5 ml-6">
-                            {done ? (
-                              <span className="text-xs text-emerald-400 font-medium">
-                                Completed
-                              </span>
-                            ) : isCurrent ? (
-                              <span className="text-xs text-orange-400 font-semibold">
-                                Tap to continue
-                              </span>
-                            ) : (
-                              <span className="text-xs text-white/25">
-                                Not started
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                      {!locked && (
-                        <ChevronRight className="h-4 w-4 text-white/20 flex-shrink-0" />
-                      )}
-                    </div>
-                  </motion.button>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
         {/* Claim certificate button — cert track only, all lessons done */}
         {!loading && isCertTrack && allDone && !isCertified && (
           <motion.button
@@ -442,83 +217,6 @@ export default function PlatformMasteryDashboard() {
           </div>
         )}
       </div>
-
-      {/* Enroll modal */}
-      <AnimatePresence>
-        {showEnrollModal && (
-          <motion.div
-            className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center px-4 pb-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <motion.div
-              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-              onClick={() => !enrolling && setShowEnrollModal(false)}
-            />
-            <motion.div
-              className="relative w-full max-w-sm bg-[#1a1a1a] border border-white/10 rounded-3xl p-6 space-y-5"
-              initial={{ opacity: 0, y: 40 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 40 }}
-            >
-              <button
-                className="absolute top-4 right-4 p-1.5 rounded-xl bg-black/40 text-white/50 active:scale-95"
-                onClick={() => !enrolling && setShowEnrollModal(false)}
-              >
-                <X className="h-4 w-4" />
-              </button>
-
-              <div className="text-center space-y-2 pt-1">
-                <div className="flex justify-center">
-                  <div className="p-3 rounded-2xl bg-orange-500/15 border border-orange-500/25">
-                    <GraduationCap className="h-7 w-7 text-orange-400" />
-                  </div>
-                </div>
-                <h2 className="text-base font-bold text-white">
-                  How would you like to learn?
-                </h2>
-                <p className="text-xs text-white/50 leading-relaxed">
-                  Both modes use the same lessons and exercises. The difference is how your progress is tracked.
-                </p>
-              </div>
-
-              <div className="space-y-3">
-                <button
-                  onClick={() => handleEnroll(false)}
-                  disabled={enrolling}
-                  className="w-full p-4 rounded-2xl bg-white/8 border border-white/15 text-left active:scale-[0.98] transition-transform disabled:opacity-50"
-                >
-                  <p className="text-sm font-bold text-white">Learning Mode</p>
-                  <p className="text-xs text-white/50 mt-0.5 leading-relaxed">
-                    Open access · Optional quizzes · Progress shown as Read / Completed
-                  </p>
-                </button>
-
-                <button
-                  onClick={() => handleEnroll(true)}
-                  disabled={enrolling}
-                  className="w-full p-4 rounded-2xl bg-orange-600/20 border border-orange-500/40 text-left active:scale-[0.98] transition-transform disabled:opacity-50"
-                >
-                  <p className="text-sm font-bold text-orange-300">
-                    Certification Mode
-                  </p>
-                  <p className="text-xs text-orange-200/60 mt-0.5 leading-relaxed">
-                    Sequential unlock · 80% quiz gate · Certificate issued on completion
-                  </p>
-                </button>
-              </div>
-
-              {enrolling && (
-                <div className="flex items-center justify-center gap-2">
-                  <Loader2 className="h-4 w-4 text-orange-400 animate-spin" />
-                  <span className="text-xs text-white/50">Starting…</span>
-                </div>
-              )}
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Name capture modal */}
       <AnimatePresence>

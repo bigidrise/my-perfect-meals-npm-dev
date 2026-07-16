@@ -26,7 +26,7 @@ const PLATFORM_MASTERY_LESSONS = [
 ];
 
 const BECOME_CERTIFIED = [
-  { icon: "🥉", label: "My Perfect Meals Basics", desc: "6 lessons · Platform exercises · Quiz", route: "/academy/platform-mastery" },
+  { icon: "🥉", label: "My Perfect Meals Basics", desc: "6 lessons · Platform exercises · Quiz", route: "/academy/platform-mastery/lesson/lesson-01" },
   { icon: "📈", label: "Marketing & Coaching", desc: "5 lessons · Coaching philosophy · Quiz", route: "/business-center/affiliate/coaching/certification" },
   { icon: "🩺", label: "ProCare Certification", desc: "3 training videos · Final assessment", route: null },
 ];
@@ -248,29 +248,7 @@ export default function AcademyHome() {
                 Claim Your Certificate
                 <ChevronRight className="h-4 w-4 opacity-70" />
               </button>
-            ) : nextLesson ? (
-              <button
-                onClick={() =>
-                  setLocation(
-                    `/academy/platform-mastery/lesson/lesson-0${nextLesson.num}`
-                  )
-                }
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-orange-600 text-white font-semibold text-sm active:scale-[0.98] transition-transform"
-              >
-                <BookOpen className="h-4 w-4" />
-                {completedLessons === 0 ? "Start Learning" : "Continue Learning"}
-                <ChevronRight className="h-4 w-4 opacity-70" />
-              </button>
-            ) : (
-              <button
-                onClick={() => setLocation("/academy/platform-mastery")}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-orange-600 text-white font-semibold text-sm active:scale-[0.98] transition-transform"
-              >
-                <BookOpen className="h-4 w-4" />
-                Start Learning
-                <ChevronRight className="h-4 w-4 opacity-70" />
-              </button>
-            )}
+            ) : null}
           </div>
         </motion.div>
 
@@ -365,7 +343,7 @@ export default function AcademyHome() {
 
           <div className="px-5 pb-4">
             <button
-              onClick={() => setLocation("/academy/platform-mastery")}
+              onClick={() => setLocation("/academy/platform-mastery/lesson/lesson-01")}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-white/10 border border-white/15 text-white font-semibold text-sm active:scale-[0.98] transition-transform"
             >
               <GraduationCap className="h-4 w-4 text-orange-400" />
