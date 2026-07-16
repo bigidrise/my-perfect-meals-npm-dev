@@ -532,15 +532,6 @@ export default function BusinessDashboard() {
                           <ChevronRight className="w-4 h-4" />
                         </button>
                       )}
-                      {step.cta && step.route && step.highlight && (
-                        <button
-                          className="mt-3 w-full py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold flex items-center justify-center gap-2"
-                          onClick={() => setLocation(step.route!)}
-                        >
-                          {step.cta}
-                          <ChevronRight className="w-4 h-4" />
-                        </button>
-                      )}
                     </div>
                   </div>
                 </div>
