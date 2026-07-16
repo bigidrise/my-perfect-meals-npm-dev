@@ -1,29 +1,34 @@
-import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
-import { ArrowRight, ArrowLeft, Play, Pause, GraduationCap, User, Rocket, CheckCircle2 } from "lucide-react";
+import { ArrowRight, ArrowLeft, GraduationCap, User, Rocket, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { voiceManager } from "@/voice/VoiceManager";
-import { PillButton } from "@/components/ui/pill-button";
+import { NarrationBar } from "@/components/NarrationBar";
 
-type AudioState = "idle" | "playing" | "paused";
-
-const COPILOT_SCRIPT = `Welcome to My Perfect Meals Professional.
-
-I'm Chef Copilot, and before you dive in, I want you to understand exactly what's about to happen — and why it's designed this way.
-
-Every My Perfect Meals professional completes a three-step onboarding before accessing the Studio. Not because it's a requirement. Because it works.
-
-Step one: You'll complete your own My Perfect Meals profile. You'll generate your own nutrition plan, explore the meal builders, and experience the app exactly the way your future clients will. This matters because you can't confidently guide someone through an experience you haven't had yourself.
-
-Step two: You'll complete Professional Certification — Phase 1, Platform Fundamentals. You'll learn every feature of the platform, how to personalize nutrition, how to use AI responsibly, and how to onboard clients efficiently.
-
-Step three: Phase 2, Business and ProCare Success. You'll learn how to build your practice, manage clients, use the Studio, grow recurring revenue, and get the most from every tool in the platform.
-
-When you're finished, your Professional Studio and Business Suite will unlock — and you'll enter them prepared, not guessing.
-
-Professionals who complete this onboarding are more confident, provide better client outcomes, and grow their businesses faster. That's not marketing. That's what we've seen.
-
-When you're ready, tap Begin Your Professional Journey.`;
+const COPILOT_SECTIONS = [
+  {
+    heading: "Welcome to My Perfect Meals Professional",
+    text: "Welcome to My Perfect Meals Professional. I'm Chef Copilot, and before you dive in, I want you to understand exactly what's about to happen — and why it's designed this way.",
+  },
+  {
+    heading: "Three-Step Onboarding",
+    text: "Every My Perfect Meals professional completes a three-step onboarding before accessing the Studio. Not because it's a requirement. Because it works.",
+  },
+  {
+    heading: "Step One — Experience the App as a User",
+    text: "You'll complete your own My Perfect Meals profile. You'll generate your own nutrition plan, explore the meal builders, and experience the app exactly the way your future clients will. This matters because you can't confidently guide someone through an experience you haven't had yourself.",
+  },
+  {
+    heading: "Step Two — Platform Fundamentals",
+    text: "You'll complete Professional Certification — Phase 1, Platform Fundamentals. You'll learn every feature of the platform, how to personalize nutrition, how to use AI responsibly, and how to onboard clients efficiently.",
+  },
+  {
+    heading: "Step Three — Business and ProCare Success",
+    text: "Phase 2 covers Business and ProCare Success. You'll learn how to build your practice, manage clients, use the Studio, grow recurring revenue, and get the most from every tool in the platform.",
+  },
+  {
+    heading: "What Happens Next",
+    text: "When you're finished, your Professional Studio and Business Suite will unlock — and you'll enter them prepared, not guessing. Professionals who complete this onboarding are more confident, provide better client outcomes, and grow their businesses faster. That's not marketing. That's what we've seen.",
+  },
+];
 
 const JOURNEY_STEPS = [
   {
@@ -70,44 +75,6 @@ export default function ProCareWelcome() {
     : isPhysicianWelcome
       ? "physician"
       : null;
-
-  const [audioState, setAudioState] = useState<AudioState>("idle");
-  const voiceRef = useRef<boolean>(false);
-
-  useEffect(() => {
-    return () => {
-      if (voiceRef.current) {
-        voiceManager.stop();
-        voiceRef.current = false;
-      }
-    };
-  }, []);
-
-  const startCopilot = async () => {
-    setAudioState("playing");
-    voiceRef.current = true;
-    await voiceManager.preload();
-    const result = await voiceManager.speak(COPILOT_SCRIPT, () => {
-      setAudioState("idle");
-      voiceRef.current = false;
-    });
-    if (result.status !== "playing") {
-      setAudioState("idle");
-      voiceRef.current = false;
-    }
-  };
-
-  const togglePause = () => {
-    if (audioState === "playing") {
-      voiceManager.pause();
-      setAudioState("paused");
-    } else if (audioState === "paused") {
-      voiceManager.resume();
-      setAudioState("playing");
-    }
-  };
-
-  const skipForward = () => voiceManager.skipForward(10);
 
   const handleBegin = () => {
     if (role === "trainer" || role === "physician") {
@@ -157,48 +124,11 @@ export default function ProCareWelcome() {
         </div>
 
         {/* Copilot */}
-        <div className="mb-6">
-          {audioState === "idle" ? (
-            <button
-              onClick={startCopilot}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-black/30 border border-orange-500/30 active:scale-[0.98] transition-transform animate-pulse-glow-blue"
-            >
-              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-orange-500/20 border border-orange-400/30">
-                <Play className="w-5 h-5 text-orange-400 ml-0.5" />
-              </div>
-              <div className="text-left flex-1">
-                <p className="text-sm font-medium text-white">Listen to Professional Overview</p>
-                <p className="text-xs text-white/50">Hear the full journey explained by Chef Copilot</p>
-              </div>
-            </button>
-          ) : (
-            <div className="w-full flex items-center gap-2 px-4 py-3 rounded-xl bg-black/30 border border-orange-500/30">
-              <button
-                onClick={togglePause}
-                className="w-10 h-10 rounded-full flex items-center justify-center bg-orange-500/20 border border-orange-400/30 active:scale-90 transition-transform shrink-0"
-              >
-                {audioState === "playing" ? (
-                  <Pause className="w-5 h-5 text-orange-400" />
-                ) : (
-                  <Play className="w-5 h-5 text-orange-400 ml-0.5" />
-                )}
-              </button>
-              <div className="text-left flex-1 min-w-0">
-                <p className="text-sm font-medium text-white truncate">
-                  {audioState === "playing" ? "Listening to Professional Overview..." : "Paused"}
-                </p>
-                <p className="text-xs text-white/50">
-                  {audioState === "playing" ? "Tap to pause" : "Tap to resume"}
-                </p>
-              </div>
-              <button
-                onClick={skipForward}
-                className="px-3 py-1.5 rounded-lg bg-white/10 border border-white/10 text-xs font-bold text-white/80 active:scale-90 transition-transform shrink-0"
-              >
-                +10s
-              </button>
-            </div>
-          )}
+        <div className="mb-6 px-4 py-3 rounded-xl bg-black/30 border border-orange-500/30">
+          <p className="text-xs text-white/50 mb-2">
+            Hear the full journey explained by Chef Copilot
+          </p>
+          <NarrationBar sections={COPILOT_SECTIONS} />
         </div>
 
         {/* 3-Step Journey */}
