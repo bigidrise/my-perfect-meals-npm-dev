@@ -14,7 +14,12 @@ export interface PerformancePromptOptions {
   userInput: string;
   carbPhase?: CompetitionPhase;
   mealFrequency?: number;
-  dailyProteinTarget?: number;
+  /**
+   * REQUIRED — must be the user's live stored value from daily_protein_target.
+   * Never rely on a default. If unavailable, the call site must gate on
+   * Macro Calculator completion before invoking this builder.
+   */
+  dailyProteinTarget: number;
 }
 
 /**
@@ -26,7 +31,7 @@ export function buildPerformancePrompt(options: PerformancePromptOptions): strin
     userInput,
     carbPhase = 'carb',
     mealFrequency = 5,
-    dailyProteinTarget = 200,
+    dailyProteinTarget,
   } = options;
   
   if (mealType === 'snack') {
