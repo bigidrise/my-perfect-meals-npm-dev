@@ -880,7 +880,7 @@ export default function BusinessDashboard() {
                 <div className="flex items-center justify-between gap-2">
                   <button
                     className="flex-1 min-w-0 text-left"
-                    onClick={() => m.role !== "owner" && setSelectedMemberId(m.id)}
+                    onClick={() => setSelectedMemberId(m.id)}
                   >
                     <p className="text-sm font-medium truncate">{m.name || m.email || "Unknown"}</p>
                     <p className="text-white/50 text-xs truncate">{m.email || ""}</p>
@@ -889,24 +889,22 @@ export default function BusinessDashboard() {
                     <Badge className={`text-xs border-0 ${m.role === "owner" ? "bg-blue-600/80 text-white" : "bg-white/10 text-white/70"}`}>
                       {m.role.charAt(0).toUpperCase() + m.role.slice(1)}
                     </Badge>
+                    <button
+                      className="p-1.5 rounded-lg bg-white/10 text-white/60 transition-colors"
+                      onClick={() => setSelectedMemberId(m.id)}
+                      title="View client accounting"
+                    >
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
                     {m.role !== "owner" && (
-                      <>
-                        <button
-                          className="p-1.5 rounded-lg bg-white/10 text-white/60 transition-colors"
-                          onClick={() => setSelectedMemberId(m.id)}
-                          title="View client accounting"
-                        >
-                          <ChevronRight className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          className="p-1.5 rounded-lg bg-red-900/30 text-red-400 transition-colors disabled:opacity-40"
-                          onClick={() => handleRemoveMember(m.id)}
-                          disabled={removingId === m.id}
-                          title="Remove member"
-                        >
-                          {removingId === m.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                        </button>
-                      </>
+                      <button
+                        className="p-1.5 rounded-lg bg-red-900/30 text-red-400 transition-colors disabled:opacity-40"
+                        onClick={() => handleRemoveMember(m.id)}
+                        disabled={removingId === m.id}
+                        title="Remove member"
+                      >
+                        {removingId === m.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                      </button>
                     )}
                   </div>
                 </div>
