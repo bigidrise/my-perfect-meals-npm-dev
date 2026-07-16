@@ -396,10 +396,50 @@ export default function BusinessDashboard() {
   if (viewMode === "member" && memberData) {
     const { membership } = memberData;
     const roleLabel = membership.role.charAt(0).toUpperCase() + membership.role.slice(1);
+
+    const onboardingSteps = [
+      {
+        num: 1,
+        title: "Complete My Perfect Meals Academy",
+        subtitle: "Required before working with clients",
+        detail:
+          "Learn every part of the platform — meal builders, clinical tools, dietary protocols, and how to run your ProCare Studio. Finish all lessons to unlock your Studio.",
+        cta: "Launch Academy",
+        route: "/academy",
+        done: false,
+        highlight: true,
+      },
+      {
+        num: 2,
+        title: "Create Your ProCare Studio",
+        subtitle: "Unlocks after Academy certification",
+        detail:
+          "Your Studio is where you manage clients, track progress, communicate, and deliver coaching. It activates once your Academy certification is complete.",
+        cta: "Go to Studio",
+        route: "/pro-portal",
+        done: false,
+        highlight: false,
+        locked: true,
+      },
+      {
+        num: 3,
+        title: "Begin Working with Clients",
+        subtitle: "Studio must be active",
+        detail:
+          "Once your Studio is live, you can accept client assignments, generate meal plans, and start coaching.",
+        cta: null,
+        route: null,
+        done: false,
+        highlight: false,
+        locked: true,
+      },
+    ];
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-black/60 via-blue-900/40 to-black/80 pb-24">
+        {/* Header */}
         <div className="sticky top-0 z-10 bg-black/60 backdrop-blur-md border-b border-white/10 px-4 py-3 flex items-center gap-3">
-          <button onClick={() => setLocation("/more")} className="text-white/60 hover:text-white transition-colors">
+          <button onClick={() => setLocation("/more")} className="text-white/60 active:text-white transition-colors">
             <ChevronLeft className="w-5 h-5" />
           </button>
           <div>
@@ -407,15 +447,26 @@ export default function BusinessDashboard() {
             <p className="text-white/50 text-xs">Organization Member</p>
           </div>
         </div>
-        <div className="px-4 pt-6 max-w-sm mx-auto space-y-4">
-          <Card className="bg-white/5 border border-blue-500/30 text-white p-5 text-center">
+
+        <div className="px-4 pt-5 pb-10 max-w-lg mx-auto space-y-4">
+
+          {/* Welcome banner */}
+          <div className="bg-gradient-to-r from-blue-900/70 to-blue-700/50 border border-blue-500/30 rounded-2xl p-5 text-center">
             <Building2 className="w-10 h-10 text-blue-400 mx-auto mb-3" />
-            <h2 className="text-white font-bold text-lg">{membership.businessName}</h2>
-            <p className="text-white/50 text-sm mt-1">You are a member of this team</p>
-          </Card>
-          <Card className="bg-white/5 border border-white/10 text-white p-4 space-y-3">
+            <h2 className="text-white font-bold text-xl">{membership.businessName}</h2>
+            <p className="text-blue-200 text-sm mt-1">
+              Welcome to the team as a <span className="text-white font-semibold">{roleLabel}</span>
+            </p>
+            <div className="flex items-center justify-center gap-2 mt-3">
+              <CheckCircle className="w-4 h-4 text-green-400" />
+              <span className="text-green-300 text-sm font-medium">Organization Access Active</span>
+            </div>
+          </div>
+
+          {/* Membership details */}
+          <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-white/50 text-sm">Your Role</span>
+              <span className="text-white/50 text-sm">Role</span>
               <Badge className="bg-blue-600/80 text-white border-0 text-xs">{roleLabel}</Badge>
             </div>
             <div className="flex items-center justify-between">
@@ -430,9 +481,99 @@ export default function BusinessDashboard() {
                 {new Date(membership.joinedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
               </span>
             </div>
-          </Card>
-          <p className="text-white/30 text-xs text-center px-4">
-            Seat management and billing are controlled by your team owner. Contact them to make changes.
+          </div>
+
+          {/* Path to working with clients */}
+          <div>
+            <h3 className="text-white font-bold text-sm mb-3 px-1 uppercase tracking-wide">
+              Your Path to Working with Clients
+            </h3>
+
+            <div className="space-y-3">
+              {onboardingSteps.map((step) => (
+                <div
+                  key={step.num}
+                  className={`rounded-2xl border p-4 ${
+                    step.highlight
+                      ? "bg-blue-950/60 border-blue-500/40"
+                      : step.locked
+                      ? "bg-white/3 border-white/8 opacity-60"
+                      : "bg-white/5 border-white/10"
+                  }`}
+                >
+                  <div className="flex gap-3">
+                    <div
+                      className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold mt-0.5 ${
+                        step.done
+                          ? "bg-green-500 text-white"
+                          : step.highlight
+                          ? "bg-blue-600 text-white"
+                          : "bg-white/10 text-white/40"
+                      }`}
+                    >
+                      {step.done ? <CheckCircle className="w-4 h-4" /> : step.num}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-semibold ${step.highlight ? "text-white" : "text-white/60"}`}>
+                        {step.title}
+                      </p>
+                      <p className={`text-xs mt-0.5 mb-2 ${step.highlight ? "text-blue-300" : "text-white/35"}`}>
+                        {step.subtitle}
+                      </p>
+                      <p className={`text-xs leading-relaxed ${step.highlight ? "text-white/70" : "text-white/35"}`}>
+                        {step.detail}
+                      </p>
+                      {step.cta && step.route && !step.locked && (
+                        <button
+                          className="mt-3 w-full py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold flex items-center justify-center gap-2"
+                          onClick={() => setLocation(step.route!)}
+                        >
+                          {step.cta}
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                      )}
+                      {step.cta && step.route && step.highlight && (
+                        <button
+                          className="mt-3 w-full py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold flex items-center justify-center gap-2"
+                          onClick={() => setLocation(step.route!)}
+                        >
+                          {step.cta}
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Studio unlock callout */}
+          <div className="bg-amber-950/40 border border-amber-500/25 rounded-2xl p-4">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-amber-600/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Crown className="w-4 h-4 text-amber-400" />
+              </div>
+              <div>
+                <p className="text-amber-300 text-sm font-semibold">
+                  Complete the Academy to unlock your ProCare Studio
+                </p>
+                <p className="text-amber-200/60 text-xs mt-1 leading-relaxed">
+                  Your organization requires Academy certification before you can begin working with clients. Once you finish, your Studio activates automatically.
+                </p>
+                <button
+                  className="mt-3 w-full py-2.5 rounded-xl bg-amber-600/80 border border-amber-500/40 text-white text-sm font-semibold flex items-center justify-center gap-2"
+                  onClick={() => setLocation("/academy")}
+                >
+                  Start Academy Now
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <p className="text-white/25 text-xs text-center px-4">
+            Seat management and billing are controlled by your team owner. Contact them with any questions.
           </p>
         </div>
       </div>
