@@ -5,11 +5,30 @@ import { getAuthHeaders } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Building2, CheckCircle, XCircle, UserCheck, ChevronRight } from "lucide-react";
 
+const POLICY_LABELS: Record<string, { label: string; description: string; color: string }> = {
+  org_only: {
+    label: "Organization Clients Only",
+    description: "This organization requires that all your client work takes place within this organization. Personal clients outside of this organization are not permitted.",
+    color: "amber",
+  },
+  allowed_with_disclosure: {
+    label: "Personal Clients Allowed — With Disclosure",
+    description: "You may maintain personal clients outside of this organization, but you are required to disclose those relationships to the organization owner.",
+    color: "blue",
+  },
+  allowed: {
+    label: "Personal Clients Allowed",
+    description: "You may freely maintain personal clients outside of this organization with no additional requirements.",
+    color: "green",
+  },
+};
+
 interface InviteInfo {
   email: string;
   role: string;
   businessName: string;
   expiresAt: string;
+  independentClientPolicy?: string;
 }
 
 const NEXT_STEPS = [
@@ -275,6 +294,40 @@ export default function BusinessInviteAccept() {
             ))}
           </div>
         </div>
+
+        {/* Client Ownership Policy Disclosure */}
+        {invite.independentClientPolicy && (() => {
+          const pol = POLICY_LABELS[invite.independentClientPolicy];
+          if (!pol) return null;
+          const borderColor =
+            pol.color === "amber" ? "border-amber-500/40" :
+            pol.color === "green" ? "border-green-500/30" :
+            "border-blue-500/30";
+          const bgColor =
+            pol.color === "amber" ? "bg-amber-950/40" :
+            pol.color === "green" ? "bg-green-950/40" :
+            "bg-blue-950/40";
+          const labelColor =
+            pol.color === "amber" ? "text-amber-300" :
+            pol.color === "green" ? "text-green-300" :
+            "text-blue-300";
+          return (
+            <div className={`${bgColor} ${borderColor} border rounded-2xl p-4`}>
+              <div className="flex items-start gap-3">
+                <div className={`w-7 h-7 rounded-full ${bgColor} ${borderColor} border flex items-center justify-center flex-shrink-0 mt-0.5`}>
+                  <svg className={`w-3.5 h-3.5 ${labelColor}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.955 11.955 0 003 12c0 6.627 5.373 12 12 12s12-5.373 12-12c0-2.093-.54-4.061-1.487-5.774" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <p className={`text-xs font-semibold uppercase tracking-wide mb-1 ${labelColor}`}>Client Ownership Policy</p>
+                  <p className="text-white text-sm font-semibold mb-1">{pol.label}</p>
+                  <p className="text-white/70 text-xs leading-relaxed">{pol.description}</p>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Expiry */}
         <div className="bg-amber-950/40 border border-amber-500/30 rounded-xl px-4 py-3">

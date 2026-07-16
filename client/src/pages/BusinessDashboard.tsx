@@ -29,6 +29,7 @@ import {
   Settings,
   BookOpen,
   ChevronRight,
+  Shield,
 } from "lucide-react";
 
 const ROLE_OPTIONS = [
@@ -38,6 +39,24 @@ const ROLE_OPTIONS = [
   { value: "staff", label: "Staff" },
 ];
 
+const POLICY_OPTIONS = [
+  {
+    value: "org_only",
+    label: "Organization Clients Only",
+    description: "Members may not take personal clients outside this organization.",
+  },
+  {
+    value: "allowed_with_disclosure",
+    label: "Personal Clients Allowed — With Disclosure",
+    description: "Members may have personal clients but must disclose the relationship to you.",
+  },
+  {
+    value: "allowed",
+    label: "Personal Clients Allowed",
+    description: "Members may freely maintain personal clients without restriction.",
+  },
+];
+
 interface BusinessData {
   business: {
     id: string;
@@ -45,6 +64,7 @@ interface BusinessData {
     seatLimit: number;
     status: string;
     plan: string;
+    independentClientPolicy?: string;
   };
   members: {
     id: string;
@@ -116,6 +136,10 @@ export default function BusinessDashboard() {
   const [managedSeats, setManagedSeats] = useState(4);
   const [managingSeats, setManagingSeats] = useState(false);
 
+  // Client ownership policy
+  const [policyValue, setPolicyValue] = useState<string>("allowed_with_disclosure");
+  const [savingPolicy, setSavingPolicy] = useState(false);
+
   // Launch guide checklist
   const [launchGuideDismissed, setLaunchGuideDismissed] = useState(
     () => localStorage.getItem("mpm.dismiss.orgLaunchGuide") === "1"
@@ -127,6 +151,35 @@ export default function BusinessDashboard() {
 
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollCount = useRef(0);
+
+  useEffect(() => {
+    if (ownerData?.business?.independentClientPolicy) {
+      setPolicyValue(ownerData.business.independentClientPolicy);
+    }
+  }, [ownerData]);
+
+  const handleSavePolicy = async () => {
+    setSavingPolicy(true);
+    try {
+      const res = await fetch("/api/business/policy", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
+        body: JSON.stringify({ policy: policyValue }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast({ title: "Could not save policy", description: data.error, variant: "destructive" });
+        return;
+      }
+      toast({ title: "Policy updated", description: "Your client ownership policy has been saved." });
+      fetchData();
+    } catch {
+      toast({ title: "Error", description: "Could not save policy.", variant: "destructive" });
+    } finally {
+      setSavingPolicy(false);
+    }
+  };
 
   const fetchData = async (): Promise<boolean> => {
     try {
@@ -768,6 +821,51 @@ export default function BusinessDashboard() {
           </div>
           <ChevronRight className="w-4 h-4 text-white/30 flex-shrink-0" />
         </button>
+
+        {/* Client Ownership Policy */}
+        <Card className="bg-white/5 border border-blue-500/30 text-white p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Shield className="w-4 h-4 text-blue-400 flex-shrink-0" />
+            <span className="font-semibold text-sm">Client Ownership Policy</span>
+          </div>
+          <p className="text-white/50 text-xs leading-relaxed">
+            Sets the rules for whether members may maintain personal clients outside of this organization. Members see this when they accept their invitation.
+          </p>
+          <div className="space-y-2">
+            {POLICY_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                className={`w-full text-left px-3 py-2.5 rounded-xl transition-colors border ${
+                  policyValue === opt.value
+                    ? "bg-blue-600/25 border-blue-500/50"
+                    : "bg-white/5 border-white/10"
+                }`}
+                onClick={() => setPolicyValue(opt.value)}
+              >
+                <span className={`block text-sm font-semibold ${policyValue === opt.value ? "text-white" : "text-white/60"}`}>
+                  {opt.label}
+                </span>
+                <span className="block text-xs text-white/40 mt-0.5">{opt.description}</span>
+              </button>
+            ))}
+          </div>
+          {policyValue !== (ownerData?.business?.independentClientPolicy ?? "allowed_with_disclosure") && (
+            <button
+              className="w-full py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
+              onClick={handleSavePolicy}
+              disabled={savingPolicy}
+            >
+              {savingPolicy ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>
+              ) : (
+                <><Check className="w-4 h-4" /> Save Policy</>
+              )}
+            </button>
+          )}
+          {policyValue === (ownerData?.business?.independentClientPolicy ?? "allowed_with_disclosure") && (
+            <p className="text-white/30 text-xs text-center">Policy is active — change a selection above to update</p>
+          )}
+        </Card>
 
         {/* Active Members */}
         <div>

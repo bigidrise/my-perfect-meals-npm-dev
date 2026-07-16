@@ -15,6 +15,7 @@ import {
   Building2,
   GraduationCap,
   Heart,
+  Shield,
 } from "lucide-react";
 import { NarrationBar } from "@/components/NarrationBar";
 
@@ -273,6 +274,63 @@ const modules: Module[] = [
               <span className="text-white text-sm">{item}</span>
             </div>
           ))}
+        </div>
+      </div>
+    ),
+  },
+  {
+    id: "governance",
+    icon: <Shield className="w-5 h-5 text-orange-400" />,
+    title: "Client Ownership & Governance",
+    subtitle: "How the Client Ownership Policy protects your organization.",
+    narration:
+      "The Client Ownership Policy is how you define the professional boundaries for every coach or practitioner on your team. It answers one specific question: are your team members allowed to take on personal clients outside of this organization, and under what conditions? You have three options. Organization Clients Only means all client work must go through the organization — personal clients outside are not permitted. Personal Clients Allowed with Disclosure means team members can have personal clients, but they're required to tell you about those relationships. And Personal Clients Allowed means there are no restrictions — members can freely maintain personal clients independently. Your current policy is shown on the Organization Dashboard. When a team member accepts their invitation, they see exactly what the policy is and what it means for their practice before they join. This protects both parties and creates a clear record that the terms were disclosed. You can update the policy at any time from the dashboard — changes take effect immediately for all members, and every update is logged with a timestamp in your policy history.",
+    content: (
+      <div className="space-y-3">
+        <p className="text-white text-sm leading-relaxed">
+          The Client Ownership Policy defines whether members of your organization can maintain personal clients outside of it — and under what conditions.
+        </p>
+        <div className="space-y-2">
+          {[
+            {
+              value: "org_only",
+              label: "Organization Clients Only",
+              body: "All client work must go through the organization. Members may not maintain personal clients independently.",
+              badge: "Strictest",
+              badgeColor: "text-amber-400",
+            },
+            {
+              value: "allowed_with_disclosure",
+              label: "Personal Clients Allowed — With Disclosure",
+              body: "Members may have personal clients but are required to disclose those relationships to the organization owner.",
+              badge: "Recommended",
+              badgeColor: "text-blue-400",
+            },
+            {
+              value: "allowed",
+              label: "Personal Clients Allowed",
+              body: "Members may freely maintain personal clients with no additional requirements.",
+              badge: "Most flexible",
+              badgeColor: "text-green-400",
+            },
+          ].map((opt) => (
+            <div key={opt.value} className="bg-black/30 border border-white/15 rounded-xl p-3">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-white text-sm font-semibold">{opt.label}</p>
+                <span className={`text-xs font-semibold ${opt.badgeColor}`}>{opt.badge}</span>
+              </div>
+              <p className="text-white/70 text-xs leading-relaxed">{opt.body}</p>
+            </div>
+          ))}
+        </div>
+        <div className="bg-orange-600/10 border border-orange-500/30 rounded-xl p-3">
+          <p className="text-orange-300 text-xs font-semibold mb-1">Transparency built in</p>
+          <p className="text-white/90 text-xs leading-relaxed">
+            Invitees see your current policy on their invitation acceptance page before joining. Every policy change is logged with a timestamp in your policy history.
+          </p>
+        </div>
+        <div className="bg-black/30 border border-white/15 rounded-xl p-3">
+          <p className="text-white/90 text-xs">To update your policy: open the Organization Dashboard and scroll to the <span className="text-orange-400 font-semibold">Client Ownership Policy</span> card. Changes take effect immediately.</p>
         </div>
       </div>
     ),
