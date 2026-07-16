@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useLocation } from "wouter";
 import {
   ChevronLeft,
@@ -8,20 +8,15 @@ import {
   Users,
   UserPlus,
   Settings,
-  Award,
   CreditCard,
   HelpCircle,
   Rocket,
-  Volume2,
-  VolumeX,
-  Loader2,
   CheckCircle,
   Building2,
   GraduationCap,
   Heart,
 } from "lucide-react";
-import { apiUrl } from "@/lib/resolveApiBase";
-import { getAuthHeaders } from "@/lib/auth";
+import { NarrationBar } from "@/components/NarrationBar";
 
 interface Module {
   id: string;
@@ -326,55 +321,6 @@ const modules: Module[] = [
 export default function OrganizationSuccessCenter() {
   const [, setLocation] = useLocation();
   const [expandedId, setExpandedId] = useState<string | null>("welcome");
-  const [playingId, setPlayingId] = useState<string | null>(null);
-  const [loadingId, setLoadingId] = useState<string | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const audioBlobUrl = useRef<string | null>(null);
-
-  function stopAudio() {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
-    if (audioBlobUrl.current) {
-      URL.revokeObjectURL(audioBlobUrl.current);
-      audioBlobUrl.current = null;
-    }
-    setPlayingId(null);
-  }
-
-  async function handleListen(mod: Module) {
-    if (playingId === mod.id) {
-      stopAudio();
-      return;
-    }
-    stopAudio();
-    setLoadingId(mod.id);
-    try {
-      const res = await fetch(apiUrl("/api/tts"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...(await getAuthHeaders()) },
-        body: JSON.stringify({ text: mod.narration }),
-      });
-      if (!res.ok) throw new Error("TTS failed");
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      audioBlobUrl.current = url;
-      const audio = new Audio(url);
-      audioRef.current = audio;
-      audio.onended = () => {
-        setPlayingId(null);
-        URL.revokeObjectURL(url);
-        audioBlobUrl.current = null;
-      };
-      audio.play();
-      setPlayingId(mod.id);
-    } catch {
-      // silent — no fallback voice
-    } finally {
-      setLoadingId(null);
-    }
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-blue-950 pb-28">
@@ -451,39 +397,11 @@ export default function OrganizationSuccessCenter() {
                     {mod.content}
                   </div>
 
-                  {/* Listen Button */}
-                  <div className="mt-4 flex items-center justify-between">
-                    <button
-                      className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
-                        isPlaying
-                          ? "bg-orange-600/30 border border-orange-500/40 text-orange-300"
-                          : "bg-white/8 border border-white/15 text-white/70"
-                      }`}
-                      onClick={() => handleListen(mod)}
-                      disabled={isLoading}
-                    >
-                      {isLoading ? (
-                        <><Loader2 className="w-3.5 h-3.5 animate-spin" />Loading…</>
-                      ) : isPlaying ? (
-                        <><VolumeX className="w-3.5 h-3.5" />Stop Listening</>
-                      ) : (
-                        <><Volume2 className="w-3.5 h-3.5" />Listen</>
-                      )}
-                    </button>
-                    {isPlaying && (
-                      <div className="flex items-center gap-1">
-                        {[1, 2, 3, 4].map((i) => (
-                          <div
-                            key={i}
-                            className="w-0.5 bg-orange-400 rounded-full animate-pulse"
-                            style={{
-                              height: `${8 + (i % 3) * 4}px`,
-                              animationDelay: `${i * 0.15}s`,
-                            }}
-                          />
-                        ))}
-                      </div>
-                    )}
+                  {/* Narration Bar */}
+                  <div className="mt-4 border-t border-white/5 pt-3">
+                    <NarrationBar
+                      sections={[{ heading: mod.title, text: mod.narration }]}
+                    />
                   </div>
                 </div>
               )}
