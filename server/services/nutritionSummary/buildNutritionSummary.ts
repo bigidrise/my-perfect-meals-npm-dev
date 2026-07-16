@@ -36,6 +36,8 @@ export interface NutritionPersonalizationSummary {
       calories: number | null;
       proteinG: number | null;
       carbsG: number | null;
+      starchyCarbsG: number | null;
+      fibrousCarbsG: number | null;
       fatG: number | null;
     } | null;
   };
@@ -58,6 +60,8 @@ export interface UserExtrasForSummary {
   dailyCalorieTarget?: number | null;
   dailyProteinTarget?: number | null;
   dailyCarbTarget?: number | null;
+  dailyStarchyCarbsTarget?: number | null;
+  dailyFibrousCarbsTarget?: number | null;
   dailyFatTarget?: number | null;
   goalType?: string | null;
   goalTarget?: string | null;
@@ -552,10 +556,12 @@ export function buildNutritionSummary(
 
   const macros = hasMacros
     ? {
-        calories: extras.dailyCalorieTarget ?? null,
-        proteinG: extras.dailyProteinTarget ?? null,
-        carbsG: extras.dailyCarbTarget ?? null,
-        fatG: extras.dailyFatTarget ?? null,
+        calories:      extras.dailyCalorieTarget      ?? null,
+        proteinG:      extras.dailyProteinTarget      ?? null,
+        carbsG:        extras.dailyCarbTarget         ?? null,
+        starchyCarbsG: extras.dailyStarchyCarbsTarget ?? null,
+        fibrousCarbsG: extras.dailyFibrousCarbsTarget ?? null,
+        fatG:          extras.dailyFatTarget          ?? null,
       }
     : null;
 
