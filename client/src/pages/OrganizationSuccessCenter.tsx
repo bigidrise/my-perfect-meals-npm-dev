@@ -687,7 +687,7 @@ export default function OrganizationSuccessCenter() {
               {isOpen && (
                 <div className="px-4 pb-4 border-t border-white/10 pt-3 space-y-3">
                   {mod.narration && (
-                    <NarrationBar text={mod.narration} />
+                    <NarrationBar sections={[{ heading: mod.title, text: mod.narration }]} />
                   )}
                   {mod.content}
                 </div>
