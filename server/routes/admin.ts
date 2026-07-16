@@ -246,6 +246,71 @@ router.post("/users/:userId/enable", async (req, res) => {
 });
 
 /**
+ * POST /api/admin/users/:userId/send-password-reset
+ *
+ * Generates a password reset token for the user and sends them a reset email.
+ * Use this when you've created an account on behalf of someone and need to hand
+ * off access — instead of telling them a password you set, push them a setup link.
+ */
+router.post("/users/:userId/send-password-reset", async (req, res) => {
+  const { userId } = req.params;
+  const actor = (req as AuthenticatedRequest).authUser;
+  try {
+    const [user] = await db
+      .select({ id: users.id, email: users.email, firstName: users.firstName })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const crypto = require("crypto");
+    const bcrypt = require("bcrypt");
+
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const resetTokenHash = await bcrypt.hash(resetToken, 10);
+    const resetTokenExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour (longer for admin-initiated)
+
+    await db
+      .update(users)
+      .set({ resetTokenHash, resetTokenExpires })
+      .where(eq(users.id, userId));
+
+    const fwdProto = req.headers["x-forwarded-proto"];
+    const fwdHost = req.headers["x-forwarded-host"];
+    let appUrl: string;
+    if (fwdProto && fwdHost) {
+      appUrl = `${fwdProto}://${fwdHost}`;
+    } else if (process.env.PUBLIC_APP_URL) {
+      appUrl = process.env.PUBLIC_APP_URL;
+    } else if (process.env.REPLIT_DEV_DOMAIN) {
+      appUrl = `https://${process.env.REPLIT_DEV_DOMAIN}`;
+    } else {
+      appUrl = `${req.protocol}://${req.headers.host || "localhost:5000"}`;
+    }
+    const resetLink = `${appUrl}/reset-password?token=${resetToken}`;
+
+    const { emailServiceAvailable } = await import("../middleware/requireEmailService");
+    if (emailServiceAvailable()) {
+      const { sendPasswordResetEmail } = await import("../services/emailService");
+      await sendPasswordResetEmail({
+        to: user.email,
+        resetLink,
+        userName: user.firstName || user.email.split("@")[0],
+      });
+      console.log(`[admin] send-password-reset: sent to ${user.email} by admin=${actor.email}`);
+      return res.json({ ok: true, note: `Password setup email sent to ${user.email}` });
+    } else {
+      console.warn(`[admin] send-password-reset: email service unavailable — token generated but not sent for ${user.email}`);
+      return res.json({ ok: true, note: `Email service not configured. Share this link manually: ${resetLink}` });
+    }
+  } catch (err) {
+    console.error("[admin] send-password-reset error:", err);
+    return res.status(500).json({ error: "Failed to send password reset" });
+  }
+});
+
+/**
  * POST /api/admin/repair-image-cache
  *
  * Scans meal_image_cache for rows whose imageUrl is NOT an S3 URL
