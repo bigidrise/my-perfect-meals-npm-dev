@@ -248,29 +248,7 @@ export default function AcademyHome() {
                 Claim Your Certificate
                 <ChevronRight className="h-4 w-4 opacity-70" />
               </button>
-            ) : nextLesson ? (
-              <button
-                onClick={() =>
-                  setLocation(
-                    `/academy/platform-mastery/lesson/lesson-0${nextLesson.num}`
-                  )
-                }
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-orange-600 text-white font-semibold text-sm active:scale-[0.98] transition-transform"
-              >
-                <BookOpen className="h-4 w-4" />
-                {completedLessons === 0 ? "Start Learning" : "Continue Learning"}
-                <ChevronRight className="h-4 w-4 opacity-70" />
-              </button>
-            ) : (
-              <button
-                onClick={() => setLocation("/academy/platform-mastery/lesson/lesson-01")}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-orange-600 text-white font-semibold text-sm active:scale-[0.98] transition-transform"
-              >
-                <BookOpen className="h-4 w-4" />
-                Start Learning
-                <ChevronRight className="h-4 w-4 opacity-70" />
-              </button>
-            )}
+            ) : null}
           </div>
         </motion.div>
 
