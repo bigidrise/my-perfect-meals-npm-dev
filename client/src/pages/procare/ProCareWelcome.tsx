@@ -5,28 +5,12 @@ import { NarrationBar } from "@/components/NarrationBar";
 
 const COPILOT_SECTIONS = [
   {
-    heading: "Welcome to My Perfect Meals Professional",
-    text: "Welcome to My Perfect Meals Professional. I'm Chef Copilot, and before you dive in, I want you to understand exactly what's about to happen — and why it's designed this way.",
+    heading: "Welcome — here's what's about to happen",
+    text: "Welcome to My Perfect Meals Professional. I'm Chef Copilot, and before you dive in, I want you to understand exactly what's about to happen — and why it's designed this way. Every My Perfect Meals professional completes a three-step onboarding before accessing the Studio. Not because it's a requirement. Because it works.",
   },
   {
-    heading: "Three-Step Onboarding",
-    text: "Every My Perfect Meals professional completes a three-step onboarding before accessing the Studio. Not because it's a requirement. Because it works.",
-  },
-  {
-    heading: "Step One — Experience the App as a User",
-    text: "You'll complete your own My Perfect Meals profile. You'll generate your own nutrition plan, explore the meal builders, and experience the app exactly the way your future clients will. This matters because you can't confidently guide someone through an experience you haven't had yourself.",
-  },
-  {
-    heading: "Step Two — Platform Fundamentals",
-    text: "You'll complete Professional Certification — Phase 1, Platform Fundamentals. You'll learn every feature of the platform, how to personalize nutrition, how to use AI responsibly, and how to onboard clients efficiently.",
-  },
-  {
-    heading: "Step Three — Business and ProCare Success",
-    text: "Phase 2 covers Business and ProCare Success. You'll learn how to build your practice, manage clients, use the Studio, grow recurring revenue, and get the most from every tool in the platform.",
-  },
-  {
-    heading: "What Happens Next",
-    text: "When you're finished, your Professional Studio and Business Suite will unlock — and you'll enter them prepared, not guessing. Professionals who complete this onboarding are more confident, provide better client outcomes, and grow their businesses faster. That's not marketing. That's what we've seen.",
+    heading: "Your three steps",
+    text: "Step one: you'll complete your own My Perfect Meals profile, generate your own nutrition plan, and experience the app exactly the way your future clients will. Step two: you'll complete Professional Certification — Platform Fundamentals — where you'll learn every feature of the platform, how to personalize nutrition, and how to onboard clients efficiently. Step three: Business and ProCare Success, where you'll learn to build your practice, manage clients, use the Studio, and grow recurring revenue. When you're finished, your Professional Studio and Business Suite will unlock — and you'll enter them prepared, not guessing. Professionals who complete this onboarding are more confident, provide better client outcomes, and grow their businesses faster. That's not marketing. That's what we've seen.",
   },
 ];
 
@@ -128,7 +112,7 @@ export default function ProCareWelcome() {
           <p className="text-xs text-white/50 mb-2">
             Hear the full journey explained by Chef Copilot
           </p>
-          <NarrationBar sections={COPILOT_SECTIONS} />
+          <NarrationBar sections={COPILOT_SECTIONS} speedOverride="1.0" />
         </div>
 
         {/* 3-Step Journey */}

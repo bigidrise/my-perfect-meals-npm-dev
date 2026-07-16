@@ -7,24 +7,8 @@ import { NarrationBar } from "@/components/NarrationBar";
 
 const COPILOT_SECTIONS = [
   {
-    heading: "Welcome to My Perfect Meals",
-    text: "Hey, welcome to My Perfect Meals.",
-  },
-  {
-    heading: "Meet Chef",
-    text: "I'm Chef — your AI nutrition coach in your pocket.",
-  },
-  {
-    heading: "What I Do",
-    text: "I'm here to help guide your food decisions so you can enjoy the meals you love while staying aligned with your goals.",
-  },
-  {
-    heading: "Before We Begin",
-    text: "Before we get started, take a moment to read the information below. It will explain how the system works and what to expect.",
-  },
-  {
-    heading: "Ready to Start",
-    text: "When you're ready, continue to onboarding so we can set up your personal nutrition plan.",
+    heading: "A quick intro from Chef",
+    text: "Hey, welcome to My Perfect Meals. I'm Chef — your AI nutrition coach in your pocket. I'm here to help guide your food decisions so you can enjoy the meals you love while staying aligned with your goals. Before we get started, take a moment to read the information below. It will explain how the system works and what to expect. When you're ready, continue to onboarding so we can set up your personal nutrition plan.",
   },
 ];
 
@@ -56,7 +40,7 @@ export default function ConsumerWelcome() {
           <p className="text-xs text-white/50 mb-2">
             Hear a quick intro from Chef — your AI nutrition coach
           </p>
-          <NarrationBar sections={COPILOT_SECTIONS} />
+          <NarrationBar sections={COPILOT_SECTIONS} speedOverride="1.0" />
         </div>
 
         <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-5 mb-6">
