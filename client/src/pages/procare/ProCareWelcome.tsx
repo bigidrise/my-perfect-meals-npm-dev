@@ -5,12 +5,8 @@ import { NarrationBar } from "@/components/NarrationBar";
 
 const COPILOT_SECTIONS = [
   {
-    heading: "Welcome — here's what's about to happen",
-    text: "Welcome to My Perfect Meals Professional. I'm Chef Copilot, and before you dive in, I want you to understand exactly what's about to happen — and why it's designed this way. Every My Perfect Meals professional completes a three-step onboarding before accessing the Studio. Not because it's a requirement. Because it works.",
-  },
-  {
-    heading: "Your three steps",
-    text: "Step one: you'll complete your own My Perfect Meals profile, generate your own nutrition plan, and experience the app exactly the way your future clients will. Step two: you'll complete Professional Certification — Platform Fundamentals — where you'll learn every feature of the platform, how to personalize nutrition, and how to onboard clients efficiently. Step three: Business and ProCare Success, where you'll learn to build your practice, manage clients, use the Studio, and grow recurring revenue. When you're finished, your Professional Studio and Business Suite will unlock — and you'll enter them prepared, not guessing. Professionals who complete this onboarding are more confident, provide better client outcomes, and grow their businesses faster. That's not marketing. That's what we've seen.",
+    heading: "Welcome to My Perfect Meals Professional",
+    text: "I'm Chef Copilot, and before you dive in, I want you to understand exactly what's about to happen and why it's designed this way. Every My Perfect Meals professional completes a three-step onboarding before accessing the Studio. Not because it's a requirement. Because it works. Step one: you'll complete your own My Perfect Meals profile, generate your own nutrition plan, and experience the app exactly the way your future clients will. Step two: you'll complete Professional Certification, Platform Fundamentals, where you'll learn every feature of the platform, how to personalize nutrition, and how to onboard clients efficiently. Step three: Business and ProCare Success, where you'll learn to build your practice, manage clients, use the Studio, and grow recurring revenue. When you're finished, your Professional Studio and Business Suite will unlock and you'll enter them prepared, not guessing. Professionals who complete this onboarding are more confident, provide better client outcomes, and grow their businesses faster. That's not marketing. That's what we've seen.",
   },
 ];
 

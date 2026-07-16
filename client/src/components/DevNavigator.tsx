@@ -22,7 +22,6 @@ const NAV_SECTIONS: NavSection[] = [
       { path: "/onboarding-legacy", label: "Onboarding Legacy" },
       { path: "/onboarding/extended", label: "Extended Onboarding" },
       { path: "/consumer-welcome", label: "Consumer Welcome" },
-      { path: "/procare-welcome", label: "ProCare Welcome" },
       { path: "/trainer-welcome", label: "Trainer Welcome" },
       { path: "/physician-welcome", label: "Physician Welcome" },
       { path: "/apply-guidance", label: "Apply Guidance" },
