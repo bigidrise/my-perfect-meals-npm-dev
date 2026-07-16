@@ -1277,6 +1277,7 @@ export default function DashboardNew() {
                 <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(59,130,246,0.5), rgba(59,130,246,0.25), rgba(0,0,0,0))" }} />
                 <Card
                   className="relative cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(59,130,246,0.45)] active:scale-95 bg-gradient-to-r from-black via-blue-950/30 to-black backdrop-blur-lg border border-blue-500/30 hover:border-blue-400/60 rounded-xl group"
+                  style={{ backgroundColor: "transparent" }}
                   data-testid="card-medical-safety"
                 >
                   <CardHeader className="pb-3">
@@ -1310,6 +1311,7 @@ export default function DashboardNew() {
             <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(16,185,129,0.5), rgba(16,185,129,0.25), rgba(0,0,0,0))" }} />
             <Card
               className="relative cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(16,185,129,0.45)] active:scale-95 bg-gradient-to-r from-black via-emerald-950/30 to-black backdrop-blur-lg border border-emerald-500/30 hover:border-emerald-500/60 rounded-xl group"
+              style={{ backgroundColor: "transparent" }}
               onClick={() => setLocation("/shopping-list-v2")}
               data-testid="card-shopping-list"
             >
@@ -1343,6 +1345,7 @@ export default function DashboardNew() {
               <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(245,158,11,0.5), rgba(245,158,11,0.25), rgba(0,0,0,0))" }} />
               <Card
                 className="relative cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(245,158,11,0.45)] active:scale-95 bg-gradient-to-r from-black via-amber-950/30 to-black backdrop-blur-lg border border-amber-500/30 hover:border-amber-500/60 rounded-xl group"
+                style={{ backgroundColor: "transparent" }}
                 onClick={handlePhotoLog}
                 data-testid="card-photo-log"
               >
@@ -1383,6 +1386,7 @@ export default function DashboardNew() {
                 setShowInspirationModal(true);
               }}
               className="relative cursor-pointer transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_0_30px_rgba(244,63,94,0.45)] active:scale-95 bg-gradient-to-r from-black via-rose-950/30 to-black backdrop-blur-lg border border-rose-500/30 hover:border-rose-500/60 rounded-xl group"
+              style={{ backgroundColor: "transparent" }}
               data-testid="card-recipe-scan"
             >
               <CardContent className="p-5">
@@ -1476,6 +1480,7 @@ export default function DashboardNew() {
                 <Card
                   onClick={() => handleCardClick(feature.route)}
                   className={`relative cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-95 bg-gradient-to-r ${glow.cardBg} backdrop-blur-lg border ${glow.border} ${glow.hoverBorder} ${glow.hoverShadow} rounded-xl group ${shouldFlash ? "flash-border" : ""}`}
+                  style={{ backgroundColor: "transparent" }}
                   data-testid={feature.testId}
                 >
                   <CardContent className="p-6">
