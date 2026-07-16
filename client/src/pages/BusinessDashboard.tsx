@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { getAuthHeaders } from "@/lib/auth";
+import MemberClientAccountingModal from "@/components/business/MemberClientAccountingModal";
 import { useToast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -125,6 +126,7 @@ export default function BusinessDashboard() {
 
   // Actions
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [cancellingToken, setCancellingToken] = useState<string | null>(null);
   const [resendingToken, setResendingToken] = useState<string | null>(null);
   const [editingName, setEditingName] = useState(false);
@@ -874,25 +876,39 @@ export default function BusinessDashboard() {
           </h2>
           <div className="space-y-2">
             {members.map((m) => (
-              <Card key={m.id} className="bg-white/5 border border-white/10 text-white p-3 flex items-center justify-between">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">{m.name || m.email || "Unknown"}</p>
-                  <p className="text-white/50 text-xs truncate">{m.email || ""}</p>
-                </div>
-                <div className="flex items-center gap-2 ml-2 flex-shrink-0">
-                  <Badge className={`text-xs border-0 ${m.role === "owner" ? "bg-blue-600/80 text-white" : "bg-white/10 text-white/70"}`}>
-                    {m.role.charAt(0).toUpperCase() + m.role.slice(1)}
-                  </Badge>
-                  {m.role !== "owner" && (
-                    <button
-                      className="p-1.5 rounded-lg bg-red-900/30 hover:bg-red-900/50 text-red-400 transition-colors disabled:opacity-40"
-                      onClick={() => handleRemoveMember(m.id)}
-                      disabled={removingId === m.id}
-                      title="Remove member"
-                    >
-                      {removingId === m.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                    </button>
-                  )}
+              <Card key={m.id} className="bg-white/5 border border-white/10 text-white p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <button
+                    className="flex-1 min-w-0 text-left"
+                    onClick={() => m.role !== "owner" && setSelectedMemberId(m.id)}
+                  >
+                    <p className="text-sm font-medium truncate">{m.name || m.email || "Unknown"}</p>
+                    <p className="text-white/50 text-xs truncate">{m.email || ""}</p>
+                  </button>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <Badge className={`text-xs border-0 ${m.role === "owner" ? "bg-blue-600/80 text-white" : "bg-white/10 text-white/70"}`}>
+                      {m.role.charAt(0).toUpperCase() + m.role.slice(1)}
+                    </Badge>
+                    {m.role !== "owner" && (
+                      <>
+                        <button
+                          className="p-1.5 rounded-lg bg-white/10 text-white/60 transition-colors"
+                          onClick={() => setSelectedMemberId(m.id)}
+                          title="View client accounting"
+                        >
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          className="p-1.5 rounded-lg bg-red-900/30 text-red-400 transition-colors disabled:opacity-40"
+                          onClick={() => handleRemoveMember(m.id)}
+                          disabled={removingId === m.id}
+                          title="Remove member"
+                        >
+                          {removingId === m.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
               </Card>
             ))}
@@ -1044,6 +1060,13 @@ export default function BusinessDashboard() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {selectedMemberId && (
+        <MemberClientAccountingModal
+          memberId={selectedMemberId}
+          onClose={() => setSelectedMemberId(null)}
+        />
+      )}
     </div>
   );
 }
