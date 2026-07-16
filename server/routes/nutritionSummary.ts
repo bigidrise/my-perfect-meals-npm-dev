@@ -32,10 +32,12 @@ router.get("/", requireAuth, async (req, res) => {
 
     const [userRow] = await db
       .select({
-        dailyCalorieTarget:     (users as any).dailyCalorieTarget,
-        dailyProteinTarget:     (users as any).dailyProteinTarget,
-        dailyCarbTarget:        (users as any).dailyCarbsTarget,
-        dailyFatTarget:         (users as any).dailyFatTarget,
+        dailyCalorieTarget:       (users as any).dailyCalorieTarget,
+        dailyProteinTarget:       (users as any).dailyProteinTarget,
+        dailyCarbTarget:          (users as any).dailyCarbsTarget,
+        dailyStarchyCarbsTarget:  (users as any).dailyStarchyCarbsTarget,
+        dailyFibrousCarbsTarget:  (users as any).dailyFibrousCarbsTarget,
+        dailyFatTarget:           (users as any).dailyFatTarget,
         goalType:               (users as any).goalType,
         goalTarget:             (users as any).goalTarget,
         goalTimelineWeeks:      (users as any).goalTimelineWeeks,
@@ -58,10 +60,12 @@ router.get("/", requireAuth, async (req, res) => {
       .limit(1);
 
     const extras: UserExtrasForSummary = {
-      dailyCalorieTarget:     userRow?.dailyCalorieTarget ?? null,
-      dailyProteinTarget:     userRow?.dailyProteinTarget ?? null,
-      dailyCarbTarget:        userRow?.dailyCarbTarget ?? null,
-      dailyFatTarget:         userRow?.dailyFatTarget ?? null,
+      dailyCalorieTarget:       userRow?.dailyCalorieTarget       ?? null,
+      dailyProteinTarget:       userRow?.dailyProteinTarget       ?? null,
+      dailyCarbTarget:          userRow?.dailyCarbTarget          ?? null,
+      dailyStarchyCarbsTarget:  userRow?.dailyStarchyCarbsTarget  ?? null,
+      dailyFibrousCarbsTarget:  userRow?.dailyFibrousCarbsTarget  ?? null,
+      dailyFatTarget:           userRow?.dailyFatTarget           ?? null,
       goalType:               userRow?.goalType ?? null,
       goalTarget:             userRow?.goalTarget ?? null,
       goalTimelineWeeks:      userRow?.goalTimelineWeeks ?? null,

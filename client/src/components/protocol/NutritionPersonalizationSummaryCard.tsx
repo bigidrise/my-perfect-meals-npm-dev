@@ -121,23 +121,36 @@ export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLo
       </div>
 
       {/* ── Macros strip ── */}
-      {activeInputs.macros && (activeInputs.macros.calories || activeInputs.macros.proteinG) && (
-        <div className="px-4 pb-3">
-          <div className="grid grid-cols-4 gap-1.5">
-            {[
-              { label: "Cal",     value: activeInputs.macros.calories ? `${activeInputs.macros.calories.toLocaleString()}` : "—" },
-              { label: "Protein", value: activeInputs.macros.proteinG ? `${activeInputs.macros.proteinG}g` : "—" },
-              { label: "Carbs",   value: activeInputs.macros.carbsG   ? `${activeInputs.macros.carbsG}g`  : "—" },
-              { label: "Fat",     value: activeInputs.macros.fatG     ? `${activeInputs.macros.fatG}g`    : "—" },
-            ].map(m => (
-              <div key={m.label} className="bg-white/5 rounded-lg py-1.5 text-center border border-white/8">
-                <p className="text-white font-semibold text-xs leading-none">{m.value}</p>
-                <p className="text-green-400 text-[9px] mt-0.5 uppercase tracking-wide">{m.label}</p>
-              </div>
-            ))}
+      {activeInputs.macros && (activeInputs.macros.calories || activeInputs.macros.proteinG) && (() => {
+        const m = activeInputs.macros;
+        const hasCarbSplit = !!(m.starchyCarbsG || m.fibrousCarbsG);
+        const pills = hasCarbSplit
+          ? [
+              { label: "Cal",     value: m.calories ? m.calories.toLocaleString() : "—" },
+              { label: "Protein", value: m.proteinG ? `${m.proteinG}g`            : "—" },
+              { label: "Starchy", value: m.starchyCarbsG ? `${m.starchyCarbsG}g` : "—" },
+              { label: "Fibrous", value: m.fibrousCarbsG ? `${m.fibrousCarbsG}g` : "—" },
+              { label: "Fat",     value: m.fatG ? `${m.fatG}g`                   : "—" },
+            ]
+          : [
+              { label: "Cal",     value: m.calories ? m.calories.toLocaleString() : "—" },
+              { label: "Protein", value: m.proteinG ? `${m.proteinG}g`            : "—" },
+              { label: "Carbs",   value: m.carbsG   ? `${m.carbsG}g`             : "—" },
+              { label: "Fat",     value: m.fatG     ? `${m.fatG}g`               : "—" },
+            ];
+        return (
+          <div className="px-4 pb-3">
+            <div className={`grid gap-1.5 ${hasCarbSplit ? "grid-cols-5" : "grid-cols-4"}`}>
+              {pills.map(p => (
+                <div key={p.label} className="bg-white/5 rounded-lg py-1.5 text-center border border-white/8">
+                  <p className="text-white font-semibold text-xs leading-none">{p.value}</p>
+                  <p className="text-green-400 text-[9px] mt-0.5 uppercase tracking-wide">{p.label}</p>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ── Expand / Collapse toggle ── */}
       <button

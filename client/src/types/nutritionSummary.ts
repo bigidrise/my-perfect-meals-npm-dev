@@ -17,6 +17,8 @@ export interface NutritionPersonalizationSummary {
       calories: number | null;
       proteinG: number | null;
       carbsG: number | null;
+      starchyCarbsG: number | null;
+      fibrousCarbsG: number | null;
       fatG: number | null;
     } | null;
   };

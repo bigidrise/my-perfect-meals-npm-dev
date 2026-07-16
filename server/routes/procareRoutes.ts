@@ -992,17 +992,19 @@ router.get("/clients/:clientId/nutrition-summary", requireAuth, requirePhase1Cer
 
     const rawUserResult = await db.execute(sql`
       SELECT
-        daily_calorie_target     AS "dailyCalorieTarget",
-        daily_protein_target     AS "dailyProteinTarget",
-        daily_carbs_target       AS "dailyCarbTarget",
-        daily_fat_target         AS "dailyFatTarget",
-        goal_type                AS "goalType",
-        goal_target              AS "goalTarget",
-        fitness_goal             AS "fitnessGoal",
-        performance_context      AS "performanceContext",
-        weekly_training_schedule AS "weeklyTrainingSchedule",
-        selected_meal_builder    AS "selectedMealBuilder",
-        active_board             AS "activeBoard"
+        daily_calorie_target        AS "dailyCalorieTarget",
+        daily_protein_target        AS "dailyProteinTarget",
+        daily_carbs_target          AS "dailyCarbTarget",
+        daily_starchy_carbs_target  AS "dailyStarchyCarbsTarget",
+        daily_fibrous_carbs_target  AS "dailyFibrousCarbsTarget",
+        daily_fat_target            AS "dailyFatTarget",
+        goal_type                   AS "goalType",
+        goal_target                 AS "goalTarget",
+        fitness_goal                AS "fitnessGoal",
+        performance_context         AS "performanceContext",
+        weekly_training_schedule    AS "weeklyTrainingSchedule",
+        selected_meal_builder       AS "selectedMealBuilder",
+        active_board                AS "activeBoard"
       FROM users
       WHERE id = ${clientId}
       LIMIT 1
@@ -1017,18 +1019,20 @@ router.get("/clients/:clientId/nutrition-summary", requireAuth, requirePhase1Cer
       .limit(1);
 
     const extras: UserExtrasForSummary = {
-      dailyCalorieTarget:     userRow?.dailyCalorieTarget ?? null,
-      dailyProteinTarget:     userRow?.dailyProteinTarget ?? null,
-      dailyCarbTarget:        userRow?.dailyCarbTarget ?? null,
-      dailyFatTarget:         userRow?.dailyFatTarget ?? null,
-      goalType:               userRow?.goalType ?? null,
-      goalTarget:             userRow?.goalTarget ?? null,
-      fitnessGoal:            userRow?.fitnessGoal ?? null,
-      performanceContext:     userRow?.performanceContext ?? null,
-      weeklyTrainingSchedule: userRow?.weeklyTrainingSchedule ?? null,
-      latestGlucose:          latestGlucoseLog?.value ?? null,
-      selectedMealBuilder:    userRow?.selectedMealBuilder ?? null,
-      activeBoard:            userRow?.activeBoard ?? null,
+      dailyCalorieTarget:       userRow?.dailyCalorieTarget       ?? null,
+      dailyProteinTarget:       userRow?.dailyProteinTarget       ?? null,
+      dailyCarbTarget:          userRow?.dailyCarbTarget          ?? null,
+      dailyStarchyCarbsTarget:  userRow?.dailyStarchyCarbsTarget  ?? null,
+      dailyFibrousCarbsTarget:  userRow?.dailyFibrousCarbsTarget  ?? null,
+      dailyFatTarget:           userRow?.dailyFatTarget           ?? null,
+      goalType:                 userRow?.goalType                 ?? null,
+      goalTarget:               userRow?.goalTarget               ?? null,
+      fitnessGoal:              userRow?.fitnessGoal              ?? null,
+      performanceContext:       userRow?.performanceContext        ?? null,
+      weeklyTrainingSchedule:   userRow?.weeklyTrainingSchedule   ?? null,
+      latestGlucose:            latestGlucoseLog?.value           ?? null,
+      selectedMealBuilder:      userRow?.selectedMealBuilder      ?? null,
+      activeBoard:              userRow?.activeBoard              ?? null,
     };
 
     const summary = buildNutritionSummary(envelope, extras);
