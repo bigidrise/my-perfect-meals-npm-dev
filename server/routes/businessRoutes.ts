@@ -61,10 +61,28 @@ router.get("/mine", requireAuth, async (req, res) => {
       .leftJoin(users, eq(users.id, businessMembers.userId))
       .where(and(eq(businessMembers.businessId, business.id), eq(businessMembers.status, "active")));
 
-    const invitations = await db
+    const pendingInvitations = await db
       .select()
       .from(businessInvitations)
       .where(and(eq(businessInvitations.businessId, business.id), eq(businessInvitations.status, "pending")));
+
+    // Auto-heal: if a pending invite's email already belongs to an active member
+    // (happens when the accept transaction partially failed), mark it accepted now.
+    const memberEmails = new Set(members.map((m) => m.email?.toLowerCase()).filter(Boolean));
+    const stuckInviteIds = pendingInvitations
+      .filter((inv) => memberEmails.has(inv.email?.toLowerCase()))
+      .map((inv) => inv.id);
+
+    if (stuckInviteIds.length > 0) {
+      for (const id of stuckInviteIds) {
+        await db
+          .update(businessInvitations)
+          .set({ status: "accepted", acceptedAt: new Date() })
+          .where(eq(businessInvitations.id, id));
+      }
+    }
+
+    const invitations = pendingInvitations.filter((inv) => !stuckInviteIds.includes(inv.id));
 
     const usedSeats = members.length;
 
@@ -518,26 +536,29 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
         .where(eq(users.id, userId));
     }
 
-    if (existing) {
-      if (existing.status === "active") {
-        return res.status(400).json({ error: "You are already a member of this business." });
-      }
-      // Re-activate if previously removed
-      await db.update(businessMembers).set({ status: "active", joinedAt: new Date() }).where(eq(businessMembers.id, existing.id));
-    } else {
-      await db.insert(businessMembers).values({
-        businessId: business.id,
-        userId,
-        role: invite.role as any,
-        status: "active",
-      });
+    if (existing && existing.status === "active") {
+      return res.status(400).json({ error: "You are already a member of this business." });
     }
 
-    // Mark invite accepted
-    await db
-      .update(businessInvitations)
-      .set({ status: "accepted", acceptedAt: new Date(), acceptedByUserId: userId })
-      .where(eq(businessInvitations.id, invite.id));
+    // Atomically update member row + mark invite accepted so they can never diverge
+    await db.transaction(async (tx) => {
+      if (existing) {
+        // Re-activate if previously removed
+        await tx.update(businessMembers).set({ status: "active", joinedAt: new Date() }).where(eq(businessMembers.id, existing.id));
+      } else {
+        await tx.insert(businessMembers).values({
+          businessId: business.id,
+          userId,
+          role: invite.role as any,
+          status: "active",
+        });
+      }
+
+      await tx
+        .update(businessInvitations)
+        .set({ status: "accepted", acceptedAt: new Date(), acceptedByUserId: userId })
+        .where(eq(businessInvitations.id, invite.id));
+    });
 
     // NOTE: Do NOT call updateUserSubscription here. The user's planLookupKey
     // stays as their personal plan. Access tier is computed at runtime by
