@@ -466,6 +466,7 @@ export default function PerformanceNutritionHub() {
     logged: { calories: number; proteinG: number; carbsG: number; fatG: number; starchyCarbsG: number; fibrousCarbsG: number };
   } | null>(null);
 
+  const [macroCalcRequired, setMacroCalcRequired] = useState(false);
   const [protocolCopied, setProtocolCopied] = useState(false);
 
   // ── Clinical paywall ─────────────────────────────────────────────────────
@@ -512,7 +513,14 @@ export default function PerformanceNutritionHub() {
     const dateQs = selectedDate !== todayDateStr ? `?date=${selectedDate}` : "";
     fetch(apiUrl(`/api/performance/today${dateQs}`), { headers: getAuthHeaders(), credentials: "include" })
       .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d?.configured) setTodaySession(d); })
+      .then(d => {
+        if (d?.macroCalculatorRequired) {
+          setMacroCalcRequired(true);
+        } else if (d?.configured) {
+          setMacroCalcRequired(false);
+          setTodaySession(d);
+        }
+      })
       .catch(() => {});
   }, [isActive, activeTrack, user, selectedDate]);
 
@@ -800,8 +808,27 @@ export default function PerformanceNutritionHub() {
         </div>
       )}
 
+      {/* ── Macro Calculator gate — shown when targets are missing ── */}
+      {macroCalcRequired && (
+        <div className="px-4 pt-6 max-w-lg mx-auto">
+          <div className="rounded-2xl bg-orange-600/15 border border-orange-500/30 px-5 py-5">
+            <p className="text-white font-bold text-base mb-1">Macro Calculator Required</p>
+            <p className="text-white/75 text-sm leading-relaxed mb-4">
+              Your performance targets and coaching are personalized from your Macro Calculator results.
+              Complete it first to unlock your daily targets, weekly schedule, and AI coaching.
+            </p>
+            <button
+              onClick={() => setLocation("/macro-calculator")}
+              className="w-full bg-orange-600 text-white font-semibold text-sm py-3 rounded-xl active:scale-[0.98] transition-transform"
+            >
+              Run My Macro Calculator
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── No protocol — track selector empty state ── */}
-      {!isActive && (
+      {!isActive && !macroCalcRequired && (
         <div className="px-4 pt-10 max-w-lg mx-auto">
           <div className="text-center mb-8">
             <p className="text-white font-bold text-xl mb-2">Performance Nutrition Hub</p>

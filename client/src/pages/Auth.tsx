@@ -22,6 +22,7 @@ export default function Auth() {
   const [email, setEmail] = useState("");
   const [pwd, setPwd] = useState("");
   const [err, setErr] = useState<string | null>(null);
+  const [loginFailCount, setLoginFailCount] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
   const [showWorkspaceChooser, setShowWorkspaceChooser] = useState(false);
   const [showMfaChallenge, setShowMfaChallenge] = useState(false);
@@ -89,7 +90,11 @@ export default function Auth() {
       }
       await proceedAfterLogin(u);
     } catch (e: any) {
-      setErr(e?.message || "Authentication failed.");
+      const msg: string = e?.message || "Authentication failed.";
+      setErr(msg);
+      if (mode === "login" && (msg.toLowerCase().includes("invalid") || msg.toLowerCase().includes("incorrect") || msg.toLowerCase().includes("password"))) {
+        setLoginFailCount((n) => n + 1);
+      }
     }
   }
 
@@ -231,7 +236,23 @@ export default function Auth() {
             </div>
           )}
 
-          {err && <div className="text-sm text-red-300 mb-3">{err}</div>}
+          {err && (
+            <div className="text-sm text-red-300 mb-3">
+              {err}
+              {mode === "login" && loginFailCount >= 1 && (
+                <span>
+                  {" "}
+                  <button
+                    type="button"
+                    onClick={() => setLocation("/forgot-password")}
+                    className="underline text-orange-300 font-medium"
+                  >
+                    Reset your password?
+                  </button>
+                </span>
+              )}
+            </div>
+          )}
 
           <button
             className="relative isolate w-full p-3 rounded-xl

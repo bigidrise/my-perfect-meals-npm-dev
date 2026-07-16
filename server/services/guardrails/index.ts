@@ -89,7 +89,8 @@ export function applyGuardrails(
   mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack',
   dietPhase?: BeachBodyPhase,
   remainingMacros?: { protein?: number; carbs?: number; fat?: number; calories?: number },
-  builderMode?: BuilderMode
+  builderMode?: BuilderMode,
+  dailyProteinTarget?: number
 ): GuardrailResult {
   // No diet-specific guardrails for null/undefined diet type (Weekly Meal Board),
   // but still inject ingredient precision block.
@@ -242,12 +243,17 @@ export function applyGuardrails(
       console.log(`🛡️ Guardrails: Applied BeachBody ${phase} phase rules for ${mealType}${remainingMacros ? ' + remaining budget' : ''}`);
       break;
 
-    case 'performance':
+    case 'performance': {
+      const perfProteinTarget = dailyProteinTarget ?? (() => {
+        console.warn('[guardrails] buildPerformancePrompt called without dailyProteinTarget — call site should supply live DB value. Using 160g fallback for meal generation.');
+        return 160;
+      })();
       modifiedPrompt = buildPerformancePrompt({
         dietType: 'performance',
         mealType,
         userInput: basePrompt,
         carbPhase: (dietPhase as unknown as CompetitionPhase) || 'carb',
+        dailyProteinTarget: perfProteinTarget,
       });
       appliedRules.push('performance-strict-ingredient-filter');
       appliedRules.push('performance-macro-control');
@@ -255,6 +261,7 @@ export function applyGuardrails(
       appliedRules.push('performance-sodium-control');
       console.log(`🛡️ Guardrails: Applied STRICT performance/competition rules for ${mealType}`);
       break;
+    }
 
     case 'general-nutrition':
       modifiedPrompt = buildGeneralNutritionPrompt({

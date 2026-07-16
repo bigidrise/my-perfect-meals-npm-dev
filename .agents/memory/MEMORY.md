@@ -27,3 +27,4 @@
 - [Coach Decision Engine architecture](coach-decision-engine.md) — shared situation-agnostic engine + per-situation adapters; new situations = new adapter files, never engine branching.
 - [Location Context Engine — Hybrid Venue Engine](location-context-engine.md) — Catalog-first + Google Places fallback + 24h cache; venueDiscovery.ts; GET /venues/discover; discoveredVenue payload on POST /coach; Google has no indoor-map API so catalog + generic zones is correct arch.
 - [Clinical Business — Effective Access Architecture](business-effective-access.md) — access tier computed at runtime from membership OR personal plan; never stored merged in planLookupKey; accept route snapshots personal plan, never calls updateUserSubscription.
+- [Performance Hub macro anchoring](performance-hub-macro-anchor.md) — AI coach must never invent macro targets; /ask injects AUTHORITATIVE BASELINE + RESOLVED blocks and validates response.
