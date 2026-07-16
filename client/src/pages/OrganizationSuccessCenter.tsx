@@ -42,7 +42,7 @@ const modules: Module[] = [
       "Welcome to your MyPerfectMeals Organization. You've just set up something powerful — a centralized platform that gives every coach or practitioner on your team full clinical-grade nutrition tools under one subscription. Your team members each get their own personalized access: AI-powered meal creation, dietary tracking, biometric monitoring, and their own ProCare Studio to manage clients. You handle the seats and billing from one place. They handle their practice. Together, you run a stronger, more effective organization.",
     content: (
       <div className="space-y-3">
-        <p className="text-white/70 text-sm leading-relaxed">
+        <p className="text-white text-sm leading-relaxed">
           You've set up something powerful — a centralized platform giving every coach or practitioner on your team full clinical-grade nutrition tools under one subscription.
         </p>
         <div className="space-y-2">
@@ -54,7 +54,7 @@ const modules: Module[] = [
           ].map((item) => (
             <div key={item} className="flex items-start gap-2">
               <CheckCircle className="w-3.5 h-3.5 text-orange-400 mt-0.5 flex-shrink-0" />
-              <span className="text-white/70 text-sm">{item}</span>
+              <span className="text-white text-sm">{item}</span>
             </div>
           ))}
         </div>
@@ -93,7 +93,7 @@ const modules: Module[] = [
             </div>
             <div>
               <p className="text-white text-sm font-semibold">{title}</p>
-              <p className="text-white/60 text-sm mt-0.5">{body}</p>
+              <p className="text-white/90 text-sm mt-0.5">{body}</p>
             </div>
           </div>
         ))}
@@ -109,12 +109,12 @@ const modules: Module[] = [
       "When you send an invitation, the person receives an email with a secure link. That link is valid for 72 hours. When they click it, they're walked through account creation or login if they already have an account. Once they accept, they're added to your organization and their seat is marked active. Pending invitations count against your available seat count the moment you send them — so if you have ten seats and send ten invites, you're at capacity even before anyone accepts. If someone doesn't accept within 72 hours, the invite expires and the seat opens back up. You can always resend from the dashboard.",
     content: (
       <div className="space-y-3">
-        <p className="text-white/70 text-sm leading-relaxed">
+        <p className="text-white text-sm leading-relaxed">
           When you send an invitation, the person receives a secure email link valid for 72 hours.
         </p>
         <div className="bg-orange-600/10 border border-orange-500/30 rounded-xl p-3">
           <p className="text-orange-300 text-xs font-semibold mb-1">Important to know</p>
-          <p className="text-white/70 text-xs leading-relaxed">
+          <p className="text-white/90 text-xs leading-relaxed">
             Pending invitations count against your seat capacity immediately when sent. If you have 5 seats and 3 are active members + 2 pending invites, you're at capacity. Expired invites (after 72 hours) release their seat automatically.
           </p>
         </div>
@@ -126,7 +126,7 @@ const modules: Module[] = [
           ].map((item) => (
             <div key={item} className="flex items-start gap-2">
               <CheckCircle className="w-3.5 h-3.5 text-orange-400 mt-0.5 flex-shrink-0" />
-              <span className="text-white/70 text-sm">{item}</span>
+              <span className="text-white text-sm">{item}</span>
             </div>
           ))}
         </div>
@@ -143,20 +143,20 @@ const modules: Module[] = [
     content: (
       <div className="space-y-3">
         <div className="grid grid-cols-2 gap-2">
-          <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+          <div className="bg-black/30 border border-white/15 rounded-xl p-3">
             <p className="text-orange-400 text-xs font-semibold mb-1">Uses a seat</p>
-            <p className="text-white/70 text-xs">Active members, pending invites</p>
+            <p className="text-white/90 text-xs">Active members, pending invites</p>
           </div>
-          <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+          <div className="bg-black/30 border border-white/15 rounded-xl p-3">
             <p className="text-green-400 text-xs font-semibold mb-1">Frees a seat</p>
-            <p className="text-white/70 text-xs">Removing members, expired invites</p>
+            <p className="text-white/90 text-xs">Removing members, expired invites</p>
           </div>
         </div>
-        <p className="text-white/70 text-sm leading-relaxed">
+        <p className="text-white text-sm leading-relaxed">
           Seat changes are prorated by Stripe — you only pay for what you use in each billing period.
         </p>
-        <div className="bg-white/5 border border-white/10 rounded-xl p-3">
-          <p className="text-white/60 text-xs">To manage seats: tap the <span className="text-orange-400 font-semibold">Manage</span> link next to your seat counter on the Organization Dashboard.</p>
+        <div className="bg-black/30 border border-white/15 rounded-xl p-3">
+          <p className="text-white/90 text-xs">To manage seats: tap the <span className="text-orange-400 font-semibold">Manage</span> link next to your seat counter on the Organization Dashboard.</p>
         </div>
       </div>
     ),
@@ -172,7 +172,7 @@ const modules: Module[] = [
       <div className="space-y-3">
         <div className="bg-blue-600/10 border border-blue-500/20 rounded-xl p-3">
           <p className="text-blue-300 text-xs font-semibold mb-1">Organization relationship</p>
-          <p className="text-white/70 text-xs leading-relaxed">
+          <p className="text-white/90 text-xs leading-relaxed">
             You sponsor access — you don't own your members' accounts. Their clients, sessions, and data belong to them individually.
           </p>
         </div>
@@ -185,7 +185,7 @@ const modules: Module[] = [
           ].map((item) => (
             <div key={item} className="flex items-start gap-2">
               <CheckCircle className="w-3.5 h-3.5 text-orange-400 mt-0.5 flex-shrink-0" />
-              <span className="text-white/70 text-sm">{item}</span>
+              <span className="text-white text-sm">{item}</span>
             </div>
           ))}
         </div>
@@ -201,7 +201,7 @@ const modules: Module[] = [
       "Every member you add to your organization has access to ProCare Studio — their own professional client management space. They can enroll clients, review biometrics, assign meal plans, and communicate through the platform. This is independent of you. You provide the subscription that unlocks the tools; they manage their client relationships on their own. Clients belong to their coach, not to your organization. This is intentional — it protects your coaches' professional relationships and keeps data structured correctly. Your role as organization owner is to ensure seats are filled by the right people and that everyone meets the training standard.",
     content: (
       <div className="space-y-3">
-        <p className="text-white/70 text-sm leading-relaxed">
+        <p className="text-white text-sm leading-relaxed">
           Every member gets their own ProCare Studio — a full professional workspace for managing clients, reviewing health data, and coordinating care.
         </p>
         <div className="space-y-2">
@@ -213,7 +213,7 @@ const modules: Module[] = [
           ].map((item) => (
             <div key={item} className="flex items-start gap-2">
               <CheckCircle className="w-3.5 h-3.5 text-orange-400 mt-0.5 flex-shrink-0" />
-              <span className="text-white/70 text-sm">{item}</span>
+              <span className="text-white text-sm">{item}</span>
             </div>
           ))}
         </div>
@@ -231,15 +231,15 @@ const modules: Module[] = [
       <div className="space-y-3">
         <div className="bg-orange-600/10 border border-orange-500/30 rounded-xl p-3">
           <p className="text-orange-300 text-xs font-semibold mb-1">Required for all members</p>
-          <p className="text-white/70 text-xs leading-relaxed">
+          <p className="text-white/90 text-xs leading-relaxed">
             Platform Mastery is mandatory — not optional. Members access the Academy from the Business Center in their account.
           </p>
         </div>
-        <p className="text-white/70 text-sm leading-relaxed">
+        <p className="text-white text-sm leading-relaxed">
           The Academy covers meal creation workflows, dietary protocols, ProCare client management, clinical tools, and platform standards.
         </p>
-        <div className="bg-white/5 border border-white/10 rounded-xl p-3">
-          <p className="text-white/60 text-xs">Encourage new team members to complete Platform Mastery within their first week. It takes about 2–3 hours to complete all modules.</p>
+        <div className="bg-black/30 border border-white/15 rounded-xl p-3">
+          <p className="text-white/90 text-xs">Encourage new team members to complete Platform Mastery within their first week. It takes about 2–3 hours to complete all modules.</p>
         </div>
       </div>
     ),
@@ -253,17 +253,17 @@ const modules: Module[] = [
       "Your subscription is billed monthly at $44.99 per seat. Your seat count is whatever you set it to — you're billed for the number of seats on your plan, not just the ones currently filled. So if you have 10 seats configured and only 7 are in use, you're still billed for 10. When you add seats, Stripe prorates the change immediately. When you remove seats, the reduction applies at your next billing cycle. All billing is managed through Stripe. If you need to cancel, update your payment method, or download invoices, you can access the Stripe billing portal from your account settings.",
     content: (
       <div className="space-y-3">
-        <div className="bg-white/5 border border-white/10 rounded-xl p-3 space-y-2">
+        <div className="bg-black/30 border border-white/15 rounded-xl p-3 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-white/60 text-sm">Price per seat</span>
+            <span className="text-white/90 text-sm">Price per seat</span>
             <span className="text-white font-semibold text-sm">$44.99 / mo</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-white/60 text-sm">Billing cycle</span>
+            <span className="text-white/90 text-sm">Billing cycle</span>
             <span className="text-white font-semibold text-sm">Monthly</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-white/60 text-sm">Billed for</span>
+            <span className="text-white/90 text-sm">Billed for</span>
             <span className="text-white font-semibold text-sm">Seat count (not filled seats)</span>
           </div>
         </div>
@@ -275,7 +275,7 @@ const modules: Module[] = [
           ].map((item) => (
             <div key={item} className="flex items-start gap-2">
               <CheckCircle className="w-3.5 h-3.5 text-orange-400 mt-0.5 flex-shrink-0" />
-              <span className="text-white/70 text-sm">{item}</span>
+              <span className="text-white text-sm">{item}</span>
             </div>
           ))}
         </div>
@@ -313,9 +313,9 @@ const modules: Module[] = [
             a: "A brief grace period applies. If unresolved, member access is suspended until billing is current.",
           },
         ].map(({ q, a }) => (
-          <div key={q} className="bg-white/5 border border-white/10 rounded-xl p-3">
+          <div key={q} className="bg-black/30 border border-white/15 rounded-xl p-3">
             <p className="text-white text-sm font-semibold mb-1">{q}</p>
-            <p className="text-white/60 text-sm">{a}</p>
+            <p className="text-white/90 text-sm">{a}</p>
           </div>
         ))}
       </div>
@@ -377,9 +377,9 @@ export default function OrganizationSuccessCenter() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-black to-black pb-28">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-blue-950 pb-28">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-black/70 backdrop-blur-md border-b border-white/10 px-4 py-3 flex items-center gap-3">
+      <div className="sticky top-0 z-10 bg-blue-950/80 backdrop-blur-md border-b border-white/10 px-4 py-3 flex items-center gap-3">
         <button
           onClick={() => setLocation("/business-dashboard")}
           className="text-white/60 active:text-white transition-colors"
@@ -388,7 +388,7 @@ export default function OrganizationSuccessCenter() {
         </button>
         <div>
           <h1 className="text-white font-bold text-base leading-tight">Organization Success Center</h1>
-          <p className="text-white/50 text-xs">Your how-to guide for everything</p>
+          <p className="text-white/80 text-xs">Your how-to guide for everything</p>
         </div>
       </div>
 
@@ -401,10 +401,10 @@ export default function OrganizationSuccessCenter() {
             </div>
             <div>
               <h2 className="text-white font-bold text-base">Your complete guide</h2>
-              <p className="text-white/50 text-xs">Read or listen to each topic below</p>
+              <p className="text-white/80 text-xs">Read or listen to each topic below</p>
             </div>
           </div>
-          <p className="text-white/60 text-sm leading-relaxed">
+          <p className="text-white text-sm leading-relaxed">
             Each topic below walks you through a key part of running your organization — from first setup to billing to team management. Tap a topic to read, or hit Listen to hear it narrated.
           </p>
         </div>
@@ -420,7 +420,7 @@ export default function OrganizationSuccessCenter() {
           return (
             <div
               key={mod.id}
-              className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden"
+              className="bg-black/40 border border-white/10 rounded-2xl overflow-hidden"
             >
               {/* Module Header */}
               <button
@@ -432,15 +432,15 @@ export default function OrganizationSuccessCenter() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-white/40 text-xs font-semibold tabular-nums">{String(idx + 1).padStart(2, "0")}</span>
+                    <span className="text-white/70 text-xs font-semibold tabular-nums">{String(idx + 1).padStart(2, "0")}</span>
                     <p className="text-white text-sm font-semibold truncate">{mod.title}</p>
                   </div>
-                  <p className="text-white/50 text-xs mt-0.5 truncate">{mod.subtitle}</p>
+                  <p className="text-white/80 text-xs mt-0.5 truncate">{mod.subtitle}</p>
                 </div>
                 {isExpanded ? (
-                  <ChevronUp className="w-4 h-4 text-white/40 flex-shrink-0" />
+                  <ChevronUp className="w-4 h-4 text-white/60 flex-shrink-0" />
                 ) : (
-                  <ChevronDown className="w-4 h-4 text-white/40 flex-shrink-0" />
+                  <ChevronDown className="w-4 h-4 text-white/60 flex-shrink-0" />
                 )}
               </button>
 
