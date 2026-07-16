@@ -5,6 +5,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { voiceManager } from "@/voice/VoiceManager";
 import { PillButton } from "@/components/ui/pill-button";
 
+type AudioState = "idle" | "playing" | "paused";
+
 const COPILOT_SCRIPT = `Welcome to My Perfect Meals Professional.
 
 I'm Chef Copilot, and before you dive in, I want you to understand exactly what's about to happen — and why it's designed this way.
@@ -69,7 +71,7 @@ export default function ProCareWelcome() {
       ? "physician"
       : null;
 
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [audioState, setAudioState] = useState<AudioState>("idle");
   const voiceRef = useRef<boolean>(false);
 
   useEffect(() => {
@@ -81,25 +83,31 @@ export default function ProCareWelcome() {
     };
   }, []);
 
-  const toggleCopilot = async () => {
-    if (isPlaying) {
-      voiceManager.stop();
+  const startCopilot = async () => {
+    setAudioState("playing");
+    voiceRef.current = true;
+    await voiceManager.preload();
+    const result = await voiceManager.speak(COPILOT_SCRIPT, () => {
+      setAudioState("idle");
       voiceRef.current = false;
-      setIsPlaying(false);
-    } else {
-      setIsPlaying(true);
-      voiceRef.current = true;
-      await voiceManager.preload();
-      const result = await voiceManager.speak(COPILOT_SCRIPT, () => {
-        setIsPlaying(false);
-        voiceRef.current = false;
-      });
-      if (result.status !== "playing") {
-        setIsPlaying(false);
-        voiceRef.current = false;
-      }
+    });
+    if (result.status !== "playing") {
+      setAudioState("idle");
+      voiceRef.current = false;
     }
   };
+
+  const togglePause = () => {
+    if (audioState === "playing") {
+      voiceManager.pause();
+      setAudioState("paused");
+    } else if (audioState === "paused") {
+      voiceManager.resume();
+      setAudioState("playing");
+    }
+  };
+
+  const skipForward = () => voiceManager.skipForward(10);
 
   const handleBegin = () => {
     if (role === "trainer" || role === "physician") {
@@ -150,22 +158,47 @@ export default function ProCareWelcome() {
 
         {/* Copilot */}
         <div className="mb-6">
-          <button
-            onClick={toggleCopilot}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-black/30 border border-orange-500/30 active:scale-[0.98] transition-transform ${!isPlaying ? "animate-pulse-glow-blue" : ""}`}
-          >
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isPlaying ? "bg-red-500/20 border border-red-400/30" : "bg-orange-500/20 border border-orange-400/30"}`}>
-              {isPlaying ? <Pause className="w-5 h-5 text-red-400" /> : <Play className="w-5 h-5 text-orange-400 ml-0.5" />}
+          {audioState === "idle" ? (
+            <button
+              onClick={startCopilot}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-black/30 border border-orange-500/30 active:scale-[0.98] transition-transform animate-pulse-glow-blue"
+            >
+              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-orange-500/20 border border-orange-400/30">
+                <Play className="w-5 h-5 text-orange-400 ml-0.5" />
+              </div>
+              <div className="text-left flex-1">
+                <p className="text-sm font-medium text-white">Listen to Professional Overview</p>
+                <p className="text-xs text-white/50">Hear the full journey explained by Chef Copilot</p>
+              </div>
+            </button>
+          ) : (
+            <div className="w-full flex items-center gap-2 px-4 py-3 rounded-xl bg-black/30 border border-orange-500/30">
+              <button
+                onClick={togglePause}
+                className="w-10 h-10 rounded-full flex items-center justify-center bg-orange-500/20 border border-orange-400/30 active:scale-90 transition-transform shrink-0"
+              >
+                {audioState === "playing" ? (
+                  <Pause className="w-5 h-5 text-orange-400" />
+                ) : (
+                  <Play className="w-5 h-5 text-orange-400 ml-0.5" />
+                )}
+              </button>
+              <div className="text-left flex-1 min-w-0">
+                <p className="text-sm font-medium text-white truncate">
+                  {audioState === "playing" ? "Listening to Professional Overview..." : "Paused"}
+                </p>
+                <p className="text-xs text-white/50">
+                  {audioState === "playing" ? "Tap to pause" : "Tap to resume"}
+                </p>
+              </div>
+              <button
+                onClick={skipForward}
+                className="px-3 py-1.5 rounded-lg bg-white/10 border border-white/10 text-xs font-bold text-white/80 active:scale-90 transition-transform shrink-0"
+              >
+                +10s
+              </button>
             </div>
-            <div className="text-left flex-1">
-              <p className="text-sm font-medium text-white">
-                {isPlaying ? "Listening to Professional Overview..." : "Listen to Professional Overview"}
-              </p>
-              <p className="text-xs text-white/50">
-                {isPlaying ? "Tap to stop" : "Hear the full journey explained by Chef Copilot"}
-              </p>
-            </div>
-          </button>
+          )}
         </div>
 
         {/* 3-Step Journey */}
