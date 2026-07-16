@@ -270,6 +270,77 @@ router.post("/ask", async (req, res) => {
     const activeTrack = (perfRow as any)?.activeProtocolTrack ??
       (pCtx ? "athletic" : null);
 
+    // ── Macro Calculator pre-flight: require completion before AI coaching ────
+    const [macroRow] = await db
+      .select({
+        dailyCalorieTarget:        users.dailyCalorieTarget,
+        dailyProteinTarget:        users.dailyProteinTarget,
+        dailyCarbsTarget:          users.dailyCarbsTarget,
+        dailyFatTarget:            users.dailyFatTarget,
+        dailyStarchyCarbsTarget:   (users as any).dailyStarchyCarbsTarget,
+        dailyFibrousCarbsTarget:   (users as any).dailyFibrousCarbsTarget,
+        weightKg:                  users.weightKg,
+        activityLevel:             users.activityLevel,
+        weeklyTrainingSchedule:    users.weeklyTrainingSchedule,
+        performanceProtocolConfig: users.performanceProtocolConfig,
+      } as any)
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    const coreTargets = [
+      (macroRow as any)?.dailyCalorieTarget,
+      (macroRow as any)?.dailyProteinTarget,
+      (macroRow as any)?.dailyCarbsTarget,
+      (macroRow as any)?.dailyFatTarget,
+    ];
+    if (coreTargets.some(v => v == null)) {
+      return res.json({ macroCalculatorRequired: true });
+    }
+
+    const baselineProtein  = (macroRow as any).dailyProteinTarget  as number;
+    const baselineCarbs    = (macroRow as any).dailyCarbsTarget    as number;
+    const baselineFat      = (macroRow as any).dailyFatTarget      as number;
+    const baselineCalories = (macroRow as any).dailyCalorieTarget  as number;
+    const starchyCarbs     = (macroRow as any)?.dailyStarchyCarbsTarget ?? null;
+    const fibrousCarbs     = (macroRow as any)?.dailyFibrousCarbsTarget ?? null;
+    const weightKgRaw      = parseFloat(String((macroRow as any)?.weightKg ?? "0")) || null;
+    const weightLbs        = weightKgRaw ? Math.round(weightKgRaw * 2.20462) : null;
+
+    // Resolve today's performance targets (baseline + session modifier if schedule exists)
+    const askSchedule   = (macroRow as any)?.weeklyTrainingSchedule;
+    const askPerfConfig = (macroRow as any)?.performanceProtocolConfig;
+
+    let resolvedForAsk = {
+      proteinG:     baselineProtein,
+      carbsG:       baselineCarbs,
+      fatG:         baselineFat,
+      calories:     baselineCalories,
+      sessionLabel: "Baseline",
+      sessionType:  "off" as string,
+    };
+
+    if (askSchedule && askPerfConfig) {
+      const { resolveTodayTargets } = await import("../services/protocol/performanceProtocolResolver");
+      const liveBase = {
+        calories:      baselineCalories,
+        proteinG:      baselineProtein,
+        carbsG:        baselineCarbs,
+        fatG:          baselineFat,
+        starchyCarbsG: starchyCarbs !== null ? Number(starchyCarbs) : Math.round(baselineCarbs * 0.7),
+        fibrousCarbsG: fibrousCarbs !== null ? Number(fibrousCarbs) : Math.round(baselineCarbs * 0.3),
+      };
+      const r = resolveTodayTargets(askSchedule, askPerfConfig, liveBase);
+      resolvedForAsk = {
+        proteinG:     r.proteinG,
+        carbsG:       r.carbsG,
+        fatG:         r.fatG,
+        calories:     r.calories,
+        sessionLabel: r.sessionLabel,
+        sessionType:  r.sessionType,
+      };
+    }
+
     // ── LANGUAGE RULES — enforced on every single response ───────────────────
     // These rules override everything else. No exceptions.
     const languageRules = `
@@ -309,6 +380,41 @@ WHEN TO CHANGE NOTHING:
 `;
 
     let systemPrompt = `You are the competition prep and performance nutrition coach for MyPerfectMeals. You do not give nutritional education — you give orders. The user follows the protocol; you run the protocol.\n${languageRules}\n\n`;
+
+    // ── Inject authoritative nutrition context — two separate blocks ──────────
+    const starchyStr = starchyCarbs !== null ? `${starchyCarbs}g/day` : "not yet specified";
+    const fibrousStr = fibrousCarbs !== null ? `${fibrousCarbs}g/day` : "not yet specified";
+    const weightStr  = weightKgRaw ? `${weightKgRaw}kg / ${weightLbs}lb` : "not recorded";
+    systemPrompt += `
+AUTHORITATIVE BASELINE TARGETS — SOURCE: MACRO CALCULATOR
+These are the permanent prescription. This system does not modify them.
+When asked "how much protein should I eat?", state exactly ${baselineProtein}g — do not calculate a new number.
+  Protein:        ${baselineProtein}g/day  [PROTECTED — no AI adjustment permitted]
+  Carbohydrates:  ${baselineCarbs}g/day
+  Starchy carbs:  ${starchyStr}
+  Fibrous carbs:  ${fibrousStr}
+  Fat:            ${baselineFat}g/day
+  Calories:       ${baselineCalories}kcal/day
+  Calculation timestamp: not stored in this system
+  Body weight:    ${weightStr}
+  Activity level: ${(macroRow as any)?.activityLevel ?? "not recorded"}
+
+TODAY'S RESOLVED PERFORMANCE TARGETS — SOURCE: PERFORMANCE PROTOCOL RESOLVER
+These are today's approved targets after the session modifier has been applied by the deterministic resolver.
+The AI explains these values. The AI does not create a third set of numbers.
+  Session type:   ${resolvedForAsk.sessionLabel}
+  Protein:        ${resolvedForAsk.proteinG}g  [unchanged — protein is not session-adjusted]
+  Carbohydrates:  ${resolvedForAsk.carbsG}g    [today's approved carb target]
+  Fat:            ${resolvedForAsk.fatG}g       [unchanged — fat is not session-adjusted]
+  Calories:       ${resolvedForAsk.calories}kcal
+
+COACHING AUTHORITY RULES — NEVER VIOLATE:
+- You execute these targets. You do not invent different numbers.
+- Any carbohydrate timing guidance (pre/post workout) is an ALLOCATION of the ${resolvedForAsk.carbsG}g daily total — not an addition to it.
+- Fat stays at ${resolvedForAsk.fatG}g. It does not auto-adjust when carbohydrates change.
+- Protein stays at ${resolvedForAsk.proteinG}g. No modifier applies to protein in this system.
+
+`;
 
     if (activeTrack === "competition" && compCtx) {
       const eventDate = new Date(compCtx.eventDate);
@@ -393,7 +499,40 @@ ATHLETIC COACHING RULES:
     });
 
     const reply = completion.choices[0]?.message?.content?.trim() ?? "I couldn't generate a response. Please try again.";
-    res.json({ reply });
+
+    // ── Validate response against authoritative targets ───────────────────────
+    const { validatePerformanceResponse, buildDeterministicFallback } = await import("../lib/performanceResponseValidator");
+    const authTargets = {
+      baseline: { proteinG: baselineProtein, carbsG: baselineCarbs, fatG: baselineFat, calories: baselineCalories },
+      resolved: resolvedForAsk,
+    };
+    const firstCheck = validatePerformanceResponse(reply, authTargets);
+    let finalReply = reply;
+
+    if (!firstCheck.valid) {
+      console.warn(`[APN /ask] Validation failed (${firstCheck.violations.length} violation(s)). Regenerating. Violations:`, firstCheck.violations);
+      const retryMessages: any[] = [
+        ...messages,
+        { role: "assistant", content: reply },
+        { role: "user", content: `SYSTEM CONSTRAINT: Your previous response contained a nutrition value that conflicts with this user's authoritative targets. Regenerate your response. Protein must be stated as exactly ${resolvedForAsk.proteinG}g. Carbohydrates must be stated as exactly ${resolvedForAsk.carbsG}g. Do not state different daily totals.` },
+      ];
+      const retryCompletion = await getOpenAI().chat.completions.create({
+        model: "gpt-4o",
+        messages: retryMessages,
+        max_tokens: 400,
+        temperature: 0.1,
+      });
+      const retryReply = retryCompletion.choices[0]?.message?.content?.trim() ?? "";
+      const secondCheck = validatePerformanceResponse(retryReply, authTargets);
+      if (!secondCheck.valid || !retryReply) {
+        console.warn(`[APN /ask] Retry also failed validation. Returning deterministic fallback.`);
+        finalReply = buildDeterministicFallback(authTargets);
+      } else {
+        finalReply = retryReply;
+      }
+    }
+
+    res.json({ reply: finalReply });
   } catch (err: any) {
     console.error("[performanceNutrition] /ask error:", err);
     res.status(500).json({ error: "Internal server error" });
@@ -545,6 +684,21 @@ router.get("/today", async (req, res) => {
 
     const schedule = (userRow as any)?.weeklyTrainingSchedule;
     const config   = (userRow as any)?.performanceProtocolConfig;
+
+    // Gate: require Macro Calculator completion before serving personalized targets
+    const todayCoreCheck = [
+      (userRow as any)?.dailyCalorieTarget,
+      (userRow as any)?.dailyProteinTarget,
+      (userRow as any)?.dailyCarbsTarget,
+      (userRow as any)?.dailyFatTarget,
+    ];
+    if (todayCoreCheck.some(v => v == null)) {
+      return res.json({
+        configured: false,
+        macroCalculatorRequired: true,
+        message: "Complete your Macro Calculator to unlock personalized performance targets.",
+      });
+    }
 
     if (!schedule || !config) {
       return res.json({ configured: false, message: "Performance schedule not yet configured." });
