@@ -398,15 +398,17 @@ export default function BusinessDashboard() {
     const roleLabel = membership.role.charAt(0).toUpperCase() + membership.role.slice(1);
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-black/60 via-blue-900/40 to-black/80 pb-24">
+      <div className="min-h-screen bg-gradient-to-br from-black/60 via-blue-900/40 to-black/80 pb-24" style={{ paddingBottom: "max(6rem, calc(env(safe-area-inset-bottom) + 5rem))" }}>
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-black/60 backdrop-blur-md border-b border-white/10 px-4 py-3 flex items-center gap-3">
-          <button onClick={() => setLocation("/more")} className="text-white/60 active:text-white transition-colors">
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <div>
-            <h1 className="text-white font-bold text-base leading-tight">My Business Team</h1>
-            <p className="text-white/50 text-xs">Organization Member</p>
+        <div className="sticky top-0 z-10 bg-black/60 backdrop-blur-md border-b border-white/10" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+          <div className="px-4 py-3 flex items-center gap-3">
+            <button onClick={() => setLocation("/more")} className="text-white/60 active:text-white transition-colors">
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <div>
+              <h1 className="text-white font-bold text-base leading-tight">My Business Team</h1>
+              <p className="text-white/50 text-xs">Organization Member</p>
+            </div>
           </div>
         </div>
 
@@ -572,23 +574,25 @@ export default function BusinessDashboard() {
 
   // ── Full owner dashboard ────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black/60 via-blue-900/40 to-black/80 pb-24">
+    <div className="min-h-screen bg-gradient-to-br from-black/60 via-blue-900/40 to-black/80 pb-24" style={{ paddingBottom: "max(6rem, calc(env(safe-area-inset-bottom) + 5rem))" }}>
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-black/60 backdrop-blur-md border-b border-white/10 px-4 py-3 flex items-center gap-3">
-        <button onClick={() => setLocation("/more")} className="text-white/60 active:text-white transition-colors">
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-        <div className="flex-1">
-          <h1 className="text-white font-bold text-base leading-tight">Organization Dashboard</h1>
-          <p className="text-white/50 text-xs">Manage team members, seats &amp; invitations</p>
+      <div className="sticky top-0 z-10 bg-black/60 backdrop-blur-md border-b border-white/10" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+        <div className="px-4 py-3 flex items-center gap-3">
+          <button onClick={() => setLocation("/more")} className="text-white/60 active:text-white transition-colors">
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <div className="flex-1">
+            <h1 className="text-white font-bold text-base leading-tight">Organization Dashboard</h1>
+            <p className="text-white/50 text-xs">Manage team members, seats &amp; invitations</p>
+          </div>
+          <button
+            onClick={() => fetchData()}
+            className="text-white/50 active:text-white transition-colors p-1.5 rounded-lg active:bg-white/10"
+            title="Refresh"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
         </div>
-        <button
-          onClick={() => fetchData()}
-          className="text-white/50 active:text-white transition-colors p-1.5 rounded-lg active:bg-white/10"
-          title="Refresh"
-        >
-          <RefreshCw className="w-4 h-4" />
-        </button>
       </div>
 
       <div className="px-4 pt-5 space-y-4 max-w-2xl mx-auto">
