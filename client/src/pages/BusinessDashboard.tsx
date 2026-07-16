@@ -26,6 +26,9 @@ import {
   Loader2,
   CheckCircle,
   Crown,
+  Settings,
+  BookOpen,
+  ChevronRight,
 } from "lucide-react";
 
 const ROLE_OPTIONS = [
@@ -108,6 +111,20 @@ export default function BusinessDashboard() {
   const [nameInput, setNameInput] = useState("");
   const [savingName, setSavingName] = useState(false);
 
+  // Manage seats modal
+  const [seatModalOpen, setSeatModalOpen] = useState(false);
+  const [managedSeats, setManagedSeats] = useState(4);
+  const [managingSeats, setManagingSeats] = useState(false);
+
+  // Launch guide checklist
+  const [launchGuideDismissed, setLaunchGuideDismissed] = useState(
+    () => localStorage.getItem("mpm.dismiss.orgLaunchGuide") === "1"
+  );
+  const dismissLaunchGuide = () => {
+    localStorage.setItem("mpm.dismiss.orgLaunchGuide", "1");
+    setLaunchGuideDismissed(true);
+  };
+
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollCount = useRef(0);
 
@@ -148,6 +165,8 @@ export default function BusinessDashboard() {
     }
   };
 
+  const refreshIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   useEffect(() => {
     const init = async () => {
       const found = await fetchData();
@@ -173,7 +192,16 @@ export default function BusinessDashboard() {
       }
     };
     init();
-    return () => { if (pollRef.current) clearTimeout(pollRef.current); };
+
+    // Auto-refresh owner dashboard every 30s so accepted invites appear without manual reload
+    refreshIntervalRef.current = setInterval(() => {
+      fetchData();
+    }, 30000);
+
+    return () => {
+      if (pollRef.current) clearTimeout(pollRef.current);
+      if (refreshIntervalRef.current) clearInterval(refreshIntervalRef.current);
+    };
   }, []);
 
   const handleSaveSetup = async () => {
@@ -304,6 +332,30 @@ export default function BusinessDashboard() {
     }
   };
 
+  const handleManageSeats = async () => {
+    setManagingSeats(true);
+    try {
+      const res = await fetch("/api/business/seats", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
+        body: JSON.stringify({ seats: managedSeats }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast({ title: "Could not update seats", description: data.error || "Please try again.", variant: "destructive" });
+        return;
+      }
+      toast({ title: `Seats updated to ${managedSeats}`, description: "Your Stripe subscription has been adjusted." });
+      setSeatModalOpen(false);
+      fetchData();
+    } catch {
+      toast({ title: "Error", description: "Something went wrong. Please try again.", variant: "destructive" });
+    } finally {
+      setManagingSeats(false);
+    }
+  };
+
   // ── Polling / Loading screen ────────────────────────────────────────────────
   if (loading || polling) {
     return (
@@ -328,7 +380,7 @@ export default function BusinessDashboard() {
         <Building2 className="w-14 h-14 text-blue-400 mb-4" />
         <h2 className="text-white text-xl font-bold mb-2">No Business Account Found</h2>
         <p className="text-white/60 text-sm mb-6 max-w-xs">
-          A business account is created automatically when you purchase a Clinical Business plan.
+          A business account is created automatically when you purchase an Organization plan.
         </p>
         <button
           className="px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors"
@@ -352,7 +404,7 @@ export default function BusinessDashboard() {
           </button>
           <div>
             <h1 className="text-white font-bold text-base leading-tight">My Business Team</h1>
-            <p className="text-white/50 text-xs">Clinical Business Member</p>
+            <p className="text-white/50 text-xs">Organization Member</p>
           </div>
         </div>
         <div className="px-4 pt-6 max-w-sm mx-auto space-y-4">
@@ -369,7 +421,7 @@ export default function BusinessDashboard() {
             <div className="flex items-center justify-between">
               <span className="text-white/50 text-sm">Access</span>
               <span className="text-green-400 text-sm font-medium flex items-center gap-1">
-                <CheckCircle className="w-3.5 h-3.5" /> Clinical Business
+                <CheckCircle className="w-3.5 h-3.5" /> Organization Access
               </span>
             </div>
             <div className="flex items-center justify-between">
@@ -401,7 +453,7 @@ export default function BusinessDashboard() {
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-600/20 border border-blue-500/30 mb-4">
               <Crown className="w-8 h-8 text-blue-400" />
             </div>
-            <h1 className="text-white text-2xl font-bold">Welcome to Clinical Business</h1>
+            <h1 className="text-white text-2xl font-bold">Welcome to Your Organization</h1>
             <p className="text-white/60 text-sm mt-2">
               Your {business.seatLimit}-seat team account is active. Let's get set up.
             </p>
@@ -470,12 +522,90 @@ export default function BusinessDashboard() {
           <ChevronLeft className="w-5 h-5" />
         </button>
         <div>
-          <h1 className="text-white font-bold text-base leading-tight">Clinical Business Dashboard</h1>
+          <h1 className="text-white font-bold text-base leading-tight">Organization Dashboard</h1>
           <p className="text-white/50 text-xs">Manage team members, seats &amp; invitations</p>
         </div>
       </div>
 
       <div className="px-4 pt-5 space-y-4 max-w-2xl mx-auto">
+
+        {/* Launch Guide Checklist — shown until dismissed */}
+        {!launchGuideDismissed && (() => {
+          const hasInvited = (ownerData?.invitations.length ?? 0) > 0 || (ownerData?.members.length ?? 1) > 1;
+          return (
+            <div className="bg-gradient-to-br from-orange-600/15 via-orange-600/8 to-transparent border border-orange-500/25 rounded-2xl p-4">
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <h2 className="text-white font-bold text-sm">Launch Your Organization</h2>
+                  <p className="text-white/50 text-xs mt-0.5">Complete these steps to get running</p>
+                </div>
+                <button
+                  onClick={dismissLaunchGuide}
+                  className="text-white/30 text-xs active:text-white/60 transition-colors ml-3 mt-0.5 flex-shrink-0"
+                >
+                  Dismiss
+                </button>
+              </div>
+
+              <div className="space-y-2.5">
+                {[
+                  { done: true, label: "Subscription activated" },
+                  { done: true, label: "Organization named" },
+                  {
+                    done: hasInvited,
+                    label: "Invite your first team member",
+                    action: () => setInviteOpen(true),
+                  },
+                  {
+                    done: false,
+                    label: "Complete My Perfect Meals Academy",
+                    link: "/business-center/academy",
+                  },
+                ].map(({ done, label, action, link }) => (
+                  <div key={label} className="flex items-center gap-2.5">
+                    <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 border ${
+                      done ? "bg-green-500/20 border-green-500/40" : "bg-white/5 border-white/20"
+                    }`}>
+                      {done ? (
+                        <CheckCircle className="w-3 h-3 text-green-400" />
+                      ) : (
+                        <div className="w-2 h-2 rounded-full bg-white/20" />
+                      )}
+                    </div>
+                    {action ? (
+                      <button
+                        onClick={action}
+                        className={`text-sm flex-1 text-left ${done ? "text-white/40 line-through" : "text-white/80 underline decoration-white/20"}`}
+                      >
+                        {label}
+                      </button>
+                    ) : link ? (
+                      <button
+                        onClick={() => setLocation(link)}
+                        className="text-sm flex-1 text-left text-white/80 underline decoration-white/20"
+                      >
+                        {label}
+                      </button>
+                    ) : (
+                      <span className={`text-sm ${done ? "text-white/40 line-through" : "text-white/80"}`}>
+                        {label}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {hasInvited && (
+                <button
+                  onClick={dismissLaunchGuide}
+                  className="mt-4 w-full py-2 rounded-xl bg-orange-600/30 border border-orange-500/30 text-orange-300 text-sm font-semibold active:opacity-80 transition-opacity"
+                >
+                  I'm all set — show my dashboard
+                </button>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Business Name */}
         <Card className="bg-white/5 border border-blue-500/30 text-white p-4">
@@ -530,11 +660,20 @@ export default function BusinessDashboard() {
               style={{ width: `${Math.min((usedSeats / business.seatLimit) * 100, 100)}%` }}
             />
           </div>
-          {seatsFull ? (
-            <p className="text-red-400 text-xs">All seats are in use. Remove a member to invite someone new.</p>
-          ) : (
-            <p className="text-white/50 text-xs">{availableSeats} seat{availableSeats !== 1 ? "s" : ""} available</p>
-          )}
+          <div className="flex items-center justify-between">
+            {seatsFull ? (
+              <p className="text-red-400 text-xs">All seats are in use. Remove a member or add more seats.</p>
+            ) : (
+              <p className="text-white/50 text-xs">{availableSeats} seat{availableSeats !== 1 ? "s" : ""} available</p>
+            )}
+            <button
+              className="text-blue-400 text-xs font-semibold flex items-center gap-1 active:opacity-60 transition-opacity"
+              onClick={() => { setManagedSeats(business.seatLimit); setSeatModalOpen(true); }}
+            >
+              <Settings className="w-3 h-3" />
+              Manage
+            </button>
+          </div>
         </Card>
 
         {/* Invite Button */}
@@ -545,6 +684,21 @@ export default function BusinessDashboard() {
         >
           <UserPlus className="w-4 h-4" />
           {seatsFull ? "No Seats Available" : "Invite a Team Member"}
+        </button>
+
+        {/* Organization Success Center */}
+        <button
+          className="w-full flex items-center gap-3 p-3.5 rounded-xl bg-gradient-to-r from-orange-600/15 via-orange-600/10 to-transparent border border-orange-500/25 active:opacity-80 transition-opacity text-left"
+          onClick={() => setLocation("/org-success-center")}
+        >
+          <div className="w-9 h-9 rounded-full bg-orange-600/20 border border-orange-500/30 flex items-center justify-center flex-shrink-0">
+            <BookOpen className="w-5 h-5 text-orange-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-white text-sm font-semibold">Organization Success Center</p>
+            <p className="text-white/50 text-xs mt-0.5">How-to guides · Read or listen</p>
+          </div>
+          <ChevronRight className="w-4 h-4 text-white/30 flex-shrink-0" />
         </button>
 
         {/* Active Members */}
@@ -625,6 +779,60 @@ export default function BusinessDashboard() {
         )}
 
       </div>
+
+      {/* Manage Seats Modal */}
+      <Dialog open={seatModalOpen} onOpenChange={setSeatModalOpen}>
+        <DialogContent className="bg-gray-900 border border-blue-500/30 text-white max-w-sm mx-auto">
+          <DialogHeader>
+            <DialogTitle className="text-white">Manage Seats</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-5 pt-2">
+            <div>
+              <p className="text-white/60 text-sm mb-4">
+                Adjust your team size. Stripe will prorate the change immediately.
+                You currently have <span className="text-white font-semibold">{ownerData?.usedSeats ?? 0}</span> active member{(ownerData?.usedSeats ?? 0) !== 1 ? "s" : ""} using seats.
+              </p>
+              <div className="flex items-center justify-between bg-white/5 border border-white/15 rounded-xl px-4 py-4">
+                <button
+                  onClick={() => setManagedSeats((s) => Math.max(ownerData?.usedSeats ?? 1, s - 1))}
+                  className="w-10 h-10 rounded-full bg-white/10 text-white font-bold text-xl flex items-center justify-center active:bg-white/20 select-none"
+                >
+                  −
+                </button>
+                <div className="text-center">
+                  <span className="text-3xl font-bold text-white">{managedSeats}</span>
+                  <p className="text-white/50 text-xs mt-1">seat{managedSeats !== 1 ? "s" : ""} · ${(44.99 * managedSeats).toFixed(2)}/mo</p>
+                </div>
+                <button
+                  onClick={() => setManagedSeats((s) => Math.min(250, s + 1))}
+                  className="w-10 h-10 rounded-full bg-white/10 text-white font-bold text-xl flex items-center justify-center active:bg-white/20 select-none"
+                >
+                  +
+                </button>
+              </div>
+              {managedSeats >= 11 && managedSeats <= 50 && (
+                <p className="text-amber-400/80 text-xs mt-2">For 11–50 seats, reach out to us for smooth team onboarding.</p>
+              )}
+              {managedSeats > 50 && (
+                <p className="text-amber-400/80 text-xs mt-2">For 50+ seats, contact us for enterprise pricing.</p>
+              )}
+            </div>
+            <button
+              className="w-full py-3 rounded-lg bg-blue-600 text-white font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50 active:bg-blue-700"
+              onClick={handleManageSeats}
+              disabled={managingSeats || managedSeats === (ownerData?.business?.seatLimit ?? 0)}
+            >
+              {managingSeats ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Updating…</>
+              ) : (
+                managedSeats === (ownerData?.business?.seatLimit ?? 0)
+                  ? "No change"
+                  : `Update to ${managedSeats} seat${managedSeats !== 1 ? "s" : ""} — $${(44.99 * managedSeats).toFixed(2)}/mo`
+              )}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Invite Modal */}
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>

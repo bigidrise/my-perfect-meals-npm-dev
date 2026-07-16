@@ -20,6 +20,7 @@ import { clearResolvedTargetsCache } from "@/lib/macroResolver";
 import { WorkspaceChooser } from "@/components/WorkspaceChooser";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import ClientLegalModal from "@/components/pro/ClientLegalModal";
+import { SponsorEndedBanner } from "@/components/SponsorEndedBanner";
 
 interface ProCareFeature {
   title: string;
@@ -278,6 +279,7 @@ export default function MorePage() {
         style={{ paddingTop: isDesktop ? "0" : "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
         <div className="max-w-2xl mx-auto space-y-4">
+          <SponsorEndedBanner />
           {/* Hero Image Section */}
           <div className="relative h-48 rounded-xl overflow-hidden">
             <img 
@@ -307,6 +309,7 @@ export default function MorePage() {
             <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(249,115,22,0.5), rgba(249,115,22,0.25), rgba(0,0,0,0))" }} />
           <Card
             className="relative cursor-pointer active:scale-[0.98] bg-gradient-to-r from-black via-orange-950/30 to-black backdrop-blur-lg border border-orange-500/30 hover:border-orange-500/60 hover:shadow-[0_0_30px_rgba(249,115,22,0.45)] transition-all duration-300 rounded-xl shadow-md overflow-hidden"
+            style={{ backgroundColor: "transparent" }}
             onClick={() => setLocation("/tips")}
             data-testid="card-tips-strategies"
           >
@@ -333,6 +336,7 @@ export default function MorePage() {
               <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(245,158,11,0.5), rgba(245,158,11,0.25), rgba(0,0,0,0))" }} />
               <Card
                 className="relative cursor-pointer active:scale-[0.98] bg-gradient-to-r from-black via-amber-950/30 to-black backdrop-blur-lg border border-amber-500/30 hover:border-amber-500/60 hover:shadow-[0_0_30px_rgba(245,158,11,0.45)] transition-all duration-300 rounded-xl shadow-md overflow-hidden"
+                style={{ backgroundColor: "transparent" }}
                 onClick={() => setLocation("/household-profiles")}
                 data-testid="card-household-profiles"
               >
@@ -357,6 +361,7 @@ export default function MorePage() {
               <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(6,182,212,0.5), rgba(6,182,212,0.25), rgba(0,0,0,0))" }} />
               <Card
                 className="relative cursor-pointer active:scale-[0.98] bg-gradient-to-r from-black via-cyan-950/30 to-black backdrop-blur-lg border border-cyan-500/30 hover:border-cyan-500/60 hover:shadow-[0_0_30px_rgba(6,182,212,0.45)] transition-all duration-300 rounded-xl shadow-md overflow-hidden"
+                style={{ backgroundColor: "transparent" }}
                 onClick={() => {
                   setShowWorkspaceChooser(true);
                 }}
@@ -407,6 +412,7 @@ export default function MorePage() {
               <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(59,130,246,0.5), rgba(59,130,246,0.25), rgba(0,0,0,0))" }} />
               <Card
                 className="relative cursor-pointer active:scale-[0.98] bg-gradient-to-r from-black via-blue-950/30 to-black backdrop-blur-lg border border-blue-500/30 hover:border-blue-500/60 hover:shadow-[0_0_30px_rgba(59,130,246,0.45)] transition-all duration-300 rounded-xl shadow-md overflow-hidden"
+                style={{ backgroundColor: "transparent" }}
                 onClick={() => setShowProviderModal(true)}
                 data-testid="card-become-provider"
               >
@@ -433,6 +439,7 @@ export default function MorePage() {
                 <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(244,63,94,0.5), rgba(244,63,94,0.25), rgba(0,0,0,0))" }} />
                 <Card
                   className="relative cursor-pointer active:scale-[0.98] bg-gradient-to-r from-black via-rose-950/30 to-black backdrop-blur-lg border border-rose-500/30 hover:border-rose-500/60 hover:shadow-[0_0_30px_rgba(244,63,94,0.45)] transition-all duration-300 rounded-xl shadow-md overflow-hidden"
+                  style={{ backgroundColor: "transparent" }}
                   onClick={() => {
                     if (favLocked) { requestUpgrade({ requiredTier: "essential", featureName: "Saved Meals" }); return; }
                     setLocation("/saved-meals");
@@ -461,6 +468,7 @@ export default function MorePage() {
             <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(245,158,11,0.5), rgba(245,158,11,0.25), rgba(0,0,0,0))" }} />
             <Card
               className="relative cursor-pointer active:scale-[0.98] bg-gradient-to-r from-black via-amber-950/30 to-black backdrop-blur-lg border border-amber-500/30 hover:border-amber-500/60 hover:shadow-[0_0_30px_rgba(245,158,11,0.45)] transition-all duration-300 rounded-xl shadow-md overflow-hidden"
+              style={{ backgroundColor: "transparent" }}
               onClick={() => setLocation("/business-center")}
               data-testid="card-business-center"
             >
@@ -478,10 +486,11 @@ export default function MorePage() {
             </Card>
           </div>
 
-          {/* Clinical Business Card — only shown when user owns or belongs to a business account */}
+          {/* Organization Card — only shown when user owns or belongs to a business account */}
           {businessCard && (
             <Card
               className="cursor-pointer active:scale-[0.98] bg-gradient-to-r from-black via-blue-950/40 to-black backdrop-blur-lg border border-blue-500/40 transition-all duration-300 rounded-xl shadow-md overflow-hidden"
+              style={{ backgroundColor: "transparent" }}
               onClick={() => setLocation("/business-dashboard")}
               data-testid="card-clinical-business"
             >
@@ -493,7 +502,7 @@ export default function MorePage() {
                   <div className="flex-1 min-w-0">
                     {businessCard.mode === "owner" ? (
                       <>
-                        <h3 className="text-sm font-semibold text-white">Clinical Business Dashboard</h3>
+                        <h3 className="text-sm font-semibold text-white">Organization Dashboard</h3>
                         <p className="text-xs text-white/60 truncate">
                           {businessCard.name} · {businessCard.usedSeats} of {businessCard.seatLimit} seats used
                         </p>

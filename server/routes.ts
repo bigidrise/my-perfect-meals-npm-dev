@@ -27,7 +27,7 @@ import { studioMemberships, studios } from "./db/schema/studio";
 import { mealImageCache } from "./db/schema/mealImageCache";
 import { companionProfileImages } from "./db/schema/companionProfiles";
 import { db } from "./db";
-import { and, eq, gte, lte, desc, sql, inArray } from "drizzle-orm";
+import { and, eq, gte, lte, desc, sql, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { reminderService } from "./reminderService";
 import { generateMealPlan } from "./ai-service";
@@ -2393,6 +2393,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         activeProtocolTrack: (user as any).activeProtocolTrack ?? null,
         weeklyTrainingSchedule: (user as any).weeklyTrainingSchedule ?? null,
         performanceProtocolConfig: (user as any).performanceProtocolConfig ?? null,
+        // Business sponsorship — from effective access (computed per-request, not cached)
+        sponsoredByBusinessId: authReq.authUser.sponsoredByBusinessId ?? null,
+        sponsoredByBusinessName: authReq.authUser.sponsoredByBusinessName ?? null,
+        // If user is no longer sponsored, check for a removal within the last 30 days
+        recentlyRemovedFromBusiness: await (async () => {
+          if (authReq.authUser.sponsoredByBusinessId) return null;
+          try {
+            const { businesses: biz, businessMembers: bm } = await import("./db/schema/business");
+            const [removed] = await db
+              .select({ businessId: biz.id, businessName: biz.name, removedAt: bm.removedAt })
+              .from(bm)
+              .innerJoin(biz, eq(biz.id, bm.businessId))
+              .where(and(eq(bm.userId, userId), eq(bm.status, "removed"), isNull(bm.noticeDismissedAt)))
+              .orderBy(desc(bm.removedAt))
+              .limit(1);
+            if (removed?.removedAt) {
+              return {
+                businessId: removed.businessId,
+                businessName: removed.businessName,
+                removedAt: removed.removedAt.toISOString(),
+              };
+            }
+          } catch (_) {}
+          return null;
+        })(),
       });
     } catch (error: any) {
       console.error("Error fetching user profile:", error);

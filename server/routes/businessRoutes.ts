@@ -1,12 +1,17 @@
 import { Router } from "express";
 import { randomBytes } from "crypto";
+import Stripe from "stripe";
 import { db } from "../db";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, isNull } from "drizzle-orm";
 import { businesses, businessMembers, businessInvitations } from "../db/schema/business";
 import { users } from "@shared/schema";
 import { requireAuth } from "../middleware/requireAuth";
-import { updateUserSubscription } from "../services/subscriptionService";
 import { sendBusinessInviteEmail } from "../services/emailService";
+
+const stripeKey = process.env.STRIPE_SECRET_KEY ?? "";
+const stripe = stripeKey
+  ? new Stripe(stripeKey, { apiVersion: "2024-06-20" as any })
+  : null;
 
 const router = Router();
 
@@ -137,9 +142,14 @@ router.post("/invite", requireAuth, async (req, res) => {
     }
 
     const usedSeats = await getActiveSeats(business.id);
-    if (usedSeats >= business.seatLimit) {
+    const [pendingInvCount] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(businessInvitations)
+      .where(and(eq(businessInvitations.businessId, business.id), eq(businessInvitations.status, "pending")));
+    const occupiedSeats = usedSeats + (pendingInvCount?.count ?? 0);
+    if (occupiedSeats >= business.seatLimit) {
       return res.status(400).json({
-        error: `No seats available. Your plan includes ${business.seatLimit} seats and all are in use.`,
+        error: `No seats available. Your plan includes ${business.seatLimit} seats and all are filled or reserved by pending invitations.`,
         code: "SEATS_FULL",
       });
     }
@@ -256,13 +266,36 @@ router.delete("/members/:memberId", requireAuth, async (req, res) => {
 
     await db
       .update(businessMembers)
-      .set({ status: "removed" })
+      .set({ status: "removed", removedAt: new Date() })
       .where(eq(businessMembers.id, memberId));
 
     console.log(`✅ [business] Member removed | business=${business.id} | member=${memberId}`);
     return res.json({ success: true });
   } catch (err) {
     console.error("[business/members/remove] error:", err);
+    return res.status(500).json({ error: "Server error." });
+  }
+});
+
+// ── POST /api/business/removal-notice/dismiss — member acknowledges their removal notice
+// Sets noticeDismissedAt on the most recent undismissed removed membership row.
+// Tied to the specific removal event so a future re-removal generates a fresh notice.
+router.post("/removal-notice/dismiss", requireAuth, async (req, res) => {
+  const userId = (req as any).authUser?.id as string;
+  try {
+    await db
+      .update(businessMembers)
+      .set({ noticeDismissedAt: new Date() })
+      .where(
+        and(
+          eq(businessMembers.userId, userId),
+          eq(businessMembers.status, "removed"),
+          isNull(businessMembers.noticeDismissedAt)
+        )
+      );
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("[business/removal-notice/dismiss] error:", err);
     return res.status(500).json({ error: "Server error." });
   }
 });
@@ -459,6 +492,32 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
       .where(and(eq(businessMembers.businessId, business.id), eq(businessMembers.userId, userId)))
       .limit(1);
 
+    // ── Snapshot personal plan before activating membership ───────────────────
+    // We NEVER overwrite the user's Stripe planLookupKey with the business plan.
+    // Effective access is computed at runtime from the membership row itself.
+    // We only snapshot the personal plan once (idempotent) so it can be restored
+    // if the user is ever removed from this or any future business.
+    const [currentUser] = await db
+      .select({
+        planLookupKey: users.planLookupKey,
+        personalPlanLookupKey: users.personalPlanLookupKey,
+        entitlements: users.entitlements,
+      })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (currentUser && currentUser.personalPlanLookupKey === null) {
+      await db
+        .update(users)
+        .set({
+          personalPlanLookupKey: currentUser.planLookupKey ?? null,
+          personalEntitlements: (currentUser.entitlements ?? []) as any,
+          personalSubscriptionStatus: "active",
+        } as any)
+        .where(eq(users.id, userId));
+    }
+
     if (existing) {
       if (existing.status === "active") {
         return res.status(400).json({ error: "You are already a member of this business." });
@@ -480,11 +539,9 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
       .set({ status: "accepted", acceptedAt: new Date(), acceptedByUserId: userId })
       .where(eq(businessInvitations.id, invite.id));
 
-    // Grant the user the business plan
-    await updateUserSubscription({
-      userId,
-      lookupKey: business.plan as any,
-    });
+    // NOTE: Do NOT call updateUserSubscription here. The user's planLookupKey
+    // stays as their personal plan. Access tier is computed at runtime by
+    // effectiveAccess.ts which checks for an active businessMembers row.
 
     console.log(`✅ [business] Invite accepted | business=${business.id} | user=${userId} | role=${invite.role}`);
     return res.json({ success: true, businessName: business.name, role: invite.role });
@@ -513,6 +570,52 @@ router.patch("/name", requireAuth, async (req, res) => {
   } catch (err) {
     console.error("[business/name] error:", err);
     return res.status(500).json({ error: "Server error." });
+  }
+});
+
+// ── POST /api/business/seats — owner updates seat count (syncs Stripe subscription quantity)
+router.post("/seats", requireAuth, async (req, res) => {
+  const userId = (req as any).authUser?.id as string;
+  if (!userId) return res.status(401).json({ error: "Not authenticated." });
+
+  const newSeats = Number((req.body as any).seats);
+  if (!Number.isInteger(newSeats) || newSeats < 1 || newSeats > 250) {
+    return res.status(400).json({ error: "Seat count must be between 1 and 250." });
+  }
+
+  try {
+    const [biz] = await db.select().from(businesses).where(eq(businesses.ownerUserId, userId)).limit(1);
+    if (!biz) return res.status(404).json({ error: "No business found for this account." });
+    if (biz.status !== "active") return res.status(400).json({ error: "Business subscription is not active." });
+
+    const activeSeats = await getActiveSeats(biz.id);
+    if (newSeats < activeSeats) {
+      return res.status(400).json({
+        error: `Cannot reduce to ${newSeats} seat${newSeats !== 1 ? "s" : ""}. You have ${activeSeats} active member${activeSeats !== 1 ? "s" : ""} using seats. Remove members first.`,
+      });
+    }
+
+    // Update Stripe subscription quantity if we have a live subscription ID
+    if (stripe && biz.stripeSubscriptionId && !biz.stripeSubscriptionId.startsWith("dev_")) {
+      const subscription = await stripe.subscriptions.retrieve(biz.stripeSubscriptionId);
+      const itemId = subscription.items.data[0]?.id;
+      if (!itemId) return res.status(500).json({ error: "Could not locate subscription item on Stripe." });
+
+      await stripe.subscriptions.update(biz.stripeSubscriptionId, {
+        items: [{ id: itemId, quantity: newSeats }],
+        proration_behavior: "always_invoice",
+      });
+      console.log(`✅ [business/seats] Stripe quantity updated → ${newSeats} | biz=${biz.id} | owner=${userId}`);
+    }
+
+    // Sync local seatLimit
+    await db.update(businesses).set({ seatLimit: newSeats, updatedAt: new Date() }).where(eq(businesses.id, biz.id));
+    console.log(`✅ [business/seats] local seatLimit updated → ${newSeats} | biz=${biz.id}`);
+
+    return res.json({ success: true, seatLimit: newSeats });
+  } catch (err: any) {
+    console.error("[business/seats] error:", err);
+    return res.status(500).json({ error: err?.message || "Server error." });
   }
 });
 
@@ -545,8 +648,8 @@ router.post("/dev-seed", requireAuth, async (req, res) => {
       VALUES (${randomBytes(12).toString("hex")}, ${businessId}, ${userId}, ${"owner"}, ${"active"}, NOW())
     `);
 
-    // Bump the user's subscription tier
-    await updateUserSubscription(userId, "clinical_business_monthly");
+    // NOTE: Do NOT write clinical_business_monthly to the user's planLookupKey.
+    // Effective access is computed at runtime from the businessMembers row.
 
     console.log(`[dev-seed] Created test business ${businessId} for user ${userId}`);
     return res.json({ success: true, businessId, seats: seatCount });

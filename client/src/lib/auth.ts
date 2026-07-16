@@ -169,6 +169,14 @@ export interface User {
   performanceProtocolConfig?: any | null;
   // Multi-factor authentication
   mfaEnabled?: boolean;
+  // Business sponsorship (populated from effectiveAccess per-request)
+  sponsoredByBusinessId?: string | null;
+  sponsoredByBusinessName?: string | null;
+  recentlyRemovedFromBusiness?: {
+    businessId: string;
+    businessName: string;
+    removedAt: string;
+  } | null;
 }
 
 export function getAuthToken(): string | null {

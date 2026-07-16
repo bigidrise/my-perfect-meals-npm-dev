@@ -818,40 +818,121 @@ export async function sendBusinessInviteEmail({
     const { data, error } = await resend.emails.send({
       from: EMAIL_FROM,
       to: [to],
-      subject: `You've been invited to join ${businessName} on My Perfect Meals`,
+      subject: `${inviterName} invited you to join ${businessName} on My Perfect Meals`,
       html: `
-        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
-            <h1 style="color: white; margin: 0; font-size: 26px;">Team Invitation</h1>
-            <p style="color: #bfdbfe; margin: 8px 0 0; font-size: 15px;">My Perfect Meals Clinical Business</p>
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
+
+          <!-- Header -->
+          <div style="background: linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 100%); padding: 36px 30px; border-radius: 12px 12px 0 0; text-align: center;">
+            <p style="color: #93c5fd; margin: 0 0 8px; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; font-weight: 600;">My Perfect Meals</p>
+            <h1 style="color: white; margin: 0; font-size: 28px; font-weight: 700; line-height: 1.2;">Welcome to ${businessName}'s Team</h1>
+            <p style="color: #bfdbfe; margin: 12px 0 0; font-size: 16px;">${inviterName} has invited you to join as a <strong style="color: white;">${roleLabel}</strong></p>
           </div>
-          <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 12px 12px; border: 1px solid #e5e7eb; border-top: none;">
-            <h2 style="color: #111827; font-size: 20px; margin-top: 0;">You've been invited!</h2>
-            <p style="color: #374151; font-size: 16px; line-height: 1.6;">
-              <strong>${inviterName}</strong> has invited you to join <strong>${businessName}</strong> as a <strong>${roleLabel}</strong> on My Perfect Meals.
+
+          <!-- Body -->
+          <div style="background: #f9fafb; padding: 32px 30px; border-left: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb;">
+
+            <!-- What is MPM -->
+            <h2 style="color: #111827; font-size: 18px; margin: 0 0 12px; font-weight: 700;">What is My Perfect Meals?</h2>
+            <p style="color: #374151; font-size: 15px; line-height: 1.7; margin: 0 0 24px;">
+              My Perfect Meals is an AI-powered clinical nutrition platform built for health professionals and their clients. It generates personalized meal plans, tracks biometrics, and provides evidence-based dietary guidance — all inside one platform designed for both providers and the people they serve.
             </p>
-            <p style="color: #374151; font-size: 15px; line-height: 1.6;">
-              As a team member, you'll get full Clinical-level access to AI-powered meal generation, dietary tracking, biometric monitoring, and all professional tools.
-            </p>
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${inviteLink}" style="display: inline-block; background: #2563eb; color: white; padding: 14px 36px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
-                Accept Invitation
-              </a>
+
+            <!-- What you get -->
+            <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 20px 24px; margin-bottom: 28px;">
+              <h3 style="color: #1d4ed8; font-size: 15px; font-weight: 700; margin: 0 0 14px;">As a Clinical Business member, you'll have access to:</h3>
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr><td style="padding: 5px 0; color: #374151; font-size: 14px;">✅&nbsp; AI-powered meal generation &amp; customization</td></tr>
+                <tr><td style="padding: 5px 0; color: #374151; font-size: 14px;">✅&nbsp; Clinical nutrition tools &amp; dietary protocols</td></tr>
+                <tr><td style="padding: 5px 0; color: #374151; font-size: 14px;">✅&nbsp; Biometric monitoring &amp; progress tracking</td></tr>
+                <tr><td style="padding: 5px 0; color: #374151; font-size: 14px;">✅&nbsp; ProCare Studio — manage your own clients</td></tr>
+                <tr><td style="padding: 5px 0; color: #374151; font-size: 14px;">✅&nbsp; Professional resources &amp; certification programs</td></tr>
+              </table>
             </div>
-            <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; margin: 20px 0; border-radius: 4px;">
-              <p style="color: #92400e; font-size: 14px; margin: 0; line-height: 1.6;">
-                <strong>Expires:</strong> This invitation expires on ${expiryStr}. If you already have a My Perfect Meals account, you'll be asked to log in first.
+
+            <!-- CTA -->
+            <div style="text-align: center; margin: 0 0 32px;">
+              <a href="${inviteLink}" style="display: inline-block; background: #2563eb; color: white; padding: 16px 44px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 17px; letter-spacing: 0.2px;">
+                Accept Invitation →
+              </a>
+              <p style="color: #6b7280; font-size: 13px; margin: 10px 0 0;">
+                New to My Perfect Meals? You'll create a free account first.
               </p>
             </div>
-            <p style="color: #6b7280; font-size: 13px; line-height: 1.6;">
-              If the button doesn't work, copy and paste this link into your browser:<br/>
+
+            <!-- Steps -->
+            <h2 style="color: #111827; font-size: 17px; font-weight: 700; margin: 0 0 16px;">What happens after you accept?</h2>
+
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 28px;">
+              <tr>
+                <td style="vertical-align: top; width: 36px; padding-bottom: 18px;">
+                  <div style="width: 28px; height: 28px; background: #2563eb; border-radius: 50%; text-align: center; line-height: 28px; color: white; font-weight: 700; font-size: 13px;">1</div>
+                </td>
+                <td style="vertical-align: top; padding-bottom: 18px; padding-left: 12px;">
+                  <strong style="color: #111827; font-size: 14px;">Accept this invitation</strong><br/>
+                  <span style="color: #6b7280; font-size: 13px; line-height: 1.6;">Log in with your existing account, or create a free account — takes under a minute.</span>
+                </td>
+              </tr>
+              <tr>
+                <td style="vertical-align: top; width: 36px; padding-bottom: 18px;">
+                  <div style="width: 28px; height: 28px; background: #2563eb; border-radius: 50%; text-align: center; line-height: 28px; color: white; font-weight: 700; font-size: 13px;">2</div>
+                </td>
+                <td style="vertical-align: top; padding-bottom: 18px; padding-left: 12px;">
+                  <strong style="color: #111827; font-size: 14px;">Complete your personal profile</strong><br/>
+                  <span style="color: #6b7280; font-size: 13px; line-height: 1.6;">Every professional first experiences the platform as a user — so you understand exactly what your clients see.</span>
+                </td>
+              </tr>
+              <tr>
+                <td style="vertical-align: top; width: 36px; padding-bottom: 18px;">
+                  <div style="width: 28px; height: 28px; background: #2563eb; border-radius: 50%; text-align: center; line-height: 28px; color: white; font-weight: 700; font-size: 13px;">3</div>
+                </td>
+                <td style="vertical-align: top; padding-bottom: 18px; padding-left: 12px;">
+                  <strong style="color: #111827; font-size: 14px;">Create your Provider account</strong><br/>
+                  <span style="color: #6b7280; font-size: 13px; line-height: 1.6;">In the app, go to <strong>More</strong> and select <strong>Create Provider Account</strong> to begin your professional setup.</span>
+                </td>
+              </tr>
+              <tr>
+                <td style="vertical-align: top; width: 36px; padding-bottom: 18px;">
+                  <div style="width: 28px; height: 28px; background: #2563eb; border-radius: 50%; text-align: center; line-height: 28px; color: white; font-weight: 700; font-size: 13px;">4</div>
+                </td>
+                <td style="vertical-align: top; padding-bottom: 18px; padding-left: 12px;">
+                  <strong style="color: #111827; font-size: 14px;">Complete professional onboarding</strong><br/>
+                  <span style="color: #6b7280; font-size: 13px; line-height: 1.6;">You'll complete Platform Mastery Academy and ProCare Business Training — these courses unlock your Studio.</span>
+                </td>
+              </tr>
+              <tr>
+                <td style="vertical-align: top; width: 36px;">
+                  <div style="width: 28px; height: 28px; background: #059669; border-radius: 50%; text-align: center; line-height: 28px; color: white; font-weight: 700; font-size: 13px;">5</div>
+                </td>
+                <td style="vertical-align: top; padding-left: 12px;">
+                  <strong style="color: #111827; font-size: 14px;">Your Studio unlocks automatically</strong><br/>
+                  <span style="color: #6b7280; font-size: 13px; line-height: 1.6;">Once training is complete, your ProCare Studio activates. Manage clients, generate meal plans, and access all clinical tools.</span>
+                </td>
+              </tr>
+            </table>
+
+            <!-- Expiry notice -->
+            <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 14px 16px; margin-bottom: 24px; border-radius: 4px;">
+              <p style="color: #92400e; font-size: 13px; margin: 0; line-height: 1.6;">
+                <strong>This invitation expires on ${expiryStr}.</strong> Accept before then to claim your seat.
+              </p>
+            </div>
+
+            <!-- Fallback link -->
+            <p style="color: #6b7280; font-size: 12px; line-height: 1.6; margin: 0;">
+              Button not working? Copy and paste this link:<br/>
               <span style="word-break: break-all; color: #2563eb;">${inviteLink}</span>
             </p>
-            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
-            <p style="color: #9ca3af; font-size: 12px; text-align: center; margin-bottom: 0;">
-              My Perfect Meals — Personalized Nutrition &amp; Meal Planning
+          </div>
+
+          <!-- Footer -->
+          <div style="background: #1f2937; padding: 20px 30px; border-radius: 0 0 12px 12px; text-align: center;">
+            <p style="color: #6b7280; font-size: 12px; margin: 0;">
+              My Perfect Meals &mdash; Clinical Nutrition Platform<br/>
+              <span style="color: #4b5563;">Questions? Contact ${inviterName} or reply to this email.</span>
             </p>
           </div>
+
         </div>
       `,
     });

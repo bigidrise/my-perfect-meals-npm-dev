@@ -509,6 +509,7 @@ export default function LifestyleLandingPage() {
 
                   <Card
                     className={`relative rounded-xl shadow-md overflow-hidden transition cursor-pointer active:scale-95 hover:scale-[1.02] ${glow.cardBg} ${glow.border} ${glow.hoverShadow}`}
+                    style={{ backgroundColor: "transparent" }}
                     onClick={() => handleCardClick(feature)}
                     data-testid={feature.testId}
                   >
@@ -556,6 +557,7 @@ export default function LifestyleLandingPage() {
             <div data-testid="card-creator-studio" className="relative mt-2">
               <Card
                 className="relative rounded-xl shadow-md overflow-hidden cursor-pointer transition-all duration-300 active:scale-95 hover:scale-[1.02] bg-gradient-to-r from-black via-orange-950/40 to-black backdrop-blur-lg border border-orange-400/30 hover:shadow-[0_0_30px_rgba(251,146,60,0.3)] hover:border-orange-500/50"
+                style={{ backgroundColor: "transparent" }}
                 onClick={() => setLocation("/creator/studio")}
               >
                 <CardContent className="p-4">
