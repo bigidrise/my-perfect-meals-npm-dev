@@ -31,6 +31,7 @@ import {
   BookOpen,
   ChevronRight,
   Shield,
+  FileText,
 } from "lucide-react";
 
 const ROLE_OPTIONS = [
@@ -93,6 +94,7 @@ interface MembershipData {
     businessName: string;
     seatLimit: number;
     joinedAt: string;
+    independentClientPolicy?: string;
   };
 }
 
@@ -204,6 +206,7 @@ export default function BusinessDashboard() {
       const memberRes = await fetch("/api/business/membership", {
         headers: { ...getAuthHeaders() },
         credentials: "include",
+        cache: "no-store",
       });
       if (memberRes.ok) {
         const json = await memberRes.json();
@@ -518,6 +521,80 @@ export default function BusinessDashboard() {
             <p className="text-white/70 text-sm leading-relaxed">
               After that, head to the{" "}
               <span className="text-white font-semibold">More page</span> to set up your Studio and get started. By the time you finish the Academy, you'll know exactly where the More page is and what everything does — because you just went through the whole app.
+            </p>
+          </div>
+
+          {/* Organization Policies */}
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-3">
+            <div className="flex items-center gap-2 mb-1">
+              <FileText className="w-4 h-4 text-blue-400 flex-shrink-0" />
+              <h3 className="text-white font-bold text-base">Organization Policies</h3>
+            </div>
+            <p className="text-white/70 text-sm leading-relaxed">
+              Your organization has set a policy that governs how coaches and trainers may work with clients outside of{" "}
+              <span className="text-white font-semibold">{membership.businessName}</span>. This policy applies to you as a team member.
+            </p>
+            {membership.independentClientPolicy === "org_only" && (
+              <div className="bg-red-900/20 border border-red-500/20 rounded-xl p-3">
+                <p className="text-red-300 text-sm font-semibold mb-1">Organization Clients Only</p>
+                <p className="text-white/60 text-xs leading-relaxed">
+                  You may not take on personal clients outside of this organization. All client relationships are managed through the organization, and any clients you work with belong to{" "}
+                  <span className="text-white/80">{membership.businessName}</span>.
+                </p>
+              </div>
+            )}
+            {membership.independentClientPolicy === "allowed_with_disclosure" && (
+              <div className="bg-yellow-900/20 border border-yellow-500/20 rounded-xl p-3">
+                <p className="text-yellow-300 text-sm font-semibold mb-1">Personal Clients Allowed — With Disclosure</p>
+                <p className="text-white/60 text-xs leading-relaxed">
+                  You may maintain personal clients outside of this organization, but you must disclose the relationship to{" "}
+                  <span className="text-white/80">{membership.businessName}</span>. Transparency keeps everyone aligned.
+                </p>
+              </div>
+            )}
+            {(membership.independentClientPolicy === "allowed" || !membership.independentClientPolicy) && (
+              <div className="bg-green-900/20 border border-green-500/20 rounded-xl p-3">
+                <p className="text-green-300 text-sm font-semibold mb-1">Personal Clients Freely Allowed</p>
+                <p className="text-white/60 text-xs leading-relaxed">
+                  You are free to maintain personal clients outside of this organization without any restriction or disclosure requirement.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Client Ownership */}
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-3">
+            <div className="flex items-center gap-2 mb-1">
+              <Users className="w-4 h-4 text-blue-400 flex-shrink-0" />
+              <h3 className="text-white font-bold text-base">Client Ownership</h3>
+            </div>
+            <p className="text-white/70 text-sm leading-relaxed">
+              Understanding who owns a client relationship is important. Here's how it works inside{" "}
+              <span className="text-white font-semibold">{membership.businessName}</span>:
+            </p>
+            <div className="space-y-2">
+              <div className="flex items-start gap-2.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-1.5 flex-shrink-0" />
+                <p className="text-white/70 text-sm leading-relaxed">
+                  <span className="text-white font-medium">Clients assigned through the organization</span> are considered organization clients. The organization retains the relationship if you leave the team.
+                </p>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-1.5 flex-shrink-0" />
+                <p className="text-white/70 text-sm leading-relaxed">
+                  <span className="text-white font-medium">Clients you bring personally</span> (if your organization's policy allows it) are your own. You keep those relationships regardless of your membership status.
+                </p>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-1.5 flex-shrink-0" />
+                <p className="text-white/70 text-sm leading-relaxed">
+                  <span className="text-white font-medium">If you ever leave the organization,</span> your personally-owned clients remain in your ProCare Studio. Organization-assigned clients stay with the organization. Your personal account and all your data remain intact.
+                </p>
+              </div>
+            </div>
+            <p className="text-white/40 text-xs leading-relaxed pt-1">
+              Questions about client ownership or your organization's policies? Reach out to your team owner or administrator at{" "}
+              <span className="text-white/60">{membership.businessName}</span>.
             </p>
           </div>
 
