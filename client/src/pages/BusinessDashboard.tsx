@@ -116,6 +116,15 @@ export default function BusinessDashboard() {
   const [managedSeats, setManagedSeats] = useState(4);
   const [managingSeats, setManagingSeats] = useState(false);
 
+  // Launch guide checklist
+  const [launchGuideDismissed, setLaunchGuideDismissed] = useState(
+    () => localStorage.getItem("mpm.dismiss.orgLaunchGuide") === "1"
+  );
+  const dismissLaunchGuide = () => {
+    localStorage.setItem("mpm.dismiss.orgLaunchGuide", "1");
+    setLaunchGuideDismissed(true);
+  };
+
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollCount = useRef(0);
 
@@ -519,6 +528,84 @@ export default function BusinessDashboard() {
       </div>
 
       <div className="px-4 pt-5 space-y-4 max-w-2xl mx-auto">
+
+        {/* Launch Guide Checklist — shown until dismissed */}
+        {!launchGuideDismissed && (() => {
+          const hasInvited = (ownerData?.invitations.length ?? 0) > 0 || (ownerData?.members.length ?? 1) > 1;
+          return (
+            <div className="bg-gradient-to-br from-orange-600/15 via-orange-600/8 to-transparent border border-orange-500/25 rounded-2xl p-4">
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <h2 className="text-white font-bold text-sm">Launch Your Organization</h2>
+                  <p className="text-white/50 text-xs mt-0.5">Complete these steps to get running</p>
+                </div>
+                <button
+                  onClick={dismissLaunchGuide}
+                  className="text-white/30 text-xs active:text-white/60 transition-colors ml-3 mt-0.5 flex-shrink-0"
+                >
+                  Dismiss
+                </button>
+              </div>
+
+              <div className="space-y-2.5">
+                {[
+                  { done: true, label: "Subscription activated" },
+                  { done: true, label: "Organization named" },
+                  {
+                    done: hasInvited,
+                    label: "Invite your first team member",
+                    action: () => setInviteOpen(true),
+                  },
+                  {
+                    done: false,
+                    label: "Complete Platform Mastery Academy",
+                    link: "/business-center/academy",
+                  },
+                ].map(({ done, label, action, link }) => (
+                  <div key={label} className="flex items-center gap-2.5">
+                    <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 border ${
+                      done ? "bg-green-500/20 border-green-500/40" : "bg-white/5 border-white/20"
+                    }`}>
+                      {done ? (
+                        <CheckCircle className="w-3 h-3 text-green-400" />
+                      ) : (
+                        <div className="w-2 h-2 rounded-full bg-white/20" />
+                      )}
+                    </div>
+                    {action ? (
+                      <button
+                        onClick={action}
+                        className={`text-sm flex-1 text-left ${done ? "text-white/40 line-through" : "text-white/80 underline decoration-white/20"}`}
+                      >
+                        {label}
+                      </button>
+                    ) : link ? (
+                      <button
+                        onClick={() => setLocation(link)}
+                        className="text-sm flex-1 text-left text-white/80 underline decoration-white/20"
+                      >
+                        {label}
+                      </button>
+                    ) : (
+                      <span className={`text-sm ${done ? "text-white/40 line-through" : "text-white/80"}`}>
+                        {label}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {hasInvited && (
+                <button
+                  onClick={dismissLaunchGuide}
+                  className="mt-4 w-full py-2 rounded-xl bg-orange-600/30 border border-orange-500/30 text-orange-300 text-sm font-semibold active:opacity-80 transition-opacity"
+                >
+                  I'm all set — show my dashboard
+                </button>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Business Name */}
         <Card className="bg-white/5 border border-blue-500/30 text-white p-4">

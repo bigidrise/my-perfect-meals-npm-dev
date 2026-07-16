@@ -109,6 +109,14 @@ export default function CheckoutSuccess() {
 
         const pendingCoach = getPendingCoach();
         const isCoaching = data.plan === "mpm_guidance" || pendingCoach !== null;
+        const isOrg = data.plan === "clinical_business_monthly";
+
+        if (isOrg) {
+          toast({ title: "Organization activated!", description: "Let's get you set up." });
+          setIsActivating(false);
+          setLocation("/business-dashboard?checkout=success");
+          return;
+        }
 
         if (isCoaching) {
           setIsCoachingPurchase(true);
