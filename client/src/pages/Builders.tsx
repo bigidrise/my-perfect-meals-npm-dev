@@ -273,6 +273,7 @@ export default function Builders() {
                   />
                 <Card
                   className={`relative transition-all duration-200 rounded-xl shadow-md cursor-pointer hover:scale-[1.02] active:scale-95 bg-gradient-to-r ${glow.cardBg} backdrop-blur-lg border ${glow.border} ${glow.hoverBorder} ${glow.hoverShadow}`}
+                  style={{ backgroundColor: "transparent" }}
                   onClick={() => handleCardClick(feature)}
                   data-testid={feature.testId}
                 >
