@@ -4,7 +4,7 @@ import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
-import { Search, User, ShieldAlert, LogOut, RefreshCw, Ban, CheckCircle, RotateCcw, KeyRound, ChefHat, ArrowRight, Award, Users, Download } from "lucide-react";
+import { Search, User, ShieldAlert, LogOut, RefreshCw, Ban, CheckCircle, RotateCcw, KeyRound, ChefHat, ArrowRight, Award, Users, Download, Mail } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const ENV = import.meta.env.MODE === "production" ? "PRODUCTION" : "DEVELOPMENT";
@@ -148,6 +148,13 @@ function UserDetail({ user, onAction }: { user: AdminUser; onAction: (label: str
       icon: <CheckCircle className="h-4 w-4" />,
       confirm: `Re-enable account for ${user.email}?`,
       color: "bg-green-800 hover:bg-green-700",
+    },
+    {
+      label: "Send Setup Email",
+      path: "send-password-reset",
+      icon: <Mail className="h-4 w-4" />,
+      confirm: `Send a password setup/reset email to ${user.email}? Use this when you created an account on their behalf and they need to set their own password.`,
+      color: "bg-sky-800 hover:bg-sky-700",
     },
   ];
 
