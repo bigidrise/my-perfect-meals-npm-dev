@@ -61,6 +61,7 @@ import InspirationCaptureModal from "@/components/InspirationCaptureModal";
 import { NutritionPersonalizationSummaryCard } from "@/components/protocol/NutritionPersonalizationSummaryCard";
 import { WhatsNewCard } from "@/components/WhatsNewCard";
 import CoachCornerCard from "@/components/ace/CoachCornerCard";
+import { COACHES_CORNER_ENABLED } from "@/features/coachCornerFlag";
 
 interface FeatureCard {
   title: string;
@@ -815,7 +816,7 @@ export default function DashboardNew() {
 
         <NutritionPersonalizationSummaryCard />
 
-        <CoachCornerCard />
+        {COACHES_CORNER_ENABLED && <CoachCornerCard />}
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
