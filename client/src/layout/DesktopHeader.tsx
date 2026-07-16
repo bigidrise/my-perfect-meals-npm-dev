@@ -5,6 +5,7 @@ import { ProfileSheet } from "@/components/ProfileSheet";
 import { HubControlIcon } from "@/components/icons/HubControlIcon";
 import { useOrgBranding } from "@/hooks/useOrgBranding";
 import { ChevronLeft } from "lucide-react";
+import { getTierForLookupKey } from "@shared/planFeatures";
 
 const HUB_BACK_MAP: Record<string, { hub: string; label: string }> = {
   "/beach-body-meal-board":       { hub: "/performance",  label: "Performance Hub" },
@@ -81,13 +82,14 @@ const ROUTE_TITLES: Record<string, string> = {
 function getPlanLabel(planLookupKey?: string | null): string | null {
   if (!planLookupKey) return null;
   const key = planLookupKey.toLowerCase();
-  if (key.includes("ultimate")) return "Clinical";
-  if (key.includes("premium")) return "Pro";
-  if (key.includes("basic")) return "Essential";
-  if (key.includes("trainer") || key.includes("physician") || key.includes("procare")) return "Professional";
-  if (key.includes("family")) return "Family";
-  if (key.includes("guidance")) return "Guidance";
-  return null;
+  if (key.includes("procare") || key.includes("trainer") || key.includes("physician")) return "Professional";
+  const tier = getTierForLookupKey(planLookupKey);
+  switch (tier) {
+    case "basic":    return "Essential";
+    case "premium":  return "Pro";
+    case "ultimate": return "Clinical";
+    default:         return null;
+  }
 }
 
 function getPageTitle(location: string): string {
