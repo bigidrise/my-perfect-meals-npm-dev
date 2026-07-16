@@ -397,44 +397,6 @@ export default function BusinessDashboard() {
     const { membership } = memberData;
     const roleLabel = membership.role.charAt(0).toUpperCase() + membership.role.slice(1);
 
-    const onboardingSteps = [
-      {
-        num: 1,
-        title: "Complete My Perfect Meals Academy",
-        subtitle: "Required before working with clients",
-        detail:
-          "Learn every part of the platform — meal builders, clinical tools, dietary protocols, and how to run your ProCare Studio. Finish all lessons to unlock your Studio.",
-        cta: "Launch Academy",
-        route: "/academy",
-        done: false,
-        highlight: true,
-      },
-      {
-        num: 2,
-        title: "Create Your ProCare Studio",
-        subtitle: "Unlocks after Academy certification",
-        detail:
-          "Your Studio is where you manage clients, track progress, communicate, and deliver coaching. It activates once your Academy certification is complete.",
-        cta: "Go to Studio",
-        route: "/pro-portal",
-        done: false,
-        highlight: false,
-        locked: true,
-      },
-      {
-        num: 3,
-        title: "Begin Working with Clients",
-        subtitle: "Studio must be active",
-        detail:
-          "Once your Studio is live, you can accept client assignments, generate meal plans, and start coaching.",
-        cta: null,
-        route: null,
-        done: false,
-        highlight: false,
-        locked: true,
-      },
-    ];
-
     return (
       <div className="min-h-screen bg-gradient-to-br from-black/60 via-blue-900/40 to-black/80 pb-24">
         {/* Header */}
@@ -484,79 +446,42 @@ export default function BusinessDashboard() {
           </div>
 
           {/* Path to working with clients */}
-          <div>
-            <h3 className="text-white font-bold text-sm mb-3 px-1 uppercase tracking-wide">
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-3">
+            <h3 className="text-white font-bold text-base">
               Your Path to Working with Clients
             </h3>
-
-            <div className="space-y-3">
-              {onboardingSteps.map((step) => (
-                <div
-                  key={step.num}
-                  className={`rounded-2xl border p-4 ${
-                    step.highlight
-                      ? "bg-blue-950/60 border-blue-500/40"
-                      : step.locked
-                      ? "bg-white/3 border-white/8 opacity-60"
-                      : "bg-white/5 border-white/10"
-                  }`}
-                >
-                  <div className="flex gap-3">
-                    <div
-                      className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold mt-0.5 ${
-                        step.done
-                          ? "bg-green-500 text-white"
-                          : step.highlight
-                          ? "bg-blue-600 text-white"
-                          : "bg-white/10 text-white/40"
-                      }`}
-                    >
-                      {step.done ? <CheckCircle className="w-4 h-4" /> : step.num}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-semibold ${step.highlight ? "text-white" : "text-white/60"}`}>
-                        {step.title}
-                      </p>
-                      <p className={`text-xs mt-0.5 mb-2 ${step.highlight ? "text-blue-300" : "text-white/35"}`}>
-                        {step.subtitle}
-                      </p>
-                      <p className={`text-xs leading-relaxed ${step.highlight ? "text-white/70" : "text-white/35"}`}>
-                        {step.detail}
-                      </p>
-                      {step.cta && step.route && !step.locked && (
-                        <button
-                          className="mt-3 w-full py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold flex items-center justify-center gap-2"
-                          onClick={() => setLocation(step.route!)}
-                        >
-                          {step.cta}
-                          <ChevronRight className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <p className="text-white/70 text-sm leading-relaxed">
+              Now that you're officially part of the team, your first step is to complete the{" "}
+              <span className="text-white font-semibold">My Perfect Meals Academy</span>. The Academy walks you through the entire platform — meal builders, dietary protocols, clinical nutrition tools, client management, marketing, and how to get the most out of every feature for the people you coach.
+            </p>
+            <p className="text-white/70 text-sm leading-relaxed">
+              Once you finish all the lessons, you'll earn your certification. At that point,{" "}
+              <span className="text-white font-semibold">your ProCare Studio unlocks automatically</span> — no extra steps needed. Your Studio is where you'll manage your clients, track progress, communicate, and deliver your coaching programs.
+            </p>
+            <p className="text-white/70 text-sm leading-relaxed">
+              After that, head to the{" "}
+              <span className="text-white font-semibold">More page</span> to set up your Studio and get started. By the time you finish the Academy, you'll know exactly where the More page is and what everything does — because you just went through the whole app.
+            </p>
           </div>
 
           {/* Studio unlock callout */}
-          <div className="bg-amber-950/40 border border-amber-500/25 rounded-2xl p-4">
+          <div className="bg-blue-950/60 border border-blue-500/30 rounded-2xl p-4">
             <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-amber-600/30 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <Crown className="w-4 h-4 text-amber-400" />
+              <div className="w-8 h-8 rounded-full bg-blue-600/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Crown className="w-4 h-4 text-blue-400" />
               </div>
-              <div>
-                <p className="text-amber-300 text-sm font-semibold">
+              <div className="flex-1">
+                <p className="text-white text-sm font-semibold">
                   Complete the Academy to unlock your ProCare Studio
                 </p>
-                <p className="text-amber-200/60 text-xs mt-1 leading-relaxed">
+                <p className="text-blue-200/70 text-xs mt-1 leading-relaxed">
                   Your organization requires Academy certification before you can begin working with clients. Once you finish, your Studio activates automatically.
                 </p>
                 <button
-                  className="mt-3 w-full py-2.5 rounded-xl bg-amber-600/80 border border-amber-500/40 text-white text-sm font-semibold flex items-center justify-center gap-2"
+                  className="mt-3 w-full py-2.5 rounded-xl bg-blue-600 border border-blue-500/40 text-white text-sm font-semibold flex items-center justify-center gap-2"
                   onClick={() => setLocation("/academy")}
                 >
-                  Start Academy Now
+                  Launch Academy
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
