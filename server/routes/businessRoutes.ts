@@ -727,6 +727,39 @@ router.post("/dev-seed", requireAuth, async (req, res) => {
   }
 });
 
+// ── GET /api/business/policy-history — owner views policy change log
+router.get("/policy-history", requireAuth, async (req, res) => {
+  const userId = (req as any).authUser?.id as string;
+  try {
+    const [business] = await db
+      .select()
+      .from(businesses)
+      .where(eq(businesses.ownerUserId, userId))
+      .limit(1);
+    if (!business) {
+      return res.status(403).json({ error: "No business account found." });
+    }
+    const history = await db.execute(sql`
+      SELECT
+        bph.id,
+        bph.old_policy,
+        bph.new_policy,
+        bph.changed_at,
+        u.username AS changed_by_name,
+        u.email    AS changed_by_email
+      FROM business_policy_history bph
+      LEFT JOIN users u ON u.id::text = bph.changed_by_user_id
+      WHERE bph.business_id = ${business.id}
+      ORDER BY bph.changed_at DESC
+      LIMIT 20
+    `);
+    return res.json({ history: history.rows });
+  } catch (err) {
+    console.error("[business/policy-history] error:", err);
+    return res.status(500).json({ error: "Server error." });
+  }
+});
+
 // ── GET /api/business/members/:memberId/clients — owner views a member's client accounting
 router.get("/members/:memberId/clients", requireAuth, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
