@@ -192,9 +192,33 @@ export default function BusinessInviteAccept() {
             </div>
           </div>
 
+          {/* Affiliate CTA */}
+          <div className="bg-gradient-to-br from-orange-600/20 via-orange-600/10 to-transparent border border-orange-500/30 rounded-2xl p-5">
+            <p className="text-orange-300 text-xs font-semibold uppercase tracking-wide mb-2">Want to grow your own business?</p>
+            <h3 className="text-white font-bold text-base mb-2">Become a My Perfect Meals Affiliate</h3>
+            <p className="text-white/70 text-sm leading-relaxed mb-3">
+              Whether your organization allows personal clients or not, you can build your own brand as a My Perfect Meals Affiliate — earn commissions, get your own promo code, and grow your independent practice.
+            </p>
+            <div className="space-y-1.5 mb-4">
+              {["Your own promo code", "Commission on every referral", "Marketing resources included", "Independent of your org membership"].map((item) => (
+                <div key={item} className="flex items-center gap-2">
+                  <CheckCircle className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />
+                  <span className="text-white/80 text-sm">{item}</span>
+                </div>
+              ))}
+            </div>
+            <button
+              className="w-full py-3 rounded-xl bg-orange-600 text-white font-bold text-sm flex items-center justify-center gap-2"
+              onClick={() => setLocation("/affiliate")}
+            >
+              Become an Affiliate
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
           {/* CTA */}
           <button
-            className="w-full py-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-base transition-colors flex items-center justify-center gap-2"
+            className="w-full py-4 rounded-xl bg-blue-600 text-white font-bold text-base transition-colors flex items-center justify-center gap-2"
             onClick={() => setLocation("/home")}
           >
             Continue to My Perfect Meals
@@ -290,6 +314,27 @@ export default function BusinessInviteAccept() {
                   {i + 1}
                 </div>
                 <span className="text-white/60 text-sm">{s}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* How your organization uses My Perfect Meals */}
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+          <h2 className="text-white font-bold text-base mb-3">How {invite.businessName} Uses My Perfect Meals</h2>
+          <p className="text-white/60 text-sm leading-relaxed mb-3">
+            Before you join, here's exactly how this organization operates on the platform — your responsibilities, your rights, and your opportunities.
+          </p>
+          <div className="space-y-2">
+            {[
+              "You manage your own clients inside your ProCare Studio independently",
+              "Your certifications and training history belong to you permanently",
+              "You can become a My Perfect Meals Affiliate regardless of your org role",
+              "If you ever leave, you can activate your own Professional account",
+            ].map((item) => (
+              <div key={item} className="flex items-start gap-2">
+                <CheckCircle className="w-3.5 h-3.5 text-blue-400 mt-0.5 flex-shrink-0" />
+                <span className="text-white/70 text-sm">{item}</span>
               </div>
             ))}
           </div>
