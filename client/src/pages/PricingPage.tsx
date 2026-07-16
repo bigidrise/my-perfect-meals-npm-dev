@@ -1149,6 +1149,11 @@ export default function PricingPage() {
                       For 50+ seats, contact us for enterprise pricing and a dedicated onboarding experience.
                     </p>
                   )}
+                  <div className="mt-3 bg-blue-600/10 border border-blue-500/20 rounded-xl px-3 py-2.5">
+                    <p className="text-blue-200/80 text-xs leading-relaxed">
+                      <span className="font-semibold text-blue-300">Each seat = one active user.</span> Count every person who will use the platform — including yourself as the organization owner. For example: owner + spouse + 2 coaches = 4 seats.
+                    </p>
+                  </div>
                 </div>
 
                 {/* Features */}
