@@ -360,8 +360,6 @@ export default function OrganizationSuccessCenter() {
       <div className="px-4 space-y-2">
         {modules.map((mod, idx) => {
           const isExpanded = expandedId === mod.id;
-          const isPlaying = playingId === mod.id;
-          const isLoading = loadingId === mod.id;
 
           return (
             <div
