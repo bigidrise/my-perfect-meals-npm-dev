@@ -206,6 +206,7 @@ export default function BusinessDashboard() {
       const memberRes = await fetch("/api/business/membership", {
         headers: { ...getAuthHeaders() },
         credentials: "include",
+        cache: "no-store",
       });
       if (memberRes.ok) {
         const json = await memberRes.json();
