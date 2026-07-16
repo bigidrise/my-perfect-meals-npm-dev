@@ -323,18 +323,20 @@ export default function OrganizationSuccessCenter() {
   const [expandedId, setExpandedId] = useState<string | null>("welcome");
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-blue-950 pb-28">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-blue-950 pb-28" style={{ paddingBottom: "max(7rem, calc(env(safe-area-inset-bottom) + 6rem))" }}>
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-blue-950/80 backdrop-blur-md border-b border-white/10 px-4 py-3 flex items-center gap-3">
-        <button
-          onClick={() => setLocation("/business-dashboard")}
-          className="text-white/60 active:text-white transition-colors"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-        <div>
-          <h1 className="text-white font-bold text-base leading-tight">Organization Success Center</h1>
-          <p className="text-white/80 text-xs">Your how-to guide for everything</p>
+      <div className="sticky top-0 z-10 bg-blue-950/80 backdrop-blur-md border-b border-white/10" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+        <div className="px-4 py-3 flex items-center gap-3">
+          <button
+            onClick={() => setLocation("/business-dashboard")}
+            className="text-white/60 active:text-white transition-colors"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <div>
+            <h1 className="text-white font-bold text-base leading-tight">Organization Success Center</h1>
+            <p className="text-white/80 text-xs">Your how-to guide for everything</p>
+          </div>
         </div>
       </div>
 
