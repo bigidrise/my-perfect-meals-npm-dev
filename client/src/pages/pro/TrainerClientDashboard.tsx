@@ -1009,7 +1009,7 @@ export default function TrainerClientDashboard() {
               Select the coaching style for this client's meal plan.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {TRAINER_MEAL_MODE_KEYS.map((key) => {
+              {TRAINER_MEAL_MODE_KEYS.filter((k) => k !== "performance_competition").map((key) => {
                 const entry = PROFESSIONAL_BUILDER_MAP[key];
                 const isActive = assignedBuilder === key || (key === "general_nutrition" && assignedBuilder === "weekly");
                 return (
@@ -1074,7 +1074,7 @@ export default function TrainerClientDashboard() {
                 localStorage.setItem("pro-client-id", resolvedClientUserId);
                 // Builders that have a hub: send the trainer to the hub first so they
                 // can set client parameters before going into the builder.
-                if (effectiveKey === "performance_competition") {
+                if (effectiveKey === "beach_body") {
                   setLocation("/performance");
                   return;
                 }
