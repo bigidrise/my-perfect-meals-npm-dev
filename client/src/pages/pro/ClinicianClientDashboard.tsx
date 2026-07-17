@@ -1059,6 +1059,16 @@ export default function ClinicianClientDashboard() {
                   return;
                 }
                 localStorage.setItem("pro-client-id", resolvedClientUserId);
+                // Builders that have a hub: send the physician to the hub first so they
+                // can review/set patient parameters before entering the builder.
+                if (assignedBuilder === "diabetic") {
+                  setLocation("/diabetic-hub");
+                  return;
+                }
+                if (assignedBuilder === "glp1") {
+                  setLocation("/glp1-hub");
+                  return;
+                }
                 setLocation(`/pro/clients/${resolvedClientUserId}/${entry.proRoute}`);
               }}
               className="w-full sm:w-[400px] bg-lime-600 border border-amber-400/30 text-white font-semibold rounded-xl shadow-lg active:scale-[0.98]"
