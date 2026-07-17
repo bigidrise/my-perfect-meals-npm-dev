@@ -128,7 +128,7 @@ export default function PrivacyPolicy() {
           <section className="space-y-3">
             <h3 className="text-lg font-semibold text-white">6. Your Rights</h3>
             <p className="text-white/70 text-sm">Depending on your region, you may request a copy of your data, update or delete your data, withdraw consent, or close your account at any time.</p>
-            <p className="text-white/70 text-sm">Contact us at <a href="mailto:support@myperfectmeals.com" className="text-lime-400 underline">support@myperfectmeals.com</a> for requests.</p>
+            <p className="text-white/70 text-sm">Contact us at <a href="mailto:support@myperfectmeals.ai" className="text-lime-400 underline">support@myperfectmeals.ai</a> for requests.</p>
           </section>
 
           <section className="space-y-3">
@@ -149,7 +149,7 @@ export default function PrivacyPolicy() {
           <section className="space-y-3 border-t border-white/10 pt-4">
             <h3 className="text-lg font-semibold text-white">10. Contact Us</h3>
             <p className="text-white/70 text-sm">My Perfect Meals</p>
-            <p className="text-white/70 text-sm">Support Email: <a href="mailto:support@myperfectmeals.com" className="text-lime-400 underline">support@myperfectmeals.com</a></p>
+            <p className="text-white/70 text-sm">Support Email: <a href="mailto:support@myperfectmeals.ai" className="text-lime-400 underline">support@myperfectmeals.ai</a></p>
           </section>
         </div>
 

@@ -22,7 +22,7 @@ export async function seedDefaultOrganizations(): Promise<void> {
         dataAccessMode: "standalone",
         appName: "My Perfect Meals",
         appShortName: "MPM",
-        supportEmail: "support@myperfectmeals.com",
+        supportEmail: "support@myperfectmeals.ai",
         supportUrl: null,
         primaryColor: "#f97316",
         secondaryColor: "#ea580c",

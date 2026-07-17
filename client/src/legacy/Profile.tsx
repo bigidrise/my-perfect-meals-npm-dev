@@ -357,7 +357,7 @@ export default function Profile() {
         <Card className="mt-6 bg-black/30 backdrop-blur-lg border border-white/10">
           <CardContent className="p-4">
             <a
-              href="mailto:support@myperfectmeals.com"
+              href="mailto:support@myperfectmeals.ai"
               className="flex items-center w-full text-white hover:text-lime-400 transition-colors"
               data-testid="button-contact-support"
             >

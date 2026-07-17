@@ -6181,7 +6181,7 @@ function getMealIngredientsDatabase() {
       `;
 
       const emailSent = await sendEmail({
-        to: "support@myperfectmeals.com",
+        to: "support@myperfectmeals.ai",
         subject: `Personal Guidance Application from ${trimmedName}`,
         html: emailHtml,
         text: `New Personal Guidance Application\n\nName: ${trimmedName}\nGoal: ${trimmedGoal}\nStruggle: ${trimmedStruggle}\nCommitment: ${commitment ? "Yes" : "No"}\n\nSubmitted at ${new Date().toISOString()}`,
