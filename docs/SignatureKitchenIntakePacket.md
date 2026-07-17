@@ -192,7 +192,7 @@ Our partnerships team will cover the following during your discovery call:
 
 ### 6.1 Submission
 
-Return this completed packet to: **partnerships@myperfectmeals.com**
+Return this completed packet to: **idris@myperfectmeals.ai**
 
 Or submit via the intake form at: **myperfectmeals.com/kitchens**
 
@@ -229,7 +229,7 @@ After receiving your intake packet, our team will schedule a 30-minute discovery
 
 ## Questions?
 
-**Partnerships:** partnerships@myperfectmeals.com  
+**Partnerships:** idris@myperfectmeals.ai  
 **General:** hello@myperfectmeals.com  
 **Press / Media:** press@myperfectmeals.com
 

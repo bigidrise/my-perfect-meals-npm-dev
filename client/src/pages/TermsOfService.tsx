@@ -149,7 +149,7 @@ export default function TermsOfService() {
           <section className="space-y-3 border-t border-white/10 pt-4">
             <h3 className="text-lg font-semibold text-white">11. Contact Us</h3>
             <p className="text-white/70 text-sm">My Perfect Meals</p>
-            <p className="text-white/70 text-sm">Support Email: <a href="mailto:support@myperfectmeals.com" className="text-lime-400 underline">support@myperfectmeals.com</a></p>
+            <p className="text-white/70 text-sm">Support Email: <a href="mailto:support@myperfectmeals.ai" className="text-lime-400 underline">support@myperfectmeals.ai</a></p>
           </section>
         </div>
 

@@ -177,7 +177,7 @@ export default function CareTeamPage() {
       setInvEmail("");
       setError(null);
       alert(
-        `✅ Invitation sent to ${invEmail}! They'll receive an email from support@myperfectmeals.com`,
+        `✅ Invitation sent to ${invEmail}! They'll receive an email from support@myperfectmeals.ai`,
       );
     } catch (e: any) {
       setError(e?.message ?? "Failed to send invite.");

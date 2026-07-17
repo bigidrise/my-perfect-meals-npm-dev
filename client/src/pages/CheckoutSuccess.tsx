@@ -234,10 +234,10 @@ export default function CheckoutSuccess() {
               <p className="text-sm text-white/60 pt-4">
                 Questions? Contact us at{" "}
                 <a
-                  href="mailto:support@myperfectmeals.com"
+                  href="mailto:support@myperfectmeals.ai"
                   className="text-amber-400 hover:text-amber-300 underline"
                 >
-                  support@myperfectmeals.com
+                  support@myperfectmeals.ai
                 </a>
               </p>
             </CardContent>
@@ -300,10 +300,10 @@ export default function CheckoutSuccess() {
             <p className="text-sm text-white/60 pt-4">
               Need help? Contact us at{" "}
               <a
-                href="mailto:support@myperfectmeals.com"
+                href="mailto:support@myperfectmeals.ai"
                 className="text-purple-400 hover:text-purple-300 underline"
               >
-                support@myperfectmeals.com
+                support@myperfectmeals.ai
               </a>
             </p>
           </CardContent>

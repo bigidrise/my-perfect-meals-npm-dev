@@ -128,7 +128,7 @@ export default function PhysicianCareTeamPage() {
       setMembers((prev) => [res.member, ...prev]);
       const sentTo = invEmail;
       setInvEmail("");
-      setSuccessMsg(`✅ Invitation sent to ${sentTo}! They'll receive an email from support@myperfectmeals.com`);
+      setSuccessMsg(`✅ Invitation sent to ${sentTo}! They'll receive an email from support@myperfectmeals.ai`);
       setTimeout(() => setSuccessMsg(null), 6000);
     } catch (e: any) {
       setError(e?.message ?? "Invite failed");

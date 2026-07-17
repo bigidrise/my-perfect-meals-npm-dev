@@ -455,7 +455,7 @@ export default function SignatureKitchenHubPage() {
         {/* Footer */}
         <p className="text-center text-[10px] text-white/50 pb-2 leading-relaxed">
           Powered by My Perfect Meals Adaptive Culinary Intelligence<br />
-          partnerships@myperfectmeals.com
+          idris@myperfectmeals.ai
         </p>
       </div>
 
