@@ -8,7 +8,7 @@ import { eq, and, asc } from "drizzle-orm";
 import type { AuthenticatedRequest } from "../middleware/requireAuth";
 import { sendEmail } from "../emailService";
 
-const PARTNERSHIPS_EMAIL = "idris@myperfectmeals.ai";
+const PARTNERSHIPS_EMAIL = "idrise@myperfectmeals.ai";
 
 const router = Router();
 
