@@ -178,14 +178,46 @@ function QuizComponent({
   existingQuizScore,
   onQuizComplete,
 }: QuizProps) {
-  const [started, setStarted] = useState(false);
-  const [currentQ, setCurrentQ] = useState(0);
-  const [answers, setAnswers] = useState<Record<number, number>>({});
+  // ── Draft persistence key (follows mpm.* localStorage convention) ──
+  const draftKey = `mpm.quiz.draft.${lessonId}`;
+
+  // Lazy initialisers — localStorage is only read once on mount, not on every render
+  const [started, setStarted] = useState<boolean>(() => {
+    try { return JSON.parse(localStorage.getItem(draftKey) || "null")?.started ?? false; }
+    catch { return false; }
+  });
+  const [currentQ, setCurrentQ] = useState<number>(() => {
+    try { return JSON.parse(localStorage.getItem(draftKey) || "null")?.currentQ ?? 0; }
+    catch { return 0; }
+  });
+  const [answers, setAnswers] = useState<Record<number, number>>(() => {
+    try { return JSON.parse(localStorage.getItem(draftKey) || "null")?.answers ?? {}; }
+    catch { return {}; }
+  });
+  // True when we're restoring a mid-quiz draft (so we can show a resume banner)
+  const isResuming = started && currentQ > 0;
   const [submitted, setSubmitted] = useState(false);
   const [score, setScore] = useState<number | null>(null);
   const [passed, setPassed] = useState<boolean | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [showResults, setShowResults] = useState(false);
+
+  // Persist draft whenever in-progress state changes
+  const draftRef = useRef({ started, currentQ, answers });
+  useEffect(() => {
+    draftRef.current = { started, currentQ, answers };
+  });
+  useEffect(() => {
+    if (!submitted && started) {
+      try {
+        localStorage.setItem(draftKey, JSON.stringify({ started, currentQ, answers }));
+      } catch { /* quota exceeded — ignore */ }
+    }
+  }, [started, currentQ, answers, submitted, draftKey]);
+
+  function clearDraft() {
+    try { localStorage.removeItem(draftKey); } catch { /* ignore */ }
+  }
 
   const alreadyPassed = existingQuizStatus === "completed";
   const alreadyFailed = existingQuizStatus === "quiz_failed";
@@ -224,6 +256,7 @@ function QuizComponent({
       setPassed(didPass);
       setSubmitted(true);
       setShowResults(true);
+      clearDraft(); // quiz finished — no longer need the draft
       onQuizComplete(didPass, pct);
     } catch {
       setSubmitting(false);
@@ -233,6 +266,7 @@ function QuizComponent({
   }
 
   function retake() {
+    clearDraft(); // starting fresh — wipe any saved progress
     setStarted(true);
     setCurrentQ(0);
     setAnswers({});
@@ -370,6 +404,16 @@ function QuizComponent({
 
   return (
     <div className="space-y-4">
+      {/* Resume banner — only shown when restoring a saved draft */}
+      {isResuming && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-orange-500/10 border border-orange-500/25">
+          <RotateCcw className="h-3.5 w-3.5 text-orange-400 flex-shrink-0" />
+          <p className="text-xs text-orange-200/70">
+            Picking up where you left off — Question {currentQ + 1} of {questions.length}
+          </p>
+        </div>
+      )}
+
       {/* Progress bar */}
       <div className="space-y-1.5">
         <div className="flex justify-between text-xs text-white/40">
