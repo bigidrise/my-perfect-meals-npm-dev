@@ -29,9 +29,10 @@ export default function BuilderShoppingBar({
   currentWeekStartISO,
   sourceSlug,
 }: Props) {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const { toast } = useToast();
   const isDesktop = useIsDesktop();
+
   const [pickerOpen, setPickerOpen] = useState(false);
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
   const [fetchingWeeks, setFetchingWeeks] = useState(false);
@@ -118,6 +119,10 @@ export default function BuilderShoppingBar({
       return sum + lists.breakfast.length + lists.lunch.length + lists.dinner.length + lists.snacks.length;
     }, 0);
   }, [board, currentWeekStartISO]);
+
+  // Never show inside the pro studio — trainers/physicians are building for clients, not their own list.
+  const path = location || window.location.pathname;
+  if (path.startsWith("/pro/") || path.startsWith("/care-team")) return null;
 
   if (!board || !activeDayISO || currentWeekMealCount === 0) return null;
 

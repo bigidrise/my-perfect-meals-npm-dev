@@ -87,14 +87,14 @@ const BUILDER_OPTIONS: BuilderOption[] = [
     icon: <Utensils className="w-8 h-8" />,
     color: "from-black via-zinc-950 to-black",
   },
-  {
-    id: "performance_competition",
-    title: "Performance Builder",
-    description:
-      "Elite athlete meal planning for competition prep. Requires trainer unlock.",
-    icon: <Dumbbell className="w-8 h-8" />,
-    color: "from-black via-zinc-950 to-black",
-  },
+  // Performance & Competition Builder hidden — use Performance Nutrition Builder instead
+  // {
+  //   id: "performance_competition",
+  //   title: "Performance Builder",
+  //   description: "Elite athlete meal planning for competition prep. Requires trainer unlock.",
+  //   icon: <Dumbbell className="w-8 h-8" />,
+  //   color: "from-black via-zinc-950 to-black",
+  // },
 ];
 
 export default function MealBuilderSelection() {
@@ -120,7 +120,7 @@ export default function MealBuilderSelection() {
   const isUnlimited = switchStatus?.isUnlimited ?? false;
   
   // Pro builders require trainer unlock
-  const PRO_BUILDERS = ["general_nutrition", "performance_competition"];
+  const PRO_BUILDERS = ["general_nutrition"];
   
   const isProBuilderUnlocked = (builderId: string): boolean => {
     if (!PRO_BUILDERS.includes(builderId)) return true;
