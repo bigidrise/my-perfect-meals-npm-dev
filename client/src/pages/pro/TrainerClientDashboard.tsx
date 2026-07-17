@@ -1072,6 +1072,12 @@ export default function TrainerClientDashboard() {
                 }
                 ensureClientMapping(resolvedClientUserId, clientId);
                 localStorage.setItem("pro-client-id", resolvedClientUserId);
+                // Builders that have a hub: send the trainer to the hub first so they
+                // can set client parameters before going into the builder.
+                if (effectiveKey === "performance_competition") {
+                  setLocation("/performance");
+                  return;
+                }
                 setLocation(`/pro/clients/${resolvedClientUserId}/${entry.proRoute}`);
               }}
               className="w-full sm:w-[400px] bg-lime-600 border border-lime-400/30 text-white font-semibold rounded-xl shadow-lg active:scale-[0.98]"
