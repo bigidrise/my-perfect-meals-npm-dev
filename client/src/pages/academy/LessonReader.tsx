@@ -609,14 +609,22 @@ export default function LessonReader() {
 
   return (
     <motion.div
-      className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} pb-32${isDesktop ? " -mt-6 -mx-6" : ""}`}
+      className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} pb-32`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
-      {/* Sticky header — visible on both mobile and desktop */}
+      {/* Lesson header — fixed on desktop (flush under DesktopHeader), sticky on mobile */}
       <div
-        className="sticky top-0 z-20 bg-black/55 backdrop-blur-md border-b border-white/10"
-        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+        className={
+          isDesktop
+            ? "fixed left-0 md:left-60 right-0 z-40 bg-black/55 backdrop-blur-md border-b border-white/10"
+            : "sticky top-0 z-20 bg-black/55 backdrop-blur-md border-b border-white/10"
+        }
+        style={
+          isDesktop
+            ? { top: "calc(env(safe-area-inset-top, 0px) + 56px)" }
+            : { paddingTop: "env(safe-area-inset-top, 0px)" }
+        }
       >
         <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
           <button
@@ -644,6 +652,9 @@ export default function LessonReader() {
           )}
         </div>
       </div>
+
+      {/* Desktop spacer — pushes content below the fixed banner (banner is ~h-12) */}
+      {isDesktop && <div className="h-12" />}
 
       <div className="px-4 max-w-2xl mx-auto space-y-5 pt-5">
         {/* Lesson header card */}
