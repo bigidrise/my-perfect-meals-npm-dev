@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useParams } from "wouter";
 import { ArrowLeft, CheckCircle2, Circle, Clock, Lock, Award, X, PlayCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { AFFILIATE_MODULES, COACHING_MODULES } from "@/data/affiliateCertification";
+import { AFFILIATE_MODULES, COACHING_MODULES, MARKETING_COACHING_MODULES } from "@/data/affiliateCertification";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
 import { BC_HEADER } from "@/components/BusinessCenterShell";
@@ -44,7 +44,7 @@ export default function CertificationDashboard() {
   const [location, setLocation] = useLocation();
   const params = useParams<{ pathId: string }>();
   const pathId = params.pathId ?? "social";
-  const certType = `affiliate_${pathId}`;
+  const certType = pathId === "marketing" ? "marketing_coaching" : `affiliate_${pathId}`;
 
   const { user } = useAuth();
 
@@ -99,7 +99,7 @@ export default function CertificationDashboard() {
       .catch(() => {});
   }, []);
 
-  const modules = pathId === "coaching" ? COACHING_MODULES : AFFILIATE_MODULES;
+  const modules = pathId === "marketing" ? MARKETING_COACHING_MODULES : pathId === "coaching" ? COACHING_MODULES : AFFILIATE_MODULES;
 
   const progressMap = new Map(
     (data?.moduleProgress ?? []).map((p) => [p.moduleId, p])

@@ -217,9 +217,8 @@ export default function AcademyLandingPage() {
 
   function marketingSublabel() {
     if (marketingDone) return "Completed";
-    if (marketingInProgress) return "In progress";
-    if (marketingWaitlisted) return "On the waitlist";
-    return "Coming soon · Tap to learn more";
+    if (marketingInProgress) return "In progress · Tap to continue";
+    return "6 modules · 80% quiz score required";
   }
 
   async function handleJoinWaitlist() {
@@ -461,10 +460,9 @@ export default function AcademyLandingPage() {
                   label="Marketing & Coaching"
                   sublabel={marketingSublabel()}
                   done={marketingDone}
-                  available={false}
-                  waitlisted={marketingWaitlisted}
+                  available
                   inProgress={marketingInProgress}
-                  onComingSoon={() => setShowMarketingModal(true)}
+                  onGo={() => setLocation("/business-center/affiliate/marketing/certification")}
                 />
                 <CertPathRow
                   icon="🩺"
@@ -597,31 +595,16 @@ export default function AcademyLandingPage() {
 
 function MarketingCoachingModal({
   status,
-  joining,
   onJoin,
   onClose,
 }: {
   status: MarketingStatus;
-  joining: boolean;
+  joining?: boolean;
   onJoin: () => Promise<void>;
   onClose: () => void;
 }) {
-  const isWaitlisted = status === "waitlisted";
   const isDone = status === "completed";
   const isInProgress = status === "in_progress";
-
-  const [waitlistCount, setWaitlistCount] = useState<number | null>(null);
-
-  useEffect(() => {
-    apiRequest("/api/certifications/marketing_coaching/waitlist-count")
-      .then((data: any) => setWaitlistCount(typeof data?.count === "number" ? data.count : null))
-      .catch(() => {});
-  }, []);
-
-  async function handleJoin() {
-    await onJoin();
-    setWaitlistCount((c) => (c !== null ? c + 1 : 1));
-  }
 
   return (
     <>
@@ -652,7 +635,7 @@ function MarketingCoachingModal({
             </div>
             <div>
               <h2 className="text-base font-bold text-white">Marketing & Coaching</h2>
-              <p className="text-xs text-orange-400 font-medium">Certification · Coming Soon</p>
+              <p className="text-xs text-orange-400 font-medium">Certification · 6 Modules</p>
             </div>
           </div>
           <button
@@ -698,81 +681,20 @@ function MarketingCoachingModal({
             </div>
           </div>
 
-          {/* Timeline */}
-          <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/8 space-y-3">
-            <p className="text-xs font-semibold text-white/50 uppercase tracking-widest">Timeline</p>
-            <div className="space-y-2.5">
-              {[
-                { label: "Curriculum finalized", status: "done" },
-                { label: "Video production", status: "active" },
-                { label: "Quiz & assessment authoring", status: "upcoming" },
-                { label: "Beta cohort access", status: "upcoming" },
-                { label: "Open enrollment", status: "upcoming" },
-              ].map((step, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <div
-                    className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                      step.status === "done"
-                        ? "bg-emerald-400"
-                        : step.status === "active"
-                        ? "bg-orange-400 shadow-[0_0_6px_rgba(251,146,60,0.6)]"
-                        : "bg-white/15"
-                    }`}
-                  />
-                  <p
-                    className={`text-xs leading-snug ${
-                      step.status === "done"
-                        ? "text-emerald-300/80"
-                        : step.status === "active"
-                        ? "text-orange-300 font-medium"
-                        : "text-white/30"
-                    }`}
-                  >
-                    {step.label}
-                    {step.status === "active" && (
-                      <span className="ml-1.5 text-orange-400/60 font-normal">· In progress</span>
-                    )}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-
           {/* CTA */}
-          {!isDone && !isInProgress && (
-            <div className="space-y-2">
-              {isWaitlisted ? (
-                <div className="flex items-center gap-3 p-4 rounded-2xl bg-emerald-900/20 border border-emerald-500/25">
-                  <CheckCircle2 className="h-5 w-5 text-emerald-400 flex-shrink-0" />
-                  <div>
-                    <p className="text-sm font-semibold text-emerald-300">You're on the waitlist</p>
-                    <p className="text-xs text-emerald-400/60 mt-0.5">
-                      We'll notify you the moment enrollment opens.
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  onClick={handleJoin}
-                  disabled={joining}
-                  className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-orange-600 text-white font-semibold text-sm active:scale-[0.98] transition-transform disabled:opacity-60"
-                >
-                  {joining ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Bell className="h-4 w-4" />
-                  )}
-                  Notify me when available
-                </button>
-              )}
-              {waitlistCount !== null && waitlistCount > 0 && (
-                <p className="text-center text-orange-400/70 text-xs font-medium">
-                  {waitlistCount} {waitlistCount === 1 ? "professional" : "professionals"} waiting
-                </p>
-              )}
-              <p className="text-center text-white/25 text-xs">
-                No spam. One notification when enrollment opens.
-              </p>
+          {!isDone && (
+            <button
+              onClick={() => { onClose(); onJoin(); }}
+              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-orange-600 text-white font-semibold text-sm active:scale-[0.98] transition-transform"
+            >
+              {isInProgress ? "Continue Certification" : "Start Certification"}
+              <ChevronRight className="h-4 w-4 opacity-70" />
+            </button>
+          )}
+          {isDone && (
+            <div className="flex items-center gap-3 p-4 rounded-2xl bg-emerald-900/20 border border-emerald-500/25">
+              <CheckCircle2 className="h-5 w-5 text-emerald-400 flex-shrink-0" />
+              <p className="text-sm font-semibold text-emerald-300">Certification complete</p>
             </div>
           )}
         </div>
