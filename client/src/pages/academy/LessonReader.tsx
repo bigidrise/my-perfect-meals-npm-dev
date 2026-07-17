@@ -22,6 +22,7 @@ import {
   type PlatformMasteryLesson,
 } from "@/data/platformMasteryLessons";
 import { NarrationBar } from "@/components/NarrationBar";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 
 // ── Lesson → Narration converter ─────────────────────────────────────────────
 function stripMarkdown(text: string): string {
@@ -508,6 +509,7 @@ export default function LessonReader() {
   const params = useParams<{ lessonId: string }>();
   const lessonId = params.lessonId ?? "";
   const { user } = useAuth();
+  const isDesktop = useIsDesktop();
 
   const lesson = getLessonById(lessonId);
 
@@ -607,13 +609,13 @@ export default function LessonReader() {
 
   return (
     <motion.div
-      className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} pb-32`}
+      className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} pb-32${isDesktop ? " -mt-6 -mx-6" : ""}`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
       {/* Sticky header — visible on both mobile and desktop */}
       <div
-        className="sticky top-0 z-10 bg-black/55 backdrop-blur-md border-b border-white/10"
+        className="sticky top-0 z-20 bg-black/55 backdrop-blur-md border-b border-white/10"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
