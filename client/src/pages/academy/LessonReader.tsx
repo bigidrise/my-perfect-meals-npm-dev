@@ -22,6 +22,7 @@ import {
   type PlatformMasteryLesson,
 } from "@/data/platformMasteryLessons";
 import { NarrationBar } from "@/components/NarrationBar";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 
 // ── Lesson → Narration converter ─────────────────────────────────────────────
 function stripMarkdown(text: string): string {
@@ -178,14 +179,46 @@ function QuizComponent({
   existingQuizScore,
   onQuizComplete,
 }: QuizProps) {
-  const [started, setStarted] = useState(false);
-  const [currentQ, setCurrentQ] = useState(0);
-  const [answers, setAnswers] = useState<Record<number, number>>({});
+  // ── Draft persistence key (follows mpm.* localStorage convention) ──
+  const draftKey = `mpm.quiz.draft.${lessonId}`;
+
+  // Lazy initialisers — localStorage is only read once on mount, not on every render
+  const [started, setStarted] = useState<boolean>(() => {
+    try { return JSON.parse(localStorage.getItem(draftKey) || "null")?.started ?? false; }
+    catch { return false; }
+  });
+  const [currentQ, setCurrentQ] = useState<number>(() => {
+    try { return JSON.parse(localStorage.getItem(draftKey) || "null")?.currentQ ?? 0; }
+    catch { return 0; }
+  });
+  const [answers, setAnswers] = useState<Record<number, number>>(() => {
+    try { return JSON.parse(localStorage.getItem(draftKey) || "null")?.answers ?? {}; }
+    catch { return {}; }
+  });
+  // True when we're restoring a mid-quiz draft (so we can show a resume banner)
+  const isResuming = started && currentQ > 0;
   const [submitted, setSubmitted] = useState(false);
   const [score, setScore] = useState<number | null>(null);
   const [passed, setPassed] = useState<boolean | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [showResults, setShowResults] = useState(false);
+
+  // Persist draft whenever in-progress state changes
+  const draftRef = useRef({ started, currentQ, answers });
+  useEffect(() => {
+    draftRef.current = { started, currentQ, answers };
+  });
+  useEffect(() => {
+    if (!submitted && started) {
+      try {
+        localStorage.setItem(draftKey, JSON.stringify({ started, currentQ, answers }));
+      } catch { /* quota exceeded — ignore */ }
+    }
+  }, [started, currentQ, answers, submitted, draftKey]);
+
+  function clearDraft() {
+    try { localStorage.removeItem(draftKey); } catch { /* ignore */ }
+  }
 
   const alreadyPassed = existingQuizStatus === "completed";
   const alreadyFailed = existingQuizStatus === "quiz_failed";
@@ -224,6 +257,7 @@ function QuizComponent({
       setPassed(didPass);
       setSubmitted(true);
       setShowResults(true);
+      clearDraft(); // quiz finished — no longer need the draft
       onQuizComplete(didPass, pct);
     } catch {
       setSubmitting(false);
@@ -233,6 +267,7 @@ function QuizComponent({
   }
 
   function retake() {
+    clearDraft(); // starting fresh — wipe any saved progress
     setStarted(true);
     setCurrentQ(0);
     setAnswers({});
@@ -278,7 +313,7 @@ function QuizComponent({
             Quiz Locked
           </p>
           <p className="text-xs text-white/35 mt-0.5 leading-relaxed">
-            Complete the platform exercise above and tap "I'm Back" to unlock the quiz.
+            Complete the platform exercise above and tap "I Completed the Exercise" to unlock the quiz.
           </p>
         </div>
       </div>
@@ -370,6 +405,16 @@ function QuizComponent({
 
   return (
     <div className="space-y-4">
+      {/* Resume banner — only shown when restoring a saved draft */}
+      {isResuming && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-orange-500/10 border border-orange-500/25">
+          <RotateCcw className="h-3.5 w-3.5 text-orange-400 flex-shrink-0" />
+          <p className="text-xs text-orange-200/70">
+            Picking up where you left off — Question {currentQ + 1} of {questions.length}
+          </p>
+        </div>
+      )}
+
       {/* Progress bar */}
       <div className="space-y-1.5">
         <div className="flex justify-between text-xs text-white/40">
@@ -464,6 +509,7 @@ export default function LessonReader() {
   const params = useParams<{ lessonId: string }>();
   const lessonId = params.lessonId ?? "";
   const { user } = useAuth();
+  const isDesktop = useIsDesktop();
 
   const lesson = getLessonById(lessonId);
 
@@ -567,10 +613,18 @@ export default function LessonReader() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
-      {/* Sticky header — visible on both mobile and desktop */}
+      {/* Lesson header — fixed on desktop (flush under DesktopHeader), sticky on mobile */}
       <div
-        className="sticky top-0 z-10 bg-black/55 backdrop-blur-md border-b border-white/10"
-        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+        className={
+          isDesktop
+            ? "fixed left-0 md:left-60 right-0 z-40 bg-black/55 backdrop-blur-md border-b border-white/10"
+            : "sticky top-0 z-20 bg-black/55 backdrop-blur-md border-b border-white/10"
+        }
+        style={
+          isDesktop
+            ? { top: "calc(env(safe-area-inset-top, 0px) + 56px)" }
+            : { paddingTop: "env(safe-area-inset-top, 0px)" }
+        }
       >
         <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
           <button
@@ -598,6 +652,9 @@ export default function LessonReader() {
           )}
         </div>
       </div>
+
+      {/* Desktop spacer — pushes content below the fixed banner (banner is ~h-12) */}
+      {isDesktop && <div className="h-12" />}
 
       <div className="px-4 max-w-2xl mx-auto space-y-5 pt-5">
         {/* Lesson header card */}
@@ -673,49 +730,77 @@ export default function LessonReader() {
 
         {/* ── Platform Exercise ── */}
         <motion.div
-          className="rounded-2xl overflow-hidden border border-orange-500/30 bg-orange-500/8"
+          className="rounded-2xl overflow-hidden border-2 border-orange-500/50 bg-gradient-to-b from-orange-950/60 to-black/60"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <div className="px-5 pt-5 pb-4 border-b border-orange-500/20">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-orange-500/20">
-                <Dumbbell className="h-5 w-5 text-orange-400" />
+          {/* Header */}
+          <div className="px-5 pt-5 pb-4 border-b border-orange-500/25 bg-orange-500/10">
+            <div className="flex items-start gap-3">
+              <div className="p-3 rounded-xl bg-orange-500/25 flex-shrink-0">
+                <Dumbbell className="h-6 w-6 text-orange-400" />
               </div>
-              <div>
-                <p className="text-xs font-bold text-orange-400 uppercase tracking-widest">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold text-orange-400 uppercase tracking-widest mb-1">
+                  Hands-On Practice
+                </p>
+                <p className="text-lg font-bold text-white leading-tight">
                   Platform Exercise
                 </p>
-                <p className="text-xs text-orange-200/50 mt-0.5">
-                  Complete this in the app, then tap "I'm Back"
-                </p>
+                {exerciseDone && (
+                  <p className="text-sm text-emerald-400 font-semibold mt-1 flex items-center gap-1.5">
+                    <CheckCircle2 className="h-4 w-4" /> Exercise completed
+                  </p>
+                )}
               </div>
               {exerciseDone && (
-                <CheckCircle2 className="h-5 w-5 text-emerald-400 ml-auto flex-shrink-0" />
+                <CheckCircle2 className="h-6 w-6 text-emerald-400 flex-shrink-0 mt-1" />
               )}
             </div>
           </div>
 
-          <div className="px-5 py-4 space-y-3">
-            <ol className="space-y-2.5">
+          <div className="px-5 py-5 space-y-5">
+            {/* What to do */}
+            {!exerciseDone && (
+              <div className="bg-orange-500/10 border border-orange-500/25 rounded-xl p-4 space-y-1.5">
+                <p className="text-sm font-bold text-orange-300">
+                  This is a practical exercise — leave the Academy and go into the app.
+                </p>
+                <p className="text-sm text-orange-100/70 leading-relaxed">
+                  Complete the steps below inside My Perfect Meals, then come back here and tap{" "}
+                  <span className="font-bold text-white">"I Completed the Exercise"</span>{" "}
+                  to confirm and unlock your quiz.
+                </p>
+              </div>
+            )}
+
+            {/* Steps */}
+            <ol className="space-y-3">
               {lesson.exercise.steps.map((step, i) => (
-                <li key={i} className="flex items-start gap-3 text-sm text-orange-100/80 leading-relaxed">
-                  <span className="mt-0.5 h-5 w-5 rounded-full bg-orange-500/25 border border-orange-500/40 text-orange-400 text-xs font-bold flex items-center justify-center flex-shrink-0">
+                <li key={i} className="flex items-start gap-3 text-sm text-orange-100/85 leading-relaxed">
+                  <span className="mt-0.5 h-6 w-6 rounded-full bg-orange-500/30 border border-orange-500/50 text-orange-300 text-xs font-bold flex items-center justify-center flex-shrink-0">
                     {i + 1}
                   </span>
-                  <span className="flex-1">{renderInline(step)}</span>
+                  <span className="flex-1 pt-0.5">{renderInline(step)}</span>
                 </li>
               ))}
             </ol>
 
+            {/* Return instruction + button */}
+            {!exerciseDone && (
+              <p className="text-xs text-orange-200/50 text-center leading-relaxed">
+                Done with all the steps above? Tap the button below to confirm and unlock your quiz.
+              </p>
+            )}
+
             <button
               onClick={handleImBack}
               disabled={exerciseDone || exerciseLoading}
-              className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all active:scale-[0.98] ${
+              className={`w-full flex items-center justify-center gap-2 py-4 rounded-xl font-bold text-base transition-all active:scale-[0.98] ${
                 exerciseDone
                   ? "bg-emerald-600/25 border border-emerald-500/40 text-emerald-300 cursor-default"
-                  : "bg-orange-600 text-white"
+                  : "bg-orange-600 border border-orange-500/60 text-white shadow-lg shadow-orange-900/30"
               } disabled:cursor-default`}
             >
               {exerciseLoading ? (
@@ -725,11 +810,14 @@ export default function LessonReader() {
                 </>
               ) : exerciseDone ? (
                 <>
-                  <CheckCircle2 className="h-4 w-4" />
+                  <CheckCircle2 className="h-5 w-5" />
                   Exercise Complete
                 </>
               ) : (
-                "I'm Back"
+                <>
+                  <CheckCircle2 className="h-5 w-5" />
+                  I Completed the Exercise
+                </>
               )}
             </button>
           </div>
