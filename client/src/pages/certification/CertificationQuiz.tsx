@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useLocation, useParams } from "wouter";
 import { ArrowLeft, CheckCircle2, XCircle, RotateCcw, BookOpen } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getModuleById, getCoachingModuleById, getNextModuleId, getNextCoachingModuleId, PASSING_SCORE } from "@/data/affiliateCertification";
+import { getModuleById, getCoachingModuleById, getMarketingModuleById, getNextModuleId, getNextCoachingModuleId, getNextMarketingModuleId, PASSING_SCORE } from "@/data/affiliateCertification";
 import { apiRequest } from "@/lib/queryClient";
 import { BC_HEADER } from "@/components/BusinessCenterShell";
 
@@ -14,8 +14,8 @@ export default function CertificationQuiz() {
   const params = useParams<{ pathId: string; moduleId: string }>();
   const pathId = params.pathId ?? "social";
   const moduleId = params.moduleId ?? "";
-  const certType = `affiliate_${pathId}`;
-  const module = pathId === "coaching" ? getCoachingModuleById(moduleId) : getModuleById(moduleId);
+  const certType = pathId === "marketing" ? "marketing_coaching" : `affiliate_${pathId}`;
+  const module = pathId === "marketing" ? getMarketingModuleById(moduleId) : pathId === "coaching" ? getCoachingModuleById(moduleId) : getModuleById(moduleId);
 
   const [phase, setPhase] = useState<Phase>("loading");
   const [answers, setAnswers] = useState<AnswerMap>({});
@@ -102,7 +102,7 @@ export default function CertificationQuiz() {
   };
 
   const handleContinue = () => {
-    const nextId = pathId === "coaching" ? getNextCoachingModuleId(moduleId) : getNextModuleId(moduleId);
+    const nextId = pathId === "marketing" ? getNextMarketingModuleId(moduleId) : pathId === "coaching" ? getNextCoachingModuleId(moduleId) : getNextModuleId(moduleId);
     if (nextId) {
       setLocation(`/business-center/affiliate/${pathId}/certification/${nextId}`);
     } else {

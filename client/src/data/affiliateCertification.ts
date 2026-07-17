@@ -1152,3 +1152,612 @@ export function getPrevCoachingModuleId(moduleId: string): string | null {
   if (idx <= 0) return null;
   return COACHING_MODULES[idx - 1].id;
 }
+
+// ─── MARKETING & COACHING CERTIFICATION ──────────────────────────────────────
+
+export const MARKETING_COACHING_MODULES: CertificationModule[] = [
+  {
+    id: "marketing-module-1",
+    title: "Building Your Brand",
+    description: "How to position yourself as a nutrition professional before you ever open your mouth — and what it actually means to earn trust.",
+    estimatedMinutes: 20,
+    sections: [
+      {
+        heading: "You Are the Brand Before the Platform Is",
+        text: "Before a prospect decides whether to try My Perfect Meals, they decide whether to trust you.\n\nThat's the order. Always.\n\nCredentials matter less than most coaches think in those early moments. What matters is whether the person in front of you feels like you understand their situation, like you're someone they could be honest with, like you've actually done the work to help people like them.\n\nYour brand isn't your logo or your social media feed. Your brand is the impression you leave every single time someone encounters you — in a conversation, in a post, in the way you follow up, in whether you show up consistently.\n\nThe platform becomes powerful once that trust is established. Until then, you're selling yourself first.",
+      },
+      {
+        heading: "Who Do You Serve?",
+        text: "Most new coaches try to reach everyone. That's the fastest way to reach no one.\n\nThe more specifically you can describe the person you help, the more that person will feel you're talking directly to them.\n\nInstead of: \"I help people improve their nutrition.\"\n\nTry: \"I work with people in their 40s and 50s who've tried every diet and need something that fits their real life.\"\n\nOr: \"I specialize in nutrition support for people managing Type 2 diabetes who want to feel normal around food again.\"\n\nThose sentences land differently. The person who fits them feels found — not marketed to.\n\nYour niche doesn't close doors. It opens the right ones.",
+      },
+      {
+        heading: "Consistency Is the Only Strategy That Compounds",
+        text: "Visibility in nutrition coaching is not built through viral moments. It's built through consistency over time.\n\nEvery time you show up — a post, a conversation, a follow-up, a check-in — you're making a deposit into a trust account. None of those deposits feel significant in the moment. The account balance only becomes visible after months.\n\nThis is why most coaches quit too early. They post for three weeks, don't see results, and conclude it isn't working. They were three months away from the compound effect starting to show.\n\nConsistency beats talent. Consistency beats strategy. Consistency is the only thing in coaching that reliably grows over time.",
+        tip: "Your consistency is the proof you're selling. If a prospect scrolls your last 90 days and sees someone who showed up regularly, they already have evidence that you follow through. That's the brand.",
+      },
+      {
+        heading: "Authenticity Beats Perfection",
+        text: "The most polished coaches are not always the most trusted ones.\n\nPeople can sense when something has been over-manufactured. The perfectly lit photo, the perfectly scripted reel, the post that feels like a press release — these create distance, not connection.\n\nWhat creates connection is being a real person who has genuinely helped real people.\n\nYou don't need to pretend you know everything. You don't need a perfect before/after transformation story. You don't need a studio setup to record content.\n\nYou need to be consistently honest about what you do, what you know, and what your clients experience. That kind of authenticity is impossible to fake — and extremely hard to compete against.",
+      },
+      {
+        heading: "What People Actually Buy",
+        text: "When someone hires a nutrition coach, they are not buying a meal plan.\n\nThey are not buying macros. They are not buying a subscription to an app.\n\nThey are buying:\n\n**Confidence** — the belief that they can actually do this.\n**Hope** — that their situation can be different than it's been.\n**Accountability** — someone who will notice if they disappear.\n**Understanding** — a person who gets what their life actually looks like.\n**Solutions** — not theories, but something that will work for them specifically.\n\nMy Perfect Meals is an extraordinary tool for delivering all of those things. But the tool doesn't create the desire to buy. You do.\n\nUnderstand what your client is really asking for, and you'll never struggle to communicate your value.",
+      },
+      {
+        heading: "Applying This in My Perfect Meals",
+        text: "Your brand positioning should shape how you introduce My Perfect Meals to every client.\n\nIf you serve people who have failed at traditional diets, lead with the fact that My Perfect Meals doesn't give everyone the same plan — it builds around who the person actually is. That message directly addresses the reason previous diets didn't work.\n\nIf you serve people with medical conditions, lead with the clinical nutrition support the platform provides. Show how their profile — their actual medical context — is part of every meal generated.\n\nIf you serve busy professionals, lead with the restaurant feature and the simplicity of generation. They're not looking for a new thing to manage — they're looking for something that removes friction.\n\nThe same platform, positioned differently for each type of client. That's what a brand does.",
+      },
+    ],
+    quiz: {
+      passingScore: 80,
+      questions: [
+        {
+          id: "mm1q1",
+          question: "When a person decides whether to hire a nutrition coach, what do they evaluate first?",
+          options: [
+            "The coach's certifications and credentials.",
+            "Whether the tools and platform the coach uses are proven.",
+            "Whether they trust the person in front of them.",
+            "The pricing structure and what's included in each package.",
+          ],
+          correctIndex: 2,
+          explanation: "Trust comes first. Always. Before credentials, before pricing, before platform features — the prospect is deciding whether this person understands them and whether they could be honest with them. Your brand is the impression you leave before the conversation about tools or packages ever starts.",
+        },
+        {
+          id: "mm1q2",
+          question: "Why is niche positioning more effective than trying to appeal to everyone?",
+          options: [
+            "Specialty coaching commands higher prices in every market.",
+            "Speaking specifically to one person's real problem creates connection. Generic messaging creates distance.",
+            "Broad messaging attracts too much volume to manage.",
+            "Niche coaches face less competition on social media platforms.",
+          ],
+          correctIndex: 1,
+          explanation: "When someone reads your positioning and feels like you're describing them — their specific situation, their specific frustration — they stop scrolling. Generic messaging about \"helping people improve their nutrition\" creates no connection because it doesn't feel personal to anyone. Specific positioning reaches fewer people and converts far more of them.",
+        },
+        {
+          id: "mm1q3",
+          question: "A new coach posts consistently for three weeks, sees no new clients, and stops. What principle did they violate?",
+          options: [
+            "Quality over quantity — fewer, better posts perform better.",
+            "Consistency, which compounds over months, not weeks. Three weeks is not enough for trust to accumulate.",
+            "Content personalization — posts need to be targeted by audience segment.",
+            "Platform selection — the wrong platform may explain the lack of response.",
+          ],
+          correctIndex: 1,
+          explanation: "Visibility in coaching is a long-game. Trust accumulates over months of consistent presence — three weeks barely registers. Most coaches quit just before the compound effect starts showing. The coaches who build practices are the ones who keep showing up when nothing visible is happening yet.",
+        },
+        {
+          id: "mm1q4",
+          question: "What does 'authenticity beats perfection' mean for a nutrition professional building a presence?",
+          options: [
+            "You can skip editing and quality standards since personality matters more than production.",
+            "Real, honest content about actual results builds more durable trust than polished content that feels manufactured.",
+            "Personal stories are always more effective than professional advice or clinical information.",
+            "Credentials matter less than likability in nutrition coaching.",
+          ],
+          correctIndex: 1,
+          explanation: "People can sense over-manufactured content. Perfectly scripted, perfectly lit, perfectly polished — it creates distance. Genuine content about real client experiences, real insights, real moments from your practice builds the kind of trust that polished content cannot replicate. Authenticity is a quality, not a substitute for quality.",
+        },
+        {
+          id: "mm1q5",
+          question: "When someone decides to invest in nutrition coaching, what are they actually paying for?",
+          options: [
+            "Macro calculations, meal plans, and a structured approach to eating.",
+            "Access to nutrition science, a curated recipe database, and weekly assessments.",
+            "Confidence, hope, accountability, understanding, and a solution that works for them specifically.",
+            "A subscription to a personalized nutrition platform with coaching oversight.",
+          ],
+          correctIndex: 2,
+          explanation: "Nobody buys a meal plan. They buy the feeling that their situation can change, that someone actually understands what they're dealing with, and that they won't be doing this alone. The meal plan, the macros, the app — those are the delivery mechanism. The real purchase is emotional. Understand that, and your value becomes impossible to understate.",
+        },
+      ],
+    },
+  },
+  {
+    id: "marketing-module-2",
+    title: "Finding Your Clients",
+    description: "Where clients actually come from — and why the coaches who quit too early never find out.",
+    estimatedMinutes: 20,
+    sections: [
+      {
+        heading: "Social Media Works — But Only If You're Consistent",
+        text: "Social media is the most misunderstood lead generation tool in coaching.\n\nMost coaches expect it to work fast. They post for a few weeks, don't see results, conclude it isn't working, and stop.\n\nSocial media is a trust-building mechanism, not a vending machine. When someone follows you for months and consistently sees you show up with useful, honest content, they begin to feel like they know you. That familiarity is what drives the inquiry — not any single post.\n\nThe math: a coach who posts three times a week for twelve months has shown up 150+ times for their audience. By that point, when someone in their network needs help, that coach is the first person they think of.\n\nConsistency isn't about the algorithm. It's about becoming the obvious answer before anyone asks the question.",
+      },
+      {
+        heading: "Referrals Convert Better Than Cold Leads",
+        text: "No lead source in coaching outperforms a genuine referral.\n\nHere's why: when someone refers a friend to you, they transfer their trust. The prospect arrives pre-convinced that you're credible, because someone they trust said so. That shortcut is worth more than any campaign you'll ever run.\n\nCold leads — people who discover you through a post or an ad without a personal connection — require you to build trust from scratch. Referrals let you skip most of that work.\n\nThe practical implication: your best marketing strategy is to do excellent work with the clients you already have. A client who genuinely improved their life will tell people. Often without being asked.",
+        tip: "Ask for referrals at the right moment — when a client shares a win, a milestone, or something that clicked. 'Would you know anyone who might benefit from this?' That's the entire ask.",
+      },
+      {
+        heading: "Networking Compounds Over Time",
+        text: "Networking isn't about collecting contacts at events. It's about building a web of professional relationships that remember you when the right person shows up.\n\nA relationship with a primary care physician can send you a steady stream of patients managing metabolic conditions. A relationship with a personal trainer can generate clients who are training hard but eating poorly. A relationship with an HR director can lead to corporate wellness programs.\n\nThese relationships don't pay off immediately. They pay off over years — and they compound. A physician who's referred three clients to you will refer three more. The longer the relationship, the higher the volume.\n\nEvery relationship you build today is a potential client pipeline tomorrow. Treat every professional interaction accordingly.",
+      },
+      {
+        heading: "Most Coaches Quit Too Early",
+        text: "This is the most important thing in this module.\n\nThe coaches who fail don't fail because they lacked skill. They fail because they stopped before consistency had time to work.\n\nClient acquisition through content, referrals, and networking is slow in the beginning. The first 60 to 90 days almost always feel like nothing is happening. Most coaches interpret that silence as proof it isn't working — and they quit.\n\nThe coaches who keep going past that point almost universally find that something changes. A referral comes in. A post lands differently. A former contact reaches out. The compound interest starts paying dividends.\n\nThe hardest part of building a coaching practice is the gap between beginning and traction. The only way through it is consistency.",
+      },
+      {
+        heading: "Content Builds Trust Before the First Conversation",
+        text: "When someone considers reaching out to a coach, the first thing they do is look them up.\n\nWhat they find in those next five minutes determines whether they contact you. If they find consistent, useful, credible content over a long period, they arrive at the conversation already convinced you're legitimate.\n\nIf they find nothing — or three posts from eight months ago — they move on.\n\nContent doesn't need to be elaborate. A short, honest post about something you've observed in your clients. A practical tip someone can actually use. A question that makes someone stop and think about their own situation.\n\nDone consistently, that accumulates into a body of evidence that you are who you say you are.",
+      },
+      {
+        heading: "Applying This in My Perfect Meals",
+        text: "Every satisfied client in your My Perfect Meals practice is a referral asset.\n\nWhen a client sees results — better biometrics, meals they actually enjoy, a nutrition strategy that doesn't collapse on weekends — they tell people. Your job is to make sure they have the language to describe what changed and a simple way to help someone they care about get started.\n\nFor content, the most effective approach is specificity. A post about what happens when a real client updates their profile and suddenly gets meals they actually look forward to — that resonates more than a general post about personalized nutrition.\n\nThe platform gives you concrete things to point to: the restaurant feature, the biometric tracking, the clinical support. Use those specifics. Vague claims about 'personalized nutrition' are everywhere. Specific stories about specific outcomes are not.",
+      },
+    ],
+    quiz: {
+      passingScore: 80,
+      questions: [
+        {
+          id: "mm2q1",
+          question: "Why do referrals convert at a higher rate than cold social media leads?",
+          options: [
+            "Referrals tend to have more disposable income and take health more seriously.",
+            "Cold leads are usually not ready to invest — referrals are pre-qualified by their financial situation.",
+            "The trust a mutual contact has in you transfers to the prospect before you've spoken a word. They arrive pre-convinced.",
+            "Referral programs typically include a discount that cold leads don't receive.",
+          ],
+          correctIndex: 2,
+          explanation: "Trust is the most valuable asset in coaching. Referrals arrive with it already established — someone the prospect respects told them you're worth talking to. Cold leads require you to build that trust from zero. That difference explains why referral conversion rates typically far exceed cold acquisition rates.",
+        },
+        {
+          id: "mm2q2",
+          question: "A coach has been posting consistently for two months with no new clients. What is the most accurate assessment?",
+          options: [
+            "The content quality isn't good enough — they need to redesign their approach.",
+            "They're in the wrong niche — this market isn't profitable for coaching.",
+            "This is normal. Content-driven client acquisition typically takes 6 to 12 months of consistent effort before it produces reliable results.",
+            "They should switch platforms immediately — the audience isn't on this channel.",
+          ],
+          correctIndex: 2,
+          explanation: "Two months of consistent posting is still early. Most coaches who successfully build a content-driven practice describe the same experience: months of showing up to apparent silence, followed by a tipping point where referrals, inquiries, and recognition start compounding. Quitting at two months means quitting before the investment has had time to pay off.",
+        },
+        {
+          id: "mm2q3",
+          question: "What does 'every satisfied client becomes a potential marketing asset' mean in practice?",
+          options: [
+            "Ask clients to post weekly progress photos on social media to generate organic visibility.",
+            "Document client results and use them in paid advertising campaigns.",
+            "A client whose life genuinely improved will tell others naturally — that authentic word-of-mouth carries more credibility than any campaign you could run.",
+            "Offer satisfied clients a referral incentive program tied to their subscription discount.",
+          ],
+          correctIndex: 2,
+          explanation: "The most powerful marketing in coaching has always been a real person telling a real person what changed for them. No ad budget buys that credibility. It comes from doing excellent work and creating the conditions where satisfied clients feel compelled to share — which happens naturally when the results are genuine.",
+        },
+        {
+          id: "mm2q4",
+          question: "Why does content build trust before the first conversation even happens?",
+          options: [
+            "Content with keywords improves search ranking so more people discover you organically.",
+            "When someone has followed your content for weeks or months, they arrive at the first conversation already feeling like they know you — trust doesn't start from zero.",
+            "Algorithmic distribution ensures your content reaches people at the exact moment they're ready to buy.",
+            "Content demonstrates regulatory compliance and professional standing.",
+          ],
+          correctIndex: 1,
+          explanation: "Content is a pre-frame. By the time someone reaches out to a coach whose content they've followed consistently, they've already decided they trust you — they're reaching out to confirm the fit, not to evaluate from scratch. That head start changes the entire nature of the first conversation.",
+        },
+        {
+          id: "mm2q5",
+          question: "What is the most common reason skilled coaches fail to build a client base?",
+          options: [
+            "Overpricing their services in a competitive market.",
+            "Insufficient credentials or certifications for the clients they're trying to reach.",
+            "They stop before consistency has time to compound — most quit in the first 60 to 90 days, just before traction begins.",
+            "Choosing platforms with the wrong audience demographics.",
+          ],
+          correctIndex: 2,
+          explanation: "The failure isn't usually skill — it's timing. Client acquisition through content and referrals is slow at the start and then accelerates. Most coaches experience the slow start, interpret it as failure, and stop just before the acceleration would have become visible. Persistence through the quiet period is the single most reliable predictor of coaching practice success.",
+        },
+      ],
+    },
+  },
+  {
+    id: "marketing-module-3",
+    title: "Sales & Discovery Calls",
+    description: "How to turn a conversation about someone's goals into a natural decision to work with you — without pressure, scripts, or tactics.",
+    estimatedMinutes: 20,
+    sections: [
+      {
+        heading: "Don't Try to Sell My Perfect Meals. Tell Them About It.",
+        text: "There is a fundamental difference between selling a product and helping someone understand whether it solves their problem.\n\nSelling puts the product at the center. The coach talks about features, explains the platform, describes the subscription tiers, and waits for the prospect to decide.\n\nTelling puts the person at the center. The coach asks questions, listens to what's actually hard, and then explains the specific ways My Perfect Meals addresses what they heard.\n\nThe same information lands completely differently depending on which frame it comes from.\n\nWhen you lead with the product, people feel sold to. When you lead with their problem and use the product to address it, people feel helped. Those are not the same experience — and they don't produce the same results.",
+        tip: "If you find yourself explaining features before you've asked a single question, you've started in the wrong place. Features are answers. Find out the questions first.",
+      },
+      {
+        heading: "The Discovery Call: Ask First, Talk Second",
+        text: "A discovery call is not a pitch. It's a conversation designed to find out if there's a real fit.\n\nThe most effective discovery calls follow a simple structure:\n\n**Ask** — What's going on for this person right now? What have they tried? What got in the way before? What are they actually hoping to change?\n\n**Listen** — Not to form a response, but to understand. What are they really describing? What's the emotion underneath the stated problem?\n\n**Reflect** — Show them you understood. \"So it sounds like the biggest issue isn't that you don't know what to eat — it's that you can't stay consistent when work gets busy.\"\n\n**Help** — Now, if there's a fit, explain how My Perfect Meals and your coaching address what you heard. Not the whole platform. The parts that matter for this person.\n\nThat sequence changes the entire dynamic of the conversation.",
+      },
+      {
+        heading: "Questions That Open Real Conversations",
+        text: "The questions you ask determine the quality of the conversation you have.\n\nThese open conversations rather than closing them:\n\n\"How many times have you started a nutrition plan and had to start over because life got in the way?\"\n\n\"What's the part of eating well that consistently falls apart for you?\"\n\n\"If you could change one thing about your relationship with food, what would it be?\"\n\n\"Have you ever felt like a nutrition plan was working for someone else's life but not yours?\"\n\n\"What would it mean for you — practically, day to day — if this actually worked?\"\n\nNone of these are tricks. They're honest curiosity. When someone answers them, you find out what they actually need. That's the foundation of everything that follows.",
+      },
+      {
+        heading: "Help People Decide. Don't Push Them.",
+        text: "Pressure closes deals and kills relationships.\n\nA prospect who feels pressured into signing up arrives with resentment instead of commitment. They're less likely to engage honestly, less likely to do the work, and more likely to blame you when things get hard.\n\nThe goal of a discovery call is not to get a yes at all costs. It's to help a person understand whether this is genuinely the right thing for them right now — and to help them make that decision with clarity.\n\nWhen you operate from that frame, something interesting happens: the people who say yes are genuinely ready. And genuine readiness produces better outcomes, more engagement, and more referrals than any conversion tactic ever will.\n\nHelp people decide. Don't decide for them.",
+      },
+      {
+        heading: "What to Do When They Say No",
+        text: "\"No\" in a discovery call is almost always \"not yet.\"\n\nSomething isn't quite right — the timing, the price, the readiness, the trust level. Your job is to understand which one without making the person feel interrogated.\n\n\"I completely understand. Can I ask — is there anything specific that made this feel like not the right fit right now?\"\n\nThat one question, asked without defensiveness, tells you everything. Sometimes the answer changes the conversation. Sometimes it confirms the no. Either way, you've handled it with professionalism — which means that person remembers you well when the timing does change.\n\nThe coaching practices with the most referrals are the ones that treat no's with the same care as yes's.",
+      },
+      {
+        heading: "Applying This in My Perfect Meals",
+        text: "The discovery call is where My Perfect Meals becomes a solution instead of a product.\n\nOnce you understand what's actually hard for this person, you can be specific. If they mention that eating out always derails their progress, show them the restaurant feature — not as a feature, but as the direct answer to what they just said.\n\nIf they mention that every plan they've tried treated them like a generic person, walk them through the onboarding. Show them how their medical conditions, their allergies, their cuisine preferences, and their lifestyle all become the inputs — not constraints on a standard plan, but the building blocks of something made for them.\n\nYou're not demonstrating software. You're showing someone their problem has a specific solution. That's an entirely different conversation.",
+      },
+    ],
+    quiz: {
+      passingScore: 80,
+      questions: [
+        {
+          id: "mm3q1",
+          question: "What is the most important thing to do at the start of a discovery call?",
+          options: [
+            "Present your credentials and explain your coaching philosophy before anything else.",
+            "Walk through the pricing options so the prospect can make an informed financial decision.",
+            "Ask questions and genuinely listen — understand what this specific person is dealing with before you say a word about your services.",
+            "Show a demonstration of My Perfect Meals to establish the platform's credibility.",
+          ],
+          correctIndex: 2,
+          explanation: "The discovery call is a conversation, not a presentation. Before you can help someone understand whether My Perfect Meals and your coaching solves their problem, you need to know what their problem actually is. Features and pricing are answers. Ask the questions first.",
+        },
+        {
+          id: "mm3q2",
+          question: "A prospect says 'I need to think about it.' What is the most effective coaching response?",
+          options: [
+            "'If you don't decide this week, the price may change.'",
+            "'Totally understand. What specifically would help you feel more confident about making a decision?'",
+            "'Most people who say that end up not doing anything about their health. I don't want that for you.'",
+            "'The program is nearly full right now, so I'd encourage you to decide soon.'",
+          ],
+          correctIndex: 1,
+          explanation: "Pressure tactics produce resentful clients. 'I need to think about it' almost always means something specific isn't sitting right — timing, price, trust, readiness. Asking what would help them feel confident invites them to tell you what's actually in the way, which is the only information that matters.",
+        },
+        {
+          id: "mm3q3",
+          question: "What is the correct meaning of 'don't try to sell My Perfect Meals — tell them about it'?",
+          options: [
+            "Never mention pricing during a discovery conversation.",
+            "Focus on features and benefits, and let prospects self-select.",
+            "Find out what the person actually needs first — then explain how My Perfect Meals specifically addresses what you heard. Not the other way around.",
+            "Keep the conversation informal and avoid structured sales language.",
+          ],
+          correctIndex: 2,
+          explanation: "The sequence matters. Leading with the product puts it at the center of the conversation — people feel sold to. Leading with the person's real problem and then connecting it to specific solutions makes the product feel like an answer, not an ask. Same information, completely different dynamic.",
+        },
+        {
+          id: "mm3q4",
+          question: "During a 30-minute discovery call, a coach talks for 25 minutes. What is the likely result?",
+          options: [
+            "The prospect is impressed by the depth of expertise demonstrated.",
+            "The coach provides enough context for a fully informed decision.",
+            "The coach learns very little about the prospect and the conversation feels like a pitch — which reduces the chance of a good outcome.",
+            "This is the ideal ratio for building credibility on a first call.",
+          ],
+          correctIndex: 2,
+          explanation: "The more you talk, the less you learn. A prospect who leaves a discovery call feeling like they were listened to is far more likely to move forward than one who received an extensive presentation. Understanding what they actually need is both the ethical and effective foundation of the call.",
+        },
+        {
+          id: "mm3q5",
+          question: "Which opening question is most likely to start a productive discovery conversation?",
+          options: [
+            "'Have you heard of My Perfect Meals before?'",
+            "'What's your current calorie target and macro split?'",
+            "'How many times have you started a nutrition plan and had to start over because life got in the way?'",
+            "'Are you primarily looking for weight loss or performance nutrition?'",
+          ],
+          correctIndex: 2,
+          explanation: "This question works because almost everyone can answer yes — and answering it opens up the real conversation about what's actually been hard. It creates immediate resonance by acknowledging a near-universal experience, which signals that you understand people like them before you've said anything about your services.",
+        },
+      ],
+    },
+  },
+  {
+    id: "marketing-module-4",
+    title: "Pricing & Packaging",
+    description: "Why undercharging hurts your clients as much as it hurts your business — and how to structure services that reflect real value.",
+    estimatedMinutes: 20,
+    sections: [
+      {
+        heading: "Pricing Is a Mindset Problem Before It's a Math Problem",
+        text: "Most coaches underprice their services. Not because the market won't support higher rates — but because they don't believe their help is worth more.\n\nThat's an internal problem, not an external one.\n\nNew coaches often feel like impostors. They haven't worked with enough clients yet. They're still learning. They're not sure they can deliver. So they set prices that reflect their uncertainty rather than their actual value.\n\nThe problem: underpriced services attract undercommitted clients. When someone pays a meaningful amount for coaching, they treat it seriously. When they pay almost nothing, they treat it accordingly.\n\nYour pricing is a statement about how seriously you take what you do. Price from confidence, not from doubt.",
+        tip: "If your price feels uncomfortable to say out loud, that's often the right price. The discomfort is the old belief being updated.",
+      },
+      {
+        heading: "What New Coaches Get Wrong About Money",
+        text: "New coaches make three pricing mistakes with nearly universal consistency.\n\n**They discount before they're asked.** Offering a lower rate preemptively signals that you don't believe your full rate is justified. Let the prospect respond to the full price first. Most won't push back the way you're afraid they will.\n\n**They give too much away.** Unlimited messaging, extra check-ins, free resources, revised meal plans — when you're not confident in your rate, you compensate with volume. This leads to burnout and trains clients to expect endless access for a fixed fee.\n\n**They set prices that don't sustain the work.** If your rate means you need 40 clients to pay your bills, you will burn out before you reach 20. Sustainable practices are built on rates that let you serve clients deeply, not rates that require scale to survive.",
+      },
+      {
+        heading: "Package Your Services, Not Your Hours",
+        text: "Hourly pricing is the wrong model for coaching.\n\nWhen you charge by the hour, clients think about how many hours they're getting. You think about how many hours you're spending. The conversation becomes about time — not about outcomes.\n\nClients are not buying your hours. They are buying results. They want to feel better, lose weight, manage their condition, perform at a higher level. Those outcomes have nothing to do with how many hours you spent.\n\nPackage your services around outcomes:\n\n**Three-month transformation program** — X check-ins, ongoing support, full platform access.\n\n**Quarterly health strategy engagement** — Clinical review, customized protocol setup, monthly support calls.\n\n**90-day kickstart** — Onboarding, weekly check-ins, progress review at 30/60/90 days.\n\nWhen clients buy a program, they're buying the result. That framing is honest and effective.",
+      },
+      {
+        heading: "Charging What You're Worth Protects Your Clients",
+        text: "This is counterintuitive but true: coaches who charge appropriately produce better client outcomes than coaches who undercharge.\n\nHere's why.\n\nA coach who undercharges needs volume to survive. Volume means more clients than they can serve well. More clients than they can serve well means attention gets thin. Attention gets thin and results suffer.\n\nA coach who charges appropriately serves fewer clients more deeply. They follow up more. They notice more. They invest more in each relationship because each relationship represents meaningful revenue.\n\nWhen you charge what you're worth, you have the financial security to actually show up for your clients. That's not a benefit to you. That's a benefit to them.",
+      },
+      {
+        heading: "Applying This in My Perfect Meals",
+        text: "My Perfect Meals makes your pricing case for you — if you use it correctly.\n\nThe platform demonstrates its value in the first session. Show a prospect the onboarding flow. Let them see that their medical conditions, allergies, dietary identity, and lifestyle preferences all become inputs. Show them what the app generates when it actually knows who they are.\n\nThat demonstration answers the question 'why does this cost this much?' before they ask it. They can see the system. They can see what you're providing. They can see that this is not a generic nutrition plan being handed to everyone.\n\nThe platform is evidence. Use it. A coach who can show exactly what the client gets — not just describe it — is in a completely different pricing conversation than one who is asking someone to trust a verbal promise.",
+      },
+    ],
+    quiz: {
+      passingScore: 80,
+      questions: [
+        {
+          id: "mm4q1",
+          question: "Why do new coaches consistently undercharge for their services?",
+          options: [
+            "The nutrition coaching market is too competitive to command premium pricing.",
+            "They haven't completed enough certifications to justify higher rates yet.",
+            "Undercharging reflects an internal belief that their help isn't worth the price — not an accurate read of market conditions.",
+            "Early-stage coaching clients expect discounted rates while the relationship is being established.",
+          ],
+          correctIndex: 2,
+          explanation: "Underpricing is almost always an inside job. The market will often bear higher rates than new coaches believe — but the coach sets a low price because they're uncertain about their own value. That uncertainty tends to be self-fulfilling: low prices attract undercommitted clients, which produces mediocre outcomes, which reinforces the belief that higher pricing isn't justified.",
+        },
+        {
+          id: "mm4q2",
+          question: "A new coach says: 'I'll raise my prices once I have more experience and more clients.' What is wrong with this logic?",
+          options: [
+            "Price increases can damage relationships with existing clients who enrolled at a lower rate.",
+            "Undercharging attracts clients who don't take the process seriously — and coaches who undervalue their work rarely build the confidence to raise prices through volume alone.",
+            "Experience is the only legitimate basis for charging more, so the timing is actually correct.",
+            "Market rates should always determine pricing, not individual coach experience levels.",
+          ],
+          correctIndex: 1,
+          explanation: "The logic is backwards. Undercharging doesn't build confidence — it erodes it, because the clients it attracts tend to be less committed, which produces worse outcomes, which reinforces the belief that the work isn't worth more. Pricing from confidence, even before you feel fully ready, is part of building the practice that justifies it.",
+        },
+        {
+          id: "mm4q3",
+          question: "Why is packaging your services around a program or outcome better than charging hourly?",
+          options: [
+            "Programs are more straightforward to advertise than per-session pricing models.",
+            "Hourly billing creates scope disputes that damage the coaching relationship.",
+            "Clients aren't buying your time — they're buying a result. Outcome-based packaging keeps the conversation where it belongs: on what changes for them.",
+            "Per-hour pricing is not legally appropriate in some coaching markets.",
+          ],
+          correctIndex: 2,
+          explanation: "Hourly pricing centers the conversation on time. Outcome packaging centers it on results. Clients don't want 10 hours of coaching — they want to feel better, lose weight, manage their condition. Package around what they're actually buying, and both the value proposition and the pricing conversation become much cleaner.",
+        },
+        {
+          id: "mm4q4",
+          question: "How does charging appropriately actually benefit your clients — not just your business?",
+          options: [
+            "Higher prices attract clients with more disposable income, who tend to be more disciplined.",
+            "Coaches who charge appropriately serve fewer clients more deeply — more attention, more follow-through, better outcomes. Underpriced coaches need volume and spread themselves thin.",
+            "Appropriate pricing allows coaches to invest in better tools and resources for clients.",
+            "Premium pricing signals higher quality to skeptical prospects who might otherwise doubt the coaching's effectiveness.",
+          ],
+          correctIndex: 1,
+          explanation: "A coach who needs 40 clients to make ends meet can't serve 40 clients well. A coach who charges rates that make 15 to 20 clients sustainable can go deep with each one — noticing more, following up more, investing more in each relationship. That depth is what produces results. It's not a luxury. It's the work.",
+        },
+        {
+          id: "mm4q5",
+          question: "A prospect says: 'That's more than I was expecting to spend.' What is the most effective response?",
+          options: [
+            "'I can offer you a discounted rate if you commit today.'",
+            "'This is what the market charges for this level of professional coaching.'",
+            "'I understand. What would feel worth it to you — if you actually reached your goal?'",
+            "'Most people spend more than that on things that don't produce any results.'",
+          ],
+          correctIndex: 2,
+          explanation: "Bringing the question back to the outcome shifts the frame from 'is this expensive?' to 'what is the result worth to me?' Most people who say something costs more than expected haven't fully connected the price to the outcome. This question helps them do that — without pressure and without discounting.",
+        },
+      ],
+    },
+  },
+  {
+    id: "marketing-module-5",
+    title: "Results That Market Themselves",
+    description: "The most powerful marketing you'll ever do happens after a client succeeds — if you build the relationship that makes them want to share it.",
+    estimatedMinutes: 20,
+    sections: [
+      {
+        heading: "Underpromise. Overdeliver. Always.",
+        text: "The simplest marketing strategy in coaching has nothing to do with social media.\n\nIt's this: make a modest promise and then exceed it.\n\nEvery time you overdeliver, you produce a client who is genuinely surprised by what happened. Surprised clients talk. They don't just leave a polite five-star review — they tell specific people in their lives about what changed, because it exceeded what they expected.\n\nThe math works in reverse too: every time you overpromise, you produce a client who was disappointed by what happened. Disappointed clients also talk.\n\nThe coaches with the most referrals are almost never the ones who made the biggest promises. They're the ones who made honest ones — and then showed up beyond them.",
+        tip: "This applies to your My Perfect Meals clients specifically: never promise a specific outcome ('you'll lose 20 pounds in 60 days'). Promise the process — 'I'm going to do everything I can to help you build something that actually works for your life.' Then exceed that promise. The outcome often follows.",
+      },
+      {
+        heading: "Communicate Often — Not Just When Something Goes Wrong",
+        text: "Most coaches go silent between sessions.\n\nA client doesn't hear from them unless they reach out, unless something breaks down, unless there's a scheduled check-in coming up. This is a missed opportunity — and a retention risk.\n\nProactive communication signals that you're thinking about your client between sessions. It doesn't have to be elaborate:\n\n\"Hey, you mentioned you had a work event this week — how did it go?\"\n\n\"I noticed you've been consistent all week. Keep that going.\"\n\n\"Thinking about what we discussed last time. Let me know if you want to talk through it.\"\n\nThese moments cost almost nothing. They produce the feeling that someone is paying attention — which is exactly what clients are paying for.",
+      },
+      {
+        heading: "Celebrate Wins Out Loud",
+        text: "Clients almost never acknowledge their own milestones.\n\nThey hit a goal and immediately move to the next problem. They break a habit they've had for years and treat it like it was expected. They have a week where everything clicked and don't even mention it to you.\n\nYour job is to notice and name those moments before they pass.\n\n\"You've been consistent for four weeks straight. Do you understand how unusual that is?\"\n\n\"You lost four pounds without feeling deprived for the first time ever. That's not a small thing.\"\n\n\"You made a good decision at a restaurant without thinking about it. That's the habit forming.\"\n\nWhen coaches celebrate client wins loudly, two things happen: the client actually believes the progress is real, and the coaching relationship deepens. Both of those drive retention and referrals.",
+      },
+      {
+        heading: "Asking for Testimonials the Right Way",
+        text: "Testimonials don't appear automatically. You have to create the conditions for them.\n\nThe conditions are simple:\n1. A client achieves something meaningful.\n2. They feel genuinely proud of it.\n3. You ask — at that moment, not six weeks later.\n\n\"You just said this is the first time eating well has felt sustainable for you. Would you be willing to share that somewhere? It would mean a lot — and it might help someone who's exactly where you were a few months ago.\"\n\nThat ask works because it's honest and it gives the client a reason beyond your benefit. They're not doing you a favor. They're potentially helping someone who needs it.\n\nThe most effective testimonials are specific. \"For the first time, I actually enjoyed what I was eating\" is worth ten times more than \"great program, highly recommend.\"",
+      },
+      {
+        heading: "The Referral Ask: Natural, Not Awkward",
+        text: "Most coaches are uncomfortable asking for referrals. They feel like they're imposing, selling, asking for something they haven't earned.\n\nReframe it: when your client is succeeding, you're not asking them to do you a favor. You're asking them if they know anyone else who deserves the same thing they just experienced.\n\n\"You've had a lot of success with this. Would you know anyone who might benefit from something like this? I have a promo code they can use to get started.\"\n\nThat's the entire ask. One sentence. No pressure, no urgency, no manufactured scarcity.\n\nTiming is everything. Ask at a peak moment — when they just shared a win, when they're feeling the progress, when the coaching relationship is at its strongest. That's when the referral feels natural, because it comes from genuine enthusiasm rather than obligation.",
+      },
+      {
+        heading: "Applying This in My Perfect Meals",
+        text: "The platform gives you concrete things to celebrate and specific results to point to.\n\nBiometrics are a particularly powerful tool here. When a client's numbers change — weight, body composition, glucose trends — that data is evidence of real progress that exists independent of anyone's memory or interpretation. It's hard to dismiss.\n\n\"Look at your glucose trend from six weeks ago versus now. That's not the app doing that — that's you making different decisions consistently, supported by the app.\"\n\nFor testimonials and referrals, the platform's specificity is your advantage. Instead of vague outcomes, your clients can describe exactly what changed: \"I stopped getting overwhelmed by eating out because the app tells me what to order at the actual restaurant I'm at.\" That specificity is compelling because it describes something real that other people can picture.",
+      },
+    ],
+    quiz: {
+      passingScore: 80,
+      questions: [
+        {
+          id: "mm5q1",
+          question: "When is the best time to ask a client for a testimonial?",
+          options: [
+            "At the end of the enrollment call, while enthusiasm about getting started is high.",
+            "After exactly 90 days, regardless of whether they've hit any specific milestones.",
+            "Right after a genuine win — a milestone they hit, a week that finally clicked, something they're proud of.",
+            "During the offboarding process, when the coaching relationship is formally concluding.",
+          ],
+          correctIndex: 2,
+          explanation: "Timing determines the quality of a testimonial. The best ones come from a moment of genuine pride — when a client has just experienced something that surprised them. That's when the words are specific and authentic. Ask six weeks later and you'll get something polished but vague.",
+        },
+        {
+          id: "mm5q2",
+          question: "A client loses four pounds in their first month. You made no specific promises. How should you frame this moment?",
+          options: [
+            "'That's slightly below average for the first month — let's look at what we can adjust.'",
+            "'We should verify that against your full biometric picture before drawing conclusions.'",
+            "'That's four pounds you didn't have to white-knuckle your way through. That's what consistent looks like. It builds from here.'",
+            "'Great start — just keep going and we'll hit your goal eventually.'",
+          ],
+          correctIndex: 2,
+          explanation: "The framing matters as much as the number. Four pounds isn't just a number — it's evidence that the process works for this person's real life. Naming that specifically ('you didn't have to deprive yourself to make this happen') connects the outcome to the method, which is what makes a client want to continue and tell others.",
+        },
+        {
+          id: "mm5q3",
+          question: "What makes a coaching testimonial most effective?",
+          options: [
+            "It was recorded on video, which is more credible than written testimonials.",
+            "It mentions specific platform features the client found most useful.",
+            "It describes a specific, real outcome in the client's own words — not a general positive statement.",
+            "It includes a before/after comparison with measurable numbers.",
+          ],
+          correctIndex: 2,
+          explanation: "Specificity is credibility. 'Great coach, highly recommend' tells a prospective client nothing actionable. 'For the first time in my life, I actually look forward to eating — and I've stopped feeling guilty about restaurants' tells them exactly what changed. Specific testimonials resonate because they describe something the reader can picture for themselves.",
+        },
+        {
+          id: "mm5q4",
+          question: "Why should coaches communicate proactively rather than waiting for clients to reach out?",
+          options: [
+            "Proactive communication is legally required for coaches working with clients who have medical conditions.",
+            "Clients who aren't followed up with consistently tend to cancel their subscriptions faster.",
+            "Proactive contact signals genuine investment — clients feel cared for, not just enrolled. Coaches who only appear when something breaks feel transactional.",
+            "Regular contact is required to maintain accurate coaching logs and compliance records.",
+          ],
+          correctIndex: 2,
+          explanation: "Clients pay for someone who is paying attention. A coach who only appears at scheduled sessions or when problems arise communicates, implicitly, that the client's progress doesn't occupy space in the coach's attention between meetings. Small, proactive touchpoints change that perception — and they change the coaching relationship.",
+        },
+        {
+          id: "mm5q5",
+          question: "A client hits a small milestone and doesn't mention it. What should the coach do?",
+          options: [
+            "Wait — if it were meaningful to them, they would have brought it up.",
+            "Point it out directly: 'I noticed you hit your consistency goal four weeks in a row. That's not nothing.'",
+            "Log it for future reference but don't interrupt their natural communication pattern.",
+            "Wait until the next scheduled check-in and mention it as part of the overall progress review.",
+          ],
+          correctIndex: 1,
+          explanation: "Clients almost never acknowledge their own progress. They're too close to it, too focused on the next problem, too used to minimizing what they've accomplished. Your job is to name what they're not naming — specifically and directly. When coaches celebrate what clients miss, it creates the belief that the progress is real. That belief drives everything else.",
+        },
+      ],
+    },
+  },
+  {
+    id: "marketing-module-6",
+    title: "Client Retention",
+    description: "Long-term clients are built one relationship moment at a time — and the coaches who understand that have practices that grow on their own.",
+    estimatedMinutes: 20,
+    sections: [
+      {
+        heading: "Retention Is About the Relationship, Not the Subscription",
+        text: "Coaches who think about retention as a business problem try to solve it with tactics: loyalty programs, automatic renewals, re-engagement emails.\n\nCoaches who understand retention as a relationship problem solve it by being genuinely good at their job.\n\nThe clients who stay the longest are not the ones who feel locked in. They're the ones who can't imagine going back to navigating their nutrition without someone in their corner.\n\nThat feeling doesn't come from a contract or a discount. It comes from months of being listened to, being seen, being supported through the hard weeks, and watching your life actually change as a result.\n\nRetention isn't something you do after the client enrolls. It's something you build from the very first conversation.",
+      },
+      {
+        heading: "Accountability Done Right: Present, Not Punishing",
+        text: "Most clients have experienced accountability that feels like surveillance.\n\nA coach who tracks every missed meal, questions every deviation, and treats a rough week as a failure — that's not accountability. That's pressure with a professional title.\n\nReal accountability is the feeling that someone will notice if you disappear — and will reach out with curiosity rather than judgment.\n\n\"I noticed you've been quiet this week. Not checking in to scold you. Just making sure you're okay and that life hasn't gotten in the way of something that was working.\"\n\nThat message, sent without an agenda, does more for retention than any re-engagement campaign ever will. It tells the client: I'm not just watching your metrics. I'm watching out for you.",
+        tip: "The check-in that isn't required is the one that matters most. When coaches reach out between sessions with no agenda — just genuine curiosity about how someone's doing — clients feel the difference between being managed and being cared for.",
+      },
+      {
+        heading: "Celebrate the Milestones They Don't Notice",
+        text: "Clients are terrible at acknowledging their own progress.\n\nThey've been trying to improve their nutrition for years — sometimes decades. By the time they're working with you, they've failed enough times that success feels suspicious. When something works, their first instinct is often to wait for it to fall apart, not to celebrate that it happened.\n\nYour job is to override that pattern.\n\nWhen a client has been consistent for four weeks, name it. When they make a good decision in a difficult situation, name it. When their biometrics shift in a positive direction, name it.\n\nYou are not just celebrating results. You are building a new story about what this person is capable of. That story is what keeps them in the work when it gets hard.",
+      },
+      {
+        heading: "Making Clients Feel Seen",
+        text: "The single most powerful retention tool in coaching is also the simplest: remember what your clients tell you.\n\nNot just their health goals. Their actual life.\n\nThe daughter's wedding they mentioned three months ago. The job transition that's been stressful. The relationship with food that goes back to childhood. The pride they felt the first time they navigated a restaurant without anxiety.\n\nWhen you reference those details — when you connect them back to something a client told you weeks ago — they feel seen. Not managed. Not processed. Seen.\n\nThat feeling is the foundation of long-term trust. It's also nearly impossible to replicate at scale, which means it's one of the few genuine competitive advantages available to individual coaches.",
+      },
+      {
+        heading: "Building Habits, Not Willpower",
+        text: "Clients who succeed through willpower eventually fail.\n\nWillpower is a finite resource. It depletes under stress, under fatigue, under change. A nutrition plan that requires constant active choice — constant resistance to easier options — will collapse the first time life gets genuinely hard.\n\nClients who succeed through habit rarely need to quit.\n\nHabits are automatic. They don't require a decision. They don't deplete a resource. When eating well is what a person just does — not something they choose with effort every day — their compliance becomes independent of their circumstances.\n\nYour job as a coach is not to keep clients motivated. It's to help them build habits strong enough that motivation becomes irrelevant. That's the work that produces lifetime clients.",
+      },
+      {
+        heading: "Applying This in My Perfect Meals",
+        text: "The platform creates natural touchpoints for the relationship moments that drive retention.\n\nWhen a client shares their meal board or logs a good week, that's a moment to reach out. When biometrics update and show a positive trend, that's a moment to name the progress. When a client uses the restaurant feature successfully for the first time, that's worth more than just logging it.\n\nThe platform also makes the work feel manageable, which is itself a retention factor. Clients who feel like the process is within reach stay in it. Clients who feel overwhelmed by the complexity quit.\n\nWhen you orient your coaching around making the platform feel easy and the process feel sustainable — rather than optimizing for maximum compliance in minimum time — you build something your clients don't want to leave.",
+      },
+    ],
+    quiz: {
+      passingScore: 80,
+      questions: [
+        {
+          id: "mm6q1",
+          question: "What is the primary driver of long-term client retention in nutrition coaching?",
+          options: [
+            "Consistent measurable results delivered each and every month.",
+            "The strength of the human relationship — clients stay with coaches who make them feel understood, supported, and seen.",
+            "Regular platform updates and new features that keep the experience fresh.",
+            "Monthly loyalty incentives and pricing discounts for continued enrollment.",
+          ],
+          correctIndex: 1,
+          explanation: "Results matter — but clients leave coaches who produce results all the time, because the relationship didn't hold them. Clients stay with coaches whose absence they can't imagine, because that person has become part of how they navigate their life. The relationship is what retention is actually built on.",
+        },
+        {
+          id: "mm6q2",
+          question: "A client misses two check-ins in a row without explanation. What is the most effective coaching response?",
+          options: [
+            "Send an automated reminder with their current progress metrics and a link to rebook.",
+            "Wait — following up too quickly feels intrusive and may push them away.",
+            "'Hey, I noticed I haven't heard from you. Not checking in to lecture you — just checking in. What's going on?'",
+            "Flag the account as at-risk and move to monthly contact to give them space.",
+          ],
+          correctIndex: 2,
+          explanation: "The message that works is the one sent without an agenda. 'What's going on?' — not 'you missed two sessions,' not 'your progress is suffering.' Genuine curiosity with no judgment is the exact opposite of what clients expect when they've gone quiet. It's what brings them back.",
+        },
+        {
+          id: "mm6q3",
+          question: "What does 'making clients feel seen' mean in a coaching context?",
+          options: [
+            "Sending weekly email summaries of their biometric data and progress metrics.",
+            "Remembering the specific details of their life — what they told you, what matters to them, what they've been working through — and reflecting that back to them over time.",
+            "Providing personalized meal plan adjustments based on their stated weekly preferences.",
+            "Connecting with clients on social media and engaging with their content.",
+          ],
+          correctIndex: 1,
+          explanation: "Feeling seen is not about data. It's about a person knowing that another person actually listened — and remembered. When a coach references something a client mentioned three months ago, the client understands that they weren't just a case to manage. That feeling builds a kind of loyalty that no loyalty program can manufacture.",
+        },
+        {
+          id: "mm6q4",
+          question: "Why do coaches who focus on building habits retain clients longer than those who focus on keeping clients motivated?",
+          options: [
+            "Habit-based coaching requires fewer sessions, which makes the program more affordable.",
+            "Motivation is unreliable and finite. Habits are automatic — they don't require a daily decision, which means they survive the difficult periods that motivation cannot.",
+            "Habit formation is a more evidence-based approach than motivational interviewing.",
+            "Habit coaching produces faster measurable results in the first 30 days.",
+          ],
+          correctIndex: 1,
+          explanation: "A client whose nutrition depends on willpower will eventually have a week where willpower runs out. Life gets hard, stress spikes, the easy choice wins. Habits are different — they're what happens without decision. When eating well is the default, circumstances become much less of a factor. Building that automatic default is the work that produces clients who don't quit.",
+        },
+        {
+          id: "mm6q5",
+          question: "A client tells you they had a rough week and went significantly off-plan. What is the retention-focused response?",
+          options: [
+            "'Let's pull up your logs and figure out specifically where the breakdown happened.'",
+            "'One rough week doesn't define your progress. Tell me what happened — not to fix your diet, but because I want to understand what we're actually working with.'",
+            "'This is exactly why consistency matters. You'll need to recalibrate this week to stay on track.'",
+            "'That's okay. Forget about it and just start fresh Monday.'",
+          ],
+          correctIndex: 1,
+          explanation: "The client who admitted they had a rough week is already doing the hard thing — they told you. The response that keeps them is the one that makes them glad they did. Curiosity without judgment ('tell me what happened') signals that the relationship is strong enough to handle imperfection — which is the only kind of coaching relationship that lasts.",
+        },
+      ],
+    },
+  },
+];
+
+export function getMarketingModuleById(moduleId: string): CertificationModule | undefined {
+  return MARKETING_COACHING_MODULES.find((m) => m.id === moduleId);
+}
+
+export function getMarketingModuleIndex(moduleId: string): number {
+  return MARKETING_COACHING_MODULES.findIndex((m) => m.id === moduleId);
+}
+
+export function getNextMarketingModuleId(moduleId: string): string | null {
+  const idx = getMarketingModuleIndex(moduleId);
+  if (idx === -1 || idx >= MARKETING_COACHING_MODULES.length - 1) return null;
+  return MARKETING_COACHING_MODULES[idx + 1].id;
+}
+
+export function getPrevMarketingModuleId(moduleId: string): string | null {
+  const idx = getMarketingModuleIndex(moduleId);
+  if (idx <= 0) return null;
+  return MARKETING_COACHING_MODULES[idx - 1].id;
+}
