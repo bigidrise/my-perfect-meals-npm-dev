@@ -85,15 +85,15 @@ export default function Builders() {
       testId: "card-general-nutrition",
       builderId: "general_nutrition",
     },
-    {
-      title: "Performance & Competition Builder",
-      description:
-        "Coach guided elite athlete meal planning for competition prep, peak performance and recovery",
-      icon: Dumbbell,
-      route: "/pro/performance-competition-builder",
-      testId: "card-performance-competition",
-      builderId: "performance_competition",
-    },
+    // Performance & Competition Builder hidden (use Performance Nutrition Builder instead)
+    // {
+    //   title: "Performance & Competition Builder",
+    //   description: "Coach guided elite athlete meal planning for competition prep, peak performance and recovery",
+    //   icon: Dumbbell,
+    //   route: "/pro/performance-competition-builder",
+    //   testId: "card-performance-competition",
+    //   builderId: "performance_competition",
+    // },
   ];
 
   const isProfessional = ["admin", "coach", "physician", "trainer"].includes(
