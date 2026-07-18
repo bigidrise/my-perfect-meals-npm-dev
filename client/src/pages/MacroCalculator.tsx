@@ -84,6 +84,7 @@ type GuidedStep =
   | "results"
   | "nutritionStrategy"
   | "starch"
+  | "clinicalContext"
   | "bodyComposition"
   | "save"
   | "done";
@@ -685,6 +686,22 @@ export default function MacroCounter() {
     "even" | "workout" | "morning" | "evening" | "ai"
   >("even");
 
+  // Clinical Context Screening — self-reported medication/hormone gate
+  const [clinicalContextResponse, setClinicalContextResponse] = useState<
+    "yes" | "no" | "unsure" | undefined
+  >(undefined);
+  const [clinicalContextCategories, setClinicalContextCategories] = useState<string[]>([]);
+
+  // Clinical Precision Status — fetched from /api/prescription/clinical-status on the save step.
+  // null = not yet fetched; "standard_personalization" = no clinical tier or no data.
+  const [clinicalPrecisionStatus, setClinicalPrecisionStatus] = useState<
+    | "standard_personalization"
+    | "clinical_information_needed"
+    | "clinical_precision_available"
+    | "clinical_precision_active"
+    | null
+  >(null);
+
   // Strategy layer state
   const [cutIntensity, setCutIntensity] = useState<CutIntensity>(
     (existingTargets?.cutIntensity === "standard" ? "none" : existingTargets?.cutIntensity) ?? "none"
@@ -712,7 +729,7 @@ export default function MacroCounter() {
     try {
       const persisted = sessionStorage.getItem("macro_guided_step");
       if (persisted) {
-        const stepOrder: GuidedStep[] = ["entry","goal","commitmentLevel","bodyType","units","sex","age","height","weight","waist","activity","syncWeight","metabolic","results","nutritionStrategy","starch","bodyComposition","save","done"];
+        const stepOrder: GuidedStep[] = ["entry","goal","commitmentLevel","bodyType","units","sex","age","height","weight","waist","activity","syncWeight","metabolic","results","nutritionStrategy","starch","clinicalContext","bodyComposition","save","done"];
         if (stepOrder.includes(persisted as GuidedStep)) return persisted as GuidedStep;
       }
     } catch {}
@@ -885,6 +902,7 @@ export default function MacroCounter() {
       "results",
       "nutritionStrategy",
       "starch",
+      "clinicalContext",
       "bodyComposition",
       "save",
       "done",
@@ -1307,6 +1325,22 @@ export default function MacroCounter() {
 
     return () => clearTimeout(timeout);
   }, [results]);
+
+  // Fetch clinical precision status when the user reaches the final save step.
+  // This runs AFTER the clinicalContext PATCH has already persisted, so the resolver
+  // will see the updated screening data. Works for both new users and returning users.
+  useEffect(() => {
+    if (guidedStep !== "save" || !user?.id || user.id.startsWith("guest-")) return;
+    apiRequest(apiUrl("/api/prescription/clinical-status"), {
+      headers: { ...getAuthHeaders() },
+    })
+      .then((data: any) => {
+        if (data?.clinicalPrecisionStatus) {
+          setClinicalPrecisionStatus(data.clinicalPrecisionStatus);
+        }
+      })
+      .catch(() => {}); // non-fatal — status card simply doesn't render
+  }, [guidedStep, user?.id]);
 
   return (
     <>
@@ -2510,7 +2544,7 @@ export default function MacroCounter() {
                         Starchy carbs = rice, pasta, bread, potatoes, oats. Fibrous veggies are unlimited.
                       </p>
                       <div className="flex gap-2 flex-wrap">
-                        {([1, 2, 3, 4] as const).map((n) => (
+                        {([1, 2, 3, 4, 5, 6] as const).map((n) => (
                           <PillButton
                             key={n}
                             onClick={() => {
@@ -2530,7 +2564,11 @@ export default function MacroCounter() {
                           ? "Split starches across two meals — good for training days."
                           : defaultStarchMealsPerDay === 3
                           ? "Three starch meals — suitable for athletes with higher carb needs."
-                          : "Four starch meals — high-carb athlete protocol."}
+                          : defaultStarchMealsPerDay === 4
+                          ? "Four starch meals — high-volume training protocol."
+                          : defaultStarchMealsPerDay === 5
+                          ? "Five starch meals — competitive athlete fueling schedule."
+                          : "Six starch meals — maximum carbohydrate distribution for elite performance."}
                       </p>
                     </div>
 
@@ -2572,10 +2610,149 @@ export default function MacroCounter() {
                     </div>
 
                     <button
-                      onClick={() => advanceGuided("bodyComposition")}
+                      onClick={() => advanceGuided("clinicalContext")}
                       className="w-full py-3 rounded-xl bg-orange-600 text-white font-semibold text-sm"
                     >
                       Continue
+                    </button>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* GUIDED STEP 13b: Medication & Clinical Context */}
+            {guidedStep === "clinicalContext" && (
+              <motion.div
+                key="guided-clinical-context"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-4"
+              >
+                <Card className="bg-zinc-900/80 border border-white/30 text-white">
+                  <CardContent className="p-6 space-y-6">
+                    <div className="flex items-center gap-2">
+                      <span className="text-blue-400 text-xl">⚕️</span>
+                      <h3 className="text-lg font-semibold text-white">
+                        Medications, Hormones & Your Nutrition Plan
+                      </h3>
+                    </div>
+
+                    {/* Education card */}
+                    <div className="bg-white/5 rounded-xl p-4 space-y-3 border border-white/10">
+                      <p className="text-sm text-white/80">
+                        Some medications and hormone therapies can affect appetite, fluid balance,
+                        glucose response, blood pressure, body composition, and weight trends.
+                      </p>
+                      <p className="text-sm text-white/80">
+                        For example, corticosteroids such as prednisone may be associated with
+                        increased appetite, fluid retention, altered glucose tolerance, and weight gain.
+                        Testosterone therapy requires appropriate laboratory assessment and ongoing monitoring.
+                      </p>
+                      <p className="text-sm font-medium text-orange-400">
+                        Clinical Precision allows My Perfect Meals to consider more of this context
+                        when personalizing your nutrition guidance.
+                      </p>
+                      <Collapsible>
+                        <CollapsibleTrigger className="flex items-center gap-1 text-xs text-white/40">
+                          <span>Why this matters</span>
+                          <ChevronDown className="h-3 w-3" />
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="mt-2 space-y-2">
+                          <p className="text-xs text-white/40">Sources consulted:</p>
+                          <ul className="space-y-1 ml-2 text-xs text-white/40">
+                            <li>• FDA/DailyMed — Prednisone prescribing information (fluid retention, altered glucose tolerance, appetite, weight gain, sodium retention, potassium loss, protein catabolism)</li>
+                            <li>• Endocrine Society — Testosterone Therapy for Hypogonadism clinical practice guideline (laboratory assessment and ongoing monitoring requirements)</li>
+                          </ul>
+                        </CollapsibleContent>
+                      </Collapsible>
+                    </div>
+
+                    {/* Response gate */}
+                    <div className="space-y-3">
+                      <p className="text-white text-sm font-medium">
+                        Are you taking medications, hormones, peptides, or receiving treatments that may affect your nutrition?
+                      </p>
+                      <div className="flex gap-2 flex-wrap">
+                        {(["yes", "no", "unsure"] as const).map((r) => (
+                          <PillButton
+                            key={r}
+                            onClick={() => {
+                              setClinicalContextResponse(r);
+                              if (r !== "yes") setClinicalContextCategories([]);
+                            }}
+                            active={clinicalContextResponse === r}
+                          >
+                            {r === "yes" ? "Yes" : r === "no" ? "No" : "Not sure"}
+                          </PillButton>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Category picker — only when "yes" */}
+                    {clinicalContextResponse === "yes" && (
+                      <div className="space-y-3">
+                        <p className="text-white/70 text-sm">Select all that apply:</p>
+                        <div className="flex gap-2 flex-wrap">
+                          {(
+                            [
+                              { value: "systemic_corticosteroid", label: "Corticosteroids (prednisone)" },
+                              { value: "testosterone_therapy", label: "Testosterone / TRT" },
+                              { value: "estrogen_or_progesterone", label: "Estrogen / Progesterone" },
+                              { value: "thyroid_medication", label: "Thyroid medication" },
+                              { value: "glp1_medication", label: "GLP-1 (Ozempic, Wegovy)" },
+                              { value: "insulin_or_diabetes_medication", label: "Insulin / Diabetes meds" },
+                              { value: "cardiac_or_blood_pressure_medication", label: "Cardiac / Blood pressure" },
+                              { value: "diuretic", label: "Diuretics" },
+                              { value: "peptide_or_growth_hormone_related", label: "Peptides / Growth hormone" },
+                              { value: "other", label: "Other" },
+                            ] as const
+                          ).map(({ value, label }) => (
+                            <PillButton
+                              key={value}
+                              onClick={() => {
+                                setClinicalContextCategories((prev) =>
+                                  prev.includes(value)
+                                    ? prev.filter((v) => v !== value)
+                                    : [...prev, value],
+                                );
+                              }}
+                              active={clinicalContextCategories.includes(value)}
+                            >
+                              {label}
+                            </PillButton>
+                          ))}
+                        </div>
+                        {clinicalContextCategories.length > 0 && (
+                          <p className="text-xs text-white/40">
+                            Your selections are saved with your profile so the nutrition engine can flag relevant considerations. Specific medication names, doses, and prescriber details can be added in your clinical profile.
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    <button
+                      onClick={async () => {
+                        if (clinicalContextResponse && user?.id && !user.id.startsWith("guest-")) {
+                          try {
+                            await apiRequest(apiUrl("/api/prescription/clinical-context"), {
+                              method: "PATCH",
+                              body: JSON.stringify({
+                                clinicalContextResponse,
+                                selectedClinicalCategories:
+                                  clinicalContextResponse === "yes" ? clinicalContextCategories : [],
+                              }),
+                              headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+                            });
+                          } catch (err) {
+                            console.error("[MacroCalculator] Failed to save clinical context (non-fatal):", err);
+                          }
+                        }
+                        advanceGuided("bodyComposition");
+                      }}
+                      className="w-full py-3 rounded-xl bg-orange-600 text-white font-semibold text-sm"
+                    >
+                      {clinicalContextResponse ? "Continue" : "Skip for now"}
                     </button>
                   </CardContent>
                 </Card>
@@ -2732,6 +2909,77 @@ export default function MacroCounter() {
                         </button>
                       </div>
                     )}
+
+                    {/* ── Clinical Precision Status Card ── */}
+                    {clinicalPrecisionStatus &&
+                      clinicalPrecisionStatus !== "standard_personalization" && (
+                        <div
+                          className={`rounded-xl p-4 space-y-2 border ${
+                            clinicalPrecisionStatus === "clinical_precision_active"
+                              ? "bg-blue-950/40 border-blue-500/30"
+                              : clinicalPrecisionStatus === "clinical_precision_available"
+                              ? "bg-teal-950/40 border-teal-500/30"
+                              : "bg-white/5 border-white/10"
+                          }`}
+                        >
+                          {clinicalPrecisionStatus === "clinical_precision_active" && (
+                            <>
+                              <div className="flex items-center gap-2">
+                                <span className="text-blue-400 text-base">⚕️</span>
+                                <p className="text-sm font-semibold text-blue-300">
+                                  Clinical Precision — Active
+                                </p>
+                              </div>
+                              <p className="text-xs text-white/60">
+                                Your lab results and verified medication profile are connected.
+                                The nutrition engine is applying structured clinical context
+                                to your targets.
+                              </p>
+                            </>
+                          )}
+                          {clinicalPrecisionStatus === "clinical_precision_available" && (
+                            <>
+                              <div className="flex items-center gap-2">
+                                <span className="text-teal-400 text-base">⚕️</span>
+                                <p className="text-sm font-semibold text-teal-300">
+                                  Clinical Precision — Available
+                                </p>
+                              </div>
+                              <p className="text-xs text-white/60">
+                                Your screening response has been saved. Adding lab results and a
+                                detailed medication profile in your clinical profile unlocks the
+                                full Clinical Precision engine.
+                              </p>
+                              <button
+                                onClick={() => (window.location.href = "/biometrics")}
+                                className="text-xs text-teal-400 underline underline-offset-2 bg-transparent border-0 p-0 cursor-pointer"
+                              >
+                                Add lab results →
+                              </button>
+                            </>
+                          )}
+                          {clinicalPrecisionStatus === "clinical_information_needed" && (
+                            <>
+                              <div className="flex items-center gap-2">
+                                <span className="text-white/40 text-base">⚕️</span>
+                                <p className="text-sm font-semibold text-white/60">
+                                  Clinical Precision — Information Needed
+                                </p>
+                              </div>
+                              <p className="text-xs text-white/50">
+                                Your plan includes Clinical Precision. Connect your lab results
+                                and medication profile to activate the clinical nutrition engine.
+                              </p>
+                              <button
+                                onClick={() => (window.location.href = "/biometrics")}
+                                className="text-xs text-orange-400 underline underline-offset-2 bg-transparent border-0 p-0 cursor-pointer"
+                              >
+                                Add clinical data →
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      )}
 
                     <Button
                       disabled={!isCalcInputValid || isSaving}
@@ -3626,7 +3874,7 @@ export default function MacroCounter() {
                           Starch meals per day
                         </p>
                         <div className="flex gap-2 flex-wrap">
-                          {([1, 2, 3, 4] as const).map((n) => (
+                          {([1, 2, 3, 4, 5, 6] as const).map((n) => (
                             <PillButton
                               key={n}
                               onClick={() => {
@@ -3646,7 +3894,11 @@ export default function MacroCounter() {
                             ? "Split starches across two meals — good for training days."
                             : defaultStarchMealsPerDay === 3
                             ? "Three starch meals — suitable for athletes with higher carb needs."
-                            : "Four starch meals — high-carb athlete protocol."}
+                            : defaultStarchMealsPerDay === 4
+                            ? "Four starch meals — high-volume training protocol."
+                            : defaultStarchMealsPerDay === 5
+                            ? "Five starch meals — competitive athlete fueling schedule."
+                            : "Six starch meals — maximum carbohydrate distribution for elite performance."}
                         </p>
                       </div>
 

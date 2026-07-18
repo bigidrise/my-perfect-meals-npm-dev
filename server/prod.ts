@@ -230,6 +230,10 @@ async function initializeApp() {
           // DailyNutritionPrescription — persistent starch preferences
           await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS default_starch_meals_per_day integer`);
           await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS starch_distribution_strategy text`);
+          // Clinical Context Screening — self-reported medication/hormone gate
+          await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS clinical_context_response text`);
+          await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS clinical_context_categories jsonb`);
+          await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS clinical_context_updated_at timestamptz`);
           // Professional Launchpad — Phase 2 ProCare training completion gate
           await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS procare_training_completed boolean NOT NULL DEFAULT false`);
           // LMS content tables

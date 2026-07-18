@@ -20,9 +20,13 @@
 import { Router } from "express";
 import { db } from "../db";
 import { users } from "../../shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, count } from "drizzle-orm";
 import { requireAuth } from "../middleware/requireAuth";
 import { resolveDailyNutritionPrescription } from "../services/prescriptionResolver";
+import { getTierForLookupKey } from "../../shared/planFeatures";
+import { deriveClinicalStatus } from "../../shared/dailyNutritionPrescription";
+import { clinicalLabs } from "../db/schema/clinicalLabs";
+import { companionProfiles } from "../db/schema/companionProfiles";
 
 const VALID_DISTRIBUTION_STRATEGIES = ["even", "workout", "morning", "evening", "ai"] as const;
 type DistributionStrategy = typeof VALID_DISTRIBUTION_STRATEGIES[number];
@@ -115,6 +119,107 @@ router.patch("/starch-preferences", requireAuth, async (req, res) => {
   } catch (err) {
     console.error("[prescriptionRoutes] Error saving starch preferences:", err);
     return res.status(500).json({ error: "Failed to save starch preferences" });
+  }
+});
+
+// ── GET clinical status (tier-aware, does not require macro targets to be set) ──────────
+
+router.get("/clinical-status", requireAuth, async (req, res) => {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+    const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const [labCountResult, companionResult] = await Promise.all([
+      db.select({ count: count() }).from(clinicalLabs).where(eq(clinicalLabs.userId, userId)),
+      db.select().from(companionProfiles).where(eq(companionProfiles.userId, userId)).limit(1),
+    ]);
+
+    const tier = getTierForLookupKey(user.planLookupKey);
+    const hasLabs = (labCountResult[0]?.count ?? 0) > 0;
+    const hasVerifiedMedications =
+      Array.isArray(companionResult[0]?.medications) &&
+      (companionResult[0]!.medications as string[]).length > 0;
+    const selfReportedCategories = Array.isArray(user.clinicalContextCategories)
+      ? (user.clinicalContextCategories as string[])
+      : [];
+    const hasScreeningResponse =
+      user.clinicalContextResponse === "yes" && selfReportedCategories.length > 0;
+
+    const clinicalPrecisionStatus = deriveClinicalStatus(
+      tier, hasVerifiedMedications, hasLabs, hasScreeningResponse,
+    );
+
+    return res.json({
+      clinicalPrecisionStatus,
+      tier,
+      hasLabs,
+      hasVerifiedMedications,
+      hasScreeningResponse,
+    });
+  } catch (err) {
+    console.error("[prescriptionRoutes] Error fetching clinical status:", err);
+    return res.status(500).json({ error: "Failed to fetch clinical status" });
+  }
+});
+
+// ── PATCH clinical context (self-reported screening — authoritative, persisted to DB) ──
+
+const VALID_CLINICAL_CONTEXT_RESPONSES = ["yes", "no", "unsure"] as const;
+const VALID_CLINICAL_CATEGORIES = [
+  "systemic_corticosteroid",
+  "testosterone_therapy",
+  "estrogen_or_progesterone",
+  "thyroid_medication",
+  "glp1_medication",
+  "insulin_or_diabetes_medication",
+  "cardiac_or_blood_pressure_medication",
+  "diuretic",
+  "peptide_or_growth_hormone_related",
+  "other",
+] as const;
+
+router.patch("/clinical-context", requireAuth, async (req, res) => {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+    const { clinicalContextResponse, selectedClinicalCategories } = req.body;
+
+    if (!VALID_CLINICAL_CONTEXT_RESPONSES.includes(clinicalContextResponse)) {
+      return res.status(400).json({
+        error: `clinicalContextResponse must be one of: ${VALID_CLINICAL_CONTEXT_RESPONSES.join(", ")}`,
+      });
+    }
+
+    // Validate categories — only allowed when response is "yes"
+    const categories: string[] = [];
+    if (clinicalContextResponse === "yes" && Array.isArray(selectedClinicalCategories)) {
+      for (const cat of selectedClinicalCategories) {
+        if (VALID_CLINICAL_CATEGORIES.includes(cat as any)) {
+          categories.push(cat as string);
+        }
+      }
+    }
+
+    await db.update(users).set({
+      clinicalContextResponse,
+      clinicalContextCategories: categories,
+      clinicalContextUpdatedAt: new Date(),
+    }).where(eq(users.id, userId));
+
+    return res.json({
+      ok: true,
+      saved: {
+        clinicalContextResponse,
+        selectedClinicalCategories: categories,
+      },
+    });
+  } catch (err) {
+    console.error("[prescriptionRoutes] Error saving clinical context:", err);
+    return res.status(500).json({ error: "Failed to save clinical context" });
   }
 });
 

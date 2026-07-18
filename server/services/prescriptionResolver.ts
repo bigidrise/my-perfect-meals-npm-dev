@@ -95,13 +95,26 @@ export async function resolveDailyNutritionPrescription(
     db.select().from(companionProfiles).where(eq(companionProfiles.userId, userId)).limit(1),
   ]);
 
-  // hasMedications: only true when the medications JSONB array exists and has entries
+  // hasVerifiedMedications: companion profile entries — requires clinical builder workflow.
+  // hasScreeningResponse: user self-reported categories in the Macro Calculator gate.
+  // Only hasVerifiedMedications + hasLabs → clinical_precision_active.
+  // Self-reported screening alone → clinical_precision_available (engine knows something, not enough for active).
   const hasLabs = (labCountResult[0]?.count ?? 0) > 0;
-  const hasMedications =
+  const hasVerifiedMedications =
     Array.isArray(companionResult[0]?.medications) &&
     (companionResult[0]!.medications as string[]).length > 0;
+  const selfReportedCategories = Array.isArray(user.clinicalContextCategories)
+    ? (user.clinicalContextCategories as string[])
+    : [];
+  const hasScreeningResponse =
+    user.clinicalContextResponse === "yes" && selfReportedCategories.length > 0;
 
-  const clinicalPrecisionStatus = deriveClinicalStatus(tier, hasMedications, hasLabs);
+  const clinicalPrecisionStatus = deriveClinicalStatus(
+    tier,
+    hasVerifiedMedications,
+    hasLabs,
+    hasScreeningResponse,
+  );
   if (clinicalPrecisionStatus === "clinical_precision_active") {
     rationaleCodes.push("clinical_precision_active");
   } else if (clinicalPrecisionStatus === "clinical_information_needed") {

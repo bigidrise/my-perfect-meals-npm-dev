@@ -128,14 +128,23 @@ export interface DailyNutritionPrescription {
  */
 export function deriveClinicalStatus(
   tier: string,
-  hasMedications: boolean,
+  /** Verified medication data — from companionProfiles.medications (requires clinical builder). */
+  hasVerifiedMedications: boolean,
   hasLabs: boolean,
+  /**
+   * Self-reported clinical screening — user confirmed they are on medications/hormones
+   * in the Macro Calculator gate. Elevates to `available` but never to `active` alone.
+   * Defaults to false for backward-compat with existing callers/tests.
+   */
+  hasScreeningResponse: boolean = false,
 ): ClinicalPrecisionStatus {
   if (tier !== "ultimate") {
     return "standard_personalization";
   }
-  if (hasMedications && hasLabs) return "clinical_precision_active";
-  if (hasMedications || hasLabs) return "clinical_precision_available";
+  // `active` requires BOTH verified medications AND labs — self-reported screening is insufficient.
+  if (hasVerifiedMedications && hasLabs) return "clinical_precision_active";
+  // `available` = at least one confirmed source: verified meds, labs, OR self-reported screening.
+  if (hasVerifiedMedications || hasLabs || hasScreeningResponse) return "clinical_precision_available";
   return "clinical_information_needed";
 }
 
