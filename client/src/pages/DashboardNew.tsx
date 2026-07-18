@@ -59,6 +59,7 @@ import { PatternAlertBanner } from "@/components/PatternAlertBanner";
 import { TipsBanner } from "@/components/TipsBanner";
 import InspirationCaptureModal from "@/components/InspirationCaptureModal";
 import { NutritionPersonalizationSummaryCard } from "@/components/protocol/NutritionPersonalizationSummaryCard";
+import { TodaysPrescriptionCard } from "@/components/dashboard/TodaysPrescriptionCard";
 import { WhatsNewCard } from "@/components/WhatsNewCard";
 import CoachCornerCard from "@/components/ace/CoachCornerCard";
 import { COACHES_CORNER_ENABLED } from "@/features/coachCornerFlag";
@@ -815,6 +816,8 @@ export default function DashboardNew() {
         </motion.div>
 
         <NutritionPersonalizationSummaryCard />
+
+        <TodaysPrescriptionCard />
 
         {COACHES_CORNER_ENABLED && <CoachCornerCard />}
 
