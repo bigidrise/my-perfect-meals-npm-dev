@@ -7383,7 +7383,8 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   app.use("/api", patternAlertsRouter);
 
   const { default: clinicalLabsRouterShared } = await import("./routes/clinicalLabs");
-  app.use("/api/biometrics/labs", clinicalLabsRouterShared);
+  const { requireClinicalLabsAccess } = await import("./middleware/requireClinicalLabsAccess");
+  app.use("/api/biometrics/labs", requireAuth, requireClinicalLabsAccess, clinicalLabsRouterShared);
 
   const { default: translateRouterShared } = await import("./routes/translate");
   app.use("/api/translate", requireAuth, requireActiveAccess, translateRouterShared);

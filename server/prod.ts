@@ -545,6 +545,7 @@ async function initializeApp() {
     const restaurantRoutes = (await import("./routes/restaurants")).default;
     const manualMacrosRouter = (await import("./routes/manualMacros")).default;
     const clinicalLabsRouter = (await import("./routes/clinicalLabs")).default;
+    const { requireClinicalLabsAccess } = await import("./middleware/requireClinicalLabsAccess");
     const translateRouter = (await import("./routes/translate")).default;
     const mealsRouter = (await import("./routes/meals")).default;
     const macroCalculatorRouter = (await import("./routes/macroCalculatorRoutes")).default;
@@ -559,7 +560,7 @@ async function initializeApp() {
     app.use("/api/restaurants", resolveCuisineMiddleware, restaurantRoutes);
     app.use("/api", manualMacrosRouter);
     app.use("/api", macroCalculatorRouter);
-    app.use("/api/biometrics/labs", clinicalLabsRouter);
+    app.use("/api/biometrics/labs", requireAuth, requireClinicalLabsAccess, clinicalLabsRouter);
 
     // Daily Nutrition Prescription — shared resolver for all builders
     const prescriptionRoutes = (await import("./routes/prescriptionRoutes")).default;
