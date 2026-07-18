@@ -83,7 +83,7 @@ import ClinicalLabsCard from "@/components/biometrics/ClinicalLabsCard";
 import TherapeuticNutritionCard from "@/components/biometrics/TherapeuticNutritionCard";
 import MacroConsistencyTimeline from "@/components/biometrics/MacroConsistencyTimeline";
 import { hasFeature } from "@/lib/entitlements";
-import { isClinicalOrAbove } from "@/lib/subscriptionCheck";
+import { canAccessClinicalLabs } from "@/lib/subscriptionCheck";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { convertWeightLbsDisplay } from "@shared/units";
 
@@ -2522,9 +2522,9 @@ export default function MyBiometrics() {
           </CardContent>
         </Card>
 
-        {/* CLINICAL LABS - visible to all, locked for non-Clinical users */}
+        {/* CLINICAL LABS - visible to all, locked for non-Clinical users (trial excluded) */}
         {user && user.id && (
-          isClinicalOrAbove(user) ? (
+          canAccessClinicalLabs(user) ? (
             <ClinicalLabsCard userId={user.id} />
           ) : (
             <Card

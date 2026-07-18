@@ -50,6 +50,29 @@ export function isClinicalOrAbove(user: UserForSubscriptionCheck | null | undefi
   return tier === "ultimate";
 }
 
+/**
+ * canAccessClinicalLabs — stricter than isClinicalOrAbove.
+ *
+ * Lab-value entry is NOT a trial entitlement. Trial users are explicitly blocked
+ * regardless of TRIAL_UNLOCKS_TIER. Only Clinical (ultimate) paid plans and
+ * sandbox/internal accounts (PAID_FULL, no planLookupKey) get access.
+ *
+ * When BILLING_ENFORCED=false the server returns accessTier "PAID_FULL" for
+ * everyone, so the PAID_FULL + free-tier-key fallback path passes — preserving
+ * the pre-launch open state on the frontend without needing a separate flag.
+ */
+export function canAccessClinicalLabs(user: UserForSubscriptionCheck | null | undefined): boolean {
+  if (!user) return false;
+  if (user.isFounder) return true;
+  // Trial users do NOT get lab-values access — explicit product rule
+  if (user.trialEndsAt && new Date(user.trialEndsAt) > new Date() && user.accessTier === "TRIAL_FULL") return false;
+  if (!hasActivePaidSubscription(user)) return false;
+  const tier = getTierForLookupKey(user.planLookupKey);
+  // Internal/sandbox accounts: PAID_FULL with no planLookupKey → grant access
+  if (tier === "free" && user.accessTier === "PAID_FULL") return true;
+  return tier === "ultimate";
+}
+
 // Returns true only for users on an actual paid plan (not trial, not free, not founder).
 // Use this to suppress upsell UI for confirmed paying customers.
 export function hasPaidPlan(user: UserForSubscriptionCheck | null | undefined): boolean {
