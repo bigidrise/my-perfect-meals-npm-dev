@@ -2778,14 +2778,22 @@ export default function MacroCounter() {
                         Clinical Precision allows My Perfect Meals to consider more of this context
                         when personalizing your nutrition guidance.
                       </p>
+                      <div className="rounded-lg bg-blue-950/40 border border-blue-500/30 p-3 flex gap-2">
+                        <span className="text-blue-400 text-base shrink-0">🧪</span>
+                        <p className="text-sm text-white/90">
+                          <span className="font-semibold text-white">Blood work makes the system more accurate.</span>{" "}
+                          If you have recent lab values — testosterone levels, thyroid panel, A1c, glucose — adding them to your{" "}
+                          <a href="/my-biometrics" className="text-orange-400 underline underline-offset-2 font-medium">Biometrics page</a>{" "}
+                          lets the system factor in your actual clinical picture, not just the category.
+                        </p>
+                      </div>
                       <Collapsible>
-                        <CollapsibleTrigger className="flex items-center gap-1 text-xs text-white/40">
-                          <span>Why this matters</span>
+                        <CollapsibleTrigger className="flex items-center gap-1 text-xs text-white/70">
+                          <span>Sources consulted</span>
                           <ChevronDown className="h-3 w-3" />
                         </CollapsibleTrigger>
                         <CollapsibleContent className="mt-2 space-y-2">
-                          <p className="text-xs text-white/40">Sources consulted:</p>
-                          <ul className="space-y-1 ml-2 text-xs text-white/40">
+                          <ul className="space-y-1 ml-2 text-xs text-white/80">
                             <li>• FDA/DailyMed — Prednisone prescribing information (fluid retention, altered glucose tolerance, appetite, weight gain, sodium retention, potassium loss, protein catabolism)</li>
                             <li>• Endocrine Society — Testosterone Therapy for Hypogonadism clinical practice guideline (laboratory assessment and ongoing monitoring requirements)</li>
                           </ul>
@@ -2817,7 +2825,7 @@ export default function MacroCounter() {
                     {/* Category picker — only when "yes" */}
                     {clinicalContextResponse === "yes" && (
                       <div className="space-y-3">
-                        <p className="text-white/70 text-sm">Select all that apply:</p>
+                        <p className="text-white text-sm font-medium">Select all that apply:</p>
                         <div className="flex gap-2 flex-wrap">
                           {(
                             [
@@ -2849,9 +2857,27 @@ export default function MacroCounter() {
                           ))}
                         </div>
                         {clinicalContextCategories.length > 0 && (
-                          <p className="text-xs text-white/40">
+                          <p className="text-sm text-white/80">
                             Your selections are saved with your profile so the nutrition engine can flag relevant considerations. Specific medication names, doses, and prescriber details can be added in your clinical profile.
                           </p>
+                        )}
+                        {/* Lab values callout — shown when any lab-measurable medication is selected */}
+                        {clinicalContextCategories.some((c) =>
+                          ["testosterone_therapy", "thyroid_medication", "glp1_medication", "insulin_or_diabetes_medication", "estrogen_or_progesterone"].includes(c)
+                        ) && (
+                          <div className="rounded-lg bg-orange-950/40 border border-orange-500/40 p-3 space-y-2">
+                            <p className="text-sm font-semibold text-white">📋 Add your lab values for better accuracy</p>
+                            <p className="text-sm text-white/90">
+                              For medications like testosterone, thyroid drugs, GLP-1s, and insulin, your actual blood work levels — total testosterone, TSH, A1c, fasting glucose — give the system a precise clinical picture instead of a general estimate.
+                            </p>
+                            <p className="text-sm text-white/90">
+                              Go to your{" "}
+                              <a href="/my-biometrics" className="text-orange-400 underline underline-offset-2 font-medium">
+                                Biometrics page
+                              </a>{" "}
+                              to enter these values. They're stored securely and used only to personalize your nutrition.
+                            </p>
+                          </div>
                         )}
                       </div>
                     )}
