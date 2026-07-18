@@ -42,6 +42,14 @@ export const MACRO_CALC_RESULTS =
 export const MACRO_CALC_STARCH =
   "Starchy carbs are the biggest lever for controlling body weight, so we place them intentionally. Here is why timing matters. Think of your body like a business. During the day it is open, running operations, and can put those carbs to work. At night it shifts into clean, repair, and reset mode. Sending starchy carbs in late can interfere with that recovery process. That is why we concentrate starchy carbs earlier in the day when possible, not as a restriction, but as a strategy you can adjust based on your training schedule and lifestyle. Tap one of the buttons below to choose your approach. One Starch Meal puts all your carbs in one meal for appetite control. Flex Split divides them across two meals for more flexibility. Tap the one that fits your lifestyle, then we'll lock it in.";
 
+// For the granular 1–6 starch meal count step (replaces the old one/flex binary in the guided flow)
+export const MACRO_CALC_STARCH_COUNT =
+  "Now let's set your daily starch count. This tells the system how many of your meals each day will include a primary starchy carbohydrate — think rice, sweet potato, oats, bread, pasta. One is the tightest approach, great for fat loss or metabolic control. Two to three is a balanced strategy that fits most lifestyles. Four to six is for athletes, high-volume training, or performance days where carb fueling is the priority. Your Performance Hub can automatically adjust this on heavy training versus rest days. Pick the number that fits your current phase, then tap Continue.";
+
+// For the clinical context step — medication and hormone gate before the save step
+export const MACRO_CALC_CLINICAL_CONTEXT =
+  "Before we lock everything in, I want to ask one important question. Some medications and hormone therapies change how your body processes nutrition — things like GLP-1 medications, testosterone therapy, corticosteroids, or thyroid medication. If any of those apply to you, the nutrition engine adjusts your targets and meal recommendations accordingly. This isn't about medical advice — it's about making your prescription as accurate as possible. Answer yes if any of those apply, no if they don't, or unsure if you're not certain. Then tap Continue and we'll finalize your prescription.";
+
 export const MACRO_CALC_BODY_COMPOSITION =
   "This part is completely optional. If you've had your body fat measured, by DEXA scan, BodPod, calipers, or even a smart scale, you can enter that here. It helps us fine-tune your starchy carb numbers based on where you are versus your goal. But if you haven't had it done, or you're not sure what your body fat is, that's totally fine. Most people skip this. Just tap Skip and we'll move on.";
 

@@ -21,6 +21,8 @@ import {
   MACRO_CALC_METABOLIC,
   MACRO_CALC_RESULTS,
   MACRO_CALC_STARCH,
+  MACRO_CALC_STARCH_COUNT,
+  MACRO_CALC_CLINICAL_CONTEXT,
   MACRO_CALC_BODY_COMPOSITION,
   MACRO_CALC_SAVE,
   MACRO_CALC_SAVE_CONTEST_PREP,
@@ -582,6 +584,121 @@ function splitStarchyFibrous(totalCarbs: number, starchyBase: number, fibrousMin
   return { starchy, fibrous };
 }
 
+// ── Clinical Category Reasoning List ─────────────────────────────────────────
+// Shown on the save step under the Clinical Precision status card.
+// Maps self-reported screening categories to the actual modifiers applied.
+
+const CLINICAL_CATEGORY_MODIFIERS: Record<string, { name: string; bullets: string[] }> = {
+  testosterone_therapy: {
+    name: "Testosterone / TRT",
+    bullets: [
+      "Protein floor raised to ≥1.8g/kg",
+      "Soy protein blocked from meal generation",
+      "Zinc, magnesium & healthy fats prioritized",
+      "Anti-inflammatory, hormone-supportive meals",
+    ],
+  },
+  glp1_medication: {
+    name: "GLP-1 Medication",
+    bullets: [
+      "Portions capped — nausea management protocol active",
+      "High-fat ingredients limited per meal",
+      "Protein floor raised to ≥1.6g/kg",
+      "Nutrient-dense, compact meals prioritized",
+    ],
+  },
+  systemic_corticosteroid: {
+    name: "Corticosteroids",
+    bullets: [
+      "High-sodium foods blocked (fluid retention risk)",
+      "Calcium & vitamin D prioritized (bone protection)",
+      "Blood sugar-stabilizing meal structure enforced",
+      "Protein ≥1.6g/kg for muscle preservation",
+    ],
+  },
+  thyroid_medication: {
+    name: "Thyroid Medication",
+    bullets: [
+      "Breakfast modified — low-calcium to avoid absorption interference",
+      "Iodine sensitivity awareness applied",
+      "Anti-inflammatory base throughout the day",
+    ],
+  },
+  estrogen_or_progesterone: {
+    name: "Estrogen / Progesterone",
+    bullets: [
+      "High-fiber meals for estrogen clearance support",
+      "Calcium-rich foods for bone protection",
+      "Omega-3 fats and phytoestrogen balance applied",
+    ],
+  },
+  insulin_or_diabetes_medication: {
+    name: "Insulin / Diabetes Medication",
+    bullets: [
+      "Blood sugar-stabilizing meal structure",
+      "Carbohydrates paired with protein and fat",
+      "Refined sugars blocked as primary meal anchors",
+    ],
+  },
+  cardiac_or_blood_pressure_medication: {
+    name: "Cardiac / Blood Pressure",
+    bullets: [
+      "Sodium-aware meal construction",
+      "Heart-healthy fats prioritized (olive oil, avocado, salmon)",
+      "Potassium-rich foods emphasized",
+    ],
+  },
+  diuretic: {
+    name: "Diuretics",
+    bullets: [
+      "Potassium & magnesium prioritized (electrolyte loss risk)",
+      "Hydration-supportive meal structure",
+      "Sodium-limited meal preparations",
+    ],
+  },
+  peptide_or_growth_hormone_related: {
+    name: "Peptides / Growth Hormone",
+    bullets: [
+      "Protein floor raised to ≥2.0g/kg",
+      "Collagen-supportive nutrients prioritized",
+      "Anti-inflammatory base at every meal",
+    ],
+  },
+  other: {
+    name: "Other Medications",
+    bullets: [
+      "Screening response saved — add full medication profile for precise adjustments",
+    ],
+  },
+};
+
+function ClinicalCategoryReasoningList({ categories }: { categories: string[] }) {
+  const matched = categories
+    .map((slug) => CLINICAL_CATEGORY_MODIFIERS[slug])
+    .filter(Boolean);
+
+  if (matched.length === 0) return null;
+
+  return (
+    <div className="space-y-2 pt-1">
+      <p className="text-xs text-white/40 uppercase tracking-wide">Adjustments applied</p>
+      {matched.map((entry) => (
+        <div key={entry.name} className="space-y-1">
+          <p className="text-xs font-semibold text-white/70">{entry.name}</p>
+          <ul className="space-y-0.5 pl-2">
+            {entry.bullets.map((b) => (
+              <li key={b} className="text-xs text-white/50 flex gap-1.5">
+                <span className="text-orange-500 mt-0.5 shrink-0">·</span>
+                {b}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function MacroCounter() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -775,7 +892,8 @@ export default function MacroCounter() {
       metabolic: MACRO_CALC_METABOLIC,
       results: MACRO_CALC_RESULTS,
       nutritionStrategy: "",
-      starch: MACRO_CALC_STARCH,
+      starch: MACRO_CALC_STARCH_COUNT,
+      clinicalContext: MACRO_CALC_CLINICAL_CONTEXT,
       bodyComposition: MACRO_CALC_BODY_COMPOSITION,
       save: goal === "contest_prep" ? MACRO_CALC_SAVE_CONTEST_PREP : MACRO_CALC_SAVE,
       done: MACRO_CALC_DONE,
@@ -2921,7 +3039,7 @@ export default function MacroCounter() {
                     {clinicalPrecisionStatus &&
                       clinicalPrecisionStatus !== "standard_personalization" && (
                         <div
-                          className={`rounded-xl p-4 space-y-2 border ${
+                          className={`rounded-xl p-4 space-y-3 border ${
                             clinicalPrecisionStatus === "clinical_precision_active"
                               ? "bg-blue-950/40 border-blue-500/30"
                               : clinicalPrecisionStatus === "clinical_precision_available"
@@ -2942,6 +3060,7 @@ export default function MacroCounter() {
                                 The nutrition engine is applying structured clinical context
                                 to your targets.
                               </p>
+                              <ClinicalCategoryReasoningList categories={clinicalContextCategories} />
                             </>
                           )}
                           {clinicalPrecisionStatus === "clinical_precision_available" && (
@@ -2957,6 +3076,7 @@ export default function MacroCounter() {
                                 detailed medication profile in your clinical profile unlocks the
                                 full Clinical Precision engine.
                               </p>
+                              <ClinicalCategoryReasoningList categories={clinicalContextCategories} />
                               <button
                                 onClick={() => (window.location.href = "/biometrics")}
                                 className="text-xs text-teal-400 underline underline-offset-2 bg-transparent border-0 p-0 cursor-pointer"
