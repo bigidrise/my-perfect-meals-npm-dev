@@ -206,38 +206,6 @@ export default function WeeklyMealBoard() {
   // Baseline resolver — never applies Performance session modifiers.
   const nutritionTargets = useBaselineNutrition(effectiveUserId);
 
-  // Consumed starch totals for the active day — fed into the prescription hook
-  // so adaptive per-meal gram guidance stays accurate as meals are added.
-  const activeDayConsumed = React.useMemo(() => {
-    if (!board || !activeDayISO) return { starchyCarbs: 0, starchMealsUsed: 0 };
-    const dayLists = getDayLists(board, activeDayISO);
-    const allMeals = [
-      ...dayLists.breakfast,
-      ...dayLists.lunch,
-      ...dayLists.dinner,
-      ...dayLists.snacks,
-    ];
-    let starchyCarbs = 0;
-    let starchMealsUsed = 0;
-    for (const m of allMeals) {
-      const storedStarchy = (m as any).starchyCarbs ?? m.nutrition?.starchyCarbs;
-      if (typeof storedStarchy === "number" && storedStarchy > 0) {
-        starchyCarbs += storedStarchy;
-      }
-      if (classifyMeal(m).isStarchMeal) starchMealsUsed++;
-    }
-    return { starchyCarbs, starchMealsUsed };
-  }, [board, activeDayISO]);
-
-  // DailyNutritionPrescription — server-resolved, date-aware, performance-aware.
-  // Provides starchMealsAllowed (integer), isZeroStarchDay, adaptive gram guidance.
-  const { prescription } = useDailyPrescription({
-    dateISO: activeDayISO,
-    starchyConsumed: activeDayConsumed.starchyCarbs,
-    starchMealsUsed: activeDayConsumed.starchMealsUsed,
-    disabled: !activeDayISO || !!proClientId,
-  });
-
   const quickTour = useQuickTour("weekly-meal-board");
 
   // 🎯 BULLETPROOF BOARD LOADING: Cache-first, guaranteed to render
@@ -452,6 +420,40 @@ export default function WeeklyMealBoard() {
   const [lockedDayDialogOpen, setLockedDayDialogOpen] = useState(false);
   const [additionalMacrosOpen, setAdditionalMacrosOpen] = useState(false);
   const [pendingLockedDayISO, setPendingLockedDayISO] = useState<string>("");
+
+  // Consumed starch totals for the active day — fed into the prescription hook
+  // so adaptive per-meal gram guidance stays accurate as meals are added.
+  // NOTE: Must be declared after `board` and `activeDayISO` to avoid TDZ errors.
+  const activeDayConsumed = React.useMemo(() => {
+    if (!board || !activeDayISO) return { starchyCarbs: 0, starchMealsUsed: 0 };
+    const dayLists = getDayLists(board, activeDayISO);
+    const allMeals = [
+      ...dayLists.breakfast,
+      ...dayLists.lunch,
+      ...dayLists.dinner,
+      ...dayLists.snacks,
+    ];
+    let starchyCarbs = 0;
+    let starchMealsUsed = 0;
+    for (const m of allMeals) {
+      const storedStarchy = (m as any).starchyCarbs ?? m.nutrition?.starchyCarbs;
+      if (typeof storedStarchy === "number" && storedStarchy > 0) {
+        starchyCarbs += storedStarchy;
+      }
+      if (classifyMeal(m).isStarchMeal) starchMealsUsed++;
+    }
+    return { starchyCarbs, starchMealsUsed };
+  }, [board, activeDayISO]);
+
+  // DailyNutritionPrescription — server-resolved, date-aware, performance-aware.
+  // Provides starchMealsAllowed (integer), isZeroStarchDay, adaptive gram guidance.
+  // NOTE: Must be declared after `activeDayConsumed`, `activeDayISO`, and `proClientId`.
+  const { prescription } = useDailyPrescription({
+    dateISO: activeDayISO,
+    starchyConsumed: activeDayConsumed.starchyCarbs,
+    starchMealsUsed: activeDayConsumed.starchMealsUsed,
+    disabled: !activeDayISO || !!proClientId,
+  });
 
   // Computed: check if week mode is read-only (any day in week is locked)
   const weekModeReadOnly = React.useMemo(() => {
