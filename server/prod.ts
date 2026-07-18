@@ -227,6 +227,9 @@ async function initializeApp() {
           await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS performance_protocol_config jsonb`);
           // Therapeutic Nutrition Intelligence — Sprint 4
           await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS therapeutic_support_context jsonb`);
+          // DailyNutritionPrescription — persistent starch preferences
+          await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS default_starch_meals_per_day integer`);
+          await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS starch_distribution_strategy text`);
           // Professional Launchpad — Phase 2 ProCare training completion gate
           await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS procare_training_completed boolean NOT NULL DEFAULT false`);
           // LMS content tables
