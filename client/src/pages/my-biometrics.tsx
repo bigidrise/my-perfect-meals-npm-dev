@@ -83,7 +83,7 @@ import ClinicalLabsCard from "@/components/biometrics/ClinicalLabsCard";
 import TherapeuticNutritionCard from "@/components/biometrics/TherapeuticNutritionCard";
 import MacroConsistencyTimeline from "@/components/biometrics/MacroConsistencyTimeline";
 import { hasFeature } from "@/lib/entitlements";
-import { isClinicalOrAbove } from "@/lib/subscriptionCheck";
+import { canAccessClinicalLabs, canAccessTherapeuticNutrition } from "@/lib/subscriptionCheck";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { convertWeightLbsDisplay } from "@shared/units";
 
@@ -2522,9 +2522,9 @@ export default function MyBiometrics() {
           </CardContent>
         </Card>
 
-        {/* CLINICAL LABS - visible to all, locked for non-Clinical users */}
+        {/* CLINICAL LABS - visible to all, locked for non-Clinical users (trial excluded) */}
         {user && user.id && (
-          isClinicalOrAbove(user) ? (
+          canAccessClinicalLabs(user) ? (
             <ClinicalLabsCard userId={user.id} />
           ) : (
             <Card
@@ -2548,8 +2548,29 @@ export default function MyBiometrics() {
           )
         )}
 
-        {/* THERAPEUTIC NUTRITION INTELLIGENCE */}
-        <TherapeuticNutritionCard />
+        {/* THERAPEUTIC NUTRITION INTELLIGENCE — Clinical only, trial excluded */}
+        {canAccessTherapeuticNutrition(user) ? (
+          <TherapeuticNutritionCard />
+        ) : (
+          <Card
+            className="cursor-pointer active:scale-[0.99] bg-black/30 backdrop-blur-lg border border-white/10 rounded-2xl shadow-xl transition-all duration-200"
+            onClick={() => requestUpgrade({ requiredTier: "clinical", featureName: "Therapeutic Nutrition Intelligence" })}
+          >
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-white text-xl flex items-center gap-2">
+                🧬 Therapeutic Nutrition Intelligence
+              </CardTitle>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-500/20 border border-orange-500/30 text-orange-300 text-[10px] font-bold uppercase tracking-wide">
+                Clinical
+              </span>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-white/70 leading-relaxed">
+                Log peptides, hormone therapies, medications, and active treatments so My Perfect Meals can adapt your nutrition plan around your clinical protocol. Available with the Clinical plan.
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* WATER LOG */}
         <Card className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-2xl shadow-xl">

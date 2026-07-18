@@ -21,6 +21,8 @@ import {
   MACRO_CALC_METABOLIC,
   MACRO_CALC_RESULTS,
   MACRO_CALC_STARCH,
+  MACRO_CALC_STARCH_COUNT,
+  MACRO_CALC_CLINICAL_CONTEXT,
   MACRO_CALC_BODY_COMPOSITION,
   MACRO_CALC_SAVE,
   MACRO_CALC_SAVE_CONTEST_PREP,
@@ -84,6 +86,7 @@ type GuidedStep =
   | "results"
   | "nutritionStrategy"
   | "starch"
+  | "clinicalContext"
   | "bodyComposition"
   | "save"
   | "done";
@@ -581,6 +584,121 @@ function splitStarchyFibrous(totalCarbs: number, starchyBase: number, fibrousMin
   return { starchy, fibrous };
 }
 
+// ── Clinical Category Reasoning List ─────────────────────────────────────────
+// Shown on the save step under the Clinical Precision status card.
+// Maps self-reported screening categories to the actual modifiers applied.
+
+const CLINICAL_CATEGORY_MODIFIERS: Record<string, { name: string; bullets: string[] }> = {
+  testosterone_therapy: {
+    name: "Testosterone / TRT",
+    bullets: [
+      "Protein floor raised to ≥1.8g/kg",
+      "Soy protein blocked from meal generation",
+      "Zinc, magnesium & healthy fats prioritized",
+      "Anti-inflammatory, hormone-supportive meals",
+    ],
+  },
+  glp1_medication: {
+    name: "GLP-1 Medication",
+    bullets: [
+      "Portions capped — nausea management protocol active",
+      "High-fat ingredients limited per meal",
+      "Protein floor raised to ≥1.6g/kg",
+      "Nutrient-dense, compact meals prioritized",
+    ],
+  },
+  systemic_corticosteroid: {
+    name: "Corticosteroids",
+    bullets: [
+      "High-sodium foods blocked (fluid retention risk)",
+      "Calcium & vitamin D prioritized (bone protection)",
+      "Blood sugar-stabilizing meal structure enforced",
+      "Protein ≥1.6g/kg for muscle preservation",
+    ],
+  },
+  thyroid_medication: {
+    name: "Thyroid Medication",
+    bullets: [
+      "Breakfast modified — low-calcium to avoid absorption interference",
+      "Iodine sensitivity awareness applied",
+      "Anti-inflammatory base throughout the day",
+    ],
+  },
+  estrogen_or_progesterone: {
+    name: "Estrogen / Progesterone",
+    bullets: [
+      "High-fiber meals for estrogen clearance support",
+      "Calcium-rich foods for bone protection",
+      "Omega-3 fats and phytoestrogen balance applied",
+    ],
+  },
+  insulin_or_diabetes_medication: {
+    name: "Insulin / Diabetes Medication",
+    bullets: [
+      "Blood sugar-stabilizing meal structure",
+      "Carbohydrates paired with protein and fat",
+      "Refined sugars blocked as primary meal anchors",
+    ],
+  },
+  cardiac_or_blood_pressure_medication: {
+    name: "Cardiac / Blood Pressure",
+    bullets: [
+      "Sodium-aware meal construction",
+      "Heart-healthy fats prioritized (olive oil, avocado, salmon)",
+      "Potassium-rich foods emphasized",
+    ],
+  },
+  diuretic: {
+    name: "Diuretics",
+    bullets: [
+      "Potassium & magnesium prioritized (electrolyte loss risk)",
+      "Hydration-supportive meal structure",
+      "Sodium-limited meal preparations",
+    ],
+  },
+  peptide_or_growth_hormone_related: {
+    name: "Peptides / Growth Hormone",
+    bullets: [
+      "Protein floor raised to ≥2.0g/kg",
+      "Collagen-supportive nutrients prioritized",
+      "Anti-inflammatory base at every meal",
+    ],
+  },
+  other: {
+    name: "Other Medications",
+    bullets: [
+      "Screening response saved — add full medication profile for precise adjustments",
+    ],
+  },
+};
+
+function ClinicalCategoryReasoningList({ categories }: { categories: string[] }) {
+  const matched = categories
+    .map((slug) => CLINICAL_CATEGORY_MODIFIERS[slug])
+    .filter(Boolean);
+
+  if (matched.length === 0) return null;
+
+  return (
+    <div className="space-y-2 pt-1">
+      <p className="text-xs text-white/40 uppercase tracking-wide">Adjustments applied</p>
+      {matched.map((entry) => (
+        <div key={entry.name} className="space-y-1">
+          <p className="text-xs font-semibold text-white/70">{entry.name}</p>
+          <ul className="space-y-0.5 pl-2">
+            {entry.bullets.map((b) => (
+              <li key={b} className="text-xs text-white/50 flex gap-1.5">
+                <span className="text-orange-500 mt-0.5 shrink-0">·</span>
+                {b}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function MacroCounter() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -674,6 +792,40 @@ export default function MacroCounter() {
     StarchStrategy | undefined
   >(existingTargets?.starchStrategy ?? undefined);
 
+  // DailyNutritionPrescription — persistent starch preferences (saved to DB via PATCH)
+  // defaultStarchMealsPerDay: integer (1-4), replaces "one"/"flex" string
+  // starchDistributionStrategy: how starch is spread across meals
+  // Hydrate from DB-backed user profile if available; fall back to old macro_targets format
+  const derivedInitialMeals =
+    user?.defaultStarchMealsPerDay ??
+    (existingTargets?.starchStrategy === "flex" ? 2 : 1);
+  const [defaultStarchMealsPerDay, setDefaultStarchMealsPerDay] = useState<number>(
+    derivedInitialMeals
+  );
+  const [starchDistributionStrategy, setStarchDistributionStrategy] = useState<
+    "even" | "workout" | "morning" | "evening" | "ai"
+  >((user?.starchDistributionStrategy as "even" | "workout" | "morning" | "evening" | "ai") ?? "even");
+
+  // Clinical Context Screening — hydrate from DB via user profile on reload
+  const [clinicalContextResponse, setClinicalContextResponse] = useState<
+    "yes" | "no" | "unsure" | undefined
+  >(user?.clinicalContextResponse as "yes" | "no" | "unsure" | undefined);
+  const [clinicalContextCategories, setClinicalContextCategories] = useState<string[]>(
+    Array.isArray(user?.clinicalContextCategories)
+      ? (user.clinicalContextCategories as string[])
+      : []
+  );
+
+  // Clinical Precision Status — fetched from /api/prescription/clinical-status on the save step.
+  // null = not yet fetched; "standard_personalization" = no clinical tier or no data.
+  const [clinicalPrecisionStatus, setClinicalPrecisionStatus] = useState<
+    | "standard_personalization"
+    | "clinical_information_needed"
+    | "clinical_precision_available"
+    | "clinical_precision_active"
+    | null
+  >(null);
+
   // Strategy layer state
   const [cutIntensity, setCutIntensity] = useState<CutIntensity>(
     (existingTargets?.cutIntensity === "standard" ? "none" : existingTargets?.cutIntensity) ?? "none"
@@ -701,7 +853,7 @@ export default function MacroCounter() {
     try {
       const persisted = sessionStorage.getItem("macro_guided_step");
       if (persisted) {
-        const stepOrder: GuidedStep[] = ["entry","goal","commitmentLevel","bodyType","units","sex","age","height","weight","waist","activity","syncWeight","metabolic","results","nutritionStrategy","starch","bodyComposition","save","done"];
+        const stepOrder: GuidedStep[] = ["entry","goal","commitmentLevel","bodyType","units","sex","age","height","weight","waist","activity","syncWeight","metabolic","results","nutritionStrategy","starch","clinicalContext","bodyComposition","save","done"];
         if (stepOrder.includes(persisted as GuidedStep)) return persisted as GuidedStep;
       }
     } catch {}
@@ -740,7 +892,8 @@ export default function MacroCounter() {
       metabolic: MACRO_CALC_METABOLIC,
       results: MACRO_CALC_RESULTS,
       nutritionStrategy: "",
-      starch: MACRO_CALC_STARCH,
+      starch: MACRO_CALC_STARCH_COUNT,
+      clinicalContext: MACRO_CALC_CLINICAL_CONTEXT,
       bodyComposition: MACRO_CALC_BODY_COMPOSITION,
       save: goal === "contest_prep" ? MACRO_CALC_SAVE_CONTEST_PREP : MACRO_CALC_SAVE,
       done: MACRO_CALC_DONE,
@@ -874,6 +1027,7 @@ export default function MacroCounter() {
       "results",
       "nutritionStrategy",
       "starch",
+      "clinicalContext",
       "bodyComposition",
       "save",
       "done",
@@ -1236,6 +1390,19 @@ export default function MacroCounter() {
         },
         user?.id,
       );
+      // Persist starch meal count and distribution strategy to the server.
+      // These are the authoritative source — not localStorage, not inferred from ratios.
+      if (user?.id && !user.id.startsWith("guest-")) {
+        try {
+          await apiRequest(apiUrl("/api/prescription/starch-preferences"), {
+            method: "PATCH",
+            body: JSON.stringify({ defaultStarchMealsPerDay, starchDistributionStrategy }),
+            headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+          });
+        } catch (err) {
+          console.error("[MacroCalculator] Failed to save starch preferences (non-fatal):", err);
+        }
+      }
       window.dispatchEvent(new CustomEvent("mpm:targetsUpdated"));
       saveBiometricsToProfile().catch(() => {});
       saveWaistToBiometrics().catch(() => {});
@@ -1283,6 +1450,22 @@ export default function MacroCounter() {
 
     return () => clearTimeout(timeout);
   }, [results]);
+
+  // Fetch clinical precision status when the user reaches the final save step.
+  // This runs AFTER the clinicalContext PATCH has already persisted, so the resolver
+  // will see the updated screening data. Works for both new users and returning users.
+  useEffect(() => {
+    if (guidedStep !== "save" || !user?.id || user.id.startsWith("guest-")) return;
+    apiRequest(apiUrl("/api/prescription/clinical-status"), {
+      headers: { ...getAuthHeaders() },
+    })
+      .then((data: any) => {
+        if (data?.clinicalPrecisionStatus) {
+          setClinicalPrecisionStatus(data.clinicalPrecisionStatus);
+        }
+      })
+      .catch(() => {}); // non-fatal — status card simply doesn't render
+  }, [guidedStep, user?.id]);
 
   return (
     <>
@@ -2469,75 +2652,299 @@ export default function MacroCounter() {
                 className="space-y-4"
               >
                 <Card data-wt="mc-starch-game-plan" className="bg-zinc-900/80 border border-white/30 text-white">
-                  <CardContent className="p-6 space-y-4">
+                  <CardContent className="p-6 space-y-6">
                     <div className="flex items-center gap-2">
                       <span className="text-amber-400 text-xl">🌾</span>
                       <h3 className="text-lg font-semibold text-white">
                         Your Starch Game Plan
                       </h3>
                     </div>
-                    <p className="text-white text-base">
-                      How are you going to eat your starches? One meal or split
-                      across two?
-                    </p>
+
+                    {/* How many starch meals per day? */}
                     <div className="space-y-3">
-                      <div
-                        className={`p-4 rounded-xl border transition-all ${
-                          starchStrategy === "one"
-                            ? "bg-black/60 border-white/20"
-                            : "bg-white/5 border-white/10"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-white">
-                              One Starch Meal
-                            </span>
-                            <span className="text-xs bg-emerald-600 px-2 py-0.5 rounded-full">
-                              Recommended
-                            </span>
-                          </div>
+                      <p className="text-white text-sm font-medium">
+                        How many meals a day will include starchy carbs?
+                      </p>
+                      <p className="text-white/60 text-xs">
+                        Starchy carbs = rice, pasta, bread, potatoes, oats. Fibrous veggies are unlimited.
+                      </p>
+                      <div className="flex gap-2 flex-wrap">
+                        {([1, 2, 3, 4, 5, 6] as const).map((n) => (
                           <PillButton
+                            key={n}
                             onClick={() => {
-                              setStarchStrategy("one");
-                              advanceGuided("bodyComposition");
+                              setDefaultStarchMealsPerDay(n);
+                              setStarchStrategy(n === 1 ? "one" : "flex");
                             }}
-                            active={starchStrategy === "one"}
+                            active={defaultStarchMealsPerDay === n}
                           >
-                            {starchStrategy === "one" ? "On" : "Off"}
+                            {n} {n === 1 ? "meal" : "meals"}
                           </PillButton>
+                        ))}
+                      </div>
+                      <p className="text-white/50 text-xs min-h-[1.25rem]">
+                        {defaultStarchMealsPerDay === 1
+                          ? "All starches in one meal — best for appetite control and fat loss."
+                          : defaultStarchMealsPerDay === 2
+                          ? "Split starches across two meals — good for training days."
+                          : defaultStarchMealsPerDay === 3
+                          ? "Three starch meals — suitable for athletes with higher carb needs."
+                          : defaultStarchMealsPerDay === 4
+                          ? "Four starch meals — high-volume training protocol."
+                          : defaultStarchMealsPerDay === 5
+                          ? "Five starch meals — competitive athlete fueling schedule."
+                          : "Six starch meals — maximum carbohydrate distribution for elite performance."}
+                      </p>
+                    </div>
+
+                    {/* Distribution strategy */}
+                    <div className="space-y-3">
+                      <p className="text-white text-sm font-medium">
+                        When do you prefer to eat your starchy carbs?
+                      </p>
+                      <div className="flex gap-2 flex-wrap">
+                        {(
+                          [
+                            { value: "even", label: "Spread evenly" },
+                            { value: "morning", label: "Earlier in day" },
+                            { value: "workout", label: "Around workouts" },
+                            { value: "evening", label: "Evening" },
+                            { value: "ai", label: "AI decides" },
+                          ] as const
+                        ).map(({ value, label }) => (
+                          <PillButton
+                            key={value}
+                            onClick={() => setStarchDistributionStrategy(value)}
+                            active={starchDistributionStrategy === value}
+                          >
+                            {label}
+                          </PillButton>
+                        ))}
+                      </div>
+                      <p className="text-white/50 text-xs min-h-[1.25rem]">
+                        {starchDistributionStrategy === "even"
+                          ? "Starch is split equally across your starch meals."
+                          : starchDistributionStrategy === "morning"
+                          ? "Front-load your carbs — easier sleep, less late-day glucose spike."
+                          : starchDistributionStrategy === "workout"
+                          ? "Timed around training for fuel and recovery."
+                          : starchDistributionStrategy === "evening"
+                          ? "Saves starch for your evening meal."
+                          : "AI places starch intelligently based on your meal plan context."}
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => advanceGuided("clinicalContext")}
+                      className="w-full py-3 rounded-xl bg-orange-600 text-white font-semibold text-sm"
+                    >
+                      Continue
+                    </button>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* GUIDED STEP 13b: Medication & Clinical Context */}
+            {guidedStep === "clinicalContext" && (
+              <motion.div
+                key="guided-clinical-context"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-4"
+              >
+                <Card className="bg-zinc-900/80 border border-white/30 text-white">
+                  <CardContent className="p-6 space-y-6">
+                    <div className="flex items-center gap-2">
+                      <span className="text-blue-400 text-xl">⚕️</span>
+                      <h3 className="text-lg font-semibold text-white">
+                        Medications, Hormones & Your Nutrition Plan
+                      </h3>
+                    </div>
+
+                    {/* Education card */}
+                    <div className="bg-white/5 rounded-xl p-4 space-y-4 border border-white/10">
+                      <p className="text-sm text-white">
+                        Medications, hormones, and lab values can affect how your nutrition plan should be interpreted.
+                      </p>
+                      <p className="text-sm text-white/90">
+                        Some treatments may influence appetite, glucose response, fluid balance, blood pressure,
+                        body composition, and weight trends. Lab values help the system understand how your body
+                        is responding and allow more informed personalization.
+                      </p>
+
+                      {/* Two-level distinction */}
+                      <div className="space-y-2 border-t border-white/10 pt-3">
+                        <p className="text-sm font-semibold text-white">This screen is for screening only</p>
+                        <div className="space-y-2 text-sm text-white/90">
+                          <p>
+                            <span className="font-medium text-orange-400">Here (Macro Calculator):</span>{" "}
+                            Identify that a relevant medication, hormone, or treatment exists.
+                          </p>
+                          <p>
+                            <span className="font-medium text-orange-400">Biometrics / Clinical Profile:</span>{" "}
+                            Record the complete information the system needs — medication name, treatment type,
+                            dose, frequency, relevant lab values, dates, and trends. Selecting a category here
+                            does not replace that record.
+                          </p>
                         </div>
-                        <p className="text-xs text-white/60">
-                          All starches in one meal - best for appetite control
-                        </p>
                       </div>
 
-                      <div
-                        className={`p-4 rounded-xl border transition-all ${
-                          starchStrategy === "flex"
-                            ? "bg-black/60 border-white/20"
-                            : "bg-white/5 border-white/10"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium text-white">
-                            Flex Split
-                          </span>
+                      {/* Why sources matter — connected to feature */}
+                      <Collapsible>
+                        <CollapsibleTrigger className="flex items-center gap-1 text-xs text-white/80 font-medium">
+                          <span>Why this matters — clinical evidence</span>
+                          <ChevronDown className="h-3 w-3" />
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="mt-2 space-y-3">
+                          <p className="text-xs text-white/90">
+                            Corticosteroids such as prednisone may affect appetite, fluid retention, glucose tolerance,
+                            protein catabolism, and weight trends. Hormone therapies such as testosterone require
+                            laboratory monitoring to evaluate treatment response and guide clinical decisions.
+                            That is why My Perfect Meals asks about both medication use and relevant lab values.
+                          </p>
+                          <div className="space-y-1">
+                            <p className="text-xs font-semibold text-white">Sources consulted:</p>
+                            <ul className="space-y-1 ml-2 text-xs text-white/80">
+                              <li>• FDA/DailyMed — Prednisone prescribing information (fluid retention, altered glucose tolerance, appetite, weight gain, sodium retention, potassium loss, protein catabolism)</li>
+                              <li>• Endocrine Society — Testosterone Therapy for Hypogonadism clinical practice guideline (laboratory assessment and ongoing monitoring requirements)</li>
+                            </ul>
+                          </div>
+                        </CollapsibleContent>
+                      </Collapsible>
+                    </div>
+
+                    {/* Response gate */}
+                    <div className="space-y-3">
+                      <p className="text-white text-sm font-medium">
+                        Are you taking medications, hormones, peptides, or receiving treatments that may affect your nutrition?
+                      </p>
+                      <div className="flex gap-2 flex-wrap">
+                        {(["yes", "no", "unsure"] as const).map((r) => (
                           <PillButton
+                            key={r}
                             onClick={() => {
-                              setStarchStrategy("flex");
-                              advanceGuided("bodyComposition");
+                              setClinicalContextResponse(r);
+                              if (r !== "yes") setClinicalContextCategories([]);
                             }}
-                            active={starchStrategy === "flex"}
+                            active={clinicalContextResponse === r}
                           >
-                            {starchStrategy === "flex" ? "On" : "Off"}
+                            {r === "yes" ? "Yes" : r === "no" ? "No" : "Not sure"}
                           </PillButton>
-                        </div>
-                        <p className="text-xs text-white/60">
-                          Split starches across two meals
-                        </p>
+                        ))}
                       </div>
                     </div>
+
+                    {/* Category picker — only when "yes" */}
+                    {clinicalContextResponse === "yes" && (
+                      <div className="space-y-4">
+                        <p className="text-white text-sm font-medium">Select all that apply:</p>
+                        <div className="flex gap-2 flex-wrap">
+                          {(
+                            [
+                              { value: "systemic_corticosteroid", label: "Corticosteroids (prednisone)" },
+                              { value: "testosterone_therapy", label: "Testosterone / TRT" },
+                              { value: "estrogen_or_progesterone", label: "Estrogen / Progesterone" },
+                              { value: "thyroid_medication", label: "Thyroid medication" },
+                              { value: "glp1_medication", label: "GLP-1 (Ozempic, Wegovy)" },
+                              { value: "insulin_or_diabetes_medication", label: "Insulin / Diabetes meds" },
+                              { value: "cardiac_or_blood_pressure_medication", label: "Cardiac / Blood pressure" },
+                              { value: "diuretic", label: "Diuretics" },
+                              { value: "peptide_or_growth_hormone_related", label: "Peptides / Growth hormone" },
+                              { value: "other", label: "Other" },
+                            ] as const
+                          ).map(({ value, label }) => (
+                            <PillButton
+                              key={value}
+                              onClick={() => {
+                                setClinicalContextCategories((prev) =>
+                                  prev.includes(value)
+                                    ? prev.filter((v) => v !== value)
+                                    : [...prev, value],
+                                );
+                              }}
+                              active={clinicalContextCategories.includes(value)}
+                            >
+                              {label}
+                            </PillButton>
+                          ))}
+                        </div>
+
+                        {/* Screening-only notice — appears on any selection */}
+                        {clinicalContextCategories.length > 0 && (
+                          <p className="text-sm text-white/90">
+                            Your selections tell the system that a relevant medication or treatment exists.
+                            The Macro Calculator uses this to flag important considerations — it does not
+                            replace a complete medication record with names, doses, frequency, and lab values.
+                          </p>
+                        )}
+
+                        {/* Detailed record callout — shown when any lab-measurable medication is selected */}
+                        {clinicalContextCategories.some((c) =>
+                          ["testosterone_therapy", "thyroid_medication", "glp1_medication", "insulin_or_diabetes_medication", "estrogen_or_progesterone"].includes(c)
+                        ) && (
+                          <div className="rounded-xl bg-orange-950/50 border border-orange-500/40 p-4 space-y-3">
+                            <p className="text-sm font-semibold text-white">
+                              Additional clinical information may improve personalization
+                            </p>
+                            <p className="text-sm text-white/90">
+                              {[
+                                clinicalContextCategories.includes("testosterone_therapy") && "testosterone therapy (total testosterone, free testosterone)",
+                                clinicalContextCategories.includes("thyroid_medication") && "thyroid medication (TSH, T3, T4)",
+                                clinicalContextCategories.includes("glp1_medication") && "GLP-1 medication (A1c, fasting glucose)",
+                                clinicalContextCategories.includes("insulin_or_diabetes_medication") && "insulin or diabetes medication (A1c, blood glucose trends)",
+                                clinicalContextCategories.includes("estrogen_or_progesterone") && "estrogen or progesterone therapy (hormone panel)",
+                              ].filter(Boolean).length > 0 && (
+                                <>
+                                  You selected{" "}
+                                  {[
+                                    clinicalContextCategories.includes("testosterone_therapy") && "testosterone therapy",
+                                    clinicalContextCategories.includes("thyroid_medication") && "thyroid medication",
+                                    clinicalContextCategories.includes("glp1_medication") && "GLP-1 medication",
+                                    clinicalContextCategories.includes("insulin_or_diabetes_medication") && "insulin or diabetes medication",
+                                    clinicalContextCategories.includes("estrogen_or_progesterone") && "estrogen or progesterone therapy",
+                                  ].filter(Boolean).join(", ")}.{" "}
+                                </>
+                              )}
+                              Add your treatment details and relevant lab values in Biometrics so My Perfect Meals
+                              can evaluate this context more completely and provide more informed,
+                              clinically aware personalization.
+                            </p>
+                            <a
+                              href="/my-biometrics"
+                              className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-orange-600 text-white text-sm font-semibold"
+                            >
+                              Add Medication &amp; Lab Details
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <button
+                      onClick={async () => {
+                        if (clinicalContextResponse && user?.id && !user.id.startsWith("guest-")) {
+                          try {
+                            await apiRequest(apiUrl("/api/prescription/clinical-context"), {
+                              method: "PATCH",
+                              body: JSON.stringify({
+                                clinicalContextResponse,
+                                selectedClinicalCategories:
+                                  clinicalContextResponse === "yes" ? clinicalContextCategories : [],
+                              }),
+                              headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+                            });
+                          } catch (err) {
+                            console.error("[MacroCalculator] Failed to save clinical context (non-fatal):", err);
+                          }
+                        }
+                        advanceGuided("bodyComposition");
+                      }}
+                      className="w-full py-3 rounded-xl bg-orange-600 text-white font-semibold text-sm"
+                    >
+                      {clinicalContextResponse ? "Continue" : "Skip for now"}
+                    </button>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -2693,6 +3100,79 @@ export default function MacroCounter() {
                         </button>
                       </div>
                     )}
+
+                    {/* ── Clinical Precision Status Card ── */}
+                    {clinicalPrecisionStatus &&
+                      clinicalPrecisionStatus !== "standard_personalization" && (
+                        <div
+                          className={`rounded-xl p-4 space-y-3 border ${
+                            clinicalPrecisionStatus === "clinical_precision_active"
+                              ? "bg-blue-950/40 border-blue-500/30"
+                              : clinicalPrecisionStatus === "clinical_precision_available"
+                              ? "bg-teal-950/40 border-teal-500/30"
+                              : "bg-white/5 border-white/10"
+                          }`}
+                        >
+                          {clinicalPrecisionStatus === "clinical_precision_active" && (
+                            <>
+                              <div className="flex items-center gap-2">
+                                <span className="text-blue-400 text-base">⚕️</span>
+                                <p className="text-sm font-semibold text-blue-300">
+                                  Clinical Precision — Active
+                                </p>
+                              </div>
+                              <p className="text-xs text-white/60">
+                                Your lab results and verified medication profile are connected.
+                                The nutrition engine is applying structured clinical context
+                                to your targets.
+                              </p>
+                              <ClinicalCategoryReasoningList categories={clinicalContextCategories} />
+                            </>
+                          )}
+                          {clinicalPrecisionStatus === "clinical_precision_available" && (
+                            <>
+                              <div className="flex items-center gap-2">
+                                <span className="text-teal-400 text-base">⚕️</span>
+                                <p className="text-sm font-semibold text-teal-300">
+                                  Clinical Precision — Available
+                                </p>
+                              </div>
+                              <p className="text-xs text-white/60">
+                                Your screening response has been saved. Adding lab results and a
+                                detailed medication profile in your clinical profile unlocks the
+                                full Clinical Precision engine.
+                              </p>
+                              <ClinicalCategoryReasoningList categories={clinicalContextCategories} />
+                              <button
+                                onClick={() => (window.location.href = "/biometrics")}
+                                className="text-xs text-teal-400 underline underline-offset-2 bg-transparent border-0 p-0 cursor-pointer"
+                              >
+                                Add lab results →
+                              </button>
+                            </>
+                          )}
+                          {clinicalPrecisionStatus === "clinical_information_needed" && (
+                            <>
+                              <div className="flex items-center gap-2">
+                                <span className="text-white/40 text-base">⚕️</span>
+                                <p className="text-sm font-semibold text-white/60">
+                                  Clinical Precision — Information Needed
+                                </p>
+                              </div>
+                              <p className="text-xs text-white/50">
+                                Your plan includes Clinical Precision. Connect your lab results
+                                and medication profile to activate the clinical nutrition engine.
+                              </p>
+                              <button
+                                onClick={() => (window.location.href = "/biometrics")}
+                                className="text-xs text-orange-400 underline underline-offset-2 bg-transparent border-0 p-0 cursor-pointer"
+                              >
+                                Add clinical data →
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      )}
 
                     <Button
                       disabled={!isCalcInputValid || isSaving}
@@ -3578,65 +4058,78 @@ export default function MacroCounter() {
                         Starch Game Plan
                       </h3>
                       <p className="text-sm text-white/70 mb-4">
-                        Starchy carbs (rice, pasta, potatoes, bread) need to be
-                        managed. Choose how you'll use your daily starch budget:
+                        Choose how many meals include starchy carbs and when you prefer to eat them.
                       </p>
 
-                      <div className="space-y-3">
-                        <div
-                          className={`p-4 rounded-xl border transition-all ${
-                            starchStrategy === "one"
-                              ? "bg-black/60 border-white/20"
-                              : "bg-white/5 border-white/10"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium text-white">
-                                One Starch Meal
-                              </span>
-                              <span className="text-xs bg-emerald-600 px-2 py-0.5 rounded-full">
-                                Recommended
-                              </span>
-                            </div>
+                      {/* Meal count */}
+                      <div className="space-y-2 mb-5">
+                        <p className="text-xs text-white/60 font-medium uppercase tracking-wide">
+                          Starch meals per day
+                        </p>
+                        <div className="flex gap-2 flex-wrap">
+                          {([1, 2, 3, 4, 5, 6] as const).map((n) => (
                             <PillButton
-                              onClick={() => setStarchStrategy("one")}
-                              active={starchStrategy === "one"}
+                              key={n}
+                              onClick={() => {
+                                setDefaultStarchMealsPerDay(n);
+                                setStarchStrategy(n === 1 ? "one" : "flex");
+                              }}
+                              active={defaultStarchMealsPerDay === n}
                             >
-                              {starchStrategy === "one" ? "On" : "Off"}
+                              {n} {n === 1 ? "meal" : "meals"}
                             </PillButton>
-                          </div>
-                          <p className="text-xs text-white/60">
-                            Use your full starch allowance (
-                            {getStarchyCarbs(sex, goal)}g) in one meal. Best for
-                            appetite control and fat loss.
-                          </p>
+                          ))}
                         </div>
+                        <p className="text-xs text-white/40 min-h-[1.25rem]">
+                          {defaultStarchMealsPerDay === 1
+                            ? "All starches in one meal — best for appetite control and fat loss."
+                            : defaultStarchMealsPerDay === 2
+                            ? "Split starches across two meals — good for training days."
+                            : defaultStarchMealsPerDay === 3
+                            ? "Three starch meals — suitable for athletes with higher carb needs."
+                            : defaultStarchMealsPerDay === 4
+                            ? "Four starch meals — high-volume training protocol."
+                            : defaultStarchMealsPerDay === 5
+                            ? "Five starch meals — competitive athlete fueling schedule."
+                            : "Six starch meals — maximum carbohydrate distribution for elite performance."}
+                        </p>
+                      </div>
 
-                        <div
-                          className={`p-4 rounded-xl border transition-all ${
-                            starchStrategy === "flex"
-                              ? "bg-black/60 border-white/20"
-                              : "bg-white/5 border-white/10"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm font-medium text-white">
-                              Flex Split
-                            </span>
+                      {/* Distribution strategy */}
+                      <div className="space-y-2">
+                        <p className="text-xs text-white/60 font-medium uppercase tracking-wide">
+                          Timing preference
+                        </p>
+                        <div className="flex gap-2 flex-wrap">
+                          {(
+                            [
+                              { value: "even", label: "Spread evenly" },
+                              { value: "morning", label: "Earlier in day" },
+                              { value: "workout", label: "Around workouts" },
+                              { value: "evening", label: "Evening" },
+                              { value: "ai", label: "AI decides" },
+                            ] as const
+                          ).map(({ value, label }) => (
                             <PillButton
-                              onClick={() => setStarchStrategy("flex")}
-                              active={starchStrategy === "flex"}
+                              key={value}
+                              onClick={() => setStarchDistributionStrategy(value)}
+                              active={starchDistributionStrategy === value}
                             >
-                              {starchStrategy === "flex" ? "On" : "Off"}
+                              {label}
                             </PillButton>
-                          </div>
-                          <p className="text-xs text-white/60">
-                            Divide starch across two meals (~
-                            {Math.round(getStarchyCarbs(sex, goal) / 2)}g each).
-                            Useful for training days or larger schedules.
-                          </p>
+                          ))}
                         </div>
+                        <p className="text-xs text-white/40 min-h-[1.25rem]">
+                          {starchDistributionStrategy === "even"
+                            ? "Starch split equally across starch meals."
+                            : starchDistributionStrategy === "morning"
+                            ? "Front-load carbs — easier sleep, less late-day glucose spike."
+                            : starchDistributionStrategy === "workout"
+                            ? "Timed around training for fuel and recovery."
+                            : starchDistributionStrategy === "evening"
+                            ? "Saves starch for your evening meal."
+                            : "AI places starch intelligently based on your meal plan context."}
+                        </p>
                       </div>
                     </CardContent>
                   </Card>

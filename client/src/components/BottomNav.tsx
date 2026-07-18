@@ -11,10 +11,42 @@ import {
 } from "@/lib/guestSuiteNavigator";
 import ChefEmojiButton from "@/components/chef/ChefEmojiButton";
 import { useAuth } from "@/contexts/AuthContext";
+import { getTierForLookupKey } from "@shared/planFeatures";
+
+type PlanBadgeVariant = "free" | "trial" | "paid" | "professional";
+
+function getMobilePlanBadge(user: any): { text: string; variant: PlanBadgeVariant } | null {
+  if (!user) return null;
+
+  if (user.accessTier === "TRIAL_FULL" || (user.trialEndsAt && new Date(user.trialEndsAt) > new Date())) {
+    return { text: "Trial", variant: "trial" };
+  }
+
+  const key = (user.planLookupKey ?? "").toLowerCase();
+  if (key.includes("procare") || key.includes("trainer") || key.includes("physician")) {
+    return { text: "Professional", variant: "professional" };
+  }
+
+  const tier = getTierForLookupKey(user.planLookupKey);
+  switch (tier) {
+    case "basic":    return { text: "Essential", variant: "paid" };
+    case "premium":  return { text: "Pro",       variant: "paid" };
+    case "ultimate": return { text: "Clinical",  variant: "paid" };
+    default:         return { text: "Free",       variant: "free" };
+  }
+}
+
+const MOBILE_BADGE_CLASSES: Record<PlanBadgeVariant, string> = {
+  free:         "bg-white/10 border border-white/15 text-white/50",
+  trial:        "bg-amber-500/15 border border-amber-500/25 text-amber-400",
+  paid:         "bg-orange-500/15 border border-orange-500/25 text-orange-400",
+  professional: "bg-blue-500/15 border border-blue-500/25 text-blue-400",
+};
 
 export default function BottomNav() {
   const [location, setLocation] = useLocation();
   const { user } = useAuth();
+  const planBadge = getMobilePlanBadge(user);
   const { open, close, isOpen, setLastResponse } = useCopilot();
 
   const handleNavClick = useCallback(
@@ -124,6 +156,15 @@ export default function BottomNav() {
       >
         <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "0 16px" }}>
           <div style={{ position: "relative", height: "64px", display: "grid", gridTemplateColumns: "1fr 56px 1fr", alignItems: "center" }}>
+            {/* PLAN TIER BADGE — top-right corner of nav bar */}
+            {planBadge && (
+              <span
+                className={`absolute text-[10px] font-semibold rounded-full px-2 py-0.5 ${MOBILE_BADGE_CLASSES[planBadge.variant]}`}
+                style={{ top: "4px", right: "4px", lineHeight: "1.4", pointerEvents: "none" }}
+              >
+                {planBadge.text}
+              </span>
+            )}
             {/* LEFT ITEMS */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-start", flexWrap: "nowrap" }}>
               {leftItems.map((item) => {

@@ -112,6 +112,7 @@ import { useNavigateToFavorites } from "@/hooks/useNavigateToFavorites";
 import { useBaselineNutrition } from "@/hooks/useBaselineNutrition";
 import { classifyMeal } from "@/utils/starchMealClassifier";
 import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
+import { useDailyPrescription } from "@/hooks/useDailyPrescription";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
@@ -420,41 +421,82 @@ export default function WeeklyMealBoard() {
   const [additionalMacrosOpen, setAdditionalMacrosOpen] = useState(false);
   const [pendingLockedDayISO, setPendingLockedDayISO] = useState<string>("");
 
+  // Consumed starch totals for the active day — fed into the prescription hook
+  // so adaptive per-meal gram guidance stays accurate as meals are added.
+  // NOTE: Must be declared after `board` and `activeDayISO` to avoid TDZ errors.
+  const activeDayConsumed = React.useMemo(() => {
+    if (!board || !activeDayISO) return { starchyCarbs: 0, starchMealsUsed: 0 };
+    const dayLists = getDayLists(board, activeDayISO);
+    const allMeals = [
+      ...dayLists.breakfast,
+      ...dayLists.lunch,
+      ...dayLists.dinner,
+      ...dayLists.snacks,
+    ];
+    let starchyCarbs = 0;
+    let starchMealsUsed = 0;
+    for (const m of allMeals) {
+      const storedStarchy = (m as any).starchyCarbs ?? m.nutrition?.starchyCarbs;
+      if (typeof storedStarchy === "number" && storedStarchy > 0) {
+        starchyCarbs += storedStarchy;
+      }
+      if (classifyMeal(m).isStarchMeal) starchMealsUsed++;
+    }
+    return { starchyCarbs, starchMealsUsed };
+  }, [board, activeDayISO]);
+
+  // DailyNutritionPrescription — server-resolved, date-aware, performance-aware.
+  // Provides starchMealsAllowed (integer), isZeroStarchDay, adaptive gram guidance.
+  // NOTE: Must be declared after `activeDayConsumed`, `activeDayISO`, and `proClientId`.
+  const { prescription } = useDailyPrescription({
+    dateISO: activeDayISO,
+    starchyConsumed: activeDayConsumed.starchyCarbs,
+    starchMealsUsed: activeDayConsumed.starchMealsUsed,
+    disabled: !activeDayISO || !!proClientId,
+  });
+
   // Computed: check if week mode is read-only (any day in week is locked)
   const weekModeReadOnly = React.useMemo(() => {
     if (planningMode !== "week") return false;
     return hasLockedDaysInWeek(weekStartISO, effectiveUserId);
   }, [planningMode, weekStartISO, effectiveUserId]);
 
-  // Build StarchContext for Create With Chef modal
-  // This enables intelligent carb distribution based on existing meals
+  // Build StarchContext for Create With Chef modal.
+  // When a prescription is available it drives the starch slot count and gram budget.
+  // Legacy strategy string is kept for backward compat with builders that haven't migrated yet.
   const starchContext: StarchContext | undefined = useMemo(() => {
     if (!board || !activeDayISO) return undefined;
 
-    // Get the starch strategy from resolved targets (default to 'one' if no user/targets)
-    const resolved = nutritionTargets;
-    const strategy = resolved.starchStrategy || "one";
-
-    // Get existing meals for the active day
+    // Build existing-meals list from the active day's board state
     const dayLists = getDayLists(board, activeDayISO);
     const existingMeals: StarchContext["existingMeals"] = [];
-
-    // Classify each meal slot
     for (const slot of ["breakfast", "lunch", "dinner"] as const) {
       const meals = dayLists[slot] || [];
       for (const meal of meals) {
-        existingMeals.push({
-          slot,
-          hasStarch: classifyMeal(meal).isStarchMeal,
-        });
+        existingMeals.push({ slot, hasStarch: classifyMeal(meal).isStarchMeal });
       }
     }
 
-    return {
-      strategy,
-      existingMeals,
-    };
-  }, [board, activeDayISO, effectiveUserId]);
+    // Legacy strategy string (kept for callers that haven't migrated to integer slots)
+    const legacyStrategy = (nutritionTargets.starchStrategy as "one" | "flex") || "one";
+
+    if (prescription && prescription.source !== "fallback") {
+      return {
+        strategy: legacyStrategy,
+        // ── Prescription fields ────────────────────────────────────────────
+        starchMealsAllowed: prescription.starchMealsAllowed,
+        starchyCarbsRemaining: prescription.starchyCarbsRemaining,
+        gramsPerRemainingStarchMeal: prescription.gramsPerRemainingStarchMeal,
+        distributionStrategy: prescription.starchDistributionStrategy,
+        isZeroStarchDay: prescription.isZeroStarchDay,
+        dateISO: activeDayISO,
+        existingMeals,
+      };
+    }
+
+    // Fallback: no prescription yet — use legacy strategy only
+    return { strategy: legacyStrategy, existingMeals };
+  }, [board, activeDayISO, prescription, nutritionTargets, effectiveUserId]);
 
   // Build DiversityContext for Create With Chef modal
   // Tracks which bases (quinoa, tofu…) and meal formats (bowl, salad…) are already on the board
@@ -1378,6 +1420,7 @@ export default function WeeklyMealBoard() {
                       ...dayLists.snacks,
                     ];
                   })()}
+                  prescription={prescription}
                   strategyOverride={nutritionTargets.starchStrategy || 'one'}
                 />
               </div>

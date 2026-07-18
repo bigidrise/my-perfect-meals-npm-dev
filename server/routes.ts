@@ -17,7 +17,7 @@ import { requireActiveAccess } from "./middleware/requireActiveAccess";
 import { requirePremiumAccess } from "./middleware/requirePremiumAccess";
 import { requireEssentialAccess } from "./middleware/requireEssentialAccess";
 import { requireProAccess } from "./middleware/requireProAccess";
-import { requireClinicalAccess } from "./middleware/requireClinicalAccess";
+import { requireClinicalAccess, requireStrictClinicalAccess } from "./middleware/requireClinicalAccess";
 import { requirePhase1Cert } from "./middleware/requirePhase1Cert";
 import { requirePhase2Training } from "./middleware/requirePhase2Training";
 import { requireMacroProfile } from "./middleware/requireMacroProfile";
@@ -622,7 +622,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/performance", requireAuth, performanceNutritionRouter);
   app.use("/api/performance", requireAuth, carbCycleRouter);
   app.use("/api/nutrition-summary", requireAuth, nutritionSummaryRouter);
-  app.use("/api/therapeutic", requireAuth, requireClinicalAccess, therapeuticSetupRouter);
+  app.use("/api/therapeutic", requireAuth, requireStrictClinicalAccess, therapeuticSetupRouter);
 
   // REMOVED: Duplicate route moved to top priority position
 
@@ -2357,6 +2357,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         palateFlavorStyle: user.palateFlavorStyle || null,
         hasAllergyPin: !!user.safetyPinHash,
         fontSizePreference: user.fontSizePreference || "standard",
+        defaultStarchMealsPerDay: user.defaultStarchMealsPerDay ?? null,
+        starchDistributionStrategy: user.starchDistributionStrategy ?? null,
+        clinicalContextResponse: user.clinicalContextResponse ?? null,
+        clinicalContextCategories: (user.clinicalContextCategories as string[]) ?? [],
         dailyCalorieTarget: user.dailyCalorieTarget ?? null,
         dailyProteinTarget: user.dailyProteinTarget ?? null,
         dailyCarbsTarget: user.dailyCarbsTarget ?? null,
@@ -6181,7 +6185,7 @@ function getMealIngredientsDatabase() {
       `;
 
       const emailSent = await sendEmail({
-        to: "support@myperfectmeals.com",
+        to: "support@myperfectmeals.ai",
         subject: `Personal Guidance Application from ${trimmedName}`,
         html: emailHtml,
         text: `New Personal Guidance Application\n\nName: ${trimmedName}\nGoal: ${trimmedGoal}\nStruggle: ${trimmedStruggle}\nCommitment: ${commitment ? "Yes" : "No"}\n\nSubmitted at ${new Date().toISOString()}`,
@@ -6955,6 +6959,10 @@ Provide a single exceptional meal recommendation in JSON format with the followi
     res.json({ eligible: isEligible });
   });
 
+  // Daily Nutrition Prescription — shared resolver for all builders
+  const { default: prescriptionRoutes } = await import("./routes/prescriptionRoutes");
+  app.use("/api/prescription", prescriptionRoutes);
+
   // Mount routes
   app.use("/api", mealPlansRoutes);
   app.use("/api", mealLogsRoutes);
@@ -7375,7 +7383,8 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   app.use("/api", patternAlertsRouter);
 
   const { default: clinicalLabsRouterShared } = await import("./routes/clinicalLabs");
-  app.use("/api/biometrics/labs", clinicalLabsRouterShared);
+  const { requireClinicalLabsAccess } = await import("./middleware/requireClinicalLabsAccess");
+  app.use("/api/biometrics/labs", requireAuth, requireClinicalLabsAccess, clinicalLabsRouterShared);
 
   const { default: translateRouterShared } = await import("./routes/translate");
   app.use("/api/translate", requireAuth, requireActiveAccess, translateRouterShared);

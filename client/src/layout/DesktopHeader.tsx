@@ -79,18 +79,36 @@ const ROUTE_TITLES: Record<string, string> = {
   "/apply-guidance": "Apply Guidance",
 };
 
-function getPlanLabel(planLookupKey?: string | null): string | null {
-  if (!planLookupKey) return null;
-  const key = planLookupKey.toLowerCase();
-  if (key.includes("procare") || key.includes("trainer") || key.includes("physician")) return "Professional";
-  const tier = getTierForLookupKey(planLookupKey);
+type PlanBadgeVariant = "free" | "trial" | "paid" | "professional";
+interface PlanBadgeInfo { text: string; variant: PlanBadgeVariant }
+
+function getPlanLabel(user: { planLookupKey?: string | null; trialEndsAt?: string | null; accessTier?: string } | null | undefined): PlanBadgeInfo {
+  if (!user) return { text: "Free", variant: "free" };
+
+  if (user.accessTier === "TRIAL_FULL" || (user.trialEndsAt && new Date(user.trialEndsAt) > new Date())) {
+    return { text: "Trial", variant: "trial" };
+  }
+
+  const key = (user.planLookupKey ?? "").toLowerCase();
+  if (key.includes("procare") || key.includes("trainer") || key.includes("physician")) {
+    return { text: "Professional", variant: "professional" };
+  }
+
+  const tier = getTierForLookupKey(user.planLookupKey);
   switch (tier) {
-    case "basic":    return "Essential";
-    case "premium":  return "Pro";
-    case "ultimate": return "Clinical";
-    default:         return null;
+    case "basic":    return { text: "Essential", variant: "paid" };
+    case "premium":  return { text: "Pro",       variant: "paid" };
+    case "ultimate": return { text: "Clinical",  variant: "paid" };
+    default:         return { text: "Free",      variant: "free" };
   }
 }
+
+const BADGE_CLASSES: Record<PlanBadgeVariant, string> = {
+  free:         "bg-white/10 border border-white/15 text-white/50",
+  trial:        "bg-amber-500/15 border border-amber-500/25 text-amber-400",
+  paid:         "bg-orange-500/15 border border-orange-500/25 text-orange-400",
+  professional: "bg-blue-500/15 border border-blue-500/25 text-blue-400",
+};
 
 function getPageTitle(location: string): string {
   if (ROUTE_TITLES[location]) return ROUTE_TITLES[location];
@@ -117,7 +135,7 @@ export default function DesktopHeader() {
 
   const fallbackTitle = getPageTitle(location);
   const title = contextTitle || (fallbackTitle === "Signature Kitchen Experience" ? appName : fallbackTitle);
-  const planLabel = getPlanLabel(user?.planLookupKey);
+  const planBadge = getPlanLabel(user);
   const hubBack = HUB_BACK_MAP[location] ?? null;
 
   return (
@@ -136,9 +154,9 @@ export default function DesktopHeader() {
       </div>
 
       <div className="flex items-center gap-3">
-        {planLabel && (
-          <span className="px-2.5 py-1 text-xs font-medium rounded-full bg-orange-500/15 text-orange-400 border border-orange-500/25">
-            {planLabel}
+        {user && (
+          <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${BADGE_CLASSES[planBadge.variant]}`}>
+            {planBadge.text}
           </span>
         )}
         <ProfileSheet>

@@ -227,6 +227,13 @@ async function initializeApp() {
           await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS performance_protocol_config jsonb`);
           // Therapeutic Nutrition Intelligence — Sprint 4
           await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS therapeutic_support_context jsonb`);
+          // DailyNutritionPrescription — persistent starch preferences
+          await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS default_starch_meals_per_day integer`);
+          await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS starch_distribution_strategy text`);
+          // Clinical Context Screening — self-reported medication/hormone gate
+          await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS clinical_context_response text`);
+          await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS clinical_context_categories jsonb`);
+          await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS clinical_context_updated_at timestamptz`);
           // Professional Launchpad — Phase 2 ProCare training completion gate
           await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS procare_training_completed boolean NOT NULL DEFAULT false`);
           // LMS content tables
@@ -538,6 +545,7 @@ async function initializeApp() {
     const restaurantRoutes = (await import("./routes/restaurants")).default;
     const manualMacrosRouter = (await import("./routes/manualMacros")).default;
     const clinicalLabsRouter = (await import("./routes/clinicalLabs")).default;
+    const { requireClinicalLabsAccess } = await import("./middleware/requireClinicalLabsAccess");
     const translateRouter = (await import("./routes/translate")).default;
     const mealsRouter = (await import("./routes/meals")).default;
     const macroCalculatorRouter = (await import("./routes/macroCalculatorRoutes")).default;
@@ -552,7 +560,11 @@ async function initializeApp() {
     app.use("/api/restaurants", resolveCuisineMiddleware, restaurantRoutes);
     app.use("/api", manualMacrosRouter);
     app.use("/api", macroCalculatorRouter);
-    app.use("/api/biometrics/labs", clinicalLabsRouter);
+    app.use("/api/biometrics/labs", requireAuth, requireClinicalLabsAccess, clinicalLabsRouter);
+
+    // Daily Nutrition Prescription — shared resolver for all builders
+    const prescriptionRoutes = (await import("./routes/prescriptionRoutes")).default;
+    app.use("/api/prescription", prescriptionRoutes);
     app.use(
       "/api/translate",
       requireAuth,
@@ -669,7 +681,8 @@ async function initializeApp() {
 
     // Therapeutic Nutrition Intelligence — Sprint 4
     const therapeuticSetupRouter = (await import("./routes/therapeuticSetup")).default;
-    app.use("/api/therapeutic", requireAuth, therapeuticSetupRouter);
+    const { requireStrictClinicalAccess } = await import("./middleware/requireClinicalAccess");
+    app.use("/api/therapeutic", requireAuth, requireStrictClinicalAccess, therapeuticSetupRouter);
 
     // Adaptive Coaching Engine (ACE) — Sprint 1+2+3
     // Daily Check-In (aceCheckin) retired — replaced by Coach's Corner. Route moved to server/legacy/aceCheckin.ts.

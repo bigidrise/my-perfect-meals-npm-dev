@@ -159,7 +159,7 @@ const PRIVACY_BODY = `
 
 <h2>6. Your Rights</h2>
 <p>Depending on your region, you may request a copy of your data, update or delete your data, withdraw consent, or close your account at any time.</p>
-<p>Contact us at <a href="mailto:support@myperfectmeals.com">support@myperfectmeals.com</a> for requests.</p>
+<p>Contact us at <a href="mailto:support@myperfectmeals.ai">support@myperfectmeals.ai</a> for requests.</p>
 
 <h2>7. Children's Privacy</h2>
 <p>My Perfect Meals is intended for users 13 and older. We do not knowingly collect data from children under 13.</p>
@@ -175,7 +175,7 @@ const PRIVACY_BODY = `
 <div class="contact-block">
   <h2 style="margin-top:0">10. Contact Us</h2>
   <p>My Perfect Meals</p>
-  <p>Support Email: <a href="mailto:support@myperfectmeals.com">support@myperfectmeals.com</a></p>
+  <p>Support Email: <a href="mailto:support@myperfectmeals.ai">support@myperfectmeals.ai</a></p>
 </div>
 `;
 
@@ -264,7 +264,7 @@ const TERMS_BODY = `
 <div class="contact-block">
   <h2 style="margin-top:0">11. Contact Us</h2>
   <p>My Perfect Meals</p>
-  <p>Support Email: <a href="mailto:support@myperfectmeals.com">support@myperfectmeals.com</a></p>
+  <p>Support Email: <a href="mailto:support@myperfectmeals.ai">support@myperfectmeals.ai</a></p>
 </div>
 `;
 

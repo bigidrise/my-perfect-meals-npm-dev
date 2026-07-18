@@ -154,7 +154,7 @@ export default function CareTeamPage() {
       const sentTo = invEmail;
       setInvEmail("");
       setError(null);
-      setSuccessMsg(`✅ Invitation sent to ${sentTo}! They'll receive an email from support@myperfectmeals.com`);
+      setSuccessMsg(`✅ Invitation sent to ${sentTo}! They'll receive an email from support@myperfectmeals.ai`);
       setTimeout(() => setSuccessMsg(null), 6000);
     } catch (e: any) {
       setError(e?.message ?? "Failed to send invite.");

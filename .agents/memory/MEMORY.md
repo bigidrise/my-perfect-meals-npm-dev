@@ -1,6 +1,5 @@
 - [Clinical Labs Phase 5 — Architecture](clinical-labs-phase5.md) — 7 new lab columns + hormone/thyroid subtype resolver pattern; drizzle-kit not installed, use migration script.
 - [drizzle-kit push instability](drizzle-kit-push-instability.md) — `db:push` can fail schema-pull with a zod error unrelated to your change; fall back to a small `IF NOT EXISTS` migration script instead of debugging the whole schema diff.
-- [Coach's Corner v1 intake](coach-corner-v1-intake.md) — behavioral intake reuses existing 5 flat coaching_profiles columns until Behavioral Variables spec is locked; do not add new columns for it prematurely.
 - [Express async middleware + sub-routers](express-async-subrouter-bug.md) — Express v4 won't await async middleware in app.use(path, asyncFn, router); fix by putting requireAuth inside the router itself.
 - [apiRequest returns parsed JSON](apiRequest-returns-parsed-json.md) — apiRequest() already calls res.json() internally; never call .json() on the result or it always throws and silently returns empty data.
 - [Affiliate Certification — PDF Certificate System](affiliate-cert-pdf.md) — pdfkit installed; certificate_name on user_certifications; signature drop-in at server/assets/cert-signature.png.
@@ -28,3 +27,5 @@
 - [Location Context Engine — Hybrid Venue Engine](location-context-engine.md) — Catalog-first + Google Places fallback + 24h cache; venueDiscovery.ts; GET /venues/discover; discoveredVenue payload on POST /coach; Google has no indoor-map API so catalog + generic zones is correct arch.
 - [Clinical Business — Effective Access Architecture](business-effective-access.md) — access tier computed at runtime from membership OR personal plan; never stored merged in planLookupKey; accept route snapshots personal plan, never calls updateUserSubscription.
 - [Performance Hub macro anchoring](performance-hub-macro-anchor.md) — AI coach must never invent macro targets; /ask injects AUTHORITATIVE BASELINE + RESOLVED blocks and validates response.
+- [Image storage S3→GCS fallback](image-storage-s3-gcs.md) — S3 returns 403 (IAM policy), AWS SDK XML parser crashes on the error response hiding the real cause; GCS via Replit sidecar is the working fallback.
+- [DailyNutritionPrescription — Architecture](daily-nutrition-prescription.md) — shared contract + server resolver; starchMealsAllowed is integer not string; resolver uses real DB columns only.

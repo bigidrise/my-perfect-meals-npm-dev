@@ -19,7 +19,15 @@ export type BeachBodyPhase = 'lean' | 'carb-control' | 'maintenance' | 'sculpt';
 export type BuilderMode = 'lifestyle' | 'targeted' | 'hybrid';
 
 export interface StarchContext {
-  strategy: 'one' | 'flex';
+  strategy: 'one' | 'flex'; // legacy — kept for backward compat; ignored when starchMealsAllowed is set
+  // ── Prescription fields (preferred) ──────────────────────────────────────
+  starchMealsAllowed?: number;           // integer from prescription resolver
+  starchyCarbsRemaining?: number;        // grams of starchy carbs remaining today
+  gramsPerRemainingStarchMeal?: number;  // adaptive per-meal gram target
+  distributionStrategy?: 'even' | 'workout' | 'morning' | 'evening' | 'ai';
+  isZeroStarchDay?: boolean;             // rest day / clinical zero-starch protocol
+  dateISO?: string;                      // YYYY-MM-DD the context applies to
+  // ── Existing slots ────────────────────────────────────────────────────────
   existingMeals?: Array<{
     slot: 'breakfast' | 'lunch' | 'dinner' | 'snack';
     hasStarch: boolean;

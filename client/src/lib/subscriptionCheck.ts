@@ -1,35 +1,5 @@
 import { getTierForLookupKey } from "@shared/planFeatures";
 
-const PAID_PLAN_KEYS = [
-  "mpm_basic",
-  "mpm_premium",
-  "mpm_ultimate",
-  "mpm_family_base",
-  "mpm_family_premium",
-  "mpm_family_ultimate",
-  "mpm_trainer_5",
-  "mpm_trainer_10",
-  "mpm_trainer_25",
-  "mpm_trainer_50",
-  "mpm_physician_50",
-  "mpm_physician_150",
-  "mpm_guidance",
-  "mpm_basic_monthly",
-  "mpm_upgrade_monthly",
-  "mpm_upgrade_beta_monthly",
-  "mpm_ultimate_monthly",
-  "mpm_premium_monthly",
-  "mpm_premium_beta_monthly",
-  "mpm_family_base_monthly",
-  "mpm_family_all_upgrade_monthly",
-  "mpm_family_all_premium_monthly",
-  "mpm_family_all_ultimate_monthly",
-  "mpm_procare_monthly",
-  "mpm_basic_plan_999",
-  "mpm_premium_plan_1999",
-  "mpm_ultimate_plan_2999",
-];
-
 interface UserForSubscriptionCheck {
   planLookupKey?: string | null;
   accessTier?: string;
@@ -45,8 +15,8 @@ export function hasActivePaidSubscription(user: UserForSubscriptionCheck | null 
   if (user.isFounder) return true;
   // accessTier is the server's authoritative resolution — trust it first
   if (user.accessTier === "PAID_FULL" || user.accessTier === "TRIAL_FULL") return true;
-  // Explicit paid plan key (Stripe webhook confirmed)
-  if (user.planLookupKey && PAID_PLAN_KEYS.includes(user.planLookupKey)) return true;
+  // Derive from planLookupKey via the single source of truth in planFeatures.ts
+  if (user.planLookupKey && getTierForLookupKey(user.planLookupKey) !== "free") return true;
   // Active 7-day trial window
   if (user.trialEndsAt && new Date(user.trialEndsAt) > new Date()) return true;
   return false;
@@ -80,12 +50,40 @@ export function isClinicalOrAbove(user: UserForSubscriptionCheck | null | undefi
   return tier === "ultimate";
 }
 
+/**
+ * canAccessStrictClinical — shared logic for Clinical features that explicitly
+ * exclude trial users: Lab Values, Therapeutic Nutrition Intelligence, etc.
+ * Founders always pass. Pre-launch (BILLING_ENFORCED=false) → server sends
+ * PAID_FULL for everyone, so the PAID_FULL + free-tier-key fallback returns true.
+ */
+function canAccessStrictClinical(user: UserForSubscriptionCheck | null | undefined): boolean {
+  if (!user) return false;
+  if (user.isFounder) return true;
+  // Trial users are explicitly excluded from strict Clinical features
+  if (user.trialEndsAt && new Date(user.trialEndsAt) > new Date() && user.accessTier === "TRIAL_FULL") return false;
+  if (!hasActivePaidSubscription(user)) return false;
+  const tier = getTierForLookupKey(user.planLookupKey);
+  // Internal/sandbox: PAID_FULL with no planLookupKey → grant access
+  if (tier === "free" && user.accessTier === "PAID_FULL") return true;
+  return tier === "ultimate";
+}
+
+/** Lab Values — Clinical plan only, trial excluded. */
+export function canAccessClinicalLabs(user: UserForSubscriptionCheck | null | undefined): boolean {
+  return canAccessStrictClinical(user);
+}
+
+/** Therapeutic Nutrition Intelligence — Clinical plan only, trial excluded. */
+export function canAccessTherapeuticNutrition(user: UserForSubscriptionCheck | null | undefined): boolean {
+  return canAccessStrictClinical(user);
+}
+
 // Returns true only for users on an actual paid plan (not trial, not free, not founder).
 // Use this to suppress upsell UI for confirmed paying customers.
 export function hasPaidPlan(user: UserForSubscriptionCheck | null | undefined): boolean {
   if (!user) return false;
   if (user.isFounder) return true;
   if (user.accessTier === "PAID_FULL") return true;
-  if (user.planLookupKey && PAID_PLAN_KEYS.includes(user.planLookupKey)) return true;
+  if (user.planLookupKey && getTierForLookupKey(user.planLookupKey) !== "free") return true;
   return false;
 }
