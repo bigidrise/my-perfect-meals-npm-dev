@@ -2764,39 +2764,53 @@ export default function MacroCounter() {
                     </div>
 
                     {/* Education card */}
-                    <div className="bg-white/5 rounded-xl p-4 space-y-3 border border-white/10">
-                      <p className="text-sm text-white/80">
-                        Some medications and hormone therapies can affect appetite, fluid balance,
-                        glucose response, blood pressure, body composition, and weight trends.
+                    <div className="bg-white/5 rounded-xl p-4 space-y-4 border border-white/10">
+                      <p className="text-sm text-white">
+                        Medications, hormones, and lab values can affect how your nutrition plan should be interpreted.
                       </p>
-                      <p className="text-sm text-white/80">
-                        For example, corticosteroids such as prednisone may be associated with
-                        increased appetite, fluid retention, altered glucose tolerance, and weight gain.
-                        Testosterone therapy requires appropriate laboratory assessment and ongoing monitoring.
+                      <p className="text-sm text-white/90">
+                        Some treatments may influence appetite, glucose response, fluid balance, blood pressure,
+                        body composition, and weight trends. Lab values help the system understand how your body
+                        is responding and allow more informed personalization.
                       </p>
-                      <p className="text-sm font-medium text-orange-400">
-                        Clinical Precision allows My Perfect Meals to consider more of this context
-                        when personalizing your nutrition guidance.
-                      </p>
-                      <div className="rounded-lg bg-blue-950/40 border border-blue-500/30 p-3 flex gap-2">
-                        <span className="text-blue-400 text-base shrink-0">🧪</span>
-                        <p className="text-sm text-white/90">
-                          <span className="font-semibold text-white">Blood work makes the system more accurate.</span>{" "}
-                          If you have recent lab values — testosterone levels, thyroid panel, A1c, glucose — adding them to your{" "}
-                          <a href="/my-biometrics" className="text-orange-400 underline underline-offset-2 font-medium">Biometrics page</a>{" "}
-                          lets the system factor in your actual clinical picture, not just the category.
-                        </p>
+
+                      {/* Two-level distinction */}
+                      <div className="space-y-2 border-t border-white/10 pt-3">
+                        <p className="text-sm font-semibold text-white">This screen is for screening only</p>
+                        <div className="space-y-2 text-sm text-white/90">
+                          <p>
+                            <span className="font-medium text-orange-400">Here (Macro Calculator):</span>{" "}
+                            Identify that a relevant medication, hormone, or treatment exists.
+                          </p>
+                          <p>
+                            <span className="font-medium text-orange-400">Biometrics / Clinical Profile:</span>{" "}
+                            Record the complete information the system needs — medication name, treatment type,
+                            dose, frequency, relevant lab values, dates, and trends. Selecting a category here
+                            does not replace that record.
+                          </p>
+                        </div>
                       </div>
+
+                      {/* Why sources matter — connected to feature */}
                       <Collapsible>
-                        <CollapsibleTrigger className="flex items-center gap-1 text-xs text-white/70">
-                          <span>Sources consulted</span>
+                        <CollapsibleTrigger className="flex items-center gap-1 text-xs text-white/80 font-medium">
+                          <span>Why this matters — clinical evidence</span>
                           <ChevronDown className="h-3 w-3" />
                         </CollapsibleTrigger>
-                        <CollapsibleContent className="mt-2 space-y-2">
-                          <ul className="space-y-1 ml-2 text-xs text-white/80">
-                            <li>• FDA/DailyMed — Prednisone prescribing information (fluid retention, altered glucose tolerance, appetite, weight gain, sodium retention, potassium loss, protein catabolism)</li>
-                            <li>• Endocrine Society — Testosterone Therapy for Hypogonadism clinical practice guideline (laboratory assessment and ongoing monitoring requirements)</li>
-                          </ul>
+                        <CollapsibleContent className="mt-2 space-y-3">
+                          <p className="text-xs text-white/90">
+                            Corticosteroids such as prednisone may affect appetite, fluid retention, glucose tolerance,
+                            protein catabolism, and weight trends. Hormone therapies such as testosterone require
+                            laboratory monitoring to evaluate treatment response and guide clinical decisions.
+                            That is why My Perfect Meals asks about both medication use and relevant lab values.
+                          </p>
+                          <div className="space-y-1">
+                            <p className="text-xs font-semibold text-white">Sources consulted:</p>
+                            <ul className="space-y-1 ml-2 text-xs text-white/80">
+                              <li>• FDA/DailyMed — Prednisone prescribing information (fluid retention, altered glucose tolerance, appetite, weight gain, sodium retention, potassium loss, protein catabolism)</li>
+                              <li>• Endocrine Society — Testosterone Therapy for Hypogonadism clinical practice guideline (laboratory assessment and ongoing monitoring requirements)</li>
+                            </ul>
+                          </div>
                         </CollapsibleContent>
                       </Collapsible>
                     </div>
@@ -2824,7 +2838,7 @@ export default function MacroCounter() {
 
                     {/* Category picker — only when "yes" */}
                     {clinicalContextResponse === "yes" && (
-                      <div className="space-y-3">
+                      <div className="space-y-4">
                         <p className="text-white text-sm font-medium">Select all that apply:</p>
                         <div className="flex gap-2 flex-wrap">
                           {(
@@ -2856,27 +2870,53 @@ export default function MacroCounter() {
                             </PillButton>
                           ))}
                         </div>
+
+                        {/* Screening-only notice — appears on any selection */}
                         {clinicalContextCategories.length > 0 && (
-                          <p className="text-sm text-white/80">
-                            Your selections are saved with your profile so the nutrition engine can flag relevant considerations. Specific medication names, doses, and prescriber details can be added in your clinical profile.
+                          <p className="text-sm text-white/90">
+                            Your selections tell the system that a relevant medication or treatment exists.
+                            The Macro Calculator uses this to flag important considerations — it does not
+                            replace a complete medication record with names, doses, frequency, and lab values.
                           </p>
                         )}
-                        {/* Lab values callout — shown when any lab-measurable medication is selected */}
+
+                        {/* Detailed record callout — shown when any lab-measurable medication is selected */}
                         {clinicalContextCategories.some((c) =>
                           ["testosterone_therapy", "thyroid_medication", "glp1_medication", "insulin_or_diabetes_medication", "estrogen_or_progesterone"].includes(c)
                         ) && (
-                          <div className="rounded-lg bg-orange-950/40 border border-orange-500/40 p-3 space-y-2">
-                            <p className="text-sm font-semibold text-white">📋 Add your lab values for better accuracy</p>
-                            <p className="text-sm text-white/90">
-                              For medications like testosterone, thyroid drugs, GLP-1s, and insulin, your actual blood work levels — total testosterone, TSH, A1c, fasting glucose — give the system a precise clinical picture instead of a general estimate.
+                          <div className="rounded-xl bg-orange-950/50 border border-orange-500/40 p-4 space-y-3">
+                            <p className="text-sm font-semibold text-white">
+                              Additional clinical information may improve personalization
                             </p>
                             <p className="text-sm text-white/90">
-                              Go to your{" "}
-                              <a href="/my-biometrics" className="text-orange-400 underline underline-offset-2 font-medium">
-                                Biometrics page
-                              </a>{" "}
-                              to enter these values. They're stored securely and used only to personalize your nutrition.
+                              {[
+                                clinicalContextCategories.includes("testosterone_therapy") && "testosterone therapy (total testosterone, free testosterone)",
+                                clinicalContextCategories.includes("thyroid_medication") && "thyroid medication (TSH, T3, T4)",
+                                clinicalContextCategories.includes("glp1_medication") && "GLP-1 medication (A1c, fasting glucose)",
+                                clinicalContextCategories.includes("insulin_or_diabetes_medication") && "insulin or diabetes medication (A1c, blood glucose trends)",
+                                clinicalContextCategories.includes("estrogen_or_progesterone") && "estrogen or progesterone therapy (hormone panel)",
+                              ].filter(Boolean).length > 0 && (
+                                <>
+                                  You selected{" "}
+                                  {[
+                                    clinicalContextCategories.includes("testosterone_therapy") && "testosterone therapy",
+                                    clinicalContextCategories.includes("thyroid_medication") && "thyroid medication",
+                                    clinicalContextCategories.includes("glp1_medication") && "GLP-1 medication",
+                                    clinicalContextCategories.includes("insulin_or_diabetes_medication") && "insulin or diabetes medication",
+                                    clinicalContextCategories.includes("estrogen_or_progesterone") && "estrogen or progesterone therapy",
+                                  ].filter(Boolean).join(", ")}.{" "}
+                                </>
+                              )}
+                              Add your treatment details and relevant lab values in Biometrics so My Perfect Meals
+                              can evaluate this context more completely and provide more informed,
+                              clinically aware personalization.
                             </p>
+                            <a
+                              href="/my-biometrics"
+                              className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-orange-600 text-white text-sm font-semibold"
+                            >
+                              Add Medication &amp; Lab Details
+                            </a>
                           </div>
                         )}
                       </div>
