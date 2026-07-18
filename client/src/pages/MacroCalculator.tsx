@@ -674,6 +674,17 @@ export default function MacroCounter() {
     StarchStrategy | undefined
   >(existingTargets?.starchStrategy ?? undefined);
 
+  // DailyNutritionPrescription — persistent starch preferences (saved to DB via PATCH)
+  // defaultStarchMealsPerDay: integer (1-4), replaces "one"/"flex" string
+  // starchDistributionStrategy: how starch is spread across meals
+  const derivedInitialMeals = existingTargets?.starchStrategy === "flex" ? 2 : 1;
+  const [defaultStarchMealsPerDay, setDefaultStarchMealsPerDay] = useState<number>(
+    derivedInitialMeals
+  );
+  const [starchDistributionStrategy, setStarchDistributionStrategy] = useState<
+    "even" | "workout" | "morning" | "evening" | "ai"
+  >("even");
+
   // Strategy layer state
   const [cutIntensity, setCutIntensity] = useState<CutIntensity>(
     (existingTargets?.cutIntensity === "standard" ? "none" : existingTargets?.cutIntensity) ?? "none"
@@ -1236,6 +1247,19 @@ export default function MacroCounter() {
         },
         user?.id,
       );
+      // Persist starch meal count and distribution strategy to the server.
+      // These are the authoritative source — not localStorage, not inferred from ratios.
+      if (user?.id && !user.id.startsWith("guest-")) {
+        try {
+          await apiRequest(apiUrl("/api/prescription/starch-preferences"), {
+            method: "PATCH",
+            body: JSON.stringify({ defaultStarchMealsPerDay, starchDistributionStrategy }),
+            headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+          });
+        } catch (err) {
+          console.error("[MacroCalculator] Failed to save starch preferences (non-fatal):", err);
+        }
+      }
       window.dispatchEvent(new CustomEvent("mpm:targetsUpdated"));
       saveBiometricsToProfile().catch(() => {});
       saveWaistToBiometrics().catch(() => {});
@@ -2469,75 +2493,90 @@ export default function MacroCounter() {
                 className="space-y-4"
               >
                 <Card data-wt="mc-starch-game-plan" className="bg-zinc-900/80 border border-white/30 text-white">
-                  <CardContent className="p-6 space-y-4">
+                  <CardContent className="p-6 space-y-6">
                     <div className="flex items-center gap-2">
                       <span className="text-amber-400 text-xl">🌾</span>
                       <h3 className="text-lg font-semibold text-white">
                         Your Starch Game Plan
                       </h3>
                     </div>
-                    <p className="text-white text-base">
-                      How are you going to eat your starches? One meal or split
-                      across two?
-                    </p>
-                    <div className="space-y-3">
-                      <div
-                        className={`p-4 rounded-xl border transition-all ${
-                          starchStrategy === "one"
-                            ? "bg-black/60 border-white/20"
-                            : "bg-white/5 border-white/10"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-white">
-                              One Starch Meal
-                            </span>
-                            <span className="text-xs bg-emerald-600 px-2 py-0.5 rounded-full">
-                              Recommended
-                            </span>
-                          </div>
-                          <PillButton
-                            onClick={() => {
-                              setStarchStrategy("one");
-                              advanceGuided("bodyComposition");
-                            }}
-                            active={starchStrategy === "one"}
-                          >
-                            {starchStrategy === "one" ? "On" : "Off"}
-                          </PillButton>
-                        </div>
-                        <p className="text-xs text-white/60">
-                          All starches in one meal - best for appetite control
-                        </p>
-                      </div>
 
-                      <div
-                        className={`p-4 rounded-xl border transition-all ${
-                          starchStrategy === "flex"
-                            ? "bg-black/60 border-white/20"
-                            : "bg-white/5 border-white/10"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium text-white">
-                            Flex Split
-                          </span>
+                    {/* How many starch meals per day? */}
+                    <div className="space-y-3">
+                      <p className="text-white text-sm font-medium">
+                        How many meals a day will include starchy carbs?
+                      </p>
+                      <p className="text-white/60 text-xs">
+                        Starchy carbs = rice, pasta, bread, potatoes, oats. Fibrous veggies are unlimited.
+                      </p>
+                      <div className="flex gap-2 flex-wrap">
+                        {([1, 2, 3, 4] as const).map((n) => (
                           <PillButton
+                            key={n}
                             onClick={() => {
-                              setStarchStrategy("flex");
-                              advanceGuided("bodyComposition");
+                              setDefaultStarchMealsPerDay(n);
+                              setStarchStrategy(n === 1 ? "one" : "flex");
                             }}
-                            active={starchStrategy === "flex"}
+                            active={defaultStarchMealsPerDay === n}
                           >
-                            {starchStrategy === "flex" ? "On" : "Off"}
+                            {n} {n === 1 ? "meal" : "meals"}
                           </PillButton>
-                        </div>
-                        <p className="text-xs text-white/60">
-                          Split starches across two meals
-                        </p>
+                        ))}
                       </div>
+                      <p className="text-white/50 text-xs min-h-[1.25rem]">
+                        {defaultStarchMealsPerDay === 1
+                          ? "All starches in one meal — best for appetite control and fat loss."
+                          : defaultStarchMealsPerDay === 2
+                          ? "Split starches across two meals — good for training days."
+                          : defaultStarchMealsPerDay === 3
+                          ? "Three starch meals — suitable for athletes with higher carb needs."
+                          : "Four starch meals — high-carb athlete protocol."}
+                      </p>
                     </div>
+
+                    {/* Distribution strategy */}
+                    <div className="space-y-3">
+                      <p className="text-white text-sm font-medium">
+                        When do you prefer to eat your starchy carbs?
+                      </p>
+                      <div className="flex gap-2 flex-wrap">
+                        {(
+                          [
+                            { value: "even", label: "Spread evenly" },
+                            { value: "morning", label: "Earlier in day" },
+                            { value: "workout", label: "Around workouts" },
+                            { value: "evening", label: "Evening" },
+                            { value: "ai", label: "AI decides" },
+                          ] as const
+                        ).map(({ value, label }) => (
+                          <PillButton
+                            key={value}
+                            onClick={() => setStarchDistributionStrategy(value)}
+                            active={starchDistributionStrategy === value}
+                          >
+                            {label}
+                          </PillButton>
+                        ))}
+                      </div>
+                      <p className="text-white/50 text-xs min-h-[1.25rem]">
+                        {starchDistributionStrategy === "even"
+                          ? "Starch is split equally across your starch meals."
+                          : starchDistributionStrategy === "morning"
+                          ? "Front-load your carbs — easier sleep, less late-day glucose spike."
+                          : starchDistributionStrategy === "workout"
+                          ? "Timed around training for fuel and recovery."
+                          : starchDistributionStrategy === "evening"
+                          ? "Saves starch for your evening meal."
+                          : "AI places starch intelligently based on your meal plan context."}
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => advanceGuided("bodyComposition")}
+                      className="w-full py-3 rounded-xl bg-orange-600 text-white font-semibold text-sm"
+                    >
+                      Continue
+                    </button>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -3578,65 +3617,74 @@ export default function MacroCounter() {
                         Starch Game Plan
                       </h3>
                       <p className="text-sm text-white/70 mb-4">
-                        Starchy carbs (rice, pasta, potatoes, bread) need to be
-                        managed. Choose how you'll use your daily starch budget:
+                        Choose how many meals include starchy carbs and when you prefer to eat them.
                       </p>
 
-                      <div className="space-y-3">
-                        <div
-                          className={`p-4 rounded-xl border transition-all ${
-                            starchStrategy === "one"
-                              ? "bg-black/60 border-white/20"
-                              : "bg-white/5 border-white/10"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium text-white">
-                                One Starch Meal
-                              </span>
-                              <span className="text-xs bg-emerald-600 px-2 py-0.5 rounded-full">
-                                Recommended
-                              </span>
-                            </div>
+                      {/* Meal count */}
+                      <div className="space-y-2 mb-5">
+                        <p className="text-xs text-white/60 font-medium uppercase tracking-wide">
+                          Starch meals per day
+                        </p>
+                        <div className="flex gap-2 flex-wrap">
+                          {([1, 2, 3, 4] as const).map((n) => (
                             <PillButton
-                              onClick={() => setStarchStrategy("one")}
-                              active={starchStrategy === "one"}
+                              key={n}
+                              onClick={() => {
+                                setDefaultStarchMealsPerDay(n);
+                                setStarchStrategy(n === 1 ? "one" : "flex");
+                              }}
+                              active={defaultStarchMealsPerDay === n}
                             >
-                              {starchStrategy === "one" ? "On" : "Off"}
+                              {n} {n === 1 ? "meal" : "meals"}
                             </PillButton>
-                          </div>
-                          <p className="text-xs text-white/60">
-                            Use your full starch allowance (
-                            {getStarchyCarbs(sex, goal)}g) in one meal. Best for
-                            appetite control and fat loss.
-                          </p>
+                          ))}
                         </div>
+                        <p className="text-xs text-white/40 min-h-[1.25rem]">
+                          {defaultStarchMealsPerDay === 1
+                            ? "All starches in one meal — best for appetite control and fat loss."
+                            : defaultStarchMealsPerDay === 2
+                            ? "Split starches across two meals — good for training days."
+                            : defaultStarchMealsPerDay === 3
+                            ? "Three starch meals — suitable for athletes with higher carb needs."
+                            : "Four starch meals — high-carb athlete protocol."}
+                        </p>
+                      </div>
 
-                        <div
-                          className={`p-4 rounded-xl border transition-all ${
-                            starchStrategy === "flex"
-                              ? "bg-black/60 border-white/20"
-                              : "bg-white/5 border-white/10"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm font-medium text-white">
-                              Flex Split
-                            </span>
+                      {/* Distribution strategy */}
+                      <div className="space-y-2">
+                        <p className="text-xs text-white/60 font-medium uppercase tracking-wide">
+                          Timing preference
+                        </p>
+                        <div className="flex gap-2 flex-wrap">
+                          {(
+                            [
+                              { value: "even", label: "Spread evenly" },
+                              { value: "morning", label: "Earlier in day" },
+                              { value: "workout", label: "Around workouts" },
+                              { value: "evening", label: "Evening" },
+                              { value: "ai", label: "AI decides" },
+                            ] as const
+                          ).map(({ value, label }) => (
                             <PillButton
-                              onClick={() => setStarchStrategy("flex")}
-                              active={starchStrategy === "flex"}
+                              key={value}
+                              onClick={() => setStarchDistributionStrategy(value)}
+                              active={starchDistributionStrategy === value}
                             >
-                              {starchStrategy === "flex" ? "On" : "Off"}
+                              {label}
                             </PillButton>
-                          </div>
-                          <p className="text-xs text-white/60">
-                            Divide starch across two meals (~
-                            {Math.round(getStarchyCarbs(sex, goal) / 2)}g each).
-                            Useful for training days or larger schedules.
-                          </p>
+                          ))}
                         </div>
+                        <p className="text-xs text-white/40 min-h-[1.25rem]">
+                          {starchDistributionStrategy === "even"
+                            ? "Starch split equally across starch meals."
+                            : starchDistributionStrategy === "morning"
+                            ? "Front-load carbs — easier sleep, less late-day glucose spike."
+                            : starchDistributionStrategy === "workout"
+                            ? "Timed around training for fuel and recovery."
+                            : starchDistributionStrategy === "evening"
+                            ? "Saves starch for your evening meal."
+                            : "AI places starch intelligently based on your meal plan context."}
+                        </p>
                       </div>
                     </CardContent>
                   </Card>
