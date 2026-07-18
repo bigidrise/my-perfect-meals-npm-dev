@@ -147,6 +147,12 @@ export interface User {
   activeSystem?: string | null;
   isCreator?: boolean;
   creatorDisplayName?: string | null;
+  // Starch preferences — persisted via PATCH /api/prescription/starch-preferences
+  defaultStarchMealsPerDay?: number | null;
+  starchDistributionStrategy?: "even" | "workout" | "morning" | "evening" | "ai" | null;
+  // Clinical Context Screening — self-reported medication/hormone gate
+  clinicalContextResponse?: "yes" | "no" | "unsure" | null;
+  clinicalContextCategories?: string[] | null;
   // Culture Intelligence
   cuisinePreference?: string | null;
   cuisineIntensity?: string | null;
