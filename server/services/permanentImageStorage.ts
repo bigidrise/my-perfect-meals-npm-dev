@@ -1,5 +1,6 @@
 // server/services/permanentImageStorage.ts
-// Service for permanently storing DALL-E generated images to Amazon S3
+// Service for permanently storing DALL-E generated images
+// Primary: Amazon S3 | Fallback: Replit Object Storage (GCS via sidecar)
 
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import crypto from 'crypto';
@@ -36,47 +37,94 @@ interface UploadResult {
   uploadedAt: string;
 }
 
-/**
- * Downloads an image from a URL and uploads it to S3
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// REPLIT OBJECT STORAGE FALLBACK
+// Used when S3 is unavailable / returns 403. Uploads to the GCS bucket that
+// is already configured via PUBLIC_OBJECT_SEARCH_PATHS and served by the
+// app's own /public-objects/* route.
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function uploadToReplitObjectStorage(
+  imageBuffer: Buffer,
+  contentType: string,
+  fileName: string,
+): Promise<string> {
+  const { objectStorageClient } = await import("../objectStorage");
+
+  const searchPaths = (process.env.PUBLIC_OBJECT_SEARCH_PATHS || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  if (!searchPaths.length) {
+    throw new Error("PUBLIC_OBJECT_SEARCH_PATHS not configured — cannot fall back to Replit Object Storage");
+  }
+
+  // Parse bucket name from the first search path entry (format: /bucket-name or bucket-name)
+  const bucketPath = searchPaths[0].replace(/^\/+/, "").replace(/\/+$/, "");
+  const bucketName = bucketPath.split("/")[0];
+
+  if (!bucketName) {
+    throw new Error(`Could not extract bucket name from PUBLIC_OBJECT_SEARCH_PATHS: "${searchPaths[0]}"`);
+  }
+
+  const objectName = `meal-images/${fileName}`;
+  const bucket = objectStorageClient.bucket(bucketName);
+  const file = bucket.file(objectName);
+
+  await file.save(imageBuffer, {
+    contentType,
+    resumable: false,
+    metadata: { cacheControl: "public, max-age=31536000" },
+  });
+
+  console.log(`✅ Image uploaded to Replit Object Storage: /public-objects/meal-images/${fileName}`);
+  return `/public-objects/meal-images/${fileName}`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN UPLOAD FUNCTION
+// Downloads an image from a URL (or decodes base64) and uploads to S3.
+// Falls back to Replit Object Storage if S3 fails.
+// ─────────────────────────────────────────────────────────────────────────────
+
 export async function uploadImageToPermanentStorage(
   options: UploadImageOptions
 ): Promise<UploadResult> {
   const { imageUrl, mealName, imageHash } = options;
 
+  // ── DECODE IMAGE ────────────────────────────────────────────────────────────
+  let imageBuffer: Buffer;
+  let contentType: string;
+
+  if (imageUrl.startsWith('data:')) {
+    const commaIdx = imageUrl.indexOf(',');
+    const meta = imageUrl.substring(5, commaIdx);
+    contentType = meta.split(';')[0] || 'image/png';
+    const b64 = imageUrl.substring(commaIdx + 1);
+    imageBuffer = Buffer.from(b64, 'base64');
+  } else {
+    const imageResponse = await fetch(imageUrl);
+    if (!imageResponse.ok) {
+      throw new Error(`Failed to download image: ${imageResponse.statusText}`);
+    }
+    imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+    contentType = imageResponse.headers.get('content-type') || 'image/png';
+  }
+
+  // ── BUILD FILENAME ──────────────────────────────────────────────────────────
+  const fileExtension = contentType.includes('png') ? 'png' : 'jpg';
+  const uniqueId = imageHash || crypto.randomUUID().substring(0, 16);
+  const sanitizedName = mealName
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '-')
+    .substring(0, 50);
+  const fileName = `${sanitizedName}-${uniqueId}.${fileExtension}`;
+
+  // ── ATTEMPT S3 ──────────────────────────────────────────────────────────────
   try {
     console.log(`📦 Uploading image to S3: ${mealName}`);
-
-    // Handle data: URLs (base64 from gpt-image-1) directly — no HTTP fetch needed
-    let imageBuffer: Buffer;
-    let contentType: string;
-
-    if (imageUrl.startsWith('data:')) {
-      const commaIdx = imageUrl.indexOf(',');
-      const meta = imageUrl.substring(5, commaIdx); // e.g. "image/png;base64"
-      contentType = meta.split(';')[0] || 'image/png';
-      const b64 = imageUrl.substring(commaIdx + 1);
-      imageBuffer = Buffer.from(b64, 'base64');
-    } else {
-      // Download the image from a remote URL
-      const imageResponse = await fetch(imageUrl);
-      if (!imageResponse.ok) {
-        throw new Error(`Failed to download image: ${imageResponse.statusText}`);
-      }
-      imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
-      contentType = imageResponse.headers.get('content-type') || 'image/png';
-    }
-
-    // Generate a unique filename using hash or random ID
-    const fileExtension = contentType.includes('png') ? 'png' : 'jpg';
-    const uniqueId = imageHash || crypto.randomUUID().substring(0, 16);
-    const sanitizedName = mealName
-      .toLowerCase()
-      .replace(/[^a-z0-9]/g, '-')
-      .substring(0, 50);
-    const key = `meal-images/${sanitizedName}-${uniqueId}.${fileExtension}`;
-
-    // Upload to S3
+    const key = `meal-images/${fileName}`;
     const command = new PutObjectCommand({
       Bucket: BUCKET_NAME,
       Key: key,
@@ -87,9 +135,7 @@ export async function uploadImageToPermanentStorage(
 
     await getS3Client().send(command);
 
-    // Generate absolute HTTPS URL
     const permanentUrl = `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION || 'us-east-2'}.amazonaws.com/${key}`;
-    
     console.log(`✅ Image uploaded to S3: ${permanentUrl}`);
 
     return {
@@ -97,10 +143,21 @@ export async function uploadImageToPermanentStorage(
       objectPath: key,
       uploadedAt: new Date().toISOString(),
     };
+  } catch (s3Error: any) {
+    console.warn(`⚠️ S3 upload failed for "${mealName}" (${s3Error.message?.substring(0, 80)}) — trying Replit Object Storage`);
+  }
 
-  } catch (error: any) {
-    console.error(`❌ Failed to upload image to S3:`, error.message);
-    throw error;
+  // ── FALLBACK: REPLIT OBJECT STORAGE ─────────────────────────────────────────
+  try {
+    const permanentUrl = await uploadToReplitObjectStorage(imageBuffer, contentType, fileName);
+    return {
+      permanentUrl,
+      objectPath: `meal-images/${fileName}`,
+      uploadedAt: new Date().toISOString(),
+    };
+  } catch (gcsError: any) {
+    console.error(`❌ Both S3 and Replit Object Storage failed for "${mealName}": ${gcsError.message}`);
+    throw gcsError;
   }
 }
 
@@ -109,10 +166,6 @@ export async function uploadImageToPermanentStorage(
  */
 export async function checkImageExists(imageHash: string): Promise<string | null> {
   try {
-    // We can't easily search S3 by partial key, so we construct the expected key pattern
-    // and check if any file with this hash exists
-    // For now, return null to force regeneration - this is simpler and more reliable
-    // Images are cached in memory anyway, so this is only called on cold starts
     return null;
   } catch (error) {
     console.error('Error checking S3 image existence:', error);

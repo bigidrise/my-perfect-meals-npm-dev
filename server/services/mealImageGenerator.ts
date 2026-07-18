@@ -23,7 +23,9 @@ import { normalizeMealName } from './mealNameNormalizer';
 const S3_BUCKET = process.env.S3_BUCKET_NAME || 'my-perfect-meals-images';
 
 function isS3Url(url: string): boolean {
-  return url.startsWith(`https://${S3_BUCKET}.s3.`) || url.includes('amazonaws.com');
+  return url.startsWith(`https://${S3_BUCKET}.s3.`) ||
+    url.includes('amazonaws.com') ||
+    url.startsWith('/public-objects/');
 }
 
 const TEMP_PATTERNS = ['oaidalleapiprodscus', 'blob.core.windows.net', 'openai.com'];
