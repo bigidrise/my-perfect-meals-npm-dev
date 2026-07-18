@@ -681,7 +681,8 @@ async function initializeApp() {
 
     // Therapeutic Nutrition Intelligence — Sprint 4
     const therapeuticSetupRouter = (await import("./routes/therapeuticSetup")).default;
-    app.use("/api/therapeutic", requireAuth, therapeuticSetupRouter);
+    const { requireStrictClinicalAccess } = await import("./middleware/requireClinicalAccess");
+    app.use("/api/therapeutic", requireAuth, requireStrictClinicalAccess, therapeuticSetupRouter);
 
     // Adaptive Coaching Engine (ACE) — Sprint 1+2+3
     // Daily Check-In (aceCheckin) retired — replaced by Coach's Corner. Route moved to server/legacy/aceCheckin.ts.

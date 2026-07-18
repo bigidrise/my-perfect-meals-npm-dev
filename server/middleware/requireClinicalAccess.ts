@@ -12,6 +12,8 @@ import { getTierForLookupKey } from "@shared/planFeatures";
  *
  * Clinical-tier features: Performance Nutrition Builder, My Perfect Pregnancy,
  *   Getaway, Therapeutic Nutrition Intelligence, Lab Metrics, Care Team.
+ *
+ * For features that must also block trial users, use requireStrictClinicalAccess below.
  */
 
 const BILLING_ENFORCED = process.env.BILLING_ENFORCED === "true";
@@ -54,6 +56,69 @@ export function requireClinicalAccess(
   if (!planLookupKey) return next();
 
   // Check actual plan tier from the lookup key
+  const tier = getTierForLookupKey(planLookupKey);
+  if (tier === "ultimate") return next();
+
+  res.status(403).json({
+    error: "This feature requires a Clinical subscription",
+    code: "CLINICAL_REQUIRED",
+    requiredTier: "clinical",
+    accessTier,
+    currentTier: tier,
+  });
+}
+
+/**
+ * requireStrictClinicalAccess — same as requireClinicalAccess but explicitly
+ * blocks TRIAL_FULL users.  Use for Clinical features that are NOT part of
+ * the trial experience: Therapeutic Nutrition Intelligence, Lab Values, etc.
+ *
+ * Passes:  Clinical (ultimate) paid plan, sandbox/internal accounts.
+ * Blocks:  FREE, TRIAL_FULL, Essential (basic), Pro (premium).
+ */
+export function requireStrictClinicalAccess(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void {
+  const authReq = req as AuthenticatedRequest;
+
+  if (!authReq.authUser) {
+    res.status(401).json({ error: "Authentication required" });
+    return;
+  }
+
+  if (!BILLING_ENFORCED) return next();
+
+  const { accessTier, planLookupKey, isSandbox } = authReq.authUser;
+
+  if (isSandbox) return next();
+
+  // Trial users are explicitly blocked — not a trial entitlement
+  if (accessTier === "TRIAL_FULL") {
+    res.status(403).json({
+      error: "This feature requires a Clinical subscription",
+      code: "CLINICAL_REQUIRED",
+      requiredTier: "clinical",
+      accessTier,
+      trialExclusion: true,
+    });
+    return;
+  }
+
+  if (accessTier !== "PAID_FULL") {
+    res.status(403).json({
+      error: "This feature requires a Clinical subscription",
+      code: "CLINICAL_REQUIRED",
+      requiredTier: "clinical",
+      accessTier,
+    });
+    return;
+  }
+
+  // No planLookupKey with PAID_FULL = internal/sandbox account — grant access
+  if (!planLookupKey) return next();
+
   const tier = getTierForLookupKey(planLookupKey);
   if (tier === "ultimate") return next();
 
