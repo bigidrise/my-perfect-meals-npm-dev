@@ -553,6 +553,10 @@ async function initializeApp() {
     app.use("/api", manualMacrosRouter);
     app.use("/api", macroCalculatorRouter);
     app.use("/api/biometrics/labs", clinicalLabsRouter);
+
+    // Daily Nutrition Prescription — shared resolver for all builders
+    const prescriptionRoutes = (await import("./routes/prescriptionRoutes")).default;
+    app.use("/api/prescription", prescriptionRoutes);
     app.use(
       "/api/translate",
       requireAuth,

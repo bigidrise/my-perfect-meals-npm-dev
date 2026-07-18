@@ -6955,6 +6955,10 @@ Provide a single exceptional meal recommendation in JSON format with the followi
     res.json({ eligible: isEligible });
   });
 
+  // Daily Nutrition Prescription — shared resolver for all builders
+  const { default: prescriptionRoutes } = await import("./routes/prescriptionRoutes");
+  app.use("/api/prescription", prescriptionRoutes);
+
   // Mount routes
   app.use("/api", mealPlansRoutes);
   app.use("/api", mealLogsRoutes);

@@ -1,4 +1,16 @@
+/**
+ * DailyStarchIndicator
+ *
+ * Presentation component — never calls a nutrition resolver.
+ * Strategy is always supplied by the parent workflow page.
+ *
+ * Accepts either:
+ *  - A full DailyNutritionPrescription (preferred — shows adaptive gram guidance)
+ *  - Legacy strategyOverride + bodyFatSlotDelta (backward compat)
+ */
+
 import { getDayStarchStatus } from '@/utils/starchMealClassifier';
+import type { DailyNutritionPrescription } from '../../../shared/dailyNutritionPrescription';
 
 interface Meal {
   name?: string;
@@ -8,43 +20,74 @@ interface Meal {
 interface DailyStarchIndicatorProps {
   meals: Meal[];
   compact?: boolean;
-  /** Override the strategy - useful when board knows the strategy */
+  /** Preferred: full prescription from useDailyPrescription hook */
+  prescription?: DailyNutritionPrescription | null;
+  /** Legacy: 'one' (1 slot) or 'flex' (2 slots). Used when prescription is absent. */
   strategyOverride?: 'one' | 'flex';
-  /** Body fat-based slot adjustment (-1, 0, or +1) */
+  /** Legacy: body fat-based slot adjustment (-1, 0, or +1) */
   bodyFatSlotDelta?: number;
 }
 
-// Presentation component — never calls a nutrition resolver.
-// Strategy is always supplied by the parent workflow page via strategyOverride.
-export function DailyStarchIndicator({ meals, compact = false, strategyOverride, bodyFatSlotDelta = 0 }: DailyStarchIndicatorProps) {
-  const strategy = strategyOverride || 'one';
-  const baseSlots = strategy === 'flex' ? 2 : 1;
-  // Apply body fat adjustment (minimum 0 slots)
-  const maxSlots = Math.max(0, baseSlots + bodyFatSlotDelta);
-  
+export function DailyStarchIndicator({
+  meals,
+  compact = false,
+  prescription,
+  strategyOverride,
+  bodyFatSlotDelta = 0,
+}: DailyStarchIndicatorProps) {
+  // ── Derive slot count ──────────────────────────────────────────────────────
+  let maxSlots: number;
+  if (prescription) {
+    maxSlots = prescription.starchMealsAllowed;
+  } else {
+    const base = strategyOverride === 'flex' ? 2 : 1;
+    maxSlots = Math.max(0, base + bodyFatSlotDelta);
+  }
+
   const status = getDayStarchStatus(meals, maxSlots);
-  
-  // Determine color: green = slots available, orange = all used, red = over limit
+
+  // ── Adaptive gram guidance (only available from prescription) ─────────────
+  const showGramGuidance =
+    prescription &&
+    typeof prescription.gramsPerRemainingStarchMeal === 'number' &&
+    prescription.starchMealsRemaining > 0;
+
+  // ── Color logic ────────────────────────────────────────────────────────────
   const isOver = status.starchMealCount > maxSlots;
-  const colorClass = isOver 
-    ? 'text-red-500' 
-    : status.isUsed 
-      ? 'text-orange-500' 
-      : 'text-green-500';
-  
+  const colorClass = isOver
+    ? 'text-red-500'
+    : status.isUsed
+    ? 'text-orange-500'
+    : 'text-green-500';
+
   const emoji = isOver ? '🔴' : status.isUsed ? '🟠' : '🟢';
-  
-  if (compact) {
+
+  // ── Zero starch day callout ────────────────────────────────────────────────
+  if (prescription?.isZeroStarchDay && !compact) {
     return (
-      <div className="flex items-center gap-1 text-xs">
-        <span>{emoji}</span>
-        <span className={colorClass}>
-          {status.label}
+      <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-800/50 text-xs">
+        <span className="font-medium text-white/70">Starch Meals:</span>
+        <span className="flex items-center gap-1 font-semibold text-blue-400">
+          🔵 Rest Day — Zero Starch
         </span>
       </div>
     );
   }
-  
+
+  if (compact) {
+    return (
+      <div className="flex items-center gap-1 text-xs">
+        <span>{emoji}</span>
+        <span className={colorClass}>{status.label}</span>
+        {showGramGuidance && (
+          <span className="text-white/40 ml-1">
+            ~{prescription!.gramsPerRemainingStarchMeal}g ea
+          </span>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-800/50 text-xs">
       <span className="font-medium text-white/70">Starch Meals:</span>
@@ -52,8 +95,11 @@ export function DailyStarchIndicator({ meals, compact = false, strategyOverride,
         {emoji} {status.label}
       </span>
       {isOver && (
-        <span className="text-red-400 text-[10px]">
-          (over limit)
+        <span className="text-red-400 text-[10px]">(over limit)</span>
+      )}
+      {showGramGuidance && !isOver && (
+        <span className="text-white/50 text-[10px] ml-1">
+          ~{prescription!.gramsPerRemainingStarchMeal}g / remaining meal
         </span>
       )}
     </div>
