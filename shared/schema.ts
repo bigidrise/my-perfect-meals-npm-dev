@@ -384,6 +384,11 @@ export const users = pgTable("users", {
   starchPlanDefined: boolean("starch_plan_defined").default(false), // true when starch strategy is set
   defaultStarchMealsPerDay: integer("default_starch_meals_per_day"), // user's saved preference; null = not yet set
   starchDistributionStrategy: text("starch_distribution_strategy").$type<"even"|"workout"|"morning"|"evening"|"ai">(), // how starch meals are spread across the day; null = not set (defaults to "even")
+  // Clinical Context Screening — self-reported medication/hormone gate (Macro Calculator step)
+  // This is the lightweight screening layer; full medication detail lives in companionProfiles.
+  clinicalContextResponse: text("clinical_context_response").$type<"yes"|"no"|"unsure">(), // null = not yet answered
+  clinicalContextCategories: jsonb("clinical_context_categories").$type<string[]>(), // categories selected when response="yes"
+  clinicalContextUpdatedAt: timestamp("clinical_context_updated_at", { withTimezone: true }), // when screening was last updated
   onboardingMode: text("onboarding_mode").$type<"independent"|"procare">().default("independent"), // how user was onboarded
   // MPM SafetyGuard PIN System
   safetyPinHash: text("safety_pin_hash"), // bcrypt hash of 4-6 digit Safety PIN
