@@ -17,7 +17,7 @@ import { requireActiveAccess } from "./middleware/requireActiveAccess";
 import { requirePremiumAccess } from "./middleware/requirePremiumAccess";
 import { requireEssentialAccess } from "./middleware/requireEssentialAccess";
 import { requireProAccess } from "./middleware/requireProAccess";
-import { requireClinicalAccess } from "./middleware/requireClinicalAccess";
+import { requireClinicalAccess, requireStrictClinicalAccess } from "./middleware/requireClinicalAccess";
 import { requirePhase1Cert } from "./middleware/requirePhase1Cert";
 import { requirePhase2Training } from "./middleware/requirePhase2Training";
 import { requireMacroProfile } from "./middleware/requireMacroProfile";
@@ -622,7 +622,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/performance", requireAuth, performanceNutritionRouter);
   app.use("/api/performance", requireAuth, carbCycleRouter);
   app.use("/api/nutrition-summary", requireAuth, nutritionSummaryRouter);
-  app.use("/api/therapeutic", requireAuth, requireClinicalAccess, therapeuticSetupRouter);
+  app.use("/api/therapeutic", requireAuth, requireStrictClinicalAccess, therapeuticSetupRouter);
 
   // REMOVED: Duplicate route moved to top priority position
 
