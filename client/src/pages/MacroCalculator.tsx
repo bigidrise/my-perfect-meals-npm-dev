@@ -678,19 +678,26 @@ export default function MacroCounter() {
   // DailyNutritionPrescription — persistent starch preferences (saved to DB via PATCH)
   // defaultStarchMealsPerDay: integer (1-4), replaces "one"/"flex" string
   // starchDistributionStrategy: how starch is spread across meals
-  const derivedInitialMeals = existingTargets?.starchStrategy === "flex" ? 2 : 1;
+  // Hydrate from DB-backed user profile if available; fall back to old macro_targets format
+  const derivedInitialMeals =
+    user?.defaultStarchMealsPerDay ??
+    (existingTargets?.starchStrategy === "flex" ? 2 : 1);
   const [defaultStarchMealsPerDay, setDefaultStarchMealsPerDay] = useState<number>(
     derivedInitialMeals
   );
   const [starchDistributionStrategy, setStarchDistributionStrategy] = useState<
     "even" | "workout" | "morning" | "evening" | "ai"
-  >("even");
+  >((user?.starchDistributionStrategy as "even" | "workout" | "morning" | "evening" | "ai") ?? "even");
 
-  // Clinical Context Screening — self-reported medication/hormone gate
+  // Clinical Context Screening — hydrate from DB via user profile on reload
   const [clinicalContextResponse, setClinicalContextResponse] = useState<
     "yes" | "no" | "unsure" | undefined
-  >(undefined);
-  const [clinicalContextCategories, setClinicalContextCategories] = useState<string[]>([]);
+  >(user?.clinicalContextResponse as "yes" | "no" | "unsure" | undefined);
+  const [clinicalContextCategories, setClinicalContextCategories] = useState<string[]>(
+    Array.isArray(user?.clinicalContextCategories)
+      ? (user.clinicalContextCategories as string[])
+      : []
+  );
 
   // Clinical Precision Status — fetched from /api/prescription/clinical-status on the save step.
   // null = not yet fetched; "standard_personalization" = no clinical tier or no data.
