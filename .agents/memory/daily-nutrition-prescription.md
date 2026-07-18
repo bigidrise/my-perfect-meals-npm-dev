@@ -56,6 +56,18 @@ to `DailyStarchIndicator`.
 
 ProCare professional overrides are handled upstream, not in this resolver.
 
+## Critical import path
+`users` must be imported from `../../shared/schema` (not `../db/schema` which doesn't export it).
+`clinicalLabs` and `companionProfiles` come from `../db/schema/clinicalLabs` etc.
+
+## DB columns added
+- `default_starch_meals_per_day` integer on users — saved via PATCH /api/prescription/starch-preferences
+- `starch_distribution_strategy` text on users — valid values: even|workout|morning|evening|ai
+
+## Tests
+Run: `npx tsx scripts/test-prescription-pure-functions.ts` — 38 cases, all pure functions.
+`deriveClinicalStatus` lives in shared/dailyNutritionPrescription.ts (importable without DB).
+
 ## Next phases
 - Phase 2: Adaptive starch gram tracking (gramsPerRemainingStarchMeal already in contract)
 - Phase 3: Medication/clinical gate inside Macro Calculator

@@ -459,35 +459,42 @@ export default function WeeklyMealBoard() {
     return hasLockedDaysInWeek(weekStartISO, effectiveUserId);
   }, [planningMode, weekStartISO, effectiveUserId]);
 
-  // Build StarchContext for Create With Chef modal
-  // This enables intelligent carb distribution based on existing meals
+  // Build StarchContext for Create With Chef modal.
+  // When a prescription is available it drives the starch slot count and gram budget.
+  // Legacy strategy string is kept for backward compat with builders that haven't migrated yet.
   const starchContext: StarchContext | undefined = useMemo(() => {
     if (!board || !activeDayISO) return undefined;
 
-    // Get the starch strategy from resolved targets (default to 'one' if no user/targets)
-    const resolved = nutritionTargets;
-    const strategy = resolved.starchStrategy || "one";
-
-    // Get existing meals for the active day
+    // Build existing-meals list from the active day's board state
     const dayLists = getDayLists(board, activeDayISO);
     const existingMeals: StarchContext["existingMeals"] = [];
-
-    // Classify each meal slot
     for (const slot of ["breakfast", "lunch", "dinner"] as const) {
       const meals = dayLists[slot] || [];
       for (const meal of meals) {
-        existingMeals.push({
-          slot,
-          hasStarch: classifyMeal(meal).isStarchMeal,
-        });
+        existingMeals.push({ slot, hasStarch: classifyMeal(meal).isStarchMeal });
       }
     }
 
-    return {
-      strategy,
-      existingMeals,
-    };
-  }, [board, activeDayISO, effectiveUserId]);
+    // Legacy strategy string (kept for callers that haven't migrated to integer slots)
+    const legacyStrategy = (nutritionTargets.starchStrategy as "one" | "flex") || "one";
+
+    if (prescription && prescription.source !== "fallback") {
+      return {
+        strategy: legacyStrategy,
+        // ── Prescription fields ────────────────────────────────────────────
+        starchMealsAllowed: prescription.starchMealsAllowed,
+        starchyCarbsRemaining: prescription.starchyCarbsRemaining,
+        gramsPerRemainingStarchMeal: prescription.gramsPerRemainingStarchMeal,
+        distributionStrategy: prescription.starchDistributionStrategy,
+        isZeroStarchDay: prescription.isZeroStarchDay,
+        dateISO: activeDayISO,
+        existingMeals,
+      };
+    }
+
+    // Fallback: no prescription yet — use legacy strategy only
+    return { strategy: legacyStrategy, existingMeals };
+  }, [board, activeDayISO, prescription, nutritionTargets, effectiveUserId]);
 
   // Build DiversityContext for Create With Chef modal
   // Tracks which bases (quinoa, tofu…) and meal formats (bowl, salad…) are already on the board

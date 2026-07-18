@@ -382,6 +382,8 @@ export const users = pgTable("users", {
   onboardingCompletedAt: timestamp("onboarding_completed_at", { withTimezone: true }), // null = onboarding not complete
   macrosDefined: boolean("macros_defined").default(false), // true when user has set macro targets
   starchPlanDefined: boolean("starch_plan_defined").default(false), // true when starch strategy is set
+  defaultStarchMealsPerDay: integer("default_starch_meals_per_day"), // user's saved preference; null = not yet set
+  starchDistributionStrategy: text("starch_distribution_strategy").$type<"even"|"workout"|"morning"|"evening"|"ai">(), // how starch meals are spread across the day; null = not set (defaults to "even")
   onboardingMode: text("onboarding_mode").$type<"independent"|"procare">().default("independent"), // how user was onboarded
   // MPM SafetyGuard PIN System
   safetyPinHash: text("safety_pin_hash"), // bcrypt hash of 4-6 digit Safety PIN

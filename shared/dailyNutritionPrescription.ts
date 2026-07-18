@@ -115,6 +115,31 @@ export interface DailyNutritionPrescription {
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
+ * Derive clinical precision status from verifiable data sources only.
+ *
+ * Conservative rules — never upgrades status from incomplete evidence:
+ *   standard_personalization    — user is not on a clinical plan
+ *   clinical_information_needed — clinical tier but no lab or medication records
+ *   clinical_precision_available — clinical tier + at least one verifiable source
+ *   clinical_precision_active    — clinical tier + labs AND medications confirmed
+ *
+ * Exported from the shared contract so it can be unit-tested independently
+ * of the server resolver (which has DB dependencies).
+ */
+export function deriveClinicalStatus(
+  tier: string,
+  hasMedications: boolean,
+  hasLabs: boolean,
+): ClinicalPrecisionStatus {
+  if (tier !== "ultimate") {
+    return "standard_personalization";
+  }
+  if (hasMedications && hasLabs) return "clinical_precision_active";
+  if (hasMedications || hasLabs) return "clinical_precision_available";
+  return "clinical_information_needed";
+}
+
+/**
  * Map a SessionType string (from performanceProtocolResolver) to a TrainingDayType.
  * Keeps the two type systems decoupled.
  */

@@ -15,7 +15,7 @@
  */
 
 import { db } from "../db";
-import { users } from "../db/schema";
+import { users } from "../../shared/schema";
 import { clinicalLabs } from "../db/schema/clinicalLabs";
 import { companionProfiles } from "../db/schema/companionProfiles";
 import { eq, count } from "drizzle-orm";
@@ -24,10 +24,12 @@ import {
   PrescriptionSource,
   TrainingDayType,
   ClinicalPrecisionStatus,
+  StarchDistributionStrategy,
   buildFallbackPrescription,
   computeGramsPerRemainingMeal,
   deriveStarchMealsAllowed,
   sessionTypeToTrainingDayType,
+  deriveClinicalStatus,
 } from "../../shared/dailyNutritionPrescription";
 import {
   WeeklyTrainingSchedule,
@@ -41,36 +43,17 @@ import { getTierForLookupKey } from "../../shared/planFeatures";
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface ConsumedTotals {
-  starchyCarbs: number;
+  starchyCarbs: number;   // grams of STARCHY carbs only (not total carbs)
   starchMealsUsed: number;
 }
 
 interface PrescriptionResolverInput {
   userId: string;
   dateISO: string;
-  /** Grams of starchy carbs already consumed today (for adaptive tracking) */
+  /** Grams of starchy carbs already consumed today (not total carbs!) */
   consumed?: ConsumedTotals;
   /** Override "now" for testing */
   nowOverride?: Date;
-}
-
-// ── Clinical precision status ─────────────────────────────────────────────────
-
-function deriveClinicalStatus(
-  tier: string,
-  hasMedications: boolean,
-  hasLabs: boolean,
-): ClinicalPrecisionStatus {
-  const isClinicalTier = tier === "ultimate";
-
-  if (!isClinicalTier) {
-    return "standard_personalization";
-  }
-
-  // Clinical tier
-  if (hasMedications && hasLabs) return "clinical_precision_active";
-  if (hasMedications || hasLabs) return "clinical_precision_available";
-  return "clinical_precision_available";
 }
 
 // ── Main resolver ─────────────────────────────────────────────────────────────
@@ -91,7 +74,7 @@ export async function resolveDailyNutritionPrescription(
 
   const rationaleCodes: string[] = [];
 
-  // ── Baseline macros (from real DB columns) ────────────────────────────────
+  // ── Baseline macros (from real DB columns only) ───────────────────────────
   const caloriesBase = user.dailyCalorieTarget ?? 0;
   const proteinBase  = user.dailyProteinTarget ?? 0;
   const carbsBase    = user.dailyCarbsTarget   ?? 0;
@@ -104,15 +87,15 @@ export async function resolveDailyNutritionPrescription(
     return buildFallbackPrescription(dateISO);
   }
 
-  // ── Clinical precision status ─────────────────────────────────────────────
+  // ── Clinical precision status (conservative — verified sources only) ───────
   const tier = getTierForLookupKey(user.planLookupKey);
 
-  // Check for lab results and medications in parallel
   const [labCountResult, companionResult] = await Promise.all([
     db.select({ count: count() }).from(clinicalLabs).where(eq(clinicalLabs.userId, userId)),
     db.select().from(companionProfiles).where(eq(companionProfiles.userId, userId)).limit(1),
   ]);
 
+  // hasMedications: only true when the medications JSONB array exists and has entries
   const hasLabs = (labCountResult[0]?.count ?? 0) > 0;
   const hasMedications =
     Array.isArray(companionResult[0]?.medications) &&
@@ -121,18 +104,32 @@ export async function resolveDailyNutritionPrescription(
   const clinicalPrecisionStatus = deriveClinicalStatus(tier, hasMedications, hasLabs);
   if (clinicalPrecisionStatus === "clinical_precision_active") {
     rationaleCodes.push("clinical_precision_active");
+  } else if (clinicalPrecisionStatus === "clinical_information_needed") {
+    rationaleCodes.push("clinical_information_needed");
   }
 
   // ── Starch/fibrous split baseline ─────────────────────────────────────────
-  // Derive from stored columns or fall back to 65/35 heuristic
+  // Prefer explicit DB targets; fall back to 65/35 heuristic only when both
+  // columns are zero (legacy users who set macros before the split was tracked).
   let starchyCarbsTarget = starchyBase > 0 ? starchyBase : Math.round(carbsBase * 0.65);
   let fibrousCarbsTarget = fibrousBase > 0 ? fibrousBase : Math.max(0, carbsBase - starchyCarbsTarget);
 
-  // Infer baseline starch strategy from starch plan settings
-  // "flex" when starchyCarbsTarget indicates > 1 meal worth of carbs.
-  // Default to "one" (conservative).
-  const baselineStarchStrategy: "one" | "flex" =
-    user.starchPlanDefined ? "flex" : "one";
+  // ── Starch meal count — read from DB, never infer from carb ratios ─────────
+  // defaultStarchMealsPerDay is the user's saved preference (integer, 1-6).
+  // starchPlanDefined indicates whether the user has set this preference.
+  // For users with no preference saved, we default to 2 (a reasonable midpoint
+  // that the user can refine). This is NOT inferred from starchy/fibrous ratios.
+  const savedStarchMeals = user.defaultStarchMealsPerDay;
+  const baselineStarchMeals: number =
+    savedStarchMeals !== null && savedStarchMeals !== undefined
+      ? savedStarchMeals
+      : (user.starchPlanDefined ? 2 : 2); // default 2 until user sets preference
+
+  // ── Distribution strategy — read from DB, never invented ─────────────────
+  const validStrategies: StarchDistributionStrategy[] = ["even", "workout", "morning", "evening", "ai"];
+  const savedStrategy = user.starchDistributionStrategy as StarchDistributionStrategy | null;
+  const starchDistributionStrategy: StarchDistributionStrategy =
+    savedStrategy && validStrategies.includes(savedStrategy) ? savedStrategy : "even";
 
   // ── Performance Hub layer ─────────────────────────────────────────────────
   let source: PrescriptionSource = "user_default";
@@ -142,6 +139,7 @@ export async function resolveDailyNutritionPrescription(
   let fatTarget      = fatBase;
   let trainingDayType: TrainingDayType = null;
   let resolvedSessionType: SessionType | null = null;
+  let isZeroStarchDay = false;
 
   const weeklySchedule = user.weeklyTrainingSchedule as WeeklyTrainingSchedule | null;
   const perfConfig     = user.performanceProtocolConfig as PerformanceProtocolConfig | null;
@@ -169,7 +167,8 @@ export async function resolveDailyNutritionPrescription(
       trainingDayType    = sessionTypeToTrainingDayType(resolved.sessionType);
 
       rationaleCodes.push("performance_modifier_active");
-      if (resolved.sessionType === "off" || resolved.sessionType === "recovery") {
+      if (trainingDayType === "rest") {
+        isZeroStarchDay = true;
         rationaleCodes.push("zero_starch_rest_day");
       }
     } catch {
@@ -177,16 +176,16 @@ export async function resolveDailyNutritionPrescription(
     }
   }
 
-  // ── Starch meal count ─────────────────────────────────────────────────────
-  const isZeroStarchDay = trainingDayType === "rest";
-  const starchMealsAllowed = deriveStarchMealsAllowed(
-    trainingDayType,
-    baselineStarchStrategy,
-    isZeroStarchDay,
-  );
+  // ── Starch meal count for this day ────────────────────────────────────────
+  // Performance protocol overrides baseline (rest=0, heavy=3, etc.).
+  // When no performance protocol is active, use the user's saved preference.
+  const starchMealsAllowed = trainingDayType !== null
+    ? deriveStarchMealsAllowed(trainingDayType, undefined, isZeroStarchDay)
+    : baselineStarchMeals;
 
   const starchMealsUsed      = consumed.starchMealsUsed;
   const starchMealsRemaining = Math.max(0, starchMealsAllowed - starchMealsUsed);
+  // consumed.starchyCarbs must be STARCHY carbs only — not total carbs
   const starchyCarbsConsumed  = consumed.starchyCarbs;
   const starchyCarbsRemaining = Math.max(0, starchyCarbsTarget - starchyCarbsConsumed);
   const gramsPerRemainingStarchMeal = computeGramsPerRemainingMeal(
@@ -212,7 +211,7 @@ export async function resolveDailyNutritionPrescription(
     starchyCarbsConsumed,
     starchyCarbsRemaining,
     gramsPerRemainingStarchMeal,
-    starchDistributionStrategy: "even",
+    starchDistributionStrategy,
     isZeroStarchDay,
     trainingDayType,
     clinicalPrecisionStatus,

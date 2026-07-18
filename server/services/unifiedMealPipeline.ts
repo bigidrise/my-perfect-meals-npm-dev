@@ -207,14 +207,33 @@ export interface UnifiedMeal {
  * Starch Context - Used for intelligent carb distribution
  * The starch strategy controls how many meals per day can contain starchy carbs.
  * This is behavioral coaching, not macro tracking.
+ *
+ * Preferred fields (from DailyNutritionPrescription):
+ *   starchMealsAllowed — integer from the prescription resolver (replaces strategy string)
+ *   starchyCarbsRemaining — adaptive gram budget remaining today
+ *   gramsPerRemainingStarchMeal — per-meal gram target
+ *   distributionStrategy — how starch is spread across meals
+ *   isZeroStarchDay — true when the prescription eliminates starch (rest day, clinical)
+ *   dateISO — the date this context applies to
+ *
+ * Legacy field (kept for backward compat with callers that predate the prescription):
+ *   strategy: 'one' | 'flex' — still accepted; ignored when starchMealsAllowed is present
  */
 export interface StarchContext {
-  strategy: 'one' | 'flex'; // "one" = 1 starch meal/day, "flex" = 2 meals
+  strategy: 'one' | 'flex'; // legacy — kept for backward compat; ignored when starchMealsAllowed is set
+  // ── Prescription fields (preferred) ──────────────────────────────────────
+  starchMealsAllowed?: number;           // integer from prescription resolver
+  starchyCarbsRemaining?: number;        // grams of starchy carbs remaining today
+  gramsPerRemainingStarchMeal?: number;  // adaptive per-meal gram target
+  distributionStrategy?: 'even' | 'workout' | 'morning' | 'evening' | 'ai';
+  isZeroStarchDay?: boolean;             // rest day / clinical zero-starch protocol
+  dateISO?: string;                      // YYYY-MM-DD the context applies to
+  // ── Existing slots ────────────────────────────────────────────────────────
   existingMeals?: Array<{
     slot: 'breakfast' | 'lunch' | 'dinner' | 'snack';
     hasStarch: boolean;
   }>;
-  forceStarch?: boolean; // User explicitly requested starch (overrides default)
+  forceStarch?: boolean; // User explicitly requested starch (overrides coaching)
   forceFiberBased?: boolean; // User explicitly requested no starch
 }
 
@@ -292,86 +311,124 @@ export interface MealGenerationResponse {
 }
 
 /**
- * Determine if this meal should be starch-based or fiber-based
- * Based on the Starch Game Plan coaching system
+ * Determine if this meal should be starch-based or fiber-based.
+ *
+ * Priority:
+ *  1. forceStarch / forceFiberBased — explicit user intent always wins
+ *  2. isZeroStarchDay — prescription says no starch today (rest day, clinical)
+ *  3. starchMealsAllowed (integer from prescription) — preferred source of max slots
+ *  4. strategy 'one'/'flex' — legacy fallback when starchMealsAllowed is absent
  */
 function determineStarchPlacement(
   mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack',
   starchContext?: StarchContext
 ): { shouldIncludeStarch: boolean; reason: string } {
-  // No context = allow starch (legacy behavior)
   if (!starchContext) {
     return { shouldIncludeStarch: true, reason: 'no_starch_context' };
   }
-  
-  // User explicitly requested starch (e.g., "make me pasta")
+
+  // Explicit user intent always overrides coaching
   if (starchContext.forceStarch) {
     return { shouldIncludeStarch: true, reason: 'user_requested_starch' };
   }
-  
-  // User explicitly requested fiber-based (e.g., "make it low carb")
   if (starchContext.forceFiberBased) {
     return { shouldIncludeStarch: false, reason: 'user_requested_fiber' };
   }
-  
-  // Count existing starch meals
+
+  // Zero-starch day from prescription (rest day or clinical protocol)
+  if (starchContext.isZeroStarchDay) {
+    return { shouldIncludeStarch: false, reason: 'zero_starch_day' };
+  }
+
+  // Count existing starch meals already on the board
   const existingStarchCount = (starchContext.existingMeals || [])
     .filter(m => m.hasStarch).length;
-  
-  const maxStarchSlots = starchContext.strategy === 'flex' ? 2 : 1;
+
+  // Max starch slots: prefer integer from prescription; fall back to legacy strategy
+  const maxStarchSlots =
+    starchContext.starchMealsAllowed !== undefined
+      ? starchContext.starchMealsAllowed
+      : starchContext.strategy === 'flex' ? 2 : 1;
+
   const slotsRemaining = maxStarchSlots - existingStarchCount;
-  
-  // If all slots are used, this meal should be fiber-based
+
   if (slotsRemaining <= 0) {
     return { shouldIncludeStarch: false, reason: 'starch_slots_used' };
   }
-  
-  // Slots available - decide based on meal type priority
-  // Default priority: Lunch > Breakfast > Dinner (mirrors real coaching)
+
+  // Slots available — decide by meal type priority and distribution strategy
   const existingSlots = (starchContext.existingMeals || []).map(m => m.slot);
   const hasStarchAlready = existingStarchCount > 0;
-  
-  // If no starch meal yet and this is the preferred slot, make it the starch meal
+  const dist = starchContext.distributionStrategy ?? 'even';
+
   if (!hasStarchAlready) {
-    // First meal of the day being generated - use priority order
-    if (mealType === 'lunch') {
-      return { shouldIncludeStarch: true, reason: 'lunch_is_default_starch_slot' };
-    }
-    if (mealType === 'breakfast' && !existingSlots.includes('lunch')) {
-      // Breakfast can be starch if lunch isn't already planned
-      return { shouldIncludeStarch: true, reason: 'breakfast_available_for_starch' };
-    }
-    if (mealType === 'dinner' && !existingSlots.includes('lunch') && !existingSlots.includes('breakfast')) {
-      // Dinner gets starch only if no other meals planned
-      return { shouldIncludeStarch: true, reason: 'dinner_fallback_for_starch' };
+    // Apply distribution strategy when placing the first starch meal
+    if (dist === 'morning' || dist === 'even') {
+      if (mealType === 'breakfast') return { shouldIncludeStarch: true, reason: 'morning_distribution_breakfast' };
+      if (mealType === 'lunch' && !existingSlots.includes('breakfast')) return { shouldIncludeStarch: true, reason: 'lunch_is_default_starch_slot' };
+      if (mealType === 'dinner' && !existingSlots.includes('breakfast') && !existingSlots.includes('lunch')) {
+        return { shouldIncludeStarch: true, reason: 'dinner_fallback_for_starch' };
+      }
+    } else if (dist === 'workout') {
+      // Workout distribution: favor lunch as the pre/post workout window
+      if (mealType === 'lunch') return { shouldIncludeStarch: true, reason: 'workout_distribution_lunch' };
+      if (mealType === 'breakfast' && !existingSlots.includes('lunch')) return { shouldIncludeStarch: true, reason: 'workout_distribution_breakfast_fallback' };
+    } else if (dist === 'evening') {
+      if (mealType === 'dinner') return { shouldIncludeStarch: true, reason: 'evening_distribution_dinner' };
+      if (mealType === 'lunch' && !existingSlots.includes('dinner')) return { shouldIncludeStarch: true, reason: 'evening_distribution_lunch_fallback' };
+    } else {
+      // 'ai' or unrecognised — use default priority (lunch > breakfast > dinner)
+      if (mealType === 'lunch') return { shouldIncludeStarch: true, reason: 'ai_dist_lunch_default' };
+      if (mealType === 'breakfast' && !existingSlots.includes('lunch')) return { shouldIncludeStarch: true, reason: 'ai_dist_breakfast' };
+      if (mealType === 'dinner' && !existingSlots.includes('lunch') && !existingSlots.includes('breakfast')) {
+        return { shouldIncludeStarch: true, reason: 'ai_dist_dinner_fallback' };
+      }
     }
   }
-  
-  // Flex mode: allow second starch meal
-  if (starchContext.strategy === 'flex' && slotsRemaining > 0) {
-    return { shouldIncludeStarch: true, reason: 'flex_mode_slot_available' };
+
+  // More than one slot allowed — use remaining slots (prescription integer or flex)
+  if (slotsRemaining > 0) {
+    return { shouldIncludeStarch: true, reason: 'slot_available' };
   }
-  
-  // Default: fiber-based to preserve starch slots
+
   return { shouldIncludeStarch: false, reason: 'preserving_starch_slot' };
 }
 
 /**
- * Build starch guidance for the AI prompt
+ * Build starch guidance for the AI prompt.
+ * When prescription fields are present, includes gram budget and distribution context.
  */
 function buildStarchGuidance(
   mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack',
   starchContext?: StarchContext
 ): string {
   const placement = determineStarchPlacement(mealType, starchContext);
-  
+
   if (placement.shouldIncludeStarch) {
+    const gramTarget = starchContext?.gramsPerRemainingStarchMeal;
+    const remaining  = starchContext?.starchyCarbsRemaining;
+    const slotsLeft  = starchContext?.starchMealsAllowed !== undefined
+      ? Math.max(0, starchContext.starchMealsAllowed - (starchContext.existingMeals?.filter(m => m.hasStarch).length ?? 0))
+      : undefined;
+
+    let gramLine = '';
+    if (gramTarget !== undefined && gramTarget > 0) {
+      gramLine = `\n- Target approximately ${gramTarget}g of starchy carbs for this meal`;
+      if (remaining !== undefined) {
+        gramLine += ` (${remaining}g remaining across ${slotsLeft ?? 'remaining'} starch meal${slotsLeft !== 1 ? 's' : ''} today)`;
+      }
+    }
+
     return `
 🍚 STARCH GUIDANCE: This meal MAY include starchy carbs (rice, pasta, bread, potatoes, beans, oats).
-Include starchy carbs as the primary carb source for this meal.`;
+Include starchy carbs as the primary carb source for this meal.${gramLine}`;
   } else {
+    const reason = placement.reason === 'zero_starch_day'
+      ? 'This is a zero-starch day (rest day or clinical protocol).'
+      : 'All starch slots are used for today.';
+
     return `
-🥦 STARCH GUIDANCE: This meal should be FIBER-BASED (no starchy carbs).
+🥦 STARCH GUIDANCE: This meal should be FIBER-BASED (no starchy carbs). ${reason}
 - DO NOT include: rice, pasta, bread, potatoes, beans, corn, oats, crackers, tortillas
 - DO include: vegetables (broccoli, spinach, peppers, zucchini, cauliflower), salads, leafy greens
 - Focus on: protein + vegetables + healthy fats
