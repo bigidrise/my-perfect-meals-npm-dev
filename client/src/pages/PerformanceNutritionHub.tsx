@@ -464,6 +464,13 @@ export default function PerformanceNutritionHub() {
     starchyCarbsG: number; fibrousCarbsG: number;
     description: string;
     logged: { calories: number; proteinG: number; carbsG: number; fatG: number; starchyCarbsG: number; fibrousCarbsG: number };
+    dailyState?: {
+      starchPolicy: string;
+      ledgerReliability: string;
+      starchyBudgetExhausted: boolean;
+      starchyCarbsRemainingG: number;
+      scheduleConfigured: boolean;
+    } | null;
   } | null>(null);
 
   const [macroCalcRequired, setMacroCalcRequired] = useState(false);
@@ -1275,6 +1282,79 @@ export default function PerformanceNutritionHub() {
               })()}
             </div>
           )}
+
+          {/* ── Daily Nutrition Intelligence Card ── */}
+          {isViewingToday && todaySession?.dailyState?.scheduleConfigured && (() => {
+            const ds = todaySession.dailyState!;
+
+            const policyLabel: Record<string, string> = {
+              zero:       "No starchy carbs today",
+              restricted: "Minimize starchy carbs",
+              moderate:   "One starchy source per meal",
+              generous:   "Include full starchy carbs — training demands it",
+              unlimited:  "No starch limit active",
+            };
+            const ledgerLabel: Record<string, { text: string; color: string }> = {
+              high:   { text: "Fully tracked",                                                color: "text-green-400" },
+              medium: { text: "Partially tracked — some meals unclassified",                  color: "text-yellow-400" },
+              low:    { text: "Not yet tracked — log meals to update your remaining balance",  color: "text-white/50" },
+            };
+            const ledger = ledgerLabel[ds.ledgerReliability] ?? ledgerLabel.low;
+
+            return (
+              <div className={`rounded-2xl border p-4 space-y-3 ${
+                ds.starchyBudgetExhausted
+                  ? "bg-orange-900/30 border-orange-500/50"
+                  : "bg-black/50 border-orange-500/30"
+              }`}>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-orange-400" />
+                  <p className="text-xs text-orange-300 font-semibold uppercase tracking-wider">Today's Nutrition Strategy</p>
+                </div>
+
+                {/* Starch policy */}
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-white font-semibold text-sm">
+                      {policyLabel[ds.starchPolicy] ?? ds.starchPolicy}
+                    </p>
+                    {ds.starchyBudgetExhausted && (
+                      <p className="text-orange-300 text-xs mt-0.5">
+                        You've reached today's starchy carb limit. Remaining meals will favor protein and fibrous vegetables.
+                      </p>
+                    )}
+                  </div>
+                  {ds.starchyBudgetExhausted && (
+                    <span className="flex-shrink-0 px-2 py-0.5 rounded-full bg-orange-600/40 border border-orange-500/40 text-orange-300 text-[10px] font-semibold uppercase tracking-wide">
+                      Limit Reached
+                    </span>
+                  )}
+                </div>
+
+                {/* Ledger status */}
+                <div className="flex items-center gap-2 pt-1 border-t border-white/10">
+                  <span className={`text-[10px] font-semibold uppercase tracking-wide ${ledger.color}`}>
+                    Tracking: {ledger.text}
+                  </span>
+                </div>
+
+                {/* App-wide impact */}
+                <div className="rounded-xl bg-white/5 border border-white/10 px-3 py-2.5">
+                  <p className="text-orange-300 text-[11px] font-semibold uppercase tracking-wider mb-1">Affects the whole app</p>
+                  <p className="text-white/70 text-xs leading-relaxed">
+                    This strategy applies everywhere — Create a Dish, Snack Creator, Beverages, Desserts, Restaurant Guide, Fridge Rescue, Getaway Coach, Gatherings, Meal Planner, and more. Every recommendation starts with today's training day.
+                  </p>
+                </div>
+
+                {/* Logging nudge when nothing is logged yet */}
+                {ds.ledgerReliability === "low" && (
+                  <p className="text-white/50 text-[10px] text-center">
+                    Only confirmed meals reduce your daily starch balance. Viewing or generating a meal does not count.
+                  </p>
+                )}
+              </div>
+            );
+          })()}
 
           {/* ── Section 1: Performance Profile ── */}
           <div className="rounded-2xl bg-black/50 border border-orange-500/30 p-4">
