@@ -1,9 +1,37 @@
-# C2 Daily Nutrition State Engine — Master Implementation Plan
+# Nutrition Decision Engine (NDE) — Master Implementation Plan
 
-**Status:** C2 core engine accepted. Validation complete (119/119). Engineering sequence continues.  
+> **Renamed from:** "C2 Daily Nutrition State Engine"  
+> **Why:** The Daily Nutrition State is one input. The engine's responsibility is broader: **every way food enters or leaves the system must consult it before anything reaches the user.**
+
+**Status:** C2 core engine accepted. Validation complete (119/119). NDE food-entry-point expansion in progress.  
 **Last updated:** 2026-07-19  
 **Canonical validation doc:** `docs/c2-validation-package.md`  
 **Test suite:** `server/tests/daily-nutrition-state.test.ts`
+
+---
+
+## SHIPPED — NDE Expansion (this session)
+
+### ✅ Post-generation starch validator
+- `STARCH_BUDGET_TERMS` constant + starch budget check added to `scanGeneratedOutput()` in `protocolEnvelope.ts`
+- New `starchBudgetViolation` field on `ProtocolScanResult` — soft flag (informational in v1, caller logs + warns)
+- Fires when `envelope.dailyNutritionState.starchyBudgetExhausted === true` AND generated meal contains identifiable starchy ingredients
+- v2 plan: hard block → trigger regeneration
+
+### ✅ Saved meal revalidation
+- `GET /api/saved-meals` now resolves today's daily nutrition state for authenticated users
+- Each saved meal is annotated with `dayMismatchNote` + `dayMismatchPolicy` when today is a zero/exhausted starch day and the meal contains starchy content (numeric `starchyCarbs > 5g` OR term scan)
+- `SavedMeals.tsx` shows an amber "Today's Nutrition Strategy" warning card in the expanded view — never hides the meal
+
+### ✅ Barcode Scanner NDE
+- `/api/barcode/:code` now optionally resolves today's NDE state for logged-in users (non-blocking — product always returned)
+- Response includes `ndeSummary` with: `starchPolicy`, `starchyBudgetExhausted`, `conflicts`, `conflictNote`, `suggestions[]`
+- Client wiring deferred (barcode flow uses `onBarcode()` callback, no direct API call in client yet)
+
+### ✅ Recipe Scanner (Inspiration) NDE
+- `/api/inspiration/capture` now loads the user's `UserProtocolEnvelope` after generation
+- If `dailyNutritionState.scheduleConfigured` and starch is restricted, response includes `ndeSummary.wasAdapted=true` + `adaptedNote`
+- `InspirationCaptureModal.tsx` shows an orange "Adapted for Today's Nutrition Strategy" banner in the preview phase when `ndeSummary.wasAdapted` is true
 
 ---
 
@@ -35,20 +63,11 @@ The code review system holds stale follow-up task refs (#118–120) for "Platfor
 
 ---
 
-### Priority 2 — Shared Post-Generation Validator
+### Priority 2 — Shared Post-Generation Validator ✅ SHIPPED
 
-**Why second:** The pre-generation constraint fires at all 15 confirmed builders, but there is no post-generation scan that checks whether the AI actually honored the starch budget. If the model ignores the constraint (possible with long system prompts), a starch-exhausted user still receives a rice dish.
+**Shipped:** Starch budget soft flag in `scanGeneratedOutput()`. `STARCH_BUDGET_TERMS` list, `starchBudgetViolation` on `ProtocolScanResult`.
 
-**Work required:**
-- Add a `STARCH_BUDGET_VIOLATION` scan rule to `scanGeneratedOutput()` in `protocolEnvelope.ts`.
-- Rule fires when `dailyNutritionState.starchyBudgetExhausted === true` AND the generated meal contains known starch sources (rice, pasta, bread, potato, oats, corn, tortilla, grains).
-- Use the existing `violation` pattern (term match + category + block/flag behavior).
-- Decide on action: hard block (regenerate) vs. soft flag (warn in logs, surface to user).
-- Recommendation: soft flag in v1 (log violation + add a disclaimer card on the result), hard block in v2.
-
-**Files likely involved:**
-- `server/services/protocolEnvelope.ts` (`scanGeneratedOutput()` section)
-- `server/tests/protocol-adversarial.ts` (add adversarial test cases)
+**v2 remaining:** Hard block → trigger regeneration loop when `starchBudgetViolation.detected === true`. Add adversarial test cases to `server/tests/protocol-adversarial.ts`.
 
 ---
 
@@ -81,19 +100,11 @@ The `combined` field is already produced by `getActiveNutritionContext()` via `e
 
 ---
 
-### Priority 4 — Saved-Meal Revalidation
+### Priority 4 — Saved-Meal Revalidation ✅ SHIPPED
 
-**Why fourth:** When a user reuses a saved meal on a different day, the saved meal was generated under a previous day's session type (e.g., competition day, 240g starch allowed). If reused on a rest day (80g target), the saved meal may contain starch far over today's remaining budget — and the system does not re-check it.
+**Shipped:** `GET /api/saved-meals` resolves today's NDE state and annotates each conflicting meal with `dayMismatchNote` + `dayMismatchPolicy`. `SavedMeals.tsx` shows amber warning card in expanded view.
 
-**Work required:**
-- When a saved meal is retrieved for display or re-logging, run `scanGeneratedOutput()` against the current `dailyNutritionState`.
-- If a conflict exists (e.g., saved meal has 150g starchy carbs, today's remaining = 40g), surface a warning: "This meal was created on a different training day. Today's starch allocation is X. Log it as-is or modify before logging."
-- Do not auto-block — user may have already accounted for this.
-- Add a `revalidation_note` field to the saved meal display card.
-
-**Files likely involved:**
-- `server/routes/savedMeals.ts` (or equivalent retrieve endpoint)
-- Saved meal display card component (client)
+**Deferred (v2):** Log-time revalidation — when user taps "Add to Macros" on a saved meal, re-check the budget at that moment and show a more specific "this meal adds Xg starchy carbs, you have Yg remaining" prompt.
 
 ---
 
