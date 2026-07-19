@@ -55,6 +55,7 @@ import { deriveCompPrepStatus } from "./protocol/competitionPrepDateEngine";
 import { sanitizeIdentifiers } from "./promptSanitizer";
 import { logAudit } from "../lib/auditLog";
 import { computeDemandProfile, type DemandProfile } from "../../shared/performanceDemandEngine";
+import { resolveDailyNutritionState, type DailyNutritionState } from "./dailyNutritionState";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PROCEDURAL RULES — The third enforcement dimension
@@ -630,6 +631,15 @@ export interface UserProtocolEnvelope {
   performanceLayer: DemandProfile | null;
 
   /**
+   * Resolved daily nutrition state — populated when performance-nutrition is active
+   * and the user has a configured weekly training schedule.
+   * Contains today's session type, starchy carb target, confirmed consumption,
+   * remaining budget, and a ready-to-inject preGenerationConstraint string.
+   * Null when performance-nutrition is off or schedule is not yet configured.
+   */
+  dailyNutritionState: DailyNutritionState | null;
+
+  /**
    * Therapeutic Nutrition Intelligence active flag.
    * True when "therapeutic-support" is in the user's specialtyConditions array.
    * Guidance blocks are injected into conditionGuidanceBlocks automatically.
@@ -797,6 +807,15 @@ export async function loadUserProtocolEnvelope(
         performanceControlMode: (users as any).performanceControlMode,
         carbCycleState: users.carbCycleState,
         performanceContext: users.performanceContext,
+        weeklyTrainingSchedule: (users as any).weeklyTrainingSchedule,
+        performanceProtocolConfig: (users as any).performanceProtocolConfig,
+        dailyCalorieTarget: (users as any).dailyCalorieTarget,
+        dailyProteinTarget: (users as any).dailyProteinTarget,
+        dailyCarbsTarget:   (users as any).dailyCarbsTarget,
+        dailyFatTarget:     (users as any).dailyFatTarget,
+        dailyStarchyCarbsTarget: (users as any).dailyStarchyCarbsTarget,
+        dailyFibrousCarbsTarget: (users as any).dailyFibrousCarbsTarget,
+        timezone: (users as any).timezone,
         therapeuticSupportContext: (users as any).therapeuticSupportContext,
         pregnancySupportContext: (users as any).pregnancySupportContext,
         flavorPreference: users.flavorPreference,
@@ -1227,7 +1246,43 @@ export async function loadUserProtocolEnvelope(
       palateSpiceTolerance: (user as any).palateSpiceTolerance ?? null,
       palateSeasoningIntensity: (user as any).palateSeasoningIntensity ?? null,
       palateFlavorStyle: (user as any).palateFlavorStyle ?? null,
+      dailyNutritionState: null,
     };
+
+    // ── DAILY NUTRITION STATE — resolve only when performance-nutrition is active ─
+    if (performanceNutrition) {
+      try {
+        const wts = (user as any).weeklyTrainingSchedule ?? null;
+        const ppc = (user as any).performanceProtocolConfig ?? null;
+        const baseCarbsG = Number((user as any).dailyCarbsTarget ?? 200);
+        const rawStarchy = (user as any).dailyStarchyCarbsTarget;
+        const rawFibrous = (user as any).dailyFibrousCarbsTarget;
+        const baseline = {
+          calories:      Number((user as any).dailyCalorieTarget ?? 2000),
+          proteinG:      Number((user as any).dailyProteinTarget ?? 150),
+          carbsG:        baseCarbsG,
+          fatG:          Number((user as any).dailyFatTarget ?? 65),
+          starchyCarbsG: rawStarchy !== null && rawStarchy !== undefined
+            ? Number(rawStarchy)
+            : Math.round(baseCarbsG * 0.7),
+          fibrousCarbsG: rawFibrous !== null && rawFibrous !== undefined
+            ? Number(rawFibrous)
+            : Math.round(baseCarbsG * 0.3),
+        };
+        envelope.dailyNutritionState = await resolveDailyNutritionState({
+          userId:           String(userId),
+          schedule:         wts,
+          config:           ppc,
+          baseline,
+          timezone:         ((user as any).timezone as string | null) ?? "America/Chicago",
+          performanceActive: true,
+        });
+      } catch (err) {
+        console.warn("[ProtocolEnvelope] Daily nutrition state resolution failed:", err);
+      }
+    }
+
+    return envelope;
   } catch (error) {
     console.error("[ProtocolEnvelope] Failed to load envelope:", error);
     return null;
@@ -1270,6 +1325,7 @@ export function buildGuestEnvelope(): UserProtocolEnvelope {
     performanceNutrition: false,
     performanceContext: null,
     performanceLayer: null,
+    dailyNutritionState: null,
     therapeuticSupport: false,
     therapeuticSupportContext: null,
     selectedMealBuilder: null,
@@ -1533,6 +1589,24 @@ ${proceduralParts.join("\n")}`;
     if (demandLines) {
       layers.performanceIntent += `\n\n⚡ PERFORMANCE DEMAND LAYER — ACTIVE (computed from athlete training profile):\n${demandLines}\nThis demand profile is derived from the user's training type, frequency, duration, recovery status, and adaptation target. It operates as an additive shaping layer — it tightens or shifts meal composition within all active medical and dietary constraints above. It never overrides Tiers 1–4.`;
     }
+  }
+
+  // ── DAILY NUTRITION STATE — day-specific carb constraint (Tier 5c) ─────────
+  // Injected after the general performance demand layer so it can tighten or
+  // override the generic carb guidance with today's actual schedule and budget.
+  // Only fires when the performance schedule is configured and today's session
+  // type has been resolved. Never fires for guest envelopes or users without
+  // an active performance-nutrition protocol.
+  if (
+    envelope.dailyNutritionState?.scheduleConfigured &&
+    envelope.dailyNutritionState.preGenerationConstraint
+  ) {
+    layers.performanceIntent +=
+      `\n\n${envelope.dailyNutritionState.preGenerationConstraint}\n` +
+      `This day-specific rule is derived from the user's weekly training schedule and ` +
+      `today's confirmed consumption. It is a hard constraint — it supersedes any general ` +
+      `carbohydrate guidance above for this specific recommendation. Medical safety rules ` +
+      `(Tiers 1–4) still take absolute precedence.`;
   }
 
   // ── TIER 6: Avoidances ────────────────────────────────────────────────────
