@@ -3657,7 +3657,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Transform to expected format for frontend
-      const response = {
+      const response: Record<string, any> = {
         food_id: food.id,
         barcode: food.barcode,
         name: food.name,
@@ -3667,6 +3667,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
         verified: food.verified,
         source: food.source
       };
+
+      // ── Nutrition Decision Engine (NDE) check ─────────────────────────────
+      // Optionally enrich the barcode response with today's nutrition strategy
+      // so the scanner UI can flag conflicts without blocking the lookup.
+      // Works for any logged-in user without requiring the route to be auth-gated.
+      try {
+        // Mirror requireAuth's token/session extraction — non-blocking
+        const token = req.headers["x-auth-token"] as string | undefined;
+        const sessionUserId = (req as any).session?.userId as string | undefined;
+        let barcodeUserId: string | null = null;
+
+        if (token) {
+          const [tokenUser] = await db.select({ id: users.id }).from(users)
+            .where(eq(users.authToken, token)).limit(1);
+          if (tokenUser) barcodeUserId = String(tokenUser.id);
+        } else if (sessionUserId) {
+          barcodeUserId = String(sessionUserId);
+        }
+
+        if (barcodeUserId) {
+          const [u] = await db.select({
+            weeklyTrainingSchedule:    (users as any).weeklyTrainingSchedule,
+            performanceProtocolConfig: (users as any).performanceProtocolConfig,
+            dailyCalorieTarget:        users.dailyCalorieTarget,
+            dailyCarbsTarget:          users.dailyCarbsTarget,
+            dailyStarchyCarbsTarget:   (users as any).dailyStarchyCarbsTarget,
+            dailyFibrousCarbsTarget:   (users as any).dailyFibrousCarbsTarget,
+            dailyProteinTarget:        users.dailyProteinTarget,
+            dailyFatTarget:            users.dailyFatTarget,
+            timezone:                  (users as any).timezone,
+          } as any).from(users).where(eq(users.id, barcodeUserId)).limit(1);
+
+          const schedule = (u as any)?.weeklyTrainingSchedule;
+          const config   = (u as any)?.performanceProtocolConfig;
+
+          if (schedule && config) {
+            const { resolveDailyNutritionState } = await import("./services/dailyNutritionState");
+            const baseCarbsG = (u as any)?.dailyCarbsTarget ?? 200;
+            const rawStarchy = (u as any)?.dailyStarchyCarbsTarget;
+            const rawFibrous = (u as any)?.dailyFibrousCarbsTarget;
+            const state = await resolveDailyNutritionState({
+              userId: barcodeUserId,
+              schedule,
+              config,
+              baseline: {
+                calories:      (u as any)?.dailyCalorieTarget ?? 2000,
+                proteinG:      (u as any)?.dailyProteinTarget ?? 150,
+                carbsG:        baseCarbsG,
+                fatG:          (u as any)?.dailyFatTarget ?? 65,
+                starchyCarbsG: rawStarchy != null ? Number(rawStarchy) : Math.round(baseCarbsG * 0.7),
+                fibrousCarbsG: rawFibrous != null ? Number(rawFibrous) : Math.round(baseCarbsG * 0.3),
+              },
+              timezone:          ((u as any)?.timezone as string | null) ?? "America/Chicago",
+              performanceActive: true,
+            });
+
+            if (state.scheduleConfigured) {
+              // Classify the product's starchy carb load
+              const carbsG   = food.nutrPerServing.carbs_g ?? 0;
+              const fiberG   = food.nutrPerServing.fiber_g ?? 0;
+              const netStarchyG = Math.max(0, carbsG - fiberG);
+              const isSignificantStarch = netStarchyG > 8;
+
+              const conflicts =
+                isSignificantStarch &&
+                (state.starchPolicy === "zero" || state.starchyBudgetExhausted);
+
+              response.ndeSummary = {
+                starchPolicy:          state.starchPolicy,
+                starchyBudgetExhausted: state.starchyBudgetExhausted,
+                scheduleConfigured:    true,
+                dayLabel:              state.dayLabel ?? null,
+                productNetStarchyG:    netStarchyG,
+                conflicts,
+                ...(conflicts && {
+                  conflictNote: state.starchyBudgetExhausted
+                    ? `Today's starchy carb budget is exhausted. This product adds ~${Math.round(netStarchyG)}g of starchy carbs.`
+                    : `Today is a no-starch day. This product contains ~${Math.round(netStarchyG)}g of starchy carbs per serving.`,
+                  suggestions: [
+                    "Look for a protein-forward alternative",
+                    "Choose a fibrous vegetable-based option",
+                    "Log a smaller portion if the meal is already planned",
+                  ],
+                }),
+              };
+            }
+          }
+        }
+      } catch {
+        // NDE check is non-blocking — product data still returned on error
+      }
 
       console.log(`✅ Product found: ${food.name} from ${food.source}`);
       res.json(response);

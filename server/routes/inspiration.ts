@@ -201,11 +201,47 @@ router.post(
         },
       };
 
+      // ── Nutrition Decision Engine (NDE) summary ──────────────────────────
+      // Surface which daily nutrition strategy influenced this generation
+      // so the client can show an "Adapted for today" banner when relevant.
+      let ndeSummary: {
+        scheduleConfigured: boolean;
+        starchPolicy: string;
+        starchyBudgetExhausted: boolean;
+        dayLabel: string | null;
+        wasAdapted: boolean;
+        adaptedNote: string | null;
+      } | null = null;
+
+      try {
+        const envelope = await loadUserProtocolEnvelope(String(userId));
+        if (envelope.dailyNutritionState?.scheduleConfigured) {
+          const ds = envelope.dailyNutritionState;
+          const restricted = ds.starchPolicy === "zero" || ds.starchyBudgetExhausted;
+          ndeSummary = {
+            scheduleConfigured: true,
+            starchPolicy:       ds.starchPolicy,
+            starchyBudgetExhausted: ds.starchyBudgetExhausted,
+            dayLabel:           (ds as any).dayLabel ?? null,
+            wasAdapted:         restricted,
+            adaptedNote:        restricted
+              ? `This recipe was automatically adapted for today's nutrition strategy. ` +
+                `${ds.starchPolicy === "zero"
+                  ? "Starchy carbohydrates have been minimized or replaced with fibrous alternatives."
+                  : "Starchy carbohydrate choices were reduced to fit today's remaining budget."}`
+              : null,
+          };
+        }
+      } catch {
+        // Non-blocking — ndeSummary stays null
+      }
+
       return res.json({
         success: true,
         title,
         mealData,
         extractedDescription: mealDescription,
+        ...(ndeSummary && { ndeSummary }),
       });
     } catch (error: any) {
       console.error("[inspiration] capture error:", error);
