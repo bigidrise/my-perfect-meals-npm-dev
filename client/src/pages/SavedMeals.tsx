@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { Heart, ChevronDown, ChevronRight, ArrowLeft, Loader2, Activity } from "lucide-react";
+import { Heart, ChevronDown, ChevronRight, ArrowLeft, Loader2, Activity, AlertTriangle } from "lucide-react";
 import { useSavedMealsList, useDeleteSavedMeal } from "@/hooks/useSavedMeals";
 import { useToast } from "@/hooks/use-toast";
 import MealCardActions from "@/components/MealCardActions";
@@ -196,6 +196,18 @@ export default function SavedMeals() {
               mealName={row.title}
               height="h-52"
             />
+
+            {row.dayMismatchNote && (
+              <div className="rounded-lg bg-amber-950/60 border border-amber-700/40 px-3 py-2.5 flex gap-2.5 items-start">
+                <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <div className="text-amber-400 font-semibold tracking-wide uppercase text-[10px]">
+                    Today's Nutrition Strategy
+                  </div>
+                  <div className="text-white/80 text-xs">{row.dayMismatchNote}</div>
+                </div>
+              </div>
+            )}
 
             {isDiabetic && generatedBglMgdl !== null && (
               <div className={`rounded-lg ${bannerAccent.bg} border ${bannerAccent.border} px-3 py-2 text-xs space-y-0.5`}>

@@ -713,6 +713,17 @@ export interface ProtocolScanResult {
   primaryViolation?: HiddenViolation;
   /** Human-readable message suitable for logging or error responses */
   message: string;
+  /**
+   * Starch budget soft flag — present when starchyBudgetExhausted is true
+   * and the generated meal contains identifiable starchy ingredients.
+   * v1: informational only — does NOT change `passed`. Callers may choose
+   * to reject, warn, or log. v2 will hard-block.
+   */
+  starchBudgetViolation?: {
+    detected: boolean;
+    terms: string[];
+    message: string;
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1867,11 +1878,32 @@ function extractInstructionsText(meal: {
 }
 
 /**
+ * Known starchy carbohydrate terms used by the post-generation starch budget scan.
+ * Matched case-insensitively against ingredient names, meal name, and description.
+ * Fibrous vegetables, legumes-as-protein, and culturally-integral bases are excluded
+ * from this list — only clear glycemic-load starches are included.
+ */
+const STARCH_BUDGET_TERMS = [
+  "rice", "pasta", "bread", "potato", "potatoes", "oats", "oatmeal",
+  "corn", "tortilla", "noodle", "noodles", "couscous", "quinoa", "barley",
+  "farro", "wheat", "flour", "bagel", "pita", "roll", "bun", "buns",
+  "spaghetti", "penne", "linguine", "fettuccine", "ramen", "udon", "soba",
+  "polenta", "grits", "macaroni", "mashed", "hash brown", "hashbrown",
+  "tater", "sweet potato", "yam", "plantain", "crouton", "croutons",
+  "cracker", "crackers", "pretzel", "pretzels", "pancake", "pancakes",
+  "waffle", "waffles", "muffin", "muffins", "toast",
+];
+
+/**
  * Scan a generated meal against the user's full protocol envelope.
  *
  * Checks BOTH:
  *   1. Ingredient-level violations (hidden ingredients, avoidances, kosher/halal hidden terms)
  *   2. Instruction-level violations (forbidden preparation phrases from the procedural layer)
+ *
+ * Also checks a STARCH BUDGET soft flag (v1 — informational, does not change `passed`):
+ *   3. When starchyBudgetExhausted is true, detects identifiable starchy ingredients
+ *      and reports them in starchBudgetViolation for the caller to handle.
  *
  * Call this after every AI generation, before returning the result to the user.
  * Returns a ProtocolScanResult — check `.passed` before serving the meal.
@@ -1906,12 +1938,38 @@ export function scanGeneratedOutput(
 
   const totalPassed = ingredientViolations.length === 0 && instructionViolations.length === 0;
 
+  // ── Starch budget soft flag (v1 — informational, does not block) ──────────
+  // Fires only when starchyBudgetExhausted is true AND the meal contains
+  // identifiable starchy ingredients. Caller decides whether to reject or warn.
+  let starchBudgetViolation: ProtocolScanResult["starchBudgetViolation"];
+  if (envelope.dailyNutritionState?.starchyBudgetExhausted) {
+    const mealLower = mealText.toLowerCase();
+    const foundTerms = STARCH_BUDGET_TERMS.filter(term =>
+      mealLower.includes(term.toLowerCase())
+    );
+    if (foundTerms.length > 0) {
+      const termList = foundTerms.slice(0, 5).join(", ");
+      console.warn(
+        `⚠️ [ProtocolEnvelope:${generatorName}] "${meal.name}" STARCH BUDGET soft flag — ` +
+        `starchyBudgetExhausted=true but meal contains: ${termList}`
+      );
+      starchBudgetViolation = {
+        detected: true,
+        terms: foundTerms,
+        message: `Today's starchy carb budget is exhausted, but this meal contains: ${termList}. ` +
+          `The AI may not have fully honored the day-specific constraint. ` +
+          `Consider regenerating or substituting fibrous vegetables.`,
+      };
+    }
+  }
+
   if (totalPassed) {
     return {
       passed: true,
       violations: [],
       instructionViolations: [],
       message: `[ProtocolEnvelope:${generatorName}] "${meal.name}" passed full protocol scan (ingredients + instructions).`,
+      starchBudgetViolation,
     };
   }
 
@@ -1931,6 +1989,7 @@ export function scanGeneratedOutput(
       instructionViolations,
       primaryViolation: primary,
       message: `This meal contains "${primary.term}" which conflicts with your ${primary.category} rules. ${primary.reason}`,
+      starchBudgetViolation,
     };
   }
 
@@ -1944,6 +2003,7 @@ export function scanGeneratedOutput(
     violations: [],
     instructionViolations,
     message: `The cooking instructions for this meal contain a step that violates your dietary protocol: "${primaryInstruction}". Regenerating with compliant instructions.`,
+    starchBudgetViolation,
   };
 }
 

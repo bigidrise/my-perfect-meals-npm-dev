@@ -7154,6 +7154,62 @@ Provide a single exceptional meal recommendation in JSON format with the followi
     try {
       const userId = (req as AuthenticatedRequest).authUser.id;
 
+      // Resolve today's daily nutrition state so we can flag saved meals that
+      // conflict with the current day's starch strategy.
+      let savedMealDailyState: {
+        starchPolicy: string;
+        starchyBudgetExhausted: boolean;
+        scheduleConfigured: boolean;
+      } | null = null;
+      try {
+        const [userForState] = await db
+          .select({
+            weeklyTrainingSchedule:    (users as any).weeklyTrainingSchedule,
+            performanceProtocolConfig: (users as any).performanceProtocolConfig,
+            dailyCalorieTarget:        users.dailyCalorieTarget,
+            dailyProteinTarget:        users.dailyProteinTarget,
+            dailyCarbsTarget:          users.dailyCarbsTarget,
+            dailyFatTarget:            users.dailyFatTarget,
+            dailyStarchyCarbsTarget:   (users as any).dailyStarchyCarbsTarget,
+            dailyFibrousCarbsTarget:   (users as any).dailyFibrousCarbsTarget,
+            timezone:                  (users as any).timezone,
+          } as any)
+          .from(users)
+          .where(eq(users.id, String(userId)))
+          .limit(1);
+
+        const schedule = (userForState as any)?.weeklyTrainingSchedule;
+        const config   = (userForState as any)?.performanceProtocolConfig;
+        if (schedule && config) {
+          const { resolveDailyNutritionState } = await import("./services/dailyNutritionState");
+          const baseCarbsG = (userForState as any)?.dailyCarbsTarget ?? 200;
+          const rawStarchy = (userForState as any)?.dailyStarchyCarbsTarget ?? null;
+          const rawFibrous = (userForState as any)?.dailyFibrousCarbsTarget ?? null;
+          const state = await resolveDailyNutritionState({
+            userId:            String(userId),
+            schedule,
+            config,
+            baseline: {
+              calories:      (userForState as any)?.dailyCalorieTarget ?? 2000,
+              proteinG:      (userForState as any)?.dailyProteinTarget ?? 150,
+              carbsG:        baseCarbsG,
+              fatG:          (userForState as any)?.dailyFatTarget ?? 65,
+              starchyCarbsG: rawStarchy !== null ? Number(rawStarchy) : Math.round(baseCarbsG * 0.7),
+              fibrousCarbsG: rawFibrous !== null ? Number(rawFibrous) : Math.round(baseCarbsG * 0.3),
+            },
+            timezone:          ((userForState as any)?.timezone as string | null) ?? "America/Chicago",
+            performanceActive: true,
+          });
+          savedMealDailyState = {
+            starchPolicy:          state.starchPolicy,
+            starchyBudgetExhausted: state.starchyBudgetExhausted,
+            scheduleConfigured:    state.scheduleConfigured,
+          };
+        }
+      } catch {
+        // Non-fatal — saved meals still returned without day-mismatch annotation
+      }
+
       const rows = await db.select().from(savedMealsTable)
         .where(eq(savedMealsTable.userId, String(userId)))
         .orderBy(desc(savedMealsTable.createdAt));
@@ -7196,7 +7252,53 @@ Provide a single exceptional meal recommendation in JSON format with the followi
         }
       }
 
-      res.json(enrichedRows);
+      // ── Day-mismatch annotation ──────────────────────────────────────────────
+      // If today's starch strategy conflicts with a saved meal's starch content,
+      // attach a dayMismatchNote so the client can show a contextual warning.
+      // This never removes meals — it's purely informational.
+      const STARCH_SIGNAL_TERMS = [
+        "rice", "pasta", "bread", "potato", "potatoes", "oats", "oatmeal",
+        "corn", "tortilla", "noodle", "noodles", "couscous", "quinoa", "barley",
+        "farro", "wheat", "flour", "bagel", "pita", "roll", "bun",
+        "spaghetti", "penne", "linguine", "fettuccine", "ramen", "udon", "soba",
+        "polenta", "grits", "macaroni", "mashed", "sweet potato", "yam",
+      ];
+
+      const shouldFlagStarch =
+        savedMealDailyState?.scheduleConfigured &&
+        (savedMealDailyState?.starchPolicy === "zero" ||
+          savedMealDailyState?.starchyBudgetExhausted);
+
+      const annotatedRows = enrichedRows.map(r => {
+        if (!shouldFlagStarch) return r;
+        const md = r.mealData as any;
+        const savedStarchyG = Number(md?.starchyCarbs ?? md?.starchyCarbsG ?? 0);
+        // Check numeric starchy carb value OR scan meal name/ingredients for starch terms
+        let hasStarch = savedStarchyG > 5;
+        if (!hasStarch) {
+          const textToScan = [
+            r.title,
+            md?.description ?? "",
+            ...(Array.isArray(md?.ingredients)
+              ? md.ingredients.map((i: any) =>
+                  typeof i === "string" ? i : (i?.name ?? i?.item ?? "")
+                )
+              : []),
+          ].join(" ").toLowerCase();
+          hasStarch = STARCH_SIGNAL_TERMS.some(t => textToScan.includes(t));
+        }
+        if (!hasStarch) return r;
+        const policyLabel = savedMealDailyState?.starchyBudgetExhausted
+          ? "today's starchy carb budget is exhausted"
+          : "today is a no-starch day";
+        return {
+          ...r,
+          dayMismatchNote: `This meal was saved on a different nutrition day. ${policyLabel[0].toUpperCase() + policyLabel.slice(1)} — it may not fit today's strategy.`,
+          dayMismatchPolicy: savedMealDailyState?.starchPolicy,
+        };
+      });
+
+      res.json(annotatedRows);
     } catch (error) {
       console.error("Error listing saved meals:", error);
       res.status(500).json({ error: "Failed to list saved meals" });
