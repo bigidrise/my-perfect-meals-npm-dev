@@ -681,7 +681,7 @@ export default function Router() {
         <Route path="/pricing" component={PricingPage} />
         <Route path="/apply-guidance" component={() => <CoachingAdminGate component={ApplyGuidance} />} />
         <Route path="/paywall" component={PricingPage} />
-        <Route path="/select-builder" component={MealBuilderSelection} />
+        <Route path="/select-builder" component={() => <PaywallGuard component={MealBuilderSelection} />} />
         <Route path="/onboarding/extended" component={ExtendedOnboarding} />
         <Route path="/checkout/success" component={CheckoutSuccess} />
         <Route path="/billing/success" component={CheckoutSuccess} />
@@ -823,7 +823,7 @@ export default function Router() {
         {/* DELETED: TemplateHub route */}
         <Route path="/weekly" component={GuardedWeeklyMealBoard} />
         {/* DELETED: PlanBuilderTurbo, ProteinPlannerPage, PlanBuilderHub, CompetitionBeachbodyBoard routes */}
-        <Route path="/builders" component={SafeBuilders} />
+        <Route path="/builders" component={() => <PaywallGuard component={SafeBuilders} />} />
         <Route path="/planner">{() => { window.location.replace("/builders"); return null; }}</Route>
         <Route path="/weekly-meal-board" component={GuardedWeeklyMealBoard} />
         <Route path="/beach-body-meal-board" component={GuardedBeachBodyBuilder} />

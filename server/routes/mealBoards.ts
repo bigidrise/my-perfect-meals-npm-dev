@@ -6,8 +6,15 @@ import { mealBoards, mealBoardItems } from "../db/schema/mealBoards";
 import { eq, and, desc } from "drizzle-orm";
 import { logActivityFireAndForget } from "../services/activityLog";
 import { enforceBuilderFromParam } from "../middleware/studioAccess";
+import { requireAuth } from "../middleware/requireAuth";
+import { requireEssentialAccess } from "../middleware/requireEssentialAccess";
 
 const router = Router();
+
+// All meal board routes require authentication and at minimum an Essential subscription.
+// Trial users pass through requireEssentialAccess (accessTier === "TRIAL_FULL").
+// ProCare clients with studio membership are authenticated and pass requireAuth.
+router.use(requireAuth, requireEssentialAccess);
 
 // Get or create current board for user/program
 // Studio clients can only access their assigned builder

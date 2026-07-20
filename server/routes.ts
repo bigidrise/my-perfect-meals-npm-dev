@@ -684,7 +684,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Single canonical endpoint for ALL meal generation (AI Meal Creator, AI Premades, Fridge Rescue)
   // Guarantees: consistent response format, fallback images, error handling
   // ============================================================================
-  app.post("/api/meals/generate", async (req, res) => {
+  app.post("/api/meals/generate", requireAuth, requireEssentialAccess, async (req, res) => {
     console.log("🔄 Unified meal generation endpoint hit");
     const startTime = Date.now();
     
@@ -1327,7 +1327,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const INTERNAL_API_BASE = process.env.INTERNAL_API_BASE || "http://127.0.0.1:5000";
 
   // WMC2 Adapter routes for ChatGPT-level meal generation
-  app.post("/api/wmc2/generate", async (req, res) => {
+  app.post("/api/wmc2/generate", requireAuth, requireEssentialAccess, async (req, res) => {
     try {
       const { wmc2Generate } = await import("./services/wmc2Adapter");
       const result = await wmc2Generate(req.body);
@@ -1338,7 +1338,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/wmc2/:userId/regenerate", async (req, res) => {
+  app.post("/api/wmc2/:userId/regenerate", requireAuth, requireEssentialAccess, async (req, res) => {
     try {
       const { wmc2Regenerate } = await import("./services/wmc2Adapter");
       const result = await wmc2Regenerate(req.params.userId, req.body);
@@ -2055,7 +2055,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Medical Personalization API - Get personalized meal plan based on user's medical profile
   // 🚨 SAFETY: This endpoint uses template-based generation (not AI) with user.allergies passed to profile
-  app.post("/api/weekly-meal-plan/:userId/regenerate", async (req, res) => {
+  app.post("/api/weekly-meal-plan/:userId/regenerate", requireAuth, requireEssentialAccess, async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
       const { mealsPerDay = 3, snacksPerDay = 1, duration = 7 } = req.body;
@@ -4565,7 +4565,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Weekly meal calendar endpoint
-  app.post("/api/meals/weekly", async (req, res) => {
+  app.post("/api/meals/weekly", requireAuth, requireEssentialAccess, async (req, res) => {
     try {
       const { userId, generateAll = true } = req.body;
 
@@ -6749,14 +6749,14 @@ function getMealIngredientsDatabase() {
   // Diabetic meal board persistence (simple localStorage-like API)
   const diabeticMealBoards = new Map<string, any>();
 
-  app.get("/api/diabetic-meal-board", (req, res) => {
-    const userId = "default"; // In real app, get from session
+  app.get("/api/diabetic-meal-board", requireAuth, requireEssentialAccess, (req: any, res) => {
+    const userId = req.authUser?.id || "default";
     const saved = diabeticMealBoards.get(userId);
     res.json(saved || { plan: {} });
   });
 
-  app.post("/api/diabetic-meal-board", (req, res) => {
-    const userId = "default"; // In real app, get from session
+  app.post("/api/diabetic-meal-board", requireAuth, requireEssentialAccess, (req: any, res) => {
+    const userId = req.authUser?.id || "default";
     const { plan } = req.body;
     diabeticMealBoards.set(userId, { plan });
     res.json({ success: true });
