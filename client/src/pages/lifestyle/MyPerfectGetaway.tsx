@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, MapPin, Send, Plane, Palmtree, Ship, Star, ChevronRight, ChevronDown, X, Search, Loader2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
+import { isProOrAbove } from "@/lib/subscriptionCheck";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
@@ -109,7 +111,15 @@ function getStorageKey(userId?: number | string) {
 export default function MyPerfectGetaway() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+  const { requestUpgrade } = useUpgradeModal();
   const isDesktop = useIsDesktop();
+
+  useEffect(() => {
+    if (user !== undefined && !isProOrAbove(user)) {
+      requestUpgrade({ requiredTier: "pro", featureName: "My Perfect Getaway" });
+      setLocation("/lifestyle");
+    }
+  }, [user]);
 
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
