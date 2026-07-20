@@ -291,6 +291,33 @@ export default function MealBuilderSelection() {
           paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 100px)",
         }}
       >
+        {/* Exchange countdown — always at top, shows once status loads */}
+        {!loadingStatus && switchStatus && !switchStatus.isUnlimited && (
+          <div className={`rounded-xl px-4 py-3 mb-5 flex items-center gap-3 ${
+            switchStatus.canSwitch
+              ? "bg-black/30 border border-white/10"
+              : "bg-amber-900/30 border border-amber-500/50"
+          }`}>
+            {switchStatus.canSwitch ? (
+              <RefreshCw className="w-4 h-4 text-orange-400 flex-shrink-0" />
+            ) : (
+              <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+            )}
+            <div className="flex-1">
+              {switchStatus.canSwitch ? (
+                <p className="text-white text-sm">
+                  <span className="font-semibold text-orange-400">{switchStatus.changesRemaining}</span>
+                  <span className="text-white/70"> of {switchStatus.changeLimit} builder exchanges remaining</span>
+                </p>
+              ) : (
+                <p className="text-amber-200 text-sm font-medium">
+                  All {switchStatus.changeLimit} builder exchanges used
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Member acknowledgment */}
         <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-6">
           <p className="text-sm text-white/90 text-center leading-relaxed">
@@ -314,49 +341,6 @@ export default function MealBuilderSelection() {
                   Choose the meal board that fits how you'll continue moving
                   forward.
                 </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Builder switch status */}
-        {!loadingStatus && switchStatus && (
-          <div className={`rounded-xl p-4 mb-6 ${
-            switchStatus.isUnlimited
-              ? "bg-zinc-900/60 border border-zinc-700"
-              : switchStatus.canSwitch
-              ? "bg-zinc-900/60 border border-zinc-700"
-              : "bg-amber-900/30 border border-amber-500/50"
-          }`}>
-            <div className="flex items-center gap-3">
-              {!switchStatus.canSwitch && !switchStatus.isUnlimited ? (
-                <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0" />
-              ) : (
-                <RefreshCw className="w-5 h-5 text-zinc-400 flex-shrink-0" />
-              )}
-              <div className="flex-1">
-                {switchStatus.isUnlimited ? (
-                  <>
-                    <p className="text-white text-sm font-medium">Unlimited builder access</p>
-                    <p className="text-zinc-400 text-xs mt-0.5">Internal account — no switching restrictions.</p>
-                  </>
-                ) : switchStatus.canSwitch ? (
-                  <>
-                    <p className="text-white text-sm font-medium">
-                      {switchStatus.changesRemaining} builder {switchStatus.changesRemaining === 1 ? "change" : "changes"} remaining
-                    </p>
-                    <p className="text-zinc-400 text-xs mt-0.5">
-                      You've used {switchStatus.changesUsed} of {switchStatus.changeLimit} builder changes during beta.
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-amber-200 text-sm font-medium">Builder changes used up</p>
-                    <p className="text-amber-300/70 text-xs mt-0.5">
-                      You've used all {switchStatus.changeLimit} builder changes during beta testing.
-                    </p>
-                  </>
-                )}
               </div>
             </div>
           </div>
