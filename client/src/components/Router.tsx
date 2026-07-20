@@ -12,7 +12,7 @@ import ComingSoon from "@/pages/ComingSoon";
 import StudioBottomNav from "@/components/pro/StudioBottomNav";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { hasActivePaidSubscription, isProOrAbove, isClinicalOrAbove, isActualProPlanOrAbove } from "@/lib/subscriptionCheck";
+import { hasActivePaidSubscription, isProOrAbove, isClinicalOrAbove, isActualProPlanOrAbove, canAccessMealBuilders } from "@/lib/subscriptionCheck";
 import { apiRequest } from "@/lib/queryClient";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
@@ -118,6 +118,22 @@ function ProGuard({ component: Component }: { component: React.ComponentType }) 
   useEffect(() => {
     if (isBlocked) {
       requestUpgrade({ requiredTier: "pro", featureName: getFeatureNameFromPath(location) });
+    }
+  }, [isBlocked, location]);
+
+  if (!user || isBlocked) return null;
+  return <Component />;
+}
+
+function MealBuildersGuard({ component: Component }: { component: React.ComponentType }) {
+  const { user } = useAuth();
+  const [location] = useLocation();
+  const { requestUpgrade } = useUpgradeModal();
+  const isBlocked = !!user && !canAccessMealBuilders(user);
+
+  useEffect(() => {
+    if (isBlocked) {
+      requestUpgrade({ requiredTier: "essential", featureName: "Meal Builders" });
     }
   }, [isBlocked, location]);
 
@@ -496,6 +512,8 @@ const GuardedPerformanceBuilder = () => <BuilderAccessGuard builderKey="performa
 const GuardedDiabeticBuilder = () => <BuilderAccessGuard builderKey="diabetic" component={SafeDiabeticMenuBuilder} />;
 const GuardedGLP1Builder = () => <BuilderAccessGuard builderKey="glp1" component={SafeGLP1MealBuilder} />;
 const GuardedSavedMeals = () => <PaywallGuard component={SavedMeals} />;
+const GuardedMealBuilderSelection = () => <MealBuildersGuard component={MealBuilderSelection} />;
+const GuardedBuilders = () => <MealBuildersGuard component={SafeBuilders} />;
 const GuardedCravingCreator = () => <ProGuard component={CravingCreator} />;
 const GuardedCravingCreatorLanding = () => <ProGuard component={CravingCreatorLanding} />;
 const GuardedCravingDesserts = () => <ProGuard component={CravingDessertCreator} />;
@@ -697,7 +715,7 @@ export default function Router() {
         <Route path="/pricing" component={PricingPage} />
         <Route path="/apply-guidance" component={() => <CoachingAdminGate component={ApplyGuidance} />} />
         <Route path="/paywall" component={PricingPage} />
-        <Route path="/select-builder" component={() => <PaywallGuard component={MealBuilderSelection} />} />
+        <Route path="/select-builder" component={GuardedMealBuilderSelection} />
         <Route path="/onboarding/extended" component={ExtendedOnboarding} />
         <Route path="/checkout/success" component={CheckoutSuccess} />
         <Route path="/billing/success" component={CheckoutSuccess} />
@@ -839,7 +857,7 @@ export default function Router() {
         {/* DELETED: TemplateHub route */}
         <Route path="/weekly" component={GuardedWeeklyMealBoard} />
         {/* DELETED: PlanBuilderTurbo, ProteinPlannerPage, PlanBuilderHub, CompetitionBeachbodyBoard routes */}
-        <Route path="/builders" component={() => <PaywallGuard component={SafeBuilders} />} />
+        <Route path="/builders" component={GuardedBuilders} />
         <Route path="/planner">{() => { window.location.replace("/builders"); return null; }}</Route>
         <Route path="/weekly-meal-board" component={GuardedWeeklyMealBoard} />
         <Route path="/beach-body-meal-board" component={GuardedBeachBodyBuilder} />

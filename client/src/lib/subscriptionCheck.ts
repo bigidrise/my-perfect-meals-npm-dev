@@ -1,4 +1,4 @@
-import { getTierForLookupKey } from "@shared/planFeatures";
+import { getTierForLookupKey, PLAN_FEATURES } from "@shared/planFeatures";
 
 interface UserForSubscriptionCheck {
   planLookupKey?: string | null;
@@ -76,6 +76,32 @@ export function canAccessClinicalLabs(user: UserForSubscriptionCheck | null | un
 /** Therapeutic Nutrition Intelligence — Clinical plan only, trial excluded. */
 export function canAccessTherapeuticNutrition(user: UserForSubscriptionCheck | null | undefined): boolean {
   return canAccessStrictClinical(user);
+}
+
+/**
+ * canAccessMealBuilders — feature-permission check driven by the plan matrix.
+ * Answers: "Does this subscription include Meal Builders (smart_menu_builder)?"
+ * Source of truth: PLAN_FEATURES entitlements in shared/planFeatures.ts.
+ *
+ * Free → false. Essential/Pro/Clinical → true.
+ * Trial (TRIAL_FULL) → true (full-product preview).
+ * PAID_FULL with no plan key → true (internal/pre-launch account).
+ */
+export function canAccessMealBuilders(user: UserForSubscriptionCheck | null | undefined): boolean {
+  if (!user) return false;
+  if (user.isFounder) return true;
+  // Pre-launch mode: server sends PAID_FULL for all users (BILLING_ENFORCED=false)
+  if (user.accessTier === "PAID_FULL") {
+    const tier = getTierForLookupKey(user.planLookupKey);
+    if (tier === "free") return true; // internal account with no plan key
+    return PLAN_FEATURES[tier]?.entitlements.includes("smart_menu_builder") ?? false;
+  }
+  // Active trial: full-product preview includes meal builders
+  if (user.accessTier === "TRIAL_FULL") return true;
+  if (user.trialEndsAt && new Date(user.trialEndsAt) > new Date()) return true;
+  // Derive from plan tier entitlements
+  const tier = getTierForLookupKey(user.planLookupKey);
+  return PLAN_FEATURES[tier]?.entitlements.includes("smart_menu_builder") ?? false;
 }
 
 /**
