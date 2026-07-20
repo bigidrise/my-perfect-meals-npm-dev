@@ -111,7 +111,7 @@ import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import { PillButton } from "@/components/ui/pill-button";
 import { BuilderHeader } from "@/components/pro/BuilderHeader";
-import { TrialBanner } from "@/components/TrialBanner";
+
 import type { ClinicalMode } from "../../../../shared/schema/weeklyBoard";
 import { resolveClinicalModeFromFlags } from "@shared/clinical/clinicalModeResolver";
 import type { ProtocolBadge } from "@shared/clinical/clinicalModeResolver";
@@ -1281,7 +1281,7 @@ export default function AntiInflammatoryMenuBuilder() {
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-20 overflow-x-hidden"
     >
 
-      <TrialBanner />
+
 
       {/* Main Content */}
       <div

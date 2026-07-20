@@ -618,9 +618,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api", fridgeRescueRouter);
   app.use("/api", inspirationRouter);
   app.use("/api/grocery-coach", requireAuth, requireProAccess, groceryCoachRouter);
-  app.use("/api/pregnancy", requireAuth, pregnancyCoachRouter);
-  app.use("/api/performance", requireAuth, performanceNutritionRouter);
-  app.use("/api/performance", requireAuth, carbCycleRouter);
+  app.use("/api/pregnancy", requireAuth, requireClinicalAccess, pregnancyCoachRouter);
+  app.use("/api/performance", requireAuth, requireClinicalAccess, performanceNutritionRouter);
+  app.use("/api/performance", requireAuth, requireClinicalAccess, carbCycleRouter);
   app.use("/api/nutrition-summary", requireAuth, nutritionSummaryRouter);
   app.use("/api/therapeutic", requireAuth, requireStrictClinicalAccess, therapeuticSetupRouter);
 
@@ -2911,41 +2911,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // If trial already started, only update the builder selection (not trial dates)
-      if (existingUser.trialStartedAt) {
-        const [user] = await db.update(users)
-          .set({ selectedMealBuilder, activeBoard: selectedMealBuilder })
-          .where(eq(users.id, userId))
-          .returning();
-        
-        return res.json({
-          success: true,
-          selectedMealBuilder: user.selectedMealBuilder,
-          trialStartedAt: user.trialStartedAt?.toISOString(),
-          trialEndsAt: user.trialEndsAt?.toISOString(),
-          message: "Builder updated (trial already active)"
-        });
-      }
-      
-      // New trial: set trial dates and builder
-      const now = new Date();
-      const trialEndsAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
-      
+      // Update the selected meal builder — no trial granted
       const [user] = await db.update(users)
-        .set({
-          selectedMealBuilder,
-          activeBoard: selectedMealBuilder,
-          trialStartedAt: now,
-          trialEndsAt: trialEndsAt,
-        })
+        .set({ selectedMealBuilder, activeBoard: selectedMealBuilder })
         .where(eq(users.id, userId))
         .returning();
-      
+
       res.json({
         success: true,
         selectedMealBuilder: user.selectedMealBuilder,
-        trialStartedAt: user.trialStartedAt?.toISOString(),
-        trialEndsAt: user.trialEndsAt?.toISOString(),
       });
     } catch (error: any) {
       console.error("Error selecting meal builder:", error);
@@ -3406,33 +3380,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? (onboardingMode as 'independent' | 'procare')
         : 'independent';
       
-      // Set onboarding complete + trial start (trial starts AFTER onboarding, not at account creation)
+      // Set onboarding complete — no trial granted, user starts as FREE tier
       const now = new Date();
-      const trialEndsAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days
-      
-      const updateFields: any = {
-        onboardingCompletedAt: now,
-        onboardingMode: resolvedMode,
-        selectedMealBuilder: existingUser.preferredBuilder || existingUser.selectedMealBuilder,
-      };
-      
-      // Only set trial dates if trial hasn't started yet
-      if (!existingUser.trialStartedAt) {
-        updateFields.trialStartedAt = now;
-        updateFields.trialEndsAt = trialEndsAt;
-      }
-      
+
       const [user] = await db.update(users)
-        .set(updateFields)
+        .set({
+          onboardingCompletedAt: now,
+          onboardingMode: resolvedMode,
+          selectedMealBuilder: existingUser.preferredBuilder || existingUser.selectedMealBuilder,
+        })
         .where(eq(users.id, userId))
         .returning();
-      
+
       res.json({
         success: true,
         onboardingCompletedAt: user.onboardingCompletedAt?.toISOString(),
         onboardingMode: user.onboardingMode,
-        trialStartedAt: user.trialStartedAt?.toISOString(),
-        trialEndsAt: user.trialEndsAt?.toISOString(),
         preferredBuilder: user.preferredBuilder,
       });
     } catch (error: any) {

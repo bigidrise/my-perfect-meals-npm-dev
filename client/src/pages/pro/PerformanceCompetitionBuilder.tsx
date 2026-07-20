@@ -101,7 +101,7 @@ import { InformationModal } from "@/components/ui/universal-modal";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { BuilderHeader } from "@/components/pro/BuilderHeader";
-import { TrialBanner } from "@/components/TrialBanner";
+
 import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
 import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
 
@@ -879,7 +879,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-28"
     >
       <BuilderHeader title="Performance Builder" onOpenTour={quickTour.openTour} clientId={mode === "procare" ? clientId : null} />
-      <TrialBanner />
+
 
       {/* Main Content Wrapper - padding pushes content below header while gradient shows through */}
       <div

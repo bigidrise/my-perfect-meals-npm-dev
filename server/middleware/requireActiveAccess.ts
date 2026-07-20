@@ -15,7 +15,7 @@ export function requireActiveAccess(
 
   const { accessTier } = authReq.authUser;
 
-  if (accessTier === "PAID_FULL" || accessTier === "TRIAL_FULL") {
+  if (accessTier === "PAID_FULL") {
     return next();
   }
 
