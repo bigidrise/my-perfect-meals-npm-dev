@@ -650,6 +650,10 @@ async function initializeApp() {
     const businessRouter = (await import("./routes/businessRoutes")).default;
     app.use("/api/business", businessRouter);
 
+    // partner — partner identity records (promo codes, commission terms, timeline)
+    const partnerRouter = (await import("./routes/partnerRoutes")).default;
+    app.use("/api/partner", partnerRouter);
+
     // legal-pages — privacy policy, terms-of-service rendered pages
     const legalPagesRouter = (await import("./routes/legal-pages")).default;
     app.use(legalPagesRouter);

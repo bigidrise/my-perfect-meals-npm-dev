@@ -8,11 +8,23 @@ import {
   TrendingUp,
   GraduationCap,
   ChevronRight,
+  HelpCircle,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
 
 const programs = [
+  {
+    id: "how-it-works",
+    title: "How Partnerships Work",
+    description:
+      "Understand promo codes, referral links, commissions, customer discounts, and the four partnership models before choosing a path.",
+    icon: HelpCircle,
+    route: "/business-center/how-partnerships-work",
+    accent: "bg-orange-500/20",
+    iconColor: "text-orange-400",
+    border: "border-orange-500/30",
+  },
   {
     id: "founding-partner",
     title: "Founding Business Partner Program",
@@ -59,9 +71,9 @@ const programs = [
   },
   {
     id: "partner-program",
-    title: "Partner Program (Affiliate)",
+    title: "Partner & Revenue Center",
     description:
-      "Earn recurring commissions by referring subscribers to My Perfect Meals.",
+      "Access your promo code, referral link, QR code, commission terms, and partner performance tools.",
     icon: TrendingUp,
     route: "/business-center/affiliate",
     accent: "bg-white/8",

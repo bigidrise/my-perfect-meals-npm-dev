@@ -634,9 +634,10 @@ export default function OrganizationSuccessCenter() {
         <div className="px-4 py-3 flex items-center gap-3">
           <button
             onClick={() => setLocation("/business-dashboard")}
-            className="text-white/60 active:text-white transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
           >
-            <ChevronLeft className="w-5 h-5" />
+            <ChevronLeft className="w-4 h-4" />
+            Organization Dashboard
           </button>
           <div>
             <h1 className="text-white font-bold text-base leading-tight">Organization Success Center</h1>

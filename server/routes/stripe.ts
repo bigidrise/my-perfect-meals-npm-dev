@@ -57,7 +57,7 @@ router.post("/create-checkout-session", requireAuth, async (req, res) => {
       mode: "subscription",
       line_items: [{ price: price.id, quantity: 1 }],
       customer_email: customerEmail,
-      allow_promotion_codes: false,
+      allow_promotion_codes: true,
       success_url: successUrl,
       cancel_url: cancelUrl,
       metadata: {
