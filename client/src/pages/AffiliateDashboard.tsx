@@ -776,19 +776,51 @@ export default function AffiliateDashboard() {
                   </div>
                   <CardLabel>Partner Playbook</CardLabel>
                 </div>
-                <span className="text-2xl font-black text-white">{partnerLifecycle.readinessPct}%</span>
               </div>
 
-              {/* Readiness bar */}
-              <div className="w-full bg-white/10 rounded-full h-1.5 mb-1">
-                <div
-                  className="h-1.5 rounded-full bg-orange-500 transition-all duration-700"
-                  style={{ width: `${partnerLifecycle.readinessPct}%` }}
-                />
+              {/* Per-track progress bars */}
+              <div className="space-y-2.5 mb-3">
+                {partnerLifecycle.tracks
+                  .filter((t) => t.totalCount > 0)
+                  .map((track) => {
+                    const pct = Math.round((track.completedCount / track.totalCount) * 100);
+                    const full = pct === 100;
+                    return (
+                      <div key={track.track}>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest">
+                            {track.label}
+                          </span>
+                          <span className={`text-xs font-black ${full ? "text-green-400" : "text-white/50"}`}>
+                            {pct}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-white/10 rounded-full h-1.5">
+                          <div
+                            className={`h-1.5 rounded-full transition-all duration-700 ${full ? "bg-green-500" : pct > 0 ? "bg-orange-500" : "bg-white/15"}`}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
               </div>
-              <p className="text-[10px] text-white/35 mb-4">
-                {partnerLifecycle.completedMilestones.length} of {partnerLifecycle.applicableMilestones.length} milestones complete · equal weighting
-              </p>
+
+              {/* Overall summary */}
+              <div className="flex items-center justify-between pt-2.5 border-t border-white/8 mb-4">
+                <span className="text-[10px] text-white/35 uppercase tracking-widest font-semibold">Overall</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-20 bg-white/10 rounded-full h-1">
+                    <div
+                      className="h-1 rounded-full bg-orange-500/60 transition-all duration-700"
+                      style={{ width: `${partnerLifecycle.readinessPct}%` }}
+                    />
+                  </div>
+                  <span className="text-[10px] text-white/35 font-semibold tabular-nums">
+                    {partnerLifecycle.completedMilestones.length}/{partnerLifecycle.applicableMilestones.length}
+                  </span>
+                </div>
+              </div>
 
               {/* Per-track progress */}
               <div className="space-y-4">
