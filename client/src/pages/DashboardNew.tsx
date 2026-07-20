@@ -48,6 +48,7 @@ import {
   hasActivePaidSubscription,
   hasPaidPlan,
 } from "@/lib/subscriptionCheck";
+import { getTierForLookupKey } from "@shared/planFeatures";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { ComplianceCard } from "@/components/dashboard/ComplianceCard";
@@ -62,6 +63,29 @@ import { TodaysPrescriptionCard } from "@/components/dashboard/TodaysPrescriptio
 import { WhatsNewCard } from "@/components/WhatsNewCard";
 import CoachCornerCard from "@/components/ace/CoachCornerCard";
 import { COACHES_CORNER_ENABLED } from "@/features/coachCornerFlag";
+
+type DashBadgeVariant = "free" | "paid" | "professional";
+
+function getMobilePlanBadge(user: any): { text: string; variant: DashBadgeVariant } | null {
+  if (!user) return null;
+  const key = (user.planLookupKey ?? "").toLowerCase();
+  if (key.includes("procare") || key.includes("trainer") || key.includes("physician")) {
+    return { text: "Professional", variant: "professional" };
+  }
+  const tier = getTierForLookupKey(user.planLookupKey);
+  switch (tier) {
+    case "basic":    return { text: "Essential", variant: "paid" };
+    case "premium":  return { text: "Pro",       variant: "paid" };
+    case "ultimate": return { text: "Clinical",  variant: "paid" };
+    default:         return { text: "Free",       variant: "free" };
+  }
+}
+
+const DASH_BADGE_CLASSES: Record<DashBadgeVariant, string> = {
+  free:         "bg-orange-500/15 border border-orange-500/25 text-orange-400",
+  paid:         "bg-orange-500/15 border border-orange-500/25 text-orange-400",
+  professional: "bg-blue-500/15 border border-blue-500/25 text-blue-400",
+};
 
 interface FeatureCard {
   title: string;
@@ -92,6 +116,7 @@ export default function DashboardNew() {
     setLocation("/my-biometrics?capture=1");
   };
 
+  const mobilePlanBadge = getMobilePlanBadge(user);
   const isCoach = !!(user?.professionalRole);
   const isProCareClient = !!user?.isProCare && !isCoach;
   const hasProviderConnection = !!user?.isProCare;
@@ -743,28 +768,35 @@ export default function DashboardNew() {
     >
       {!isDesktop && (
         <div
-          className="fixed right-4 z-50"
-          style={{ top: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
-        >
-          <ProfileSheet>
-            <button
-              className="flex items-center gap-1.5 px-3 py-2 bg-black/50 backdrop-blur-sm border border-white/10 rounded-lg hover:bg-black/70 hover:border-orange-500/30 transition-all"
-              data-testid="button-my-hub"
-            >
-              <span className="text-xs font-semibold text-orange-400">Hub</span>
-              <HubControlIcon size="md" />
-            </button>
-          </ProfileSheet>
-        </div>
-      )}
-
-      {!isDesktop && (
-        <div
-          className="fixed top-0 left-0 right-0 z-40 bg-black/30 backdrop-blur-lg border-b border-white/10"
+          className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
-          <div className="px-4 pb-3 h-14 flex items-center justify-center">
-            <h1 className="text-md font-bold text-white">MPM</h1>
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center px-4 h-14">
+            {/* LEFT: plan tier badge */}
+            <div className="justify-self-start">
+              {mobilePlanBadge && (
+                <span
+                  className={`text-[10px] font-semibold rounded-full px-2 py-0.5 ${DASH_BADGE_CLASSES[mobilePlanBadge.variant]}`}
+                  style={{ lineHeight: "1.4" }}
+                >
+                  {mobilePlanBadge.text}
+                </span>
+              )}
+            </div>
+            {/* CENTER: MPM — always mathematically centered */}
+            <h1 className="justify-self-center text-md font-bold text-white">MPM</h1>
+            {/* RIGHT: Hub button */}
+            <div className="justify-self-end">
+              <ProfileSheet>
+                <button
+                  className="flex items-center gap-1.5 px-3 py-2 bg-black/50 backdrop-blur-sm border border-white/10 rounded-lg hover:bg-black/70 hover:border-orange-500/30 transition-all"
+                  data-testid="button-my-hub"
+                >
+                  <span className="text-xs font-semibold text-orange-400">Hub</span>
+                  <HubControlIcon size="md" />
+                </button>
+              </ProfileSheet>
+            </div>
           </div>
         </div>
       )}
