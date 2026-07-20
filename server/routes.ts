@@ -7397,7 +7397,7 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   app.use("/api/meals", mealsRouterShared);
 
   const { default: getawayRouterShared } = await import("./routes/getaway");
-  app.use("/api/getaway", requireAuth, requireClinicalAccess, getawayRouterShared);
+  app.use("/api/getaway", requireAuth, requireProAccess, getawayRouterShared);
 
   const { default: gatheringsRouterShared } = await import("./routes/gatherings");
   app.use("/api/gatherings", requireAuth, requireProAccess, gatheringsRouterShared);
