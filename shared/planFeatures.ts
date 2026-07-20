@@ -34,7 +34,7 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
     displayFeatures: [
       "Macro Calculator",
       "MacroScan — scan any nutrition label for an instant macro breakdown",
-      "AI Fridge Rescue (3x per week)",
+      "AI Fridge Rescue",
       "Biometrics Tracking",
       "Copilot Voice Guidance (limited)",
       "Daily Journal",
