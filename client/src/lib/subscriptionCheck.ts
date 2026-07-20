@@ -78,6 +78,27 @@ export function canAccessTherapeuticNutrition(user: UserForSubscriptionCheck | n
   return canAccessStrictClinical(user);
 }
 
+/**
+ * isActualProPlanOrAbove — requires a real paid Pro or Clinical subscription.
+ * Trial users are explicitly excluded (same pattern as canAccessStrictClinical).
+ * Pre-launch (BILLING_ENFORCED=false) → server sends PAID_FULL for everyone,
+ * so internal/sandbox accounts with no planLookupKey pass through correctly.
+ * Use this for features that must NOT be trialed — e.g. Meal Builder Exchange.
+ */
+export function isActualProPlanOrAbove(user: UserForSubscriptionCheck | null | undefined): boolean {
+  if (!user) return false;
+  if (user.isFounder) return true;
+  // Explicitly block trial users
+  if (user.accessTier === "TRIAL_FULL") return false;
+  if (user.trialEndsAt && new Date(user.trialEndsAt) > new Date() && user.accessTier !== "PAID_FULL") return false;
+  // Must have a real paid subscription
+  if (!hasActivePaidSubscription(user)) return false;
+  const tier = getTierForLookupKey(user.planLookupKey);
+  // Internal/sandbox: PAID_FULL with no real plan key → grant (pre-launch mode)
+  if (tier === "free" && user.accessTier === "PAID_FULL") return true;
+  return tier === "premium" || tier === "ultimate";
+}
+
 // Returns true only for users on an actual paid plan (not trial, not free, not founder).
 // Use this to suppress upsell UI for confirmed paying customers.
 export function hasPaidPlan(user: UserForSubscriptionCheck | null | undefined): boolean {
