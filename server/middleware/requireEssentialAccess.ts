@@ -3,8 +3,8 @@ import type { AuthenticatedRequest } from "./requireAuth";
 
 /**
  * requireEssentialAccess — blocks FREE-tier users from Essential+ features.
- * Passes: PAID_FULL, TRIAL_FULL (any paid plan, including Basic/Essential).
- * Blocks: FREE tier.
+ * Passes: PAID_FULL (any active paid plan, including Basic/Essential and above).
+ * Blocks: FREE tier and TRIAL_FULL (trial system removed — no trials in product).
  *
  * This is the correct middleware for Essential-tier features:
  *   Shopping List, Saved Meals, Create a Dish, Weekly Meal Planner, etc.
@@ -23,7 +23,7 @@ export function requireEssentialAccess(
 
   const { accessTier } = authReq.authUser;
 
-  if (accessTier === "PAID_FULL" || accessTier === "TRIAL_FULL") {
+  if (accessTier === "PAID_FULL") {
     return next();
   }
 

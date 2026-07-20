@@ -103,7 +103,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getAuthHeaders } from "@/lib/auth";
 import { hasActivePaidSubscription } from "@/lib/subscriptionCheck";
 import { apiRequest } from "@/lib/queryClient";
-import { TrialBanner } from "@/components/TrialBanner";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
@@ -1475,7 +1474,6 @@ export default function MacroCounter() {
         transition={{ duration: 0.6 }}
         className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white pb-32"
       >
-        <TrialBanner />
         {/* Universal Safe-Area Header */}
         <MobileHeaderGuard>
         <div

@@ -110,7 +110,7 @@ import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import { PillButton } from "@/components/ui/pill-button";
 import { BuilderHeader } from "@/components/pro/BuilderHeader";
-import { TrialBanner } from "@/components/TrialBanner";
+
 import { useGlucoseLogs } from "@/hooks/useDiabetes";
 import { buildDiabeticMemory } from "@/lib/diabeticMemory";
 
@@ -1190,7 +1190,7 @@ export default function DiabeticMenuBuilder() {
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-36"
     >
       <BuilderHeader title="Diabetic Meal Builder" onOpenTour={quickTour.openTour} clientId={proClientId} backTo="/diabetic-hub" backLabel="Diabetes Hub" />
-      <TrialBanner />
+
 
       {/* Main Content */}
       <div

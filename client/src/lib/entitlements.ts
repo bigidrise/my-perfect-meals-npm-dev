@@ -6,7 +6,7 @@ import {
   getTierForLookupKey,
   getMinTierForEntitlement,
   tierIncludesEntitlement,
-  TRIAL_UNLOCKS_TIER,
+
 } from "@shared/planFeatures";
 
 import type { LookupKey } from "@/data/planSkus";
@@ -29,9 +29,9 @@ export function hasFeature(
 ): boolean {
   if (!user) return false;
   if (user.isTester) return true;
-  if (user.accessTier === "PAID_FULL" || user.accessTier === "TRIAL_FULL") {
-    const tier = (user.accessTier === "TRIAL_FULL" || !user.planLookupKey)
-      ? TRIAL_UNLOCKS_TIER
+  if (user.accessTier === "PAID_FULL") {
+    const tier = !user.planLookupKey
+      ? "ultimate"
       : getTierForLookupKey(user.planLookupKey);
     return tierIncludesEntitlement(tier, feature);
   }
@@ -82,7 +82,6 @@ export function getPlanDisplayName(lookupKey: string | null | undefined): string
 export function getUserTier(user: UserWithEntitlements | null | undefined): PlanTier {
   if (!user) return "free";
   if (user.isTester) return "ultimate";
-  if (user.accessTier === "TRIAL_FULL") return TRIAL_UNLOCKS_TIER;
   if (user.accessTier === "PAID_FULL") {
     return user.planLookupKey ? getTierForLookupKey(user.planLookupKey) : "ultimate";
   }

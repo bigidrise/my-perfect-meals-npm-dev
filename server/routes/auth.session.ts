@@ -129,11 +129,8 @@ router.post("/api/auth/signup", async (req, res) => {
     const isTester = isTesterEmail(email);
     const isAdmin = isAdminEmail(email);
 
-    // New signups get a 7-day premium trial (no planLookupKey — must pay after trial)
-    const trialStartedAt = new Date();
-    const trialEndsAt = new Date(trialStartedAt.getTime() + 7 * 24 * 60 * 60 * 1000);
-
     // Build user values with optional ProCare professional fields
+    // No trial is granted on signup — new users start as FREE tier
     const userValues: any = {
       email,
       username: email.split("@")[0],
@@ -144,8 +141,6 @@ router.post("/api/auth/signup", async (req, res) => {
       isAdmin,
       isFounder: isTester, // tester-allowlisted signups are founder/partner accounts
       ...(isTester ? { planLookupKey: 'mpm_ultimate_monthly' } : {}),
-      trialStartedAt,
-      trialEndsAt,
     };
 
     if (procare && procare.professionalCategory) {

@@ -13,14 +13,10 @@ import ChefEmojiButton from "@/components/chef/ChefEmojiButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { getTierForLookupKey } from "@shared/planFeatures";
 
-type PlanBadgeVariant = "free" | "trial" | "paid" | "professional";
+type PlanBadgeVariant = "free" | "paid" | "professional";
 
 function getMobilePlanBadge(user: any): { text: string; variant: PlanBadgeVariant } | null {
   if (!user) return null;
-
-  if (user.accessTier === "TRIAL_FULL" || (user.trialEndsAt && new Date(user.trialEndsAt) > new Date())) {
-    return { text: "Trial", variant: "trial" };
-  }
 
   const key = (user.planLookupKey ?? "").toLowerCase();
   if (key.includes("procare") || key.includes("trainer") || key.includes("physician")) {
@@ -38,7 +34,6 @@ function getMobilePlanBadge(user: any): { text: string; variant: PlanBadgeVarian
 
 const MOBILE_BADGE_CLASSES: Record<PlanBadgeVariant, string> = {
   free:         "bg-white/10 border border-white/15 text-white/50",
-  trial:        "bg-amber-500/15 border border-amber-500/25 text-amber-400",
   paid:         "bg-orange-500/15 border border-orange-500/25 text-orange-400",
   professional: "bg-blue-500/15 border border-blue-500/25 text-blue-400",
 };

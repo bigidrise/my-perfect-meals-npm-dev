@@ -107,7 +107,7 @@ import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import { PillButton } from "@/components/ui/pill-button";
 import { BuilderHeader } from "@/components/pro/BuilderHeader";
-import { TrialBanner } from "@/components/TrialBanner";
+
 
 const GLP1_BUILDER_TOUR_STEPS: TourStep[] = [
   { icon: "1", title: "Small Portions", description: "All meals are designed for reduced appetite with maximum nutrition density." },
@@ -1051,7 +1051,7 @@ export default function GLP1MealBuilder() {
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-24 overflow-x-hidden"
     >
       <BuilderHeader title="Metabolic Medication Builder" onOpenTour={quickTour.openTour} clientId={proClientId} backTo="/glp1-hub" backLabel="Metabolic Hub" />
-      <TrialBanner />
+
 
       {/* Main Content */}
       <div

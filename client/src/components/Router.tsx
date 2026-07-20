@@ -508,7 +508,9 @@ const GuardedShoppingList = () => <PaywallGuard component={SafeShoppingList} />;
 const GuardedBeachBodyBuilder = () => <BuilderAccessGuard builderKey="beach_body" component={BeachBodyMealBoard} />;
 const GuardedAntiInflammatoryBuilder = () => <BuilderAccessGuard builderKey="anti_inflammatory" component={SafeAntiInflammatoryMenuBuilder} />;
 const GuardedGeneralNutritionBuilder = () => <BuilderAccessGuard builderKey="general_nutrition" component={GeneralNutritionBuilder} />;
-const GuardedPerformanceBuilder = () => <BuilderAccessGuard builderKey="performance_competition" component={PerformanceCompetitionBuilderStandalone} />;
+const GuardedPerformanceBuilder = () => <ClinicalGuard component={PerformanceCompetitionBuilderStandalone} />;
+const GuardedPerformanceHub = () => <ClinicalGuard component={PerformanceNutritionHub} />;
+const GuardedPerformanceSetup = () => <ClinicalGuard component={PerformanceNutritionSetupPage} />;
 const GuardedDiabeticBuilder = () => <BuilderAccessGuard builderKey="diabetic" component={SafeDiabeticMenuBuilder} />;
 const GuardedGLP1Builder = () => <BuilderAccessGuard builderKey="glp1" component={SafeGLP1MealBuilder} />;
 const GuardedSavedMeals = () => <PaywallGuard component={SavedMeals} />;
@@ -522,6 +524,7 @@ const GuardedBeverageCreatorHub = () => <ProGuard component={BeverageCreatorHub}
 const GuardedSushiCreator = () => <ProGuard component={SushiCreator} />;
 const GuardedGatheringsPage = () => <ProGuard component={GatheringsPage} />;
 const GuardedGetaway = () => <ClinicalGuard component={MyPerfectGetaway} />;
+const GuardedPregnancy = () => <ClinicalGuard component={MyPerfectPregnancyPage} />;
 const GuardedChefPairings = () => <ProGuard component={ChefPairings} />;
 const GuardedPairingsHub = () => <ProGuard component={PairingsHub} />;
 const GuardedPairingsAI = () => <ProGuard component={PairingsAI} />;
@@ -775,9 +778,9 @@ export default function Router() {
         <Route path="/creator/studio" component={CreatorStudioPage} />
         {/* DELETED: /healthy-kids-meals, /kids-meals, /toddler-meals routes (Phase 1 cleanup) */}
         <Route path="/glp1-meals-tracking" component={GLP1MealsTracking} />
-        <Route path="/lifestyle/my-perfect-pregnancy" component={MyPerfectPregnancyPage} />
-        <Route path="/performance" component={PerformanceNutritionHub} />
-        <Route path="/performance/setup" component={PerformanceNutritionSetupPage} />
+        <Route path="/lifestyle/my-perfect-pregnancy" component={GuardedPregnancy} />
+        <Route path="/performance" component={GuardedPerformanceHub} />
+        <Route path="/performance/setup" component={GuardedPerformanceSetup} />
         <Route path="/lifestyle/my-perfect-getaway" component={GuardedGetaway} />
         <Route path="/lifestyle/my-perfect-gatherings" component={GuardedGatheringsPage} />
         <Route path="/lifestyle/ultimate-experiences" component={GuardedGatheringsPage} />

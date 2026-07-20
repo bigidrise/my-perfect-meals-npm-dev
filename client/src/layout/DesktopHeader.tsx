@@ -79,15 +79,11 @@ const ROUTE_TITLES: Record<string, string> = {
   "/apply-guidance": "Apply Guidance",
 };
 
-type PlanBadgeVariant = "free" | "trial" | "paid" | "professional";
+type PlanBadgeVariant = "free" | "paid" | "professional";
 interface PlanBadgeInfo { text: string; variant: PlanBadgeVariant }
 
-function getPlanLabel(user: { planLookupKey?: string | null; trialEndsAt?: string | null; accessTier?: string } | null | undefined): PlanBadgeInfo {
+function getPlanLabel(user: { planLookupKey?: string | null; accessTier?: string } | null | undefined): PlanBadgeInfo {
   if (!user) return { text: "Free", variant: "free" };
-
-  if (user.accessTier === "TRIAL_FULL" || (user.trialEndsAt && new Date(user.trialEndsAt) > new Date())) {
-    return { text: "Trial", variant: "trial" };
-  }
 
   const key = (user.planLookupKey ?? "").toLowerCase();
   if (key.includes("procare") || key.includes("trainer") || key.includes("physician")) {
@@ -105,7 +101,6 @@ function getPlanLabel(user: { planLookupKey?: string | null; trialEndsAt?: strin
 
 const BADGE_CLASSES: Record<PlanBadgeVariant, string> = {
   free:         "bg-white/10 border border-white/15 text-white/50",
-  trial:        "bg-amber-500/15 border border-amber-500/25 text-amber-400",
   paid:         "bg-orange-500/15 border border-orange-500/25 text-orange-400",
   professional: "bg-blue-500/15 border border-blue-500/25 text-blue-400",
 };
