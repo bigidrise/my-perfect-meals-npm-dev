@@ -100,7 +100,7 @@ function getPlanLabel(user: { planLookupKey?: string | null; accessTier?: string
 }
 
 const BADGE_CLASSES: Record<PlanBadgeVariant, string> = {
-  free:         "bg-white/10 border border-white/15 text-white/50",
+  free:         "bg-orange-500/15 border border-orange-500/25 text-orange-400",
   paid:         "bg-orange-500/15 border border-orange-500/25 text-orange-400",
   professional: "bg-blue-500/15 border border-blue-500/25 text-blue-400",
 };
