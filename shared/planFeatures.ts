@@ -34,7 +34,6 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
     displayFeatures: [
       "Macro Calculator",
       "MacroScan — scan any nutrition label for an instant macro breakdown",
-      "Ingredient Intelligence (3 scans/day — see protocol-aware safety alerts personalized to your profile)",
       "AI Fridge Rescue (3x per week)",
       "Biometrics Tracking",
       "Copilot Voice Guidance (limited)",
@@ -51,7 +50,7 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
       "Everything in Free",
       "Create a Dish — AI meal generator built around your full nutritional profile",
       "Recipe Scan — import any recipe from a photo, text, or image description and rebuild it around your macros and protocols",
-      "Ingredient Intelligence (unlimited scans with full protocol personalization)",
+      "Smart Scan — ingredient safety alerts personalized to your full nutrition protocol",
       "AI Fridge Rescue (unlimited)",
       "Master Shopping List & Grocery Organization",
       "Saved Meals & Favorites — save any AI-generated meal to your personal collection",
