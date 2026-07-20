@@ -5,7 +5,7 @@ import { useLocation } from "wouter";
 import { Lock, CheckCircle2 } from "lucide-react";
 import type { RequiredTier } from "@/contexts/UpgradeModalContext";
 
-const TIER_CONFIG: Record<RequiredTier, { label: string; tagline: string; benefits: string[] }> = {
+const TIER_CONFIG: Record<RequiredTier, { label: string; badgeLabel?: string; tagline: string; benefits: string[] }> = {
   essential: {
     label: "Essential",
     tagline: "The full meal-building toolkit, built around your profile.",
@@ -31,6 +31,17 @@ const TIER_CONFIG: Record<RequiredTier, { label: string; tagline: string; benefi
       "Clinical Lab Integration — your blood work shapes your meal protocols",
       "Care Team Access — connect with a physician or trainer in-app",
       "Performance Nutrition, Competition Prep & Athlete Builders",
+    ],
+  },
+  "meal-builders": {
+    label: "Essential, Pro & Clinical",
+    badgeLabel: "Pro — Most Popular",
+    tagline: "Pro is our most popular plan — unlock every creator and go further with your meals.",
+    benefits: [
+      "Craving Creator, Beverage Creator, Dessert Creator & Sushi Creator",
+      "Meal Builder Exchange — switch builders anytime as your goals evolve",
+      "Restaurant Guide, My Perfect Gatherings & expanded lifestyle tools",
+      "Essential gets you started · Clinical adds medical-grade nutrition tools",
     ],
   },
 };
@@ -66,7 +77,7 @@ export function TierUpgradeModal({ open, onClose, requiredTier, featureName }: T
           </div>
           <div className="flex justify-center mb-2">
             <span className="px-3 py-1 rounded-full bg-orange-600/20 border border-orange-500/30 text-orange-400 text-xs font-semibold tracking-wide">
-              {config.label} Plan
+              {config.badgeLabel ?? `${config.label} Plan`}
             </span>
           </div>
           <DialogTitle className="text-lg font-bold text-white leading-snug">
