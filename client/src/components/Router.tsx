@@ -12,7 +12,7 @@ import ComingSoon from "@/pages/ComingSoon";
 import StudioBottomNav from "@/components/pro/StudioBottomNav";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { hasActivePaidSubscription, isProOrAbove, isClinicalOrAbove } from "@/lib/subscriptionCheck";
+import { hasActivePaidSubscription, isProOrAbove, isClinicalOrAbove, isActualProPlanOrAbove } from "@/lib/subscriptionCheck";
 import { apiRequest } from "@/lib/queryClient";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
@@ -114,6 +114,22 @@ function ProGuard({ component: Component }: { component: React.ComponentType }) 
   const [location] = useLocation();
   const { requestUpgrade } = useUpgradeModal();
   const isBlocked = !!user && !isProOrAbove(user);
+
+  useEffect(() => {
+    if (isBlocked) {
+      requestUpgrade({ requiredTier: "pro", featureName: getFeatureNameFromPath(location) });
+    }
+  }, [isBlocked, location]);
+
+  if (!user || isBlocked) return null;
+  return <Component />;
+}
+
+function ActualProGuard({ component: Component }: { component: React.ComponentType }) {
+  const { user } = useAuth();
+  const [location] = useLocation();
+  const { requestUpgrade } = useUpgradeModal();
+  const isBlocked = !!user && !isActualProPlanOrAbove(user);
 
   useEffect(() => {
     if (isBlocked) {
@@ -681,7 +697,7 @@ export default function Router() {
         <Route path="/pricing" component={PricingPage} />
         <Route path="/apply-guidance" component={() => <CoachingAdminGate component={ApplyGuidance} />} />
         <Route path="/paywall" component={PricingPage} />
-        <Route path="/select-builder" component={() => <ProGuard component={MealBuilderSelection} />} />
+        <Route path="/select-builder" component={() => <ActualProGuard component={MealBuilderSelection} />} />
         <Route path="/onboarding/extended" component={ExtendedOnboarding} />
         <Route path="/checkout/success" component={CheckoutSuccess} />
         <Route path="/billing/success" component={CheckoutSuccess} />

@@ -48,7 +48,7 @@ import { useNarrationSpeed, type NarrationSpeed } from "@/contexts/NarrationSpee
 import { useToast } from "@/hooks/use-toast";
 import IOSMealReminders from "@/components/ios/IOSMealReminders";
 import { useUpdateState } from "@/contexts/UpdateContext";
-import { isProOrAbove } from "@/lib/subscriptionCheck";
+import { isActualProPlanOrAbove } from "@/lib/subscriptionCheck";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { Capacitor } from "@capacitor/core";
 import {
@@ -274,7 +274,7 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
     } else if (item.action === "contactSupport") {
       window.open(`mailto:${supportEmail}?subject=${appName} Feedback`, "_blank");
     } else if (item.route) {
-      if (item.route === "/select-builder" && !isProOrAbove(user)) {
+      if (item.route === "/select-builder" && !isActualProPlanOrAbove(user)) {
         requestUpgrade({ requiredTier: "pro", featureName: "Meal Builder Exchange" });
         return;
       }
