@@ -250,14 +250,19 @@ export function computePartnerLifecycle(partner: PartnerRecordForLifecycle): Lif
 /**
  * READINESS FORMULA (documented for auditability):
  *
- * readinessPct = floor( completedImplementedMilestones / totalImplementedApplicableMilestones * 100 )
+ * readinessPct = round( completedImplementedMilestones / totalImplementedApplicableMilestones * 100 )
  *
  * "Applicable" = milestones whose track is in this partner's partnerTypes[] (plus universal)
  * "Implemented" = milestones with implemented=true (Product/Clinical excluded until real fields added)
  * Equal weighting — every milestone counts the same.
  *
- * Example — Brian (referral + organization, 6 applicable):
+ * The UI renders per-track bars first (Organization, Referral, etc.) so a partner
+ * who has completed their org track sees "Organization 100%" clearly, even if the
+ * overall flat score is low. The flat overall is displayed as a secondary summary row.
+ *
+ * Example — Metroflex Gym (referral + organization, 6 applicable):
  *   Universal(1) + Referral(4) + Organization(1) = 6 total
- *   Accepted ✓ + Rewardful ✓ + Org Activated ✓ = 3 complete
- *   Readiness = 3/6 = 50%
+ *   Org Activated ✓ = 1 complete
+ *   Per-track: Organization 100% | Referral 0% | Partner Foundation 0%
+ *   Overall = 1/6 = 17%
  */
