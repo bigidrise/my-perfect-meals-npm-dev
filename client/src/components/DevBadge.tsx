@@ -1,5 +1,9 @@
 export default function DevBadge() {
-  if (import.meta.env.MODE !== "development") return null;
+  if (
+    import.meta.env.MODE !== "development" ||
+    import.meta.env.VITE_SHOW_DEV_TOOLS !== "true" ||
+    window.innerWidth < 768
+  ) return null;
 
   return (
     <div

@@ -190,7 +190,11 @@ export default function DevNavigator() {
   const [, setLocation] = useLocation();
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(["Meal Builders"]));
 
-  if (import.meta.env.MODE !== "development") return null;
+  if (
+    import.meta.env.MODE !== "development" ||
+    import.meta.env.VITE_SHOW_DEV_TOOLS !== "true" ||
+    window.innerWidth < 768
+  ) return null;
 
   const toggleSection = (title: string) => {
     setExpandedSections((prev) => {
