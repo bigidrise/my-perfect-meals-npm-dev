@@ -6,11 +6,13 @@ import {
   ArrowLeft, Copy, Check, ExternalLink, Award, BarChart2,
   DollarSign, Link2, Shield, Package, Users, X, Send,
   UserPlus, Clock, RefreshCw, QrCode, Download, ChevronDown, ChevronUp,
-  Smartphone, Mail, Youtube, Instagram, Presentation, Megaphone, AlertTriangle, Monitor, Calendar
+  Smartphone, Mail, Youtube, Instagram, Presentation, Megaphone, AlertTriangle, Monitor, Calendar,
+  CheckCircle, MapPin
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { computePartnerLifecycle, LifecycleResult } from "@shared/partnerLifecycle";
 
 interface AffiliateAccount {
   affiliateTrack: string;
@@ -84,6 +86,7 @@ export default function AffiliateDashboard() {
   const [account, setAccount] = useState<AffiliateAccount | null>(null);
   const [rewardfulStatus, setRewardfulStatus] = useState<RewardfulStatus | null>(null);
   const [partnerRecord, setPartnerRecord] = useState<PartnerRecord | null>(null);
+  const [partnerLifecycle, setPartnerLifecycle] = useState<LifecycleResult | null>(null);
   const [copiedPromo, setCopiedPromo] = useState(false);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -104,7 +107,24 @@ export default function AffiliateDashboard() {
     ]).then(([affiliateData, partnerData]) => {
       if (affiliateData) setAccount(affiliateData as AffiliateAccount);
       if (partnerData && (partnerData as any).partner) {
-        setPartnerRecord((partnerData as any).partner as PartnerRecord);
+        const rec = (partnerData as any).partner as PartnerRecord;
+        setPartnerRecord(rec);
+        // Use server-computed lifecycle or derive locally if missing
+        if ((partnerData as any).lifecycle) {
+          setPartnerLifecycle((partnerData as any).lifecycle as LifecycleResult);
+        } else {
+          setPartnerLifecycle(computePartnerLifecycle({
+            partnerTypes: rec.partnerTypes ?? [],
+            acceptedAt: rec.acceptedAt,
+            rewardfulCreatedAt: rec.rewardfulCreatedAt,
+            rewardfulAffiliateId: rec.rewardfulAffiliateId,
+            promoCode: rec.promoCode,
+            promoCodeAssignedAt: rec.promoCodeAssignedAt,
+            orgActivatedAt: rec.orgActivatedAt,
+            managedPayoutsAt: rec.managedPayoutsAt,
+            campaignActiveAt: rec.campaignActiveAt,
+          }));
+        }
       }
       if (affiliateData) {
         apiRequest("/api/affiliate/rewardful-status")
@@ -743,6 +763,83 @@ export default function AffiliateDashboard() {
                   </div>
                 ))}
               </div>
+            </Card>
+          )}
+
+          {/* Partner Playbook Card */}
+          {partnerRecord && partnerLifecycle && (
+            <Card delay={0.185}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-orange-500/20 border border-orange-500/30 flex items-center justify-center flex-shrink-0">
+                    <MapPin className="h-4 w-4 text-orange-400" />
+                  </div>
+                  <CardLabel>Partner Playbook</CardLabel>
+                </div>
+                <span className="text-2xl font-black text-white">{partnerLifecycle.readinessPct}%</span>
+              </div>
+
+              {/* Readiness bar */}
+              <div className="w-full bg-white/10 rounded-full h-1.5 mb-1">
+                <div
+                  className="h-1.5 rounded-full bg-orange-500 transition-all duration-700"
+                  style={{ width: `${partnerLifecycle.readinessPct}%` }}
+                />
+              </div>
+              <p className="text-[10px] text-white/35 mb-4">
+                {partnerLifecycle.completedMilestones.length} of {partnerLifecycle.applicableMilestones.length} milestones complete · equal weighting
+              </p>
+
+              {/* Per-track progress */}
+              <div className="space-y-4">
+                {partnerLifecycle.tracks.map((track) => (
+                  <div key={track.track}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <p className="text-[10px] font-bold text-orange-400 uppercase tracking-widest">{track.label}</p>
+                      {track.totalCount > 0 && (
+                        <span className="text-[10px] text-white/35">{track.completedCount}/{track.totalCount}</span>
+                      )}
+                      {track.totalCount === 0 && (
+                        <span className="text-[10px] text-white/20 italic">coming soon</span>
+                      )}
+                    </div>
+                    {track.milestones.length === 0 && (
+                      <p className="text-[10px] text-white/20 pl-1">No milestones defined yet</p>
+                    )}
+                    <div className="space-y-1.5">
+                      {track.milestones.map((m) => (
+                        <div key={m.milestone.key} className="flex items-center gap-2.5">
+                          <div className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 border ${
+                            m.complete
+                              ? "bg-green-500/20 border-green-500/40"
+                              : "bg-white/8 border-white/20"
+                          }`}>
+                            {m.complete && <Check className="h-2.5 w-2.5 text-green-400" />}
+                          </div>
+                          <span className={`text-xs flex-1 ${m.complete ? "text-white" : "text-white/40"}`}>
+                            {m.milestone.label}
+                          </span>
+                          {m.complete && m.completedAt && (
+                            <span className="text-[10px] text-white/25">{formatDate(m.completedAt)}</span>
+                          )}
+                          {!m.complete && m.milestone.key === partnerLifecycle.nextStep?.key && (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-600/20 border border-orange-500/30 text-orange-400 font-semibold">
+                              Next
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {partnerLifecycle.readinessPct === 100 && (
+                <div className="mt-4 flex items-center gap-2.5 p-3 rounded-xl bg-green-500/10 border border-green-500/25">
+                  <CheckCircle className="h-4 w-4 text-green-400 flex-shrink-0" />
+                  <p className="text-xs font-semibold text-white">All milestones complete — you're fully live.</p>
+                </div>
+              )}
             </Card>
           )}
 

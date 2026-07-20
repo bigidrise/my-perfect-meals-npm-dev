@@ -404,6 +404,7 @@ import BusinessCenterSection from "@/pages/BusinessCenterSection";
 import AcademyLandingPage from "@/pages/AcademyLandingPage";
 import PartnerProgramsHub from "@/pages/PartnerProgramsHub";
 import HowPartnershipsWork from "@/pages/HowPartnershipsWork";
+import PartnerManagement from "@/pages/PartnerManagement";
 import FoundingPartnerProgram from "@/pages/FoundingPartnerProgram";
 import IndustryPartnerships from "@/pages/IndustryPartnerships";
 import WhiteLabelSolutions from "@/pages/WhiteLabelSolutions";
@@ -962,6 +963,7 @@ export default function Router() {
         <Route path="/business-center/affiliate/:pathId/certification/:moduleId" component={CertificationLesson} />
         <Route path="/business-center/affiliate/:pathId/certification" component={CertificationDashboard} />
         <Route path="/business-center/partners" component={PartnerProgramsHub} />
+        <Route path="/business-center/partners/manage" component={PartnerManagement} />
         <Route path="/business-center/how-partnerships-work" component={HowPartnershipsWork} />
         <Route path="/business-center/founding-partner" component={FoundingPartnerProgram} />
         <Route path="/business-center/academy" component={AcademyLandingPage} />
