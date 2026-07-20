@@ -112,7 +112,7 @@ import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import { PillButton } from "@/components/ui/pill-button";
 import { BuilderHeader } from "@/components/pro/BuilderHeader";
-import { TrialBanner } from "@/components/TrialBanner";
+
 
 const BEACHBODY_TOUR_STEPS: TourStep[] = [
   {
@@ -1149,7 +1149,7 @@ export default function BeachBodyMealBoard() {
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-36 overflow-x-hidden"
     >
       <BuilderHeader title="Performance Nutrition Builder" onOpenTour={quickTour.openTour} clientId={proClientId} backTo="/performance" backLabel="Performance Hub" />
-      <TrialBanner />
+
 
       {/* Main Content */}
       <div

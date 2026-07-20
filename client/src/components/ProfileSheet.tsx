@@ -48,6 +48,8 @@ import { useNarrationSpeed, type NarrationSpeed } from "@/contexts/NarrationSpee
 import { useToast } from "@/hooks/use-toast";
 import IOSMealReminders from "@/components/ios/IOSMealReminders";
 import { useUpdateState } from "@/contexts/UpdateContext";
+import { canAccessMealBuilders } from "@/lib/subscriptionCheck";
+import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { Capacitor } from "@capacitor/core";
 import {
   Camera as CapacitorCamera,
@@ -62,6 +64,7 @@ interface ProfileSheetProps {
 export function ProfileSheet({ children }: ProfileSheetProps) {
   const [, setLocation] = useLocation();
   const { user, setUser, refreshUser } = useAuth();
+  const { requestUpgrade } = useUpgradeModal();
   const { fontSize, setFontSize } = useFontSize();
   const { narrationSpeed, setNarrationSpeed } = useNarrationSpeed();
   const { supportEmail, appName } = useOrgBranding();
@@ -271,6 +274,10 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
     } else if (item.action === "contactSupport") {
       window.open(`mailto:${supportEmail}?subject=${appName} Feedback`, "_blank");
     } else if (item.route) {
+      if (item.route === "/select-builder" && !canAccessMealBuilders(user)) {
+        requestUpgrade({ requiredTier: "meal-builders", featureName: "Meal Builder Exchange" });
+        return;
+      }
       if (LEGAL_ROUTES.includes(item.route)) {
         window.location.href = item.route;
       } else {

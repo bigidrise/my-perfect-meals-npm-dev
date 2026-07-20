@@ -37,8 +37,8 @@ export function requireProAccess(
   // Sandbox/internal accounts always pass all tiers
   if (isSandbox) return next();
 
-  // Must have at minimum a paid or trial subscription
-  if (accessTier !== "PAID_FULL" && accessTier !== "TRIAL_FULL") {
+  // Must have an active paid subscription
+  if (accessTier !== "PAID_FULL") {
     res.status(403).json({
       error: "This feature requires a Pro subscription or higher",
       code: "PRO_REQUIRED",
@@ -47,9 +47,6 @@ export function requireProAccess(
     });
     return;
   }
-
-  // Trial users unlock all tiers (TRIAL_UNLOCKS_TIER = "ultimate")
-  if (accessTier === "TRIAL_FULL") return next();
 
   // No planLookupKey with PAID_FULL = internal account (founder, etc.) — grant access
   if (!planLookupKey) return next();

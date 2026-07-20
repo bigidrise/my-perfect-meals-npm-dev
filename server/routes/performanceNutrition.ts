@@ -677,6 +677,7 @@ router.get("/today", async (req, res) => {
         dailyFatTarget:            users.dailyFatTarget,
         dailyStarchyCarbsTarget:   (users as any).dailyStarchyCarbsTarget,
         dailyFibrousCarbsTarget:   (users as any).dailyFibrousCarbsTarget,
+        timezone:                  (users as any).timezone,
       } as any)
       .from(users)
       .where(eq(users.id, userId))
@@ -727,6 +728,7 @@ router.get("/today", async (req, res) => {
       );
 
     const { resolveTodayTargets } = await import("../services/protocol/performanceProtocolResolver");
+    const { resolveDailyNutritionState } = await import("../services/dailyNutritionState");
     // Baseline always comes from the live Macro Calculator columns — never from the config snapshot.
     const rawStarchy = (userRow as any)?.dailyStarchyCarbsTarget ?? null;
     const rawFibrous = (userRow as any)?.dailyFibrousCarbsTarget ?? null;
@@ -742,10 +744,44 @@ router.get("/today", async (req, res) => {
     };
     const today = resolveTodayTargets(schedule, config, liveBaseline, targetDate);
 
+    // Resolve the C2 daily nutrition state — ledger reliability, starch policy, exhaustion
+    // Only relevant when viewing today (not a past/future date).
+    let dailyState: {
+      starchPolicy: string;
+      ledgerReliability: string;
+      starchyBudgetExhausted: boolean;
+      starchyCarbsRemainingG: number;
+      scheduleConfigured: boolean;
+    } | null = null;
+
+    if (!rawDateParam) {
+      try {
+        const userTimezone = ((userRow as any)?.timezone as string | null) ?? "America/Chicago";
+        const state = await resolveDailyNutritionState({
+          userId:            String(userId),
+          schedule,
+          config,
+          baseline:          liveBaseline,
+          timezone:          userTimezone,
+          performanceActive: true,
+        });
+        dailyState = {
+          starchPolicy:          state.starchPolicy,
+          ledgerReliability:     state.ledgerReliability,
+          starchyBudgetExhausted: state.starchyBudgetExhausted,
+          starchyCarbsRemainingG: state.starchyCarbsRemainingG,
+          scheduleConfigured:    state.scheduleConfigured,
+        };
+      } catch (err) {
+        console.warn("[APN] /today daily state resolution failed (non-fatal):", err);
+      }
+    }
+
     res.json({
       configured: true,
       ...today,
       logged: logged ?? { calories: 0, proteinG: 0, carbsG: 0, fatG: 0, starchyCarbsG: 0, fibrousCarbsG: 0 },
+      dailyState,
     });
   } catch (err: any) {
     console.error("[APN] /today error:", err);

@@ -43,8 +43,7 @@ import { HubControlIcon } from "@/components/icons/HubControlIcon";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useCopilot } from "@/components/copilot/CopilotContext";
-import { TrialBanner } from "@/components/TrialBanner";
-import { TrialExpiredModal } from "@/components/TrialExpiredModal";
+
 import {
   hasActivePaidSubscription,
   hasPaidPlan,
@@ -623,7 +622,7 @@ export default function DashboardNew() {
   useEffect(() => {
     if (!user) return;
     if (hasPaidPlan(user)) return;
-    if (user.accessTier === "TRIAL_FULL" || user.isTester) return;
+    if (user.isTester) return;
     const dismissKey = `mpm.dismiss.subscriptionModal.${user.id}`;
     if (localStorage.getItem(dismissKey) === "true") return;
     setShowSubscriptionModal(true);
@@ -742,8 +741,6 @@ export default function DashboardNew() {
       transition={{ duration: 0.4 }}
       className="min-h-full flex flex-col bg-black pb-safe-nav"
     >
-      <TrialBanner />
-      <TrialExpiredModal />
       {!isDesktop && (
         <div
           className="fixed right-4 z-50"

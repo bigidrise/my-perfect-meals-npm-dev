@@ -12,7 +12,7 @@ import ComingSoon from "@/pages/ComingSoon";
 import StudioBottomNav from "@/components/pro/StudioBottomNav";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { hasActivePaidSubscription, isProOrAbove, isClinicalOrAbove } from "@/lib/subscriptionCheck";
+import { hasActivePaidSubscription, isProOrAbove, isClinicalOrAbove, isActualProPlanOrAbove, canAccessMealBuilders } from "@/lib/subscriptionCheck";
 import { apiRequest } from "@/lib/queryClient";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
@@ -114,6 +114,38 @@ function ProGuard({ component: Component }: { component: React.ComponentType }) 
   const [location] = useLocation();
   const { requestUpgrade } = useUpgradeModal();
   const isBlocked = !!user && !isProOrAbove(user);
+
+  useEffect(() => {
+    if (isBlocked) {
+      requestUpgrade({ requiredTier: "pro", featureName: getFeatureNameFromPath(location) });
+    }
+  }, [isBlocked, location]);
+
+  if (!user || isBlocked) return null;
+  return <Component />;
+}
+
+function MealBuildersGuard({ component: Component }: { component: React.ComponentType }) {
+  const { user } = useAuth();
+  const [location] = useLocation();
+  const { requestUpgrade } = useUpgradeModal();
+  const isBlocked = !!user && !canAccessMealBuilders(user);
+
+  useEffect(() => {
+    if (isBlocked) {
+      requestUpgrade({ requiredTier: "meal-builders", featureName: "Meal Builder Exchange" });
+    }
+  }, [isBlocked, location]);
+
+  if (!user || isBlocked) return null;
+  return <Component />;
+}
+
+function ActualProGuard({ component: Component }: { component: React.ComponentType }) {
+  const { user } = useAuth();
+  const [location] = useLocation();
+  const { requestUpgrade } = useUpgradeModal();
+  const isBlocked = !!user && !isActualProPlanOrAbove(user);
 
   useEffect(() => {
     if (isBlocked) {
@@ -476,10 +508,14 @@ const GuardedShoppingList = () => <PaywallGuard component={SafeShoppingList} />;
 const GuardedBeachBodyBuilder = () => <BuilderAccessGuard builderKey="beach_body" component={BeachBodyMealBoard} />;
 const GuardedAntiInflammatoryBuilder = () => <BuilderAccessGuard builderKey="anti_inflammatory" component={SafeAntiInflammatoryMenuBuilder} />;
 const GuardedGeneralNutritionBuilder = () => <BuilderAccessGuard builderKey="general_nutrition" component={GeneralNutritionBuilder} />;
-const GuardedPerformanceBuilder = () => <BuilderAccessGuard builderKey="performance_competition" component={PerformanceCompetitionBuilderStandalone} />;
+const GuardedPerformanceBuilder = () => <ClinicalGuard component={PerformanceCompetitionBuilderStandalone} />;
+const GuardedPerformanceHub = () => <ClinicalGuard component={PerformanceNutritionHub} />;
+const GuardedPerformanceSetup = () => <ClinicalGuard component={PerformanceNutritionSetupPage} />;
 const GuardedDiabeticBuilder = () => <BuilderAccessGuard builderKey="diabetic" component={SafeDiabeticMenuBuilder} />;
 const GuardedGLP1Builder = () => <BuilderAccessGuard builderKey="glp1" component={SafeGLP1MealBuilder} />;
 const GuardedSavedMeals = () => <PaywallGuard component={SavedMeals} />;
+const GuardedMealBuilderSelection = () => <MealBuildersGuard component={MealBuilderSelection} />;
+const GuardedBuilders = () => <MealBuildersGuard component={SafeBuilders} />;
 const GuardedCravingCreator = () => <ProGuard component={CravingCreator} />;
 const GuardedCravingCreatorLanding = () => <ProGuard component={CravingCreatorLanding} />;
 const GuardedCravingDesserts = () => <ProGuard component={CravingDessertCreator} />;
@@ -488,6 +524,7 @@ const GuardedBeverageCreatorHub = () => <ProGuard component={BeverageCreatorHub}
 const GuardedSushiCreator = () => <ProGuard component={SushiCreator} />;
 const GuardedGatheringsPage = () => <ProGuard component={GatheringsPage} />;
 const GuardedGetaway = () => <ClinicalGuard component={MyPerfectGetaway} />;
+const GuardedPregnancy = () => <ClinicalGuard component={MyPerfectPregnancyPage} />;
 const GuardedChefPairings = () => <ProGuard component={ChefPairings} />;
 const GuardedPairingsHub = () => <ProGuard component={PairingsHub} />;
 const GuardedPairingsAI = () => <ProGuard component={PairingsAI} />;
@@ -681,7 +718,7 @@ export default function Router() {
         <Route path="/pricing" component={PricingPage} />
         <Route path="/apply-guidance" component={() => <CoachingAdminGate component={ApplyGuidance} />} />
         <Route path="/paywall" component={PricingPage} />
-        <Route path="/select-builder" component={MealBuilderSelection} />
+        <Route path="/select-builder" component={GuardedMealBuilderSelection} />
         <Route path="/onboarding/extended" component={ExtendedOnboarding} />
         <Route path="/checkout/success" component={CheckoutSuccess} />
         <Route path="/billing/success" component={CheckoutSuccess} />
@@ -741,9 +778,9 @@ export default function Router() {
         <Route path="/creator/studio" component={CreatorStudioPage} />
         {/* DELETED: /healthy-kids-meals, /kids-meals, /toddler-meals routes (Phase 1 cleanup) */}
         <Route path="/glp1-meals-tracking" component={GLP1MealsTracking} />
-        <Route path="/lifestyle/my-perfect-pregnancy" component={MyPerfectPregnancyPage} />
-        <Route path="/performance" component={PerformanceNutritionHub} />
-        <Route path="/performance/setup" component={PerformanceNutritionSetupPage} />
+        <Route path="/lifestyle/my-perfect-pregnancy" component={GuardedPregnancy} />
+        <Route path="/performance" component={GuardedPerformanceHub} />
+        <Route path="/performance/setup" component={GuardedPerformanceSetup} />
         <Route path="/lifestyle/my-perfect-getaway" component={GuardedGetaway} />
         <Route path="/lifestyle/my-perfect-gatherings" component={GuardedGatheringsPage} />
         <Route path="/lifestyle/ultimate-experiences" component={GuardedGatheringsPage} />
@@ -823,7 +860,7 @@ export default function Router() {
         {/* DELETED: TemplateHub route */}
         <Route path="/weekly" component={GuardedWeeklyMealBoard} />
         {/* DELETED: PlanBuilderTurbo, ProteinPlannerPage, PlanBuilderHub, CompetitionBeachbodyBoard routes */}
-        <Route path="/builders" component={SafeBuilders} />
+        <Route path="/builders" component={GuardedBuilders} />
         <Route path="/planner">{() => { window.location.replace("/builders"); return null; }}</Route>
         <Route path="/weekly-meal-board" component={GuardedWeeklyMealBoard} />
         <Route path="/beach-body-meal-board" component={GuardedBeachBodyBuilder} />

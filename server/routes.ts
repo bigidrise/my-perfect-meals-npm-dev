@@ -618,9 +618,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api", fridgeRescueRouter);
   app.use("/api", inspirationRouter);
   app.use("/api/grocery-coach", requireAuth, requireProAccess, groceryCoachRouter);
-  app.use("/api/pregnancy", requireAuth, pregnancyCoachRouter);
-  app.use("/api/performance", requireAuth, performanceNutritionRouter);
-  app.use("/api/performance", requireAuth, carbCycleRouter);
+  app.use("/api/pregnancy", requireAuth, requireClinicalAccess, pregnancyCoachRouter);
+  app.use("/api/performance", requireAuth, requireClinicalAccess, performanceNutritionRouter);
+  app.use("/api/performance", requireAuth, requireClinicalAccess, carbCycleRouter);
   app.use("/api/nutrition-summary", requireAuth, nutritionSummaryRouter);
   app.use("/api/therapeutic", requireAuth, requireStrictClinicalAccess, therapeuticSetupRouter);
 
@@ -684,7 +684,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Single canonical endpoint for ALL meal generation (AI Meal Creator, AI Premades, Fridge Rescue)
   // Guarantees: consistent response format, fallback images, error handling
   // ============================================================================
-  app.post("/api/meals/generate", async (req, res) => {
+  app.post("/api/meals/generate", requireAuth, requireEssentialAccess, async (req, res) => {
     console.log("🔄 Unified meal generation endpoint hit");
     const startTime = Date.now();
     
@@ -1327,7 +1327,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const INTERNAL_API_BASE = process.env.INTERNAL_API_BASE || "http://127.0.0.1:5000";
 
   // WMC2 Adapter routes for ChatGPT-level meal generation
-  app.post("/api/wmc2/generate", async (req, res) => {
+  app.post("/api/wmc2/generate", requireAuth, requireEssentialAccess, async (req, res) => {
     try {
       const { wmc2Generate } = await import("./services/wmc2Adapter");
       const result = await wmc2Generate(req.body);
@@ -1338,7 +1338,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/wmc2/:userId/regenerate", async (req, res) => {
+  app.post("/api/wmc2/:userId/regenerate", requireAuth, requireEssentialAccess, async (req, res) => {
     try {
       const { wmc2Regenerate } = await import("./services/wmc2Adapter");
       const result = await wmc2Regenerate(req.params.userId, req.body);
@@ -2055,7 +2055,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Medical Personalization API - Get personalized meal plan based on user's medical profile
   // 🚨 SAFETY: This endpoint uses template-based generation (not AI) with user.allergies passed to profile
-  app.post("/api/weekly-meal-plan/:userId/regenerate", async (req, res) => {
+  app.post("/api/weekly-meal-plan/:userId/regenerate", requireAuth, requireEssentialAccess, async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
       const { mealsPerDay = 3, snacksPerDay = 1, duration = 7 } = req.body;
@@ -2911,41 +2911,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // If trial already started, only update the builder selection (not trial dates)
-      if (existingUser.trialStartedAt) {
-        const [user] = await db.update(users)
-          .set({ selectedMealBuilder, activeBoard: selectedMealBuilder })
-          .where(eq(users.id, userId))
-          .returning();
-        
-        return res.json({
-          success: true,
-          selectedMealBuilder: user.selectedMealBuilder,
-          trialStartedAt: user.trialStartedAt?.toISOString(),
-          trialEndsAt: user.trialEndsAt?.toISOString(),
-          message: "Builder updated (trial already active)"
-        });
-      }
-      
-      // New trial: set trial dates and builder
-      const now = new Date();
-      const trialEndsAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
-      
+      // Update the selected meal builder — no trial granted
       const [user] = await db.update(users)
-        .set({
-          selectedMealBuilder,
-          activeBoard: selectedMealBuilder,
-          trialStartedAt: now,
-          trialEndsAt: trialEndsAt,
-        })
+        .set({ selectedMealBuilder, activeBoard: selectedMealBuilder })
         .where(eq(users.id, userId))
         .returning();
-      
+
       res.json({
         success: true,
         selectedMealBuilder: user.selectedMealBuilder,
-        trialStartedAt: user.trialStartedAt?.toISOString(),
-        trialEndsAt: user.trialEndsAt?.toISOString(),
       });
     } catch (error: any) {
       console.error("Error selecting meal builder:", error);
@@ -3406,33 +3380,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? (onboardingMode as 'independent' | 'procare')
         : 'independent';
       
-      // Set onboarding complete + trial start (trial starts AFTER onboarding, not at account creation)
+      // Set onboarding complete — no trial granted, user starts as FREE tier
       const now = new Date();
-      const trialEndsAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days
-      
-      const updateFields: any = {
-        onboardingCompletedAt: now,
-        onboardingMode: resolvedMode,
-        selectedMealBuilder: existingUser.preferredBuilder || existingUser.selectedMealBuilder,
-      };
-      
-      // Only set trial dates if trial hasn't started yet
-      if (!existingUser.trialStartedAt) {
-        updateFields.trialStartedAt = now;
-        updateFields.trialEndsAt = trialEndsAt;
-      }
-      
+
       const [user] = await db.update(users)
-        .set(updateFields)
+        .set({
+          onboardingCompletedAt: now,
+          onboardingMode: resolvedMode,
+          selectedMealBuilder: existingUser.preferredBuilder || existingUser.selectedMealBuilder,
+        })
         .where(eq(users.id, userId))
         .returning();
-      
+
       res.json({
         success: true,
         onboardingCompletedAt: user.onboardingCompletedAt?.toISOString(),
         onboardingMode: user.onboardingMode,
-        trialStartedAt: user.trialStartedAt?.toISOString(),
-        trialEndsAt: user.trialEndsAt?.toISOString(),
         preferredBuilder: user.preferredBuilder,
       });
     } catch (error: any) {
@@ -3657,7 +3620,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Transform to expected format for frontend
-      const response = {
+      const response: Record<string, any> = {
         food_id: food.id,
         barcode: food.barcode,
         name: food.name,
@@ -3667,6 +3630,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
         verified: food.verified,
         source: food.source
       };
+
+      // ── Nutrition Decision Engine (NDE) check ─────────────────────────────
+      // Optionally enrich the barcode response with today's nutrition strategy
+      // so the scanner UI can flag conflicts without blocking the lookup.
+      // Works for any logged-in user without requiring the route to be auth-gated.
+      try {
+        // Mirror requireAuth's token/session extraction — non-blocking
+        const token = req.headers["x-auth-token"] as string | undefined;
+        const sessionUserId = (req as any).session?.userId as string | undefined;
+        let barcodeUserId: string | null = null;
+
+        if (token) {
+          const [tokenUser] = await db.select({ id: users.id }).from(users)
+            .where(eq(users.authToken, token)).limit(1);
+          if (tokenUser) barcodeUserId = String(tokenUser.id);
+        } else if (sessionUserId) {
+          barcodeUserId = String(sessionUserId);
+        }
+
+        if (barcodeUserId) {
+          const [u] = await db.select({
+            weeklyTrainingSchedule:    (users as any).weeklyTrainingSchedule,
+            performanceProtocolConfig: (users as any).performanceProtocolConfig,
+            dailyCalorieTarget:        users.dailyCalorieTarget,
+            dailyCarbsTarget:          users.dailyCarbsTarget,
+            dailyStarchyCarbsTarget:   (users as any).dailyStarchyCarbsTarget,
+            dailyFibrousCarbsTarget:   (users as any).dailyFibrousCarbsTarget,
+            dailyProteinTarget:        users.dailyProteinTarget,
+            dailyFatTarget:            users.dailyFatTarget,
+            timezone:                  (users as any).timezone,
+          } as any).from(users).where(eq(users.id, barcodeUserId)).limit(1);
+
+          const schedule = (u as any)?.weeklyTrainingSchedule;
+          const config   = (u as any)?.performanceProtocolConfig;
+
+          if (schedule && config) {
+            const { resolveDailyNutritionState } = await import("./services/dailyNutritionState");
+            const baseCarbsG = (u as any)?.dailyCarbsTarget ?? 200;
+            const rawStarchy = (u as any)?.dailyStarchyCarbsTarget;
+            const rawFibrous = (u as any)?.dailyFibrousCarbsTarget;
+            const state = await resolveDailyNutritionState({
+              userId: barcodeUserId,
+              schedule,
+              config,
+              baseline: {
+                calories:      (u as any)?.dailyCalorieTarget ?? 2000,
+                proteinG:      (u as any)?.dailyProteinTarget ?? 150,
+                carbsG:        baseCarbsG,
+                fatG:          (u as any)?.dailyFatTarget ?? 65,
+                starchyCarbsG: rawStarchy != null ? Number(rawStarchy) : Math.round(baseCarbsG * 0.7),
+                fibrousCarbsG: rawFibrous != null ? Number(rawFibrous) : Math.round(baseCarbsG * 0.3),
+              },
+              timezone:          ((u as any)?.timezone as string | null) ?? "America/Chicago",
+              performanceActive: true,
+            });
+
+            if (state.scheduleConfigured) {
+              // Classify the product's starchy carb load
+              const carbsG   = food.nutrPerServing.carbs_g ?? 0;
+              const fiberG   = food.nutrPerServing.fiber_g ?? 0;
+              const netStarchyG = Math.max(0, carbsG - fiberG);
+              const isSignificantStarch = netStarchyG > 8;
+
+              const conflicts =
+                isSignificantStarch &&
+                (state.starchPolicy === "zero" || state.starchyBudgetExhausted);
+
+              response.ndeSummary = {
+                starchPolicy:          state.starchPolicy,
+                starchyBudgetExhausted: state.starchyBudgetExhausted,
+                scheduleConfigured:    true,
+                dayLabel:              state.dayLabel ?? null,
+                productNetStarchyG:    netStarchyG,
+                conflicts,
+                ...(conflicts && {
+                  conflictNote: state.starchyBudgetExhausted
+                    ? `Today's starchy carb budget is exhausted. This product adds ~${Math.round(netStarchyG)}g of starchy carbs.`
+                    : `Today is a no-starch day. This product contains ~${Math.round(netStarchyG)}g of starchy carbs per serving.`,
+                  suggestions: [
+                    "Look for a protein-forward alternative",
+                    "Choose a fibrous vegetable-based option",
+                    "Log a smaller portion if the meal is already planned",
+                  ],
+                }),
+              };
+            }
+          }
+        }
+      } catch {
+        // NDE check is non-blocking — product data still returned on error
+      }
 
       console.log(`✅ Product found: ${food.name} from ${food.source}`);
       res.json(response);
@@ -4474,7 +4528,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Weekly meal calendar endpoint
-  app.post("/api/meals/weekly", async (req, res) => {
+  app.post("/api/meals/weekly", requireAuth, requireEssentialAccess, async (req, res) => {
     try {
       const { userId, generateAll = true } = req.body;
 
@@ -6658,14 +6712,14 @@ function getMealIngredientsDatabase() {
   // Diabetic meal board persistence (simple localStorage-like API)
   const diabeticMealBoards = new Map<string, any>();
 
-  app.get("/api/diabetic-meal-board", (req, res) => {
-    const userId = "default"; // In real app, get from session
+  app.get("/api/diabetic-meal-board", requireAuth, requireEssentialAccess, (req: any, res) => {
+    const userId = req.authUser?.id || "default";
     const saved = diabeticMealBoards.get(userId);
     res.json(saved || { plan: {} });
   });
 
-  app.post("/api/diabetic-meal-board", (req, res) => {
-    const userId = "default"; // In real app, get from session
+  app.post("/api/diabetic-meal-board", requireAuth, requireEssentialAccess, (req: any, res) => {
+    const userId = req.authUser?.id || "default";
     const { plan } = req.body;
     diabeticMealBoards.set(userId, { plan });
     res.json({ success: true });
@@ -7154,6 +7208,62 @@ Provide a single exceptional meal recommendation in JSON format with the followi
     try {
       const userId = (req as AuthenticatedRequest).authUser.id;
 
+      // Resolve today's daily nutrition state so we can flag saved meals that
+      // conflict with the current day's starch strategy.
+      let savedMealDailyState: {
+        starchPolicy: string;
+        starchyBudgetExhausted: boolean;
+        scheduleConfigured: boolean;
+      } | null = null;
+      try {
+        const [userForState] = await db
+          .select({
+            weeklyTrainingSchedule:    (users as any).weeklyTrainingSchedule,
+            performanceProtocolConfig: (users as any).performanceProtocolConfig,
+            dailyCalorieTarget:        users.dailyCalorieTarget,
+            dailyProteinTarget:        users.dailyProteinTarget,
+            dailyCarbsTarget:          users.dailyCarbsTarget,
+            dailyFatTarget:            users.dailyFatTarget,
+            dailyStarchyCarbsTarget:   (users as any).dailyStarchyCarbsTarget,
+            dailyFibrousCarbsTarget:   (users as any).dailyFibrousCarbsTarget,
+            timezone:                  (users as any).timezone,
+          } as any)
+          .from(users)
+          .where(eq(users.id, String(userId)))
+          .limit(1);
+
+        const schedule = (userForState as any)?.weeklyTrainingSchedule;
+        const config   = (userForState as any)?.performanceProtocolConfig;
+        if (schedule && config) {
+          const { resolveDailyNutritionState } = await import("./services/dailyNutritionState");
+          const baseCarbsG = (userForState as any)?.dailyCarbsTarget ?? 200;
+          const rawStarchy = (userForState as any)?.dailyStarchyCarbsTarget ?? null;
+          const rawFibrous = (userForState as any)?.dailyFibrousCarbsTarget ?? null;
+          const state = await resolveDailyNutritionState({
+            userId:            String(userId),
+            schedule,
+            config,
+            baseline: {
+              calories:      (userForState as any)?.dailyCalorieTarget ?? 2000,
+              proteinG:      (userForState as any)?.dailyProteinTarget ?? 150,
+              carbsG:        baseCarbsG,
+              fatG:          (userForState as any)?.dailyFatTarget ?? 65,
+              starchyCarbsG: rawStarchy !== null ? Number(rawStarchy) : Math.round(baseCarbsG * 0.7),
+              fibrousCarbsG: rawFibrous !== null ? Number(rawFibrous) : Math.round(baseCarbsG * 0.3),
+            },
+            timezone:          ((userForState as any)?.timezone as string | null) ?? "America/Chicago",
+            performanceActive: true,
+          });
+          savedMealDailyState = {
+            starchPolicy:          state.starchPolicy,
+            starchyBudgetExhausted: state.starchyBudgetExhausted,
+            scheduleConfigured:    state.scheduleConfigured,
+          };
+        }
+      } catch {
+        // Non-fatal — saved meals still returned without day-mismatch annotation
+      }
+
       const rows = await db.select().from(savedMealsTable)
         .where(eq(savedMealsTable.userId, String(userId)))
         .orderBy(desc(savedMealsTable.createdAt));
@@ -7196,7 +7306,53 @@ Provide a single exceptional meal recommendation in JSON format with the followi
         }
       }
 
-      res.json(enrichedRows);
+      // ── Day-mismatch annotation ──────────────────────────────────────────────
+      // If today's starch strategy conflicts with a saved meal's starch content,
+      // attach a dayMismatchNote so the client can show a contextual warning.
+      // This never removes meals — it's purely informational.
+      const STARCH_SIGNAL_TERMS = [
+        "rice", "pasta", "bread", "potato", "potatoes", "oats", "oatmeal",
+        "corn", "tortilla", "noodle", "noodles", "couscous", "quinoa", "barley",
+        "farro", "wheat", "flour", "bagel", "pita", "roll", "bun",
+        "spaghetti", "penne", "linguine", "fettuccine", "ramen", "udon", "soba",
+        "polenta", "grits", "macaroni", "mashed", "sweet potato", "yam",
+      ];
+
+      const shouldFlagStarch =
+        savedMealDailyState?.scheduleConfigured &&
+        (savedMealDailyState?.starchPolicy === "zero" ||
+          savedMealDailyState?.starchyBudgetExhausted);
+
+      const annotatedRows = enrichedRows.map(r => {
+        if (!shouldFlagStarch) return r;
+        const md = r.mealData as any;
+        const savedStarchyG = Number(md?.starchyCarbs ?? md?.starchyCarbsG ?? 0);
+        // Check numeric starchy carb value OR scan meal name/ingredients for starch terms
+        let hasStarch = savedStarchyG > 5;
+        if (!hasStarch) {
+          const textToScan = [
+            r.title,
+            md?.description ?? "",
+            ...(Array.isArray(md?.ingredients)
+              ? md.ingredients.map((i: any) =>
+                  typeof i === "string" ? i : (i?.name ?? i?.item ?? "")
+                )
+              : []),
+          ].join(" ").toLowerCase();
+          hasStarch = STARCH_SIGNAL_TERMS.some(t => textToScan.includes(t));
+        }
+        if (!hasStarch) return r;
+        const policyLabel = savedMealDailyState?.starchyBudgetExhausted
+          ? "today's starchy carb budget is exhausted"
+          : "today is a no-starch day";
+        return {
+          ...r,
+          dayMismatchNote: `This meal was saved on a different nutrition day. ${policyLabel[0].toUpperCase() + policyLabel.slice(1)} — it may not fit today's strategy.`,
+          dayMismatchPolicy: savedMealDailyState?.starchPolicy,
+        };
+      });
+
+      res.json(annotatedRows);
     } catch (error) {
       console.error("Error listing saved meals:", error);
       res.status(500).json({ error: "Failed to list saved meals" });

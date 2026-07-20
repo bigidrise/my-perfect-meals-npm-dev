@@ -12,6 +12,7 @@ import {
   Square,
   ImagePlus,
   ChevronLeft,
+  Sparkles,
 } from "lucide-react";
 import { PillButton } from "@/components/ui/pill-button";
 import { CuisineOverrideControl } from "@/components/ui/CuisineOverrideControl";
@@ -787,6 +788,20 @@ export default function InspirationCaptureModal({
                   Your personalized version is ready.
                 </p>
               </div>
+
+              {result?.ndeSummary?.wasAdapted && result.ndeSummary.adaptedNote && (
+                <div className="rounded-xl bg-orange-950/50 border border-orange-600/30 px-3 py-2.5 flex gap-2.5 items-start">
+                  <Sparkles className="h-4 w-4 text-orange-400 shrink-0 mt-0.5" />
+                  <div className="space-y-0.5">
+                    <div className="text-orange-400 font-semibold tracking-wide uppercase text-[10px]">
+                      Adapted for Today's Nutrition Strategy
+                    </div>
+                    <div className="text-white/80 text-xs leading-relaxed">
+                      {result.ndeSummary.adaptedNote}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {mealData.imageUrl && (
                 <div className="rounded-xl overflow-hidden h-44">

@@ -55,6 +55,7 @@ import { deriveCompPrepStatus } from "./protocol/competitionPrepDateEngine";
 import { sanitizeIdentifiers } from "./promptSanitizer";
 import { logAudit } from "../lib/auditLog";
 import { computeDemandProfile, type DemandProfile } from "../../shared/performanceDemandEngine";
+import { resolveDailyNutritionState, type DailyNutritionState } from "./dailyNutritionState";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PROCEDURAL RULES — The third enforcement dimension
@@ -630,6 +631,15 @@ export interface UserProtocolEnvelope {
   performanceLayer: DemandProfile | null;
 
   /**
+   * Resolved daily nutrition state — populated when performance-nutrition is active
+   * and the user has a configured weekly training schedule.
+   * Contains today's session type, starchy carb target, confirmed consumption,
+   * remaining budget, and a ready-to-inject preGenerationConstraint string.
+   * Null when performance-nutrition is off or schedule is not yet configured.
+   */
+  dailyNutritionState: DailyNutritionState | null;
+
+  /**
    * Therapeutic Nutrition Intelligence active flag.
    * True when "therapeutic-support" is in the user's specialtyConditions array.
    * Guidance blocks are injected into conditionGuidanceBlocks automatically.
@@ -703,6 +713,17 @@ export interface ProtocolScanResult {
   primaryViolation?: HiddenViolation;
   /** Human-readable message suitable for logging or error responses */
   message: string;
+  /**
+   * Starch budget soft flag — present when starchyBudgetExhausted is true
+   * and the generated meal contains identifiable starchy ingredients.
+   * v1: informational only — does NOT change `passed`. Callers may choose
+   * to reject, warn, or log. v2 will hard-block.
+   */
+  starchBudgetViolation?: {
+    detected: boolean;
+    terms: string[];
+    message: string;
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -797,6 +818,15 @@ export async function loadUserProtocolEnvelope(
         performanceControlMode: (users as any).performanceControlMode,
         carbCycleState: users.carbCycleState,
         performanceContext: users.performanceContext,
+        weeklyTrainingSchedule: (users as any).weeklyTrainingSchedule,
+        performanceProtocolConfig: (users as any).performanceProtocolConfig,
+        dailyCalorieTarget: (users as any).dailyCalorieTarget,
+        dailyProteinTarget: (users as any).dailyProteinTarget,
+        dailyCarbsTarget:   (users as any).dailyCarbsTarget,
+        dailyFatTarget:     (users as any).dailyFatTarget,
+        dailyStarchyCarbsTarget: (users as any).dailyStarchyCarbsTarget,
+        dailyFibrousCarbsTarget: (users as any).dailyFibrousCarbsTarget,
+        timezone: (users as any).timezone,
         therapeuticSupportContext: (users as any).therapeuticSupportContext,
         pregnancySupportContext: (users as any).pregnancySupportContext,
         flavorPreference: users.flavorPreference,
@@ -1227,7 +1257,43 @@ export async function loadUserProtocolEnvelope(
       palateSpiceTolerance: (user as any).palateSpiceTolerance ?? null,
       palateSeasoningIntensity: (user as any).palateSeasoningIntensity ?? null,
       palateFlavorStyle: (user as any).palateFlavorStyle ?? null,
+      dailyNutritionState: null,
     };
+
+    // ── DAILY NUTRITION STATE — resolve only when performance-nutrition is active ─
+    if (performanceNutrition) {
+      try {
+        const wts = (user as any).weeklyTrainingSchedule ?? null;
+        const ppc = (user as any).performanceProtocolConfig ?? null;
+        const baseCarbsG = Number((user as any).dailyCarbsTarget ?? 200);
+        const rawStarchy = (user as any).dailyStarchyCarbsTarget;
+        const rawFibrous = (user as any).dailyFibrousCarbsTarget;
+        const baseline = {
+          calories:      Number((user as any).dailyCalorieTarget ?? 2000),
+          proteinG:      Number((user as any).dailyProteinTarget ?? 150),
+          carbsG:        baseCarbsG,
+          fatG:          Number((user as any).dailyFatTarget ?? 65),
+          starchyCarbsG: rawStarchy !== null && rawStarchy !== undefined
+            ? Number(rawStarchy)
+            : Math.round(baseCarbsG * 0.7),
+          fibrousCarbsG: rawFibrous !== null && rawFibrous !== undefined
+            ? Number(rawFibrous)
+            : Math.round(baseCarbsG * 0.3),
+        };
+        envelope.dailyNutritionState = await resolveDailyNutritionState({
+          userId:           String(userId),
+          schedule:         wts,
+          config:           ppc,
+          baseline,
+          timezone:         ((user as any).timezone as string | null) ?? "America/Chicago",
+          performanceActive: true,
+        });
+      } catch (err) {
+        console.warn("[ProtocolEnvelope] Daily nutrition state resolution failed:", err);
+      }
+    }
+
+    return envelope;
   } catch (error) {
     console.error("[ProtocolEnvelope] Failed to load envelope:", error);
     return null;
@@ -1270,6 +1336,7 @@ export function buildGuestEnvelope(): UserProtocolEnvelope {
     performanceNutrition: false,
     performanceContext: null,
     performanceLayer: null,
+    dailyNutritionState: null,
     therapeuticSupport: false,
     therapeuticSupportContext: null,
     selectedMealBuilder: null,
@@ -1535,6 +1602,24 @@ ${proceduralParts.join("\n")}`;
     }
   }
 
+  // ── DAILY NUTRITION STATE — day-specific carb constraint (Tier 5c) ─────────
+  // Injected after the general performance demand layer so it can tighten or
+  // override the generic carb guidance with today's actual schedule and budget.
+  // Only fires when the performance schedule is configured and today's session
+  // type has been resolved. Never fires for guest envelopes or users without
+  // an active performance-nutrition protocol.
+  if (
+    envelope.dailyNutritionState?.scheduleConfigured &&
+    envelope.dailyNutritionState.preGenerationConstraint
+  ) {
+    layers.performanceIntent +=
+      `\n\n${envelope.dailyNutritionState.preGenerationConstraint}\n` +
+      `This day-specific rule is derived from the user's weekly training schedule and ` +
+      `today's confirmed consumption. It is a hard constraint — it supersedes any general ` +
+      `carbohydrate guidance above for this specific recommendation. Medical safety rules ` +
+      `(Tiers 1–4) still take absolute precedence.`;
+  }
+
   // ── TIER 6: Avoidances ────────────────────────────────────────────────────
   if (envelope.avoidances.length > 0) {
     const expandedAvoidances = expandAvoidances(envelope.avoidances);
@@ -1793,11 +1878,32 @@ function extractInstructionsText(meal: {
 }
 
 /**
+ * Known starchy carbohydrate terms used by the post-generation starch budget scan.
+ * Matched case-insensitively against ingredient names, meal name, and description.
+ * Fibrous vegetables, legumes-as-protein, and culturally-integral bases are excluded
+ * from this list — only clear glycemic-load starches are included.
+ */
+const STARCH_BUDGET_TERMS = [
+  "rice", "pasta", "bread", "potato", "potatoes", "oats", "oatmeal",
+  "corn", "tortilla", "noodle", "noodles", "couscous", "quinoa", "barley",
+  "farro", "wheat", "flour", "bagel", "pita", "roll", "bun", "buns",
+  "spaghetti", "penne", "linguine", "fettuccine", "ramen", "udon", "soba",
+  "polenta", "grits", "macaroni", "mashed", "hash brown", "hashbrown",
+  "tater", "sweet potato", "yam", "plantain", "crouton", "croutons",
+  "cracker", "crackers", "pretzel", "pretzels", "pancake", "pancakes",
+  "waffle", "waffles", "muffin", "muffins", "toast",
+];
+
+/**
  * Scan a generated meal against the user's full protocol envelope.
  *
  * Checks BOTH:
  *   1. Ingredient-level violations (hidden ingredients, avoidances, kosher/halal hidden terms)
  *   2. Instruction-level violations (forbidden preparation phrases from the procedural layer)
+ *
+ * Also checks a STARCH BUDGET soft flag (v1 — informational, does not change `passed`):
+ *   3. When starchyBudgetExhausted is true, detects identifiable starchy ingredients
+ *      and reports them in starchBudgetViolation for the caller to handle.
  *
  * Call this after every AI generation, before returning the result to the user.
  * Returns a ProtocolScanResult — check `.passed` before serving the meal.
@@ -1832,12 +1938,38 @@ export function scanGeneratedOutput(
 
   const totalPassed = ingredientViolations.length === 0 && instructionViolations.length === 0;
 
+  // ── Starch budget soft flag (v1 — informational, does not block) ──────────
+  // Fires only when starchyBudgetExhausted is true AND the meal contains
+  // identifiable starchy ingredients. Caller decides whether to reject or warn.
+  let starchBudgetViolation: ProtocolScanResult["starchBudgetViolation"];
+  if (envelope.dailyNutritionState?.starchyBudgetExhausted) {
+    const mealLower = mealText.toLowerCase();
+    const foundTerms = STARCH_BUDGET_TERMS.filter(term =>
+      mealLower.includes(term.toLowerCase())
+    );
+    if (foundTerms.length > 0) {
+      const termList = foundTerms.slice(0, 5).join(", ");
+      console.warn(
+        `⚠️ [ProtocolEnvelope:${generatorName}] "${meal.name}" STARCH BUDGET soft flag — ` +
+        `starchyBudgetExhausted=true but meal contains: ${termList}`
+      );
+      starchBudgetViolation = {
+        detected: true,
+        terms: foundTerms,
+        message: `Today's starchy carb budget is exhausted, but this meal contains: ${termList}. ` +
+          `The AI may not have fully honored the day-specific constraint. ` +
+          `Consider regenerating or substituting fibrous vegetables.`,
+      };
+    }
+  }
+
   if (totalPassed) {
     return {
       passed: true,
       violations: [],
       instructionViolations: [],
       message: `[ProtocolEnvelope:${generatorName}] "${meal.name}" passed full protocol scan (ingredients + instructions).`,
+      starchBudgetViolation,
     };
   }
 
@@ -1857,6 +1989,7 @@ export function scanGeneratedOutput(
       instructionViolations,
       primaryViolation: primary,
       message: `This meal contains "${primary.term}" which conflicts with your ${primary.category} rules. ${primary.reason}`,
+      starchBudgetViolation,
     };
   }
 
@@ -1870,6 +2003,7 @@ export function scanGeneratedOutput(
     violations: [],
     instructionViolations,
     message: `The cooking instructions for this meal contain a step that violates your dietary protocol: "${primaryInstruction}". Regenerating with compliant instructions.`,
+    starchBudgetViolation,
   };
 }
 

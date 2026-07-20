@@ -75,13 +75,6 @@ router.post("/coach", async (req, res) => {
         profileLines.push(`Goal: ${user.goalType}`);
       }
     }
-    if (nutritionContext?.protocolLabel) {
-      profileLines.push(`Active nutrition protocol: ${nutritionContext.protocolLabel}`);
-    }
-    if (nutritionContext?.activeBuilder) {
-      profileLines.push(`Active meal builder: ${nutritionContext.activeBuilder}`);
-    }
-
     const profileBlock = profileLines.length > 0
       ? `USER PROFILE:\n${profileLines.join("\n")}`
       : "USER PROFILE: General healthy eating, no specific restrictions provided.";
@@ -174,6 +167,7 @@ RESPONSE FORMAT — return valid JSON only, no markdown, no code fences:
 Keep bestChoices to 2-3 items. The avoid array should be [] if nothing is specifically problematic for this user. The familyNote array should have 1-2 practical tips about eating at this venue with family or children. For venues like theme parks, cruises, and resorts this is almost always relevant. For a solo business airport context it can be []. The zone field should be null when no zone was specified.`;
 
     const contextParts: string[] = [profileBlock];
+    if (nutritionContext?.combinedBlock) contextParts.push(nutritionContext.combinedBlock);
     if (locationBlock) contextParts.push(locationBlock);
     const userPrompt = `${contextParts.join("\n\n")}
 

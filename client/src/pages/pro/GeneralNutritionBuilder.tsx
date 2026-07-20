@@ -77,7 +77,7 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
 import { BuilderHeader } from "@/components/pro/BuilderHeader";
-import { TrialBanner } from "@/components/TrialBanner";
+
 import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
 
 const GENERAL_NUTRITION_TOUR_STEPS: TourStep[] = [
@@ -776,7 +776,7 @@ export default function WeeklyMealBoard() {
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-24"
     >
       <BuilderHeader title="General Nutrition Builder" onOpenTour={quickTour.openTour} clientId={isProCareMode ? clientId : null} />
-      <TrialBanner />
+
 
       {/* Main Content */}
       <div
