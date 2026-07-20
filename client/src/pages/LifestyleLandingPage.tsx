@@ -20,7 +20,7 @@ import {
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
-import { isProOrAbove, hasActivePaidSubscription } from "@/lib/subscriptionCheck";
+import { isProOrAbove, isClinicalOrAbove, hasActivePaidSubscription } from "@/lib/subscriptionCheck";
 
 interface AIFeature {
   title: string;
@@ -156,6 +156,7 @@ export default function LifestyleLandingPage() {
 
   const gatheringsLocked = !isProOrAbove(user);
   const getawayLocked = !isProOrAbove(user);
+  const pregnancyLocked = !isClinicalOrAbove(user);
 
   const handleCardClick = (feature: AIFeature) => {
     if (feature.freeAccess) {
@@ -308,7 +309,13 @@ export default function LifestyleLandingPage() {
             />
             <Card
               className="relative rounded-xl shadow-md overflow-hidden cursor-pointer transition-all duration-300 active:scale-95 hover:scale-[1.02] bg-gradient-to-r from-black via-pink-950/40 to-black backdrop-blur-lg border border-pink-500/30 hover:shadow-[0_0_30px_rgba(236,72,153,0.4)] hover:border-pink-400/50"
-              onClick={() => setLocation("/lifestyle/my-perfect-pregnancy")}
+              onClick={() => {
+                if (pregnancyLocked) {
+                  requestUpgrade({ requiredTier: "clinical", featureName: "My Perfect Pregnancy" });
+                  return;
+                }
+                setLocation("/lifestyle/my-perfect-pregnancy");
+              }}
               data-testid="card-my-perfect-pregnancy"
             >
               <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-black via-violet-700/80 to-black rounded-full border border-violet-400/30 shadow-lg z-10">
@@ -320,10 +327,11 @@ export default function LifestyleLandingPage() {
               <CardContent className="p-3">
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-base">🩷</span>
-                    <h3 className="text-sm font-semibold text-white">My Perfect Pregnancy</h3>
+                    <span className={`text-base ${pregnancyLocked ? "opacity-50" : ""}`}>🩷</span>
+                    <h3 className={`text-sm font-semibold ${pregnancyLocked ? "text-white/50" : "text-white"}`}>My Perfect Pregnancy</h3>
+                    {pregnancyLocked && <Lock className="h-3 w-3 text-orange-400/70 ml-auto" />}
                   </div>
-                  <p className="text-xs ml-6 text-white/80">
+                  <p className={`text-xs ml-6 ${pregnancyLocked ? "text-white/40" : "text-white/80"}`}>
                     Nutrition, food safety &amp; support through every stage of your journey
                   </p>
                 </div>
