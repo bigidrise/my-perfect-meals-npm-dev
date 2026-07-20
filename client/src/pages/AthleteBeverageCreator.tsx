@@ -32,6 +32,8 @@ import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useStarchGuardPrecheck } from "@/hooks/useStarchGuardPrecheck";
 import { Wheat } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
+import { isProOrAbove } from "@/lib/subscriptionCheck";
 import { normalizeDiet, mealMatchesDiet } from "@/utils/dietaryFilter";
 import DietStyleBadge from "@/components/DietStyleBadge";
 import MealClassificationPill from "@/components/MealClassificationPill";
@@ -154,7 +156,15 @@ export default function AthleteBeverageCreator() {
   const { toast } = useToast();
   const quickTour = useQuickTour("athlete-beverage-creator");
   const { user } = useAuth();
+  const { requestUpgrade } = useUpgradeModal();
   const userId = user?.id || "";
+
+  useEffect(() => {
+    if (user !== undefined && !isProOrAbove(user)) {
+      requestUpgrade({ requiredTier: "pro", featureName: "Athlete Beverage Creator" });
+      setLocation("/");
+    }
+  }, [user]);
 
   const [performanceGoal, setPerformanceGoal] = useState("");
   const [drinkType, setDrinkType] = useState("");
