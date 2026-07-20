@@ -275,7 +275,7 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
       window.open(`mailto:${supportEmail}?subject=${appName} Feedback`, "_blank");
     } else if (item.route) {
       if (item.route === "/select-builder" && !canAccessMealBuilders(user)) {
-        requestUpgrade({ requiredTier: "essential", featureName: "Meal Builder Exchange" });
+        requestUpgrade({ requiredTier: "meal-builders", featureName: "Meal Builder Exchange" });
         return;
       }
       if (LEGAL_ROUTES.includes(item.route)) {

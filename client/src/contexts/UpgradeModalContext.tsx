@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from "react";
 import { TierUpgradeModal } from "@/components/modals/TierUpgradeModal";
 
-export type RequiredTier = "essential" | "pro" | "clinical";
+export type RequiredTier = "essential" | "pro" | "clinical" | "meal-builders";
 
 interface UpgradeRequest {
   requiredTier: RequiredTier;

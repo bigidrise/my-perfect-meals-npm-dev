@@ -133,7 +133,7 @@ function MealBuildersGuard({ component: Component }: { component: React.Componen
 
   useEffect(() => {
     if (isBlocked) {
-      requestUpgrade({ requiredTier: "essential", featureName: "Meal Builders" });
+      requestUpgrade({ requiredTier: "meal-builders", featureName: "Meal Builder Exchange" });
     }
   }, [isBlocked, location]);
 
