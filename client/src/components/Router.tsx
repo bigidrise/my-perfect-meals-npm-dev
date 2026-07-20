@@ -681,7 +681,7 @@ export default function Router() {
         <Route path="/pricing" component={PricingPage} />
         <Route path="/apply-guidance" component={() => <CoachingAdminGate component={ApplyGuidance} />} />
         <Route path="/paywall" component={PricingPage} />
-        <Route path="/select-builder" component={() => <PaywallGuard component={MealBuilderSelection} />} />
+        <Route path="/select-builder" component={() => <ProGuard component={MealBuilderSelection} />} />
         <Route path="/onboarding/extended" component={ExtendedOnboarding} />
         <Route path="/checkout/success" component={CheckoutSuccess} />
         <Route path="/billing/success" component={CheckoutSuccess} />
