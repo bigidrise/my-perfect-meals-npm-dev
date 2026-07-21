@@ -134,7 +134,7 @@ type Goal = "loss" | "maint" | "gain" | "contest_prep";
 type Sex = "male" | "female";
 type Units = "imperial" | "metric";
 type BodyType = "ecto" | "meso" | "endo" | "mix";
-type UserType = "general" | "committed" | "athlete";
+type UserType = "flexible" | "consistent" | "performance";
 type CutIntensity = "hard" | "moderate" | "none";
 type CutStyle = "balanced" | "lowCarb";
 type ActivityLevel = "sedentary" | "light" | "moderate" | "very" | "extra";
@@ -760,7 +760,7 @@ export default function MacroCounter() {
     savedSettings?.bodyType ?? "meso",
   );
   const [userType, setUserType] = useState<UserType>(
-    savedSettings?.userType ?? "general",
+    (savedSettings?.userType as UserType) ?? "flexible",
   );
   const [units, setUnits] = useState<Units>(
     savedSettings?.units ?? ((user as any)?.measurementSystem as Units) ?? "imperial"
@@ -1069,9 +1069,9 @@ export default function MacroCounter() {
         "Lose Fat = calorie deficit to reduce body fat. Maintain Weight = stay where you are. Build Muscle = slight surplus to support muscle growth. Contest Prep = competition protocol with hard cut and low-carb split.",
     },
     {
-      title: "Commitment Level",
+      title: "Structure Level",
       description:
-        "General = realistic, sustainable targets for everyday eaters. Committed = higher protein and tighter carb targets for consistent gym-goers. Athlete = maximum protein regardless of goal, built for training load. This shapes your numbers — not how hard the plan is to follow.",
+        "Flexible = practical targets with room for real life. Consistent = more structure and specific daily targets for people who commit to a plan. Performance = targets built for high-level training load, recovery, and competition. This shapes your numbers — not how hard the plan is to follow.",
     },
     {
       title: "Select Body Type",
@@ -1759,27 +1759,27 @@ export default function MacroCounter() {
                       </h3>
                     </div>
                     <p className="text-white text-base">
-                      What's your commitment level?
+                      What level of structure fits you best?
                     </p>
                     <p className="text-sm text-white/60">
-                      This shapes how aggressive your protein and carb targets are — not how hard the plan is to follow.
+                      This helps us match your nutrition targets to how consistently you are likely to follow a plan. It does not make the plan harder or easier — it helps us make it realistic for you.
                     </p>
                     <div className="grid grid-cols-1 gap-3">
                       {([
                         {
-                          v: "general",
-                          label: "General",
-                          sub: "Everyday eater — realistic, sustainable targets most people can actually follow.",
+                          v: "flexible",
+                          label: "Flexible",
+                          sub: "You want better nutrition, but your routine may change from day to day. You do best with practical targets, flexibility, and room for real life.",
                         },
                         {
-                          v: "committed",
-                          label: "Committed",
-                          sub: "Consistent gym-goer or dieter — higher protein, more structured carb targets.",
+                          v: "consistent",
+                          label: "Consistent",
+                          sub: "You are usually able to follow a plan when you decide to commit. You are comfortable with more structure and more specific daily nutrition targets.",
                         },
                         {
-                          v: "athlete",
-                          label: "Athlete",
-                          sub: "Performance focus — maximum protein regardless of goal, built for training load.",
+                          v: "performance",
+                          label: "Performance",
+                          sub: "You train or compete at a high level and need nutrition targets designed to support demanding physical performance, recovery, and training load.",
                         },
                       ] as { v: UserType; label: string; sub: string }[]).map((u) => (
                         <div
@@ -1820,12 +1820,12 @@ export default function MacroCounter() {
                   <div className="rounded-xl border border-orange-400/30 bg-orange-500/10 p-3">
                     <p className="text-sm text-orange-200 font-medium flex items-center gap-2">
                       <Check className="h-4 w-4 text-orange-400 flex-shrink-0" />
-                      Commitment:{" "}
-                      {userType === "general"
-                        ? "General"
-                        : userType === "committed"
-                          ? "Committed"
-                          : "Athlete"}
+                      Structure:{" "}
+                      {userType === "flexible"
+                        ? "Flexible"
+                        : userType === "consistent"
+                          ? "Consistent"
+                          : "Performance"}
                     </p>
                   </div>
                 </div>
@@ -3510,13 +3510,13 @@ export default function MacroCounter() {
                   <CardContent className="p-5 space-y-4">
                     <h3 className="text-lg font-semibold flex items-center">
                       <User2 className="h-5 w-5 mr-2 text-pink-300" />
-                      Commitment Level
+                      Structure Level
                     </h3>
                     <div className="grid grid-cols-3 gap-2">
                       {([
-                        { v: "general",   label: "General",   sub: "Everyday habits" },
-                        { v: "committed", label: "Committed", sub: "Consistent dieter" },
-                        { v: "athlete",   label: "Athlete",   sub: "Performance focus" },
+                        { v: "flexible",    label: "Flexible",    sub: "Day-to-day flexibility" },
+                        { v: "consistent",  label: "Consistent",  sub: "Plan-ready structure" },
+                        { v: "performance", label: "Performance", sub: "High training load" },
                       ] as { v: UserType; label: string; sub: string }[]).map((u) => (
                         <div
                           key={u.v}
