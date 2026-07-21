@@ -144,7 +144,12 @@ export async function uploadImageToPermanentStorage(
       uploadedAt: new Date().toISOString(),
     };
   } catch (s3Error: any) {
-    console.warn(`⚠️ S3 upload failed for "${mealName}" (${s3Error.message?.substring(0, 80)}) — trying Replit Object Storage`);
+    const httpStatus = s3Error.$metadata?.httpStatusCode ?? 'no-http-status';
+    const s3Code = s3Error.Code ?? s3Error.code ?? s3Error.name ?? 'unknown-code';
+    const s3Msg = s3Error.message?.substring(0, 120) ?? 'no-message';
+    console.error(
+      `❌ S3 upload failed for "${mealName}" | HTTP ${httpStatus} | code: ${s3Code} | msg: ${s3Msg} | bucket: ${BUCKET_NAME} | key: meal-images/${fileName}`
+    );
   }
 
   // ── FALLBACK: REPLIT OBJECT STORAGE ─────────────────────────────────────────
@@ -156,7 +161,11 @@ export async function uploadImageToPermanentStorage(
       uploadedAt: new Date().toISOString(),
     };
   } catch (gcsError: any) {
-    console.error(`❌ Both S3 and Replit Object Storage failed for "${mealName}": ${gcsError.message}`);
+    const gcsCode = gcsError.code ?? gcsError.statusCode ?? 'no-code';
+    const gcsMsg = gcsError.message?.substring(0, 120) ?? 'no-message';
+    console.error(
+      `❌ GCS upload also failed for "${mealName}" | code: ${gcsCode} | msg: ${gcsMsg} | object: meal-images/${fileName}`
+    );
     throw gcsError;
   }
 }

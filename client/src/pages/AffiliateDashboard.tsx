@@ -1,16 +1,18 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { BC_HEADER } from "@/components/BusinessCenterShell";
+import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Copy, Check, ExternalLink, Award, BarChart2,
   DollarSign, Link2, Shield, Package, Users, X, Send,
   UserPlus, Clock, RefreshCw, QrCode, Download, ChevronDown, ChevronUp,
-  Smartphone, Mail, Youtube, Instagram, Presentation, Megaphone, AlertTriangle, Monitor
+  Smartphone, Mail, Youtube, Instagram, Presentation, Megaphone, AlertTriangle, Monitor, Calendar,
+  CheckCircle, MapPin
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { computePartnerLifecycle, LifecycleResult } from "@shared/partnerLifecycle";
 
 interface AffiliateAccount {
   affiliateTrack: string;
@@ -22,6 +24,27 @@ interface AffiliateAccount {
   rewardfulReferralToken: string | null;
   activatedAt: string | null;
   isActive: boolean;
+}
+
+interface PartnerRecord {
+  id: number;
+  userId: string;
+  partnerName: string | null;
+  partnerTypes: string[];
+  promoCode: string | null;
+  customerDiscount: number | null;
+  commissionRate: number | null;
+  commissionMonths: number | null;
+  stripePromotionCodeId: string | null;
+  rewardfulAffiliateId: string | null;
+  status: string;
+  acceptedAt: string | null;
+  rewardfulCreatedAt: string | null;
+  promoCodeAssignedAt: string | null;
+  orgActivatedAt: string | null;
+  managedPayoutsAt: string | null;
+  marketingKitReadyAt: string | null;
+  campaignActiveAt: string | null;
 }
 
 interface RewardfulStatus {
@@ -62,6 +85,9 @@ export default function AffiliateDashboard() {
   const [copiedDesktopUrl, setCopiedDesktopUrl] = useState(false);
   const [account, setAccount] = useState<AffiliateAccount | null>(null);
   const [rewardfulStatus, setRewardfulStatus] = useState<RewardfulStatus | null>(null);
+  const [partnerRecord, setPartnerRecord] = useState<PartnerRecord | null>(null);
+  const [partnerLifecycle, setPartnerLifecycle] = useState<LifecycleResult | null>(null);
+  const [copiedPromo, setCopiedPromo] = useState(false);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
@@ -74,16 +100,38 @@ export default function AffiliateDashboard() {
   const [inviteSending, setInviteSending] = useState(false);
 
   useEffect(() => {
-    document.title = "Affiliate Dashboard | My Perfect Meals";
-    apiRequest("/api/affiliate/dashboard")
-      .then((data) => {
-        setAccount(data as AffiliateAccount);
+    document.title = "Partner & Revenue Center | My Perfect Meals";
+    Promise.all([
+      apiRequest("/api/affiliate/dashboard").catch(() => null),
+      apiRequest("/api/partner/identity").catch(() => null),
+    ]).then(([affiliateData, partnerData]) => {
+      if (affiliateData) setAccount(affiliateData as AffiliateAccount);
+      if (partnerData && (partnerData as any).partner) {
+        const rec = (partnerData as any).partner as PartnerRecord;
+        setPartnerRecord(rec);
+        // Use server-computed lifecycle or derive locally if missing
+        if ((partnerData as any).lifecycle) {
+          setPartnerLifecycle((partnerData as any).lifecycle as LifecycleResult);
+        } else {
+          setPartnerLifecycle(computePartnerLifecycle({
+            partnerTypes: rec.partnerTypes ?? [],
+            acceptedAt: rec.acceptedAt,
+            rewardfulCreatedAt: rec.rewardfulCreatedAt,
+            rewardfulAffiliateId: rec.rewardfulAffiliateId,
+            promoCode: rec.promoCode,
+            promoCodeAssignedAt: rec.promoCodeAssignedAt,
+            orgActivatedAt: rec.orgActivatedAt,
+            managedPayoutsAt: rec.managedPayoutsAt,
+            campaignActiveAt: rec.campaignActiveAt,
+          }));
+        }
+      }
+      if (affiliateData) {
         apiRequest("/api/affiliate/rewardful-status")
           .then((s) => setRewardfulStatus(s as RewardfulStatus))
           .catch(() => {});
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+      }
+    }).finally(() => setLoading(false));
   }, []);
 
   const copyLink = useCallback(() => {
@@ -179,7 +227,7 @@ export default function AffiliateDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex items-center justify-center">
+      <div className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} flex items-center justify-center`}>
         <div className="w-8 h-8 border-2 border-orange-400/40 border-t-orange-400 rounded-full animate-spin" />
       </div>
     );
@@ -194,7 +242,7 @@ export default function AffiliateDashboard() {
   return (
     <>
       <motion.div
-        className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black pb-32 overflow-x-hidden"
+        className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} pb-32 overflow-x-hidden`}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
       >
@@ -205,15 +253,15 @@ export default function AffiliateDashboard() {
         >
           <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
             <button
-              onClick={() => setLocation("/business-center")}
+              onClick={() => setLocation("/business-center/partners")}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
             >
               <ArrowLeft className="h-4 w-4" />
-              Business Suite
+              Partner Programs
             </button>
             <div className="flex-1 min-w-0">
-              <h1 className="text-base font-bold text-white">Affiliate Dashboard</h1>
-              <p className="text-xs text-white/40 truncate">{trackLabel}</p>
+              <h1 className="text-base font-bold text-white">Partner & Revenue Center</h1>
+              <p className="text-xs text-white/40 truncate">{partnerRecord?.partnerName ?? trackLabel}</p>
             </div>
             <button
               onClick={() => setShowInvite(true)}
@@ -325,6 +373,67 @@ export default function AffiliateDashboard() {
                 </div>
               )}
             </motion.div>
+          )}
+
+          {/* Partner Identity Card */}
+          {partnerRecord && (
+            <Card delay={0.02}>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="h-8 w-8 rounded-lg bg-orange-500/20 border border-orange-500/30 flex items-center justify-center flex-shrink-0">
+                  <Award className="h-4 w-4 text-orange-400" />
+                </div>
+                <CardLabel>Partner Identity</CardLabel>
+              </div>
+              {partnerRecord.promoCode && (
+                <div className="flex items-center justify-between gap-3 py-2.5 border-b border-white/10 mb-2">
+                  <div>
+                    <p className="text-[10px] text-gray-400 mb-0.5">Your Promo Code</p>
+                    <p className="text-sm font-black text-orange-400 tracking-widest">{partnerRecord.promoCode}</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(partnerRecord.promoCode!).then(() => {
+                        setCopiedPromo(true);
+                        setTimeout(() => setCopiedPromo(false), 2000);
+                      });
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
+                  >
+                    {copiedPromo ? <Check className="h-3.5 w-3.5 text-green-400" /> : <Copy className="h-3.5 w-3.5" />}
+                    {copiedPromo ? "Copied!" : "Copy"}
+                  </button>
+                </div>
+              )}
+              <div className="grid grid-cols-3 gap-2 mb-3">
+                {partnerRecord.customerDiscount != null && (
+                  <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-center">
+                    <p className="text-[9px] text-gray-400 mb-1">Customer Off</p>
+                    <p className="text-xl font-black text-green-400">{partnerRecord.customerDiscount}%</p>
+                  </div>
+                )}
+                {partnerRecord.commissionRate != null && (
+                  <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-center">
+                    <p className="text-[9px] text-gray-400 mb-1">Commission</p>
+                    <p className="text-xl font-black text-orange-400">{partnerRecord.commissionRate}%</p>
+                  </div>
+                )}
+                {partnerRecord.commissionMonths != null && (
+                  <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-center">
+                    <p className="text-[9px] text-gray-400 mb-1">Term</p>
+                    <p className="text-xl font-black text-white">{partnerRecord.commissionMonths === 60 ? "5 yr" : `${partnerRecord.commissionMonths} mo`}</p>
+                  </div>
+                )}
+              </div>
+              {partnerRecord.partnerTypes.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {partnerRecord.partnerTypes.map((type) => (
+                    <span key={type} className="px-2.5 py-1 rounded-full bg-orange-600/20 border border-orange-500/30 text-[10px] font-bold text-orange-300 uppercase tracking-wide">
+                      {type}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </Card>
           )}
 
           {/* Card 1 — Account Status */}
@@ -597,9 +706,26 @@ export default function AffiliateDashboard() {
             </div>
             <div className="space-y-0">
               {[
-                { label: "Commission rate", value: "30% on qualifying payments" },
-                { label: "Commission window", value: "First 24 months per customer" },
-                { label: "Customer cap", value: "None" },
+                {
+                  label: "Commission rate",
+                  value: partnerRecord?.commissionRate != null
+                    ? `${partnerRecord.commissionRate}% on qualifying payments`
+                    : "30% on qualifying payments",
+                },
+                {
+                  label: "Commission window",
+                  value: partnerRecord?.commissionMonths != null
+                    ? partnerRecord.commissionMonths === 60
+                      ? "5-year term per customer"
+                      : `First ${partnerRecord.commissionMonths} months per customer`
+                    : "First 24 months per customer",
+                },
+                {
+                  label: "Customer discount",
+                  value: partnerRecord?.promoCode
+                    ? `${partnerRecord.customerDiscount ?? 0}% off — code ${partnerRecord.promoCode}`
+                    : "N/A",
+                },
                 { label: "Paid on", value: "Active subscriptions only" },
               ].map((row) => (
                 <div key={row.label} className="flex items-start justify-between gap-4 py-2.5 border-b border-white/10 last:border-0">
@@ -609,6 +735,145 @@ export default function AffiliateDashboard() {
               ))}
             </div>
           </Card>
+
+          {/* Partner Timeline Card */}
+          {partnerRecord && (
+            <Card delay={0.175}>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="h-8 w-8 rounded-lg bg-orange-500/20 border border-orange-500/30 flex items-center justify-center flex-shrink-0">
+                  <Calendar className="h-4 w-4 text-orange-400" />
+                </div>
+                <CardLabel>Partner Timeline</CardLabel>
+              </div>
+              <div className="space-y-0">
+                {[
+                  { label: "Agreement Accepted", value: partnerRecord.acceptedAt },
+                  { label: "Rewardful Account", value: partnerRecord.rewardfulCreatedAt },
+                  { label: "Promo Code Assigned", value: partnerRecord.promoCodeAssignedAt },
+                  { label: "Org Access Activated", value: partnerRecord.orgActivatedAt },
+                  { label: "Managed Payouts", value: partnerRecord.managedPayoutsAt },
+                  { label: "Marketing Kit Ready", value: partnerRecord.marketingKitReadyAt },
+                  { label: "Campaign Live", value: partnerRecord.campaignActiveAt },
+                ].map((row) => (
+                  <div key={row.label} className="flex items-start justify-between gap-4 py-2.5 border-b border-white/10 last:border-0">
+                    <span className="text-xs text-gray-400">{row.label}</span>
+                    <span className={`text-xs font-semibold text-right ${row.value ? "text-green-400" : "text-white/25"}`}>
+                      {row.value ? formatDate(row.value) : "Pending"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          {/* Partner Playbook Card */}
+          {partnerRecord && partnerLifecycle && (
+            <Card delay={0.185}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-orange-500/20 border border-orange-500/30 flex items-center justify-center flex-shrink-0">
+                    <MapPin className="h-4 w-4 text-orange-400" />
+                  </div>
+                  <CardLabel>Partner Playbook</CardLabel>
+                </div>
+              </div>
+
+              {/* Per-track progress bars */}
+              <div className="space-y-2.5 mb-3">
+                {partnerLifecycle.tracks
+                  .filter((t) => t.totalCount > 0)
+                  .map((track) => {
+                    const pct = Math.round((track.completedCount / track.totalCount) * 100);
+                    const full = pct === 100;
+                    return (
+                      <div key={track.track}>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest">
+                            {track.label}
+                          </span>
+                          <span className={`text-xs font-black ${full ? "text-green-400" : "text-white/50"}`}>
+                            {pct}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-white/10 rounded-full h-1.5">
+                          <div
+                            className={`h-1.5 rounded-full transition-all duration-700 ${full ? "bg-green-500" : pct > 0 ? "bg-orange-500" : "bg-white/15"}`}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+
+              {/* Overall summary */}
+              <div className="flex items-center justify-between pt-2.5 border-t border-white/8 mb-4">
+                <span className="text-[10px] text-white/35 uppercase tracking-widest font-semibold">Overall</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-20 bg-white/10 rounded-full h-1">
+                    <div
+                      className="h-1 rounded-full bg-orange-500/60 transition-all duration-700"
+                      style={{ width: `${partnerLifecycle.readinessPct}%` }}
+                    />
+                  </div>
+                  <span className="text-[10px] text-white/35 font-semibold tabular-nums">
+                    {partnerLifecycle.completedMilestones.length}/{partnerLifecycle.applicableMilestones.length}
+                  </span>
+                </div>
+              </div>
+
+              {/* Per-track progress */}
+              <div className="space-y-4">
+                {partnerLifecycle.tracks.map((track) => (
+                  <div key={track.track}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <p className="text-[10px] font-bold text-orange-400 uppercase tracking-widest">{track.label}</p>
+                      {track.totalCount > 0 && (
+                        <span className="text-[10px] text-white/35">{track.completedCount}/{track.totalCount}</span>
+                      )}
+                      {track.totalCount === 0 && (
+                        <span className="text-[10px] text-white/20 italic">coming soon</span>
+                      )}
+                    </div>
+                    {track.milestones.length === 0 && (
+                      <p className="text-[10px] text-white/20 pl-1">No milestones defined yet</p>
+                    )}
+                    <div className="space-y-1.5">
+                      {track.milestones.map((m) => (
+                        <div key={m.milestone.key} className="flex items-center gap-2.5">
+                          <div className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 border ${
+                            m.complete
+                              ? "bg-green-500/20 border-green-500/40"
+                              : "bg-white/8 border-white/20"
+                          }`}>
+                            {m.complete && <Check className="h-2.5 w-2.5 text-green-400" />}
+                          </div>
+                          <span className={`text-xs flex-1 ${m.complete ? "text-white" : "text-white/40"}`}>
+                            {m.milestone.label}
+                          </span>
+                          {m.complete && m.completedAt && (
+                            <span className="text-[10px] text-white/25">{formatDate(m.completedAt)}</span>
+                          )}
+                          {!m.complete && m.milestone.key === partnerLifecycle.nextStep?.key && (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-600/20 border border-orange-500/30 text-orange-400 font-semibold">
+                              Next
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {partnerLifecycle.readinessPct === 100 && (
+                <div className="mt-4 flex items-center gap-2.5 p-3 rounded-xl bg-green-500/10 border border-green-500/25">
+                  <CheckCircle className="h-4 w-4 text-green-400 flex-shrink-0" />
+                  <p className="text-xs font-semibold text-white">All milestones complete — you're fully live.</p>
+                </div>
+              )}
+            </Card>
+          )}
 
           {/* Card 6 — Affiliate Performance */}
           <Card delay={0.19}>

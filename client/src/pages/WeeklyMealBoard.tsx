@@ -687,7 +687,7 @@ export default function WeeklyMealBoard() {
           fetchImageForMeal(meal, slot, (mealId, imageUrl) => {
             setBoard(prev => {
               if (!prev) return prev;
-              if (getMealImageUrl(prev, mealId) === imageUrl) return prev;
+              const cur = getMealImageUrl(prev, mealId); if (cur === imageUrl) return prev; if (cur && (cur.startsWith('/public-objects/') || cur.includes('amazonaws.com'))) return prev;
               const updated = updateMealImageInBoard(prev, mealId, imageUrl);
               saveBoard(updated).catch(() => {});
               return updated;
@@ -797,7 +797,7 @@ export default function WeeklyMealBoard() {
             (mealId, imageUrl) => {
               setBoard(prev => {
                 if (!prev) return prev;
-                if (getMealImageUrl(prev, mealId) === imageUrl) return prev;
+                const cur = getMealImageUrl(prev, mealId); if (cur === imageUrl) return prev; if (cur && (cur.startsWith('/public-objects/') || cur.includes('amazonaws.com'))) return prev;
                 const updated = updateMealImageInBoard(prev, mealId, imageUrl);
                 saveBoard(updated).catch(() => {});
                 return updated;
@@ -1500,7 +1500,7 @@ export default function WeeklyMealBoard() {
                             setSnackCreatorOpen(true);
                           }}
                           onSave={(meal) => { if (!checkLockedDay(activeDayISO)) quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6", meal); }}
-                          onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; if (getMealImageUrl(prev, mealId) === imageUrl) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }}
+                          onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; const cur = getMealImageUrl(prev, mealId); if (cur === imageUrl) return prev; if (cur && (cur.startsWith('/public-objects/') || cur.includes('amazonaws.com'))) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }}
                           onFavorites={goToFavorites}
                           onLogSnack={() => {}}
                           showLogSnack={false}
@@ -1555,7 +1555,7 @@ export default function WeeklyMealBoard() {
                         onCreateWithChef={() => {}}
                         onSnackCreator={() => { if (checkLockedDay(activeDayISO)) return; setSnackCreatorOpen(true); }}
                         onSave={(meal) => { if (!checkLockedDay(activeDayISO)) quickAdd("snacks", meal); }}
-                        onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; if (getMealImageUrl(prev, mealId) === imageUrl) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }}
+                        onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; const cur = getMealImageUrl(prev, mealId); if (cur === imageUrl) return prev; if (cur && (cur.startsWith('/public-objects/') || cur.includes('amazonaws.com'))) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }}
                         onFavorites={goToFavorites}
                       />
                     </div>
@@ -1608,7 +1608,7 @@ export default function WeeklyMealBoard() {
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-white/90 text-lg font-medium">{label}</h2>
                     <div className="flex gap-2">
-                      {!weekModeReadOnly && <AddOwnMealButton slot={key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6"} onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6", meal)} onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; if (getMealImageUrl(prev, mealId) === imageUrl) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }} variant="icon" />}
+                      {!weekModeReadOnly && <AddOwnMealButton slot={key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6"} onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6", meal)} onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; const cur = getMealImageUrl(prev, mealId); if (cur === imageUrl) return prev; if (cur && (cur.startsWith('/public-objects/') || cur.includes('amazonaws.com'))) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }} variant="icon" />}
                     </div>
                   </div>
                   <div className="space-y-3">

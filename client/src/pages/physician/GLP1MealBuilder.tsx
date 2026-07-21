@@ -404,7 +404,7 @@ export default function GLP1MealBuilder() {
         fetchImageForMeal({ id: snack.id, name: snack.name }, 'snacks', (mealId, imageUrl) => {
           setBoard(prev => {
             if (!prev) return prev;
-            if (getMealImageUrl(prev, mealId) === imageUrl) return prev;
+            const cur = getMealImageUrl(prev, mealId); if (cur === imageUrl) return prev; if (cur && (cur.startsWith('/public-objects/') || cur.includes('amazonaws.com'))) return prev;
             const updated = updateMealImageInBoard(prev, mealId, imageUrl);
             saveBoard(updated).catch(() => {});
             return updated;
@@ -723,7 +723,7 @@ export default function GLP1MealBuilder() {
           fetchImageForMeal(transformedMeal, slot, (mealId, imageUrl) => {
             setBoard(prev => {
               if (!prev) return prev;
-              if (getMealImageUrl(prev, mealId) === imageUrl) return prev;
+              const cur = getMealImageUrl(prev, mealId); if (cur === imageUrl) return prev; if (cur && (cur.startsWith('/public-objects/') || cur.includes('amazonaws.com'))) return prev;
               const updated = updateMealImageInBoard(prev, mealId, imageUrl);
               saveBoard(updated).catch(() => {});
               return updated;
@@ -1230,7 +1230,7 @@ export default function GLP1MealBuilder() {
                           }}
                           onSnackCreator={() => setSnackCreatorOpen(true)}
                           onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6", meal)}
-                          onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; if (getMealImageUrl(prev, mealId) === imageUrl) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }}
+                          onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; const cur = getMealImageUrl(prev, mealId); if (cur === imageUrl) return prev; if (cur && (cur.startsWith('/public-objects/') || cur.includes('amazonaws.com'))) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }}
                           onFavorites={goToFavorites}
                           onLogSnack={() => {}}
                           showLogSnack={false}
@@ -1297,7 +1297,7 @@ export default function GLP1MealBuilder() {
                         onCreateWithChef={() => {}}
                         onSnackCreator={() => setSnackCreatorOpen(true)}
                         onSave={(meal) => quickAdd("snacks", meal)}
-                        onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; if (getMealImageUrl(prev, mealId) === imageUrl) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }}
+                        onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; const cur = getMealImageUrl(prev, mealId); if (cur === imageUrl) return prev; if (cur && (cur.startsWith('/public-objects/') || cur.includes('amazonaws.com'))) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }}
                         onFavorites={goToFavorites}
                       />
                     </div>
@@ -1350,7 +1350,7 @@ export default function GLP1MealBuilder() {
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-white/90 text-lg font-medium">{label}</h2>
                   <div className="flex gap-2">
-                    <AddOwnMealButton slot={key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6"} onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6", meal)} onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; if (getMealImageUrl(prev, mealId) === imageUrl) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }} variant="icon" />
+                    <AddOwnMealButton slot={key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6"} onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6", meal)} onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; const cur = getMealImageUrl(prev, mealId); if (cur === imageUrl) return prev; if (cur && (cur.startsWith('/public-objects/') || cur.includes('amazonaws.com'))) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }} variant="icon" />
                   </div>
                 </div>
                 <div className="space-y-3">

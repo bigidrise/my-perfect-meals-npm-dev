@@ -8,11 +8,25 @@ import {
   TrendingUp,
   GraduationCap,
   ChevronRight,
+  HelpCircle,
+  Shield,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
+import { useAuth } from "@/contexts/AuthContext";
 
 const programs = [
+  {
+    id: "how-it-works",
+    title: "How Partnerships Work",
+    description:
+      "Understand promo codes, referral links, commissions, customer discounts, and the four partnership models before choosing a path.",
+    icon: HelpCircle,
+    route: "/business-center/how-partnerships-work",
+    accent: "bg-orange-500/20",
+    iconColor: "text-orange-400",
+    border: "border-orange-500/30",
+  },
   {
     id: "founding-partner",
     title: "Founding Business Partner Program",
@@ -59,9 +73,9 @@ const programs = [
   },
   {
     id: "partner-program",
-    title: "Partner Program (Affiliate)",
+    title: "Partner & Revenue Center",
     description:
-      "Earn recurring commissions by referring subscribers to My Perfect Meals.",
+      "Access your promo code, referral link, QR code, commission terms, and partner performance tools.",
     icon: TrendingUp,
     route: "/business-center/affiliate",
     accent: "bg-white/8",
@@ -83,6 +97,7 @@ const programs = [
 
 export default function PartnerProgramsHub() {
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
 
   return (
     <motion.div
@@ -155,6 +170,33 @@ export default function PartnerProgramsHub() {
             </motion.button>
           );
         })}
+
+        {/* Admin-only: Partner Management */}
+        {user?.isAdmin && (
+          <motion.button
+            className="w-full text-left p-4 rounded-2xl bg-black/50 border border-orange-500/40 active:scale-[0.98] transition-all duration-200"
+            onClick={() => setLocation("/business-center/partners/manage")}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: programs.length * 0.06 }}
+          >
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-xl bg-orange-500/20 flex-shrink-0">
+                <Shield className="h-5 w-5 text-orange-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <h3 className="text-sm font-semibold text-white leading-snug">Partner Management</h3>
+                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-orange-600/30 border border-orange-500/40 text-orange-400 font-bold uppercase tracking-wide">Admin</span>
+                </div>
+                <p className="text-xs text-white/50 leading-relaxed">
+                  Configure partner capabilities, lifecycle milestones, commission terms, and activity log.
+                </p>
+              </div>
+              <ChevronRight className="h-4 w-4 text-white/30 flex-shrink-0" />
+            </div>
+          </motion.button>
+        )}
       </div>
     </motion.div>
   );
