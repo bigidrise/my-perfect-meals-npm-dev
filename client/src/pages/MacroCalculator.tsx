@@ -1541,7 +1541,6 @@ export default function MacroCounter() {
               {coachMuted ? "🔇" : "🔊"}
               <span className="hidden sm:inline">{coachMuted ? "Coach Off" : "Coach On"}</span>
             </button>
-            <MedicalSourcesInfo asIconButton />
             <QuickTourButton onClick={quickTour.openTour} />
           </div>
         </div>
@@ -3909,87 +3908,80 @@ export default function MacroCounter() {
                 </CardContent>
               </Card>
 
-              {results && (
-                <WaistRiskSection
-                  waistCm={waistCm}
-                  heightCm={cm}
-                  baseTargets={{
-                    protein: results.macros.protein.g,
-                    carbs: results.macros.carbs.g,
-                    fat: results.macros.fat.g,
-                  }}
-                  onApplyAdjustments={(deltas) => {
-                    setAdvisorySources((prev) => ({
-                      ...prev,
-                      waistRisk: deltas,
-                    }));
-                    toast({
-                      title: "Adjustments Applied",
-                      description:
-                        "Waist risk adjustments have been applied to your macros.",
-                    });
-                  }}
-                  onClearAdjustments={() => {
-                    setAdvisorySources((prev) => ({
-                      ...prev,
-                      waistRisk: null,
-                    }));
-                    toast({
-                      title: "Adjustment Cleared",
-                      description:
-                        "Waist risk adjustments have been removed.",
-                    });
-                  }}
-                />
-              )}
+              <WaistRiskSection
+                waistCm={waistCm}
+                heightCm={cm}
+                baseTargets={{
+                  protein: results?.macros.protein.g ?? 0,
+                  carbs: results?.macros.carbs.g ?? 0,
+                  fat: results?.macros.fat.g ?? 0,
+                }}
+                onApplyAdjustments={(deltas) => {
+                  setAdvisorySources((prev) => ({
+                    ...prev,
+                    waistRisk: deltas,
+                  }));
+                  toast({
+                    title: "Adjustments Applied",
+                    description:
+                      "Waist risk adjustments have been applied to your macros.",
+                  });
+                }}
+                onClearAdjustments={() => {
+                  setAdvisorySources((prev) => ({
+                    ...prev,
+                    waistRisk: null,
+                  }));
+                  toast({
+                    title: "Adjustment Cleared",
+                    description:
+                      "Waist risk adjustments have been removed.",
+                  });
+                }}
+              />
 
               {/* Metabolic & Hormonal Considerations - V1 Clinical Advisory */}
-              {results && (
-                <MetabolicConsiderations
-                  baseTargets={{
-                    protein: results.macros.protein.g,
-                    carbs: results.macros.carbs.g,
-                    fat: results.macros.fat.g,
-                  }}
-                  onFlagsChange={(flags) => setClinicalFlags(flags)}
-                  onApplyAdjustments={(deltas) => {
-                    setAdvisorySources((prev) => ({
-                      ...prev,
-                      metabolic: deltas,
-                    }));
-                    toast({
-                      title: "Adjustments Applied",
-                      description:
-                        "Your macro targets have been fine-tuned based on your metabolic considerations.",
-                    });
-                  }}
-                />
-              )}
+              <MetabolicConsiderations
+                baseTargets={{
+                  protein: results?.macros.protein.g ?? 0,
+                  carbs: results?.macros.carbs.g ?? 0,
+                  fat: results?.macros.fat.g ?? 0,
+                }}
+                onFlagsChange={(flags) => setClinicalFlags(flags)}
+                onApplyAdjustments={(deltas) => {
+                  setAdvisorySources((prev) => ({
+                    ...prev,
+                    metabolic: deltas,
+                  }));
+                  toast({
+                    title: "Adjustments Applied",
+                    description:
+                      "Your macro targets have been fine-tuned based on your metabolic considerations.",
+                  });
+                }}
+              />
 
               {/* Body Composition - affects starchy carb allocation */}
-              {results && (
-                <BodyCompositionSection
-                  onApplyAdjustments={(deltas) => {
-                    setAdvisorySources((prev) => ({
-                      ...prev,
-                      bodyComposition: deltas,
-                    }));
-                    toast({
-                      title: "Adjustments Applied",
-                      description:
-                        "Your macro targets have been adjusted based on your body composition.",
-                    });
-                  }}
-                />
-              )}
+              <BodyCompositionSection
+                onApplyAdjustments={(deltas) => {
+                  setAdvisorySources((prev) => ({
+                    ...prev,
+                    bodyComposition: deltas,
+                  }));
+                  toast({
+                    title: "Adjustments Applied",
+                    description:
+                      "Your macro targets have been adjusted based on your body composition.",
+                  });
+                }}
+              />
 
-              {/* Results - Only show when activity is selected */}
-              {results && (
-                <>
-                  <Card
-                    data-testid="macro-results"
-                    className="bg-zinc-900/80 border border-white/30 text-white"
-                  >
+              {/* Daily Macro Targets */}
+              {results ? (
+                <Card
+                  data-testid="macro-results"
+                  className="bg-zinc-900/80 border border-white/30 text-white"
+                >
                     <CardContent className="p-5">
                       <h3 className="text-lg font-semibold flex items-center mb-2">
                         <Target className="h-5 w-5 mr-2 text-emerald-300" />{" "}
@@ -4084,10 +4076,22 @@ export default function MacroCounter() {
                         {isSaving ? "Updating..." : isDirty ? "Update Macros" : "Saved"}
                       </Button>
                     </CardContent>
-                  </Card>
+                </Card>
+              ) : (
+                <Card data-testid="macro-results" className="bg-zinc-900/80 border border-white/30 text-white">
+                  <CardContent className="p-5">
+                    <h3 className="text-lg font-semibold flex items-center mb-2">
+                      <Target className="h-5 w-5 mr-2 text-emerald-300" /> Your Daily Macro Targets
+                    </h3>
+                    <div className="py-8 text-center text-white/40 text-sm">
+                      {resultsLoading ? "Calculating your targets…" : "Fill in your details above to see your macro targets."}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
-                  {/* Starch Meal Strategy - Your Starch Game Plan */}
-                  <Card className="bg-zinc-900/80 border border-amber-500/30 text-white">
+              {/* Starch Meal Strategy - Your Starch Game Plan */}
+              <Card className="bg-zinc-900/80 border border-amber-500/30 text-white">
                     <CardContent className="p-5">
                       <h3 className="text-lg font-semibold flex items-center mb-3">
                         <span className="text-amber-400 mr-2">🌾</span> Your
@@ -4167,27 +4171,28 @@ export default function MacroCounter() {
                             : "AI places starch intelligently based on your meal plan context."}
                         </p>
                       </div>
-                    </CardContent>
-                  </Card>
+                  </CardContent>
+              </Card>
 
-                  {estimatedBodyFat && (
-                    <Card className="bg-zinc-900/80 border border-orange-500/30 text-white">
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="text-xs text-white/60">Estimated Body Fat</div>
-                            <div className="text-xl font-bold text-orange-400">{estimatedBodyFat}%</div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-xs text-white/40">Deurenberg + Waist hybrid</div>
-                            <div className="text-xs text-white/30">Saved when you confirm macros</div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
+              {estimatedBodyFat && (
+                <Card className="bg-zinc-900/80 border border-orange-500/30 text-white">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-xs text-white/60">Estimated Body Fat</div>
+                        <div className="text-xl font-bold text-orange-400">{estimatedBodyFat}%</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs text-white/40">Deurenberg + Waist hybrid</div>
+                        <div className="text-xs text-white/30">Saved when you confirm macros</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
-                  {/* Save Targets - Two Options */}
+              {results && (
+              <>{/* Save Targets - Two Options */}
                   <div className="flex flex-col gap-3">
                     {/* Secondary: Save & Go to Biometrics (restores original flow for weight sync) */}
                     <Button
