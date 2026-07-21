@@ -708,7 +708,7 @@ router.post("/certifications/marketing-coaching/notify-waitlist", requireEmailSe
   }
 
   const actor = (req as AuthenticatedRequest).authUser;
-  const APP_URL = process.env.APP_URL || "https://app.myperfectmeals.com";
+  const APP_URL = process.env.PUBLIC_APP_URL || process.env.APP_URL || "https://app.myperfectmeals.ai";
   const force = req.query.force === "true";
   const claimTime = new Date();
 

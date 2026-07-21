@@ -439,6 +439,9 @@ async function initializeApp() {
         normalizedOrigin === "https://myperfectmeals.com" ||
         normalizedOrigin === "https://www.myperfectmeals.com" ||
         normalizedOrigin === "https://app.myperfectmeals.com" ||
+        normalizedOrigin === "https://myperfectmeals.ai" ||
+        normalizedOrigin === "https://www.myperfectmeals.ai" ||
+        normalizedOrigin === "https://app.myperfectmeals.ai" ||
         // Capacitor / Ionic native origins
         normalizedOrigin === "https://localhost" || // Android Capacitor
         normalizedOrigin === "http://localhost" || // Android fallback

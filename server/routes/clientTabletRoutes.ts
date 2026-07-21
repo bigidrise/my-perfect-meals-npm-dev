@@ -215,7 +215,7 @@ router.post("/message", async (req: Request, res: Response) => {
         coachName,
         clientName,
         messagePreview: body.trim(),
-        portalUrl: "https://app.myperfectmeals.com/pro/clients",
+        portalUrl: `${process.env.PUBLIC_APP_URL || "https://app.myperfectmeals.ai"}/pro/clients`,
       });
     } catch (err) {
       console.warn("[CoachAlert] Non-fatal email error:", err);
@@ -323,7 +323,7 @@ router.post("/voice-message", upload.single("audio"), async (req: Request, res: 
         coachName,
         clientName,
         messagePreview: "🎤 Sent you a voice message",
-        portalUrl: "https://app.myperfectmeals.com/pro/clients",
+        portalUrl: `${process.env.PUBLIC_APP_URL || "https://app.myperfectmeals.ai"}/pro/clients`,
       });
     } catch (err) {
       console.warn("[CoachAlert] Non-fatal email error:", err);

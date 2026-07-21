@@ -187,7 +187,7 @@ export async function sendCareTeamInvite({
     : 'ProCare is the system your trainer uses to guide your nutrition, training support, and progress.';
   const ctaText = isClinic ? 'Join ProCare Clinic' : 'Join ProCare Studio';
 
-  const APP_URL = 'https://app.myperfectmeals.com';
+  const APP_URL = process.env.PUBLIC_APP_URL || 'https://app.myperfectmeals.ai';
 
   try {
     const { data, error } = await resend.emails.send({
@@ -295,7 +295,7 @@ export async function sendCoachMessageAlert({
       html: `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #000; border-radius: 16px; overflow: hidden;">
           <div style="background: linear-gradient(135deg, #000000 0%, #F97316 50%, #000000 100%); padding: 32px 24px; text-align: center;">
-            <img src="https://app.myperfectmeals.com/icons/icon-192x192.png" alt="My Perfect Meals" style="width: 64px; height: 64px; border-radius: 14px; margin-bottom: 12px;" />
+            <img src="${process.env.PUBLIC_APP_URL || 'https://app.myperfectmeals.ai'}/icons/icon-192x192.png" alt="My Perfect Meals" style="width: 64px; height: 64px; border-radius: 14px; margin-bottom: 12px;" />
             <h1 style="color: #fff; margin: 0; font-size: 22px; font-weight: 700;">New Client Message</h1>
             <p style="color: rgba(255,255,255,0.75); margin: 6px 0 0; font-size: 14px;">My Perfect Meals — ProCare</p>
           </div>
