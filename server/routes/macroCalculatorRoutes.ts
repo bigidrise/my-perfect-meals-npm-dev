@@ -18,8 +18,8 @@ const router = Router();
 
 const VALID_GOALS = new Set(["loss", "maint", "gain"]);
 const VALID_SEX = new Set(["male", "female"]);
-const VALID_BODY_TYPE = new Set(["ecto", "meso", "endo"]);
-const VALID_USER_TYPE = new Set(["general", "committed", "athlete"]);
+const VALID_BODY_TYPE = new Set(["ecto", "meso", "endo", "mix"]);
+const VALID_USER_TYPE = new Set(["flexible", "consistent", "performance"]);
 const VALID_CUT_INTENSITY = new Set(["hard", "moderate", "none"]);
 const VALID_CUT_STYLE = new Set(["balanced", "lowCarb"]);
 const VALID_ACTIVITY = new Set(["sedentary", "light", "moderate", "very", "extra"]);
