@@ -25,14 +25,24 @@ interface PartnerRecord {
   userId: string;
   partnerName: string | null;
   partnerTypes: string[];
+  partnerTier: string | null;
+  contactName: string | null;
   promoCode: string | null;
+  promoCodeSecondary: string | null;
   customerDiscount: number | null;
+  discountDurationMonths: number | null;
   commissionRate: number | null;
   commissionMonths: number | null;
+  commissionPendingDays: number | null;
+  minimumPayoutCents: number | null;
+  cookieDurationDays: number | null;
   stripePromotionCodeId: string | null;
   rewardfulAffiliateId: string | null;
+  referralCampaignName: string | null;
+  managedPayoutsStatus: string | null;
   status: string;
   notes: string | null;
+  adminNote: string | null;
   acceptedAt: string | null;
   rewardfulCreatedAt: string | null;
   promoCodeAssignedAt: string | null;
@@ -103,7 +113,7 @@ export default function PartnerManagement() {
     partnerName: "",
     partnerTypes: [] as string[],
     commissionRate: 40,
-    commissionMonths: 60,
+    commissionMonths: 48,
     customerDiscount: 10,
     notes: "",
   });
@@ -263,7 +273,7 @@ export default function PartnerManagement() {
         >
           <input
             className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-orange-400 placeholder-white/30 mb-1 uppercase"
-            placeholder="e.g. METROPLEX"
+            placeholder="e.g. METROFLEX"
             value={actionInputs["promoCode"] ?? ""}
             onChange={(e) => setActionInputs((p) => ({ ...p, promoCode: e.target.value.toUpperCase() }))}
           />
@@ -576,12 +586,98 @@ export default function PartnerManagement() {
               </div>
             )}
 
-            {/* Commission terms */}
+            {/* Admin note — warning banner */}
+            {partnerRecord.adminNote && (
+              <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30">
+                <Shield className="h-4 w-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-200 leading-relaxed">{partnerRecord.adminNote}</p>
+              </div>
+            )}
+
+            {/* Partner Identity */}
+            <SectionCard icon={<User className="h-4 w-4 text-orange-400" />} title="Partner Identity">
+              {/* Tier + Contact */}
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                {partnerRecord.partnerTier && (
+                  <div className="px-3 py-2 rounded-xl bg-orange-600/15 border border-orange-500/25">
+                    <p className="text-[9px] text-orange-400/70 uppercase tracking-widest mb-0.5">Tier</p>
+                    <p className="text-xs font-bold text-orange-300">{partnerRecord.partnerTier}</p>
+                  </div>
+                )}
+                {partnerRecord.contactName && (
+                  <div className="px-3 py-2 rounded-xl bg-white/5 border border-white/10">
+                    <p className="text-[9px] text-white/40 uppercase tracking-widest mb-0.5">Contact</p>
+                    <p className="text-xs font-semibold text-white">{partnerRecord.contactName}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Campaign */}
+              {partnerRecord.referralCampaignName && (
+                <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 border border-white/10 mb-2">
+                  <span className="text-[10px] text-white/40 uppercase tracking-widest">Campaign</span>
+                  <span className="text-xs text-white/80 font-medium">{partnerRecord.referralCampaignName}</span>
+                </div>
+              )}
+
+              {/* Status badges */}
+              <div className="space-y-1.5 mb-3">
+                {[
+                  { label: "Partner Setup", value: partnerRecord.status === "active" ? "Active" : partnerRecord.status, active: partnerRecord.status === "active" },
+                  { label: "Organization Access", value: partnerRecord.orgActivatedAt ? "Active" : "Pending", active: !!partnerRecord.orgActivatedAt },
+                  { label: "Referral Tracking", value: partnerRecord.rewardfulCreatedAt ? "Active" : "Pending", active: !!partnerRecord.rewardfulCreatedAt },
+                  { label: "Customer Promo Code", value: partnerRecord.promoCodeAssignedAt ? "Active" : "Pending", active: !!partnerRecord.promoCodeAssignedAt },
+                  { label: "Managed Payouts", value: partnerRecord.managedPayoutsStatus === "pending" ? "Pending Approval" : partnerRecord.managedPayoutsStatus === "active" ? "Active" : "Not Applicable", active: partnerRecord.managedPayoutsStatus === "active" },
+                ].map((s) => (
+                  <div key={s.label} className="flex items-center justify-between px-3 py-2 rounded-lg bg-white/4 border border-white/8">
+                    <span className="text-[10px] text-white/50">{s.label}</span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${s.active ? "bg-green-500/15 text-green-400" : "bg-white/8 text-white/40"}`}>
+                      {s.value}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Primary promo code — prominent */}
+              {partnerRecord.promoCode && (
+                <div className="mb-2 p-3 rounded-xl bg-orange-600/15 border border-orange-500/30 text-center">
+                  <p className="text-[9px] text-orange-400/60 uppercase tracking-widest mb-1">Primary Promo Code</p>
+                  <p className="text-2xl font-black text-orange-400 tracking-widest">{partnerRecord.promoCode}</p>
+                  {partnerRecord.customerDiscount && (
+                    <p className="text-[10px] text-orange-300/60 mt-0.5">
+                      {partnerRecord.customerDiscount}% off
+                      {partnerRecord.discountDurationMonths ? ` · first ${partnerRecord.discountDurationMonths} months` : ""}
+                      {" · new customers only"}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Secondary code */}
+              {partnerRecord.promoCodeSecondary && (
+                <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 border border-white/10 mb-2">
+                  <span className="text-[10px] text-white/40">Secondary Code (Rewardful-generated)</span>
+                  <span className="text-xs font-mono font-bold text-white/60 tracking-widest">{partnerRecord.promoCodeSecondary}</span>
+                </div>
+              )}
+
+              {/* Referral token + URL */}
+              {partnerRecord.rewardfulAffiliateId && (
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 border border-white/10">
+                    <span className="text-[10px] text-white/40">Rewardful UUID</span>
+                    <span className="text-[10px] font-mono text-white/50">{partnerRecord.rewardfulAffiliateId}</span>
+                  </div>
+                </div>
+              )}
+            </SectionCard>
+
+            {/* Commission Terms — expanded */}
             <SectionCard icon={<DollarSign className="h-4 w-4 text-orange-400" />} title="Commission Terms">
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 gap-2 mb-3">
                 {[
                   { label: "Commission", value: partnerRecord.commissionRate != null ? `${partnerRecord.commissionRate}%` : "—" },
-                  { label: "Term", value: partnerRecord.commissionMonths === 60 ? "5 yr" : partnerRecord.commissionMonths ? `${partnerRecord.commissionMonths} mo` : "—" },
+                  { label: "Term", value: partnerRecord.commissionMonths != null ? `${partnerRecord.commissionMonths} mo` : "—" },
                   { label: "Customer Off", value: partnerRecord.customerDiscount != null ? `${partnerRecord.customerDiscount}%` : "—" },
                 ].map((s) => (
                   <div key={s.label} className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-center">
@@ -590,18 +686,19 @@ export default function PartnerManagement() {
                   </div>
                 ))}
               </div>
-              {partnerRecord.promoCode && (
-                <div className="mt-3 flex items-center justify-between px-3 py-2.5 rounded-xl bg-orange-600/10 border border-orange-500/20">
-                  <span className="text-xs text-white/50">Promo Code</span>
-                  <span className="text-sm font-black text-orange-400 tracking-widest">{partnerRecord.promoCode}</span>
-                </div>
-              )}
-              {partnerRecord.rewardfulAffiliateId && (
-                <div className="mt-2 flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 border border-white/10">
-                  <span className="text-xs text-white/50">Rewardful ID</span>
-                  <span className="text-xs font-mono text-white/70">{partnerRecord.rewardfulAffiliateId}</span>
-                </div>
-              )}
+              <div className="space-y-1.5">
+                {[
+                  { label: "Discount Duration", value: partnerRecord.discountDurationMonths ? `First ${partnerRecord.discountDurationMonths} months` : "—" },
+                  { label: "Commission Pending Period", value: partnerRecord.commissionPendingDays ? `${partnerRecord.commissionPendingDays} days` : "—" },
+                  { label: "Minimum Payout", value: partnerRecord.minimumPayoutCents ? `$${(partnerRecord.minimumPayoutCents / 100).toFixed(0)}` : "—" },
+                  { label: "Referral Cookie", value: partnerRecord.cookieDurationDays ? `${partnerRecord.cookieDurationDays} days` : "—" },
+                ].map((s) => (
+                  <div key={s.label} className="flex items-center justify-between px-3 py-2 rounded-lg bg-white/4 border border-white/8">
+                    <span className="text-[10px] text-white/40">{s.label}</span>
+                    <span className="text-[10px] font-semibold text-white/70">{s.value}</span>
+                  </div>
+                ))}
+              </div>
             </SectionCard>
 
             {/* Activity log */}
