@@ -121,8 +121,11 @@ router.patch("/admin/records/:userId", requireAuth, requireAdmin, async (req, re
     const updates: Record<string, unknown> = { updatedAt: new Date() };
     const timestampFields = ["acceptedAt","rewardfulCreatedAt","promoCodeAssignedAt","orgActivatedAt",
       "managedPayoutsAt","marketingKitReadyAt","campaignActiveAt"];
-    const allowed = ["partnerName","partnerTypes","promoCode","customerDiscount","commissionRate",
-      "commissionMonths","stripePromotionCodeId","rewardfulAffiliateId","status","notes", ...timestampFields];
+    const allowed = ["partnerName","partnerTypes","promoCode","promoCodeSecondary","customerDiscount",
+      "discountDurationMonths","commissionRate","commissionMonths","commissionPendingDays",
+      "minimumPayoutCents","cookieDurationDays","stripePromotionCodeId","rewardfulAffiliateId",
+      "referralCampaignName","managedPayoutsStatus","partnerTier","contactName",
+      "status","notes","adminNote", ...timestampFields];
     for (const key of allowed) {
       if (key in req.body) {
         updates[key] = timestampFields.includes(key) ? (req.body[key] ? new Date(req.body[key]) : null) : req.body[key];
