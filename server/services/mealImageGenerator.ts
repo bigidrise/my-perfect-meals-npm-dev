@@ -563,22 +563,20 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
   // sourceType is included in the cache key so food/beverage/etc. never share entries.
   const cacheKey = buildStableCacheKey(mealName, ingredients, sourceType);
 
-  // Snack firewall removed — all meal types now receive real AI-generated images.
-
   const _t0 = Date.now();
-  console.log(`⏱️ [IMG] START ${mealName}`);
+  // Unique trace ID per generation attempt — correlates all log lines for one request.
+  const traceId = crypto.randomBytes(4).toString('hex');
+  console.log(`[IMG-LIFECYCLE:${traceId}] START | meal="${mealName}" | sourceType="${sourceType ?? 'inferred'}" | cacheKey=${cacheKey}`);
 
   // ── LAYER 3: CHECK IN-MEMORY CACHE ─────────────────────────────────────────
   const memHit = memCache.get(cacheKey);
   if (memHit) {
-    // Guard: if a temp URL somehow made it into memCache, evict it and regenerate.
-    // Temp URLs (openai.com, azure blob) expire in ~1 hour — serving them from
-    // cache guarantees a broken image after expiry.
     if (isTempUrl(memHit)) {
-      console.warn(`⚠️ Evicting stale temp URL from memCache for: ${mealName}`);
+      console.warn(`[IMG-LIFECYCLE:${traceId}] MEM-CACHE EVICT (temp URL) | meal="${mealName}"`);
       memCache.delete(cacheKey);
     } else {
-      console.log(`⚡ Memory cache hit for: ${mealName}`);
+      const urlType = memHit.startsWith('data:') ? 'base64-ephemeral' : isS3Url(memHit) ? 'permanent' : 'unknown';
+      console.log(`[IMG-LIFECYCLE:${traceId}] MEM-CACHE HIT | urlType=${urlType} | meal="${mealName}" | +${Date.now()-_t0}ms`);
       return {
         url: memHit,
         prompt: "(memory cache)",
@@ -590,7 +588,7 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
   }
 
   // ── LAYER 3: CHECK DB CACHE ─────────────────────────────────────────────────
-  console.log(`⏱️ [IMG] DB-check start +${Date.now()-_t0}ms`);
+  console.log(`[IMG-LIFECYCLE:${traceId}] DB-CHECK | +${Date.now()-_t0}ms`);
   try {
     const [dbRow] = await db
       .select({ imageUrl: mealImageCache.imageUrl, promptUsed: mealImageCache.promptUsed })
@@ -600,7 +598,7 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
 
     if (dbRow) {
       if (isS3Url(dbRow.imageUrl)) {
-        console.log(`🗄️ DB cache hit (S3) for: ${mealName}`);
+        console.log(`[IMG-LIFECYCLE:${traceId}] DB-CACHE HIT (permanent) | meal="${mealName}" | +${Date.now()-_t0}ms`);
         memCache.set(cacheKey, dbRow.imageUrl);
         return {
           url: dbRow.imageUrl,
@@ -610,7 +608,7 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
           createdAt: new Date().toISOString(),
         };
       } else {
-        console.warn(`⚠️ Stale temp URL in DB cache for "${mealName}" — deleting and regenerating`);
+        console.warn(`[IMG-LIFECYCLE:${traceId}] DB-CACHE EVICT (stale temp URL) | meal="${mealName}"`);
         try {
           await db.delete(mealImageCache).where(eq(mealImageCache.cacheKey, cacheKey));
         } catch {}
@@ -631,7 +629,7 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
 
   // ── LAYER 1: CALL DALL-E WITH TIMEOUT ──────────────────────────────────────
   let imageUrl: string | null = null;
-  console.log(`⏱️ [IMG] OpenAI call start +${Date.now()-_t0}ms`);
+  console.log(`[IMG-LIFECYCLE:${traceId}] DALLE-START | +${Date.now()-_t0}ms`);
 
   try {
     const response = await withTimeout(
@@ -648,7 +646,8 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
     const item = response.data?.[0];
     if (item?.url) imageUrl = item.url;
     else if (item?.b64_json) imageUrl = `data:image/png;base64,${item.b64_json}`;
-    console.log(`⏱️ [IMG] OpenAI call done +${Date.now()-_t0}ms`);
+    const dalleUrlType = imageUrl?.startsWith('data:') ? 'base64' : imageUrl ? 'url' : 'null';
+    console.log(`[IMG-LIFECYCLE:${traceId}] DALLE-DONE | urlType=${dalleUrlType} | +${Date.now()-_t0}ms`);
   } catch (dalleErr: any) {
     console.warn(`⚠️ DALL-E failed for "${mealName}": ${dalleErr.message} +${Date.now()-_t0}ms`);
   }
@@ -672,7 +671,7 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
   // a small, persistent S3 URL — never a base64 blob. This is critical for
   // localStorage persistence across navigation (base64 is ~2MB and silently
   // fails the localStorage quota write, losing the image on next page load).
-  console.log(`📦 Uploading to S3 for: ${mealName} +${Date.now()-_t0}ms`);
+  console.log(`[IMG-LIFECYCLE:${traceId}] STORAGE-START | +${Date.now()-_t0}ms`);
   try {
     const ingestionResult = await ingestImageToPermanentStorage(imageUrl, mealName);
     if (ingestionResult.success && ingestionResult.permanentUrl) {
@@ -690,6 +689,7 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
         console.warn(`⚠️ DB write failed for "${mealName}":`, dbErr);
       }
       memCache.set(cacheKey, s3Url);
+      console.log(`[IMG-LIFECYCLE:${traceId}] STORAGE-DONE (permanent) | url=${s3Url.substring(0, 60)} | +${Date.now()-_t0}ms`);
       return {
         url: s3Url,
         prompt,
@@ -698,19 +698,20 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
         createdAt: new Date().toISOString(),
       };
     } else {
-      console.warn(`⚠️ S3 upload failed for "${mealName}" — returning base64 as fallback: ${ingestionResult.error ?? 'unknown'}`);
+      console.warn(`[IMG-LIFECYCLE:${traceId}] STORAGE-FAIL | reason=${ingestionResult.error ?? 'unknown'} | meal="${mealName}"`);
     }
   } catch (uploadErr: any) {
-    console.warn(`⚠️ S3 upload threw for "${mealName}": ${uploadErr.message}`);
+    console.warn(`[IMG-LIFECYCLE:${traceId}] STORAGE-THREW | msg=${uploadErr.message?.substring(0, 80)} | meal="${mealName}"`);
   }
 
-  // S3 failed. Only cache base64 data URIs in memCache — they are self-contained and safe
-  // to serve for the duration of this server process. Never cache ephemeral https:// URLs
-  // from OpenAI/Azure: they expire in ~1 hour and would appear broken on next load.
+  // Both S3 and GCS failed — image is EPHEMERAL (base64 in memCache only).
+  // WARNING: On server restart or memCache eviction, the next request for this
+  // meal will call DALL-E again and may return a different image.
   if (imageUrl.startsWith('data:')) {
     memCache.set(cacheKey, imageUrl);
+    console.warn(`[IMG-LIFECYCLE:${traceId}] STORAGE-FALLBACK | urlType=base64-ephemeral | meal="${mealName}" | +${Date.now()-_t0}ms — IMAGE WILL DIFFER AFTER SERVER RESTART`);
   } else {
-    console.warn(`⚠️ S3 failed and imageUrl is ephemeral for "${mealName}" — skipping memCache to force re-generation on next request`);
+    console.warn(`[IMG-LIFECYCLE:${traceId}] STORAGE-FALLBACK | urlType=ephemeral-url | meal="${mealName}" — skipping memCache, will regenerate on next request`);
   }
   return {
     url: imageUrl,
