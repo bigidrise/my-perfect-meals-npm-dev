@@ -2,6 +2,13 @@ import { useCallback } from "react";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 
+function resolveSourceType(mealType: string): string {
+  const t = mealType.toLowerCase();
+  if (t === "beverage" || t === "drink" || t === "hydration") return "beverage";
+  if (t === "snack" || t === "snacks") return "snack";
+  return "meal";
+}
+
 export function useChefMealImage() {
   const fetchImageForMeal = useCallback(async (
     meal: { id: string; name: string; ingredients?: any[] },
@@ -9,9 +16,8 @@ export function useChefMealImage() {
     onImageReady: (mealId: string, imageUrl: string) => void,
     dietType?: string
   ) => {
-    // Normalize plural 'snacks' → 'snack' so the server image pipeline
-    // routes correctly through the snack-aware path
     const normalizedMealType = mealType === 'snacks' ? 'snack' : mealType;
+    const sourceType = resolveSourceType(normalizedMealType);
 
     try {
       const res = await fetch(apiUrl("/api/meals/generate-image"), {
@@ -21,6 +27,7 @@ export function useChefMealImage() {
         body: JSON.stringify({
           mealName: meal.name,
           mealType: normalizedMealType,
+          sourceType,
           dietType,
           ingredients: meal.ingredients || [],
         }),
