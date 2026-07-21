@@ -2,21 +2,21 @@
 // Uses the same 11L voice system as Chef's Kitchen and ProTip
 
 export const MACRO_CALC_ENTRY =
-  "Hey, nice to meet you. If you're looking for the perfect meal, you're in the right place. I'm Chef Copilot, and I'm going to walk you through the Macro Calculator. Together we'll set up your numbers so everything in this app is built around your goals. Tap Start when you're ready.";
+  "Welcome! Before we dive in, here's what to know. This calculator builds your personal nutrition plan — your daily calories, protein, carbs, and healthy fats — in about 3 to 5 minutes. You'll answer around 10 questions. Grab a flexible tape measure if you have one, because we'll ask for your waist size — it's the most important measurement we take. Your current weight and height are all you need. When you're ready, tap Let's Get Started.";
 
 export const MACRO_CALC_GOAL =
-  "What's your goal? Choose Cut if you're working on fat loss. Maintain to hold your current weight. Build if you're adding muscle. Or Contest Prep. That is our competition protocol. It activates a special metabolic mode with high protein, very low starchy carbs, and lean-source-only settings that carry over into every meal generator in the app.";
+  "First, what are you trying to do? Choose Lose Fat if you want to drop body weight. Maintain Weight to hold where you are. Build Muscle if you're trying to add size and strength. Or Contest Prep — that's our competition protocol. It activates a special metabolic mode with high protein, very low starchy carbs, and lean-source-only settings that carry into every meal generator in the app.";
 
 export const MACRO_CALC_COMMITMENT_LEVEL =
-  "Next, tell me your commitment level. General means you're an everyday eater looking for realistic, sustainable targets. Committed means you're a consistent gym-goer or dieter and want more structured numbers. Athlete means performance is your priority, we'll push protein to its maximum regardless of your goal. Pick the one that best describes where you are right now.";
+  "Next, tell me your commitment level. General means you're an everyday eater looking for realistic, sustainable targets. Committed means you're a consistent gym-goer or dieter and want more structured numbers. Athlete means performance is your priority — we'll push protein to its maximum regardless of your goal. Pick the one that best describes where you are right now.";
 
 export const MACRO_CALC_BODY_TYPE =
-  "Are you an ectomorph, mesomorph, or an endomorph? If you're not sure, tap the body type guide button below to see which category you fit in.";
+  "Which description best matches your natural tendency? Naturally Lean means you've always been on the thinner side and struggle to gain weight. Naturally Athletic means you build muscle and lose fat fairly easily with training. Naturally Fuller Build means you gain body weight more readily and fat loss can take more effort. Combination Build is for those who share traits from more than one. Most people are a mix — just pick the one that fits you best right now.";
 
 export const MACRO_CALC_UNITS =
-  "Do you use imperial system, the (U.S) or metric system?";
+  "Do you use imperial system, the U.S. standard, or metric system?";
 
-export const MACRO_CALC_SEX = "What is your biological sex male or female?";
+export const MACRO_CALC_SEX = "What is your biological sex, male or female? This is used only for the metabolic formula — it affects how we calculate your calorie burn and protein targets.";
 
 export const MACRO_CALC_AGE = "What's your age?";
 
@@ -25,19 +25,19 @@ export const MACRO_CALC_HEIGHT = "How tall are you?";
 export const MACRO_CALC_WEIGHT = "What's your current weight?";
 
 export const MACRO_CALC_WAIST =
-  "Next we measure your waist circumference. This is one of the most important indicators of metabolic health. Scientists often use a rule called the waist-to-height ratio. Ideally your waist should be less than half your height. If your ratio is higher, the system may recommend slightly lower carbohydrates to support metabolic health. This measurement helps My Perfect Meals personalize your nutrition plan.";
+  "Now we need your waist circumference. This is one of the most important measurements we take — your waist size tells us about body composition and where you tend to carry weight, which the scale alone can't provide. Wrap a soft tape measure around your midsection at the level of your belly button. If your ratio is higher than ideal, the system may recommend slightly fewer starchy carbs to support your metabolic health.";
 
 export const MACRO_CALC_ACTIVITY =
-  "How active are you? Sedentary, lightly active, moderately active, very active, or athlete level?";
+  "How active are you? This is the biggest variable in your plan — it determines how many calories your body burns daily. Sedentary means mostly sitting. Light is 1 to 3 days of exercise per week. Moderate is 3 to 5 days. Very Active is 6 to 7 days. Extra Active means you're training twice a day.";
 
 export const MACRO_CALC_SYNC_WEIGHT =
   "Sync weight to biometrics to keep an accurate log of your progress.";
 
 export const MACRO_CALC_METABOLIC =
-  "Before we lock these macros in, take a second to check Metabolic & Hormonal Considerations below. If things like menopause, thyroid conditions, or GLP-1 meds apply to you, tap that section to open it. You can make optional adjustments there, and I'll fine-tune your macros automatically.";
+  "Before we lock these macros in, take a second to check Metabolic and Hormonal Considerations below. If things like menopause, thyroid conditions, or GLP-1 meds apply to you, tap that section to open it. You can make optional adjustments there, and I'll fine-tune your macros automatically.";
 
 export const MACRO_CALC_RESULTS =
-  "These are your current macros and your baseline going forward. They stay in place as long as your goal and progress stay the same. If progress stalls or your goal shifts, whether that's loss, gain, or maintenance, just rerun the Macro Calculator to reset your targets.";
+  "These are your current macros and your baseline going forward. They stay in place as long as your goal and progress stay the same. If progress stalls or your goal shifts — whether that's fat loss, muscle building, or maintenance — just rerun the Macro Calculator to reset your targets.";
 
 export const MACRO_CALC_STARCH =
   "Starchy carbs are the biggest lever for controlling body weight, so we place them intentionally. Here is why timing matters. Think of your body like a business. During the day it is open, running operations, and can put those carbs to work. At night it shifts into clean, repair, and reset mode. Sending starchy carbs in late can interfere with that recovery process. That is why we concentrate starchy carbs earlier in the day when possible, not as a restriction, but as a strategy you can adjust based on your training schedule and lifestyle. Tap one of the buttons below to choose your approach. One Starch Meal puts all your carbs in one meal for appetite control. Flex Split divides them across two meals for more flexibility. Tap the one that fits your lifestyle, then we'll lock it in.";

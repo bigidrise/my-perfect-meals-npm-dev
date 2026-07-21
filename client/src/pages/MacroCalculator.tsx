@@ -133,7 +133,7 @@ import { buildBiometricsUrl } from "@/lib/biometricsNavigation";
 type Goal = "loss" | "maint" | "gain" | "contest_prep";
 type Sex = "male" | "female";
 type Units = "imperial" | "metric";
-type BodyType = "ecto" | "meso" | "endo";
+type BodyType = "ecto" | "meso" | "endo" | "mix";
 type UserType = "general" | "committed" | "athlete";
 type CutIntensity = "hard" | "moderate" | "none";
 type CutStyle = "balanced" | "lowCarb";
@@ -251,6 +251,47 @@ function WaistEducationBlock({ waistCm, heightCm }: { waistCm: number; heightCm:
 // Results are fetched via POST /api/macro-calculator/compute.
 
 
+function BodyTypeSilhouette({ type }: { type: BodyType }) {
+  const cx = 25;
+  const configs: Record<string, { sw: number; ww: number; hw: number }> = {
+    ecto: { sw: 12, ww: 8,  hw: 10 },
+    meso: { sw: 16, ww: 11, hw: 15 },
+    endo: { sw: 20, ww: 16, hw: 21 },
+    mix:  { sw: 17, ww: 12, hw: 17 },
+  };
+  const { sw, ww, hw } = configs[type] ?? configs.meso;
+  const neckW = 4;
+  const pts = [
+    `${cx - neckW},20`, `${cx - sw},25`,
+    `${cx - ww},46`,    `${cx - hw},59`,
+    `${cx - 5},82`,     `${cx + 5},82`,
+    `${cx + hw},59`,    `${cx + ww},46`,
+    `${cx + sw},25`,    `${cx + neckW},20`,
+  ].join(" ");
+  return (
+    <svg viewBox="0 0 50 90" className="w-10 h-16 mx-auto opacity-70" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round">
+      <circle cx={cx} cy={10} r={8} />
+      <polygon points={pts} />
+    </svg>
+  );
+}
+
+function goalLabel(g: Goal): string {
+  if (g === "loss") return "Lose Fat";
+  if (g === "maint") return "Maintain Weight";
+  if (g === "gain") return "Build Muscle";
+  if (g === "contest_prep") return "Contest Prep";
+  return g;
+}
+
+function bodyTendencyLabel(bt: BodyType): string {
+  if (bt === "ecto") return "Naturally Lean";
+  if (bt === "meso") return "Naturally Athletic";
+  if (bt === "endo") return "Naturally Fuller Build";
+  if (bt === "mix") return "Combination Build";
+  return bt;
+}
+
 function BodyTypeGuide() {
   return (
     <div className="mb-3">
@@ -259,61 +300,45 @@ function BodyTypeGuide() {
         className="rounded-xl border border-white/15 bg-white/5 p-3"
       >
         <summary className="cursor-pointer select-none text-sm font-semibold text-white/90">
-          Body Type Guide (tap to expand)
+          About body tendencies (tap to expand)
         </summary>
 
         <div className="mt-2 space-y-3 text-sm text-white/80">
           <div>
-            <div className="font-semibold text-white">Ectomorph</div>
+            <div className="font-semibold text-white">Naturally Lean <span className="font-normal text-white/50 text-xs ml-1">Ectomorphic tendency</span></div>
             <p className="mt-1 leading-relaxed">
-              Naturally lean or "hard gainer." Smaller frame, narrower
-              shoulders/hips, and tends to struggle gaining weight or muscle.
-              Often a faster metabolism.{" "}
-              <span className="text-white/90">Strategy:</span> a bit more
-              calories and carbs; keep protein protein steady.
+              You've always been on the thinner side or struggle to gain weight and muscle. Smaller frame, faster metabolism.{" "}
+              <span className="text-white/90">Strategy:</span> slightly more calories and carbs to support growth.
             </p>
           </div>
 
           <div>
-            <div className="font-semibold text-white">Mesomorph</div>
+            <div className="font-semibold text-white">Naturally Athletic <span className="font-normal text-white/50 text-xs ml-1">Mesomorphic tendency</span></div>
             <p className="mt-1 leading-relaxed">
-              Athletic middle build—can gain muscle and lose fat more easily.
-              Medium frame and usually responds well to training and nutrition
-              changes. <span className="text-white/90">Strategy:</span> balanced
-              calories and macros; adjust up/down with goals.
+              You build muscle and lose fat fairly easily with training. Medium frame, responds well to nutrition changes.{" "}
+              <span className="text-white/90">Strategy:</span> balanced calories and macros, adjusted for your goal.
             </p>
           </div>
 
           <div>
-            <div className="font-semibold text-white">Endomorph</div>
+            <div className="font-semibold text-white">Naturally Fuller Build <span className="font-normal text-white/50 text-xs ml-1">Endomorphic tendency</span></div>
             <p className="mt-1 leading-relaxed">
-              Bigger frame ("full house") that gains weight more easily and may
-              lose it more slowly. Often benefits from tighter calorie control
-              and mindful carbs.{" "}
-              <span className="text-white/90">Strategy:</span> slightly fewer
-              starchy carbs, a bit more fat for satiety.
+              You gain body weight more readily and fat loss may take more effort. Often benefits from mindful carb choices.{" "}
+              <span className="text-white/90">Strategy:</span> slightly fewer starchy carbs, a bit more fat for satiety.
+            </p>
+          </div>
+
+          <div>
+            <div className="font-semibold text-white">Combination Build <span className="font-normal text-white/50 text-xs ml-1">Mixed tendency</span></div>
+            <p className="mt-1 leading-relaxed">
+              You share traits from more than one description. This is very common — body composition changes over time.{" "}
+              <span className="text-white/90">Strategy:</span> balanced starting split, adjusted as you see results.
             </p>
           </div>
 
           <div className="rounded-lg border border-white/10 bg-black/30 p-2">
-            <div className="text-white/90 font-medium text-[13px]">
-              How to choose quickly
-            </div>
-            <ul className="mt-1 list-disc pl-5 space-y-1">
-              <li>
-                If you've always been naturally thin and struggle to gain →{" "}
-                <b>Ectomorph</b>
-              </li>
-              <li>
-                If you build/lean fairly easily with training → <b>Mesomorph</b>
-              </li>
-              <li>
-                If you gain easily and fat loss feels slower → <b>Endomorph</b>
-              </li>
-            </ul>
-            <p className="mt-2 text-[12px] text-white/60">
-              Not exact? Pick the one that best matches your history and how
-              your body responds. This just sets a smart starting split.
+            <p className="text-[12px] text-white/60 leading-relaxed">
+              Most people are a combination. These descriptions set a starting point for your nutrition split — not a permanent identity. Choose the one that fits you best right now.
             </p>
           </div>
         </div>
@@ -868,6 +893,7 @@ export default function MacroCounter() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasSpokenEntry, setHasSpokenEntry] = useState(resolveInitialStep() !== "entry");
   const [syncingWeight, setSyncingWeight] = useState(false);
+  const [coachMuted, setCoachMuted] = useState(() => localStorage.getItem("mpm.macroCalc.coachMuted") === "true");
   const entrySpokenRef = useRef(resolveInitialStep() !== "entry");
 
   // Chef Voice for guided walkthrough
@@ -908,7 +934,7 @@ export default function MacroCounter() {
       // Speak the script for this step (skip entry since it's handled by mount effect)
       if (nextStep !== "entry") {
         const script = stepScripts[nextStep];
-        if (script) {
+        if (script && !coachMuted) {
           speak(script);
         }
       }
@@ -917,7 +943,7 @@ export default function MacroCounter() {
         window.scrollTo({ top: 0, behavior: "smooth" });
       }, 100);
     },
-    [speak, stop, stepScripts],
+    [speak, stop, stepScripts, coachMuted],
   );
 
   // Speak entry script when component mounts in guided mode
@@ -925,7 +951,7 @@ export default function MacroCounter() {
     if (guidedStep === "entry" && !hasExistingSettings && !entrySpokenRef.current) {
       entrySpokenRef.current = true;
       const timer = setTimeout(() => {
-        speak(MACRO_CALC_ENTRY);
+        if (!coachMuted) speak(MACRO_CALC_ENTRY);
         setHasSpokenEntry(true);
       }, 500);
       return () => {
@@ -1040,7 +1066,7 @@ export default function MacroCounter() {
     {
       title: "Choose Your Goal",
       description:
-        "Cut = lose weight (15% deficit), Maintain = stay the same, Gain = build muscle (10% surplus).",
+        "Lose Fat = calorie deficit to reduce body fat. Maintain Weight = stay where you are. Build Muscle = slight surplus to support muscle growth. Contest Prep = competition protocol with hard cut and low-carb split.",
     },
     {
       title: "Commitment Level",
@@ -1050,7 +1076,7 @@ export default function MacroCounter() {
     {
       title: "Select Body Type",
       description:
-        "Ectomorph = thin, fast metabolism, higher carb tolerance. Mesomorph = balanced. Endomorph = stores weight more easily, lower carb tolerance.",
+        "Naturally Lean = tends to struggle gaining weight or muscle. Naturally Athletic = builds muscle and loses fat more easily. Naturally Fuller Build = gains weight more readily. Combination = shares traits from more than one. Most people are a mix.",
     },
     {
       title: "Enter Your Stats",
@@ -1502,6 +1528,19 @@ export default function MacroCounter() {
 
             <div className="flex-grow" />
 
+            <button
+              onClick={() => {
+                const next = !coachMuted;
+                setCoachMuted(next);
+                localStorage.setItem("mpm.macroCalc.coachMuted", String(next));
+                if (next) stop();
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 text-sm text-white/80 font-medium"
+              title={coachMuted ? "Unmute coach narration" : "Mute coach narration"}
+            >
+              {coachMuted ? "🔇" : "🔊"}
+              <span className="hidden sm:inline">{coachMuted ? "Coach Off" : "Coach On"}</span>
+            </button>
             <MedicalSourcesInfo asIconButton />
             <QuickTourButton onClick={quickTour.openTour} />
           </div>
@@ -1563,38 +1602,57 @@ export default function MacroCounter() {
                 className="space-y-4"
               >
                 <Card className="bg-zinc-900/80 border border-white/30 text-white">
-                  <CardContent className="p-5 space-y-4">
+                  <CardContent className="p-5 space-y-5">
                     <div className="flex items-center gap-3">
                       <Sparkles className="h-6 w-6 text-orange-500" />
                       <h2 className="text-xl font-bold text-white">
-                        Welcome to Macro Calculator
+                        Before We Begin
                       </h2>
                     </div>
+
                     <p className="text-white/80 text-sm leading-relaxed">
-                      Let's set up your personalized nutrition targets together.
-                      I'll walk you through each step to make sure we get it
-                      right.
+                      This calculator builds your personalized daily nutrition plan — calories, protein, carbs, and healthy fats — based on your body and goals.
                     </p>
+
+                    <div className="flex items-center gap-3 flex-wrap">
+                      {[
+                        { icon: "📋", label: "10 Questions" },
+                        { icon: "⏱", label: "~3–5 minutes" },
+                        { icon: "🎯", label: "Personalized results" },
+                      ].map((b) => (
+                        <span key={b.label} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-600/20 border border-orange-500/30 text-sm text-orange-200">
+                          {b.icon} {b.label}
+                        </span>
+                      ))}
+                    </div>
+
+                    <div className="rounded-xl bg-white/5 border border-white/10 p-4 space-y-2">
+                      <p className="text-sm font-semibold text-white/80">Before you start, grab:</p>
+                      <ul className="space-y-1.5 text-sm text-white/70">
+                        <li className="flex items-start gap-2"><span>📏</span><span>A flexible tape measure <span className="text-white/45">(for your waist — the most important measurement)</span></span></li>
+                        <li className="flex items-start gap-2"><span>⚖️</span><span>Your current weight</span></li>
+                        <li className="flex items-start gap-2"><span>📐</span><span>Your approximate height</span></li>
+                      </ul>
+                    </div>
+
                     <Button
                       onClick={() => advanceGuided("goal")}
                       className="
                         w-full py-4
-                        bg-black/30
+                        bg-orange-600 hover:bg-orange-500
                         text-white font-semibold text-lg
                         rounded-xl
-                        border border-white/60
                       "
                       data-testid="guided-talk-to-chef"
                     >
-                      <LifeBuoy className="h-5 w-5 mr-2" />
-                      Start Chef-Assisted Setup
+                      Let's Get Started →
                     </Button>
                   </CardContent>
                 </Card>
               </motion.div>
             )}
 
-            {/* GUIDED STEP 1: Goal */}
+            {/* GUIDED STEP 1 of 10: Goal */}
             {guidedStep === "goal" && (
               <motion.div
                 key="guided-goal"
@@ -1608,7 +1666,7 @@ export default function MacroCounter() {
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
                       <h3 className="text-lg font-semibold text-white">
-                        Step 1
+                        Step 1 of 10
                       </h3>
                     </div>
                     <p className="text-white text-base">
@@ -1617,9 +1675,9 @@ export default function MacroCounter() {
                     </p>
                     <div className="grid grid-cols-2 gap-3">
                       {[
-                        { v: "loss", label: "Cut", sub: null },
-                        { v: "maint", label: "Maintain", sub: null },
-                        { v: "gain", label: "Gain", sub: null },
+                        { v: "loss", label: "Lose Fat", sub: null },
+                        { v: "maint", label: "Maintain Weight", sub: null },
+                        { v: "gain", label: "Build Muscle", sub: null },
                         { v: "contest_prep", label: "Contest Prep", sub: "Competition protocol" },
                       ].map((g) => (
                         <div
@@ -1631,7 +1689,7 @@ export default function MacroCounter() {
                               setCutStyle("lowCarb");
                               setStarchyCarbCap_g(30);
                               stop();
-                              speak(MACRO_CALC_CONTEST_PREP);
+                              if (!coachMuted) speak(MACRO_CALC_CONTEST_PREP);
                               // Don't advance yet — show the overlay callout + Continue button
                             } else {
                               advanceGuided("commitmentLevel");
@@ -1686,15 +1744,9 @@ export default function MacroCounter() {
               >
                 {/* Completed: Goal */}
                 <div className="rounded-xl border border-white/20 bg-black/40 p-3">
-                  <p className="text-sm text-white/60">
-                    Goal:{" "}
-                    {goal === "contest_prep"
-                      ? "Contest Prep"
-                      : goal === "loss"
-                        ? "Cut"
-                        : goal === "maint"
-                          ? "Maintain"
-                          : "Gain"}
+                  <p className="text-sm text-white/60 flex items-center gap-2">
+                    <Check className="h-4 w-4 text-lime-500 flex-shrink-0" />
+                    Goal: {goalLabel(goal)}
                   </p>
                 </div>
 
@@ -1703,7 +1755,7 @@ export default function MacroCounter() {
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
                       <h3 className="text-lg font-semibold text-white">
-                        Step 2
+                        Step 2 of 10
                       </h3>
                     </div>
                     <p className="text-white text-base">
@@ -1762,14 +1814,7 @@ export default function MacroCounter() {
                   <div className="rounded-xl border border-white/20 bg-black/40 p-3">
                     <p className="text-sm text-white/90 font-medium flex items-center gap-2">
                       <Check className="h-4 w-4 text-lime-500 flex-shrink-0" />
-                      Goal:{" "}
-                      {goal === "contest_prep"
-                        ? "Contest Prep"
-                        : goal === "loss"
-                          ? "Cut"
-                          : goal === "maint"
-                            ? "Maintain"
-                            : "Gain"}
+                      Goal: {goalLabel(goal)}
                     </p>
                   </div>
                   <div className="rounded-xl border border-orange-400/30 bg-orange-500/10 p-3">
@@ -1790,28 +1835,37 @@ export default function MacroCounter() {
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
                       <h3 className="text-lg font-semibold text-white">
-                        Step 3
+                        Step 3 of 10
                       </h3>
                     </div>
                     <p className="text-white text-base">
-                      What's your body type?
+                      Which description best matches your natural tendency?
+                    </p>
+                    <p className="text-sm text-white/55 -mt-2">
+                      Most people are a combination. Choose the one that fits you best right now.
                     </p>
                     <BodyTypeGuide />
-                    <div className="grid grid-cols-3 gap-3">
-                      {[
-                        { v: "ecto", label: "Ecto" },
-                        { v: "meso", label: "Meso" },
-                        { v: "endo", label: "Endo" },
-                      ].map((b) => (
+                    <div className="grid grid-cols-2 gap-3">
+                      {([
+                        { v: "ecto", label: "Naturally Lean",         sub: "Ectomorphic tendency",  desc: "Struggle to gain weight or muscle" },
+                        { v: "meso", label: "Naturally Athletic",     sub: "Mesomorphic tendency",  desc: "Build muscle and lose fat more easily" },
+                        { v: "endo", label: "Naturally Fuller Build", sub: "Endomorphic tendency",  desc: "Gain body weight more readily" },
+                        { v: "mix",  label: "Combination Build",      sub: "Mixed tendency",        desc: "Shares traits from more than one" },
+                      ] as { v: BodyType; label: string; sub: string; desc: string }[]).map((b) => (
                         <div
                           key={b.v}
                           onClick={() => {
-                            setBodyType(b.v as BodyType);
+                            setBodyType(b.v);
                             advanceGuided("units");
                           }}
-                          className={`px-3 py-2 border rounded-lg cursor-pointer text-center ${bodyType === b.v ? "bg-white/15 border-white" : "border-white/40 hover:border-white/70"}`}
+                          className={`flex flex-col items-center gap-2 px-3 py-4 border rounded-xl cursor-pointer text-center transition-colors ${bodyType === b.v ? "bg-white/15 border-white" : "border-white/30 hover:border-white/60"}`}
                         >
-                          {b.label}
+                          <BodyTypeSilhouette type={b.v} />
+                          <div>
+                            <div className="font-semibold text-sm text-white">{b.label}</div>
+                            <div className="text-[11px] text-white/50 mt-0.5">{b.sub}</div>
+                            <div className="text-[11px] text-white/40 mt-1 leading-tight">{b.desc}</div>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -1834,25 +1888,13 @@ export default function MacroCounter() {
                   <div className="rounded-xl border border-white/20 bg-black/40 p-3">
                     <p className="text-sm text-white/90 font-medium flex items-center gap-2">
                       <Check className="h-4 w-4 text-lime-500" />
-                      Goal:{" "}
-                      {goal === "contest_prep"
-                        ? "Contest Prep"
-                        : goal === "loss"
-                          ? "Cut"
-                          : goal === "maint"
-                            ? "Maintain"
-                            : "Gain"}
+                      Goal: {goalLabel(goal)}
                     </p>
                   </div>
                   <div className="rounded-xl border border-white/20 bg-black/40 p-3">
                     <p className="text-sm text-white/90 font-medium flex items-center gap-2">
                       <Check className="h-4 w-4 text-lime-500" />
-                      Body Type:{" "}
-                      {bodyType === "ecto"
-                        ? "Ectomorph"
-                        : bodyType === "meso"
-                          ? "Mesomorph"
-                          : "Endomorph"}
+                      Body Tendency: {bodyTendencyLabel(bodyType)}
                     </p>
                   </div>
                 </div>
@@ -1862,7 +1904,7 @@ export default function MacroCounter() {
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
                       <h3 className="text-lg font-semibold text-white">
-                        Step 3
+                        Step 4
                       </h3>
                     </div>
                     <p className="text-white text-base">
@@ -1893,7 +1935,7 @@ export default function MacroCounter() {
               </motion.div>
             )}
 
-            {/* GUIDED STEP 4: Sex */}
+            {/* GUIDED STEP 5: Sex */}
             {guidedStep === "sex" && (
               <motion.div
                 key="guided-sex"
@@ -1907,11 +1949,14 @@ export default function MacroCounter() {
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
                       <h3 className="text-lg font-semibold text-white">
-                        Step 4
+                        Step 5 of 10
                       </h3>
                     </div>
                     <p className="text-white text-base">
-                      What is your biological sex? (for metabolic calculations)
+                      What is your biological sex?
+                    </p>
+                    <p className="text-xs text-white/45 -mt-2">
+                      Used only for the metabolic formula — it affects how we calculate your calorie burn and protein targets.
                     </p>
                     <div className="grid grid-cols-2 gap-3">
                       <div
@@ -1952,7 +1997,7 @@ export default function MacroCounter() {
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
                       <h3 className="text-lg font-semibold text-white">
-                        Step 5
+                        Step 6 of 10
                       </h3>
                     </div>
                     <p className="text-white text-base">How old are you?</p>
@@ -2000,7 +2045,7 @@ export default function MacroCounter() {
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
                       <h3 className="text-lg font-semibold text-white">
-                        Step 6
+                        Step 7 of 10
                       </h3>
                     </div>
                     <p className="text-white text-base">What's your height?</p>
@@ -2093,7 +2138,7 @@ export default function MacroCounter() {
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
                       <h3 className="text-lg font-semibold text-white">
-                        Step 7
+                        Step 8 of 10
                       </h3>
                     </div>
                     <p className="text-white text-base">
@@ -2152,11 +2197,14 @@ export default function MacroCounter() {
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
                       <h3 className="text-lg font-semibold text-white">
-                        Waist Measurement
+                        Step 9 of 10
                       </h3>
                     </div>
                     <p className="text-white text-base">
                       What's your waist circumference?
+                    </p>
+                    <p className="text-xs text-white/45 -mt-2">
+                      Your waist measurement helps us understand body composition and where you tend to carry weight — information the scale alone cannot provide.
                     </p>
                     <Input
                       type="number"
@@ -2215,11 +2263,14 @@ export default function MacroCounter() {
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
                       <h3 className="text-lg font-semibold text-white">
-                        Step 8
+                        Step 10 of 10
                       </h3>
                     </div>
                     <p className="text-white text-base">
                       What is your activity level?
+                    </p>
+                    <p className="text-xs text-white/45 -mt-2">
+                      This determines how many calories your body burns daily — the biggest variable in your plan.
                     </p>
                     <div className="space-y-2">
                       {[
@@ -2273,7 +2324,7 @@ export default function MacroCounter() {
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
                       <h3 className="text-lg font-semibold text-white">
-                        Step 9
+                        Optional: Save Your Weight
                       </h3>
                     </div>
                     <p className="text-white text-base">
@@ -2338,7 +2389,7 @@ export default function MacroCounter() {
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
                       <h3 className="text-lg font-semibold text-white">
-                        Step 10
+                        Almost Done
                       </h3>
                     </div>
                     <p className="text-white text-base">
@@ -3402,9 +3453,9 @@ export default function MacroCounter() {
                       className="mt-3 grid grid-cols-2 gap-3"
                     >
                       {[
-                        { v: "loss", label: "Cut", sub: null },
-                        { v: "maint", label: "Maintain", sub: null },
-                        { v: "gain", label: "Gain", sub: null },
+                        { v: "loss", label: "Lose Fat", sub: null },
+                        { v: "maint", label: "Maintain Weight", sub: null },
+                        { v: "gain", label: "Build Muscle", sub: null },
                         { v: "contest_prep", label: "Contest Prep", sub: "Competition protocol" },
                       ].map((g) => (
                         <Label
@@ -3483,49 +3534,36 @@ export default function MacroCounter() {
                       What's Your Body Type
                     </h3>
                     <BodyTypeGuide />
-                    <RadioGroup
+                    <div
                       data-testid="macro-body-type-selector"
-                      value={bodyType}
-                      onValueChange={(v: BodyType) => {
-                        setBodyType(v);
-                        advance("body-type");
-                      }}
-                      className="mt-3 grid grid-cols-3 gap-3"
+                      className="mt-3 grid grid-cols-2 gap-3"
                     >
-                      {[
-                        { v: "ecto", label: "Ecto" },
-                        { v: "meso", label: "Meso" },
-                        { v: "endo", label: "Endo" },
-                      ].map((b) => (
-                        <Label
+                      {([
+                        { v: "ecto", label: "Naturally Lean",         sub: "Ectomorphic tendency" },
+                        { v: "meso", label: "Naturally Athletic",     sub: "Mesomorphic tendency" },
+                        { v: "endo", label: "Naturally Fuller Build", sub: "Endomorphic tendency" },
+                        { v: "mix",  label: "Combination Build",      sub: "Mixed tendency" },
+                      ] as { v: BodyType; label: string; sub: string }[]).map((b) => (
+                        <div
                           key={b.v}
-                          htmlFor={b.v}
                           onClick={() => {
-                            setBodyType(b.v as BodyType);
+                            setBodyType(b.v);
                             advance("body-type");
-                            // Auto-scroll to details card on every click
                             setTimeout(() => {
-                              const detailsCard =
-                                document.getElementById("details-card");
+                              const detailsCard = document.getElementById("details-card");
                               if (detailsCard) {
-                                detailsCard.scrollIntoView({
-                                  behavior: "smooth",
-                                  block: "center",
-                                });
+                                detailsCard.scrollIntoView({ behavior: "smooth", block: "center" });
                               }
                             }, 200);
                           }}
-                          className={`px-3 py-2 border rounded-lg cursor-pointer text-center ${bodyType === b.v ? "bg-white/15 border-white" : "border-white/40 hover:border-white/70"}`}
+                          className={`flex flex-col items-center gap-1.5 px-3 py-3 border rounded-xl cursor-pointer text-center transition-colors ${bodyType === b.v ? "bg-white/15 border-white" : "border-white/40"}`}
                         >
-                          <RadioGroupItem
-                            id={b.v}
-                            value={b.v}
-                            className="sr-only"
-                          />
-                          {b.label}
-                        </Label>
+                          <BodyTypeSilhouette type={b.v} />
+                          <div className="text-sm font-semibold text-white">{b.label}</div>
+                          <div className="text-[11px] text-white/50">{b.sub}</div>
+                        </div>
                       ))}
-                    </RadioGroup>
+                    </div>
                   </CardContent>
                 </Card>
               </div>
