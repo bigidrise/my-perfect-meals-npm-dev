@@ -141,6 +141,9 @@ app.use((req, res, next) => {
     "https://myperfectmeals.com",
     "https://www.myperfectmeals.com",
     "https://app.myperfectmeals.com",
+    "https://myperfectmeals.ai",
+    "https://www.myperfectmeals.ai",
+    "https://app.myperfectmeals.ai",
     "https://my-perfect-meals-frontend-clean.vercel.app",
     // Capacitor / Ionic native origins
     "https://localhost",       // Android Capacitor
