@@ -8,7 +8,7 @@ export const MACRO_CALC_GOAL =
   "First, what are you trying to do? Choose Lose Fat if you want to drop body weight. Maintain Weight to hold where you are. Build Muscle if you're trying to add size and strength. Or Contest Prep — that's our competition protocol. It activates a special metabolic mode with high protein, very low starchy carbs, and lean-source-only settings that carry into every meal generator in the app.";
 
 export const MACRO_CALC_COMMITMENT_LEVEL =
-  "Next, tell me your commitment level. General means you're an everyday eater looking for realistic, sustainable targets. Committed means you're a consistent gym-goer or dieter and want more structured numbers. Athlete means performance is your priority — we'll push protein to its maximum regardless of your goal. Pick the one that best describes where you are right now.";
+  "Next, tell me what level of structure fits you best. Flexible means your routine changes from day to day and you need targets with room for real life. Consistent means you can follow a plan when you commit and you're comfortable with more specific daily targets. Performance means you train or compete at a high level and need targets built around your training load and recovery. Pick whichever feels most like you.";
 
 export const MACRO_CALC_BODY_TYPE =
   "Which description best matches your natural tendency? Naturally Lean means you've always been on the thinner side and struggle to gain weight. Naturally Athletic means you build muscle and lose fat fairly easily with training. Naturally Fuller Build means you gain body weight more readily and fat loss can take more effort. Combination Build is for those who share traits from more than one. Most people are a mix — just pick the one that fits you best right now.";
