@@ -117,7 +117,11 @@ export function useChefFlowImages(
             method: "POST",
             credentials: "include",
             headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-            body: JSON.stringify({ mealName, mealType }),
+            body: JSON.stringify({
+            mealName,
+            mealType,
+            sourceType: mealType === "beverage" || mealType === "drink" ? "beverage" : mealType === "snack" ? "snack" : "meal",
+          }),
             signal: controller.signal,
           });
           clearTimeout(timeoutId);
