@@ -32,7 +32,7 @@ const STUDIO_ROUTE_PREFIXES = ["/pro/", "/care-team", "/pro-portal"];
 
 function shouldUseDesktopLayout(): boolean {
   const host = window.location.hostname;
-  if (host === "app.myperfectmeals.com") return true;
+  if (host === "app.myperfectmeals.com" || host === "app.myperfectmeals.ai") return true;
   if (host === "localhost" || host === "127.0.0.1") return true;
   if (host.endsWith(".replit.dev")) return true;
   if (host.endsWith(".replit.app")) return true;

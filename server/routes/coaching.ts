@@ -227,7 +227,7 @@ router.post("/activate-client/:clientId", requireAuth, requireEmailService, asyn
 
     console.log(`[CoachActivate] Client activated — coach: ${coachEntry.slug}, client: ${clientId}`);
 
-    const appUrl = process.env.APP_URL || "https://myperfectmeals.com";
+    const appUrl = process.env.PUBLIC_APP_URL || process.env.APP_URL || "https://app.myperfectmeals.ai";
     try {
       const [clientUser] = await db
         .select({ email: users.email })
@@ -398,7 +398,7 @@ router.post("/send-invite", requireAuth, requireEmailService, async (req: Reques
       expiresAt,
     });
 
-    const appUrl = process.env.APP_URL || "https://myperfectmeals.com";
+    const appUrl = process.env.PUBLIC_APP_URL || process.env.APP_URL || "https://app.myperfectmeals.ai";
     await sendCoachingInviteEmail({
       to: email,
       coachDisplayName: coach.displayName,

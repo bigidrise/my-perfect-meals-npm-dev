@@ -154,7 +154,7 @@ export default function PublicPartnersHub() {
           My Perfect Meals — AI-powered nutrition platform
         </p>
         <a
-          href="https://app.myperfectmeals.com"
+          href="https://app.myperfectmeals.ai"
           className="text-orange-400/50 text-xs underline underline-offset-2 mt-1 block"
         >
           Already a member? Sign in
