@@ -2,10 +2,10 @@
 // Uses the same 11L voice system as Chef's Kitchen and ProTip
 
 export const MACRO_CALC_ENTRY =
-  "Welcome! Before we dive in, here's what to know. This calculator builds your personal nutrition plan — your daily calories, protein, carbs, and healthy fats — in about 3 to 5 minutes. You'll answer around 10 questions. Grab a flexible tape measure if you have one, because we'll ask for your waist size — it's the most important measurement we take. Your current weight and height are all you need. When you're ready, tap Let's Get Started.";
+  "Before we begin, here's what to know. This calculator builds your personalized daily nutrition plan — your calories, protein, carbs, and healthy fats — based on your body and your goals. You'll answer around 10 questions and it takes about 3 to 5 minutes. Grab a flexible tape measure if you have one, because we'll ask for your waist size — it's the most important measurement we take. Your current weight and height are all you need. When you're ready, tap Let's Get Started.";
 
 export const MACRO_CALC_GOAL =
-  "First, what are you trying to do? Choose Lose Fat if you want to drop body weight. Maintain Weight to hold where you are. Build Muscle if you're trying to add size and strength. Or Contest Prep — that's our competition protocol. It activates a special metabolic mode with high protein, very low starchy carbs, and lean-source-only settings that carry into every meal generator in the app.";
+  "First, let's figure out what we're working toward together. Choose Lose Fat if your goal is to reduce body weight. Maintain Weight to hold where you are. Build Muscle if you're trying to add size and strength. Or Contest Prep — that's our competition protocol. If you tap that one, I'll walk you through exactly what it sets up before we move on.";
 
 export const MACRO_CALC_COMMITMENT_LEVEL =
   "Next, tell me what level of structure fits you best. Flexible means your routine changes from day to day and you need targets with room for real life. Consistent means you can follow a plan when you commit and you're comfortable with more specific daily targets. Performance means you train or compete at a high level and need targets built around your training load and recovery. Pick whichever feels most like you.";
