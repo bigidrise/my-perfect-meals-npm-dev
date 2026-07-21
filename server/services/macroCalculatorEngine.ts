@@ -11,8 +11,8 @@
 
 export type Goal = "loss" | "maint" | "gain";
 export type Sex = "male" | "female";
-export type BodyType = "ecto" | "meso" | "endo";
-export type UserType = "general" | "committed" | "athlete";
+export type BodyType = "ecto" | "meso" | "endo" | "mix";
+export type UserType = "flexible" | "consistent" | "performance";
 export type CutIntensity = "hard" | "moderate" | "none";
 export type CutStyle = "balanced" | "lowCarb";
 
@@ -110,18 +110,19 @@ function goalAdjust(tdee: number, goal: Goal): number {
   return Math.round(tdee);
 }
 
-function calcProtein(lb: number, goal: Goal, userType: UserType = "general"): number {
+function calcProtein(lb: number, goal: Goal, userType: UserType = "flexible"): number {
   let raw: number;
 
-  if (userType === "general") {
+  if (userType === "flexible") {
     if (goal === "loss") raw = lb * 0.8;
     else if (goal === "gain") raw = lb * 0.9;
     else raw = lb * 0.7;
-  } else if (userType === "committed") {
+  } else if (userType === "consistent") {
     if (goal === "loss") raw = lb * 1.0;
     else if (goal === "gain") raw = lb * 1.1;
     else raw = lb * 0.9;
   } else {
+    // "performance" — maximum protein regardless of goal
     raw = lb * 1.1;
   }
 
@@ -303,7 +304,7 @@ function applyStrategyLayer(base: any, cfg: StrategyConfig) {
 }
 
 function applyBodyTypeTilt(base: any, bodyType: BodyType, activity: string) {
-  if (bodyType === "meso") return base;
+  if (bodyType === "meso" || bodyType === "mix") return base;
 
   const fibrousG = base.carbs.fibrous as number;
   let starchyG = base.carbs.starchy as number;
