@@ -29,6 +29,12 @@ export function useChefMealImage() {
     // Mint a fresh token. Any previous in-flight request for this mealId is now
     // superseded — its response will be silently dropped when it arrives.
     const requestToken = crypto.randomUUID();
+    const prevToken = activeTokensRef.current.get(meal.id);
+    if (prevToken) {
+      console.warn(`[IMG-LIFECYCLE:client] SECOND-REQUEST | mealId=${meal.id} | superseding token ${prevToken.substring(0,8)} with ${requestToken.substring(0,8)} | meal="${meal.name}"`);
+    } else {
+      console.log(`[IMG-LIFECYCLE:client] REQUEST-START | mealId=${meal.id} | token=${requestToken.substring(0,8)} | meal="${meal.name}" | sourceType=${sourceType}`);
+    }
     activeTokensRef.current.set(meal.id, requestToken);
 
     try {
@@ -46,11 +52,15 @@ export function useChefMealImage() {
       });
       const data = await res.json();
       if (data.imageUrl) {
-        // Only fire the callback if this is still the active request for this meal.
-        // A regeneration or concurrent duplicate call will have replaced our token.
-        if (activeTokensRef.current.get(meal.id) === requestToken) {
+        const stillActive = activeTokensRef.current.get(meal.id) === requestToken;
+        if (stillActive) {
           activeTokensRef.current.delete(meal.id);
+          const urlType = data.imageUrl.startsWith('data:') ? 'base64-ephemeral' : 'permanent';
+          console.log(`[IMG-LIFECYCLE:client] RESPONSE-DELIVERED | mealId=${meal.id} | token=${requestToken.substring(0,8)} | urlType=${urlType} | meal="${meal.name}"`);
           onImageReady(meal.id, data.imageUrl);
+        } else {
+          console.warn(`[IMG-LIFECYCLE:client] RESPONSE-DISCARDED (stale token) | mealId=${meal.id} | token=${requestToken.substring(0,8)} — a newer request superseded this one`);
+          activeTokensRef.current.delete(meal.id);
         }
       } else {
         activeTokensRef.current.delete(meal.id);
