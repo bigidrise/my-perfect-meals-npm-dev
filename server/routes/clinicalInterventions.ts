@@ -13,7 +13,7 @@ import { Router } from "express";
 import { db } from "../db";
 import { providerClinicalInterventions } from "../db/schema/providerInterventions";
 import { studioMemberships, studios } from "../db/schema/studio";
-import { requireAuth } from "../middleware/requireAuth";
+import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import { eq, and } from "drizzle-orm";
 import { z } from "zod";
 
@@ -68,7 +68,7 @@ async function getProviderStudio(providerUserId: string, clientUserId: string) {
 // Returns all active interventions for a patient.
 router.get("/pro/clients/:clientId/interventions", async (req, res) => {
   const { clientId } = req.params;
-  const providerUserId = (req as any).user?.id;
+  const providerUserId = (req as AuthenticatedRequest).authUser?.id;
   if (!providerUserId) return res.status(401).json({ error: "Unauthorized" });
 
   const studio = await getProviderStudio(providerUserId, clientId);
@@ -92,7 +92,7 @@ router.get("/pro/clients/:clientId/interventions", async (req, res) => {
 // Only one active row per (clientUserId, conditionKey) is allowed.
 router.put("/pro/clients/:clientId/interventions", async (req, res) => {
   const { clientId } = req.params;
-  const providerUserId = (req as any).user?.id;
+  const providerUserId = (req as AuthenticatedRequest).authUser?.id;
   if (!providerUserId) return res.status(401).json({ error: "Unauthorized" });
 
   const parsed = upsertSchema.safeParse(req.body);
