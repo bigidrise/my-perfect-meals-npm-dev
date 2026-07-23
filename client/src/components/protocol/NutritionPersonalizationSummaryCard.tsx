@@ -95,8 +95,8 @@ export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLo
 
   const { activeInputs, nutritionDrivers, nutritionPriorities, compositeExplanation, conflictPolicy, hasAnyActiveProtocol, carbCycleActive } = data;
 
-  const highItems   = activeInputs.health.filter(h => h.priority === "high");
-  const moderateItems = activeInputs.health.filter(h => h.priority === "moderate");
+  const highItems   = (activeInputs?.health ?? []).filter(h => h.priority === "high");
+  const moderateItems = (activeInputs?.health ?? []).filter(h => h.priority === "moderate");
   const allHealthItems = [...highItems, ...moderateItems];
 
   const hasTherapeuticInputs = (nutritionDrivers?.therapeuticInputs?.length ?? 0) > 0;
