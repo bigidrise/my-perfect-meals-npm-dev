@@ -30,6 +30,8 @@ export class PageErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error(`[${this.props.pageName || 'Page'}] Error:`, error, errorInfo);
+    console.error(`[${this.props.pageName || 'Page'}] Error.message:`, error?.message ?? String(error));
+    console.error(`[${this.props.pageName || 'Page'}] Error.stack:`, error?.stack ?? '(no stack)');
   }
 
   handleRetry = () => {
