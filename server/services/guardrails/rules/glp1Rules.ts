@@ -73,10 +73,10 @@ export const glp1Rules: GLP1Rules = {
     'candy', 'chocolate bar', 'caramel',
     'pancakes', 'waffles', 'french toast',
     
-    // High-sugar fruits (berries allowed)
-    'mango', 'banana', 'grapes', 'pineapple',
-    'dried fruit', 'raisins', 'dates', 'figs',
-    'fruit juice', 'orange juice', 'apple juice',
+    // Concentrated sugars and processed fruit — whole fresh fruit is allowed in portions
+    'dried fruit', 'raisins', 'dates', 'figs', 'dried mango', 'dried banana chips',
+    'fruit juice', 'orange juice', 'apple juice', 'grape juice', 'mango juice',
+    'fruit punch', 'fruit syrup', 'fruit leather',
     
     // Carbonation
     'soda', 'pop', 'cola', 'sprite', 'sparkling water',
@@ -137,7 +137,8 @@ export const glp1Rules: GLP1Rules = {
     'carbonated beverages',
     'greasy foods',
     'ultra-processed foods',
-    'high-sugar foods',
+    'added sugars and syrups',
+    'concentrated fruit products',
     'tough meats',
   ],
 
@@ -208,9 +209,16 @@ ABSOLUTELY FORBIDDEN:
 - High-fat meats (bacon, sausage, ribeye)
 - Large portions or high-volume meals
 - Carbonated beverages
-- High-sugar foods and syrups
+- Added sugars, syrups, honey, agave, candy, pastries, donuts, cake, ice cream
+- Dried fruit, fruit juice, and concentrated fruit products (high sugar density)
 - Raw cruciferous vegetables (raw broccoli, raw cabbage)
 - Large amounts of beans or lentils
+
+WHOLE FRUIT GUIDANCE:
+- Fresh whole fruit is acceptable in appropriate portions (not forbidden)
+- Prefer lower-sugar options: berries, melon, citrus segments
+- Moderate portions of banana, mango, grapes, or pineapple are acceptable if within macro targets
+- Avoid large servings of high-sugar fruit (prioritize portion awareness, not blanket prohibition)
 
 PRIORITIZE:
 - Lean proteins: chicken breast, fish, egg whites, Greek yogurt
