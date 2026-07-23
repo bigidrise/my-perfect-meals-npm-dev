@@ -1,6 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
-import { X, ChevronRight, Wrench } from "lucide-react";
+import { X, ChevronRight, Wrench, Stethoscope, Dumbbell, RefreshCw, AlertCircle, User } from "lucide-react";
+import { proStore, type ClientProfile } from "@/lib/proData";
+import { getAuthHeaders } from "@/lib/auth";
+import { apiUrl } from "@/lib/resolveApiBase";
 
 interface NavSection {
   title: string;
@@ -185,10 +188,221 @@ const NAV_SECTIONS: NavSection[] = [
   },
 ];
 
+// ─── Pro Dashboard Preview Section ───────────────────────────────────────────
+// Fetches real clients from both workspaces so you can jump directly into
+// the physician or trainer dashboard for any client without switching accounts.
+
+interface DevClient {
+  id: string;
+  clientUserId: string;
+  name: string;
+  email?: string;
+  workspace: "trainer" | "clinician";
+  studioId: string;
+}
+
+function ProDashboardPreview({ onNavigate }: { onNavigate: (path: string) => void }) {
+  const [clients, setClients] = useState<DevClient[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [fetched, setFetched] = useState(false);
+
+  const fetchAll = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const headers = getAuthHeaders();
+
+      // Get the studio (works for both trainer and physician since it's the same studio record)
+      const studioRes = await fetch(apiUrl("/api/studios/my-studio"), { headers });
+      if (!studioRes.ok) {
+        setError("No studio found — you may not be set up as a professional yet.");
+        return;
+      }
+      const { studio } = await studioRes.json();
+      if (!studio?.id) {
+        setError("Studio returned but has no ID.");
+        return;
+      }
+
+      // Fetch both workspaces in parallel
+      const [trainerRes, clinicianRes] = await Promise.all([
+        fetch(apiUrl(`/api/studios/${studio.id}/clients?workspace=trainer`), { headers }),
+        fetch(apiUrl(`/api/studios/${studio.id}/clients?workspace=clinician`), { headers }),
+      ]);
+
+      const trainerClients: DevClient[] = trainerRes.ok
+        ? ((await trainerRes.json()).clients ?? []).map((c: any) => ({
+            id: c.clientUserId ?? c.id,
+            clientUserId: c.clientUserId ?? c.id,
+            name: c.name ?? c.email ?? "Unknown",
+            email: c.email,
+            workspace: "trainer" as const,
+            studioId: studio.id,
+          }))
+        : [];
+
+      const clinicianClients: DevClient[] = clinicianRes.ok
+        ? ((await clinicianRes.json()).clients ?? []).map((c: any) => ({
+            id: c.clientUserId ?? c.id,
+            clientUserId: c.clientUserId ?? c.id,
+            name: c.name ?? c.email ?? "Unknown",
+            email: c.email,
+            workspace: "clinician" as const,
+            studioId: studio.id,
+          }))
+        : [];
+
+      // Also pull from localStorage proStore as a fallback
+      const storedClients = proStore.listClients();
+      const storedMapped: DevClient[] = storedClients.map(c => ({
+        id: c.clientUserId ?? c.id,
+        clientUserId: c.clientUserId ?? c.id,
+        name: c.name ?? "Unknown",
+        email: c.email,
+        workspace: (c.workspace ?? "trainer") as "trainer" | "clinician",
+        studioId: c.studioId ?? studio.id,
+      }));
+
+      // Merge all, deduplicating by clientUserId, preferring API data
+      const seen = new Set<string>();
+      const merged: DevClient[] = [];
+      for (const c of [...trainerClients, ...clinicianClients, ...storedMapped]) {
+        const key = c.clientUserId;
+        if (!seen.has(key)) {
+          seen.add(key);
+          merged.push(c);
+        }
+      }
+
+      // Pre-load all into proStore so dashboard pages don't get blank state
+      for (const c of merged) {
+        proStore.upsertClient({
+          id: c.clientUserId,
+          clientUserId: c.clientUserId,
+          name: c.name,
+          email: c.email,
+          workspace: c.workspace,
+          studioId: c.studioId,
+          dbBacked: true,
+        } as ClientProfile);
+      }
+
+      setClients(merged);
+      if (merged.length === 0) {
+        setError("No clients found in either workspace. Add a client first via the Pro Portal.");
+      }
+    } catch (e) {
+      setError("Failed to fetch clients. Make sure you're signed in.");
+    } finally {
+      setLoading(false);
+      setFetched(true);
+    }
+  }, []);
+
+  // Auto-fetch on first render
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
+
+  const jumpTo = (clientUserId: string, view: "clinician" | "trainer") => {
+    onNavigate(`/pro/clients/${clientUserId}/${view}`);
+  };
+
+  if (!fetched && loading) {
+    return (
+      <div className="px-4 py-4 flex items-center gap-2 text-white/50 text-sm">
+        <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+        Loading clients from API…
+      </div>
+    );
+  }
+
+  if (error && clients.length === 0) {
+    return (
+      <div className="px-4 py-3">
+        <div className="flex items-start gap-2 text-red-300/80 text-xs mb-2">
+          <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+          <span>{error}</span>
+        </div>
+        <button
+          onClick={fetchAll}
+          className="flex items-center gap-1.5 text-xs text-amber-400 active:opacity-70"
+        >
+          <RefreshCw className="h-3 w-3" /> Retry
+        </button>
+      </div>
+    );
+  }
+
+  // Group by unique client (show one row per clientUserId with both view buttons)
+  const uniqueClients = Array.from(
+    new Map(clients.map(c => [c.clientUserId, c])).values()
+  );
+
+  return (
+    <div className="border-t border-white/5">
+      <div className="px-4 py-2 flex items-center justify-between">
+        <span className="text-[10px] text-white/30 uppercase tracking-wide">
+          {uniqueClients.length} client{uniqueClients.length !== 1 ? "s" : ""} found
+        </span>
+        <button
+          onClick={fetchAll}
+          disabled={loading}
+          className="flex items-center gap-1 text-[10px] text-amber-400/70 active:opacity-60 disabled:opacity-40"
+        >
+          <RefreshCw className={`h-2.5 w-2.5 ${loading ? "animate-spin" : ""}`} />
+          Refresh
+        </button>
+      </div>
+
+      {uniqueClients.map((c) => (
+        <div key={c.clientUserId} className="px-4 py-2.5 border-t border-white/5">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="h-6 w-6 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+              <User className="h-3 w-3 text-white/50" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-medium text-white truncate">{c.name}</div>
+              {c.email && (
+                <div className="text-[10px] text-white/30 truncate">{c.email}</div>
+              )}
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => jumpTo(c.clientUserId, "clinician")}
+              className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-violet-600/20 border border-violet-500/30 text-violet-300 text-xs font-medium active:scale-[0.97] transition-transform"
+            >
+              <Stethoscope className="h-3 w-3" />
+              Physician View
+            </button>
+            <button
+              onClick={() => jumpTo(c.clientUserId, "trainer")}
+              className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-emerald-600/20 border border-emerald-500/30 text-emerald-300 text-xs font-medium active:scale-[0.97] transition-transform"
+            >
+              <Dumbbell className="h-3 w-3" />
+              Trainer View
+            </button>
+          </div>
+        </div>
+      ))}
+
+      {uniqueClients.length > 0 && (
+        <div className="px-4 py-2">
+          <p className="text-[10px] text-white/25 leading-relaxed">
+            Client data pre-loaded into proStore. Both views accessible regardless of your account role.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function DevNavigator() {
   const [open, setOpen] = useState(false);
   const [, setLocation] = useLocation();
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(["Meal Builders"]));
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(["Pro Dashboard Preview"]));
 
   if (
     import.meta.env.MODE !== "development" ||
@@ -239,6 +453,30 @@ export default function DevNavigator() {
       </div>
 
       <div className="p-3 space-y-2 pb-24">
+
+        {/* ── PRO DASHBOARD PREVIEW — always at the top ── */}
+        <div className="rounded-xl bg-white/5 border border-amber-500/20 overflow-hidden">
+          <button
+            onClick={() => toggleSection("Pro Dashboard Preview")}
+            className="w-full flex items-center justify-between px-4 py-3 active:scale-[0.99]"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-white text-sm font-medium">Pro Dashboard Preview</span>
+              <span className="text-[10px] bg-amber-600/30 text-amber-400 px-1.5 py-0.5 rounded-full">Live</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-white/40">Physician · Trainer</span>
+              <ChevronRight
+                className={`w-4 h-4 text-white/40 transition-transform ${expandedSections.has("Pro Dashboard Preview") ? "rotate-90" : ""}`}
+              />
+            </div>
+          </button>
+          {expandedSections.has("Pro Dashboard Preview") && (
+            <ProDashboardPreview onNavigate={navigate} />
+          )}
+        </div>
+
+        {/* ── ALL OTHER SECTIONS ── */}
         {NAV_SECTIONS.map((section) => {
           const isExpanded = expandedSections.has(section.title);
           return (
