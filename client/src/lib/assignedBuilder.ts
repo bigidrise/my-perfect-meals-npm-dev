@@ -26,7 +26,7 @@ export function getAssignedBuilder(healthConditions?: string[]): AssignedBuilder
     return LEGACY_BUILDER_MAP.diabetic;
   }
 
-  if (conditions.some((c) => c.includes("glp") || c.includes("ozempic") || c.includes("wegovy") || c.includes("mounjaro"))) {
+  if (conditions.some((c) => c.includes("glp") || c.includes("ozempic") || c.includes("wegovy") || c.includes("mounjaro") || c.includes("zepbound") || c.includes("saxenda") || c.includes("victoza") || c.includes("trulicity") || c.includes("liraglutide") || c.includes("dulaglutide") || c.includes("tirzepatide") || c.includes("semaglutide"))) {
     return LEGACY_BUILDER_MAP.glp1;
   }
 
