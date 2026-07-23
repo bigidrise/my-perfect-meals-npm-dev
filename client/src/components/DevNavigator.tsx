@@ -264,10 +264,15 @@ function ProDashboardPreview({ onNavigate }: { onNavigate: (path: string) => voi
         studioId: c.studioId ?? studio.id,
       }));
 
-      // Merge all, deduplicating by clientUserId, preferring API data
+      // Only show test accounts — never surface real client names/emails
+      const TEST_EMAILS = ["npmboxtest2026@proton.me"];
+      const isTestClient = (c: DevClient) =>
+        c.email && TEST_EMAILS.some(t => c.email!.toLowerCase() === t.toLowerCase());
+
       const seen = new Set<string>();
       const merged: DevClient[] = [];
       for (const c of [...trainerClients, ...clinicianClients, ...storedMapped]) {
+        if (!isTestClient(c)) continue;
         const key = c.clientUserId;
         if (!seen.has(key)) {
           seen.add(key);
@@ -290,7 +295,7 @@ function ProDashboardPreview({ onNavigate }: { onNavigate: (path: string) => voi
 
       setClients(merged);
       if (merged.length === 0) {
-        setError("No clients found in either workspace. Add a client first via the Pro Portal.");
+        setError("Test account not found in studio. Make sure npmboxtest2026@proton.me is enrolled as a client in your Pro Portal.");
       }
     } catch (e) {
       setError("Failed to fetch clients. Make sure you're signed in.");
