@@ -35,7 +35,7 @@
 
 import { db } from "../db";
 import { users } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import {
   AVOIDANCE_EXPANSION,
   RESTRICTION_EXPANSION,
@@ -56,6 +56,8 @@ import { sanitizeIdentifiers } from "./promptSanitizer";
 import { logAudit } from "../lib/auditLog";
 import { computeDemandProfile, type DemandProfile } from "../../shared/performanceDemandEngine";
 import { resolveDailyNutritionState, type DailyNutritionState } from "./dailyNutritionState";
+import { buildInterventionPrompts, type ActiveIntervention } from "./interventions/interventionPromptBuilder";
+import { providerClinicalInterventions } from "../db/schema/providerInterventions";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PROCEDURAL RULES — The third enforcement dimension
@@ -670,6 +672,31 @@ export interface UserProtocolEnvelope {
     therapies: string[];
     recoveryGoals: string[];
   } | null;
+
+  /**
+   * Active provider clinical interventions — loaded from provider_clinical_interventions table.
+   * These represent conditions a clinician has flagged for this patient (e.g., Nausea: Moderate).
+   * Their prompt directives are already merged into medicalHardLimits and medicalOptimization
+   * above, so every generator automatically honors them. This field is available for:
+   *  - UI display (show the patient what's being adjusted and why)
+   *  - Audit logging (record which provider directives were active at generation time)
+   *  - Escalation flag surfacing
+   * Empty array when no interventions are active.
+   */
+  providerInterventions: Array<{
+    conditionKey: string;
+    severity: string;
+    notes: string | null;
+    escalationFlag: boolean;
+    activatedAt: Date;
+  }>;
+
+  /**
+   * Patient-facing coaching summary lines generated from active interventions.
+   * Each line explains what the system is adjusting and why, in plain language.
+   * Empty when no interventions are active.
+   */
+  interventionPatientSummary: string[];
 }
 
 /**
@@ -1221,6 +1248,73 @@ export async function loadUserProtocolEnvelope(
         ? { phase: rawCarbCycle.phase as "low_carb" | "refeed", carbBudgetG: rawCarbCycle.carbTargetG, isRefeedDay: rawCarbCycle.phase === "refeed" }
         : null;
 
+    // ── PROVIDER CLINICAL INTERVENTIONS ───────────────────────────────────────
+    // Query active provider interventions for this patient and inject their
+    // prompt directives into medicalHardLimits / medicalOptimization so that
+    // every generator automatically honors provider directives with zero
+    // per-generator wiring.
+    let providerInterventions: UserProtocolEnvelope["providerInterventions"] = [];
+    let interventionPatientSummary: string[] = [];
+
+    try {
+      const activeInterventions = await db
+        .select({
+          conditionKey:   providerClinicalInterventions.conditionKey,
+          severity:       providerClinicalInterventions.severity,
+          notes:          providerClinicalInterventions.notes,
+          escalationFlag: providerClinicalInterventions.escalationFlag,
+          activatedAt:    providerClinicalInterventions.activatedAt,
+        })
+        .from(providerClinicalInterventions)
+        .where(
+          and(
+            eq(providerClinicalInterventions.clientUserId, userId),
+            eq(providerClinicalInterventions.isActive, true)
+          )
+        );
+
+      if (activeInterventions.length > 0) {
+        providerInterventions = activeInterventions.map(i => ({
+          conditionKey:   i.conditionKey as string,
+          severity:       i.severity as string,
+          notes:          i.notes ?? null,
+          escalationFlag: i.escalationFlag ?? false,
+          activatedAt:    i.activatedAt,
+        }));
+
+        const promptResult = buildInterventionPrompts(
+          activeInterventions.map(i => ({
+            conditionKey: i.conditionKey as ActiveIntervention["conditionKey"],
+            severity:     i.severity as ActiveIntervention["severity"],
+            notes:        i.notes ?? null,
+          }))
+        );
+
+        if (promptResult.hardLimits.length > 0) {
+          conditionGuidanceBlocks.push(...promptResult.hardLimits);
+        }
+        if (promptResult.optimization.length > 0) {
+          optimization.push(...promptResult.optimization);
+        }
+        interventionPatientSummary = promptResult.patientSummaryLines;
+
+        if (promptResult.escalationWarnings.length > 0) {
+          console.warn(
+            `[ProtocolEnvelope] ⚠️ Escalation warnings for user ${userId}:`,
+            promptResult.escalationWarnings
+          );
+        }
+
+        console.log(
+          `[ProtocolEnvelope] 🏥 Provider interventions active for user ${userId}:`,
+          activeInterventions.map(i => `${i.conditionKey}:${i.severity}`).join(", ")
+        );
+      }
+    } catch (err) {
+      // Never crash envelope loading due to intervention query failure
+      console.error(`[ProtocolEnvelope] Failed to load provider interventions for user ${userId}:`, err);
+    }
+
     return {
       userId,
       dietaryIdentity: dietaryRestrictions,
@@ -1261,6 +1355,8 @@ export async function loadUserProtocolEnvelope(
       palateSeasoningIntensity: (user as any).palateSeasoningIntensity ?? null,
       palateFlavorStyle: (user as any).palateFlavorStyle ?? null,
       dailyNutritionState: null,
+      providerInterventions,
+      interventionPatientSummary,
     };
 
     // ── DAILY NUTRITION STATE — resolve only when performance-nutrition is active ─
@@ -1348,6 +1444,8 @@ export function buildGuestEnvelope(): UserProtocolEnvelope {
     palateSpiceTolerance: null,
     palateSeasoningIntensity: null,
     palateFlavorStyle: null,
+    providerInterventions: [],
+    interventionPatientSummary: [],
   };
 }
 

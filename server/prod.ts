@@ -581,6 +581,11 @@ async function initializeApp() {
       .default;
     app.use("/api/check-in-schedules", checkInSchedulesRouter);
 
+    // Clinical Interventions — provider-set patient conditions that enter
+    // the Protocol Envelope and change every generator's behavior.
+    const clinicalInterventionsRouter = (await import("./routes/clinicalInterventions")).default;
+    app.use("/api", clinicalInterventionsRouter);
+
     // Shopping list v2 — must be mounted explicitly in prod; registerRoutes()
     // mounts it in dev but prod.ts has its own route registration path.
     const { shoppingPreviewRouter, shoppingRouter } = await import("./routes/shoppingListV2");

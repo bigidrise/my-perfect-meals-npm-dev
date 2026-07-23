@@ -44,6 +44,7 @@ import WeeklyWeightTrendCard from "@/components/pro/WeeklyWeightTrendCard";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import ClinicalProtocolCard from "@/components/protocol/ClinicalProtocolCard";
 import { NutritionPersonalizationSummaryCard } from "@/components/protocol/NutritionPersonalizationSummaryCard";
+import ClinicalInterventionPanel from "@/components/pro/ClinicalInterventionPanel";
 
 const CLINICIAN_DASHBOARD_TOUR_STEPS: TourStep[] = [
   {
@@ -654,6 +655,11 @@ export default function ClinicianClientDashboard() {
           isLoading={nutritionSummaryLoading}
           defaultExpanded={false}
         />
+
+        {/* ── CLINICAL INTERVENTION PANEL ──────────────────────────────────── */}
+        {client && (
+          <ClinicalInterventionPanel clientUserId={clientId} />
+        )}
 
         <Card className="bg-white/5 border border-white/20">
           <CardHeader>
