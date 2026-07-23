@@ -110,6 +110,7 @@ import builderPlansRoutes from "./routes/builderPlans";
 import careTeamRoutes from "./routes/careTeamRoutes";
 import procareRoutes from "./routes/procareRoutes";
 import procareTrainingRouter from "./routes/procareTrainingRoutes";
+import clinicalInterventionsRouter from "./routes/clinicalInterventions";
 import studioRoutes from "./routes/studioRoutes";
 import onboardingProgressRoutes from "./routes/onboardingProgress";
 import foundersRoutes from "./routes/foundersRoutes";
@@ -7099,6 +7100,7 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   app.use("/api/care-team", requireAuth, requirePremiumAccess, careTeamRoutes);
   app.use("/api/pro", requireAuth, requirePremiumAccess, requireMfa, procareRoutes);
   app.use("/api/pro/training", requireAuth, procareTrainingRouter);
+  app.use("/api", requireAuth, clinicalInterventionsRouter);
   app.use("/api/studios", requireAuth, requirePremiumAccess, requirePhase1Cert, requirePhase2Training, requireMfa, studioRoutes);
   const cycleProtocolRoutes = (await import("./routes/cycleProtocolRoutes")).default;
   app.use("/api", requireAuth, cycleProtocolRoutes);

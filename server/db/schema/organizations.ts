@@ -11,6 +11,36 @@ import {
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
+export type OrgSpecialty =
+  | "general"
+  | "glp1_weight_loss"
+  | "diabetes"
+  | "hormone"
+  | "renal"
+  | "oncology"
+  | "anti_inflammatory"
+  | "bariatric"
+  | "sports_medicine"
+  | "functional_medicine";
+
+export type OrgClinicalConfig = {
+  requireAcademy: boolean;
+  requireProviderOnboarding: boolean;
+  requireLicenseVerification: boolean;
+  defaultProtocols: string[];
+  availablePacks: string[];
+  clinicalStudioModules: string[];
+};
+
+export const DEFAULT_ORG_CLINICAL_CONFIG: OrgClinicalConfig = {
+  requireAcademy: false,
+  requireProviderOnboarding: false,
+  requireLicenseVerification: false,
+  defaultProtocols: [],
+  availablePacks: [],
+  clinicalStudioModules: [],
+};
+
 export type OrgFeatureFlags = {
   whiteLabelMode: boolean;
   customBranding: boolean;
