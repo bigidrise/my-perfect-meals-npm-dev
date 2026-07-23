@@ -650,11 +650,13 @@ export default function ClinicianClientDashboard() {
           </div>
         )}
 
-        <NutritionPersonalizationSummaryCard
-          summary={nutritionSummary}
-          isLoading={nutritionSummaryLoading}
-          defaultExpanded={false}
-        />
+        {nutritionSummary && (
+          <NutritionPersonalizationSummaryCard
+            summary={nutritionSummary}
+            isLoading={nutritionSummaryLoading}
+            defaultExpanded={false}
+          />
+        )}
 
         {/* ── CLINICAL INTERVENTION PANEL ──────────────────────────────────── */}
         {client && (
