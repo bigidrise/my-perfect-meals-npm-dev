@@ -141,6 +141,9 @@ export default function ClinicianClientDashboard() {
   const [nutritionSummary, setNutritionSummary] = useState<any>(null);
   const [nutritionSummaryLoading, setNutritionSummaryLoading] = useState(false);
 
+  // Must be defined BEFORE any useEffect that references it in deps or body.
+  const resolvedClientUserId = client?.clientUserId || client?.userId || clientId;
+
   useEffect(() => {
     setT(proStore.getTargets(clientId));
     setCtx(proStore.getContext(clientId));
@@ -370,8 +373,6 @@ export default function ClinicianClientDashboard() {
     const next = current.includes(tag) ? current.filter((t) => t !== tag) : [...current, tag];
     updateCtx({ ...ctx, clinicalTags: next });
   };
-
-  const resolvedClientUserId = client?.clientUserId || client?.userId || clientId;
 
   const scheduleFollowUp = async () => {
     const dateStr = ctx.followupDate;
