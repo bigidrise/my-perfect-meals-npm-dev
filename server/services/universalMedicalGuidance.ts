@@ -288,7 +288,10 @@ TONE: Do NOT suggest foods "boost testosterone" or use clinical hormone language
 
 const GLP1_CONDITION_KEYS = new Set([
   "glp-1", "glp1", "semaglutide", "ozempic", "wegovy",
-  "tirzepatide", "mounjaro", "rybelsus",
+  "tirzepatide", "mounjaro", "zepbound", "rybelsus",
+  "liraglutide", "saxenda", "victoza",
+  "dulaglutide", "trulicity",
+  "exenatide", "byetta", "bydureon",
 ]);
 
 const ANTI_INFLAMMATORY_KEYS = new Set([

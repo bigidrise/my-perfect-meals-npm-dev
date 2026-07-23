@@ -743,7 +743,9 @@ const MEDICAL_HARD_LIMIT_CONDITIONS = new Set([
 
 const MEDICAL_OPTIMIZATION_CONDITIONS = new Set([
   "anti-inflammatory", "anti inflammatory",
-  "glp-1", "glp1", "semaglutide", "ozempic", "wegovy", "tirzepatide", "mounjaro",
+  "glp-1", "glp1", "semaglutide", "ozempic", "wegovy", "tirzepatide", "mounjaro", "zepbound",
+  "liraglutide", "saxenda", "victoza", "dulaglutide", "trulicity",
+  "exenatide", "byetta", "bydureon", "rybelsus",
   "weight loss", "obesity",
   "high cholesterol", "hypercholesterolemia",
   "metabolic syndrome",
@@ -898,7 +900,8 @@ export async function loadUserProtocolEnvelope(
       (user as any)._householdMedicalConditions ||
       ((user as any).medicalConditions as string[] | null) ||
       [];
-    const medicalConditionsGlp1 = _activeMedicalConditions.filter((c: string) => c === "glp1");
+    const GLP1_MC_KEYS = new Set(["glp1", "glp-1", "semaglutide", "ozempic", "wegovy", "tirzepatide", "mounjaro", "zepbound", "rybelsus", "liraglutide", "saxenda", "victoza", "dulaglutide", "trulicity", "exenatide", "byetta", "bydureon"]);
+    const medicalConditionsGlp1 = _activeMedicalConditions.filter((c: string) => GLP1_MC_KEYS.has(c.toLowerCase()));
     const mergedHealthConditions = [...new Set([...healthConditions, ...specialtyConditionsArr, ...medicalConditionsGlp1])];
     const dislikedFoods: string[] = (user.dislikedFoods as string[]) || [];
     const avoidedFoods: string[] = (user.avoidedFoods as string[]) || [];

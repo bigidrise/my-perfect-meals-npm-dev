@@ -131,7 +131,7 @@ export const HUBS: Record<string, FeatureDefinition> = {
     primaryRoute: "/glp1-hub",
     isHub: true,
     hubSize: "small",
-    keywords: ["glp", "glp-1", "glp1", "ozempic", "wegovy", "semaglutide", "injection", "glp one", "g l p one", "glp hub", "glp-1 hub", "weight loss meds"],
+    keywords: ["glp", "glp-1", "glp1", "ozempic", "wegovy", "semaglutide", "mounjaro", "zepbound", "tirzepatide", "saxenda", "victoza", "liraglutide", "trulicity", "rybelsus", "injection", "glp one", "g l p one", "glp hub", "glp-1 hub", "weight loss meds", "weight loss medication"],
     subOptions: [
       {
         id: "GLP1_BUILDER",
