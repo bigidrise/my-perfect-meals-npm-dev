@@ -102,12 +102,14 @@ export interface UniversalGuidanceInput {
 
 const GLP1_GUIDANCE = `
 💊 GLP-1 MEDICATION PROTOCOL — MANDATORY (user is on semaglutide, tirzepatide, or similar):
-- SMALL PORTIONS ONLY — max ~400 kcal/meal. Do NOT generate large, heavy, or volume-dense meals.
-- HIGH PROTEIN, LOW FAT — target ≥25g protein and ≤15g fat per meal.
+- SMALL PORTIONS ONLY — conservative starting target ~400 kcal/meal; adjust upward for larger, highly active, or athlete users per their profile. Do NOT generate large, heavy, or volume-dense meals.
+- HIGH PROTEIN, LOW FAT — target ≥25g protein and ≤15g fat per meal. Larger or strength-training users may need more protein — scale to their resolved targets.
 - No fried foods of any kind — no deep frying, pan frying in heavy oil, or breading.
 - No heavy fat sources: no butter, cream, heavy cream, cream cheese, full-fat mayo, rich sauces.
 - No carbonated drinks — no soda, sparkling water, seltzer, tonic; carbonation worsens GLP-1 side effects.
-- No high-sugar foods: no candy, pastries, donuts, cake, ice cream, syrup, honey, agave.
+- No added sugars, syrups, honey, agave, candy, pastries, donuts, cake, or ice cream.
+- No dried fruit, fruit juice, or concentrated fruit products (high sugar density without fiber benefit).
+- WHOLE FRUIT: Fresh whole fruit is acceptable in appropriate portions — prefer berries, melon, citrus. Moderate portions of banana, mango, grapes, or pineapple are acceptable if within macro targets. Do NOT label all fruit as forbidden.
 - No high-fat meats: no ribeye, pork belly, bacon, sausage, lamb shoulder, duck.
 - No raw cruciferous vegetables in large quantities (hard to digest on GLP-1): cook all broccoli, cauliflower, cabbage, kale.
 - No large legume servings (hard-to-digest): limit beans, lentils, chickpeas to small garnish portions.

@@ -34,10 +34,10 @@ FORBIDDEN COOKING METHODS:
 ${glp1Rules.cookingMethods.forbidden.slice(0, 6).join(', ')}
 
 MACRO TARGETS:
-- Maximum calories: ${glp1Rules.portionGuidelines.maxCalories}kcal
-- Maximum fat: ${glp1Rules.portionGuidelines.maxFatGrams}g
-- Minimum protein: ${glp1Rules.portionGuidelines.minProteinGrams}g
-- Portion size: SMALL (prioritize light meals)
+- Calorie target: ~${glp1Rules.portionGuidelines.maxCalories}kcal (conservative baseline — scale upward for larger, highly active, or strength-training users based on their resolved profile)
+- Maximum fat: ${glp1Rules.portionGuidelines.maxFatGrams}g (hard limit — high fat is the primary nausea trigger)
+- Minimum protein: ${glp1Rules.portionGuidelines.minProteinGrams}g (floor — target ≥25g; higher for muscle-preservation goals)
+- Portion size: SMALL to MODERATE (lean toward smaller for sedentary/suppressed-appetite; allow moderate for active users)
 
 ${context.userRequest ? `USER REQUEST: ${context.userRequest}` : ''}
 
