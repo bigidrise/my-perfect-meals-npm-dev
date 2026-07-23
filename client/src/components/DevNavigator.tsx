@@ -265,7 +265,7 @@ function ProDashboardPreview({ onNavigate }: { onNavigate: (path: string) => voi
       }));
 
       // Only show test accounts — never surface real client names/emails
-      const TEST_EMAILS = ["npmboxtest2026@proton.me"];
+      const TEST_EMAILS = ["mpmsandboxtest2026@proton.me"];
       const isTestClient = (c: DevClient) =>
         c.email && TEST_EMAILS.some(t => c.email!.toLowerCase() === t.toLowerCase());
 
@@ -295,7 +295,7 @@ function ProDashboardPreview({ onNavigate }: { onNavigate: (path: string) => voi
 
       setClients(merged);
       if (merged.length === 0) {
-        setError("Test account not found in studio. Make sure npmboxtest2026@proton.me is enrolled as a client in your Pro Portal.");
+        setError("Test account not found in studio. Make sure mpmsandboxtest2026@proton.me is enrolled as a client in your Pro Portal.");
       }
     } catch (e) {
       setError("Failed to fetch clients. Make sure you're signed in.");
