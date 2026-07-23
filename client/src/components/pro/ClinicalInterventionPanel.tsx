@@ -6,7 +6,11 @@ import {
   type InterventionConditionKey,
   type InterventionSeverity,
 } from "@/hooks/useClinicalInterventions";
-import { INTERVENTION_CONDITION_LABELS, INTERVENTION_SEVERITY_LABELS } from "@shared/interventionTypes";
+import {
+  INTERVENTION_CONDITION_LABELS,
+  INTERVENTION_SEVERITY_LABELS,
+  INTERVENTION_PROVIDER_EFFECTS,
+} from "@shared/interventionTypes";
 
 interface Props {
   clientUserId: string;
@@ -68,6 +72,10 @@ function ConditionRow({
 }) {
   const label = INTERVENTION_CONDITION_LABELS[conditionKey] ?? conditionKey;
   const isActive = currentSeverity !== "none" && currentSeverity !== undefined;
+  const effects =
+    isActive && currentSeverity !== "none"
+      ? (INTERVENTION_PROVIDER_EFFECTS[conditionKey]?.[currentSeverity as "mild" | "moderate" | "severe"] ?? [])
+      : [];
 
   return (
     <div className={`rounded-xl border px-4 py-3 transition-all ${
@@ -104,6 +112,28 @@ function ConditionRow({
           })}
         </div>
       </div>
+
+      {/* Provider effect preview — visible immediately when condition is active */}
+      {isActive && effects.length > 0 && (
+        <div className="mt-2.5 pl-6 border-l border-orange-500/20 ml-2">
+          <p className="text-[10px] font-semibold text-orange-400/70 uppercase tracking-wide mb-1">
+            This intervention will:
+          </p>
+          <ul className="space-y-0.5">
+            {effects.map((effect, i) => (
+              <li key={i} className="text-xs text-white/45 leading-relaxed">
+                {effect.startsWith("⚠️") || effect.startsWith("🚨") ? (
+                  <span className={effect.startsWith("🚨") ? "text-red-400/80" : "text-yellow-400/70"}>
+                    {effect}
+                  </span>
+                ) : (
+                  <span>• {effect}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
