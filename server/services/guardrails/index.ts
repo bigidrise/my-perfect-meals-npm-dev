@@ -26,6 +26,7 @@ import { validatePerformanceMeal } from './validators/performanceValidator';
 import { glp1Rules, getGLP1SystemPrompt } from './rules/glp1Rules';
 import { buildGLP1Prompt, buildGLP1SnackPrompt } from './prompt/glp1PromptBuilder';
 import { validateGLP1Meal, validateGLP1Snack } from './validators/glp1Validator';
+import type { ResolvedGLP1Targets } from '../glp1/resolveGLP1MealTargets';
 import { ProCareRulePack, PROCARE_FIXED_RULES } from './rules/procareTypes';
 import { resolveProCareRules, getProCareSystemPrompt } from './rules/procareRules';
 import { buildProCarePrompt, buildProCareSnackPrompt } from './prompt/procarePromptBuilder';
@@ -90,7 +91,8 @@ export function applyGuardrails(
   dietPhase?: BeachBodyPhase,
   remainingMacros?: { protein?: number; carbs?: number; fat?: number; calories?: number },
   builderMode?: BuilderMode,
-  dailyProteinTarget?: number
+  dailyProteinTarget?: number,
+  glp1Targets?: ResolvedGLP1Targets
 ): GuardrailResult {
   // No diet-specific guardrails for null/undefined diet type (Weekly Meal Board),
   // but still inject ingredient precision block.
@@ -216,15 +218,20 @@ export function applyGuardrails(
 
     case 'glp1':
       if (mealType === 'snack') {
-        modifiedPrompt = buildGLP1SnackPrompt(basePrompt);
+        modifiedPrompt = buildGLP1SnackPrompt(basePrompt, glp1Targets);
       } else {
-        modifiedPrompt = buildGLP1Prompt({ mealType, userRequest: basePrompt });
+        modifiedPrompt = buildGLP1Prompt({ mealType, userRequest: basePrompt }, glp1Targets);
       }
       appliedRules.push('glp1-small-portions');
       appliedRules.push('glp1-low-fat');
       appliedRules.push('glp1-high-protein');
       appliedRules.push('glp1-easy-digestion');
-      console.log(`🛡️ Guardrails: Applied GLP-1 rules for ${mealType}`);
+      if (glp1Targets && !glp1Targets.usedBaseline) {
+        appliedRules.push('glp1-personalized-targets');
+        console.log(`🛡️ Guardrails: Applied GLP-1 rules for ${mealType} [PERSONALIZED: ${glp1Targets.resolvedMealCalories}kcal / ${glp1Targets.targetProteinGrams}g protein / ${glp1Targets.maximumToleratedFatGrams}g fat — phase: ${glp1Targets.treatmentPhase}]`);
+      } else {
+        console.log(`🛡️ Guardrails: Applied GLP-1 rules for ${mealType} [baseline fallback]`);
+      }
       break;
 
     case 'beachbody':
@@ -346,10 +353,12 @@ export function validateMealForDiet(
     name: string;
     ingredients: Array<{ name: string; quantity?: string; unit?: string }>;
     instructions?: string | string[];
+    macros?: { calories?: number; protein?: number; fat?: number; carbs?: number };
   },
   dietType: DietType,
   dietPhase?: BeachBodyPhase,
-  isSnack: boolean = false
+  isSnack: boolean = false,
+  glp1Targets?: ResolvedGLP1Targets
 ): ValidationResult {
   // Helper: merge ingredient precision violations into any diet result
   function mergeWithPrecision(dietResult: ValidationResult): ValidationResult {
@@ -488,11 +497,16 @@ export function validateMealForDiet(
     }
 
     case 'glp1': {
+      const glp1MealObj = { name: meal.name, ingredients: meal.ingredients, instructions: meal.instructions, macros: meal.macros };
       const glp1Result = isSnack
-        ? validateGLP1Snack({ name: meal.name, ingredients: meal.ingredients, instructions: meal.instructions })
-        : validateGLP1Meal({ name: meal.name, ingredients: meal.ingredients, instructions: meal.instructions });
+        ? validateGLP1Snack(glp1MealObj, glp1Targets)
+        : validateGLP1Meal(glp1MealObj, false, glp1Targets);
+      if (glp1Targets && !glp1Targets.usedBaseline) {
+        console.log(`💊 GLP-1 Validation [personalized: ${glp1Targets.resolvedMealCalories}kcal / ${glp1Targets.maximumToleratedFatGrams}g fat / ${glp1Targets.targetProteinGrams}g protein]: ${glp1Result.violations.length} violations, ${glp1Result.warnings?.length ?? 0} warnings`);
+      } else {
+        console.log(`💊 GLP-1 Validation [baseline]: ${glp1Result.violations.length} violations, ${glp1Result.warnings?.length ?? 0} warnings`);
+      }
       if (glp1Result.violations.length > 0) {
-        console.log(`💊 GLP-1 Validation: ${glp1Result.violations.length} violations found`);
         glp1Result.violations.forEach(v => console.log(`  ⚠️ ${v}`));
       }
       return mergeWithPrecision(glp1Result);

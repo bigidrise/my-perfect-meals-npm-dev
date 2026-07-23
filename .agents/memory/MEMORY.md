@@ -31,3 +31,4 @@
 - [DailyNutritionPrescription — Architecture](daily-nutrition-prescription.md) — shared contract + server resolver; starchMealsAllowed is integer not string; resolver uses real DB columns only.
 - [Nutrition Decision Engine — Food Entry Point Rule](nde-food-entry-points.md) — every food entry point (builders, scanners, imports, manual) must consult NDE before presenting to user; scanGeneratedOutput() is the post-gen validator; ndeSummary is the response field for scanner clients.
 - [Macro Calculator type sync rule](macro-calc-type-sync.md) — renaming client-side types (UserType, BodyType) requires updating server route validator AND engine types together or compute returns 400.
+- [GLP-1 Target Resolver](glp1-target-resolver.md) — pure resolver in server/services/glp1/resolveGLP1MealTargets.ts; loader in glp1TargetLoader.ts; applyGuardrails 8th param; validateMealForDiet 5th param; 57 unit tests.
