@@ -155,18 +155,33 @@ export default function WeeklyMealBoard() {
   // Sync hook board to local state — initial hydration must ALWAYS succeed
   React.useEffect(() => {
     if (!hookLoading && hookBoard) {
+      const mealCount = Object.values(hookBoard.days ?? {}).flatMap((d: any) => [...(d.breakfast??[]), ...(d.lunch??[]), ...(d.dinner??[]), ...(d.snacks??[])]).length;
       if (!boardRef.current) {
+        console.log(`[TRACE:Hydration] t=${Date.now()} INITIAL hydration — hookBoard meals=${mealCount} (bypasses skipServerSync)`);
         setBoard(hookBoard);
         boardRef.current = hookBoard;
         return;
       }
-      if (skipServerSync()) return;
+      const skip = skipServerSync();
+      if (skip) {
+        console.log(`[TRACE:SyncEffect] t=${Date.now()} skipServerSync=true — hookBoard meals=${mealCount} NOT applied`);
+        return;
+      }
       if (!Object.is(boardRef.current, hookBoard)) {
+        console.log(`[TRACE:SyncEffect] t=${Date.now()} skipServerSync=false — applying hookBoard meals=${mealCount}`);
         setBoard(hookBoard);
         boardRef.current = hookBoard;
       }
     }
   }, [hookBoard, hookLoading, skipServerSync]);
+
+  // Mount/unmount lifecycle trace
+  React.useEffect(() => {
+    console.log(`[TRACE:Mount] t=${Date.now()} GeneralNutritionBuilder MOUNTED`);
+    return () => {
+      console.log(`[TRACE:Mount] t=${Date.now()} GeneralNutritionBuilder UNMOUNTED`);
+    };
+  }, []);
 
   // Use hook's loading state directly (no local copy needed)
   const loading = hookLoading;
@@ -181,6 +196,7 @@ export default function WeeklyMealBoard() {
       setTimeout(() => setJustSaved(false), 2000);
       clearDraft();
       markClean();
+      console.log(`[TRACE:SaveBoard] t=${Date.now()} markClean() called — skipServerSync should reset to false`);
     } catch (err) {
       console.error("Failed to save board:", err);
       // Silent retry - no toast during decision-making flows
