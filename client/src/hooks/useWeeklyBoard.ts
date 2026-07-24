@@ -260,11 +260,18 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
     const startPolling = () => {
       if (intervalId) return;
       intervalId = setInterval(() => {
+        const pollStart = Date.now();
+        console.log(`[TRACE:Poll] GET start t=${pollStart} cooldownRemaining=${Math.max(0, saveCooldownRef.current - pollStart)}ms`);
         loadWeeklyBoard({
           userId,
           weekStartISO: monday,
           onData: (result) => {
-            if (Date.now() < saveCooldownRef.current) return;
+            const now = Date.now();
+            if (now < saveCooldownRef.current) {
+              console.log(`[TRACE:Poll] GET response t=${now} — BLOCKED by cooldown (${saveCooldownRef.current - now}ms remaining)`);
+              return;
+            }
+            console.log(`[TRACE:Poll] GET response t=${now} — setData CALLED (no cooldown active)`);
             setData(result);
             setError(null);
           },
