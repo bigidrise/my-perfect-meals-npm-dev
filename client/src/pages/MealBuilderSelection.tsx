@@ -39,14 +39,7 @@ interface BuilderOption {
 }
 
 const BUILDER_OPTIONS: BuilderOption[] = [
-  {
-    id: "weekly",
-    title: "Weekly Meal Builder",
-    description:
-      "For everyday healthy eating. Build balanced weekly meal plans with variety.",
-    icon: <Utensils className="w-8 h-8" />,
-    color: "from-black via-zinc-950 to-black",
-  },
+  // "weekly" (My Weekly Meal Builder) is hidden — data and route intact, not selectable
   {
     id: "diabetic",
     title: "Diabetic Meal Builder",
@@ -83,7 +76,7 @@ const BUILDER_OPTIONS: BuilderOption[] = [
     id: "general_nutrition",
     title: "General Nutrition Builder",
     description:
-      "Professional-grade nutrition with coach support. Requires trainer unlock.",
+      "Balanced macro targets for everyday nutrition goals. The standard professional-grade builder.",
     icon: <Utensils className="w-8 h-8" />,
     color: "from-black via-zinc-950 to-black",
   },
@@ -119,8 +112,8 @@ export default function MealBuilderSelection() {
   const isProCareClient = user?.isProCare && !["admin", "coach", "physician", "trainer"].includes(user?.professionalRole || user?.role || "");
   const isUnlimited = switchStatus?.isUnlimited ?? false;
   
-  // Pro builders require trainer unlock
-  const PRO_BUILDERS = ["general_nutrition"];
+  // Pro builders that require trainer unlock (general_nutrition is now the standard builder)
+  const PRO_BUILDERS: string[] = [];
   
   const isProBuilderUnlocked = (builderId: string): boolean => {
     if (!PRO_BUILDERS.includes(builderId)) return true;
