@@ -19,9 +19,6 @@ import { z } from "zod";
 
 const router = Router();
 
-// ── Auth guard ────────────────────────────────────────────────────────────────
-router.use(requireAuth);
-
 // ── Validation schemas ────────────────────────────────────────────────────────
 const CONDITION_KEYS = [
   "nausea", "vomiting", "constipation", "diarrhea", "early_fullness",
@@ -66,7 +63,7 @@ async function getProviderStudio(providerUserId: string, clientUserId: string) {
 
 // ── GET /api/pro/clients/:clientId/interventions ──────────────────────────────
 // Returns all active interventions for a patient.
-router.get("/pro/clients/:clientId/interventions", async (req, res) => {
+router.get("/pro/clients/:clientId/interventions", requireAuth, async (req, res) => {
   const { clientId } = req.params;
   const providerUserId = (req as AuthenticatedRequest).authUser?.id;
   if (!providerUserId) return res.status(401).json({ error: "Unauthorized" });
@@ -90,7 +87,7 @@ router.get("/pro/clients/:clientId/interventions", async (req, res) => {
 // ── PUT /api/pro/clients/:clientId/interventions ──────────────────────────────
 // Upsert a single intervention. If severity is "none", deactivates it.
 // Only one active row per (clientUserId, conditionKey) is allowed.
-router.put("/pro/clients/:clientId/interventions", async (req, res) => {
+router.put("/pro/clients/:clientId/interventions", requireAuth, async (req, res) => {
   const { clientId } = req.params;
   const providerUserId = (req as AuthenticatedRequest).authUser?.id;
   if (!providerUserId) return res.status(401).json({ error: "Unauthorized" });
@@ -153,7 +150,7 @@ router.put("/pro/clients/:clientId/interventions", async (req, res) => {
 
 // ── DELETE /api/pro/clients/:clientId/interventions/:conditionKey ─────────────
 // Explicitly deactivate a single condition.
-router.delete("/pro/clients/:clientId/interventions/:conditionKey", async (req, res) => {
+router.delete("/pro/clients/:clientId/interventions/:conditionKey", requireAuth, async (req, res) => {
   const { clientId, conditionKey } = req.params;
   const providerUserId = (req as any).user?.id;
   if (!providerUserId) return res.status(401).json({ error: "Unauthorized" });
@@ -177,7 +174,7 @@ router.delete("/pro/clients/:clientId/interventions/:conditionKey", async (req, 
 
 // ── GET /api/pro/clients/:clientId/interventions/summary ─────────────────────
 // Patient-facing: returns active interventions in a safe, non-clinical format.
-router.get("/pro/clients/:clientId/interventions/summary", async (req, res) => {
+router.get("/pro/clients/:clientId/interventions/summary", requireAuth, async (req, res) => {
   const { clientId } = req.params;
   const requestingUserId = (req as any).user?.id;
   if (!requestingUserId) return res.status(401).json({ error: "Unauthorized" });
