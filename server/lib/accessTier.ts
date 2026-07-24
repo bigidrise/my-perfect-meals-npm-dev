@@ -50,13 +50,14 @@ const PAID_PLAN_KEYS = [
 const BILLING_ENFORCED = process.env.BILLING_ENFORCED === "true";
 
 export function resolveAccessTier(user: UserForAccess, now: Date = new Date()): AccessTier {
-  // Pre-launch bypass: remove by setting BILLING_ENFORCED=true in env
+  // Pre-launch bypass: remove by setting BILLING_ENFORCED=true in env.
+  // While billing is NOT enforced, sandbox and everyone else gets PAID_FULL so
+  // the UI can be tested without Stripe. Once billing IS enforced, sandbox
+  // accounts use their real plan/trial just like any other user — this lets you
+  // test each tier by assigning the appropriate plan_lookup_key to a test account.
   if (!BILLING_ENFORCED) return "PAID_FULL";
 
-  // Tier 1: Internal sandbox accounts — permanent full access, no plan/trial/Stripe required
-  if (user.isSandbox) return "PAID_FULL";
-
-  // Tier 2: Founders — permanent free access (core family, business partners, contributors)
+  // Tier 1: Founders — permanent full access (core family, business partners, contributors)
   if (user.isFounder) return "PAID_FULL";
 
   // Tier 2: Active paid subscription
