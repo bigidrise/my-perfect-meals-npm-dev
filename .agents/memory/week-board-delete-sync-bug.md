@@ -1,6 +1,6 @@
 ---
 name: WeekBoard day-mode delete sync bug
-description: Root cause and fix for deleted meals reappearing after navigation in GeneralNutritionBuilder day mode.
+description: Root cause and fix for deleted meals reappearing after navigation in GeneralNutritionBuilder day mode. VALIDATED.
 ---
 
 ## The rule
@@ -14,11 +14,24 @@ All board mutations in `GeneralNutritionBuilder.tsx` **must** go through `saveBo
 
 **How to apply:** When adding any new board mutation (delete, update, reorder) in GeneralNutritionBuilder, always call `saveBoard(updatedBoard)` — not any function from `boardApi.ts` directly.
 
-## Confirmed by timestamped trace
+## Confirmed by instrumented traces
 
-- Race condition hypothesis (poll overwriting mid-save) was **disproven**: polls fired 35s+ after both PUTs completed.
-- `skipServerSync=true` persisted across 5 consecutive polls (3+ minutes) — confirmed permanently stuck.
-- Draft-write warnings (`Storage write failed even after eviction`) from localStorage capacity are a secondary issue; in-memory `markClean()` is what `skipServerSync` actually checks.
+**Poll race condition hypothesis was DISPROVEN:** polls fired 35s+ after both PUTs completed — no timing overlap.
+
+**`skipServerSync=true` persisted for 3+ minutes (5 consecutive polls)** when using `putWeekBoard` path — confirmed permanently stuck.
+
+**Fix validated by trace:**
+```
+INITIAL hydration — hookBoard meals=4   (board loaded from DB)
+SaveBoard markClean() called            (new saveBoard path fires after delete)
+SyncEffect skipServerSync=false         (applying hookBoard meals=3)
+```
+- `markClean()` resets `skipServerSync` to false immediately after save
+- `hookBoard` is updated to the post-delete board (3 meals) via `saveToHook`
+- On remount, `boardRef.current` resets to null, initial hydration uses the correct `hookBoard`
+- Draft is cleared via `clearDraft()`, so no stale draft can restore the deleted meal
+
+**Draft-write warnings** (`Storage write failed even after eviction`) are a separate localStorage capacity issue — in-memory `markClean()` is what `skipServerSync` actually checks.
 
 ## Fix applied
 
