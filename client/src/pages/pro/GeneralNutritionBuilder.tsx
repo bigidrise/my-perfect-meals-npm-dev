@@ -126,15 +126,6 @@ export default function WeeklyMealBoard() {
   const { fetchImageForMeal } = useChefMealImage();
   const boardRef = React.useRef<WeekBoard | null>(null);
 
-  // ── DIAGNOSTIC INSTRUMENTATION (temporary) ───────────────────────────────
-  React.useEffect(() => {
-    console.log(`[GeneralNutritionBuilder DIAG] MOUNTED | proClientId=${proClientId ?? 'NONE'} | clientId=${clientId} | path=${window.location.pathname}`);
-    return () => {
-      console.log(`[GeneralNutritionBuilder DIAG] UNMOUNTED | proClientId=${proClientId ?? 'NONE'}`);
-    };
-  }, []);
-  // ─────────────────────────────────────────────────────────────────────────
-
   // Register this builder's board namespace so cross-context features (Add to Plan, etc.) write to the correct board
   React.useEffect(() => {
     setActiveBuilderNs(BUILDER_NS.GENERAL_NUTRITION);
