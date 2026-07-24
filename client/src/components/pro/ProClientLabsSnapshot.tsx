@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
+import { apiRequest } from "@/lib/apiRequest";
 import { Loader2, FlaskConical, AlertTriangle, CheckCircle } from "lucide-react";
 
 interface LabData {
@@ -191,19 +192,11 @@ export default function ProClientLabsSnapshot({ clientId }: ProClientLabsSnapsho
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(apiUrl(`/api/biometrics/labs/${clientId}`), {
-          headers: { ...getAuthHeaders() },
-          credentials: "include",
-        });
+        const data = await apiRequest(`/api/biometrics/labs/${clientId}`);
         if (cancelled) return;
-        if (!res.ok) {
-          setError("Unable to load lab data");
-          return;
-        }
-        const data = await res.json();
         setLabs(data.labs || null);
       } catch {
-        if (!cancelled) setError("Failed to load labs");
+        if (!cancelled) setError("Unable to load lab data");
       } finally {
         if (!cancelled) setLoading(false);
       }

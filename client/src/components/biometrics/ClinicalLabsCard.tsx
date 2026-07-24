@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
+import { apiRequest } from "@/lib/apiRequest";
 import { useToast } from "@/hooks/use-toast";
 import {
   FlaskConical, Loader2, Save,
@@ -253,12 +254,7 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
     const fetchLabs = async () => {
       setLoading(true);
       try {
-        const res = await fetch(apiUrl(`/api/biometrics/labs/${userId}`), {
-          headers: { ...getAuthHeaders() },
-          credentials: "include",
-        });
-        if (!res.ok) return;
-        const data = await res.json();
+        const data = await apiRequest(`/api/biometrics/labs/${userId}`);
         if (data.labs) {
           const l = data.labs;
           const loaded: LabValues = {

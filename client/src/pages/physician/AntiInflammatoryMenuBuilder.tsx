@@ -117,6 +117,7 @@ import { resolveClinicalModeFromFlags } from "@shared/clinical/clinicalModeResol
 import type { ProtocolBadge } from "@shared/clinical/clinicalModeResolver";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
+import { apiRequest } from "@/lib/apiRequest";
 
 const ANTI_INFLAMMATORY_TOUR_STEPS: TourStep[] = [
   { icon: "1", title: "Healing Foods", description: "All meals feature anti-inflammatory ingredients like leafy greens and omega-3s." },
@@ -229,11 +230,7 @@ export default function AntiInflammatoryMenuBuilder() {
     if (hasNonOncologyPhysicianBadge) return;
 
     let cancelled = false;
-    fetch(apiUrl(`/api/biometrics/labs/${effectiveUserId}`), {
-      headers: { ...getAuthHeaders() },
-      credentials: "include",
-    })
-      .then((r) => r.ok ? r.json() : null)
+    apiRequest(`/api/biometrics/labs/${effectiveUserId}`)
       .then((data) => {
         console.log("[AntiInflamBuilder] labs fetch →", JSON.stringify(data?.protocolSignal ?? null));
         if (cancelled) return;
@@ -1685,10 +1682,8 @@ export default function AntiInflammatoryMenuBuilder() {
                         });
                       } else {
                         try {
-                          await fetch(`/api/users/${effectiveUserId}/macros/daily-summary`, {
+                          await apiRequest(`/api/users/${effectiveUserId}/macros/daily-summary`, {
                             method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            credentials: "include",
                             body: JSON.stringify({
                               dateISO: activeDayISO,
                               calories: consumed.calories,

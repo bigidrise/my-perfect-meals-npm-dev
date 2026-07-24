@@ -1,4 +1,5 @@
 import { apiUrl } from '@/lib/resolveApiBase';
+import { apiRequest } from '@/lib/apiRequest';
 import { getAuthHeaders } from '@/lib/auth';
 
 export type DailyLimits = {
@@ -61,17 +62,10 @@ export async function setMacroTargets(targets: MacroTargets, userId?: string): P
   // For real users, also save to the database.
   // NOTE: localStorage was already saved above, so it's safe to throw here —
   // the data is not lost, it just won't persist across devices/logouts.
-  const response = await fetch(apiUrl(`/api/users/${userId}/macro-targets`), {
+  await apiRequest(`/api/users/${userId}/macro-targets`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-    credentials: 'include',
     body: JSON.stringify(targets),
   });
-
-  if (!response.ok) {
-    const body = await response.json().catch(() => ({ error: `Server error ${response.status}` }));
-    throw new Error(body.error || `Failed to save macro targets (${response.status})`);
-  }
 
   console.log('✅ Macro targets saved to database and localStorage');
 }

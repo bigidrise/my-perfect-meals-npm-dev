@@ -44,6 +44,7 @@ import { setQuickView } from "@/lib/macrosQuickView";
 import { getMacroTargets } from "@/lib/dailyLimits";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
+import { apiRequest } from "@/lib/apiRequest";
 import { useAuth } from "@/contexts/AuthContext";
 import WeeklyOverviewModal from "@/components/WeeklyOverviewModal";
 import BuilderShoppingBar from "@/components/BuilderShoppingBar";
@@ -210,11 +211,7 @@ export default function DiabeticMenuBuilder() {
   useEffect(() => {
     if (!effectiveUserId) return;
     let cancelled = false;
-    fetch(apiUrl(`/api/biometrics/labs/${effectiveUserId}`), {
-      headers: { ...getAuthHeaders() },
-      credentials: "include",
-    })
-      .then((r) => r.ok ? r.json() : null)
+    apiRequest(`/api/biometrics/labs/${effectiveUserId}`)
       .then((data) => {
         if (cancelled) return;
         const derived: string[] = [];
@@ -245,11 +242,7 @@ export default function DiabeticMenuBuilder() {
   useEffect(() => {
     if (!effectiveUserId) return;
     let cancelled = false;
-    fetch(apiUrl(`/api/users/${effectiveUserId}/app-preferences`), {
-      headers: { ...getAuthHeaders() },
-      credentials: "include",
-    })
-      .then((r) => r.ok ? r.json() : null)
+    apiRequest(`/api/users/${effectiveUserId}/app-preferences`)
       .then((prefs) => {
         if (cancelled) return;
         if (prefs?.antiInflammatorySupport) setAntiInflammatoryFromUserPrefs(true);
@@ -1657,10 +1650,8 @@ export default function DiabeticMenuBuilder() {
                       });
                     } else {
                       try {
-                        await fetch(`/api/users/${effectiveUserId}/macros/daily-summary`, {
+                        await apiRequest(`/api/users/${effectiveUserId}/macros/daily-summary`, {
                           method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          credentials: "include",
                           body: JSON.stringify({
                             dateISO: activeDayISO,
                             calories: consumed.calories,

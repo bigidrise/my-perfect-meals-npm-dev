@@ -5,6 +5,7 @@ import { Target, AlertCircle } from "lucide-react";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { getAuthHeaders } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { apiRequest } from "@/lib/apiRequest";
 
 interface ComplianceResponse {
   complianceScore: number | null;
@@ -64,14 +65,7 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
   const { data, isLoading, isError } = useQuery<ComplianceResponse>({
     queryKey: ["compliance", userId],
     queryFn: async () => {
-      const res = await fetch(apiUrl(`/api/users/${userId}/compliance`), {
-        headers: { ...getAuthHeaders() },
-        credentials: "include",
-      });
-      if (!res.ok) {
-        throw new Error(`Compliance fetch failed: ${res.status}`);
-      }
-      return res.json();
+      return apiRequest(`/api/users/${userId}/compliance`);
     },
     enabled: !!userId,
     staleTime: 1000 * 60 * 5,

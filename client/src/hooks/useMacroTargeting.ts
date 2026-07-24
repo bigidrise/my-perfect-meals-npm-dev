@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getAuthHeaders } from '@/lib/auth';
 import { apiUrl } from '@/lib/resolveApiBase';
+import { apiRequest } from '@/lib/apiRequest';
 
 export interface MacroTargets {
   protein: number | '';
@@ -77,12 +78,8 @@ export function useMacroTargeting(storageKey: string): MacroTargetingState {
     const userId = getUserId();
     if (!userId || userId.startsWith('guest-')) return;
 
-    fetch(apiUrl(`/api/users/${userId}/app-preferences`), {
-      headers: { ...getAuthHeaders() },
-      credentials: 'include',
-    })
-      .then((r) => r.ok ? r.json() : null)
-      .then((prefs: Record<string, unknown> | null) => {
+    apiRequest(`/api/users/${userId}/app-preferences`)
+      .then((prefs: Record<string, unknown>) => {
         if (!prefs) return;
         const data = prefs[storageKey] as { enabled?: boolean; protein?: number | ''; fibrousCarbs?: number | ''; starchyCarbs?: number | ''; fat?: number | '' } | undefined;
         if (!data) return;
@@ -134,10 +131,8 @@ export function useMacroTargeting(storageKey: string): MacroTargetingState {
       },
     };
 
-    fetch(apiUrl(`/api/users/${userId}/app-preferences`), {
+    apiRequest(`/api/users/${userId}/app-preferences`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-      credentials: 'include',
       body: JSON.stringify(payload),
     }).catch(() => {});
   }, [storageKey]);

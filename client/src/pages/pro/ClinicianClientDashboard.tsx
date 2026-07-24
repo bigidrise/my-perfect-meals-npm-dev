@@ -177,11 +177,7 @@ export default function ClinicianClientDashboard() {
     const uid = c?.clientUserId || c?.userId;
     if (!uid || uid === clientId) return;
     if (proStore.hasTargets(clientId)) return;
-    fetch(apiUrl(`/api/users/${uid}/macro-targets`), {
-      headers: { ...getAuthHeaders() },
-      credentials: "include",
-    })
-      .then((r) => r.ok ? r.json() : null)
+    apiRequest(`/api/users/${uid}/macro-targets`)
       .then((data) => {
         if (!data || !data.hasTargets) return;
         setT((prev) => ({
@@ -207,11 +203,7 @@ export default function ClinicianClientDashboard() {
         }
       })
       .catch(() => {});
-    fetch(apiUrl(`/api/biometrics/labs/${uid}`), {
-      headers: { ...getAuthHeaders() },
-      credentials: "include",
-    })
-      .then((r) => r.ok ? r.json() : null)
+    apiRequest(`/api/biometrics/labs/${uid}`)
       .then((data) => {
         if (data?.labs) setLabs(data.labs);
         // Derive active conditions from lab signal + user specialty selections
@@ -254,8 +246,7 @@ export default function ClinicianClientDashboard() {
         }
       })
       .catch(() => {});
-    fetch(apiUrl(`/api/users/${uid}/goal`), { headers: { ...getAuthHeaders() }, credentials: "include" })
-      .then((r) => r.ok ? r.json() : null)
+    apiRequest(`/api/users/${uid}/goal`)
       .then((data) => { if (data) setClientGoal(data); })
       .catch(() => {});
   }, [clientId]);
@@ -271,10 +262,8 @@ export default function ClinicianClientDashboard() {
 
     if (dbUserId) {
       try {
-        const res = await fetch(apiUrl(`/api/users/${dbUserId}/macro-targets`), {
+        await apiRequest(`/api/users/${dbUserId}/macro-targets`, {
           method: "POST",
-          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-          credentials: "include",
           body: JSON.stringify({
             calories: totalCal,
             protein_g: t.protein,
@@ -283,10 +272,9 @@ export default function ClinicianClientDashboard() {
             starchyCarbs_g: t.starchyCarbs,
             fibrousCarbs_g: t.fibrousCarbs,
           }),
+        }).catch((e: unknown) => {
+          console.error("Failed to sync macro targets to database:", e);
         });
-        if (!res.ok) {
-          console.error("Failed to sync macro targets to database:", res.status);
-        }
       } catch (e) {
         console.error("Failed to sync macro targets to database:", e);
       }

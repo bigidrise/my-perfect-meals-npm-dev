@@ -1,4 +1,5 @@
 import { apiUrl } from '@/lib/resolveApiBase';
+import { apiRequest } from '@/lib/apiRequest';
 
 // Service layer for meal plan operations
 export interface MealPlan {
@@ -90,10 +91,5 @@ export const fetchUserProfile = async (userId: string): Promise<UserProfile> => 
   }
 
   // Fallback to API if localStorage is empty
-  const response = await fetch(apiUrl(`/api/users/${userId}`));
-  if (!response.ok) {
-    throw new Error('Failed to fetch user profile');
-  }
-
-  return response.json();
+  return apiRequest(`/api/users/${userId}`);
 };
