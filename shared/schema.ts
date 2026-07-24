@@ -884,25 +884,13 @@ export const userTimePresets = pgTable("user_time_presets", {
 }));
 
 // Insert schemas
-export const insertUserSchema = createInsertSchema(users).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertUserSchema = createInsertSchema(users);
 
-export const insertRecipeSchema = createInsertSchema(recipes).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertRecipeSchema = createInsertSchema(recipes);
 
-export const insertMealPlanSchema = createInsertSchema(mealPlans).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertMealPlanSchema = createInsertSchema(mealPlans);
 
-export const insertMealLogSchema = createInsertSchema(mealLog).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertMealLogSchema = createInsertSchema(mealLog);
 
 export const insertMacroLogSchema = createInsertSchema(macroLogs, {
   at: z.coerce.date(),
@@ -912,35 +900,18 @@ export const insertMacroLogSchema = createInsertSchema(macroLogs, {
   fat: z.coerce.number().nonnegative(),
   fiber: z.coerce.number().nonnegative().optional(),
   alcohol: z.coerce.number().nonnegative().optional(),
-}).omit({
-  id: true,
 });
 
-export const insertMealReminderSchema = createInsertSchema(mealReminders).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertMealReminderSchema = createInsertSchema(mealReminders);
 
-export const insertMentalHealthConversationSchema = createInsertSchema(mentalHealthConversations).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertMentalHealthConversationSchema = createInsertSchema(mentalHealthConversations);
 
 // Notification system insert schemas
-export const insertMealScheduleSchema = createInsertSchema(mealSchedule).omit({
-  id: true,
-});
+export const insertMealScheduleSchema = createInsertSchema(mealSchedule);
 
-export const insertNotificationJobSchema = createInsertSchema(notificationJobs).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+export const insertNotificationJobSchema = createInsertSchema(notificationJobs);
 
-export const insertAdherenceEventSchema = createInsertSchema(adherenceEvents).omit({
-  id: true,
-  eventAt: true,
-});
+export const insertAdherenceEventSchema = createInsertSchema(adherenceEvents);
 
 // Weekly meal plans table for meal plan persistence
 export const weeklyMealPlans = pgTable("weekly_meal_plans", {
@@ -981,20 +952,11 @@ export const aiMealPlanArchive = pgTable("ai_meal_plan_archive", {
 
 
 
-export const insertWeeklyMealPlanSchema = createInsertSchema(weeklyMealPlans).omit({
-  createdAt: true,
-});
+export const insertWeeklyMealPlanSchema = createInsertSchema(weeklyMealPlans);
 
-export const insertAiMealPlanArchiveSchema = createInsertSchema(aiMealPlanArchive).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertAiMealPlanArchiveSchema = createInsertSchema(aiMealPlanArchive);
 
-export const insertUserTimePresetSchema = createInsertSchema(userTimePresets).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+export const insertUserTimePresetSchema = createInsertSchema(userTimePresets);
 
 // Kids Veggie Explorer tables
 export const kidsVeggieExplorer = pgTable("kids_veggie_explorer", {
@@ -1112,10 +1074,7 @@ export const barcodeCache = pgTable("barcode_cache", {
 });
 
 // Shopping List Items insert schema
-export const insertShoppingListItemSchema = createInsertSchema(shoppingListItems).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertShoppingListItemSchema = createInsertSchema(shoppingListItems);
 export type InsertShoppingListItem = z.infer<typeof insertShoppingListItemSchema>;
 export type ShoppingListItem = typeof shoppingListItems.$inferSelect;
 
@@ -1311,20 +1270,11 @@ export const mealLogsEnhanced = pgTable("meal_logs_enhanced", {
 // Enhanced Shopping List Items removed - all shopping functionality removed
 
 // Insert schemas for barcode food system
-export const insertFoodSchema = createInsertSchema(foods).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+export const insertFoodSchema = createInsertSchema(foods);
 
-export const insertFoodDiarySchema = createInsertSchema(foodDiary).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertFoodDiarySchema = createInsertSchema(foodDiary);
 
-export const insertBarcodeCacheSchema = createInsertSchema(barcodeCache).omit({
-  lastUsedAt: true,
-});
+export const insertBarcodeCacheSchema = createInsertSchema(barcodeCache);
 
 // Type exports for barcode system
 export type Food = typeof foods.$inferSelect;
@@ -1335,91 +1285,44 @@ export type InsertFoodDiary = z.infer<typeof insertFoodDiarySchema>;
 export type InsertBarcodeCache = z.infer<typeof insertBarcodeCacheSchema>;
 
 // Zod schemas for veggie explorer
-export const insertKidsVeggieExplorerSchema = createInsertSchema(kidsVeggieExplorer).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+export const insertKidsVeggieExplorerSchema = createInsertSchema(kidsVeggieExplorer);
 
 export const insertKidsVegetablesCatalogSchema = createInsertSchema(kidsVegetablesCatalog);
 
 // Contest schemas
-export const insertContestSchema = createInsertSchema(contests).omit({
-  id: true,
-});
+export const insertContestSchema = createInsertSchema(contests);
 
-export const insertContestEntrySchema = createInsertSchema(contestEntries).omit({
-  id: true,
-  submittedAt: true,
-});
+export const insertContestEntrySchema = createInsertSchema(contestEntries);
 
-export const insertContestVoteSchema = createInsertSchema(contestVotes).omit({
-  id: true,
-  votedAt: true,
-});
+export const insertContestVoteSchema = createInsertSchema(contestVotes);
 
 
 
 // AI Cooking Challenge schemas
-export const insertCookingChallengeSchema = createInsertSchema(cookingChallenges).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertCookingChallengeSchema = createInsertSchema(cookingChallenges);
 
-export const insertChallengeSubmissionSchema = createInsertSchema(challengeSubmissions).omit({
-  id: true,
-  submittedAt: true,
-});
+export const insertChallengeSubmissionSchema = createInsertSchema(challengeSubmissions);
 
-export const insertChallengeVoteSchema = createInsertSchema(challengeVotes).omit({
-  id: true,
-  votedAt: true,
-});
+export const insertChallengeVoteSchema = createInsertSchema(challengeVotes);
 
-export const insertChallengeCommentSchema = createInsertSchema(challengeComments).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertChallengeCommentSchema = createInsertSchema(challengeComments);
 
-export const insertUserChallengeProgressSchema = createInsertSchema(userChallengeProgress).omit({
-  id: true,
-  joinedAt: true,
-  completedAt: true,
-});
+export const insertUserChallengeProgressSchema = createInsertSchema(userChallengeProgress);
 
 // AI Cooking Classes schemas
-export const insertCookingClassSchema = createInsertSchema(cookingClasses).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertCookingClassSchema = createInsertSchema(cookingClasses);
 
-export const insertCookingClassJournalSchema = createInsertSchema(cookingClassJournal).omit({
-  id: true,
-  submittedAt: true,
-});
+export const insertCookingClassJournalSchema = createInsertSchema(cookingClassJournal);
 
-export const insertCookingClassProgressSchema = createInsertSchema(cookingClassProgress).omit({
-  id: true,
-  lastActive: true,
-  createdAt: true,
-});
+export const insertCookingClassProgressSchema = createInsertSchema(cookingClassProgress);
 
-export const insertCookingClassVoteSchema = createInsertSchema(cookingClassVotes).omit({
-  id: true,
-  votedAt: true,
-});
+export const insertCookingClassVoteSchema = createInsertSchema(cookingClassVotes);
 
-export const insertUserGlycemicSettingsSchema = createInsertSchema(userGlycemicSettings).omit({
-  id: true,
-  updatedAt: true,
-});
+export const insertUserGlycemicSettingsSchema = createInsertSchema(userGlycemicSettings);
 
 
 
-export const insertWaterLogSchema = createInsertSchema(waterLogs).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertWaterLogSchema = createInsertSchema(waterLogs);
 
 // Types
 export type User = typeof users.$inferSelect;
@@ -1608,17 +1511,11 @@ export const userRecipes = pgTable('user_recipes', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
-export const insertMealInstanceSchema = createInsertSchema(mealInstances).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertMealInstanceSchema = createInsertSchema(mealInstances);
 export type InsertMealInstance = z.infer<typeof insertMealInstanceSchema>;
 export type SelectMealInstance = typeof mealInstances.$inferSelect;
 
-export const insertUserRecipeSchema = createInsertSchema(userRecipes).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertUserRecipeSchema = createInsertSchema(userRecipes);
 export type InsertUserRecipe = z.infer<typeof insertUserRecipeSchema>;
 export type SelectUserRecipe = typeof userRecipes.$inferSelect;
 
@@ -1642,10 +1539,7 @@ export const userTestimonials = pgTable(
   })
 );
 
-export const insertUserTestimonialSchema = createInsertSchema(userTestimonials).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertUserTestimonialSchema = createInsertSchema(userTestimonials);
 
 export type InsertUserTestimonial = z.infer<typeof insertUserTestimonialSchema>;
 export type SelectUserTestimonial = typeof userTestimonials.$inferSelect;
@@ -1998,7 +1892,7 @@ export const insertPhysicianReportSchema = createInsertSchema(physicianReports, 
   protocol: z.string().optional(),
   clinicalNotes: z.string().optional(),
   expiresAt: z.date().optional(),
-}).omit({ id: true, accessCode: true, viewCount: true, lastViewedAt: true, createdAt: true, updatedAt: true });
+});
 
 export type PhysicianReport = typeof physicianReports.$inferSelect;
 export type InsertPhysicianReport = z.infer<typeof insertPhysicianReportSchema>;

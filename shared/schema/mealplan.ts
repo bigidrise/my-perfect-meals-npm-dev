@@ -10,10 +10,7 @@ export const weeklyMealPlans = pgTable("weekly_meal_plans", {
   createdAt: timestamp("created_at").defaultNow()
 });
 
-export const insertWeeklyMealPlanSchema = createInsertSchema(weeklyMealPlans).omit({
-  id: true,
-  createdAt: true
-});
+export const insertWeeklyMealPlanSchema = createInsertSchema(weeklyMealPlans);
 
 export type InsertWeeklyMealPlan = z.infer<typeof insertWeeklyMealPlanSchema>;
 export type WeeklyMealPlan = typeof weeklyMealPlans.$inferSelect;

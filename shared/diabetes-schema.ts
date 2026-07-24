@@ -107,7 +107,7 @@ export const insertGlucoseLogSchema = createInsertSchema(glucoseLogs, {
   relatedMealId: z.string().uuid().optional(),
   insulinUnits: z.number().optional(),
   notes: z.string().optional(),
-}).omit({ id: true, recordedAt: true });
+});
 
 export type InsertGlucoseLog = z.infer<typeof insertGlucoseLogSchema>;
 export type GlucoseLog = typeof glucoseLogs.$inferSelect;

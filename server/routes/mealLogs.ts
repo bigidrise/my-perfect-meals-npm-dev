@@ -9,10 +9,7 @@ import type { AuthenticatedRequest } from "../middleware/requireAuth";
 
 const router = express.Router();
 
-const insertMealLogEnhancedSchema = createInsertSchema(mealLogsEnhanced).omit({
-  id: true,
-  createdAt: true,
-});
+const insertMealLogEnhancedSchema = createInsertSchema(mealLogsEnhanced);
 
 router.post("/meal-logs", requireAuth, async (req, res) => {
   try {
