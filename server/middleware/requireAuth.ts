@@ -29,6 +29,7 @@ export interface AuthenticatedUser {
   trialStartedAt: Date | null;
   trialEndsAt: Date | null;
   selectedMealBuilder: string | null;
+  isAdmin: boolean;
   isTester: boolean;
   isSandbox: boolean;
   accessTier: AccessTier;
@@ -71,6 +72,7 @@ function buildAuthUser(user: any): Omit<AuthenticatedUser, "sponsoredByBusinessI
     trialStartedAt: user.trialStartedAt || null,
     trialEndsAt: user.trialEndsAt || null,
     selectedMealBuilder: user.selectedMealBuilder || null,
+    isAdmin: user.isAdmin || false,
     isTester: user.isTester || false,
     isSandbox: user.isSandbox || false,
     accessTier,

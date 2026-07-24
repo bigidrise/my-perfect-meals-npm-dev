@@ -185,6 +185,13 @@ function ProCareStudioGuard({ component: Component }: { component: React.Compone
   const verifyCert = useCallback(
     (isInitial: boolean) => {
       if (!user) return;
+      // Admin accounts bypass all certification gates
+      if (user.isAdmin) {
+        setCertified(true);
+        certifiedRef.current = true;
+        if (isInitial) setCertChecked(true);
+        return;
+      }
       if (!user.professionalRole) {
         setCertified(true);
         certifiedRef.current = true;
