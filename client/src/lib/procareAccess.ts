@@ -18,6 +18,7 @@ export function hasCompletedProCareTraining(user: User): boolean {
  * Phase 1 (Academy) is checked server-side via the launchpad-status endpoint.
  */
 export function canAccessProCareStudio(user: User): boolean {
+  if (user.isAdmin) return true;
   if (!user.professionalRole) return true;
   return hasCompletedProCareTraining(user);
 }

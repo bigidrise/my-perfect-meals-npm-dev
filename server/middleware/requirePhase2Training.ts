@@ -42,6 +42,12 @@ export async function requirePhase2Training(
     return;
   }
 
+  // Admin accounts bypass all certification gates
+  if (authUser.isAdmin) {
+    next();
+    return;
+  }
+
   try {
     const [userRow] = await db
       .select({
