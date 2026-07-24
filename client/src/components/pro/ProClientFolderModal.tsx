@@ -14,6 +14,7 @@ import CycleProtocolControl from "@/components/pro/CycleProtocolControl";
 import ProNutritionStrategyCard from "@/components/pro/ProNutritionStrategyCard";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
+import { apiRequest } from "@/lib/apiRequest";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
@@ -222,16 +223,11 @@ export default function ProClientFolderModal({
     let cancelled = false;
     (async () => {
       try {
-        const headers: Record<string, string> = { ...getAuthHeaders() };
-        const studioRes = await fetch(apiUrl("/api/studios/my-studio"), { headers, credentials: "include" });
-        if (!studioRes.ok || cancelled) return;
-        const { studio } = await studioRes.json();
+        const { studio } = await apiRequest("/api/studios/my-studio");
         if (!studio || cancelled) return;
         if (!cancelled) setResolvedStudioId(studio.id);
         if (!hasDbBackedId) {
-          const clientsRes = await fetch(apiUrl(`/api/studios/${studio.id}/clients`), { headers, credentials: "include" });
-          if (!clientsRes.ok || cancelled) return;
-          const { clients: dbClients } = await clientsRes.json();
+          const { clients: dbClients } = await apiRequest(`/api/studios/${studio.id}/clients`);
           const match = dbClients?.find((dc: any) => dc.email === client.email);
           if (match?.clientUserId && !cancelled) {
             setResolvedClientId(match.clientUserId);
@@ -247,14 +243,8 @@ export default function ProClientFolderModal({
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(apiUrl(`/api/users/${clientId}/goal`), {
-          headers: { ...getAuthHeaders() },
-          credentials: "include",
-        });
-        if (res.ok && !cancelled) {
-          const data = await res.json();
-          setClientGoal(data);
-        }
+        const data = await apiRequest(`/api/users/${clientId}/goal`);
+        if (!cancelled) setClientGoal(data);
       } catch {}
     })();
     return () => { cancelled = true; };
@@ -278,11 +268,7 @@ export default function ProClientFolderModal({
   useEffect(() => {
     if (!open || !clientId) { setLabDerivedConditions([]); return; }
     let cancelled = false;
-    fetch(apiUrl(`/api/biometrics/labs/${clientId}`), {
-      headers: { ...getAuthHeaders() },
-      credentials: "include",
-    })
-      .then((r) => r.ok ? r.json() : null)
+    apiRequest(`/api/biometrics/labs/${clientId}`)
       .then((data) => {
         if (cancelled) return;
         const derived: string[] = [];

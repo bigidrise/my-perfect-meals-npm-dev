@@ -19,6 +19,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { proStore } from "@/lib/proData";
 import { getNutritionBaseline, clearResolvedTargetsCache, unlinkUser } from "@/lib/macroResolver";
 import { getAuthHeaders } from "@/lib/auth";
+import { apiRequest } from "@/lib/apiRequest";
 
 const POLL_INTERVAL_MS = 45_000;
 const LS_USER_CLIENT_MAP = "mpm_user_client_map";
@@ -86,14 +87,7 @@ export function useMacroTargetSync() {
         if (hasSelfTargetsInLocalStorage(userId)) return;
 
         try {
-          const res = await fetch(`/api/users/${userId}/macro-targets`, {
-            credentials: "include",
-            headers: { ...getAuthHeaders() },
-            cache: "no-store",
-          });
-          if (!res.ok) return;
-
-          const data = await res.json();
+          const data = await apiRequest(`/api/users/${userId}/macro-targets`, { cache: "no-store" });
           if (!data.hasTargets) return;
 
           // Write server targets into localStorage so the resolver finds them.
@@ -128,14 +122,7 @@ export function useMacroTargetSync() {
 
       // ProCare client: sync from DB into proStore
       try {
-        const res = await fetch(`/api/users/${userId}/macro-targets`, {
-          credentials: "include",
-          headers: { ...getAuthHeaders() },
-          cache: "no-store",
-        });
-        if (!res.ok) return;
-
-        const data = await res.json();
+        const data = await apiRequest(`/api/users/${userId}/macro-targets`, { cache: "no-store" });
         if (!data.hasTargets) return;
 
         // Compare API values with what the resolver currently sees

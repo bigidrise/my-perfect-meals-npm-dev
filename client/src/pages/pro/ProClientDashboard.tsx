@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { proStore, Targets, ClinicalContext, ClinicalAdvisory, WorkspaceType } from "@/lib/proData";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
+import { apiRequest } from "@/lib/apiRequest";
 import ClinicalAdvisoryDrawer from "@/components/pro/ClinicalAdvisoryDrawer";
 import WorkspaceSelectionModal from "@/components/pro/WorkspaceSelectionModal";
 import {
@@ -164,20 +165,17 @@ export default function ProClientDashboard() {
 
     if (dbUserId) {
       try {
-        const res = await fetch(apiUrl(`/api/users/${dbUserId}/macro-targets`), {
+        await apiRequest(`/api/users/${dbUserId}/macro-targets`, {
           method: "POST",
-          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-          credentials: "include",
           body: JSON.stringify({
             calories: totalCal,
             protein_g: t.protein,
             carbs_g: totalCarbs,
             fat_g: t.fat,
           }),
+        }).catch((e: unknown) => {
+          console.error("Failed to sync macro targets to database:", e);
         });
-        if (!res.ok) {
-          console.error("Failed to sync macro targets to database:", res.status);
-        }
       } catch (e) {
         console.error("Failed to sync macro targets to database:", e);
       }

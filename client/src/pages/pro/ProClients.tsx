@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 import { getAuthHeaders } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { apiRequest } from "@/lib/apiRequest";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { useQuickTour } from "@/hooks/useQuickTour";
@@ -264,8 +265,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
     const client = proStore.getClient(id);
     if (client?.studioId && client?.clientUserId) {
       try {
-        const headers: Record<string, string> = { "Content-Type": "application/json", ...getAuthHeaders() };
-        await fetch(apiUrl(`/api/studios/${client.studioId}/clients/${client.clientUserId}/archive`), { method: "PATCH", headers });
+        await apiRequest(`/api/studios/${client.studioId}/clients/${client.clientUserId}/archive`, { method: "PATCH" });
       } catch { }
     }
   };
@@ -276,8 +276,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
     const client = proStore.getClient(id);
     if (client?.studioId && client?.clientUserId) {
       try {
-        const headers: Record<string, string> = { "Content-Type": "application/json", ...getAuthHeaders() };
-        await fetch(apiUrl(`/api/studios/${client.studioId}/clients/${client.clientUserId}/restore`), { method: "PATCH", headers });
+        await apiRequest(`/api/studios/${client.studioId}/clients/${client.clientUserId}/restore`, { method: "PATCH" });
       } catch { }
     }
   };

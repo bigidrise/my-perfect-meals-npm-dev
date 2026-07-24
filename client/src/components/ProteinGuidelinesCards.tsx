@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { apiUrl } from '@/lib/resolveApiBase';
+import { apiRequest } from '@/lib/apiRequest';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -89,13 +90,10 @@ async function saveProteinTarget(params: {
   minFactor: number; // e.g., 1.6
   maxFactor: number; // e.g., 2.4
 }) {
-  const res = await fetch(apiUrl(`/api/users/${params.userId}/macros/protein-target`), {
+  return apiRequest(`/api/users/${params.userId}/macros/protein-target`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(params),
   });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
 }
 
 async function distributeProteinToMeals(params: {
@@ -105,13 +103,10 @@ async function distributeProteinToMeals(params: {
   mealsPerDay: number;         // 3 or 4
   goal: Goal;
 }) {
-  const res = await fetch(apiUrl(`/api/users/${params.userId}/meal-plan/distribute-protein`), {
+  return apiRequest(`/api/users/${params.userId}/meal-plan/distribute-protein`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(params),
   });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
 }
 
 function GoalCard({

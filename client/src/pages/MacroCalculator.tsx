@@ -1353,23 +1353,19 @@ export default function MacroCounter() {
   const saveEstimatedBodyFat = async () => {
     if (!user?.id || user.id.startsWith("guest-") || !estimatedBodyFat) return;
     try {
-      const latestRes = await fetch(apiUrl(`/api/users/${user.id}/body-composition/latest`), {
-        credentials: "include",
-        headers: getAuthHeaders(),
-      });
       let existingGoalBF: number | null = null;
-      if (latestRes.ok) {
-        const latest = await latestRes.json();
+      try {
+        const latest = await apiRequest(`/api/users/${user.id}/body-composition/latest`);
         if (latest?.source === "trainer" || latest?.source === "physician") return;
         if (latest?.entry?.goalBodyFatPct) {
           existingGoalBF = parseFloat(latest.entry.goalBodyFatPct);
         }
+      } catch {
+        // Network failure — proceed with existingGoalBF = null
       }
 
-      await fetch(apiUrl(`/api/users/${user.id}/body-composition`), {
+      await apiRequest(`/api/users/${user.id}/body-composition`, {
         method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify({
           currentBodyFatPct: estimatedBodyFat,
           goalBodyFatPct: existingGoalBF,

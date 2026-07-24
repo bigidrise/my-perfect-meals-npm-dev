@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { apiRequest } from "@/lib/apiRequest";
 import { useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -1441,10 +1442,8 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                         });
                       } else {
                         try {
-                          await fetch(apiUrl(`/api/users/${clientId}/macros/daily-summary`), {
+                          await apiRequest(`/api/users/${clientId}/macros/daily-summary`, {
                             method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            credentials: "include",
                             body: JSON.stringify({
                               dateISO: activeDayISO,
                               calories: consumed.calories,

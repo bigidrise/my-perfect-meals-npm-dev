@@ -224,11 +224,7 @@ export default function MyBiometrics() {
     const startISO = start.toISOString();
     const endISO = end.toISOString();
 
-    fetch(`/api/users/${userId}/macro-logs/daily-with-source?start=${encodeURIComponent(startISO)}&end=${encodeURIComponent(endISO)}`, {
-      credentials: "include",
-      headers: { ...getAuthHeaders() },
-    })
-      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    apiRequest(`/api/users/${userId}/macro-logs/daily-with-source?start=${encodeURIComponent(startISO)}&end=${encodeURIComponent(endISO)}`)
       .then((rows: any[]) => {
         const mapped: OfflineDay[] = rows.map(r => ({
           day: typeof r.date === "string" ? r.date.slice(0, 10) : r.date,
@@ -256,12 +252,8 @@ export default function MyBiometrics() {
       const end = new Date();
       const start = new Date();
       start.setDate(end.getDate() - 365);
-      fetch(`/api/users/${userId}/macro-logs/daily-with-source?start=${encodeURIComponent(start.toISOString())}&end=${encodeURIComponent(end.toISOString())}`, {
-        credentials: "include",
-        headers: { ...getAuthHeaders() },
-      })
-        .then(r => r.ok ? r.json() : null)
-        .then((rows: any[] | null) => {
+      apiRequest(`/api/users/${userId}/macro-logs/daily-with-source?start=${encodeURIComponent(start.toISOString())}&end=${encodeURIComponent(end.toISOString())}`)
+        .then((rows: any[]) => {
           if (rows) {
             const mapped: OfflineDay[] = rows.map(r => ({
               day: typeof r.date === "string" ? r.date.slice(0, 10) : r.date,
@@ -442,14 +434,8 @@ export default function MyBiometrics() {
     // so reading it first guarantees Studio changes are immediately visible here.
     if (user?.id) {
       try {
-        const res = await fetch(apiUrl(`/api/users/${user.id}/macro-targets`), {
-          headers: { ...getAuthHeaders() },
-          credentials: "include",
-          cache: "no-store",
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.hasTargets) {
+        const data = await apiRequest(`/api/users/${user.id}/macro-targets`, { cache: "no-store" });
+        if (data.hasTargets) {
             setTargets({
               calories: data.calories,
               protein_g: data.protein_g,
@@ -466,8 +452,7 @@ export default function MyBiometrics() {
             }
             return;
           }
-        }
-      } catch {
+      } catch (_e) {
         // Network failure — fall through to local resolver below
       }
     }
@@ -1238,14 +1223,10 @@ export default function MyBiometrics() {
     if (isNaN(val) || val < 3 || val > 60) return;
     setGoalBFSaving(true);
     try {
-      const res = await fetch(apiUrl(`/api/users/${currentUser.id}/body-composition/goal`), {
+      const data = await apiRequest(`/api/users/${currentUser.id}/body-composition/goal`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        credentials: "include",
         body: JSON.stringify({ goalBodyFatPct: val }),
       });
-      if (!res.ok) throw new Error("Failed to save");
-      const data = await res.json();
       if (data.entry) {
         setBodyCompLatest(data.entry);
       }

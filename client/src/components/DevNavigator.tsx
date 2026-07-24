@@ -4,6 +4,7 @@ import { X, ChevronRight, Wrench, Stethoscope, Dumbbell, RefreshCw, AlertCircle,
 import { proStore, type ClientProfile } from "@/lib/proData";
 import { getAuthHeaders } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { apiRequest } from "@/lib/apiRequest";
 
 interface NavSection {
   title: string;
@@ -226,31 +227,31 @@ function ProDashboardPreview({ onNavigate }: { onNavigate: (path: string) => voi
       }
 
       // Fetch both workspaces in parallel
-      const [trainerRes, clinicianRes] = await Promise.all([
-        fetch(apiUrl(`/api/studios/${studio.id}/clients?workspace=trainer`), { headers }),
-        fetch(apiUrl(`/api/studios/${studio.id}/clients?workspace=clinician`), { headers }),
+      const [trainerResult, clinicianResult] = await Promise.allSettled([
+        apiRequest(`/api/studios/${studio.id}/clients?workspace=trainer`),
+        apiRequest(`/api/studios/${studio.id}/clients?workspace=clinician`),
       ]);
 
-      const trainerClients: DevClient[] = trainerRes.ok
-        ? ((await trainerRes.json()).clients ?? []).map((c: any) => ({
+      const trainerClients: DevClient[] = trainerResult.status === 'fulfilled'
+        ? ((trainerResult.value.clients ?? []).map((c: any) => ({
             id: c.clientUserId ?? c.id,
             clientUserId: c.clientUserId ?? c.id,
             name: c.name ?? c.email ?? "Unknown",
             email: c.email,
             workspace: "trainer" as const,
             studioId: studio.id,
-          }))
+          })))
         : [];
 
-      const clinicianClients: DevClient[] = clinicianRes.ok
-        ? ((await clinicianRes.json()).clients ?? []).map((c: any) => ({
+      const clinicianClients: DevClient[] = clinicianResult.status === 'fulfilled'
+        ? ((clinicianResult.value.clients ?? []).map((c: any) => ({
             id: c.clientUserId ?? c.id,
             clientUserId: c.clientUserId ?? c.id,
             name: c.name ?? c.email ?? "Unknown",
             email: c.email,
             workspace: "clinician" as const,
             studioId: studio.id,
-          }))
+          })))
         : [];
 
       // Also pull from localStorage proStore as a fallback

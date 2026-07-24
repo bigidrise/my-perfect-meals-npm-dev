@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { PillButton } from "@/components/ui/pill-button";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
+import { apiRequest } from "@/lib/apiRequest";
 import { Sparkles, ChevronLeft, Loader2 } from "lucide-react";
 
 const STYLES = [
@@ -78,11 +79,7 @@ export default function CoachingPreferencesPage() {
   // Load existing prefs
   useEffect(() => {
     if (!user?.id) return;
-    fetch(apiUrl(`/api/users/${user.id}/app-preferences`), {
-      headers: { ...getAuthHeaders() },
-      credentials: "include",
-    })
-      .then((r) => (r.ok ? r.json() : {}))
+    apiRequest(`/api/users/${user.id}/app-preferences`)
       .then((data) => {
         if (data?.coaching) {
           setPrefs({ ...DEFAULTS, ...data.coaching });
@@ -105,13 +102,10 @@ export default function CoachingPreferencesPage() {
     if (!user?.id) return;
     setSaving(true);
     try {
-      const res = await fetch(apiUrl(`/api/users/${user.id}/app-preferences`), {
+      await apiRequest(`/api/users/${user.id}/app-preferences`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        credentials: "include",
         body: JSON.stringify({ coaching: prefs }),
       });
-      if (!res.ok) throw new Error("Save failed");
       toast({ title: "Coaching preferences saved", description: "Your AI coach will adjust accordingly." });
     } catch {
       toast({ title: "Couldn't save preferences", description: "Please try again.", variant: "destructive" });

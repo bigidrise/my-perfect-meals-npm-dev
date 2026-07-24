@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
+import { apiRequest } from "@/lib/apiRequest";
 import { Loader2, Target, Flame, Drumstick, CalendarCheck } from "lucide-react";
 
 interface ProClientComplianceSnapshotProps {
@@ -39,12 +40,11 @@ export default function ProClientComplianceSnapshot({ clientId }: ProClientCompl
   const { data, isLoading, isError } = useQuery<ComplianceData | null>({
     queryKey: ["proClientCompliance", clientId],
     queryFn: async () => {
-      const res = await fetch(apiUrl(`/api/users/${clientId}/compliance`), {
-        headers: { ...getAuthHeaders() },
-        credentials: "include",
-      });
-      if (!res.ok) return null;
-      return res.json();
+      try {
+        return await apiRequest(`/api/users/${clientId}/compliance`);
+      } catch {
+        return null;
+      }
     },
     enabled: !!clientId,
     staleTime: 0,

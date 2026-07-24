@@ -218,11 +218,7 @@ export default function TrainerClientDashboard() {
   useEffect(() => {
     if (!resolvedClientUserId || resolvedClientUserId === clientId) return;
     if (proStore.hasTargets(clientId)) return;
-    fetch(apiUrl(`/api/users/${resolvedClientUserId}/macro-targets`), {
-      headers: { ...getAuthHeaders() },
-      credentials: "include",
-    })
-      .then((r) => r.ok ? r.json() : null)
+    apiRequest(`/api/users/${resolvedClientUserId}/macro-targets`)
       .then((data) => {
         if (!data || !data.hasTargets) return;
         setT((prev) => ({
@@ -270,12 +266,10 @@ export default function TrainerClientDashboard() {
   useEffect(() => {
     const uid = resolvedClientUserId;
     if (!uid) return;
-    fetch(apiUrl(`/api/users/${uid}/goal`), { headers: { ...getAuthHeaders() }, credentials: "include" })
-      .then((r) => r.ok ? r.json() : null)
+    apiRequest(`/api/users/${uid}/goal`)
       .then((data) => { if (data) setClientGoal(data); })
       .catch(() => {});
-    fetch(apiUrl(`/api/biometrics/labs/${uid}`), { headers: { ...getAuthHeaders() }, credentials: "include" })
-      .then((r) => r.ok ? r.json() : null)
+    apiRequest(`/api/biometrics/labs/${uid}`)
       .then((data) => {
         if (data?.labs) {
           setLabs({ a1c: data.labs.a1c ?? null, ldl: data.labs.ldl ?? null });
@@ -348,10 +342,8 @@ export default function TrainerClientDashboard() {
 
     // Client is linked — persist to their DB account
     try {
-      const res = await fetch(apiUrl(`/api/users/${dbUserId}/macro-targets`), {
+      await apiRequest(`/api/users/${dbUserId}/macro-targets`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        credentials: "include",
         body: JSON.stringify({
           calories: totalCal,
           protein_g: t.protein,
@@ -361,10 +353,6 @@ export default function TrainerClientDashboard() {
           fibrousCarbs_g: t.fibrousCarbs,
         }),
       });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || `Server error ${res.status}`);
-      }
     } catch (e) {
       toast({
         title: "Failed to save targets",
