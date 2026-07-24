@@ -66,7 +66,7 @@ export const PROFESSIONAL_BUILDER_MAP: Record<
   glp1: {
     key: "glp1",
     role: "physician",
-    label: "Metabolic Med",
+    label: "Metabolic Medication",
     proRoute: "glp1-builder",
     description: "Portion-aware meals for clients on metabolic medications.",
   },
