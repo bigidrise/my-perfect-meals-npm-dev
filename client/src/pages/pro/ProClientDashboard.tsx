@@ -874,7 +874,8 @@ export default function ProClientDashboard() {
                 </p>
                 <Button
                   onClick={() => {
-                    setLocation(`/pro/clients/${clientId}/diabetic-builder`);
+                    localStorage.setItem("pro-client-id", clientId);
+                    setLocation("/diabetic-hub");
                   }}
                   className="bg-amber-600 hover:bg-amber-700 text-white"
                 >
@@ -918,12 +919,13 @@ export default function ProClientDashboard() {
             <h2 className="text-lg font-bold text-white mb-2">Physicians</h2>
             <Button
               onClick={() => {
-                setLocation(`/pro/clients/${clientId}/diabetic-builder`);
+                localStorage.setItem("pro-client-id", clientId);
+                setLocation("/diabetic-hub");
               }}
               className="w-full sm:w-[400px] bg-black backdrop-blur-md border border-white/20 hover:bg-black/60 text-white font-semibold rounded-xl shadow-lg"
               data-testid="button-diabetic-hub"
             >
-              🩸 Diabetic Meal Builder
+              🩸 Diabetic Hub
             </Button>
             <Button
               onClick={() => {
@@ -932,7 +934,7 @@ export default function ProClientDashboard() {
               className="w-full sm:w-[400px] bg-black backdrop-blur-md border border-white/20 text-white font-semibold rounded-xl shadow-lg"
               data-testid="button-glp1-hub"
             >
-              💉 Metabolic Med Builder
+              💉 Metabolic Med Hub
             </Button>
             <Button
               onClick={() => {
