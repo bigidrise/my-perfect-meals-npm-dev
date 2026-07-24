@@ -902,8 +902,7 @@ export default function ProClientDashboard() {
                 </p>
                 <Button
                   onClick={() => {
-                    localStorage.setItem("pro-client-id", clientId);
-                    setLocation("/glp1-hub");
+                    setLocation(`/pro/clients/${clientId}/glp1-builder`);
                   }}
                   className="bg-purple-600 hover:bg-purple-700 text-white"
                 >
@@ -930,8 +929,7 @@ export default function ProClientDashboard() {
             </Button>
             <Button
               onClick={() => {
-                localStorage.setItem("pro-client-id", clientId);
-                setLocation("/glp1-hub");
+                setLocation(`/pro/clients/${clientId}/glp1-builder`);
               }}
               className="w-full sm:w-[400px] bg-black backdrop-blur-md border border-white/20 text-white font-semibold rounded-xl shadow-lg"
               data-testid="button-glp1-hub"
