@@ -160,10 +160,17 @@ export default function WeeklyMealBoard() {
         boardRef.current = hookBoard;
         return;
       }
-      if (skipServerSync()) return;
+      const skip = skipServerSync();
+      if (skip) {
+        console.log(`[TRACE:SyncEffect] t=${Date.now()} — skipServerSync=true, hook board NOT applied`);
+        return;
+      }
       if (!Object.is(boardRef.current, hookBoard)) {
+        console.log(`[TRACE:SyncEffect] t=${Date.now()} — hookBoard changed, applying to local state (boardRef≠hookBoard)`);
         setBoard(hookBoard);
         boardRef.current = hookBoard;
+      } else {
+        console.log(`[TRACE:SyncEffect] t=${Date.now()} — hookBoard same ref as boardRef, no update`);
       }
     }
   }, [hookBoard, hookLoading, skipServerSync]);
@@ -935,9 +942,15 @@ export default function WeeklyMealBoard() {
                                 )
                               };
                               const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
+                              const deleteT0 = Date.now();
+                              console.log(`[TRACE:Delete] t=${deleteT0} setBoard called (meal removed locally)`);
                               setBoard(updatedBoard);
+                              console.log(`[TRACE:Delete] t=${Date.now()} PUT starting via putWeekBoard (saveCooldownRef NOT set)`);
                               putWeekBoard(weekStartISO, updatedBoard, proClientId)
-                                .then(({ week }) => { if (week) setBoard(week); })
+                                .then(({ week }) => {
+                                  console.log(`[TRACE:Delete] t=${Date.now()} PUT complete (elapsed ${Date.now() - deleteT0}ms)`);
+                                  if (week) setBoard(week);
+                                })
                                 .catch((err) => {
                                   console.error("❌ Delete sync failed (Day mode):", err);
                                   toast({ title: "Sync pending", description: "Changes will sync automatically." });
