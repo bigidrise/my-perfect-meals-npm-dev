@@ -33,6 +33,12 @@ export async function requirePhase1Cert(
     return;
   }
 
+  // Admin accounts bypass all certification gates
+  if (authUser.isAdmin) {
+    next();
+    return;
+  }
+
   try {
     // Only gate professionals (users with a professionalRole set)
     const [userRow] = await db

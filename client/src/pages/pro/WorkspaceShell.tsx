@@ -45,17 +45,25 @@ export default function WorkspaceShell() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!clientId || !token) {
+    if (!clientId) {
       setLoading(false);
-      setError("Authentication required.");
+      setError("No client specified.");
       return;
     }
 
     async function fetchWorkspace() {
       try {
+        const headers: Record<string, string> = {};
+        if (token) headers["x-auth-token"] = token;
         const res = await fetch(apiUrl(`/api/pro/workspace/${clientId}`), {
-          headers: { "x-auth-token": token! },
+          headers,
+          credentials: "include",
         });
+
+        if (res.status === 401) {
+          setError("Please sign in to access client workspaces.");
+          return;
+        }
 
         if (res.status === 403) {
           setError("You do not have access to this client's workspace.");

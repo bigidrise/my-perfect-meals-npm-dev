@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Mic, MicOff, X, Check, Trash2, Loader2 } from "lucide-react";
-import { getAuthHeaders } from "@/lib/auth";
+import { apiRequest } from "@/lib/apiRequest";
 
 interface ParsedItem {
   name: string;
@@ -105,13 +105,10 @@ export default function VoiceShoppingModal({ open, onClose, onConfirm }: Props) 
     setParseError("");
 
     try {
-      const res = await fetch("/api/shopping-list-v2/parse-voice", {
+      const data = await apiRequest("/api/shopping-list-v2/parse-voice", {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify({ transcript: text }),
       });
-      if (!res.ok) throw new Error("Parse failed");
-      const data = await res.json();
       setParsedItems(data.items || []);
       setPhase("review");
     } catch {

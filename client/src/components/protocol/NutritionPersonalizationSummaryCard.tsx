@@ -95,8 +95,8 @@ export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLo
 
   const { activeInputs, nutritionDrivers, nutritionPriorities, compositeExplanation, conflictPolicy, hasAnyActiveProtocol, carbCycleActive } = data;
 
-  const highItems   = activeInputs.health.filter(h => h.priority === "high");
-  const moderateItems = activeInputs.health.filter(h => h.priority === "moderate");
+  const highItems   = (activeInputs?.health ?? []).filter(h => h.priority === "high");
+  const moderateItems = (activeInputs?.health ?? []).filter(h => h.priority === "moderate");
   const allHealthItems = [...highItems, ...moderateItems];
 
   const hasTherapeuticInputs = (nutritionDrivers?.therapeuticInputs?.length ?? 0) > 0;
@@ -121,7 +121,7 @@ export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLo
       </div>
 
       {/* ── Macros strip ── */}
-      {activeInputs.macros && (activeInputs.macros.calories || activeInputs.macros.proteinG) && (() => {
+      {activeInputs?.macros && (activeInputs.macros.calories || activeInputs.macros.proteinG) && (() => {
         const m = activeInputs.macros;
         const hasCarbSplit = !!(m.starchyCarbsG || m.fibrousCarbsG);
         const pills = hasCarbSplit
@@ -197,7 +197,7 @@ export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLo
           )}
 
           {/* ── Performance block ── */}
-          {activeInputs.performance && (
+          {activeInputs?.performance && (
             <div className={allHealthItems.length === 0 ? "pt-3" : ""}>
               {allHealthItems.length === 0 && (
                 <p className="text-[10px] text-white/35 uppercase tracking-widest font-semibold mb-2">
@@ -216,7 +216,7 @@ export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLo
           )}
 
           {/* ── Pregnancy block ── */}
-          {activeInputs.pregnancy && (
+          {activeInputs?.pregnancy && (
             <div className="bg-pink-500/10 border border-pink-500/25 rounded-xl px-3 py-2.5">
               <p className="text-[11px] font-black uppercase tracking-widest text-pink-400">
                 {activeInputs.pregnancy.label}
@@ -276,7 +276,7 @@ export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLo
           )}
 
           {/* ── Cuisine block ── */}
-          {activeInputs.cuisine && (
+          {activeInputs?.cuisine && (
             <div className="bg-amber-500/10 border border-amber-500/25 rounded-xl px-3 py-2.5">
               <p className="text-[11px] font-black uppercase tracking-widest text-amber-400 mb-1.5">
                 Cuisine
@@ -288,7 +288,7 @@ export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLo
           )}
 
           {/* ── Goal block ── */}
-          {activeInputs.goal && (
+          {activeInputs?.goal && (
             <div className="bg-orange-500/10 border border-orange-500/25 rounded-xl px-3 py-2.5">
               <p className="text-[11px] font-black uppercase tracking-widest text-orange-400 mb-1.5">
                 Goal

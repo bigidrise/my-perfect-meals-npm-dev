@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 import { classifyIngredient, normalizeIngredientName } from '@/utils/ingredientClassifier';
 import { normalizeIngredient } from '@shared/ingredientNormalizer';
 import type { IngredientCategory } from '@/data/ingredientCategories';
-import { getAuthHeaders } from '@/lib/auth';
+import { apiRequest } from '@/lib/apiRequest';
 
 // ── Cross-unit conversion tables ──────────────────────────────────────────────
 const VOLUME_TO_ML: Record<string, number> = {
@@ -214,18 +214,14 @@ function deduplicateServerItems(items: ShoppingListItem[]): ShoppingListItem[] {
 async function serverPost(items: ShoppingListItem[]): Promise<Array<{ id: string; name: string; unit: string }>> {
   if (items.length === 0) return [];
   try {
-    const res = await fetch('/api/shopping-list', {
+    const data = await apiRequest('/api/shopping-list', {
       method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
       body: JSON.stringify({
         items,
         scopeType: 'adhoc',
         scopeKey: 'cross-device',
       }),
     });
-    if (!res.ok) return [];
-    const data = await res.json();
     return Array.isArray(data.items) ? data.items : [];
   } catch {
     return [];
@@ -234,10 +230,8 @@ async function serverPost(items: ShoppingListItem[]): Promise<Array<{ id: string
 
 /** Fire-and-forget PATCH of a quantity update to an existing server item */
 function serverPatch(serverId: string, quantity: number, unit: string) {
-  fetch(`/api/shopping-list-v2/${serverId}`, {
+  apiRequest(`/api/shopping-list-v2/${serverId}`, {
     method: 'PATCH',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify({ quantity: quantity.toString(), unit }),
   }).catch(() => {});
 }
@@ -265,16 +259,10 @@ export const useShoppingListStore = create<ShoppingListStore>()(
         const genAtStart = get()._clearGen;
 
         try {
-          const res = await fetch('/api/shopping-list-v2/', { credentials: 'include', headers: getAuthHeaders() });
-          if (!res.ok) {
-            set({ isHydrating: false });
-            return;
-          }
+          const { items: serverItems } = await apiRequest('/api/shopping-list-v2/') as { items: any[] };
 
           // Bail if clearAll() fired while we were waiting for the network
           if (get()._clearGen !== genAtStart) { set({ isHydrating: false }); return; }
-
-          const { items: serverItems } = await res.json() as { items: any[] };
 
           // Map and deduplicate server rows (server can have multiple rows per ingredient)
           const rawServer: ShoppingListItem[] = serverItems.map(mapServerItem);
@@ -310,10 +298,8 @@ export const useShoppingListStore = create<ShoppingListStore>()(
             // Bail if clearAll fired while we were checking local items
             if (get()._clearGen !== genAtStart) { set({ isHydrating: false }); return; }
             try {
-              await fetch('/api/shopping-list', {
+              await apiRequest('/api/shopping-list', {
                 method: 'POST',
-                credentials: 'include',
-                headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
                 body: JSON.stringify({
                   items: localOnly,
                   scopeType: 'adhoc',
@@ -325,13 +311,14 @@ export const useShoppingListStore = create<ShoppingListStore>()(
               if (get()._clearGen !== genAtStart) { set({ isHydrating: false }); return; }
 
               // Re-fetch to get server UUIDs for all items (including just-pushed ones)
-              const res2 = await fetch('/api/shopping-list-v2/', { credentials: 'include', headers: getAuthHeaders() });
-              if (res2.ok) {
+              try {
+                const { items: refreshed } = await apiRequest('/api/shopping-list-v2/') as { items: any[] };
                 if (get()._clearGen !== genAtStart) { set({ isHydrating: false }); return; }
-                const { items: refreshed } = await res2.json() as { items: any[] };
                 const all = deduplicateServerItems(refreshed.map(mapServerItem));
                 set({ items: all, isHydrating: false });
                 return;
+              } catch {
+                // Re-fetch failed — fall through to merged state
               }
             } catch {
               // Push failed — show merged with local items (no serverIds for those)
@@ -432,10 +419,8 @@ export const useShoppingListStore = create<ShoppingListStore>()(
             if (!serverRow?.id) return;
             // If clearAll() fired while we were posting, delete what just landed on the server
             if (get()._clearGen !== genAtPost) {
-              fetch(`/api/shopping-list-v2/${serverRow.id}`, {
+              apiRequest(`/api/shopping-list-v2/${serverRow.id}`, {
                 method: 'DELETE',
-                credentials: 'include',
-                headers: { ...getAuthHeaders() },
               }).catch(() => {});
               return;
             }
@@ -517,10 +502,8 @@ export const useShoppingListStore = create<ShoppingListStore>()(
             if (get()._clearGen !== genAtPost) {
               serverItems.forEach((si) => {
                 if (si.id) {
-                  fetch(`/api/shopping-list-v2/${si.id}`, {
+                  apiRequest(`/api/shopping-list-v2/${si.id}`, {
                     method: 'DELETE',
-                    credentials: 'include',
-                    headers: { ...getAuthHeaders() },
                   }).catch(() => {});
                 }
               });
@@ -553,10 +536,8 @@ export const useShoppingListStore = create<ShoppingListStore>()(
         }));
 
         if (item.serverId) {
-          fetch(`/api/shopping-list-v2/${item.serverId}`, {
+          apiRequest(`/api/shopping-list-v2/${item.serverId}`, {
             method: 'PATCH',
-            credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ checked: !item.isChecked }),
           }).catch(() => {
             set((state) => ({
@@ -578,9 +559,8 @@ export const useShoppingListStore = create<ShoppingListStore>()(
         set((state) => ({ items: state.items.filter((i) => i.id !== id) }));
 
         if (item.serverId) {
-          fetch(`/api/shopping-list-v2/${item.serverId}`, {
+          apiRequest(`/api/shopping-list-v2/${item.serverId}`, {
             method: 'DELETE',
-            credentials: 'include',
           }).catch(() => {
             set((state) => ({ items: [...state.items, item] }));
           });
@@ -601,9 +581,8 @@ export const useShoppingListStore = create<ShoppingListStore>()(
           (async () => {
             const results = await Promise.allSettled(
               serverChecked.map(item =>
-                fetch(`/api/shopping-list-v2/${item.serverId}`, {
+                apiRequest(`/api/shopping-list-v2/${item.serverId}`, {
                   method: 'DELETE',
-                  credentials: 'include',
                 })
               )
             );
@@ -632,14 +611,9 @@ export const useShoppingListStore = create<ShoppingListStore>()(
         set({ items: [], _clearGen: get()._clearGen + 1 });
 
         try {
-          const res = await fetch('/api/shopping-list-v2/', {
+          await apiRequest('/api/shopping-list-v2/', {
             method: 'DELETE',
-            credentials: 'include',
-            headers: { ...getAuthHeaders() },
           });
-          if (!res.ok) {
-            set({ items: prevItems });
-          }
         } catch {
           set({ items: prevItems });
         }

@@ -42,6 +42,18 @@ export default function ProfessionalDashboard() {
       setLocation("/dashboard");
       return;
     }
+
+    // Admins bypass all certification gates
+    if (user.isAdmin) {
+      setState({
+        phase1: { status: "completed", completedAt: new Date().toISOString() },
+        phase2: { status: "completed", completedAt: new Date().toISOString() },
+        personalOnboardingDone: true,
+        loading: false,
+      });
+      return;
+    }
+
     (async () => {
       try {
         const [phase1Res, phase2Res] = await Promise.allSettled([

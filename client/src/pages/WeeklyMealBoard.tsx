@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { apiRequest } from "@/lib/apiRequest";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { buildBiometricsUrl } from "@/lib/biometricsNavigation";
@@ -1885,10 +1886,8 @@ export default function WeeklyMealBoard() {
                               });
                             } else {
                               try {
-                                await fetch(`/api/users/${effectiveUserId}/macros/daily-summary`, {
+                                await apiRequest(`/api/users/${effectiveUserId}/macros/daily-summary`, {
                                   method: "POST",
-                                  headers: { "Content-Type": "application/json" },
-                                  credentials: "include",
                                   body: JSON.stringify({
                                     dateISO: activeDayISO,
                                     calories: consumed.calories,

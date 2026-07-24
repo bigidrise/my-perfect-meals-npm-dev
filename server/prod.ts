@@ -581,6 +581,11 @@ async function initializeApp() {
       .default;
     app.use("/api/check-in-schedules", checkInSchedulesRouter);
 
+    // Clinical Interventions — provider-set patient conditions that enter
+    // the Protocol Envelope and change every generator's behavior.
+    const clinicalInterventionsRouter = (await import("./routes/clinicalInterventions")).default;
+    app.use("/api", clinicalInterventionsRouter);
+
     // Shopping list v2 — must be mounted explicitly in prod; registerRoutes()
     // mounts it in dev but prod.ts has its own route registration path.
     const { shoppingPreviewRouter, shoppingRouter } = await import("./routes/shoppingListV2");
@@ -701,6 +706,38 @@ async function initializeApp() {
     app.use("/api/coach-corner", coachCornerRouter);
 
     console.log("✅ [INIT] Parity routes mounted");
+
+    // ── Org Config — PUBLIC endpoint, must be registered before requireAuth layers ──
+    // Missing from prod.ts causes 404 in production; OrgContext.tsx calls this on boot.
+    app.get("/api/org/config", async (req, res) => {
+      try {
+        const { loadOrgContext, loadOrgBySlug, getDefaultOrgContext } = await import("./lib/orgContext");
+        const { db: orgDb } = await import("./db");
+        const { users: usersTable } = await import("./db/schema");
+        const { eq: eqOrg } = await import("drizzle-orm");
+        if ((req as any).orgContext) {
+          return res.json((req as any).orgContext);
+        }
+        const sessionUserId = (req as any).session?.userId;
+        if (sessionUserId) {
+          const [user] = await orgDb.select({ organizationId: usersTable.organizationId })
+            .from(usersTable).where(eqOrg(usersTable.id, sessionUserId)).limit(1);
+          if (user) {
+            return res.json(await loadOrgContext(user.organizationId ?? null));
+          }
+        }
+        const slugHeader = req.headers["x-org-slug"] as string | undefined;
+        if (slugHeader) {
+          const org = await loadOrgBySlug(slugHeader);
+          if (org) return res.json(org);
+        }
+        return res.json(getDefaultOrgContext());
+      } catch (err) {
+        console.error("[org/config] Error:", err);
+        const { getDefaultOrgContext } = await import("./lib/orgContext");
+        return res.json(getDefaultOrgContext());
+      }
+    });
 
     // ── Sandbox password reset — registered BEFORE registerRoutes() so it
     //    sits earlier in the Express stack than any app.use("/api", requireAuth)

@@ -32,10 +32,6 @@ export const insertGlp1ShotSchema = createInsertSchema(glp1Shots, {
   location: z.enum(["abdomen", "thigh", "upper_arm", "buttock"]).optional(),
   medicationName: z.string().optional(),
   notes: z.string().optional(),
-}).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
 });
 
 export type InsertGlp1Shot = z.infer<typeof insertGlp1ShotSchema>;

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
+import { apiRequest } from "@/lib/apiRequest";
 import { Loader2, TrendingDown, TrendingUp, Minus, RefreshCw } from "lucide-react";
 
 interface StudioMetricsSnapshotProps {
@@ -65,25 +66,14 @@ export default function StudioMetricsSnapshot({ clientId }: StudioMetricsSnapsho
     setError(null);
     try {
       const { start, end } = todayRange();
-      const headers: Record<string, string> = { ...getAuthHeaders() };
-
-      const [macroRes, bodyCompRes, targetsRes] = await Promise.all([
-        fetch(apiUrl(`/api/users/${clientId}/macros?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`), {
-          headers,
-          credentials: "include",
-        }),
-        fetch(apiUrl(`/api/users/${clientId}/body-composition/latest`), {
-          headers,
-          credentials: "include",
-        }),
-        fetch(apiUrl(`/api/users/${clientId}/macro-targets`), {
-          headers,
-          credentials: "include",
-        }),
+      const [macroResult, bodyCompResult, targetsResult] = await Promise.allSettled([
+        apiRequest(`/api/users/${clientId}/macros?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`),
+        apiRequest(`/api/users/${clientId}/body-composition/latest`),
+        apiRequest(`/api/users/${clientId}/macro-targets`),
       ]);
 
-      if (macroRes.ok) {
-        const data = await macroRes.json();
+      if (macroResult.status === 'fulfilled') {
+        const data = macroResult.value;
         setTodayMacros({
           kcal: Math.round(Number(data.kcal || 0)),
           protein: Math.round(Number(data.protein || 0)),
@@ -92,13 +82,13 @@ export default function StudioMetricsSnapshot({ clientId }: StudioMetricsSnapsho
         });
       }
 
-      if (bodyCompRes.ok) {
-        const data = await bodyCompRes.json();
+      if (bodyCompResult.status === 'fulfilled') {
+        const data = bodyCompResult.value;
         if (data?.entry) setBodyComp(data.entry);
       }
 
-      if (targetsRes.ok) {
-        const data = await targetsRes.json();
+      if (targetsResult.status === 'fulfilled') {
+        const data = targetsResult.value;
         setDbTargets({
           calories: Math.round(Number(data.calories || 0)),
           protein_g: Math.round(Number(data.protein_g || 0)),

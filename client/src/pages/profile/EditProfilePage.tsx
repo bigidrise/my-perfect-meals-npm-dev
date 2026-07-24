@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useGlycemicSettings } from "@/hooks/useGlycemicSettings";
 import { LOW_RANGE_OPTIONS, MID_RANGE_OPTIONS, HIGH_RANGE_OPTIONS } from "@/types/glycemic";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { apiRequest } from "@/lib/apiRequest";
 import { getAuthToken } from "@/lib/auth";
 import { Input } from "@/components/ui/input";
 import { PillButton } from "@/components/ui/pill-button";
@@ -356,8 +357,7 @@ export default function EditProfilePage() {
   // Load anti-inflammatory support preference from server (stored in app-preferences)
   useEffect(() => {
     if (!user?.id) return;
-    fetch(apiUrl(`/api/users/${user.id}/app-preferences`), { credentials: "include" })
-      .then(r => r.ok ? r.json() : null)
+    apiRequest(`/api/users/${user.id}/app-preferences`)
       .then(prefs => { if (prefs?.antiInflammatorySupport) setAntiInflammatorySupport(true); })
       .catch(() => {});
   }, [user?.id]);
@@ -564,13 +564,8 @@ export default function EditProfilePage() {
 
       // Save anti-inflammatory support preference
       if (user?.id) {
-        await fetch(apiUrl(`/api/users/${user.id}/app-preferences`), {
+        await apiRequest(`/api/users/${user.id}/app-preferences`, {
           method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            ...(authToken ? { "x-auth-token": authToken } : {}),
-          },
-          credentials: "include",
           body: JSON.stringify({ antiInflammatorySupport }),
         }).catch(() => {});
       }
