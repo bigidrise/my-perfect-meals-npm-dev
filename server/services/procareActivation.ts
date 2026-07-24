@@ -124,15 +124,34 @@ export async function activateProCareClient(
         alreadyActive = true;
         membership = sameStudioMembership;
       } else {
-        // Reconnect to same provider — restore the existing record
+        // Reconnect to same provider — restore the existing record.
+        // Fix B: resync assignedBuilder from users.activeBoard so the
+        // dashboard never shows a builder that was changed while disconnected.
+        const [currentUser] = await tx
+          .select({ activeBoard: users.activeBoard })
+          .from(users)
+          .where(eq(users.id, clientUserId))
+          .limit(1);
+
         const [updated] = await tx
           .update(studioMemberships)
-          .set({ status: "active", isArchived: false, workspace, updatedAt: new Date() })
+          .set({
+            status: "active",
+            isArchived: false,
+            workspace,
+            updatedAt: new Date(),
+            ...(currentUser?.activeBoard
+              ? { assignedBuilder: currentUser.activeBoard as any }
+              : {}),
+          })
           .where(eq(studioMemberships.id, sameStudioMembership.id))
           .returning();
         membership = updated;
         restored = true;
-        console.log(`♻️ [ProCareActivation] Restored existing membership for client ${clientUserId} in studio ${studio!.id}`);
+        console.log(
+          `♻️ [ProCareActivation] Restored existing membership for client ${clientUserId} in studio ${studio!.id}` +
+          (currentUser?.activeBoard ? ` — resynced assignedBuilder="${currentUser.activeBoard}"` : "")
+        );
       }
     } else if (otherStudioMembership) {
       // Switching provider — unique constraint allows only ONE row per client.
