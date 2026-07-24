@@ -8,7 +8,8 @@ import { getTierForLookupKey } from "@shared/planFeatures";
  * UNLIKE requireClinicalAccess, trial users (TRIAL_FULL) are explicitly BLOCKED.
  * Lab-value entry and Clinical Precision are paid Clinical-plan features only.
  *
- * Passes:  Clinical (ultimate) paid plan, sandbox/internal accounts.
+ * Passes:  Clinical (ultimate) paid plan.
+ * Note: sandbox accounts bypass only when BILLING_ENFORCED=false (pre-launch mode).
  * Blocks:  FREE, TRIAL_FULL, Essential (basic), Pro (premium), expired/cancelled Clinical.
  *
  * Ownership checks inside clinicalLabs.ts (verifyClinicalAccess) cover the
@@ -35,10 +36,7 @@ export function requireClinicalLabsAccess(
   // Pre-launch bypass: when billing isn't enforced, everyone gets full access
   if (!BILLING_ENFORCED) return next();
 
-  const { accessTier, planLookupKey, isSandbox } = authReq.authUser;
-
-  // Sandbox/internal accounts always pass all tiers
-  if (isSandbox) return next();
+  const { accessTier, planLookupKey } = authReq.authUser;
 
   // Trial users are explicitly blocked — lab values are not a trial entitlement
   if (accessTier === "TRIAL_FULL") {
