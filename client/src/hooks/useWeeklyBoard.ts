@@ -124,7 +124,10 @@ function loadWeeklyBoard({
     })();
   }
 
-  onData(empty);
+  // Pro route: do NOT emit an empty seed board before the fetch completes.
+  // The hook already sets loading=true; the existing board stays visible while
+  // the request is in flight. onData is called only when real validated data arrives.
+  let currentSnapshot: string | null = null;
   return (async () => {
     try {
       const btPart = namespace ? `&bt=${encodeURIComponent(namespace)}` : '';
@@ -140,7 +143,13 @@ function loadWeeklyBoard({
 
       const json = await res.json();
       const validated = WeekBoardResponseSchema.parse(json);
-      onData(validated);
+      // Skip the render if the board is identical to what is already displayed
+      // (avoids unnecessary re-renders during polling).
+      const snapshot = JSON.stringify(validated);
+      if (snapshot !== currentSnapshot) {
+        currentSnapshot = snapshot;
+        onData(validated);
+      }
     } catch (e) {
       console.warn("Pro weekly board load failed:", e);
       throw e;
