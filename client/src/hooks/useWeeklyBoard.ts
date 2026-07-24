@@ -223,8 +223,26 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
   // when the user navigates weeks quickly.
   const requestVersionRef = useRef<number>(0);
 
+  // ── DIAGNOSTIC INSTRUMENTATION (temporary) ────────────────────────────────
+  const instanceId = useRef(`inst-${Math.random().toString(36).slice(2, 7)}`);
+  const effectRunCount = useRef(0);
+  // ─────────────────────────────────────────────────────────────────────────
+
   useEffect(() => {
     let mounted = true;
+    effectRunCount.current += 1;
+    const runNum = effectRunCount.current;
+    const hasExistingData = data !== null;
+    const url = proClientId
+      ? `/api/pro/weekly-board/${proClientId}?week=${monday}&bt=${namespace ?? ''}`
+      : `/api/weekly-board?week=${monday}${namespace ? `&bt=${namespace}` : ''}`;
+    console.log(
+      `[useWeeklyBoard DIAG] effect #${runNum} | inst=${instanceId.current}` +
+      ` | path=${window.location.pathname}` +
+      ` | userId=${userId} | proClientId=${proClientId ?? 'NONE'}` +
+      ` | monday=${monday} | namespace=${namespace ?? 'NONE'}` +
+      ` | hasData=${hasExistingData} | url=${url}`
+    );
     // Do NOT clear data to null here — keep the previous week visible while the
     // next week loads so the board never flashes blank during week navigation.
     setLoading(true);
@@ -251,6 +269,7 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
 
     return () => {
       mounted = false;
+      console.log(`[useWeeklyBoard DIAG] cleanup #${runNum} | inst=${instanceId.current} — effect torn down`);
     };
   }, [userId, monday, proClientId, namespace]);
 
@@ -260,6 +279,7 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
     const startPolling = () => {
       if (intervalId) return;
       intervalId = setInterval(() => {
+        console.log(`[useWeeklyBoard DIAG] poll-tick | inst=${instanceId.current} | proClientId=${proClientId ?? 'NONE'}`);
         loadWeeklyBoard({
           userId,
           weekStartISO: monday,
@@ -287,6 +307,7 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
     };
 
     const handleMpmResume = () => {
+      console.log(`[useWeeklyBoard DIAG] mpm:visibility-resumed fired | inst=${instanceId.current}`);
       loadWeeklyBoard({
         userId,
         weekStartISO: monday,
@@ -366,6 +387,7 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
   );
 
   const refresh = useCallback(async (): Promise<void> => {
+    console.log(`[useWeeklyBoard DIAG] refresh() called | inst=${instanceId.current} | proClientId=${proClientId ?? 'NONE'} | monday=${monday}`);
     setLoading(true);
     try {
       await loadWeeklyBoard({ 
