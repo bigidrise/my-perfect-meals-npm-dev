@@ -150,6 +150,7 @@ router.post("/connect", requireAuth, async (req, res) => {
     const PROCARE_PLAN_KEYS = [
       "mpm_procare_monthly", "mpm_trainer_5", "mpm_trainer_10",
       "mpm_trainer_25", "mpm_trainer_50", "mpm_physician_50", "mpm_physician_150",
+      "clinical_business_monthly",
     ];
 
     const clientHasClinical = CLINICAL_PLAN_KEYS.includes(clientUser?.planLookupKey ?? "");
