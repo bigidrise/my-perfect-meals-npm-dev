@@ -1572,12 +1572,12 @@ export default function DashboardNew() {
         }}
       />
 
-      <InformationModal open={showSubscriptionModal} onOpenChange={setShowSubscriptionModal} className="sm:max-w-md bg-black/90 text-white border-orange-500/40 backdrop-blur-lg" title={<span className="font-bold text-center block">Unlock Full Access</span>} description="AI-powered meal planning, personalized macros, restaurant guidance, and advanced coaching tools.">
+      <InformationModal open={showSubscriptionModal} onOpenChange={setShowSubscriptionModal} className="sm:max-w-md bg-black/90 text-white border-orange-500/40 backdrop-blur-lg" title={<span className="font-bold text-center block">Upgrade Your Experience</span>} description="Explore the next level of My Perfect Meals and discover additional tools, guidance, and features available beyond your current plan.">
           <div className="mt-4 space-y-2 text-sm text-white/80">
-            <div>• Unlimited AI meal creation</div>
-            <div>• Advanced macro targeting</div>
-            <div>• Restaurant & craving tools</div>
-            <div>• Premium coaching access</div>
+            <div>• More advanced nutrition tools</div>
+            <div>• Expanded meal-planning capabilities</div>
+            <div>• Additional guidance and personalization</div>
+            <div>• Access to higher-tier features</div>
           </div>
           <div className="mt-6 space-y-3">
             <Button
@@ -1598,7 +1598,7 @@ export default function DashboardNew() {
                 setShowSubscriptionModal(false);
               }}
             >
-              Continue with Free Features
+              Continue With Current Plan
             </Button>
           </div>
       </InformationModal>
