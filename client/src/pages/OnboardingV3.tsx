@@ -116,7 +116,7 @@ const DIETARY_IDENTITY_HINTS: Record<string, string> = {
 };
 
 const BUILDER_OPTIONS = [
-  { id: "weekly", name: "Weekly Meal Builder", description: "Balanced, healthy meals for everyday life" },
+  { id: "general_nutrition", name: "General Nutrition Builder", description: "Balanced, healthy meals for everyday life" },
   { id: "diabetic", name: "Diabetes Support", description: "Blood-sugar awareness and stability" },
   { id: "glp1", name: "Metabolic Med Support", description: "For users on metabolic medications" },
   { id: "anti_inflammatory", name: "Anti-Inflammatory", description: "Support long-term inflammation management" },
@@ -138,7 +138,7 @@ function getRecommendedBuilder(conditions: string[]): string {
     conditions.includes("psoriasis") ||
     conditions.includes("lupus")
   ) return "anti_inflammatory";
-  return "weekly";
+  return "general_nutrition";
 }
 
 export default function OnboardingV3() {
