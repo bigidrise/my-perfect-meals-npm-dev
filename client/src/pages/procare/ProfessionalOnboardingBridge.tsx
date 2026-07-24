@@ -27,6 +27,12 @@ export default function ProfessionalOnboardingBridge() {
       return;
     }
 
+    // Admins bypass all certification gates — send straight to the pro portal
+    if (user.isAdmin) {
+      setLocation(user.professionalRole === "physician" ? "/pro/physician-clients" : "/pro/clients");
+      return;
+    }
+
     (async () => {
       try {
         const [p1Res, p2Res] = await Promise.allSettled([
