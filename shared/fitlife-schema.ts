@@ -46,15 +46,9 @@ export const avatarDay = pgTable("avatar_day", {
 });
 
 // Zod schemas
-export const insertAvatarStateSchema = createInsertSchema(avatarState).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true
-});
+export const insertAvatarStateSchema = createInsertSchema(avatarState);
 
-export const insertAvatarDaySchema = createInsertSchema(avatarDay).omit({
-  id: true
-});
+export const insertAvatarDaySchema = createInsertSchema(avatarDay);
 
 export type AvatarState = typeof avatarState.$inferSelect;
 export type AvatarDay = typeof avatarDay.$inferSelect;

@@ -90,7 +90,7 @@ export const insertClinicalLabsSchema = createInsertSchema(clinicalLabs, {
   prealbumin:     z.string().or(z.number()).optional().nullable(),
   notes: z.string().optional().nullable(),
   recordedAt: z.string().or(z.date()),
-}).omit({ id: true, createdAt: true });
+});
 
 export type InsertClinicalLabs = z.infer<typeof insertClinicalLabsSchema>;
 export type ClinicalLabs = typeof clinicalLabs.$inferSelect;

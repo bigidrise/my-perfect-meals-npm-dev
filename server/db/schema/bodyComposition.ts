@@ -40,10 +40,6 @@ export const insertBodyFatSchema = createInsertSchema(bodyFatEntries, {
   createdById: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
   recordedAt: z.string().or(z.date()),
-}).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
 });
 
 export type InsertBodyFatEntry = z.infer<typeof insertBodyFatSchema>;
