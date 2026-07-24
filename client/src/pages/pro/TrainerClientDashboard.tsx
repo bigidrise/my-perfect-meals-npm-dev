@@ -996,38 +996,55 @@ export default function TrainerClientDashboard() {
             <p className="text-white/70 text-sm">
               Select the coaching style for this client's meal plan.
             </p>
-            {(assignedBuilder === "diabetic" || assignedBuilder === "glp1") ? (
-              <div className="bg-amber-950/40 border border-amber-500/40 rounded-lg p-4">
-                <p className="text-amber-400 text-sm font-semibold">Medical program active</p>
-                <p className="text-white/60 text-xs mt-1">
-                  Builder selection and clinical settings for this client are managed by the physician. Open the training view below to build meals within the active program.
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {TRAINER_MEAL_MODE_KEYS.filter((k) => k !== "performance_competition").map((key) => {
-                  const entry = PROFESSIONAL_BUILDER_MAP[key];
-                  const isActive = assignedBuilder === key || (key === "general_nutrition" && assignedBuilder === "weekly");
-                  return (
-                    <Button
-                      key={key}
-                      onClick={() => handleBuilderAssignment(key)}
-                      className={`h-auto py-4 flex flex-col items-start gap-1 text-left transition-all duration-200 active:scale-[0.98] ${
-                        isActive
-                          ? "bg-lime-600 border-2 border-lime-400"
-                          : "bg-black/40 border border-white/20 hover:bg-black/60"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 w-full">
-                        {isActive && <Check className="h-4 w-4 flex-shrink-0" />}
-                        <span className="font-bold text-sm">{entry.label}</span>
-                      </div>
-                      <span className="text-xs text-white/60 font-normal leading-snug line-clamp-2 w-full">{entry.description}</span>
-                    </Button>
-                  );
-                })}
-              </div>
-            )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Trainer-assignable builders */}
+              {TRAINER_MEAL_MODE_KEYS.filter((k) => k !== "performance_competition").map((key) => {
+                const entry = PROFESSIONAL_BUILDER_MAP[key];
+                const isActive = assignedBuilder === key || (key === "general_nutrition" && assignedBuilder === "weekly");
+                return (
+                  <Button
+                    key={key}
+                    onClick={() => handleBuilderAssignment(key)}
+                    className={`h-auto py-4 flex flex-col items-start gap-1 text-left transition-all duration-200 active:scale-[0.98] ${
+                      isActive
+                        ? "bg-lime-600 border-2 border-lime-400"
+                        : "bg-black/40 border border-white/20 hover:bg-black/60"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 w-full">
+                      {isActive && <Check className="h-4 w-4 flex-shrink-0" />}
+                      <span className="font-bold text-sm">{entry.label}</span>
+                    </div>
+                    <span className="text-xs text-white/60 font-normal leading-snug line-clamp-2 w-full">{entry.description}</span>
+                  </Button>
+                );
+              })}
+              {/* Medical builders — physician activates/deactivates; trainer can view and coach inside */}
+              {(["diabetic", "glp1"] as ProfessionalBuilderKey[]).map((key) => {
+                const entry = PROFESSIONAL_BUILDER_MAP[key];
+                const isActive = assignedBuilder === key;
+                return (
+                  <div
+                    key={key}
+                    className={`h-auto py-4 px-4 flex flex-col items-start gap-1 rounded-md border ${
+                      isActive
+                        ? "bg-lime-600/20 border-lime-500/40"
+                        : "bg-black/20 border-white/10"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 w-full">
+                      {isActive && <Check className="h-4 w-4 flex-shrink-0 text-lime-400" />}
+                      <span className="font-bold text-sm text-white/70">{entry.label}</span>
+                      <span className="ml-auto text-[10px] px-1.5 py-0.5 bg-amber-900/40 text-amber-400 rounded-full border border-amber-500/30 flex-shrink-0">
+                        Physician
+                      </span>
+                    </div>
+                    <span className="text-xs text-white/40 font-normal leading-snug line-clamp-2 w-full">{entry.description}</span>
+                    <span className="text-[10px] text-amber-400/70 mt-0.5">Activation managed by physician</span>
+                  </div>
+                );
+              })}
+            </div>
           </CardContent>
         </Card>
 

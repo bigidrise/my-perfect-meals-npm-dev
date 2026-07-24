@@ -31,15 +31,7 @@ export default function Builders() {
   }, []);
 
   const builderFeatures: BuilderFeature[] = [
-    {
-      title: "My Weekly Meal Builder",
-      description:
-        "AI generated meal plans for users that want to eat healthier meals their way",
-      icon: LayoutGrid,
-      route: "/weekly-meal-board",
-      testId: "card-weekly-meal-board",
-      builderId: "weekly",
-    },
+    // "My Weekly Meal Builder" hidden — route and data intact, not selectable
     {
       title: "Diabetic Hub and Meal Builder",
       description:
@@ -290,10 +282,9 @@ export default function Builders() {
                               Clinical
                             </span>
                           )}
-                          {(feature.builderId === "general_nutrition" ||
-                            feature.builderId === "performance_competition") && (
+                          {feature.builderId === "performance_competition" && (
                             <span className="text-[10px] px-1.5 py-0.5 bg-orange-600/30 text-orange-300 rounded-full border border-orange-500/30 flex-shrink-0">
-                              ProCare
+                              Pro
                             </span>
                           )}
                           {feature.builderId === userActiveBoard && (
