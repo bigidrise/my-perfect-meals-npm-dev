@@ -120,12 +120,14 @@ async function processAllMealImagesForSave(
     for (const meal of meals) {
       if (meal.imageUrl) {
         try {
-          const result = await processMealImageForSave(meal.imageUrl);
-          if (result.processed) {
-            meal.imageUrl = result.url;
+          const mealName = meal.title || meal.name || 'Meal';
+          const result = await processMealImageForSave(meal.imageUrl, mealName);
+          if (result.ingestionAttempted && result.imageUrl) {
+            meal.imageUrl = result.imageUrl;
             imagesProcessed++;
+          } else if (result.imagePending) {
+            imagesPending++;
           }
-          if (result.pending) imagesPending++;
         } catch {
           imagesPending++;
         }

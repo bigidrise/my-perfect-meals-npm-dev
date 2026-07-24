@@ -39,18 +39,19 @@ interface UploadResult {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // REPLIT OBJECT STORAGE FALLBACK
-// Used when S3 is unavailable / returns 403. Uploads to the GCS bucket that
-// is already configured via PUBLIC_OBJECT_SEARCH_PATHS and served by the
-// app's own /public-objects/* route.
+// Used when S3 is unavailable / returns 403. Uses the Replit sidecar to
+// generate a pre-signed PUT URL, then uploads directly — no GCS SDK auth
+// required. This is the same mechanism objectStorage.ts uses for all other
+// object storage operations.
 // ─────────────────────────────────────────────────────────────────────────────
+
+const REPLIT_SIDECAR_ENDPOINT = "http://127.0.0.1:1106";
 
 async function uploadToReplitObjectStorage(
   imageBuffer: Buffer,
   contentType: string,
   fileName: string,
 ): Promise<string> {
-  const { objectStorageClient } = await import("../objectStorage");
-
   const searchPaths = (process.env.PUBLIC_OBJECT_SEARCH_PATHS || "")
     .split(",")
     .map((s) => s.trim())
@@ -60,7 +61,6 @@ async function uploadToReplitObjectStorage(
     throw new Error("PUBLIC_OBJECT_SEARCH_PATHS not configured — cannot fall back to Replit Object Storage");
   }
 
-  // Parse bucket name from the first search path entry (format: /bucket-name or bucket-name)
   const bucketPath = searchPaths[0].replace(/^\/+/, "").replace(/\/+$/, "");
   const bucketName = bucketPath.split("/")[0];
 
@@ -69,17 +69,40 @@ async function uploadToReplitObjectStorage(
   }
 
   const objectName = `meal-images/${fileName}`;
-  const bucket = objectStorageClient.bucket(bucketName);
-  const file = bucket.file(objectName);
 
-  await file.save(imageBuffer, {
-    contentType,
-    resumable: false,
-    metadata: { cacheControl: "public, max-age=31536000" },
+  const signRes = await fetch(`${REPLIT_SIDECAR_ENDPOINT}/object-storage/signed-object-url`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      bucket_name: bucketName,
+      object_name: objectName,
+      method: "PUT",
+      expires_at: new Date(Date.now() + 900 * 1000).toISOString(),
+    }),
   });
 
-  console.log(`✅ Image uploaded to Replit Object Storage: /public-objects/meal-images/${fileName}`);
-  return `/public-objects/meal-images/${fileName}`;
+  if (!signRes.ok) {
+    throw new Error(`Replit Object Storage: sidecar signed-URL request failed with HTTP ${signRes.status}`);
+  }
+
+  const { signed_url: signedUrl } = await signRes.json() as { signed_url: string };
+
+  const uploadRes = await fetch(signedUrl, {
+    method: "PUT",
+    headers: {
+      "Content-Type": contentType,
+      "Cache-Control": "public, max-age=31536000",
+    },
+    body: imageBuffer,
+  });
+
+  if (!uploadRes.ok) {
+    const uploadError = await uploadRes.text().catch(() => "");
+    throw new Error(`GCS upload via signed URL failed: HTTP ${uploadRes.status} — ${uploadError.substring(0, 100)}`);
+  }
+
+  console.log(`✅ Image uploaded to Replit Object Storage: /public-objects/${objectName}`);
+  return `/public-objects/${objectName}`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
