@@ -4,8 +4,9 @@ import { getTierForLookupKey } from "@shared/planFeatures";
 
 /**
  * requireClinicalAccess — blocks Essential and Pro users from Clinical-tier features.
- * Passes: Clinical (ultimate) plan, sandbox/internal accounts.
+ * Passes: Clinical (ultimate) plan.
  * Blocks: FREE, Essential (basic), Pro (premium) plans.
+ * Note: sandbox accounts bypass only when BILLING_ENFORCED=false (pre-launch mode).
  *
  * When BILLING_ENFORCED=false (pre-launch), all users pass.
  *
@@ -29,9 +30,7 @@ export function requireClinicalAccess(
 
   if (!BILLING_ENFORCED) return next();
 
-  const { accessTier, planLookupKey, isSandbox } = authReq.authUser;
-
-  if (isSandbox) return next();
+  const { accessTier, planLookupKey } = authReq.authUser;
 
   if (accessTier !== "PAID_FULL") {
     res.status(403).json({

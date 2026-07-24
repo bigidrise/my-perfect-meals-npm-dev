@@ -4,8 +4,9 @@ import { getTierForLookupKey } from "@shared/planFeatures";
 
 /**
  * requireProAccess — blocks Essential and FREE users from Pro-tier features.
- * Passes: Pro (premium) or Clinical (ultimate) plan, trials, sandbox/internal accounts.
+ * Passes: Pro (premium) or Clinical (ultimate) plan, trials.
  * Blocks: FREE, Essential (basic) plan.
+ * Note: sandbox accounts bypass only when BILLING_ENFORCED=false (pre-launch mode).
  *
  * When BILLING_ENFORCED=false (pre-launch), all users pass — same as the rest of the
  * access tier system.
@@ -32,10 +33,7 @@ export function requireProAccess(
   // Pre-launch bypass: when billing isn't enforced, everyone gets full access
   if (!BILLING_ENFORCED) return next();
 
-  const { accessTier, planLookupKey, isSandbox } = authReq.authUser;
-
-  // Sandbox/internal accounts always pass all tiers
-  if (isSandbox) return next();
+  const { accessTier, planLookupKey } = authReq.authUser;
 
   // Must have an active paid subscription
   if (accessTier !== "PAID_FULL") {

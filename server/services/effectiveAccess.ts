@@ -47,7 +47,13 @@ export async function computeEffectiveAccess(
 ): Promise<EffectiveAccess> {
   const ultimateEntitlements = getEntitlementsForTier("ultimate") as string[];
 
-  if (user.isSandbox || user.isFounder) {
+  const BILLING_ENFORCED = process.env.BILLING_ENFORCED === "true";
+
+  // Founders always get ultimate (permanent access regardless of billing mode).
+  // Sandbox accounts get ultimate only in pre-launch mode — once billing is enforced
+  // they use their real plan/trial so each tier can be tested by assigning the
+  // appropriate plan_lookup_key to the test account.
+  if (user.isFounder || (!BILLING_ENFORCED && user.isSandbox)) {
     return {
       planLookupKey: "mpm_ultimate_monthly",
       entitlements: ultimateEntitlements,
