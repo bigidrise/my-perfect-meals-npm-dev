@@ -512,6 +512,17 @@ const GuardedProClientNutritionPlan = () => <ProCareStudioGuard component={SafeP
 const GuardedTrainerClientDashboard = () => <ProCareStudioGuard component={SafeTrainerClientDashboard} />;
 const GuardedClinicianClientDashboard = () => <ProCareStudioGuard component={SafeClinicianClientDashboard} />;
 const GuardedProBoardViewer = () => <ProCareStudioGuard component={SafeProBoardViewer} />;
+// Stable module-level wrappers for ProCare client builder routes.
+// These MUST stay at module scope — never defined inline inside JSX.
+// An inline () => <ProCareStudioGuard /> creates a new reference on every Router render,
+// which causes Wouter to unmount/remount the entire subtree (restarting cert checks + board loads).
+const GuardedProGeneralNutritionBuilder = () => <ProCareStudioGuard component={GeneralNutritionBuilder} />;
+const GuardedProPerformanceCompetitionBuilder = () => <ProCareStudioGuard component={PerformanceCompetitionBuilderProCare} />;
+const GuardedProDiabeticBuilder = () => <ProCareStudioGuard component={SafeDiabeticMenuBuilder} />;
+const GuardedProGLP1Builder = () => <ProCareStudioGuard component={SafeGLP1MealBuilder} />;
+const GuardedProAntiInflammatoryBuilder = () => <ProCareStudioGuard component={SafeAntiInflammatoryMenuBuilder} />;
+const GuardedProWeeklyBuilder = () => <ProCareStudioGuard component={SafeWeeklyMealBoard} />;
+const GuardedProBeachBodyBuilder = () => <ProCareStudioGuard component={BeachBodyMealBoard} />;
 const GuardedWeeklyMealBoard = () => <BuilderAccessGuard builderKey="weekly" component={SafeWeeklyMealBoard} />;
 const GuardedShoppingList = () => <PaywallGuard component={SafeShoppingList} />;
 const GuardedBeachBodyBuilder = () => <BuilderAccessGuard builderKey="beach_body" component={BeachBodyMealBoard} />;
@@ -916,16 +927,16 @@ export default function Router() {
           path="/pro/performance-competition-builder"
           component={GuardedPerformanceBuilder}
         />
-        <Route path="/pro/clients/:id/general-nutrition-builder" component={() => <ProCareStudioGuard component={GeneralNutritionBuilder} />} />
-        <Route path="/pro/clients/:id/performance-competition-builder" component={() => <ProCareStudioGuard component={PerformanceCompetitionBuilderProCare} />} />
-        <Route path="/pro/clients/:id/diabetic-builder" component={() => <ProCareStudioGuard component={SafeDiabeticMenuBuilder} />} />
-        <Route path="/pro/clients/:id/glp1-builder" component={() => <ProCareStudioGuard component={SafeGLP1MealBuilder} />} />
-        <Route path="/pro/clients/:id/anti-inflammatory-builder" component={() => <ProCareStudioGuard component={SafeAntiInflammatoryMenuBuilder} />} />
-        <Route path="/pro/clients/:id/kidney-disease-builder" component={() => <ProCareStudioGuard component={SafeAntiInflammatoryMenuBuilder} />} />
-        <Route path="/pro/clients/:id/heart-failure-builder" component={() => <ProCareStudioGuard component={SafeAntiInflammatoryMenuBuilder} />} />
-        <Route path="/pro/clients/:id/liver-disease-builder" component={() => <ProCareStudioGuard component={SafeAntiInflammatoryMenuBuilder} />} />
-        <Route path="/pro/clients/:id/weekly-builder" component={() => <ProCareStudioGuard component={SafeWeeklyMealBoard} />} />
-        <Route path="/pro/clients/:id/beach-body-builder" component={() => <ProCareStudioGuard component={BeachBodyMealBoard} />} />
+        <Route path="/pro/clients/:id/general-nutrition-builder" component={GuardedProGeneralNutritionBuilder} />
+        <Route path="/pro/clients/:id/performance-competition-builder" component={GuardedProPerformanceCompetitionBuilder} />
+        <Route path="/pro/clients/:id/diabetic-builder" component={GuardedProDiabeticBuilder} />
+        <Route path="/pro/clients/:id/glp1-builder" component={GuardedProGLP1Builder} />
+        <Route path="/pro/clients/:id/anti-inflammatory-builder" component={GuardedProAntiInflammatoryBuilder} />
+        <Route path="/pro/clients/:id/kidney-disease-builder" component={GuardedProAntiInflammatoryBuilder} />
+        <Route path="/pro/clients/:id/heart-failure-builder" component={GuardedProAntiInflammatoryBuilder} />
+        <Route path="/pro/clients/:id/liver-disease-builder" component={GuardedProAntiInflammatoryBuilder} />
+        <Route path="/pro/clients/:id/weekly-builder" component={GuardedProWeeklyBuilder} />
+        <Route path="/pro/clients/:id/beach-body-builder" component={GuardedProBeachBodyBuilder} />
         {/* Physician Hub Routes (Diabetic, GLP-1, Medical Diets, Clinical Lifestyle) */}
         <Route path="/diabetic-hub" component={SafeDiabeticHub} />
         <Route path="/diabetes-support" component={SafeDiabetesSupport} />
