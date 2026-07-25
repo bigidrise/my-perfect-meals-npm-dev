@@ -890,6 +890,64 @@ setTimeout(async () => {
   }
 }, 3000);
 
+// Studio relationship integrity — deduplicate client_links and add unique pair constraint
+setTimeout(async () => {
+  try {
+    const { db } = await import('./db');
+    const { sql } = await import('drizzle-orm');
+
+    // Deduplicate: for each (client_user_id, pro_user_id) pair keep the active row
+    // (if any) or the most recently created row, then delete the rest.
+    await db.execute(sql`
+      DELETE FROM client_links
+      WHERE id NOT IN (
+        SELECT DISTINCT ON (client_user_id, pro_user_id) id
+        FROM client_links
+        ORDER BY client_user_id, pro_user_id,
+          (CASE WHEN active = true THEN 0 ELSE 1 END),
+          created_at DESC
+      )
+    `);
+
+    // Unique constraint: one relationship record per (client, pro) pair.
+    // A second attempt by the same client+pro reactivates the existing row; it never
+    // creates a duplicate. The partial index idx_client_links_single_active already
+    // prevents two ACTIVE rows; this adds the broader dedup guarantee.
+    await db.execute(sql`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_client_links_unique_pair
+      ON client_links (client_user_id, pro_user_id)
+    `);
+
+    // Reconcile stale careTeamMember rows left active while their parent studio
+    // membership is revoked — a pre-existing state from before the deactivation fix.
+    await db.execute(sql`
+      UPDATE care_team_member ctm
+      SET status = 'revoked', updated_at = now()
+      FROM studios s
+      WHERE ctm.pro_user_id = s.owner_user_id
+        AND ctm.status = 'active'
+        AND EXISTS (
+          SELECT 1 FROM studio_memberships sm
+          WHERE sm.client_user_id = ctm.user_id
+            AND sm.studio_id = s.id
+            AND sm.status = 'revoked'
+            AND sm.is_archived = true
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM studio_memberships sm
+          WHERE sm.client_user_id = ctm.user_id
+            AND sm.studio_id = s.id
+            AND sm.status = 'active'
+            AND sm.is_archived = false
+        )
+    `);
+
+    console.log('✅ client_links integrity migration complete (dedup + unique pair index + careTeamMember reconcile)');
+  } catch (err: any) {
+    console.error('❌ client_links integrity migration failed:', err.message);
+  }
+}, 3500);
+
 // Backfill: purge stale temp URLs from meal_image_cache
 // Any non-S3 URL is expired or will expire — delete so next request regenerates clean
 setTimeout(async () => {

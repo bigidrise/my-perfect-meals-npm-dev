@@ -1,9 +1,11 @@
 import { db } from "../db";
 import { studios, studioBilling, studioMemberships } from "../db/schema/studio";
 import { clientLinks } from "../db/schema/procare";
+import { careTeamMember } from "../db/schema/careTeam";
 import { users } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import { logClientActivity } from "./activityLog";
+import { checkLegalAcceptance } from "./legalCheck";
 
 export class ActivationError extends Error {
   code: string;
@@ -161,6 +163,18 @@ export async function activateProCareClient(
           .returning();
         membership = updated;
         restored = true;
+
+        // Reactivate the careTeamMember row that was revoked at disconnect time
+        await tx
+          .update(careTeamMember)
+          .set({ status: "active", updatedAt: new Date() })
+          .where(
+            and(
+              eq(careTeamMember.userId, clientUserId),
+              eq(careTeamMember.proUserId, proUserId)
+            )
+          );
+
         console.log(
           `♻️ [ProCareActivation] Restored existing membership for client ${clientUserId} in studio ${studio!.id}` +
           (currentUser?.activeBoard ? ` — resynced assignedBuilder="${currentUser.activeBoard}"` : "")
@@ -218,7 +232,7 @@ export async function activateProCareClient(
       if (inactiveLink) {
         const [reactivated] = await tx
           .update(clientLinks)
-          .set({ active: true, updatedAt: new Date() })
+          .set({ active: true })
           .where(eq(clientLinks.id, inactiveLink.id))
           .returning();
         clientLink = reactivated;
@@ -308,11 +322,22 @@ export async function deactivateProCareClient(
     // 2. Deactivate the client link for this specific pro
     await tx
       .update(clientLinks)
-      .set({ active: false, updatedAt: new Date() })
+      .set({ active: false })
       .where(
         and(
           eq(clientLinks.clientUserId, clientUserId),
           eq(clientLinks.proUserId, proUserId)
+        )
+      );
+
+    // 2b. Mark the careTeamMember row as revoked (keeps the row; changes its status)
+    await tx
+      .update(careTeamMember)
+      .set({ status: "revoked", updatedAt: new Date() })
+      .where(
+        and(
+          eq(careTeamMember.userId, clientUserId),
+          eq(careTeamMember.proUserId, proUserId)
         )
       );
 
@@ -415,6 +440,28 @@ export async function selfHealProCareState(
     }
 
     if (missingLink) {
+      // Safety guard: verify legal acceptance exists before synthesising a new client_links row.
+      // selfHeal is authorised only to repair technical row gaps — it must NOT silently create
+      // a brand-new physician relationship that has never been through the legal acceptance gate.
+      const isPhysician = membership.ownerUserId
+        ? await db
+            .select({ professionalRole: users.professionalRole })
+            .from(users)
+            .where(eq(users.id, membership.ownerUserId))
+            .then(([u]) => u?.professionalRole === "physician")
+        : false;
+
+      if (isPhysician) {
+        const legalCheck = await checkLegalAcceptance(clientUserId, "patient_physician");
+        if (!legalCheck.allAccepted) {
+          console.log(
+            `⚠️ [SelfHeal] Skipping client_links repair for ${clientUserId} — physician connection ` +
+            `requires legal acceptance first (missing: ${legalCheck.missing.join(", ")})`
+          );
+          return { healed: false, reason: "legal_acceptance_required" };
+        }
+      }
+
       await db
         .insert(clientLinks)
         .values({ clientUserId, proUserId, active: true })
