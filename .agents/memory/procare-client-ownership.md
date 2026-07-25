@@ -88,6 +88,46 @@ Currently the whole field is cleared on deactivation. Named as design debt; no i
 
 ---
 
+## Behavioral contract: "Archive is a pause, not a snapshot"
+
+> **Archiving a professional relationship pauses access; it does not freeze the client. While archived, the client profile continues to evolve. Restoring the relationship reconnects the professional to the client's current profile, not the profile as it existed when archived.**
+
+This contract explains the design of Fix A + Fix B:
+- Fix A's WHERE clause skips `isArchived=true` rows intentionally — there is no active membership to sync while disconnected
+- Fix B reads `users.activeBoard` on restore — trusting the client profile, not the stale archived row
+
+Documented in `server/services/procareActivation.ts` function JSDoc.
+
+---
+
+## QA checklist: client identity verification after every reconnect
+
+Run this after any archive → change → restore sequence before declaring a reconnect fix verified.
+
+**Client Profile (must reflect current state)**
+- Active builder
+- Macro targets
+- Current meal board
+- Medical flags (Diabetic, GLP-1, etc.)
+- Nutrition goals
+- Biometrics (where applicable)
+- Builder settings that belong to the client
+
+**Relationship State (must be correctly scoped)**
+- Studio membership restored and correct workspace
+- Relationship-specific permissions (mealBoardControl)
+- Cycle protocols (relationship-scoped, not carried from prior relationship)
+- Notes specific to this professional relationship
+- Check-in schedule (relationship-scoped)
+
+---
+
+## Sequencing rule
+
+Do not mix live E2E verification with new architectural audit phases. Verify the builder reconnect fix first (7-step sequence + full QA checklist above). Once it passes, close the builder issue and begin Phase 1 (meal board ownership) as a clean separate piece of work.
+
+---
+
 ## Next audit targets (in priority order)
 
 1. **Meal boards** — who owns the board? Answer must be: the client. Pros edit it, not own it.

@@ -36,8 +36,21 @@ export interface DeactivationResult {
 /**
  * Fully activates a client under a ProCare professional in one atomic transaction.
  *
+ * ## Behavioral contract: "Archive is a pause, not a snapshot"
+ *
+ * Archiving a professional relationship pauses access; it does not freeze the client.
+ * While archived, the client profile continues to evolve independently. Restoring the
+ * relationship reconnects the professional to the client's CURRENT profile — not the
+ * profile as it existed when the relationship was archived.
+ *
+ * This is why the reconnect path intentionally does NOT sync archived memberships
+ * during the disconnected period (Fix A's WHERE clause skips isArchived=true rows),
+ * and instead reads users.activeBoard on restore (Fix B) rather than trusting the
+ * stale value preserved in the archived membership row.
+ *
  * Reconnect behavior (same client + same provider):
  *   - Restores the existing archived membership record (no duplicate card created)
+ *   - Resyncs assignedBuilder from users.activeBoard (current client state)
  *   - Reactivates client_links and sets is_pro_care=true
  *
  * New connection (same client + different provider):
@@ -45,7 +58,7 @@ export interface DeactivationResult {
  *   - Creates a new membership record for the new studio
  *
  * Guarantees all three required records exist and are active:
- *  1. studio_memberships (status = active, isArchived = false)
+ *  1. studio_memberships (status = active, isArchived = false, assignedBuilder = current)
  *  2. users.is_pro_care = true
  *  3. client_links (active = true)
  *
