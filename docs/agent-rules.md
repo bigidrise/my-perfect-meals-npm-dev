@@ -68,6 +68,18 @@ The app-level mount (`app.use(path, requireAuth, router)`) may remain for defens
 
 **Additionally:** Never trust `req.body.userId` or `req.params.userId` for identity on write operations. Always use `(req as AuthenticatedRequest).authUser.id`.
 
+## Feature Impact Assessment (Mandatory)
+
+Before marking any feature complete, read `.local/skills/feature-impact/SKILL.md` and
+emit a Feature Completion Report covering all 12 areas defined in
+`docs/feature-impact-system.md`.
+
+This applies to every new feature, enhancement, or user-facing change. It does NOT
+apply to typo fixes, pure CSS tweaks, or dependency bumps.
+
+A feature with unresolved ⚠️ items is NOT production-ready. Deferred items must be
+explicitly named and the deferral reason stated.
+
 ## Smoke Test Gate
 
 Before marking any change "done" that touches the following surfaces, a smoke test MUST pass:
