@@ -54,6 +54,9 @@ export type OrgFeatureFlags = {
   oncologySupport: boolean;
   coachTools: boolean;
   biometricTracking: boolean;
+  // Organization Policies (default true = enforce; false = org handles it)
+  requireAcademy: boolean;
+  requireProfessionalVerification: boolean;
 };
 
 export const DEFAULT_ORG_FEATURE_FLAGS: OrgFeatureFlags = {
@@ -69,6 +72,8 @@ export const DEFAULT_ORG_FEATURE_FLAGS: OrgFeatureFlags = {
   oncologySupport: false,
   coachTools: true,
   biometricTracking: true,
+  requireAcademy: true,
+  requireProfessionalVerification: true,
 };
 
 export const organizations = pgTable(
