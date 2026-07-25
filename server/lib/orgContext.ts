@@ -146,3 +146,11 @@ export function getDefaultOrgContext(): OrgContext {
 export function orgHasFlag(org: OrgContext, flag: keyof OrgFeatureFlags): boolean {
   return org.featureFlags[flag] === true;
 }
+
+/**
+ * Evict an org (by id or slug) from the in-process cache so that flag updates
+ * take effect immediately without waiting for the 5-minute TTL.
+ */
+export function clearOrgCache(idOrSlug: string): void {
+  orgCache.delete(idOrSlug);
+}

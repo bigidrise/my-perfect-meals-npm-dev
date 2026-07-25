@@ -1,4 +1,5 @@
 import { useLocation } from "wouter";
+import { useOrgFlag } from "@/contexts/OrgContext";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { WorkspaceChooser } from "@/components/WorkspaceChooser";
@@ -103,6 +104,7 @@ export default function DashboardNew() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { requestUpgrade } = useUpgradeModal();
+  const showMarketplace = useOrgFlag("partnerMarketplace");
   const [showScanner, setShowScanner] = useState(false);
   const [isGuidedMode, setIsGuidedMode] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
@@ -207,7 +209,7 @@ export default function DashboardNew() {
 
   const handleTabletSend = async () => {
     if (!isProCareClient) {
-      setLocation("/coaches");
+      setLocation(showMarketplace ? "/coaches" : "/pricing");
       return;
     }
     if (!tabletInput.trim() || tabletSending) return;
@@ -239,7 +241,7 @@ export default function DashboardNew() {
 
   const handleTabletTranslate = async (entry: any) => {
     if (!isProCareClient) {
-      setLocation("/coaches");
+      setLocation(showMarketplace ? "/coaches" : "/pricing");
       return;
     }
     if (tabletTranslatingId) return;
@@ -289,7 +291,7 @@ export default function DashboardNew() {
 
   const handleTabletDelete = async (entry: any) => {
     if (!isProCareClient) {
-      setLocation("/coaches");
+      setLocation(showMarketplace ? "/coaches" : "/pricing");
       return;
     }
     try {
@@ -959,7 +961,7 @@ export default function DashboardNew() {
               <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(249,115,22,0.3), rgba(249,115,22,0.1), rgba(0,0,0,0))" }} />
             <Card
               className="relative cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg border border-white/10 transition-all duration-300 rounded-xl shadow-md opacity-70"
-              onClick={() => setLocation("/coaches")}
+              onClick={() => setLocation(showMarketplace ? "/coaches" : "/pricing")}
             >
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">

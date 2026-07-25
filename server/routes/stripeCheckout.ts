@@ -166,6 +166,27 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
     return res.status(401).json({ error: "User not authenticated" });
   }
 
+  // Require an admin-provisioned business record before allowing checkout.
+  // Prevents self-service org creation; organizations must be approved first.
+  try {
+    const { db: checkDb } = await import("../db");
+    const { businesses: bizTable } = await import("../db/schema/business");
+    const { eq: eqBiz } = await import("drizzle-orm");
+    const [existingBiz] = await checkDb
+      .select({ id: bizTable.id, status: bizTable.status })
+      .from(bizTable)
+      .where(eqBiz(bizTable.ownerUserId, userId))
+      .limit(1);
+    if (!existingBiz) {
+      return res.status(403).json({
+        code: "ORGANIZATION_APPROVAL_REQUIRED",
+        error: "Organization provisioning is required before purchasing seats. Please contact My Perfect Meals to set up your organization.",
+      });
+    }
+  } catch (gateErr) {
+    console.error("[checkout/business] Gate check failed:", gateErr);
+  }
+
   const requestedSeats = Number(req.body.seats);
   if (!Number.isInteger(requestedSeats) || requestedSeats < 1 || requestedSeats > 250) {
     return res.status(400).json({

@@ -714,18 +714,61 @@ async function initializeApp() {
         const { loadOrgContext, loadOrgBySlug, getDefaultOrgContext } = await import("./lib/orgContext");
         const { db: orgDb } = await import("./db");
         const { users: usersTable } = await import("./db/schema");
-        const { eq: eqOrg } = await import("drizzle-orm");
+        const { eq: eqOrg, isNotNull, and: andBiz } = await import("drizzle-orm");
+
         if ((req as any).orgContext) {
           return res.json((req as any).orgContext);
         }
+
         const sessionUserId = (req as any).session?.userId;
         if (sessionUserId) {
-          const [user] = await orgDb.select({ organizationId: usersTable.organizationId })
-            .from(usersTable).where(eqOrg(usersTable.id, sessionUserId)).limit(1);
-          if (user) {
-            return res.json(await loadOrgContext(user.organizationId ?? null));
+          // 1. Check users.organizationId (white-label / clinical tenant)
+          const [user] = await orgDb
+            .select({ organizationId: usersTable.organizationId })
+            .from(usersTable)
+            .where(eqOrg(usersTable.id, sessionUserId))
+            .limit(1);
+
+          if (user?.organizationId) {
+            const directOrg = await loadOrgContext(user.organizationId);
+            if (!directOrg.featureFlags.partnerMarketplace) return res.json(directOrg);
+          }
+
+          // 2. Check active business memberships — false-wins policy
+          try {
+            const { businesses: bizTable, businessMembers: bizMembersTable } = await import("./db/schema/business");
+            const memberships = await orgDb
+              .select({ organizationId: bizTable.organizationId })
+              .from(bizMembersTable)
+              .innerJoin(bizTable, eqOrg(bizTable.id, bizMembersTable.businessId))
+              .where(
+                andBiz(
+                  eqOrg(bizMembersTable.userId, sessionUserId),
+                  eqOrg(bizMembersTable.status, "active"),
+                  isNotNull(bizTable.organizationId)
+                )
+              );
+
+            for (const m of memberships) {
+              if (m.organizationId) {
+                const bizOrg = await loadOrgContext(m.organizationId);
+                if (!bizOrg.featureFlags.partnerMarketplace) return res.json(bizOrg);
+              }
+            }
+
+            if (memberships.length > 0 && memberships[0].organizationId) {
+              return res.json(await loadOrgContext(memberships[0].organizationId));
+            }
+          } catch (bizErr) {
+            console.error("[org/config] Business membership lookup failed:", bizErr);
+          }
+
+          // 3. Fall back to users.organizationId org
+          if (user?.organizationId) {
+            return res.json(await loadOrgContext(user.organizationId));
           }
         }
+
         const slugHeader = req.headers["x-org-slug"] as string | undefined;
         if (slugHeader) {
           const org = await loadOrgBySlug(slugHeader);
@@ -899,6 +942,14 @@ async function initializeApp() {
             new_policy text NOT NULL,
             changed_at timestamptz NOT NULL DEFAULT now()
           )
+        `);
+        // Partner Marketplace Isolation — ensure MPM Public org has partnerMarketplace: true
+        await db.execute(sql`
+          UPDATE organizations
+          SET feature_flags = feature_flags || '{"partnerMarketplace": true}'::jsonb,
+              updated_at    = now()
+          WHERE slug = 'mpm-public'
+            AND (feature_flags->>'partnerMarketplace')::boolean IS DISTINCT FROM true
         `);
         console.log("✅ [prod] Business tables boot migration complete");
       } catch (err: any) {

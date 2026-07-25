@@ -808,6 +808,17 @@ setTimeout(async () => {
       console.log(`♻️  Waitlist orphan recovery: reset notified_at for ${orphanCount} row(s) that were claimed but never confirmed sent (server restart mid-send). Audit row written to waitlist_recovery_events. They will be retried on next notify run.`);
     }
 
+    // Partner Marketplace Isolation — ensure MPM Public org has partnerMarketplace: true
+    // (idempotent; existing partner orgs that intentionally set false are unaffected
+    //  because this only targets the slug "mpm-public")
+    await db.execute(sql`
+      UPDATE organizations
+      SET feature_flags = feature_flags || '{"partnerMarketplace": true}'::jsonb,
+          updated_at    = now()
+      WHERE slug = 'mpm-public'
+        AND (feature_flags->>'partnerMarketplace')::boolean IS DISTINCT FROM true
+    `);
+
     console.log('✅ LMS + white label boot migrations complete');
   } catch (err: any) {
     console.error('❌ LMS boot migrations failed:', err.message);
@@ -1047,11 +1058,57 @@ async function start() {
       }
       const sessionUserId = (req as any).session?.userId;
       if (sessionUserId) {
-        const { db } = await import("./db");
-        const [user] = await db.select({ organizationId: users.organizationId })
-          .from(users).where(eq(users.id, sessionUserId)).limit(1);
-        if (user) {
-          return res.json(await loadOrgContext(user.organizationId ?? null));
+        const { db: orgDb } = await import("./db");
+
+        // 1. Check users.organizationId (white-label / clinical tenant)
+        const [user] = await orgDb
+          .select({ organizationId: users.organizationId })
+          .from(users)
+          .where(eq(users.id, sessionUserId))
+          .limit(1);
+
+        if (user?.organizationId) {
+          const directOrg = await loadOrgContext(user.organizationId);
+          // false-wins: if this org hides marketplace, short-circuit immediately
+          if (!directOrg.featureFlags.partnerMarketplace) return res.json(directOrg);
+          // partnerMarketplace: true — keep as candidate, still check business memberships
+        }
+
+        // 2. Check active business memberships — false-wins policy across all orgs
+        try {
+          const { businesses: bizTable, businessMembers: bizMembersTable } = await import("./db/schema/business");
+          const { isNotNull, and: andBiz } = await import("drizzle-orm");
+          const memberships = await orgDb
+            .select({ organizationId: bizTable.organizationId })
+            .from(bizMembersTable)
+            .innerJoin(bizTable, eq(bizTable.id, bizMembersTable.businessId))
+            .where(
+              andBiz(
+                eq(bizMembersTable.userId, sessionUserId),
+                eq(bizMembersTable.status, "active"),
+                isNotNull(bizTable.organizationId)
+              )
+            );
+
+          // false-wins: if any active org hides marketplace, return it immediately
+          for (const m of memberships) {
+            if (m.organizationId) {
+              const bizOrg = await loadOrgContext(m.organizationId);
+              if (!bizOrg.featureFlags.partnerMarketplace) return res.json(bizOrg);
+            }
+          }
+
+          // All business orgs allow marketplace — return first one if present
+          if (memberships.length > 0 && memberships[0].organizationId) {
+            return res.json(await loadOrgContext(memberships[0].organizationId));
+          }
+        } catch (bizErr) {
+          console.error("[org/config] Business membership lookup failed:", bizErr);
+        }
+
+        // 3. Fall back to users.organizationId org (partnerMarketplace: true at this point)
+        if (user?.organizationId) {
+          return res.json(await loadOrgContext(user.organizationId));
         }
       }
       const slugHeader = req.headers["x-org-slug"] as string | undefined;
