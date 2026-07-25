@@ -95,7 +95,9 @@ export async function requireWorkspaceAccess(
       .where(
         and(
           eq(studios.ownerUserId, authUser.id),
-          eq(studioMemberships.clientUserId, clientId)
+          eq(studioMemberships.clientUserId, clientId),
+          eq(studioMemberships.status, "active"),
+          eq(studioMemberships.isArchived, false)
         )
       )
       .limit(1);

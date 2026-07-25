@@ -14,7 +14,7 @@
 
 import { db } from "../db";
 import { studioMemberships, studios } from "../db/schema/studio";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { isSameOrg } from "../lib/orgIsolation";
 
 export async function verifyClinicalAccess(
@@ -34,11 +34,18 @@ export async function verifyClinicalAccess(
       return false;
     }
 
-    // Relationship check — requester must own a studio the target belongs to
+    // Relationship check — requester must own a studio the target actively belongs to.
+    // Revoked or archived memberships must never satisfy this check.
     const membershipRows = await db
       .select({ studioId: studioMemberships.studioId })
       .from(studioMemberships)
-      .where(eq(studioMemberships.clientUserId, targetUserId as any))
+      .where(
+        and(
+          eq(studioMemberships.clientUserId, targetUserId as any),
+          eq(studioMemberships.status, "active"),
+          eq(studioMemberships.isArchived, false)
+        )
+      )
       .limit(1);
 
     if (membershipRows.length === 0) return false;
