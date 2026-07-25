@@ -47,7 +47,7 @@ const AUTH_TOKEN_KEY = "mpm_auth_token";
 
 export type UserRole = "admin" | "coach" | "client";
 
-export type AccessTier = "PAID_FULL" | "TRIAL_FULL" | "FREE";
+export type AccessTier = "PAID_FULL" | "FREE";
 
 export interface User {
   id: string;
@@ -56,13 +56,9 @@ export interface User {
   username?: string;
   entitlements?: string[];
   planLookupKey?: string | null;
-  trialStartedAt?: string | null;
-  trialEndsAt?: string | null;
   selectedMealBuilder?: MealBuilderType | null;
   isTester?: boolean;
   accessTier?: AccessTier;
-  trialDaysRemaining?: number | null;
-  hasHadTrial?: boolean;
   profilePhotoUrl?: string | null;
   // Role-based access control
   role?: UserRole;
@@ -200,23 +196,6 @@ export function clearAuthToken(): void {
 export function getAuthHeaders(): Record<string, string> {
   const token = getAuthToken();
   return token ? { "x-auth-token": token } : {};
-}
-
-export function isOnTrial(user: User | null): boolean {
-  if (!user) return false;
-  if (user.isTester) return true;
-  if (!user.trialEndsAt) return false;
-  return new Date(user.trialEndsAt) > new Date();
-}
-
-export function getTrialDaysRemaining(user: User | null): number {
-  if (!user) return 0;
-  if (user.isTester) return 999;
-  if (!user.trialEndsAt) return 0;
-  const endDate = new Date(user.trialEndsAt);
-  const now = new Date();
-  const diffMs = endDate.getTime() - now.getTime();
-  return Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
 }
 
 // API-based authentication with database persistence

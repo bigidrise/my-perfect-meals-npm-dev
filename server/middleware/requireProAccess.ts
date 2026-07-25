@@ -4,7 +4,7 @@ import { getTierForLookupKey } from "@shared/planFeatures";
 
 /**
  * requireProAccess — blocks Essential and FREE users from Pro-tier features.
- * Passes: Pro (premium) or Clinical (ultimate) plan, trials.
+ * Passes: Pro (premium) or Clinical (ultimate) plan.
  * Blocks: FREE, Essential (basic) plan.
  * Note: sandbox accounts bypass only when BILLING_ENFORCED=false (pre-launch mode).
  *
