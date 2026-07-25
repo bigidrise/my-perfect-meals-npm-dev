@@ -2279,7 +2279,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           membershipId: membership.id,
           ownerUserId: studio?.ownerUserId || null,
           status: membership.status,
-          assignedBuilder: membership.assignedBuilder,
+          // Authoritative source: users.activeBoard (client-owned).
+          // studioMemberships.assignedBuilder is a follower cache — never read here.
+          assignedBuilder: user.activeBoard ?? null,
         };
       }
 
