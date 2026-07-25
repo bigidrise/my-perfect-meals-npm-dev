@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrg } from "@/contexts/OrgContext";
 import { getAuthHeaders } from "@/lib/auth";
 import MemberClientAccountingModal from "@/components/business/MemberClientAccountingModal";
 import { useToast } from "@/hooks/use-toast";
@@ -145,6 +146,18 @@ export default function BusinessDashboard() {
   const [policyValue, setPolicyValue] = useState<string>("allowed_with_disclosure");
   const [savingPolicy, setSavingPolicy] = useState(false);
 
+  // Organization Policies (requireAcademy, requireProfessionalVerification)
+  const { org } = useOrg();
+  const [orgPolicies, setOrgPolicies] = useState<{
+    requireAcademy: boolean;
+    requireProfessionalVerification: boolean;
+  }>({
+    requireAcademy: org.featureFlags.requireAcademy !== false,
+    requireProfessionalVerification: org.featureFlags.requireProfessionalVerification !== false,
+  });
+  const [savingOrgPolicies, setSavingOrgPolicies] = useState(false);
+  const [confirmVerifOff, setConfirmVerifOff] = useState(false);
+
   // Launch guide checklist
   const [launchGuideDismissed, setLaunchGuideDismissed] = useState(
     () => localStorage.getItem("mpm.dismiss.orgLaunchGuide") === "1"
@@ -162,6 +175,32 @@ export default function BusinessDashboard() {
       setPolicyValue(ownerData.business.independentClientPolicy);
     }
   }, [ownerData]);
+
+  const handleToggleOrgPolicy = async (flag: "requireAcademy" | "requireProfessionalVerification", value: boolean) => {
+    setSavingOrgPolicies(true);
+    const next = { ...orgPolicies, [flag]: value };
+    setOrgPolicies(next); // optimistic
+    try {
+      const res = await fetch("/api/business/org-policies", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
+        body: JSON.stringify({ [flag]: value }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setOrgPolicies(orgPolicies); // revert on error
+        toast({ title: "Could not save policy", description: data.error, variant: "destructive" });
+        return;
+      }
+      toast({ title: "Policy saved", description: `Organization policy updated successfully.` });
+    } catch {
+      setOrgPolicies(orgPolicies);
+      toast({ title: "Error", description: "Could not save policy.", variant: "destructive" });
+    } finally {
+      setSavingOrgPolicies(false);
+    }
+  };
 
   const handleSavePolicy = async () => {
     setSavingPolicy(true);
@@ -1002,6 +1041,106 @@ export default function BusinessDashboard() {
             Learn how policies work →
           </button>
         </Card>
+
+        {/* Organization Policies */}
+        <Card className="bg-white/5 border border-orange-500/20 text-white p-4 space-y-4">
+          <div className="flex items-center gap-2">
+            <Shield className="w-4 h-4 text-orange-400 flex-shrink-0" />
+            <span className="font-semibold text-sm">Organization Policies</span>
+          </div>
+          <p className="text-white/50 text-xs leading-relaxed">
+            These policies apply to every team member in your organization. Changes take effect immediately for new logins.
+          </p>
+
+          {/* Require Academy */}
+          <div className="space-y-2">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1">
+                <p className="text-white text-sm font-medium">Require Academy before Studio access</p>
+                <p className="text-white/50 text-xs mt-0.5 leading-relaxed">
+                  When active, team members must complete My Perfect Meals Academy before accessing Studio. When inactive, Studio is available immediately and Academy remains available from the menu.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                disabled={savingOrgPolicies}
+                onClick={() => handleToggleOrgPolicy("requireAcademy", true)}
+                className={`flex-1 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${orgPolicies.requireAcademy ? "bg-orange-600 text-white" : "bg-white/5 text-white/50 border border-white/10"}`}
+              >
+                Active
+              </button>
+              <button
+                disabled={savingOrgPolicies}
+                onClick={() => handleToggleOrgPolicy("requireAcademy", false)}
+                className={`flex-1 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${!orgPolicies.requireAcademy ? "bg-white/15 text-white" : "bg-white/5 text-white/50 border border-white/10"}`}
+              >
+                Inactive
+              </button>
+            </div>
+          </div>
+
+          <div className="h-px bg-white/10" />
+
+          {/* Require Professional Verification */}
+          <div className="space-y-2">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1">
+                <p className="text-white text-sm font-medium">Require professional credential verification</p>
+                <p className="text-white/50 text-xs mt-0.5 leading-relaxed">
+                  When active, My Perfect Meals verifies professional licenses before granting access to professional tools. When inactive, your organization accepts responsibility for verifying credentials.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                disabled={savingOrgPolicies}
+                onClick={() => handleToggleOrgPolicy("requireProfessionalVerification", true)}
+                className={`flex-1 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${orgPolicies.requireProfessionalVerification ? "bg-orange-600 text-white" : "bg-white/5 text-white/50 border border-white/10"}`}
+              >
+                Active
+              </button>
+              <button
+                disabled={savingOrgPolicies}
+                onClick={() => !orgPolicies.requireProfessionalVerification
+                  ? undefined
+                  : setConfirmVerifOff(true)}
+                className={`flex-1 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${!orgPolicies.requireProfessionalVerification ? "bg-white/15 text-white" : "bg-white/5 text-white/50 border border-white/10"}`}
+              >
+                Inactive
+              </button>
+            </div>
+          </div>
+        </Card>
+
+        {/* Confirmation: disable professional verification */}
+        <Dialog open={confirmVerifOff} onOpenChange={setConfirmVerifOff}>
+          <DialogContent className="bg-black/90 border border-orange-500/30 text-white max-w-sm mx-auto rounded-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-white text-base font-bold">Disable Professional Verification?</DialogTitle>
+            </DialogHeader>
+            <p className="text-white/70 text-sm leading-relaxed">
+              By disabling My Perfect Meals Professional Verification, you confirm that your organization is responsible for verifying the credentials of all invited professionals.
+            </p>
+            <div className="flex gap-3 mt-2">
+              <button
+                className="flex-1 py-2.5 rounded-xl bg-white/10 text-white text-sm font-semibold"
+                onClick={() => setConfirmVerifOff(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="flex-1 py-2.5 rounded-xl bg-orange-600 text-white text-sm font-semibold"
+                onClick={() => {
+                  setConfirmVerifOff(false);
+                  handleToggleOrgPolicy("requireProfessionalVerification", false);
+                }}
+              >
+                Confirm
+              </button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Active Members */}
         <div>

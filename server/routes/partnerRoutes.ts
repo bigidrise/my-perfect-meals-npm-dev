@@ -363,12 +363,16 @@ router.post("/admin/users/:userId/provision-org", requireAuth, requireAdmin, asy
   const {
     orgName,
     partnerMarketplace = false,
+    requireAcademy = true,
+    requireProfessionalVerification = true,
     seatLimit = 4,
     billingExempt = false,
     existingBusinessId,
   } = req.body as {
     orgName?: string;
     partnerMarketplace?: boolean;
+    requireAcademy?: boolean;
+    requireProfessionalVerification?: boolean;
     seatLimit?: number;
     billingExempt?: boolean;
     existingBusinessId?: string;
@@ -403,6 +407,8 @@ router.post("/admin/users/:userId/provision-org", requireAuth, requireAdmin, asy
           featureFlags: {
             ...DEFAULT_ORG_FEATURE_FLAGS,
             partnerMarketplace: Boolean(partnerMarketplace),
+            requireAcademy: Boolean(requireAcademy),
+            requireProfessionalVerification: Boolean(requireProfessionalVerification),
           } as any,
         })
         .returning();

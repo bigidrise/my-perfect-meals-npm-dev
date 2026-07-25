@@ -341,6 +341,41 @@ export default function PartnerManagement() {
                   ))}
                 </div>
               </div>
+              <div className="pt-1 border-t border-white/10">
+                <p className="text-white/40 text-xs font-semibold uppercase tracking-wide mb-2">Organization Policies</p>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-white/60 text-xs mb-1">Require My Perfect Meals Academy</p>
+                    <div className="flex gap-2">
+                      {[{ label: "Required (default)", value: "true" }, { label: "Not required", value: "false" }].map(({ label, value }) => (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => setActionInputs((p) => ({ ...p, requireAcademy: value }))}
+                          className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all ${(actionInputs["requireAcademy"] ?? "true") === value ? "bg-orange-600 text-white" : "bg-white/10 text-white/60"}`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-white/60 text-xs mb-1">Professional credential verification</p>
+                    <div className="flex gap-2">
+                      {[{ label: "MPM verifies (default)", value: "true" }, { label: "Org verifies", value: "false" }].map(({ label, value }) => (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => setActionInputs((p) => ({ ...p, requireProfessionalVerification: value }))}
+                          className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all ${(actionInputs["requireProfessionalVerification"] ?? "true") === value ? "bg-orange-600 text-white" : "bg-white/10 text-white/60"}`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
             <button
               disabled={!actionInputs["orgName"]?.trim() || actionLoading === "provision-org"}
@@ -349,6 +384,8 @@ export default function PartnerManagement() {
                 seatLimit: Number(actionInputs["seatLimit"] ?? "4"),
                 partnerMarketplace: (actionInputs["partnerMarketplace"] ?? "false") === "true",
                 billingExempt: (actionInputs["billingExempt"] ?? "false") === "true",
+                requireAcademy: (actionInputs["requireAcademy"] ?? "true") === "true",
+                requireProfessionalVerification: (actionInputs["requireProfessionalVerification"] ?? "true") === "true",
               })}
               className="mt-4 w-full py-2.5 rounded-lg bg-orange-600 hover:bg-orange-500 disabled:opacity-40 text-white text-sm font-semibold transition-colors"
             >

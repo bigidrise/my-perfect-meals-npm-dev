@@ -1,7 +1,7 @@
 import { db } from "../db";
 import { users } from "../../shared/schema";
 import { studios } from "../db/schema/studio";
-import { eq } from "drizzle-orm";
+import { eq, and, isNotNull } from "drizzle-orm";
 
 export type EligibilityResult =
   | { eligible: true }
@@ -40,12 +40,57 @@ export async function checkBusinessAffiliateEligibility(userId: string): Promise
     return { eligible: false, reason: "studio_inactive" };
   }
 
-  // Physicians require verified license
-  if (professionalRole === "physician" && studio.verificationStatus !== "verified") {
-    return { eligible: false, reason: "license_not_verified" };
+  // Check if org requires professional verification — if waived, bypass license check
+  const verificationRequired = await isProfessionalVerificationRequired(userId);
+  if (verificationRequired) {
+    if (professionalRole === "physician" && studio.verificationStatus !== "verified") {
+      return { eligible: false, reason: "license_not_verified" };
+    }
   }
 
   return { eligible: true };
+}
+
+/** False-wins: returns false if any org the user belongs to has requireProfessionalVerification: false */
+async function isProfessionalVerificationRequired(userId: string): Promise<boolean> {
+  try {
+    const { loadOrgContext } = await import("../lib/orgContext");
+    const { businesses, businessMembers } = await import("../db/schema/business");
+
+    const [userRow] = await db
+      .select({ organizationId: users.organizationId })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (userRow?.organizationId) {
+      const org = await loadOrgContext(userRow.organizationId);
+      if (org.featureFlags.requireProfessionalVerification === false) return false;
+    }
+
+    const memberships = await db
+      .select({ organizationId: businesses.organizationId })
+      .from(businessMembers)
+      .innerJoin(businesses, eq(businesses.id, businessMembers.businessId))
+      .where(
+        and(
+          eq(businessMembers.userId, userId),
+          eq(businessMembers.status, "active"),
+          isNotNull(businesses.organizationId)
+        )
+      );
+
+    for (const m of memberships) {
+      if (m.organizationId) {
+        const org = await loadOrgContext(m.organizationId);
+        if (org.featureFlags.requireProfessionalVerification === false) return false;
+      }
+    }
+
+    return true;
+  } catch {
+    return true;
+  }
 }
 
 type IneligibleReason = "no_provider_account" | "studio_inactive" | "license_not_verified" | "no_studio";

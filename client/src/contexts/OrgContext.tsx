@@ -20,6 +20,8 @@ export type OrgFeatureFlags = {
   oncologySupport: boolean;
   coachTools: boolean;
   biometricTracking: boolean;
+  requireAcademy: boolean;
+  requireProfessionalVerification: boolean;
 };
 
 export type OrgConfig = {
@@ -78,6 +80,8 @@ export const DEFAULT_ORG_CONFIG: OrgConfig = {
     oncologySupport: false,
     coachTools: true,
     biometricTracking: true,
+    requireAcademy: true,
+    requireProfessionalVerification: true,
   },
   isDefault: true,
   isWhiteLabel: false,

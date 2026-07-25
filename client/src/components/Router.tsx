@@ -11,6 +11,7 @@ import { FEATURES } from "@/utils/features";
 import ComingSoon from "@/pages/ComingSoon";
 import StudioBottomNav from "@/components/pro/StudioBottomNav";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrg } from "@/contexts/OrgContext";
 import { useToast } from "@/hooks/use-toast";
 import { hasActivePaidSubscription, isProOrAbove, isClinicalOrAbove, isActualProPlanOrAbove, canAccessMealBuilders } from "@/lib/subscriptionCheck";
 import { apiRequest } from "@/lib/queryClient";
@@ -181,6 +182,8 @@ function ProCareStudioGuard({ component: Component }: { component: React.Compone
   const [certChecked, setCertChecked] = useState(false);
   const [certified, setCertified] = useState(false);
   const certifiedRef = useRef(false);
+  const { org, isLoading: orgLoading } = useOrg();
+  const requireAcademy = org.featureFlags.requireAcademy !== false; // default: true
 
   const verifyCert = useCallback(
     (isInitial: boolean) => {
@@ -193,6 +196,13 @@ function ProCareStudioGuard({ component: Component }: { component: React.Compone
         return;
       }
       if (!user.professionalRole) {
+        setCertified(true);
+        certifiedRef.current = true;
+        if (isInitial) setCertChecked(true);
+        return;
+      }
+      // Org policy bypass: if org has waived Academy requirement, grant immediate access
+      if (!requireAcademy) {
         setCertified(true);
         certifiedRef.current = true;
         if (isInitial) setCertChecked(true);
@@ -228,16 +238,17 @@ function ProCareStudioGuard({ component: Component }: { component: React.Compone
           // On polling errors, keep current state — don't kick out on transient failures
         });
     },
-    [user?.id, user?.procareTrainingCompleted, user?.phase2GateEnabled]
+    [user?.id, user?.procareTrainingCompleted, user?.phase2GateEnabled, requireAcademy]
   );
 
-  // Initial check on mount / user change
+  // Wait for org config to load before making cert decision to avoid premature redirects
   useEffect(() => {
+    if (orgLoading) return;
     setCertChecked(false);
     setCertified(false);
     certifiedRef.current = false;
     verifyCert(true);
-  }, [user?.id]);
+  }, [user?.id, orgLoading]);
 
   // Periodic re-verification while the page stays open
   useEffect(() => {
