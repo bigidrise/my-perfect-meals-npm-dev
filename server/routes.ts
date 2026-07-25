@@ -76,6 +76,7 @@ import { MealEngineService } from "./services/mealEngineService";
 import { generateFridgeRescueMeals } from "./services/fridgeRescueGenerator";
 import { buildAcePromptBlock } from "./services/ace/buildAcePromptBlock";
 import { getBuilderSwitchStatus, attemptBuilderSwitch } from "./services/builderSwitchService";
+import { assignBuilder, isValidBuilder, VALID_BUILDERS } from "./services/builderAssignment";
 import { fridgeRescueRouter } from "./routes/fridgeRescue";
 import inspirationRouter from "./routes/inspiration";
 import groceryCoachRouter from "./routes/groceryCoach";
@@ -3037,10 +3038,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!clientId || !builder) {
         return res.status(400).json({ error: "clientId and builder are required" });
       }
-      
-      const validBuilders = ["weekly", "diabetic", "glp1", "anti_inflammatory", "beach_body", "general_nutrition", "performance_competition"];
-      if (!validBuilders.includes(builder)) {
-        return res.status(400).json({ error: `Invalid builder. Must be one of: ${validBuilders.join(", ")}` });
+
+      if (!isValidBuilder(builder)) {
+        return res.status(400).json({ error: `Invalid builder. Must be one of: ${VALID_BUILDERS.join(", ")}` });
       }
       
       const [trainer] = await db.select({ role: users.role, professionalRole: users.professionalRole }).from(users).where(eq(users.id, trainerId)).limit(1);
@@ -3049,39 +3049,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!trainer || (!isCoachOrAdmin && !isTrainerPro)) {
         return res.status(403).json({ error: "Only coaches and admins can assign pro builders" });
       }
-      
-      // Update the client's activeBoard
-      const [updatedClient] = await db.update(users)
-        .set({ activeBoard: builder })
-        .where(eq(users.id, clientId))
-        .returning({ id: users.id, activeBoard: users.activeBoard });
-      
-      if (!updatedClient) {
-        return res.status(404).json({ error: "Client not found" });
-      }
 
-      // Fix A: write-through — keep studioMemberships.assignedBuilder in sync
-      // so the studio client list (which reads studioMemberships) never diverges
-      // from users.activeBoard, regardless of connect/disconnect state.
-      await db
-        .update(studioMemberships)
-        .set({ assignedBuilder: builder, updatedAt: new Date() })
-        .where(
-          and(
-            eq(studioMemberships.clientUserId, clientId),
-            eq(studioMemberships.status, "active"),
-            eq(studioMemberships.isArchived, false)
-          )
-        );
-      
+      const result = await assignBuilder(trainerId, clientId, builder);
+
       console.log(`[Pro Builder] Trainer ${trainerId} assigned ${builder} to client ${clientId}`);
       
       res.json({
         success: true,
-        clientId: updatedClient.id,
-        assignedBuilder: updatedClient.activeBoard,
+        clientId: result.clientId,
+        assignedBuilder: result.activeBoard,
       });
     } catch (error: any) {
+      if (error.message?.includes("not found")) {
+        return res.status(404).json({ error: "Client not found" });
+      }
       console.error("Error assigning pro builder:", error);
       res.status(500).json({ error: "Failed to assign pro builder" });
     }
