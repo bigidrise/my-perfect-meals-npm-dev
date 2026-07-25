@@ -51,7 +51,7 @@ export const PROFESSIONAL_BUILDER_MAP: Record<
   },
   anti_inflammatory: {
     key: "anti_inflammatory",
-    role: "physician",
+    role: "both",
     label: "Anti-Inflammatory",
     proRoute: "anti-inflammatory-builder",
     description: "Whole-food, anti-inflammatory meals for recovery and chronic conditions.",
@@ -66,7 +66,7 @@ export const PROFESSIONAL_BUILDER_MAP: Record<
   glp1: {
     key: "glp1",
     role: "physician",
-    label: "Metabolic Med",
+    label: "Metabolic Medication",
     proRoute: "glp1-builder",
     description: "Portion-aware meals for clients on metabolic medications.",
   },

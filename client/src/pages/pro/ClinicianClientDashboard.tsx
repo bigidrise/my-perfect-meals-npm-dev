@@ -1001,7 +1001,7 @@ export default function ClinicianClientDashboard() {
               Choose which meal builder this patient will use. The assignment is saved to their record.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {PHYSICIAN_BUILDER_KEYS.filter((k) => k !== "performance_competition").map((key) => {
+              {PHYSICIAN_BUILDER_KEYS.filter((k) => k !== "performance_competition" && k !== "weekly").map((key) => {
                 const entry = PROFESSIONAL_BUILDER_MAP[key];
                 const isActive = assignedBuilder === key;
                 return (

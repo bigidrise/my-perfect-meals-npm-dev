@@ -3059,6 +3059,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!updatedClient) {
         return res.status(404).json({ error: "Client not found" });
       }
+
+      // Fix A: write-through — keep studioMemberships.assignedBuilder in sync
+      // so the studio client list (which reads studioMemberships) never diverges
+      // from users.activeBoard, regardless of connect/disconnect state.
+      await db
+        .update(studioMemberships)
+        .set({ assignedBuilder: builder, updatedAt: new Date() })
+        .where(
+          and(
+            eq(studioMemberships.clientUserId, clientId),
+            eq(studioMemberships.status, "active"),
+            eq(studioMemberships.isArchived, false)
+          )
+        );
       
       console.log(`[Pro Builder] Trainer ${trainerId} assigned ${builder} to client ${clientId}`);
       

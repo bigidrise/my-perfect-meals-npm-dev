@@ -575,11 +575,11 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
 
   "/pro/clients/:id/general-nutrition-builder": {
     pageId: "procare-general-nutrition-builder",
-    title: "ProCare General Nutrition Meal Builder",
+    title: "General Nutrition Builder",
     description:
       "Build balanced, everyday meals for your client using flexible nutrition guardrails. The starch indicator shows daily starch meal status, green means slots available, orange means they're covered for the day.",
     spokenText:
-      "Welcome to the ProCare General Nutrition Meal Builder. This builder is used to create meals within the guardrails set by a coach or physician. If you’re a professional, this is where you build meals for a client using the nutrition targets, protocols, and guidelines you’ve already defined. Use Create with Chef to describe meals and snacks, or the AI Meal Creator to guide ingredient-level choices. Choose how many days you want to plan and how each day should be structured, allowing flexibility while staying aligned with the overall nutrition framework. Pay attention to the starch indicator, green means starch slots available, orange means they're covered for today. Remember, fibrous carbs like vegetables are unlimited and should be encouraged, while starchy carbs are managed using the Starch Game Plan set in the Trainer Dashboard, either One Starch Meal or Flex Split. As you build, focus on protein and carbs, those drive energy, recovery, and nutritional balance. When you’re finished, tap Save Day to Biometrics to lock everything in.",
+      "Welcome to the General Nutrition Builder. This builder is used to create meals within the guardrails set by a coach or physician. If you’re a professional, this is where you build meals for a client using the nutrition targets, protocols, and guidelines you’ve already defined. Use Create with Chef to describe meals and snacks, or the AI Meal Creator to guide ingredient-level choices. Choose how many days you want to plan and how each day should be structured, allowing flexibility while staying aligned with the overall nutrition framework. Pay attention to the starch indicator, green means starch slots available, orange means they're covered for today. Remember, fibrous carbs like vegetables are unlimited and should be encouraged, while starchy carbs are managed using the Starch Game Plan set in the Trainer Dashboard, either One Starch Meal or Flex Split. As you build, focus on protein and carbs, those drive energy, recovery, and nutritional balance. When you’re finished, tap Save Day to Biometrics to lock everything in.",
     autoClose: true,
   },
 

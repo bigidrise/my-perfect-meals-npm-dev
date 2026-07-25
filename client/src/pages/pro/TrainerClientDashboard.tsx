@@ -997,6 +997,7 @@ export default function TrainerClientDashboard() {
               Select the coaching style for this client's meal plan.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Trainer-assignable builders */}
               {TRAINER_MEAL_MODE_KEYS.filter((k) => k !== "performance_competition").map((key) => {
                 const entry = PROFESSIONAL_BUILDER_MAP[key];
                 const isActive = assignedBuilder === key || (key === "general_nutrition" && assignedBuilder === "weekly");
@@ -1016,6 +1017,48 @@ export default function TrainerClientDashboard() {
                     </div>
                     <span className="text-xs text-white/60 font-normal leading-snug line-clamp-2 w-full">{entry.description}</span>
                   </Button>
+                );
+              })}
+              {/* Medical builders — physician activates/deactivates; trainer can view and coach inside */}
+              {(["diabetic", "glp1"] as ProfessionalBuilderKey[]).map((key) => {
+                const entry = PROFESSIONAL_BUILDER_MAP[key];
+                const isActive = assignedBuilder === key;
+                const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+                const handleMedicalBuilderOpen = isActive ? () => {
+                  if (!UUID_RE.test(resolvedClientUserId)) {
+                    toast({
+                      title: "Client not connected",
+                      description: "This client hasn't linked their account yet. Ask them to enter your access code in the app.",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  ensureClientMapping(resolvedClientUserId, clientId);
+                  localStorage.setItem("pro-client-id", resolvedClientUserId);
+                  setLocation(`/pro/clients/${resolvedClientUserId}/${entry.proRoute}`);
+                } : undefined;
+                return (
+                  <div
+                    key={key}
+                    onClick={handleMedicalBuilderOpen}
+                    className={`h-auto py-4 px-4 flex flex-col items-start gap-1 rounded-md border transition-all duration-200 ${
+                      isActive
+                        ? "bg-lime-600/20 border-lime-500/40 cursor-pointer active:scale-[0.98]"
+                        : "bg-black/20 border-white/10 cursor-default"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 w-full">
+                      {isActive && <Check className="h-4 w-4 flex-shrink-0 text-lime-400" />}
+                      <span className={`font-bold text-sm ${isActive ? "text-white" : "text-white/50"}`}>{entry.label}</span>
+                      <span className="ml-auto text-[10px] px-1.5 py-0.5 bg-amber-900/40 text-amber-400 rounded-full border border-amber-500/30 flex-shrink-0">
+                        Physician
+                      </span>
+                    </div>
+                    <span className={`text-xs font-normal leading-snug line-clamp-2 w-full ${isActive ? "text-white/60" : "text-white/30"}`}>{entry.description}</span>
+                    <span className="text-[10px] text-amber-400/70 mt-0.5">
+                      {isActive ? "Tap to open builder — activation managed by physician" : "Activation managed by physician"}
+                    </span>
+                  </div>
                 );
               })}
             </div>

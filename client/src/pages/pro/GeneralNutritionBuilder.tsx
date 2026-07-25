@@ -936,12 +936,10 @@ export default function WeeklyMealBoard() {
                               };
                               const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
                               setBoard(updatedBoard);
-                              putWeekBoard(weekStartISO, updatedBoard, proClientId)
-                                .then(({ week }) => { if (week) setBoard(week); })
-                                .catch((err) => {
-                                  console.error("❌ Delete sync failed (Day mode):", err);
-                                  toast({ title: "Sync pending", description: "Changes will sync automatically." });
-                                });
+                              saveBoard(updatedBoard).catch((err) => {
+                                console.error("❌ Delete sync failed (Day mode):", err);
+                                toast({ title: "Sync pending", description: "Changes will sync automatically." });
+                              });
                             } else {
                               const updatedDayLists = {
                                 ...dayLists,
