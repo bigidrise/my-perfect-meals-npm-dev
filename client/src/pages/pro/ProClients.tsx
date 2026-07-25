@@ -166,11 +166,11 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
         return;
       }
       const { clients: dbClients } = await clientsRes.json();
-      if (!dbClients || dbClients.length === 0) {
-        console.warn("[ProClients] DB returned 0 clients for workspace:", resolvedWorkspace);
+      if (!dbClients) {
+        console.warn("[ProClients] DB returned invalid response for workspace:", resolvedWorkspace);
         return;
       }
-      console.log(`[ProClients] DB returned ${dbClients.length} clients for workspace: ${resolvedWorkspace}`);
+      console.log(`[ProClients] DB returned ${dbClients.length} active client(s) for workspace: ${resolvedWorkspace}`);
 
       const localClients = proStore.listClients(resolvedWorkspace);
 
@@ -225,6 +225,33 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
         };
 
         proStore.upsertClient(profile);
+      }
+
+      // Prune: server is the authority for dbBacked ProCare clients in this workspace.
+      // Any dbBacked client absent from the server response has left the studio
+      // (disconnected, revoked, or archived). Remove them from the local cache now
+      // so stale folders never persist across refreshes.
+      //
+      // Scope: only clients in resolvedWorkspace are evaluated. Clients from other
+      // workspaces (trainer vs clinician) and local-only (non-dbBacked) clients
+      // are always preserved.
+      const serverClientIds = new Set<string>(
+        (dbClients as Array<{ clientUserId?: string }>)
+          .map((c) => c.clientUserId)
+          .filter((id): id is string => Boolean(id))
+      );
+      const allLocal = proStore.listClients();
+      const afterPrune = allLocal.filter((c) => {
+        if ((c.workspace || "trainer") !== resolvedWorkspace) return true;
+        if (!c.dbBacked) return true;
+        if (!c.clientUserId) return true;
+        return serverClientIds.has(c.clientUserId);
+      });
+      if (afterPrune.length !== allLocal.length) {
+        proStore.saveClients(afterPrune);
+        console.log(
+          `[ProClients] Pruned ${allLocal.length - afterPrune.length} stale client(s) from local cache (workspace: ${resolvedWorkspace})`
+        );
       }
 
       const wsClients = proStore.listClients(resolvedWorkspace);
