@@ -40,6 +40,9 @@ export const careAccessCode = pgTable("care_access_code", {
   proUserId: varchar("pro_user_id", { length: 64 }).notNull(),
   code: varchar("code", { length: 24 }).notNull().unique(),
   expiresAt: timestamp("expires_at").notNull(),
+  // DEPRECATED: maxUses is stored but never read or enforced anywhere in the application.
+  // Do not rely on this field for access control. If per-code use-limits are needed,
+  // implement a separate `use_count` column with atomic increment + server-side enforcement.
   maxUses: varchar("max_uses", { length: 8 }).notNull().default("1"),
   createdAt: timestamp("created_at").defaultNow(),
 });
