@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { useOrgBranding } from "@/hooks/useOrgBranding";
+import { useOrgFlag } from "@/contexts/OrgContext";
 import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
 import {
@@ -327,6 +328,9 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
       user?.professionalRole || user?.role || "",
     );
 
+  // Hide MPM coach marketplace for members of partner orgs with partnerMarketplace: false
+  const showMarketplace = useOrgFlag("partnerMarketplace");
+
   const menuItems = [
     // Personal
     {
@@ -469,7 +473,7 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
 
         {/* Menu Items */}
         <div className="mt-6 space-y-2">
-          {menuItems.map((item) => {
+          {menuItems.filter((item) => item.testId !== "menu-find-coach" || showMarketplace).map((item) => {
             const Icon = item.icon;
             return (
               <button

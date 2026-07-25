@@ -40,7 +40,7 @@ export async function seedDefaultOrganizations(): Promise<void> {
           medicalRecordIntegration: false,
           diabeticHub: true,
           glp1Support: true,
-          partnerMarketplace: false,
+          partnerMarketplace: true,
           productRecommendations: false,
           oncologySupport: false,
           coachTools: true,

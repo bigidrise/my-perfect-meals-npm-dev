@@ -283,12 +283,85 @@ export default function PartnerManagement() {
 
     if (ns.action === "activate-org") {
       return (
-        <ActionCard
-          label="Mark Organization Activated"
-          description="Confirm that the organization subscription is active and seats are confirmed."
-          onConfirm={() => handleAction("activate-org")}
-          loading={actionLoading === "activate-org"}
-        />
+        <div className="space-y-4">
+          <div className="bg-white/5 border border-orange-500/30 rounded-xl p-4">
+            <p className="text-orange-300 text-sm font-bold mb-1">Provision Organization</p>
+            <p className="text-white/60 text-xs mb-4">
+              Creates the org record, links it to a business account, and stamps the partner as org-activated.
+              For billing-exempt (pilot) accounts the business is immediately active. Otherwise the owner must complete Stripe payment before inviting team members.
+            </p>
+            <div className="space-y-3">
+              <div>
+                <p className="text-white/60 text-xs mb-1">Organization name</p>
+                <input
+                  className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-orange-400 placeholder-white/30"
+                  placeholder="e.g. Metroflex Fitness"
+                  value={actionInputs["orgName"] ?? ""}
+                  onChange={(e) => setActionInputs((p) => ({ ...p, orgName: e.target.value }))}
+                />
+              </div>
+              <div>
+                <p className="text-white/60 text-xs mb-1">Approved seat count</p>
+                <input
+                  type="number"
+                  min={1}
+                  max={250}
+                  className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-orange-400"
+                  value={actionInputs["seatLimit"] ?? "4"}
+                  onChange={(e) => setActionInputs((p) => ({ ...p, seatLimit: e.target.value }))}
+                />
+              </div>
+              <div>
+                <p className="text-white/60 text-xs mb-1">Does this org provide its own coaches/trainers?</p>
+                <div className="flex gap-2">
+                  {[{ label: "Yes — uses own professionals", value: "false" }, { label: "No — uses MPM marketplace", value: "true" }].map(({ label, value }) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setActionInputs((p) => ({ ...p, partnerMarketplace: value }))}
+                      className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all ${(actionInputs["partnerMarketplace"] ?? "false") === value ? "bg-orange-600 text-white" : "bg-white/10 text-white/60"}`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-white/60 text-xs mb-1">Billing status</p>
+                <div className="flex gap-2">
+                  {[{ label: "Billing required (pending)", value: "false" }, { label: "Billing exempt / pilot", value: "true" }].map(({ label, value }) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setActionInputs((p) => ({ ...p, billingExempt: value }))}
+                      className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all ${(actionInputs["billingExempt"] ?? "false") === value ? "bg-orange-600 text-white" : "bg-white/10 text-white/60"}`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <button
+              disabled={!actionInputs["orgName"]?.trim() || actionLoading === "provision-org"}
+              onClick={() => handleAction("provision-org", {
+                orgName: actionInputs["orgName"]?.trim() ?? "",
+                seatLimit: Number(actionInputs["seatLimit"] ?? "4"),
+                partnerMarketplace: (actionInputs["partnerMarketplace"] ?? "false") === "true",
+                billingExempt: (actionInputs["billingExempt"] ?? "false") === "true",
+              })}
+              className="mt-4 w-full py-2.5 rounded-lg bg-orange-600 hover:bg-orange-500 disabled:opacity-40 text-white text-sm font-semibold transition-colors"
+            >
+              {actionLoading === "provision-org" ? "Provisioning…" : "Provision Organization"}
+            </button>
+          </div>
+          <ActionCard
+            label="Mark Organization Activated (legacy)"
+            description="Simple timestamp only — use Provision Organization above for new orgs."
+            onConfirm={() => handleAction("activate-org")}
+            loading={actionLoading === "activate-org"}
+          />
+        </div>
       );
     }
 

@@ -634,6 +634,41 @@ export default function BusinessDashboard() {
   // ── Owner view ──────────────────────────────────────────────────────────────
   if (!ownerData) return null;
   const { business, members, invitations, usedSeats, availableSeats } = ownerData;
+
+  // ── Pending billing (org provisioned but Stripe not yet completed) ──────────
+  if (business.status === "pending_billing") {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-black/80 via-orange-900/60 to-black/80 flex flex-col items-center justify-center px-4 text-center">
+        <div className="w-full max-w-sm space-y-6">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-orange-600/20 border border-orange-500/30">
+            <Building2 className="w-8 h-8 text-orange-400" />
+          </div>
+          <div>
+            <h2 className="text-white text-xl font-bold mb-2">Organization Account Approved</h2>
+            <p className="text-white/60 text-sm leading-relaxed mb-1">
+              Your organization has been set up. Complete your subscription to activate team invites and seat management.
+            </p>
+            <p className="text-white/40 text-xs leading-relaxed">
+              Once billing is confirmed, you can invite team members and manage your organization.
+            </p>
+          </div>
+          <button
+            className="w-full py-3 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold transition-colors"
+            onClick={() => setLocation("/pricing")}
+          >
+            Complete Your Subscription
+          </button>
+          <button
+            className="w-full py-2 rounded-xl bg-white/10 text-white/60 text-sm"
+            onClick={() => setLocation("/dashboard")}
+          >
+            Return to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const seatsFull = availableSeats <= 0;
 
   // ── First-time setup screen ─────────────────────────────────────────────────

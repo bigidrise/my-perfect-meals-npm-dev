@@ -1,5 +1,6 @@
 import { useLocation } from "wouter";
 import { useOrgBranding } from "@/hooks/useOrgBranding";
+import { useOrgFlag } from "@/contexts/OrgContext";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { apiUrl } from "@/lib/resolveApiBase";
@@ -41,6 +42,7 @@ export default function PricingPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const { supportEmail, supportUrl } = useOrgBranding();
+  const showMarketplace = useOrgFlag("partnerMarketplace");
 
   const consumerPlans = getPlansByGroup("consumer");
   const familyPlans = getPlansByGroup("family");
@@ -393,6 +395,7 @@ export default function PricingPage() {
               Need more structure than a subscription plan? My Perfect Meals also offers coaching and guided systems for individuals and families.
             </p>
             <div className="space-y-3">
+              {showMarketplace && (
               <div className="bg-black/40 backdrop-blur-lg border border-white/15 rounded-xl p-4">
                 <h3 className="text-white font-bold text-base mb-1">ProCare Coaching</h3>
                 <p className="text-white/60 text-xs mb-3">
@@ -411,6 +414,7 @@ export default function PricingPage() {
                   Learn More
                 </Button>
               </div>
+              )}
               <div className="bg-black/40 backdrop-blur-lg border border-white/15 rounded-xl p-4">
                 <h3 className="text-white font-bold text-base mb-1">Family Plans</h3>
                 <p className="text-white/60 text-xs mb-3">
@@ -429,6 +433,7 @@ export default function PricingPage() {
                   Learn More
                 </Button>
               </div>
+              {showMarketplace && (
               <div className="bg-black/40 backdrop-blur-lg border border-amber-500/30 rounded-xl p-4 ring-1 ring-amber-500/20">
                 <h3 className="text-amber-300 font-bold text-base mb-1">MPM Personal Guidance</h3>
                 <p className="text-white/60 text-xs mb-3">
@@ -447,6 +452,7 @@ export default function PricingPage() {
                   See How Personal Guidance Works
                 </Button>
               </div>
+              )}
             </div>
           </div>
 
@@ -892,6 +898,7 @@ export default function PricingPage() {
             Need more structure than a subscription plan? My Perfect Meals also offers coaching and guided systems for individuals and families.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {showMarketplace && (
             <Card className="relative bg-black/30 backdrop-blur-lg border border-white/15 text-white shadow-xl overflow-hidden">
               <img
                 src="/images/procare-chef.png"
@@ -917,6 +924,7 @@ export default function PricingPage() {
                 </Button>
               </CardContent>
             </Card>
+            )}
             <Card className="relative bg-black/30 backdrop-blur-lg border border-white/15 text-white shadow-xl overflow-hidden">
               <img
                 src="/images/family-chef.png"
@@ -943,6 +951,7 @@ export default function PricingPage() {
         </CardContent>
         </Card>
 
+        {showMarketplace && (
         <Card className="relative bg-black/30 backdrop-blur-lg border border-amber-500/30 text-white shadow-xl overflow-hidden ring-1 ring-amber-500/20">
             <img
               src="/images/personal-guidance-chef.png"
@@ -968,6 +977,7 @@ export default function PricingPage() {
               </Button>
             </CardContent>
           </Card>
+        )}
 
         </div>
         </div>

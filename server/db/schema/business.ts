@@ -8,7 +8,7 @@ export const businesses = pgTable("businesses", {
   stripeSubscriptionId: text("stripe_subscription_id"),
   plan: text("plan").notNull().default("clinical_business_monthly"),
   seatLimit: integer("seat_limit").notNull().default(4),
-  status: text("status").$type<"active" | "cancelled" | "past_due">().notNull().default("active"),
+  status: text("status").$type<"active" | "cancelled" | "past_due" | "pending_billing">().notNull().default("active"),
   /**
    * FK to the organizations table — links this commercial team product to
    * the enterprise tenant backbone. Nullable: not all businesses have a
