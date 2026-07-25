@@ -97,6 +97,8 @@ const NAV_SECTIONS: NavSection[] = [
       { path: "/procare-welcome", label: "ProCare Welcome" },
       { path: "/procare-identity", label: "ProCare Identity" },
       { path: "/procare-attestation", label: "ProCare Attestation" },
+      { path: "/professional-onboarding-bridge", label: "Onboarding Bridge" },
+      { path: "/procare-training", label: "ProCare Training (Phase 2)" },
       { path: "/care-team", label: "Care Team" },
       { path: "/care-team/physician", label: "Physician Care Team" },
       { path: "/care-team/trainer", label: "Trainer Care Team" },
@@ -131,18 +133,44 @@ const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
-    title: "Business Suite & Affiliate",
+    title: "Business Center & Org",
     routes: [
-      { path: "/business-center/affiliate", label: "Program Overview" },
+      { path: "/business-center", label: "Business Center Home" },
+      { path: "/business-dashboard", label: "Business Dashboard (Owner)" },
+      { path: "/org-success-center", label: "Organization Success Center" },
+      { path: "/pro-launchpad", label: "Professional Launchpad" },
+      { path: "/business-center/affiliate", label: "Affiliate Overview" },
       { path: "/business-center/affiliate/choose", label: "Choose Your Path" },
       { path: "/business-center/affiliate/social", label: "Social Path Page" },
       { path: "/business-center/affiliate/coaching", label: "Coaching Path Page" },
       { path: "/business-center/affiliate/dashboard", label: "Affiliate Dashboard" },
-      { path: "/pro-launchpad", label: "Professional Launchpad" },
     ],
   },
   {
-    title: "Academy — Phase 1 (Coaching Cert)",
+    title: "Partner Programs",
+    routes: [
+      { path: "/business-center/partners", label: "Partner Hub" },
+      { path: "/business-center/partners/manage", label: "Partner Management (Admin)" },
+      { path: "/business-center/founding-partner", label: "Founding Partner Program" },
+      { path: "/partners/founding", label: "Founding Partner (Public)" },
+      { path: "/business-center/how-partnerships-work", label: "How Partnerships Work" },
+      { path: "/business-center/industry", label: "Industry Partnerships" },
+      { path: "/business-center/healthcare", label: "Healthcare Partnerships" },
+      { path: "/business-center/white-label", label: "White Label Solutions" },
+      { path: "/partners", label: "Public Partners Hub" },
+    ],
+  },
+  {
+    title: "Academy — Platform Mastery (Studio Gate)",
+    routes: [
+      { path: "/academy", label: "Academy Home" },
+      { path: "/academy/platform-mastery", label: "Platform Mastery Dashboard" },
+      { path: "/business-center/academy", label: "Academy Landing Page" },
+      { path: "/learning", label: "Learning Hub" },
+    ],
+  },
+  {
+    title: "Academy — Coaching Cert (Affiliate)",
     routes: [
       { path: "/business-center/affiliate/coaching/certification", label: "Cert Dashboard" },
       { path: "/business-center/affiliate/coaching/certification/module-1", label: "M1 — What Is My Perfect Meals?" },
@@ -160,7 +188,7 @@ const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
-    title: "Academy — Social Cert",
+    title: "Academy — Social Cert (Affiliate)",
     routes: [
       { path: "/business-center/affiliate/social/certification", label: "Cert Dashboard" },
       { path: "/business-center/affiliate/social/certification/module-1", label: "M1 — Lesson" },
