@@ -10,6 +10,8 @@ import { nanoid } from "nanoid";
 import { logClientActivity, logClientActivityForStudioMember } from "../services/activityLog";
 import { pushToUser } from "../services/pushNotify";
 import { activateProCareClient, deactivateProCareClient, ActivationError } from "../services/procareActivation";
+import { assignBuilder, isValidBuilder, VALID_BUILDERS } from "../services/builderAssignment";
+import { checkLegalAcceptance } from "../services/legalCheck";
 import { AuthenticatedRequest } from "../middleware/requireAuth";
 import { assertSameOrg, handleOrgIsolationError } from "../lib/orgIsolation";
 import { logAudit, getClientIp } from "../lib/auditLog";
@@ -158,9 +160,7 @@ router.get("/:studioId/clients", async (req, res) => {
         membershipId: studioMemberships.id,
         clientUserId: studioMemberships.clientUserId,
         status: studioMemberships.status,
-        assignedBuilder: studioMemberships.assignedBuilder,
-        builderSource: studioMemberships.builderSource,
-        activeBoardId: studioMemberships.activeBoardId,
+        activeBoard: users.activeBoard,
         workspace: studioMemberships.workspace,
         isArchived: studioMemberships.isArchived,
         joinedAt: studioMemberships.joinedAt,
@@ -173,16 +173,16 @@ router.get("/:studioId/clients", async (req, res) => {
       .leftJoin(users, eq(users.id, studioMemberships.clientUserId))
       .where(and(
         eq(studioMemberships.studioId, studioId),
-        eq(studioMemberships.workspace, workspace)
+        eq(studioMemberships.workspace, workspace),
+        eq(studioMemberships.isArchived, false),
+        eq(studioMemberships.status, "active")
       ));
 
     const clients = rows.map(r => ({
       id: r.membershipId,
       clientUserId: r.clientUserId,
       status: r.status,
-      assignedBuilder: r.assignedBuilder,
-      builderSource: r.builderSource ?? "manual",
-      activeBoardId: r.activeBoardId,
+      assignedBuilder: r.activeBoard ?? null,
       workspace: r.workspace,
       isArchived: r.isArchived,
       joinedAt: r.joinedAt,
@@ -341,56 +341,50 @@ router.post("/connect", async (req, res) => {
       return res.status(400).json({ error: "Invite code already used" });
     }
 
-    const [existingMembership] = await db
+    const [studio] = await db
       .select()
-      .from(studioMemberships)
-      .where(eq(studioMemberships.clientUserId, userId));
+      .from(studios)
+      .where(eq(studios.id, invite.studioId));
 
-    if (existingMembership) {
-      return res.status(400).json({ error: "You are already connected to a studio" });
+    if (!studio) {
+      return res.status(404).json({ error: "Studio not found" });
     }
 
-    const [membership] = await db
-      .insert(studioMemberships)
-      .values({
-        studioId: invite.studioId,
-        clientUserId: userId,
-        status: "active",
-        joinedAt: new Date(),
-      })
-      .returning();
+    const legalFlow = studio.type === "clinic" ? "patient_physician" : "client";
+    const consentCheck = await checkLegalAcceptance(userId, legalFlow);
+    if (!consentCheck.allAccepted) {
+      return res.status(409).json({
+        code: "LEGAL_REACCEPT_REQUIRED",
+        missing: consentCheck.missing,
+        flow: legalFlow,
+        error: "Please accept all required legal documents before connecting.",
+      });
+    }
+
+    let activation;
+    try {
+      activation = await activateProCareClient(userId, studio.ownerUserId, "studio_invite");
+    } catch (err) {
+      if (err instanceof ActivationError) {
+        if (err.code === "CLIENT_ALREADY_HAS_ACTIVE_PROFESSIONAL") {
+          return res.status(409).json({ error: err.code, message: err.message });
+        }
+        if (err.code === "SELF_ACTIVATION") {
+          return res.status(400).json({ error: "You cannot connect to your own studio." });
+        }
+      }
+      throw err;
+    }
 
     await db
       .update(studioInvites)
       .set({ acceptedAt: new Date() })
       .where(eq(studioInvites.id, invite.id));
 
-    const [studio] = await db
-      .select()
-      .from(studios)
-      .where(eq(studios.id, invite.studioId));
-
-    await logClientActivity(
-      invite.studioId,
-      userId,
-      userId,
-      "invite_accepted",
-      "membership",
-      membership.id,
-      { studioName: studio?.name }
-    );
-
-    await logClientActivity(
-      invite.studioId,
-      userId,
-      studio?.ownerUserId || userId,
-      "membership_created",
-      "membership",
-      membership.id,
-      {}
-    );
-
-    res.json({ membership, studioName: studio?.name });
+    res.json({
+      membership: { id: activation.membershipId, studioId: activation.studioId },
+      studioName: activation.studioName,
+    });
   } catch (error) {
     console.error("Error connecting to studio:", error);
     res.status(500).json({ error: "Failed to connect to studio" });
@@ -402,7 +396,14 @@ router.patch("/:studioId/clients/:clientUserId/assign", async (req, res) => {
     const userId = await getUserId(req);
     if (!userId) return res.status(401).json({ error: "Authentication required" });
     const { studioId, clientUserId } = req.params;
-    const { assignedBuilder, activeBoardId } = req.body;
+    const { assignedBuilder } = req.body;
+
+    if (!assignedBuilder || !isValidBuilder(assignedBuilder)) {
+      return res.status(400).json({
+        error: "Invalid builder",
+        message: `Must be one of: ${VALID_BUILDERS.join(", ")}`,
+      });
+    }
 
     const [studio] = await db
       .select()
@@ -425,35 +426,10 @@ router.patch("/:studioId/clients/:clientUserId/assign", async (req, res) => {
       });
     }
 
-    const [membership] = await db
-      .update(studioMemberships)
-      .set({
-        assignedBuilder,
-        builderSource: studio.type === "clinic" ? "clinical" : "trainer",
-        activeBoardId,
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(studioMemberships.studioId, studioId),
-          eq(studioMemberships.clientUserId, clientUserId)
-        )
-      )
-      .returning();
-
-    if (!membership) {
-      return res.status(404).json({ error: "Client not found in studio" });
-    }
-
-    await logClientActivity(
+    const result = await assignBuilder(userId, clientUserId, assignedBuilder, {
       studioId,
-      clientUserId,
-      userId,
-      "builder_assigned",
-      "membership",
-      membership.id,
-      { assignedBuilder, activeBoardId }
-    );
+      actorLabel: studio.type === "clinic" ? "clinical" : "trainer",
+    });
 
     pushToUser(clientUserId, {
       title: "Your coach updated your plan",
@@ -461,7 +437,20 @@ router.patch("/:studioId/clients/:clientUserId/assign", async (req, res) => {
       url: "/weekly",
     });
 
-    res.json({ membership });
+    logAudit({
+      actor: userId,
+      target: clientUserId,
+      orgId: (req as any).authUser?.organizationId ?? null,
+      action: "WRITE",
+      resourceType: "builder_assignment",
+      table: "users",
+      field: "active_board",
+      route: req.path,
+      ip: getClientIp(req as any),
+      meta: { assignedBuilder, studioId },
+    });
+
+    res.json({ success: true, assignedBuilder: result.activeBoard });
   } catch (error) {
     console.error("Error assigning builder:", error);
     res.status(500).json({ error: "Failed to assign builder" });
