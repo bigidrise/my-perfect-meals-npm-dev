@@ -7,6 +7,7 @@ import { nanoid } from "nanoid";
 import { sendCareTeamInvite } from "../services/emailService";
 import { activateProCareClient, deactivateProCareClient, ActivationError } from "../services/procareActivation";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
+import { getTierForLookupKey } from "@shared/planFeatures";
 import { requireEmailService } from "../middleware/requireEmailService";
 import { checkLegalAcceptance } from "../services/legalCheck";
 
@@ -137,27 +138,30 @@ router.post("/connect", requireAuth, async (req, res) => {
 
     const proUserId = invite ? invite.userId : accessCodeRow!.proUserId;
 
-    // Fetch pro's role + subscription and client's subscription in parallel
-    const [[pro], [clientUser]] = await Promise.all([
-      db.select({ professionalRole: users.professionalRole, planLookupKey: users.planLookupKey })
-        .from(users).where(eq(users.id, proUserId)),
-      db.select({ planLookupKey: users.planLookupKey, trialEndsAt: users.trialEndsAt })
-        .from(users).where(eq(users.id, userId)),
-    ]);
+    // Fetch pro's role + subscription only.
+    // Client Clinical access is resolved from req.authUser (via buildAuthUserWithEffectiveAccess).
+    const [pro] = await db
+      .select({ professionalRole: users.professionalRole, planLookupKey: users.planLookupKey })
+      .from(users)
+      .where(eq(users.id, proUserId));
 
     // ── Subscription gates ────────────────────────────────────────────────────
-    const CLINICAL_PLAN_KEYS = ["mpm_ultimate", "mpm_ultimate_monthly", "mpm_ultimate_plan_2999"];
     const PROCARE_PLAN_KEYS = [
       "mpm_procare_monthly", "mpm_trainer_5", "mpm_trainer_10",
       "mpm_trainer_25", "mpm_trainer_50", "mpm_physician_50", "mpm_physician_150",
       "clinical_business_monthly",
     ];
 
-    const clientHasClinical = CLINICAL_PLAN_KEYS.includes(clientUser?.planLookupKey ?? "");
-    const clientHasActiveTrial = !!(clientUser?.trialEndsAt && new Date(clientUser.trialEndsAt) > new Date());
+    // Client Clinical check — use effective access already resolved by requireAuth.
+    // req.authUser.planLookupKey reflects computeEffectiveAccess(): it correctly
+    // represents Clinical Business seats, org-sponsored access, and personal plans.
+    // Never read the raw DB planLookupKey here; that path misses business-tier entitlements.
+    const { accessTier: clientAccessTier, planLookupKey: clientPlanKey } = (req as AuthenticatedRequest).authUser;
+    const clientTier = clientPlanKey ? getTierForLookupKey(clientPlanKey) : "ultimate"; // null = internal/founder
+    const clientHasClinical = clientAccessTier === "PAID_FULL" && clientTier === "ultimate";
 
-    if (!clientHasClinical && !clientHasActiveTrial) {
-      console.log(`🔒 [CareTeam Connect] Blocked — client ${userId} lacks Clinical subscription`);
+    if (!clientHasClinical) {
+      console.log(`🔒 [CareTeam Connect] Blocked — client ${userId} lacks Clinical access (tier: ${clientTier}, accessTier: ${clientAccessTier})`);
       return res.status(403).json({
         error: "CLINICAL_REQUIRED",
         message: "A Clinical subscription is required to connect with a ProCare provider.",

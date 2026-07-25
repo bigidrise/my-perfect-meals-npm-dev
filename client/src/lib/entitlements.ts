@@ -19,7 +19,6 @@ export interface UserWithEntitlements {
   planLookupKey?: string | null;
   accessTier?: string;
   isTester?: boolean;
-  trialEndsAt?: string | null;
   [key: string]: any;
 }
 

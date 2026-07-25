@@ -12,7 +12,6 @@ import { requireEssentialAccess } from "../middleware/requireEssentialAccess";
 const router = Router();
 
 // All meal board routes require authentication and at minimum an Essential subscription.
-// Trial users pass through requireEssentialAccess (accessTier === "TRIAL_FULL").
 // ProCare clients with studio membership are authenticated and pass requireAuth.
 router.use(requireAuth, requireEssentialAccess);
 

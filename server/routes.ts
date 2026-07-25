@@ -368,7 +368,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Router-group gate: all /api/ai/* routes require auth + active access (PAID_FULL or TRIAL_FULL)
+  // Router-group gate: all /api/ai/* routes require auth + active access (PAID_FULL)
   // Note: /api/health/ai is registered ABOVE this middleware so it remains public
   app.use("/api/ai", requireAuth, requireActiveAccess);
 
@@ -2326,13 +2326,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return merged;
         })(),
         planLookupKey: user.planLookupKey,
-        trialStartedAt: user.trialStartedAt,
-        trialEndsAt: user.trialEndsAt,
         selectedMealBuilder: user.selectedMealBuilder,
         isTester: user.isTester || false,
         accessTier: authReq.authUser.accessTier,
-        trialDaysRemaining: authReq.authUser.trialDaysRemaining,
-        hasHadTrial: authReq.authUser.hasHadTrial,
         profilePhotoUrl: user.profilePhotoUrl || null,
         role: user.role || "client",
         isProCare: user.isProCare || false,
@@ -3329,8 +3325,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           alreadyCompleted: true,
           onboardingCompletedAt: existingUser.onboardingCompletedAt.toISOString(),
           onboardingMode: existingUser.onboardingMode,
-          trialStartedAt: existingUser.trialStartedAt?.toISOString() ?? null,
-          trialEndsAt: existingUser.trialEndsAt?.toISOString() ?? null,
           preferredBuilder: existingUser.preferredBuilder,
         });
       }

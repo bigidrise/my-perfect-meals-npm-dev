@@ -1,9 +1,7 @@
-export type AccessTier = "PAID_FULL" | "TRIAL_FULL" | "FREE";
+export type AccessTier = "PAID_FULL" | "FREE";
 
 interface UserForAccess {
   planLookupKey?: string | null;
-  trialStartedAt?: Date | null;
-  trialEndsAt?: Date | null;
   isTester?: boolean | null;
   isFounder?: boolean | null;
   isSandbox?: boolean | null;
@@ -65,23 +63,6 @@ export function resolveAccessTier(user: UserForAccess, now: Date = new Date()): 
     return "PAID_FULL";
   }
 
-  // Tier 3: Active trial window
-  if (user.trialEndsAt && now < user.trialEndsAt) {
-    return "TRIAL_FULL";
-  }
-
-  // Tier 4: Free tier
+  // Tier 3: Free tier
   return "FREE";
-}
-
-export function getTrialDaysRemaining(user: UserForAccess, now: Date = new Date()): number | null {
-  if (!user.trialEndsAt) return null;
-  const diff = user.trialEndsAt.getTime() - now.getTime();
-  if (diff <= 0) return 0;
-  return Math.ceil(diff / (1000 * 60 * 60 * 24));
-}
-
-export function isTrialExpired(user: UserForAccess, now: Date = new Date()): boolean {
-  if (!user.trialEndsAt) return false;
-  return now >= user.trialEndsAt;
 }

@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
-import { resolveAccessTier, getTrialDaysRemaining, type AccessTier } from "../lib/accessTier";
+import { resolveAccessTier, type AccessTier } from "../lib/accessTier";
 import { loadOrgContext } from "../lib/orgContext";
 import { computeEffectiveAccess } from "../services/effectiveAccess";
 
@@ -26,15 +26,11 @@ export interface AuthenticatedUser {
   plan: string;
   entitlements: string[];
   planLookupKey: string | null;
-  trialStartedAt: Date | null;
-  trialEndsAt: Date | null;
   selectedMealBuilder: string | null;
   isAdmin: boolean;
   isTester: boolean;
   isSandbox: boolean;
   accessTier: AccessTier;
-  trialDaysRemaining: number | null;
-  hasHadTrial: boolean;
   activeSystem: string;
   /** Effective org ID. Null means the user belongs to MPM_PUBLIC_ORG_ID. */
   organizationId: string | null;
@@ -54,12 +50,6 @@ export interface AuthenticatedRequest extends Request {
 function buildAuthUser(user: any): Omit<AuthenticatedUser, "sponsoredByBusinessId" | "sponsoredByBusinessName"> {
   const now = new Date();
   const accessTier = resolveAccessTier(user, now);
-  const trialDaysRemaining = getTrialDaysRemaining(user, now);
-  const hasHadTrial = !!user.trialStartedAt;
-
-  if (accessTier === "FREE" && hasHadTrial && user.trialEndsAt && now >= user.trialEndsAt) {
-    console.log(`[Access] Trial expired for user ${user.id}. Tier resolved to FREE.`);
-  }
 
   return {
     id: user.id,
@@ -69,15 +59,11 @@ function buildAuthUser(user: any): Omit<AuthenticatedUser, "sponsoredByBusinessI
     plan: user.plan,
     entitlements: user.entitlements || [],
     planLookupKey: user.planLookupKey || null,
-    trialStartedAt: user.trialStartedAt || null,
-    trialEndsAt: user.trialEndsAt || null,
     selectedMealBuilder: user.selectedMealBuilder || null,
     isAdmin: user.isAdmin || false,
     isTester: user.isTester || false,
     isSandbox: user.isSandbox || false,
     accessTier,
-    trialDaysRemaining,
-    hasHadTrial,
     activeSystem: user.activeSystem || "default",
     organizationId: user.organizationId ?? null,
   };

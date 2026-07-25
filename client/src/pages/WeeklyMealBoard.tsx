@@ -134,7 +134,6 @@ import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
 import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
 import ProtocolStatusBar from "@/components/protocol/ProtocolStatusBar";
 import { BuilderHeader } from "@/components/pro/BuilderHeader";
-import { TrialBanner } from "@/components/TrialBanner";
 
 // CHICAGO CALENDAR FIX v1.0: Week navigation utilities are now imported from midnight.ts
 // Using noon UTC anchor pattern to avoid day-shift bugs
@@ -1369,7 +1368,6 @@ export default function WeeklyMealBoard() {
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-28 overflow-x-hidden"
     >
       <BuilderHeader title="Weekly Meal Builder" onOpenTour={quickTour.openTour} clientId={proClientId} />
-      <TrialBanner />
 
       {/* Main Content */}
       <div
