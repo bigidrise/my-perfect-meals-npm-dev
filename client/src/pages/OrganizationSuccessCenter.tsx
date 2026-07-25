@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
+import { useOrgFlag } from "@/contexts/OrgContext";
 import {
   ChevronLeft,
   ChevronDown,
@@ -44,6 +45,7 @@ interface PolicyHistoryItem {
 
 export default function OrganizationSuccessCenter() {
   const [, setLocation] = useLocation();
+  const showMarketplace = useOrgFlag("partnerMarketplace");
   const [expandedId, setExpandedId] = useState<string | null>("welcome");
   const [policyHistory, setPolicyHistory] = useState<PolicyHistoryItem[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -72,6 +74,39 @@ export default function OrganizationSuccessCenter() {
   };
 
   const modules = [
+    {
+      id: "marketplace",
+      icon: <Users className="w-5 h-5 text-orange-400" />,
+      title: "Coach Marketplace",
+      subtitle: showMarketplace ? "Enabled for your organization." : "Disabled for your organization.",
+      narration: showMarketplace
+        ? "The MPM Coach Marketplace is available to your organization. Members can browse and hire from the full roster of MPM-certified professionals."
+        : "Your organization manages its own coaches and trainers. The MPM public Coach Marketplace is hidden from your team members — they work within your organization's professional roster instead.",
+      content: showMarketplace ? (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
+            <p className="text-white text-sm">The MPM Coach Marketplace is active for your organization.</p>
+          </div>
+          <p className="text-white/60 text-xs leading-relaxed">
+            Your team members can browse, hire, and message coaches from the full MPM marketplace inside the app.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Shield className="w-4 h-4 text-orange-400 flex-shrink-0" />
+            <p className="text-white text-sm font-semibold">Marketplace Hidden</p>
+          </div>
+          <p className="text-white/60 text-xs leading-relaxed">
+            Your organization uses its own professionals. The MPM public Coach Marketplace is hidden from all staff members — the "Hire a Professional" entry point, the Coaches page, and coaching cards on the Pricing page are all removed.
+          </p>
+          <p className="text-white/60 text-xs leading-relaxed">
+            This keeps your team's workflow focused inside your organization's own ProCare ecosystem.
+          </p>
+        </div>
+      ),
+    },
     {
       id: "welcome",
       icon: <Rocket className="w-5 h-5 text-orange-400" />,

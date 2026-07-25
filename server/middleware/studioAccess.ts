@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { db } from "../db";
 import { studioMemberships, studios } from "../db/schema/studio";
+import { users } from "../../shared/schema";
 import { eq, and } from "drizzle-orm";
 
 declare global {
@@ -30,31 +31,41 @@ export async function loadStudioMembership(req: Request, res: Response, next: Ne
     const userId = getUserId(req);
     if (!userId) { next(); return; }
 
-    const [membership] = await db
-      .select()
+    const rows = await db
+      .select({
+        membershipId: studioMemberships.id,
+        studioId: studioMemberships.studioId,
+        clientUserId: studioMemberships.clientUserId,
+        status: studioMemberships.status,
+        activeBoardId: studioMemberships.activeBoardId,
+        // Authoritative builder: users.activeBoard (client-owned).
+        // studioMemberships.assignedBuilder is a follower cache — not read here.
+        activeBoard: users.activeBoard,
+        studioName: studios.name,
+        studioOwnerUserId: studios.ownerUserId,
+      })
       .from(studioMemberships)
+      .leftJoin(users, eq(users.id, studioMemberships.clientUserId))
+      .leftJoin(studios, eq(studios.id, studioMemberships.studioId))
       .where(
         and(
           eq(studioMemberships.clientUserId, userId),
           eq(studioMemberships.status, "active"),
           eq(studioMemberships.isArchived, false)
         )
-      );
+      )
+      .limit(1);
 
-    if (membership) {
-      const [studio] = await db
-        .select()
-        .from(studios)
-        .where(eq(studios.id, membership.studioId));
-
+    if (rows.length > 0) {
+      const row = rows[0];
       req.studioMembership = {
-        studioId: membership.studioId,
-        clientUserId: membership.clientUserId,
-        status: membership.status,
-        assignedBuilder: membership.assignedBuilder,
-        activeBoardId: membership.activeBoardId,
-        studioName: studio?.name,
-        studioOwnerUserId: studio?.ownerUserId,
+        studioId: row.studioId,
+        clientUserId: row.clientUserId,
+        status: row.status,
+        assignedBuilder: row.activeBoard ?? null,
+        activeBoardId: row.activeBoardId,
+        studioName: row.studioName ?? undefined,
+        studioOwnerUserId: row.studioOwnerUserId ?? undefined,
       };
     }
 

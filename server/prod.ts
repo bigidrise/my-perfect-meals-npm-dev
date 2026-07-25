@@ -714,18 +714,61 @@ async function initializeApp() {
         const { loadOrgContext, loadOrgBySlug, getDefaultOrgContext } = await import("./lib/orgContext");
         const { db: orgDb } = await import("./db");
         const { users: usersTable } = await import("./db/schema");
-        const { eq: eqOrg } = await import("drizzle-orm");
+        const { eq: eqOrg, isNotNull, and: andBiz } = await import("drizzle-orm");
+
         if ((req as any).orgContext) {
           return res.json((req as any).orgContext);
         }
+
         const sessionUserId = (req as any).session?.userId;
         if (sessionUserId) {
-          const [user] = await orgDb.select({ organizationId: usersTable.organizationId })
-            .from(usersTable).where(eqOrg(usersTable.id, sessionUserId)).limit(1);
-          if (user) {
-            return res.json(await loadOrgContext(user.organizationId ?? null));
+          // 1. Check users.organizationId (white-label / clinical tenant)
+          const [user] = await orgDb
+            .select({ organizationId: usersTable.organizationId })
+            .from(usersTable)
+            .where(eqOrg(usersTable.id, sessionUserId))
+            .limit(1);
+
+          if (user?.organizationId) {
+            const directOrg = await loadOrgContext(user.organizationId);
+            if (!directOrg.featureFlags.partnerMarketplace) return res.json(directOrg);
+          }
+
+          // 2. Check active business memberships — false-wins policy
+          try {
+            const { businesses: bizTable, businessMembers: bizMembersTable } = await import("./db/schema/business");
+            const memberships = await orgDb
+              .select({ organizationId: bizTable.organizationId })
+              .from(bizMembersTable)
+              .innerJoin(bizTable, eqOrg(bizTable.id, bizMembersTable.businessId))
+              .where(
+                andBiz(
+                  eqOrg(bizMembersTable.userId, sessionUserId),
+                  eqOrg(bizMembersTable.status, "active"),
+                  isNotNull(bizTable.organizationId)
+                )
+              );
+
+            for (const m of memberships) {
+              if (m.organizationId) {
+                const bizOrg = await loadOrgContext(m.organizationId);
+                if (!bizOrg.featureFlags.partnerMarketplace) return res.json(bizOrg);
+              }
+            }
+
+            if (memberships.length > 0 && memberships[0].organizationId) {
+              return res.json(await loadOrgContext(memberships[0].organizationId));
+            }
+          } catch (bizErr) {
+            console.error("[org/config] Business membership lookup failed:", bizErr);
+          }
+
+          // 3. Fall back to users.organizationId org
+          if (user?.organizationId) {
+            return res.json(await loadOrgContext(user.organizationId));
           }
         }
+
         const slugHeader = req.headers["x-org-slug"] as string | undefined;
         if (slugHeader) {
           const org = await loadOrgBySlug(slugHeader);
@@ -900,10 +943,70 @@ async function initializeApp() {
             changed_at timestamptz NOT NULL DEFAULT now()
           )
         `);
+        // Partner Marketplace Isolation — ensure MPM Public org has partnerMarketplace: true
+        await db.execute(sql`
+          UPDATE organizations
+          SET feature_flags = feature_flags || '{"partnerMarketplace": true}'::jsonb,
+              updated_at    = now()
+          WHERE slug = 'mpm-public'
+            AND (feature_flags->>'partnerMarketplace')::boolean IS DISTINCT FROM true
+        `);
         console.log("✅ [prod] Business tables boot migration complete");
       } catch (err: any) {
         console.error("❌ [prod] Business tables boot migration failed:", err.message);
       }
+
+      // Studio relationship integrity — deduplicate client_links and add unique pair constraint
+      setTimeout(async () => {
+        try {
+          // Deduplicate: for each (client_user_id, pro_user_id) pair keep the active row
+          // (if any) or the most recently created row, then delete the rest.
+          await database.execute(sql`
+            DELETE FROM client_links
+            WHERE id NOT IN (
+              SELECT DISTINCT ON (client_user_id, pro_user_id) id
+              FROM client_links
+              ORDER BY client_user_id, pro_user_id,
+                (CASE WHEN active = true THEN 0 ELSE 1 END),
+                created_at DESC
+            )
+          `);
+
+          // Unique constraint: one relationship record per (client, pro) pair.
+          await database.execute(sql`
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_client_links_unique_pair
+            ON client_links (client_user_id, pro_user_id)
+          `);
+
+          // Reconcile stale careTeamMember rows left active while their parent studio
+          // membership is revoked — a pre-existing state from before the deactivation fix.
+          await database.execute(sql`
+            UPDATE care_team_member ctm
+            SET status = 'revoked', updated_at = now()
+            FROM studios s
+            WHERE ctm.pro_user_id = s.owner_user_id
+              AND ctm.status = 'active'
+              AND EXISTS (
+                SELECT 1 FROM studio_memberships sm
+                WHERE sm.client_user_id = ctm.user_id
+                  AND sm.studio_id = s.id
+                  AND sm.status = 'revoked'
+                  AND sm.is_archived = true
+              )
+              AND NOT EXISTS (
+                SELECT 1 FROM studio_memberships sm
+                WHERE sm.client_user_id = ctm.user_id
+                  AND sm.studio_id = s.id
+                  AND sm.status = 'active'
+                  AND sm.is_archived = false
+              )
+          `);
+
+          console.log("✅ [prod] client_links integrity migration complete (dedup + unique pair index + careTeamMember reconcile)");
+        } catch (err: any) {
+          console.error("❌ [prod] client_links integrity migration failed:", err.message);
+        }
+      }, 4500);
     }, 4000);
   } catch (error) {
     console.error("❌ [INIT] Initialization failed:", error);

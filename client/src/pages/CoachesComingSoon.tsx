@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
+import { useOrgFlag } from "@/contexts/OrgContext";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetClose } from "@/components/ui/sheet";
@@ -99,8 +100,16 @@ const DEFAULT_AGREED = {
 
 export default function MeetYourCoach() {
   const [, setLocation] = useLocation();
+  const showMarketplace = useOrgFlag("partnerMarketplace");
   const [selectedCoach, setSelectedCoach] = useState<Coach | null>(null);
   const [agreed, setAgreed] = useState(DEFAULT_AGREED);
+
+  // Partner org guard: members of orgs with partnerMarketplace: false are redirected
+  useEffect(() => {
+    if (!showMarketplace) {
+      setLocation("/dashboard");
+    }
+  }, [showMarketplace]);
 
   const [liveCoaches, setLiveCoaches] = useState<Coach[]>(coaches);
 

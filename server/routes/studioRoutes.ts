@@ -253,6 +253,22 @@ router.patch("/:studioId/clients/:clientUserId/restore", async (req, res) => {
       if (handleOrgIsolationError(err, res)) return; throw err;
     }
 
+    // For physician studios (clinic type), verify the patient has current legal acceptance
+    // before restoring the relationship. On a normal lifecycle the docs are already accepted,
+    // so this check passes silently. If the original connection bypassed the gate (legacy),
+    // the patient must complete acceptance through the normal connect flow first.
+    if (studio.type === "clinic") {
+      const legalCheck = await checkLegalAcceptance(clientUserId, "patient_physician");
+      if (!legalCheck.allAccepted) {
+        return res.status(409).json({
+          code: "LEGAL_ACCEPTANCE_REQUIRED",
+          missing: legalCheck.missing,
+          flow: "patient_physician",
+          error: "Patient must accept all required legal documents before this connection can be restored.",
+        });
+      }
+    }
+
     await activateProCareClient(clientUserId, userId, "provider_unarchive");
 
     console.log(`♻️ [StudioRestore] Client ${clientUserId} fully reactivated by pro ${userId} (studio ${studioId})`);

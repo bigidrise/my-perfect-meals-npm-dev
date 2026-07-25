@@ -213,7 +213,6 @@ router.post("/api/auth/signup", async (req, res) => {
       role: newUser.role || "client",
       isTester: newUser.isTester || false,
       isFounder: newUser.isFounder || false,
-      trialEndsAt: newUser.trialEndsAt?.toISOString() || null,
       planLookupKey: newUser.planLookupKey || null,
       ...(membership && { studioMembership: membership }),
     });
@@ -413,7 +412,6 @@ router.post("/api/auth/login", async (req, res) => {
       onboardingCompletedAt: user.onboardingCompletedAt || null,
       isTester: user.isTester || false,
       isFounder: user.isFounder || false,
-      trialEndsAt: user.trialEndsAt?.toISOString() || null,
       planLookupKey: user.planLookupKey || null,
       ...(membership && { studioMembership: membership }),
     });
@@ -448,7 +446,6 @@ router.get("/api/auth/session", async (req: any, res) => {
       username: user.username,
       isTester: user.isTester || false,
       isFounder: user.isFounder || false,
-      trialEndsAt: user.trialEndsAt?.toISOString() || null,
       planLookupKey: user.planLookupKey || null,
       role: user.role || "client",
       isProCare: user.isProCare || false,

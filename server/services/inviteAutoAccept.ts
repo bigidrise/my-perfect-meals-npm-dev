@@ -1,9 +1,11 @@
 import { db } from "../db";
 import { studioInvites, studioMemberships, studios } from "../db/schema/studio";
 import { careInvite, careTeamMember } from "../db/schema/careTeam";
+import { users } from "@shared/schema";
 import { eq, and, isNull, gt, desc } from "drizzle-orm";
 import { logClientActivity } from "./activityLog";
 import { activateProCareClient, ActivationError } from "./procareActivation";
+import { checkLegalAcceptance } from "./legalCheck";
 
 export interface StudioMembershipInfo {
   studioId: string;
@@ -84,6 +86,25 @@ export async function autoAcceptPendingInvites(
       const invite = pendingCareInvites[0];
       const trainerUserId = invite.userId;
 
+      // Physician connections require patient legal acceptance before auto-activation.
+      // Auto-accept at login is not sufficient justification to bypass the legal gate.
+      const [inviterProfile] = await db
+        .select({ professionalRole: users.professionalRole })
+        .from(users)
+        .where(eq(users.id, trainerUserId));
+
+      if (inviterProfile?.professionalRole === "physician") {
+        const legalCheck = await checkLegalAcceptance(userId, "patient_physician");
+        if (!legalCheck.allAccepted) {
+          console.log(
+            `⚠️ [InviteAutoAccept] Skipping physician auto-accept for user ${userId} — ` +
+            `patient_physician legal acceptance required (missing: ${legalCheck.missing.join(", ")}). ` +
+            `Client must use the normal connect flow to accept the required documents.`
+          );
+          return { accepted: false };
+        }
+      }
+
       let activation;
       try {
         activation = await activateProCareClient(userId, trainerUserId, "care_team_invite");
@@ -159,6 +180,19 @@ export async function autoAcceptPendingInvites(
       if (!studio) {
         console.error(`❌ [InviteAutoAccept] Studio ${invite.studioId} not found for invite ${invite.id}`);
         return { accepted: false };
+      }
+
+      // Clinic (physician) studios require patient legal acceptance before auto-activation.
+      if (studio.type === "clinic") {
+        const legalCheck = await checkLegalAcceptance(userId, "patient_physician");
+        if (!legalCheck.allAccepted) {
+          console.log(
+            `⚠️ [InviteAutoAccept] Skipping clinic studio auto-accept for user ${userId} — ` +
+            `patient_physician legal acceptance required (missing: ${legalCheck.missing.join(", ")}). ` +
+            `Client must use the normal connect flow to accept the required documents.`
+          );
+          return { accepted: false };
+        }
       }
 
       let activation;

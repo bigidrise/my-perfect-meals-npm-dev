@@ -460,6 +460,60 @@ router.patch("/policy", requireAuth, async (req, res) => {
   }
 });
 
+// ── PATCH /api/business/org-policies — owner updates org-level policy flags
+router.patch("/org-policies", requireAuth, async (req, res) => {
+  const userId = (req as any).authUser?.id as string;
+  const { requireAcademy, requireProfessionalVerification } = req.body as {
+    requireAcademy?: boolean;
+    requireProfessionalVerification?: boolean;
+  };
+
+  if (typeof requireAcademy !== "boolean" && typeof requireProfessionalVerification !== "boolean") {
+    return res.status(400).json({ error: "At least one policy flag must be provided." });
+  }
+
+  try {
+    const { businesses } = await import("../db/schema/business");
+    const [business] = await db
+      .select({ id: businesses.id, organizationId: businesses.organizationId })
+      .from(businesses)
+      .where(eq(businesses.ownerUserId, userId))
+      .limit(1);
+
+    if (!business) return res.status(403).json({ error: "No business account found." });
+    if (!business.organizationId) return res.status(400).json({ error: "Business has no linked organization." });
+
+    const { organizations } = await import("../db/schema/organizations");
+    const [org] = await db
+      .select({ featureFlags: organizations.featureFlags })
+      .from(organizations)
+      .where(eq(organizations.id, business.organizationId))
+      .limit(1);
+
+    if (!org) return res.status(404).json({ error: "Organization not found." });
+
+    const merged = {
+      ...(org.featureFlags as Record<string, unknown>),
+      ...(typeof requireAcademy === "boolean" ? { requireAcademy } : {}),
+      ...(typeof requireProfessionalVerification === "boolean" ? { requireProfessionalVerification } : {}),
+    };
+
+    await db
+      .update(organizations)
+      .set({ featureFlags: merged as any, updatedAt: new Date() })
+      .where(eq(organizations.id, business.organizationId));
+
+    const { clearOrgCache } = await import("../lib/orgContext");
+    clearOrgCache(business.organizationId);
+
+    console.log(`✅ [business] Org policies updated | org=${business.organizationId} | ${JSON.stringify(merged)}`);
+    return res.json({ success: true, featureFlags: merged });
+  } catch (err) {
+    console.error("[business/org-policies] error:", err);
+    return res.status(500).json({ error: "Server error." });
+  }
+});
+
 // ── GET /api/business/invite/:token — public: get invite details for accept page
 router.get("/invite/:token", async (req, res) => {
   const { token } = req.params;

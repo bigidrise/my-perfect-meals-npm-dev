@@ -343,6 +343,7 @@ router.post("/admin/users/:userId/assign-promo", requireAuth, requireAdmin, (req
 );
 
 // ─── Admin: POST /api/partner/admin/users/:userId/activate-org ───────────────
+// Legacy: simple timestamp stamp only. Use provision-org for full provisioning.
 router.post("/admin/users/:userId/activate-org", requireAuth, requireAdmin, (req, res) =>
   lifecycleAction(req as AuthenticatedRequest, res, {
     action: "org_activated",
@@ -351,6 +352,160 @@ router.post("/admin/users/:userId/activate-org", requireAuth, requireAdmin, (req
     setFields: () => ({ orgActivatedAt: new Date() }),
   })
 );
+
+// ─── Admin: POST /api/partner/admin/users/:userId/provision-org ───────────────
+// Full org provisioning: creates organizations + businesses rows, links them,
+// adds owner to businessMembers, stamps orgActivatedAt. Idempotent on re-run
+// (passes billingExempt=true for pilot accounts, false requires Stripe payment).
+router.post("/admin/users/:userId/provision-org", requireAuth, requireAdmin, async (req, res) => {
+  const actor = actorId(req as AuthenticatedRequest);
+  const { userId } = req.params;
+  const {
+    orgName,
+    partnerMarketplace = false,
+    requireAcademy = true,
+    requireProfessionalVerification = true,
+    seatLimit = 4,
+    billingExempt = false,
+    existingBusinessId,
+  } = req.body as {
+    orgName?: string;
+    partnerMarketplace?: boolean;
+    requireAcademy?: boolean;
+    requireProfessionalVerification?: boolean;
+    seatLimit?: number;
+    billingExempt?: boolean;
+    existingBusinessId?: string;
+  };
+
+  if (!orgName?.trim()) return res.status(400).json({ error: "orgName is required" });
+
+  try {
+    const { organizations } = await import("../db/schema/organizations");
+    const { businesses, businessMembers } = await import("../db/schema/business");
+    const { DEFAULT_ORG_FEATURE_FLAGS } = await import("../db/schema/organizations");
+
+    const record = await getRecord(userId);
+    if (!record) return res.status(404).json({ error: "Partner record not found" });
+
+    const [targetUser] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    if (!targetUser) return res.status(404).json({ error: "User not found" });
+
+    const slug = `org-${userId.slice(0, 8)}-${Date.now()}`;
+
+    const result = await db.transaction(async (tx) => {
+      // 1. Create org row
+      const [org] = await tx
+        .insert(organizations)
+        .values({
+          name: orgName.trim(),
+          slug,
+          featureFlags: {
+            ...DEFAULT_ORG_FEATURE_FLAGS,
+            partnerMarketplace: Boolean(partnerMarketplace),
+            requireAcademy: Boolean(requireAcademy),
+            requireProfessionalVerification: Boolean(requireProfessionalVerification),
+          } as any,
+        })
+        .returning();
+
+      // 2. Create or update business row
+      let businessId: string;
+      if (existingBusinessId) {
+        await tx
+          .update(businesses)
+          .set({ organizationId: org.id, seatLimit: Number(seatLimit) })
+          .where(eq(businesses.id, existingBusinessId));
+        businessId = existingBusinessId;
+      } else {
+        const [biz] = await tx
+          .insert(businesses)
+          .values({
+            ownerUserId: userId,
+            organizationId: org.id,
+            seatLimit: Number(seatLimit),
+            status: billingExempt ? "active" : "pending_billing",
+          } as any)
+          .returning();
+        businessId = biz.id;
+      }
+
+      // 3. Ensure owner row exists in businessMembers (idempotent)
+      await tx
+        .insert(businessMembers)
+        .values({ businessId, userId, role: "owner", status: "active" } as any)
+        .onConflictDoNothing();
+
+      // 4. Stamp orgActivatedAt on partnerRecords
+      await tx
+        .update(partnerRecords)
+        .set({ orgActivatedAt: new Date(), updatedAt: new Date() })
+        .where(eq(partnerRecords.userId, userId));
+
+      // 5. Activity log
+      await tx.insert(partnerActivityLog).values({
+        userId,
+        actorId: actor,
+        action: "org_provisioned",
+        details: { orgName: org.name, orgId: org.id, billingExempt, partnerMarketplace, seatLimit },
+      });
+
+      return { org, businessId };
+    });
+
+    const log = await getActivityLog(userId);
+    const updated = await getRecord(userId);
+    return res.json({ ...lifecycleResponse(updated!, log), org: result.org, businessId: result.businessId });
+  } catch (err) {
+    console.error("[PartnerRoutes] provision-org error:", err);
+    return res.status(500).json({ error: "Provisioning failed" });
+  }
+});
+
+// ─── Admin: PATCH /api/partner/admin/orgs/:orgId/flags ───────────────────────
+// Updates featureFlags on an organization (merges, does not overwrite).
+// Clears the in-process org cache so the change takes effect within seconds.
+router.patch("/admin/orgs/:orgId/flags", requireAuth, requireAdmin, async (req, res) => {
+  const { orgId } = req.params;
+  const { featureFlags } = req.body as { featureFlags?: Record<string, unknown> };
+  if (!featureFlags || typeof featureFlags !== "object") {
+    return res.status(400).json({ error: "featureFlags object is required" });
+  }
+
+  try {
+    const { organizations } = await import("../db/schema/organizations");
+
+    const [org] = await db
+      .select({ id: organizations.id, featureFlags: organizations.featureFlags })
+      .from(organizations)
+      .where(eq(organizations.id, orgId))
+      .limit(1);
+    if (!org) return res.status(404).json({ error: "Organization not found" });
+
+    const merged = { ...(org.featureFlags as Record<string, unknown>), ...featureFlags };
+
+    const [updated] = await db
+      .update(organizations)
+      .set({ featureFlags: merged as any, updatedAt: new Date() })
+      .where(eq(organizations.id, orgId))
+      .returning();
+
+    // Clear in-process cache so the change is reflected immediately
+    try {
+      const { clearOrgCache } = await import("../lib/orgContext");
+      clearOrgCache(orgId);
+    } catch {}
+
+    return res.json({ org: updated });
+  } catch (err) {
+    console.error("[PartnerRoutes] PATCH /admin/orgs/:orgId/flags error:", err);
+    return res.status(500).json({ error: "Failed to update org flags" });
+  }
+});
 
 // ─── Admin: POST /api/partner/admin/users/:userId/payouts-ready ──────────────
 router.post("/admin/users/:userId/payouts-ready", requireAuth, requireAdmin, (req, res) =>
