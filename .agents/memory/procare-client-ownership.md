@@ -1,11 +1,41 @@
 ---
-name: ProCare Client Ownership — Design Rule
-description: Architectural rule governing what belongs on the client profile vs. the professional relationship table, derived from the assignedBuilder sync bug investigation.
+name: ProCare Client Ownership — Three Architectural Principles
+description: The Single Client Truth Principle and two supporting rules governing what belongs on the client profile vs. professional relationship tables. Apply before adding any field anywhere in the ProCare/studio system.
 ---
 
-## The Rule
+## The Three Principles
 
-> **A client exists exactly once. Every portal — client, trainer, physician, admin — renders the same client profile with different permissions. Professional relationship tables may store relationship metadata, but they must never become independent copies of client state.**
+### Principle 1 — Single Client Truth
+
+> **A client exists exactly once. Every portal — client, trainer, physician, admin — renders the same client profile with different permissions. Professional relationship tables may cache client state only for performance, never as an authoritative source. Any cached value must be derivable from the client profile and safe to rebuild.**
+
+The `assignedBuilder` bug is the canonical example of this failing: `studioMemberships.assignedBuilder` became an authoritative source instead of a cache, diverged from `users.activeBoard`, and the reconnect path restored the stale value.
+
+**The one question to ask before adding a field:**
+> "Is this changing the client, or is it changing the professional relationship?"
+
+### Principle 2 — Relationship vs. Identity
+
+Relationship tables describe:
+- Who is connected (clientUserId, proUserId, studioId)
+- Permissions (mealBoardControl, workspace)
+- Lifecycle (status, isArchived, joinedAt, active)
+- Relationship-specific context (notes, invitations, check-in schedules, cycle protocols)
+
+Relationship tables never define who the client IS:
+- Active builder → client profile
+- Macros, goals, biometrics → client profile
+- Medical conditions, protocols → client profile
+- Board contents → client-owned
+- Builder settings (starch strategy, performance phase, GLP-1 config) → client profile
+
+**Ownership test for builder settings:** "If the client changes trainers tomorrow, should this still exist?" If yes → client profile.
+
+### Principle 3 — AI reasons over the client profile
+
+Every AI feature (Coach's Corner, builders, scanners, protocol recommendations) must reason over one unified client profile, not over whichever portal the user happened to be using. The protocol envelope and macro truth contract enforce this at generation time; the principle must also hold at the data layer.
+
+---
 
 ## What belongs where
 
@@ -14,40 +44,53 @@ description: Architectural rule governing what belongs on the client profile vs.
 - Relationship lifecycle: status, isArchived, joinedAt, active
 - View context: workspace (clinician vs. trainer — derived from studio.type at connect time)
 - Relationship permissions: mealBoardControl
+- Coach's instructions scoped to this relationship: clientCycleProtocols (studioId is correct here)
 
 **Client profile** (`users` and dedicated client tables):
-- Active builder, medical conditions, protocols
+- Active builder (users.activeBoard, users.selectedMealBuilder)
+- Medical conditions, specialty conditions, protocols
 - Macros, goals, biometrics, preferences
-- Specialty conditions, performance context, therapeutic context
-- Weekly meal board ownership
+- Performance context, therapeutic context, pregnancy context, GLP-1 targets
+- Board ownership (boards belong to the client, pros edit them)
 - Builder settings of any kind
+
+---
 
 ## Confirmed misplacements in studioMemberships
 
-| Column | Problem | Resolution |
+| Column | Problem | Status |
 |---|---|---|
-| `assignedBuilder` | Client's active builder stored in relationship table | Fix A+B address divergence; Fix C (read users.activeBoard directly) is structural endgame, deferred |
-| `builderSource` | Provenance of who set the builder — not current state, not relationship state | Eventually belongs in a builder-change event/history table (actor, from, to, reason, timestamp) — not on client profile either |
-| `activeBoardId` | UUID pointer to a board record — appears unused in server logic | Do NOT remove; leave until board ownership is intentionally redesigned |
+| `assignedBuilder` | Client's active builder — wrong table | Fix A+B address divergence; Fix C (eliminate column) is structural endgame, deferred |
+| `builderSource` | Provenance of who set the builder — not current state, not relationship state | Should become a builder-change event record (actor, from, to, reason, timestamp) — not on profile, not on membership |
+| `activeBoardId` | UUID pointer to a board — appears unused in server logic | Leave until board ownership is intentionally redesigned; do not remove |
 
-## The oncologySupportContext split
+---
 
-`users.oncologySupportContext` conflates two distinct concepts:
-- **Clinical facts** (diagnosis, cancer history, allergies) → stay on client profile forever
-- **Provider plan** (physician instructions, current treatment workflow, coaching protocol) → can reasonably expire when the professional relationship ends
+## The cache vs. authoritative source distinction
 
-Currently the whole field is cleared on deactivation. This is defensible but loses clinical facts along with the provider plan. Named as design debt, not a bug to fix today.
+Acceptable denormalization:
+- `users.isProCare` — derivable from `clientLinks.active`, stored for query performance, updated atomically on every write path ✅
 
-## isProCare
+Unacceptable authoritative copy:
+- `studioMemberships.assignedBuilder` — diverged from `users.activeBoard` and became the authoritative source for the trainer dashboard ❌
 
-Acceptable denormalization of `clientLinks.active`. Every activation/deactivation path updates it atomically. Do not touch.
+**Rule:** A cached field must be (a) derivable from the canonical source, (b) always updated atomically when the canonical source changes, and (c) treated as read-only by consumers — never written to directly as if it were the source.
 
-## Why this matters beyond the builder
+---
 
-The reconnect test exposed one stale field. The same class of bug can occur anywhere the Pro Portal reads from relationship tables instead of the client profile:
-- Macro targets — are they on the client or inside the relationship?
-- Meal boards — owned by client or scoped to studio?
-- Builder settings (performance context, starch strategy, GLP-1 targets)
-- Protocols — who owns them, what survives a disconnect?
+## The oncologySupportContext split (design debt, not bug)
 
-**How to apply:** Before adding any field to a relationship table, ask: "Does this change because the client changes, or because the relationship changes?" If the former, it belongs on the client profile.
+`users.oncologySupportContext` conflates:
+- **Clinical facts** (diagnosis, cancer history, allergies) → should persist on client profile indefinitely
+- **Provider plan** (physician instructions, current treatment workflow) → can reasonably expire when the professional relationship ends
+
+Currently the whole field is cleared on deactivation. Named as design debt; no immediate action needed.
+
+---
+
+## Next audit targets (in priority order)
+
+1. **Meal boards** — who owns the board? Answer must be: the client. Pros edit it, not own it.
+2. **Macros** — who owns them? Client. Pros prescribe/modify, client profile holds them.
+3. **Protocols** — split clinical facts (permanent) from provider plans (relationship-scoped).
+4. **Builder settings** — starch strategy, performance phase, GLP-1 behavior — do these survive a trainer change? If yes, they're on the client profile.
