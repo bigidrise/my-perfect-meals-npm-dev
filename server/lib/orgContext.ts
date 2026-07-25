@@ -49,7 +49,10 @@ const MPM_DEFAULT_ORG: OrgContext = {
   onboardingHeadline: null,
   poweredByVisible: true,
   customDomain: null,
-  featureFlags: { ...DEFAULT_ORG_FEATURE_FLAGS },
+  // MPM Public is the open marketplace — partnerMarketplace must be true.
+  // DEFAULT_ORG_FEATURE_FLAGS.partnerMarketplace is false (safe default for
+  // partner orgs that bring their own professionals) so we override it here.
+  featureFlags: { ...DEFAULT_ORG_FEATURE_FLAGS, partnerMarketplace: true },
   isDefault: true,
   isWhiteLabel: false,
 };
