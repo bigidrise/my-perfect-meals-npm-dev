@@ -340,6 +340,31 @@ async function initializeApp() {
           await runAceMigration();
           console.log("✅ [INIT] ACE boot migration complete");
 
+          // GLP-1 Daily Behavioral Tolerance — Phase 1
+          // Ensure glp1_profile base table exists (idempotent), then add tolerance columns.
+          await database.execute(sql`
+            CREATE TABLE IF NOT EXISTS glp1_profile (
+              id TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
+              user_id TEXT UNIQUE NOT NULL,
+              guardrails JSONB DEFAULT NULL,
+              created_at TIMESTAMPTZ DEFAULT NOW(),
+              updated_at TIMESTAMPTZ DEFAULT NOW()
+            )
+          `);
+          await database.execute(sql`ALTER TABLE glp1_profile ADD COLUMN IF NOT EXISTS tolerance_date date`);
+          await database.execute(sql`ALTER TABLE glp1_profile ADD COLUMN IF NOT EXISTS nausea_level text NOT NULL DEFAULT 'none'`);
+          await database.execute(sql`ALTER TABLE glp1_profile ADD COLUMN IF NOT EXISTS has_vomiting boolean NOT NULL DEFAULT false`);
+          await database.execute(sql`ALTER TABLE glp1_profile ADD COLUMN IF NOT EXISTS hydration_risk text NOT NULL DEFAULT 'none'`);
+          await database.execute(sql`ALTER TABLE glp1_profile ADD COLUMN IF NOT EXISTS has_reflux boolean NOT NULL DEFAULT false`);
+          await database.execute(sql`ALTER TABLE glp1_profile ADD COLUMN IF NOT EXISTS has_diarrhea boolean NOT NULL DEFAULT false`);
+          await database.execute(sql`ALTER TABLE glp1_profile ADD COLUMN IF NOT EXISTS has_constipation boolean NOT NULL DEFAULT false`);
+          await database.execute(sql`ALTER TABLE glp1_profile ADD COLUMN IF NOT EXISTS appetite_level text NOT NULL DEFAULT 'normal'`);
+          await database.execute(sql`ALTER TABLE glp1_profile ADD COLUMN IF NOT EXISTS should_escalate boolean NOT NULL DEFAULT false`);
+          await database.execute(sql`ALTER TABLE glp1_profile ADD COLUMN IF NOT EXISTS escalation_reason text`);
+          await database.execute(sql`ALTER TABLE glp1_profile ADD COLUMN IF NOT EXISTS water_ml_logged integer NOT NULL DEFAULT 0`);
+          await database.execute(sql`ALTER TABLE glp1_profile ADD COLUMN IF NOT EXISTS tolerance_rules_fired text[]`);
+          console.log("✅ [INIT] GLP-1 daily tolerance boot migration complete");
+
           // Waitlist notify — email_sent_at column + orphan recovery
           // email_sent_at tracks confirmed sends separately from notified_at (claim lock).
           // On restart, rows with notified_at SET but email_sent_at NULL were claimed mid-send
