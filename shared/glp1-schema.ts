@@ -71,8 +71,16 @@ export type ToleranceAppetiteLevel =
  * that never invents numbers. Injected into the protocol envelope as
  * glp1DailyTolerance and surfaced to all GLP-1-aware generators.
  *
- * rulesFired[] lists every registry rule that contributed to this assessment.
- * Use these IDs for audit trails and MACRO_AUDIT structured logging.
+ * Rule audit collections:
+ *   rulesApplied[]   — approved rules that influenced this assessment
+ *   rulesWithheld[]  — pending_review rules blocked from production (fail-closed)
+ *   rulesEvaluated[] — union of applied + withheld (complete audit trail)
+ *
+ * Directive collections (mutually exclusive semantics):
+ *   safetyEscalations[]    — provider-contact and seek-care directives; must not
+ *                            be reframed as nutrition preferences by any generator
+ *   nutritionAdaptations[] — meal/food modification directives (smaller portions,
+ *                            bland flavors, hydrating ingredients, etc.)
  */
 export type DailyMedicationTolerance = {
   /** YYYY-MM-DD — the date this tolerance state was resolved for. */
@@ -104,10 +112,9 @@ export type DailyMedicationTolerance = {
 
   /**
    * True when a registry-governed escalation rule fires.
-   * Triggers a provider-contact directive in all generator prompts.
    * Governed exclusively by:
-   *   - glp1_vomiting_escalate
-   *   - glp1_dehydration_difficulty_escalate
+   *   - glp1_vomiting_escalate (approved, FDA §5.1/§6.1)
+   *   - glp1_dehydration_difficulty_escalate (approved, FDA §5.1/§6.1)
    */
   shouldEscalate: boolean;
 
@@ -115,6 +122,51 @@ export type DailyMedicationTolerance = {
    *  Null when shouldEscalate is false. */
   escalationReason: string | null;
 
-  /** Rule registry IDs that contributed to this tolerance assessment. */
-  rulesFired: string[];
+  /**
+   * Registry IDs of APPROVED rules that were evaluated and applied.
+   * These rules directly influenced the output of this assessment.
+   * Use for audit trails, MACRO_AUDIT logging, and provider dashboards.
+   */
+  rulesApplied: string[];
+
+  /**
+   * Registry IDs of PENDING_REVIEW rules that were evaluated but withheld.
+   * These rules did NOT affect any recommendation (fail-closed governance).
+   * Their fallback values were used instead of candidate values.
+   * Use to track clinical review backlog and surface to RD review queue.
+   */
+  rulesWithheld: string[];
+
+  /**
+   * Union of rulesApplied + rulesWithheld.
+   * Every rule that was evaluated during this resolution, regardless of outcome.
+   * Use for completeness audits and change-impact analysis.
+   */
+  rulesEvaluated: string[];
+
+  /**
+   * Provider-contact and seek-care directives produced by escalation rules.
+   *
+   * ⚠️ These are SAFETY DIRECTIVES, not nutrition preferences.
+   * Generators and coaches must surface these as urgent patient safety guidance,
+   * never reframe them as meal modifications or dietary recommendations.
+   *
+   * Examples:
+   *   "Vomiting reported. Contact your prescribing provider before your next meal."
+   *   "Severe hydration difficulty. Seek medical attention."
+   */
+  safetyEscalations: string[];
+
+  /**
+   * Meal and food modification directives derived from current GI symptoms.
+   *
+   * These are dietary adaptation recommendations, separate from escalations.
+   * Safe for injection into generator prompts as meal-planning constraints.
+   *
+   * Examples:
+   *   "NAUSEA: MODERATE — Favor neutral, bland flavors. Avoid strong aromatics."
+   *   "HYDRATION RISK: ELEVATED — Include hydrating ingredients where appropriate."
+   *   "APPETITE: SUPPRESSED — Small, nutrient-dense meals only."
+   */
+  nutritionAdaptations: string[];
 };

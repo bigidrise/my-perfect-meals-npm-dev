@@ -9,12 +9,12 @@
  *
  * Every multiplier and threshold in the resolver must:
  *   1. Have a corresponding ClinicalRule entry here
- *   2. Be read via getRuleValue() — never hardcoded in the resolver
- *   3. Emit a RuleFiredEntry in the resolver output's rulesFired[]
+ *   2. Be read via getExecutableRuleValue() — never hardcoded in the resolver
+ *   3. Appear in rulesApplied[] (approved) or rulesWithheld[] (pending_review)
  *
  * Enforcement rules:
  *   - reviewStatus === "removed"  → assertRuleApproved() throws; resolver must not use the rule
- *   - reviewStatus === "pending_review" → rule executes but is flagged in rulesFired and logs
+ *   - reviewStatus === "pending_review" → rule is WITHHELD; fail-closed; goes into rulesWithheld[]
  *   - reviewStatus === "approved"  → normal execution
  *   - evidenceLevel === "uncited"  → must be pending_review or removed; never approved
  *
@@ -398,7 +398,7 @@ export const RULE_REGISTRY: Record<string, ClinicalRule> = {
     reviewDate: "2026-12-31",
     expiresDate: "2027-06-30",
     governanceNote:
-      "The direction (smaller portions during intro) is supported by PMID_36614945. The specific coefficient (0.82×) has no peer-reviewed source — it is a conservative engineering estimate. Must be reviewed by a registered dietitian or physician before promoting to 'approved'. Until then, resolves as pending_review in rulesFired.",
+      "The direction (smaller portions during intro) is supported by PMID_36614945. The specific coefficient (0.82×) has no peer-reviewed source — it is a conservative engineering estimate. Must be reviewed by a registered dietitian or physician before promoting to 'approved'. Until then, withheld from production (fail-closed); tracked in rulesWithheld[].",
   },
 
   glp1_muscle_preserve_calorie_multiplier: {
@@ -549,19 +549,114 @@ export const RULE_REGISTRY: Record<string, ClinicalRule> = {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // RUNTIME ENFORCEMENT HELPERS
+//
+// Two-tier access model:
+//   getRule(id)                    — inspection only; admin/audit display
+//   getExecutableRuleValue(id, fb) — production execution; BLOCKS pending_review
+//   assertRuleApproved(id)         — execution gate for boolean escalation rules
+//
+// A pending_review rule may appear in display and audit output, but must NEVER
+// affect live recommendations. "Warning icon = approved" is a governance failure.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Assert that a rule exists and is not removed.
- * - "removed"       → throws (must never reach a resolver)
- * - "pending_review"→ returns the rule (resolver should flag it in rulesFired)
+ * Inspect a rule for admin/audit display purposes only.
+ * Returns any non-removed rule as-is.
+ *
+ * DO NOT use this to obtain a value for production recommendations.
+ * Use getExecutableRuleValue() for that.
+ */
+export function getRule(ruleId: string): ClinicalRule | null {
+  const rule = RULE_REGISTRY[ruleId];
+  if (!rule) {
+    console.warn(`[GLP-1 Registry] Unknown rule: "${ruleId}"`);
+    return null;
+  }
+  return rule;
+}
+
+/**
+ * Result returned by getExecutableRuleValue().
+ * `applied: true`   — rule is approved and its value was used
+ * `applied: false`  — rule was withheld (pending_review or removed) and fallback was used
+ */
+export interface RuleExecutionResult {
+  /** The numeric value to use. The rule's value when applied; fallback when withheld. */
+  value: number;
+  /** True only when reviewStatus === "approved" and the rule value was used. */
+  applied: boolean;
+  ruleId: string;
+  reviewStatus: ReviewStatus;
+  /** Human-readable explanation of why the rule was withheld, when applied=false. */
+  reason?: string;
+}
+
+/**
+ * Get a rule's numeric value for use in production recommendations.
+ *
+ * GOVERNANCE:
+ *   - "approved"       → returns rule.value; sets applied=true
+ *   - "pending_review" → returns fallback; sets applied=false; rule goes in rulesWithheld[]
+ *   - "removed"        → returns fallback; sets applied=false; logs error
+ *   - unknown / no value → returns fallback; sets applied=false
+ *
+ * A pending_review rule MUST NOT influence any recommendation.
+ * A warning label is not a clinical approval.
+ */
+export function getExecutableRuleValue(ruleId: string, fallback: number): RuleExecutionResult {
+  const rule = RULE_REGISTRY[ruleId];
+
+  if (!rule || rule.value === undefined) {
+    console.warn(`[GLP-1 Registry] Unknown or valueless rule: "${ruleId}" — using fallback ${fallback}.`);
+    return { value: fallback, applied: false, ruleId, reviewStatus: rule?.reviewStatus ?? "removed" };
+  }
+
+  if (rule.reviewStatus === "removed") {
+    console.error(
+      `[GLP-1 Registry] 🚫 Rule "${ruleId}" is REMOVED and must not be used in any resolver. ` +
+      `Governace note: ${rule.governanceNote ?? "see registry"}`
+    );
+    return { value: fallback, applied: false, ruleId, reviewStatus: "removed",
+      reason: `Rule removed — must not be used. ${rule.governanceNote ?? ""}` };
+  }
+
+  if (rule.reviewStatus === "pending_review") {
+    if (process.env.MACRO_AUDIT === "true") {
+      console.warn(
+        `[GLP-1 Registry] ⚠️  Rule "${ruleId}" is PENDING_REVIEW — withheld from production. ` +
+        `Candidate value ${rule.value} NOT used. Fallback ${fallback} applied instead. ` +
+        `Review due: ${rule.reviewDate}.`
+      );
+    }
+    return {
+      value: fallback,
+      applied: false,
+      ruleId,
+      reviewStatus: "pending_review",
+      reason: `Rule withheld pending clinical approval (RD review due ${rule.reviewDate}). ` +
+        `Candidate value ${rule.value} not applied. Fallback ${fallback} used.`,
+    };
+  }
+
+  // approved — rule value may be used in production
+  return { value: rule.value, applied: true, ruleId, reviewStatus: "approved" };
+}
+
+/**
+ * Assert that a rule exists and is APPROVED before using it in a boolean
+ * escalation context (e.g. vomiting → escalate).
+ *
+ * - "removed"       → throws; resolver must not proceed
+ * - "pending_review"→ returns null; caller should skip and log (fail closed)
  * - "approved"      → returns the rule
  * - unknown ruleId  → returns null with a console.warn
+ *
+ * For numeric values, use getExecutableRuleValue() instead.
  */
 export function assertRuleApproved(ruleId: string): ClinicalRule | null {
   const rule = RULE_REGISTRY[ruleId];
   if (!rule) {
-    console.warn(`[GLP-1 Registry] Unknown rule: "${ruleId}" — using fallback.`);
+    console.warn(`[GLP-1 Registry] Unknown rule: "${ruleId}" — skipping.`);
     return null;
   }
   if (rule.reviewStatus === "removed") {
@@ -570,17 +665,29 @@ export function assertRuleApproved(ruleId: string): ClinicalRule | null {
       `Reason: ${rule.governanceNote ?? "see registry"}`
     );
   }
+  if (rule.reviewStatus === "pending_review") {
+    // Fail closed: pending escalation rules must not fire in production
+    console.warn(
+      `[GLP-1 Registry] ⚠️  Escalation rule "${ruleId}" is PENDING_REVIEW — skipped (fail closed). ` +
+      `Review due: ${rule.reviewDate}.`
+    );
+    return null;
+  }
   return rule;
 }
 
 /**
- * Read the numeric value for a rule from the registry.
- * Returns `fallback` if the rule is unknown, removed, or has no value field.
- * Logs a warning for pending_review rules so they appear in MACRO_AUDIT output.
+ * @deprecated Use getExecutableRuleValue() which enforces pending_review governance.
+ * This function is kept only for backward compatibility — it returns values for
+ * pending_review rules and must not be used for production recommendations.
  */
 export function getRuleValue(ruleId: string, fallback: number): number {
   const rule = RULE_REGISTRY[ruleId];
   if (!rule || rule.value === undefined || rule.reviewStatus === "removed") return fallback;
+  if (rule.reviewStatus === "pending_review") {
+    // Delegate to the governed path so the warning is emitted
+    return getExecutableRuleValue(ruleId, fallback).value;
+  }
   return rule.value;
 }
 
@@ -588,6 +695,37 @@ export function getRuleValue(ruleId: string, fallback: number): number {
 // STRUCTURED AUDIT LOGGING
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * An approved rule that was evaluated AND applied (contributed to the output).
+ * Appears in rulesApplied[] in the resolver output.
+ */
+export interface RuleAppliedEntry {
+  ruleId: string;
+  sourceIds: string[];
+  evidenceLevel: EvidenceLevel;
+  reviewStatus: "approved";
+  version: string;
+  value?: number;
+}
+
+/**
+ * A pending_review rule that was evaluated but NOT applied (withheld).
+ * Appears in rulesWithheld[] in the resolver output.
+ * The fallback value was used instead of rule.value.
+ */
+export interface RuleWithheldEntry {
+  ruleId: string;
+  reviewStatus: "pending_review";
+  version: string;
+  reason: string;
+  candidateValue?: number;
+  fallbackUsed: number;
+}
+
+/**
+ * @deprecated Use RuleAppliedEntry or RuleWithheldEntry.
+ * Kept for backward-compatible emitRuleLog() calls.
+ */
 export interface RuleFiredEntry {
   ruleId: string;
   sourceIds: string[];
