@@ -279,7 +279,7 @@ router.post("/ask", async (req, res) => {
         dailyFatTarget:            users.dailyFatTarget,
         dailyStarchyCarbsTarget:   (users as any).dailyStarchyCarbsTarget,
         dailyFibrousCarbsTarget:   (users as any).dailyFibrousCarbsTarget,
-        weightKg:                  users.weightKg,
+        weightKg:                  (users as any).weight,
         activityLevel:             users.activityLevel,
         weeklyTrainingSchedule:    users.weeklyTrainingSchedule,
         performanceProtocolConfig: users.performanceProtocolConfig,
@@ -645,7 +645,7 @@ router.post("/schedule", async (req, res) => {
       proteinG:  resolvedBaseProtein,
       carbsG:    resolvedBaseCarbs,
       fatG:      resolvedBaseFat,
-    };
+    } as any;
     const todayTargets = resolveTodayTargets(weeklyTrainingSchedule as any, performanceProtocolConfig as any, liveBaseline);
 
     console.log(`[APN] Schedule saved for user ${userId} — today: ${todayTargets.sessionType} (${todayTargets.calories} kcal)`);

@@ -58,6 +58,13 @@ import { computeDemandProfile, type DemandProfile } from "../../shared/performan
 import { resolveDailyNutritionState, type DailyNutritionState } from "./dailyNutritionState";
 import { buildInterventionPrompts, type ActiveIntervention } from "./interventions/interventionPromptBuilder";
 import { providerClinicalInterventions } from "../db/schema/providerInterventions";
+import {
+  resolveDailyMedicationTolerance,
+} from "./glp1/resolveDailyMedicationTolerance";
+import {
+  type DailyMedicationTolerance,
+  type ToleranceAppetiteLevel,
+} from "../../shared/glp1-schema";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PROCEDURAL RULES — The third enforcement dimension
@@ -511,6 +518,20 @@ export interface UserProtocolEnvelope {
    * Empty array when no conditions are active.
    */
   conditionGuidanceBlocks: string[];
+
+  /**
+   * GLP-1 daily medication tolerance state — resolved from ace_daily_checkins
+   * and water_logs for today's date. Null when the user is not on a GLP-1 /
+   * metabolic medication, or when no check-in data exists for today.
+   *
+   * Injected into conditionGuidanceBlocks as a real-time dietary directive block
+   * so all generators automatically honor today's GI tolerance state.
+   *
+   * Governed by the GLP-1 Rule Registry (ruleRegistry.ts):
+   *   - glp1_vomiting_escalate
+   *   - glp1_dehydration_difficulty_escalate
+   */
+  glp1DailyTolerance: DailyMedicationTolerance | null;
 
   /**
    * Thyroid Support active flag — true when specialtyCondition === 'thyroid-support'
@@ -1242,6 +1263,27 @@ export async function loadUserProtocolEnvelope(
       therapeuticSupportContext: therapeuticSupportCtx,
     });
 
+    // ── GLP-1 DAILY BEHAVIORAL TOLERANCE ────────────────────────────────────
+    // Resolved only for users who have a GLP-1 / metabolic medication in their
+    // medical conditions. Falls back to null on any failure so the envelope
+    // never crashes due to missing check-in data.
+    // The resolved guidance string is pushed into conditionGuidanceBlocks so
+    // every generator automatically receives today's tolerance state without
+    // any per-generator wiring.
+    let glp1DailyTolerance: DailyMedicationTolerance | null = null;
+    if (medicalConditionsGlp1.length > 0) {
+      try {
+        const today = new Date().toISOString().slice(0, 10);
+        glp1DailyTolerance = await resolveDailyMedicationTolerance({
+          userId: String(userId),
+          dateStr: today,
+        });
+        conditionGuidanceBlocks.push(buildGlp1ToleranceBlock(glp1DailyTolerance));
+      } catch (err) {
+        console.warn("[ProtocolEnvelope] GLP-1 daily tolerance resolution failed:", err);
+      }
+    }
+
     const rawCarbCycle = ((user as any).carbCycleState as any);
     const carbCycleContext: UserProtocolEnvelope["carbCycleContext"] =
       rawCarbCycle && (rawCarbCycle.phase === "low_carb" || rawCarbCycle.phase === "refeed") && rawCarbCycle.carbTargetG > 0
@@ -1315,7 +1357,7 @@ export async function loadUserProtocolEnvelope(
       console.error(`[ProtocolEnvelope] Failed to load provider interventions for user ${userId}:`, err);
     }
 
-    return {
+    const envelope: any = {
       userId,
       dietaryIdentity: dietaryRestrictions,
       allergies,
@@ -1330,6 +1372,7 @@ export async function loadUserProtocolEnvelope(
       hasDiabetes,
       diabeticGlucoseState,
       conditionGuidanceBlocks,
+      glp1DailyTolerance,
       thyroidSupport,
       thyroidMedication,
       thyroidType,
@@ -1399,6 +1442,51 @@ export async function loadUserProtocolEnvelope(
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// GLP-1 TOLERANCE BLOCK BUILDER
+// Converts a DailyMedicationTolerance into a self-contained directive string
+// for injection into conditionGuidanceBlocks. Directional language only —
+// no invented calorie or macro numbers.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Build the GLP-1 daily tolerance block for injection into generator prompts.
+ *
+ * Layout (order is mandatory):
+ *   1. SAFETY ESCALATIONS — first, unmistakably urgent, visually distinct.
+ *      These are provider-contact directives. They must not be treated as
+ *      nutrition preferences and must not be reframed as meal modifications
+ *      by any generator. If present, they override normal meal guidance.
+ *   2. NUTRITION ADAPTATIONS — dietary modification directives derived from
+ *      current GI symptoms. Safe for prompt injection as meal constraints.
+ *
+ * Uses t.safetyEscalations[] and t.nutritionAdaptations[] directly — the
+ * resolver owns the content, the envelope owns the injection format.
+ */
+function buildGlp1ToleranceBlock(t: DailyMedicationTolerance): string {
+  const sections: string[] = [`[GLP-1 Daily Tolerance — ${t.date}]`];
+
+  // ── Safety escalations FIRST ─────────────────────────────────────────────
+  // These are SAFETY DIRECTIVES, not dietary preferences.
+  // Any generator receiving this block must surface them to the user as urgent
+  // patient safety guidance — never dilute them into a meal recommendation.
+  if (t.safetyEscalations.length > 0) {
+    sections.push(
+      "━━━ ⚠️  SAFETY DIRECTIVES — READ BEFORE GENERATING ━━━",
+      ...t.safetyEscalations,
+      "━━━ END SAFETY DIRECTIVES ━━━"
+    );
+  }
+
+  // ── Nutrition adaptations ─────────────────────────────────────────────────
+  // Meal and food modification constraints. Safe for meal planning context.
+  if (t.nutritionAdaptations.length > 0) {
+    sections.push("── Nutrition Adaptations ──", ...t.nutritionAdaptations);
+  }
+
+  return sections.join("\n");
+}
+
 /**
  * Build an empty envelope for unauthenticated or guest contexts.
  * Generators should use this instead of skipping enforcement entirely.
@@ -1419,6 +1507,7 @@ export function buildGuestEnvelope(): UserProtocolEnvelope {
     hasDiabetes: false,
     diabeticGlucoseState: null,
     conditionGuidanceBlocks: [],
+    glp1DailyTolerance: null,
     thyroidSupport: false,
     thyroidMedication: null,
     thyroidType: null,

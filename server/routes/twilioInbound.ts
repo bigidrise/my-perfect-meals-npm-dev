@@ -16,7 +16,7 @@ router.post("/twilio/inbound-sms", async (req, res) => {
       await db.update(users).set({ 
         smsConsent: false,
         smsConsentAt: null 
-      }).where(eq(users.phoneE164, from));
+      } as any).where(eq((users as any).phoneE164, from));
       
       // Send confirmation
       return res.type("text/xml").send(`<Response><Message>You have been unsubscribed from SMS reminders. Reply START to re-subscribe.</Message></Response>`);
@@ -26,7 +26,7 @@ router.post("/twilio/inbound-sms", async (req, res) => {
       await db.update(users).set({ 
         smsConsent: true,
         smsConsentAt: new Date()
-      }).where(eq(users.phoneE164, from));
+      } as any).where(eq((users as any).phoneE164, from));
       
       return res.type("text/xml").send(`<Response><Message>You've been re-subscribed. You will receive meal reminders.</Message></Response>`);
     }

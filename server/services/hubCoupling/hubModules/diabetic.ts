@@ -236,7 +236,7 @@ export const diabeticHubModule: HubModule = {
     guardrails: HubGuardrails,
     mealType: string
   ): PromptFragment {
-    const data = context?.data as DiabeticContextData | undefined;
+    const data = context?.data as unknown as DiabeticContextData | undefined;
     const glucoseGuidance = data ? buildGlucoseGuidance(data) : '';
 
     // ── Type-aware coaching context ───────────────────────────────────────────

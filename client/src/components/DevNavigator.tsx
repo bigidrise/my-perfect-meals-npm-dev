@@ -352,23 +352,6 @@ function ProDashboardPreview({ onNavigate }: { onNavigate: (path: string) => voi
     );
   }
 
-  if (error && clients.length === 0) {
-    return (
-      <div className="px-4 py-3">
-        <div className="flex items-start gap-2 text-red-300/80 text-xs mb-2">
-          <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-          <span>{error}</span>
-        </div>
-        <button
-          onClick={fetchAll}
-          className="flex items-center gap-1.5 text-xs text-amber-400 active:opacity-70"
-        >
-          <RefreshCw className="h-3 w-3" /> Retry
-        </button>
-      </div>
-    );
-  }
-
   // Group by unique client (show one row per clientUserId with both view buttons)
   const uniqueClients = Array.from(
     new Map(clients.map(c => [c.clientUserId, c])).values()
@@ -376,9 +359,54 @@ function ProDashboardPreview({ onNavigate }: { onNavigate: (path: string) => voi
 
   return (
     <div className="border-t border-white/5">
-      <div className="px-4 py-2 flex items-center justify-between">
+      {/* Direct portal links — always visible, no client required */}
+      <div className="px-4 pt-3 pb-2">
+        <p className="text-[10px] text-white/30 uppercase tracking-wide mb-2">Portals</p>
+        <div className="grid grid-cols-2 gap-1.5 mb-3">
+          {[
+            { path: "/pro-portal", label: "Pro Portal" },
+            { path: "/pro/clients", label: "Clients (Trainer)" },
+            { path: "/pro/physician-clients", label: "Clients (Physician)" },
+            { path: "/pro/physician", label: "Physician Portal" },
+          ].map(({ path, label }) => (
+            <button
+              key={path}
+              onClick={() => onNavigate(path)}
+              className="flex items-center justify-center py-1.5 px-2 rounded-lg bg-white/8 border border-white/10 text-white/70 text-xs font-medium active:scale-[0.97] transition-transform"
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        <p className="text-[10px] text-white/30 uppercase tracking-wide mb-2">Dashboards (empty state preview)</p>
+        <p className="text-[10px] text-white/20 mb-2 leading-relaxed">
+          Loads the full dashboard UI with no real client — use to inspect layout &amp; buttons.
+        </p>
+        <div className="grid grid-cols-2 gap-1.5">
+          <button
+            onClick={() => onNavigate("/pro/clients/__dev__/trainer")}
+            className="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg bg-emerald-600/20 border border-emerald-500/30 text-emerald-300 text-xs font-medium active:scale-[0.97] transition-transform"
+          >
+            <Dumbbell className="h-3 w-3" />
+            Trainer Dashboard
+          </button>
+          <button
+            onClick={() => onNavigate("/pro/clients/__dev__/clinician")}
+            className="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg bg-violet-600/20 border border-violet-500/30 text-violet-300 text-xs font-medium active:scale-[0.97] transition-transform"
+          >
+            <Stethoscope className="h-3 w-3" />
+            Physician Dashboard
+          </button>
+        </div>
+      </div>
+
+      {/* Per-client jump section */}
+      <div className="px-4 py-2 flex items-center justify-between border-t border-white/5 mt-1">
         <span className="text-[10px] text-white/30 uppercase tracking-wide">
-          {uniqueClients.length} client{uniqueClients.length !== 1 ? "s" : ""} found
+          {error && uniqueClients.length === 0
+            ? "No test client found"
+            : `${uniqueClients.length} client${uniqueClients.length !== 1 ? "s" : ""} found`}
         </span>
         <button
           onClick={fetchAll}
@@ -389,6 +417,15 @@ function ProDashboardPreview({ onNavigate }: { onNavigate: (path: string) => voi
           Refresh
         </button>
       </div>
+
+      {error && uniqueClients.length === 0 && (
+        <div className="px-4 pb-3">
+          <div className="flex items-start gap-2 text-white/30 text-[11px]">
+            <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0 text-white/20" />
+            <span>Enroll mpmsandboxtest2026@proton.me as a client to enable per-client jump links below.</span>
+          </div>
+        </div>
+      )}
 
       {uniqueClients.map((c) => (
         <div key={c.clientUserId} className="px-4 py-2.5 border-t border-white/5">

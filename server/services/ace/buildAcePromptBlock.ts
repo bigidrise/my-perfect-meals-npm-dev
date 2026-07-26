@@ -204,6 +204,7 @@ export async function buildAcePromptBlock(userId: string): Promise<{
   const block = formatBlock(negativeLabels, positiveLabels, priorities, avoidances);
 
   const meta: AcePromptMeta = {
+    block,
     interventionKey: top?.key ?? null,
     signalCount: negativeLabels.length,
     positiveSignalCount: positiveLabels.length,

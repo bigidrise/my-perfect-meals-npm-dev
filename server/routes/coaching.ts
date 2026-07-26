@@ -14,7 +14,7 @@ import { randomUUID } from "crypto";
 const router = Router();
 
 const stripeKey = process.env.STRIPE_SECRET_KEY ?? "";
-const stripe = stripeKey ? new Stripe(stripeKey, { apiVersion: "2024-06-20" }) : null;
+const stripe = stripeKey ? new Stripe(stripeKey, { apiVersion: "2025-10-29.clover" }) : null;
 
 const ASSIGNMENT_TAG = "system:new_client_assignment";
 const OVERDUE_HOURS = 24;

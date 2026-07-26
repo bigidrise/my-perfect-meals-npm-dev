@@ -80,7 +80,7 @@ router.post("/users/:userId/phone/verify", async (req, res) => {
       phoneVerified: true,
       phoneVerificationCode: null,
       phoneVerifiedAt: new Date()
-    }).where(eq(users.id, userId));
+    } as any).where(eq(users.id, userId));
     
     return res.json({ ok: true });
   } catch (error: any) {
@@ -98,7 +98,7 @@ router.put("/users/:userId/sms-consent", async (req, res) => {
     await db.update(users).set({
       smsConsent: consent,
       smsConsentAt: consent ? new Date() : null
-    }).where(eq(users.id, userId));
+    } as any).where(eq(users.id, userId));
 
     // Update notification channels to include/exclude "sms"
     const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);

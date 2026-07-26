@@ -149,7 +149,7 @@ mealImagesRouter.post('/meal-images/hydrate-with-image', requireAuth, imageRateL
     
     const { meal: validated } = validateAndFixMeal(meal);
     
-    let imageUrl = validated.imageUrl;
+    let imageUrl = (validated as any).imageUrl;
     
     // Generate image if requested and not already present
     if (generateImage && !imageUrl) {

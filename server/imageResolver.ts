@@ -160,7 +160,7 @@ export class ImageResolver {
       configured: validation.ok,
       assetCount: IMAGE_ASSET_MANIFEST.length,
       baseUrl: this.getBaseUrl(),
-      error: validation.ok ? undefined : validation.reason,
+      error: validation.ok ? undefined : (validation as any).reason,
     };
   }
 }

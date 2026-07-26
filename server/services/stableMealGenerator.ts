@@ -896,8 +896,8 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
             console.log(`💉 GLP-1 guardrails applied`);
           }
         }
-      } else if (detectedHubType === 'anti_inflammatory') {
-        medicalHubContext = await resolveHubCoupling('anti_inflammatory', userPrefs.userId, targetMealType);
+      } else if (detectedHubType === 'anti-inflammatory') {
+        medicalHubContext = await resolveHubCoupling('anti-inflammatory', userPrefs.userId, targetMealType);
         if (medicalHubContext) {
           console.log(`🌿 [ANTI-INFLAMMATORY INTEGRATION] Active - diet context loaded for user ${userPrefs.userId.substring(0, 8)}...`);
           if (medicalHubContext.guardrails) {
@@ -1268,7 +1268,7 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
     const _oncologyBypassCtx = (userPrefs as any)?._oncologySupportContext as OncologySupportContext | null;
     if (_oncologyBypassCtx?.enabled) {
       console.log('🎗️ [CANCER SUPPORT] Oncology active — bypassing catalog, routing to constraint-first AI generation');
-      telemetry.tagFallback(sessionId, "oncology_ai_bypass", "Oncology active — catalog bypassed for constraint-first AI");
+      telemetry.tagFallback(sessionId, "oncology_ai_bypass" as any, "Oncology active — catalog bypassed for constraint-first AI");
       telemetry.closeSession(sessionId);
 
       const oncologyPrompt = buildOncologySupportPrompt(_oncologyBypassCtx);
@@ -1641,5 +1641,5 @@ User request: ${craving}`;
     createdAt: new Date(),
     _debug: debugMetadata,
     _behavioralAudit: behavioralAudit,
-  };
+  } as any;
 }

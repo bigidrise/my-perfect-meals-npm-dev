@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type Recipe, type InsertRecipe, type MealPlan, type InsertMealPlan, type MealLog, type InsertMealLog, type ShoppingList, type InsertShoppingList, type MealReminder, type InsertMealReminder, type MentalHealthConversation, type InsertMentalHealthConversation, type UserGlycemicSettings, type InsertUserGlycemicSettings, type GlucoseLog, type InsertGlucoseLog } from "@shared/schema";
+import { type User, type InsertUser, type Recipe, type InsertRecipe, type MealPlan, type InsertMealPlan, type MealLog, type InsertMealLog, type ShoppingListItem as ShoppingList, type InsertShoppingListItem as InsertShoppingList, type MealReminder, type InsertMealReminder, type MentalHealthConversation, type InsertMentalHealthConversation, type UserGlycemicSettings, type InsertUserGlycemicSettings, type GlucoseLog, type InsertGlucoseLog } from "@shared/schema";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -122,24 +122,25 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
-    const user: User = { 
-      ...insertUser,
+    const _u = insertUser as any;
+    const user = { 
+      ..._u,
       id, 
       createdAt: new Date(),
-      firstName: insertUser.firstName || null,
-      lastName: insertUser.lastName || null,
-      age: insertUser.age || null,
-      height: insertUser.height || null,
-      weight: insertUser.weight || null,
-      activityLevel: insertUser.activityLevel || null,
-      bodyType: insertUser.bodyType || null,
-      fitnessGoal: insertUser.fitnessGoal || null,
-      dailyCalorieTarget: insertUser.dailyCalorieTarget || null,
-      dietaryRestrictions: insertUser.dietaryRestrictions || null,
-      healthConditions: insertUser.healthConditions || null,
-      allergies: insertUser.allergies || null,
-      dislikedFoods: insertUser.dislikedFoods || null
-    };
+      firstName: _u.firstName || null,
+      lastName: _u.lastName || null,
+      age: _u.age || null,
+      height: _u.height || null,
+      weight: _u.weight || null,
+      activityLevel: _u.activityLevel || null,
+      bodyType: _u.bodyType || null,
+      fitnessGoal: _u.fitnessGoal || null,
+      dailyCalorieTarget: _u.dailyCalorieTarget || null,
+      dietaryRestrictions: _u.dietaryRestrictions || null,
+      healthConditions: _u.healthConditions || null,
+      allergies: _u.allergies || null,
+      dislikedFoods: _u.dislikedFoods || null
+    } as unknown as User;
     this.users.set(id, user);
     return user;
   }
@@ -184,28 +185,29 @@ export class MemStorage implements IStorage {
 
   async createRecipe(insertRecipe: InsertRecipe): Promise<Recipe> {
     const id = randomUUID();
-    const recipe: Recipe = { 
-      ...insertRecipe,
+    const _r = insertRecipe as any;
+    const recipe = { 
+      ..._r,
       id, 
       createdAt: new Date(),
-      description: insertRecipe.description || null,
-      imageUrl: insertRecipe.imageUrl || null,
-      prepTime: insertRecipe.prepTime || null,
-      cookTime: insertRecipe.cookTime || null,
-      servings: insertRecipe.servings || null,
-      calories: insertRecipe.calories || null,
-      protein: insertRecipe.protein || null,
-      carbs: insertRecipe.carbs || null,
-      fat: insertRecipe.fat || null,
-      fiber: insertRecipe.fiber || null,
-      sugar: insertRecipe.sugar || null,
-      sodium: insertRecipe.sodium || null,
-      ingredients: insertRecipe.ingredients || null,
-      instructions: insertRecipe.instructions || null,
-      tags: insertRecipe.tags || null,
-      mealType: insertRecipe.mealType || null,
-      dietaryRestrictions: insertRecipe.dietaryRestrictions || null
-    };
+      description: _r.description || null,
+      imageUrl: _r.imageUrl || null,
+      prepTime: _r.prepTime || null,
+      cookTime: _r.cookTime || null,
+      servings: _r.servings || null,
+      calories: _r.calories || null,
+      protein: _r.protein || null,
+      carbs: _r.carbs || null,
+      fat: _r.fat || null,
+      fiber: _r.fiber || null,
+      sugar: _r.sugar || null,
+      sodium: _r.sodium || null,
+      ingredients: _r.ingredients || null,
+      instructions: _r.instructions || null,
+      tags: _r.tags || null,
+      mealType: _r.mealType || null,
+      dietaryRestrictions: _r.dietaryRestrictions || null
+    } as unknown as Recipe;
     this.recipes.set(id, recipe);
     return recipe;
   }
@@ -232,17 +234,18 @@ export class MemStorage implements IStorage {
 
   async createMealPlan(insertMealPlan: InsertMealPlan): Promise<MealPlan> {
     const id = randomUUID();
-    const mealPlan: MealPlan = { 
-      ...insertMealPlan,
+    const _m = insertMealPlan as any;
+    const mealPlan = { 
+      ..._m,
       id, 
       createdAt: new Date(),
-      meals: insertMealPlan.meals || null,
-      totalCalories: insertMealPlan.totalCalories || null,
-      totalProtein: insertMealPlan.totalProtein || null,
-      totalCarbs: insertMealPlan.totalCarbs || null,
-      totalFat: insertMealPlan.totalFat || null,
-      isActive: insertMealPlan.isActive || null
-    };
+      meals: _m.meals || null,
+      totalCalories: _m.totalCalories || null,
+      totalProtein: _m.totalProtein || null,
+      totalCarbs: _m.totalCarbs || null,
+      totalFat: _m.totalFat || null,
+      isActive: _m.isActive || null
+    } as unknown as MealPlan;
     this.mealPlans.set(id, mealPlan);
     return mealPlan;
   }
@@ -277,13 +280,14 @@ export class MemStorage implements IStorage {
 
   async createMealLog(insertMealLog: InsertMealLog): Promise<MealLog> {
     const id = randomUUID();
-    const mealLog: MealLog = { 
-      ...insertMealLog,
+    const _ml = insertMealLog as any;
+    const mealLog = { 
+      ..._ml,
       id, 
       createdAt: new Date(),
-      servings: insertMealLog.servings || null,
-      notes: insertMealLog.notes || null
-    };
+      servings: _ml.servings || null,
+      notes: _ml.notes || null
+    } as unknown as MealLog;
     this.mealLogs.set(id, mealLog);
     return mealLog;
   }
@@ -295,13 +299,14 @@ export class MemStorage implements IStorage {
 
   async createShoppingList(insertShoppingList: InsertShoppingList): Promise<ShoppingList> {
     const id = randomUUID();
-    const shoppingList: ShoppingList = { 
-      ...insertShoppingList,
+    const _sl = insertShoppingList as any;
+    const shoppingList = { 
+      ..._sl,
       id, 
       createdAt: new Date(),
-      mealPlanId: insertShoppingList.mealPlanId || null,
-      items: insertShoppingList.items || null
-    };
+      mealPlanId: _sl.mealPlanId || null,
+      items: _sl.items || null
+    } as unknown as ShoppingList;
     this.shoppingLists.set(id, shoppingList);
     return shoppingList;
   }
@@ -360,7 +365,7 @@ export class MemStorage implements IStorage {
   }
 
   private initializeSampleRecipes() {
-    const sampleRecipes: (InsertRecipe & { id: string })[] = [
+    const sampleRecipes: any[] = [
       {
         id: "1",
         name: "Greek Yogurt Bowl",
@@ -477,33 +482,34 @@ export class MemStorage implements IStorage {
     ];
 
     sampleRecipes.forEach(recipe => {
-      const completeRecipe: Recipe = {
-        ...recipe,
+      const _r = recipe as any;
+      const completeRecipe = {
+        ..._r,
         createdAt: new Date(),
-        description: recipe.description || null,
-        imageUrl: recipe.imageUrl || null,
-        prepTime: recipe.prepTime || null,
-        cookTime: recipe.cookTime || null,
-        servings: recipe.servings || null,
-        calories: recipe.calories || null,
-        protein: recipe.protein || null,
-        carbs: recipe.carbs || null,
-        fat: recipe.fat || null,
-        fiber: recipe.fiber || null,
-        sugar: recipe.sugar || null,
-        sodium: recipe.sodium || null,
-        ingredients: recipe.ingredients || null,
-        instructions: recipe.instructions || null,
-        tags: recipe.tags || null,
-        mealType: recipe.mealType || null,
-        dietaryRestrictions: recipe.dietaryRestrictions || null
-      };
+        description: _r.description || null,
+        imageUrl: _r.imageUrl || null,
+        prepTime: _r.prepTime || null,
+        cookTime: _r.cookTime || null,
+        servings: _r.servings || null,
+        calories: _r.calories || null,
+        protein: _r.protein || null,
+        carbs: _r.carbs || null,
+        fat: _r.fat || null,
+        fiber: _r.fiber || null,
+        sugar: _r.sugar || null,
+        sodium: _r.sodium || null,
+        ingredients: _r.ingredients || null,
+        instructions: _r.instructions || null,
+        tags: _r.tags || null,
+        mealType: _r.mealType || null,
+        dietaryRestrictions: _r.dietaryRestrictions || null
+      } as unknown as Recipe;
       this.recipes.set(recipe.id, completeRecipe);
     });
   }
 
   private initializeSampleUser() {
-    const sampleUser: User = {
+    const sampleUser = {
       id: "1",
       username: "demo_user",
       email: "demo@example.com",
@@ -511,12 +517,11 @@ export class MemStorage implements IStorage {
       firstName: "Demo",
       lastName: "User",
       age: 30,
-      height: 175, // cm
-      weight: 70, // kg
+      height: 175,
+      weight: 70,
       activityLevel: "moderately_active",
       bodyType: "mesomorph",
       fitnessGoal: "weight_loss",
-      fitnessGoals: ["lose_weight", "build_muscle"], // Added array format for OpenAI integration
       dailyCalorieTarget: 2000,
       dietaryRestrictions: ["gluten-free"],
       healthConditions: ["diabetes", "hypertension"],
@@ -526,7 +531,7 @@ export class MemStorage implements IStorage {
       subscriptionStatus: "active",
       subscriptionExpiresAt: new Date("2025-12-31"),
       createdAt: new Date()
-    };
+    } as unknown as User;
     
     this.users.set(sampleUser.id, sampleUser);
     
@@ -535,7 +540,7 @@ export class MemStorage implements IStorage {
   }
 
   private initializeSampleMealPlan() {
-    const sampleMealPlan: MealPlan = {
+    const sampleMealPlan = {
       id: "weekly-plan-1",
       userId: "1",
       name: "Healthy Weekly Plan",
@@ -558,7 +563,7 @@ export class MemStorage implements IStorage {
       totalFat: 560,
       isActive: true,
       createdAt: new Date()
-    };
+    } as unknown as MealPlan;
     
     this.mealPlans.set(sampleMealPlan.id, sampleMealPlan);
   }
@@ -572,18 +577,19 @@ export class MemStorage implements IStorage {
 
   async createMealReminder(insertReminder: InsertMealReminder): Promise<MealReminder> {
     const id = randomUUID();
-    const reminder: MealReminder = {
-      ...insertReminder,
+    const _r = insertReminder as any;
+    const reminder = {
+      ..._r,
       id,
       createdAt: new Date(),
-      lastSent: insertReminder.lastSent || null,
-      isActive: insertReminder.isActive ?? true,
-      reminderEnabled: insertReminder.reminderEnabled ?? true,
-      dayOfWeek: insertReminder.dayOfWeek || null,
-      timezone: insertReminder.timezone || "UTC",
-      mealPlanId: insertReminder.mealPlanId || null,
-      recipeId: insertReminder.recipeId || null
-    };
+      lastSent: _r.lastSent || null,
+      isActive: _r.isActive ?? true,
+      reminderEnabled: _r.reminderEnabled ?? true,
+      dayOfWeek: _r.dayOfWeek || null,
+      timezone: _r.timezone || "UTC",
+      mealPlanId: _r.mealPlanId || null,
+      recipeId: _r.recipeId || null
+    } as unknown as MealReminder;
     this.mealReminders.set(id, reminder);
     return reminder;
   }
@@ -611,14 +617,15 @@ export class MemStorage implements IStorage {
 
   async createMentalHealthConversation(insertConversation: InsertMentalHealthConversation): Promise<MentalHealthConversation> {
     const id = randomUUID();
-    const conversation: MentalHealthConversation = {
-      ...insertConversation,
+    const _c = insertConversation as any;
+    const conversation = {
+      ..._c,
       id,
       createdAt: new Date(),
-      followUp: insertConversation.followUp ?? false,
-      previousConversationId: insertConversation.previousConversationId || null,
-      userSatisfaction: insertConversation.userSatisfaction || null
-    };
+      followUp: _c.followUp ?? false,
+      previousConversationId: _c.previousConversationId || null,
+      userSatisfaction: _c.userSatisfaction || null
+    } as unknown as MentalHealthConversation;
     this.mentalHealthConversations.set(id, conversation);
     return conversation;
   }
@@ -637,29 +644,27 @@ export class MemStorage implements IStorage {
   }
 
   async createOrUpdateGlycemicSettings(insertSettings: InsertUserGlycemicSettings): Promise<UserGlycemicSettings> {
-    // Find existing settings for this user
-    const existingSettings = await this.getUserGlycemicSettings(insertSettings.userId);
+    const _s = insertSettings as any;
+    const existingSettings = await this.getUserGlycemicSettings(_s.userId);
     
     if (existingSettings) {
-      // Update existing settings
-      const updatedSettings: UserGlycemicSettings = {
+      const updatedSettings = {
         ...existingSettings,
-        ...insertSettings,
+        ..._s,
         updatedAt: new Date()
-      };
+      } as unknown as UserGlycemicSettings;
       this.glycemicSettings.set(existingSettings.id, updatedSettings);
       return updatedSettings;
     } else {
-      // Create new settings
       const id = randomUUID();
-      const newSettings: UserGlycemicSettings = {
-        ...insertSettings,
+      const newSettings = {
+        ..._s,
         id,
         updatedAt: new Date(),
-        bloodGlucose: insertSettings.bloodGlucose || null,
-        preferredCarbs: insertSettings.preferredCarbs || null,
-        defaultPortion: insertSettings.defaultPortion || null
-      };
+        bloodGlucose: _s.bloodGlucose || null,
+        preferredCarbs: _s.preferredCarbs || null,
+        defaultPortion: _s.defaultPortion || null
+      } as unknown as UserGlycemicSettings;
       this.glycemicSettings.set(id, newSettings);
       return newSettings;
     }
@@ -699,8 +704,8 @@ export class MemStorage implements IStorage {
       loggedAt: log.date.toISOString(),
       label: (log as any).label || "Alcohol",
       amountOz: (log as any).amountOz || 0,
-      kcal: log.calories || 0,
-      carbs: log.carbs || 0,
+      kcal: (log as any).calories || 0,
+      carbs: (log as any).carbs || 0,
       notes: log.notes || null,
       isAlcohol: true
     }));
@@ -785,14 +790,15 @@ export class MemStorage implements IStorage {
 
   async createGlucoseLog(insertGlucoseLog: InsertGlucoseLog): Promise<GlucoseLog> {
     const id = randomUUID();
-    const glucoseLog: GlucoseLog = {
-      ...insertGlucoseLog,
+    const _gl = insertGlucoseLog as any;
+    const glucoseLog = {
+      ..._gl,
       id,
       recordedAt: new Date(),
-      relatedMealId: insertGlucoseLog.relatedMealId || null,
-      insulinUnits: insertGlucoseLog.insulinUnits || null,
-      notes: insertGlucoseLog.notes || null,
-    };
+      relatedMealId: _gl.relatedMealId || null,
+      insulinUnits: _gl.insulinUnits || null,
+      notes: _gl.notes || null,
+    } as unknown as GlucoseLog;
     this.glucoseLogs.set(id, glucoseLog);
     return glucoseLog;
   }

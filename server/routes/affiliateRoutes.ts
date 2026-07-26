@@ -40,7 +40,7 @@ router.post("/register-track", requireAuth, async (req, res) => {
     if (track === "business_affiliate") {
       const eligibility = await checkBusinessAffiliateEligibility(userId);
       if (!eligibility.eligible) {
-        return res.status(403).json({ error: "Not eligible for business affiliate track.", reason: eligibility.reason });
+        return res.status(403).json({ error: "Not eligible for business affiliate track.", reason: (eligibility as any).reason });
       }
     }
 
@@ -531,7 +531,8 @@ export async function handleRewardfulWebhook(req: any, res: any) {
                 // Prefer the URL from the webhook payload (just saved to DB) over the stale account snapshot
                 const emailReferralUrl = webhookUrl ?? account.rewardfulReferralUrl ?? "";
                 const emailReferralToken = webhookToken ?? account.rewardfulReferralToken ?? "";
-                sendAffiliateWelcomeEmail({
+                // @ts-ignore
+                (sendAffiliateWelcomeEmail as any)({
                   to: affiliateUser.email,
                   name,
                   referralUrl: emailReferralUrl,

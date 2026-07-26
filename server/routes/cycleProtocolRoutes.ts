@@ -17,7 +17,7 @@ import { z } from "zod";
 const router = Router();
 
 const nutritionStrategySchema = z.object({
-  strategyType: z.enum(STRATEGY_TYPES as [string, ...string[]]),
+  strategyType: z.enum(STRATEGY_TYPES as unknown as [string, ...string[]]),
   coachInstructions: z.string().min(1).max(1000),
   watchFor: z.string().max(500).nullable().optional(),
 });

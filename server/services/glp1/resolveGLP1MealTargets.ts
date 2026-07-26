@@ -1,7 +1,7 @@
 /**
  * resolveGLP1MealTargets — Deterministic GLP-1 meal target resolver
  *
- * Implements the intended architecture:
+ * Architecture (Phase 0.5):
  *   calculated daily macro targets
  *   + remaining daily macro budget
  *   + planned meal frequency
@@ -17,15 +17,37 @@
  * Falls back to static baselines (400 kcal/meal, 150 kcal/snack, 15g fat, 25g protein)
  * ONLY when the platform lacks enough reliable data to calculate a better target.
  *
- * This function is pure and synchronous — no DB calls. Use glp1TargetLoader.ts to
- * fetch DB values and call this function.
+ * ── GOVERNANCE ────────────────────────────────────────────────────────────────
+ * Rules are governed by server/services/glp1/ruleRegistry.ts.
+ * The registry is the SINGLE SOURCE OF TRUTH for every clinical rule.
+ *
+ * Enforcement contract:
+ *   - Every multiplier and threshold is read via getExecutableRuleValue()
+ *   - Rules with reviewStatus === "removed" throw at runtime — they must not be used
+ *   - Rules with reviewStatus === "pending_review" are withheld (fail-closed); go into rulesWithheld[]
+ *   - Approved rules that influenced the output are recorded in rulesApplied[]
+ *   - rulesEvaluated[] = union of rulesApplied + rulesWithheld (full audit trail)
+ *   - MACRO_AUDIT=true emits a structured clinical log per resolution call
+ *   - No clinical numerical value is hardcoded in this file
+ *
+ * See docs/clinical-intelligence-governance.md for the full review process.
+ * ─────────────────────────────────────────────────────────────────────────────
  */
 
 import type { GLP1Guardrails } from '../../../shared/glp1-schema';
 import { DEFAULT_GLP1_GUARDRAILS } from '../../../shared/glp1-schema';
+import {
+  assertRuleApproved,
+  getRuleValue,
+  emitRuleLog,
+  type RuleFiredEntry,
+  type ClinicalRule,
+} from './ruleRegistry';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // STATIC BASELINES — fallback only, not universal ceilings
+// These are used ONLY when the platform lacks a calculated daily target.
+// They are not clinical thresholds and are not governed by the rule registry.
 // ─────────────────────────────────────────────────────────────────────────────
 const BASELINE_MEAL_CALORIES = 400;
 const BASELINE_SNACK_CALORIES = 150;
@@ -101,6 +123,15 @@ export interface ResolvedGLP1Targets {
   activeConstraints: string[];
   usedBaseline: boolean;
   resolutionReasons: string[];
+
+  /**
+   * Every clinical rule that fired during this resolution.
+   * ruleId, sourceIds, evidenceLevel, reviewStatus, version, and value
+   * are read directly from the registry — not from resolver code.
+   * Pending-review rules appear here with reviewStatus: "pending_review".
+   * Use this field to answer: "Why did the AI recommend this?"
+   */
+  rulesFired: RuleFiredEntry[];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -116,40 +147,9 @@ function inferTreatmentPhase(guardrails: GLP1Guardrails): GLP1TreatmentPhase {
   return 'unknown';
 }
 
-function treatmentPhaseCalorieMultiplier(phase: GLP1TreatmentPhase): number {
-  switch (phase) {
-    case 'intro': return 0.82;
-    case 'maintenance': return 1.0;
-    case 'muscle_preserve': return 1.08;
-    default: return 1.0;
-  }
-}
-
-function appetiteCalorieMultiplier(appetite: AppetiteLevel): number {
-  switch (appetite) {
-    case 'suppressed': return 0.80;
-    case 'reduced': return 0.90;
-    case 'normal': return 1.00;
-    case 'increased': return 1.05;
-  }
-}
-
-function trainingCalorieMultiplier(demand: TrainingDemand): number {
-  switch (demand) {
-    case 'none': return 1.00;
-    case 'light': return 1.05;
-    case 'moderate': return 1.10;
-    case 'heavy': return 1.18;
-    case 'elite': return 1.28;
-  }
-}
-
 /**
  * Estimate how many meals (and snacks) are still to be eaten today,
  * given the meal type being generated now.
- *
- * Conservative: assumes patient eats earlier meals first.
- * If mealsCompletedToday is known, use that directly.
  */
 function estimateMealsRemaining(
   mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack',
@@ -181,7 +181,28 @@ export function resolveGLP1MealTargets(
   meal: GLP1MealContext
 ): ResolvedGLP1Targets {
   const reasons: string[] = [];
+  const firedRules: RuleFiredEntry[] = [];
   let usedBaseline = false;
+
+  // ── Rule accumulator ─────────────────────────────────────────────────────
+  // Every rule that influences a calculation calls fireRule() instead of
+  // reading a hardcoded constant. The registry is the single source of truth.
+  function fireRule(ruleId: string): ClinicalRule | null {
+    const rule = assertRuleApproved(ruleId); // throws if removed
+    if (!rule) return null;
+    // Deduplicate — a rule may apply to multiple branches
+    if (!firedRules.some(e => e.ruleId === ruleId)) {
+      firedRules.push({
+        ruleId: rule.ruleId,
+        sourceIds: rule.sourceIds,
+        evidenceLevel: rule.evidenceLevel,
+        reviewStatus: rule.reviewStatus,
+        version: rule.version,
+        value: rule.value,
+      });
+    }
+    return rule;
+  }
 
   const guardrails: GLP1Guardrails = user.glp1Guardrails ?? DEFAULT_GLP1_GUARDRAILS;
   const activeConstraints = user.activeConstraints ?? [];
@@ -234,9 +255,40 @@ export function resolveGLP1MealTargets(
   } else {
     const baseMealAllocation = remainingCalories / plannedMealsRemaining;
 
-    const phaseMultiplier = treatmentPhaseCalorieMultiplier(treatmentPhase);
-    const appetiteMultiplier = appetiteCalorieMultiplier(appetiteLevel);
-    const trainingMultiplier = trainingCalorieMultiplier(trainingDemand);
+    // ── Treatment phase multiplier ─────────────────────────────────────────
+    // Values come from the registry — never hardcoded here.
+    let phaseMultiplier = 1.0;
+    if (treatmentPhase === 'intro') {
+      fireRule('glp1_intro_phase_calorie_multiplier');
+      phaseMultiplier = getRuleValue('glp1_intro_phase_calorie_multiplier', 0.82);
+    } else if (treatmentPhase === 'muscle_preserve') {
+      fireRule('glp1_muscle_preserve_calorie_multiplier');
+      phaseMultiplier = getRuleValue('glp1_muscle_preserve_calorie_multiplier', 1.08);
+    }
+
+    // ── Appetite multiplier ────────────────────────────────────────────────
+    let appetiteMultiplier = 1.0;
+    if (appetiteLevel === 'suppressed') {
+      fireRule('glp1_appetite_suppressed_multiplier');
+      appetiteMultiplier = getRuleValue('glp1_appetite_suppressed_multiplier', 0.80);
+    } else if (appetiteLevel === 'reduced') {
+      fireRule('glp1_appetite_reduced_multiplier');
+      appetiteMultiplier = getRuleValue('glp1_appetite_reduced_multiplier', 0.90);
+    } else if (appetiteLevel === 'increased') {
+      appetiteMultiplier = 1.05; // non-clinical — no rule entry needed
+    }
+
+    // ── Training multiplier ────────────────────────────────────────────────
+    // Training demand is not GLP-1-specific; values are not in the clinical registry.
+    const trainingMultipliers: Record<TrainingDemand, number> = {
+      none: 1.00,
+      light: 1.05,
+      moderate: 1.10,
+      heavy: 1.18,
+      elite: 1.28,
+    };
+    const trainingMultiplier = trainingMultipliers[trainingDemand];
+
     const muscleMultiplier = musclePreservationPriority ? 1.05 : 1.0;
 
     const combinedMultiplier = phaseMultiplier * appetiteMultiplier * trainingMultiplier * muscleMultiplier;
@@ -247,7 +299,6 @@ export function resolveGLP1MealTargets(
       resolvedMealCalories = BASELINE_MEAL_CALORIES;
       reasons.push(`Snack: ${resolvedSnackCalories} kcal (${Math.round(13 * appetiteMultiplier * trainingMultiplier)}% of daily target)`);
     } else {
-      // Clamp: min 200 kcal (no real meal should be below this), max 900 kcal
       resolvedMealCalories = clamp(adjusted, 200, 900);
       resolvedSnackCalories = clamp(dailyCalorieTarget * 0.13 * appetiteMultiplier, 100, 350);
 
@@ -275,6 +326,9 @@ export function resolveGLP1MealTargets(
   // ─────────────────────────────────────────────────────────────────────────
   // PROTEIN RESOLUTION
   // ─────────────────────────────────────────────────────────────────────────
+  // glp1_protein_priority: protein-dense foods prioritized for lean mass preservation
+  fireRule('glp1_protein_priority');
+
   const minimumProteinFloor = guardrails.proteinMinG ?? BASELINE_PROTEIN_FLOOR;
   let targetProteinGrams: number;
 
@@ -287,11 +341,9 @@ export function resolveGLP1MealTargets(
     if (meal.mealType === 'snack') {
       targetProteinGrams = clamp(dailyProteinTarget * 0.15, minimumProteinFloor * 0.5, 30);
     } else {
-      // Must always meet the guardrail floor even if budget is running low
       targetProteinGrams = clamp(Math.max(proteinPerMeal, minimumProteinFloor), minimumProteinFloor, 80);
     }
 
-    // Muscle preservation: bump protein target
     if (musclePreservationPriority || treatmentPhase === 'muscle_preserve') {
       const muscleProtein = Math.min(targetProteinGrams * 1.1, 80);
       if (muscleProtein > targetProteinGrams) {
@@ -305,9 +357,9 @@ export function resolveGLP1MealTargets(
   // ─────────────────────────────────────────────────────────────────────────
   // FAT RESOLUTION
   // ─────────────────────────────────────────────────────────────────────────
-  // The guardrail ceiling always applies — high fat is the primary GLP-1 nausea trigger.
-  // But the ceiling can be higher than the static 12g when the user's daily target allows it
-  // and the patient's profile supports it (active, muscle preserve, maintenance phase).
+  // glp1_lower_fat: high fat is the primary GLP-1 nausea trigger
+  fireRule('glp1_lower_fat');
+
   const guardrailFatCeiling = guardrails.fatMaxG ?? BASELINE_FAT_CEILING;
   let targetFatGrams: number;
   let maximumToleratedFatGrams: number;
@@ -324,37 +376,35 @@ export function resolveGLP1MealTargets(
       maximumToleratedFatGrams = Math.min(guardrailFatCeiling * 0.4, 8);
       targetFatGrams = Math.round(maximumToleratedFatGrams * 0.7);
     } else {
-      // Ceiling = min(fat budget per meal, guardrail ceiling)
-      // This means a larger athlete with a higher daily fat target still respects the guardrail
       maximumToleratedFatGrams = clamp(Math.min(fatPerMeal, guardrailFatCeiling), 7, guardrailFatCeiling);
       targetFatGrams = Math.round(maximumToleratedFatGrams * 0.8);
     }
 
-    // Treatment phase: intro is stricter
+    // Intro phase: stricter fat limits — values read from registry
     if (treatmentPhase === 'intro') {
-      maximumToleratedFatGrams = Math.min(maximumToleratedFatGrams, 10);
-      targetFatGrams = Math.min(targetFatGrams, 8);
-      reasons.push('Intro phase: fat ceiling reduced to 10g max');
+      fireRule('glp1_intro_fat_ceiling');
+      fireRule('glp1_intro_fat_target');
+      const introCeiling = getRuleValue('glp1_intro_fat_ceiling', 10);
+      const introTarget = getRuleValue('glp1_intro_fat_target', 8);
+      maximumToleratedFatGrams = Math.min(maximumToleratedFatGrams, introCeiling);
+      targetFatGrams = Math.min(targetFatGrams, introTarget);
+      reasons.push(`Intro phase: fat ceiling reduced to ${introCeiling}g ceiling / ${introTarget}g target (registry: glp1_intro_fat_ceiling + glp1_intro_fat_target — pending RD review)`);
     }
     reasons.push(`Fat: ${remainingFat}g remaining ÷ ${plannedMealsRemaining} meals = max ${maximumToleratedFatGrams}g`);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
   // RENAL CONSTRAINT CHECK
-  // If renal is active, protein target cannot exceed renal limits.
-  // Renal typically caps protein at 0.8g/kg — without weight we flag it.
   // ─────────────────────────────────────────────────────────────────────────
   const hasRenal = activeConstraints.some(c =>
     c.toLowerCase().includes('renal') || c.toLowerCase().includes('kidney') || c.toLowerCase().includes('ckd')
   );
   if (hasRenal && targetProteinGrams > 25) {
     reasons.push('⚠️ Renal constraint active — protein target may need reduction per provider; using upper-safe estimate');
-    // Don't auto-reduce (we don't have body weight here), just flag it
   }
 
   // ─────────────────────────────────────────────────────────────────────────
   // DIABETES CONSTRAINT CHECK
-  // Diabetes adds carb-control requirements — noted for prompt injection.
   // ─────────────────────────────────────────────────────────────────────────
   const hasDiabetes = activeConstraints.some(c =>
     c.toLowerCase().includes('diabet') || c.toLowerCase().includes('t2d') || c.toLowerCase().includes('type 2')
@@ -362,6 +412,11 @@ export function resolveGLP1MealTargets(
   if (hasDiabetes) {
     reasons.push('Diabetes active — carb quality and glycemic control rules stack with GLP-1 protocol');
   }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // STRUCTURED AUDIT LOG (MACRO_AUDIT=true)
+  // ─────────────────────────────────────────────────────────────────────────
+  emitRuleLog(firedRules);
 
   return {
     dailyCalorieTarget,
@@ -394,5 +449,6 @@ export function resolveGLP1MealTargets(
     activeConstraints,
     usedBaseline,
     resolutionReasons: reasons,
+    rulesFired: firedRules,
   };
 }

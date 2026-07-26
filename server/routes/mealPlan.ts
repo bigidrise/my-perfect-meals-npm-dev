@@ -20,7 +20,7 @@ r.get("/current", async (req, res) => {
   try {
     const userId = String(req.query.userId || "1");
     const row = (await db.select().from(mealPlans)
-      .where(and(eq(mealPlans.userId, parseInt(userId)), eq(mealPlans.isActive, true)))).at(0);
+      .where(and(eq(mealPlans.userId, userId), eq(mealPlans.isActive, true)))).at(0);
     if (!row) return res.status(404).json({ message: "No active plan found." });
     res.json({ plan: row });
   } catch (error) {
@@ -34,14 +34,14 @@ r.get("/all", async (req, res) => {
   try {
     const userId = String(req.query.userId || "1");
     const rows = await db.select().from(mealPlans)
-      .where(eq(mealPlans.userId, parseInt(userId)))
-      .orderBy(desc(mealPlans.generatedAt));
+      .where(eq(mealPlans.userId, userId))
+      .orderBy(desc(mealPlans.createdAt));
     res.json({ plans: rows.map(r => ({ 
       id: r.id, 
       name: r.name, 
-      type: r.type, 
+      type: (r as any).planType ?? (r as any).type, 
       isActive: r.isActive,
-      generatedAt: r.generatedAt 
+      generatedAt: (r as any).createdAt 
     })) });
   } catch (error) {
     console.error("Error fetching meal plans:", error);
@@ -55,7 +55,7 @@ r.get("/:planId", async (req, res) => {
     const userId = String(req.query.userId || "1");
     const planId = parseInt(req.params.planId);
     const row = (await db.select().from(mealPlans)
-      .where(and(eq(mealPlans.id, planId), eq(mealPlans.userId, parseInt(userId))))).at(0);
+      .where(and(eq(mealPlans.id, planId), eq(mealPlans.userId, userId)))).at(0);
     if (!row) return res.status(404).json({ message: "Not found" });
     res.json({ plan: row });
   } catch (error) {
@@ -74,16 +74,16 @@ r.post("/save", async (req, res) => {
 
     const row = (await db.insert(mealPlans)
       .values({ 
-        userId: parseInt(userId), 
+        userId, 
         name: name || "My Meal Plan",
-        type: type || "maintenance",
-        weeklyPlan,
-        totalDailyCalories,
-        totalDailyProtein, 
-        totalDailyCarbs,
-        totalDailyFat,
+        planType: type || "maintenance",
+        meals: weeklyPlan,
+        totalCalories: totalDailyCalories,
+        totalProtein: totalDailyProtein, 
+        totalCarbs: totalDailyCarbs,
+        totalFat: totalDailyFat,
         isActive: false
-      })
+      } as any)
       .returning()).at(0);
     res.json({ plan: row });
   } catch (error) {
@@ -98,7 +98,7 @@ r.delete("/:planId", async (req, res) => {
     const userId = String(req.query.userId || "1");
     const planId = parseInt(req.params.planId);
     await db.delete(mealPlans)
-      .where(and(eq(mealPlans.id, planId), eq(mealPlans.userId, parseInt(userId))));
+      .where(and(eq(mealPlans.id, planId), eq(mealPlans.userId, userId)));
     res.json({ ok: true });
   } catch (error) {
     console.error("Error deleting meal plan:", error);
@@ -115,12 +115,12 @@ r.put("/:planId/activate", async (req, res) => {
     // Deactivate all existing plans
     await db.update(mealPlans)
       .set({ isActive: false })
-      .where(eq(mealPlans.userId, parseInt(userId)));
+      .where(eq(mealPlans.userId, userId));
     
     // Activate the selected plan
     const row = (await db.update(mealPlans)
       .set({ isActive: true })
-      .where(and(eq(mealPlans.id, planId), eq(mealPlans.userId, parseInt(userId))))
+      .where(and(eq(mealPlans.id, planId), eq(mealPlans.userId, userId)))
       .returning()).at(0);
     
     res.json({ plan: row });
@@ -137,10 +137,10 @@ r.post("/:planId/add-to-shopping-list", async (req, res) => {
     const planId = parseInt(req.params.planId);
 
     const row = (await db.select().from(mealPlans)
-      .where(and(eq(mealPlans.id, planId), eq(mealPlans.userId, parseInt(userId))))).at(0);
+      .where(and(eq(mealPlans.id, planId), eq(mealPlans.userId, userId)))).at(0);
     if (!row) return res.status(404).json({ error: "Meal plan not found." });
 
-    const raw = extractIngredients(row.weeklyPlan);
+    const raw = extractIngredients((row as any).meals ?? (row as any).weeklyPlan);
     if (!raw.length) return res.json({ added: 0, message: "No ingredients to add." });
 
     const merged = mergeIngredients(raw);

@@ -27,7 +27,7 @@ export class MedicalPersonalizationService {
     const selectedRecipe = filteredRecipes[dayNumber % filteredRecipes.length];
     
     // Enhance recipe with personalized nutritional adjustments
-    return this.adjustRecipeForMedicalConditions(selectedRecipe, userProfile);
+    return this.adjustRecipeForMedicalConditions(selectedRecipe as any, userProfile);
   }
 
   // Get recipes filtered for medical conditions

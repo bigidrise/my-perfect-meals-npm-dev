@@ -379,7 +379,7 @@ export function validateMealForDiet(
     return mergeWithPrecision({ isValid: true, violations: [], blockedIngredients: [] });
   }
 
-  switch (dietType) {
+  switch (dietType as any) {
     case 'anti-inflammatory': {
       const antiInflamResult = validateAntiInflammatoryMeal(meal);
       console.log(getValidationSummary(antiInflamResult));

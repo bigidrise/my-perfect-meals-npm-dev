@@ -27,7 +27,7 @@ export function mapQuestionnaireToSystemConfig(input: OnboardingAnswers): Creato
   return {
     id: input.slug,
     name: input.name,
-    type: input.type,
+    type: input.type as any,
 
     supports: {
       meals: input.supports.includes("Meals"),
@@ -52,7 +52,7 @@ export function mapQuestionnaireToSystemConfig(input: OnboardingAnswers): Creato
       },
 
       description: {
-        tone: input.tone,
+        tone: input.tone as any,
         forbidWords: input.forbiddenWords?.length ? input.forbiddenWords : DEFAULT_FORBIDDEN_WORDS,
       },
     },
