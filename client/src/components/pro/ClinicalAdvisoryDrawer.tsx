@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
+import { PillButton } from "@/components/ui/pill-button";
 import { Brain, ChevronDown, ChevronUp, Check, AlertCircle } from "lucide-react";
 import {
   Collapsible,
@@ -157,22 +157,22 @@ export default function ClinicalAdvisoryDrawer({
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <CollapsibleTrigger asChild>
-        <button className="w-full flex items-center justify-between p-3 bg-purple-900/30 border border-purple-500/30 rounded-lg hover:bg-purple-900/40 transition-colors">
+        <button className="w-full flex items-center justify-between p-3 bg-orange-900/30 border border-orange-500/30 rounded-lg transition-colors">
           <div className="flex items-center gap-2">
-            <Brain className="h-4 w-4 text-purple-400" />
-            <span className="text-sm font-medium text-purple-300">
+            <Brain className="h-4 w-4 text-orange-400" />
+            <span className="text-sm font-medium text-orange-300">
               Clinical Advisory
             </span>
             {hasSuggestions && (
-              <span className="text-xs bg-purple-500/30 text-purple-200 px-2 py-0.5 rounded-full">
+              <span className="text-xs bg-orange-500/30 text-orange-200 px-2 py-0.5 rounded-full">
                 {suggestions.length} active
               </span>
             )}
           </div>
           {isOpen ? (
-            <ChevronUp className="h-4 w-4 text-purple-400" />
+            <ChevronUp className="h-4 w-4 text-orange-400" />
           ) : (
-            <ChevronDown className="h-4 w-4 text-purple-400" />
+            <ChevronDown className="h-4 w-4 text-orange-400" />
           )}
         </button>
       </CollapsibleTrigger>
@@ -200,7 +200,7 @@ export default function ClinicalAdvisoryDrawer({
                   key={key}
                   className={`p-3 rounded-lg border transition-colors ${
                     isEnabled
-                      ? "bg-purple-900/30 border-purple-500/40"
+                      ? "bg-orange-900/20 border-orange-500/40"
                       : "bg-white/5 border-white/10"
                   }`}
                 >
@@ -208,10 +208,12 @@ export default function ClinicalAdvisoryDrawer({
                     <span className="text-sm font-medium text-white">
                       {def.label}
                     </span>
-                    <Switch
-                      checked={isEnabled}
-                      onCheckedChange={(checked) => handleToggle(key, checked)}
-                    />
+                    <PillButton
+                      onClick={() => handleToggle(key, !isEnabled)}
+                      active={isEnabled}
+                    >
+                      {isEnabled ? "On" : "Off"}
+                    </PillButton>
                   </div>
                   <p className="text-xs text-white/60">{def.description}</p>
 
