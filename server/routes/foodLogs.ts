@@ -6,17 +6,12 @@ import { requireAuth, type AuthenticatedRequest } from "../middleware/requireAut
 
 const router = express.Router();
 
-// ── Auth on every route in this file ────────────────────────────────────────
-// Food diary entries are patient-owned PHI. requireAuth is applied router-wide
-// so no handler can be reached unauthenticated.
-router.use(requireAuth);
-
 /**
  * POST /api/food-logs
  * Creates a food diary entry. userId is always sourced from the authenticated
  * session — any userId in the body is overridden with the caller's own id.
  */
-router.post("/food-logs", async (req, res) => {
+router.post("/food-logs", requireAuth, async (req, res) => {
   try {
     const callerUserId = (req as AuthenticatedRequest).authUser.id;
 
@@ -48,7 +43,7 @@ router.post("/food-logs", async (req, res) => {
  * The userId query param is accepted for compatibility but must equal the
  * caller's own id — cross-user reads are rejected with 403.
  */
-router.get("/food-logs", async (req, res) => {
+router.get("/food-logs", requireAuth, async (req, res) => {
   try {
     const callerUserId = (req as AuthenticatedRequest).authUser.id;
 

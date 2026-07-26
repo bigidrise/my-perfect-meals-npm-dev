@@ -12,8 +12,9 @@ Never put `router.use(requireAuth)` at the top of a router that is mounted at a 
 
 **How to apply:** Always apply requireAuth per-route (`router.get("/path", requireAuth, handler)`) in routers that are mounted at broad paths. Global `router.use(requireAuth)` is only safe if the router is mounted at a very specific path that only covers genuinely protected routes (e.g., `app.use("/api/admin", requireAuth, adminRouter)`).
 
-## What went wrong
-`clinicalInterventions.ts` had `router.use(requireAuth)` at line 23, but was mounted as `app.use("/api", clinicalInterventionsRouter)` in `prod.ts`. This broke ALL unauthenticated `/api/*` requests in production, including login.
+## Known offenders (both fixed)
+- `clinicalInterventions.ts` — had `router.use(requireAuth)` at line 23, mounted as `app.use("/api", clinicalInterventionsRouter)` in `prod.ts`. Broke login in production.
+- `foodLogs.ts` — had `router.use(requireAuth)` at top, mounted as `app.use("/api", foodLogsRouterShared)` in `routes.ts`. Broke login in dev after a workflow restart.
 
 ## The Fix Pattern
 ```typescript
