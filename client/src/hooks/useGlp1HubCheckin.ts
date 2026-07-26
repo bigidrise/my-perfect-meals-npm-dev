@@ -84,7 +84,7 @@ export function useGlp1HubCheckin() {
   const loadToday = useCallback(async () => {
     setState(s => ({ ...s, isLoading: true, error: null }));
     try {
-      const data = await apiRequest("GET", "/api/glp1/hub-checkin/today");
+      const data = await apiRequest("/api/glp1/hub-checkin/today");
       const checkin = mapCheckin(data.checkin ?? null);
       setState(s => ({
         ...s,
@@ -110,7 +110,10 @@ export function useGlp1HubCheckin() {
   const submit = useCallback(async (payload: Partial<HubCheckinPayload>): Promise<boolean> => {
     setState(s => ({ ...s, isSubmitting: true, error: null }));
     try {
-      await apiRequest("POST", "/api/glp1/hub-checkin", payload);
+      await apiRequest("/api/glp1/hub-checkin", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
       await loadToday();
       return true;
     } catch (err) {
