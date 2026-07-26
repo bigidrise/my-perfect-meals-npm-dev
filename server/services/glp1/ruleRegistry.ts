@@ -488,6 +488,102 @@ export const RULE_REGISTRY: Record<string, ClinicalRule> = {
       "Derived from glp1_intro_fat_ceiling (10g ceiling × 0.8 headroom ratio = 8g target). Both values are engineering estimates pending RD review.",
   },
 
+  // ── HUB SELF-ASSESSMENT ESCALATION RULES (PENDING REVIEW) ────────────────
+  // All rules below are registered as pending_review (fail-closed).
+  // They appear in rulesWithheld[] and do NOT affect production output until
+  // a clinical reviewer sets reviewStatus to "approved".
+  // Source: FDA prescribing information for semaglutide and tirzepatide products.
+
+  glp1_cant_keep_fluids_escalate: {
+    ruleId: "glp1_cant_keep_fluids_escalate",
+    description:
+      "Patient reports inability to keep fluids down. FDA labeling warns that GLP-1-associated " +
+      "vomiting and diarrhea can cause dehydration and contribute to acute kidney injury. " +
+      "Inability to retain fluids warrants provider contact before further meal guidance.",
+    sourceIds: ["FDA_SEMAGLUTIDE_PI_2025", "FDA_TIRZEPATIDE_PI_2025"],
+    evidenceLevel: "fda_label",
+    reviewStatus: "pending_review",
+    version: "1.0.0",
+    lastReviewedDate: "2026-07-26",
+    effectiveDate: "2026-07-26",
+    reviewDate: "2026-12-31",
+    governanceNote:
+      "Directional escalation is FDA-supported. Clinical reviewer to confirm escalation language " +
+      "and threshold (can_keep_fluids_down = 'no') before approving for production.",
+  },
+
+  glp1_repeated_vomiting_escalate: {
+    ruleId: "glp1_repeated_vomiting_escalate",
+    description:
+      "Patient reports vomiting multiple times today or cannot keep fluids down. Repeated vomiting " +
+      "is listed in FDA labeling as a reason to contact a healthcare provider, and carries elevated " +
+      "risk of volume depletion and kidney injury.",
+    sourceIds: ["FDA_SEMAGLUTIDE_PI_2025", "FDA_TIRZEPATIDE_PI_2025"],
+    evidenceLevel: "fda_label",
+    reviewStatus: "pending_review",
+    version: "1.0.0",
+    lastReviewedDate: "2026-07-26",
+    effectiveDate: "2026-07-26",
+    reviewDate: "2026-12-31",
+    governanceNote:
+      "FDA labeling supports escalation for repeated or severe vomiting. Clinical reviewer to confirm " +
+      "escalation tier (urgent vs. emergency) and language before approval.",
+  },
+
+  glp1_severe_gi_cant_eat_escalate: {
+    ruleId: "glp1_severe_gi_cant_eat_escalate",
+    description:
+      "Patient reports any symptom at severe level AND cannot eat without symptoms worsening. " +
+      "Severe GI adverse reactions that prevent eating are documented in FDA labeling (§5.5 — " +
+      "severe gastrointestinal adverse reactions) and warrant provider evaluation.",
+    sourceIds: ["FDA_SEMAGLUTIDE_PI_2025", "FDA_TIRZEPATIDE_PI_2025"],
+    evidenceLevel: "fda_label",
+    reviewStatus: "pending_review",
+    version: "1.0.0",
+    lastReviewedDate: "2026-07-26",
+    effectiveDate: "2026-07-26",
+    reviewDate: "2026-12-31",
+    governanceNote:
+      "FDA §5.5 supports escalation for severe gastrointestinal reactions. Clinical reviewer to confirm " +
+      "trigger criteria (any severe + cant eat) and escalation language.",
+  },
+
+  glp1_worsening_trend_advisory: {
+    ruleId: "glp1_worsening_trend_advisory",
+    description:
+      "Patient reports symptoms are getting worse today. Per clinical guidance (PMID_36614945), " +
+      "worsening GI symptoms that do not improve with dietary modification should prompt provider contact " +
+      "to evaluate for dose adjustment or intervention.",
+    sourceIds: ["PMID_36614945"],
+    evidenceLevel: "peer_reviewed_consensus",
+    reviewStatus: "pending_review",
+    version: "1.0.0",
+    lastReviewedDate: "2026-07-26",
+    effectiveDate: "2026-07-26",
+    reviewDate: "2026-12-31",
+    governanceNote:
+      "Directional guidance is consistent with PMID_36614945. Clinical reviewer to confirm single-day " +
+      "worsening is sufficient trigger vs. requiring 2+ consecutive days.",
+  },
+
+  glp1_severe_nausea_advisory: {
+    ruleId: "glp1_severe_nausea_advisory",
+    description:
+      "Patient reports severe nausea today. FDA labeling lists nausea as a common adverse event " +
+      "and supports dietary management for mild-moderate nausea. Severe nausea warrants advisory " +
+      "guidance to contact the prescribing provider for evaluation.",
+    sourceIds: ["FDA_SEMAGLUTIDE_PI_2025", "FDA_TIRZEPATIDE_PI_2025", "PMID_36614945"],
+    evidenceLevel: "fda_label",
+    reviewStatus: "pending_review",
+    version: "1.0.0",
+    lastReviewedDate: "2026-07-26",
+    effectiveDate: "2026-07-26",
+    reviewDate: "2026-12-31",
+    governanceNote:
+      "FDA labeling and PMID_36614945 support dietary interventions for nausea. The threshold for " +
+      "provider escalation (severe vs. moderate) requires clinical reviewer sign-off.",
+  },
+
   // ── REMOVED RULES — DO NOT IMPLEMENT ─────────────────────────────────────
 
   glp1_portionScale_0_65: {

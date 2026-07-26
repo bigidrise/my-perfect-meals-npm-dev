@@ -1,6 +1,89 @@
 
 import { z } from "zod";
 
+// ─────────────────────────────────────────────────────────────────────────────
+// SYMPTOM SEVERITY TYPES — used by the Hub self-assessment and resolver
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type SymptomSeverity = "none" | "mild" | "moderate" | "severe";
+export type VomitingFrequency = "none" | "once" | "multiple" | "cant_keep_fluids";
+export type FluidRetention = "yes" | "with_difficulty" | "no";
+export type EatingTolerance = "yes" | "partially" | "no";
+export type SymptomTrend = "improving" | "same" | "worsening" | "na";
+export type DoseRelation = "yes" | "no" | "unsure";
+export type CareTeamNotify = "none" | "coach" | "physician" | "both";
+
+/**
+ * Medication class for Phase 2 medication-profile readiness.
+ * Rules are not yet activated per medication class — stored for future use.
+ */
+export type MedicationClass =
+  | "semaglutide"      // Ozempic, Wegovy (weekly SC injection)
+  | "tirzepatide"      // Mounjaro, Zepbound (GIP+GLP-1 dual agonist)
+  | "oral_glp1"        // Rybelsus (oral semaglutide — different timing/hydration rules)
+  | "research"         // Retatrutide and other investigational agents
+  | "other"            // Compounded, liraglutide, unlisted
+  | null;              // Not specified
+
+export const SymptomSeverityZ = z.enum(["none", "mild", "moderate", "severe"]);
+export const VomitingFrequencyZ = z.enum(["none", "once", "multiple", "cant_keep_fluids"]);
+export const FluidRetentionZ = z.enum(["yes", "with_difficulty", "no"]);
+export const EatingToleranceZ = z.enum(["yes", "partially", "no"]);
+export const SymptomTrendZ = z.enum(["improving", "same", "worsening", "na"]);
+export const DoseRelationZ = z.enum(["yes", "no", "unsure"]);
+export const CareTeamNotifyZ = z.enum(["none", "coach", "physician", "both"]);
+export const MedicationClassZ = z.enum([
+  "semaglutide",
+  "tirzepatide",
+  "oral_glp1",
+  "research",
+  "other",
+]).nullable();
+
+/**
+ * Validated payload for POST /api/glp1/hub-checkin.
+ * All clinical logic lives in the resolver — the route only validates and persists this.
+ */
+export const HubCheckinPayloadZ = z.object({
+  nausea:               SymptomSeverityZ.default("none"),
+  constipation:         SymptomSeverityZ.default("none"),
+  diarrhea:             SymptomSeverityZ.default("none"),
+  reflux:               SymptomSeverityZ.default("none"),
+  bloating:             SymptomSeverityZ.default("none"),
+  earlyFullness:        SymptomSeverityZ.default("none"),
+  foodAversions:        SymptomSeverityZ.default("none"),
+  fatigue:              SymptomSeverityZ.default("none"),
+  dizziness:            SymptomSeverityZ.default("none"),
+  headache:             SymptomSeverityZ.default("none"),
+  vomiting:             VomitingFrequencyZ.default("none"),
+  canKeepFluidsDown:    FluidRetentionZ.default("yes"),
+  canEatWithoutWorsening: EatingToleranceZ.default("yes"),
+  reducedUrination:     z.boolean().default(false),
+  symptomTrend:         SymptomTrendZ.default("na"),
+  symptomsAfterDose:    DoseRelationZ.default("unsure"),
+  appetiteLevel:        z.enum(["suppressed", "reduced", "normal", "increased"]).default("normal"),
+  medicationName:       z.string().nullable().optional(),
+  medicationClass:      MedicationClassZ.optional(),
+  notifyCareTeam:       CareTeamNotifyZ.default("none"),
+});
+
+export type HubCheckinPayload = z.infer<typeof HubCheckinPayloadZ>;
+
+/**
+ * Structured hub checkin returned from the API — payload + resolved tolerance.
+ * The client uses this to display the status card and adaptation list.
+ * tolerance is typed as unknown here to avoid a circular dependency;
+ * use DailyMedicationTolerance from the same file at call sites.
+ */
+export type HubCheckinResponse = {
+  checkin: {
+    id: string;
+    submittedAt: string;
+    checkInDate: string;
+  } & HubCheckinPayload;
+  tolerance: unknown;
+};
+
 export type GLP1Guardrails = {
   maxMealVolumeMl?: number;
   proteinMinG?: number;

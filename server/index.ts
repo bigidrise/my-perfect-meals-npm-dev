@@ -810,6 +810,44 @@ setTimeout(async () => {
     `);
     console.log('✅ GLP-1 daily tolerance boot migration complete (glp1_daily_tolerance)');
 
+    // glp1_daily_checkins: structured hub self-assessment — one row per submission
+    // (no unique constraint on date — supports multiple timestamped check-ins per day).
+    // See server/db/schema/glp1Checkins.ts for the WHY this is a separate table.
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS glp1_daily_checkins (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id text NOT NULL,
+        check_in_date date NOT NULL,
+        submitted_at timestamptz NOT NULL DEFAULT NOW(),
+        source text NOT NULL DEFAULT 'hub',
+        nausea text NOT NULL DEFAULT 'none',
+        constipation text NOT NULL DEFAULT 'none',
+        diarrhea text NOT NULL DEFAULT 'none',
+        reflux text NOT NULL DEFAULT 'none',
+        bloating text NOT NULL DEFAULT 'none',
+        early_fullness text NOT NULL DEFAULT 'none',
+        food_aversions text NOT NULL DEFAULT 'none',
+        fatigue text NOT NULL DEFAULT 'none',
+        dizziness text NOT NULL DEFAULT 'none',
+        headache text NOT NULL DEFAULT 'none',
+        vomiting text NOT NULL DEFAULT 'none',
+        can_keep_fluids_down text NOT NULL DEFAULT 'yes',
+        can_eat_without_worsening text NOT NULL DEFAULT 'yes',
+        reduced_urination boolean NOT NULL DEFAULT false,
+        symptom_trend text NOT NULL DEFAULT 'na',
+        symptoms_after_dose text NOT NULL DEFAULT 'unsure',
+        appetite_level text NOT NULL DEFAULT 'normal',
+        medication_name text,
+        medication_class text,
+        notify_care_team text NOT NULL DEFAULT 'none'
+      )
+    `);
+    await db.execute(sql`
+      CREATE INDEX IF NOT EXISTS glp1_daily_checkins_user_date_idx
+        ON glp1_daily_checkins(user_id, check_in_date, submitted_at DESC)
+    `);
+    console.log('✅ GLP-1 hub checkins boot migration complete (glp1_daily_checkins)');
+
     // Waitlist notify — email_sent_at column + orphan recovery
     // email_sent_at tracks confirmed sends separately from notified_at (claim lock).
     // On restart, rows with notified_at SET but email_sent_at NULL were claimed mid-send
