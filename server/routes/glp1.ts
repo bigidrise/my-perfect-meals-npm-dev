@@ -15,11 +15,12 @@ router.use(enforceAssignedBuilder(["glp1"]));
 // GET /api/glp1/profile
 router.get("/profile", async (req, res) => {
   try {
-    if (!req.user?.id) {
+    const authUser = (req as any).authUser;
+    if (!authUser?.id) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const userId = req.user.id;
+    const userId = authUser.id;
 
     const result = await db.execute(
       sql`SELECT guardrails FROM glp1_profile WHERE user_id = ${userId}`
@@ -41,11 +42,12 @@ router.get("/profile", async (req, res) => {
 // PUT /api/glp1/profile
 router.put("/profile", async (req, res) => {
   try {
-    if (!req.user?.id) {
+    const authUser = (req as any).authUser;
+    if (!authUser?.id) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const userId = req.user.id;
+    const userId = authUser.id;
     const { guardrails } = req.body;
 
     const validated = GLP1GuardrailsZ.parse(guardrails);
@@ -91,11 +93,12 @@ router.put("/profile", async (req, res) => {
 // POST /api/glp1/daily-tolerance (below), which writes to glp1_daily_tolerance.
 router.get("/daily-tolerance", async (req, res) => {
   try {
-    if (!req.user?.id) {
+    const authUser = (req as any).authUser;
+    if (!authUser?.id) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const userId = String(req.user.id);
+    const userId = String(authUser.id);
     const today = new Date().toISOString().slice(0, 10);
 
     const tolerance = await resolveDailyMedicationTolerance({ userId, dateStr: today });
@@ -117,11 +120,12 @@ router.get("/daily-tolerance", async (req, res) => {
 //   - Proactively on first GLP-1 builder access each day
 router.post("/daily-tolerance", async (req, res) => {
   try {
-    if (!req.user?.id) {
+    const authUser = (req as any).authUser;
+    if (!authUser?.id) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const userId = String(req.user.id);
+    const userId = String(authUser.id);
     const today = new Date().toISOString().slice(0, 10);
 
     const tolerance = await resolveDailyMedicationTolerance({ userId, dateStr: today });
@@ -205,8 +209,9 @@ router.post("/daily-tolerance", async (req, res) => {
 // Idempotent and side-effect-free — safe to call on page load.
 router.get("/hub-checkin/today", async (req, res) => {
   try {
-    if (!req.user?.id) return res.status(401).json({ error: "Unauthorized" });
-    const userId = String(req.user.id);
+    const authUser = (req as any).authUser;
+    if (!authUser?.id) return res.status(401).json({ error: "Unauthorized" });
+    const userId = String(authUser.id);
     const today = new Date().toISOString().slice(0, 10);
 
     const rows = await db.execute(
@@ -239,8 +244,9 @@ router.get("/hub-checkin/today", async (req, res) => {
 // Zero clinical logic in this route — all classification is in the resolver.
 router.post("/hub-checkin", async (req, res) => {
   try {
-    if (!req.user?.id) return res.status(401).json({ error: "Unauthorized" });
-    const userId = String(req.user.id);
+    const authUser = (req as any).authUser;
+    if (!authUser?.id) return res.status(401).json({ error: "Unauthorized" });
+    const userId = String(authUser.id);
     const today = new Date().toISOString().slice(0, 10);
 
     const { HubCheckinPayloadZ } = await import("../../shared/glp1-schema");
