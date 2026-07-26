@@ -7,8 +7,10 @@ import { loadOrgContext } from "../lib/orgContext";
 import { computeEffectiveAccess } from "../services/effectiveAccess";
 
 // ── Idle session timeout thresholds ───────────────────────────────────────────
-// Clinical roles (coach, admin) require a shorter timeout to meet HIPAA
-// §164.312(a)(2)(iii) automatic logoff requirements.
+// Clinical roles require a 15-minute timeout per HIPAA §164.312(a)(2)(iii).
+// This applies to both system roles (coach, admin) AND professional roles
+// (physician, trainer, dietitian, nurse_practitioner) which carry role="client"
+// in the schema but have the same clinical-access obligations.
 // Token-based (mobile) auth is exempt — these timeouts only apply to
 // browser sessions where an unattended workstation is a real threat.
 const IDLE_TIMEOUT_MS: Record<string, number> = {
@@ -16,6 +18,14 @@ const IDLE_TIMEOUT_MS: Record<string, number> = {
   admin: 15 * 60 * 1000,  // 15 minutes
   client: 60 * 60 * 1000, // 60 minutes
 };
+
+const CLINICAL_PROFESSIONAL_ROLES = new Set([
+  "physician",
+  "trainer",
+  "dietitian",
+  "nurse_practitioner",
+]);
+
 const IDLE_TIMEOUT_FALLBACK_MS = 60 * 60 * 1000; // 60 minutes for unknown roles
 
 export interface AuthenticatedUser {
@@ -23,6 +33,11 @@ export interface AuthenticatedUser {
   email: string;
   username: string;
   role: "admin" | "coach" | "client";
+  /**
+   * Set for ProCare professionals whose system role is "client".
+   * Drives MFA enforcement and idle-timeout tier for clinical professionals.
+   */
+  professionalRole: "physician" | "trainer" | "dietitian" | "nurse_practitioner" | null;
   plan: string;
   entitlements: string[];
   planLookupKey: string | null;
@@ -56,6 +71,7 @@ function buildAuthUser(user: any): Omit<AuthenticatedUser, "sponsoredByBusinessI
     email: user.email,
     username: user.username,
     role: (user.role as "admin" | "coach" | "client") ?? "client",
+    professionalRole: (user.professionalRole as AuthenticatedUser["professionalRole"]) ?? null,
     plan: user.plan,
     entitlements: user.entitlements || [],
     planLookupKey: user.planLookupKey || null,
@@ -149,9 +165,17 @@ export async function requireAuth(
       if (user) {
         // ── Idle session timeout (HIPAA §164.312(a)(2)(iii)) ──────────────────
         const role = (user.role as string) ?? "client";
-        const idleThreshold = IDLE_TIMEOUT_MS[role] ?? IDLE_TIMEOUT_FALLBACK_MS;
+        const professionalRole = (user.professionalRole as string) ?? null;
         const lastActive = (req as any).session?.lastActiveAt as number | undefined;
         const now = Date.now();
+
+        // Clinical professionals carry role="client" in the schema but must
+        // receive the 15-minute clinical timeout, not the 60-minute patient timeout.
+        const idleThreshold =
+          IDLE_TIMEOUT_MS[role] ??
+          (professionalRole && CLINICAL_PROFESSIONAL_ROLES.has(professionalRole)
+            ? 15 * 60 * 1000
+            : IDLE_TIMEOUT_FALLBACK_MS);
 
         if (lastActive && now - lastActive > idleThreshold) {
           // Destroy the session before responding so it cannot be reused

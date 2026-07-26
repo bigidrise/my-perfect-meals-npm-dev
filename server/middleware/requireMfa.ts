@@ -21,7 +21,16 @@ import { eq } from "drizzle-orm";
 import { logAudit, getClientIp } from "../lib/auditLog";
 import type { AuthenticatedRequest } from "./requireAuth";
 
-const CLINICAL_ROLES = new Set(["coach", "admin"]);
+// System roles with clinical access
+const CLINICAL_SYSTEM_ROLES = new Set(["coach", "admin"]);
+// ProCare professional roles — these carry role="client" in the users table
+// but have the same clinical obligations and must be MFA-gated identically.
+const CLINICAL_PROFESSIONAL_ROLES = new Set([
+  "physician",
+  "trainer",
+  "dietitian",
+  "nurse_practitioner",
+]);
 
 export async function requireMfa(
   req: Request,
@@ -32,8 +41,14 @@ export async function requireMfa(
   const userId = authReq.authUser?.id;
   if (!userId) { next(); return; }
 
-  const role = (authReq.authUser as any).role as string | undefined;
-  if (!role || !CLINICAL_ROLES.has(role)) { next(); return; }
+  const role = authReq.authUser.role as string | undefined;
+  const professionalRole = authReq.authUser.professionalRole as string | null | undefined;
+
+  const isClinical =
+    (role && CLINICAL_SYSTEM_ROLES.has(role)) ||
+    (professionalRole != null && CLINICAL_PROFESSIONAL_ROLES.has(professionalRole));
+
+  if (!isClinical) { next(); return; }
 
   try {
     const [row] = await db
