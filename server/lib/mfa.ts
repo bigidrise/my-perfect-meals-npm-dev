@@ -20,12 +20,12 @@ const totp = new TOTP({
   window: 1, // allow ±30s clock drift
   crypto: new NobleCryptoPlugin(),
   base32: new ScureBase32Plugin(),
-});
+} as any);
 
 // ─── TOTP ─────────────────────────────────────────────────────────────────────
 
 export function generateTotpSecret(): string {
-  return totp.generateSecret(20); // 160-bit base32 secret
+  return totp.generateSecret(); // 160-bit base32 secret
 }
 
 export async function getTotpQrDataUri(secret: string, email: string): Promise<string> {

@@ -32,7 +32,7 @@ router.post("/meal-plan/regenerate", async (req, res) => {
     if (!userId) return res.status(400).json({ error: "userId required" });
     
     const existing = await getWeeklyPlan(userId);
-    const seed = existing?.params || {};
+    const seed: any = existing?.params || {};
     
     // Use the meal engine to generate new plan with same parameters
     const planParams = {

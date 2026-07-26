@@ -483,7 +483,7 @@ router.put("/oncology-support/:clientUserId", requireAuth, requirePhase1Cert, re
           : physician.firstName || physician.username || "Your Physician")
       : null;
 
-    const context: OncologySupportContext = {
+    const context = {
       ...body,
       source: "physician",
       // locked = true while enabled + physician is active; false when disabling
@@ -491,11 +491,11 @@ router.put("/oncology-support/:clientUserId", requireAuth, requirePhase1Cert, re
       ownerName,
       updatedBy: requesterId,
       updatedAt: new Date().toISOString(),
-    };
+    } as any as OncologySupportContext;
 
     await db
       .update(users)
-      .set({ oncologySupportContext: context as any, updatedAt: new Date() })
+      .set({ oncologySupportContext: context as any, updatedAt: new Date() } as any)
       .where(eq(users.id, clientUserId as any));
 
     console.log(`[oncology-support PUT] Physician ${requesterId} ${body.enabled ? "assigned" : "disabled"} Cancer Support Nutrition for client ${clientUserId} | symptomsCount=${body.symptoms.length}`);
@@ -603,7 +603,7 @@ router.put("/glp1-protocol/:clientUserId", requireAuth, requirePhase1Cert, requi
 
     await db
       .update(users)
-      .set({ medicalConditions: updated as any, updatedAt: new Date() })
+      .set({ medicalConditions: updated as any, updatedAt: new Date() } as any)
       .where(eq(users.id, clientUserId as any));
 
     console.log(`[glp1-protocol PUT] Physician ${requesterId} (${ownerName ?? "unknown"}) ${enabled ? "assigned" : "removed"} GLP-1 Active for client ${clientUserId}`);

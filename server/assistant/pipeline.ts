@@ -177,5 +177,5 @@ export async function processAssistantRequest(req: AssistantRequest): Promise<As
     captions: finalText,
     navigateTo: navigateTo,
     clientEvent: clientEvent
-  };
+  } as any;
 }

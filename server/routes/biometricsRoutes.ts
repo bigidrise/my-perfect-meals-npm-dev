@@ -209,9 +209,9 @@ router.post('/log', requireAuth, async (req, res) => {
     }
 
     // Import and use the existing food logs system
-    const { foodLogs } = await import('../../shared/schema');
+    const { foodLogs } = await import('../../shared/schema') as any;
 
-    const [insertedRow] = await db.insert(foodLogs).values({
+    const [insertedRow] = (await db.insert(foodLogs).values({
       userId,
       loggedAt: new Date(date_iso || new Date().toISOString()),
       mealType: meal_type || "lunch",
@@ -226,7 +226,7 @@ router.post('/log', requireAuth, async (req, res) => {
         source: source || "manual",
         mealId: meal_id
       }
-    }).returning();
+    }).returning()) as any[];
 
     console.log("[biometrics] Log saved:", insertedRow.id);
 

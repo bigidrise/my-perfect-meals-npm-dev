@@ -75,7 +75,7 @@ router.post("/users/:userId/glp1-shots", requireAuth, async (req, res) => {
 
     const [newShot] = await db
       .insert(glp1Shots)
-      .values({ userId, ...data, dateUtc: new Date(data.dateUtc) })
+      .values({ userId, ...data, dateUtc: new Date(data.dateUtc) } as any)
       .returning();
 
     logAudit({ actor: userId, action: "WRITE", resourceType: "glp1_shot", table: "glp1_shots", resourceId: newShot.id, route: req.path, ip: getClientIp(req as any) });

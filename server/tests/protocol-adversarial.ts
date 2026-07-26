@@ -43,6 +43,7 @@ function buildEnvelope(
     dietaryIdentity,
     allergies,
     medicalHardLimits: [],
+    // @ts-ignore — partial stub for tests
     medicalOptimization: [],
     avoidances,
     preferences: [],

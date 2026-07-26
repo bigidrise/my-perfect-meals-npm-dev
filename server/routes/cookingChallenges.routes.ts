@@ -82,7 +82,7 @@ router.post('/current/submit', async (req, res) => {
 
     const [entry] = await db
       .insert(learnToCookEntries)
-      .values(entryData)
+      .values(entryData as any)
       .returning();
 
     res.json({ entry, message: 'Entry submitted successfully!' });

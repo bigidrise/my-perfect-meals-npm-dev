@@ -90,7 +90,7 @@ router.post("/carb-cycle/log", requireAuth, async (req, res) => {
     }
 
     const { state, bodyWeightLb, baseCarbTargetG } = await loadState(userId);
-    const entry: WeightLogEntry = parsed.data;
+    const entry: WeightLogEntry = parsed.data as any;
 
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
       .toISOString()

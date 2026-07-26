@@ -221,7 +221,7 @@ router.post("/", requireAuth, async (req, res) => {
     const labId = inserted[0]?.id ?? null;
 
     const isSelfAccess = requesterId === targetUserId;
-    logAudit({ actor: requesterId as string, target: isSelfAccess ? undefined : targetUserId as string, action: "WRITE", resourceType: "clinical_labs", table: "clinical_labs", resourceId: labId, route: req.path, ip: getClientIp(req as any), meta: { selfAccess: isSelfAccess } });
+    logAudit({ actor: requesterId as string, target: isSelfAccess ? undefined : targetUserId as string, action: "WRITE", resourceType: "clinical_labs", table: "clinical_labs", resourceId: String(labId ?? ""), route: req.path, ip: getClientIp(req as any), meta: { selfAccess: isSelfAccess } });
 
     // Run protocol resolver on the just-saved values
     const protocolSignal = resolveProtocolFromLabs({

@@ -391,7 +391,7 @@ Remember: Only use ingredients from this list: ${fridgeItems.join(', ')}`;
     
     // Debug shape analysis
     const dbg = {
-      hasOutputText: Boolean(response?.output_text),
+      hasOutputText: Boolean((response as any)?.output_text),
       hasChoices: Array.isArray(response?.choices),
       msgType: typeof response?.choices?.[0]?.message?.content,
       partsLen: Array.isArray(response?.choices?.[0]?.message?.content) ? response.choices[0].message.content.length : 0,

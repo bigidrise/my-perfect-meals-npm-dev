@@ -120,7 +120,7 @@ export async function applyCreatorTransformation(
 
   try {
     const prompt = buildCreatorPrompt(system, baseMeal);
-    const styled = await chatJson({ user: prompt });
+    const styled = await chatJson({ system: "", user: prompt });
 
     if (!styled || typeof styled !== "object") {
       console.warn(`[CreatorSystem] "${system.name}" returned invalid response — using base meal`);

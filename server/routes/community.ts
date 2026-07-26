@@ -32,7 +32,7 @@ r.get("/posts/:id/comments", async (req, res) => {
     
     const limitNum = Math.min(50, Math.max(1, parseInt(limit as string) || 20));
     
-    let query = db
+    let query: any = db
       .select()
       .from(comments)
       .where(eq(comments.postId, postId))
@@ -77,7 +77,7 @@ r.post("/posts/:id/comments", async (req, res) => {
     };
     
     const validatedData = insertCommentSchema.parse(commentData);
-    const [newComment] = await db.insert(comments).values(validatedData).returning();
+    const [newComment] = await db.insert(comments).values(validatedData as any).returning();
     
     res.json(newComment);
   } catch (error) {

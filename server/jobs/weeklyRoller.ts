@@ -51,7 +51,7 @@ export async function runWeeklyRoller() {
       
       const end = new Date(cur.planEndDate);
       if (today > end) {
-        console.log(`Plan expired for user ${u.id}, starting auto-generation`);
+        console.log(`Plan expired for user ${String(u.id)}, starting auto-generation`);
         
         // 1) Archive last week's list
         await archiveCurrentList(u.id, cur.planStartDate, cur.planEndDate);
