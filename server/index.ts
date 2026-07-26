@@ -750,8 +750,11 @@ setTimeout(async () => {
     await runAceMigration();
     console.log('✅ ACE boot migration complete');
 
-    // GLP-1 Daily Behavioral Tolerance — Phase 1
-    // Ensure glp1_profile base table exists (idempotent), then add tolerance columns.
+    // GLP-1 Daily Behavioral Tolerance — Phase 1 (corrected)
+    //
+    // glp1_profile: base row per user, matches migrations/0005_create_glp1_profile.sql exactly.
+    // Canonical schema reference: id, user_id UNIQUE, guardrails JSONB, created_at, updated_at.
+    // Tolerance is time-series data and must NOT be stored on glp1_profile.
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS glp1_profile (
         id TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -761,19 +764,51 @@ setTimeout(async () => {
         updated_at TIMESTAMPTZ DEFAULT NOW()
       )
     `);
-    await db.execute(sql`ALTER TABLE glp1_profile ADD COLUMN IF NOT EXISTS tolerance_date date`);
-    await db.execute(sql`ALTER TABLE glp1_profile ADD COLUMN IF NOT EXISTS nausea_level text NOT NULL DEFAULT 'none'`);
-    await db.execute(sql`ALTER TABLE glp1_profile ADD COLUMN IF NOT EXISTS has_vomiting boolean NOT NULL DEFAULT false`);
-    await db.execute(sql`ALTER TABLE glp1_profile ADD COLUMN IF NOT EXISTS hydration_risk text NOT NULL DEFAULT 'none'`);
-    await db.execute(sql`ALTER TABLE glp1_profile ADD COLUMN IF NOT EXISTS has_reflux boolean NOT NULL DEFAULT false`);
-    await db.execute(sql`ALTER TABLE glp1_profile ADD COLUMN IF NOT EXISTS has_diarrhea boolean NOT NULL DEFAULT false`);
-    await db.execute(sql`ALTER TABLE glp1_profile ADD COLUMN IF NOT EXISTS has_constipation boolean NOT NULL DEFAULT false`);
-    await db.execute(sql`ALTER TABLE glp1_profile ADD COLUMN IF NOT EXISTS appetite_level text NOT NULL DEFAULT 'normal'`);
-    await db.execute(sql`ALTER TABLE glp1_profile ADD COLUMN IF NOT EXISTS should_escalate boolean NOT NULL DEFAULT false`);
-    await db.execute(sql`ALTER TABLE glp1_profile ADD COLUMN IF NOT EXISTS escalation_reason text`);
-    await db.execute(sql`ALTER TABLE glp1_profile ADD COLUMN IF NOT EXISTS water_ml_logged integer NOT NULL DEFAULT 0`);
-    await db.execute(sql`ALTER TABLE glp1_profile ADD COLUMN IF NOT EXISTS tolerance_rules_fired text[]`);
-    console.log('✅ GLP-1 daily tolerance boot migration complete');
+
+    // Drop the 12 tolerance columns that were incorrectly added to glp1_profile in Phase 1 boot.
+    // Tolerance belongs in the dedicated dated-snapshot table below (glp1_daily_tolerance).
+    // These DROPs are idempotent (IF EXISTS) and safe to run even if the columns never existed.
+    for (const col of [
+      'tolerance_date', 'nausea_level', 'has_vomiting', 'hydration_risk',
+      'has_reflux', 'has_diarrhea', 'has_constipation', 'appetite_level',
+      'should_escalate', 'escalation_reason', 'water_ml_logged', 'tolerance_rules_fired',
+    ]) {
+      await db.execute(sql`ALTER TABLE glp1_profile DROP COLUMN IF EXISTS ${sql.raw(col)}`);
+    }
+
+    // glp1_daily_tolerance: dated snapshot table — one row per user per day.
+    // UNIQUE(user_id, tolerance_date) ensures re-resolving the same day upserts,
+    // not duplicates. Mirrors migrations/0009_create_glp1_daily_tolerance.sql.
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS glp1_daily_tolerance (
+        id                    TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id               TEXT NOT NULL,
+        tolerance_date        DATE NOT NULL,
+        nausea_level          TEXT NOT NULL DEFAULT 'none',
+        has_vomiting          BOOLEAN NOT NULL DEFAULT FALSE,
+        hydration_risk        TEXT NOT NULL DEFAULT 'none',
+        has_reflux            BOOLEAN NOT NULL DEFAULT FALSE,
+        has_diarrhea          BOOLEAN NOT NULL DEFAULT FALSE,
+        has_constipation      BOOLEAN NOT NULL DEFAULT FALSE,
+        appetite_level        TEXT NOT NULL DEFAULT 'normal',
+        should_escalate       BOOLEAN NOT NULL DEFAULT FALSE,
+        escalation_reason     TEXT,
+        water_ml_logged       INTEGER NOT NULL DEFAULT 0,
+        rules_applied         TEXT[] NOT NULL DEFAULT '{}',
+        rules_withheld        TEXT[] NOT NULL DEFAULT '{}',
+        rules_evaluated       TEXT[] NOT NULL DEFAULT '{}',
+        nutrition_adaptations TEXT[] NOT NULL DEFAULT '{}',
+        safety_escalations    TEXT[] NOT NULL DEFAULT '{}',
+        resolver_version      TEXT NOT NULL DEFAULT '1.0',
+        resolved_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE(user_id, tolerance_date)
+      )
+    `);
+    await db.execute(sql`
+      CREATE INDEX IF NOT EXISTS glp1_daily_tolerance_user_date
+        ON glp1_daily_tolerance(user_id, tolerance_date DESC)
+    `);
+    console.log('✅ GLP-1 daily tolerance boot migration complete (glp1_daily_tolerance)');
 
     // Waitlist notify — email_sent_at column + orphan recovery
     // email_sent_at tracks confirmed sends separately from notified_at (claim lock).

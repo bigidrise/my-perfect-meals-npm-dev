@@ -22,11 +22,11 @@
  * The registry is the SINGLE SOURCE OF TRUTH for every clinical rule.
  *
  * Enforcement contract:
- *   - Every multiplier and threshold is read via assertRuleApproved() + getRuleValue()
+ *   - Every multiplier and threshold is read via getExecutableRuleValue()
  *   - Rules with reviewStatus === "removed" throw at runtime — they must not be used
- *   - Rules with reviewStatus === "pending_review" fire but are flagged in rulesFired[]
- *   - Every rule that fires is recorded in rulesFired[] with ruleId, sourceIds,
- *     evidenceLevel, reviewStatus, version, and value
+ *   - Rules with reviewStatus === "pending_review" are withheld (fail-closed); go into rulesWithheld[]
+ *   - Approved rules that influenced the output are recorded in rulesApplied[]
+ *   - rulesEvaluated[] = union of rulesApplied + rulesWithheld (full audit trail)
  *   - MACRO_AUDIT=true emits a structured clinical log per resolution call
  *   - No clinical numerical value is hardcoded in this file
  *

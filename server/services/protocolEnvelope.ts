@@ -1449,66 +1449,42 @@ export async function loadUserProtocolEnvelope(
 // no invented calorie or macro numbers.
 // ─────────────────────────────────────────────────────────────────────────────
 
-function glp1AppetiteInstruction(level: ToleranceAppetiteLevel): string {
-  switch (level) {
-    case "suppressed":
-      return "Small, nutrient-dense meals only. Prioritize protein over volume. Do not suggest large portions.";
-    case "reduced":
-      return "Keep portions modest. Prioritize protein and slow-digest foods. Avoid bulky high-volume meals.";
-    case "increased":
-      return "Standard GLP-1 portion guidance applies. Monitor for overeating relative to medication goals.";
-    case "normal":
-    default:
-      return "Standard GLP-1 portion guidance applies.";
-  }
-}
-
+/**
+ * Build the GLP-1 daily tolerance block for injection into generator prompts.
+ *
+ * Layout (order is mandatory):
+ *   1. SAFETY ESCALATIONS — first, unmistakably urgent, visually distinct.
+ *      These are provider-contact directives. They must not be treated as
+ *      nutrition preferences and must not be reframed as meal modifications
+ *      by any generator. If present, they override normal meal guidance.
+ *   2. NUTRITION ADAPTATIONS — dietary modification directives derived from
+ *      current GI symptoms. Safe for prompt injection as meal constraints.
+ *
+ * Uses t.safetyEscalations[] and t.nutritionAdaptations[] directly — the
+ * resolver owns the content, the envelope owns the injection format.
+ */
 function buildGlp1ToleranceBlock(t: DailyMedicationTolerance): string {
-  const lines: string[] = [
-    `[GLP-1 Daily Tolerance — ${t.date}]`,
-    `APPETITE: ${t.appetiteLevel.toUpperCase()} — ${glp1AppetiteInstruction(t.appetiteLevel)}`,
-  ];
+  const sections: string[] = [`[GLP-1 Daily Tolerance — ${t.date}]`];
 
-  if (t.nauseaLevel !== "none") {
-    lines.push(
-      `NAUSEA: ${t.nauseaLevel.toUpperCase()} — Favor neutral, bland flavors. ` +
-      `Avoid strong aromatics, heavy spices, rich sauces, and overpowering smells.`
+  // ── Safety escalations FIRST ─────────────────────────────────────────────
+  // These are SAFETY DIRECTIVES, not dietary preferences.
+  // Any generator receiving this block must surface them to the user as urgent
+  // patient safety guidance — never dilute them into a meal recommendation.
+  if (t.safetyEscalations.length > 0) {
+    sections.push(
+      "━━━ ⚠️  SAFETY DIRECTIVES — READ BEFORE GENERATING ━━━",
+      ...t.safetyEscalations,
+      "━━━ END SAFETY DIRECTIVES ━━━"
     );
   }
 
-  if (t.hasReflux) {
-    lines.push(
-      "REFLUX REPORTED — Avoid acidic ingredients (tomatoes, citrus, vinegar), " +
-      "fatty or fried foods, chocolate, mint, and carbonated beverages."
-    );
+  // ── Nutrition adaptations ─────────────────────────────────────────────────
+  // Meal and food modification constraints. Safe for meal planning context.
+  if (t.nutritionAdaptations.length > 0) {
+    sections.push("── Nutrition Adaptations ──", ...t.nutritionAdaptations);
   }
 
-  if (t.hasDiarrhea || t.hasConstipation) {
-    const flags = [
-      t.hasDiarrhea    ? "diarrhea"    : null,
-      t.hasConstipation ? "constipation" : null,
-    ].filter(Boolean).join(" and ");
-    lines.push(
-      `GI SYMPTOMS (${flags.toUpperCase()}) — Use gentle, easy-to-digest preparations. ` +
-      `Avoid raw cruciferous vegetables, high-insoluble-fiber foods, and spicy dishes.`
-    );
-  }
-
-  if (t.hydrationRisk !== "none") {
-    lines.push(
-      `HYDRATION RISK: ${t.hydrationRisk.toUpperCase()} — Include hydrating ingredients ` +
-      `where appropriate. Suggest water before meals and between bites in any instructions.`
-    );
-  }
-
-  if (t.shouldEscalate && t.escalationReason) {
-    lines.push(
-      `⚠️ PROVIDER CONTACT RECOMMENDED: ${t.escalationReason} ` +
-      `Do not generate a meal plan that encourages the user to eat normally before contacting their provider.`
-    );
-  }
-
-  return lines.join("\n");
+  return sections.join("\n");
 }
 
 /**

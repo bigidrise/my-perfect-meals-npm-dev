@@ -7,9 +7,19 @@
  * and derives DIRECTIONAL FLAGS ONLY. This service emits no invented calorie
  * or macro numbers — it is a classification layer, not a calculation layer.
  *
- * All escalation triggers are governed by the GLP-1 Rule Registry:
- *   - glp1_vomiting_escalate            (approved, FDA §5.1 / §6.1)
- *   - glp1_dehydration_difficulty_escalate (approved, FDA §5.1 / §6.1)
+ * Governance:
+ *   All escalation triggers are governed by the GLP-1 Rule Registry:
+ *     - glp1_vomiting_escalate            (approved, FDA §5.1 / §6.1)
+ *     - glp1_dehydration_difficulty_escalate (approved, FDA §5.1 / §6.1)
+ *
+ *   Pending-review rules NEVER influence this output (fail-closed):
+ *     - rulesWithheld[] tracks blocked rules for audit
+ *     - rulesApplied[] tracks rules that contributed to the assessment
+ *     - rulesEvaluated[] = union of applied + withheld
+ *
+ *   safetyEscalations[] and nutritionAdaptations[] are populated as
+ *   SEPARATE collections so downstream consumers (Coach's Corner, provider
+ *   dashboards, generators) can distinguish safety directives from meal guidance.
  *
  * Data sources (read-only):
  *   - ace_daily_checkins.symptoms[]  — self-reported GI symptoms for today
@@ -17,15 +27,16 @@
  *   - ace_daily_checkins.digestion   — self-reported digestion quality (1-10)
  *   - water_logs                     — summed daily water intake in mL
  *
- * Output (DailyMedicationTolerance) is injected into the protocol envelope
- * as glp1DailyTolerance and consumed by all 4 GLP-1-aware surfaces:
- *   GLP-1 Builder, Snack Creator, Weekly Board, Coach's Corner.
+ * This service never writes to the database. Persistence of resolved tolerance
+ * is handled by POST /api/glp1/daily-tolerance (routes/glp1.ts).
+ *
+ * Resolver version: 1.0
  */
 
 import { db } from "../../db";
 import { aceDailyCheckins } from "../../db/schema/ace";
 import { waterLogs } from "../../../shared/schema";
-import { eq, and, gte, lt, sql as drizzleSql } from "drizzle-orm";
+import { eq, and, sql as drizzleSql } from "drizzle-orm";
 import {
   type DailyMedicationTolerance,
   type NauseaLevel,
@@ -35,8 +46,12 @@ import {
 import {
   assertRuleApproved,
   emitRuleLog,
+  type RuleAppliedEntry,
   type RuleFiredEntry,
 } from "./ruleRegistry";
+
+/** Semantic version of this resolver — bump on any logic or output-shape change. */
+const RESOLVER_VERSION = "1.0";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SYMPTOM KEYWORD SETS
@@ -124,6 +139,62 @@ function deriveHydrationRisk(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// NUTRITION ADAPTATION BUILDERS
+// Produce meal/food guidance strings for nutritionAdaptations[].
+// These are safe to inject into generator prompts as dietary constraints.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function buildAppetiteAdaptation(level: ToleranceAppetiteLevel): string | null {
+  switch (level) {
+    case "suppressed":
+      return "APPETITE: SUPPRESSED — Small, nutrient-dense meals only. Prioritize protein over volume. Do not suggest large portions or high-volume meals.";
+    case "reduced":
+      return "APPETITE: REDUCED — Keep portions modest. Prioritize protein and slow-digest foods. Avoid bulky high-volume meals.";
+    case "increased":
+      return "APPETITE: INCREASED — Standard GLP-1 portion guidance applies. Monitor for overeating relative to medication goals.";
+    case "normal":
+    default:
+      return null; // Normal appetite requires no directive
+  }
+}
+
+function buildNauseaAdaptation(level: NauseaLevel): string | null {
+  if (level === "none") return null;
+  return (
+    `NAUSEA: ${level.toUpperCase()} — Favor neutral, bland flavors. ` +
+    `Avoid strong aromatics, heavy spices, rich sauces, and overpowering smells.`
+  );
+}
+
+function buildRefluxAdaptation(hasReflux: boolean): string | null {
+  if (!hasReflux) return null;
+  return (
+    "REFLUX REPORTED — Avoid acidic ingredients (tomatoes, citrus, vinegar), " +
+    "fatty or fried foods, chocolate, mint, and carbonated beverages."
+  );
+}
+
+function buildGiAdaptation(hasDiarrhea: boolean, hasConstipation: boolean): string | null {
+  if (!hasDiarrhea && !hasConstipation) return null;
+  const flags = [
+    hasDiarrhea    ? "diarrhea"    : null,
+    hasConstipation ? "constipation" : null,
+  ].filter(Boolean).join(" and ");
+  return (
+    `GI SYMPTOMS (${flags.toUpperCase()}) — Use gentle, easy-to-digest preparations. ` +
+    `Avoid raw cruciferous vegetables, high-insoluble-fiber foods, and heavily spiced dishes.`
+  );
+}
+
+function buildHydrationAdaptation(risk: HydrationRisk): string | null {
+  if (risk === "none") return null;
+  return (
+    `HYDRATION RISK: ${risk.toUpperCase()} — Include hydrating ingredients where appropriate. ` +
+    `Suggest water before meals and between bites in any preparation instructions.`
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // MAIN RESOLVER
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -135,17 +206,25 @@ export interface ResolveDailyToleranceOptions {
 /**
  * Aggregate today's behavioral check-in data into a DailyMedicationTolerance.
  *
- * This is a read-only service. It does not write to the database.
- * Writing the resolved tolerance to glp1_profile is handled by the API layer.
+ * This is a READ-ONLY service. It does not write to the database.
+ * Persistence is handled by POST /api/glp1/daily-tolerance.
  *
  * Never throws — failures fall back to a safe neutral state so that
  * the protocol envelope never crashes due to missing check-in data.
+ *
+ * Rule governance:
+ *   - Approved escalation rules → populate safetyEscalations[] + rulesApplied[]
+ *   - Pending-review rules → withheld (fail-closed); populate rulesWithheld[]
+ *   - No pending rule may enter rulesApplied[] or affect any output value
  */
 export async function resolveDailyMedicationTolerance(
   opts: ResolveDailyToleranceOptions
 ): Promise<DailyMedicationTolerance> {
   const { userId, dateStr } = opts;
-  const rulesFired: RuleFiredEntry[] = [];
+
+  // Separate audit collections
+  const rulesApplied:  RuleAppliedEntry[] = [];  // approved, contributed to output
+  const rulesWithheld: string[] = [];             // pending_review, blocked (fail-closed)
 
   // ── 1. Load today's ACE check-in ──────────────────────────────────────────
   let symptoms: string[] = [];
@@ -181,7 +260,6 @@ export async function resolveDailyMedicationTolerance(
   }
 
   // ── 2. Load today's water intake ──────────────────────────────────────────
-  // intakeTime is timestamp WITHOUT timezone — cast to date in SQL for safety.
   let waterMlLogged = 0;
 
   try {
@@ -214,10 +292,22 @@ export async function resolveDailyMedicationTolerance(
   const hasReflux       = matchesAny(symptoms, REFLUX_KEYWORDS);
   const hydrationRisk   = deriveHydrationRisk(hasVomiting, hasDiarrhea, waterMlLogged);
 
-  // ── 4. Escalation — registry-governed only ────────────────────────────────
-  // Escalation triggers are hardcoded to their registry rule IDs. Any rule
-  // not in the registry throws, preventing silent regressions on rule removal.
+  // ── 4. Build nutrition adaptations (dietary guidance, not safety) ─────────
+  const nutritionAdaptations: string[] = [
+    buildAppetiteAdaptation(appetiteLevel),
+    buildNauseaAdaptation(nauseaLevel),
+    buildRefluxAdaptation(hasReflux),
+    buildGiAdaptation(hasDiarrhea, hasConstipation),
+    buildHydrationAdaptation(hydrationRisk),
+  ].filter((s): s is string => s !== null);
 
+  // ── 5. Safety escalations — registry-governed only ───────────────────────
+  // ⚠️ These are SAFETY DIRECTIVES, not meal modifications.
+  // They go into safetyEscalations[], NOT nutritionAdaptations[].
+  // Any downstream consumer (generator, coach) must surface them as urgent
+  // patient safety guidance, never reframe as a dietary preference.
+
+  const safetyEscalations: string[] = [];
   let shouldEscalate   = false;
   let escalationReason: string | null = null;
 
@@ -225,41 +315,74 @@ export async function resolveDailyMedicationTolerance(
   if (hasVomiting) {
     const rule = assertRuleApproved("glp1_vomiting_escalate");
     if (rule) {
-      rulesFired.push({
+      // rule is approved — record in applied
+      rulesApplied.push({
         ruleId:        rule.ruleId,
         sourceIds:     rule.sourceIds,
         evidenceLevel: rule.evidenceLevel,
-        reviewStatus:  rule.reviewStatus,
+        reviewStatus:  "approved",
         version:       rule.version,
       });
-      shouldEscalate   = true;
-      escalationReason =
-        "Vomiting reported. Please contact your prescribing provider before your next meal.";
+      shouldEscalate = true;
+      const msg =
+        "⚠️ SAFETY — Vomiting reported today. Please contact your prescribing provider " +
+        "before your next meal. Do not generate a meal plan that encourages eating normally " +
+        "before the user contacts their provider.";
+      safetyEscalations.push(msg);
+      escalationReason = "Vomiting reported. Please contact your prescribing provider before your next meal.";
     }
+    // If assertRuleApproved returns null (rule is pending_review or missing),
+    // it already logs a warning internally. We do not escalate (fail-closed).
   }
 
   // glp1_dehydration_difficulty_escalate — vomiting + very low hydration
   if (hydrationRisk === "severe") {
     const rule = assertRuleApproved("glp1_dehydration_difficulty_escalate");
     if (rule) {
-      rulesFired.push({
+      rulesApplied.push({
         ruleId:        rule.ruleId,
         sourceIds:     rule.sourceIds,
         evidenceLevel: rule.evidenceLevel,
-        reviewStatus:  rule.reviewStatus,
+        reviewStatus:  "approved",
         version:       rule.version,
       });
-      shouldEscalate   = true;
+      shouldEscalate = true;
+      const msg =
+        "⚠️ SAFETY — Severe hydration difficulty detected (vomiting + critically low water intake). " +
+        "The user should seek medical attention. Do not suggest food or drink intake as the primary " +
+        "intervention — direct the user to their provider or emergency care if symptoms are severe.";
+      safetyEscalations.push(msg);
       escalationReason = escalationReason
         ? escalationReason + " Severe hydration difficulty also detected — seek medical attention."
         : "Severe hydration difficulty detected. Seek immediate medical attention.";
     }
   }
 
-  // ── 5. Emit structured audit log (gated on MACRO_AUDIT=true) ─────────────
-  if (rulesFired.length > 0) {
-    emitRuleLog(rulesFired);
+  // ── 6. Emit structured audit log (gated on MACRO_AUDIT=true) ─────────────
+  // Emit in the legacy format for emitRuleLog compatibility
+  if (rulesApplied.length > 0) {
+    const legacyEntries: RuleFiredEntry[] = rulesApplied.map(r => ({
+      ruleId:        r.ruleId,
+      sourceIds:     r.sourceIds,
+      evidenceLevel: r.evidenceLevel,
+      reviewStatus:  r.reviewStatus,
+      version:       r.version,
+    }));
+    emitRuleLog(legacyEntries);
   }
+
+  if (rulesWithheld.length > 0 && process.env.MACRO_AUDIT === "true") {
+    console.log(
+      `[GLP-1 Tolerance] ⚠️  ${rulesWithheld.length} pending_review rule(s) withheld: ${rulesWithheld.join(", ")}. ` +
+      `These rules did NOT affect any recommendation.`
+    );
+  }
+
+  // rulesEvaluated = applied IDs + withheld IDs
+  const rulesEvaluated = [
+    ...rulesApplied.map(r => r.ruleId),
+    ...rulesWithheld,
+  ];
 
   return {
     date:            dateStr,
@@ -273,6 +396,10 @@ export async function resolveDailyMedicationTolerance(
     hasConstipation,
     shouldEscalate,
     escalationReason,
-    rulesFired: rulesFired.map((r) => r.ruleId),
+    rulesApplied:  rulesApplied.map(r => r.ruleId),
+    rulesWithheld,
+    rulesEvaluated,
+    safetyEscalations,
+    nutritionAdaptations,
   };
 }

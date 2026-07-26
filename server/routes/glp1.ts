@@ -83,9 +83,12 @@ router.put("/profile", async (req, res) => {
 });
 
 // GET /api/glp1/daily-tolerance
-// Resolves today's GLP-1 tolerance state from ace_daily_checkins + water_logs,
-// caches the result to glp1_profile for fast reads by other surfaces,
-// and returns the resolved DailyMedicationTolerance.
+// Read-only. Resolves today's GLP-1 tolerance state from ace_daily_checkins +
+// water_logs and returns the resolved DailyMedicationTolerance.
+//
+// This endpoint is IDEMPOTENT and SIDE-EFFECT-FREE.
+// It does not write to the database. To persist a resolved snapshot, use
+// POST /api/glp1/daily-tolerance (below), which writes to glp1_daily_tolerance.
 router.get("/daily-tolerance", async (req, res) => {
   try {
     if (!req.user?.id) {
@@ -96,68 +99,104 @@ router.get("/daily-tolerance", async (req, res) => {
     const today = new Date().toISOString().slice(0, 10);
 
     const tolerance = await resolveDailyMedicationTolerance({ userId, dateStr: today });
-
-    // Cache resolved tolerance in glp1_profile so the protocol envelope and
-    // surfaces can read it on next request without re-resolving.
-    try {
-      await db.execute(
-        sql`
-          INSERT INTO glp1_profile (
-            user_id,
-            tolerance_date,
-            nausea_level,
-            has_vomiting,
-            hydration_risk,
-            has_reflux,
-            has_diarrhea,
-            has_constipation,
-            appetite_level,
-            should_escalate,
-            escalation_reason,
-            water_ml_logged,
-            tolerance_rules_fired,
-            updated_at
-          )
-          VALUES (
-            ${userId},
-            ${today}::date,
-            ${tolerance.nauseaLevel},
-            ${tolerance.hasVomiting},
-            ${tolerance.hydrationRisk},
-            ${tolerance.hasReflux},
-            ${tolerance.hasDiarrhea},
-            ${tolerance.hasConstipation},
-            ${tolerance.appetiteLevel},
-            ${tolerance.shouldEscalate},
-            ${tolerance.escalationReason},
-            ${tolerance.waterMlLogged},
-            ${tolerance.rulesFired},
-            NOW()
-          )
-          ON CONFLICT (user_id) DO UPDATE SET
-            tolerance_date      = EXCLUDED.tolerance_date,
-            nausea_level        = EXCLUDED.nausea_level,
-            has_vomiting        = EXCLUDED.has_vomiting,
-            hydration_risk      = EXCLUDED.hydration_risk,
-            has_reflux          = EXCLUDED.has_reflux,
-            has_diarrhea        = EXCLUDED.has_diarrhea,
-            has_constipation    = EXCLUDED.has_constipation,
-            appetite_level      = EXCLUDED.appetite_level,
-            should_escalate     = EXCLUDED.should_escalate,
-            escalation_reason   = EXCLUDED.escalation_reason,
-            water_ml_logged     = EXCLUDED.water_ml_logged,
-            tolerance_rules_fired = EXCLUDED.tolerance_rules_fired,
-            updated_at          = NOW()
-        `
-      );
-    } catch (cacheErr) {
-      console.warn("[GET /glp1/daily-tolerance] Cache write failed (non-fatal):", cacheErr);
-    }
-
     return res.json({ tolerance });
   } catch (error) {
-    console.error("Error resolving GLP-1 daily tolerance:", error);
+    console.error("[GET /glp1/daily-tolerance] Resolution error:", error);
     return res.status(500).json({ error: "Failed to resolve daily tolerance" });
+  }
+});
+
+// POST /api/glp1/daily-tolerance
+// Resolves today's tolerance state and persists it as a dated snapshot in
+// glp1_daily_tolerance. Uses upsert on (user_id, tolerance_date) so re-running
+// after a later check-in updates the existing row rather than creating duplicates.
+//
+// Designed to be called:
+//   - After the user submits their daily check-in (ACE modal)
+//   - After a shot-tracker entry (triggers check-in prompt)
+//   - Proactively on first GLP-1 builder access each day
+router.post("/daily-tolerance", async (req, res) => {
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const userId = String(req.user.id);
+    const today = new Date().toISOString().slice(0, 10);
+
+    const tolerance = await resolveDailyMedicationTolerance({ userId, dateStr: today });
+
+    // Persist as a dated snapshot. UNIQUE(user_id, tolerance_date) ensures
+    // re-resolving the same day updates rather than duplicates.
+    await db.execute(
+      sql`
+        INSERT INTO glp1_daily_tolerance (
+          user_id,
+          tolerance_date,
+          nausea_level,
+          has_vomiting,
+          hydration_risk,
+          has_reflux,
+          has_diarrhea,
+          has_constipation,
+          appetite_level,
+          should_escalate,
+          escalation_reason,
+          water_ml_logged,
+          rules_applied,
+          rules_withheld,
+          rules_evaluated,
+          nutrition_adaptations,
+          safety_escalations,
+          resolver_version,
+          resolved_at
+        )
+        VALUES (
+          ${userId},
+          ${today}::date,
+          ${tolerance.nauseaLevel},
+          ${tolerance.hasVomiting},
+          ${tolerance.hydrationRisk},
+          ${tolerance.hasReflux},
+          ${tolerance.hasDiarrhea},
+          ${tolerance.hasConstipation},
+          ${tolerance.appetiteLevel},
+          ${tolerance.shouldEscalate},
+          ${tolerance.escalationReason},
+          ${tolerance.waterMlLogged},
+          ${sql.raw(`ARRAY[${tolerance.rulesApplied.map(r => `'${r}'`).join(",")}]::text[]`)},
+          ${sql.raw(`ARRAY[${tolerance.rulesWithheld.map(r => `'${r}'`).join(",")}]::text[]`)},
+          ${sql.raw(`ARRAY[${tolerance.rulesEvaluated.map(r => `'${r}'`).join(",")}]::text[]`)},
+          ${sql.raw(`ARRAY[${tolerance.nutritionAdaptations.map(s => `'${s.replace(/'/g, "''")}'`).join(",")}]::text[]`)},
+          ${sql.raw(`ARRAY[${tolerance.safetyEscalations.map(s => `'${s.replace(/'/g, "''")}'`).join(",")}]::text[]`)},
+          '1.0',
+          NOW()
+        )
+        ON CONFLICT (user_id, tolerance_date) DO UPDATE SET
+          nausea_level          = EXCLUDED.nausea_level,
+          has_vomiting          = EXCLUDED.has_vomiting,
+          hydration_risk        = EXCLUDED.hydration_risk,
+          has_reflux            = EXCLUDED.has_reflux,
+          has_diarrhea          = EXCLUDED.has_diarrhea,
+          has_constipation      = EXCLUDED.has_constipation,
+          appetite_level        = EXCLUDED.appetite_level,
+          should_escalate       = EXCLUDED.should_escalate,
+          escalation_reason     = EXCLUDED.escalation_reason,
+          water_ml_logged       = EXCLUDED.water_ml_logged,
+          rules_applied         = EXCLUDED.rules_applied,
+          rules_withheld        = EXCLUDED.rules_withheld,
+          rules_evaluated       = EXCLUDED.rules_evaluated,
+          nutrition_adaptations = EXCLUDED.nutrition_adaptations,
+          safety_escalations    = EXCLUDED.safety_escalations,
+          resolver_version      = EXCLUDED.resolver_version,
+          resolved_at           = NOW()
+      `
+    );
+
+    return res.json({ ok: true, tolerance });
+  } catch (error) {
+    console.error("[POST /glp1/daily-tolerance] Persistence error:", error);
+    return res.status(500).json({ error: "Failed to persist daily tolerance snapshot" });
   }
 });
 
