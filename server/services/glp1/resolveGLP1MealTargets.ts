@@ -19,6 +19,15 @@
  *
  * This function is pure and synchronous — no DB calls. Use glp1TargetLoader.ts to
  * fetch DB values and call this function.
+ *
+ * ── GOVERNANCE ────────────────────────────────────────────────────────────────
+ * Rules in this resolver are governed by server/services/glp1/ruleRegistry.ts.
+ * Every multiplier and threshold must have a corresponding ClinicalRule entry.
+ * Rules with reviewStatus === "removed" must not appear here.
+ * Rules with reviewStatus === "pending_review" are noted inline and must not
+ * reach production users without clinic-configured guardrails covering them.
+ * See docs/clinical-intelligence-governance.md for the full review process.
+ * ─────────────────────────────────────────────────────────────────────────────
  */
 
 import type { GLP1Guardrails } from '../../../shared/glp1-schema';
@@ -116,21 +125,37 @@ function inferTreatmentPhase(guardrails: GLP1Guardrails): GLP1TreatmentPhase {
   return 'unknown';
 }
 
+/**
+ * GOVERNANCE — Rule: glp1_intro_phase_calorie_multiplier (pending_review)
+ * Direction: smaller portions during intro/up-titration — supported by PMID_36614945.
+ * Specific values (0.82 intro, 1.08 muscle_preserve): engineering estimates without
+ * peer-reviewed source. These multipliers ONLY apply when a user has a known daily
+ * calorie target from the macro calculator. When no target exists, the static 400 kcal
+ * baseline is used instead and these multipliers are bypassed.
+ * Pending RD review before applying to non-provider-configured users.
+ */
 function treatmentPhaseCalorieMultiplier(phase: GLP1TreatmentPhase): number {
   switch (phase) {
-    case 'intro': return 0.82;
+    case 'intro': return 0.82;         // pending_review — direction supported, coefficient uncited
     case 'maintenance': return 1.0;
-    case 'muscle_preserve': return 1.08;
+    case 'muscle_preserve': return 1.08; // pending_review — direction supported, coefficient uncited
     default: return 1.0;
   }
 }
 
+/**
+ * GOVERNANCE — Rule: glp1_appetite_suppressed_multiplier (pending_review)
+ * Direction: lower calories when appetite suppressed — supported by FDA label §6.1.
+ * Specific values (0.80 suppressed, 0.90 reduced, 1.05 increased): engineering
+ * estimates without peer-reviewed source for the exact coefficients.
+ * Pending RD review before applying to non-provider-configured users.
+ */
 function appetiteCalorieMultiplier(appetite: AppetiteLevel): number {
   switch (appetite) {
-    case 'suppressed': return 0.80;
-    case 'reduced': return 0.90;
+    case 'suppressed': return 0.80; // pending_review — direction supported, coefficient uncited
+    case 'reduced': return 0.90;    // pending_review — direction supported, coefficient uncited
     case 'normal': return 1.00;
-    case 'increased': return 1.05;
+    case 'increased': return 1.05;  // pending_review — direction supported, coefficient uncited
   }
 }
 
@@ -330,11 +355,13 @@ export function resolveGLP1MealTargets(
       targetFatGrams = Math.round(maximumToleratedFatGrams * 0.8);
     }
 
-    // Treatment phase: intro is stricter
+    // Treatment phase: intro is stricter — lower fat during intro is supported by PMID_36614945.
+    // Specific thresholds (10g max, 8g target) are engineering defaults pending RD review.
+    // Rule: glp1_lower_fat (approved — directional). Specific values: pending_review.
     if (treatmentPhase === 'intro') {
-      maximumToleratedFatGrams = Math.min(maximumToleratedFatGrams, 10);
-      targetFatGrams = Math.min(targetFatGrams, 8);
-      reasons.push('Intro phase: fat ceiling reduced to 10g max');
+      maximumToleratedFatGrams = Math.min(maximumToleratedFatGrams, 10); // pending_review threshold
+      targetFatGrams = Math.min(targetFatGrams, 8);                       // pending_review threshold
+      reasons.push('Intro phase: fat ceiling reduced (lower fat supported; specific threshold pending RD review)');
     }
     reasons.push(`Fat: ${remainingFat}g remaining ÷ ${plannedMealsRemaining} meals = max ${maximumToleratedFatGrams}g`);
   }
