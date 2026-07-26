@@ -361,8 +361,8 @@ function ProDashboardPreview({ onNavigate }: { onNavigate: (path: string) => voi
     <div className="border-t border-white/5">
       {/* Direct portal links — always visible, no client required */}
       <div className="px-4 pt-3 pb-2">
-        <p className="text-[10px] text-white/30 uppercase tracking-wide mb-2">Direct Access</p>
-        <div className="grid grid-cols-2 gap-1.5">
+        <p className="text-[10px] text-white/30 uppercase tracking-wide mb-2">Portals</p>
+        <div className="grid grid-cols-2 gap-1.5 mb-3">
           {[
             { path: "/pro-portal", label: "Pro Portal" },
             { path: "/pro/clients", label: "Clients (Trainer)" },
@@ -377,6 +377,27 @@ function ProDashboardPreview({ onNavigate }: { onNavigate: (path: string) => voi
               {label}
             </button>
           ))}
+        </div>
+
+        <p className="text-[10px] text-white/30 uppercase tracking-wide mb-2">Dashboards (empty state preview)</p>
+        <p className="text-[10px] text-white/20 mb-2 leading-relaxed">
+          Loads the full dashboard UI with no real client — use to inspect layout &amp; buttons.
+        </p>
+        <div className="grid grid-cols-2 gap-1.5">
+          <button
+            onClick={() => onNavigate("/pro/clients/__dev__/trainer")}
+            className="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg bg-emerald-600/20 border border-emerald-500/30 text-emerald-300 text-xs font-medium active:scale-[0.97] transition-transform"
+          >
+            <Dumbbell className="h-3 w-3" />
+            Trainer Dashboard
+          </button>
+          <button
+            onClick={() => onNavigate("/pro/clients/__dev__/clinician")}
+            className="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg bg-violet-600/20 border border-violet-500/30 text-violet-300 text-xs font-medium active:scale-[0.97] transition-transform"
+          >
+            <Stethoscope className="h-3 w-3" />
+            Physician Dashboard
+          </button>
         </div>
       </div>
 
