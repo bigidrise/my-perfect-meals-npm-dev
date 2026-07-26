@@ -122,7 +122,7 @@ router.post('/generate', requireAuth, async (req, res) => {
         avoidIngredients: [...(user?.dislikedFoods || []), ...(user?.avoidedFoods || [])],
         medicalFlags: user?.healthConditions || [],
         macroTargets: macroTargets || undefined
-      }
+      } as any
     );
 
     // Validate that we got a meal back

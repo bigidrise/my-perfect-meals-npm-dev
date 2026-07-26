@@ -1357,7 +1357,7 @@ export async function loadUserProtocolEnvelope(
       console.error(`[ProtocolEnvelope] Failed to load provider interventions for user ${userId}:`, err);
     }
 
-    return {
+    const envelope: any = {
       userId,
       dietaryIdentity: dietaryRestrictions,
       allergies,

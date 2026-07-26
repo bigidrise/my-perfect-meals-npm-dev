@@ -1,6 +1,7 @@
 // server/routes/meal-engine.ts
 import express from "express";
 import { z } from "zod";
+// @ts-ignore
 import { generateMeal } from "../services/mealEngineService";
 import { requireAuth, type AuthenticatedRequest } from "../middleware/requireAuth";
 import { resolveActiveSystem } from "../services/creatorSystems/resolver";

@@ -578,7 +578,7 @@ async function initializeApp() {
 
     // PostgreSQL-backed session store (production-ready, no MemoryStore)
     // Guarded: if DATABASE_URL is missing, fall back to MemoryStore with warning
-    const sessionConfig: session.SessionOptions = {
+    const sessionConfig: any = {
       secret: process.env.SESSION_SECRET || "mpm-session-secret-dev-only",
       resave: false,
       saveUninitialized: false,
@@ -808,7 +808,7 @@ async function initializeApp() {
       try {
         const { loadOrgContext, loadOrgBySlug, getDefaultOrgContext } = await import("./lib/orgContext");
         const { db: orgDb } = await import("./db");
-        const { users: usersTable } = await import("./db/schema");
+        const { users: usersTable } = await import("./db/schema") as any;
         const { eq: eqOrg, isNotNull, and: andBiz } = await import("drizzle-orm");
 
         if ((req as any).orgContext) {
@@ -1054,6 +1054,8 @@ async function initializeApp() {
       // Studio relationship integrity — deduplicate client_links and add unique pair constraint
       setTimeout(async () => {
         try {
+          const { db: database } = await import("./db");
+          const { sql } = await import("drizzle-orm");
           // Deduplicate: for each (client_user_id, pro_user_id) pair keep the active row
           // (if any) or the most recently created row, then delete the rest.
           await database.execute(sql`

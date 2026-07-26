@@ -32,7 +32,7 @@ router.post("/food-logs", async (req, res) => {
       });
     }
 
-    const [row] = await db.insert(foodDiary).values(validation.data).returning();
+    const [row] = await db.insert(foodDiary).values(validation.data as any).returning();
     console.log("[food-log][create]", { saved: row });
 
     res.json(row);

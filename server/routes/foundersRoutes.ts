@@ -82,7 +82,7 @@ router.post("/", async (req, res) => {
 
     const [testimonial] = await db
       .insert(founderTestimonials)
-      .values(data)
+      .values(data as any)
       .returning();
 
     res.json({ 

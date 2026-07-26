@@ -40,7 +40,7 @@ r.post("/generate", requireAuth, async (req: any, res) => {
       diet: "balanced", // Default, can be overridden
       medicalFlags: [],
       allergies: []
-    });
+    } as any);
 
     // Create meta object with planning mode and schedule info
     const meta = {
@@ -255,7 +255,7 @@ r.patch("/:planId/meals/:mealId", requireAuth, async (req: any, res) => {
     const plan = mealPlan[0];
     
     // Update the meal time in the plan data
-    const updatedPlanData = plan.planData ? { ...plan.planData } : {};
+    const updatedPlanData = plan.planData ? { ...(plan.planData as any) } : {};
     if (updatedPlanData.days) {
       for (const day of updatedPlanData.days) {
         if (day.date === date && day.meals) {

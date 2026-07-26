@@ -18,7 +18,7 @@ export async function fetchTranscript(videoId: string): Promise<TranscriptResult
   let YoutubeTranscript: any;
   try {
     const mod = await import("youtube-transcript");
-    YoutubeTranscript = mod.YoutubeTranscript ?? mod.default;
+    YoutubeTranscript = mod.YoutubeTranscript ?? (mod as any).default;
   } catch {
     throw new Error("youtube-transcript package is not installed. Run: npm install youtube-transcript");
   }

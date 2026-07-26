@@ -112,11 +112,10 @@ Return ONLY valid JSON - no explanations or extra text.`;
     // Ensure nutrition data is complete
     meal.nutrition = {
       calories: meal.nutrition?.calories || 400,
-      protein_g: meal.nutrition?.protein || meal.nutrition?.protein_g || 25,
-      carbs_g: meal.nutrition?.carbs ?? meal.nutrition?.carbs_g ?? null,
-      fat_g: meal.nutrition?.fat || meal.nutrition?.fat_g || 15,
-      fiber_g: meal.nutrition?.fiber || meal.nutrition?.fiber_g || 8,
-      sugar_g: meal.nutrition?.sugar || meal.nutrition?.sugar_g || 5
+      protein: (meal.nutrition as any)?.protein || (meal.nutrition as any)?.protein_g || 25,
+      carbs: (meal.nutrition as any)?.carbs ?? (meal.nutrition as any)?.carbs_g ?? null,
+      fat: (meal.nutrition as any)?.fat || (meal.nutrition as any)?.fat_g || 15,
+      fiber: (meal.nutrition as any)?.fiber || (meal.nutrition as any)?.fiber_g || 8,
     };
     
     return meal;
@@ -149,7 +148,7 @@ function fallbackMeal(req: MealRequest): MealResult {
           "Refrigerate overnight",
           "Top with berries and maple syrup before serving"
         ],
-        nutrition: { calories: 320, protein_g: 8, carbs_g: 45, fat_g: 12, fiber_g: 10, sugar_g: 15 }
+        nutrition: { calories: 320, protein: 8, carbs_g: 45, fat_g: 12, fiber_g: 10, sugar_g: 15 }
       };
     }
     return {
@@ -169,7 +168,7 @@ function fallbackMeal(req: MealRequest): MealResult {
         "Pour in eggs and gently scramble until set",
         "Serve eggs with toast"
       ],
-      nutrition: { calories: 380, protein_g: 18, carbs_g: 25, fat_g: 22, fiber_g: 4, sugar_g: 3 }
+      nutrition: { calories: 380, protein: 18, carbs_g: 25, fat_g: 22, fiber_g: 4, sugar_g: 3 }
     };
   }
   
@@ -191,6 +190,6 @@ function fallbackMeal(req: MealRequest): MealResult {
       "Grill for 6-7 minutes per side until internal temperature reaches 165°F",
       "Let rest for 5 minutes before serving"
     ],
-    nutrition: { calories: 280, protein_g: 42, carbs_g: 0, fat_g: 11, fiber_g: 0, sugar_g: 0 }
+    nutrition: { calories: 280, protein: 42, carbs_g: 0, fat_g: 11, fiber_g: 0, sugar_g: 0 }
   };
 }

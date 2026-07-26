@@ -122,10 +122,10 @@ export function validatePregnancyMealSafety(meal: MealToValidate): ValidationRes
 
   if (violations.length > 0) {
     console.warn(`[pregnancySupportValidator] Meal "${meal.name}" failed safety check:`, violations);
-    return { valid: false, violations };
+    return { isValid: false, violations };
   }
 
-  return { valid: true, violations: [] };
+  return { isValid: true, violations: [] };
 }
 
 /**

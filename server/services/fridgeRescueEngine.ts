@@ -42,7 +42,7 @@ function buildPantry(userItems: string[]): Pantry {
         if (mapping.bucket === 'condiments') {
           pantry.condiments.push(mapping.tag);
         } else {
-          pantry[mapping.bucket].push(candidate);
+          (pantry[mapping.bucket] as any[]).push(candidate);
         }
         
         pantry.allTags.add(mapping.tag);

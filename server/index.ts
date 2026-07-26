@@ -1256,7 +1256,7 @@ async function start() {
   }
 
   // Sentry error handler must come BEFORE the custom error handler
-  app.use(sentryErrorHandler());
+  app.use(sentryErrorHandler() as any);
 
   // Error handler LAST
   app.use(errorHandler);

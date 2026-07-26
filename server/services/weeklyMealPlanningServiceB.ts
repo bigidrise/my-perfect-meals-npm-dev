@@ -148,7 +148,7 @@ export const weeklyMealPlanningServiceB = {
                 prepTime: 10, cookTime: 25, servings: 1, cuisine: "contemporary", difficulty: "medium" as const
               }
             ].slice(0, params.mealsPerDay).concat(
-              Array.from({ length: params.snacksPerDay }, (_, snackIndex) => ({
+              Array.from({ length: params.snacksPerDay ?? 0 }, (_, snackIndex) => ({
                 id: `ai-snack-${dayIndex}-${snackIndex}`,
                 slug: `ai-snack-${dayIndex}-${snackIndex}`,
                 name: "Targeted Macro Snack",

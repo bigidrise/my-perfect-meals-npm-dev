@@ -18,10 +18,10 @@ router.post("/meal-logs", requireAuth, async (req, res) => {
     if (!validation.success) {
       return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
     }
-    if (validation.data.userId && validation.data.userId !== authUser.id) {
+    if ((validation.data as any).userId && (validation.data as any).userId !== authUser.id) {
       return res.status(403).json({ error: "Forbidden" });
     }
-    const [row] = await db.insert(mealLogsEnhanced).values(validation.data).returning();
+    const [row] = await db.insert(mealLogsEnhanced).values(validation.data as any).returning();
     console.log("[meal-log][create] id:", row.id);
     res.json(row);
   } catch (e: any) {

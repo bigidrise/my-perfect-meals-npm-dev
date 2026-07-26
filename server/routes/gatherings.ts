@@ -627,7 +627,7 @@ router.post("/generate", async (req: Request, res: Response) => {
           courseType,
           i,
           courses,
-          selectedDishes,
+          selectedDishes as any,
           familySpecialty,
         );
 
@@ -668,7 +668,7 @@ router.post("/generate", async (req: Request, res: Response) => {
             skipPalate: !flavorPersonal,
             strictMode: keepItSimple,
             skipImage: true, // Images fetched in parallel by client after text is returned
-          },
+          } as any,
         );
 
         // Post-generation protocol scan — reject and retry on medical/dietary violation

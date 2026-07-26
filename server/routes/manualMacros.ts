@@ -584,7 +584,7 @@ router.post("/users/:userId/macros/daily-summary", requireAuth, async (req, res)
       ? calories
       : Math.round(4 * Number(protein) + 4 * Number(carbs) + 9 * Number(fat));
 
-    const [row] = await db.execute(sql`
+    const _sqlExecResult = await db.execute(sql`
       INSERT INTO macro_logs (user_id, at, source, kcal, protein, carbs, fat, fiber, alcohol, starchy_carbs, fibrous_carbs)
       VALUES (
         ${targetUserId},
@@ -610,6 +610,7 @@ router.post("/users/:userId/macros/daily-summary", requireAuth, async (req, res)
         at = EXCLUDED.at
       RETURNING *
     `);
+    const [row] = (_sqlExecResult as any).rows ?? _sqlExecResult;
 
     console.log(`✅ Daily summary upserted for user ${targetUserId}: ${dateISO} (source=${source})`);
     res.json({ ok: true, row: row ?? null });

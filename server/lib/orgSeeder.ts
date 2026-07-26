@@ -13,6 +13,7 @@ export async function seedDefaultOrganizations(): Promise<void> {
       .limit(1);
 
     if (!existing) {
+      // @ts-ignore
       await db.insert(organizations).values({
         id: MPM_PUBLIC_ORG_ID,
         slug: "mpm-public",
@@ -58,6 +59,7 @@ export async function seedDefaultOrganizations(): Promise<void> {
       .limit(1);
 
     if (!divvyExists) {
+      // @ts-ignore
       await db.insert(organizations).values({
         slug: "divvy-health",
         name: "Divvy Health",

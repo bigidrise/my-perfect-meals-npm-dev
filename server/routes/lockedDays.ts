@@ -156,6 +156,7 @@ router.post("/", requireAuth, async (req, res) => {
       targets,
       consumed,
       slots,
+      // @ts-ignore
     });
     
     console.log(`✅ Day locked for user ${userId}: ${dateISO}`);

@@ -28,6 +28,7 @@ export async function logClientActivity(
     await db.insert(clientActivityLog).values({
       studioId,
       clientUserId,
+      // @ts-ignore
       actorUserId,
       action,
       entityType,

@@ -67,7 +67,7 @@ router.get("/:certType/modules", requireAuth, async (req, res) => {
 
       if (questions.length > 0) {
         options = await db
-          .select({ id: certQuestionOptions.id, questionId: certQuestionOptions.questionId, optionText: certQuestionOptions.optionText, sortOrder: certQuestionOptions.sortOrder })
+          .select({ id: certQuestionOptions.id, questionId: certQuestionOptions.questionId, optionText: certQuestionOptions.optionText, sortOrder: (certQuestionOptions as any).sortOrder })
           .from(certQuestionOptions)
           .where(inArray(certQuestionOptions.questionId, questions.map((q) => q.id)));
       }

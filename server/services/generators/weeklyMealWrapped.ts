@@ -7,7 +7,7 @@ import { generateWeeklyMeals } from '../stableMealGenerator';
 const weeklyGenerator: GeneratorFn = async (c: ResolvedConstraints) => {
   try {
     // Call your existing generator with constraint-based inputs
-    const weeklyMeals = await generateWeeklyMeals(c.userId, {
+    const weeklyMeals = await (generateWeeklyMeals as any)(c.userId, {
       dietaryRestrictions: [c.diet],
       allergies: c.allergies,
       servings: c.servings

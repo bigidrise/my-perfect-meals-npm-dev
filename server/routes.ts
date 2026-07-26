@@ -874,7 +874,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           : buildGuestEnvelope();
         if (result.meal) {
           const { complianceSection, dietClassification } = buildMealComplianceBundle(result.meal, envelope);
-          result.meal = { ...result.meal, complianceSection, dietClassification };
+          result.meal = { ...result.meal, complianceSection, dietClassification } as any;
         }
         if (result.meals?.length) {
           result.meals = result.meals.map((m: any) => {
@@ -970,7 +970,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
 
             if (appliedProtocol) {
-              if (result.meal) result.meal = { ...result.meal, appliedProtocol };
+              if (result.meal) result.meal = { ...result.meal, appliedProtocol } as any;
               if (result.meals?.length) {
                 result.meals = result.meals.map((m: any) => ({ ...m, appliedProtocol }));
               }
@@ -2102,7 +2102,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User routes
   app.post("/api/users", async (req, res) => {
     try {
-      const userData = insertUserSchema.parse(req.body);
+      const userData: any = insertUserSchema.parse(req.body);
       // Ensure mealPlanVariant is a valid enum value or undefined
       const validatedData = {
         ...userData,
@@ -2118,7 +2118,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ? ((userData as any).onboardingMode as 'independent' | 'procare')
           : 'independent'
       };
-      const [user] = await db.insert(users).values([validatedData]).returning();
+      const [user] = await db.insert(users).values([validatedData as any]).returning();
       res.json(user);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
@@ -3695,7 +3695,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 starchPolicy:          state.starchPolicy,
                 starchyBudgetExhausted: state.starchyBudgetExhausted,
                 scheduleConfigured:    true,
-                dayLabel:              state.dayLabel ?? null,
+                dayLabel:              (state as any).dayLabel ?? null,
                 productNetStarchyG:    netStarchyG,
                 conflicts,
                 ...(conflicts && {
@@ -5558,7 +5558,7 @@ function getMealIngredientsDatabase() {
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
       // Convert buffer to file-like object for OpenAI
-      const audioFile = new File([req.file.buffer], 'audio.wav', { type: 'audio/wav' });
+      const audioFile = new File([req.file.buffer as unknown as BlobPart], 'audio.wav', { type: 'audio/wav' });
 
       const transcription = await openai.audio.transcriptions.create({
         file: audioFile,
@@ -6501,7 +6501,7 @@ function getMealIngredientsDatabase() {
   app.put("/api/user-meal-prefs/:userId", async (req, res) => {
     try {
       const { userId } = req.params;
-      const validatedData = insertUserMealPrefsSchema.parse({
+      const validatedData: any = insertUserMealPrefsSchema.parse({
         ...req.body,
         userId,
         updatedAt: new Date(),

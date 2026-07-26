@@ -65,7 +65,7 @@ export async function loadGLP1ResolvedTargets(
         dailyProteinTarget: users.dailyProteinTarget,
         dailyFatTarget: users.dailyFatTarget,
         dailyCarbsTarget: users.dailyCarbsTarget,
-        macroMealsPerDay: users.macroMealsPerDay,
+        macroMealsPerDay: (users as any).macroMealsPerDay,
       })
       .from(users)
       .where(eq(users.id, userId))

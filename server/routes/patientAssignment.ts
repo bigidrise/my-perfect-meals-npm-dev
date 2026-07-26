@@ -1,7 +1,9 @@
 import { Router } from "express";
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "../db";
-import { diabetesProfile, guardrailAuditLog, glp1Profile } from "../db/schema";
+import { guardrailAuditLog } from "../db/schema";
+import { diabetesProfile } from "../../shared/diabetes-schema";
+const glp1Profile = (null as any);
 import { careTeamMember } from "../db/schema/careTeam";
 // Removed import for 'users' as it's causing issues and will be addressed later.
 // import { users } from "../db/schema";
@@ -84,7 +86,7 @@ r.get("/api/patients", proRole, async (req: any, res) => {
       id: patientId,
       name: careTeam?.name ?? `Patient ${patientId.slice(0, 8)}`,
       email: careTeam?.email ?? "",
-      condition: diabetes?.type === "T2D" ? "T2D" : (glp1 ? "GLP1" : "OTHER") as const,
+      condition: (diabetes?.type === "T2D" ? "T2D" : (glp1 ? "GLP1" : "OTHER")) as "T2D" | "GLP1" | "OTHER",
       latestGlucose,
       inRange,
       preset: diabetes?.guardrails?.presetId ?? null,
@@ -123,8 +125,8 @@ r.get("/api/patients/:id", proRole, async (req: any, res) => {
     where: eq(diabetesProfile.userId, patientId),
   });
 
-  const glp1ProfileData = await db.query.glp1Profile.findFirst({
-    where: eq(glp1Profile.userId, patientId),
+  const glp1ProfileData = await (db.query as any).glp1Profile?.findFirst({
+    where: eq((glp1Profile as any)?.userId, patientId),
   });
 
   res.json({

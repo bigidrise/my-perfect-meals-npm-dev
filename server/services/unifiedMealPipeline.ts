@@ -847,14 +847,14 @@ Respond with ONLY valid JSON in this exact format:
           if (cravingDietValidation.violations.length > 0) {
             const { ingredients: subIngredients, substitutionsApplied } = applyDietarySubstitutions(
               unifiedMeal.ingredients,
-              cravingPrimaryDiet as DietaryMode,
+              cravingPrimaryDiet as any,
             );
             if (substitutionsApplied.length > 0) {
               console.log(`🔄 [DIET GUARD] Craving substitution pass for ${cravingPrimaryDiet}: ${substitutionsApplied.map(s => `${s.original} → ${s.replacement}`).join(', ')}`);
               unifiedMeal = { ...unifiedMeal, ingredients: subIngredients };
               cravingDietValidation = validateDietaryRestriction(
                 { name: unifiedMeal.name, ingredients: unifiedMeal.ingredients },
-                cravingPrimaryDiet as DietaryMode,
+                cravingPrimaryDiet as any,
               );
             }
           }
@@ -931,8 +931,8 @@ Respond with ONLY valid JSON in this exact format:
             name: currentMeal.name,
             ingredients: currentMeal.ingredients,
             description: currentMeal.description,
-            protein: currentMeal.protein,
-          });
+            protein: (currentMeal as any).protein,
+          } as any);
 
           console.log(`🧬 [ONCOLOGY CRAVING] Attempt ${oncologyCravingAttempt + 1} — Score: ${cravingQuality.total}/100 — tier: ${cravingQuality.tier} — caps: [${cravingQuality.breakdown.caps.join(', ') || 'none'}]`);
 
@@ -1013,7 +1013,7 @@ Respond with ONLY valid JSON in this exact format:
             name: currentMeal.name,
             ingredients: currentMeal.ingredients,
             description: currentMeal.description,
-            protein: currentMeal.protein,
+            protein: (currentMeal as any).protein,
           });
           if (finalQuality.approvedForDisplay) {
             console.log(`✅ [ONCOLOGY CRAVING] Quality gate passed after retries — score ${finalQuality.total}/100`);
@@ -1914,7 +1914,7 @@ export async function generateFridgeRescueUnified(
 
   // Detect oncology protocol early (before cache) so we can bypass stale cache.
   // Check dietaryRestrictions AND both specialtyCondition forms (single + array).
-  const isOncologyFridge = fridgePrimaryDiet === 'oncology-support'
+  const isOncologyFridge = (fridgePrimaryDiet as string) === 'oncology-support'
     || fridgeDietRestrictions.includes('oncology-support')
     || fridgeSpecialtyCondition === 'oncology-support'
     || fridgeSpecialtyConditions.includes('oncology-support');
@@ -2127,14 +2127,14 @@ export async function generateFridgeRescueUnified(
     // We score each meal and tag it — we don't hard-block or re-generate from scratch
     // because that would violate the fridge-rescue contract. However, we log every
     // meal's oncology quality so the team can see the distribution.
-    if (fridgeEnvelope.dietaryIdentity.includes('oncology-support') || fridgePrimaryDiet === 'oncology-support') {
+    if (fridgeEnvelope.dietaryIdentity.includes('oncology-support') || (fridgePrimaryDiet as string) === 'oncology-support') {
       for (let i = 0; i < resultMeals.length; i++) {
         const fridgeMealQuality = scoreOncologyMealQuality({
           name: resultMeals[i].name,
           ingredients: resultMeals[i].ingredients,
           description: resultMeals[i].description,
-          protein: resultMeals[i].protein,
-        });
+          protein: (resultMeals[i] as any).protein,
+        } as any);
         const status = fridgeMealQuality.approvedForDisplay
           ? `premium_${fridgeMealQuality.total}`
           : `fridge_suboptimal_${fridgeMealQuality.total}`;
@@ -2764,7 +2764,7 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
             substitutionPassUsed = true;
             const { ingredients: subIngredients, substitutionsApplied } = applyDietarySubstitutions(
               tempMeal.ingredients,
-              chefPrimaryDiet as DietaryMode,
+              chefPrimaryDiet as any,
             );
             if (substitutionsApplied.length > 0) {
               console.log(`🔄 [DIET GUARD] Substitution pass for ${chefPrimaryDiet}: ${substitutionsApplied.map(s => `${s.original} → ${s.replacement}`).join(', ')}`);
@@ -2772,7 +2772,7 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
               // Re-validate after substitution
               dietValidation = validateDietaryRestriction(
                 { name: tempMeal.name, ingredients: tempMeal.ingredients },
-                chefPrimaryDiet as DietaryMode,
+                chefPrimaryDiet as any,
               );
             }
           }
@@ -3298,14 +3298,14 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
             snackSubstitutionPassUsed = true;
             const { ingredients: subIngredients, substitutionsApplied } = applyDietarySubstitutions(
               tempSnack.ingredients,
-              snackPrimaryDiet as DietaryMode,
+              snackPrimaryDiet as any,
             );
             if (substitutionsApplied.length > 0) {
               console.log(`🔄 [DIET GUARD] Snack substitution pass for ${snackPrimaryDiet}: ${substitutionsApplied.map(s => `${s.original} → ${s.replacement}`).join(', ')}`);
               tempSnack = { ...tempSnack, ingredients: subIngredients };
               snackDietValidation = validateDietaryRestriction(
                 { name: tempSnack.name, ingredients: tempSnack.ingredients },
-                snackPrimaryDiet as DietaryMode,
+                snackPrimaryDiet as any,
               );
             }
           }

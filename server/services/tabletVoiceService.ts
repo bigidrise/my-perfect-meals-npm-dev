@@ -75,7 +75,7 @@ export async function transcribeVoiceBuffer(
     : mimeType.includes("ogg") ? "ogg"
     : "m4a";
 
-  const file = new File([buffer], `voice-note.${ext}`, { type: mimeType });
+  const file = new File([buffer as unknown as BlobPart], `voice-note.${ext}`, { type: mimeType });
 
   const response = await openai.audio.transcriptions.create({
     file,

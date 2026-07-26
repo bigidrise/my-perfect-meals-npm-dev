@@ -314,6 +314,8 @@ export const weeklyMealPlanningServiceA = {
     // 2) Assemble weeks → days → meals with variety prevention
     const daysPerWeek = 7;
     const plan: any[] = [];
+    const safe: any[] = [...byType.breakfast, ...byType.lunch, ...byType.dinner, ...byType.snack];
+    const addCarbSplit = (t: any) => ({ ...t, imageUrl: `/meal-images/${t.slug}.jpg` });
     
     // Smart picker that avoids recent selections
     function sampleNoRecent<T extends { slug: string }>(

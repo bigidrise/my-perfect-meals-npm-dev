@@ -91,7 +91,7 @@ export const glp1HubModule: HubModule = {
     guardrails: HubGuardrails,
     mealType: string
   ): PromptFragment {
-    const data = context?.data as GLP1ContextData | undefined;
+    const data = context?.data as unknown as GLP1ContextData | undefined;
     
     const nauseaLevel = data?.nauseaLevel ?? 2;
     const appetiteLevel = data?.appetiteLevel ?? 3;

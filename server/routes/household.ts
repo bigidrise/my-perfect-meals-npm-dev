@@ -125,7 +125,7 @@ router.post("/profiles", requireAuth, async (req, res) => {
         ownerUserId: userId,
         ...parsed.data,
         sortOrder: profileCount,
-      })
+      } as any)
       .returning();
 
     console.log(`[household] Created profile "${profile.displayName}" for user ${userId}`);

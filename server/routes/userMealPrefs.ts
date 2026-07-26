@@ -51,7 +51,7 @@ userMealPrefsRouter.post("/", requireAuth, async (req, res) => {
       .values({
         ...validatedData,
         updatedAt: new Date()
-      })
+      } as any)
       .onConflictDoUpdate({
         target: userMealPrefs.userId,
         set: { 

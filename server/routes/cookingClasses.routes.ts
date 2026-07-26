@@ -132,7 +132,7 @@ router.post('/journal/submit', async (req, res) => {
   try {
     const authUserId = (req as AuthenticatedRequest).authUser.id;
 
-    const entryData = insertCookingClassJournalSchema.parse({
+    const entryData: any = insertCookingClassJournalSchema.parse({
       ...req.body,
       userId: authUserId
     });
@@ -235,7 +235,7 @@ router.post('/journal/:entryId/vote', async (req, res) => {
 
     const vote = await db
       .insert(cookingClassVotes)
-      .values(voteData)
+      .values(voteData as any)
       .returning();
 
     res.json({ 

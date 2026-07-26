@@ -17,17 +17,17 @@ const cravingGenerator: GeneratorFn = async (c: ResolvedConstraints) => {
     // Transform to standard Meal format with constraint compliance
     const meal = {
       title: existingMeal.name || 'Custom Craving Meal',
-      ingredients: (existingMeal.ingredients || []).map((ing: any) => ({
+      ingredients: ((existingMeal as any).ingredients || []).map((ing: any) => ({
         name: ing.name || ing.ingredient || ing,
         qty: ing.amount || ing.qty,
         unit: ing.unit || ''
       })),
-      instructions: existingMeal.instructions || existingMeal.steps || [],
+      instructions: (existingMeal as any).instructions || (existingMeal as any).steps || [],
       nutrition: {
-        calories: existingMeal.nutrition?.calories || existingMeal.calories || 400,
-        proteinG: existingMeal.nutrition?.protein || existingMeal.protein || 20,
-        carbsG: existingMeal.nutrition?.carbs || existingMeal.carbs || 45,
-        fatG: existingMeal.nutrition?.fat || existingMeal.fat || 15,
+        calories: (existingMeal as any).nutrition?.calories || (existingMeal as any).calories || 400,
+        proteinG: (existingMeal as any).nutrition?.protein || (existingMeal as any).protein || 20,
+        carbsG: (existingMeal as any).nutrition?.carbs || (existingMeal as any).carbs || 45,
+        fatG: (existingMeal as any).nutrition?.fat || (existingMeal as any).fat || 15,
       }
     };
 
