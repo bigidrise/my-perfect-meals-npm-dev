@@ -67,6 +67,105 @@ export function MedicalSourcesInfo({
 
         <div className="py-6 space-y-6">
           <section>
+            <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+              💊 Metabolic Medication &amp; GLP-1 Nutrition Support
+            </h3>
+            <p className="text-white/60 text-xs mb-3">
+              Nutrition guidance for users on GLP-1 receptor agonists and dual-agonist
+              medications (Ozempic, Wegovy, Mounjaro, Zepbound, Rybelsus, and similar)
+              is informed by the following authoritative sources. These references
+              underpin the platform's meal adjustments, symptom-aware recommendations,
+              hydration emphasis, and safety escalation logic for metabolic medication
+              users. This guidance is for general nutritional support only — not
+              medical advice, diagnosis, or treatment. Always follow your prescribing
+              physician's instructions.
+            </p>
+
+            <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">Recognized Side Effects &amp; Dehydration Risk</p>
+            <p className="text-white/40 text-xs mb-2">
+              Drives: Daily Tolerance Check-in · Symptom Recognition · Escalation Triggers
+            </p>
+            <ul className="space-y-3 mb-5">
+              <SourceItem
+                title="FDA — Semaglutide (Ozempic / Wegovy) Prescribing Information, 2025"
+                description="Official FDA prescribing information identifying nausea, vomiting, diarrhea, constipation, abdominal pain, and dyspepsia as common adverse reactions (§6.1), and documenting dehydration and acute kidney injury risk from persistent GI effects (§5.1). The basis for symptom recognition and escalation triggers."
+                url="https://www.accessdata.fda.gov/drugsatfda_docs/label/2025/209637s025lbl.pdf"
+              />
+              <SourceItem
+                title="FDA — Tirzepatide (Mounjaro / Zepbound) Prescribing Information, 2025"
+                description="Official FDA prescribing information for the GIP/GLP-1 dual agonist tirzepatide, documenting the same GI adverse reaction profile and dehydration risk. Applies to users on Mounjaro or Zepbound."
+                url="https://www.accessdata.fda.gov/drugsatfda_docs/label/2025/215866s039lbl.pdf"
+              />
+            </ul>
+
+            <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">Nutrition During GI Symptoms</p>
+            <p className="text-white/40 text-xs mb-2">
+              Drives: GLP-1 Builder · Snack Creator · Meal Builders · Grocery Coach · Beverage Creator · Coach's Corner
+            </p>
+            <ul className="space-y-3 mb-5">
+              <SourceItem
+                title="Clinical Recommendations to Manage GI Adverse Events in GLP-1 RA Patients — Gut (BMJ), 2023"
+                description="Peer-reviewed consensus paper (PMID 36614945) providing clinical dietary recommendations for managing GLP-1 gastrointestinal side effects. Supports smaller meals, lower-fat foods, neutral flavors, avoidance of carbonated beverages, and protein priority for lean mass preservation."
+                url="https://pubmed.ncbi.nlm.nih.gov/36614945/"
+              />
+              <SourceItem
+                title="Academy of Nutrition and Dietetics — Weight Management & Metabolic Health"
+                description="Evidence-based nutrition practice guidance for metabolic medication users, including protein and fiber recommendations during appetite suppression, and hydration paired with fiber for constipation management."
+                url="https://www.eatright.org/"
+              />
+            </ul>
+
+            <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">Hydration &amp; Dehydration Risk</p>
+            <p className="text-white/40 text-xs mb-2">
+              Drives: Water Signal Integration · Grocery Coach · Beverage Creator · Escalation
+            </p>
+            <ul className="space-y-3 mb-5">
+              <SourceItem
+                title="FDA Prescribing Information — Dehydration Warning (§5.1)"
+                description="FDA labeling for both semaglutide and tirzepatide explicitly warns that GI adverse effects can lead to dehydration and acute kidney injury. This is the primary basis for making hydration a first-class daily behavioral signal for metabolic medication users."
+                url="https://www.accessdata.fda.gov/drugsatfda_docs/label/2025/209637s025lbl.pdf"
+              />
+              <SourceItem
+                title="NIDDK — Gastroparesis: Symptoms, Causes & Eating Guidelines"
+                description="National Institute of Diabetes and Digestive and Kidney Diseases guidance on delayed gastric emptying — a documented pharmacological effect of GLP-1 medications. Supports avoidance of raw cruciferous vegetables and high insoluble fiber foods; supports hydration emphasis and smaller, softer meals."
+                url="https://www.niddk.nih.gov/health-information/digestive-diseases/gastroparesis/symptoms-causes"
+              />
+            </ul>
+
+            <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">GI Symptom Management — Reflux &amp; Diarrhea</p>
+            <p className="text-white/40 text-xs mb-2">
+              Drives: Daily Tolerance Check-in · GLP-1 Builder · Coach's Corner
+            </p>
+            <ul className="space-y-3 mb-5">
+              <SourceItem
+                title="American Gastroenterological Association (AGA) — GI Symptom Dietary Guidance"
+                description="AGA clinical dietary guidance for reflux, dyspepsia, and diarrhea management — the basis for acidic food avoidance when reflux is reported, and reduced insoluble fiber when diarrhea is active."
+                url="https://www.gastro.org/"
+              />
+            </ul>
+
+            <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">Safety Escalation</p>
+            <p className="text-white/40 text-xs mb-2">
+              Drives: Escalation Message · Provider Notification Language
+            </p>
+            <ul className="space-y-3 mb-4">
+              <SourceItem
+                title="FDA Prescribing Information — Adverse Reactions &amp; Warnings (§5.1, §6.1)"
+                description="FDA labeling explicitly states that persistent vomiting can cause dehydration and acute kidney injury requiring medical attention. This is the clinical basis for the escalation message displayed to users who report vomiting or significant difficulty staying hydrated."
+                url="https://www.accessdata.fda.gov/drugsatfda_docs/label/2025/209637s025lbl.pdf"
+              />
+            </ul>
+
+            <p className="text-white/60 text-xs leading-relaxed">
+              Every nutrition rule applied to GLP-1 medication users is traceable to one or more
+              of the sources above. Directional guidance (smaller portions, lower fat, protein
+              priority) reflects the published clinical evidence. Specific numerical targets
+              (protein grams, fat ceilings, calorie ranges) are either derived from the user's
+              macro calculator or set by their prescribing provider — not invented by the platform.
+            </p>
+          </section>
+
+          <section>
             <h3 className="text-lg font-semibold text-white mb-3">
               How nutritional values are calculated
             </h3>
