@@ -1014,7 +1014,7 @@ Respond with ONLY valid JSON in this exact format:
             ingredients: currentMeal.ingredients,
             description: currentMeal.description,
             protein: (currentMeal as any).protein,
-          });
+          } as any);
           if (finalQuality.approvedForDisplay) {
             console.log(`✅ [ONCOLOGY CRAVING] Quality gate passed after retries — score ${finalQuality.total}/100`);
           } else {

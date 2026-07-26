@@ -95,7 +95,7 @@ const coerceServings = (n: number) => (d: any) => ({
 router.get("/api/holiday-feast/schema", (_req, res) => {
   res.json({
     description: "POST /api/holiday-feast/generate expects this shape",
-    schema: FeastRequest.describe(), // Zod’s description, not PII
+    schema: FeastRequest.describe("Holiday Feast Request"), // Zod’s description, not PII
   });
 });
 
@@ -122,7 +122,7 @@ router.post(
         cuisineType: input.cuisineType,
         budgetLevel: input.budgetLevel || "moderate",
         familyRecipe: input.familyRecipe,
-      });
+      } as any);
 
       const feast = (result.feast || []).map(coerceServings(input.servings));
       const recipes = (result.recipes || []).map(

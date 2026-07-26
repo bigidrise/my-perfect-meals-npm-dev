@@ -41,7 +41,7 @@ async function loadActiveTemplates(): Promise<MealTemplate[]> {
       WHERE is_active = true AND category IS NOT NULL
       ORDER BY name
     `);
-    return result.rows as MealTemplate[];
+    return result.rows as unknown as MealTemplate[];
   } catch (error) {
     console.log("Database templates not available, using fallback");
     return [];

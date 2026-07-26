@@ -89,7 +89,7 @@ r.get("/api/patients", proRole, async (req: any, res) => {
       condition: (diabetes?.type === "T2D" ? "T2D" : (glp1 ? "GLP1" : "OTHER")) as "T2D" | "GLP1" | "OTHER",
       latestGlucose,
       inRange,
-      preset: diabetes?.guardrails?.presetId ?? null,
+      preset: (diabetes?.guardrails as any)?.presetId ?? null,
       carbLimit: diabetes?.guardrails?.carbLimit ?? null,
       lastUpdated: diabetes?.updatedAt ?? glp1?.updatedAt ?? null,
       diabetesGuardrails: diabetes?.guardrails ?? null,

@@ -8,7 +8,7 @@ const router = Router();
 router.post("/create", async (req, res) => {
   try {
     const data = insertUserTestimonialSchema.parse(req.body);
-    const [row] = await db.insert(userTestimonials).values(data).returning();
+    const [row] = await db.insert(userTestimonials).values(data as any).returning();
     return res.status(201).json({ success: true, testimonial: row });
   } catch (err: any) {
     const msg = err?.message || "Unknown error";

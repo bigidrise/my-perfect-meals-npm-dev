@@ -59,27 +59,26 @@ export async function loadGLP1ResolvedTargets(
   };
 
   try {
-    const userRows = await db
-      .select({
-        dailyCalorieTarget: users.dailyCalorieTarget,
-        dailyProteinTarget: users.dailyProteinTarget,
-        dailyFatTarget: users.dailyFatTarget,
-        dailyCarbsTarget: users.dailyCarbsTarget,
-        macroMealsPerDay: (users as any).macroMealsPerDay,
-      })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
+    const userResult = await db.execute(
+      sql`SELECT daily_calorie_target, daily_protein_target, daily_fat_target, daily_carbs_target
+          FROM users WHERE id = ${userId} LIMIT 1`
+    );
+    const userRows = userResult.rows as Array<{
+      daily_calorie_target: number | null;
+      daily_protein_target: number | null;
+      daily_fat_target: number | null;
+      daily_carbs_target: number | null;
+    }>;
 
     if (userRows.length > 0) {
       const u = userRows[0];
       userContext = {
         ...userContext,
-        dailyCalorieTarget: u.dailyCalorieTarget ?? undefined,
-        dailyProteinTarget: u.dailyProteinTarget ?? undefined,
-        dailyFatTarget: u.dailyFatTarget ?? undefined,
-        dailyCarbsTarget: u.dailyCarbsTarget ?? undefined,
-        macroMealsPerDay: u.macroMealsPerDay ?? undefined,
+        dailyCalorieTarget: u.daily_calorie_target ?? undefined,
+        dailyProteinTarget: u.daily_protein_target ?? undefined,
+        dailyFatTarget: u.daily_fat_target ?? undefined,
+        dailyCarbsTarget: u.daily_carbs_target ?? undefined,
+        macroMealsPerDay: undefined,
       };
     }
   } catch (err) {

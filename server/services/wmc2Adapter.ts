@@ -385,7 +385,7 @@ export async function wmc2Generate(input: z.infer<typeof WMC2PlanSchema>): Promi
     
     const baseGen = await postJSON<MealResultRaw>(CC_GENERATE, {
       userId: req.userId, 
-      targetMealType: slotToCourse(first).toLowerCase(),
+      targetMealType: slotToCourse(first as any).toLowerCase(),
       cravingInput: `${first.label} meal`,
       includeImage: req.includeImages
     });
@@ -405,7 +405,7 @@ export async function wmc2Generate(input: z.infer<typeof WMC2PlanSchema>): Promi
       violationsFixed++;
       const regenData = await postJSON<MealResultRaw>(CC_GENERATE, {
         userId: req.userId, 
-        targetMealType: slotToCourse(first).toLowerCase(),
+        targetMealType: slotToCourse(first as any).toLowerCase(),
         cravingInput: `${first.label} meal variation ${t+1}`,
         includeImage: req.includeImages
       });
@@ -493,7 +493,7 @@ export async function wmc2Generate(input: z.infer<typeof WMC2PlanSchema>): Promi
       tasks.push(limit(async () => {
         const gen = await postJSON<MealResultRaw>(CC_GENERATE, {
           userId: req.userId, 
-          targetMealType: slotToCourse(s).toLowerCase(),
+          targetMealType: slotToCourse(s as any).toLowerCase(),
           cravingInput: `${s.label} meal day ${d+1}`,
           includeImage: false // defer images
         });
@@ -512,7 +512,7 @@ export async function wmc2Generate(input: z.infer<typeof WMC2PlanSchema>): Promi
           violationsFixed++;
           const regenData = await postJSON<MealResultRaw>(CC_GENERATE, {
             userId: req.userId, 
-            targetMealType: slotToCourse(s).toLowerCase(),
+            targetMealType: slotToCourse(s as any).toLowerCase(),
             cravingInput: `${s.label} meal day ${d+1} safe variation ${t+1}`,
             includeImage: false
           });

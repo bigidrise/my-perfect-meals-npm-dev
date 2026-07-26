@@ -28,13 +28,12 @@ export async function logClientActivity(
     await db.insert(clientActivityLog).values({
       studioId,
       clientUserId,
-      // @ts-ignore
       actorUserId,
       action,
       entityType,
       entityId,
       metadata: metadata || {},
-    });
+    } as any);
   } catch (error) {
     console.error("Failed to log activity:", error);
   }
