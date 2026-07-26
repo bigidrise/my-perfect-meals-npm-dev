@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type Recipe, type InsertRecipe, type MealPlan, type InsertMealPlan, type MealLog, type InsertMealLog, type ShoppingList, type InsertShoppingList, type MealReminder, type InsertMealReminder, type MentalHealthConversation, type InsertMentalHealthConversation, type UserGlycemicSettings, type InsertUserGlycemicSettings, type GlucoseLog, type InsertGlucoseLog } from "@shared/schema";
+import { type User, type InsertUser, type Recipe, type InsertRecipe, type MealPlan, type InsertMealPlan, type MealLog, type InsertMealLog, type ShoppingListItem as ShoppingList, type InsertShoppingListItem as InsertShoppingList, type MealReminder, type InsertMealReminder, type MentalHealthConversation, type InsertMentalHealthConversation, type UserGlycemicSettings, type InsertUserGlycemicSettings, type GlucoseLog, type InsertGlucoseLog } from "@shared/schema";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
