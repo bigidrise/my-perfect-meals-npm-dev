@@ -58,6 +58,13 @@ import { computeDemandProfile, type DemandProfile } from "../../shared/performan
 import { resolveDailyNutritionState, type DailyNutritionState } from "./dailyNutritionState";
 import { buildInterventionPrompts, type ActiveIntervention } from "./interventions/interventionPromptBuilder";
 import { providerClinicalInterventions } from "../db/schema/providerInterventions";
+import {
+  resolveDailyMedicationTolerance,
+} from "./glp1/resolveDailyMedicationTolerance";
+import {
+  type DailyMedicationTolerance,
+  type ToleranceAppetiteLevel,
+} from "../../shared/glp1-schema";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PROCEDURAL RULES — The third enforcement dimension
@@ -511,6 +518,20 @@ export interface UserProtocolEnvelope {
    * Empty array when no conditions are active.
    */
   conditionGuidanceBlocks: string[];
+
+  /**
+   * GLP-1 daily medication tolerance state — resolved from ace_daily_checkins
+   * and water_logs for today's date. Null when the user is not on a GLP-1 /
+   * metabolic medication, or when no check-in data exists for today.
+   *
+   * Injected into conditionGuidanceBlocks as a real-time dietary directive block
+   * so all generators automatically honor today's GI tolerance state.
+   *
+   * Governed by the GLP-1 Rule Registry (ruleRegistry.ts):
+   *   - glp1_vomiting_escalate
+   *   - glp1_dehydration_difficulty_escalate
+   */
+  glp1DailyTolerance: DailyMedicationTolerance | null;
 
   /**
    * Thyroid Support active flag — true when specialtyCondition === 'thyroid-support'
@@ -1242,6 +1263,27 @@ export async function loadUserProtocolEnvelope(
       therapeuticSupportContext: therapeuticSupportCtx,
     });
 
+    // ── GLP-1 DAILY BEHAVIORAL TOLERANCE ────────────────────────────────────
+    // Resolved only for users who have a GLP-1 / metabolic medication in their
+    // medical conditions. Falls back to null on any failure so the envelope
+    // never crashes due to missing check-in data.
+    // The resolved guidance string is pushed into conditionGuidanceBlocks so
+    // every generator automatically receives today's tolerance state without
+    // any per-generator wiring.
+    let glp1DailyTolerance: DailyMedicationTolerance | null = null;
+    if (medicalConditionsGlp1.length > 0) {
+      try {
+        const today = new Date().toISOString().slice(0, 10);
+        glp1DailyTolerance = await resolveDailyMedicationTolerance({
+          userId: String(userId),
+          dateStr: today,
+        });
+        conditionGuidanceBlocks.push(buildGlp1ToleranceBlock(glp1DailyTolerance));
+      } catch (err) {
+        console.warn("[ProtocolEnvelope] GLP-1 daily tolerance resolution failed:", err);
+      }
+    }
+
     const rawCarbCycle = ((user as any).carbCycleState as any);
     const carbCycleContext: UserProtocolEnvelope["carbCycleContext"] =
       rawCarbCycle && (rawCarbCycle.phase === "low_carb" || rawCarbCycle.phase === "refeed") && rawCarbCycle.carbTargetG > 0
@@ -1330,6 +1372,7 @@ export async function loadUserProtocolEnvelope(
       hasDiabetes,
       diabeticGlucoseState,
       conditionGuidanceBlocks,
+      glp1DailyTolerance,
       thyroidSupport,
       thyroidMedication,
       thyroidType,
@@ -1399,6 +1442,75 @@ export async function loadUserProtocolEnvelope(
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// GLP-1 TOLERANCE BLOCK BUILDER
+// Converts a DailyMedicationTolerance into a self-contained directive string
+// for injection into conditionGuidanceBlocks. Directional language only —
+// no invented calorie or macro numbers.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function glp1AppetiteInstruction(level: ToleranceAppetiteLevel): string {
+  switch (level) {
+    case "suppressed":
+      return "Small, nutrient-dense meals only. Prioritize protein over volume. Do not suggest large portions.";
+    case "reduced":
+      return "Keep portions modest. Prioritize protein and slow-digest foods. Avoid bulky high-volume meals.";
+    case "increased":
+      return "Standard GLP-1 portion guidance applies. Monitor for overeating relative to medication goals.";
+    case "normal":
+    default:
+      return "Standard GLP-1 portion guidance applies.";
+  }
+}
+
+function buildGlp1ToleranceBlock(t: DailyMedicationTolerance): string {
+  const lines: string[] = [
+    `[GLP-1 Daily Tolerance — ${t.date}]`,
+    `APPETITE: ${t.appetiteLevel.toUpperCase()} — ${glp1AppetiteInstruction(t.appetiteLevel)}`,
+  ];
+
+  if (t.nauseaLevel !== "none") {
+    lines.push(
+      `NAUSEA: ${t.nauseaLevel.toUpperCase()} — Favor neutral, bland flavors. ` +
+      `Avoid strong aromatics, heavy spices, rich sauces, and overpowering smells.`
+    );
+  }
+
+  if (t.hasReflux) {
+    lines.push(
+      "REFLUX REPORTED — Avoid acidic ingredients (tomatoes, citrus, vinegar), " +
+      "fatty or fried foods, chocolate, mint, and carbonated beverages."
+    );
+  }
+
+  if (t.hasDiarrhea || t.hasConstipation) {
+    const flags = [
+      t.hasDiarrhea    ? "diarrhea"    : null,
+      t.hasConstipation ? "constipation" : null,
+    ].filter(Boolean).join(" and ");
+    lines.push(
+      `GI SYMPTOMS (${flags.toUpperCase()}) — Use gentle, easy-to-digest preparations. ` +
+      `Avoid raw cruciferous vegetables, high-insoluble-fiber foods, and spicy dishes.`
+    );
+  }
+
+  if (t.hydrationRisk !== "none") {
+    lines.push(
+      `HYDRATION RISK: ${t.hydrationRisk.toUpperCase()} — Include hydrating ingredients ` +
+      `where appropriate. Suggest water before meals and between bites in any instructions.`
+    );
+  }
+
+  if (t.shouldEscalate && t.escalationReason) {
+    lines.push(
+      `⚠️ PROVIDER CONTACT RECOMMENDED: ${t.escalationReason} ` +
+      `Do not generate a meal plan that encourages the user to eat normally before contacting their provider.`
+    );
+  }
+
+  return lines.join("\n");
+}
+
 /**
  * Build an empty envelope for unauthenticated or guest contexts.
  * Generators should use this instead of skipping enforcement entirely.
@@ -1419,6 +1531,7 @@ export function buildGuestEnvelope(): UserProtocolEnvelope {
     hasDiabetes: false,
     diabeticGlucoseState: null,
     conditionGuidanceBlocks: [],
+    glp1DailyTolerance: null,
     thyroidSupport: false,
     thyroidMedication: null,
     thyroidType: null,
