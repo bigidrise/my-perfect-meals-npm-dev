@@ -38,12 +38,12 @@ function buildEnvelope(
   allergies: string[] = [],
   avoidances: string[] = [],
 ): UserProtocolEnvelope {
+  // @ts-ignore — partial stub, intentionally omits many UserProtocolEnvelope fields for test brevity
   return {
     userId: "test",
     dietaryIdentity,
     allergies,
     medicalHardLimits: [],
-    // @ts-ignore — partial stub for tests
     medicalOptimization: [],
     avoidances,
     preferences: [],
@@ -52,7 +52,7 @@ function buildEnvelope(
     cuisineIntensity: null,
     diabeticGuidance: null,
     conditionGuidanceBlocks: [],
-  };
+  } as unknown as UserProtocolEnvelope;
 }
 
 interface TestCase {

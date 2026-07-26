@@ -643,7 +643,7 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
       60000
     );
 
-    const item = response.data?.[0];
+    const item = (response as any).data?.[0];
     if (item?.url) imageUrl = item.url;
     else if (item?.b64_json) imageUrl = `data:image/png;base64,${item.b64_json}`;
     const dalleUrlType = imageUrl?.startsWith('data:') ? 'base64' : imageUrl ? 'url' : 'null';

@@ -160,7 +160,7 @@ export const weeklyMealPlanningServiceB = {
                 ],
                 steps: ["Enjoy as needed"],
                 prepTime: 0, cookTime: 0, servings: 1, cuisine: "modern", difficulty: "easy" as const
-              }))
+              })) as any
             )
           }))
         }]

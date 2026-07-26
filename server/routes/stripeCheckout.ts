@@ -15,7 +15,7 @@ const keyMode = stripeKey.startsWith("sk_live_")
     : "UNKNOWN";
 
 const stripe = stripeKey
-  ? new Stripe(stripeKey, { apiVersion: "2024-06-20" })
+  ? new Stripe(stripeKey, { apiVersion: "2024-06-20" as any })
   : null;
 
 function getUserId(req: any): string | null {

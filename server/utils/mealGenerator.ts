@@ -148,7 +148,7 @@ function fallbackMeal(req: MealRequest): MealResult {
           "Refrigerate overnight",
           "Top with berries and maple syrup before serving"
         ],
-        nutrition: { calories: 320, protein: 8, carbs_g: 45, fat_g: 12, fiber_g: 10, sugar_g: 15 }
+        nutrition: { calories: 320, protein: 8, carbs: 45, fat: 12, fiber: 10 }
       };
     }
     return {
@@ -168,7 +168,7 @@ function fallbackMeal(req: MealRequest): MealResult {
         "Pour in eggs and gently scramble until set",
         "Serve eggs with toast"
       ],
-      nutrition: { calories: 380, protein: 18, carbs_g: 25, fat_g: 22, fiber_g: 4, sugar_g: 3 }
+      nutrition: { calories: 380, protein: 18, carbs: 25, fat: 22, fiber: 4 }
     };
   }
   
@@ -190,6 +190,6 @@ function fallbackMeal(req: MealRequest): MealResult {
       "Grill for 6-7 minutes per side until internal temperature reaches 165°F",
       "Let rest for 5 minutes before serving"
     ],
-    nutrition: { calories: 280, protein: 42, carbs_g: 0, fat_g: 11, fiber_g: 0, sugar_g: 0 }
+    nutrition: { calories: 280, protein: 42, carbs: 0, fat: 11, fiber: 0 }
   };
 }
