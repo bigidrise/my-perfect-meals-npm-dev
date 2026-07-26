@@ -53,7 +53,7 @@ r.get("/all", async (req, res) => {
 r.get("/:planId", async (req, res) => {
   try {
     const userId = String(req.query.userId || "1");
-    const planId = parseInt(req.params.planId);
+    const planId = req.params.planId;
     const row = (await db.select().from(mealPlans)
       .where(and(eq(mealPlans.id, planId), eq(mealPlans.userId, userId)))).at(0);
     if (!row) return res.status(404).json({ message: "Not found" });
@@ -96,7 +96,7 @@ r.post("/save", async (req, res) => {
 r.delete("/:planId", async (req, res) => {
   try {
     const userId = String(req.query.userId || "1");
-    const planId = parseInt(req.params.planId);
+    const planId = req.params.planId;
     await db.delete(mealPlans)
       .where(and(eq(mealPlans.id, planId), eq(mealPlans.userId, userId)));
     res.json({ ok: true });
@@ -110,7 +110,7 @@ r.delete("/:planId", async (req, res) => {
 r.put("/:planId/activate", async (req, res) => {
   try {
     const userId = String(req.body?.userId || "1");
-    const planId = parseInt(req.params.planId);
+    const planId = req.params.planId;
     
     // Deactivate all existing plans
     await db.update(mealPlans)
@@ -134,7 +134,7 @@ r.put("/:planId/activate", async (req, res) => {
 r.post("/:planId/add-to-shopping-list", async (req, res) => {
   try {
     const userId = String(req.body?.userId || req.query.userId || "1");
-    const planId = parseInt(req.params.planId);
+    const planId = req.params.planId;
 
     const row = (await db.select().from(mealPlans)
       .where(and(eq(mealPlans.id, planId), eq(mealPlans.userId, userId)))).at(0);
@@ -157,7 +157,7 @@ r.post("/:planId/add-to-shopping-list", async (req, res) => {
       purchased: false,
     }));
 
-    const inserted = await db.insert(shoppingListItems).values(values).returning();
+    const inserted = await db.insert(shoppingListItems).values(values as any).returning();
 
     res.json({ added: inserted.length, items: inserted });
   } catch (error) {

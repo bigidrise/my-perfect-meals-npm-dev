@@ -174,12 +174,12 @@ function getMilestonesForTrack(track: "universal" | PartnerCapability): PartnerM
 // ─── Core computation ─────────────────────────────────────────────────────────
 
 function isComplete(partner: PartnerRecordForLifecycle, field: string): boolean {
-  const val = (partner as Record<string, unknown>)[field];
+  const val = (partner as unknown as Record<string, unknown>)[field];
   return val != null && val !== "";
 }
 
 function getTimestamp(partner: PartnerRecordForLifecycle, field: string): string | null {
-  const val = (partner as Record<string, unknown>)[field];
+  const val = (partner as unknown as Record<string, unknown>)[field];
   if (!val) return null;
   if (val instanceof Date) return val.toISOString();
   return String(val);

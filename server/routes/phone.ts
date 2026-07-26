@@ -20,10 +20,11 @@ router.get("/users/:userId/phone", async (req, res) => {
     const [u] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
     if (!u) return res.status(404).json({ error: "User not found" });
     
+    const _u = u as any;
     return res.json({
-      phoneE164: u.phoneE164 ?? null,
+      phoneE164: _u.phoneE164 ?? null,
       phoneVerified: !!u.phoneVerified,
-      smsConsent: !!u.smsConsent
+      smsConsent: !!_u.smsConsent
     });
   } catch (error: any) {
     console.error("Failed to get phone state:", error);
@@ -48,7 +49,7 @@ router.post("/users/:userId/phone/request-code", async (req, res) => {
       phoneE164: e164,
       phoneVerified: false,
       phoneVerificationCode: code
-    }).where(eq(users.id, userId));
+    } as any).where(eq(users.id, userId));
 
     // Send via Twilio
     await twilioClient.messages.create({
@@ -72,7 +73,7 @@ router.post("/users/:userId/phone/verify", async (req, res) => {
     const [u] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
     
     if (!u) return res.status(404).json({ error: "User not found" });
-    if (!u.phoneVerificationCode || code !== u.phoneVerificationCode) {
+    if (!(u as any).phoneVerificationCode || code !== (u as any).phoneVerificationCode) {
       return res.status(400).json({ error: "Invalid verification code" });
     }
     

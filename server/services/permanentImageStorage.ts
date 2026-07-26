@@ -93,7 +93,7 @@ async function uploadToReplitObjectStorage(
       "Content-Type": contentType,
       "Cache-Control": "public, max-age=31536000",
     },
-    body: imageBuffer,
+    body: imageBuffer as unknown as BodyInit,
   });
 
   if (!uploadRes.ok) {

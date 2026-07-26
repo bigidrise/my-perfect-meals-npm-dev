@@ -54,7 +54,7 @@ export async function runWeeklyRoller() {
         console.log(`Plan expired for user ${String(u.id)}, starting auto-generation`);
         
         // 1) Archive last week's list
-        await archiveCurrentList(u.id, cur.planStartDate, cur.planEndDate);
+        await archiveCurrentList(u.id, cur.planStartDate as any, cur.planEndDate as any);
 
         // 2) Generate next 7 days would be handled by the meal engine service
         // For now, we'll just log that this would happen
