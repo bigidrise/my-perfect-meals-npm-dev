@@ -1,22 +1,30 @@
 /**
- * GLP-1 Clinical Rule Registry — Phase 0 Governance
+ * GLP-1 Clinical Rule Registry — Phase 0.5 Governance
  *
- * Every rule that influences AI meal recommendations for GLP-1 / metabolic
- * medication users must be registered here with:
- *   - ruleId        unique identifier referenced in resolver output
- *   - sourceIds[]   one or more entries from SOURCE_CATALOG below
- *   - evidenceLevel how strong the backing is
- *   - reviewStatus  approved = can ship; pending_review = ship with flag; removed = do not use
- *   - lastReviewed  ISO date of last clinical review
- *   - governanceNote human-readable rationale, especially for partial/uncited items
+ * This registry is the SINGLE SOURCE OF TRUTH for every rule that influences
+ * AI meal recommendations for GLP-1 / metabolic medication users.
  *
- * RULE: No rule with reviewStatus === "removed" may remain in the resolver.
- * RULE: No rule with evidenceLevel === "uncited" may reach production users without
- *       a pending_review flag in the resolver output.
+ * Architecture:
+ *   Resolver → assertRuleApproved(ruleId) → RULE_REGISTRY → evidence source
  *
- * Review cycle: sources and rules should be re-evaluated annually or when a
- * major FDA label update, new consensus paper, or clinical partner feedback
- * requires it.
+ * Every multiplier and threshold in the resolver must:
+ *   1. Have a corresponding ClinicalRule entry here
+ *   2. Be read via getRuleValue() — never hardcoded in the resolver
+ *   3. Emit a RuleFiredEntry in the resolver output's rulesFired[]
+ *
+ * Enforcement rules:
+ *   - reviewStatus === "removed"  → assertRuleApproved() throws; resolver must not use the rule
+ *   - reviewStatus === "pending_review" → rule executes but is flagged in rulesFired and logs
+ *   - reviewStatus === "approved"  → normal execution
+ *   - evidenceLevel === "uncited"  → must be pending_review or removed; never approved
+ *
+ * Review cycle: re-evaluate annually, on any major FDA label update, on new
+ * consensus paper publication, or on clinical partner feedback.
+ *
+ * Versioning: semantic version "MAJOR.MINOR.PATCH"
+ *   MAJOR — recommendation direction reversal or removal
+ *   MINOR — new evidence source added, value updated by RD review
+ *   PATCH — governance note clarification, date update
  */
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -29,7 +37,6 @@ export interface ClinicalSource {
   organization: string;
   year: number;
   url: string;
-  /** Which platform surfaces this source's rules drive */
   drives: string[];
 }
 
@@ -133,7 +140,7 @@ export const SOURCE_CATALOG: Record<string, ClinicalSource> = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// RULE REGISTRY
+// RULE SCHEMA
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type EvidenceLevel =
@@ -144,9 +151,9 @@ export type EvidenceLevel =
   | "uncited";
 
 export type ReviewStatus =
-  | "approved"     // ships to users, evidence reviewed
-  | "pending_review" // in codebase, flagged for clinical review before production
-  | "removed";     // must not be used in any resolver
+  | "approved"        // ships to users; evidence reviewed
+  | "pending_review"  // in codebase; flagged for clinical review before production promotion
+  | "removed";        // must not be used in any resolver — kept for audit trail only
 
 export interface ClinicalRule {
   ruleId: string;
@@ -154,9 +161,18 @@ export interface ClinicalRule {
   sourceIds: string[];
   evidenceLevel: EvidenceLevel;
   reviewStatus: ReviewStatus;
-  lastReviewedDate: string; // ISO date
+  version: string;            // semantic version — bump on any change to evidence or value
+  lastReviewedDate: string;   // ISO date of most recent clinical review
+  effectiveDate: string;      // ISO date when this rule version took effect
+  reviewDate: string;         // ISO date when this rule is due for re-review
+  expiresDate?: string;       // optional — if set, rule must be re-reviewed by this date
+  value?: number;             // configurable numeric value read by resolver; never hardcode in resolver
   governanceNote?: string;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RULE REGISTRY
+// ─────────────────────────────────────────────────────────────────────────────
 
 export const RULE_REGISTRY: Record<string, ClinicalRule> = {
 
@@ -169,7 +185,10 @@ export const RULE_REGISTRY: Record<string, ClinicalRule> = {
     sourceIds: ["FDA_SEMAGLUTIDE_PI_2025", "FDA_TIRZEPATIDE_PI_2025"],
     evidenceLevel: "fda_label",
     reviewStatus: "approved",
+    version: "1.0.0",
     lastReviewedDate: "2025-07-26",
+    effectiveDate: "2025-07-26",
+    reviewDate: "2026-07-26",
   },
 
   glp1_dehydration_risk: {
@@ -179,7 +198,10 @@ export const RULE_REGISTRY: Record<string, ClinicalRule> = {
     sourceIds: ["FDA_SEMAGLUTIDE_PI_2025", "FDA_TIRZEPATIDE_PI_2025"],
     evidenceLevel: "fda_label",
     reviewStatus: "approved",
+    version: "1.0.0",
     lastReviewedDate: "2025-07-26",
+    effectiveDate: "2025-07-26",
+    reviewDate: "2026-07-26",
   },
 
   // ── NUTRITION RESPONSES ───────────────────────────────────────────────────
@@ -191,7 +213,10 @@ export const RULE_REGISTRY: Record<string, ClinicalRule> = {
     sourceIds: ["PMID_36614945"],
     evidenceLevel: "peer_reviewed_consensus",
     reviewStatus: "approved",
+    version: "1.0.0",
     lastReviewedDate: "2025-07-26",
+    effectiveDate: "2025-07-26",
+    reviewDate: "2026-07-26",
     governanceNote:
       "Directional flag only. Specific calorie targets are driven by the user's macro calculator and provider guardrails — not by this rule. The 400 kcal static baseline is a fallback when no calorie target exists, not a clinical ceiling.",
   },
@@ -203,9 +228,12 @@ export const RULE_REGISTRY: Record<string, ClinicalRule> = {
     sourceIds: ["PMID_36614945"],
     evidenceLevel: "peer_reviewed_consensus",
     reviewStatus: "approved",
+    version: "1.0.0",
     lastReviewedDate: "2025-07-26",
+    effectiveDate: "2025-07-26",
+    reviewDate: "2026-07-26",
     governanceNote:
-      "Directional flag only. The specific fat ceiling (e.g., 12g or 15g per meal) is a provider-configurable guardrail. The default guardrail is 15g (baseline), tighter for intro phase. No specific gram value has a peer-reviewed source — the clinical evidence supports lower fat, not a specific threshold.",
+      "Directional flag only. The specific fat ceiling is a provider-configurable guardrail. No specific gram value has a peer-reviewed source — the clinical evidence supports lower fat, not a specific threshold.",
   },
 
   glp1_protein_priority: {
@@ -215,7 +243,10 @@ export const RULE_REGISTRY: Record<string, ClinicalRule> = {
     sourceIds: ["PMID_36614945", "AND_GLP1_NUTRITION"],
     evidenceLevel: "peer_reviewed_consensus",
     reviewStatus: "approved",
+    version: "1.0.0",
     lastReviewedDate: "2025-07-26",
+    effectiveDate: "2025-07-26",
+    reviewDate: "2026-07-26",
   },
 
   glp1_hydration_emphasis: {
@@ -225,7 +256,10 @@ export const RULE_REGISTRY: Record<string, ClinicalRule> = {
     sourceIds: ["FDA_SEMAGLUTIDE_PI_2025", "FDA_TIRZEPATIDE_PI_2025", "NIDDK_GASTROPARESIS"],
     evidenceLevel: "fda_label",
     reviewStatus: "approved",
+    version: "1.0.0",
     lastReviewedDate: "2025-07-26",
+    effectiveDate: "2025-07-26",
+    reviewDate: "2026-07-26",
   },
 
   glp1_avoid_carbonation: {
@@ -235,9 +269,12 @@ export const RULE_REGISTRY: Record<string, ClinicalRule> = {
     sourceIds: ["PMID_36614945"],
     evidenceLevel: "peer_reviewed_consensus",
     reviewStatus: "approved",
+    version: "1.0.0",
     lastReviewedDate: "2025-07-26",
+    effectiveDate: "2025-07-26",
+    reviewDate: "2026-07-26",
     governanceNote:
-      "The consensus paper references avoidance of carbonated beverages for gas/bloating management in GI symptom contexts. The citation is indirect for GLP-1 specifically, but falls within its GI symptom management recommendations.",
+      "The consensus paper references avoidance of carbonated beverages for gas/bloating management in GI symptom contexts. The citation is indirect for GLP-1 specifically but falls within its GI symptom management recommendations.",
   },
 
   glp1_avoid_raw_cruciferous: {
@@ -247,7 +284,10 @@ export const RULE_REGISTRY: Record<string, ClinicalRule> = {
     sourceIds: ["NIDDK_GASTROPARESIS"],
     evidenceLevel: "institutional_guideline",
     reviewStatus: "approved",
+    version: "1.0.0",
     lastReviewedDate: "2025-07-26",
+    effectiveDate: "2025-07-26",
+    reviewDate: "2026-07-26",
     governanceNote:
       "This rule applies via the gastroparesis dietary management literature, which maps directly to GLP-1's gastric emptying delay mechanism. The source is NIDDK gastroparesis guidance rather than a GLP-1-specific paper.",
   },
@@ -259,7 +299,10 @@ export const RULE_REGISTRY: Record<string, ClinicalRule> = {
     sourceIds: ["PMID_36614945"],
     evidenceLevel: "peer_reviewed_consensus",
     reviewStatus: "approved",
+    version: "1.0.0",
     lastReviewedDate: "2025-07-26",
+    effectiveDate: "2025-07-26",
+    reviewDate: "2026-07-26",
     governanceNote:
       "The consensus paper recommends avoiding strong smells and rich aromas as a behavioral intervention for nausea. Specific spices/aromatics are not enumerated — this is a directional recommendation.",
   },
@@ -271,7 +314,10 @@ export const RULE_REGISTRY: Record<string, ClinicalRule> = {
     sourceIds: ["PMID_36614945", "AND_GLP1_NUTRITION"],
     evidenceLevel: "peer_reviewed_consensus",
     reviewStatus: "approved",
+    version: "1.0.0",
     lastReviewedDate: "2025-07-26",
+    effectiveDate: "2025-07-26",
+    reviewDate: "2026-07-26",
     governanceNote:
       "This rule MUST NOT activate independently of hydration status. If a user reports both constipation and hydration difficulty, hydration takes priority and fiber promotion is suppressed. This pairing is enforced in the resolver.",
   },
@@ -283,7 +329,10 @@ export const RULE_REGISTRY: Record<string, ClinicalRule> = {
     sourceIds: ["AGA_GI_MANAGEMENT"],
     evidenceLevel: "institutional_guideline",
     reviewStatus: "approved",
+    version: "1.0.0",
     lastReviewedDate: "2025-07-26",
+    effectiveDate: "2025-07-26",
+    reviewDate: "2026-07-26",
   },
 
   glp1_reflux_smaller_meals: {
@@ -293,7 +342,10 @@ export const RULE_REGISTRY: Record<string, ClinicalRule> = {
     sourceIds: ["FDA_SEMAGLUTIDE_PI_2025", "AGA_GI_MANAGEMENT"],
     evidenceLevel: "fda_label",
     reviewStatus: "approved",
+    version: "1.0.0",
     lastReviewedDate: "2025-07-26",
+    effectiveDate: "2025-07-26",
+    reviewDate: "2026-07-26",
     governanceNote:
       "Dyspepsia is FDA-listed as a common adverse reaction. Dietary management (smaller meals, avoiding triggers) is standard AGA guidance for reflux/dyspepsia.",
   },
@@ -307,9 +359,12 @@ export const RULE_REGISTRY: Record<string, ClinicalRule> = {
     sourceIds: ["FDA_SEMAGLUTIDE_PI_2025", "FDA_TIRZEPATIDE_PI_2025"],
     evidenceLevel: "fda_label",
     reviewStatus: "approved",
+    version: "1.0.0",
     lastReviewedDate: "2025-07-26",
+    effectiveDate: "2025-07-26",
+    reviewDate: "2026-07-26",
     governanceNote:
-      "FDA prescribing information §5.1 and §6.1 explicitly warn about vomiting as a risk factor for dehydration and acute kidney injury and state that patients should contact their healthcare provider. Escalation wording must be reviewed by a clinician before production deployment.",
+      "FDA prescribing information §5.1 and §6.1 explicitly warn about vomiting as a risk factor for dehydration and acute kidney injury. Escalation wording must be reviewed by a clinician before production deployment.",
   },
 
   glp1_dehydration_difficulty_escalate: {
@@ -319,7 +374,10 @@ export const RULE_REGISTRY: Record<string, ClinicalRule> = {
     sourceIds: ["FDA_SEMAGLUTIDE_PI_2025", "FDA_TIRZEPATIDE_PI_2025"],
     evidenceLevel: "fda_label",
     reviewStatus: "approved",
+    version: "1.0.0",
     lastReviewedDate: "2025-07-26",
+    effectiveDate: "2025-07-26",
+    reviewDate: "2026-07-26",
     governanceNote:
       "Escalation is based on symptom type (vomiting + hydration difficulty), not on a count of symptoms. The removed '3 severe symptoms = escalate' rule had no clinical source and has been superseded by this rule.",
   },
@@ -329,25 +387,105 @@ export const RULE_REGISTRY: Record<string, ClinicalRule> = {
   glp1_intro_phase_calorie_multiplier: {
     ruleId: "glp1_intro_phase_calorie_multiplier",
     description:
-      "During the intro/up-titration treatment phase, meal calorie allocation is scaled by 0.82× to account for initial GI intolerance and appetite suppression.",
+      "During the intro/up-titration treatment phase, meal calorie allocation is scaled by value× to account for initial GI intolerance and appetite suppression.",
     sourceIds: [],
     evidenceLevel: "uncited",
     reviewStatus: "pending_review",
+    version: "1.0.0",
+    value: 0.82,
     lastReviewedDate: "2025-07-26",
+    effectiveDate: "2025-07-26",
+    reviewDate: "2025-12-31",
+    expiresDate: "2026-06-30",
     governanceNote:
-      "The direction (smaller portions during intro) is supported by PMID_36614945. The specific coefficient (0.82×) has no peer-reviewed source — it is a conservative engineering estimate. This value must be reviewed by a registered dietitian or physician before reaching non-provider-configured users. Until reviewed, the 400 kcal static fallback is preferred when no macro target exists.",
+      "The direction (smaller portions during intro) is supported by PMID_36614945. The specific coefficient (0.82×) has no peer-reviewed source — it is a conservative engineering estimate. Must be reviewed by a registered dietitian or physician before promoting to 'approved'. Until then, resolves as pending_review in rulesFired.",
+  },
+
+  glp1_muscle_preserve_calorie_multiplier: {
+    ruleId: "glp1_muscle_preserve_calorie_multiplier",
+    description:
+      "During the muscle-preservation treatment phase, meal calorie allocation is scaled up by value× to support anabolic demand while on appetite-suppressing medication.",
+    sourceIds: ["PMID_36614945", "AND_GLP1_NUTRITION"],
+    evidenceLevel: "uncited",
+    reviewStatus: "pending_review",
+    version: "1.0.0",
+    value: 1.08,
+    lastReviewedDate: "2025-07-26",
+    effectiveDate: "2025-07-26",
+    reviewDate: "2025-12-31",
+    expiresDate: "2026-06-30",
+    governanceNote:
+      "Direction (higher calories for muscle preservation on GLP-1) is supported by lean mass guidance in AND and PMID_36614945. The specific coefficient (1.08×) is an engineering estimate without a peer-reviewed source. Pending RD review.",
   },
 
   glp1_appetite_suppressed_multiplier: {
     ruleId: "glp1_appetite_suppressed_multiplier",
     description:
-      "When appetite is reported as suppressed, meal calorie allocation is scaled by 0.80×.",
+      "When appetite is reported as suppressed, meal calorie allocation is scaled by value× to avoid forcing intake the patient cannot tolerate.",
     sourceIds: ["FDA_SEMAGLUTIDE_PI_2025"],
     evidenceLevel: "uncited",
     reviewStatus: "pending_review",
+    version: "1.0.0",
+    value: 0.80,
     lastReviewedDate: "2025-07-26",
+    effectiveDate: "2025-07-26",
+    reviewDate: "2025-12-31",
+    expiresDate: "2026-06-30",
     governanceNote:
-      "Appetite suppression is FDA-documented as a common adverse reaction. The directional adjustment (lower calories when appetite is suppressed) is clinically sound. The specific coefficient (0.80×) is an engineering estimate without a peer-reviewed source. Pending RD review.",
+      "Appetite suppression is FDA-documented. Directional adjustment (lower calories when suppressed) is clinically sound. The specific coefficient (0.80×) is an engineering estimate. Pending RD review.",
+  },
+
+  glp1_appetite_reduced_multiplier: {
+    ruleId: "glp1_appetite_reduced_multiplier",
+    description:
+      "When appetite is reported as reduced (but not fully suppressed), meal calorie allocation is scaled by value×.",
+    sourceIds: ["FDA_SEMAGLUTIDE_PI_2025"],
+    evidenceLevel: "uncited",
+    reviewStatus: "pending_review",
+    version: "1.0.0",
+    value: 0.90,
+    lastReviewedDate: "2025-07-26",
+    effectiveDate: "2025-07-26",
+    reviewDate: "2025-12-31",
+    expiresDate: "2026-06-30",
+    governanceNote:
+      "Reduced appetite is FDA-documented for GLP-1 medications. The specific coefficient (0.90×) is an engineering estimate. Pending RD review.",
+  },
+
+  // ── INTRO PHASE FAT THRESHOLDS (PENDING REVIEW) ───────────────────────────
+
+  glp1_intro_fat_ceiling: {
+    ruleId: "glp1_intro_fat_ceiling",
+    description:
+      "During the intro treatment phase, the maximum tolerated fat per meal is reduced to value grams to reduce nausea risk.",
+    sourceIds: ["PMID_36614945"],
+    evidenceLevel: "uncited",
+    reviewStatus: "pending_review",
+    version: "1.0.0",
+    value: 10,
+    lastReviewedDate: "2025-07-26",
+    effectiveDate: "2025-07-26",
+    reviewDate: "2025-12-31",
+    expiresDate: "2026-06-30",
+    governanceNote:
+      "Lower fat during intro is supported by PMID_36614945. The specific ceiling (10g) is an engineering estimate. The directional guidance is approved via glp1_lower_fat; this specific threshold is pending RD review.",
+  },
+
+  glp1_intro_fat_target: {
+    ruleId: "glp1_intro_fat_target",
+    description:
+      "During the intro treatment phase, the recommended fat target per meal is value grams (below the ceiling to provide headroom).",
+    sourceIds: ["PMID_36614945"],
+    evidenceLevel: "uncited",
+    reviewStatus: "pending_review",
+    version: "1.0.0",
+    value: 8,
+    lastReviewedDate: "2025-07-26",
+    effectiveDate: "2025-07-26",
+    reviewDate: "2025-12-31",
+    expiresDate: "2026-06-30",
+    governanceNote:
+      "Derived from glp1_intro_fat_ceiling (10g ceiling × 0.8 headroom ratio = 8g target). Both values are engineering estimates pending RD review.",
   },
 
   // ── REMOVED RULES — DO NOT IMPLEMENT ─────────────────────────────────────
@@ -358,7 +496,10 @@ export const RULE_REGISTRY: Record<string, ClinicalRule> = {
     sourceIds: [],
     evidenceLevel: "uncited",
     reviewStatus: "removed",
+    version: "0.0.0",
     lastReviewedDate: "2025-07-26",
+    effectiveDate: "2025-07-26",
+    reviewDate: "2025-07-26",
     governanceNote:
       "No clinical source. Replaced by directional flag glp1_smaller_portions. This specific coefficient must not appear in any resolver.",
   },
@@ -369,7 +510,10 @@ export const RULE_REGISTRY: Record<string, ClinicalRule> = {
     sourceIds: [],
     evidenceLevel: "uncited",
     reviewStatus: "removed",
+    version: "0.0.0",
     lastReviewedDate: "2025-07-26",
+    effectiveDate: "2025-07-26",
+    reviewDate: "2025-07-26",
     governanceNote:
       "No clinical source. Fat ceiling is now provider-configurable via guardrails. Directional flag glp1_lower_fat is the replacement.",
   },
@@ -380,7 +524,10 @@ export const RULE_REGISTRY: Record<string, ClinicalRule> = {
     sourceIds: [],
     evidenceLevel: "uncited",
     reviewStatus: "removed",
+    version: "0.0.0",
     lastReviewedDate: "2025-07-26",
+    effectiveDate: "2025-07-26",
+    reviewDate: "2025-07-26",
     governanceNote:
       "No source for symptom count threshold. Replaced by glp1_vomiting_escalate and glp1_dehydration_difficulty_escalate, which trigger on symptom type, not count.",
   },
@@ -391,36 +538,127 @@ export const RULE_REGISTRY: Record<string, ClinicalRule> = {
     sourceIds: [],
     evidenceLevel: "uncited",
     reviewStatus: "removed",
+    version: "0.0.0",
     lastReviewedDate: "2025-07-26",
+    effectiveDate: "2025-07-26",
+    reviewDate: "2025-07-26",
     governanceNote:
-      "No source. Individual pharmacokinetics vary by medication (Ozempic peaks ~72h, Mounjaro ~8–72h by dose) and patient. A universal 48-hour window is not supportable. The shot tracker can prompt the daily tolerance check-in without imposing automatic restrictions.",
+      "No source. Individual pharmacokinetics vary by medication and patient. A universal 48-hour window is not supportable. The shot tracker can prompt the daily tolerance check-in without imposing automatic restrictions.",
   },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// HELPERS
+// RUNTIME ENFORCEMENT HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Returns only rules that are approved for production use */
+/**
+ * Assert that a rule exists and is not removed.
+ * - "removed"       → throws (must never reach a resolver)
+ * - "pending_review"→ returns the rule (resolver should flag it in rulesFired)
+ * - "approved"      → returns the rule
+ * - unknown ruleId  → returns null with a console.warn
+ */
+export function assertRuleApproved(ruleId: string): ClinicalRule | null {
+  const rule = RULE_REGISTRY[ruleId];
+  if (!rule) {
+    console.warn(`[GLP-1 Registry] Unknown rule: "${ruleId}" — using fallback.`);
+    return null;
+  }
+  if (rule.reviewStatus === "removed") {
+    throw new Error(
+      `[GLP-1 Registry] Rule "${ruleId}" has been removed (v${rule.version}) and must not be used in any resolver. ` +
+      `Reason: ${rule.governanceNote ?? "see registry"}`
+    );
+  }
+  return rule;
+}
+
+/**
+ * Read the numeric value for a rule from the registry.
+ * Returns `fallback` if the rule is unknown, removed, or has no value field.
+ * Logs a warning for pending_review rules so they appear in MACRO_AUDIT output.
+ */
+export function getRuleValue(ruleId: string, fallback: number): number {
+  const rule = RULE_REGISTRY[ruleId];
+  if (!rule || rule.value === undefined || rule.reviewStatus === "removed") return fallback;
+  return rule.value;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STRUCTURED AUDIT LOGGING
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface RuleFiredEntry {
+  ruleId: string;
+  sourceIds: string[];
+  evidenceLevel: EvidenceLevel;
+  reviewStatus: ReviewStatus;
+  version: string;
+  value?: number;
+}
+
+/**
+ * Emit a structured clinical rule log, gated on the MACRO_AUDIT env var.
+ * Format matches the architect's required output:
+ *
+ *   Rule:          glp1_intro_phase_calorie_multiplier
+ *   Evidence:      FDA_SEMAGLUTIDE_PI_2025
+ *   Status:        pending_review
+ *   Version:       1.0.0
+ *   Value:         0.82
+ *   Review by:     2025-12-31
+ */
+export function emitRuleLog(entries: RuleFiredEntry[]): void {
+  if (process.env.MACRO_AUDIT !== "true") return;
+  console.log("\n╔══ GLP-1 Clinical Rules Fired ══════════════════════════════╗");
+  for (const e of entries) {
+    const sources = e.sourceIds.length > 0 ? e.sourceIds.join(", ") : "(none)";
+    const valueStr = e.value !== undefined ? `  Value:       ${e.value}` : "";
+    const rule = RULE_REGISTRY[e.ruleId];
+    const reviewBy = rule?.reviewDate ? `  Review by:   ${rule.reviewDate}` : "";
+    const expiresBy = rule?.expiresDate ? `  Expires:     ${rule.expiresDate}` : "";
+    const statusFlag = e.reviewStatus === "pending_review" ? " ⚠️  PENDING CLINICAL REVIEW" : "";
+    console.log(
+      `  ─────────────────────────────────────────────────────────────\n` +
+      `  Rule:        ${e.ruleId} (v${e.version})${statusFlag}\n` +
+      `  Evidence:    ${sources}\n` +
+      `  Level:       ${e.evidenceLevel}\n` +
+      `  Status:      ${e.reviewStatus}` +
+      (valueStr ? `\n${valueStr}` : "") +
+      (reviewBy ? `\n${reviewBy}` : "") +
+      (expiresBy ? `\n${expiresBy}` : "")
+    );
+  }
+  console.log("╚════════════════════════════════════════════════════════════╝\n");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// QUERY HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
+
 export function getApprovedRules(): ClinicalRule[] {
   return Object.values(RULE_REGISTRY).filter(r => r.reviewStatus === "approved");
 }
 
-/** Returns rules that need clinical review before going to production */
 export function getPendingReviewRules(): ClinicalRule[] {
   return Object.values(RULE_REGISTRY).filter(r => r.reviewStatus === "pending_review");
 }
 
-/** Returns all sources that back a given ruleId */
 export function getSourcesForRule(ruleId: string): ClinicalSource[] {
   const rule = RULE_REGISTRY[ruleId];
   if (!rule) return [];
-  return rule.sourceIds
-    .map(id => SOURCE_CATALOG[id])
-    .filter(Boolean);
+  return rule.sourceIds.map(id => SOURCE_CATALOG[id]).filter(Boolean);
 }
 
-/** Returns all ruleIds that cite a given sourceId */
 export function getRulesForSource(sourceId: string): ClinicalRule[] {
   return Object.values(RULE_REGISTRY).filter(r => r.sourceIds.includes(sourceId));
+}
+
+export function getRulesExpiringSoon(withinDays = 90): ClinicalRule[] {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() + withinDays);
+  return Object.values(RULE_REGISTRY).filter(r => {
+    if (!r.expiresDate) return false;
+    return new Date(r.expiresDate) <= cutoff;
+  });
 }
