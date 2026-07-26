@@ -1,9 +1,9 @@
 /**
  * GLP-1 Guardrails Rules - Phase 3.3
- * 
+ *
  * Enforces small portions, low-fat, high-protein, easy-to-digest meals
  * for users on GLP-1 medications (Ozempic, Wegovy, Mounjaro, etc.)
- * 
+ *
  * Key principles:
  * - Small portions (never large or heavy)
  * - Low calorie density
@@ -12,6 +12,30 @@
  * - Gentle textures
  * - Easy digestion
  * - No nausea triggers
+ *
+ * ── GOVERNANCE ────────────────────────────────────────────────────────────────
+ * All ingredient lists and portion guidelines are governed by the Clinical Rule
+ * Registry at server/services/glp1/ruleRegistry.ts.
+ *
+ * portionGuidelines.maxCalories (400): Static fallback baseline used ONLY when
+ *   the user has no macro target. NOT a universal clinical ceiling. Supported
+ *   directionally by PMID_36614945 (smaller meals). Specific value is an
+ *   engineering default pending RD review. Rule: glp1_smaller_portions.
+ *
+ * portionGuidelines.maxFatGrams (12): Conservative default ceiling when no
+ *   provider guardrail exists. Lower fat is supported by PMID_36614945; the
+ *   specific 12g value has no peer-reviewed source — it is a conservative
+ *   engineering default. Provider-configured guardrails override this.
+ *   Rule: glp1_lower_fat (approved — directional). Specific value: pending_review.
+ *
+ * portionGuidelines.minProteinGrams (15): Protein priority is supported by
+ *   PMID_36614945 and AND_GLP1_NUTRITION. The 15g floor is a conservative
+ *   engineering default when no macro target exists. Rule: glp1_protein_priority.
+ *
+ * Ingredient blocks (raw cruciferous, legumes, carbonation, fried foods,
+ * high-fat dairy, concentrated sugars): Each category is governed by an
+ * approved rule in the registry. See ruleRegistry.ts for per-category sources.
+ * ─────────────────────────────────────────────────────────────────────────────
  */
 
 export interface GLP1Rules {
