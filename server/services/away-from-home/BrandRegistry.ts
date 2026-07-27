@@ -51,8 +51,8 @@ const REGISTRY: RestaurantIdentity[] = [
     dataOrigin: "official_website",
     sourceUrl: "https://www.wendys.com/nutrition-info",
     verifiedAt: "2025-01-01",
-    sourceVersion: "v1.0",
-    verifiedBy: "MyPerfectMeals",
+    sourceVersion: "wendys-official-9-item-poc-v1",
+    verifiedBy: "My Perfect Meals",
     refreshPolicy: "manual",
   },
 
