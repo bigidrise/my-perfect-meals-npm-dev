@@ -3,7 +3,7 @@ import OpenAI from "openai";
 import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
-import { loadUserProtocolEnvelope } from "../services/protocolEnvelope";
+import { loadUserProtocolEnvelope, enforceBeforeGenerate, buildGuestEnvelope } from "../services/protocolEnvelope";
 import { getProductAdvisorEngine } from "../services/productAdvisor";
 
 const router = express.Router();
@@ -33,39 +33,17 @@ router.post("/recommend", async (req, res) => {
     }
 
     const finalServingCount = Math.max(1, Math.min(12, Number(servingCount) || 1));
-    let userContext = "";
+    let protocolContext = "";
     let macroContext = "";
 
     if (userId) {
-      const envelope = await loadUserProtocolEnvelope(userId);
-      if (envelope) {
-        const parts: string[] = [];
-        if ((envelope as any).dietaryIdentity?.primary) {
-          parts.push(`Dietary identity: ${(envelope as any).dietaryIdentity.primary}`);
-        }
-        const allergies = (envelope as any).allergies?.hardBlocked ?? [];
-        if (allergies.length) parts.push(`Allergies/intolerances (absolute hard stops): ${allergies.join(", ")}`);
-        const conditions = (envelope as any).medicalHardLimits?.conditions ?? [];
-        if (conditions.length) parts.push(`Medical/health conditions: ${conditions.join(", ")}`);
-        const avoidances = (envelope as any).avoidances?.foods ?? [];
-        if (avoidances.length) parts.push(`Foods user avoids: ${avoidances.slice(0, 10).join(", ")}`);
-        const cuisines = (envelope as any).preferences?.cuisines ?? [];
-        if (cuisines.length) parts.push(`Preferred cuisines: ${cuisines.join(", ")}`);
-        const fitnessGoal = (envelope as any).preferences?.fitnessGoal;
-        if (fitnessGoal) parts.push(`Fitness goal: ${fitnessGoal}`);
-        userContext = parts.join(". ");
-
-        // Inject full clinical protocol blocks (pregnancy, thyroid, cardiac, oncology, etc.)
-        // These are the same guidance blocks enforced by every other meal generator.
-        const guidanceBlocks: string[] = (envelope as any).conditionGuidanceBlocks ?? [];
-        if (guidanceBlocks.length) {
-          userContext += (userContext ? "\n\n" : "") +
-            "=== CLINICAL NUTRITION PROTOCOLS — ENFORCE IN ALL RECOMMENDATIONS ===\n" +
-            "The following directives override general coaching principles. " +
-            "They must be respected in every meal suggestion, ingredient choice, and shopping list item.\n\n" +
-            guidanceBlocks.join("\n\n");
-        }
-      }
+      // Use the same full 5-tier constraint package every other builder uses.
+      // This covers: dietary identity, allergies (hard-stop), medical hard limits,
+      // condition guidance blocks (GLP-1, oncology, pregnancy, thyroid, etc.),
+      // palate preferences, sweetener rules, procedural/cross-contamination rules,
+      // and performance nutrition overlay.
+      const envelope = await loadUserProtocolEnvelope(userId).catch(() => null) ?? buildGuestEnvelope();
+      protocolContext = enforceBeforeGenerate(envelope, { generatorName: "grocery_coach" }).combined;
 
       const [userRow] = await db
         .select({
@@ -89,8 +67,8 @@ router.post("/recommend", async (req, res) => {
 
 Your mission: turn "I don't know what to eat" into "Here is exactly what to buy, how much to buy, and why it fits your goals."
 
-USER HEALTH PROFILE:
-${userContext || "No dietary restrictions or conditions on file — apply general healthy eating principles."}
+USER HEALTH PROFILE AND CONSTRAINTS:
+${protocolContext || "No dietary restrictions or conditions on file — apply general healthy eating principles."}
 ${macroContext ? `\n${macroContext}` : ""}
 
 SERVING SIZE: All ingredient quantities must be scaled for ${finalServingCount} ${finalServingCount === 1 ? "person" : "people"}.
