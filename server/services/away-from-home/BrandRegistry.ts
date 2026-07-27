@@ -50,6 +50,8 @@ const REGISTRY: RestaurantIdentity[] = [
     availableMenuSources: ["internal_canonical"],
     dataOrigin: "official_website",
     sourceUrl: "https://www.wendys.com/nutrition-info",
+    menuDataVerifiedAt: "2025-01-01",
+    menuDataVersion: "v1.0",
   },
 
   // ── McDonald's ── (registered, menu file not yet seeded)
