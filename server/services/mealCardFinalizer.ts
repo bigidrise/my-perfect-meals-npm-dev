@@ -214,10 +214,10 @@ Write cooking instructions.`,
     { generatorName: "grocery_coach_finalizer" }
   );
 
-  if (scanResult.decision === "BLOCK") {
+  if (!scanResult.passed) {
     throw new Error(
       `Meal card blocked by protocol safety scan: ${
-        scanResult.primaryBlock?.message ?? "safety violation"
+        scanResult.primaryViolation?.reason ?? "safety violation"
       }`
     );
   }
