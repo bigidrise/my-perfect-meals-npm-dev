@@ -765,6 +765,8 @@ setTimeout(async () => {
       FROM user_certifications uc
       WHERE uc.certification_type = 'platform'
         AND uc.status = 'completed'
+        AND uc.is_certification_track = true
+        AND uc.completed_at < '2026-07-15T00:00:00Z'
         AND NOT EXISTS (
           SELECT 1 FROM user_certifications pm
           WHERE pm.user_id = uc.user_id
