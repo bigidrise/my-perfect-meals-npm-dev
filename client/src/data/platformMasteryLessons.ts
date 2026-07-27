@@ -16,6 +16,7 @@ export interface PlatformMasteryLesson {
   lessonNumber: number;
   title: string;
   subtitle: string;
+  learningObjectives: string[];
   opening: string;
   sections: LessonSection[];
   exercise: {
@@ -32,6 +33,12 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
     lessonNumber: 1,
     title: "Your Profile Is Your Protocol",
     subtitle: "How onboarding shapes every recommendation you receive",
+    learningObjectives: [
+      "Identify which onboarding inputs become hard constraints (blocked ingredients, medical guardrails) versus adjustable preferences",
+      "Explain the difference between dietary identity and cuisine preferences, and why each matters differently for meal generation",
+      "Navigate to My Profile and correctly update a dietary identity, allergen, or health goal after onboarding is complete",
+      "Describe the 4-level protocol hierarchy and predict which setting takes precedence when two profile elements conflict",
+    ],
     opening:
       "Every recommendation My Perfect Meals makes starts with one thing: understanding you. During setup, you'll answer a series of questions about your goals, preferences, lifestyle, and health. Those answers become the foundation for every meal, shopping list, restaurant recommendation, and nutrition decision the platform makes.",
     sections: [
@@ -198,6 +205,12 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
     lessonNumber: 2,
     title: "Meal Builders — Choosing the Right Tool",
     subtitle: "Every meal creation tool, what it does, and when to reach for it",
+    learningObjectives: [
+      "Name every meal creation tool on the platform and correctly categorize it as a builder, lifestyle creator, specialty creator, or kitchen tool",
+      "Use the scenario matrix to select the correct tool for any given meal situation",
+      "Explain the difference between the Meal Planner and the lifestyle creators, and when each is the right choice",
+      "Describe what Recipe Scan does and how it differs from Create a Dish and Fridge Rescue",
+    ],
     opening:
       "My Perfect Meals includes more than a dozen ways to generate meals and evaluate food. Some are builders — the environments assigned based on your profile. Others are lifestyle creators, scanning tools, or planning aids. This lesson gives you the complete map: every tool, what it does, and when to reach for it.",
     sections: [
@@ -366,6 +379,12 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
     lessonNumber: 3,
     title: "Planning Your Week",
     subtitle: "Populating the weekly board and building a plan you will follow",
+    learningObjectives: [
+      "Navigate the weekly board to generate, replace, duplicate, and save meals across a 7-day plan",
+      "Use the Remaining Macros display to identify macro gaps or over-allocation before saving a plan",
+      "Explain how Duplicate Day works and describe a situation where it saves time without compromising nutritional variety",
+      "Describe what happens to the Smart Grocery List when a plan is saved, modified, and re-saved",
+    ],
     opening:
       "Once you're inside your assigned builder, the weekly board is where your plan takes shape. This lesson covers how to populate your week, understand the Remaining Macros bar, use Duplicate and Replace to build efficiently, and save a plan you can actually follow.",
     sections: [
@@ -539,6 +558,12 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
     lessonNumber: 4,
     title: "Shopping & Your Grocery Scope",
     subtitle: "Smart Grocery List, Grocery Coach, Smart Scan, and Fridge Rescue",
+    learningObjectives: [
+      "Explain what triggers the Smart Grocery List to populate and what causes it to appear empty",
+      "Use Grocery Coach to interpret a flagged item and explain the specific reason behind the flag",
+      "Use Recipe Scan to adapt a recipe found outside My Perfect Meals to a specific dietary identity and macro target",
+      "Distinguish when to use Smart Scan versus Fridge Rescue for a food decision in or around the home",
+    ],
     opening:
       "A saved meal plan answers what you should eat. The shopping tools answer how to get that food into your kitchen — and how to evaluate what you already have. This lesson covers the full grocery scope of My Perfect Meals: your Smart Grocery List, Grocery Coach, Smart Scan, Recipe Scan, and Fridge Rescue.",
     sections: [
@@ -708,6 +733,12 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
     lessonNumber: 5,
     title: "Eating Away From Home",
     subtitle: "Restaurant Guide, Fast Food Guide, and Find Meals Near Me",
+    learningObjectives: [
+      "Use the Restaurant Guide to identify a compliant meal option at a specific restaurant for a user with a named dietary identity",
+      "Explain what factors the platform evaluates when surfacing a compatible restaurant or menu item",
+      "Use the Fast Food Guide to locate a compliant option at a quick-service chain within a specific macro target",
+      "Describe how Find Meals Near Me uses location context to surface nearby options and what it does when no compliant options are available",
+    ],
     opening:
       "Eating out is where most nutrition plans break down — not because one restaurant meal is catastrophic, but because there's no system for it. My Perfect Meals includes three tools specifically for eating outside the home. This lesson covers each one, when to use it, and how your profile applies when you're not in your own kitchen.",
     sections: [
@@ -871,6 +902,12 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
     lessonNumber: 6,
     title: "Biometrics & Progress Tracking",
     subtitle: "Logging data, reading trends, and using your Hub",
+    learningObjectives: [
+      "Interpret a biometric trend chart correctly — distinguishing meaningful directional change from normal daily fluctuation",
+      "Explain why a flat weight trend combined with declining body fat percentage indicates progress, not stagnation",
+      "Describe how logged blood glucose readings connect to meal generation in the Diabetic Hub through GlucoseGuard",
+      "Identify the minimum useful logging cadence for each tracked biometric category (weight, body composition, glucose, wellbeing)",
+    ],
     opening:
       "Tracking your biometrics in My Perfect Meals is how your progress becomes visible data — not guesswork. This lesson covers what to track, how to log consistently, and how to read your trends so you understand whether your plan is actually working.",
     sections: [
@@ -1044,6 +1081,12 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
     lessonNumber: 7,
     title: "Specialized Health & Performance Systems",
     subtitle: "Clinical programs, performance nutrition, and the protocol priority hierarchy",
+    learningObjectives: [
+      "Name the five specialized program systems and identify which tier of the 4-level protocol hierarchy each one occupies",
+      "Explain how the platform resolves a conflict when two active specialized programs produce contradictory recommendations for the same meal",
+      "Describe how Oncology Support is assigned, what it does, and what it explicitly does not do — including why it cannot be self-activated",
+      "Explain how GlucoseGuard uses logged glucose readings to dynamically adjust meal generation constraints",
+    ],
     opening:
       "My Perfect Meals includes several specialized program systems that go beyond standard meal generation. This lesson covers the major clinical and performance systems active on the platform — what each one does, how it interacts with your profile, and how the platform manages multiple active programs at once.",
     sections: [
@@ -1214,6 +1257,12 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
     lessonNumber: 8,
     title: "AI Adaptation & Your Boundaries",
     subtitle: "How the platform learns, what it guarantees, and where you remain in control",
+    learningObjectives: [
+      "Distinguish what the AI knows explicitly from your profile versus what it estimates through contextual inference",
+      "Explain the platform's macro discipline — why null means unknown and 0 means known zero — and what it prevents",
+      "Identify which profile changes require a new plan generation to take effect versus which apply to the next individual meal",
+      "Describe the correct way to override or correct an AI-generated recommendation without breaking your profile's constraints",
+    ],
     opening:
       "My Perfect Meals generates thousands of recommendations every day. Each one passes through a layered safety and intelligence system before it reaches a user. This lesson explains how that system works — what it protects, why it's built the way it is, and what it means for professionals and clients who rely on the platform's output.",
     sections: [
