@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { db } from "../db";
 import { users } from "@shared/schema";
 import { userCertifications } from "../db/schema/certifications";
-import { eq, and, isNotNull, or } from "drizzle-orm";
+import { eq, and, isNotNull, inArray } from "drizzle-orm";
 import { AuthenticatedRequest } from "./requireAuth";
 
 /**
@@ -104,21 +104,21 @@ export async function requirePhase1Cert(
     // Check Phase 1 certification — accepts both the legacy "platform" type
     // and the current "platform_mastery" type so existing certified professionals
     // are never locked out during or after the rename transition.
-    const [cert] = await db
+    // Uses inArray (no limit) and checks ANY row for completion, avoiding
+    // nondeterministic results when a user has rows for both cert types.
+    const certs = await db
       .select({ status: userCertifications.status, completedAt: userCertifications.completedAt })
       .from(userCertifications)
       .where(
         and(
           eq(userCertifications.userId, authUser.id),
-          or(
-            eq(userCertifications.certificationType, "platform"),
-            eq(userCertifications.certificationType, "platform_mastery")
-          )
+          inArray(userCertifications.certificationType, ["platform", "platform_mastery"])
         )
-      )
-      .limit(1);
+      );
 
-    const phase1Complete = cert?.status === "completed" && !!cert?.completedAt;
+    const phase1Complete = certs.some(
+      (c) => c.status === "completed" && !!c.completedAt
+    );
 
     if (!phase1Complete) {
       res.status(403).json({

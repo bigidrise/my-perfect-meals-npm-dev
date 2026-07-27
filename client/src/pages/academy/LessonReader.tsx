@@ -527,6 +527,20 @@ export default function LessonReader() {
   const load = useCallback(async () => {
     try {
       const d = await apiRequest("/api/academy/platform-mastery/status");
+
+      // Auto-enroll in learning mode on first lesson open.
+      // This ensures a user_certifications record always exists so that
+      // exercise/quiz progress, and eventually /complete, can reference it.
+      // If the user later upgrades to cert track via the Dashboard, the
+      // upsert sets isCertificationTrack=true without resetting progress.
+      if (!(d as any).enrolled) {
+        await apiRequest("/api/academy/platform-mastery/enroll", {
+          method: "POST",
+          body: JSON.stringify({ isCertificationTrack: false }),
+          headers: { "Content-Type": "application/json" },
+        }).catch(() => {});
+      }
+
       setStatus(d as any);
       const prog = (d as any).progress ?? {};
       const exSt = prog[`${lessonId}-exercise`]?.status;
