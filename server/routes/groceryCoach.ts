@@ -3,8 +3,9 @@ import OpenAI from "openai";
 import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
-import { loadUserProtocolEnvelope } from "../services/protocolEnvelope";
+import { loadUserProtocolEnvelope, enforceBeforeGenerate, buildGuestEnvelope } from "../services/protocolEnvelope";
 import { getProductAdvisorEngine } from "../services/productAdvisor";
+import { finalizeMealCard } from "../services/mealCardFinalizer";
 
 const router = express.Router();
 
@@ -33,39 +34,17 @@ router.post("/recommend", async (req, res) => {
     }
 
     const finalServingCount = Math.max(1, Math.min(12, Number(servingCount) || 1));
-    let userContext = "";
+    let protocolContext = "";
     let macroContext = "";
 
     if (userId) {
-      const envelope = await loadUserProtocolEnvelope(userId);
-      if (envelope) {
-        const parts: string[] = [];
-        if ((envelope as any).dietaryIdentity?.primary) {
-          parts.push(`Dietary identity: ${(envelope as any).dietaryIdentity.primary}`);
-        }
-        const allergies = (envelope as any).allergies?.hardBlocked ?? [];
-        if (allergies.length) parts.push(`Allergies/intolerances (absolute hard stops): ${allergies.join(", ")}`);
-        const conditions = (envelope as any).medicalHardLimits?.conditions ?? [];
-        if (conditions.length) parts.push(`Medical/health conditions: ${conditions.join(", ")}`);
-        const avoidances = (envelope as any).avoidances?.foods ?? [];
-        if (avoidances.length) parts.push(`Foods user avoids: ${avoidances.slice(0, 10).join(", ")}`);
-        const cuisines = (envelope as any).preferences?.cuisines ?? [];
-        if (cuisines.length) parts.push(`Preferred cuisines: ${cuisines.join(", ")}`);
-        const fitnessGoal = (envelope as any).preferences?.fitnessGoal;
-        if (fitnessGoal) parts.push(`Fitness goal: ${fitnessGoal}`);
-        userContext = parts.join(". ");
-
-        // Inject full clinical protocol blocks (pregnancy, thyroid, cardiac, oncology, etc.)
-        // These are the same guidance blocks enforced by every other meal generator.
-        const guidanceBlocks: string[] = (envelope as any).conditionGuidanceBlocks ?? [];
-        if (guidanceBlocks.length) {
-          userContext += (userContext ? "\n\n" : "") +
-            "=== CLINICAL NUTRITION PROTOCOLS — ENFORCE IN ALL RECOMMENDATIONS ===\n" +
-            "The following directives override general coaching principles. " +
-            "They must be respected in every meal suggestion, ingredient choice, and shopping list item.\n\n" +
-            guidanceBlocks.join("\n\n");
-        }
-      }
+      // Use the same full 5-tier constraint package every other builder uses.
+      // This covers: dietary identity, allergies (hard-stop), medical hard limits,
+      // condition guidance blocks (GLP-1, oncology, pregnancy, thyroid, etc.),
+      // palate preferences, sweetener rules, procedural/cross-contamination rules,
+      // and performance nutrition overlay.
+      const envelope = await loadUserProtocolEnvelope(userId).catch(() => null) ?? buildGuestEnvelope();
+      protocolContext = enforceBeforeGenerate(envelope, { generatorName: "grocery_coach" }).combined;
 
       const [userRow] = await db
         .select({
@@ -89,15 +68,16 @@ router.post("/recommend", async (req, res) => {
 
 Your mission: turn "I don't know what to eat" into "Here is exactly what to buy, how much to buy, and why it fits your goals."
 
-USER HEALTH PROFILE:
-${userContext || "No dietary restrictions or conditions on file — apply general healthy eating principles."}
+USER HEALTH PROFILE AND CONSTRAINTS:
+${protocolContext || "No dietary restrictions or conditions on file — apply general healthy eating principles."}
 ${macroContext ? `\n${macroContext}` : ""}
 
 SERVING SIZE: All ingredient quantities must be scaled for ${finalServingCount} ${finalServingCount === 1 ? "person" : "people"}.
 
 COACHING RULES:
+- MOST IMPORTANT: If the user mentions ingredients they already bought or have at home, BUILD THE MEAL AROUND THOSE INGREDIENTS. They are the anchor. Only add to the shopping list what is genuinely missing to complete the dish. Never suggest a meal that ignores or sidelines what the user says they already have. Exception: if using a stated ingredient would violate a safety, allergy, clinical, dietary, or protocol constraint, explain the conflict clearly and offer the closest safe alternative — do not silently swap it out.
 - Recommend ONE specific, confident meal (may have 2-3 components, e.g., protein + starch + vegetable).
-- The shopping list must be practical and grocery-store ready — include realistic quantities with units (e.g., "2 lbs", "1 bunch", "1 can").
+- The shopping list must be practical and grocery-store ready — include realistic quantities with units (e.g., "2 lbs", "1 bunch", "1 can"). Do NOT list ingredients the user said they already have — they already own those.
 - The reasoning bullets must directly reference THIS user's conditions, goals, allergies, or macros — not generic health claims.
 - Never include ingredients the user is allergic to or avoids.
 - If the user asks for a refinement ("make it cheaper", "more protein", "faster", "vegetarian", etc.) — adjust accordingly.
@@ -119,6 +99,13 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
     "carbs": number,
     "fat": number
   },
+  "ownedIngredients": [
+    {
+      "item": "string — ingredient the user already owns",
+      "quantity": "string",
+      "unit": "string"
+    }
+  ],
   "shoppingList": [
     {
       "item": "string",
@@ -183,6 +170,25 @@ router.post("/product-advisor", async (req, res) => {
   } catch (err: any) {
     console.error("[ProductAdvisor] Error:", err?.message);
     return res.status(500).json({ error: "Product advisor unavailable. Please try again." });
+  }
+});
+
+// ── Finalize Card — generate full meal card and save to Favorites ─────────────
+router.post("/finalize-card", async (req, res) => {
+  try {
+    const userId = resolveUserId(req);
+    if (!userId) return res.status(401).json({ status: "failed", id: null, reason: "Not authenticated" });
+
+    const { recommendation } = req.body;
+    if (!recommendation?.meal?.name) {
+      return res.status(400).json({ status: "failed", id: null, reason: "recommendation is required" });
+    }
+
+    const result = await finalizeMealCard({ recommendation, userId });
+    return res.json({ status: "ready", ...result });
+  } catch (err: any) {
+    console.error("[GroceryCoach/FinalizeCard] Error:", err?.message);
+    return res.status(500).json({ status: "failed", id: null, reason: err?.message });
   }
 });
 
