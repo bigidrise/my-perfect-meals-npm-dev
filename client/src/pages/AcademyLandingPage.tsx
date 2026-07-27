@@ -41,39 +41,51 @@ function certBadge(score: number | null | undefined) {
 const PLATFORM_MASTERY_LESSONS = [
   {
     number: "01",
-    title: "Getting Started",
-    description: "What My Perfect Meals is, who it serves, and how to set up your profile so the platform personalizes intelligently from day one.",
+    title: "Your Profile Is Your Protocol",
+    description: "How onboarding shapes every meal, macro target, and recommendation — and why a complete profile is the most important step.",
     icon: BookOpen,
   },
   {
     number: "02",
-    title: "Your Dashboard",
-    description: "Reading your macro dashboard, understanding daily targets, and using the nutrition summary to make better food decisions throughout the day.",
+    title: "The Dashboard & Builder Selection",
+    description: "Reading your daily macro targets, understanding the Nutrition Summary, and choosing the right builder for your situation.",
     icon: LayoutDashboard,
   },
   {
     number: "03",
-    title: "The Meal Builders",
-    description: "Every creator tool — Create a Dish, Chef's Kitchen, Snack Creator, Beverage Creator, Fridge Rescue, Craving Creator, and Meal Planner.",
+    title: "Meal Builders — Planning Your Week",
+    description: "Every meal generator — Create a Dish, Chef's Kitchen, Snack Creator, Beverage Creator, Craving Creator, Meal Planner — and how to build a plan you can follow.",
     icon: ChefHat,
   },
   {
     number: "04",
-    title: "Lifestyle & Tracking",
-    description: "Biometrics, meal logging, dietary preferences, medical guardrails, cultural identity, and how personalization adapts to your real life.",
+    title: "Shopping, Pantry & Eating Out",
+    description: "Grocery Coach, Ingredient Intelligence, Smart Scan, Fridge Rescue, and the Restaurant Guide — staying on plan whether you're shopping or dining out.",
     icon: Leaf,
   },
   {
     number: "05",
-    title: "More Features",
-    description: "Restaurant guide, Recipe Scan, Ingredient Intelligence, shopping lists, and the full breadth of tools beyond core meal generation.",
+    title: "Your Toolbox — Favorites, ProCare & Settings",
+    description: "Saved meals, ProCare connections, Household Profiles, Business Suite access, and managing your account from the More page.",
     icon: MoreHorizontal,
   },
   {
     number: "06",
-    title: "The Hub",
-    description: "Putting it all together — how the platform's features connect, daily routines that work, and how to get the most from every session.",
-    icon: Layers,
+    title: "Biometrics & Progress Tracking",
+    description: "Logging biometric data, reading your trends, and using My Hub to monitor progress and keep your profile current.",
+    icon: BarChart2,
+  },
+  {
+    number: "07",
+    title: "Specialized Systems",
+    description: "Clinical programs (GLP-1, oncology, diabetes), ProCare Studio coaching tools, and the advanced platform features for professionals.",
+    icon: Users,
+  },
+  {
+    number: "08",
+    title: "AI Adaptation & Your Boundaries",
+    description: "How the protocol hierarchy works, what the AI guarantees vs. estimates, macro truth enforcement, and where you remain in control.",
+    icon: Star,
   },
 ];
 
@@ -311,13 +323,13 @@ export default function AcademyLandingPage() {
             </p>
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h3 className="text-base font-bold text-white">My Perfect Meals Basics</h3>
+                <h3 className="text-base font-bold text-white">Platform Mastery</h3>
                 <p className="text-xs text-white/50 mt-1">
                   Open to everyone · No certification required
                 </p>
               </div>
               <div className="px-2.5 py-1 rounded-full bg-orange-500/20 border border-orange-500/30 flex-shrink-0">
-                <span className="text-orange-300 text-xs font-semibold">6 lessons</span>
+                <span className="text-orange-300 text-xs font-semibold">8 modules</span>
               </div>
             </div>
           </div>
@@ -448,8 +460,8 @@ export default function AcademyLandingPage() {
               <>
                 <CertPathRow
                   icon="🥉"
-                  label="My Perfect Meals Basics"
-                  sublabel="6 lessons · 80% quiz score required"
+                  label="Platform Mastery"
+                  sublabel="8 modules · 80% quiz score required"
                   done={progress.phase1Done}
                   score={progress.phase1Score}
                   available

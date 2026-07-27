@@ -30,8 +30,8 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
   {
     id: "lesson-01",
     lessonNumber: 1,
-    title: "Getting Started",
-    subtitle: "Setting up your profile and account",
+    title: "Your Profile Is Your Protocol",
+    subtitle: "How onboarding shapes every recommendation you receive",
     opening:
       "Every recommendation My Perfect Meals makes starts with one thing: understanding you. During setup, you'll answer a series of questions about your goals, preferences, lifestyle, and health. Those answers become the foundation for every meal, shopping list, restaurant recommendation, and nutrition decision the platform makes.",
     sections: [
@@ -196,8 +196,8 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
   {
     id: "lesson-02",
     lessonNumber: 2,
-    title: "Understanding Your Dashboard",
-    subtitle: "Your daily starting point for nutrition",
+    title: "The Dashboard & Builder Selection",
+    subtitle: "Reading your daily targets and choosing the right tool",
     opening:
       "The Dashboard is the first thing you see every time you open My Perfect Meals. It's not a home screen in the traditional sense — it's your daily starting point for nutrition. Everything important begins here.\n\nWhen you open the app each day, there's one question worth asking: What am I looking at, and what should I do first? This lesson answers that question.",
     sections: [
@@ -371,8 +371,8 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
   {
     id: "lesson-03",
     lessonNumber: 3,
-    title: "Builders: Creating Your Nutrition",
-    subtitle: "The platform's core meal generation system",
+    title: "Meal Builders — Planning Your Week",
+    subtitle: "Generating meals and building a plan you can follow",
     opening:
       "The Builders page is where My Perfect Meals becomes a working nutrition tool. Everything in Lessons 1 and 2 — your profile, your active programs, your macro targets — was setup. This is where that setup starts paying off. Builders are how you actually generate meals, track what you eat, and build a plan you can follow.",
     sections: [
@@ -551,8 +551,8 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
   {
     id: "lesson-04",
     lessonNumber: 4,
-    title: "Lifestyle: Everyday Nutrition for Real Life",
-    subtitle: "Flexible tools for when life doesn't follow the plan",
+    title: "Shopping, Pantry & Eating Out",
+    subtitle: "Grocery tools, ingredient scanning, and meals away from home",
     opening:
       "Your weekly meal plan gives you structure. The Lifestyle page gives you flexibility. Life doesn't always go according to plan. You travel, eat out, open the refrigerator and have no idea what to cook, or simply want something different. The Lifestyle page is where My Perfect Meals helps you adapt without starting over.",
     sections: [
@@ -567,6 +567,10 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
       {
         heading: "Fridge Rescue",
         body: "**Fridge Rescue** solves one of the most common daily nutrition problems: I have food, but I don't know what to make with it.\n\nEnter the ingredients you already have. Fridge Rescue generates a complete meal using only those items — no additional grocery run needed. Fridge Rescue is one of the easiest ways to reduce food waste while still staying on your nutrition plan.",
+      },
+      {
+        heading: "Grocery Coach & Ingredient Intelligence",
+        body: "Two tools turn the gap between meal planning and grocery shopping into a solved problem.\n\n**Grocery Coach** builds your shopping list automatically from your saved meal plan. When you save a week's plan in the Meal Planner, Grocery Coach organizes the ingredients you'll need — consolidated, de-duplicated, and grouped by category. Instead of creating a list yourself, you arrive at the store with an accurate list derived directly from your plan.\n\nGrocery Coach also flags ingredients that deserve attention based on your profile. A user managing blood sugar will see a note on high-glycemic items. A user with a shellfish allergy sees that called out in context. The list isn't just a list — it's a profile-aware shopping guide.\n\n**Ingredient Intelligence / Smart Scan** extends that awareness to the store shelf. Open Smart Scan and point your camera at any product barcode. The platform reads the nutrition label and evaluates it against your active profile:\n- Does it fit your dietary identity?\n- Does it conflict with any medical guardrails?\n- How does it compare to your remaining daily macro targets?\n\nYou get an instant signal: compatible, use with caution, or avoid — with the specific reason. Smart Scan is most useful when comparing products or evaluating packaged foods that don't have obvious nutrition profiles.",
       },
       {
         heading: "Specialty Creators",
@@ -719,8 +723,8 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
   {
     id: "lesson-05",
     lessonNumber: 5,
-    title: "Your Personal Toolbox",
-    subtitle: "Everything on the More page and why it matters",
+    title: "Your Toolbox — Favorites, ProCare & Settings",
+    subtitle: "The More page and the tools that support your full experience",
     opening:
       "By now you've learned how to build meals, adapt them to real life, and track your progress. The More page is where you manage your experience with My Perfect Meals. Think of it as your personal toolbox — a place to find saved meals, connect with professionals, manage your account, and access the resources that support everything else you do in the app.",
     sections: [
@@ -894,8 +898,8 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
   {
     id: "lesson-06",
     lessonNumber: 6,
-    title: "My Hub: Your Personal Control Center",
-    subtitle: "Where to go when you need anything",
+    title: "Biometrics & Progress Tracking",
+    subtitle: "Logging data, reading trends, and using your Hub",
     opening:
       "Throughout this Academy, you've learned how to use My Perfect Meals. This final lesson shows you where to go whenever you need help, want to learn something new, personalize your experience, or manage your account. My Hub is your personal control center. Tap the Hub button in the top-right corner of your Dashboard and it opens — a single panel that connects you to everything that supports your life on the platform.",
     sections: [
@@ -1066,8 +1070,8 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
   {
     id: "lesson-07",
     lessonNumber: 7,
-    title: "ProCare Studio — Coaching Your Clients",
-    subtitle: "The professional tools for managing client nutrition",
+    title: "Specialized Systems",
+    subtitle: "Clinical programs, coaching tools, and advanced platform features",
     opening:
       "ProCare Studio is the professional layer of My Perfect Meals. It's where coaches, dietitians, trainers, and physicians manage their clients' nutrition journeys. If you're completing this Academy as a professional, this lesson covers what ProCare Studio gives you — and what it doesn't. Understanding the boundaries is as important as understanding the tools.",
     sections: [
@@ -1236,8 +1240,8 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
   {
     id: "lesson-08",
     lessonNumber: 8,
-    title: "Nutrition Intelligence & Safety Systems",
-    subtitle: "How the platform protects every recommendation",
+    title: "AI Adaptation & Your Boundaries",
+    subtitle: "How the platform learns, what it guarantees, and where you remain in control",
     opening:
       "My Perfect Meals generates thousands of recommendations every day. Each one passes through a layered safety and intelligence system before it reaches a user. This lesson explains how that system works — what it protects, why it's built the way it is, and what it means for professionals and clients who rely on the platform's output.",
     sections: [
