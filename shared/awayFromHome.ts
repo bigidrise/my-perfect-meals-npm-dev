@@ -74,6 +74,21 @@ export interface RestaurantIdentity {
   availableInCountries: string[];
   /** Which providers can supply verified menu data for this restaurant. */
   availableMenuSources: MenuSource[];
+  /**
+   * How the menu data was obtained. Omit when no menu data is available yet.
+   *
+   * official_website     — Hand-curated from the chain's own published nutrition page.
+   *                        Macros are chain-official, not estimated.
+   * licensed_api         — Sourced via a paid/licensed nutrition API (e.g., Nutritionix).
+   * ocr_scan             — Extracted from a photographed menu; values may vary by item.
+   * hand_curated_estimated — Hand-entered without an official source; values are estimates.
+   */
+  dataOrigin?: "official_website" | "licensed_api" | "ocr_scan" | "hand_curated_estimated";
+  /**
+   * Canonical URL for this brand's official nutrition/allergen information.
+   * Used by the staleness checker and data-update workflow.
+   */
+  sourceUrl?: string;
 }
 
 // ── Normalized Menu Item ─────────────────────────────────────────────────────
