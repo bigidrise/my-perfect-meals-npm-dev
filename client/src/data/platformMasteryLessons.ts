@@ -196,161 +196,166 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
   {
     id: "lesson-02",
     lessonNumber: 2,
-    title: "Builder Selection",
-    subtitle: "How builder assignment works and what each builder is designed to create",
+    title: "Meal Builders — Choosing the Right Tool",
+    subtitle: "Every meal creation tool, what it does, and when to reach for it",
     opening:
-      "The Builders page is the functional core of My Perfect Meals. After onboarding sets your profile, the Builders tab is where that profile translates into your actual meal plan. This lesson covers how builder assignment works, what each builder is designed to create, and how to navigate your assigned environment before generating your first meal.",
+      "My Perfect Meals includes more than a dozen ways to generate meals and evaluate food. Some are builders — the environments assigned based on your profile. Others are lifestyle creators, scanning tools, or planning aids. This lesson gives you the complete map: every tool, what it does, and when to reach for it.",
     sections: [
       {
-        heading: "What a Builder Is",
-        body: "A builder is the meal generation environment assigned to your account. It's not just a label — it's the specific tool, with its own targeting rules, medical protocols, and generation logic, that the platform uses to create your meals.\n\nThe key distinction: builders are profile-aware. They don't generate meals to satisfy any request in isolation. They generate meals designed for your specific situation — your goal, your medical context, your dietary identity.",
+        heading: "Your Assigned Builder — The Core Tool",
+        body: "Your **assigned builder** is where most of your meal generation happens. It's selected based on your health goal, medical context, and dietary identity — and it's the tool the platform optimizes around your specific situation.\n\nThe six builders:\n\n**My Weekly Meal Builder** — Standard structured planning for users without a specific clinical context.\n\n**Diabetic Hub and Meal Builder** — Glucose-aware generation for Type 1 and Type 2 diabetes. Includes GlucoseGuard.\n\n**Metabolic Medication Hub and Builder** — Appetite-adjusted generation for GLP-1 users. Includes an injection tracker.\n\n**Anti-Inflammatory Meal Builder** — Inflammation-filtered generation for autoimmune conditions, joint issues, and chronic inflammation.\n\n**Performance Nutrition Hub and Builder** — Phase-aware generation for athletes with training-cycle macro adjustments.\n\n**General Nutrition Builder (ProCare)** — Professionally managed builder assigned by a coach or physician.\n\nYour builder handles the weekly plan. Everything else below handles everything else.",
       },
       {
-        heading: "How Builder Assignment Works",
-        body: "Your builder is assigned, not chosen. The platform selects it based on three factors:\n\n**Your health goal** — Weight loss, maintenance, muscle gain, performance, and clinical support each point toward different builder environments.\n\n**Your medical context** — Any condition entered in your Health Profile (Type 2 diabetes, GLP-1 protocol, oncology support, etc.) influences or overrides the goal-based assignment.\n\n**Your dietary identity** — Vegan, keto, halal, and other dietary identities are applied within whatever builder you're assigned.\n\nIf you're connected to a ProCare professional — a coach, dietitian, or physician — your builder may be assigned or adjusted by that professional rather than auto-assigned by your profile alone.\n\nThis assignment mechanism is what makes the platform produce consistent, medically appropriate results. It's not a limitation — it's the point.",
+        heading: "Lifestyle Creators — On-Demand Meal Generation",
+        body: "**Lifestyle creators** are how you generate meals outside your structured plan — for specific situations, cravings, or creative needs. All of them apply your full profile.\n\n**Create a Dish** — Describe any meal in natural language and get a complete profile-compliant recipe. The most flexible tool on the platform. Use it when you know what you want but need the recipe built around your targets.\n\n**Snack Creator** — Generates profile-aware snacks specifically calibrated to fill macro gaps without disrupting your main meals. Faster and more targeted than asking a builder for a snack.\n\n**Beverage Creator** — Protein shakes, smoothies, wellness drinks, and hot beverages — all adjusted for your dietary identity and macro targets.\n\n**Craving Creator** — You describe what you're craving right now. The platform generates a version that fits your profile. Satisfies the craving; keeps the plan intact.",
       },
       {
-        heading: "The Complete Builder Library",
-        body: "Every builder available on My Perfect Meals:\n\n**My Weekly Meal Builder** — The standard builder for users without a specific medical context. Generates daily meal plans aligned with your goal, macros, and dietary identity.\n\n**Diabetic Hub and Meal Builder** — Built for Type 1 and Type 2 diabetes management. Includes GlucoseGuard, which adjusts meal generation based on logged blood glucose readings.\n\n**Metabolic Medication Hub and Builder** — Designed for users on GLP-1 medications (Ozempic, Wegovy, Mounjaro). Meals are appetite-adjusted for reduced hunger and portion sensitivity, with an injection tracker built in.\n\n**Anti-Inflammatory Meal Builder** — For users with autoimmune conditions, joint issues, or chronic inflammation. Every generated meal avoids ingredients associated with inflammatory response.\n\n**Performance Nutrition Hub and Builder** — For athletes. Macro targets shift based on training phase. Includes the Athlete Meal Picker, Athlete Beverage Creator, and session logging.\n\n**General Nutrition Builder (ProCare)** — A flexible builder assigned and guided by a coach or physician through ProCare Studio. Users on this builder have a professional actively managing their nutrition strategy.",
+        heading: "Specialty Creators",
+        body: "Specialty creators generate specific types of meals or experiences beyond everyday cooking.\n\n**Sushi Creator** — Builds complete sushi menus with profile-aware roll combinations, traditional preparation, and macro-matched portions.\n\n**Dessert Creator** — Generates profile-compliant desserts — sweet, satisfying, and designed to fit your remaining daily targets.\n\n**Holiday Feast** — Multi-course meal planning for celebrations and gatherings. Includes full menus across appetizer, main, side, and dessert courses, all coordinated around a single dietary context.",
       },
       {
-        heading: "The Builder Screen — What You See Before Generating",
-        body: "Before generating your first meal, take 30 seconds to understand the builder interface. This layout is consistent across every builder.\n\n**At the top:**\n- **Protocol Status** — shows which active programs are currently shaping your generation in this session\n- **Preferences** — one-time session adjustments (heat level, ingredient restrictions, etc.) without modifying your permanent profile\n\n**The weekly board:**\n- **Day selector** — tabs for Monday through Sunday\n- **Meal slots** — Breakfast, Morning Snack, Lunch, Afternoon Snack, Dinner; tap any empty slot to generate a meal\n- **Remaining Macros** — a real-time bar showing how much Protein, Carbs, and Fat remain for the current day\n\n**Board controls:**\n- **Save Plan** — locks your current week and updates your Shopping List\n- **Duplicate** — copies a full day's meals to another day",
+        heading: "Kitchen and Ingredient Tools",
+        body: "**Fridge Rescue** — Enter the ingredients you already have. The platform generates a complete profile-compliant meal from only those items. No grocery run needed. Best when your kitchen has food but no clear plan.\n\n**Recipe Scan** — Paste a URL or enter a recipe's ingredients. The platform rebuilds the recipe around your dietary identity and macro targets. Best when you have a recipe you love but it doesn't fit your current plan.\n\n**MacroScan** — Photograph a nutrition label or packaged food. The platform evaluates the product against your profile. Best for checking whether a packaged item fits your plan before buying or eating it.",
       },
       {
-        heading: "When Your Builder May Change",
-        body: "Your builder follows your profile. When your profile changes significantly — a new medical condition, a goal shift from weight loss to athletic performance, a physician assigning you to ProCare — your builder assignment may update to reflect that change.\n\nIf you're unsure which builder is right for your current situation and you're not under ProCare, update your Health Profile and Health Goal to reflect your current context. The platform will resolve the appropriate assignment from there.",
+        heading: "Meal Planner",
+        body: "**Meal Planner** is the structured planning tool inside your assigned builder. It's not a separate feature — it's the weekly board where you generate meals for each slot across Monday through Sunday.\n\nUnlike the lifestyle creators, the Meal Planner works session by session across an entire week. You fill slots, use Duplicate to copy successful days, and Save Plan to lock the week. Your Shopping List updates when you save.\n\nIf you're not sure which tool to use, the question to ask is: Am I building a structured plan for the week, or am I solving a specific meal situation right now? If it's the week — Meal Planner. If it's a situation — a lifestyle creator.",
+      },
+      {
+        heading: "Scenario Matrix — Which Tool to Reach For",
+        body: "Match the situation to the tool:\n\n| Situation | Tool |\n|-----------|------|\n| Building my week of meals | Meal Planner (in your builder) |\n| I know what I want to eat tonight | Create a Dish |\n| I have ingredients but no plan | Fridge Rescue |\n| I have a recipe I love — adapt it | Recipe Scan |\n| I need a quick snack | Snack Creator |\n| I want a protein shake or smoothie | Beverage Creator |\n| I want what I'm craving, on plan | Craving Creator |\n| I want sushi tonight | Sushi Creator |\n| Special occasion or celebration | Holiday Feast |\n| Is this packaged food ok? | MacroScan |\n| I'm going out to eat | Restaurant Guide or Fast Food Guide |\n\nAll tools apply your full profile. The difference is what they're optimized to create.",
       },
     ],
     exercise: {
       steps: [
-        "Open the **Builders** tab at the bottom of the screen.",
-        "Identify your assigned builder. Note its name.",
-        "Tap into the builder and locate the **Protocol Status** indicator at the top. Tap it to read which programs are currently active.",
-        "Tap the **Preferences** panel and read through the one-time adjustment options available for this session.",
-        "Without generating a meal yet, review the builder's weekly board — count the day tabs and meal slots available.",
+        "Open the **Lifestyle** page. Identify every creator tool available to you.",
+        "Open **Create a Dish**. Describe something you actually want to eat — be specific. Generate the meal. Read the full Meal Card.",
+        "Open **Craving Creator**. Enter a real craving. Generate and read the result.",
+        "Open **Recipe Scan**. Find a recipe online — paste the URL or enter the ingredients. Review the adapted output.",
+        "Open **Snack Creator**. Generate a snack and note how it compares in macro balance to the meals from your builder.",
+        "Return to your builder and open the **Meal Planner**. Note the difference in how you use it versus the lifestyle creators.",
       ],
     },
     remember:
-      "Your builder is assigned, not chosen — and that assignment is based on your profile. Understanding your builder is the first step before generating anything.",
+      "Every tool applies your full profile. The difference is what each one is optimized to create. Learn the scenario matrix and you'll always know which tool to reach for.",
     quiz: [
       {
         id: "l2-q1",
         question:
-          "Which of the following best explains how a user's builder is selected?",
+          "A user has a recipe she found online that she loves, but it doesn't fit her macro targets. Which tool adapts an existing recipe to fit her plan?",
         options: [
-          "She picks it from a list during onboarding.",
-          "It rotates weekly based on the platform's recommendations.",
-          "The platform assigns it based on her health goal, medical context, and dietary identity.",
-          "It defaults to the General Nutrition Builder for all new users.",
+          "Fridge Rescue — she enters the recipe ingredients and it builds a meal from them.",
+          "Create a Dish — she describes the recipe and it generates a new version.",
+          "Recipe Scan — she pastes the URL or enters ingredients and the platform rebuilds the recipe around her profile.",
+          "MacroScan — she photographs the nutrition label to evaluate it.",
         ],
         correctIndex: 2,
       },
       {
         id: "l2-q2",
         question:
-          "A user who has recently started Ozempic completes onboarding and enters her GLP-1 medication. Which builder is she most likely to be assigned?",
+          "A user opens the refrigerator and sees chicken, spinach, and olive oil — no plan, no grocery list. Which tool is designed for this situation?",
         options: [
-          "My Weekly Meal Builder — the default for most new users.",
-          "Metabolic Medication Hub and Builder — designed specifically for GLP-1 users.",
-          "Anti-Inflammatory Meal Builder — GLP-1 reduces inflammation.",
-          "General Nutrition Builder — since she has a physician managing her medication.",
+          "Create a Dish — she describes what she wants using those ingredients.",
+          "Fridge Rescue — she enters the ingredients she has and the platform generates a meal from only those items.",
+          "Recipe Scan — she enters the ingredients to see if they match a known recipe.",
+          "Craving Creator — she types the craving and the platform finds a match.",
         ],
         correctIndex: 1,
       },
       {
         id: "l2-q3",
         question:
-          "A user under ProCare notices her builder was changed without her doing anything. What is the most likely explanation?",
+          "A user is craving something sweet after dinner. She doesn't want to just browse — she wants something that fits her remaining macros. Which tool is most appropriate?",
         options: [
-          "The platform rotates builders automatically each month.",
-          "Her ProCare professional adjusted her builder assignment through ProCare Studio.",
-          "She accidentally tapped a setting that switched her builder.",
-          "The platform assigned a new builder because she missed too many meals.",
+          "Snack Creator — it's designed for macro gap filling.",
+          "Holiday Feast — it includes dessert generation.",
+          "Craving Creator — she describes what she's craving and the platform generates a profile-compliant version.",
+          "Create a Dish — she describes the sweet meal she wants.",
         ],
-        correctIndex: 1,
+        correctIndex: 2,
       },
       {
         id: "l2-q4",
         question:
-          "What does the Protocol Status indicator at the top of the builder show?",
+          "A user is at the grocery store and picks up a packaged protein bar. She wants to know if it fits her plan before buying it. Which tool handles this?",
         options: [
-          "A summary of the user's progress toward her weekly goals.",
-          "A timer showing when the next meal generation will expire.",
-          "Which saved meal plans are currently active.",
-          "Which active profile programs are currently shaping meal generation in that session.",
+          "Recipe Scan — she enters the ingredients from the label.",
+          "Smart Scan — she scans the barcode for a shopping evaluation.",
+          "MacroScan — she photographs the nutrition label and the platform evaluates it against her profile.",
+          "Snack Creator — it generates snack options with similar macro profiles.",
         ],
-        correctIndex: 3,
+        correctIndex: 2,
       },
       {
         id: "l2-q5",
         question:
-          "A user wants to adjust the heat level of her next generated meal without changing her permanent profile preferences. Where does she do this?",
+          "A user wants to plan all seven days of meals before Sunday grocery shopping. Which tool is designed for this use case?",
         options: [
-          "Edit Profile — update her spice preference permanently.",
-          "The Preferences panel inside the builder — one-time session adjustments.",
-          "Coach's Corner — submit the adjustment request.",
-          "My Hub — adjust the heat setting from her account page.",
+          "Create a Dish — she generates each meal separately and saves them.",
+          "The Meal Planner inside her assigned builder — it's the structured weekly planning tool.",
+          "Craving Creator — she enters a different craving for each day.",
+          "Holiday Feast — it plans meals across multiple days.",
         ],
         correctIndex: 1,
       },
       {
         id: "l2-q6",
         question:
-          "The Diabetic Hub and Meal Builder includes a feature called GlucoseGuard. What does it do?",
+          "A user on a GLP-1 medication wants a protein shake that accounts for her reduced appetite and portion sensitivity. Which tool is most targeted for this?",
         options: [
-          "Adjusts meal generation based on the user's logged blood glucose readings.",
-          "Blocks any meal that contains natural sugars.",
-          "Calculates insulin needs before each meal and displays a recommendation.",
-          "Sends the user's glucose data to her physician.",
-        ],
-        correctIndex: 0,
-      },
-      {
-        id: "l2-q7",
-        question:
-          "A user with no medical conditions and a goal of weight loss completes onboarding. Which builder is she most likely assigned?",
-        options: [
-          "Anti-Inflammatory Meal Builder — it's the most conservative option.",
-          "My Weekly Meal Builder — the standard builder for users without a specific medical context.",
-          "General Nutrition Builder — the default for all first-time users.",
-          "Performance Nutrition Hub and Builder — it works for any fitness goal.",
-        ],
-        correctIndex: 1,
-      },
-      {
-        id: "l2-q8",
-        question:
-          "A user's goal shifts from maintenance to competitive athletics. She updates her Health Goal in her profile. What should she expect?",
-        options: [
-          "No change — builders are permanent once assigned.",
-          "Her builder may update to reflect the new goal and context.",
-          "She must contact support to request a builder reassignment.",
-          "The platform will send her a notification asking her to choose a new builder.",
-        ],
-        correctIndex: 1,
-      },
-      {
-        id: "l2-q9",
-        question:
-          "What is the key difference between a builder and a general AI food tool?",
-        options: [
-          "Builders include more recipe options and a larger food database.",
-          "Builders cost more per month and require a subscription.",
-          "Builders are profile-aware — they generate meals designed for a specific person's situation, not just any request.",
-          "Builders only work when the user has an active weekly plan saved.",
+          "Create a Dish — she describes the shake in detail.",
+          "Snack Creator — it generates low-volume, high-protein snacks.",
+          "Beverage Creator — it generates protein shakes, smoothies, and drinks adjusted for her dietary identity and targets.",
+          "Fridge Rescue — she enters the shake ingredients she has available.",
         ],
         correctIndex: 2,
       },
       {
+        id: "l2-q7",
+        question:
+          "A dietitian wants to show a client all the meal creation tools available in My Perfect Meals. Which best describes the correct grouping?",
+        options: [
+          "Assigned builder (weekly planning), lifestyle creators (Create a Dish, Snack, Beverage, Craving), specialty creators (Sushi, Dessert, Holiday Feast), and kitchen tools (Fridge Rescue, Recipe Scan, MacroScan).",
+          "Free tools (Create a Dish, Fridge Rescue) and paid tools (all builders and specialty creators).",
+          "AI tools (all generators) and manual tools (MacroScan and Recipe Scan).",
+          "Medical tools (builders) and lifestyle tools (everything else in Lifestyle).",
+        ],
+        correctIndex: 0,
+      },
+      {
+        id: "l2-q8",
+        question:
+          "A user is planning a Thanksgiving dinner for the family and wants a complete multi-course menu that fits her dietary identity across all dishes. Which tool is designed for this?",
+        options: [
+          "Create a Dish — she generates each course individually.",
+          "Meal Planner — she fills Thursday's slots with each course.",
+          "Holiday Feast — it plans full multi-course meals for celebrations and gatherings.",
+          "Recipe Scan — she scans each traditional recipe and adapts it.",
+        ],
+        correctIndex: 2,
+      },
+      {
+        id: "l2-q9",
+        question:
+          "What is the core question to ask when choosing between the Meal Planner and a lifestyle creator?",
+        options: [
+          "Am I a paid subscriber or on the free tier?",
+          "Am I building a structured plan for the week, or am I solving a specific meal situation right now?",
+          "Is my builder assigned by ProCare or self-assigned during onboarding?",
+          "Am I cooking at home or eating out?",
+        ],
+        correctIndex: 1,
+      },
+      {
         id: "l2-q10",
         question:
-          "A coach reads that builders are \"assigned, not chosen.\" A client asks why she can't just use the Performance Builder instead of her assigned Weekly Meal Builder. What is the correct answer?",
+          "A client says: 'I knew what I wanted — grilled salmon with a citrus glaze and roasted asparagus — I just needed the recipe built around my macros.' Which tool did she use?",
         options: [
-          "She can switch at any time from the Builders tab settings menu.",
-          "She needs to pay for an upgraded subscription to unlock additional builders.",
-          "Builder assignment is based on her profile — switching without a matching profile context won't produce results designed for her situation.",
-          "The Performance Builder is only available to users over 18.",
+          "Fridge Rescue — she entered salmon and asparagus.",
+          "Recipe Scan — she found a salmon recipe online and adapted it.",
+          "Create a Dish — she described exactly what she wanted and the platform built the recipe around her targets.",
+          "Craving Creator — she typed her craving and got a match.",
         ],
         correctIndex: 2,
       },
@@ -535,50 +540,55 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
     title: "Shopping & Your Grocery Scope",
     subtitle: "Smart Grocery List, Grocery Coach, Smart Scan, and Fridge Rescue",
     opening:
-      "A saved meal plan answers what you should eat. The shopping tools answer how to get that food into your kitchen. This lesson covers the full grocery scope of My Perfect Meals: your Smart Grocery List, Grocery Coach, Smart Scan, and Fridge Rescue — the tools that close the gap between your plan and what actually ends up in your cart and refrigerator.",
+      "A saved meal plan answers what you should eat. The shopping tools answer how to get that food into your kitchen — and how to evaluate what you already have. This lesson covers the full grocery scope of My Perfect Meals: your Smart Grocery List, Grocery Coach, Smart Scan, Recipe Scan, and Fridge Rescue.",
     sections: [
       {
         heading: "Smart Grocery List — Your Plan Becomes a List",
-        body: "When you save your weekly plan, the Smart Grocery List generates automatically. It consolidates all ingredients from every meal in your saved plan, de-duplicates them, and organizes them by grocery category.\n\nIf your Smart Grocery List is empty, no weekly plan has been saved yet. Go to your builder, fill your week, and tap Save Plan. The list populates immediately.\n\nThe list stays current. Update your plan mid-week and the list updates with it. Delete a meal and that meal's ingredients are removed. Add a replacement and they appear.",
+        body: "When you save your weekly plan, the Smart Grocery List generates automatically. It consolidates all ingredients from every meal in your saved plan, de-duplicates them, and organizes them by grocery category.\n\nIf your Smart Grocery List is empty, no weekly plan has been saved yet. Go to your builder, complete your week, and tap Save Plan. The list populates immediately and stays current — update your plan and the list updates with it.",
       },
       {
         heading: "Grocery Coach",
-        body: "Grocery Coach is the shopping tool that adds profile-aware context to your list.\n\nWhen you open Grocery Coach, you're viewing your shopping plan through your active profile. It organizes items by store section (produce, proteins, pantry, dairy) and adds:\n\n- **Condition-relevant notes** — a user managing blood sugar sees a flag on high-glycemic ingredients; a user with celiac sees a gluten alert on any relevant item\n- **Allergy reminders** — flagged at the specific items that trigger the concern\n- **Quantity guidance** — how much of each ingredient you need based on the portions in your plan\n\nThe list isn't just a shopping catalog. It's profile-aware guidance for what to buy, how much to buy, and what to watch for.",
+        body: "Grocery Coach adds profile-aware context to your list.\n\nIt organizes items by store section (produce, proteins, pantry, dairy) and adds:\n\n- **Condition-relevant notes** — a diabetic user sees flags on high-glycemic ingredients; a user with celiac sees gluten alerts\n- **Allergy reminders** — flagged at the specific items that trigger the concern\n- **Quantity guidance** — how much of each ingredient based on the portions in your plan\n\nGrocery Coach doesn't just list what to buy. It tells you what to watch for while you're buying it.",
       },
       {
         heading: "Smart Scan — Ingredient Intelligence in the Store",
-        body: "Smart Scan brings profile-aware evaluation directly to the store shelf. Point your camera at any product barcode and the platform reads the nutrition label and evaluates it against your active profile.\n\nWhat Smart Scan checks:\n- Does this product fit your dietary identity?\n- Does it conflict with any medical guardrails?\n- How does it compare to your remaining macro targets for the day?\n\nThe result is an instant signal: compatible, use with caution, or avoid — with the specific reason. Smart Scan is most useful when comparing similar products or evaluating packaged foods you haven't used before. Two protein bars, two pasta sauces, two snack options — scan both and see which fits your profile better.",
+        body: "Smart Scan brings profile-aware evaluation to the store shelf. Point your camera at any product barcode and the platform evaluates the nutrition label against your active profile.\n\nWhat Smart Scan checks:\n- Does this product fit your dietary identity?\n- Does it conflict with any medical guardrails?\n- How does it compare to your remaining macro targets?\n\nThe result: compatible, use with caution, or avoid — with the specific reason. Most useful when comparing similar products or evaluating packaged foods you haven't used before.",
+      },
+      {
+        heading: "Recipe Scan — Adapting Recipes You Already Love",
+        body: "Recipe Scan adapts recipes you find outside My Perfect Meals — so you don't have to choose between eating what you love and staying on your plan.\n\nHow to use it:\n1. Find a recipe online or in a cookbook\n2. Paste the URL into Recipe Scan, or enter the ingredients manually\n3. The platform rebuilds the recipe around your dietary identity and macro targets\n4. A full Meal Card appears — with your adjusted ingredients, macros, and instructions\n\nRecipe Scan is the bridge between the food world outside My Perfect Meals and your profile inside it. A pasta recipe you love becomes a high-protein, low-glycemic version of itself. A family dish becomes halal-compliant. The dish stays recognizable. The nutrition fits your plan.",
       },
       {
         heading: "Fridge Rescue — Cooking What You Already Have",
-        body: "Fridge Rescue solves a specific problem: you have food in the kitchen but don't know what to make with it.\n\nEnter the ingredients currently available in your kitchen. Fridge Rescue generates a complete, profile-compliant meal using only those items — no additional grocery trip needed.\n\nFridge Rescue applies your full profile:\n- A vegan user won't get a chicken recipe\n- A diabetic user won't get a high-glycemic suggestion\n- A user with a nut allergy won't get a peanut-based meal\n\nThe meal generated fits who you are, built from what you have. It's also one of the most effective tools for reducing food waste while staying on plan.",
+        body: "Fridge Rescue solves a specific problem: you have food in the kitchen but don't know what to make with it.\n\nEnter the ingredients currently available. Fridge Rescue generates a complete, profile-compliant meal from only those items — no grocery trip needed.\n\nFridge Rescue applies your full profile: a vegan user won't get a chicken recipe; a diabetic user won't get a high-glycemic suggestion. The meal generated fits who you are, built from what you have.",
       },
       {
         heading: "A Sustainable Shopping Routine",
-        body: "The friction that breaks most nutrition plans isn't the food itself — it's running out of the right ingredients. A saved plan, reviewed through Grocery Coach and shopped from a complete list, removes most of that friction.\n\nBefore each shop:\n1. Save your weekly plan in the builder\n2. Open your Smart Grocery List\n3. Review it through Grocery Coach — note flags and quantity adjustments\n4. Use Smart Scan in the store when evaluating unfamiliar products\n\nThis routine takes less time than most people expect and is significantly more effective than making grocery decisions on the spot.",
+        body: "The friction that breaks most nutrition plans isn't the food itself — it's running out of the right ingredients.\n\nBefore each shop:\n1. Save your weekly plan in the builder\n2. Open your Smart Grocery List\n3. Review through Grocery Coach — note flags and quantity guidance\n4. Use Smart Scan in the store for unfamiliar products\n\nWhen you find a recipe you love outside the app: Recipe Scan.\nWhen you have ingredients but no plan: Fridge Rescue.",
       },
     ],
     exercise: {
       steps: [
-        "Save a weekly plan in your builder if you haven't already — tap **Save Plan**.",
-        "Open your **Smart Grocery List** from the Dashboard or builder. Review what populated.",
-        "Open **Grocery Coach**. Read through the organized sections and note any flagged items or quantity guidance.",
-        "Return to Lifestyle and tap **Fridge Rescue**. Enter three ingredients you currently have available. Generate a meal and read the full Meal Card.",
+        "Save a weekly plan in your builder — tap **Save Plan**.",
+        "Open your **Smart Grocery List**. Review what populated.",
+        "Open **Grocery Coach**. Review the organized sections and note any flagged items.",
+        "Find a recipe online. Open **Recipe Scan**, paste the URL or enter the ingredients, and generate the adapted version. Read the full Meal Card.",
+        "Open **Fridge Rescue**. Enter three ingredients you currently have. Generate and read the Meal Card.",
       ],
     },
     remember:
-      "Save your plan → review Grocery Coach → use Smart Scan in the store. That four-step routine closes the gap between your meal plan and your refrigerator.",
+      "Save your plan → review Grocery Coach → use Smart Scan in-store. When you find a recipe to adapt: Recipe Scan. When you have food but no plan: Fridge Rescue.",
     closing:
-      "You now have the tools to plan and shop. The next lesson covers what happens when you're not at home — Restaurant Guide, Fast Food Guide, and meals on the go.",
+      "You now have the tools to plan and shop. The next lesson covers what happens when you're eating away from home.",
     quiz: [
       {
         id: "l4-q1",
         question:
-          "A user opens her Smart Grocery List and it is empty. What should she do first?",
+          "A user opens her Smart Grocery List and finds it empty. What should she do first?",
         options: [
           "Contact support — the list requires a feature upgrade.",
-          "Open Grocery Coach — it generates a list independently of the meal plan.",
-          "Check whether her profile is fully completed.",
+          "Open Grocery Coach — it generates a list independently.",
+          "Check whether her profile is complete.",
           "Go to her builder, complete her weekly plan, and tap Save Plan.",
         ],
         correctIndex: 3,
@@ -589,31 +599,31 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
           "Which best describes what Grocery Coach adds beyond a standard ingredient list?",
         options: [
           "It ranks items by price from lowest to highest at nearby stores.",
-          "It shows which store carries the most items on the list.",
-          "It adds profile-aware notes — condition flags, allergy reminders, and quantity guidance — to the items on the list.",
-          "It generates a new meal plan based on available ingredients at local stores.",
+          "It shows which stores have the most items in stock.",
+          "It adds profile-aware notes — condition flags, allergy reminders, and quantity guidance — to the shopping list items.",
+          "It generates a new meal plan based on what local stores carry.",
         ],
         correctIndex: 2,
       },
       {
         id: "l4-q3",
         question:
-          "A user with a sesame allergy opens Grocery Coach and sees a flag on a tahini product. What does that flag indicate?",
+          "A user finds a pasta recipe she loves on a food blog. She wants to adapt it to fit her keto dietary identity and daily macro targets. Which tool does she use?",
         options: [
-          "The product is outside of her typical budget range.",
-          "The product contains an allergen from her profile and Grocery Coach is calling that out.",
-          "The product has a higher calorie count than expected for that ingredient.",
-          "Her ProCare coach has recommended avoiding sesame-based products.",
+          "Create a Dish — she describes the pasta dish and the platform builds a new version.",
+          "Fridge Rescue — she enters the pasta ingredients she has on hand.",
+          "Recipe Scan — she pastes the URL and the platform rebuilds the recipe around her profile.",
+          "MacroScan — she photographs the recipe's nutrition panel.",
         ],
-        correctIndex: 1,
+        correctIndex: 2,
       },
       {
         id: "l4-q4",
         question:
-          "What factors does Smart Scan evaluate when a user scans a product barcode?",
+          "What factors does Smart Scan evaluate when a user scans a barcode in the store?",
         options: [
           "Store pricing, product reviews, and total calorie count.",
-          "Macronutrient totals only, regardless of the user's active profile.",
+          "Macronutrient totals only, without profile context.",
           "Dietary identity, active medical guardrails, and remaining daily macro targets.",
           "Brand reputation, ingredient sourcing, and shelf life.",
         ],
@@ -622,12 +632,12 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
       {
         id: "l4-q5",
         question:
-          "A user scans two similar protein bars. One is marked compatible and the other use with caution. What determines the difference?",
+          "A user scans two protein bars. One is marked compatible and the other use with caution. What determines the difference?",
         options: [
           "The compatible bar has fewer total calories.",
-          "The platform compared pricing and selected the more affordable option.",
-          "The caution bar conflicts with something in her active profile — dietary identity, medical guardrails, or macro targets.",
-          "The compatible bar was rated higher by other users on the platform.",
+          "The platform compared pricing.",
+          "The caution bar conflicts with something in her active profile — her dietary identity, medical guardrails, or macro targets.",
+          "The compatible bar had better user ratings on the platform.",
         ],
         correctIndex: 2,
       },
@@ -646,24 +656,24 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
       {
         id: "l4-q7",
         question:
-          "A vegan user with Type 2 diabetes uses Fridge Rescue and enters chicken, rice, and broccoli. What will the platform generate?",
+          "A user has a traditional family recipe that uses dairy and gluten. She keeps kosher and has celiac disease. What does Recipe Scan do with this recipe?",
         options: [
-          "A chicken bowl — the most common meal from those ingredients.",
-          "A rice and broccoli dish, excluding chicken because of her vegan dietary identity.",
-          "A full meal using all three ingredients, following her preference but ignoring medical guardrails.",
-          "An error — Fridge Rescue does not work for users with dietary restrictions.",
+          "Returns an error — it cannot adapt recipes with allergen conflicts.",
+          "Rebuilds the recipe around her kosher dietary identity and celiac medical context — swapping incompatible ingredients for compliant alternatives.",
+          "Flags the recipe as unsafe and suggests she avoid it.",
+          "Generates a similar but entirely different recipe instead.",
         ],
         correctIndex: 1,
       },
       {
         id: "l4-q8",
         question:
-          "A user wants to compare two brands of keto protein powder before buying one. Which tool is most appropriate?",
+          "A user wants to compare two brands of keto protein powder before buying. Which tool is most appropriate?",
         options: [
-          "Grocery Coach — it has a product database with macro ratings.",
-          "Fridge Rescue — enter the serving size to see how it fits a meal.",
-          "The Macro Calculator — enter the macros manually to check.",
-          "Smart Scan — scan both barcodes in-store to compare them against her profile.",
+          "Grocery Coach — it has a product comparison database.",
+          "Fridge Rescue — she enters the serving size to see how it fits a meal.",
+          "Recipe Scan — she enters the supplement facts as ingredients.",
+          "Smart Scan — she scans both barcodes in-store to compare them against her profile.",
         ],
         correctIndex: 3,
       },
@@ -682,12 +692,12 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
       {
         id: "l4-q10",
         question:
-          "Which best describes a sustainable pre-shopping routine using the platform's grocery tools?",
+          "A user finds a recipe from a health influencer online and wants to try it, but it has three ingredients she can't eat due to allergies. What is the right tool and what will it do?",
         options: [
-          "Generate meals on demand daily and buy ingredients as needed each day.",
-          "Save the weekly plan, review Grocery Coach, then use Smart Scan in-store to evaluate unfamiliar products.",
-          "Create a generic grocery list from memory and cross-reference it with the Macro Calculator.",
-          "Shop once per month and rely on Fridge Rescue for the remainder.",
+          "Fridge Rescue — she enters only the compatible ingredients and it builds a meal from those.",
+          "Recipe Scan — she pastes the recipe and the platform adapts it, substituting or removing ingredients that conflict with her allergy profile.",
+          "Create a Dish — she describes the recipe concept and gets a new version.",
+          "MacroScan — she photographs the influencer's macros to see if the meal fits.",
         ],
         correctIndex: 1,
       },
@@ -862,167 +872,168 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
     title: "Biometrics & Progress Tracking",
     subtitle: "Logging data, reading trends, and using your Hub",
     opening:
-      "Throughout this Academy, you've learned how to use My Perfect Meals. This final lesson shows you where to go whenever you need help, want to learn something new, personalize your experience, or manage your account. My Hub is your personal control center. Tap the Hub button in the top-right corner of your Dashboard and it opens — a single panel that connects you to everything that supports your life on the platform.",
+      "Tracking your biometrics in My Perfect Meals is how your progress becomes visible data — not guesswork. This lesson covers what to track, how to log consistently, and how to read your trends so you understand whether your plan is actually working.",
     sections: [
       {
-        heading: '"I need to update my information."',
-        body: "**My Profile** is where your personal information, goals, and preferences live. If your weight changes, your goal shifts, or your lifestyle changes — this is where you come. You learned how your profile shapes your experience in Lesson 1. My Hub is simply where you return whenever something in your life changes.\n\n**Health Profile** is where your medical conditions, allergies, and clinical context are stored. Keeping this accurate matters — it's the information that keeps your meals safe and relevant to your actual situation. If a physician changes your care plan, you're prescribed a new medication, or a health condition improves or changes, update it here.",
+        heading: "What My Biometrics Tracks",
+        body: "**My Biometrics** is accessible from your Dashboard. It captures four categories of data:\n\n**Weight** — Your body weight over time. A single number tells you very little. A consistent trend tells you a great deal.\n\n**Body Composition** — Body fat percentage and muscle mass. Separates fat loss from muscle gain in a way that weight alone cannot. Two people can weigh the same while having completely different health trajectories depending on body composition.\n\n**Blood Glucose** — Daily glucose readings for users managing diabetes or using glucose monitoring. These readings connect directly to GlucoseGuard in the Diabetic Hub Builder, which adjusts meal generation based on your logged readings.\n\n**Daily Wellbeing** — Energy level, sleep quality, stress level, and hydration. These aren't soft metrics — they affect how your body responds to your nutrition plan, and they provide context for interpreting weight and composition trends.",
       },
       {
-        heading: '"I want my coaching experience to feel more like me."',
-        body: "**AI Coaching Preferences** lets you personalize how the platform supports and communicates with you.\n\nEveryone uses My Perfect Meals differently. Some users want frequent check-ins and active guidance. Others prefer a quieter experience. Some want coaching focused on performance. Others want to stay focused on habits and consistency.\n\nAs more coaching features become available, this is where you'll personalize how the platform supports and communicates with you. If your coaching experience ever feels like it could fit you better, this is where you adjust it.",
+        heading: "Logging Weight — Trends Over Time",
+        body: "Weight fluctuates naturally — by up to 2-3 pounds in a single day based on hydration, digestion, and hormonal cycles. A single weigh-in tells you almost nothing. A trend over two to four weeks tells you whether your plan is working.\n\n**Best practices:**\n- Log at the same time each day (morning, before eating, is most consistent)\n- Use the same scale each time\n- Don't react to single readings — look for the direction over two weeks\n\nThe graph in My Biometrics shows your logged weight over time. You're looking for the direction — not the day-to-day noise. A flat line with normal variation is maintenance. A consistent downward direction is fat loss. An upward direction over multiple weeks without intentional muscle building is worth investigating.",
       },
       {
-        heading: '"My goals have changed."',
-        body: "**Meal Builder Exchange** is where you go when your health situation or nutrition goals shift significantly enough to need a different builder.\n\nEach builder represents a different nutrition strategy — built specifically for a different set of health needs, goals, and clinical considerations. Your builder was chosen at onboarding because it matched your situation at that time. It's doing real work behind every meal you generate.\n\nBecause each builder is a distinct nutrition strategy, switching between them frequently would undermine the consistency that makes the platform work. That's why the number of exchanges available each year is limited.\n\nChanging builders doesn't erase your account or start you over. It simply changes the nutrition strategy used for future meal generation.\n\n**When should you consider a change?**\n- Your health situation changes significantly (a new diagnosis, a resolved condition, a new medication)\n- Your primary goal shifts in a meaningful way (from weight loss to athletic performance, for example)\n- A physician or coach recommends a different clinical approach\n\nIf you're a ProCare client, your coach manages your builder assignment — contact them directly rather than initiating an exchange yourself.",
+        heading: "Body Composition Tracking",
+        body: "Body fat percentage and muscle mass give you information that weight cannot.\n\nScenario: A user's weight stays flat for six weeks. Disappointing? Maybe not. If her body fat percentage dropped 1.5% while muscle mass increased — she's progressing. She lost fat and gained muscle. Her weight didn't change because the two shifts offset each other.\n\nBody composition logging requires a body fat measurement method — a smart scale with bioelectrical impedance, a DEXA scan, or calipers. Enter what you have. Track the trend, not the absolute number. Measurement methods vary in accuracy — consistency of method matters more than which method you use.",
       },
       {
-        heading: '"I want to understand the platform better."',
-        body: "**App Library** is your knowledge center.\n\nEverything in this Academy taught you how to use My Perfect Meals. The App Library teaches you how it works — and continues teaching as the platform grows. Whenever you're curious about why something behaves a certain way, or want to go deeper on any system, feature, or concept, start here.\n\nThe App Library is organized into six sections:\n\n**Start Here** — Begin here if you're new or want to understand the philosophy behind it. Covers why My Perfect Meals exists, why you're on your specific builder, and what makes this platform different.\n\n**Core Systems** — The major systems that work together: how meals are generated, how macro targets are calculated, how coaching works.\n\n**Nutrition Strategy** — The nutrition principles that influence your meals — the tools the platform uses to keep your eating satisfying, consistent, and effective.\n\n**Health & Safety** — SafetyGuard™, GlucoseGuard™, specialty nutrition support, and the tools that keep your recommendations aligned with your profile.\n\n**Specialized Systems** — The lifestyle tools and specialty creators available throughout the app.\n\n**Performance Modes** — How the platform adapts for athletic training, competition preparation, and performance nutrition goals.\n\nThe Academy teaches you how to use My Perfect Meals. The App Library continues teaching you as the platform grows.\n\nThe App Library is a living knowledge base. When features like Pro Tips, Coach's Corner, or new A.I. systems evolve, the App Library is updated so you always have the latest guidance in one place.",
+        heading: "Blood Glucose — Daily Check-In for Diabetic Users",
+        body: "For users managing Type 1 or Type 2 diabetes, blood glucose is the most important daily metric.\n\nLog your readings in My Biometrics each day. The Diabetic Hub Builder's GlucoseGuard feature reads those logged values and adjusts meal generation accordingly — a user with elevated readings will see meals generated with tighter glycemic constraints.\n\n**What to log:**\n- Fasting glucose (morning, before eating)\n- Post-meal readings (1-2 hours after eating, if your protocol calls for them)\n\nYour logged readings are visible in your trend chart. They're also visible to any connected ProCare physician or dietitian managing your care.",
       },
       {
-        heading: '"I want professional help."',
-        body: "**Hire a Professional** connects you with certified coaches, dietitians, trainers, and physicians who use My Perfect Meals professionally. Every professional listed has completed the required My Perfect Meals certification program — which means they know the platform, understand how it works with their clients, and can guide your experience from inside the app.\n\nIf you ever feel like your nutrition needs are beyond what self-guided use can address, this is where you find someone qualified to help.\n\n**Team My Perfect Meals** is where you meet the people who built the platform — their backgrounds, their mission, and why this app exists.",
+        heading: "Daily Wellbeing — Energy, Sleep, Stress, Hydration",
+        body: "The Daily Wellbeing check-in is a short four-question log you can complete in under a minute.\n\n- **Energy level** — How your body feels physically (1-5 scale)\n- **Sleep quality** — How you slept the previous night\n- **Stress level** — Psychological and lifestyle stress\n- **Hydration** — Estimated daily water intake\n\nWhy this matters for nutrition:\n\nPoor sleep raises cortisol, which promotes fat storage and increases cravings for high-calorie foods. Chronic stress depletes recovery capacity. Dehydration affects metabolic efficiency and hunger signaling. These factors explain why two people on the same meal plan can experience different results.\n\nCoach's Corner reads your daily wellbeing logs and uses them to contextualize your guidance. Log honestly — it's not a judgment, it's data.",
       },
       {
-        heading: '"I need help managing my account."',
-        body: "Everything account-related lives in My Hub:\n\n**Subscription** — View your current plan, upgrade, or make changes to your membership.\n\n**Restore Purchases** — If you've switched devices or reinstalled the app, use this to restore an active subscription.\n\n**Contact Support** — Questions, bugs, or feedback. Use this when something isn't working the way you expect.\n\n**Privacy & Security** — Manage your privacy settings and review how your data is handled.\n\n**Terms of Service** — Review the platform's terms and conditions.\n\nThese are here when you need them.",
+        heading: "Reading Your Dashboard — Macro Check-In",
+        body: "Your Dashboard is where daily nutrition tracking lives. The macro tracker shows your targets and what you've logged so far today via **Add to Macros**.\n\nThe check-in question:\n- Are you hitting your protein target consistently? (If not, protein is typically where to start)\n- Are you significantly over on carbs or fat? (A single day rarely matters — a consistent pattern does)\n- Are your meals landing within 15-20% of your targets most days? (That's a successful plan in practice)\n\nDo not optimize for perfect numbers daily. Optimize for consistent direction over time. A biometric trend that moves in the right direction, combined with macro logs that land in the right range, is a plan that's working.",
       },
       {
-        heading: "Continue Exploring",
-        body: "My Perfect Meals is continuously growing.\n\nNew builders, new AI systems, new educational resources, new specialties, and new capabilities will continue to be added over time. As My Perfect Meals evolves, your Academy and App Library will evolve with it.\n\nYou don't need to know everything today. The platform will keep meeting you where you are.",
+        heading: "Logging Cadence — How Often to Track",
+        body: "You don't need to log every metric every day to get useful data.\n\n**Minimum useful cadence:**\n- Weight: 3x per week (enough for a meaningful trend without over-monitoring)\n- Body composition: 1x per month (body fat and muscle change slowly)\n- Blood glucose: Daily if prescribed; as directed by your physician or dietitian\n- Daily wellbeing: Daily (the check-in takes under a minute)\n- Macros: Log meals as you eat them via Add to Macros\n\nMore data is usually better — but inconsistent data is often worse than less-frequent-but-consistent data. Pick a cadence you can maintain.",
       },
     ],
     exercise: {
       steps: [
-        "Tap **Hub** to open My Hub.",
-        "Tap **AI Coaching Preferences**. Read through the available settings. Don't change anything yet — just become familiar with what's there.",
-        "Return to My Hub and tap **Meal Builder Exchange**. Read the available builders. Take note of which one is currently assigned to you and why. Return without making any changes.",
-        "Tap **App Library**. Open **Start Here**. Read one article — any of the three.",
-        "Before you return, think about one feature or system you encountered in this Academy that you'd like to understand better. That's your next stop in the App Library.",
+        "Open **My Biometrics** from your Dashboard.",
+        "Log your current weight. Note the date and time.",
+        "Log a Daily Wellbeing check-in. Answer all four questions honestly.",
+        "Navigate to the weight trend chart. If you have previous entries, identify the direction of your trend.",
+        "Open the macro tracker on your Dashboard. Note your current Protein, Carbohydrate, and Fat targets. Log one meal you've eaten today using **Add to Macros**.",
       ],
     },
     remember:
-      "Whenever you have a question about My Perfect Meals, start with My Hub.",
+      "Single data points tell you almost nothing. Trends over two to four weeks tell you everything. Log consistently, read the direction — not the noise.",
     closing:
-      "Congratulations on completing the My Perfect Meals Platform Mastery Academy. You now understand how to navigate the platform, build personalized nutrition plans, adapt those plans to real life, and use the tools that make My Perfect Meals unique. Whether you're here for your own health, your family, or your clients — you have the foundation to use the platform with confidence. This is only the beginning. Welcome to My Perfect Meals.",
+      "You now know how to track what matters. The next lesson covers specialized systems — the clinical and performance programs that apply when your situation goes beyond standard nutrition.",
     quiz: [
       {
         id: "l6-q1",
-        question: "How do you open My Hub?",
+        question:
+          "A user weighs herself every day for a week and sees daily fluctuations of 1-2 pounds. She's worried she's not making progress. What is the most accurate interpretation?",
         options: [
-          "Tap your profile photo in the bottom navigation.",
-          "Tap the Hub button in the top-right corner of the Dashboard.",
-          "Tap More → My Hub.",
-          "Long-press the Dashboard to open the control panel.",
+          "Daily fluctuations of 1-2 pounds indicate the scale is inaccurate and she should switch scales.",
+          "Single daily readings fluctuate naturally — she needs two to four weeks of trend data to evaluate whether her plan is working.",
+          "Fluctuations of more than 1 pound indicate the meal plan is not calibrated correctly.",
+          "She should switch to weekly weigh-ins — daily weigh-ins are not useful for any user.",
         ],
         correctIndex: 1,
       },
       {
         id: "l6-q2",
         question:
-          "A user was recently diagnosed with Type 2 diabetes by her physician. Her original onboarding had no medical conditions selected. Where in My Hub should she go to update this?",
+          "A user's weight has been flat for six weeks. However, her logged body fat percentage has dropped 1.5% and her muscle mass has increased. What does this data tell her?",
         options: [
-          "My Profile — that's where she updates medical conditions, allergies, and clinical context.",
-          "AI Coaching Preferences — medical context affects how the coaching system responds.",
-          "Health Profile — a separate clinical section accessible from My Hub.",
-          "Meal Builder Exchange — a new diagnosis automatically triggers a builder change.",
+          "Her scale is malfunctioning — body fat and weight should move in the same direction.",
+          "She is not in a caloric deficit and her plan is not working.",
+          "She lost fat and gained muscle simultaneously — the weight stayed flat because the two changes offset each other.",
+          "Body fat percentage measurements are unreliable and shouldn't be used to evaluate progress.",
         ],
-        correctIndex: 0,
+        correctIndex: 2,
       },
       {
         id: "l6-q3",
         question:
-          "A client has been on a weight loss program for eight months and has decided to focus on athletic performance. She wants to shift her entire nutrition strategy. What does she do in My Hub?",
+          "How does a diabetic user's logged blood glucose data connect to their meal generation in My Perfect Meals?",
         options: [
-          "Update her goal in My Profile — changing the goal automatically switches her builder.",
-          "Go to Meal Builder Exchange — her goals have shifted significantly enough to need a different builder.",
-          "Contact support — builder changes require staff authorization.",
-          "Start a new account — her current account is calibrated for weight loss and can't change.",
+          "Logged glucose data is for personal reference only — it doesn't affect meal generation.",
+          "It triggers a weekly summary email from the platform.",
+          "GlucoseGuard in the Diabetic Hub Builder reads logged readings and adjusts meal generation based on the user's recent glucose levels.",
+          "It unlocks additional meal slots in the builder when readings are in a healthy range.",
         ],
-        correctIndex: 1,
+        correctIndex: 2,
       },
       {
         id: "l6-q4",
         question:
-          "Why is the number of builder exchanges available each year limited?",
+          "Why does My Perfect Meals track daily wellbeing metrics like energy, sleep, stress, and hydration?",
         options: [
-          "It prevents free users from accessing premium builders.",
-          "It's a technical limitation of the system architecture.",
-          "Each builder is a distinct nutrition strategy that needs time to work — switching frequently would undermine the consistency that makes My Perfect Meals effective.",
-          "It protects against accidental builder changes by new users.",
+          "These are required by the platform's clinical protocols for all users.",
+          "They're used to rank users in a community leaderboard.",
+          "These factors affect how the body responds to a nutrition plan — they provide context for interpreting biometric trends and inform daily coaching guidance.",
+          "They're optional vanity metrics that don't affect any platform functionality.",
         ],
         correctIndex: 2,
       },
       {
         id: "l6-q5",
         question:
-          "A ProCare client wants to switch to the Performance Nutrition Hub after reading about it in the App Library. She opens Meal Builder Exchange to initiate the change herself. What should she do instead?",
+          "A user's blood glucose readings are logged in My Biometrics. Who else can see these readings?",
         options: [
-          "Go ahead — ProCare clients can change their own builders at any time through the Exchange.",
-          "Contact support to override her ProCare assignment.",
-          "Contact her coach. ProCare builders are managed by the coach, not through self-service Builder Exchange.",
-          "Wait until her next session, then ask her coach to perform the exchange for her.",
+          "No one — biometric data is completely private.",
+          "All other users on the platform — biometric data is pooled for research.",
+          "Any connected ProCare physician or dietitian managing her care.",
+          "The platform's AI only — for meal generation adjustments.",
         ],
         correctIndex: 2,
       },
       {
         id: "l6-q6",
         question:
-          "A user finishes the Academy and wants to understand more about how SafetyGuard™ works. Which section of the App Library should she open?",
+          "A user wants to log a meal she just ate to track her macros for the day. What does she tap on the Meal Card?",
         options: [
-          "Start Here — for users who are new to the app.",
-          "Core Systems — how the major systems work together.",
-          "Health & Safety — covers SafetyGuard™, GlucoseGuard™, and the tools that keep recommendations aligned with her profile.",
-          "Performance Modes — for athletic and advanced nutrition goals.",
+          "Add to Plan — this logs the meal to her daily totals.",
+          "Favorite — this saves the meal and logs the macros.",
+          "Add to Macros — this logs the meal's nutrition to her daily targets.",
+          "Share — this saves the macros to her weekly summary.",
         ],
         correctIndex: 2,
       },
       {
         id: "l6-q7",
         question:
-          "What is the difference between the Academy and the App Library?",
+          "What is the minimum useful logging cadence for body composition tracking?",
         options: [
-          "The Academy is for coaches; the App Library is for personal users.",
-          "The Academy teaches you how to use My Perfect Meals. The App Library helps you continue learning about the app and new features as it grows.",
-          "The Academy is free; the App Library requires a paid subscription to access.",
-          "There's no meaningful difference — they cover the same content in different formats.",
+          "Daily — body composition changes rapidly and requires frequent measurement.",
+          "Weekly — weekly trends show meaningful body composition shifts.",
+          "Monthly — body fat and muscle mass change slowly enough that monthly measurement captures the trend.",
+          "Quarterly — body composition only meaningfully changes over 3-month periods.",
         ],
-        correctIndex: 1,
+        correctIndex: 2,
       },
       {
         id: "l6-q8",
         question:
-          "A user's nutrition needs have become more complex than she can manage on her own — she has Type 2 diabetes, recently became postmenopausal, and just started a strength training program. She wants qualified help from someone who actually knows My Perfect Meals. Where does she go in My Hub?",
+          "A user's daily macro logs consistently show she's hitting her carb and fat targets but is 30-40g short on protein every day. What should she take from this?",
         options: [
-          "My Profile — she can request a professional be assigned to her account.",
-          "AI Coaching Preferences — to upgrade her coaching tier.",
-          "Hire a Professional — to find certified coaches, dietitians, trainers, and physicians who have completed My Perfect Meals certification.",
-          "More → Working With a Professional — to set up a coaching connection.",
+          "Nothing — single-day macro variation is always within acceptable bounds.",
+          "Her protein target is set too high and should be reduced.",
+          "She's consistently under on protein — this is a pattern worth addressing by generating higher-protein meals or adding a snack.",
+          "She should log her meals more frequently to get a more accurate picture.",
         ],
         correctIndex: 2,
       },
       {
         id: "l6-q9",
         question:
-          "A user reinstalled My Perfect Meals on a new phone and her subscription shows as inactive — even though she never cancelled it. Where does she go in My Hub?",
+          "Why does consistent measurement method matter more than which body fat measurement method a user chooses?",
         options: [
-          "Subscription — to repurchase her current plan.",
-          "Contact Support — to report the issue to the team.",
-          "Privacy & Security — account restoration is managed there.",
-          "Restore Purchases — designed to restore an active subscription after switching devices or reinstalling.",
+          "Different methods use the same algorithm, so the method doesn't matter.",
+          "All body fat methods are equally accurate, so consistency is the only variable.",
+          "Each method has its own margin of error — using the same method consistently shows the real trend, even if the absolute number isn't perfectly precise.",
+          "Measurement consistency is a regulatory requirement for health apps.",
         ],
-        correctIndex: 3,
+        correctIndex: 2,
       },
       {
         id: "l6-q10",
         question:
-          "A user says: \"I've been using My Perfect Meals for three months and I still feel like I don't know where to find things when I have a question.\" What's the best response?",
+          "A user has been logging consistently for four weeks. Her weight trend shows a consistent downward direction with normal daily fluctuation. What does this tell her?",
         options: [
-          "Revisit all six Academy lessons until everything feels familiar.",
-          "Whenever you have a question about My Perfect Meals, start with My Hub. Your profile, your builder, the App Library, professional support, and your account are all in one place — it's designed to be your first stop.",
-          "The help documentation lives on the website, not inside the app.",
-          "Most users take six months to feel fully comfortable — just keep using it and it will click.",
+          "Her scale is measuring incorrectly — weight can't decrease consistently without plateaus.",
+          "Her plan is working — a consistent downward trend over four weeks is the signal she's looking for.",
+          "She should reduce her caloric intake further since she's still losing weight.",
+          "She needs to log body composition to confirm the weight loss is fat and not muscle.",
         ],
         correctIndex: 1,
       },
@@ -1031,170 +1042,170 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
   {
     id: "lesson-07",
     lessonNumber: 7,
-    title: "Specialized Systems",
-    subtitle: "Clinical programs, coaching tools, and advanced platform features",
+    title: "Specialized Health & Performance Systems",
+    subtitle: "Clinical programs, performance nutrition, and the protocol priority hierarchy",
     opening:
-      "ProCare Studio is the professional layer of My Perfect Meals. It's where coaches, dietitians, trainers, and physicians manage their clients' nutrition journeys. If you're completing this Academy as a professional, this lesson covers what ProCare Studio gives you — and what it doesn't. Understanding the boundaries is as important as understanding the tools.",
+      "My Perfect Meals includes several specialized program systems that go beyond standard meal generation. This lesson covers the major clinical and performance systems active on the platform — what each one does, how it interacts with your profile, and how the platform manages multiple active programs at once.",
     sections: [
       {
-        heading: "What ProCare Studio Is",
-        body: "ProCare Studio is a separate professional environment within My Perfect Meals. It's not a feature you activate — it's a role. Once your professional account is set up and your Phase 1 certification is complete, ProCare Studio becomes accessible from your professional dashboard.\n\nFrom ProCare Studio, you can:\n- View all connected clients in one place\n- Review each client's profile, active programs, and nutrition history\n- Leave notes that appear on the client's tablet\n- Adjust which builders your clients have access to (Board Control)\n- Assign or modify nutrition protocols for clients in your care\n- Monitor client biometric trends over time",
+        heading: "How Specialized Programs Work",
+        body: "Specialized programs are applied to your profile as active constraints — not as themes or suggestions. When a program is active, it shapes every meal generated through your builder.\n\nPrograms don't replace your dietary identity. They layer on top of it in a specific order:\n\n1. **Medical** (highest priority) — clinical conditions, physician-assigned protocols\n2. **Dietary Identity** — vegan, keto, halal, kosher, etc.\n3. **Cultural and Cuisine Preference** — regional cooking styles, flavor profiles\n4. **Behavioral** (lowest priority) — spice level, texture preferences, cooking time\n\nWhen two active programs potentially conflict, the higher-tier program takes precedence. A diabetic user who prefers high-carb cuisine will see diabetic guardrails honored over cuisine preference. A user with an active oncology protocol will see that protocol honored over all other preferences.\n\nThis hierarchy isn't a limitation. It's the safety system.",
       },
       {
-        heading: "Connecting With Clients",
-        body: "Clients connect to you through My Perfect Meals — not through an external system. A client who wants to work with you will find your profile in the Hire a Professional directory and send a connection request. You receive that request in ProCare Studio and choose to accept or decline.\n\nOnce connected, the client appears in your client list. Their profile, preferences, and history become visible to you — within the limits of what they have shared. Clients retain control of their own accounts. You are a professional connected to their journey, not an owner of their data.",
+        heading: "Diabetic Support — GlucoseGuard",
+        body: "The Diabetic Hub and Meal Builder applies blood-glucose-aware constraints to every generated meal.\n\n**GlucoseGuard** is the system within the Diabetic Builder that connects your logged glucose readings to meal generation. When your readings trend higher, GlucoseGuard tightens glycemic constraints. When readings are stable, generation is more flexible within your diabetic profile.\n\nGlucoseGuard considers:\n- Glycemic index and glycemic load of ingredients\n- Carbohydrate quality and fiber content\n- Meal timing and portion calibration for glucose stability\n\nDiabetic users who log glucose readings consistently get more responsive meal generation than those who don't. The system needs data to adapt.",
       },
       {
-        heading: "Tablet Notes — Professional Communication",
-        body: "The primary communication tool in ProCare Studio is Tablet Notes. When you write a note from your professional dashboard, it appears on your client's tablet — a visible card on their experience that delivers your guidance in the context of their daily use.\n\nTablet Notes are not a chat system. They're structured one-way guidance from professional to client. Think of them as clinical notes that the client can see — a place to leave instructions, observations, encouragement, or protocol updates.\n\nWrite notes the way you'd want a client to read them: clearly, specifically, and actionably.",
+        heading: "GLP-1 / Metabolic Medication Support",
+        body: "The Metabolic Medication Hub and Builder is designed for users on GLP-1 medications — Ozempic, Wegovy, Mounjaro, Zepbound, and similar.\n\nGLP-1 medications change how hunger and satiety work. Standard meal portions can feel too large. Standard protein targets can be hard to reach when appetite is reduced. The Metabolic Medication Builder accounts for this:\n\n- **Reduced-appetite portion calibration** — meals are built for smaller eating windows\n- **Protein density prioritization** — high protein-to-volume ratios so users can meet targets in smaller portions\n- **Tolerance phase tracking** — meals adapted to the tolerance phase the user is currently in (early, building, stabilized)\n\nThe builder also includes an injection tracker for logging medication dosing alongside the nutrition plan.",
       },
       {
-        heading: "Board Control — What It Is and What It's For",
-        body: "Board Control is a professional-only feature that lets you determine which Builders a client sees and can access. By default, clients have access to the full Builder library. If a client's protocol requires a focused approach — for example, a clinical client who should only use the Anti-Inflammatory Builder during an active protocol — you can limit their Builder access from ProCare Studio.\n\nBoard Control is not a lock that prevents clients from eating what they want outside the app. It's a professional tool for keeping the platform experience aligned with the clinical or coaching protocol you've assigned. Use it deliberately.",
+        heading: "Anti-Inflammatory Protocol",
+        body: "The Anti-Inflammatory Meal Builder filters every generated meal through an inflammation evidence framework.\n\nIngredients associated with pro-inflammatory response — refined sugars, processed seed oils, certain additives — are excluded from generation. Ingredients with documented anti-inflammatory properties — omega-3 sources, polyphenol-rich produce, whole grains — are prioritized.\n\nThe Anti-Inflammatory Builder is appropriate for users with:\n- Autoimmune conditions (Hashimoto's, rheumatoid arthritis, lupus, inflammatory bowel disease)\n- Chronic joint pain\n- Cardiovascular inflammation markers\n- General wellness goals centered on inflammation reduction\n\nUsers with a physician-diagnosed inflammatory condition should confirm their protocol with that physician before relying solely on platform-generated meals.",
       },
       {
-        heading: "Nutrition Protocol Assignment",
-        body: "Professionals with clinical credentials can assign specific nutrition protocols to clients from ProCare Studio. A protocol assignment means the platform will apply that clinical framework to the client's meal generation — not just as a preference, but as a directive that shapes every Builder the client uses.\n\nProtocol assignment is a significant action. Assigning an Anti-Inflammatory Protocol to a client means every meal they generate will be filtered through that clinical framework. Before assigning, confirm that the protocol is appropriate for the client's current health status, goals, and medications.\n\nIf you are not a licensed clinical professional, do not assign clinical protocols. The platform enforces credential requirements on protocol assignment endpoints.",
+        heading: "Oncology Support",
+        body: "Oncology Support is the most restricted specialized program on the platform.\n\n**How it's assigned:** Oncology Support is physician-assigned through the ProCare system. A user cannot self-activate this program. A physician connected through ProCare assigns it after reviewing the client's clinical situation.\n\n**What it does:**\n- Hard-blocks a curated list of ingredients associated with adverse interactions during active treatment\n- Prioritizes nutrient-dense, easily-digestible meals appropriate for treatment-phase nutritional support\n- Applies conservative guardrails on preparation methods that might create compounds problematic during treatment\n\n**What it does not do:**\n- Make treatment claims\n- Replace clinical nutritional support from a registered oncology dietitian\n- Override physician-directed nutritional restrictions\n\nOncology Support is designed to keep the platform useful during a difficult time — not to serve as a medical nutrition therapy system.",
       },
       {
-        heading: "What the Platform Is Not",
-        body: "ProCare Studio is a nutrition management tool. It is not a medical records system, a telehealth platform, or a substitute for a clinical relationship governed by your professional license.\n\nMy Perfect Meals does not store medical diagnoses, prescriptions, or clinical notes in a HIPAA-compliant record. Client data in the platform is nutrition and lifestyle data — not protected health information in the clinical sense.\n\nAs a professional using ProCare Studio, you remain responsible for maintaining your own clinical documentation outside the platform for any clients you work with in a licensed professional capacity.",
+        heading: "Performance Nutrition",
+        body: "The Performance Nutrition Hub and Builder is designed for athletes managing training-cycle nutrition.\n\n**Training phase awareness:** Macro targets in the Performance Builder shift based on the training phase the user is in — strength/hypertrophy phases have different carbohydrate and protein needs than endurance phases or recovery weeks.\n\n**What the Performance Builder includes:**\n- Phase-aware macro calibration (strength, endurance, active recovery, competition taper)\n- Athlete Meal Picker — structured meal selection for sport-specific fueling\n- Athlete Beverage Creator — performance-focused hydration and recovery drinks\n- Session logging — training sessions logged alongside nutrition for fueling context\n\nThe Performance Builder does not replace a sports dietitian for elite or competitive athletes with complex periodization needs. It provides a strong, evidence-informed foundation for athletes who don't have access to professional sports nutrition support.",
       },
       {
-        heading: "A professional tool is only as good as the professional using it.",
-        body: "ProCare Studio gives you visibility, communication tools, and control over the platform experience for your clients. None of those tools replace clinical judgment. Use the platform to extend and support your professional relationship — not to substitute for it.",
+        heading: "When Multiple Programs Are Active",
+        body: "Users can have more than one specialized program active simultaneously.\n\nExample: A user managing Type 2 diabetes who is also training for a marathon. Both the Diabetic and Performance programs are active. The platform applies them through the protocol hierarchy — medical (diabetic guardrails) first, then performance targets within those guardrails.\n\nIn practice, this means carbohydrate recommendations are calibrated for both glycemic stability and performance fueling. The meal isn't simply diabetic-appropriate or performance-appropriate — it's both, in that order of priority.\n\nThe Nutrition Personalization Summary on your Dashboard shows every active program. When you see multiple programs listed, each one is actively constraining and shaping your generation — in priority order.",
       },
     ],
     exercise: {
       steps: [
-        "Open ProCare Studio from your professional dashboard. Find your client list.",
-        "Select one client. Review their profile — note their active programs, dietary identity, and current macro targets.",
-        "Write a Tablet Note for that client. Make it specific and actionable — something they can act on today.",
-        "Review that client's Builder access under Board Control. Note which Builders they currently have available.",
+        "Open your Dashboard and tap the **Nutrition Personalization Summary**. Read which programs are currently active in your profile.",
+        "Identify the priority tier of each active program (Medical, Dietary Identity, Cultural, Behavioral).",
+        "Tap the program you understand least. Read the explanation.",
+        "Navigate to your assigned builder and generate one meal. Open the Meal Card and read the **Active Programs** section — note which programs shaped this specific meal.",
       ],
     },
     remember:
-      "ProCare Studio makes you more effective with your clients — it doesn't make you responsible for decisions outside your scope. Know the tool, know its limits.",
+      "Specialized programs layer on top of your dietary identity in a fixed priority order: Medical → Dietary Identity → Cultural → Behavioral. When programs could conflict, higher-tier programs always take precedence.",
     quiz: [
       {
         id: "l7-q1",
         question:
-          "A coach wants to write a personalized message that her client will see the next time they open My Perfect Meals. Which ProCare Studio feature does she use?",
+          "A user has both a diabetic protocol and a high-carb cuisine preference active in her profile. Which takes precedence when meals are generated?",
         options: [
-          "Direct Message — a real-time chat thread inside the professional dashboard.",
-          "Board Control — toggle a message card from the builder settings.",
-          "Tablet Notes — a structured note that appears on the client's app experience.",
-          "Protocol Assignment — the protocol description field accepts coaching notes.",
+          "Cuisine preference — it was set more recently during her last profile update.",
+          "They are weighted equally — the platform tries to balance both.",
+          "Diabetic protocol — medical constraints are higher priority than cultural/cuisine preferences in the protocol hierarchy.",
+          "Whichever program was activated first in her profile.",
         ],
         correctIndex: 2,
       },
       {
         id: "l7-q2",
         question:
-          "A physical therapist connected to a post-surgical client wants to limit the client to the Anti-Inflammatory Builder only during recovery. Which feature supports this?",
+          "What does GlucoseGuard do in the Diabetic Hub and Meal Builder?",
         options: [
-          "Board Control — lets the professional determine which Builders the client can access.",
-          "Protocol Assignment — assigning a protocol automatically removes other Builders.",
-          "Tablet Notes — the coach instructs the client in writing to avoid other Builders.",
-          "Client Profile Lock — prevents the client from changing their own Builder preferences.",
-        ],
-        correctIndex: 0,
-      },
-      {
-        id: "l7-q3",
-        question:
-          "A new client sends a ProCare connection request. Where does the professional receive and accept the request?",
-        options: [
-          "In the client's profile — the request appears as a pending notification.",
-          "Via email — connection requests are sent outside the platform.",
-          "In ProCare Studio — incoming connection requests appear in the professional's client management dashboard.",
-          "Through the Admin Portal — only admins can approve client connections.",
-        ],
-        correctIndex: 2,
-      },
-      {
-        id: "l7-q4",
-        question:
-          "A registered dietitian wants to assign an Anti-Inflammatory Protocol to a client. What must be true before she can do this?",
-        options: [
-          "The client must have completed at least three months of platform use.",
-          "Her professional account must have verified clinical credentials — the platform enforces credential requirements on protocol assignment.",
-          "The client must be on a paid subscription tier that includes clinical protocol support.",
-          "She must send a Tablet Note first requesting the client's consent.",
+          "Blocks all carbohydrates from generated meals.",
+          "Connects logged blood glucose readings to meal generation — tightening glycemic constraints when readings trend higher and relaxing them when readings are stable.",
+          "Sends glucose alerts to a connected physician.",
+          "Calculates insulin needs based on each generated meal's carbohydrate content.",
         ],
         correctIndex: 1,
       },
       {
-        id: "l7-q5",
+        id: "l7-q3",
         question:
-          "A coach reviews a connected client's profile in ProCare Studio and notices the client's dietary identity is set to Vegan but their cuisine preference includes a cuisine traditionally heavy in meat. What should the coach do?",
+          "Why does the Metabolic Medication (GLP-1) Builder prioritize high protein-to-volume ratios?",
         options: [
-          "Change the client's dietary identity to better match the cuisine preference.",
-          "Remove the cuisine preference — it will cause conflicts.",
-          "Leave the profile as-is — the platform respects dietary identity as a hard boundary and generates vegan versions of any cuisine.",
-          "Flag the profile as inconsistent and open a support ticket.",
+          "GLP-1 medications increase appetite and users need more protein to compensate.",
+          "Users on GLP-1 medications often have reduced appetite — high protein density helps them meet targets while eating smaller portions.",
+          "GLP-1 medications deplete protein stores and require supplementation.",
+          "High protein-to-volume meals are required by the FDA for GLP-1 users.",
+        ],
+        correctIndex: 1,
+      },
+      {
+        id: "l7-q4",
+        question:
+          "How is Oncology Support assigned in My Perfect Meals?",
+        options: [
+          "A user self-activates it from the Health Profile section during onboarding.",
+          "It activates automatically when a user logs a cancer diagnosis.",
+          "A physician connected through ProCare assigns it after reviewing the client's clinical situation.",
+          "It's available to any user who pays for the Clinical subscription tier.",
         ],
         correctIndex: 2,
       },
       {
+        id: "l7-q5",
+        question:
+          "A user with rheumatoid arthritis asks which builder is most appropriate for her situation. What do you tell her?",
+        options: [
+          "My Weekly Meal Builder — it's the most flexible and handles all conditions.",
+          "The Anti-Inflammatory Meal Builder — it filters every generated meal through an inflammation evidence framework, appropriate for autoimmune conditions.",
+          "The General Nutrition Builder (ProCare) — autoimmune conditions always require physician oversight.",
+          "The Diabetic Hub — it has the most conservative ingredient restrictions.",
+        ],
+        correctIndex: 1,
+      },
+      {
         id: "l7-q6",
         question:
-          "A professional completes Phase 1 Academy certification and expects to immediately access ProCare Studio. The access gate is active. What does this mean for the professional?",
+          "What does the Oncology Support program explicitly NOT do?",
         options: [
-          "There is a system error — certification should automatically unlock ProCare Studio.",
-          "The professional must also purchase a separate ProCare Studio subscription.",
-          "Phase 1 certification is a prerequisite but ProCare Studio access still requires account setup and approval.",
-          "Phase 1 certification is the only requirement — ProCare Studio should now be accessible.",
+          "Hard-block ingredients associated with adverse interactions during treatment.",
+          "Prioritize nutrient-dense, easily-digestible meals appropriate for treatment-phase nutrition.",
+          "Make treatment claims or replace clinical nutritional support from an oncology dietitian.",
+          "Apply conservative guardrails on preparation methods during treatment.",
         ],
-        correctIndex: 3,
+        correctIndex: 2,
       },
       {
         id: "l7-q7",
         question:
-          "A coach uses ProCare Studio to monitor a client's biometric trends. The client's weight has been rising for three weeks while following the meal plan. What is the appropriate next step?",
+          "A marathon runner managing Type 2 diabetes has both the Diabetic and Performance programs active. How does the platform handle their potential conflict over carbohydrate recommendations?",
         options: [
-          "Immediately assign a caloric restriction protocol via ProCare Studio.",
-          "Use Tablet Notes to flag the trend and schedule a conversation outside the platform to discuss the client's current protocol and goals.",
-          "Remove the client's access to high-calorie Builders via Board Control.",
-          "Adjust the client's macro targets directly through the ProCare Studio profile editor.",
+          "The platform prompts the user to choose one program as primary.",
+          "Diabetic guardrails are applied first, and performance carbohydrate targets are calibrated within those guardrails — both active, in priority order.",
+          "The Performance program takes precedence because athletic performance requires adequate carbohydrates.",
+          "The two programs cancel each other out — neither applies until one is deactivated.",
         ],
         correctIndex: 1,
       },
       {
         id: "l7-q8",
         question:
-          "A professional asks: \"Does My Perfect Meals store client data in a HIPAA-compliant medical record?\" What is the accurate answer?",
+          "How do macro targets change in the Performance Nutrition Builder across training phases?",
         options: [
-          "Yes — all client data in ProCare Studio is stored as protected health information.",
-          "Yes — but only for professionals with verified clinical credentials.",
-          "No — My Perfect Meals stores nutrition and lifestyle data, not protected health information in the clinical sense. Professionals must maintain separate clinical documentation.",
-          "No — client data is deleted from the platform after 90 days for privacy.",
+          "They stay fixed — the user sets them once during onboarding and they don't change.",
+          "They update monthly based on the user's logged weight.",
+          "They shift based on the training phase — strength and hypertrophy phases have different carb and protein needs than endurance phases or recovery weeks.",
+          "They are set by a ProCare coach and cannot be adjusted by the platform automatically.",
         ],
         correctIndex: 2,
       },
       {
         id: "l7-q9",
         question:
-          "A trainer in ProCare Studio wants to see a client's full meal history, biometrics, and active protocols in one place. Where does he go?",
+          "Where does a user see all of their currently active specialized programs?",
         options: [
-          "The client's Tablet Notes — all activity is logged there.",
-          "The platform's Dashboard — it shows everything when viewed from the professional role.",
-          "The client's profile within ProCare Studio — it surfaces their active programs, dietary identity, biometrics, and macro targets.",
-          "The Admin Portal — only admins have access to full client histories.",
+          "In My Hub under Active Programs.",
+          "In the Nutrition Personalization Summary on the Dashboard.",
+          "In the App Library under their assigned builder's description.",
+          "In the Protocol Status indicator, which is only visible during active meal generation.",
         ],
-        correctIndex: 2,
+        correctIndex: 1,
       },
       {
         id: "l7-q10",
         question:
-          "A coach writes a Tablet Note that says \"Try the salmon dish from yesterday for lunch again.\" The client reads it and immediately has a question. How does the client reply?",
+          "What is the correct protocol priority order in My Perfect Meals?",
         options: [
-          "Through the built-in Tablet Note reply thread — clients can respond directly.",
-          "Tablet Notes are one-directional — the client cannot reply within the platform. Follow-up communication happens outside the app.",
-          "Through the Coach's Corner messaging module.",
-          "By flagging the note with a thumbs-down, which sends an alert to the professional.",
+          "Behavioral → Cultural → Dietary Identity → Medical",
+          "Dietary Identity → Medical → Cultural → Behavioral",
+          "Cultural → Dietary Identity → Behavioral → Medical",
+          "Medical → Dietary Identity → Cultural → Behavioral",
         ],
-        correctIndex: 1,
+        correctIndex: 3,
       },
     ],
   },
