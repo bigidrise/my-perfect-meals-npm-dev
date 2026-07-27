@@ -17,7 +17,10 @@ import {
   Sparkles,
   XCircle,
   Loader2,
+  BookmarkCheck,
+  AlertTriangle,
 } from "lucide-react";
+import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { post } from "@/lib/api";
 import { useShoppingListStore } from "@/stores/shoppingListStore";
@@ -36,9 +39,19 @@ interface CoachResult {
   meal: { name: string; description: string; prepTime: string; servings: number };
   reasoning: string[];
   macros: { calories: number; protein: number; carbs: number; fat: number };
+  ownedIngredients: Array<{ item: string; quantity: string; unit: string }>;
   shoppingList: ShoppingListItem[];
   followUpSuggestions: string[];
   servingCount: number;
+}
+
+type CardPhase = "idle" | "generating" | "ready" | "failed";
+
+interface MealCardRef {
+  id: string;
+  imageUrl: string | null;
+  destination: string;
+  title: string;
 }
 
 interface ConversationMessage {
@@ -119,6 +132,7 @@ function groupByCategory(items: ShoppingListItem[]): Record<string, ShoppingList
 export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   const { toast } = useToast();
   const addItems = useShoppingListStore((s) => s.addItems);
+  const [, setLocation] = useLocation();
 
   const [phase, setPhase] = useState<Phase>("idle");
   const [servingCount, setServingCount] = useState(1);
@@ -129,6 +143,9 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   const [addedToList, setAddedToList] = useState(false);
   const [listExpanded, setListExpanded] = useState(true);
   const [cartExpanded, setCartExpanded] = useState(true);
+
+  const [cardPhase, setCardPhase] = useState<CardPhase>("idle");
+  const [mealCard, setMealCard] = useState<MealCardRef | null>(null);
 
   const [productAdvice, setProductAdvice] = useState<ProductAdviceResult | null>(null);
   const [advisorLoading, setAdvisorLoading] = useState(false);
@@ -146,6 +163,8 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       setAddedToList(false);
       setListExpanded(true);
       setCartExpanded(true);
+      setCardPhase("idle");
+      setMealCard(null);
       setProductAdvice(null);
       setAdvisorLoading(false);
       setBrandsAdded(false);
@@ -209,10 +228,16 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
 
       const assistantSummary = `Recommended: ${data.meal?.name || "a meal"}`;
       setConversation([...newConvo, { role: "assistant", content: assistantSummary }]);
-      setResult(data as CoachResult);
+      const coachResult = data as CoachResult;
+      setResult(coachResult);
       setPhase("result");
       setListExpanded(true);
       setCartExpanded(true);
+      setCardPhase("generating");
+      setMealCard(null);
+
+      // Trigger card generation immediately — non-blocking to the recommendation display
+      finalizeCard(coachResult);
 
       if (data.shoppingList?.length) {
         fetchProductAdvice(data.shoppingList);
@@ -261,6 +286,27 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       toast({ title: "Top picks added!", description: `${items.length} brand recommendation${items.length !== 1 ? "s" : ""} added to your list.` });
     }
   }, [productAdvice, result, addItems, toast]);
+
+  const finalizeCard = useCallback(async (coachResult: CoachResult) => {
+    try {
+      const data = await post("/api/grocery-coach/finalize-card", {
+        recommendation: coachResult,
+      });
+      if (data?.status === "ready" && data?.id) {
+        setMealCard({
+          id: data.id,
+          imageUrl: data.imageUrl ?? null,
+          destination: data.destination ?? `/saved-meals?mealId=${data.id}`,
+          title: data.title ?? coachResult.meal?.name ?? "Your Meal",
+        });
+        setCardPhase("ready");
+      } else {
+        setCardPhase("failed");
+      }
+    } catch {
+      setCardPhase("failed");
+    }
+  }, []);
 
   const handleGenerateAnother = useCallback(() => {
     sendMessage("Give me a different option");
@@ -423,8 +469,16 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
               >
                 {/* Meal card */}
                 <div style={{ borderRadius: 12, background: "rgba(234,88,12,0.12)", border: "1px solid rgba(249,115,22,0.3)", padding: 16 }}>
-                  <div style={{ color: "#fb923c", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>
-                    Tonight's Recommendation
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+                    <div style={{ color: "#fb923c", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                      Tonight's Recommendation
+                    </div>
+                    {cardPhase === "ready" && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 5, background: "rgba(5,150,105,0.18)", border: "1px solid rgba(52,211,153,0.35)", borderRadius: 999, padding: "3px 9px" }}>
+                        <BookmarkCheck style={{ width: 12, height: 12, color: "#34d399", flexShrink: 0 }} />
+                        <span style={{ color: "#34d399", fontSize: 11, fontWeight: 600 }}>Saved to Favorites</span>
+                      </div>
+                    )}
                   </div>
                   <div style={{ color: "white", fontWeight: 700, fontSize: 20, lineHeight: 1.2, marginBottom: 8 }}>
                     {result.meal?.name || "Your Personalized Meal"}
@@ -444,6 +498,50 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                     </span>
                   </div>
                 </div>
+
+                {/* ── Card generation status ── */}
+                {cardPhase === "generating" && (
+                  <div style={{ borderRadius: 12, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", padding: "14px 16px", display: "flex", alignItems: "center", gap: 12 }}>
+                    <Loader2 style={{ width: 16, height: 16, color: "#fb923c", flexShrink: 0, animation: "spin 1s linear infinite" }} />
+                    <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 14 }}>Creating your personalized recipe card…</span>
+                  </div>
+                )}
+
+                {cardPhase === "ready" && mealCard && (
+                  <div style={{ borderRadius: 12, background: "rgba(5,150,105,0.1)", border: "1px solid rgba(52,211,153,0.3)", padding: 16 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                      <CheckCircle2 style={{ width: 18, height: 18, color: "#34d399", flexShrink: 0 }} />
+                      <span style={{ color: "#34d399", fontWeight: 700, fontSize: 15 }}>Recipe Ready</span>
+                    </div>
+                    <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 13, lineHeight: 1.55, marginBottom: 14 }}>
+                      Your Grocery Coach created a complete meal card and saved it to <span style={{ color: "white", fontWeight: 600 }}>Favorites</span>. It includes the recipe, cooking instructions, nutrition details, and your full shopping list.
+                    </div>
+                    <button
+                      onClick={() => { onOpenChange(false); setLocation(mealCard.destination); }}
+                      style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "13px 0", borderRadius: 10, background: "rgba(52,211,153,0.2)", border: "1px solid rgba(52,211,153,0.4)", color: "#34d399", fontSize: 14, fontWeight: 700, cursor: "pointer" }}
+                    >
+                      <BookmarkCheck style={{ width: 16, height: 16, flexShrink: 0 }} />
+                      View Meal Card
+                    </button>
+                  </div>
+                )}
+
+                {cardPhase === "failed" && result && (
+                  <div style={{ borderRadius: 12, background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.2)", padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                      <AlertTriangle style={{ width: 16, height: 16, color: "#f87171", flexShrink: 0, marginTop: 1 }} />
+                      <span style={{ color: "rgba(255,255,255,0.65)", fontSize: 13, lineHeight: 1.45 }}>
+                        Your recommendation is ready, but the full recipe card could not be saved. Tap below to try again.
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => { setCardPhase("generating"); finalizeCard(result); }}
+                      style={{ alignSelf: "flex-start", padding: "7px 14px", borderRadius: 8, background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.3)", color: "#f87171", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+                    >
+                      Try Again
+                    </button>
+                  </div>
+                )}
 
                 {/* Macros */}
                 {result.macros && (

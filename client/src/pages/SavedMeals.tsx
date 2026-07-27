@@ -26,6 +26,7 @@ const SOURCE_LABELS: Record<string, string> = {
   "pairings-ai": "Drink Pairings",
   "wine-list-helper": "Wine List Helper",
   "my-inspiration": "Recipe Scan",
+  "grocery-coach": "Grocery Coach",
   unknown: "Meal",
 };
 
@@ -89,13 +90,28 @@ export default function SavedMeals() {
     () => new URLSearchParams(window.location.search).get("from")
   );
 
-  // Strip the param from the URL after mount so it doesn't linger on
-  // refresh, bookmark, or share.
+  // Capture ?mealId= param to deep-link directly to a specific card.
+  const [deepLinkMealId] = useState<string | null>(
+    () => new URLSearchParams(window.location.search).get("mealId")
+  );
+
+  // Strip params from the URL after mount so they don't linger.
   useEffect(() => {
-    if (returnPath) {
+    if (returnPath || deepLinkMealId) {
       window.history.replaceState(null, "", window.location.pathname);
     }
-  }, [returnPath]);
+  }, [returnPath, deepLinkMealId]);
+
+  // Auto-expand and scroll to the deep-linked card once data is available.
+  useEffect(() => {
+    if (!deepLinkMealId || !meals?.length) return;
+    setExpandedId(deepLinkMealId);
+    setTimeout(() => {
+      document
+        .getElementById(`meal-card-${deepLinkMealId}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 120);
+  }, [deepLinkMealId, meals]);
 
   const handleAddToPlanSuccess = returnPath
     ? () => setLocation(decodeURIComponent(returnPath))
@@ -153,7 +169,7 @@ export default function SavedMeals() {
       : { text: "text-amber-400", border: "border-amber-700/40", bg: "bg-amber-950/60" };
 
     return (
-      <div key={row.id} className="rounded-xl border border-white/15 bg-white/5 overflow-hidden">
+      <div key={row.id} id={`meal-card-${row.id}`} className="rounded-xl border border-white/15 bg-white/5 overflow-hidden">
         <button
           onClick={() => setExpandedId(isExpanded ? null : row.id)}
           className="w-full flex items-center justify-between px-3 py-3 active:scale-[0.98]"

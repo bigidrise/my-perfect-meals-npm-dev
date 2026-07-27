@@ -5,6 +5,7 @@ import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { loadUserProtocolEnvelope, enforceBeforeGenerate, buildGuestEnvelope } from "../services/protocolEnvelope";
 import { getProductAdvisorEngine } from "../services/productAdvisor";
+import { finalizeMealCard } from "../services/mealCardFinalizer";
 
 const router = express.Router();
 
@@ -98,6 +99,13 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
     "carbs": number,
     "fat": number
   },
+  "ownedIngredients": [
+    {
+      "item": "string — ingredient the user already owns",
+      "quantity": "string",
+      "unit": "string"
+    }
+  ],
   "shoppingList": [
     {
       "item": "string",
@@ -162,6 +170,25 @@ router.post("/product-advisor", async (req, res) => {
   } catch (err: any) {
     console.error("[ProductAdvisor] Error:", err?.message);
     return res.status(500).json({ error: "Product advisor unavailable. Please try again." });
+  }
+});
+
+// ── Finalize Card — generate full meal card and save to Favorites ─────────────
+router.post("/finalize-card", async (req, res) => {
+  try {
+    const userId = resolveUserId(req);
+    if (!userId) return res.status(401).json({ status: "failed", id: null, reason: "Not authenticated" });
+
+    const { recommendation } = req.body;
+    if (!recommendation?.meal?.name) {
+      return res.status(400).json({ status: "failed", id: null, reason: "recommendation is required" });
+    }
+
+    const result = await finalizeMealCard({ recommendation, userId });
+    return res.json({ status: "ready", ...result });
+  } catch (err: any) {
+    console.error("[GroceryCoach/FinalizeCard] Error:", err?.message);
+    return res.status(500).json({ status: "failed", id: null, reason: err?.message });
   }
 });
 
