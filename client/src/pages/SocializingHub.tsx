@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Utensils, MapPin, Zap } from "lucide-react";
+import { ArrowLeft, Utensils, MapPin, Zap, ChefHat } from "lucide-react";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
 interface SocialFeature {
@@ -55,6 +55,14 @@ export default function SocializingHub() {
       route: "/social-hub/find",
       gradient: "from-orange-500/20 to-orange-600/20",
       testId: "socialhub-find", // Phase C.7 hub anchor
+    },
+    {
+      title: "My Perfect Buffet",
+      description: "Describe what's available — AI builds your best plate",
+      icon: ChefHat,
+      route: "/my-perfect-buffet",
+      gradient: "from-orange-500/20 to-orange-600/20",
+      testId: "socialhub-buffet",
     },
   ];
 

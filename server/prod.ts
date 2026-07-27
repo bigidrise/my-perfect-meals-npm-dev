@@ -796,6 +796,10 @@ async function initializeApp() {
     app.use("/api/meal-plan", mealPlanRouter);
     app.use("/api/meal-plans", mealPlanRouter);
 
+    // My Perfect Buffet — plate-building from user-described buffet foods
+    const buffetRouter = (await import("./routes/buffet")).default;
+    app.use("/api/buffet", requireAuth, buffetRouter);
+
     // My Perfect Getaway — venue-aware dining coach
     const getawayRouter = (await import("./routes/getaway")).default;
     app.use("/api/getaway", requireAuth, getawayRouter);
