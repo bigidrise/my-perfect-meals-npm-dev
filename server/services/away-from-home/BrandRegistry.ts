@@ -34,6 +34,11 @@ export function normalizeRestaurantName(raw: string): string {
 
 const REGISTRY: RestaurantIdentity[] = [
   // ── Wendy's ── (proof-of-concept brand; first to be fully wired)
+  // 9 items hand-curated from wendys.com/nutrition-info (verified 2025-01-01).
+  // Items: Dave's Single, Jr. Hamburger, Grilled Chicken Sandwich, Grilled Chicken Wrap,
+  //        Apple Pecan Chicken Salad (Half), Small Chili, Plain Baked Potato,
+  //        Side Salad, Crispy Chicken Nuggets (4 pc).
+  // All macros are chain-official. No regional or limited-time items included.
   {
     brandSlug: "wendys",
     displayName: "Wendy's",
@@ -43,6 +48,8 @@ const REGISTRY: RestaurantIdentity[] = [
     cuisineType: "fast_food_burger",
     availableInCountries: ["US"],
     availableMenuSources: ["internal_canonical"],
+    dataOrigin: "official_website",
+    sourceUrl: "https://www.wendys.com/nutrition-info",
   },
 
   // ── McDonald's ── (registered, menu file not yet seeded)
