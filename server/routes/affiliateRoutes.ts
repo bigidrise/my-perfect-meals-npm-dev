@@ -120,7 +120,7 @@ router.get("/account", requireAuth, async (req, res) => {
             .where(eq(userAffiliateAccounts.userId, userId))
             .catch(() => {});
         }
-        if (!phase2CompletedAt && (cert.type === "platform" || cert.type === "affiliate_coaching")) {
+        if (!phase2CompletedAt && (cert.type === "platform" || cert.type === "platform_mastery" || cert.type === "affiliate_coaching")) {
           phase2CompletedAt = cert.completedAt;
           db.update(userAffiliateAccounts)
             .set({ phase2CompletedAt: cert.completedAt, updatedAt: new Date() })
@@ -204,7 +204,7 @@ router.get("/dashboard", requireAuth, async (req, res) => {
             .where(eq(userAffiliateAccounts.userId, userId))
             .catch(() => {});
         }
-        if (!phase2CompletedAt && (cert.type === "platform" || cert.type === "affiliate_coaching")) {
+        if (!phase2CompletedAt && (cert.type === "platform" || cert.type === "platform_mastery" || cert.type === "affiliate_coaching")) {
           phase2CompletedAt = cert.completedAt;
           db.update(userAffiliateAccounts)
             .set({ phase2CompletedAt: cert.completedAt, updatedAt: new Date() })
