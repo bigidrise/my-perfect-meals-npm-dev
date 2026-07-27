@@ -19,6 +19,8 @@ const LESSON_IDS = [
   "lesson-04",
   "lesson-05",
   "lesson-06",
+  "lesson-07",
+  "lesson-08",
 ];
 
 // Returns the lesson that must be completed before accessing lessonId in cert mode.

@@ -1063,6 +1063,346 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
       },
     ],
   },
+  {
+    id: "lesson-07",
+    lessonNumber: 7,
+    title: "ProCare Studio — Coaching Your Clients",
+    subtitle: "The professional tools for managing client nutrition",
+    opening:
+      "ProCare Studio is the professional layer of My Perfect Meals. It's where coaches, dietitians, trainers, and physicians manage their clients' nutrition journeys. If you're completing this Academy as a professional, this lesson covers what ProCare Studio gives you — and what it doesn't. Understanding the boundaries is as important as understanding the tools.",
+    sections: [
+      {
+        heading: "What ProCare Studio Is",
+        body: "ProCare Studio is a separate professional environment within My Perfect Meals. It's not a feature you activate — it's a role. Once your professional account is set up and your Phase 1 certification is complete, ProCare Studio becomes accessible from your professional dashboard.\n\nFrom ProCare Studio, you can:\n- View all connected clients in one place\n- Review each client's profile, active programs, and nutrition history\n- Leave notes that appear on the client's tablet\n- Adjust which builders your clients have access to (Board Control)\n- Assign or modify nutrition protocols for clients in your care\n- Monitor client biometric trends over time",
+      },
+      {
+        heading: "Connecting With Clients",
+        body: "Clients connect to you through My Perfect Meals — not through an external system. A client who wants to work with you will find your profile in the Hire a Professional directory and send a connection request. You receive that request in ProCare Studio and choose to accept or decline.\n\nOnce connected, the client appears in your client list. Their profile, preferences, and history become visible to you — within the limits of what they have shared. Clients retain control of their own accounts. You are a professional connected to their journey, not an owner of their data.",
+      },
+      {
+        heading: "Tablet Notes — Professional Communication",
+        body: "The primary communication tool in ProCare Studio is Tablet Notes. When you write a note from your professional dashboard, it appears on your client's tablet — a visible card on their experience that delivers your guidance in the context of their daily use.\n\nTablet Notes are not a chat system. They're structured one-way guidance from professional to client. Think of them as clinical notes that the client can see — a place to leave instructions, observations, encouragement, or protocol updates.\n\nWrite notes the way you'd want a client to read them: clearly, specifically, and actionably.",
+      },
+      {
+        heading: "Board Control — What It Is and What It's For",
+        body: "Board Control is a professional-only feature that lets you determine which Builders a client sees and can access. By default, clients have access to the full Builder library. If a client's protocol requires a focused approach — for example, a clinical client who should only use the Anti-Inflammatory Builder during an active protocol — you can limit their Builder access from ProCare Studio.\n\nBoard Control is not a lock that prevents clients from eating what they want outside the app. It's a professional tool for keeping the platform experience aligned with the clinical or coaching protocol you've assigned. Use it deliberately.",
+      },
+      {
+        heading: "Nutrition Protocol Assignment",
+        body: "Professionals with clinical credentials can assign specific nutrition protocols to clients from ProCare Studio. A protocol assignment means the platform will apply that clinical framework to the client's meal generation — not just as a preference, but as a directive that shapes every Builder the client uses.\n\nProtocol assignment is a significant action. Assigning an Anti-Inflammatory Protocol to a client means every meal they generate will be filtered through that clinical framework. Before assigning, confirm that the protocol is appropriate for the client's current health status, goals, and medications.\n\nIf you are not a licensed clinical professional, do not assign clinical protocols. The platform enforces credential requirements on protocol assignment endpoints.",
+      },
+      {
+        heading: "What the Platform Is Not",
+        body: "ProCare Studio is a nutrition management tool. It is not a medical records system, a telehealth platform, or a substitute for a clinical relationship governed by your professional license.\n\nMy Perfect Meals does not store medical diagnoses, prescriptions, or clinical notes in a HIPAA-compliant record. Client data in the platform is nutrition and lifestyle data — not protected health information in the clinical sense.\n\nAs a professional using ProCare Studio, you remain responsible for maintaining your own clinical documentation outside the platform for any clients you work with in a licensed professional capacity.",
+      },
+      {
+        heading: "A professional tool is only as good as the professional using it.",
+        body: "ProCare Studio gives you visibility, communication tools, and control over the platform experience for your clients. None of those tools replace clinical judgment. Use the platform to extend and support your professional relationship — not to substitute for it.",
+      },
+    ],
+    exercise: {
+      steps: [
+        "Open ProCare Studio from your professional dashboard. Find your client list.",
+        "Select one client. Review their profile — note their active programs, dietary identity, and current macro targets.",
+        "Write a Tablet Note for that client. Make it specific and actionable — something they can act on today.",
+        "Review that client's Builder access under Board Control. Note which Builders they currently have available.",
+      ],
+    },
+    remember:
+      "ProCare Studio makes you more effective with your clients — it doesn't make you responsible for decisions outside your scope. Know the tool, know its limits.",
+    quiz: [
+      {
+        id: "l7-q1",
+        question:
+          "A coach wants to write a personalized message that her client will see the next time they open My Perfect Meals. Which ProCare Studio feature does she use?",
+        options: [
+          "Direct Message — a real-time chat thread inside the professional dashboard.",
+          "Board Control — toggle a message card from the builder settings.",
+          "Tablet Notes — a structured note that appears on the client's app experience.",
+          "Protocol Assignment — the protocol description field accepts coaching notes.",
+        ],
+        correctIndex: 2,
+      },
+      {
+        id: "l7-q2",
+        question:
+          "A physical therapist connected to a post-surgical client wants to limit the client to the Anti-Inflammatory Builder only during recovery. Which feature supports this?",
+        options: [
+          "Board Control — lets the professional determine which Builders the client can access.",
+          "Protocol Assignment — assigning a protocol automatically removes other Builders.",
+          "Tablet Notes — the coach instructs the client in writing to avoid other Builders.",
+          "Client Profile Lock — prevents the client from changing their own Builder preferences.",
+        ],
+        correctIndex: 0,
+      },
+      {
+        id: "l7-q3",
+        question:
+          "A new client sends a ProCare connection request. Where does the professional receive and accept the request?",
+        options: [
+          "In the client's profile — the request appears as a pending notification.",
+          "Via email — connection requests are sent outside the platform.",
+          "In ProCare Studio — incoming connection requests appear in the professional's client management dashboard.",
+          "Through the Admin Portal — only admins can approve client connections.",
+        ],
+        correctIndex: 2,
+      },
+      {
+        id: "l7-q4",
+        question:
+          "A registered dietitian wants to assign an Anti-Inflammatory Protocol to a client. What must be true before she can do this?",
+        options: [
+          "The client must have completed at least three months of platform use.",
+          "Her professional account must have verified clinical credentials — the platform enforces credential requirements on protocol assignment.",
+          "The client must be on a paid subscription tier that includes clinical protocol support.",
+          "She must send a Tablet Note first requesting the client's consent.",
+        ],
+        correctIndex: 1,
+      },
+      {
+        id: "l7-q5",
+        question:
+          "A coach reviews a connected client's profile in ProCare Studio and notices the client's dietary identity is set to Vegan but their cuisine preference includes a cuisine traditionally heavy in meat. What should the coach do?",
+        options: [
+          "Change the client's dietary identity to better match the cuisine preference.",
+          "Remove the cuisine preference — it will cause conflicts.",
+          "Leave the profile as-is — the platform respects dietary identity as a hard boundary and generates vegan versions of any cuisine.",
+          "Flag the profile as inconsistent and open a support ticket.",
+        ],
+        correctIndex: 2,
+      },
+      {
+        id: "l7-q6",
+        question:
+          "A professional completes Phase 1 Academy certification and expects to immediately access ProCare Studio. The access gate is active. What does this mean for the professional?",
+        options: [
+          "There is a system error — certification should automatically unlock ProCare Studio.",
+          "The professional must also purchase a separate ProCare Studio subscription.",
+          "Phase 1 certification is a prerequisite but ProCare Studio access still requires account setup and approval.",
+          "Phase 1 certification is the only requirement — ProCare Studio should now be accessible.",
+        ],
+        correctIndex: 3,
+      },
+      {
+        id: "l7-q7",
+        question:
+          "A coach uses ProCare Studio to monitor a client's biometric trends. The client's weight has been rising for three weeks while following the meal plan. What is the appropriate next step?",
+        options: [
+          "Immediately assign a caloric restriction protocol via ProCare Studio.",
+          "Use Tablet Notes to flag the trend and schedule a conversation outside the platform to discuss the client's current protocol and goals.",
+          "Remove the client's access to high-calorie Builders via Board Control.",
+          "Adjust the client's macro targets directly through the ProCare Studio profile editor.",
+        ],
+        correctIndex: 1,
+      },
+      {
+        id: "l7-q8",
+        question:
+          "A professional asks: \"Does My Perfect Meals store client data in a HIPAA-compliant medical record?\" What is the accurate answer?",
+        options: [
+          "Yes — all client data in ProCare Studio is stored as protected health information.",
+          "Yes — but only for professionals with verified clinical credentials.",
+          "No — My Perfect Meals stores nutrition and lifestyle data, not protected health information in the clinical sense. Professionals must maintain separate clinical documentation.",
+          "No — client data is deleted from the platform after 90 days for privacy.",
+        ],
+        correctIndex: 2,
+      },
+      {
+        id: "l7-q9",
+        question:
+          "A trainer in ProCare Studio wants to see a client's full meal history, biometrics, and active protocols in one place. Where does he go?",
+        options: [
+          "The client's Tablet Notes — all activity is logged there.",
+          "The platform's Dashboard — it shows everything when viewed from the professional role.",
+          "The client's profile within ProCare Studio — it surfaces their active programs, dietary identity, biometrics, and macro targets.",
+          "The Admin Portal — only admins have access to full client histories.",
+        ],
+        correctIndex: 2,
+      },
+      {
+        id: "l7-q10",
+        question:
+          "A coach writes a Tablet Note that says \"Try the salmon dish from yesterday for lunch again.\" The client reads it and immediately has a question. How does the client reply?",
+        options: [
+          "Through the built-in Tablet Note reply thread — clients can respond directly.",
+          "Tablet Notes are one-directional — the client cannot reply within the platform. Follow-up communication happens outside the app.",
+          "Through the Coach's Corner messaging module.",
+          "By flagging the note with a thumbs-down, which sends an alert to the professional.",
+        ],
+        correctIndex: 1,
+      },
+    ],
+  },
+  {
+    id: "lesson-08",
+    lessonNumber: 8,
+    title: "Nutrition Intelligence & Safety Systems",
+    subtitle: "How the platform protects every recommendation",
+    opening:
+      "My Perfect Meals generates thousands of recommendations every day. Each one passes through a layered safety and intelligence system before it reaches a user. This lesson explains how that system works — what it protects, why it's built the way it is, and what it means for professionals and clients who rely on the platform's output.",
+    sections: [
+      {
+        heading: "The Protocol Hierarchy",
+        body: "Every meal My Perfect Meals generates is shaped by a four-level constraint hierarchy. Understanding this hierarchy explains why the platform behaves the way it does — and why certain requests can't override certain profile settings.\n\n**Level 1 — Medical (highest priority)**\nIf a user has a medical condition active in their profile — Type 2 diabetes, oncology support, kidney disease, GLP-1 protocol — that condition shapes the output before anything else is considered. Medical constraints cannot be overridden by the user's request, dietary identity, or cuisine preference.\n\n**Level 2 — Dietary Identity**\nThe user's dietary category (vegan, vegetarian, keto, carnivore, halal, kosher, and others) is a firm boundary. A request that conflicts with dietary identity is redirected — not refused — toward a version that fits within that identity.\n\n**Level 3 — Cultural and Cuisine Preference**\nThe user's preferred food traditions and flavors shape the style of what's generated within the limits set by levels 1 and 2.\n\n**Level 4 — Behavioral Preference (lowest priority)**\nHeat level, cooking time, ingredient variety, and similar lifestyle preferences apply last. They influence the experience but yield to every higher-priority constraint.\n\nThis hierarchy is the reason a user with diabetes who requests a high-carb dish gets a medically appropriate alternative — the medical constraint always wins.",
+      },
+      {
+        heading: "SafetyGuard™ — The Allergy Layer",
+        body: "SafetyGuard™ is the system that enforces hard ingredient blocks based on the user's allergy profile. It operates at every point where the platform generates or evaluates food.\n\nWhen a user enters an allergy — shellfish, peanuts, tree nuts, dairy, gluten — that allergen becomes a hard block. The platform does not serve it with a warning. It does not ask for confirmation. It does not include it in a modified form. It removes it entirely from consideration.\n\nThis is different from a preference. A user who says \"I don't like cilantro\" may still receive a dish with cilantro if the generation doesn't account for it. A user who says \"I am allergic to cilantro\" will never receive a dish containing it.\n\nFor professionals working with clients who have severe allergies: the allergy list is protected by a Safety PIN. Changes to a client's allergy profile require PIN confirmation. This prevents accidental modification of a safety-critical field.",
+      },
+      {
+        heading: "GlucoseGuard™ — Diabetic Protocol Intelligence",
+        body: "GlucoseGuard™ is the glucose-aware nutrition intelligence layer that activates when a user has Type 2 diabetes, pre-diabetes, or glucose management selected in their medical profile.\n\nIt shapes meal generation in several specific ways:\n- High glycemic index foods are flagged or replaced\n- Carbohydrate distribution is adjusted toward slower-digesting sources\n- Portion guidance accounts for glucose load, not just total calories\n- The platform actively tracks patterns in what the diabetic user generates over time\n\nGlucoseGuard™ also enables blood glucose logging in My Biometrics. Users can track their readings over time alongside their meal history — giving both the user and their professional a clearer picture of how the nutrition plan is affecting real-world glucose levels.",
+      },
+      {
+        heading: "The Macro Truth Contract",
+        body: "One of the most important guarantees My Perfect Meals makes is about macro accuracy: the platform will never invent macro values it does not know.\n\nThis principle is called the Macro Truth Contract. It has two rules:\n\n**Rule 1 — Null means unknown, zero means known zero.** If the platform does not have reliable macro data for an ingredient or dish, it returns null — not a guess. A null value is clearly disclosed to the user. A zero means the platform has confirmed there is no meaningful amount of that macro.\n\n**Rule 2 — Macros are never mutated.** If the platform is uncertain about a macro value, it rejects or regenerates the recommendation rather than adjusting a value to make it look complete. The user always sees real data or an honest disclosure — never a number that was filled in to look complete.\n\nFor professionals: when a client shows you a macro breakdown from My Perfect Meals, any null values are intentional honesty, not an error. They mean the platform didn't have enough data to give a reliable number.",
+      },
+      {
+        heading: "Clinical Mode and Specialty Programs",
+        body: "Several features of My Perfect Meals are clinical — they require a physician, dietitian, or certified professional to activate or assign.\n\nExamples include:\n- **Oncology Support**: a program for users in cancer treatment or recovery, assigned by a physician with oncology context. The platform enforces ingredient rules appropriate for this population and does not make treatment claims.\n- **GLP-1 Protocol Support**: specific fueling guidance for users on GLP-1 medications, including portion scaling and protein prioritization.\n- **Anti-Inflammatory Protocol**: dietary guidance built around reducing systemic inflammation, often used in clinical or post-surgical contexts.\n\nThese programs sit at Level 1 in the protocol hierarchy. Assigning them without appropriate credentials is not supported by the platform. If you are a professional assigning clinical programs, ensure you have verified your credentials in your professional account.",
+      },
+      {
+        heading: "What the Platform Cannot Do",
+        body: "Understanding the system also means understanding its limits.\n\nMy Perfect Meals does not:\n- Provide medical diagnoses\n- Calculate drug-nutrient interactions\n- Guarantee that a specific meal will produce a specific clinical outcome\n- Replace physician supervision for any clinical nutrition protocol\n- Generate individual meal recommendations based on real-time blood glucose readings (it uses manually logged values, not continuous glucose monitor data)\n\nThe platform generates personalized nutrition guidance. That guidance is built on a user's profile, their active clinical programs, and the Macro Truth Contract. It is not a clinical order, a prescription, or a guarantee.",
+      },
+      {
+        heading: "The platform shows its work so you can trust its output.",
+        body: "The Nutrition Personalization Summary on the Dashboard exists because transparency builds trust. Every active protocol, every constraint, every program that shapes a user's meals is visible and named. When a client asks why their meals look a certain way, the platform has already answered the question — they just need to know where to look.",
+      },
+    ],
+    exercise: {
+      steps: [
+        "Open My Perfect Meals and navigate to your Nutrition Personalization Summary on the Dashboard. Read which programs are currently active in your profile.",
+        "Go to your profile's Allergy & Safety section. Review your current allergy list. Note whether a Safety PIN is set.",
+        "Generate one meal using your assigned Builder. After it appears, read the macro breakdown carefully. Note any values that are null versus zero.",
+        "If you have a client in ProCare Studio: open their profile and review which Level 1 medical constraints are active. Consider whether those constraints are accurately reflected in their current Builder access.",
+      ],
+    },
+    remember:
+      "The platform's safety systems work automatically — but they only work as well as the profile data they're built on. Accurate profiles produce accurate safety filtering. Incomplete profiles produce incomplete protection.",
+    quiz: [
+      {
+        id: "l8-q1",
+        question:
+          "A user with Type 2 diabetes requests a white rice and black bean bowl. The platform returns a brown rice alternative with adjusted portion guidance. Why?",
+        options: [
+          "The request contained ingredients not supported by the platform's database.",
+          "The platform is malfunctioning — it should return exactly what the user requested.",
+          "The medical constraint (Type 2 diabetes) operates at the highest level of the protocol hierarchy and shapes the output before the request is considered.",
+          "The user's cuisine preference is overriding the dietary request.",
+        ],
+        correctIndex: 2,
+      },
+      {
+        id: "l8-q2",
+        question:
+          "A client has a severe shellfish allergy entered in her profile. She requests shrimp tacos. What does the platform do?",
+        options: [
+          "Returns shrimp tacos with an allergy warning visible on the meal card.",
+          "Asks for PIN confirmation before generating the dish.",
+          "Replaces shrimp with a non-shellfish protein and generates a compliant version — the allergy is a hard block, not a warning.",
+          "Refuses to generate any taco dish until the allergy is removed.",
+        ],
+        correctIndex: 2,
+      },
+      {
+        id: "l8-q3",
+        question:
+          "A user asks why a macro value in his meal card shows \"null\" instead of a number. What is the accurate explanation?",
+        options: [
+          "There is a database error — null values are a known bug.",
+          "The macro value is zero, displayed differently for formatting reasons.",
+          "The platform does not have reliable data for that macro and is disclosing that honestly rather than inventing a number.",
+          "The user's subscription tier does not include full macro breakdown.",
+        ],
+        correctIndex: 2,
+      },
+      {
+        id: "l8-q4",
+        question:
+          "In the protocol hierarchy, which constraint type always takes precedence over all others?",
+        options: [
+          "Dietary Identity — it is set during onboarding and governs all meal decisions.",
+          "Behavioral Preference — the user's day-to-day preferences shape every output.",
+          "Cuisine Preference — the user's cultural traditions define the style of every meal.",
+          "Medical constraints — active health conditions apply first, before dietary identity, cuisine preference, or behavioral preference.",
+        ],
+        correctIndex: 3,
+      },
+      {
+        id: "l8-q5",
+        question:
+          "A coach working with a post-surgical client wants to assign an Anti-Inflammatory Protocol. Before doing so, what does the platform require?",
+        options: [
+          "Nothing — any professional in ProCare Studio can assign any protocol.",
+          "The client must request the protocol themselves before the coach can apply it.",
+          "The coach must have verified clinical credentials in their professional account — the platform enforces credential requirements on clinical protocol assignment.",
+          "A physician must co-sign the protocol assignment through the admin portal.",
+        ],
+        correctIndex: 2,
+      },
+      {
+        id: "l8-q6",
+        question:
+          "A user with GlucoseGuard™ active asks why the platform suggested a smaller portion of pasta than she expected. What is the accurate explanation?",
+        options: [
+          "The platform has detected a caloric surplus in her recent meal history and is self-correcting.",
+          "GlucoseGuard™ adjusts portions to account for glucose load, not just total calories — smaller portions of high-glycemic foods are appropriate for this protocol.",
+          "The platform has defaulted to a standard weight-loss portion because her goal setting may have changed.",
+          "Pasta is blocked for all users with glucose-related conditions.",
+        ],
+        correctIndex: 1,
+      },
+      {
+        id: "l8-q7",
+        question:
+          "A client asks her dietitian: \"Does My Perfect Meals adjust my meals based on my continuous glucose monitor (CGM) readings?\" What is the accurate answer?",
+        options: [
+          "Yes — the platform integrates with CGM devices via Bluetooth and adjusts recommendations in real time.",
+          "Yes — but only for users who have enabled the GlucoseGuard™ premium tier.",
+          "No — the platform uses manually logged blood glucose values from My Biometrics, not real-time CGM data.",
+          "No — the platform does not support any blood glucose data, manual or automatic.",
+        ],
+        correctIndex: 2,
+      },
+      {
+        id: "l8-q8",
+        question:
+          "A professional working with an oncology client wants to understand what Oncology Support does within the platform. Which statement is accurate?",
+        options: [
+          "Oncology Support generates treatment plans specific to the client's cancer type and medication.",
+          "Oncology Support enforces appropriate ingredient rules and nutritional guidance for this population — it does not make treatment claims and is assigned by a physician.",
+          "Oncology Support is a client-facing label only and does not affect meal generation.",
+          "Oncology Support replaces the standard meal builder with a physician-curated static menu.",
+        ],
+        correctIndex: 1,
+      },
+      {
+        id: "l8-q9",
+        question:
+          "A user's allergy list shows \"peanuts\" and she wants to remove it because she was recently tested and is no longer allergic. What does she need to provide to make the change?",
+        options: [
+          "Nothing — allergy changes are open in Edit Profile like any other preference.",
+          "A note from her physician uploaded through the medical records portal.",
+          "Her Safety PIN — allergy modifications are protected to prevent accidental changes to a safety-critical field.",
+          "Approval from her connected ProCare professional before the platform will accept the change.",
+        ],
+        correctIndex: 2,
+      },
+      {
+        id: "l8-q10",
+        question:
+          "A client says: \"My Perfect Meals told me that following this meal plan will improve my A1C.\" What should the professional's response be?",
+        options: [
+          "That's accurate — the platform makes evidence-based clinical outcome predictions for diabetic users.",
+          "The platform generates personalized nutrition guidance, not clinical outcome guarantees. It cannot promise that following a meal plan will produce a specific clinical result.",
+          "The prediction is accurate if the client has GlucoseGuard™ active — that system tracks and projects A1C trends.",
+          "The platform only makes predictions for users on physician-assigned protocols.",
+        ],
+        correctIndex: 1,
+      },
+    ],
+  },
 ];
 
 export function getLessonById(id: string): PlatformMasteryLesson | undefined {
