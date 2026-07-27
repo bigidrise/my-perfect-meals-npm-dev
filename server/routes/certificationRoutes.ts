@@ -235,15 +235,15 @@ router.get("/affiliate-status", requireAuth, async (req, res) => {
       .from(userCertifications)
       .where(and(
         eq(userCertifications.userId, userId),
-        inArray(userCertifications.certificationType, ["affiliate_social", "platform", "platform_mastery"])
+        inArray(userCertifications.certificationType, ["affiliate_social", "platform_mastery"])
       ));
 
     const certMap = new Map(certs.map((c) => [c.certType, c.status]));
     // businessCertified = Phase 1 (Business Success Cert = affiliate_social, shared between social & coaching paths)
     const businessCertified = certMap.get("affiliate_social") === "completed";
-    const platformCertified =
-      certMap.get("platform") === "completed" ||
-      certMap.get("platform_mastery") === "completed";
+    // platformCertified = Platform Mastery Academy completion (platform_mastery).
+    // Old "platform" Academy records are bridged to "platform_mastery" by the boot migration.
+    const platformCertified = certMap.get("platform_mastery") === "completed";
     const eligible = businessCertified && platformCertified;
 
     return res.json({ eligible, businessCertified, platformCertified });
@@ -293,53 +293,39 @@ router.get("/assets/signature", async (req, res) => {
 // ─── DYNAMIC ROUTES ───────────────────────────────────────────────────────────
 
 // GET /api/certifications/:certType/progress
-// Compatibility shim: "platform" transparently includes "platform_mastery" records
-// so that clients calling /certifications/platform/progress correctly recognize
-// users who completed the Academy under the renamed cert type.
 router.get("/:certType/progress", requireAuth, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser.id;
     const { certType } = req.params;
 
-    // When the requested type is "platform", also search "platform_mastery"
-    // (the renamed cert type for new Academy completions).
-    const queryTypes: string[] =
-      certType === "platform" ? ["platform", "platform_mastery"] : [certType];
-
-    const [certRows, moduleProgress] = await Promise.all([
+    const [certification, moduleProgress] = await Promise.all([
       db
         .select()
         .from(userCertifications)
         .where(
           and(
             eq(userCertifications.userId, userId),
-            inArray(userCertifications.certificationType, queryTypes)
+            eq(userCertifications.certificationType, certType)
           )
-        ),
+        )
+        .limit(1),
       db
         .select()
         .from(certificationModuleProgress)
         .where(
           and(
             eq(certificationModuleProgress.userId, userId),
-            inArray(certificationModuleProgress.certificationType, queryTypes)
+            eq(certificationModuleProgress.certificationType, certType)
           )
         ),
     ]);
-
-    // Prefer the completed record; if neither is completed prefer the one with
-    // more module progress; fall back to the first row found.
-    const RANK = (r: (typeof certRows)[0]) =>
-      r.status === "completed" ? 2 : r.status === "in_progress" ? 1 : 0;
-    const certification =
-      certRows.sort((a, b) => RANK(b) - RANK(a))[0] ?? null;
 
     // Never cache this response — module status changes after every quiz
     res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
     res.setHeader("Pragma", "no-cache");
     res.setHeader("Expires", "0");
     return res.json({
-      certification,
+      certification: certification[0] ?? null,
       moduleProgress,
     });
   } catch (err) {

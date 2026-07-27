@@ -560,7 +560,7 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
     subtitle: "Smart Grocery List, Grocery Coach, Smart Scan, and Fridge Rescue",
     learningObjectives: [
       "Explain what triggers the Smart Grocery List to populate and what causes it to appear empty",
-      "Use Grocery Coach to interpret a flagged item and explain the specific reason behind the flag",
+      "Describe how Grocery Coach provides protocol-aware buying guidance aligned to your active health programs",
       "Use Recipe Scan to adapt a recipe found outside My Perfect Meals to a specific dietary identity and macro target",
       "Distinguish when to use Smart Scan versus Fridge Rescue for a food decision in or around the home",
     ],
@@ -573,7 +573,7 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
       },
       {
         heading: "Grocery Coach",
-        body: "Grocery Coach adds profile-aware context to your list.\n\nIt organizes items by store section (produce, proteins, pantry, dairy) and adds:\n\n- **Condition-relevant notes** — a diabetic user sees flags on high-glycemic ingredients; a user with celiac sees gluten alerts\n- **Allergy reminders** — flagged at the specific items that trigger the concern\n- **Quantity guidance** — how much of each ingredient based on the portions in your plan\n\nGrocery Coach doesn't just list what to buy. It tells you what to watch for while you're buying it.",
+        body: "Grocery Coach provides protocol-aware guidance on what to buy — not just what's on your ingredient list, but how to stock your kitchen in a way that supports your active nutrition programs.\n\nWhere the Smart Grocery List tells you exactly which ingredients your saved meals require, Grocery Coach answers the broader question: *given your protocol, what kind of kitchen should you maintain?*\n\nBased on your active health programs and dietary identity, Grocery Coach delivers targeted buying guidance:\n\n- **A user on the GLP-1 Builder** receives guidance on keeping high-protein, easy-to-prepare options available for low-appetite windows\n- **A user on an anti-inflammatory protocol** receives guidance on which produce and protein categories to prioritize across the week\n- **A user managing Type 2 diabetes** receives guidance on structuring their kitchen to support glycemic stability throughout the week\n\nGrocery Coach is the strategic guidance layer above your ingredient list. It helps you make protocol-aligned decisions before you get to the store — so your kitchen consistently supports your plan, not just the meals you happened to save this week.",
       },
       {
         heading: "Smart Scan — Ingredient Intelligence in the Store",
@@ -1259,7 +1259,7 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
     subtitle: "How the platform learns, what it guarantees, and where you remain in control",
     learningObjectives: [
       "Distinguish what the AI knows explicitly from your profile versus what it estimates through contextual inference",
-      "Explain the platform's macro discipline — why null means unknown and 0 means known zero — and what it prevents",
+      "Interpret macro values correctly — distinguish between a null disclosure and a zero value, and act appropriately on incomplete macro information",
       "Identify which profile changes require a new plan generation to take effect versus which apply to the next individual meal",
       "Describe the correct way to override or correct an AI-generated recommendation without breaking your profile's constraints",
     ],
@@ -1279,8 +1279,8 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
         body: "GlucoseGuard™ is the glucose-aware nutrition intelligence layer that activates when a user has Type 2 diabetes, pre-diabetes, or glucose management selected in their medical profile.\n\nIt shapes meal generation in several specific ways:\n- High glycemic index foods are flagged or replaced\n- Carbohydrate distribution is adjusted toward slower-digesting sources\n- Portion guidance accounts for glucose load, not just total calories\n- The platform actively tracks patterns in what the diabetic user generates over time\n\nGlucoseGuard™ also enables blood glucose logging in My Biometrics. Users can track their readings over time alongside their meal history — giving both the user and their professional a clearer picture of how the nutrition plan is affecting real-world glucose levels.",
       },
       {
-        heading: "The Macro Truth Contract",
-        body: "One of the most important guarantees My Perfect Meals makes is about macro accuracy: the platform will never invent macro values it does not know.\n\nThis principle is called the Macro Truth Contract. It has two rules:\n\n**Rule 1 — Null means unknown, zero means known zero.** If the platform does not have reliable macro data for an ingredient or dish, it returns null — not a guess. A null value is clearly disclosed to the user. A zero means the platform has confirmed there is no meaningful amount of that macro.\n\n**Rule 2 — Macros are never mutated.** If the platform is uncertain about a macro value, it rejects or regenerates the recommendation rather than adjusting a value to make it look complete. The user always sees real data or an honest disclosure — never a number that was filled in to look complete.\n\nFor professionals: when a client shows you a macro breakdown from My Perfect Meals, any null values are intentional honesty, not an error. They mean the platform didn't have enough data to give a reliable number.",
+        heading: "How Macro Values Are Reported",
+        body: "My Perfect Meals reports macro values exactly as the platform knows them — not more, not less.\n\nWhen you see a macro value in a meal card, it reflects the best available data for that meal. When reliable data is not available, the platform shows an honest blank rather than filling in an estimate that could mislead your nutrition planning.\n\n**What null and zero mean to you**\n- A blank (null) macro value means the platform does not have enough data to report that number confidently. It is an honest disclosure — not an error, and not a zero.\n- A zero macro value means the platform has confirmed that macro is negligibly present in the meal.\n\nThis distinction matters when you're reviewing a client's nutrition closely. A blank calorie count means the data source was incomplete. A zero calorie count means the food genuinely contributes no meaningful calories.\n\n**Using incomplete macro data**\nIf you see blank values in a meal card, you have a few options:\n- Regenerate the meal — the platform will attempt to produce a more complete result\n- Log the meal and note the incomplete macro in your tracking\n- For clients: flag the meal for review rather than treating blanks as zeros\n\nFor professionals: when a client shows you a macro breakdown from My Perfect Meals, any blank values are intentional honesty. The platform surfaces incomplete data so that decisions made by you, the client, or any clinical team are based on real information.",
       },
       {
         heading: "Clinical Mode and Specialty Programs",
@@ -1288,7 +1288,7 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
       },
       {
         heading: "What the Platform Cannot Do",
-        body: "Understanding the system also means understanding its limits.\n\nMy Perfect Meals does not:\n- Provide medical diagnoses\n- Calculate drug-nutrient interactions\n- Guarantee that a specific meal will produce a specific clinical outcome\n- Replace physician supervision for any clinical nutrition protocol\n- Generate individual meal recommendations based on real-time blood glucose readings (it uses manually logged values, not continuous glucose monitor data)\n\nThe platform generates personalized nutrition guidance. That guidance is built on a user's profile, their active clinical programs, and the Macro Truth Contract. It is not a clinical order, a prescription, or a guarantee.",
+        body: "Understanding the system also means understanding its limits.\n\nMy Perfect Meals does not:\n- Provide medical diagnoses\n- Calculate drug-nutrient interactions\n- Guarantee that a specific meal will produce a specific clinical outcome\n- Replace physician supervision for any clinical nutrition protocol\n- Generate individual meal recommendations based on real-time blood glucose readings (it uses manually logged values, not continuous glucose monitor data)\n\nThe platform generates personalized nutrition guidance. That guidance is built on a user's profile, their active clinical programs, and an honest reporting of what is and is not known. It is not a clinical order, a prescription, or a guarantee.",
       },
       {
         heading: "The platform shows its work so you can trust its output.",
