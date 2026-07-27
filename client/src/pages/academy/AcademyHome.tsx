@@ -17,16 +17,18 @@ import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
 
 const PLATFORM_MASTERY_LESSONS = [
-  { num: 1, title: "Getting Started", subtitle: "Account setup and your profile" },
-  { num: 2, title: "Understanding Your Dashboard", subtitle: "Your daily starting point" },
-  { num: 3, title: "Builders: Creating Your Nutrition", subtitle: "How to generate meals" },
-  { num: 4, title: "Lifestyle: Everyday Nutrition for Real Life", subtitle: "Flexible tools for real situations" },
-  { num: 5, title: "Your Personal Toolbox", subtitle: "The More page and what's inside" },
-  { num: 6, title: "My Hub: Your Personal Control Center", subtitle: "Where to go when you need anything" },
+  { num: 1, title: "Your Profile & Nutrition Protocol", subtitle: "Setting up your dietary identity and health constraints" },
+  { num: 2, title: "Choosing the Right Builder", subtitle: "Matching the right meal generator to your goal" },
+  { num: 3, title: "Weekly Planning", subtitle: "Building consistent habits with the Meal Planner" },
+  { num: 4, title: "Shopping & Pantry", subtitle: "Shopping lists, ingredient tools, and Fridge Rescue" },
+  { num: 5, title: "Eating Out & Away From Home", subtitle: "Restaurant Guide, Fast Food, and meals on the go" },
+  { num: 6, title: "Biometrics & Tracking", subtitle: "Logging progress and reading your data" },
+  { num: 7, title: "Specialized Systems", subtitle: "Clinical programs, GLP-1 support, coaching, and more" },
+  { num: 8, title: "AI Adaptation & Transparency", subtitle: "What the AI knows, what it estimates, and your boundaries" },
 ];
 
 const BECOME_CERTIFIED = [
-  { icon: "🥉", label: "My Perfect Meals Basics", desc: "6 lessons · Platform exercises · Quiz", route: "/academy/platform-mastery/lesson/lesson-01" },
+  { icon: "🎓", label: "Platform Mastery", desc: "8 modules · Workflow exercises · Quiz", route: "/academy/platform-mastery/lesson/lesson-01" },
   { icon: "📈", label: "Marketing & Coaching", desc: "5 lessons · Coaching philosophy · Quiz", route: "/business-center/affiliate/coaching/certification" },
   { icon: "🩺", label: "ProCare Certification", desc: "3 training videos · Final assessment", route: null },
 ];
@@ -156,7 +158,7 @@ export default function AcademyHome() {
                   Learn
                 </p>
                 <h3 className="text-base font-bold text-white">
-                  My Perfect Meals Basics
+                  Platform Mastery
                 </h3>
                 <p className="text-xs text-white/50 mt-1">
                   Open to everyone · No certification required
@@ -167,7 +169,7 @@ export default function AcademyHome() {
               ) : (
                 <div className="px-2.5 py-1 rounded-full bg-orange-500/20 border border-orange-500/30 flex-shrink-0">
                   <span className="text-orange-300 text-xs font-semibold">
-                    {isCertified ? "Certified" : `${completedLessons}/6 lessons`}
+                    {isCertified ? "Certified" : `${completedLessons}/8 modules`}
                   </span>
                 </div>
               )}
@@ -401,7 +403,7 @@ export default function AcademyHome() {
             </div>
             <p className="text-center text-white/25 text-xs mt-4 leading-relaxed">
               Specialty certifications unlock as each program is released.
-              My Perfect Meals Basics must be complete first.
+              Platform Mastery must be complete first.
             </p>
           </div>
         </motion.div>

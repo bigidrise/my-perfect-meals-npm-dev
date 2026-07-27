@@ -13,12 +13,14 @@ import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
 
 const LESSONS = [
-  { id: "lesson-01", num: 1, title: "Getting Started", subtitle: "Account setup and your profile" },
-  { id: "lesson-02", num: 2, title: "Understanding Your Dashboard", subtitle: "Your daily starting point" },
-  { id: "lesson-03", num: 3, title: "Builders: Creating Your Nutrition", subtitle: "Generating and managing meals" },
-  { id: "lesson-04", num: 4, title: "Lifestyle: Everyday Nutrition for Real Life", subtitle: "Flexible tools for real situations" },
-  { id: "lesson-05", num: 5, title: "Your Personal Toolbox", subtitle: "The More page and what's inside" },
-  { id: "lesson-06", num: 6, title: "My Hub: Your Personal Control Center", subtitle: "Where to go when you need anything" },
+  { id: "lesson-01", num: 1, title: "Your Profile & Nutrition Protocol", subtitle: "Setting up your dietary identity and health constraints" },
+  { id: "lesson-02", num: 2, title: "Choosing the Right Builder", subtitle: "Matching the right meal generator to your goal" },
+  { id: "lesson-03", num: 3, title: "Weekly Planning", subtitle: "Building consistent habits with the Meal Planner" },
+  { id: "lesson-04", num: 4, title: "Shopping & Pantry", subtitle: "Shopping lists, ingredient tools, and Fridge Rescue" },
+  { id: "lesson-05", num: 5, title: "Eating Out & Away From Home", subtitle: "Restaurant Guide, Fast Food, and meals on the go" },
+  { id: "lesson-06", num: 6, title: "Biometrics & Tracking", subtitle: "Logging progress and reading your data" },
+  { id: "lesson-07", num: 7, title: "Specialized Systems", subtitle: "Clinical programs, GLP-1 support, coaching, and more" },
+  { id: "lesson-08", num: 8, title: "AI Adaptation & Transparency", subtitle: "What the AI knows, what it estimates, and your boundaries" },
 ];
 
 interface AcademyStatus {
@@ -110,7 +112,7 @@ export default function PlatformMasteryDashboard() {
           </button>
           <div className="flex-1 min-w-0">
             <h1 className="text-base font-bold text-white truncate">
-              My Perfect Meals Basics
+              Platform Mastery
             </h1>
             <p className="text-xs text-white/45">
               {isCertTrack ? "Certification Mode" : "Learning Mode"}
@@ -137,7 +139,7 @@ export default function PlatformMasteryDashboard() {
             <Award className="h-6 w-6 text-emerald-400 flex-shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-white">
-                My Perfect Meals Basics — Certified
+                Platform Mastery — Certified
               </p>
               <p className="text-xs text-white/50 font-mono">
                 {status?.certificateNumber}
@@ -202,7 +204,7 @@ export default function PlatformMasteryDashboard() {
               All Lessons Complete!
             </p>
             <p className="text-xs text-white/50 leading-relaxed">
-              You've finished My Perfect Meals Basics in Learning Mode. To earn a certificate, re-enroll in Certification Mode.
+              You've finished Platform Mastery in Learning Mode. To earn a certificate, re-enroll in Certification Mode.
             </p>
           </motion.div>
         )}
