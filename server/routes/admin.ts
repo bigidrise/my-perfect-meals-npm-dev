@@ -385,7 +385,7 @@ router.get("/grandfather-migration-status", async (req, res) => {
       WHERE
         u.procare_training_completed = true
         AND u.professional_role IS NOT NULL
-        AND uc.certification_type IN ('platform', 'affiliate_coaching')
+        AND uc.certification_type IN ('platform', 'platform_mastery', 'affiliate_coaching')
         AND uc.completed_at IS NOT NULL
         AND uc.completed_at < '2026-07-01T00:00:00Z'
       ORDER BY u.id, uc.completed_at ASC
@@ -422,7 +422,7 @@ router.post("/run-grandfather-migration", async (req, res) => {
         AND procare_training_completed = false
         AND id IN (
           SELECT user_id FROM user_certifications
-          WHERE certification_type IN ('platform', 'affiliate_coaching')
+          WHERE certification_type IN ('platform', 'platform_mastery', 'affiliate_coaching')
             AND completed_at IS NOT NULL
             AND completed_at < '2026-07-01T00:00:00Z'
         )

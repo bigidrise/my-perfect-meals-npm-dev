@@ -33,7 +33,8 @@ router.get("/launchpad-status", requireAuth, async (req, res) => {
     const academyCompleted = certs.some(
       (c) =>
         (c.certificationType === "affiliate_coaching" ||
-          c.certificationType === "platform") &&
+          c.certificationType === "platform" ||
+          c.certificationType === "platform_mastery") &&
         !!c.completedAt
     );
 
