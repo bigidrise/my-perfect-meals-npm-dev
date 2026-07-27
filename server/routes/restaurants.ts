@@ -14,7 +14,8 @@ import { scoreRestaurantsForDiet, buildDietQuery } from "../services/restaurantS
 import { zipToCoordinates } from "../services/zipToCoordsService";
 import { processMealImageForSave } from "../services/imageLifecycle";
 import type { AuthenticatedRequest } from "../middleware/requireAuth";
-import { restaurantEngine } from "../services/away-from-home/ProviderRegistry";
+import { restaurantEngine, officialJsonProvider } from "../services/away-from-home/ProviderRegistry";
+import { findBrandBySlug, getAllBrands } from "../services/away-from-home/BrandRegistry";
 import { generateMenuItemRecommendations } from "../services/away-from-home/generateMenuItemRecommendations";
 
 const router = Router();
@@ -415,6 +416,90 @@ router.post("/find-nearby", async (req, res) => {
       details: error instanceof Error ? error.message : "Unknown error",
     });
   }
+});
+
+// ── Development-only diagnostic endpoint ──────────────────────────────────────
+// GET /api/restaurants/debug/provider/:brandSlug
+// Returns which provider would handle a brand and its full provenance.
+// Never exposed in production — returns 404 when NODE_ENV === "production".
+//
+// Example response:
+//   GET /api/restaurants/debug/provider/wendys
+//   {
+//     "brand": "wendys",
+//     "displayName": "Wendy's",
+//     "provider": "OfficialJsonMenuProvider",
+//     "dataOrigin": "official_website",
+//     "sourceUrl": "https://www.wendys.com/nutrition-info",
+//     "verifiedAt": "2025-01-01",
+//     "sourceVersion": "wendys-official-9-item-poc-v1",
+//     "verifiedBy": "My Perfect Meals",
+//     "refreshPolicy": "manual",
+//     "itemCount": 9,
+//     "availableMenuSources": ["internal_canonical"]
+//   }
+router.get("/debug/provider/:brandSlug", async (req, res) => {
+  if (process.env.NODE_ENV === "production") {
+    return res.status(404).json({ error: "Not found" });
+  }
+
+  const { brandSlug } = req.params;
+
+  if (brandSlug === "_all") {
+    const brands = getAllBrands();
+    const results = await Promise.all(
+      brands.map(async (brand) => {
+        const meta = brand.availableMenuSources.includes("internal_canonical")
+          ? await officialJsonProvider.getMetadata(brand.brandSlug)
+          : null;
+        return {
+          brand: brand.brandSlug,
+          displayName: brand.displayName,
+          provider: meta ? "OfficialJsonMenuProvider" : brand.availableMenuSources.length > 0 ? "stub" : "none",
+          dataOrigin: brand.dataOrigin ?? null,
+          verifiedAt: brand.verifiedAt ?? null,
+          sourceVersion: brand.sourceVersion ?? null,
+          verifiedBy: brand.verifiedBy ?? null,
+          refreshPolicy: brand.refreshPolicy ?? null,
+          itemCount: meta?.itemCount ?? 0,
+          availableMenuSources: brand.availableMenuSources,
+        };
+      })
+    );
+    return res.json(results);
+  }
+
+  const brand = findBrandBySlug(brandSlug);
+  if (!brand) {
+    return res.status(404).json({ error: `No brand registered with slug "${brandSlug}"` });
+  }
+
+  let provider = "none";
+  let itemCount = 0;
+
+  if (brand.availableMenuSources.includes("internal_canonical")) {
+    const meta = await officialJsonProvider.getMetadata(brand.brandSlug);
+    if (meta) {
+      provider = "OfficialJsonMenuProvider";
+      itemCount = meta.itemCount;
+    }
+  } else if (brand.availableMenuSources.length > 0) {
+    provider = `stub (${brand.availableMenuSources[0]})`;
+  }
+
+  return res.json({
+    brand: brand.brandSlug,
+    displayName: brand.displayName,
+    provider,
+    dataOrigin: brand.dataOrigin ?? null,
+    sourceUrl: brand.sourceUrl ?? null,
+    verifiedAt: brand.verifiedAt ?? null,
+    sourceVersion: brand.sourceVersion ?? null,
+    verifiedBy: brand.verifiedBy ?? null,
+    refreshPolicy: brand.refreshPolicy ?? null,
+    itemCount,
+    availableMenuSources: brand.availableMenuSources,
+  });
 });
 
 export default router;
