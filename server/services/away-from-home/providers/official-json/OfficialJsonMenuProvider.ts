@@ -18,9 +18,12 @@
 
 import path from "path";
 import fs from "fs";
+import { fileURLToPath } from "url";
 import type { RestaurantIdentity, NormalizedMenuItem } from "@shared/awayFromHome";
 import type { MenuProvider, MenuProviderCapabilities, MenuProviderResult } from "../MenuProvider";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const DATA_DIR = path.resolve(__dirname, "data");
 
 export class OfficialJsonMenuProvider implements MenuProvider {

@@ -67,6 +67,7 @@ import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import AwayFromHomeMealCard from "@/components/away-from-home/AwayFromHomeMealCard";
 import { fromLegacyRecommendation } from "@/components/away-from-home/awayFromHomeTranslator";
+import type { AwayFromHomeRecommendation } from "@shared/awayFromHome";
 
 // Guided flow step type - step-by-step wizard
 // entry → step1 (craving) → step2 (restaurant) → step3 (location) → generating → results
@@ -346,10 +347,20 @@ export default function RestaurantGuidePage() {
     rating?: number;
     photoUrl?: string;
   } | null>(null);
+  // Phase 2: native engine recommendations (AwayFromHomeRecommendation[] — no adapter needed)
+  const [engineRecs, setEngineRecs] = useState<AwayFromHomeRecommendation[] | null>(null);
+  // Phase 2: unavailable state when engine has no verified menu data for this restaurant
+  const [unavailableState, setUnavailableState] = useState<{
+    reason: string;
+    alternatives: string[];
+  } | null>(null);
 
   const chefFlowMeals = useMemo(
-    () => generatedMeals.map((m) => ({ id: m.id, name: m.name || m.meal, imageUrl: m.imageUrl })),
-    [generatedMeals],
+    () =>
+      engineRecs
+        ? engineRecs.map((r) => ({ id: r.id, name: r.meal.name, imageUrl: r.meal.imageUrl }))
+        : generatedMeals.map((m) => ({ id: m.id, name: m.name || m.meal, imageUrl: m.imageUrl })),
+    [engineRecs, generatedMeals],
   );
   const { imageMap: chefFlowImages, failedSet: chefFlowFailed } = useChefFlowImages(chefFlowMeals, "restaurant");
 
@@ -391,7 +402,16 @@ export default function RestaurantGuidePage() {
   useEffect(() => {
     const cached = loadRestaurantCache();
     if (cached?.restaurantData?.meals?.length) {
-      setGeneratedMeals(cached.restaurantData.meals);
+      const firstMeal = cached.restaurantData.meals[0];
+      const isNativeShape =
+        firstMeal && typeof firstMeal.meal === "object" && typeof firstMeal.meal?.name === "string";
+      if (isNativeShape) {
+        setEngineRecs(cached.restaurantData.meals as AwayFromHomeRecommendation[]);
+        setGeneratedMeals([]);
+      } else {
+        setGeneratedMeals(cached.restaurantData.meals);
+        setEngineRecs(null);
+      }
       setRestaurantInput(cached.restaurant || "");
       setCravingInput(cached.craving || "");
       setMatchedCuisine(cached.cuisine || null);
@@ -407,9 +427,23 @@ export default function RestaurantGuidePage() {
     const session = serverSessionData?.session;
     if (!session?.meals?.length) return;
     serverRestoredRef.current = true;
-    const userDiet = normalizeDiet(user?.dietaryRestrictions);
-    const meals = filterMealsByDiet(userDiet, session.meals as any[], (m) => m);
-    setGeneratedMeals(meals.length > 0 ? meals : session.meals);
+
+    const firstMeal = session.meals[0];
+    const isNativeShape =
+      firstMeal && typeof firstMeal.meal === "object" && typeof firstMeal.meal?.name === "string";
+
+    if (isNativeShape) {
+      // Phase 2: session stored native AwayFromHomeRecommendation[]
+      setEngineRecs(session.meals as AwayFromHomeRecommendation[]);
+      setGeneratedMeals([]);
+    } else {
+      // Legacy: filter and store old-shape meals
+      const userDiet = normalizeDiet(user?.dietaryRestrictions);
+      const meals = filterMealsByDiet(userDiet, session.meals as any[], (m) => m);
+      setGeneratedMeals(meals.length > 0 ? meals : session.meals);
+      setEngineRecs(null);
+    }
+
     setRestaurantInput(session.restaurantName || "");
     setCravingInput(session.craving || "");
     setMatchedCuisine(session.cuisine || null);
@@ -420,7 +454,7 @@ export default function RestaurantGuidePage() {
     // Keep localStorage in sync with server data
     saveRestaurantCache({
       restaurantData: {
-        meals: meals.length > 0 ? meals : session.meals,
+        meals: session.meals,
         restaurantInfo: session.restaurantInfo,
       },
       restaurant: session.restaurantName || "",
@@ -478,7 +512,54 @@ export default function RestaurantGuidePage() {
     },
     onSuccess: (data) => {
       stopProgressTicker();
-      // Dietary compliance: filter BEFORE render — never show non-compliant recommendations
+
+      // Phase 2: explicit unavailable state — no menu data for this restaurant
+      if (data.status === "unavailable") {
+        setUnavailableState({ reason: data.reason || "no_registry_match", alternatives: data.alternatives || [] });
+        setEngineRecs(null);
+        setGeneratedMeals([]);
+        if (data.restaurantInfo) setRestaurantInfo(data.restaurantInfo);
+        setGuidedStep("results");
+        return;
+      }
+
+      // Phase 2: engine returned native AwayFromHomeRecommendation[]
+      if (data.status === "ok" && Array.isArray(data.recommendations)) {
+        const nativeRecs: AwayFromHomeRecommendation[] = data.recommendations;
+        if (nativeRecs.length === 0) {
+          toast({
+            title: "No matches found",
+            description: "The engine found the menu but couldn't match any items to your profile. Try a different craving.",
+            variant: "destructive",
+          });
+          return;
+        }
+        setEngineRecs(nativeRecs);
+        setGeneratedMeals([]);
+        setUnavailableState(null);
+        setGuidedStep("results");
+        if (data.restaurantInfo) setRestaurantInfo(data.restaurantInfo);
+        saveRestaurantCache({
+          restaurantData: { meals: nativeRecs, restaurantInfo: data.restaurantInfo },
+          restaurant: restaurantInput,
+          craving: cravingInput,
+          cuisine: matchedCuisine || "",
+          generatedAtISO: new Date().toISOString(),
+        });
+        toast({
+          title: "🍽️ Restaurant Meals Found!",
+          description: `${nativeRecs.length} verified options at ${data.restaurantInfo?.name || restaurantInput}.`,
+        });
+        setTimeout(() => {
+          const event = new CustomEvent("walkthrough:event", {
+            detail: { testId: "restaurantguide-search-complete", event: "done" },
+          });
+          window.dispatchEvent(event);
+        }, 500);
+        return;
+      }
+
+      // Legacy fallback path (should not normally be reached in Phase 2)
       const userDiet = normalizeDiet(user?.dietaryRestrictions);
       const rawRecs = data.recommendations || [];
       const compliantRecs = filterMealsByDiet(userDiet, rawRecs, (r) => r);
@@ -490,39 +571,25 @@ export default function RestaurantGuidePage() {
             ? `No ${userDiet}-compliant options were found at this restaurant. Try a different location or search for ${userDiet}-friendly cuisine nearby.`
             : `No recommendations matched your ${userDiet} diet. Try a different restaurant or craving.`
           : "No recommendations were generated. Please try again.";
-        toast({
-          title: "No matching meals found",
-          description: emptyDesc,
-          variant: "destructive",
-        });
+        toast({ title: "No matching meals found", description: emptyDesc, variant: "destructive" });
         return;
       }
       setGeneratedMeals(compliantRecs);
+      setEngineRecs(null);
+      setUnavailableState(null);
       setGuidedStep("results");
-
-      // Store restaurant info from Google Places
-      if (data.restaurantInfo) {
-        setRestaurantInfo(data.restaurantInfo);
-      }
-
-      // Cache what the user actually sees (compliantRecs, not raw recommendations)
+      if (data.restaurantInfo) setRestaurantInfo(data.restaurantInfo);
       saveRestaurantCache({
-        restaurantData: {
-          meals: compliantRecs,
-          restaurantInfo: data.restaurantInfo,
-        },
+        restaurantData: { meals: compliantRecs, restaurantInfo: data.restaurantInfo },
         restaurant: restaurantInput,
         craving: cravingInput,
         cuisine: matchedCuisine || "",
         generatedAtISO: new Date().toISOString(),
       });
-
       toast({
         title: "🍽️ Restaurant Meals Generated!",
         description: `Found ${data.recommendations?.length || 0} healthy options at ${data.restaurantInfo?.name || restaurantInput}.`,
       });
-
-      // Emit search-complete event after successful generation
       setTimeout(() => {
         const event = new CustomEvent("walkthrough:event", {
           detail: { testId: "restaurantguide-search-complete", event: "done" },
@@ -952,15 +1019,18 @@ export default function RestaurantGuidePage() {
           )}
 
           {/* RESULTS SCREEN - Generated Meals Section */}
-          {guidedStep === "results" && generatedMeals.length > 0 && (
+          {guidedStep === "results" && (engineRecs !== null || generatedMeals.length > 0 || unavailableState !== null) && (
             <Card className="bg-black/10 backdrop-blur-lg border border-white/20 shadow-xl rounded-2xl">
               <CardContent className="p-6">
                 <div data-wt="rg-results-list" className="space-y-6 mb-6">
                   <div className="mb-4">
                     <div className="flex items-center justify-between">
                       <h2 className="text-xl font-bold text-white">
-                        🍽️ Recommended Meals at{" "}
-                        {restaurantInfo?.name ||
+                        🍽️{" "}
+                        {unavailableState
+                          ? "Restaurant Not Yet Supported"
+                          : "Recommended Meals at"}{" "}
+                        {!unavailableState && (restaurantInfo?.name ||
                           restaurantInput
                             .split(" ")
                             .map(
@@ -968,11 +1038,13 @@ export default function RestaurantGuidePage() {
                                 word.charAt(0).toUpperCase() +
                                 word.slice(1).toLowerCase(),
                             )
-                            .join(" ")}
+                            .join(" "))}
                       </h2>
                       <button
                         onClick={() => {
                           setGeneratedMeals([]);
+                          setEngineRecs(null);
+                          setUnavailableState(null);
                           clearRestaurantCache();
                           setRestaurantInput("");
                           setCravingInput("");
@@ -980,17 +1052,17 @@ export default function RestaurantGuidePage() {
                           setGuidedStep("entry");
                           hasSpokenEntryRef.current = false;
                         }}
-                        className="text-sm text-white/70 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg transition-colors"
+                        className="text-sm text-white/70 bg-white/10 px-3 py-1 rounded-lg"
                         data-testid="button-create-new"
                       >
                         Search Again
                       </button>
                     </div>
-                    {restaurantInfo?.address && (
+                    {restaurantInfo?.address && !unavailableState && (
                       <div className="flex items-center gap-2 mt-1">
                         <button
                           onClick={() => openInMaps(restaurantInfo.address)}
-                          className="flex items-center gap-1 text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                          className="flex items-center gap-1 text-sm text-blue-400 transition-colors"
                           aria-label="Open in Maps"
                         >
                           <Navigation className="h-3 w-3" />
@@ -1010,7 +1082,7 @@ export default function RestaurantGuidePage() {
                                 : "Please copy manually.",
                             });
                           }}
-                          className="p-1 text-white/50 hover:text-white/80 transition-colors"
+                          className="p-1 text-white/50 transition-colors"
                           aria-label="Copy address"
                         >
                           <Copy className="h-3.5 w-3.5" />
@@ -1023,23 +1095,82 @@ export default function RestaurantGuidePage() {
                       </div>
                     )}
                   </div>
-                  <div className="grid gap-4">
-                    {generatedMeals.map((meal, index) => (
-                      <div
-                        data-wt="rg-restaurant-card"
-                        key={meal.id || index}
-                      >
-                        <AwayFromHomeMealCard
-                          recommendation={fromLegacyRecommendation(
-                            meal,
-                            restaurantInfo,
-                            "restaurant_guide",
-                            chefFlowImages[chefFlowMealId(meal, "restaurant")] || meal.imageUrl
-                          )}
-                        />
+
+                  {/* Phase 2: Unavailable state — no verified menu data */}
+                  {unavailableState && (
+                    <div className="rounded-xl bg-white/5 border border-white/10 p-6 text-center space-y-3">
+                      <div className="text-4xl">🗺️</div>
+                      <p className="text-white font-medium">
+                        We don't have verified menu data for this restaurant yet.
+                      </p>
+                      <p className="text-white/60 text-sm">
+                        MyPerfectMeals works best with supported chains where we have official nutrition data.
+                        Try one of these instead:
+                      </p>
+                      <div className="flex flex-wrap justify-center gap-2 pt-1">
+                        {unavailableState.alternatives.includes("just_describe_it") && (
+                          <span className="bg-orange-600/80 text-white text-sm px-3 py-1 rounded-full">
+                            Describe your meal
+                          </span>
+                        )}
+                        {unavailableState.alternatives.includes("my_perfect_buffet") && (
+                          <span className="bg-white/10 text-white text-sm px-3 py-1 rounded-full">
+                            My Perfect Buffet
+                          </span>
+                        )}
+                        {unavailableState.alternatives.includes("paste_menu_text") && (
+                          <span className="bg-white/10 text-white text-sm px-3 py-1 rounded-full">
+                            Paste the menu
+                          </span>
+                        )}
                       </div>
-                    ))}
-                  </div>
+                      <p className="text-white/40 text-xs pt-2">
+                        Supported: Wendy's — more chains coming soon.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Phase 2: Native engine recommendations — no adapter needed */}
+                  {engineRecs && engineRecs.length > 0 && (
+                    <div className="grid gap-4">
+                      {engineRecs.map((rec, index) => (
+                        <div data-wt="rg-restaurant-card" key={rec.id || index}>
+                          <AwayFromHomeMealCard
+                            recommendation={{
+                              ...rec,
+                              meal: {
+                                ...rec.meal,
+                                imageUrl:
+                                  chefFlowImages[chefFlowMealId({ id: rec.id, name: rec.meal.name, imageUrl: rec.meal.imageUrl }, "restaurant")] ||
+                                  rec.meal.imageUrl,
+                              },
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Legacy path: old-shape meals (cached sessions from before Phase 2) */}
+                  {!engineRecs && !unavailableState && generatedMeals.length > 0 && (
+                    <div className="grid gap-4">
+                      {generatedMeals.map((meal, index) => (
+                        <div
+                          data-wt="rg-restaurant-card"
+                          key={meal.id || index}
+                        >
+                          <AwayFromHomeMealCard
+                            recommendation={fromLegacyRecommendation(
+                              meal,
+                              restaurantInfo,
+                              "restaurant_guide",
+                              chefFlowImages[chefFlowMealId(meal, "restaurant")] || meal.imageUrl
+                            )}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
