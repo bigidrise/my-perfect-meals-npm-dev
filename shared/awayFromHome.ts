@@ -77,29 +77,46 @@ export interface RestaurantIdentity {
   /**
    * How the menu data was obtained. Omit when no menu data is available yet.
    *
-   * official_website     — Hand-curated from the chain's own published nutrition page.
-   *                        Macros are chain-official, not estimated.
-   * licensed_api         — Sourced via a paid/licensed nutrition API (e.g., Nutritionix).
-   * ocr_scan             — Extracted from a photographed menu; values may vary by item.
+   * official_website       — Hand-curated from the chain's own published nutrition page.
+   *                          Macros are chain-official, not estimated.
+   * licensed_api           — Sourced via a paid/licensed nutrition API (e.g., Nutritionix).
+   * partner_feed           — Received from a partner integration or data agreement.
+   * ocr_scan               — Extracted from a photographed menu; values may vary by item.
+   * user_uploaded          — User-uploaded PDF or image menu; values unverified.
    * hand_curated_estimated — Hand-entered without an official source; values are estimates.
    */
-  dataOrigin?: "official_website" | "licensed_api" | "ocr_scan" | "hand_curated_estimated";
+  dataOrigin?: "official_website" | "licensed_api" | "partner_feed" | "ocr_scan" | "user_uploaded" | "hand_curated_estimated";
   /**
    * Canonical URL for this brand's official nutrition/allergen information.
    * Used by the staleness checker and data-update workflow.
    */
   sourceUrl?: string;
   /**
-   * ISO date (YYYY-MM-DD) when the menu dataset was last verified against
-   * the official source. "official_website" without this date is ambiguous —
-   * menus and nutrition values change over time.
+   * ISO-8601 date string (YYYY-MM-DD) when the menu dataset was last verified
+   * against the source. Required when dataOrigin is "official_website".
+   * Used by MenuFreshnessService to flag aging or stale datasets.
    */
-  menuDataVerifiedAt?: string;
+  verifiedAt?: string;
   /**
-   * Optional version tag for the menu dataset file (e.g., "v1.0", "2025-Q1").
+   * Optional version tag, revision, or API snapshot ID for this dataset.
    * Increment whenever items are added, removed, or nutrition values corrected.
+   * Examples: "v1.0", "2025-Q1", "nutritionix-snapshot-2025-01"
    */
-  menuDataVersion?: string;
+  sourceVersion?: string;
+  /**
+   * Who verified this menu data. Useful when partner-maintained menus or
+   * an internal nutrition review team are introduced.
+   * Examples: "MyPerfectMeals", "Nutritionix", "PartnerChainName"
+   */
+  verifiedBy?: string;
+  /**
+   * How this dataset gets refreshed.
+   *
+   * manual    — Human review required to update (official JSON, OCR scans).
+   * scheduled — Automated re-import on a fixed schedule (future cron job).
+   * provider  — Provider refreshes data on their side (licensed API, partner feed).
+   */
+  refreshPolicy?: "manual" | "scheduled" | "provider";
 }
 
 // ── Normalized Menu Item ─────────────────────────────────────────────────────
