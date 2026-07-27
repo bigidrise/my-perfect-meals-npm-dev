@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { db } from "../db";
 import { users } from "@shared/schema";
 import { userCertifications } from "../db/schema/certifications";
-import { eq, and, isNotNull, inArray } from "drizzle-orm";
+import { eq, and, isNotNull, or } from "drizzle-orm";
 import { AuthenticatedRequest } from "./requireAuth";
 
 /**
@@ -101,16 +101,24 @@ export async function requirePhase1Cert(
       return;
     }
 
-    // Check Phase 1 certification — accepts both "platform" (legacy Academy records)
-    // and "platform_mastery" (current Academy records). ANY completed row from either
-    // type satisfies the gate; this is deterministic across both cert types.
+    // Check Phase 1 certification. Accepts:
+    //   - "platform_mastery" records (current Academy cert type, any cert-track flag)
+    //   - "platform" records with is_certification_track=true (legacy Academy completions)
+    // Plain "platform" records without cert-track flag are ProCare training records
+    // and must NOT satisfy the Phase 1 Academy gate.
     const certs = await db
       .select({ status: userCertifications.status, completedAt: userCertifications.completedAt })
       .from(userCertifications)
       .where(
         and(
           eq(userCertifications.userId, authUser.id),
-          inArray(userCertifications.certificationType, ["platform", "platform_mastery"])
+          or(
+            eq(userCertifications.certificationType, "platform_mastery"),
+            and(
+              eq(userCertifications.certificationType, "platform"),
+              eq(userCertifications.isCertificationTrack, true)
+            )
+          )
         )
       );
 

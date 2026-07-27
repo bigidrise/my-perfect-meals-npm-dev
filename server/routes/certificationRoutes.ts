@@ -2,7 +2,7 @@ import express from "express";
 import path from "path";
 import fs from "fs";
 import { db } from "../db";
-import { eq, and, asc, inArray, ne } from "drizzle-orm";
+import { eq, and, asc, inArray, ne, or } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import {
@@ -299,6 +299,10 @@ router.get("/phase1-status", requireAuth, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser.id;
 
+    // Only "platform_mastery" records (current Academy cert type) OR legacy "platform"
+    // records with is_certification_track=true (old Academy completions) satisfy Phase 1.
+    // Plain "platform" records without cert-track flag are ProCare training records and
+    // must NOT satisfy the Phase 1 Academy gate.
     const certs = await db
       .select({
         status: userCertifications.status,
@@ -310,7 +314,13 @@ router.get("/phase1-status", requireAuth, async (req, res) => {
       .where(
         and(
           eq(userCertifications.userId, userId),
-          inArray(userCertifications.certificationType, ["platform", "platform_mastery"])
+          or(
+            eq(userCertifications.certificationType, "platform_mastery"),
+            and(
+              eq(userCertifications.certificationType, "platform"),
+              eq(userCertifications.isCertificationTrack, true)
+            )
+          )
         )
       );
 
