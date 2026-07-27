@@ -89,6 +89,17 @@ export interface RestaurantIdentity {
    * Used by the staleness checker and data-update workflow.
    */
   sourceUrl?: string;
+  /**
+   * ISO date (YYYY-MM-DD) when the menu dataset was last verified against
+   * the official source. "official_website" without this date is ambiguous —
+   * menus and nutrition values change over time.
+   */
+  menuDataVerifiedAt?: string;
+  /**
+   * Optional version tag for the menu dataset file (e.g., "v1.0", "2025-Q1").
+   * Increment whenever items are added, removed, or nutrition values corrected.
+   */
+  menuDataVersion?: string;
 }
 
 // ── Normalized Menu Item ─────────────────────────────────────────────────────
