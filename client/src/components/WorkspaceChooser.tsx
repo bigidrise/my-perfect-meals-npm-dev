@@ -28,10 +28,8 @@ export function WorkspaceChooser({ onChoose }: WorkspaceChooserProps) {
 
     setChecking(true);
     try {
-      const phase1Res = await apiRequest("/api/certifications/platform/progress");
-      const phase1Complete =
-        (phase1Res as any)?.certification?.status === "completed" &&
-        !!(phase1Res as any)?.certification?.completedAt;
+      const phase1Res = await apiRequest("/api/certifications/phase1-status");
+      const phase1Complete = (phase1Res as any)?.phase1Complete === true;
 
       if (!phase1Complete) {
         sessionStorage.setItem(

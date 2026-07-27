@@ -183,14 +183,14 @@ export default function AcademyLandingPage() {
     (async () => {
       try {
         const [p1Res, p2Res, mcRes] = await Promise.allSettled([
-          apiRequest("/api/certifications/platform/progress"),
+          apiRequest("/api/certifications/phase1-status"),
           apiRequest("/api/certifications/procare_training/progress"),
           apiRequest("/api/certifications/marketing_coaching/progress"),
         ]);
 
         const phase1Done =
           p1Res.status === "fulfilled" &&
-          (p1Res.value as any)?.certification?.status === "completed";
+          (p1Res.value as any)?.phase1Complete === true;
         const phase1Score =
           p1Res.status === "fulfilled"
             ? ((p1Res.value as any)?.certification?.score ?? null)

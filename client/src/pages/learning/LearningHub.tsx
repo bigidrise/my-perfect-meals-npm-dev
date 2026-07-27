@@ -34,13 +34,13 @@ export default function LearningHub() {
     (async () => {
       try {
         const [platformRes, phase1Res, affiliateRes, updatesRes] = await Promise.allSettled([
-          apiRequest("/api/certifications/platform/progress"),
+          apiRequest("/api/certifications/phase1-status"),
           apiRequest("/api/certifications/affiliate_social/progress"),
           apiRequest("/api/certifications/affiliate-status"),
           apiRequest("/api/lms/updates"),
         ]);
         if (platformRes.status === "fulfilled") {
-          const d = platformRes.value as { certification: CertStatus | null };
+          const d = platformRes.value as { phase1Complete: boolean; certification: CertStatus | null };
           setPlatformStatus(d.certification ?? { status: "not_started" });
         }
         if (phase1Res.status === "fulfilled") {

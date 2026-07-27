@@ -290,6 +290,57 @@ router.get("/assets/signature", async (req, res) => {
   }
 });
 
+// GET /api/certifications/phase1-status
+// Canonical Phase 1 gate check — accepts both "platform" (legacy Academy records)
+// and "platform_mastery" (current Academy records). Returns a single boolean plus
+// the best matching cert record. Use this in all Phase 1 eligibility gates instead
+// of calling /platform/progress directly, so both cert types are always recognized.
+router.get("/phase1-status", requireAuth, async (req, res) => {
+  try {
+    const userId = (req as AuthenticatedRequest).authUser.id;
+
+    const certs = await db
+      .select({
+        status: userCertifications.status,
+        completedAt: userCertifications.completedAt,
+        certificationType: userCertifications.certificationType,
+        score: userCertifications.score,
+      })
+      .from(userCertifications)
+      .where(
+        and(
+          eq(userCertifications.userId, userId),
+          inArray(userCertifications.certificationType, ["platform", "platform_mastery"])
+        )
+      );
+
+    const completed = certs.filter((c) => c.status === "completed" && c.completedAt);
+    const best =
+      completed[0] ??
+      certs.find((c) => c.status === "in_progress") ??
+      certs[0] ??
+      null;
+
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+    return res.json({
+      phase1Complete: completed.length > 0,
+      certification: best
+        ? {
+            status: best.status,
+            completedAt: best.completedAt ?? null,
+            certificationType: best.certificationType,
+            score: best.score ?? null,
+          }
+        : null,
+    });
+  } catch (err) {
+    console.error("[Cert] phase1-status error:", err);
+    return res.status(500).json({ error: "Failed to check Phase 1 status" });
+  }
+});
+
 // ─── DYNAMIC ROUTES ───────────────────────────────────────────────────────────
 
 // GET /api/certifications/:certType/progress

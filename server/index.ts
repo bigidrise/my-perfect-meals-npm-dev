@@ -757,7 +757,7 @@ setTimeout(async () => {
         'platform_mastery',
         uc.status,
         uc.completed_at,
-        uc.certificate_number,
+        CONCAT('cert-type-bridge-v1:', COALESCE(uc.certificate_number, '')),
         uc.certificate_name,
         uc.is_certification_track,
         NOW(),

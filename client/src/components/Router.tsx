@@ -208,10 +208,9 @@ function ProCareStudioGuard({ component: Component }: { component: React.Compone
         if (isInitial) setCertChecked(true);
         return;
       }
-      apiRequest("/api/certifications/platform/progress")
+      apiRequest("/api/certifications/phase1-status")
         .then((res: any) => {
-          const phase1Complete =
-            res?.certification?.status === "completed" && !!res?.certification?.completedAt;
+          const phase1Complete = res?.phase1Complete === true;
           if (!phase1Complete) {
             setCertified(false);
             certifiedRef.current = false;
