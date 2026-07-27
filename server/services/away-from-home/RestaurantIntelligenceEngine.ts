@@ -7,48 +7,31 @@
  *
  * What this engine knows:
  *   WHO a restaurant is      → BrandRegistry
- *   WHERE menu data lives    → MenuProvider chain
+ *   WHERE menu data lives    → MenuProvider chain (injected, not imported)
  *   WHAT items are available → NormalizedMenuItem[]
  *   HOW confident we are     → NutritionDataStatus
  *
  * What this engine does NOT know:
- *   How to generate AI recommendations  → restaurantMealGeneratorAI.ts
- *   How to display a card               → AwayFromHomeMealCard.tsx
- *   How to add to macros                → MacroConfirmSheet.tsx
+ *   - which concrete providers exist (see ProviderRegistry)
+ *   - how any provider retrieves its data
+ *   - how to generate AI recommendations
+ *   - how to display a card or add to macros
  *
- * Usage:
- *   const engine = RestaurantIntelligenceEngine.getInstance();
+ * The engine is a pure class. It has no singleton logic and no
+ * concrete provider imports. The production singleton lives in ProviderRegistry.
+ *
+ * Usage (production):
+ *   import { restaurantEngine } from "./ProviderRegistry";
+ *   const result = await restaurantEngine.resolve({ restaurantName: "Wendy's" });
+ *
+ * Usage (tests):
+ *   const engine = new RestaurantIntelligenceEngine([mockProvider]);
  *   const result = await engine.resolve({ restaurantName: "Wendy's" });
- *   if (result.status === "ok") {
- *     // pass result.items to the AI reasoning layer
- *   } else {
- *     // surface result.alternatives to the user
- *   }
  */
 
 import type { MenuResolutionResult, NormalizedMenuItem, NutritionDataStatus } from "@shared/awayFromHome";
 import { findBrandByName, findBrandBySlug, getBrandsWithMenuCoverage } from "./BrandRegistry";
 import type { MenuProvider } from "./providers/MenuProvider";
-import { OfficialJsonMenuProvider } from "./providers/official-json/OfficialJsonMenuProvider";
-import { NutritionixMenuProvider } from "./providers/nutritionix/NutritionixMenuProvider";
-import { UploadedMenuProvider } from "./providers/uploaded-menu/UploadedMenuProvider";
-import { OCRMenuProvider } from "./providers/ocr/OCRMenuProvider";
-
-// ── Provider chain ────────────────────────────────────────────────────────────
-
-/**
- * The ordered list of providers the engine tries, in priority order.
- * The engine stops at the first provider that returns ok: true.
- *
- * To add a new provider: instantiate it and append it to this array.
- * The engine requires no other changes.
- */
-const PROVIDER_CHAIN: MenuProvider[] = [
-  new OfficialJsonMenuProvider(),
-  new NutritionixMenuProvider(),
-  new UploadedMenuProvider(),
-  new OCRMenuProvider(),
-];
 
 // ── Staleness threshold ───────────────────────────────────────────────────────
 
@@ -88,7 +71,6 @@ export function applyDietaryPreFilter(
   const diets = new Set(dietaryRestrictions.map((d) => d.toLowerCase()));
 
   const filtered = items.filter((item) => {
-    // Hard allergy filter
     if (lowerAllergies.length > 0 && item.allergens) {
       const hasAllergen = item.allergens.some((allergen) =>
         lowerAllergies.some((ua) => allergen.toLowerCase().includes(ua))
@@ -123,22 +105,22 @@ export interface EngineResolutionOptions {
   allergies?: string[];
 }
 
-// ── Engine (singleton) ────────────────────────────────────────────────────────
+// ── Engine ────────────────────────────────────────────────────────────────────
 
 export class RestaurantIntelligenceEngine {
-  private static instance: RestaurantIntelligenceEngine;
+  /** Injected provider chain — engine has no knowledge of concrete implementations. */
+  private readonly providers: MenuProvider[];
 
-  static getInstance(): RestaurantIntelligenceEngine {
-    if (!RestaurantIntelligenceEngine.instance) {
-      RestaurantIntelligenceEngine.instance = new RestaurantIntelligenceEngine();
-    }
-    return RestaurantIntelligenceEngine.instance;
-  }
-
-  private constructor() {
+  /**
+   * Pass any MenuProvider[] — the engine treats them all identically
+   * through the interface. It never inspects what a provider is.
+   */
+  constructor(providers: MenuProvider[]) {
+    this.providers = providers;
     console.log(
       `🍽️  Restaurant Intelligence Engine initialized. ` +
-        `Registered brands with menu coverage: ${getBrandsWithMenuCoverage().length}`
+        `Providers: ${providers.length} | ` +
+        `Brands with menu coverage: ${getBrandsWithMenuCoverage().length}`
     );
   }
 
@@ -148,7 +130,7 @@ export class RestaurantIntelligenceEngine {
    * Resolves a restaurant name to verified menu items, or returns an
    * explicit "unavailable" result with alternative actions for the user.
    *
-   * NEVER returns an empty ok result. If providers return nothing,
+   * NEVER returns an empty ok result. If all providers return nothing,
    * status is "unavailable" — the caller must never invent menu items.
    */
   async resolve(options: EngineResolutionOptions): Promise<MenuResolutionResult> {
@@ -190,13 +172,15 @@ export class RestaurantIntelligenceEngine {
     }
 
     // ── Step 3: Provider chain ───────────────────────────────────────────────
-    for (const provider of PROVIDER_CHAIN) {
+    // The engine iterates providers polymorphically via the MenuProvider interface.
+    // It has no knowledge of what any provider is or how it retrieves data.
+    for (const provider of this.providers) {
       try {
         const result = await provider.getMenu(restaurantName, identity);
 
         if (result.ok && result.items.length > 0) {
           console.log(
-            `✅ Engine: "${identity.displayName}" resolved via "${provider.capabilities.source}" ` +
+            `✅ Engine: "${identity.displayName}" resolved via source="${provider.capabilities.source}" ` +
               `(${result.items.length} items)`
           );
 
@@ -224,8 +208,9 @@ export class RestaurantIntelligenceEngine {
           };
         }
       } catch (err) {
+        // Provider errors are isolated — one provider failure does not stop the chain.
         console.error(
-          `❌ Engine: provider "${provider.capabilities.source}" threw for "${identity.brandSlug}":`,
+          `❌ Engine: provider source="${provider.capabilities.source}" threw for "${identity.brandSlug}":`,
           err
         );
       }
@@ -233,7 +218,7 @@ export class RestaurantIntelligenceEngine {
 
     // ── Step 6: All providers exhausted ─────────────────────────────────────
     console.log(
-      `ℹ️  Engine: all providers exhausted for "${identity.displayName}"`
+      `ℹ️  Engine: all ${this.providers.length} provider(s) exhausted for "${identity.displayName}"`
     );
     return {
       status: "unavailable",
@@ -264,7 +249,7 @@ export class RestaurantIntelligenceEngine {
     return new Map(entries);
   }
 
-  // ── Introspection ────────────────────────────────────────────────────────
+  // ── Introspection ─────────────────────────────────────────────────────────
 
   /** Health summary — used by /api/health and debug endpoints. */
   getHealth(): {
@@ -272,7 +257,7 @@ export class RestaurantIntelligenceEngine {
     brandsWithCoverage: number;
   } {
     return {
-      providers: PROVIDER_CHAIN.map((p) => ({
+      providers: this.providers.map((p) => ({
         source: p.capabilities.source,
         description: p.capabilities.description,
         requiresNetwork: p.capabilities.requiresNetwork,
@@ -296,6 +281,4 @@ export class RestaurantIntelligenceEngine {
   }
 }
 
-// ── Module-level singleton convenience export ─────────────────────────────────
-
-export const restaurantEngine = RestaurantIntelligenceEngine.getInstance();
+// No singleton here. Import restaurantEngine from ProviderRegistry for production use.
