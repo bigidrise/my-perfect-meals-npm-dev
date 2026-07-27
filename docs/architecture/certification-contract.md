@@ -2,6 +2,19 @@
 
 > **Status:** Active — do not simplify or consolidate without reading this document first.
 
+---
+
+> **Architecture Decision (ADR Summary)**
+>
+> We intentionally separate **gate evaluation** from **certification record retrieval**.
+>
+> - Gate endpoints answer **"Can this user proceed?"**
+> - Progress endpoints answer **"What is the state of this certification?"**
+>
+> These responsibilities must remain separate. Do not repurpose one endpoint for the other.
+
+---
+
 ## 1. Purpose
 
 There are two distinct operations the certification system performs, and they must never be conflated:
