@@ -440,7 +440,7 @@ router.post("/find-nearby", async (req, res) => {
 //   }
 router.get("/debug/provider/:brandSlug", async (req, res) => {
   if (process.env.NODE_ENV === "production") {
-    return res.status(404).json({ error: "Not found" });
+    return res.status(404).json({ message: "Not found" });
   }
 
   const { brandSlug } = req.params;
