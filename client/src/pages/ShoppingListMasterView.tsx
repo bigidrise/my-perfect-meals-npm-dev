@@ -529,7 +529,7 @@ export default function ShoppingListMasterView() {
               <span className="flex-1 min-w-0">
                 <span className="block text-white font-semibold text-sm leading-tight">Grocery Store Coach</span>
                 <span className="block text-orange-300/60 text-xs mt-0.5">
-                  {hasGroceryCoachAccess ? "Not sure what to make tonight? Ask your Coach." : "Upgrade to Pro to unlock"}
+                  {hasGroceryCoachAccess ? "Recommends a meal + saves a full recipe card to Favorites." : "Upgrade to Pro to unlock"}
                 </span>
               </span>
               <span className="bg-orange-500/20 border border-orange-400/20 rounded-lg px-2 py-0.5 text-[10px] text-orange-300 font-semibold uppercase tracking-wide flex-shrink-0">
