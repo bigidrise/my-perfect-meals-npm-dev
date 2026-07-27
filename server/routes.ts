@@ -7544,6 +7544,9 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   const { resolveCuisineMiddleware: resolveCuisineShared } = await import("./middleware/resolveCuisineMiddleware");
   app.use("/api/restaurants", requireAuth, requireProAccess, resolveCuisineShared, restaurantRoutesShared);
 
+  const { default: buffetRouterShared } = await import("./routes/buffet");
+  app.use("/api/buffet", requireAuth, buffetRouterShared);
+
   const { default: mealPlanRoutesV1Shared } = await import("./routes/mealPlans.routes");
   app.use("/api/meal-plan", mealPlanRoutesV1Shared);
   app.use("/api/meal-plans", mealPlanRoutesV1Shared);
