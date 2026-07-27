@@ -47,8 +47,8 @@ const PLATFORM_MASTERY_LESSONS = [
   },
   {
     number: "02",
-    title: "Builder Selection",
-    description: "How builder assignment works, what each builder is designed to create, and how to navigate your assigned environment before generating your first meal.",
+    title: "Meal Builders — Choosing the Right Tool",
+    description: "Every meal creation tool on the platform — Create a Dish, Chef's Kitchen, Snack Creator, Beverage Creator, Craving Creator, Recipe Scan, Fridge Rescue, and more — with a scenario matrix for choosing the right tool.",
     icon: LayoutDashboard,
   },
   {
@@ -77,8 +77,8 @@ const PLATFORM_MASTERY_LESSONS = [
   },
   {
     number: "07",
-    title: "Specialized Systems",
-    description: "Clinical programs (GLP-1, oncology, diabetes), ProCare Studio coaching tools, and the advanced platform features for professionals.",
+    title: "Specialized Health & Performance Systems",
+    description: "Clinical and performance programs — GlucoseGuard, GLP-1 tolerance, Anti-Inflammatory Protocol, Oncology Support, and Performance Nutrition — plus how the protocol priority hierarchy resolves competing programs.",
     icon: Users,
   },
   {
