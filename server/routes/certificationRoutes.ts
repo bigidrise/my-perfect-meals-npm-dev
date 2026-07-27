@@ -293,39 +293,53 @@ router.get("/assets/signature", async (req, res) => {
 // ─── DYNAMIC ROUTES ───────────────────────────────────────────────────────────
 
 // GET /api/certifications/:certType/progress
+// Compatibility shim: "platform" transparently includes "platform_mastery" records
+// so that clients calling /certifications/platform/progress correctly recognize
+// users who completed the Academy under the renamed cert type.
 router.get("/:certType/progress", requireAuth, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser.id;
     const { certType } = req.params;
 
-    const [certification, moduleProgress] = await Promise.all([
+    // When the requested type is "platform", also search "platform_mastery"
+    // (the renamed cert type for new Academy completions).
+    const queryTypes: string[] =
+      certType === "platform" ? ["platform", "platform_mastery"] : [certType];
+
+    const [certRows, moduleProgress] = await Promise.all([
       db
         .select()
         .from(userCertifications)
         .where(
           and(
             eq(userCertifications.userId, userId),
-            eq(userCertifications.certificationType, certType)
+            inArray(userCertifications.certificationType, queryTypes)
           )
-        )
-        .limit(1),
+        ),
       db
         .select()
         .from(certificationModuleProgress)
         .where(
           and(
             eq(certificationModuleProgress.userId, userId),
-            eq(certificationModuleProgress.certificationType, certType)
+            inArray(certificationModuleProgress.certificationType, queryTypes)
           )
         ),
     ]);
+
+    // Prefer the completed record; if neither is completed prefer the one with
+    // more module progress; fall back to the first row found.
+    const RANK = (r: (typeof certRows)[0]) =>
+      r.status === "completed" ? 2 : r.status === "in_progress" ? 1 : 0;
+    const certification =
+      certRows.sort((a, b) => RANK(b) - RANK(a))[0] ?? null;
 
     // Never cache this response — module status changes after every quiz
     res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
     res.setHeader("Pragma", "no-cache");
     res.setHeader("Expires", "0");
     return res.json({
-      certification: certification[0] ?? null,
+      certification,
       moduleProgress,
     });
   } catch (err) {
