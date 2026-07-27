@@ -1,4 +1,4 @@
-# Certification Contract
+# ADR-001 — Certification Contract
 
 > **Status:** Active — do not simplify or consolidate without reading this document first.
 
