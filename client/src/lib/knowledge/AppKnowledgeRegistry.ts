@@ -150,7 +150,7 @@ export const AppKnowledge: Record<string, FeatureKnowledge> = {
     description:
       "Your full grocery hub — Grocery Store Coach decides what to make, Smart Scan checks any product, and a smart list that syncs with all your meals.",
     howTo: [
-      "Tap Grocery Store Coach when you don't know what to make — type or tap a quick chip and get a full personalized meal recommendation with shopping list.",
+      "Tap Grocery Store Coach when you don't know what to make — type or tap a quick chip and get a full personalized meal recommendation with shopping list. A complete recipe card is automatically generated and saved to your Favorites.",
       "Tap Smart Scan to photograph any ingredient label and get an instant grade + verdict based on your health profile.",
       "Use the voice button to quickly add items without typing.",
       "Use the barcode scanner to instantly add packaged foods.",
@@ -184,12 +184,14 @@ export const AppKnowledge: Record<string, FeatureKnowledge> = {
     id: "grocery-coach",
     title: "Grocery Store Coach",
     description:
-      "AI decision coach that turns 'I don't know what to eat' into a specific meal recommendation, personalized reasoning, and a complete grocery list.",
+      "AI decision coach that turns 'I don't know what to eat' into a specific meal recommendation, personalized reasoning, a complete grocery list, and a full recipe card — automatically saved to your Favorites.",
     howTo: [
       "Tap Grocery Store Coach on the Shopping page.",
       "Choose who you are feeding: Just Me, My Household, or Meal Prep.",
       "Tap a quick chip (e.g. 'What's for dinner tonight?') or type your own request.",
       "Review the recommendation: meal name, why it fits your health profile, macros, prep time, and shopping list.",
+      "While you read the recommendation, the coach automatically generates your complete meal card — cooking instructions, nutrition details, and your full shopping list.",
+      "When the card is ready, tap 'View Meal Card' to open it directly in Favorites.",
       "Tap Add to Shopping List to add all ingredients in one tap.",
       "Use follow-up chips or type to refine: 'Make it cheaper', 'More protein', 'Something faster', 'Vegetarian version'.",
       "Tap Another for a completely different recommendation.",
@@ -197,6 +199,7 @@ export const AppKnowledge: Record<string, FeatureKnowledge> = {
     tips: [
       "The coach reads your full health profile — allergies, medical conditions, dietary restrictions, and macro targets.",
       "Household mode automatically scales ingredient quantities for the right number of people.",
+      "Your full recipe card — with instructions, nutrition, and your shopping list — is always saved to Favorites. You can find it there any time.",
       "You can have a back-and-forth conversation — the coach remembers the current session.",
       "This is a decision-making assistant, not a recipe builder. Use it when you are stuck.",
     ],

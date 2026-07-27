@@ -622,7 +622,7 @@ const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
       sections: [
         {
           heading: "What It Is",
-          text: "Grocery Store Coach is a real-time AI assistant that helps you plan a meal right from the grocery store aisle. Describe what you want — tonight's dinner, a high-protein meal, something heart-healthy, a family dish — and the Coach builds a complete, personalized meal recommendation along with a ready-to-add shopping list, all in seconds.",
+          text: "Grocery Store Coach is a real-time AI assistant that helps you plan a meal right from the grocery store aisle. Describe what you want — tonight's dinner, a high-protein meal, something heart-healthy, a family dish — and the Coach builds a complete, personalized meal recommendation along with a ready-to-add shopping list and a full recipe card, all in seconds.",
         },
         {
           heading: "The Moment",
@@ -635,9 +635,15 @@ const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
             "Choose a quick-start option — or type your own request in plain language",
             "Set how many people you're cooking for using the serving size control",
             "The Coach builds a full meal recommendation with name, description, macros, and a categorized shopping list",
+            "While you review the recommendation, the Coach automatically generates your complete recipe card — cooking instructions, full nutrition breakdown, and your shopping list",
+            "When the card is ready, a 'Recipe Ready' panel appears — tap 'View Meal Card' to open it directly in Favorites",
             "Review the shopping list broken down by Produce, Meat, Dairy, Pantry, and more",
             "Tap Add to Shopping List to send any or all items directly to your list in one tap",
           ],
+        },
+        {
+          heading: "Your Recipe Card Is Created Automatically",
+          text: "You don't have to do anything extra. The moment the Grocery Coach gives you a recommendation, it starts building a full recipe card in the background. That card includes the recipe name and description, step-by-step cooking instructions, complete nutrition details, and the full ingredient list. It's saved to your Favorites under 'Grocery Coach' and is there any time you want to reference it — even after you've closed the Coach.",
         },
         {
           heading: "Quick-Start Options",
