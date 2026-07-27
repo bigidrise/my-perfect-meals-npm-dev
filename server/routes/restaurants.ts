@@ -3,7 +3,6 @@
 // Phase 2: Restaurant Intelligence Engine integration
 import { Router } from "express";
 import axios from "axios";
-import { generateRestaurantMealsAI } from "../services/restaurantMealGeneratorAI";
 import { resolveRestaurantsByZip } from "../services/restaurantResolver";
 import { coordsToZip } from "../services/zipToCoordsService";
 import { db } from "../db";
@@ -209,64 +208,9 @@ router.get("/latest-session", async (req, res) => {
   }
 });
 
-// Restaurant meal generation endpoint - uses AI with fallback
-router.post("/analyze-menu", async (req, res) => {
-  try {
-    const userId = (req as AuthenticatedRequest).authUser.id;
-    const { restaurantName, cuisine } = req.body;
-    
-    if (!restaurantName || !cuisine) {
-      return res.status(400).json({ 
-        error: "Restaurant name and cuisine are required" 
-      });
-    }
-
-    console.log(`🍽️ Generating restaurant meals for ${restaurantName} (${cuisine} cuisine)`);
-    
-    // Fetch user data for health-based personalization
-    let user = undefined;
-    try {
-      const [foundUser] = await db.select().from(users).where(eq(users.id, userId));
-      if (foundUser) {
-        user = foundUser;
-        console.log(`👤 User medical profile loaded`);
-      }
-    } catch (userError) {
-      console.warn(`⚠️ Could not fetch user profile:`, userError);
-    }
-    
-    // ── Unified nutrition context (protocol + active builder) ─────────────────
-    const analyzeContext = await getActiveNutritionContext(userId);
-    const analyzeProtocolBlock = analyzeContext.combinedBlock;
-    console.log(`🔒 [ANALYZE-MENU] Nutrition context: diet=[${analyzeContext.diet.join(",")}] medical=[${analyzeContext.medical.length} flags] builder=${analyzeContext.builder ?? "none"}`);
-
-    // Use AI generator (automatically falls back to locked generator if AI fails)
-    const recommendations = await generateRestaurantMealsAI({
-      restaurantName: restaurantName || `${cuisine} Restaurant`,
-      cuisine: cuisine || "International",
-      user,
-      protocolBlock: analyzeProtocolBlock,
-      protocolEnvelope: analyzeContext.envelope,
-      builderBlock: analyzeContext.builderBlock || undefined,
-    });
-
-    console.log(`✅ Generated ${recommendations.length} restaurant meal recommendations`);
-
-    return res.json({
-      recommendations,
-      restaurantName,
-      cuisine,
-      generatedAt: new Date().toISOString()
-    });
-
-  } catch (error) {
-    console.error("Restaurant meal generation error:", error);
-    return res.status(500).json({ 
-      error: "Failed to generate restaurant meals",
-      details: error instanceof Error ? error.message : "Unknown error"
-    });
-  }
-});
+// ⛔ REMOVED: /analyze-menu — this endpoint invented plausible menu items for named restaurants.
+// The Restaurant Intelligence Engine (/api/restaurants/guide) replaced it. No frontend code
+// calls this endpoint. It is not mounted. Do not restore without engine integration.
 
 // Reverse geocoding endpoint - converts GPS coordinates to ZIP code
 router.post("/reverse-geocode", async (req, res) => {
