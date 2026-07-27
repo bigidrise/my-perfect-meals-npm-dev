@@ -68,7 +68,7 @@ const ROUTE_TITLES: Record<string, string> = {
   "/glp1-meal-builder": "Metabolic Medication Builder",
   "/glp1-meals-tracking": "Metabolic Medication Tracking",
   "/anti-inflammatory-menu-builder": "Anti-Inflammatory Builder",
-  "/social-hub": "Social Hub",
+  "/social-hub": "Meals Away From Home",
   "/social-hub/find": "Find Meals",
   "/social-hub/restaurant-guide": "Restaurant Guide",
   "/supplement-hub": "Supplement Hub",
