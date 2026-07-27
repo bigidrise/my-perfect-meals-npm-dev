@@ -682,6 +682,30 @@ export default function LessonReader() {
           <NarrationBar sections={lessonToNarrationSections(lesson)} />
         </motion.div>
 
+        {/* Learning Objectives */}
+        {lesson.learningObjectives && lesson.learningObjectives.length > 0 && (
+          <motion.div
+            className="bg-orange-500/10 border border-orange-500/25 rounded-2xl px-5 py-4 space-y-3"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.04 }}
+          >
+            <p className="text-xs font-bold text-orange-400 uppercase tracking-widest">
+              Learning Objectives
+            </p>
+            <ul className="space-y-2">
+              {lesson.learningObjectives.map((obj, i) => (
+                <li key={i} className="flex items-start gap-2.5">
+                  <span className="mt-0.5 flex-shrink-0 w-4 h-4 rounded-full bg-orange-500/20 border border-orange-500/40 flex items-center justify-center text-[9px] font-bold text-orange-400">
+                    {i + 1}
+                  </span>
+                  <span className="text-sm text-white/75 leading-relaxed">{obj}</span>
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+        )}
+
         {/* Opening paragraph */}
         <motion.div
           className="px-1"

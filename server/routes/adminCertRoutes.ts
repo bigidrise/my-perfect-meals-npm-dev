@@ -261,8 +261,8 @@ router.post("/seed/:certType", async (req, res) => {
     const { certType } = req.params;
     const force = req.query.force === "true";
 
-    if (certType !== "platform" && certType !== "business_success") {
-      return res.status(400).json({ error: "Only 'platform' and 'business_success' can be seeded" });
+    if (certType !== "platform" && certType !== "platform_mastery" && certType !== "business_success") {
+      return res.status(400).json({ error: "Only 'platform', 'platform_mastery', and 'business_success' can be seeded" });
     }
 
     const existing = await db.select({ id: certModules.id }).from(certModules).where(eq(certModules.certType, certType)).limit(1);
@@ -282,7 +282,7 @@ router.post("/seed/:certType", async (req, res) => {
 
     type QuestionSeed = { moduleSlug: string; questionText: string; options: { text: string; isCorrect: boolean }[] };
 
-    if (certType === "platform") {
+    if (certType === "platform" || certType === "platform_mastery") {
       // Module structure: Module 1 (full), Module 2 & 3 (placeholders, locked)
       const moduleSeed = [
         {
