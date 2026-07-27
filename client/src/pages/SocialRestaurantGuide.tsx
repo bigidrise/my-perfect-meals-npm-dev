@@ -41,29 +41,19 @@ import {
   ArrowLeft,
   MapPin,
   Loader2,
-  Plus,
   Navigation,
   Copy,
-  CalendarPlus,
 } from "lucide-react";
 import { useLocation } from "wouter";
-import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
-import {
-  generateMedicalBadges,
-  getUserMedicalProfile,
-} from "@/utils/medicalPersonalization";
 import PhaseGate from "@/components/PhaseGate";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { getLocation } from "@/lib/capacitorLocation";
-import { setQuickView } from "@/lib/macrosQuickView";
 import { openInMaps, copyAddressToClipboard } from "@/utils/mapUtils";
 import { classifyMeal } from "@/utils/starchMealClassifier";
-import { getOrderInstructions } from "@/utils/restaurantOrderInstructions";
 import { useChefVoice } from "@/lib/useChefVoice";
 import {
   RESTAURANT_GUIDE_ENTRY,
@@ -75,7 +65,8 @@ import {
 import { ChefHat } from "lucide-react";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
-import ProtocolVisibilityPanel from "@/components/ProtocolVisibilityPanel";
+import AwayFromHomeMealCard from "@/components/away-from-home/AwayFromHomeMealCard";
+import { fromLegacyRecommendation } from "@/components/away-from-home/awayFromHomeTranslator";
 
 // Guided flow step type - step-by-step wizard
 // entry → step1 (craving) → step2 (restaurant) → step3 (location) → generating → results
@@ -1034,322 +1025,19 @@ export default function RestaurantGuidePage() {
                   </div>
                   <div className="grid gap-4">
                     {generatedMeals.map((meal, index) => (
-                      <Card
+                      <div
                         data-wt="rg-restaurant-card"
                         key={meal.id || index}
-                        className="overflow-hidden shadow-lg hover:shadow-orange-500/50 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 bg-black/40 backdrop-blur-lg border border-white/20"
                       >
-                        <div className="grid md:grid-cols-3 gap-4">
-                          {/* Meal Image — ChefFlow Render System */}
-                          <div className="relative h-48 md:h-auto">
-                            {(!meal.imageUrl && chefFlowFailed.has(chefFlowMealId(meal, "restaurant"))) ? (
-                              <div className="h-48 flex flex-col items-center justify-center gap-2 bg-black/40 border-b border-orange-400/30 text-center px-4">
-                                <p className="text-white/70 text-xs mb-2">
-                                  This result was saved in an older session before images were stored. Generate a fresh search to get your image.
-                                </p>
-                                <button
-                                  onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-                                  className="px-3 py-1.5 rounded-full bg-orange-600 text-white text-xs font-medium"
-                                >
-                                  Scroll up to search again
-                                </button>
-                              </div>
-                            ) : (
-                              <ChefFlowImage
-                                src={chefFlowImages[chefFlowMealId(meal, "restaurant")]}
-                                alt={meal.name || meal.meal || "Meal"}
-                              />
-                            )}
-                          </div>
-
-                          {/* Meal Details */}
-                          <div className="md:col-span-2 p-4">
-                            <div className="flex items-start justify-between mb-2">
-                              <div className="flex flex-col gap-1">
-                                <div className="flex items-center gap-2">
-                                  <h3 className="text-lg font-semibold text-white">
-                                    {meal.name || meal.meal}
-                                  </h3>
-                                  <FavoriteButton
-                                    title={meal.name || meal.meal}
-                                    sourceType="restaurant-guide"
-                                    mealData={meal}
-                                    size={18}
-                                  />
-                                </div>
-                                {/* Starch Classification Badge */}
-                                {(() => {
-                                  const starchClass = classifyMeal({
-                                    name: meal.name || meal.meal,
-                                    ingredients: meal.ingredients || [],
-                                  });
-                                  return (
-                                    <span
-                                      className={`text-xs font-medium px-2 py-0.5 rounded-full inline-flex items-center gap-1 w-fit ${
-                                        starchClass.isStarchMeal
-                                          ? "bg-orange-500/20 text-orange-300 border border-orange-500/30"
-                                          : "bg-green-500/20 text-green-300 border border-green-500/30"
-                                      }`}
-                                    >
-                                      {starchClass.emoji} {starchClass.label}
-                                    </span>
-                                  );
-                                })()}
-                                {/* Diet Style Pills */}
-                                {(() => {
-                                  const restrictions: string[] = (user as any)?.dietaryRestrictions ?? [];
-                                  const active = restrictions
-                                    .map((r) => r.toLowerCase().trim())
-                                    .filter((r) => !DIET_SKIP.has(r) && DIET_PILL_CONFIG[r]);
-                                  if (active.length === 0) return null;
-                                  const qualifierText = DIET_QUALIFIER_MAP[active[0]];
-                                  return (
-                                    <div className="flex flex-col gap-1 mt-0.5">
-                                      <div className="flex flex-wrap gap-1">
-                                        {active.map((key) => {
-                                          const { label, color } = DIET_PILL_CONFIG[key];
-                                          return (
-                                            <span
-                                              key={key}
-                                              className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${color}`}
-                                            >
-                                              {label}
-                                            </span>
-                                          );
-                                        })}
-                                      </div>
-                                      {qualifierText && (
-                                        <p className="text-[11px] text-white/50 leading-tight">
-                                          {qualifierText}
-                                        </p>
-                                      )}
-                                    </div>
-                                  );
-                                })()}
-                              </div>
-                              <span className="text-sm text-white/90 bg-orange-600 px-2 py-1 rounded font-medium">
-                                {meal.calories} cal
-                              </span>
-                            </div>
-
-                            <p className="text-white/80 mb-3">
-                              {meal.description || meal.reason}
-                            </p>
-
-                            {/* Medical Safety Badges */}
-                            {(() => {
-                              // Generate medical badges client-side like weekly meal calendar
-                              const userProfile = getUserMedicalProfile(1);
-                              const mealForBadges = {
-                                name: meal.name || meal.meal,
-                                calories: meal.calories,
-                                protein: meal.protein,
-                                carbs: meal.carbs,
-                                fat: meal.fat,
-                                ingredients:
-                                  meal.ingredients?.map((ing: any) => ({
-                                    name: ing,
-                                    amount: 1,
-                                    unit: "serving",
-                                  })) || [],
-                              };
-                              const medicalBadges = generateMedicalBadges(
-                                mealForBadges as any,
-                                userProfile,
-                              );
-                              // Convert complex badge objects to simple strings for HealthBadgesPopover
-                              const badgeStrings = medicalBadges.map(
-                                (b: any) => b.badge || b.label || b.id,
-                              );
-                              return (
-                                badgeStrings &&
-                                badgeStrings.length > 0 && (
-                                  <div className="mb-3">
-                                    <div className="flex items-center gap-3">
-                                      <HealthBadgesPopover
-                                        badges={badgeStrings}
-                                      />
-                                      <h3 className="font-semibold text-white">
-                                        Medical Safety
-                                      </h3>
-                                    </div>
-                                  </div>
-                                )
-                              );
-                            })()}
-
-                            {/* Nutrition Info */}
-                            <div className="grid grid-cols-3 gap-4 text-sm mb-3">
-                              <div className="text-center">
-                                <div className="font-semibold text-blue-400">
-                                  {meal.protein}g
-                                </div>
-                                <div className="text-white/60">Protein</div>
-                              </div>
-                              <div className="text-center">
-                                <div className="font-semibold text-green-400">
-                                  {meal.carbs}g
-                                </div>
-                                <div className="text-white/60">Carbs</div>
-                              </div>
-                              <div className="text-center">
-                                <div className="font-semibold text-yellow-400">
-                                  {meal.fat}g
-                                </div>
-                                <div className="text-white/60">Fat</div>
-                              </div>
-                            </div>
-
-                            {/* Why It's Healthy */}
-                            <div className="bg-black/20 border border-white/10 rounded-lg p-3 mb-3 backdrop-blur-sm">
-                              <h4 className="font-medium text-green-300 text-sm mb-1">
-                                Why This is Healthy:
-                              </h4>
-                              <p className="text-green-200 text-sm">
-                                {meal.reason}
-                              </p>
-                            </div>
-
-                            {/* How to Order — structured block */}
-                            {meal.howToOrder ? (
-                              <div className="bg-black/20 border border-white/10 rounded-lg p-3 backdrop-blur-sm mb-3 space-y-2">
-                                <h4 className="font-medium text-orange-300 text-sm">
-                                  How to Order:
-                                </h4>
-                                {meal.menuAnchorItem && (
-                                  <p className="text-white/40 text-xs italic">
-                                    Based on: {meal.menuAnchorItem}
-                                  </p>
-                                )}
-                                <div className="space-y-1.5">
-                                  <div className="flex items-start gap-2">
-                                    <span className="text-orange-400 text-xs font-semibold mt-0.5 shrink-0 w-16">Ask for:</span>
-                                    <span className="text-orange-200 text-sm">{meal.howToOrder.askFor}</span>
-                                  </div>
-                                  {meal.howToOrder.modify.length > 0 && (
-                                    <div className="flex items-start gap-2">
-                                      <span className="text-orange-400 text-xs font-semibold mt-0.5 shrink-0 w-16">Modify:</span>
-                                      <span className="text-orange-200 text-sm">{meal.howToOrder.modify.join(", ")}</span>
-                                    </div>
-                                  )}
-                                  {meal.howToOrder.swap.length > 0 && (
-                                    <div className="flex items-start gap-2">
-                                      <span className="text-orange-400 text-xs font-semibold mt-0.5 shrink-0 w-16">Swap:</span>
-                                      <span className="text-orange-200 text-sm">{meal.howToOrder.swap.join(", ")}</span>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="bg-black/20 border border-white/10 rounded-lg p-3 backdrop-blur-sm mb-3">
-                                <h4 className="font-medium text-orange-300 text-sm mb-1">
-                                  Ask For:
-                                </h4>
-                                <p className="text-orange-200 text-sm">
-                                  {meal.modifications || meal.orderInstructions}
-                                </p>
-                              </div>
-                            )}
-
-                            {/* Diet-specific order tips */}
-                            {(() => {
-                              const restrictions: string[] = (user as any)?.dietaryRestrictions ?? [];
-                              const primaryDiet = restrictions
-                                .map((r) => r.toLowerCase().trim())
-                                .find((r) => !DIET_SKIP.has(r));
-                              if (!primaryDiet) return null;
-                              const orderInstructions = getOrderInstructions(primaryDiet, meal.name || meal.meal || "");
-                              if (orderInstructions.length === 0) return null;
-                              return (
-                                <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 backdrop-blur-sm mb-3">
-                                  <h4 className="font-medium text-blue-300 text-sm mb-1">
-                                    Diet Tips:
-                                  </h4>
-                                  <ul className="space-y-1">
-                                    {orderInstructions.map((item, i) => (
-                                      <li key={i} className="text-blue-200 text-sm flex items-start gap-1.5">
-                                        <span className="mt-0.5 flex-shrink-0">•</span>
-                                        <span>{item}</span>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              );
-                            })()}
-
-                            {/* Tell Your Server — medical condition waiter script */}
-                            {(meal as any).medicalWaiterScript && (
-                              <div className="bg-rose-500/10 border border-rose-500/30 rounded-lg p-3 backdrop-blur-sm mb-3">
-                                <h4 className="font-medium text-rose-300 text-sm mb-1.5 flex items-center gap-1.5">
-                                  🏥 Tell Your Server
-                                </h4>
-                                <p className="text-rose-200 text-sm italic">
-                                  "{(meal as any).medicalWaiterScript}"
-                                </p>
-                              </div>
-                            )}
-
-                            {/* Protocol Visibility */}
-                            <div className="mb-3">
-                              <ProtocolVisibilityPanel
-                                user={user}
-                                reasoning={meal.reason || meal.reasoning}
-                                context="restaurant"
-                              />
-                            </div>
-
-                            {/* Action Buttons */}
-                            <div className="flex flex-col gap-2">
-                              <Button
-                                onClick={() => {
-                                  setQuickView({
-                                    protein: Math.round(meal.protein || 0),
-                                    carbs: Math.round(meal.carbs || 0),
-                                    fat: Math.round(meal.fat || 0),
-                                    calories: Math.round(meal.calories || 0),
-                                    dateISO: new Date()
-                                      .toISOString()
-                                      .slice(0, 10),
-                                    mealSlot: "lunch",
-                                  });
-                                  setLocation(
-                                    "/biometrics?from=restaurant-guide&view=macros",
-                                  );
-                                }}
-                                className="w-full bg-black text-white font-medium"
-                              >
-                                <Plus className="h-4 w-4 mr-2" />
-                                Add Your Macros
-                              </Button>
-
-                              {/* Add to Meal Plan Button */}
-                              <AddToMealPlanButton
-                                meal={{
-                                  id:
-                                    meal.id ||
-                                    `restaurant-${index}-${Date.now()}`,
-                                  title: meal.name || meal.meal,
-                                  name: meal.name || meal.meal,
-                                  description: meal.description || meal.reason,
-                                  imageUrl: meal.imageUrl,
-                                  ingredients:
-                                    meal.ingredients?.map((ing: string) => ({
-                                      item: ing,
-                                      amount: "1 serving",
-                                    })) || [],
-                                  instructions: meal.modifications
-                                    ? [meal.modifications]
-                                    : [],
-                                  calories: meal.calories,
-                                  protein: meal.protein,
-                                  carbs: meal.carbs,
-                                  fat: meal.fat,
-                                }}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </Card>
+                        <AwayFromHomeMealCard
+                          recommendation={fromLegacyRecommendation(
+                            meal,
+                            restaurantInfo,
+                            "restaurant_guide",
+                            chefFlowImages[chefFlowMealId(meal, "restaurant")] || meal.imageUrl
+                          )}
+                        />
+                      </div>
                     ))}
                   </div>
                 </div>
