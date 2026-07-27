@@ -47,3 +47,10 @@ export function buildProviderChain(): MenuProvider[] {
  *   new RestaurantIntelligenceEngine([mockProvider])
  */
 export const restaurantEngine = new RestaurantIntelligenceEngine(buildProviderChain());
+
+/**
+ * Direct reference to the OfficialJsonMenuProvider singleton.
+ * Used by the development debug endpoint to report item counts and cache stats.
+ * Not for use in application logic — go through restaurantEngine instead.
+ */
+export const officialJsonProvider = new OfficialJsonMenuProvider();
