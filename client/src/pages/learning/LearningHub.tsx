@@ -33,14 +33,17 @@ export default function LearningHub() {
     if (!user) return;
     (async () => {
       try {
+        // platformRes = ProCare Certification (platform cert) — displayed in the Phase 2 card.
+        // phase1Res = Business Success Certification (affiliate_social) — displayed in Phase 1 card.
+        // These are the Affiliate Coaching path steps, distinct from Platform Mastery Academy.
         const [platformRes, phase1Res, affiliateRes, updatesRes] = await Promise.allSettled([
-          apiRequest("/api/certifications/phase1-status"),
+          apiRequest("/api/certifications/platform/progress"),
           apiRequest("/api/certifications/affiliate_social/progress"),
           apiRequest("/api/certifications/affiliate-status"),
           apiRequest("/api/lms/updates"),
         ]);
         if (platformRes.status === "fulfilled") {
-          const d = platformRes.value as { phase1Complete: boolean; certification: CertStatus | null };
+          const d = platformRes.value as { certification: CertStatus | null };
           setPlatformStatus(d.certification ?? { status: "not_started" });
         }
         if (phase1Res.status === "fulfilled") {

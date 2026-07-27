@@ -81,7 +81,7 @@ export default function ProfessionalOnboardingBridge() {
   }
 
   if (!phase1Done) {
-    return <CertPhase1Step onStart={() => setLocation("/certifications/platform")} />;
+    return <CertPhase1Step onStart={() => setLocation("/academy/platform-mastery")} />;
   }
 
   return <CertPhase2Step onStart={() => setLocation("/procare-training")} />;
