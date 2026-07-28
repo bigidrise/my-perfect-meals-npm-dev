@@ -1075,7 +1075,9 @@ export default function RestaurantGuidePage() {
                                     {meal.calories} cal
                                   </span>
                                   <FavoriteButton
-                                    meal={{
+                                    title={meal.name || meal.meal || ""}
+                                    sourceType="restaurant"
+                                    mealData={{
                                       id: mealKey,
                                       name: meal.name || meal.meal,
                                       calories: meal.calories,
