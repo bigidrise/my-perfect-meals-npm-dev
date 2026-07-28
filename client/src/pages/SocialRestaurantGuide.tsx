@@ -163,6 +163,29 @@ function clearRestaurantCache() {
   } catch {}
 }
 
+function normalizeCachedMeals(meals: any[]): any[] {
+  return meals.map((m) => {
+    if (m && typeof m.meal === "object" && m.meal !== null) {
+      return {
+        id: m.id || String(Math.random()),
+        name: m.meal.name || "",
+        meal: m.meal.name || "",
+        description: m.meal.description || "",
+        calories: m.meal.calories || 0,
+        protein: m.meal.protein || 0,
+        carbs: m.meal.carbs || 0,
+        fat: m.meal.fat || 0,
+        imageUrl: m.meal.imageUrl || m.imageUrl || "",
+        reason: m.meal.reason || m.meal.howToOrder || "",
+        modifications: m.meal.howToOrder || (m.modificationNotes || []).join(". ") || "",
+        askFor: m.meal.howToOrder || "",
+        dietBadge: m.meal.dietBadge || "",
+      };
+    }
+    return m;
+  });
+}
+
 const DIET_PILL_CONFIG: Record<string, { label: string; color: string }> = {
   kosher:        { label: "Kosher (Verify Certification)", color: "bg-amber-500/20 border-amber-400/40 text-amber-300" },
   halal:         { label: "Halal (Verify Certification)",  color: "bg-teal-500/20 border-teal-400/40 text-teal-300" },
@@ -391,7 +414,7 @@ export default function RestaurantGuidePage() {
   useEffect(() => {
     const cached = loadRestaurantCache();
     if (cached?.restaurantData?.meals?.length) {
-      setGeneratedMeals(cached.restaurantData.meals);
+      setGeneratedMeals(normalizeCachedMeals(cached.restaurantData.meals));
       setRestaurantInput(cached.restaurant || "");
       setCravingInput(cached.craving || "");
       setMatchedCuisine(cached.cuisine || null);
@@ -408,8 +431,9 @@ export default function RestaurantGuidePage() {
     if (!session?.meals?.length) return;
     serverRestoredRef.current = true;
     const userDiet = normalizeDiet(user?.dietaryRestrictions);
-    const meals = filterMealsByDiet(userDiet, session.meals as any[], (m) => m);
-    setGeneratedMeals(meals.length > 0 ? meals : session.meals);
+    const normalized = normalizeCachedMeals(session.meals as any[]);
+    const meals = filterMealsByDiet(userDiet, normalized, (m) => m);
+    setGeneratedMeals(meals.length > 0 ? meals : normalized);
     setRestaurantInput(session.restaurantName || "");
     setCravingInput(session.craving || "");
     setMatchedCuisine(session.cuisine || null);
