@@ -1,0 +1,50 @@
+{
+  "nav": {
+    "dashboard": "Inizio",
+    "builders": "Builder",
+    "lifestyle": "Stile di Vita",
+    "more": "Altro"
+  },
+  "shell": { "myHub": "Il Mio Centro", "settings": "Impostazioni", "back": "Indietro" },
+  "menu": {
+    "myProfile": "Il Mio Profilo", "myProfileDesc": "Aggiorna le tue informazioni personali e preferenze",
+    "aiCoaching": "Preferenze Coaching IA", "aiCoachingDesc": "Controlla stile, aree e frequenza del tuo coaching",
+    "language": "Lingua", "languageDesc": "Scegli la lingua per pasti, ricette e indicazioni generate dall'IA",
+    "contactSupport": "Contatto e Supporto", "contactSupportDesc": "Domande, bug o feedback — leggiamo tutto",
+    "mealBuilderExchange": "Scambio Builder", "mealBuilderExchangeDesc": "Passa a un focus dietetico diverso",
+    "appLibrary": "Libreria App", "appLibraryDesc": "Scopri come funzionano tutti i sistemi principali.",
+    "teamMPM": "Team My Perfect Meals", "teamMPMDesc": "Incontra il team che ha creato My Perfect Meals.",
+    "hireAPro": "Assumi un Professionista", "hireAProDesc": "Sfoglia coach e medici professionisti certificati.",
+    "subscription": "Abbonamento", "subscriptionDesc": "Gestisci il tuo piano e fatturazione",
+    "restorePurchases": "Ripristina Acquisti", "signOut": "Esci"
+  },
+  "common": {
+    "save": "Salva", "cancel": "Annulla", "back": "Indietro", "next": "Avanti", "continue": "Continua",
+    "done": "Fatto", "close": "Chiudi", "submit": "Invia", "loading": "Caricamento…",
+    "error": "Qualcosa è andato storto", "tryAgain": "Riprova", "confirm": "Conferma",
+    "delete": "Elimina", "edit": "Modifica", "add": "Aggiungi", "remove": "Rimuovi",
+    "search": "Cerca", "filter": "Filtra", "apply": "Applica", "reset": "Reimposta",
+    "yes": "Sì", "no": "No", "or": "o", "and": "e", "learnMore": "Scopri di più",
+    "seeAll": "Vedi tutto", "viewAll": "Vedi tutto", "getStarted": "Inizia",
+    "upgrade": "Aggiorna", "generate": "Genera", "regenerate": "Rigenera",
+    "translate": "Traduci", "share": "Condividi", "log": "Registra", "logMeal": "Registra Pasto"
+  },
+  "language": {
+    "pageTitle": "Lingua",
+    "intro": "My Perfect Meals genera nomi di pasti, ricette, consigli su ristoranti, indicazioni per la spesa e risposte di coaching nativamente nella tua lingua.",
+    "auto": "Automatico (Dispositivo)", "autoDesc": "My Perfect Meals rileva la lingua del dispositivo e genera contenuti automaticamente.",
+    "saved": "Lingua salvata", "savedAutoDesc": "My Perfect Meals utilizzerà automaticamente la lingua del dispositivo.",
+    "savedLangDesc": "Il contenuto ora verrà generato in {{language}}.",
+    "errorSave": "Impossibile salvare la lingua", "errorSaveDesc": "Riprova.",
+    "footerNote": "Navigazione, menu e pulsanti dell'app sono attualmente in inglese. La localizzazione completa dell'interfaccia arriverà in un aggiornamento futuro."
+  },
+  "routeTitles": {
+    "dashboard": "Inizio", "macroCalculator": "Calcolatore Macro", "mealBuilders": "Builder Pasti",
+    "shoppingList": "Lista della Spesa", "smartGroceryList": "Lista Spesa Intelligente",
+    "fridgeRescue": "Salvataggio Frigo", "savedMeals": "Pasti Salvati", "careTeam": "Team di Cura",
+    "myClients": "I Miei Clienti", "lifestyle": "Hub Stile di Vita", "settings": "Impostazioni",
+    "more": "Altro", "myBiometrics": "I Miei Biometrici", "pricingPlans": "Piani e Prezzi",
+    "learn": "Imparare", "founders": "Fondatori", "restaurant": "Assistente Ristoranti",
+    "weeklyBuilder": "Builder Settimanale", "mealsAwayFromHome": "Pasti Fuori Casa"
+  }
+}

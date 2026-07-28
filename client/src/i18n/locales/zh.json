@@ -1,0 +1,45 @@
+{
+  "nav": { "dashboard": "首页", "builders": "构建器", "lifestyle": "生活方式", "more": "更多" },
+  "shell": { "myHub": "我的中心", "settings": "设置", "back": "返回" },
+  "menu": {
+    "myProfile": "我的个人资料", "myProfileDesc": "更新您的个人信息和偏好",
+    "aiCoaching": "AI 教练偏好", "aiCoachingDesc": "控制您的教练风格、重点领域和频率",
+    "language": "语言", "languageDesc": "选择 AI 生成的餐食、食谱和指导所用的语言",
+    "contactSupport": "联系与支持", "contactSupportDesc": "问题、错误或反馈——我们阅读每一条",
+    "mealBuilderExchange": "餐食构建器交换", "mealBuilderExchangeDesc": "切换到不同的饮食重点",
+    "appLibrary": "应用库", "appLibraryDesc": "了解所有核心系统如何运作。",
+    "teamMPM": "My Perfect Meals 团队", "teamMPMDesc": "认识构建 My Perfect Meals 的团队。",
+    "hireAPro": "聘请专业人士", "hireAProDesc": "浏览认证的专业教练和医生。",
+    "subscription": "订阅", "subscriptionDesc": "管理您的计划和账单",
+    "restorePurchases": "恢复购买", "signOut": "退出登录"
+  },
+  "common": {
+    "save": "保存", "cancel": "取消", "back": "返回", "next": "下一步", "continue": "继续",
+    "done": "完成", "close": "关闭", "submit": "提交", "loading": "加载中…",
+    "error": "出了点问题", "tryAgain": "重试", "confirm": "确认",
+    "delete": "删除", "edit": "编辑", "add": "添加", "remove": "移除",
+    "search": "搜索", "filter": "筛选", "apply": "应用", "reset": "重置",
+    "yes": "是", "no": "否", "or": "或", "and": "和", "learnMore": "了解更多",
+    "seeAll": "查看全部", "viewAll": "查看全部", "getStarted": "开始",
+    "upgrade": "升级", "generate": "生成", "regenerate": "重新生成",
+    "translate": "翻译", "share": "分享", "log": "记录", "logMeal": "记录餐食"
+  },
+  "language": {
+    "pageTitle": "语言",
+    "intro": "My Perfect Meals 以您的语言原生生成餐食名称、食谱、餐厅推荐、购物指导和教练回应。",
+    "auto": "自动（设备）", "autoDesc": "My Perfect Meals 检测您的设备语言并自动生成内容——推荐给大多数用户。",
+    "saved": "语言已保存", "savedAutoDesc": "My Perfect Meals 将自动使用您的设备语言。",
+    "savedLangDesc": "内容现在将以{{language}}生成。",
+    "errorSave": "无法保存语言", "errorSaveDesc": "请重试。",
+    "footerNote": "应用导航、菜单和按钮目前为英文。完整的界面本地化将在未来的更新中推出。"
+  },
+  "routeTitles": {
+    "dashboard": "首页", "macroCalculator": "宏量营养素计算器", "mealBuilders": "餐食构建器",
+    "shoppingList": "购物清单", "smartGroceryList": "智能购物清单",
+    "fridgeRescue": "冰箱救援", "savedMeals": "已保存餐食", "careTeam": "护理团队",
+    "myClients": "我的客户", "lifestyle": "生活方式中心", "settings": "设置",
+    "more": "更多", "myBiometrics": "我的生物特征", "pricingPlans": "计划与定价",
+    "learn": "学习", "founders": "创始人", "restaurant": "餐厅助手",
+    "weeklyBuilder": "每周构建器", "mealsAwayFromHome": "外出就餐"
+  }
+}
