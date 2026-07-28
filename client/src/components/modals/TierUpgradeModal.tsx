@@ -22,27 +22,27 @@ export function TierUpgradeModal({ open, onClose, requiredTier, featureName }: T
       label: t("upgrade.essentialPlan"),
       tagline: t("upgrade.essentialTagline"),
       benefits: [
-        "Create a Dish — AI meals tailored to your exact nutritional protocols",
-        "Shopping List, Saved Meals & Weekly Meal Planner",
-        "Recipe Scan, Snack Creator & Unlimited Fridge Rescue",
+        t("upgrade.essentialBenefit1"),
+        t("upgrade.essentialBenefit2"),
+        t("upgrade.essentialBenefit3"),
       ],
     },
     pro: {
       label: t("upgrade.proPlan"),
       tagline: t("upgrade.proTagline"),
       benefits: [
-        "Craving Creator, Beverage Creator & Sushi Creator",
-        "Restaurant Assistant — protocol-aware ordering at any restaurant",
-        "My Perfect Gatherings & My Perfect Pets nutrition plans",
+        t("upgrade.proBenefit1"),
+        t("upgrade.proBenefit2"),
+        t("upgrade.proBenefit3"),
       ],
     },
     clinical: {
       label: t("upgrade.clinicalPlan"),
       tagline: t("upgrade.clinicalTagline"),
       benefits: [
-        "Clinical Lab Integration — your blood work shapes your meal protocols",
-        "Care Team Access — connect with a physician or trainer in-app",
-        "Performance Nutrition, Competition Prep & Athlete Builders",
+        t("upgrade.clinicalBenefit1"),
+        t("upgrade.clinicalBenefit2"),
+        t("upgrade.clinicalBenefit3"),
       ],
     },
     "meal-builders": {
@@ -50,10 +50,10 @@ export function TierUpgradeModal({ open, onClose, requiredTier, featureName }: T
       badgeLabel: t("upgrade.mostPopular"),
       tagline: t("upgrade.proPromo"),
       benefits: [
-        "Craving Creator, Beverage Creator, Dessert Creator & Sushi Creator",
-        "Meal Builder Exchange — switch builders anytime as your goals evolve",
-        "Restaurant Assistant, My Perfect Gatherings & expanded lifestyle tools",
-        "Essential gets you started · Clinical adds medical-grade nutrition tools",
+        t("upgrade.buildersBenefit1"),
+        t("upgrade.buildersBenefit2"),
+        t("upgrade.buildersBenefit3"),
+        t("upgrade.buildersBenefit4"),
       ],
     },
   };
@@ -80,13 +80,13 @@ export function TierUpgradeModal({ open, onClose, requiredTier, featureName }: T
           </div>
           <div className="flex justify-center mb-2">
             <span className="px-3 py-1 rounded-full bg-orange-600/20 border border-orange-500/30 text-orange-400 text-xs font-semibold tracking-wide">
-              {config.badgeLabel ?? `${config.label} Plan`}
+              {config.badgeLabel ?? t("upgrade.planBadge", { label: config.label })}
             </span>
           </div>
           <DialogTitle className="text-lg font-bold text-white leading-snug">
             {featureName
-              ? `${featureName} is part of ${config.label}`
-              : `Available on ${config.label}`}
+              ? t("upgrade.featurePartOf", { feature: featureName, plan: config.label })
+              : t("upgrade.availableOn", { plan: config.label })}
           </DialogTitle>
           <DialogDescription className="text-white/55 text-sm mt-1">
             {config.tagline}

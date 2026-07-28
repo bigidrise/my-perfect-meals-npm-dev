@@ -17,6 +17,7 @@
 // - Real-time progress ticker (0-90% with visual feedback)
 // - Medical personalization with user health data integration
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { useChefFlowImages, chefFlowMealId } from "@/hooks/useChefFlowImages";
 import { ChefFlowImage } from "@/components/ChefFlowImage";
 import { useAuth } from "@/contexts/AuthContext";
@@ -319,6 +320,7 @@ const cuisineKeywords: Record<string, string> = {
 
 export default function RestaurantGuidePage() {
   const [, setLocation] = useLocation();
+  const { t } = useTranslation();
   const quickTour = useQuickTour("restaurant-guide");
   const { speak, stop } = useChefVoice();
 
@@ -509,7 +511,7 @@ export default function RestaurantGuidePage() {
             ? `No ${userDiet}-compliant options were found at this restaurant. Try a different location.`
             : `No recommendations matched your ${userDiet} diet. Try a different restaurant or craving.`
           : "No recommendations were generated. Please try again.";
-        toast({ title: "No matching meals found", description: emptyDesc, variant: "destructive" });
+        toast({ title: t("restaurant.errorNoMatch"), description: emptyDesc, variant: "destructive" });
         return;
       }
       setGeneratedMeals(compliantRecs);
@@ -523,7 +525,7 @@ export default function RestaurantGuidePage() {
         generatedAtISO: new Date().toISOString(),
       });
       toast({
-        title: "🍽️ Restaurant Assistant",
+        title: t("restaurant.pageTitle"),
         description: `Found ${compliantRecs.length} healthy options at ${data.restaurantInfo?.name || restaurantInput}.`,
       });
       setTimeout(() => {
@@ -536,7 +538,7 @@ export default function RestaurantGuidePage() {
     onError: (error: Error) => {
       stopProgressTicker();
       toast({
-        title: "Generation Failed",
+        title: t("restaurant.generationFailed"),
         description:
           error.name === "AbortError"
             ? "Request timed out. Please try again."
@@ -549,8 +551,8 @@ export default function RestaurantGuidePage() {
   const handleSearch = () => {
     if (!cravingInput.trim() || !restaurantInput.trim()) {
       toast({
-        title: "Missing Information",
-        description: "Please enter both a food craving and a restaurant name.",
+        title: t("restaurant.errorMissing"),
+        description: t("restaurant.errorMissingDesc"),
         variant: "destructive",
       });
       return;
@@ -558,8 +560,8 @@ export default function RestaurantGuidePage() {
 
     if (!zipCode.trim() || !/^\d{5}$/.test(zipCode)) {
       toast({
-        title: "Invalid ZIP Code",
-        description: "Please enter a valid 5-digit ZIP code.",
+        title: t("restaurant.errorZip"),
+        description: t("restaurant.errorZipDesc"),
         variant: "destructive",
       });
       return;
@@ -660,12 +662,12 @@ export default function RestaurantGuidePage() {
               className="flex items-center gap-1 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
             >
               <ArrowLeft className="h-5 w-5" />
-              <span className="text-sm font-medium">Back</span>
+              <span className="text-sm font-medium">{t("common.back")}</span>
             </button>
 
             {/* Title */}
             <h1 className="text-lg font-bold text-white truncate min-w-0">
-              Restaurant Assistant
+              {t("restaurant.pageTitle")}
             </h1>
 
             <div className="flex-grow" />
@@ -688,17 +690,16 @@ export default function RestaurantGuidePage() {
                   </div>
                 </div>
                 <h2 className="text-2xl font-bold text-white mb-3">
-                  Restaurant Assistant
+                  {t("restaurant.entryTitle")}
                 </h2>
                 <p className="text-white/70 mb-6">
-                  Tell me where you're eating and what you're in the mood for,
-                  and I'll show you the best options from their menu.
+                  {t("restaurant.entryDesc")}
                 </p>
                 <Button
                   onClick={() => advanceGuided("step1")}
                   className="bg-lime-600 text-white px-8 py-3 text-lg font-semibold"
                 >
-                  Let's Find Dishes
+                  {t("restaurant.letsFindDishes")}
                 </Button>
               </CardContent>
             </Card>
@@ -716,16 +717,16 @@ export default function RestaurantGuidePage() {
                 <CardContent className="p-5 space-y-4">
                   <div className="flex items-center gap-2">
                     <ChefHat className="h-5 w-5 text-orange-500" />
-                    <h3 className="text-lg font-semibold text-white">Step 1</h3>
+                    <h3 className="text-lg font-semibold text-white">{t("restaurant.step1")}</h3>
                   </div>
                   <p className="text-white text-base">
-                    What dish or type of food are you craving?
+                    {t("restaurant.step1Question")}
                   </p>
                   <div className="relative">
                     <Input
                       data-wt="rg-craving-input"
                       id="craving-input"
-                      placeholder="e.g. chicken, salmon, pasta, steak"
+                      placeholder={t("restaurant.step1Placeholder")}
                       value={cravingInput}
                       onChange={(e) => setCravingInput(e.target.value)}
                       className="w-full pr-10 bg-black/40 backdrop-blur-lg border border-white/20 text-white placeholder:text-white/50 focus:bg-black/40 focus:text-white caret-white text-lg py-3"
@@ -751,7 +752,7 @@ export default function RestaurantGuidePage() {
                     disabled={!cravingInput.trim()}
                     className="w-full bg-orange-600 hover:bg-orange-500 text-white py-3 text-lg font-semibold"
                   >
-                    Next
+                    {t("common.next")}
                   </Button>
                 </CardContent>
               </Card>
@@ -770,17 +771,17 @@ export default function RestaurantGuidePage() {
                 <CardContent className="p-5 space-y-4">
                   <div className="flex items-center gap-2">
                     <ChefHat className="h-5 w-5 text-orange-500" />
-                    <h3 className="text-lg font-semibold text-white">Step 2</h3>
+                    <h3 className="text-lg font-semibold text-white">{t("restaurant.step2")}</h3>
                   </div>
                   <p className="text-white text-base">
-                    Where are you eating? Enter the restaurant name.
+                    {t("restaurant.step2Question")}
                   </p>
                   <div className="relative">
                     <Input
                       data-testid="restaurantguide-search"
                       data-wt="rg-restaurant-input"
                       id="restaurant-input"
-                      placeholder="e.g. Cheesecake Factory, P.F. Chang's, Chipotle"
+                      placeholder={t("restaurant.step2Placeholder")}
                       value={restaurantInput}
                       onChange={(e) => setRestaurantInput(e.target.value)}
                       className="w-full pr-10 bg-black/40 backdrop-blur-lg border border-white/20 text-white placeholder:text-white/50 focus:bg-black/40 focus:text-white caret-white text-lg py-3"
@@ -816,14 +817,14 @@ export default function RestaurantGuidePage() {
                         rounded-xl
                         transition-none"
                     >
-                      Back
+                      {t("common.back")}
                     </Button>
                     <Button
                       onClick={() => advanceGuided("step3")}
                       disabled={!restaurantInput.trim()}
                       className="flex-1 bg-orange-600 hover:bg-orange-500 text-white font-semibold"
                     >
-                      Next
+                      {t("common.next")}
                     </Button>
                   </div>
                 </CardContent>
@@ -843,17 +844,17 @@ export default function RestaurantGuidePage() {
                 <CardContent className="p-5 space-y-4">
                   <div className="flex items-center gap-2">
                     <ChefHat className="h-5 w-5 text-orange-500" />
-                    <h3 className="text-lg font-semibold text-white">Step 3</h3>
+                    <h3 className="text-lg font-semibold text-white">{t("restaurant.step3")}</h3>
                   </div>
                   <p className="text-white text-base">
-                    Enter your ZIP code so I can find the nearest location.
+                    {t("restaurant.step3Question")}
                   </p>
                   <div className="flex gap-2">
                     <div className="relative flex-1">
                       <Input
                         data-testid="restaurantguide-zip"
                         id="zip-input"
-                        placeholder="e.g. 30303, 90210, 10001"
+                        placeholder={t("restaurant.step3Placeholder")}
                         value={zipCode}
                         onChange={(e) =>
                           setZipCode(
@@ -910,14 +911,14 @@ export default function RestaurantGuidePage() {
                         rounded-xl
                         transition-none"
                     >
-                      Back
+                      {t("common.back")}
                     </Button>
                     <Button
                       onClick={handleSearch}
                       disabled={zipCode.length !== 5}
                       className="flex-1 bg-lime-600 hover:bg-lime-500 text-white font-semibold"
                     >
-                      Find Dishes
+                      {t("restaurant.findDishes")}
                     </Button>
                   </div>
                 </CardContent>
@@ -941,13 +942,13 @@ export default function RestaurantGuidePage() {
                     </div>
                   </div>
                   <h3 className="text-xl font-semibold text-white text-center">
-                    Finding Your Perfect Dishes...
+                    {t("restaurant.findingDishes")}
                   </h3>
                   <p className="text-white/70 text-center">
-                    Searching {restaurantInput} for {cravingInput} options
+                    {t("restaurant.searchingFor", { restaurant: restaurantInput, craving: cravingInput })}
                   </p>
                   <div className="mt-6 flex justify-center">
-                    <CometBar label="Scanning the menu…" />
+                    <CometBar label={t("restaurant.scanningMenu")} />
                   </div>
                 </CardContent>
               </Card>
@@ -962,7 +963,7 @@ export default function RestaurantGuidePage() {
                   <div className="mb-4">
                     <div className="flex items-center justify-between">
                       <h2 className="text-xl font-bold text-white">
-                        🍽️ Recommended Meals at{" "}
+                        🍽️ {t("restaurant.recommendedAt")}{" "}
                         {restaurantInfo?.name ||
                           restaurantInput
                             .split(" ")
@@ -986,7 +987,7 @@ export default function RestaurantGuidePage() {
                         className="text-sm text-white/70 bg-white/10 px-3 py-1 rounded-lg"
                         data-testid="button-create-new"
                       >
-                        Search Again
+                        {t("restaurant.searchAgain")}
                       </button>
                     </div>
                     {restaurantInfo?.address && (
@@ -1007,10 +1008,10 @@ export default function RestaurantGuidePage() {
                               restaurantInfo.address,
                             );
                             toast({
-                              title: success ? "Address copied" : "Copy failed",
+                              title: success ? t("restaurant.addressCopied") : t("restaurant.copyFailed"),
                               description: success
-                                ? "Paste into Maps or Waze."
-                                : "Please copy manually.",
+                                ? t("restaurant.pasteHint")
+                                : t("restaurant.copyManually"),
                             });
                           }}
                           className="p-1 text-white/50 transition-colors"
@@ -1120,7 +1121,7 @@ export default function RestaurantGuidePage() {
                               {/* Why It's Healthy */}
                               <div className="bg-black/20 border border-white/10 rounded-lg p-3 mb-3 backdrop-blur-sm">
                                 <h4 className="font-medium text-green-300 text-sm mb-1">
-                                  Why This is Healthy:
+                                  {t("restaurant.whyHealthy")}
                                 </h4>
                                 <p className="text-green-200 text-sm">
                                   {displayMeal.reason}
@@ -1130,7 +1131,7 @@ export default function RestaurantGuidePage() {
                               {/* Ask For (Modifications) */}
                               <div className="bg-black/20 border border-white/10 rounded-lg p-3 mb-3 backdrop-blur-sm">
                                 <h4 className="font-medium text-orange-300 text-sm mb-1">
-                                  Ask For:
+                                  {t("restaurant.askFor")}
                                 </h4>
                                 <p className="text-orange-200 text-sm">
                                   {displayMeal.modifications || displayMeal.orderInstructions}
@@ -1188,7 +1189,7 @@ export default function RestaurantGuidePage() {
                                               [mealKey]: { lang: lang.code, data: { ...meal, ...result } },
                                             }));
                                           } catch {
-                                            toast({ title: "Translation failed", description: "Please try again.", variant: "destructive" });
+                                            toast({ title: t("restaurant.translationFailed"), description: "Please try again.", variant: "destructive" });
                                           } finally {
                                             setTranslatingId(null);
                                           }
