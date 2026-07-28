@@ -1963,7 +1963,7 @@ SELF-CHECK before responding: Verify the meal reflects at least 3 of these authe
 
   // Phase 4 — sanitize direct identifiers from the prompt block before it
   // leaves the application boundary toward OpenAI.
-  const combined = sanitizeIdentifiers(rawCombined);
+  let combined = sanitizeIdentifiers(rawCombined);
 
   const hasRestrictions =
     envelope.dietaryIdentity.length > 0 ||
