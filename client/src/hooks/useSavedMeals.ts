@@ -62,7 +62,7 @@ export function useDeleteSavedMeal() {
 }
 
 export function makeMealKey(title: string, sourceType: string): string {
-  return `${title.trim().toLowerCase()}|${sourceType}`;
+  return `${(title || "").trim().toLowerCase()}|${sourceType}`;
 }
 
 export function isMealSaved(keys: string[] | undefined, title: string, sourceType: string): boolean {
