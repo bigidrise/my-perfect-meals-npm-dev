@@ -236,6 +236,8 @@ async function initializeApp() {
           await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS clinical_context_updated_at timestamptz`);
           // Professional Launchpad — Phase 2 ProCare training completion gate
           await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS procare_training_completed boolean NOT NULL DEFAULT false`);
+          // Language Preference — Phase 1 internationalization
+          await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS preferred_language text DEFAULT 'auto'`);
           // LMS content tables
           await database.execute(sql`
             CREATE TABLE IF NOT EXISTS cert_modules (

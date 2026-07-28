@@ -157,6 +157,8 @@ export interface User {
   // International / Metric Support
   measurementSystem?: "imperial" | "metric";
   countryCode?: "US" | "CA" | "AU" | "UK" | "NZ";
+  // Language Preference
+  preferredLanguage?: string;
   // Pregnancy Support
   pregnancyStage?: string | null;
   pregnancyDueDate?: string | null;

@@ -51,6 +51,17 @@ export async function generateIntelligentMeal(request: IntelligentMealRequest): 
     const user = await storage.getUser(request.userId);
     const userContext = buildUserContext(user);
 
+    const langNames: Record<string, string> = {
+      es: "Spanish", fr: "French", de: "German", it: "Italian", pt: "Portuguese",
+      zh: "Chinese (Simplified)", ja: "Japanese", ko: "Korean", ar: "Arabic",
+      hi: "Hindi", ru: "Russian", vi: "Vietnamese", tl: "Filipino (Tagalog)",
+    };
+    const rawLang = (user as any)?.preferredLanguage || "auto";
+    const baseLang = rawLang !== "auto" ? rawLang.split("-")[0].toLowerCase() : "en";
+    const langInstr = baseLang !== "en" && langNames[baseLang]
+      ? `\n\n🌐 LANGUAGE REQUIREMENT — MANDATORY: Generate ALL content entirely in ${langNames[baseLang]}. Every word must be in ${langNames[baseLang]}.`
+      : "";
+
     const systemPrompt = `You are an expert nutritionist and chef AI. Generate personalized meal recommendations based on user profiles.
 
 USER PROFILE:
@@ -60,7 +71,7 @@ Provide responses in JSON format with:
 - conversationalResponse: friendly, conversational explanation
 - meal: complete meal with ingredients, instructions, macros
 - suggestions: 2-3 alternative options
-- followUpQuestions: relevant questions to refine the recommendation`;
+- followUpQuestions: relevant questions to refine the recommendation${langInstr}`;
 
     const response = await getOpenAI().chat.completions.create({
       model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user

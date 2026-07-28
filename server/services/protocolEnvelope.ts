@@ -520,6 +520,14 @@ export interface UserProtocolEnvelope {
   conditionGuidanceBlocks: string[];
 
   /**
+   * User's preferred language — BCP-47 base code ("es", "fr", "zh", etc.)
+   * or "auto" (use device language). Injected into every AI system prompt
+   * so meals, coaching, and recommendations generate in the user's language
+   * without a Translate button. Null/auto = English (no instruction added).
+   */
+  preferredLanguage: string | null;
+
+  /**
    * GLP-1 daily medication tolerance state — resolved from ace_daily_checkins
    * and water_logs for today's date. Null when the user is not on a GLP-1 /
    * metabolic medication, or when no check-in data exists for today.
@@ -884,6 +892,7 @@ export async function loadUserProtocolEnvelope(
         palateSpiceTolerance: users.palateSpiceTolerance,
         palateSeasoningIntensity: users.palateSeasoningIntensity,
         palateFlavorStyle: users.palateFlavorStyle,
+        preferredLanguage: (users as any).preferredLanguage,
       })
       .from(users)
       .where(eq(users.id, userId))
@@ -1392,6 +1401,7 @@ export async function loadUserProtocolEnvelope(
       therapeuticSupport,
       therapeuticSupportContext: therapeuticSupportCtx,
       selectedMealBuilder: (user.selectedMealBuilder ?? null) as string | null,
+      preferredLanguage: (user as any).preferredLanguage || null,
       flavorPreference: (user as any).flavorPreference ?? null,
       heatPreference: (user as any).heatPreference ?? null,
       palateSpiceTolerance: (user as any).palateSpiceTolerance ?? null,
@@ -1528,6 +1538,7 @@ export function buildGuestEnvelope(): UserProtocolEnvelope {
     therapeuticSupport: false,
     therapeuticSupportContext: null,
     selectedMealBuilder: null,
+    preferredLanguage: null,
     flavorPreference: null,
     heatPreference: null,
     palateSpiceTolerance: null,
@@ -1991,6 +2002,27 @@ SELF-CHECK before responding: Verify the meal reflects at least 3 of these authe
       route: `generator:${generatorName}`,
       meta: { phiFields, generatorName },
     });
+  }
+
+  // ── LANGUAGE INJECTION ────────────────────────────────────────────────────
+  // Phase 1 internationalization: AI generates directly in the user's language.
+  // This means meals, coaching, recipes, and explanations arrive in Spanish,
+  // French, Chinese, etc. — no Translate button needed for normal use.
+  if (envelope.preferredLanguage && envelope.preferredLanguage !== "auto") {
+    const base = envelope.preferredLanguage.split("-")[0].toLowerCase();
+    const LANGUAGE_NAMES: Record<string, string> = {
+      es: "Spanish", fr: "French", de: "German", it: "Italian", pt: "Portuguese",
+      zh: "Chinese (Simplified)", ja: "Japanese", ko: "Korean", ar: "Arabic",
+      hi: "Hindi", ru: "Russian", vi: "Vietnamese", tl: "Filipino (Tagalog)",
+    };
+    const langName = LANGUAGE_NAMES[base];
+    if (langName) {
+      combined +=
+        `\n\n🌐 LANGUAGE REQUIREMENT — MANDATORY: Generate ALL content entirely in ${langName}. ` +
+        `This includes meal names, descriptions, ingredient names, cooking instructions, ` +
+        `nutritional explanations, recommendations, and every other word in your response. ` +
+        `Do NOT use English. Every word must be in ${langName}.`;
+    }
   }
 
   return { combined, layers, hasRestrictions, phiFields };

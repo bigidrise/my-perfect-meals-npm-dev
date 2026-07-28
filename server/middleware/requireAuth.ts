@@ -56,6 +56,7 @@ export interface AuthenticatedUser {
    */
   sponsoredByBusinessId: string | null;
   sponsoredByBusinessName: string | null;
+  preferredLanguage: string;
 }
 
 export interface AuthenticatedRequest extends Request {
@@ -82,6 +83,7 @@ function buildAuthUser(user: any): Omit<AuthenticatedUser, "sponsoredByBusinessI
     accessTier,
     activeSystem: user.activeSystem || "default",
     organizationId: user.organizationId ?? null,
+    preferredLanguage: (user as any).preferredLanguage || "auto",
   };
 }
 

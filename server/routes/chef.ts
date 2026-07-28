@@ -23,7 +23,17 @@ router.post("/chef/ask", requireAuth, requireActiveAccess, async (req, res) => {
       return res.status(400).json({ error: "Question required" });
     }
 
-    const system = "You are a concise, friendly culinary coach. Give practical, safe cooking and nutrition advice. Keep answers short.";
+    const langNames: Record<string, string> = {
+      es: "Spanish", fr: "French", de: "German", it: "Italian", pt: "Portuguese",
+      zh: "Chinese (Simplified)", ja: "Japanese", ko: "Korean", ar: "Arabic",
+      hi: "Hindi", ru: "Russian", vi: "Vietnamese", tl: "Filipino (Tagalog)",
+    };
+    const rawLang = (req as any).authUser?.preferredLanguage || "auto";
+    const baseLang = rawLang !== "auto" ? rawLang.split("-")[0].toLowerCase() : "en";
+    const langInstr = baseLang !== "en" && langNames[baseLang]
+      ? ` Respond entirely in ${langNames[baseLang]}.`
+      : "";
+    const system = `You are a concise, friendly culinary coach. Give practical, safe cooking and nutrition advice. Keep answers short.${langInstr}`;
     const user = question.trim();
 
     const resp = await getOpenAI().chat.completions.create({

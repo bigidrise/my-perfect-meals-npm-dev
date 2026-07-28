@@ -2391,6 +2391,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isAdmin: user.isAdmin || false,
         measurementSystem: (user as any).measurementSystem || "imperial",
         countryCode: (user as any).countryCode || "US",
+        preferredLanguage: (user as any).preferredLanguage || "auto",
         pregnancyStage: (user as any).pregnancyStage ?? null,
         pregnancyDueDate: (user as any).pregnancyDueDate ?? null,
         pregnancySupportContext: (user as any).pregnancySupportContext ?? null,
@@ -2439,7 +2440,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const ALLOWED_SYSTEMS = ["imperial", "metric"];
       const ALLOWED_COUNTRIES = ["US", "CA", "AU", "UK", "NZ"];
 
-      const { measurementSystem, countryCode } = req.body;
+      const { measurementSystem, countryCode, preferredLanguage } = req.body;
 
       const updates: Record<string, any> = {};
       if (measurementSystem !== undefined) {
@@ -2453,6 +2454,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ error: "Invalid countryCode. Must be US, CA, AU, UK, or NZ." });
         }
         updates.countryCode = countryCode;
+      }
+      if (preferredLanguage !== undefined) {
+        const ALLOWED_LANGS = ["auto","en","es","fr","de","it","pt","zh","ja","ko","ar","hi","ru","vi","tl"];
+        if (!ALLOWED_LANGS.includes(preferredLanguage)) {
+          return res.status(400).json({ error: "Invalid preferredLanguage." });
+        }
+        updates.preferredLanguage = preferredLanguage;
       }
 
       if (Object.keys(updates).length === 0) {
