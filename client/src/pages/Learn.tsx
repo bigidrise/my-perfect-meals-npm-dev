@@ -2382,6 +2382,72 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
     },
   },
   {
+    id: "language-translation",
+    title: "Language & Translation",
+    subtitle: "Your phone's language. Your meals. No setup required.",
+    icon: Globe,
+    content: {
+      sections: [
+        {
+          heading: "How Language Works",
+          text: "My Perfect Meals is designed to work in your language automatically. The app detects the language on your phone and uses it for every AI-generated result — meal names, descriptions, recipes, instructions, restaurant recommendations, grocery guidance, and coaching responses. You do not need to press a button or change any settings. It just works.",
+        },
+        {
+          heading: "What Gets Generated in Your Language",
+          list: [
+            "Meal names, descriptions, and why a meal was recommended",
+            "Cooking instructions and step-by-step guidance",
+            "Restaurant recommendations and ordering tips",
+            "Grocery lists and shopping suggestions",
+            "Beverage, dessert, and snack recipes",
+            "Coach's Corner responses and nutrition explanations",
+            "Fridge Rescue ideas and weekly meal plans",
+          ],
+        },
+        {
+          heading: "How It Works Under the Hood",
+          text: "Every AI feature in the app runs through a shared system called the Protocol Envelope — the same system that enforces your dietary restrictions, allergies, and medical guardrails. Your preferred language is part of that envelope. When a meal or recommendation is generated, the AI receives your language as an instruction and generates the content natively in that language. There is no translation step that happens afterward. The AI thinks in your language from the start.",
+        },
+        {
+          heading: "Supported Languages",
+          list: [
+            "Spanish, French, German, Italian, Portuguese",
+            "Chinese (Simplified), Japanese, Korean",
+            "Arabic, Hindi, Russian",
+            "Vietnamese, Filipino (Tagalog)",
+            "English — the default when no other language is detected",
+          ],
+        },
+        {
+          heading: "Setting a Language Preference",
+          text: "Your language is set automatically from your device. If you want to use a different language than your phone's default — for example, a bilingual professional who prefers to work in a specific language — you can override it in Settings → Language Preference. Your choice is saved to your profile and travels with you across all devices.",
+        },
+        {
+          heading: "The Translate Button",
+          text: "The Translate button on meal cards and restaurant recommendations serves a different purpose than the automatic language system. It is designed for situations where two people are communicating across different languages.",
+          list: [
+            "A coach writes a message in English — the client reads it in Spanish",
+            "A client replies in Spanish — the coach reads it in English",
+            "A shared meal plan is passed between users who speak different languages",
+            "A recipe created by a chef in one language is read by a client in another",
+          ],
+        },
+        {
+          heading: "Two Separate Capabilities",
+          text: "Language localization and communication translation are separate systems that work together.",
+          list: [
+            "Language Localization — the app adapts to your language automatically. Every AI-generated result arrives in your language without any manual action.",
+            "Communication Translation — the Translate button bridges conversations between people who speak different languages. A coach and client can communicate fluently without sharing a language.",
+          ],
+        },
+        {
+          heading: "What Is Not Yet Translated",
+          text: "The app's navigation, buttons, menus, settings screens, and error messages are currently in English. Language localization for the static parts of the interface is on the product roadmap and will expand in future updates. Everything the AI generates — which is most of what you read while using the app — is already in your language.",
+        },
+      ],
+    },
+  },
+  {
     id: "companion-nutrition",
     title: "My Perfect Pets — Companion Nutrition Intelligence",
     subtitle: "Personalized dog wellness nutrition",
