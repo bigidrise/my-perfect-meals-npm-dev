@@ -62,12 +62,9 @@ import {
   RESTAURANT_GUIDE_STEP3,
   RESTAURANT_GUIDE_GENERATING,
 } from "@/components/copilot/scripts/socialDiningScripts";
-import { ChefHat } from "lucide-react";
+import { ChefHat, Globe, Loader2 as TranslateLoader } from "lucide-react";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
-import AwayFromHomeMealCard from "@/components/away-from-home/AwayFromHomeMealCard";
-import { fromLegacyRecommendation } from "@/components/away-from-home/awayFromHomeTranslator";
-import type { AwayFromHomeRecommendation } from "@shared/awayFromHome";
 
 // Guided flow step type - step-by-step wizard
 // entry → step1 (craving) → step2 (restaurant) → step3 (location) → generating → results
@@ -347,20 +344,12 @@ export default function RestaurantGuidePage() {
     rating?: number;
     photoUrl?: string;
   } | null>(null);
-  // Phase 2: native engine recommendations (AwayFromHomeRecommendation[] — no adapter needed)
-  const [engineRecs, setEngineRecs] = useState<AwayFromHomeRecommendation[] | null>(null);
-  // Phase 2: unavailable state when engine has no verified menu data for this restaurant
-  const [unavailableState, setUnavailableState] = useState<{
-    reason: string;
-    alternatives: string[];
-  } | null>(null);
+  const [mealTranslations, setMealTranslations] = useState<Record<string, { lang: string; data: any }>>({});
+  const [translatingId, setTranslatingId] = useState<string | null>(null);
 
   const chefFlowMeals = useMemo(
-    () =>
-      engineRecs
-        ? engineRecs.map((r) => ({ id: r.id, name: r.meal.name, imageUrl: r.meal.imageUrl }))
-        : generatedMeals.map((m) => ({ id: m.id, name: m.name || m.meal, imageUrl: m.imageUrl })),
-    [engineRecs, generatedMeals],
+    () => generatedMeals.map((m) => ({ id: m.id, name: m.name || m.meal, imageUrl: m.imageUrl })),
+    [generatedMeals],
   );
   const { imageMap: chefFlowImages, failedSet: chefFlowFailed } = useChefFlowImages(chefFlowMeals, "restaurant");
 
@@ -402,16 +391,7 @@ export default function RestaurantGuidePage() {
   useEffect(() => {
     const cached = loadRestaurantCache();
     if (cached?.restaurantData?.meals?.length) {
-      const firstMeal = cached.restaurantData.meals[0];
-      const isNativeShape =
-        firstMeal && typeof firstMeal.meal === "object" && typeof firstMeal.meal?.name === "string";
-      if (isNativeShape) {
-        setEngineRecs(cached.restaurantData.meals as AwayFromHomeRecommendation[]);
-        setGeneratedMeals([]);
-      } else {
-        setGeneratedMeals(cached.restaurantData.meals);
-        setEngineRecs(null);
-      }
+      setGeneratedMeals(cached.restaurantData.meals);
       setRestaurantInput(cached.restaurant || "");
       setCravingInput(cached.craving || "");
       setMatchedCuisine(cached.cuisine || null);
@@ -427,23 +407,9 @@ export default function RestaurantGuidePage() {
     const session = serverSessionData?.session;
     if (!session?.meals?.length) return;
     serverRestoredRef.current = true;
-
-    const firstMeal = session.meals[0];
-    const isNativeShape =
-      firstMeal && typeof firstMeal.meal === "object" && typeof firstMeal.meal?.name === "string";
-
-    if (isNativeShape) {
-      // Phase 2: session stored native AwayFromHomeRecommendation[]
-      setEngineRecs(session.meals as AwayFromHomeRecommendation[]);
-      setGeneratedMeals([]);
-    } else {
-      // Legacy: filter and store old-shape meals
-      const userDiet = normalizeDiet(user?.dietaryRestrictions);
-      const meals = filterMealsByDiet(userDiet, session.meals as any[], (m) => m);
-      setGeneratedMeals(meals.length > 0 ? meals : session.meals);
-      setEngineRecs(null);
-    }
-
+    const userDiet = normalizeDiet(user?.dietaryRestrictions);
+    const meals = filterMealsByDiet(userDiet, session.meals as any[], (m) => m);
+    setGeneratedMeals(meals.length > 0 ? meals : session.meals);
     setRestaurantInput(session.restaurantName || "");
     setCravingInput(session.craving || "");
     setMatchedCuisine(session.cuisine || null);
@@ -451,12 +417,8 @@ export default function RestaurantGuidePage() {
     if (session.restaurantInfo) {
       setRestaurantInfo(session.restaurantInfo as any);
     }
-    // Keep localStorage in sync with server data
     saveRestaurantCache({
-      restaurantData: {
-        meals: session.meals,
-        restaurantInfo: session.restaurantInfo,
-      },
+      restaurantData: { meals: session.meals, restaurantInfo: session.restaurantInfo },
       restaurant: session.restaurantName || "",
       craving: session.craving || "",
       cuisine: session.cuisine || "",
@@ -512,54 +474,6 @@ export default function RestaurantGuidePage() {
     },
     onSuccess: (data) => {
       stopProgressTicker();
-
-      // Phase 2: explicit unavailable state — no menu data for this restaurant
-      if (data.status === "unavailable") {
-        setUnavailableState({ reason: data.reason || "no_registry_match", alternatives: data.alternatives || [] });
-        setEngineRecs(null);
-        setGeneratedMeals([]);
-        if (data.restaurantInfo) setRestaurantInfo(data.restaurantInfo);
-        setGuidedStep("results");
-        return;
-      }
-
-      // Phase 2: engine returned native AwayFromHomeRecommendation[]
-      if (data.status === "ok" && Array.isArray(data.recommendations)) {
-        const nativeRecs: AwayFromHomeRecommendation[] = data.recommendations;
-        if (nativeRecs.length === 0) {
-          toast({
-            title: "No matches found",
-            description: "The engine found the menu but couldn't match any items to your profile. Try a different craving.",
-            variant: "destructive",
-          });
-          return;
-        }
-        setEngineRecs(nativeRecs);
-        setGeneratedMeals([]);
-        setUnavailableState(null);
-        setGuidedStep("results");
-        if (data.restaurantInfo) setRestaurantInfo(data.restaurantInfo);
-        saveRestaurantCache({
-          restaurantData: { meals: nativeRecs, restaurantInfo: data.restaurantInfo },
-          restaurant: restaurantInput,
-          craving: cravingInput,
-          cuisine: matchedCuisine || "",
-          generatedAtISO: new Date().toISOString(),
-        });
-        toast({
-          title: "🍽️ Restaurant Meals Found!",
-          description: `${nativeRecs.length} verified options at ${data.restaurantInfo?.name || restaurantInput}.`,
-        });
-        setTimeout(() => {
-          const event = new CustomEvent("walkthrough:event", {
-            detail: { testId: "restaurantguide-search-complete", event: "done" },
-          });
-          window.dispatchEvent(event);
-        }, 500);
-        return;
-      }
-
-      // Legacy fallback path (should not normally be reached in Phase 2)
       const userDiet = normalizeDiet(user?.dietaryRestrictions);
       const rawRecs = data.recommendations || [];
       const compliantRecs = filterMealsByDiet(userDiet, rawRecs, (r) => r);
@@ -568,15 +482,13 @@ export default function RestaurantGuidePage() {
         const isIdentityDiet = identityDiets.has(userDiet);
         const emptyDesc = rawRecs.length > 0
           ? isIdentityDiet
-            ? `No ${userDiet}-compliant options were found at this restaurant. Try a different location or search for ${userDiet}-friendly cuisine nearby.`
+            ? `No ${userDiet}-compliant options were found at this restaurant. Try a different location.`
             : `No recommendations matched your ${userDiet} diet. Try a different restaurant or craving.`
           : "No recommendations were generated. Please try again.";
         toast({ title: "No matching meals found", description: emptyDesc, variant: "destructive" });
         return;
       }
       setGeneratedMeals(compliantRecs);
-      setEngineRecs(null);
-      setUnavailableState(null);
       setGuidedStep("results");
       if (data.restaurantInfo) setRestaurantInfo(data.restaurantInfo);
       saveRestaurantCache({
@@ -587,8 +499,8 @@ export default function RestaurantGuidePage() {
         generatedAtISO: new Date().toISOString(),
       });
       toast({
-        title: "🍽️ Restaurant Meals Generated!",
-        description: `Found ${data.recommendations?.length || 0} healthy options at ${data.restaurantInfo?.name || restaurantInput}.`,
+        title: "🍽️ Restaurant Assistant",
+        description: `Found ${compliantRecs.length} healthy options at ${data.restaurantInfo?.name || restaurantInput}.`,
       });
       setTimeout(() => {
         const event = new CustomEvent("walkthrough:event", {
@@ -729,7 +641,7 @@ export default function RestaurantGuidePage() {
 
             {/* Title */}
             <h1 className="text-lg font-bold text-white truncate min-w-0">
-              Restaurant Guide
+              Restaurant Assistant
             </h1>
 
             <div className="flex-grow" />
@@ -752,7 +664,7 @@ export default function RestaurantGuidePage() {
                   </div>
                 </div>
                 <h2 className="text-2xl font-bold text-white mb-3">
-                  Restaurant Guide
+                  Restaurant Assistant
                 </h2>
                 <p className="text-white/70 mb-6">
                   Tell me where you're eating and what you're in the mood for,
@@ -1019,18 +931,15 @@ export default function RestaurantGuidePage() {
           )}
 
           {/* RESULTS SCREEN - Generated Meals Section */}
-          {guidedStep === "results" && (engineRecs !== null || generatedMeals.length > 0 || unavailableState !== null) && (
+          {guidedStep === "results" && generatedMeals.length > 0 && (
             <Card className="bg-black/10 backdrop-blur-lg border border-white/20 shadow-xl rounded-2xl">
               <CardContent className="p-6">
                 <div data-wt="rg-results-list" className="space-y-6 mb-6">
                   <div className="mb-4">
                     <div className="flex items-center justify-between">
                       <h2 className="text-xl font-bold text-white">
-                        🍽️{" "}
-                        {unavailableState
-                          ? "Restaurant Not Yet Supported"
-                          : "Recommended Meals at"}{" "}
-                        {!unavailableState && (restaurantInfo?.name ||
+                        🍽️ Recommended Meals at{" "}
+                        {restaurantInfo?.name ||
                           restaurantInput
                             .split(" ")
                             .map(
@@ -1038,13 +947,11 @@ export default function RestaurantGuidePage() {
                                 word.charAt(0).toUpperCase() +
                                 word.slice(1).toLowerCase(),
                             )
-                            .join(" "))}
+                            .join(" ")}
                       </h2>
                       <button
                         onClick={() => {
                           setGeneratedMeals([]);
-                          setEngineRecs(null);
-                          setUnavailableState(null);
                           clearRestaurantCache();
                           setRestaurantInput("");
                           setCravingInput("");
@@ -1058,7 +965,7 @@ export default function RestaurantGuidePage() {
                         Search Again
                       </button>
                     </div>
-                    {restaurantInfo?.address && !unavailableState && (
+                    {restaurantInfo?.address && (
                       <div className="flex items-center gap-2 mt-1">
                         <button
                           onClick={() => openInMaps(restaurantInfo.address)}
@@ -1096,81 +1003,192 @@ export default function RestaurantGuidePage() {
                     )}
                   </div>
 
-                  {/* Phase 2: Unavailable state — no verified menu data */}
-                  {unavailableState && (
-                    <div className="rounded-xl bg-white/5 border border-white/10 p-6 text-center space-y-3">
-                      <div className="text-4xl">🗺️</div>
-                      <p className="text-white font-medium">
-                        We don't have verified menu data for this restaurant yet.
-                      </p>
-                      <p className="text-white/60 text-sm">
-                        MyPerfectMeals works best with supported chains where we have official nutrition data.
-                        Try one of these instead:
-                      </p>
-                      <div className="flex flex-wrap justify-center gap-2 pt-1">
-                        {unavailableState.alternatives.includes("just_describe_it") && (
-                          <span className="bg-orange-600/80 text-white text-sm px-3 py-1 rounded-full">
-                            Describe your meal
-                          </span>
-                        )}
-                        {unavailableState.alternatives.includes("my_perfect_buffet") && (
-                          <span className="bg-white/10 text-white text-sm px-3 py-1 rounded-full">
-                            My Perfect Buffet
-                          </span>
-                        )}
-                        {unavailableState.alternatives.includes("paste_menu_text") && (
-                          <span className="bg-white/10 text-white text-sm px-3 py-1 rounded-full">
-                            Paste the menu
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-white/40 text-xs pt-2">
-                        Supported: Wendy's — more chains coming soon.
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Phase 2: Native engine recommendations — no adapter needed */}
-                  {engineRecs && engineRecs.length > 0 && (
-                    <div className="grid gap-4">
-                      {engineRecs.map((rec, index) => (
-                        <div data-wt="rg-restaurant-card" key={rec.id || index}>
-                          <AwayFromHomeMealCard
-                            recommendation={{
-                              ...rec,
-                              meal: {
-                                ...rec.meal,
-                                imageUrl:
-                                  chefFlowImages[chefFlowMealId({ id: rec.id, name: rec.meal.name, imageUrl: rec.meal.imageUrl }, "restaurant")] ||
-                                  rec.meal.imageUrl,
-                              },
-                            }}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Legacy path: old-shape meals (cached sessions from before Phase 2) */}
-                  {!engineRecs && !unavailableState && generatedMeals.length > 0 && (
-                    <div className="grid gap-4">
-                      {generatedMeals.map((meal, index) => (
-                        <div
+                  <div className="grid gap-4">
+                    {generatedMeals.map((meal, index) => {
+                      const mealKey = meal.id || `meal-${index}`;
+                      const translation = mealTranslations[mealKey];
+                      const displayMeal = translation ? translation.data : meal;
+                      const imageKey = chefFlowMealId(meal, "restaurant");
+                      const mealImage = chefFlowImages[imageKey] || meal.imageUrl;
+                      const TRANSLATE_LANGUAGES = [
+                        { code: "es", label: "Spanish" },
+                        { code: "fr", label: "French" },
+                        { code: "de", label: "German" },
+                        { code: "it", label: "Italian" },
+                        { code: "pt", label: "Portuguese" },
+                        { code: "zh", label: "Chinese" },
+                        { code: "ja", label: "Japanese" },
+                        { code: "ko", label: "Korean" },
+                        { code: "ar", label: "Arabic" },
+                        { code: "hi", label: "Hindi" },
+                        { code: "ru", label: "Russian" },
+                        { code: "vi", label: "Vietnamese" },
+                        { code: "tl", label: "Tagalog" },
+                      ];
+                      return (
+                        <Card
                           data-wt="rg-restaurant-card"
-                          key={meal.id || index}
+                          key={mealKey}
+                          className="overflow-hidden shadow-lg hover:shadow-orange-500/50 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 bg-black/40 backdrop-blur-lg border border-white/20"
                         >
-                          <AwayFromHomeMealCard
-                            recommendation={fromLegacyRecommendation(
-                              meal,
-                              restaurantInfo,
-                              "restaurant_guide",
-                              chefFlowImages[chefFlowMealId(meal, "restaurant")] || meal.imageUrl
+                          <div className="md:grid md:grid-cols-3">
+                            {mealImage && (
+                              <div className="relative h-48 md:h-full">
+                                <ChefFlowImage
+                                  src={mealImage}
+                                  alt={displayMeal.name || displayMeal.meal || "Meal"}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
                             )}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                            <div className={`p-4 ${mealImage ? "md:col-span-2" : "md:col-span-3"}`}>
+                              <div className="flex items-start justify-between mb-2">
+                                <h3 className="text-lg font-semibold text-white">
+                                  {displayMeal.name || displayMeal.meal}
+                                </h3>
+                                <div className="flex items-center gap-2 ml-2 flex-shrink-0">
+                                  <span className="text-sm text-white/90 bg-orange-600 px-2 py-1 rounded font-medium">
+                                    {meal.calories} cal
+                                  </span>
+                                  <FavoriteButton
+                                    meal={{
+                                      id: mealKey,
+                                      name: meal.name || meal.meal,
+                                      calories: meal.calories,
+                                      protein: meal.protein,
+                                      carbs: meal.carbs,
+                                      fat: meal.fat,
+                                      description: meal.description || meal.reason,
+                                      ingredients: meal.ingredients || [],
+                                    }}
+                                  />
+                                </div>
+                              </div>
+
+                              <p className="text-white/80 mb-3">
+                                {displayMeal.description || displayMeal.reason}
+                              </p>
+
+                              {/* Nutrition Info */}
+                              <div className="grid grid-cols-3 gap-4 text-sm mb-3">
+                                <div className="text-center">
+                                  <div className="font-semibold text-blue-400">
+                                    {meal.protein}g
+                                  </div>
+                                  <div className="text-white/60">Protein</div>
+                                </div>
+                                <div className="text-center">
+                                  <div className="font-semibold text-green-400">
+                                    {meal.carbs}g
+                                  </div>
+                                  <div className="text-white/60">Carbs</div>
+                                </div>
+                                <div className="text-center">
+                                  <div className="font-semibold text-yellow-400">
+                                    {meal.fat}g
+                                  </div>
+                                  <div className="text-white/60">Fat</div>
+                                </div>
+                              </div>
+
+                              {/* Why It's Healthy */}
+                              <div className="bg-black/20 border border-white/10 rounded-lg p-3 mb-3 backdrop-blur-sm">
+                                <h4 className="font-medium text-green-300 text-sm mb-1">
+                                  Why This is Healthy:
+                                </h4>
+                                <p className="text-green-200 text-sm">
+                                  {displayMeal.reason}
+                                </p>
+                              </div>
+
+                              {/* Ask For (Modifications) */}
+                              <div className="bg-black/20 border border-white/10 rounded-lg p-3 mb-3 backdrop-blur-sm">
+                                <h4 className="font-medium text-orange-300 text-sm mb-1">
+                                  Ask For:
+                                </h4>
+                                <p className="text-orange-200 text-sm">
+                                  {displayMeal.modifications || displayMeal.orderInstructions}
+                                </p>
+                              </div>
+
+                              {/* Translate */}
+                              <div className="mt-2">
+                                <details className="group">
+                                  <summary className="flex items-center gap-1.5 text-sm text-white/60 cursor-pointer list-none">
+                                    <Globe className="h-3.5 w-3.5" />
+                                    <span>
+                                      {translation
+                                        ? `Translated to ${TRANSLATE_LANGUAGES.find((l) => l.code === translation.lang)?.label || translation.lang}`
+                                        : "Translate"}
+                                    </span>
+                                    {translation && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          setMealTranslations((prev) => {
+                                            const next = { ...prev };
+                                            delete next[mealKey];
+                                            return next;
+                                          });
+                                        }}
+                                        className="ml-1 text-white/40 text-xs"
+                                      >
+                                        ✕
+                                      </button>
+                                    )}
+                                  </summary>
+                                  <div className="mt-2 flex flex-wrap gap-1.5">
+                                    {TRANSLATE_LANGUAGES.map((lang) => (
+                                      <button
+                                        key={lang.code}
+                                        disabled={translatingId === mealKey}
+                                        onClick={async () => {
+                                          if (translation?.lang === lang.code) return;
+                                          setTranslatingId(mealKey);
+                                          try {
+                                            const payload = {
+                                              name: meal.name || meal.meal,
+                                              description: meal.description || meal.reason,
+                                              reason: meal.reason,
+                                              modifications: meal.modifications || meal.orderInstructions,
+                                            };
+                                            const result = await apiRequest("/api/translate", {
+                                              method: "POST",
+                                              headers: { "Content-Type": "application/json" },
+                                              body: JSON.stringify({ content: payload, targetLanguage: lang.code }),
+                                            });
+                                            setMealTranslations((prev) => ({
+                                              ...prev,
+                                              [mealKey]: { lang: lang.code, data: { ...meal, ...result } },
+                                            }));
+                                          } catch {
+                                            toast({ title: "Translation failed", description: "Please try again.", variant: "destructive" });
+                                          } finally {
+                                            setTranslatingId(null);
+                                          }
+                                        }}
+                                        className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                                          translation?.lang === lang.code
+                                            ? "bg-orange-600 text-white"
+                                            : "bg-white/10 text-white/80"
+                                        }`}
+                                      >
+                                        {translatingId === mealKey ? (
+                                          <TranslateLoader className="h-3 w-3 animate-spin inline" />
+                                        ) : (
+                                          lang.label
+                                        )}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </details>
+                              </div>
+                            </div>
+                          </div>
+                        </Card>
+                      );
+                    })}
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -1180,7 +1198,7 @@ export default function RestaurantGuidePage() {
         <QuickTourModal
           isOpen={quickTour.shouldShow}
           onClose={quickTour.closeTour}
-          title="How to Use Restaurant Guide"
+          title="How to Use Restaurant Assistant"
           steps={RESTAURANT_TOUR_STEPS}
           onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
         />

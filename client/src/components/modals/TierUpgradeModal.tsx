@@ -20,7 +20,7 @@ const TIER_CONFIG: Record<RequiredTier, { label: string; badgeLabel?: string; ta
     tagline: "Expanded creators and real-world eating, fully protocol-aware.",
     benefits: [
       "Craving Creator, Beverage Creator & Sushi Creator",
-      "Restaurant Guide — protocol-aware ordering at any restaurant",
+      "Restaurant Assistant — protocol-aware ordering at any restaurant",
       "My Perfect Gatherings & My Perfect Pets nutrition plans",
     ],
   },
@@ -40,7 +40,7 @@ const TIER_CONFIG: Record<RequiredTier, { label: string; badgeLabel?: string; ta
     benefits: [
       "Craving Creator, Beverage Creator, Dessert Creator & Sushi Creator",
       "Meal Builder Exchange — switch builders anytime as your goals evolve",
-      "Restaurant Guide, My Perfect Gatherings & expanded lifestyle tools",
+      "Restaurant Assistant, My Perfect Gatherings & expanded lifestyle tools",
       "Essential gets you started · Clinical adds medical-grade nutrition tools",
     ],
   },
