@@ -71,6 +71,7 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
   const { narrationSpeed, setNarrationSpeed } = useNarrationSpeed();
   const { supportEmail, appName } = useOrgBranding();
   const { toast } = useToast();
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [showPhotoOptions, setShowPhotoOptions] = useState(false);
@@ -280,6 +281,7 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
         requestUpgrade({ requiredTier: "meal-builders", featureName: "Meal Builder Exchange" });
         return;
       }
+      setSheetOpen(false);
       if (LEGAL_ROUTES.includes(item.route)) {
         window.location.href = item.route;
       } else {
@@ -435,8 +437,8 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
   ];
 
   return (
-    <Sheet>
-      <SheetTrigger asChild>{children}</SheetTrigger>
+    <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+      <SheetTrigger asChild onClick={() => setSheetOpen(true)}>{children}</SheetTrigger>
       <SheetContent className="bg-gradient-to-br from-black/75 via-orange-900/80 to-black/75 border-l border-white/10 backdrop-blur-xl overflow-y-auto pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
         <SheetHeader>
           <SheetTitle className="text-white">My Hub</SheetTitle>
