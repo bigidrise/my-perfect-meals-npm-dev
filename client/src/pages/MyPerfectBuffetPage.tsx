@@ -16,6 +16,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Mic, MicOff, ChefHat, Loader2, RotateCcw, ChevronDown, ChevronUp } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePageTitle } from "@/contexts/PageTitleContext";
 import AwayFromHomeMealCard from "@/components/away-from-home/AwayFromHomeMealCard";
 import type { AwayFromHomeRecommendation } from "@shared/awayFromHome";
 import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
@@ -32,6 +33,7 @@ const CATEGORY_LABELS: { key: string; label: string; placeholder: string }[] = [
 export default function MyPerfectBuffetPage() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+  usePageTitle("My Perfect Buffet");
 
   const [foodsDescription, setFoodsDescription] = useState("");
   const [categories, setCategories] = useState<Record<string, string>>({});
@@ -147,7 +149,7 @@ export default function MyPerfectBuffetPage() {
           </button>
           <div className="flex-1 min-w-0">
             <h1 className="text-base font-bold text-white">My Perfect Buffet</h1>
-            <p className="text-xs text-white/40">AI plate-building from what's available</p>
+            <p className="text-xs text-white/60">AI plate-building from what's available</p>
           </div>
           <div className="h-9 w-9 rounded-xl bg-orange-500/20 border border-orange-500/30 flex items-center justify-center">
             <ChefHat className="h-5 w-5 text-orange-400" />
@@ -170,7 +172,7 @@ export default function MyPerfectBuffetPage() {
             >
               {/* ── Intro card ─────────────────────────────────────────── */}
               <div className="p-4 rounded-2xl bg-black/40 border border-white/10">
-                <p className="text-sm text-white/70 leading-relaxed">
+                <p className="text-sm text-white leading-relaxed">
                   Tell me what foods are available and I'll build the best plate for your goals.
                   Speak or type freely — no need to categorize.
                 </p>
@@ -179,14 +181,14 @@ export default function MyPerfectBuffetPage() {
               {/* ── Free-form entry ────────────────────────────────────── */}
               <div className="rounded-2xl bg-black/50 border border-white/10 overflow-hidden">
                 <div className="px-4 pt-4 pb-2">
-                  <p className="text-xs text-white/40 uppercase tracking-wider mb-2">
+                  <p className="text-xs text-white font-semibold uppercase tracking-wider mb-2">
                     What's at the buffet?
                   </p>
                   <textarea
                     value={foodsDescription}
                     onChange={(e) => setFoodsDescription(e.target.value)}
                     placeholder="They have grilled chicken, brisket, mashed potatoes, mac and cheese, green beans, salad bar, rolls, fruit, and cake..."
-                    className="w-full bg-transparent text-sm text-white placeholder-white/25 resize-none outline-none leading-relaxed min-h-[96px]"
+                    className="w-full bg-transparent text-sm text-white placeholder-white/40 resize-none outline-none leading-relaxed min-h-[96px]"
                     rows={4}
                   />
                 </div>
@@ -200,7 +202,7 @@ export default function MyPerfectBuffetPage() {
                     className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-all ${
                       recording
                         ? "bg-red-600/30 border border-red-500/50 text-red-300 animate-pulse"
-                        : "bg-white/10 border border-white/15 text-white/60"
+                        : "bg-white/10 border border-white/20 text-white"
                     }`}
                   >
                     {recording ? (
@@ -212,7 +214,7 @@ export default function MyPerfectBuffetPage() {
                   {foodsDescription && (
                     <button
                       onClick={() => setFoodsDescription("")}
-                      className="text-xs text-white/30 active:text-white/60"
+                      className="text-xs text-white/60 active:text-white"
                     >
                       Clear
                     </button>
@@ -223,7 +225,7 @@ export default function MyPerfectBuffetPage() {
               {/* ── Optional categories ────────────────────────────────── */}
               <button
                 onClick={() => setShowCategories((v) => !v)}
-                className="flex items-center gap-2 text-xs text-white/40 px-1"
+                className="flex items-center gap-2 text-xs text-white/80 px-1 font-medium"
               >
                 {showCategories ? (
                   <><ChevronUp className="h-3.5 w-3.5" /> Hide categories</>
@@ -242,8 +244,8 @@ export default function MyPerfectBuffetPage() {
                   >
                     <div className="space-y-2">
                       {CATEGORY_LABELS.map(({ key, label, placeholder }) => (
-                        <div key={key} className="rounded-xl bg-black/40 border border-white/8 px-4 py-3">
-                          <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1.5">
+                        <div key={key} className="rounded-xl bg-black/40 border border-white/15 px-4 py-3">
+                          <p className="text-[11px] text-white font-semibold uppercase tracking-wider mb-1.5">
                             {label}
                           </p>
                           <input
@@ -253,7 +255,7 @@ export default function MyPerfectBuffetPage() {
                               setCategories((prev) => ({ ...prev, [key]: e.target.value }))
                             }
                             placeholder={placeholder}
-                            className="w-full bg-transparent text-sm text-white placeholder-white/20 outline-none"
+                            className="w-full bg-transparent text-sm text-white placeholder-white/35 outline-none"
                           />
                         </div>
                       ))}
@@ -280,7 +282,7 @@ export default function MyPerfectBuffetPage() {
                 )}
               </button>
 
-              <p className="text-center text-[10px] text-white/25 px-4 leading-relaxed">
+              <p className="text-center text-[10px] text-white/50 px-4 leading-relaxed">
                 Nutrition values are estimated. Review before logging.
               </p>
             </motion.div>
@@ -292,7 +294,7 @@ export default function MyPerfectBuffetPage() {
               className="space-y-4"
             >
               <div className="flex items-center justify-between">
-                <p className="text-xs text-white/40 uppercase tracking-wider">Your Plate</p>
+                <p className="text-xs text-white font-semibold uppercase tracking-wider">Your Plate</p>
                 <button
                   onClick={reset}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
