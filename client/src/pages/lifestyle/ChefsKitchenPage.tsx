@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { formatAmount } from "@/utils/formatAmount";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
@@ -130,6 +131,7 @@ export default function ChefsKitchenPage() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation("chefsKitchen");
   const quickTour = useQuickTour("chefs-kitchen");
 
   const initialState = getInitialMode();
@@ -587,7 +589,7 @@ export default function ChefsKitchenPage() {
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
-            <h1 className="text-lg font-bold text-white truncate">Create a Dish</h1>
+            <h1 className="text-lg font-bold text-white truncate">{t("title")}</h1>
             <img
               src="/icons/chef.png"
               alt="Chef"
@@ -616,10 +618,10 @@ export default function ChefsKitchenPage() {
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
-                      <h2 className="text-lg font-bold text-white">Create a Dish</h2>
+                      <h2 className="text-lg font-bold text-white">{t("title")}</h2>
                     </div>
                     <p className="text-sm text-white/70">
-                      Tell us what you want to make — we'll build it with you.
+                      {t("subTitle")}
                     </p>
                   </div>
 
@@ -679,7 +681,7 @@ export default function ChefsKitchenPage() {
                   {/* Servings */}
                   <div>
                     <label className="block text-sm font-medium text-white mb-2">
-                      Servings
+                      {t("servingsLabel")}
                     </label>
                     <div className="flex gap-2">
                       {[1, 2, 3, 4, 5, 6].map((n) => (
@@ -744,7 +746,7 @@ export default function ChefsKitchenPage() {
                     disabled={safetyChecking}
                     data-testid="button-generate-meal"
                   >
-                    {safetyChecking ? "Checking..." : "Create in Kitchen"}
+                    {safetyChecking ? t("checkingSafety") : t("createButton")}
                   </button>
                 </CardContent>
               </Card>
@@ -756,7 +758,7 @@ export default function ChefsKitchenPage() {
                 <CardContent className="p-4">
                   <div className="text-center py-8">
                     <Loader2 className="h-8 w-8 text-lime-500 mx-auto mb-4 animate-spin" />
-                    <p className="text-sm text-white/80 mb-4">Creating your dish...</p>
+                    <p className="text-sm text-white/80 mb-4">{t("creatingDish")}</p>
                     <div className="w-full bg-black/40 border border-white/20 rounded-lg h-3 overflow-hidden">
                       <div
                         className="bg-lime-600 h-full transition-all duration-500"
@@ -889,7 +891,7 @@ export default function ChefsKitchenPage() {
                       onClick={restartKitchenStudio}
                       className="text-sm text-white/70 bg-white/10 px-3 py-1 rounded-lg transition-colors active:scale-[0.98]"
                     >
-                      Create New
+                      {t("createNew")}
                     </button>
                   </div>
 

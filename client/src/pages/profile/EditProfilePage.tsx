@@ -20,6 +20,7 @@ import { CopilotExplanationStore } from "@/components/copilot/CopilotExplanation
 import { shouldAllowAutoOpen } from "@/components/copilot/CopilotRespectGuard";
 import { isGuestMode } from "@/lib/guestMode";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { useTranslation } from "react-i18next";
 
 type StepId = 1 | 2 | 3 | 4 | 5;
 
@@ -178,6 +179,7 @@ export default function EditProfilePage() {
   const [, setLocation] = useLocation();
   const { user, refreshUser } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation("editProfile");
   const { isOpen, open, setLastResponse } = useCopilot();
   const queryClient = useQueryClient();
 
@@ -608,7 +610,7 @@ export default function EditProfilePage() {
             <span className="text-sm font-medium">Back</span>
           </button>
 
-          <h1 className="text-base font-bold text-white flex-1 min-w-0 truncate">Edit Profile</h1>
+          <h1 className="text-base font-bold text-white flex-1 min-w-0 truncate">{t("title")}</h1>
 
           <div className="flex-shrink-0 flex items-center gap-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 max-w-[140px]">
@@ -721,7 +723,7 @@ export default function EditProfilePage() {
                   disabled={!canContinueStep1 || saving}
                   onClick={handleSave}
                 >
-                  {saving ? "Saving..." : "Save & Exit"}
+                  {saving ? t("saving") : t("saveExit")}
                 </Button>
                 <Button
                   className="w-full bg-lime-600 text-white"
@@ -832,7 +834,7 @@ export default function EditProfilePage() {
                   disabled={saving}
                   onClick={handleSave}
                 >
-                  {saving ? "Saving..." : "Save & Exit"}
+                  {saving ? t("saving") : t("saveExit")}
                 </Button>
                 <div className="flex gap-2">
                   <Button
@@ -1493,7 +1495,7 @@ export default function EditProfilePage() {
                   disabled={saving}
                   onClick={handleSave}
                 >
-                  {saving ? "Saving..." : "Save & Exit"}
+                  {saving ? t("saving") : t("saveExit")}
                 </Button>
                 <div className="flex gap-2">
                   <Button
@@ -1826,11 +1828,11 @@ export default function EditProfilePage() {
                   disabled={saving}
                 >
                   {saving ? (
-                    "Saving..."
+                    t("saving")
                   ) : (
                     <span className="inline-flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4" />
-                      Save Changes
+                      {t("saveChanges")}
                     </span>
                   )}
                 </Button>
