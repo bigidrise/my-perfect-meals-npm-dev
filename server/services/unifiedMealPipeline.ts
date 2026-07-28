@@ -1088,7 +1088,7 @@ Respond with ONLY valid JSON in this exact format:
 
 /** Determine if the craving is dessert-like */
 function isCravingDessert(input: string): boolean {
-  const dessertTerms = /cheesecake|cake|cookie|brownie|tart|pie|pudding|mousse|parfait|custard|ice.?cream|gelato|sorbet|fudge|truffle|macaron|crepe|waffle|muffin|donut|sundae|tiramisu|cannoli|panna.?cotta|cobbler|crisp|bread.?pudding|eclair|profiterole|dessert|sweet|chocolate|vanilla|caramel|strawberry.*cake|lemon.*bar|banana.*bread/i;
+  const dessertTerms = /cheesecake|cake|cookie|brownie|tart|pie|pudding|mousse|parfait|custard|ice.?cream|gelato|sorbet|frozen.?yogurt|froyo|fudge|truffle|macaron|crepe|waffle|muffin|donut|sundae|tiramisu|cannoli|panna.?cotta|cobbler|crisp|bread.?pudding|eclair|profiterole|dessert|sweet|chocolate|vanilla|caramel|strawberry.*cake|lemon.*bar|banana.*bread/i;
   return dessertTerms.test(input);
 }
 
@@ -1105,7 +1105,7 @@ function inferCravingCategory(input: string, mealType: string): string {
 function extractDishFamily(input: string): string {
   const words = input.toLowerCase().split(/\s+/);
   // Key dish-type nouns to lock onto
-  const dishNouns = ['cheesecake','cake','pie','tart','brownie','cookie','pudding','mousse','parfait','smoothie','shake','bowl','soup','salad','sandwich','wrap','steak','burger','pasta','pizza','taco','burrito','curry','stir-fry','risotto','omelette','pancake','waffle','muffin','scone','crepe','ice cream','gelato'];
+  const dishNouns = ['cheesecake','cake','pie','tart','brownie','cookie','pudding','mousse','parfait','smoothie','shake','bowl','soup','salad','sandwich','wrap','steak','burger','pasta','pizza','taco','burrito','curry','stir-fry','risotto','omelette','pancake','waffle','muffin','scone','crepe','ice cream','gelato','frozen yogurt','froyo'];
   for (const noun of dishNouns) {
     if (input.toLowerCase().includes(noun)) return noun;
   }
@@ -1136,6 +1136,8 @@ function validateVarietyOption(opt: any, category: string, dishFamily: string, d
       smoothie: ['smoothie', 'shake', 'blend'],
       steak: ['steak', 'beef', 'sirloin', 'ribeye'],
       burger: ['burger', 'patty', 'smash'],
+      'frozen yogurt': ['frozen yogurt', 'froyo', 'frozen yogurt bark', 'yogurt bark', 'yogurt parfait', 'frozen yogurt bowl'],
+      froyo: ['froyo', 'frozen yogurt', 'yogurt'],
     };
     const synonyms = synonymMap[dishFamily] || [simpleDishFamily];
     const passes = synonyms.some(s => nameAndDesc.includes(s));
