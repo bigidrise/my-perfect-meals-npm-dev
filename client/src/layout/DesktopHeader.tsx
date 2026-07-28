@@ -6,77 +6,80 @@ import { HubControlIcon } from "@/components/icons/HubControlIcon";
 import { useOrgBranding } from "@/hooks/useOrgBranding";
 import { ChevronLeft } from "lucide-react";
 import { getTierForLookupKey } from "@shared/planFeatures";
+import { useTranslation } from "react-i18next";
 
-const HUB_BACK_MAP: Record<string, { hub: string; label: string }> = {
-  "/beach-body-meal-board":       { hub: "/performance",  label: "Performance Hub" },
-  "/diabetic-menu-builder":       { hub: "/diabetic-hub", label: "Diabetes Hub" },
-  "/glp1-meal-builder":           { hub: "/glp1-hub",     label: "Metabolic Hub" },
-  "/anti-inflammatory-menu-builder": { hub: "/diabetic-hub", label: "Diabetes Hub" },
-  "/performance-competition-builder": { hub: "/performance", label: "Performance Hub" },
+/** Maps route paths to routeTitles i18n keys */
+const ROUTE_KEY_MAP: Record<string, string> = {
+  "/dashboard": "dashboard",
+  "/macro-counter": "macroCalculator",
+  "/select-builder": "mealBuilders",
+  "/shopping-list": "shoppingList",
+  "/shopping-list-v2": "smartGroceryList",
+  "/fridge-rescue": "fridgeRescue",
+  "/fridge-rescue-studio": "fridgeRescueStudio",
+  "/saved-meals": "savedMeals",
+  "/care-team": "careTeam",
+  "/care-team/physician": "careTeam",
+  "/care-team/trainer": "careTeam",
+  "/pro/clients": "myClients",
+  "/pro/physician-clients": "physicianClients",
+  "/pro/physician": "physicianPortal",
+  "/pro-portal": "proPortal",
+  "/profile": "settings",
+  "/more": "more",
+  "/my-biometrics": "myBiometrics",
+  "/biometrics": "myBiometrics",
+  "/biometrics/body-composition": "bodyComposition",
+  "/biometrics/sleep": "sleepTracker",
+  "/builders": "mealBuilders",
+  "/get-inspiration": "dailyJournal",
+  "/pricing": "pricingPlans",
+  "/lifestyle": "lifestyle",
+  "/lifestyle/my-perfect-pregnancy": "pregnancy",
+  "/lifestyle/create-a-dish": "createDish",
+  "/lifestyle/beverage-creator": "beverageCreator",
+  "/lifestyle/chefs-kitchen": "createDish",
+  "/lifestyle/chef-pairings": "chefPairings",
+  "/lifestyle/pairings-hub": "pairingsHub",
+  "/lifestyle/pairings-ai": "drinkPairings",
+  "/lifestyle/wine-list-helper": "wineListHelper",
+  "/lifestyle/reduce-drinking-plan": "reduceDrinking",
+  "/lifestyle/my-perfect-gatherings": "gatherings",
+  "/craving-creator-landing": "cravingCreator",
+  "/craving-creator": "cravingCreator",
+  "/craving-desserts": "dessertCreator",
+  "/craving-studio": "cravingCreator",
+  "/dessert-studio": "dessertCreator",
+  "/weekly": "weeklyBuilder",
+  "/weekly-meal-board": "weeklyBuilder",
+  "/plan-builder/classic": "weeklyBuilder",
+  "/builder/classic": "weeklyBuilder",
+  "/beach-body-meal-board": "performanceBuilder",
+  "/diabetic-hub": "diabeticHub",
+  "/diabetes-support": "diabetesSupport",
+  "/diabetic-menu-builder": "diabeticBuilder",
+  "/glp1-hub": "metabolicHub",
+  "/glp1-meal-builder": "metabolicBuilder",
+  "/glp1-meals-tracking": "metabolicTracking",
+  "/anti-inflammatory-menu-builder": "antiInflammatoryBuilder",
+  "/social-hub": "mealsAwayFromHome",
+  "/social-hub/find": "findMeals",
+  "/social-hub/restaurant-guide": "restaurantGuide",
+  "/supplement-hub": "supplementHub",
+  "/tutorials": "tutorialHub",
+  "/learn": "learn",
+  "/weaning-off-tool": "weaningOff",
+  "/founders": "founders",
+  "/apply-guidance": "applyGuidance",
 };
 
-const ROUTE_TITLES: Record<string, string> = {
-  "/dashboard": "Dashboard",
-  "/macro-counter": "Macro Calculator",
-  "/select-builder": "Meal Builders",
-  "/shopping-list": "Shopping List",
-  "/shopping-list-v2": "Smart Grocery List",
-  "/fridge-rescue": "Fridge Rescue",
-  "/fridge-rescue-studio": "Fridge Rescue Studio",
-  "/saved-meals": "Saved Meals",
-  "/care-team": "Care Team",
-  "/care-team/physician": "Care Team",
-  "/care-team/trainer": "Care Team",
-  "/pro/clients": "My Clients",
-  "/pro/physician-clients": "Physician Clients",
-  "/pro/physician": "Physician Portal",
-  "/pro-portal": "Pro Portal",
-  "/profile": "Settings",
-  "/more": "More",
-  "/my-biometrics": "My Biometrics",
-  "/biometrics": "My Biometrics",
-  "/biometrics/body-composition": "Body Composition",
-  "/biometrics/sleep": "Sleep Tracker",
-  "/builders": "Meal Builders",
-  "/get-inspiration": "Daily Journal & Inspiration",
-  "/pricing": "Plans & Pricing",
-  "/lifestyle": "Lifestyle Hub",
-  "/lifestyle/my-perfect-pregnancy": "My Perfect Pregnancy",
-  "/lifestyle/create-a-dish": "Create a Dish",
-  "/lifestyle/beverage-creator": "Beverage Creator",
-  "/lifestyle/chefs-kitchen": "Create a Dish",
-  "/lifestyle/chef-pairings": "Chef Pairings",
-  "/lifestyle/pairings-hub": "Pairings Hub",
-  "/lifestyle/pairings-ai": "Drink Pairings",
-  "/lifestyle/wine-list-helper": "Wine List Helper",
-  "/lifestyle/reduce-drinking-plan": "Reduce Drinking Plan",
-  "/lifestyle/my-perfect-gatherings": "My Perfect Gatherings",
-  "/craving-creator-landing": "Cravings, Sushi & Desserts Hub",
-  "/craving-creator": "Craving Creator",
-  "/craving-desserts": "Dessert Creator",
-  "/craving-studio": "Craving Creator",
-  "/dessert-studio": "Dessert Creator",
-  "/weekly": "Weekly Meal Builder",
-  "/weekly-meal-board": "Weekly Meal Builder",
-  "/plan-builder/classic": "Weekly Meal Builder",
-  "/builder/classic": "Weekly Meal Builder",
-  "/beach-body-meal-board": "Performance Nutrition Builder",
-  "/diabetic-hub": "Diabetic Hub",
-  "/diabetes-support": "Diabetes Support",
-  "/diabetic-menu-builder": "Diabetic Builder",
-  "/glp1-hub": "Metabolic Medication Hub",
-  "/glp1-meal-builder": "Metabolic Medication Builder",
-  "/glp1-meals-tracking": "Metabolic Medication Tracking",
-  "/anti-inflammatory-menu-builder": "Anti-Inflammatory Builder",
-  "/social-hub": "Meals Away From Home",
-  "/social-hub/find": "Find Meals",
-  "/social-hub/restaurant-guide": "Restaurant Guide",
-  "/supplement-hub": "Supplement Hub",
-  "/tutorials": "Tutorial Hub",
-  "/learn": "Learn",
-  "/weaning-off-tool": "Weaning Off Tool",
-  "/founders": "Founders",
-  "/apply-guidance": "Apply Guidance",
+/** Maps hub-back routes to their hub's routeTitles key */
+const HUB_BACK_KEY_MAP: Record<string, { hub: string; key: string }> = {
+  "/beach-body-meal-board":            { hub: "/performance",  key: "performanceHub" },
+  "/diabetic-menu-builder":            { hub: "/diabetic-hub", key: "diabetesHub" },
+  "/glp1-meal-builder":               { hub: "/glp1-hub",     key: "metabolicHubBack" },
+  "/anti-inflammatory-menu-builder":   { hub: "/diabetic-hub", key: "diabetesHub" },
+  "/performance-competition-builder":  { hub: "/performance",  key: "performanceHub" },
 };
 
 type PlanBadgeVariant = "free" | "paid" | "professional";
@@ -105,44 +108,45 @@ const BADGE_CLASSES: Record<PlanBadgeVariant, string> = {
   professional: "bg-blue-500/15 border border-blue-500/25 text-blue-400",
 };
 
-function getPageTitle(location: string): string {
-  if (ROUTE_TITLES[location]) return ROUTE_TITLES[location];
-  for (const [route, title] of Object.entries(ROUTE_TITLES)) {
-    if (location.startsWith(route + "/")) return title;
-  }
-  if (location.startsWith("/pro/clients/") && location.includes("/clinician")) return "Patient Dashboard";
-  if (location.startsWith("/pro/clients/") && location.includes("/trainer")) return "Client Dashboard";
-  if (location.startsWith("/pro/clients/") && location.includes("/board/")) return "Board View";
-  if (location.startsWith("/pro/clients/")) return "Client Dashboard";
-  if (location.startsWith("/pro/")) return "Professional Workspace";
-  if (location.startsWith("/lifestyle/")) return "Lifestyle Hub";
-  if (location.startsWith("/builder") || location.includes("-builder")) return "Meal Builder";
-  if (location === "/kitchens") return "The Kitchen Network";
-  if (location.startsWith("/kitchen/")) return "Signature Kitchen";
-  return "My Perfect Meals";
-}
-
 export default function DesktopHeader() {
   const [location, setLocation] = useLocation();
   const { user } = useAuth();
   const contextTitle = useCurrentPageTitle();
   const { appName } = useOrgBranding();
+  const { t } = useTranslation("routeTitles");
+
+  function getPageTitle(loc: string): string {
+    if (ROUTE_KEY_MAP[loc]) return t(ROUTE_KEY_MAP[loc]);
+    for (const [route, key] of Object.entries(ROUTE_KEY_MAP)) {
+      if (loc.startsWith(route + "/")) return t(key);
+    }
+    if (loc.startsWith("/pro/clients/") && loc.includes("/clinician")) return t("patientDashboard");
+    if (loc.startsWith("/pro/clients/") && loc.includes("/trainer")) return t("clientDashboard");
+    if (loc.startsWith("/pro/clients/") && loc.includes("/board/")) return t("boardView");
+    if (loc.startsWith("/pro/clients/")) return t("clientDashboard");
+    if (loc.startsWith("/pro/")) return t("professionalWorkspace");
+    if (loc.startsWith("/lifestyle/")) return t("lifestyle");
+    if (loc.startsWith("/builder") || loc.includes("-builder")) return t("mealBuilder");
+    if (loc === "/kitchens") return t("kitchenNetwork");
+    if (loc.startsWith("/kitchen/")) return t("signatureKitchen");
+    return t("appName");
+  }
 
   const fallbackTitle = getPageTitle(location);
   const title = contextTitle || (fallbackTitle === "Signature Kitchen Experience" ? appName : fallbackTitle);
   const planBadge = getPlanLabel(user);
-  const hubBack = HUB_BACK_MAP[location] ?? null;
+  const hubBackEntry = HUB_BACK_KEY_MAP[location] ?? null;
 
   return (
     <header className="h-14 shrink-0 bg-black/40 backdrop-blur-md border-b border-white/10 flex items-center justify-between px-6">
       <div className="flex items-center gap-3">
-        {hubBack && (
+        {hubBackEntry && (
           <button
-            onClick={() => setLocation(hubBack.hub)}
+            onClick={() => setLocation(hubBackEntry.hub)}
             className="flex items-center gap-1 text-orange-400 hover:text-orange-300 transition-colors"
           >
             <ChevronLeft className="w-4 h-4" />
-            <span className="text-sm font-medium">{hubBack.label}</span>
+            <span className="text-sm font-medium">{t(hubBackEntry.key)}</span>
           </button>
         )}
         <h1 className="text-lg font-semibold text-white">{title}</h1>
