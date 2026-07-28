@@ -17,6 +17,7 @@ import type { AuthenticatedRequest } from "../middleware/requireAuth";
 import { restaurantEngine, officialJsonProvider } from "../services/away-from-home/ProviderRegistry";
 import { findBrandBySlug, getAllBrands } from "../services/away-from-home/BrandRegistry";
 import { generateMenuItemRecommendations } from "../services/away-from-home/generateMenuItemRecommendations";
+import { generateRestaurantMealsAI } from "../services/restaurantMealGeneratorAI";
 
 const router = Router();
 
@@ -99,22 +100,60 @@ router.post("/guide", async (req, res) => {
     });
 
     if (engineResult.status === "unavailable") {
+      // Engine has no verified menu data for this restaurant.
+      // Fall back to AI generation so Restaurant Guide and Fast Food Hub always work.
       console.log(
         `ℹ️ [Guide] Engine: unavailable for "${restaurantName}" (reason: ${engineResult.reason}). ` +
-        `Returning unavailable state — no menu invention.`
+        `Falling back to AI generation.`
       );
-      return res.json({
-        status: "unavailable",
-        reason: engineResult.reason,
-        alternatives: engineResult.alternatives,
+
+      const aiUser = bodyDiet.length > 0
+        ? { ...(user || {}), dietaryRestrictions: effectiveDiet } as any
+        : user;
+
+      const aiRecs = await generateRestaurantMealsAI({
+        restaurantName: restaurantInfo.name,
+        cuisine: detectedCuisine,
+        cravingContext: craving,
+        user: aiUser,
+      });
+
+      const generationTime = Date.now() - generationStart;
+      console.log(`✅ [Guide/AI] ${aiRecs.length} recs in ${generationTime}ms`);
+
+      res.json({
+        recommendations: aiRecs,
         restaurantInfo,
         restaurantName: restaurantInfo.name,
         craving,
+        cuisine: detectedCuisine,
         generatedAt: new Date().toISOString(),
+        generationTime,
       });
+
+      // Fire-and-forget: persist session
+      if (aiRecs.length > 0) {
+        (async () => {
+          try {
+            await db.insert(restaurantGuideSessions).values({
+              userId: String(userId),
+              restaurantName: restaurantInfo.name,
+              restaurantInfo: restaurantInfo as any,
+              craving: craving || null,
+              cuisine: detectedCuisine,
+              zipCode: zipCode || null,
+              meals: aiRecs as any,
+            });
+          } catch (saveErr) {
+            console.error(`⚠️ [Guide/AI] Failed to persist session:`, saveErr);
+          }
+        })();
+      }
+
+      return;
     }
 
-    // Engine returned ok — we have verified menu items
+    // Engine returned ok — we have verified menu items (Phase 2: Wendy's etc.)
     const { identity, items, source, menuLastVerifiedAt } = engineResult;
     console.log(
       `✅ [Guide] Engine resolved ${items.length} items for "${identity.displayName}" via source="${source}"`
@@ -127,7 +166,7 @@ router.post("/guide", async (req, res) => {
       `medical=[${guideContext.medical.length} flags] builder=${guideContext.builder ?? "none"}`
     );
 
-    // ── Step 4: AI reasons over verified items — no invention ──────────────────
+    // ── Step 4: AI reasons over verified items ─────────────────────────────────
     const aiUser = bodyDiet.length > 0
       ? { ...(user || {}), dietaryRestrictions: effectiveDiet } as any
       : user;
