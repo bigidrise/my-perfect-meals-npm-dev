@@ -7540,8 +7540,11 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   const { default: translateRouterShared } = await import("./routes/translate");
   app.use("/api/translate", requireAuth, requireActiveAccess, translateRouterShared);
 
-  const { default: restaurantRoutesShared } = await import("./routes/restaurants");
+  const { default: restaurantRoutesShared, debugRouter: restaurantDebugRouterShared } = await import("./routes/restaurants");
   const { resolveCuisineMiddleware: resolveCuisineShared } = await import("./middleware/resolveCuisineMiddleware");
+  // Dev-only debug endpoint: mounted before requireProAccess so any authenticated
+  // user (no paid plan required) can query provider provenance in development.
+  app.use("/api/restaurants/debug", requireAuth, restaurantDebugRouterShared);
   app.use("/api/restaurants", requireAuth, requireProAccess, resolveCuisineShared, restaurantRoutesShared);
 
   const { default: buffetRouterShared } = await import("./routes/buffet");

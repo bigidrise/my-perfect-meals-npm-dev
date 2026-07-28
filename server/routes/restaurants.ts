@@ -418,10 +418,13 @@ router.post("/find-nearby", async (req, res) => {
   }
 });
 
-// ── Development-only diagnostic endpoint ──────────────────────────────────────
+// ── Development-only diagnostic router ────────────────────────────────────────
+// Mounted separately in routes.ts with requireAuth only (no requireProAccess).
+// Never exposed in production — each handler returns 404 when NODE_ENV === "production".
+export const debugRouter = Router();
+
 // GET /api/restaurants/debug/provider/:brandSlug
 // Returns which provider would handle a brand and its full provenance.
-// Never exposed in production — returns 404 when NODE_ENV === "production".
 //
 // Example response:
 //   GET /api/restaurants/debug/provider/wendys
@@ -438,7 +441,7 @@ router.post("/find-nearby", async (req, res) => {
 //     "itemCount": 9,
 //     "availableMenuSources": ["internal_canonical"]
 //   }
-router.get("/debug/provider/:brandSlug", async (req, res) => {
+debugRouter.get("/provider/:brandSlug", async (req, res) => {
   if (process.env.NODE_ENV === "production") {
     return res.status(404).json({ message: "Not found" });
   }

@@ -208,24 +208,24 @@ router.post('/log', requireAuth, async (req, res) => {
       });
     }
 
-    // Import and use the existing food logs system
-    const { foodLogs } = await import('../../shared/schema') as any;
+    // Import macroLogs (the canonical macro-tracking table, table name "macro_logs")
+    const { macroLogs } = await import('../../shared/schema') as any;
 
-    const [insertedRow] = (await db.insert(foodLogs).values({
+    // source col is varchar(24) — truncate long away-from-home source strings
+    const sourceValue = String(source || "quick").slice(0, 24);
+
+    const [insertedRow] = (await db.insert(macroLogs).values({
       userId,
-      loggedAt: new Date(date_iso || new Date().toISOString()),
-      mealType: meal_type || "lunch",
-      foodName: title || "Meal",
-      qty: "1",
-      unit: "serving",
-      calories: Number(calories_kcal) || 0,
-      proteinG: String(Number(protein_g) || 0),
-      carbsG: String(Number(carbs_g) || 0),
-      fatG: String(Number(fat_g) || 0),
-      meta: {
-        source: source || "manual",
-        mealId: meal_id
-      }
+      at: new Date(date_iso || new Date().toISOString()),
+      source: sourceValue,
+      kcal: String(Number(calories_kcal) || 0),
+      protein: String(Number(protein_g) || 0),
+      carbs: String(Number(carbs_g) || 0),
+      fat: String(Number(fat_g) || 0),
+      fiber: "0",
+      alcohol: "0",
+      starchyCarbs: "0",
+      fibrousCarbs: "0",
     }).returning()) as any[];
 
     console.log("[biometrics] Log saved:", insertedRow.id);
