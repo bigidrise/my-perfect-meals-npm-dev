@@ -406,6 +406,8 @@ export const users = pgTable("users", {
   // International / Metric Support
   measurementSystem: text("measurement_system").$type<"imperial"|"metric">().default("imperial"),
   countryCode: text("country_code").$type<"US"|"CA"|"AU"|"UK"|"NZ">().default("US"),
+  // Language Preference — "auto" = use device language (navigator.language), explicit BCP-47 = user override
+  preferredLanguage: text("preferred_language").default("auto"),
   // ProCare Professional Onboarding - Phase 1
   professionalRole: text("professional_role").$type<"trainer"|"physician"|"dietitian"|"nurse_practitioner">(),
   professionalCategory: text("professional_category").$type<"certified"|"experienced"|"non_certified">(),

@@ -434,7 +434,19 @@ Make the meals sound like something you would genuinely see on the menu at ${res
       messages: [
         {
           role: "system",
-          content: "You are a nutrition expert who provides accurate, restaurant-specific meal recommendations. Return only valid JSON. Always generate unique and varied meal suggestions."
+          content: (() => {
+            const langNames: Record<string, string> = {
+              es: "Spanish", fr: "French", de: "German", it: "Italian", pt: "Portuguese",
+              zh: "Chinese (Simplified)", ja: "Japanese", ko: "Korean", ar: "Arabic",
+              hi: "Hindi", ru: "Russian", vi: "Vietnamese", tl: "Filipino (Tagalog)",
+            };
+            const rawLang = (request.user as any)?.preferredLanguage || "auto";
+            const baseLang = rawLang !== "auto" ? rawLang.split("-")[0].toLowerCase() : "en";
+            const langInstr = baseLang !== "en" && langNames[baseLang]
+              ? ` 🌐 LANGUAGE REQUIREMENT — MANDATORY: Generate ALL content entirely in ${langNames[baseLang]}. Every word must be in ${langNames[baseLang]}.`
+              : "";
+            return `You are a nutrition expert who provides accurate, restaurant-specific meal recommendations. Return only valid JSON. Always generate unique and varied meal suggestions.${langInstr}`;
+          })()
         },
         {
           role: "user",
