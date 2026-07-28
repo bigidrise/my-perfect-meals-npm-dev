@@ -168,16 +168,16 @@ export default function MorePage() {
 
   const proCareFeatures: ProCareFeature[] = [
     {
-      title: "Physicians Clinic",
-      description: "Medical oversight, guardrails, and clinical nutrition tools",
+      title: t("physiciansClinicTitle"),
+      description: t("physiciansClinicDesc"),
       icon: Stethoscope,
       route: "/care-team/physician",
       testId: "card-procare-physician",
       roleKey: "physician",
     },
     {
-      title: "Trainers Studio",
-      description: "Coaching, personalization, and performance meal planning",
+      title: t("trainersStudioTitle"),
+      description: t("trainersStudioDesc"),
       icon: Dumbbell,
       route: "/care-team/trainer",
       testId: "card-procare-trainer",
