@@ -1,0 +1,45 @@
+{
+  "nav": { "dashboard": "होम", "builders": "बिल्डर", "lifestyle": "जीवनशैली", "more": "अधिक" },
+  "shell": { "myHub": "मेरा हब", "settings": "सेटिंग्स", "back": "वापस" },
+  "menu": {
+    "myProfile": "मेरी प्रोफ़ाइल", "myProfileDesc": "अपनी व्यक्तिगत जानकारी और प्राथमिकताएं अपडेट करें",
+    "aiCoaching": "AI कोचिंग प्राथमिकताएं", "aiCoachingDesc": "कोचिंग शैली, फ़ोकस क्षेत्र और आवृत्ति नियंत्रित करें",
+    "language": "भाषा", "languageDesc": "AI-जनित भोजन, व्यंजन और मार्गदर्शन की भाषा चुनें",
+    "contactSupport": "संपर्क और सहायता", "contactSupportDesc": "प्रश्न, बग या फ़ीडबैक — हम सब पढ़ते हैं",
+    "mealBuilderExchange": "मील बिल्डर एक्सचेंज", "mealBuilderExchangeDesc": "एक अलग आहार फ़ोकस पर स्विच करें",
+    "appLibrary": "ऐप लाइब्रेरी", "appLibraryDesc": "सभी मुख्य प्रणालियों के कार्य के बारे में जानें।",
+    "teamMPM": "My Perfect Meals टीम", "teamMPMDesc": "My Perfect Meals बनाने वाली टीम से मिलें।",
+    "hireAPro": "एक पेशेवर किराए पर लें", "hireAProDesc": "प्रमाणित पेशेवर कोच और चिकित्सक ब्राउज़ करें।",
+    "subscription": "सदस्यता", "subscriptionDesc": "अपनी योजना और बिलिंग प्रबंधित करें",
+    "restorePurchases": "खरीदारी पुनर्स्थापित करें", "signOut": "साइन आउट"
+  },
+  "common": {
+    "save": "सहेजें", "cancel": "रद्द करें", "back": "वापस", "next": "अगला", "continue": "जारी रखें",
+    "done": "हो गया", "close": "बंद करें", "submit": "सबमिट करें", "loading": "लोड हो रहा है…",
+    "error": "कुछ गलत हो गया", "tryAgain": "फिर से प्रयास करें", "confirm": "पुष्टि करें",
+    "delete": "हटाएं", "edit": "संपादित करें", "add": "जोड़ें", "remove": "हटाएं",
+    "search": "खोजें", "filter": "फ़िल्टर", "apply": "लागू करें", "reset": "रीसेट",
+    "yes": "हाँ", "no": "नहीं", "or": "या", "and": "और", "learnMore": "और जानें",
+    "seeAll": "सब देखें", "viewAll": "सब देखें", "getStarted": "शुरू करें",
+    "upgrade": "अपग्रेड करें", "generate": "उत्पन्न करें", "regenerate": "पुनः उत्पन्न करें",
+    "translate": "अनुवाद करें", "share": "साझा करें", "log": "लॉग करें", "logMeal": "भोजन लॉग करें"
+  },
+  "language": {
+    "pageTitle": "भाषा",
+    "intro": "My Perfect Meals आपकी भाषा में नेटिव रूप से भोजन के नाम, व्यंजन, रेस्तरां अनुशंसाएं, खरीदारी मार्गदर्शन और कोचिंग प्रतिक्रियाएं उत्पन्न करता है।",
+    "auto": "स्वचालित (डिवाइस)", "autoDesc": "My Perfect Meals आपके डिवाइस की भाषा का पता लगाता है और स्वचालित रूप से सामग्री उत्पन्न करता है।",
+    "saved": "भाषा सहेजी गई", "savedAutoDesc": "My Perfect Meals स्वचालित रूप से आपके डिवाइस की भाषा का उपयोग करेगा।",
+    "savedLangDesc": "सामग्री अब {{language}} में उत्पन्न होगी।",
+    "errorSave": "भाषा सहेजी नहीं जा सकी", "errorSaveDesc": "कृपया फिर से प्रयास करें।",
+    "footerNote": "ऐप नेविगेशन, मेनू और बटन वर्तमान में अंग्रेजी में हैं। पूर्ण UI स्थानीयकरण भविष्य के अपडेट में आएगा।"
+  },
+  "routeTitles": {
+    "dashboard": "होम", "macroCalculator": "मैक्रो कैलकुलेटर", "mealBuilders": "मील बिल्डर",
+    "shoppingList": "खरीदारी सूची", "smartGroceryList": "स्मार्ट किराना सूची",
+    "fridgeRescue": "फ्रिज रेस्क्यू", "savedMeals": "सहेजे गए भोजन", "careTeam": "देखभाल टीम",
+    "myClients": "मेरे ग्राहक", "lifestyle": "जीवनशैली हब", "settings": "सेटिंग्स",
+    "more": "अधिक", "myBiometrics": "मेरी बायोमेट्रिक्स", "pricingPlans": "योजनाएं और मूल्य",
+    "learn": "सीखें", "founders": "संस्थापक", "restaurant": "रेस्तरां सहायक",
+    "weeklyBuilder": "साप्ताहिक बिल्डर", "mealsAwayFromHome": "घर से बाहर भोजन"
+  }
+}

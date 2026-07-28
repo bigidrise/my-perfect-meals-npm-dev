@@ -1,0 +1,45 @@
+{
+  "nav": { "dashboard": "Trang chủ", "builders": "Trình tạo", "lifestyle": "Lối sống", "more": "Thêm" },
+  "shell": { "myHub": "Trung tâm của tôi", "settings": "Cài đặt", "back": "Quay lại" },
+  "menu": {
+    "myProfile": "Hồ sơ của tôi", "myProfileDesc": "Cập nhật thông tin cá nhân và tùy chọn",
+    "aiCoaching": "Tùy chọn huấn luyện AI", "aiCoachingDesc": "Kiểm soát phong cách, lĩnh vực và tần suất huấn luyện",
+    "language": "Ngôn ngữ", "languageDesc": "Chọn ngôn ngữ cho bữa ăn, công thức và hướng dẫn do AI tạo ra",
+    "contactSupport": "Liên hệ & Hỗ trợ", "contactSupportDesc": "Câu hỏi, lỗi hoặc phản hồi — chúng tôi đọc tất cả",
+    "mealBuilderExchange": "Đổi trình tạo bữa ăn", "mealBuilderExchangeDesc": "Chuyển sang trọng tâm chế độ ăn khác",
+    "appLibrary": "Thư viện ứng dụng", "appLibraryDesc": "Tìm hiểu cách tất cả các hệ thống hoạt động.",
+    "teamMPM": "Nhóm My Perfect Meals", "teamMPMDesc": "Gặp gỡ nhóm đã xây dựng My Perfect Meals.",
+    "hireAPro": "Thuê chuyên gia", "hireAProDesc": "Duyệt huấn luyện viên và bác sĩ chuyên nghiệp được chứng nhận.",
+    "subscription": "Đăng ký", "subscriptionDesc": "Quản lý gói và thanh toán",
+    "restorePurchases": "Khôi phục mua hàng", "signOut": "Đăng xuất"
+  },
+  "common": {
+    "save": "Lưu", "cancel": "Hủy", "back": "Quay lại", "next": "Tiếp theo", "continue": "Tiếp tục",
+    "done": "Xong", "close": "Đóng", "submit": "Gửi", "loading": "Đang tải…",
+    "error": "Đã xảy ra lỗi", "tryAgain": "Thử lại", "confirm": "Xác nhận",
+    "delete": "Xóa", "edit": "Chỉnh sửa", "add": "Thêm", "remove": "Xóa",
+    "search": "Tìm kiếm", "filter": "Lọc", "apply": "Áp dụng", "reset": "Đặt lại",
+    "yes": "Có", "no": "Không", "or": "hoặc", "and": "và", "learnMore": "Tìm hiểu thêm",
+    "seeAll": "Xem tất cả", "viewAll": "Xem tất cả", "getStarted": "Bắt đầu",
+    "upgrade": "Nâng cấp", "generate": "Tạo", "regenerate": "Tạo lại",
+    "translate": "Dịch", "share": "Chia sẻ", "log": "Ghi nhật ký", "logMeal": "Ghi nhật ký bữa ăn"
+  },
+  "language": {
+    "pageTitle": "Ngôn ngữ",
+    "intro": "My Perfect Meals tạo tên bữa ăn, công thức, đề xuất nhà hàng, hướng dẫn mua sắm và phản hồi huấn luyện bằng ngôn ngữ của bạn.",
+    "auto": "Tự động (Thiết bị)", "autoDesc": "My Perfect Meals phát hiện ngôn ngữ thiết bị và tạo nội dung tự động.",
+    "saved": "Đã lưu ngôn ngữ", "savedAutoDesc": "My Perfect Meals sẽ tự động sử dụng ngôn ngữ thiết bị.",
+    "savedLangDesc": "Nội dung bây giờ sẽ được tạo bằng {{language}}.",
+    "errorSave": "Không thể lưu ngôn ngữ", "errorSaveDesc": "Vui lòng thử lại.",
+    "footerNote": "Điều hướng, menu và nút ứng dụng hiện bằng tiếng Anh. Bản địa hóa giao diện đầy đủ sẽ có trong bản cập nhật tương lai."
+  },
+  "routeTitles": {
+    "dashboard": "Trang chủ", "macroCalculator": "Máy tính Macro", "mealBuilders": "Trình tạo bữa ăn",
+    "shoppingList": "Danh sách mua sắm", "smartGroceryList": "Danh sách mua sắm thông minh",
+    "fridgeRescue": "Cứu tủ lạnh", "savedMeals": "Bữa ăn đã lưu", "careTeam": "Nhóm chăm sóc",
+    "myClients": "Khách hàng của tôi", "lifestyle": "Trung tâm lối sống", "settings": "Cài đặt",
+    "more": "Thêm", "myBiometrics": "Chỉ số sinh học", "pricingPlans": "Gói và giá",
+    "learn": "Học", "founders": "Người sáng lập", "restaurant": "Trợ lý nhà hàng",
+    "weeklyBuilder": "Trình tạo hàng tuần", "mealsAwayFromHome": "Bữa ăn ngoài nhà"
+  }
+}

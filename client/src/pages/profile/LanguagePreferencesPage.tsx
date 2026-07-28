@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/apiRequest";
@@ -32,6 +33,7 @@ type LanguageCode = typeof LANGUAGES[number]["code"];
 
 export default function LanguagePreferencesPage() {
   const [, setLocation] = useLocation();
+  const { t } = useTranslation();
   const { user, refreshUser } = useAuth();
   const { toast } = useToast();
 
@@ -58,13 +60,13 @@ export default function LanguagePreferencesPage() {
       await refreshUser?.();
       const lang = LANGUAGES.find((l) => l.code === code);
       toast({
-        title: "Language saved",
+        title: t("language.saved"),
         description: code === "auto"
-          ? "My Perfect Meals will use your device language automatically."
-          : `Content will now generate in ${lang?.label ?? code}.`,
+          ? t("language.savedAutoDesc")
+          : t("language.savedLangDesc", { language: lang?.label ?? code }),
       });
     } catch {
-      toast({ title: "Couldn't save language", description: "Please try again.", variant: "destructive" });
+      toast({ title: t("language.errorSave"), description: t("language.errorSaveDesc"), variant: "destructive" });
       const lang = (user as any).preferredLanguage as LanguageCode | null | undefined;
       setSelected(lang && lang !== "null" ? lang : "auto");
     } finally {
@@ -92,7 +94,7 @@ export default function LanguagePreferencesPage() {
         </button>
         <div className="flex items-center gap-2">
           <Globe className="w-4 h-4 text-orange-400" />
-          <h1 className="text-base font-bold text-white">Language</h1>
+          <h1 className="text-base font-bold text-white">{t("language.pageTitle")}</h1>
         </div>
         {saving && <Loader2 className="w-4 h-4 text-orange-400 animate-spin ml-auto" />}
       </div>
@@ -101,7 +103,7 @@ export default function LanguagePreferencesPage() {
         {/* Intro */}
         <div className="rounded-xl border border-orange-700/20 bg-orange-950/20 px-4 py-3">
           <p className="text-xs text-white/60 leading-relaxed">
-            My Perfect Meals generates meal names, recipes, restaurant recommendations, grocery guidance, and coaching responses natively in your language. There is no translation step — the AI thinks in your language from the start.
+            {t("language.intro")}
           </p>
         </div>
 
@@ -143,7 +145,7 @@ export default function LanguagePreferencesPage() {
 
         {/* Footer note */}
         <p className="text-xs text-white/30 text-center leading-relaxed px-2">
-          App navigation, menus, and buttons are currently in English. Full UI localization is coming in a future update.
+          {t("language.footerNote")}
         </p>
       </div>
     </div>

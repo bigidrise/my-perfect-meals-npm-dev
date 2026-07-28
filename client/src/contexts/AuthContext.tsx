@@ -10,6 +10,7 @@ import {
 
 import { User, getCurrentUser, getAuthHeaders, getAuthToken, clearAuthToken } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
+import i18n, { resolveI18nLang } from "@/i18n";
 import { isGuestMode, getGuestSession } from "@/lib/guestMode";
 import { setUserContext, clearUserContext } from "@/lib/sentry";
 
@@ -220,6 +221,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
     window.addEventListener("mpm:user-updated", handleUserUpdated);
     return () => window.removeEventListener("mpm:user-updated", handleUserUpdated);
   }, [refreshUser]);
+
+  // Sync i18n language whenever user's preferredLanguage changes.
+  useEffect(() => {
+    if (!user) return;
+    const lang = resolveI18nLang(user.preferredLanguage);
+    if (i18n.language !== lang) {
+      i18n.changeLanguage(lang);
+    }
+  }, [user?.preferredLanguage]);
 
   // Auto-detect language from device when user's preference is "auto".
   // Saves the resolved language to the profile so all AI generation uses it.

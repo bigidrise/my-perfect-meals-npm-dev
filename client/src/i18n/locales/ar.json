@@ -1,0 +1,45 @@
+{
+  "nav": { "dashboard": "الرئيسية", "builders": "البنّاؤون", "lifestyle": "نمط الحياة", "more": "المزيد" },
+  "shell": { "myHub": "مركزي", "settings": "الإعدادات", "back": "رجوع" },
+  "menu": {
+    "myProfile": "ملفي الشخصي", "myProfileDesc": "تحديث معلوماتك الشخصية وتفضيلاتك",
+    "aiCoaching": "تفضيلات تدريب الذكاء الاصطناعي", "aiCoachingDesc": "تحكم في أسلوب التدريب ومجالاته وتكراره",
+    "language": "اللغة", "languageDesc": "اختر لغة الوجبات والوصفات والإرشادات المولّدة بالذكاء الاصطناعي",
+    "contactSupport": "التواصل والدعم", "contactSupportDesc": "أسئلة أو أخطاء أو ملاحظات — نقرأ كل شيء",
+    "mealBuilderExchange": "تبادل بنّاء الوجبات", "mealBuilderExchangeDesc": "التحويل إلى تركيز غذائي مختلف",
+    "appLibrary": "مكتبة التطبيق", "appLibraryDesc": "تعلّم كيف تعمل جميع الأنظمة الأساسية.",
+    "teamMPM": "فريق My Perfect Meals", "teamMPMDesc": "تعرّف على الفريق الذي بنى My Perfect Meals.",
+    "hireAPro": "توظيف محترف", "hireAProDesc": "تصفح المدربين والأطباء المحترفين المعتمدين.",
+    "subscription": "الاشتراك", "subscriptionDesc": "إدارة خطتك وفواتيرك",
+    "restorePurchases": "استعادة المشتريات", "signOut": "تسجيل الخروج"
+  },
+  "common": {
+    "save": "حفظ", "cancel": "إلغاء", "back": "رجوع", "next": "التالي", "continue": "متابعة",
+    "done": "تم", "close": "إغلاق", "submit": "إرسال", "loading": "جارٍ التحميل…",
+    "error": "حدث خطأ ما", "tryAgain": "حاول مرة أخرى", "confirm": "تأكيد",
+    "delete": "حذف", "edit": "تعديل", "add": "إضافة", "remove": "إزالة",
+    "search": "بحث", "filter": "تصفية", "apply": "تطبيق", "reset": "إعادة ضبط",
+    "yes": "نعم", "no": "لا", "or": "أو", "and": "و", "learnMore": "معرفة المزيد",
+    "seeAll": "مشاهدة الكل", "viewAll": "عرض الكل", "getStarted": "البدء",
+    "upgrade": "الترقية", "generate": "توليد", "regenerate": "إعادة التوليد",
+    "translate": "ترجمة", "share": "مشاركة", "log": "تسجيل", "logMeal": "تسجيل الوجبة"
+  },
+  "language": {
+    "pageTitle": "اللغة",
+    "intro": "يولّد My Perfect Meals أسماء الوجبات والوصفات وتوصيات المطاعم وإرشادات التسوق وردود التدريب باللغة الأصلية لك.",
+    "auto": "تلقائي (الجهاز)", "autoDesc": "يكتشف My Perfect Meals لغة جهازك ويولّد المحتوى تلقائياً.",
+    "saved": "تم حفظ اللغة", "savedAutoDesc": "سيستخدم My Perfect Meals لغة جهازك تلقائياً.",
+    "savedLangDesc": "سيتم الآن توليد المحتوى باللغة {{language}}.",
+    "errorSave": "تعذّر حفظ اللغة", "errorSaveDesc": "يرجى المحاولة مرة أخرى.",
+    "footerNote": "تنقل التطبيق وقوائمه وأزراره حالياً باللغة الإنجليزية. سيتوفر التعريب الكامل للواجهة في تحديث مستقبلي."
+  },
+  "routeTitles": {
+    "dashboard": "الرئيسية", "macroCalculator": "حاسبة العناصر الغذائية", "mealBuilders": "بنّاؤو الوجبات",
+    "shoppingList": "قائمة التسوق", "smartGroceryList": "قائمة تسوق ذكية",
+    "fridgeRescue": "إنقاذ الثلاجة", "savedMeals": "الوجبات المحفوظة", "careTeam": "فريق الرعاية",
+    "myClients": "عملائي", "lifestyle": "مركز نمط الحياة", "settings": "الإعدادات",
+    "more": "المزيد", "myBiometrics": "قياساتي الحيوية", "pricingPlans": "الخطط والأسعار",
+    "learn": "تعلّم", "founders": "المؤسسون", "restaurant": "مساعد المطاعم",
+    "weeklyBuilder": "البنّاء الأسبوعي", "mealsAwayFromHome": "وجبات خارج المنزل"
+  }
+}

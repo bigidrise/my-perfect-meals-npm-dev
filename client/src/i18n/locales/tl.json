@@ -1,0 +1,45 @@
+{
+  "nav": { "dashboard": "Home", "builders": "Mga Builder", "lifestyle": "Pamumuhay", "more": "Higit Pa" },
+  "shell": { "myHub": "Aking Hub", "settings": "Mga Setting", "back": "Bumalik" },
+  "menu": {
+    "myProfile": "Aking Profile", "myProfileDesc": "I-update ang iyong personal na impormasyon at mga kagustuhan",
+    "aiCoaching": "Mga Kagustuhan sa AI Coaching", "aiCoachingDesc": "Kontrolin ang estilo, pokus at dalas ng coaching",
+    "language": "Wika", "languageDesc": "Piliin ang wika para sa mga pagkain, recipe at gabay na ginawa ng AI",
+    "contactSupport": "Pakikipag-ugnayan at Suporta", "contactSupportDesc": "Mga tanong, bug o feedback — binabasa namin lahat",
+    "mealBuilderExchange": "Pagpapalit ng Meal Builder", "mealBuilderExchangeDesc": "Lumipat sa ibang pokus sa diyeta",
+    "appLibrary": "Library ng App", "appLibraryDesc": "Alamin kung paano gumagana ang lahat ng pangunahing sistema.",
+    "teamMPM": "Team ng My Perfect Meals", "teamMPMDesc": "Makilala ang team na bumuo ng My Perfect Meals.",
+    "hireAPro": "Mag-hire ng Propesyonal", "hireAProDesc": "I-browse ang mga sertipikadong propesyonal na coach at doktor.",
+    "subscription": "Subscription", "subscriptionDesc": "Pamahalaan ang iyong plano at bayarin",
+    "restorePurchases": "I-restore ang mga Pagbili", "signOut": "Mag-sign Out"
+  },
+  "common": {
+    "save": "I-save", "cancel": "Kanselahin", "back": "Bumalik", "next": "Susunod", "continue": "Magpatuloy",
+    "done": "Tapos na", "close": "Isara", "submit": "Isumite", "loading": "Naglo-load…",
+    "error": "May nangyaring mali", "tryAgain": "Subukan muli", "confirm": "Kumpirmahin",
+    "delete": "Burahin", "edit": "I-edit", "add": "Idagdag", "remove": "Alisin",
+    "search": "Hanapin", "filter": "I-filter", "apply": "I-apply", "reset": "I-reset",
+    "yes": "Oo", "no": "Hindi", "or": "o", "and": "at", "learnMore": "Matuto pa",
+    "seeAll": "Tingnan lahat", "viewAll": "Tingnan lahat", "getStarted": "Magsimula",
+    "upgrade": "Mag-upgrade", "generate": "Gumawa", "regenerate": "Gumawa muli",
+    "translate": "Isalin", "share": "Ibahagi", "log": "I-log", "logMeal": "I-log ang Pagkain"
+  },
+  "language": {
+    "pageTitle": "Wika",
+    "intro": "Ang My Perfect Meals ay nagge-generate ng mga pangalan ng pagkain, recipe, rekomendasyon sa restaurant, gabay sa pamimili at mga tugon ng coaching nang native sa iyong wika.",
+    "auto": "Awtomatiko (Device)", "autoDesc": "Tinutukoy ng My Perfect Meals ang wika ng iyong device at nagge-generate ng nilalaman nang awtomatiko.",
+    "saved": "Nai-save ang wika", "savedAutoDesc": "Gagamitin ng My Perfect Meals ang wika ng iyong device nang awtomatiko.",
+    "savedLangDesc": "Ang nilalaman ay ngayon ay gagawin sa {{language}}.",
+    "errorSave": "Hindi maa-save ang wika", "errorSaveDesc": "Pakisubukan muli.",
+    "footerNote": "Ang nabigasyon, menu at mga button ng app ay kasalukuyang nasa Ingles. Ang buong lokalisasyon ng UI ay darating sa isang hinaharap na update."
+  },
+  "routeTitles": {
+    "dashboard": "Home", "macroCalculator": "Macro Calculator", "mealBuilders": "Mga Meal Builder",
+    "shoppingList": "Listahan ng Pamimili", "smartGroceryList": "Matalinong Listahan ng Pamimili",
+    "fridgeRescue": "Fridge Rescue", "savedMeals": "Mga Naka-save na Pagkain", "careTeam": "Care Team",
+    "myClients": "Aking mga Kliyente", "lifestyle": "Lifestyle Hub", "settings": "Mga Setting",
+    "more": "Higit Pa", "myBiometrics": "Aking mga Biometrics", "pricingPlans": "Mga Plano at Presyo",
+    "learn": "Matuto", "founders": "Mga Tagapagtatag", "restaurant": "Restaurant Assistant",
+    "weeklyBuilder": "Lingguhang Builder", "mealsAwayFromHome": "Mga Pagkain sa Labas ng Bahay"
+  }
+}
