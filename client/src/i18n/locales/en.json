@@ -812,5 +812,43 @@
     "weightErrorDesc": "Failed to save weight. Please try again.",
     "headsUp": "Heads up",
     "macrosSaved": "Macros not saved"
+  },
+  "proPortal": {
+    "title": "Pro Portal",
+    "comingSoon": "Professional features coming soon.",
+    "viewClients": "View Clients",
+    "tourTitle": "Pro Portal Guide",
+    "tour1Title": "Professional Hub",
+    "tour1Desc": "Access your client management tools and professional features.",
+    "tour2Title": "View Clients",
+    "tour2Desc": "See all your connected clients and their progress.",
+    "tour3Title": "Build Plans",
+    "tour3Desc": "Create customized meal plans for each client's goals.",
+    "tour4Title": "Track Results",
+    "tour4Desc": "Monitor client adherence and adjust recommendations."
+  },
+  "workspace": {
+    "clientWorkspace": "Client Workspace",
+    "active": "Active",
+    "activeBuilder": "Active Builder",
+    "noneAssigned": "None assigned",
+    "biometrics": "Biometrics",
+    "age": "Age",
+    "height": "Height",
+    "weight": "Weight",
+    "macroTargets": "Macro Targets",
+    "calories": "Calories",
+    "protein": "Protein",
+    "carbs": "Carbs",
+    "fat": "Fat",
+    "noMacroTargets": "No macro targets set",
+    "mealBoards": "Meal Boards",
+    "mealBoardsPhase4": "Read-only view coming in Phase 4",
+    "backToClients": "Back to Clients",
+    "errorNoClient": "No client specified.",
+    "errorSignIn": "Please sign in to access client workspaces.",
+    "errorNoAccess": "You do not have access to this client's workspace.",
+    "errorNotFound": "Client not found.",
+    "errorLoadFailed": "Failed to load workspace."
   }
 }
