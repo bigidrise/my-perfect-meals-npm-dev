@@ -21,6 +21,7 @@ import { PillButton } from "@/components/ui/pill-button";
 import { MealBuilderType, getAuthToken } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { useTranslation } from "react-i18next";
 
 interface BuilderSwitchStatus {
   changesUsed: number;
@@ -32,62 +33,48 @@ interface BuilderSwitchStatus {
 
 interface BuilderOption {
   id: MealBuilderType;
-  title: string;
-  description: string;
+  titleKey: string;
+  descKey: string;
   icon: React.ReactNode;
   color: string;
 }
 
-const BUILDER_OPTIONS: BuilderOption[] = [
-  // "weekly" (My Weekly Meal Builder) is hidden — data and route intact, not selectable
+const BUILDER_CONFIG: BuilderOption[] = [
   {
     id: "diabetic",
-    title: "Diabetic Meal Builder",
-    description:
-      "Blood sugar-friendly meals. Low glycemic options with carb counting.",
+    titleKey: "diabeticTitle",
+    descKey: "diabeticDesc",
     icon: <Heart className="w-8 h-8" />,
     color: "from-black via-zinc-950 to-black",
   },
   {
     id: "glp1",
-    title: "Metabolic Medication Builder",
-    description:
-      "Optimized for Ozempic, Wegovy, Mounjaro users. Protein-focused, smaller portions.",
+    titleKey: "metabolicTitle",
+    descKey: "metabolicDesc",
     icon: <Pill className="w-8 h-8" />,
     color: "from-black via-zinc-950 to-black",
   },
   {
     id: "anti_inflammatory",
-    title: "Anti-Inflammatory Builder",
-    description:
-      "Fight inflammation with healing foods. Omega-3 rich, antioxidant focused.",
+    titleKey: "antiInflamTitle",
+    descKey: "antiInflamDesc",
     icon: <Flame className="w-8 h-8" />,
     color: "from-black via-zinc-950 to-black",
   },
   {
     id: "beach_body",
-    title: "Performance Nutrition Builder",
-    description:
-      "Sport-specific fueling — energy systems, carb timing, and recovery for athletes.",
+    titleKey: "performanceTitle",
+    descKey: "performanceDesc",
     icon: <Trophy className="w-8 h-8" />,
     color: "from-black via-zinc-950 to-black",
   },
   {
     id: "general_nutrition",
-    title: "General Nutrition Builder",
-    description:
-      "Balanced macro targets for everyday nutrition goals. The standard professional-grade builder.",
+    titleKey: "generalTitle",
+    descKey: "generalDesc",
     icon: <Utensils className="w-8 h-8" />,
     color: "from-black via-zinc-950 to-black",
   },
-  // Performance & Competition Builder hidden — use Performance Nutrition Builder instead
-  // {
-  //   id: "performance_competition",
-  //   title: "Performance Builder",
-  //   description: "Elite athlete meal planning for competition prep. Requires trainer unlock.",
-  //   icon: <Dumbbell className="w-8 h-8" />,
-  //   color: "from-black via-zinc-950 to-black",
-  // },
 ];
 
 export default function MealBuilderSelection() {
@@ -95,6 +82,7 @@ export default function MealBuilderSelection() {
   const { user, refreshUser } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { t } = useTranslation("mealSelect");
   const [selected, setSelected] = useState<MealBuilderType | null>(null);
   const [confirmedBuilder, setConfirmedBuilder] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -111,22 +99,26 @@ export default function MealBuilderSelection() {
 
   const isProCareClient = user?.isProCare && !["admin", "coach", "physician", "trainer"].includes(user?.professionalRole || user?.role || "");
   const isUnlimited = switchStatus?.isUnlimited ?? false;
-  
-  // Pro builders that require trainer unlock (general_nutrition is now the standard builder)
+
   const PRO_BUILDERS: string[] = [];
-  
+
   const isProBuilderUnlocked = (builderId: string): boolean => {
     if (!PRO_BUILDERS.includes(builderId)) return true;
     if (isUnlimited) return true;
     return user?.activeBoard === builderId;
   };
 
+  const BUILDER_OPTIONS = BUILDER_CONFIG.map((b) => ({
+    ...b,
+    title: t(b.titleKey),
+    description: t(b.descKey),
+  }));
+
   const availableBuilders =
     isProCareClient && user?.activeBoard
       ? BUILDER_OPTIONS.filter((opt) => opt.id === user.activeBoard)
       : BUILDER_OPTIONS;
 
-  // Refresh user data when component mounts to ensure we have latest state
   useEffect(() => {
     refreshUser();
   }, [refreshUser]);
@@ -167,9 +159,8 @@ export default function MealBuilderSelection() {
   const handleContinue = async () => {
     if (!selected) {
       toast({
-        title: "Please select a meal builder",
-        description:
-          "Choose the builder that best fits your needs going forward.",
+        title: t("errorSelect"),
+        description: t("errorSelectDesc"),
         variant: "destructive",
       });
       return;
@@ -177,8 +168,8 @@ export default function MealBuilderSelection() {
 
     if (selected === user?.selectedMealBuilder) {
       toast({
-        title: "Already using this builder",
-        description: "You're already using this meal builder.",
+        title: t("alreadyUsing"),
+        description: t("alreadyUsingDesc"),
       });
       setLocation("/dashboard");
       return;
@@ -186,8 +177,8 @@ export default function MealBuilderSelection() {
 
     if (switchStatus && !switchStatus.canSwitch && !switchStatus.isUnlimited) {
       toast({
-        title: "Builder changes used up",
-        description: `You've used all ${switchStatus.changeLimit} builder changes during beta testing. Contact support if you need additional access.`,
+        title: t("usedUp"),
+        description: t("usedUpDesc", { limit: switchStatus.changeLimit }),
         variant: "destructive",
       });
       return;
@@ -238,15 +229,14 @@ export default function MealBuilderSelection() {
 
       toast({
         title: "Builder Updated",
-        description:
-          "Your meal builder has been changed. You're all set to continue.",
+        description: "Your meal builder has been changed. You're all set to continue.",
       });
 
       setLocation("/dashboard");
     } catch (error: any) {
       console.error("Failed to save meal builder selection:", error);
       toast({
-        title: "Unable to Switch",
+        title: t("unableToSwitch"),
         description: error.message || "Failed to save your selection. Please try again.",
         variant: "destructive",
       });
@@ -261,7 +251,6 @@ export default function MealBuilderSelection() {
       animate={{ opacity: 1 }}
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white p-4"
     >
-      {/* Fixed Black Glass Navigation Banner */}
       <MobileHeaderGuard>
       <div
         className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
@@ -270,13 +259,12 @@ export default function MealBuilderSelection() {
         <div className="px-4 pb-3 flex items-center gap-3">
           <Utensils className="h-5 w-5 text-orange-400" />
           <h1 className="text-lg font-bold text-white">
-            Meal Builder Exchange
+            {t("title")}
           </h1>
         </div>
       </div>
       </MobileHeaderGuard>
 
-      {/* Content area with padding for fixed header and bottom nav */}
       <div
         className="pt-16 pb-24"
         style={{
@@ -284,7 +272,6 @@ export default function MealBuilderSelection() {
           paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 100px)",
         }}
       >
-        {/* Exchange countdown — always at top, shows once status loads */}
         {!loadingStatus && switchStatus && !switchStatus.isUnlimited && (
           <div className={`rounded-xl px-4 py-3 mb-5 flex items-center gap-3 ${
             switchStatus.canSwitch
@@ -300,39 +287,33 @@ export default function MealBuilderSelection() {
               {switchStatus.canSwitch ? (
                 <p className="text-white text-sm">
                   <span className="font-semibold text-orange-400">{switchStatus.changesRemaining}</span>
-                  <span className="text-white/70"> of {switchStatus.changeLimit} builder exchanges remaining</span>
+                  <span className="text-white/70"> {t("exchangesLeft", { limit: switchStatus.changeLimit })}</span>
                 </p>
               ) : (
                 <p className="text-amber-200 text-sm font-medium">
-                  All {switchStatus.changeLimit} builder exchanges used
+                  {t("exchangesUsed", { limit: switchStatus.changeLimit })}
                 </p>
               )}
             </div>
           </div>
         )}
 
-        {/* Member acknowledgment */}
         <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-6">
           <p className="text-sm text-white/90 text-center leading-relaxed">
-            You're already a My Perfect Meals member. This page helps you switch
-            meal boards as your needs change — whether you're continuing on your
-            own, following a medical plan, or simplifying long-term.
+            {t("memberNote")}
           </p>
         </div>
 
-        {/* ProCare transition note */}
         {user?.isProCare && (
           <div className="bg-indigo-900/30 border border-indigo-500/50 rounded-xl p-4 mb-6">
             <div className="flex items-start gap-3">
               <MessageCircle className="w-5 h-5 text-indigo-400 mt-0.5 flex-shrink-0" />
               <div>
                 <p className="text-indigo-200 text-sm font-medium mb-1">
-                  Coming from ProCare?
+                  {t("procareHeading")}
                 </p>
                 <p className="text-indigo-300/80 text-xs leading-relaxed">
-                  Your coach or clinician may have recommended a next step.
-                  Choose the meal board that fits how you'll continue moving
-                  forward.
+                  {t("procareDesc")}
                 </p>
               </div>
             </div>
@@ -340,28 +321,25 @@ export default function MealBuilderSelection() {
         )}
 
         <div className="space-y-4 mb-8">
-          {/* Locked state: Pro Care client with no assigned board */}
           {isProCareClient && !user?.activeBoard && (
             <div className="bg-zinc-900/80 border border-zinc-700 rounded-2xl p-6 text-center">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-zinc-800 flex items-center justify-center">
                 <Utensils className="w-8 h-8 text-zinc-500" />
               </div>
               <h3 className="text-lg font-semibold text-white mb-2">
-                Awaiting Assignment
+                {t("awaitingTitle")}
               </h3>
               <p className="text-zinc-400 text-sm">
-                Your meal builder will be assigned by your coach. Check back
-                soon!
+                {t("awaitingDesc")}
               </p>
             </div>
           )}
 
-          {/* Available builders - only show if NOT in locked state */}
           {!(isProCareClient && !user?.activeBoard) &&
             availableBuilders.map((option) => {
               const isUnlocked = isProBuilderUnlocked(option.id);
               const isProBuilder = PRO_BUILDERS.includes(option.id);
-              
+
               return (
               <div
                 key={option.id}
@@ -392,12 +370,12 @@ export default function MealBuilderSelection() {
                         )}
                         {option.id === "beach_body" && (
                           <span className="text-xs px-2 py-0.5 bg-amber-600/30 text-amber-300 rounded-full border border-amber-500/30">
-                            Clinical
+                            {t("badgeClinical", { ns: "builders" })}
                           </span>
                         )}
                         {(confirmedBuilder || user?.selectedMealBuilder) === option.id && (
                           <span className="text-xs px-2 py-0.5 bg-emerald-600/30 text-emerald-300 rounded-full border border-emerald-500/30">
-                            Current
+                            {t("badgeCurrent", { ns: "builders" })}
                           </span>
                         )}
                       </div>
@@ -410,11 +388,11 @@ export default function MealBuilderSelection() {
                           {selected === option.id ? "On" : "Off"}
                         </PillButton>
                       ) : (
-                        <span className="text-xs text-zinc-500 italic">Trainer unlock required</span>
+                        <span className="text-xs text-zinc-500 italic">{t("trainerUnlock")}</span>
                       )}
                     </div>
                     <p className={`text-sm mt-1 ${!isUnlocked ? "text-zinc-500" : "text-white/70"}`}>
-                      {!isUnlocked ? "Requires trainer/coach to unlock access" : option.description}
+                      {!isUnlocked ? t("trainerUnlockDesc") : option.description}
                     </p>
                   </div>
                 </div>
@@ -424,17 +402,12 @@ export default function MealBuilderSelection() {
 
         </div>
 
-        {/* Copilot guidance hint */}
         <div className="bg-black/20 border border-white/5 rounded-xl p-3 mb-6">
           <p className="text-white/60 text-xs text-center italic">
-            Not sure which to pick? If you've finished working with a coach,
-            most people transition to the Weekly Meal Builder for long-term
-            balance. If your health needs have changed, select the board that
-            supports that condition.
+            {t("guidanceHint")}
           </p>
         </div>
 
-        {/* Continue button - hide for Pro Care clients with no assigned board */}
         {!(isProCareClient && !user?.activeBoard) && (
           <Button
             ref={saveButtonRef}
@@ -442,7 +415,7 @@ export default function MealBuilderSelection() {
             disabled={!selected || saving}
             className="w-full h-14 text-lg bg-lime-600 text-white font-semibold rounded-xl shadow-lg disabled:opacity-50"
           >
-            {saving ? "Saving..." : selected ? "Save Builder" : "Select a Builder Above"}
+            {saving ? t("saving") : selected ? t("saveBtn") : t("selectFirst")}
           </Button>
         )}
       </div>

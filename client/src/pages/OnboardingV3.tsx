@@ -11,6 +11,7 @@ import { apiUrl } from "@/lib/resolveApiBase";
 import { useToast } from "@/hooks/use-toast";
 import { PillButton } from "@/components/ui/pill-button";
 import { captureException } from "@/lib/sentry";
+import { useTranslation } from "react-i18next";
 
 const RESUME_STEP_KEY = "mpm.onboarding.resumeStep";
 
@@ -145,6 +146,7 @@ export default function OnboardingV3() {
   const [, setLocation] = useLocation();
   const { refreshUser, user } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation("onboarding");
 
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
@@ -1021,8 +1023,8 @@ export default function OnboardingV3() {
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="text-center space-y-2">
-              <h1 className="text-2xl font-bold text-white">What's your main goal?</h1>
-              <p className="text-white/60 text-sm">We'll personalize your plan around this</p>
+              <h1 className="text-2xl font-bold text-white">{t("goal")}</h1>
+              <p className="text-white/60 text-sm">{t("goalSub")}</p>
             </div>
             <div className="flex flex-col gap-3 max-w-xs mx-auto">
               {GOAL_OPTIONS.map((opt) => (
@@ -1059,13 +1061,13 @@ export default function OnboardingV3() {
                 Timeline <span className="text-white/40">(optional)</span>
               </label>
               <div className="flex flex-wrap gap-2">
-                {TIMELINE_OPTIONS.map((t) => (
+                {TIMELINE_OPTIONS.map((opt) => (
                   <PillButton
-                    key={t.value}
-                    active={goalTimelineWeeks === t.value}
-                    onClick={() => setGoalTimelineWeeks(goalTimelineWeeks === t.value ? null : t.value)}
+                    key={opt.value}
+                    active={goalTimelineWeeks === opt.value}
+                    onClick={() => setGoalTimelineWeeks(goalTimelineWeeks === opt.value ? null : opt.value)}
                   >
-                    {t.label}
+                    {opt.label}
                   </PillButton>
                 ))}
               </div>
@@ -1381,7 +1383,7 @@ export default function OnboardingV3() {
               disabled={saving}
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back
+              {t("back")}
             </Button>
           )}
           {step < TOTAL_STEPS ? (
@@ -1396,12 +1398,12 @@ export default function OnboardingV3() {
               className="flex-1 bg-orange-500 active:bg-orange-700 text-white"
             >
               {saving
-                ? "Saving..."
+                ? t("saving")
                 : step === 4 && !oncologyIntroAnswer
-                  ? "Skip"
+                  ? t("skip")
                   : step === 4 && oncologyIntroAnswer === "yes" && !oncologySupportIntentChoice
-                    ? "Select a path above"
-                    : "Next"}
+                    ? t("selectPath")
+                    : t("next")}
               {!saving && <ArrowRight className="w-4 h-4 ml-2" />}
             </Button>
           ) : (
@@ -1410,7 +1412,7 @@ export default function OnboardingV3() {
               disabled={saving || !canFinish}
               className="flex-1 bg-orange-500 active:bg-orange-700 text-white"
             >
-              {saving ? "Setting up..." : "Start My Plan"}
+              {saving ? t("settingUp") : t("startPlan")}
               {!saving && <ArrowRight className="w-4 h-4 ml-2" />}
             </Button>
           )}

@@ -67,6 +67,7 @@ import ReadOnlyNote from "@/components/ReadOnlyNote";
 import { launchMacroPhotoCapture } from "@/lib/photoMacroCapture";
 import { launchIngredientPhotoCapture, type IngredientScanResult } from "@/lib/photoIngredientCapture";
 import { IngredientIntelligenceSheet } from "@/components/biometrics/IngredientIntelligenceSheet";
+import { useTranslation } from "react-i18next";
 import { sendToShoppingList } from "@/lib/shoppingListApi";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
@@ -139,6 +140,7 @@ const saveJSON = (k: string, v: any) => {
 export default function MyBiometrics() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+  const { t } = useTranslation("biometrics");
   const isDesktop = useIsDesktop();
   const { requestUpgrade } = useUpgradeModal();
   
@@ -1762,7 +1764,7 @@ export default function MyBiometrics() {
           
           {/* Title */}
           <h1 className="text-lg font-bold text-white flex items-center gap-2">
-            My Biometrics
+            {t("title")}
           </h1>
 
           <div className="flex-grow" />
@@ -2579,7 +2581,7 @@ export default function MyBiometrics() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
           <div className="bg-black/30 backdrop-blur-lg border border-white/20 rounded-2xl p-6 max-w-md w-full shadow-xl">
             <h3 className="text-xl font-bold text-white mb-4">
-              About My Biometrics
+              {t("aboutTitle")}
             </h3>
 
             <div className="space-y-4 text-white/90 text-sm">
@@ -2609,7 +2611,7 @@ export default function MyBiometrics() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
           <div className="bg-black/30 backdrop-blur-lg border border-white/20 rounded-2xl p-6 max-w-md w-full shadow-xl">
             <h3 className="text-xl font-bold text-white mb-4">
-              Your Macro Targets Are Set
+              {t("macroTargetsSet")}
             </h3>
 
             <div className="space-y-4 text-white/90 text-sm">

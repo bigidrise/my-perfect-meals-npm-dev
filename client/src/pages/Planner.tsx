@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getAuthToken } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { useTranslation } from "react-i18next";
 
 interface PlannerFeature {
   title: string;
@@ -21,6 +22,7 @@ export default function Planner() {
   const [, setLocation] = useLocation();
   const isDesktop = useIsDesktop();
   const { user, refreshUser } = useAuth();
+  const { t } = useTranslation("builders");
 
   useEffect(() => {
     document.title = "Planner | My Perfect Meals";
@@ -29,63 +31,56 @@ export default function Planner() {
 
   const plannerFeatures: PlannerFeature[] = [
     {
-      title: "My Weekly Meal Builder",
-      description:
-        "AI generated meal plans for users that want to eat healthier meals their way",
+      title: t("weeklyTitle"),
+      description: t("weeklyDesc"),
       icon: Calendar,
       route: "/weekly-meal-board",
       testId: "card-weekly-meal-board",
       builderId: "weekly",
     },
     {
-      title: "Diabetic Hub and Meal Builder",
-      description:
-        "Blood sugar monitoring and meal AI created meal plans for diabetics",
+      title: t("diabeticTitle"),
+      description: t("diabeticDesc"),
       icon: Activity,
       route: "/diabetic-hub",
       testId: "card-diabetic-hub",
       builderId: "diabetic",
     },
     {
-      title: "Metabolic Medication Hub and Builder",
-      description:
-        "Shot, location logging and specialized AI created meal plans for metabolic medication users",
+      title: t("metabolicTitle"),
+      description: t("metabolicDesc"),
       icon: Pill,
       route: "/glp1-hub",
       testId: "card-glp1-hub",
       builderId: "glp1",
     },
     {
-      title: "Anti-Inflammatory Meal Builder",
-      description:
-        "Autoimmune support, joint relief, inflammation guardrails with AI created meal plans",
+      title: t("antiInflamTitle"),
+      description: t("antiInflamDesc"),
       icon: Pill,
       route: "/anti-inflammatory-menu-builder",
       testId: "card-anti-inflammatory",
       builderId: "anti_inflammatory",
     },
     {
-      title: "Performance Nutrition Hub and Builder",
-      description:
-        "Sport-specific fueling for athletes, fighters, and coaches — energy systems, carb timing, and recovery",
+      title: t("performanceTitle"),
+      description: t("performanceDesc"),
       icon: Trophy,
       route: "/performance",
       testId: "card-performance-nutrition-hub",
       builderId: "performance_nutrition",
     },
     {
-      title: "General Nutrition Builder",
-      description:
-        "Coach guided professional-grade nutrition planning and custom protocols",
+      title: t("generalTitle"),
+      description: t("generalDesc"),
       icon: Utensils,
       route: "/pro/general-nutrition-builder",
       testId: "card-general-nutrition",
       builderId: "general_nutrition",
     },
     {
-      title: "Performance & Competition Builder",
-      description:
-        "Coach guided elite athlete meal planning for competition prep, peak performance and recovery",
+      title: t("performanceCompTitle"),
+      description: t("performanceCompDesc"),
       icon: Dumbbell,
       route: "/pro/performance-competition-builder",
       testId: "card-performance-competition",
@@ -93,14 +88,12 @@ export default function Planner() {
     },
   ];
 
-  // For actual ProCare clients (not professionals), activeBoard takes priority
   const isProfessional = ["admin", "coach", "physician", "trainer"].includes(user?.professionalRole || user?.role || "");
   const isActualProCareClient = user?.isProCare && !isProfessional;
   const userActiveBoard = isActualProCareClient
     ? (user?.activeBoard || user?.selectedMealBuilder)
     : (user?.selectedMealBuilder || user?.activeBoard);
   
-  // Bypass: Apple Review mode OR builder_switch_unlimited accounts (internal QA/admin)
   const isAppleReviewMode = localStorage.getItem("appleReviewFullAccess") === "true";
   const isUnlimited = user?.builderSwitchUnlimited === true;
   const needsOnboarding = !isAppleReviewMode && !isUnlimited && !userActiveBoard;
@@ -154,7 +147,7 @@ export default function Planner() {
             >
                 <div className="px-8 pb-3 flex items-center gap-3">
                 <Calendar className="h-6 w-6 text-orange-500" />
-                <h1 className="text-lg font-bold text-white">Planner</h1>
+                <h1 className="text-lg font-bold text-white">{t("plannerTitle")}</h1>
               </div>
             </div>
           )}
@@ -164,18 +157,16 @@ export default function Planner() {
             style={{ paddingTop: isDesktop ? "0" : "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
           >
             <div className="max-w-2xl mx-auto space-y-4">
-              {/* Needs Onboarding Banner */}
               {needsOnboarding && (
                 <div 
                   className="rounded-xl bg-orange-500/20 border border-orange-500/50 p-4 cursor-pointer hover:bg-orange-500/30 transition-colors"
                   onClick={() => setLocation("/onboarding/extended?repair=1")}
                 >
-                  <p className="text-orange-200 text-sm font-medium mb-1">Select Your Meal Builder</p>
-                  <p className="text-orange-300/80 text-xs">Tap here to select your meal builder and set your targets.</p>
+                  <p className="text-orange-200 text-sm font-medium mb-1">{t("selectPrompt")}</p>
+                  <p className="text-orange-300/80 text-xs">{t("tapHereToSelect")}</p>
                 </div>
               )}
 
-              {/* Hero Image Section */}
               <div className="relative h-48 rounded-xl overflow-hidden">
                 <img
                   src="/images/planner-hero.png"
@@ -191,13 +182,12 @@ export default function Planner() {
                   <div className="bg-black/55 backdrop-blur-sm rounded-xl px-3 py-2.5">
                     <h2 className="text-2xl font-bold text-white mb-1"></h2>
                     <p className="text-white/90 text-sm">
-                      Tailored meal planning for your specific health needs and goals.
+                      {t("tailoredPlanning")}
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* Planner Features - Vertical Stack */}
               <div className="flex flex-col gap-3">
                 {plannerFeatures.map((feature) => {
                   const Icon = feature.icon;
@@ -219,17 +209,17 @@ export default function Planner() {
                               </h3>
                               {feature.builderId === "beach_body" && (
                                 <span className="text-[10px] px-1.5 py-0.5 bg-amber-600/30 text-amber-300 rounded-full border border-amber-500/30 flex-shrink-0">
-                                  Clinical
+                                  {t("badgeClinical")}
                                 </span>
                               )}
                               {(feature.builderId === "general_nutrition" || feature.builderId === "performance_competition") && (
                                 <span className="text-[10px] px-1.5 py-0.5 bg-orange-600/30 text-orange-300 rounded-full border border-orange-500/30 flex-shrink-0">
-                                  ProCare
+                                  {t("badgeProCare")}
                                 </span>
                               )}
                               {feature.builderId === userActiveBoard && (
                                 <span className="text-[10px] px-1.5 py-0.5 bg-emerald-600/30 text-emerald-300 rounded-full border border-emerald-500/30 flex-shrink-0">
-                                  Current
+                                  {t("badgeCurrent")}
                                 </span>
                               )}
                             </div>
@@ -251,7 +241,7 @@ export default function Planner() {
                                 {feature.title}
                               </h3>
                             </div>
-                            <p className="text-xs ml-6 text-zinc-700">Not your assigned builder</p>
+                            <p className="text-xs ml-6 text-zinc-700">{t("notYourBuilder")}</p>
                           </div>
                         </div>
                       </div>

@@ -58,6 +58,7 @@ import { getAuthHeaders } from "@/lib/auth";
 import { useProUnreadCount } from "@/hooks/useProUnreadCount";
 import { PatternAlertBanner } from "@/components/PatternAlertBanner";
 import { TipsBanner } from "@/components/TipsBanner";
+import { useTranslation } from "react-i18next";
 import InspirationCaptureModal from "@/components/InspirationCaptureModal";
 import { NutritionPersonalizationSummaryCard } from "@/components/protocol/NutritionPersonalizationSummaryCard";
 import { TodaysPrescriptionCard } from "@/components/dashboard/TodaysPrescriptionCard";
@@ -103,6 +104,7 @@ export default function DashboardNew() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation("dashboard");
   const { requestUpgrade } = useUpgradeModal();
   const showMarketplace = useOrgFlag("partnerMarketplace");
   const [showScanner, setShowScanner] = useState(false);
@@ -662,32 +664,32 @@ export default function DashboardNew() {
 
   const features: FeatureCard[] = [
     {
-      title: "Macro Calculator",
-      description: "Precision macro targeting",
+      title: t("macroCalc"),
+      description: t("macroCalcDesc"),
       icon: Calculator,
       route: "/macro-counter",
       size: "large",
       testId: "macro-calculator",
     },
     {
-      title: "My Biometrics",
-      description: "Track your health metrics",
+      title: t("myBiometrics"),
+      description: t("myBiometricsDesc"),
       icon: Activity,
       route: "/my-biometrics",
       size: "large",
-      testId: "biometrics", // Updated testId for tour
+      testId: "biometrics",
     },
     {
-      title: "Saved Meals",
-      description: "Your favorites",
+      title: t("savedMeals"),
+      description: t("savedMealsDesc"),
       icon: Heart,
       route: "/saved-meals",
       size: "small",
       testId: "card-saved-meals",
     },
     {
-      title: "Daily Journal & Inspiration",
-      description: "Daily motivation",
+      title: t("dailyJournal"),
+      description: t("dailyJournalDesc"),
       icon: Lightbulb,
       route: "/get-inspiration",
       size: "small",
@@ -1547,17 +1549,17 @@ export default function DashboardNew() {
           <Card className="bg-black/30 backdrop-blur-lg border border-white/10 hover:shadow-[0_0_30px_rgba(249,115,22,0.3)] transition-all">
             <CardContent className="p-6 text-center">
               <h3 className="text-white font-semibold mb-2">
-                Ready to Plan Your Meals?
+                {t("readyToPlan")}
               </h3>
               <p className="text-white/70 text-sm mb-4">
-                Start building your perfect week with AI-powered meal planning
+                {t("readyToPlanDesc")}
               </p>
               <button
                 onClick={() => setLocation("/planner")}
                 className="px-6 py-2 bg-gradient-to-r from-orange-500 to-orange-700 hover:from-orange-600 hover:to-orange-800 text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-xl"
                 data-testid="button-go-to-planner"
               >
-                Go to Builders
+                {t("goToBuilders")}
               </button>
             </CardContent>
           </Card>
@@ -1590,7 +1592,7 @@ export default function DashboardNew() {
                 setLocation("/pricing");
               }}
             >
-              Explore Plans
+              {t("explorePlans")}
             </Button>
             <Button
               variant="ghost"
@@ -1600,7 +1602,7 @@ export default function DashboardNew() {
                 setShowSubscriptionModal(false);
               }}
             >
-              Continue With Current Plan
+              {t("continueCurrentPlan")}
             </Button>
           </div>
       </InformationModal>
