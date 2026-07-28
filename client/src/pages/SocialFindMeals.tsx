@@ -23,6 +23,7 @@ import {
   Navigation,
   Copy,
   CalendarPlus,
+  Globe,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
@@ -258,6 +259,8 @@ export default function MealFinder() {
   const { imageMap: chefFlowImages, failedSet: chefFlowFailed } = useChefFlowImages(chefFlowMeals, "restaurant");
 
   const [progress, setProgress] = useState(0);
+  const [mealTranslations, setMealTranslations] = useState<Record<string, { lang: string; data: any }>>({});
+  const [translatingId, setTranslatingId] = useState<string | null>(null);
   const hasRestoredRef = useRef(false);
   const hasSpokenEntryRef = useRef(false);
 
@@ -1112,6 +1115,116 @@ export default function MealFinder() {
                               fat: result.meal.fat,
                             }}
                           />
+
+                          {/* Translate */}
+                          {(() => {
+                            const cardKey = `find-meals-${result.restaurantName}-${index}`;
+                            const translation = mealTranslations[cardKey];
+                            const TRANSLATE_LANGUAGES = [
+                              { code: "es", label: "Spanish" },
+                              { code: "fr", label: "French" },
+                              { code: "de", label: "German" },
+                              { code: "it", label: "Italian" },
+                              { code: "pt", label: "Portuguese" },
+                              { code: "zh", label: "Chinese" },
+                              { code: "ja", label: "Japanese" },
+                              { code: "ko", label: "Korean" },
+                              { code: "ar", label: "Arabic" },
+                              { code: "hi", label: "Hindi" },
+                              { code: "ru", label: "Russian" },
+                              { code: "vi", label: "Vietnamese" },
+                              { code: "tl", label: "Tagalog" },
+                            ];
+                            return (
+                              <div className="mt-3 border-t border-white/10 pt-3">
+                                <div className="flex items-center gap-1.5 mb-2">
+                                  <Globe className="h-3.5 w-3.5 text-white/50" />
+                                  <span className="text-xs text-white/50 uppercase tracking-wide font-medium">Translate</span>
+                                  {translation && (
+                                    <button
+                                      onClick={() => {
+                                        setMealTranslations((prev) => {
+                                          const next = { ...prev };
+                                          delete next[cardKey];
+                                          return next;
+                                        });
+                                      }}
+                                      className="ml-auto text-white/40 text-xs"
+                                    >
+                                      Clear
+                                    </button>
+                                  )}
+                                </div>
+                                <div className="flex flex-wrap gap-1.5 mb-2">
+                                  {TRANSLATE_LANGUAGES.map((lang) => (
+                                    <button
+                                      key={lang.code}
+                                      disabled={translatingId === cardKey}
+                                      onClick={async () => {
+                                        if (translation?.lang === lang.code) return;
+                                        setTranslatingId(cardKey);
+                                        try {
+                                          const payload = {
+                                            name: result.meal.name,
+                                            description: result.meal.description,
+                                            reason: result.meal.reason,
+                                            modifications: result.meal.modifications,
+                                            medicalWaiterScript: result.meal.medicalWaiterScript,
+                                          };
+                                          const translated = await apiRequest("/api/translate", {
+                                            method: "POST",
+                                            headers: { "Content-Type": "application/json" },
+                                            body: JSON.stringify({ content: payload, targetLanguage: lang.code }),
+                                          });
+                                          setMealTranslations((prev) => ({
+                                            ...prev,
+                                            [cardKey]: { lang: lang.code, data: translated },
+                                          }));
+                                        } catch {
+                                          // silent — translate is non-critical
+                                        } finally {
+                                          setTranslatingId(null);
+                                        }
+                                      }}
+                                      className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                                        translation?.lang === lang.code
+                                          ? "bg-orange-600 text-white"
+                                          : "bg-white/10 text-white/80"
+                                      }`}
+                                    >
+                                      {translatingId === cardKey ? (
+                                        <Loader2 className="h-3 w-3 animate-spin inline" />
+                                      ) : (
+                                        lang.label
+                                      )}
+                                    </button>
+                                  ))}
+                                </div>
+                                {translation && (
+                                  <div className="bg-black/30 border border-white/10 rounded-lg p-3 space-y-2">
+                                    {translation.data.name && (
+                                      <p className="text-white font-semibold text-sm">{translation.data.name}</p>
+                                    )}
+                                    {translation.data.description && (
+                                      <p className="text-white/70 text-sm">{translation.data.description}</p>
+                                    )}
+                                    {translation.data.modifications && (
+                                      <div>
+                                        <span className="text-orange-300 text-xs font-medium">Ask For: </span>
+                                        <span className="text-orange-200 text-sm">{translation.data.modifications}</span>
+                                      </div>
+                                    )}
+                                    {translation.data.medicalWaiterScript && (
+                                      <div>
+                                        <span className="text-rose-300 text-xs font-medium">Tell Your Server: </span>
+                                        <span className="text-rose-200 text-sm italic">"{translation.data.medicalWaiterScript}"</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
                     </div>
