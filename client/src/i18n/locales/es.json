@@ -812,5 +812,43 @@
     "weightErrorDesc": "No se pudo guardar el peso. Por favor intenta de nuevo.",
     "headsUp": "Atención",
     "macrosSaved": "Macros no guardados"
+  },
+  "proPortal": {
+    "title": "Portal Pro",
+    "comingSoon": "Funciones profesionales próximamente.",
+    "viewClients": "Ver Clientes",
+    "tourTitle": "Guía del Portal Pro",
+    "tour1Title": "Centro Profesional",
+    "tour1Desc": "Accede a tus herramientas de gestión de clientes y funciones profesionales.",
+    "tour2Title": "Ver Clientes",
+    "tour2Desc": "Consulta todos tus clientes conectados y su progreso.",
+    "tour3Title": "Crear Planes",
+    "tour3Desc": "Crea planes de comida personalizados para los objetivos de cada cliente.",
+    "tour4Title": "Seguir Resultados",
+    "tour4Desc": "Monitorea la adherencia del cliente y ajusta las recomendaciones."
+  },
+  "workspace": {
+    "clientWorkspace": "Espacio de Trabajo del Cliente",
+    "active": "Activo",
+    "activeBuilder": "Constructor Activo",
+    "noneAssigned": "Ninguno asignado",
+    "biometrics": "Biométricos",
+    "age": "Edad",
+    "height": "Altura",
+    "weight": "Peso",
+    "macroTargets": "Objetivos de Macros",
+    "calories": "Calorías",
+    "protein": "Proteína",
+    "carbs": "Carbohidratos",
+    "fat": "Grasa",
+    "noMacroTargets": "No hay objetivos de macros establecidos",
+    "mealBoards": "Tableros de Comidas",
+    "mealBoardsPhase4": "Vista de solo lectura disponible en la Fase 4",
+    "backToClients": "Volver a Clientes",
+    "errorNoClient": "No se especificó ningún cliente.",
+    "errorSignIn": "Inicia sesión para acceder a los espacios de trabajo de los clientes.",
+    "errorNoAccess": "No tienes acceso al espacio de trabajo de este cliente.",
+    "errorNotFound": "Cliente no encontrado.",
+    "errorLoadFailed": "No se pudo cargar el espacio de trabajo."
   }
 }
