@@ -41,6 +41,7 @@ import {
   Users,
   LifeBuoy,
   Sparkles,
+  Globe,
 } from "lucide-react";
 import { logout, getAuthToken } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
@@ -346,6 +347,13 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
       icon: Sparkles,
       route: "/coaching-preferences",
       testId: "menu-coaching-preferences",
+    },
+    {
+      title: "Language",
+      description: "Choose the language for AI-generated meals, recipes, and guidance",
+      icon: Globe,
+      route: "/language-preferences",
+      testId: "menu-language-preferences",
     },
     {
       title: "Contact & Support",

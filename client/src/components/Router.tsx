@@ -400,6 +400,7 @@ import ReduceDrinkingPlan from "@/pages/lifestyle/ReduceDrinkingPlan";
 // RETIRED: CravingStudio, DessertStudio, FridgeRescueStudio — moved to client/src/legacy/studio-retired/
 import EditProfilePage from "@/pages/profile/EditProfilePage";
 import CoachingPreferencesPage from "@/pages/profile/CoachingPreferencesPage";
+import LanguagePreferencesPage from "@/pages/profile/LanguagePreferencesPage";
 import SavedMeals from "@/pages/SavedMeals";
 
 // DELETED: AlcoholHubLanding, AlcoholLeanAndSocial, AlcoholSmartSips, MocktailsLowCalMixers, AlcoholLog
@@ -799,6 +800,7 @@ export default function Router() {
         {/* Profile Edit Page */}
         <Route path="/profile" component={EditProfilePage} />
         <Route path="/coaching-preferences" component={CoachingPreferencesPage} />
+        <Route path="/language-preferences" component={LanguagePreferencesPage} />
         <Route path="/saved-meals" component={GuardedSavedMeals} />
         {/* DELETED: AffiliatesPage, FoundersPage, FoundersSubmit, Changelog routes */}
         {/* DELETED: MealPlanning, LowGlycemicCarbPage, AiMealCreatorPage, MealPlanningHubRevised routes */}
