@@ -1,50 +1,10 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { UniversalDialog } from "@/components/ui/universal-modal";
 import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useLocation } from "wouter";
 import { Lock, CheckCircle2 } from "lucide-react";
 import type { RequiredTier } from "@/contexts/UpgradeModalContext";
-
-const TIER_CONFIG: Record<RequiredTier, { label: string; badgeLabel?: string; tagline: string; benefits: string[] }> = {
-  essential: {
-    label: "Essential",
-    tagline: "The full meal-building toolkit, built around your profile.",
-    benefits: [
-      "Create a Dish — AI meals tailored to your exact nutritional protocols",
-      "Shopping List, Saved Meals & Weekly Meal Planner",
-      "Recipe Scan, Snack Creator & Unlimited Fridge Rescue",
-    ],
-  },
-  pro: {
-    label: "Pro",
-    tagline: "Expanded creators and real-world eating, fully protocol-aware.",
-    benefits: [
-      "Craving Creator, Beverage Creator & Sushi Creator",
-      "Restaurant Assistant — protocol-aware ordering at any restaurant",
-      "My Perfect Gatherings & My Perfect Pets nutrition plans",
-    ],
-  },
-  clinical: {
-    label: "Clinical",
-    tagline: "Medical-grade nutrition tools for serious health outcomes.",
-    benefits: [
-      "Clinical Lab Integration — your blood work shapes your meal protocols",
-      "Care Team Access — connect with a physician or trainer in-app",
-      "Performance Nutrition, Competition Prep & Athlete Builders",
-    ],
-  },
-  "meal-builders": {
-    label: "Essential, Pro & Clinical",
-    badgeLabel: "Pro — Most Popular",
-    tagline: "Pro is our most popular plan — unlock every creator and go further with your meals.",
-    benefits: [
-      "Craving Creator, Beverage Creator, Dessert Creator & Sushi Creator",
-      "Meal Builder Exchange — switch builders anytime as your goals evolve",
-      "Restaurant Assistant, My Perfect Gatherings & expanded lifestyle tools",
-      "Essential gets you started · Clinical adds medical-grade nutrition tools",
-    ],
-  },
-};
 
 interface TierUpgradeModalProps {
   open: boolean;
@@ -55,6 +15,49 @@ interface TierUpgradeModalProps {
 
 export function TierUpgradeModal({ open, onClose, requiredTier, featureName }: TierUpgradeModalProps) {
   const [, setLocation] = useLocation();
+  const { t } = useTranslation();
+
+  const TIER_CONFIG: Record<RequiredTier, { label: string; badgeLabel?: string; tagline: string; benefits: string[] }> = {
+    essential: {
+      label: t("upgrade.essentialPlan"),
+      tagline: t("upgrade.essentialTagline"),
+      benefits: [
+        "Create a Dish — AI meals tailored to your exact nutritional protocols",
+        "Shopping List, Saved Meals & Weekly Meal Planner",
+        "Recipe Scan, Snack Creator & Unlimited Fridge Rescue",
+      ],
+    },
+    pro: {
+      label: t("upgrade.proPlan"),
+      tagline: t("upgrade.proTagline"),
+      benefits: [
+        "Craving Creator, Beverage Creator & Sushi Creator",
+        "Restaurant Assistant — protocol-aware ordering at any restaurant",
+        "My Perfect Gatherings & My Perfect Pets nutrition plans",
+      ],
+    },
+    clinical: {
+      label: t("upgrade.clinicalPlan"),
+      tagline: t("upgrade.clinicalTagline"),
+      benefits: [
+        "Clinical Lab Integration — your blood work shapes your meal protocols",
+        "Care Team Access — connect with a physician or trainer in-app",
+        "Performance Nutrition, Competition Prep & Athlete Builders",
+      ],
+    },
+    "meal-builders": {
+      label: "Essential, Pro & Clinical",
+      badgeLabel: t("upgrade.mostPopular"),
+      tagline: t("upgrade.proPromo"),
+      benefits: [
+        "Craving Creator, Beverage Creator, Dessert Creator & Sushi Creator",
+        "Meal Builder Exchange — switch builders anytime as your goals evolve",
+        "Restaurant Assistant, My Perfect Gatherings & expanded lifestyle tools",
+        "Essential gets you started · Clinical adds medical-grade nutrition tools",
+      ],
+    },
+  };
+
   const config = TIER_CONFIG[requiredTier];
 
   const handleViewPlans = () => {
@@ -104,13 +107,13 @@ export function TierUpgradeModal({ open, onClose, requiredTier, featureName }: T
             onClick={handleViewPlans}
             className="w-full py-3 rounded-xl bg-orange-600 text-white font-semibold text-sm transition-colors active:bg-orange-700"
           >
-            View Plans
+            {t("upgrade.viewPlans")}
           </button>
           <button
             onClick={handleDismiss}
             className="w-full py-2.5 rounded-xl bg-white/5 text-white/55 text-sm transition-colors active:bg-white/10"
           >
-            Maybe Later
+            {t("upgrade.maybeLater")}
           </button>
         </div>
     </UniversalDialog>
