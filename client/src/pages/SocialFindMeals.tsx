@@ -174,6 +174,8 @@ interface MealResult {
     calories: number;
     protein: number;
     carbs: number;
+    starchyCarbs?: number;
+    fibrousCarbs?: number;
     fat: number;
     reason: string;
     modifications: string;
@@ -1013,25 +1015,25 @@ export default function MealFinder() {
 
                         <div className="grid grid-cols-4 gap-2 mb-3">
                           <div className="text-center bg-white/10 rounded p-2">
-                            <div className="text-lg font-bold text-white">
-                              {result.meal.calories}
-                            </div>
-                            <div className="text-white/60 text-xs">Cal</div>
-                          </div>
-                          <div className="text-center bg-white/10 rounded p-2">
-                            <div className="text-lg font-bold text-white">
+                            <div className="text-lg font-bold text-blue-400">
                               {result.meal.protein}g
                             </div>
                             <div className="text-white/60 text-xs">Protein</div>
                           </div>
                           <div className="text-center bg-white/10 rounded p-2">
-                            <div className="text-lg font-bold text-white">
-                              {result.meal.carbs}g
+                            <div className="text-lg font-bold text-orange-400">
+                              {result.meal.starchyCarbs != null ? `${result.meal.starchyCarbs}g` : "—"}
                             </div>
-                            <div className="text-white/60 text-xs">Carbs</div>
+                            <div className="text-white/60 text-xs">Starchy</div>
                           </div>
                           <div className="text-center bg-white/10 rounded p-2">
-                            <div className="text-lg font-bold text-white">
+                            <div className="text-lg font-bold text-green-400">
+                              {result.meal.fibrousCarbs != null ? `${result.meal.fibrousCarbs}g` : "—"}
+                            </div>
+                            <div className="text-white/60 text-xs">Fibrous</div>
+                          </div>
+                          <div className="text-center bg-white/10 rounded p-2">
+                            <div className="text-lg font-bold text-yellow-400">
                               {result.meal.fat}g
                             </div>
                             <div className="text-white/60 text-xs">Fat</div>
@@ -1101,6 +1103,8 @@ export default function MealFinder() {
                               setQuickView({
                                 protein: Math.round(result.meal.protein || 0),
                                 carbs: Math.round(result.meal.carbs || 0),
+                                starchyCarbs: result.meal.starchyCarbs != null ? Math.round(result.meal.starchyCarbs) : undefined,
+                                fibrousCarbs: result.meal.fibrousCarbs != null ? Math.round(result.meal.fibrousCarbs) : undefined,
                                 fat: Math.round(result.meal.fat || 0),
                                 calories: Math.round(result.meal.calories || 0),
                                 dateISO: new Date().toISOString().slice(0, 10),
