@@ -38,6 +38,7 @@ import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { ProClientBanner } from "@/components/pro/ProClientBanner";
 import WeeklyWeightTrendCard from "@/components/pro/WeeklyWeightTrendCard";
+import ProClientComplianceSnapshot from "@/components/pro/ProClientComplianceSnapshot";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { resolveClinicalProtocolLabel } from "@shared/clinical/clinicalModeResolver";
 import AddToCalendarButtons from "@/components/AddToCalendarButtons";
@@ -718,6 +719,8 @@ export default function TrainerClientDashboard() {
           isLoading={nutritionSummaryLoading}
           defaultExpanded={false}
         />
+
+        <ProClientComplianceSnapshot clientUserId={resolvedClientUserId} />
 
         {bodyComp && (
           <Card className="bg-white/5 border border-white/20">
