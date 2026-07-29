@@ -719,6 +719,10 @@ async function initializeApp() {
     app.use("/api/shopping-list-v2", shoppingPreviewRouter);
     app.use("/api/shopping-list-v2", shoppingRouter);
 
+    // Reminder System v2 — cross-platform meal reminders
+    const remindersRouter = (await import("./routes/reminders")).default;
+    app.use("/api/user/reminders", remindersRouter);
+
     // Kitchen routes — must be mounted before registerRoutes() and the /api 404 catch
     const kitchensRouter = (await import("./routes/kitchens")).default;
     const kitchenLibraryRouter = (await import("./routes/kitchenLibrary"))
@@ -989,6 +993,10 @@ async function initializeApp() {
         const { initDailyReminderCron } = await import("./cron/dailyReminders");
         initDailyReminderCron();
         console.log("✅ [BG] Daily reminder cron started");
+
+        // Reminder System v2 — per-minute scheduler
+        const { startReminderScheduler } = await import("./services/reminderScheduler");
+        startReminderScheduler();
       } catch (bgErr) {
         console.warn("⚠️ [BG] Background service warning:", bgErr);
       }

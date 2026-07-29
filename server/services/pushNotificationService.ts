@@ -3,7 +3,7 @@ import { db } from '../db';
 import { users } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
 
-const VAPID_PUBLIC_KEY = 'BGbABpBmQ2rvqPu2aaKbN71kvmpNhhlBru1U-ZI6RslYX7A7ODZMt7opAF6F71_E5FgfbdvGjVPaojl0hdRj8P4';
+const VAPID_PUBLIC_KEY = 'BOX8GMIv1Y8E14t5Vc9elEjswXS-N-xvRVjqUsV2dGQwyXH0yyXvVUD94nyocUyG-V8f2Gdj4tfVzYaxKNHybqg';
 const vapidConfigured = !!process.env.VAPID_PRIVATE_KEY;
 
 if (vapidConfigured) {

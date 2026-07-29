@@ -2,84 +2,100 @@
 // SERVICE WORKER VERSION
 // Bump this version string on every deploy to force cache refresh
 // ============================================
-const CACHE_VERSION = 'v4';
+const CACHE_VERSION = 'v5';
 const CACHE_NAME = 'mpm-cache-' + CACHE_VERSION;
 
-// Files to cache
 const STATIC_CACHE = [
   '/',
   '/index.html',
   '/manifest.json'
 ];
 
-// Install event - cache static assets
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing service worker, version:', CACHE_VERSION);
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Caching static assets');
       return cache.addAll(STATIC_CACHE);
-    }).then(() => {
-      // Force activation immediately
-      return self.skipWaiting();
-    })
+    }).then(() => self.skipWaiting())
   );
 });
 
-// Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
   console.log('[SW] Activating service worker, version:', CACHE_VERSION);
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('[SW] Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
+          if (cacheName !== CACHE_NAME) return caches.delete(cacheName);
         })
       );
-    }).then(() => {
-      // Take control of all pages immediately
-      return self.clients.claim();
-    })
+    }).then(() => self.clients.claim())
   );
 });
 
-// Fetch event - network first, then cache
 self.addEventListener('fetch', (event) => {
-  // Skip non-GET requests
   if (event.request.method !== 'GET') return;
-
-  // Skip chrome-extension and other non-http(s) requests
   if (!event.request.url.startsWith('http')) return;
 
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // Clone the response before caching
-        const responseToCache = response.clone();
-
-        // Only cache successful responses
         if (response.status === 200) {
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
         }
-
         return response;
       })
-      .catch(() => {
-        // If network fails, try cache
-        return caches.match(event.request);
-      })
+      .catch(() => caches.match(event.request))
   );
 });
 
-// Listen for messages from the client
+// ── PUSH NOTIFICATIONS ──────────────────────────────────────────────────────
+
+self.addEventListener('push', (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (e) {
+    data = { title: 'My Perfect Meals', body: event.data ? event.data.text() : '' };
+  }
+
+  const title = data.title || 'My Perfect Meals';
+  const options = {
+    body: data.body || '',
+    icon: data.icon || '/icons/ChefMPMLogo-v2.png',
+    badge: data.badge || '/icons/ChefMPMLogo-v2.png',
+    tag: data.tag || 'mpm-notification',
+    data: { url: data.url || '/hub' },
+    actions: data.actions || [],
+    requireInteraction: false,
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  const targetUrl = (event.notification.data && event.notification.data.url) || '/hub';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // Focus an existing tab if one is open
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.navigate(targetUrl);
+          return client.focus();
+        }
+      }
+      // Otherwise open a new tab
+      if (clients.openWindow) return clients.openWindow(targetUrl);
+    })
+  );
+});
+
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
-    console.log('[SW] Received SKIP_WAITING message');
     self.skipWaiting();
   }
 });
