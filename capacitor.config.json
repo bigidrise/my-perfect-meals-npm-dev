@@ -18,6 +18,11 @@
       "androidScaleType": "CENTER_CROP",
       "fadeOutDuration": 300,
       "showSpinner": false
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_icon_config_sample",
+      "iconColor": "#FF6B00",
+      "sound": "default"
     }
   }
 }
