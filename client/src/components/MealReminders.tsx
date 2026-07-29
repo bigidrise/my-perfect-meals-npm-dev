@@ -59,7 +59,7 @@ function TimeRow({
   }
 
   return (
-    <div className="flex items-start gap-2 py-2 border-b border-white/10 last:border-b-0">
+    <div className="flex items-center gap-2 py-2 border-b border-white/10 last:border-b-0">
       {/* Toggle */}
       <button
         onClick={onToggle}
@@ -78,8 +78,9 @@ function TimeRow({
         )}
       </button>
 
-      {/* Label */}
-      <div className="flex-1 min-w-0">
+      {/* Label + time stacked vertically */}
+      <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+        {/* Label row */}
         {editing ? (
           <div className="flex items-center gap-1">
             <input
@@ -109,16 +110,16 @@ function TimeRow({
             <Pencil className="w-2.5 h-2.5 text-white/50 flex-shrink-0" />
           </button>
         )}
-      </div>
 
-      {/* Time picker — compact */}
-      <input
-        type="time"
-        value={slot.time}
-        onChange={(e) => onTimeChange(e.target.value)}
-        disabled={disabled}
-        className="bg-white/10 border border-white/30 rounded-full px-2 py-[1px] text-white text-[10px] font-semibold tracking-wide focus:outline-none focus:ring-1 focus:ring-orange-500 disabled:opacity-40 flex-shrink-0"
-      />
+        {/* Time pill — sits below the label */}
+        <input
+          type="time"
+          value={slot.time}
+          onChange={(e) => onTimeChange(e.target.value)}
+          disabled={disabled}
+          className="self-start bg-white/10 border border-white/30 rounded-full px-2 py-[1px] text-white text-[10px] font-semibold tracking-wide focus:outline-none focus:ring-1 focus:ring-orange-500 disabled:opacity-40"
+        />
+      </div>
 
       {/* Remove — always red so it's obvious */}
       {total > 1 && (
