@@ -412,7 +412,9 @@ export async function findMealsNearby(request: MealFinderRequest): Promise<Resta
   }
 
   // Take top candidates for meal generation
+  console.log(`[DEBUG] filtered.length before slice = ${filtered.length}`);
   const candidates = filtered.slice(0, 3);
+  console.log(`[DEBUG] candidates.length after slice(0,3) = ${candidates.length}`);
   console.log(`🚀 Generating meals for ${candidates.length} ranked restaurants in parallel…`);
 
   // ── Step 4: AI meal generation ───────────────────────────────────────────
