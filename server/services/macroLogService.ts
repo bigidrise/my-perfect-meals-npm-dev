@@ -24,8 +24,11 @@ export interface MacroLogServiceInput {
   protein: number;
   carbohydrates: number;
   fat: number;
-  /** Dietary fiber — fibrousCarbs is derived from this value */
+  /** Dietary fiber — used to derive fibrousCarbs when fibrousCarbs is not supplied explicitly */
   fiber?: number | null;
+  /** Fibrous carbohydrates (vegetables, leafy greens fraction). When provided, takes priority
+   *  over the fiber-derived value so manual entries are stored exactly as the user entered them. */
+  fibrousCarbs?: number | null;
   /** Starchy carbohydrates (rice, potato, bread fraction) */
   starchyCarbs?: number | null;
   source: string;
@@ -62,8 +65,11 @@ export async function writeMacroLog(input: MacroLogServiceInput) {
   const fiber = input.fiber ?? null;
   const starchyCarbs = input.starchyCarbs ?? null;
 
-  // Application rule: fibrousCarbs = fiber
-  const fibrousCarbs = deriveFibrousCarbs(fiber);
+  // Explicit fibrousCarbs (manual entry) takes priority; fall back to fiber derivation
+  // when only fiber is supplied (AI/builder paths that don't split the carb types).
+  const fibrousCarbs = input.fibrousCarbs != null
+    ? input.fibrousCarbs
+    : deriveFibrousCarbs(fiber);
 
   const resolvedCalories =
     input.calories > 0
