@@ -30,10 +30,12 @@ import type {
   MedicalBadge,
 } from "@shared/awayFromHome";
 import { NUTRITION_DISCLOSURE } from "@shared/awayFromHome";
-import { macroLabel } from "./awayFromHomeTranslator";
+import { macroLabel, toMacroLogPayload } from "./awayFromHomeTranslator";
 import MacroConfirmSheet from "./MacroConfirmSheet";
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
+import { logMacros } from "@/lib/logMacros";
+import { getTodayISOSafe } from "@/utils/midnight";
 
 // ── Translation types ─────────────────────────────────────────────────────────
 
@@ -139,6 +141,10 @@ export default function AwayFromHomeMealCard({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  // Direct-log state for buffet (logOnly) cards — no modal opened
+  const [directLogging, setDirectLogging] = useState(false);
+  const [directError, setDirectError] = useState<string | null>(null);
+
   // Translation state
   const [translateOpen, setTranslateOpen] = useState(false);
   const [translating, setTranslating] = useState(false);
@@ -206,10 +212,42 @@ export default function AwayFromHomeMealCard({
   function handleSuccess(action: "logged" | "planned") {
     setSuccessMessage(
       action === "logged"
-        ? "Logged to your macros."
+        ? "Logged to today's macros."
         : "Added to your meal plan."
     );
     setTimeout(() => setSuccessMessage(null), 3000);
+  }
+
+  // Direct log for buffet (logOnly) — no modal, no second confirmation step.
+  // Payload is built from the exact values displayed on the card.
+  async function handleDirectLog() {
+    if (directLogging) return;
+    setDirectLogging(true);
+    setDirectError(null);
+    try {
+      const p  = rec.meal.proteinGrams      ?? 0;
+      const sc = rec.meal.starchyCarbGrams  ?? 0;
+      const fc = rec.meal.fibrousCarbGrams  ?? 0;
+      const f  = rec.meal.fatGrams          ?? 0;
+      const derivedCalories = Math.round(p * 4 + sc * 4 + fc * 4 + f * 9);
+      const todayISO = getTodayISOSafe("America/Chicago");
+      const payload = toMacroLogPayload(rec, {
+        dateIso: todayISO,
+        mealType: "lunch",
+        calories: derivedCalories,
+        proteinGrams: p,
+        carbohydrateGrams: sc + fc,
+        fatGrams: f,
+        starchyCarbs: sc,
+        fiber: fc,
+      });
+      await logMacros(payload);
+      handleSuccess("logged");
+    } catch (e: any) {
+      setDirectError(e?.message ?? "Something went wrong. Please try again.");
+    } finally {
+      setDirectLogging(false);
+    }
   }
 
   return (
@@ -492,25 +530,37 @@ export default function AwayFromHomeMealCard({
                 <span className="text-sm text-emerald-300 font-medium">{successMessage}</span>
               </div>
             ) : (
-              <button
-                onClick={() => setConfirmOpen(true)}
-                className="w-full py-3 rounded-xl bg-orange-600 text-white font-semibold text-sm"
-              >
-                {logOnly ? "Log to Macros" : "Log or Add to Plan"}
-              </button>
+              <>
+                {directError && (
+                  <p className="text-xs text-red-400 bg-red-900/20 rounded-lg px-3 py-2 mb-2 text-center">
+                    {directError}
+                  </p>
+                )}
+                <button
+                  onClick={logOnly ? handleDirectLog : () => setConfirmOpen(true)}
+                  disabled={directLogging}
+                  className="w-full py-3 rounded-xl bg-orange-600 text-white font-semibold text-sm disabled:opacity-60 transition-opacity"
+                >
+                  {logOnly
+                    ? (directLogging ? "Logging…" : "Log to Macros")
+                    : "Log or Add to Plan"}
+                </button>
+              </>
             )}
           </div>
         )}
       </div>
 
-      {/* ── Confirm sheet ──────────────────────────────────────────── */}
-      <MacroConfirmSheet
-        recommendation={rec}
-        open={confirmOpen}
-        onClose={() => setConfirmOpen(false)}
-        onSuccess={handleSuccess}
-        logOnly={logOnly}
-      />
+      {/* ── Confirm sheet — only for non-buffet features (Restaurant / Fast Food / Find Meals) */}
+      {!logOnly && (
+        <MacroConfirmSheet
+          recommendation={rec}
+          open={confirmOpen}
+          onClose={() => setConfirmOpen(false)}
+          onSuccess={handleSuccess}
+          logOnly={false}
+        />
+      )}
     </>
   );
 }
