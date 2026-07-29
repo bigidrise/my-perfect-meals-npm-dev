@@ -868,12 +868,7 @@ export default function MealFinder() {
                         {/* Meal Image */}
                               <div className="relative h-48 md:h-auto">
                                 <ChefFlowImage
-                                  src={
-                                    chefFlowImages[chefFlowMealId(chefFlowMeals[index], "restaurant")] ||
-                                    (chefFlowFailed.has(chefFlowMealId(chefFlowMeals[index], "restaurant"))
-                                      ? result.photoUrl
-                                      : undefined)
-                                  }
+                                  src={chefFlowImages[chefFlowMealId(chefFlowMeals[index], "restaurant")]}
                                   alt={result.meal.name}
                                 />
                               </div>
