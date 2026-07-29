@@ -38,17 +38,19 @@ router.post("/macros/log", requireAuth, async (req, res) => {
       source = "manual",
       mealId,
       starchyCarbs,
+      fibrousCarbs,
       fiber,
       nutrition,
     } = req.body ?? {};
 
     // Support nested nutrition object (new format) or flat fields (legacy)
-    const proteinVal  = Number(nutrition?.protein_g ?? protein ?? 0);
-    const carbsVal    = Number(nutrition?.carbs_g ?? carbs ?? 0);
-    const fatVal      = Number(nutrition?.fat_g ?? fat ?? 0);
-    const kcalVal     = nutrition?.calories ?? kcal;
-    const fiberVal    = nutrition?.fiber_g != null ? Number(nutrition.fiber_g) : (fiber != null ? Number(fiber) : null);
-    const starchyVal  = starchyCarbs != null ? Number(starchyCarbs) : null;
+    const proteinVal   = Number(nutrition?.protein_g ?? protein ?? 0);
+    const carbsVal     = Number(nutrition?.carbs_g ?? carbs ?? 0);
+    const fatVal       = Number(nutrition?.fat_g ?? fat ?? 0);
+    const kcalVal      = nutrition?.calories ?? kcal;
+    const fiberVal     = nutrition?.fiber_g != null ? Number(nutrition.fiber_g) : (fiber != null ? Number(fiber) : null);
+    const starchyVal   = starchyCarbs != null ? Number(starchyCarbs) : null;
+    const fibrousVal   = fibrousCarbs != null ? Number(fibrousCarbs) : null;
 
     const calories = typeof kcalVal === "number" && kcalVal > 0
       ? kcalVal
@@ -63,6 +65,7 @@ router.post("/macros/log", requireAuth, async (req, res) => {
       fat: fatVal,
       fiber: fiberVal,
       starchyCarbs: starchyVal,
+      fibrousCarbs: fibrousVal,
       source: source || "manual",
       mealType,
       dateIso: loggedAt,
