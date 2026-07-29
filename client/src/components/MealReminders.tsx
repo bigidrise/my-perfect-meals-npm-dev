@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Bell, BellOff, Plus, Trash2, Clock, Pencil, Check, X } from "lucide-react";
+import { Bell, BellOff, Plus, Trash2, Pencil, Check, X, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
 import {
   loadRemindersFromServer,
@@ -10,8 +10,10 @@ import {
   checkNotificationPermission,
   enrollWebPush,
   getWebPushPermission,
+  checkWebPushPipeline,
   getDefaultSlots,
   ReminderSlot,
+  PipelineDiagnostic,
   MAX_SLOTS,
   setupNotificationListeners,
 } from "@/services/mealReminderService";
@@ -126,10 +128,23 @@ export default function MealReminders() {
   const [saving, setSaving] = useState(false);
   const [webPermission, setWebPermission] = useState<string>("default");
   const [iOSPermission, setiOSPermission] = useState(false);
+  const [pipeline, setPipeline] = useState<PipelineDiagnostic | null>(null);
+  const [pipelineChecking, setPipelineChecking] = useState(false);
   const { toast } = useToast();
 
   const isNative = Capacitor.isNativePlatform();
   const anyEnabled = slots.some((s) => s.enabled);
+
+  async function runPipelineCheck() {
+    if (isNative) return;
+    setPipelineChecking(true);
+    try {
+      const result = await checkWebPushPipeline();
+      setPipeline(result);
+    } finally {
+      setPipelineChecking(false);
+    }
+  }
 
   // Load schedule from server on mount
   useEffect(() => {
@@ -140,7 +155,11 @@ export default function MealReminders() {
         if (isNative) {
           setiOSPermission(await checkNotificationPermission());
         } else {
-          setWebPermission(getWebPushPermission());
+          const perm = getWebPushPermission();
+          setWebPermission(perm);
+          // Run full chain check on mount so users immediately see where they stand
+          const result = await checkWebPushPipeline();
+          setPipeline(result);
         }
       } finally {
         setLoading(false);
@@ -158,13 +177,14 @@ export default function MealReminders() {
     return cleanup;
   }, [isNative]);
 
-  // Re-check web push permission whenever the user returns to this tab
-  // (they may have just changed browser settings)
+  // Re-check permission + full pipeline when user returns to this tab
   useEffect(() => {
     if (isNative) return;
     function onVisible() {
       if (document.visibilityState === "visible") {
-        setWebPermission(getWebPushPermission());
+        const perm = getWebPushPermission();
+        setWebPermission(perm);
+        runPipelineCheck();
       }
     }
     document.addEventListener("visibilitychange", onVisible);
@@ -172,7 +192,9 @@ export default function MealReminders() {
   }, [isNative]);
 
   function recheckPermission() {
-    setWebPermission(getWebPushPermission());
+    const perm = getWebPushPermission();
+    setWebPermission(perm);
+    runPipelineCheck();
   }
 
   async function persist(next: ReminderSlot[]) {
@@ -305,14 +327,48 @@ export default function MealReminders() {
               </ol>
               <button
                 onClick={recheckPermission}
-                className="mt-1 bg-orange-600 text-white text-xs rounded-lg px-3 py-1.5 font-medium"
+                disabled={pipelineChecking}
+                className="mt-1 flex items-center gap-1.5 bg-orange-600 text-white text-xs rounded-lg px-3 py-1.5 font-medium disabled:opacity-60"
               >
+                {pipelineChecking && <Loader2 className="w-3 h-3 animate-spin" />}
                 Check again
               </button>
             </>
           )}
         </div>
       ) : (
+        <>
+          {/* Pipeline status chain — shown when permission is not blocked */}
+          {!isNative && pipeline && (
+            <div className="space-y-1 pb-1 border-b border-white/10">
+              {pipeline.steps.map((step, i) => (
+                <div key={i} className="flex items-start gap-1.5">
+                  {step.ok ? (
+                    <CheckCircle2 className="w-3 h-3 text-emerald-400 flex-shrink-0 mt-0.5" />
+                  ) : (
+                    <XCircle className="w-3 h-3 text-orange-400 flex-shrink-0 mt-0.5" />
+                  )}
+                  <div className="min-w-0">
+                    <span className={`text-[11px] ${step.ok ? "text-white/50" : "text-white/70"}`}>{step.label}</span>
+                    {step.detail && !step.ok && (
+                      <span className="block text-[10px] text-white/30 leading-tight">{step.detail}</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {pipelineChecking && (
+                <div className="flex items-center gap-1.5">
+                  <Loader2 className="w-3 h-3 text-white/20 animate-spin" />
+                  <span className="text-[11px] text-white/30">Checking…</span>
+                </div>
+              )}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Slot list — shown regardless of pipeline state (lets user set times before enabling) */}
+      {!webBlocked && (
         <>
           {/* Slots */}
           <div>
