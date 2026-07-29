@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import { Bell, BellOff, Plus, Trash2, Pencil, Check, X, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import {
+  Bell, BellOff, Plus, Trash2, Pencil, Check, X,
+  CheckCircle2, XCircle, Loader2, ChevronDown, ChevronRight, Smartphone, Globe,
+} from "lucide-react";
 import { Capacitor } from "@capacitor/core";
 import {
   loadRemindersFromServer,
@@ -19,9 +22,7 @@ import {
 } from "@/services/mealReminderService";
 import { useToast } from "@/hooks/use-toast";
 
-function isBlockedPermission(permission: string): boolean {
-  return permission === "unsupported" || permission === "denied";
-}
+// ── TimeRow sub-component ────────────────────────────────────────────────────
 
 function TimeRow({
   slot,
@@ -85,12 +86,19 @@ function TimeRow({
               ref={inputRef}
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") commitLabel(); if (e.key === "Escape") { setDraft(slot.label); setEditing(false); } }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") commitLabel();
+                if (e.key === "Escape") { setDraft(slot.label); setEditing(false); }
+              }}
               maxLength={30}
               className="bg-white/10 border border-orange-400/40 rounded px-2 py-0.5 text-white text-xs w-full focus:outline-none"
             />
-            <button onClick={commitLabel} className="text-emerald-400 hover:text-emerald-300"><Check className="w-3.5 h-3.5" /></button>
-            <button onClick={() => { setDraft(slot.label); setEditing(false); }} className="text-white/40 hover:text-white/60"><X className="w-3.5 h-3.5" /></button>
+            <button onClick={commitLabel} className="text-emerald-400">
+              <Check className="w-3.5 h-3.5" />
+            </button>
+            <button onClick={() => { setDraft(slot.label); setEditing(false); }} className="text-white/40">
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
         ) : (
           <button
@@ -112,7 +120,7 @@ function TimeRow({
         className="bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:ring-1 focus:ring-orange-500 disabled:opacity-40 flex-shrink-0"
       />
 
-      {/* Remove (only if more than 1 slot) */}
+      {/* Remove */}
       {total > 1 && (
         <button onClick={onRemove} className="text-white/20 hover:text-red-400 flex-shrink-0 transition-colors">
           <Trash2 className="w-3.5 h-3.5" />
@@ -122,6 +130,8 @@ function TimeRow({
   );
 }
 
+// ── Main component ───────────────────────────────────────────────────────────
+
 export default function MealReminders() {
   const [slots, setSlots] = useState<ReminderSlot[]>([]);
   const [loading, setLoading] = useState(true);
@@ -130,6 +140,7 @@ export default function MealReminders() {
   const [iOSPermission, setiOSPermission] = useState(false);
   const [pipeline, setPipeline] = useState<PipelineDiagnostic | null>(null);
   const [pipelineChecking, setPipelineChecking] = useState(false);
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
   const { toast } = useToast();
 
   const isNative = Capacitor.isNativePlatform();
@@ -141,12 +152,13 @@ export default function MealReminders() {
     try {
       const result = await checkWebPushPipeline();
       setPipeline(result);
+      setWebPermission(getWebPushPermission());
     } finally {
       setPipelineChecking(false);
     }
   }
 
-  // Load schedule from server on mount
+  // Mount: load reminders + run initial pipeline check
   useEffect(() => {
     async function init() {
       try {
@@ -155,9 +167,7 @@ export default function MealReminders() {
         if (isNative) {
           setiOSPermission(await checkNotificationPermission());
         } else {
-          const perm = getWebPushPermission();
-          setWebPermission(perm);
-          // Run full chain check on mount so users immediately see where they stand
+          setWebPermission(getWebPushPermission());
           const result = await checkWebPushPipeline();
           setPipeline(result);
         }
@@ -177,34 +187,24 @@ export default function MealReminders() {
     return cleanup;
   }, [isNative]);
 
-  // Re-check permission + full pipeline when user returns to this tab
+  // Re-check on tab focus (user may have changed browser settings)
   useEffect(() => {
     if (isNative) return;
     function onVisible() {
-      if (document.visibilityState === "visible") {
-        const perm = getWebPushPermission();
-        setWebPermission(perm);
-        runPipelineCheck();
-      }
+      if (document.visibilityState === "visible") runPipelineCheck();
     }
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
   }, [isNative]);
 
-  function recheckPermission() {
-    const perm = getWebPushPermission();
-    setWebPermission(perm);
-    runPipelineCheck();
-  }
+  // ── Actions ────────────────────────────────────────────────────────────────
 
   async function persist(next: ReminderSlot[]) {
     setSaving(true);
     try {
       const saved = await saveRemindersToServer(next);
       setSlots(saved);
-      if (isNative) {
-        await syncToiOS(saved);
-      }
+      if (isNative) await syncToiOS(saved);
     } catch (e) {
       console.error("[MealReminders] save failed:", e);
       toast({ title: "Couldn't save reminders", variant: "destructive" });
@@ -217,7 +217,6 @@ export default function MealReminders() {
     const slot = slots[index];
     const willEnable = !slot.enabled;
 
-    // Permission gate
     if (willEnable) {
       if (isNative) {
         const granted = await requestNotificationPermission();
@@ -237,26 +236,21 @@ export default function MealReminders() {
           return;
         }
         if (perm === "denied") {
-          toast({ title: "Notifications blocked", description: "Allow notifications in your browser's site settings, then try again.", variant: "destructive" });
+          toast({ title: "Notifications blocked", description: "Allow notifications via the lock icon in your address bar, then tap Check again.", variant: "destructive" });
           return;
         }
-        // Enroll web push
         const result = await enrollWebPush();
         if (!result.success) {
-          toast({ title: "Couldn't enable notifications", description: result.reason === "denied" ? "Permission was denied." : "Try again in a moment.", variant: "destructive" });
+          toast({ title: "Couldn't enable notifications", description: result.reason === "denied" ? "Permission denied." : "Try again in a moment.", variant: "destructive" });
           return;
         }
-        setWebPermission("granted");
+        // Re-run pipeline after enrollment
+        runPipelineCheck();
       }
     }
 
     const next = slots.map((s, i) => i === index ? { ...s, enabled: willEnable } : s);
-
-    // If disabling all, cancel iOS local notifications too
-    if (!next.some((s) => s.enabled) && isNative) {
-      await canceliOSReminders();
-    }
-
+    if (!next.some((s) => s.enabled) && isNative) await canceliOSReminders();
     await persist(next);
   }
 
@@ -267,27 +261,35 @@ export default function MealReminders() {
   }
 
   function handleLabelChange(index: number, label: string) {
-    const next = slots.map((s, i) => i === index ? { ...s, label } : s);
-    persist(next);
+    persist(slots.map((s, i) => i === index ? { ...s, label } : s));
   }
 
   function handleRemove(index: number) {
     if (slots.length <= 1) return;
-    const next = slots.filter((_, i) => i !== index);
-    persist(next);
+    persist(slots.filter((_, i) => i !== index));
   }
 
   function handleAdd() {
     if (slots.length >= MAX_SLOTS) return;
     const n = slots.length + 1;
-    const defaultHour = 6 + n * 3;
-    const h = Math.min(defaultHour, 21);
-    const time = `${h.toString().padStart(2, "0")}:00`;
-    const next = [...slots, { label: `Meal ${n}`, time, enabled: false }];
-    persist(next);
+    const h = Math.min(6 + n * 3, 21);
+    persist([...slots, { label: `Meal ${n}`, time: `${h.toString().padStart(2, "0")}:00`, enabled: false }]);
   }
 
-  // ── Render ───────────────────────────────────────────────────────────────
+  // ── Derived status ─────────────────────────────────────────────────────────
+
+  // For web: derive a simple 3-state user status from the pipeline result
+  function webStatus(): "blocked" | "unsupported" | "ready" | "partial" | "pending" {
+    if (webPermission === "unsupported") return "unsupported";
+    if (webPermission === "denied") return "blocked";
+    if (!pipeline) return "pending";
+    if (pipeline.ready) return "ready";
+    // Permission granted but something else missing
+    if (webPermission === "granted") return "partial";
+    return "pending";
+  }
+
+  // ── Render ─────────────────────────────────────────────────────────────────
 
   if (loading) {
     return (
@@ -297,50 +299,106 @@ export default function MealReminders() {
     );
   }
 
-  const webBlocked = !isNative && isBlockedPermission(webPermission);
+  const status = webStatus();
+  const isBlocked = !isNative && (status === "blocked" || status === "unsupported");
 
   return (
     <div className="bg-white/5 rounded-xl p-3 space-y-3">
-      {/* Header */}
+
+      {/* ── Header ── */}
       <div className="flex items-center gap-2">
         <Bell className="w-4 h-4 text-orange-400" />
         <span className="text-white text-sm font-medium">Meal Reminders</span>
         {saving && <span className="text-white/30 text-[10px] ml-auto">Saving…</span>}
       </div>
 
-      {/* Blocked / unsupported state */}
-      {webBlocked ? (
-        <div className="space-y-2">
-          {webPermission === "unsupported" ? (
-            <p className="text-white/50 text-xs leading-relaxed">
-              Push notifications aren't supported by this browser. Try Chrome or Edge on desktop.
-            </p>
-          ) : (
+      {/* ── Delivery channel badge ── */}
+      <div className="flex items-center gap-1.5">
+        {isNative ? (
+          <Smartphone className="w-3 h-3 text-white/30" />
+        ) : (
+          <Globe className="w-3 h-3 text-white/30" />
+        )}
+        <span className="text-white/30 text-[10px]">
+          {isNative ? "Native iOS delivery" : "Web push delivery"}
+        </span>
+      </div>
+
+      {/* ── Simple user-facing status ── */}
+      {!isNative && (
+        <div className="flex items-center gap-2">
+          {status === "ready" && (
             <>
-              <p className="text-white/50 text-xs leading-relaxed">
-                Notifications are blocked for this site. To fix it:
-              </p>
-              <ol className="text-white/40 text-[11px] leading-relaxed list-decimal list-inside space-y-0.5">
-                <li>Click the <strong className="text-white/60">lock icon</strong> (🔒) in your browser's address bar</li>
-                <li>Find <strong className="text-white/60">Notifications</strong> and set it to <strong className="text-white/60">Allow</strong></li>
-                <li>Tap <strong className="text-white/60">Check again</strong> below — no reload needed</li>
-              </ol>
-              <button
-                onClick={recheckPermission}
-                disabled={pipelineChecking}
-                className="mt-1 flex items-center gap-1.5 bg-orange-600 text-white text-xs rounded-lg px-3 py-1.5 font-medium disabled:opacity-60"
-              >
-                {pipelineChecking && <Loader2 className="w-3 h-3 animate-spin" />}
-                Check again
-              </button>
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+              <span className="text-emerald-400 text-xs">Notifications connected</span>
+            </>
+          )}
+          {status === "partial" && (
+            <>
+              <XCircle className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />
+              <span className="text-white/70 text-xs">Not fully connected — toggle a slot to finish setup</span>
+            </>
+          )}
+          {status === "pending" && (
+            <>
+              <BellOff className="w-3.5 h-3.5 text-white/30 flex-shrink-0" />
+              <span className="text-white/40 text-xs">Toggle a slot to enable notifications</span>
+            </>
+          )}
+          {status === "blocked" && (
+            <>
+              <XCircle className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />
+              <span className="text-white/70 text-xs">Notifications blocked in browser</span>
+            </>
+          )}
+          {status === "unsupported" && (
+            <>
+              <XCircle className="w-3.5 h-3.5 text-white/30 flex-shrink-0" />
+              <span className="text-white/50 text-xs">Not supported by this browser</span>
             </>
           )}
         </div>
-      ) : (
-        <>
-          {/* Pipeline status chain — shown when permission is not blocked */}
-          {!isNative && pipeline && (
-            <div className="space-y-1 pb-1 border-b border-white/10">
+      )}
+
+      {/* ── Blocked: instructions + check again ── */}
+      {status === "blocked" && (
+        <div className="bg-white/5 rounded-lg p-3 space-y-2">
+          <p className="text-white/60 text-[11px] leading-relaxed font-medium">To unblock:</p>
+          <ol className="text-white/40 text-[11px] leading-relaxed list-decimal list-inside space-y-0.5">
+            <li>Click the <strong className="text-white/60">🔒 lock</strong> in your browser's address bar</li>
+            <li>Set <strong className="text-white/60">Notifications</strong> to <strong className="text-white/60">Allow</strong></li>
+            <li>Tap <strong className="text-white/60">Check again</strong> below</li>
+          </ol>
+          <button
+            onClick={() => runPipelineCheck()}
+            disabled={pipelineChecking}
+            className="flex items-center gap-1.5 bg-orange-600 text-white text-xs rounded-lg px-3 py-1.5 font-medium disabled:opacity-60"
+          >
+            {pipelineChecking ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+            Check again
+          </button>
+        </div>
+      )}
+
+      {status === "unsupported" && (
+        <p className="text-white/40 text-[11px] leading-relaxed">
+          Try Chrome or Edge on desktop. Safari on iOS requires using the app instead.
+        </p>
+      )}
+
+      {/* ── Expandable connection diagnostics (for admins / debugging) ── */}
+      {!isNative && pipeline && status !== "unsupported" && (
+        <div>
+          <button
+            onClick={() => setShowDiagnostics((v) => !v)}
+            className="flex items-center gap-1 text-white/25 text-[10px]"
+          >
+            {showDiagnostics ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+            Connection diagnostics
+          </button>
+
+          {showDiagnostics && (
+            <div className="mt-2 space-y-1.5 pl-1">
               {pipeline.steps.map((step, i) => (
                 <div key={i} className="flex items-start gap-1.5">
                   {step.ok ? (
@@ -349,9 +407,11 @@ export default function MealReminders() {
                     <XCircle className="w-3 h-3 text-orange-400 flex-shrink-0 mt-0.5" />
                   )}
                   <div className="min-w-0">
-                    <span className={`text-[11px] ${step.ok ? "text-white/50" : "text-white/70"}`}>{step.label}</span>
-                    {step.detail && !step.ok && (
-                      <span className="block text-[10px] text-white/30 leading-tight">{step.detail}</span>
+                    <span className={`text-[11px] ${step.ok ? "text-white/40" : "text-white/70"}`}>
+                      {step.label}
+                    </span>
+                    {!step.ok && step.detail && (
+                      <span className="block text-[10px] text-white/25 leading-tight">{step.detail}</span>
                     )}
                   </div>
                 </div>
@@ -359,56 +419,53 @@ export default function MealReminders() {
               {pipelineChecking && (
                 <div className="flex items-center gap-1.5">
                   <Loader2 className="w-3 h-3 text-white/20 animate-spin" />
-                  <span className="text-[11px] text-white/30">Checking…</span>
+                  <span className="text-[11px] text-white/25">Checking…</span>
                 </div>
               )}
             </div>
           )}
-        </>
+        </div>
       )}
 
-      {/* Slot list — shown regardless of pipeline state (lets user set times before enabling) */}
-      {!webBlocked && (
-        <>
-          {/* Slots */}
-          <div>
-            {slots.map((slot, i) => (
-              <TimeRow
-                key={slot.id || i}
-                slot={slot}
-                index={i}
-                total={slots.length}
-                disabled={saving}
-                onToggle={() => handleToggleSlot(i)}
-                onTimeChange={(t) => handleTimeChange(i, t)}
-                onLabelChange={(l) => handleLabelChange(i, l)}
-                onRemove={() => handleRemove(i)}
-              />
-            ))}
-          </div>
+      {/* ── Slot list ─────────────────────────────────────────────────── */}
+      <div>
+        {slots.map((slot, i) => (
+          <TimeRow
+            key={slot.id || i}
+            slot={slot}
+            index={i}
+            total={slots.length}
+            disabled={saving}
+            onToggle={() => handleToggleSlot(i)}
+            onTimeChange={(t) => handleTimeChange(i, t)}
+            onLabelChange={(l) => handleLabelChange(i, l)}
+            onRemove={() => handleRemove(i)}
+          />
+        ))}
+      </div>
 
-          {/* Add button */}
-          {slots.length < MAX_SLOTS && (
-            <button
-              onClick={handleAdd}
-              disabled={saving}
-              className="flex items-center gap-1.5 text-orange-400 text-xs hover:text-orange-300 transition-colors disabled:opacity-40"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              Add meal reminder
-            </button>
-          )}
-
-          {/* Help text */}
-          <p className="text-white/30 text-[10px] leading-relaxed">
-            {isNative
-              ? "Reminders are delivered through the My Perfect Meals app. Tap a label to rename it."
-              : anyEnabled
-              ? "Reminders are sent as browser notifications. Keep your browser running for reliable delivery."
-              : "Toggle a slot to enable reminders. You can have up to 6."}
-          </p>
-        </>
+      {/* Add slot */}
+      {slots.length < MAX_SLOTS && (
+        <button
+          onClick={handleAdd}
+          disabled={saving}
+          className="flex items-center gap-1.5 text-orange-400 text-xs transition-colors disabled:opacity-40"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          Add meal reminder
+        </button>
       )}
+
+      {/* Footer hint */}
+      <p className="text-white/25 text-[10px] leading-relaxed">
+        {isNative
+          ? "Tap a label to rename it. Reminders are delivered through the iOS app."
+          : isBlocked
+          ? "Set up times now — notifications will activate once permissions are granted."
+          : anyEnabled
+          ? "Keep your browser open for reliable delivery."
+          : "Up to 6 reminders. Tap a label to rename."}
+      </p>
     </div>
   );
 }
