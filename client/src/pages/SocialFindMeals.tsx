@@ -809,78 +809,10 @@ export default function MealFinder() {
                 </button>
               </div>
 
-              {/* Group meals by restaurant — one block per restaurant, meals listed inside */}
+              {/* One card per meal — flat list, restaurant name on each card */}
               <div className="space-y-6">
-                {Object.entries(
-                  results.reduce((acc: Record<string, MealResult[]>, r) => {
-                    if (!acc[r.restaurantName]) acc[r.restaurantName] = [];
-                    acc[r.restaurantName].push(r);
-                    return acc;
-                  }, {})
-                ).map(([restaurantName, meals]) => {
-                  const first = meals[0];
-                  return (
-                    <div
-                      key={restaurantName}
-                      className="bg-black/40 backdrop-blur-lg border border-white/20 rounded-xl overflow-hidden shadow-lg"
-                      data-testid={`restaurant-group-${restaurantName}`}
-                    >
-                      {/* Restaurant header — shown once per restaurant */}
-                      <div className="p-4 border-b border-white/10">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1 flex-wrap">
-                              {first.matchLabel && (
-                                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${MATCH_LABEL_CONFIG[first.matchLabel]?.color ?? 'bg-white/10 border-white/20 text-white/60'}`}>
-                                  {first.matchLabel}
-                                </span>
-                              )}
-                              {priceLevelBadge(first.priceLevel) && (
-                                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-white/10 border border-white/20 text-white/70">
-                                  {priceLevelBadge(first.priceLevel)}
-                                </span>
-                              )}
-                            </div>
-                            <h3 className="text-xl font-bold text-white">{restaurantName}</h3>
-                            <p className="text-sm text-white/60">{first.cuisine}</p>
-                            <div className="flex items-center gap-2 mt-1">
-                              <button
-                                onClick={() => openInMaps(first.address)}
-                                className="flex items-center gap-1 text-sm text-blue-400 hover:text-blue-300 transition-colors"
-                                aria-label="Open in Maps"
-                              >
-                                <Navigation className="h-3 w-3" />
-                                <span className="underline">{first.address}</span>
-                              </button>
-                              <button
-                                onClick={async () => {
-                                  const success = await copyAddressToClipboard(first.address);
-                                  toast({
-                                    title: success ? "Address copied" : "Copy failed",
-                                    description: success ? "Paste into Maps or Waze." : "Please copy manually.",
-                                  });
-                                }}
-                                className="p-1 text-white/50 hover:text-white/80 transition-colors"
-                                aria-label="Copy address"
-                              >
-                                <Copy className="h-3.5 w-3.5" />
-                              </button>
-                            </div>
-                          </div>
-                          {first.rating && (
-                            <div className="flex items-center gap-1 bg-orange-600 px-2 py-1 rounded flex-shrink-0">
-                              <Star className="h-3 w-3 text-white fill-white" />
-                              <span className="text-sm text-white font-medium">{first.rating}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Meals — one section per meal, divided by a subtle rule */}
-                      <div className="divide-y divide-white/10">
-                        {meals.map((result) => {
-                          const index = results.indexOf(result);
-                          const cardKey = `find-meals-${result.restaurantName}-${index}`;
+                {results.map((result, index) => {
+                  const cardKey = `find-meals-${result.restaurantName}-${index}`;
                           const translation = mealTranslations[cardKey];
                           const TRANSLATE_LANGUAGES = [
                             { code: "es", label: "Spanish" },
@@ -897,9 +829,43 @@ export default function MealFinder() {
                             { code: "vi", label: "Vietnamese" },
                             { code: "tl", label: "Tagalog" },
                           ];
-                          return (
-                            <div key={result.meal.name} className="grid md:grid-cols-3 gap-4" data-testid={`card-result-${index}`}>
-                              {/* Meal Image */}
+                  return (
+                    <div key={cardKey} className="bg-black/40 backdrop-blur-lg border border-white/20 rounded-xl overflow-hidden shadow-lg" data-testid={`card-result-${index}`}>
+                      {/* Restaurant info */}
+                      <div className="px-4 pt-3 pb-2 border-b border-white/10 flex items-center justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                            {result.matchLabel && (
+                              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${MATCH_LABEL_CONFIG[result.matchLabel]?.color ?? 'bg-white/10 border-white/20 text-white/60'}`}>
+                                {result.matchLabel}
+                              </span>
+                            )}
+                            {priceLevelBadge(result.priceLevel) && (
+                              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-white/10 border border-white/20 text-white/70">
+                                {priceLevelBadge(result.priceLevel)}
+                              </span>
+                            )}
+                            <h3 className="font-bold text-white">{result.restaurantName}</h3>
+                            <span className="text-xs text-white/50">{result.cuisine}</span>
+                          </div>
+                          <button
+                            onClick={() => openInMaps(result.address)}
+                            className="flex items-center gap-1 text-xs text-blue-400 underline"
+                            aria-label="Open in Maps"
+                          >
+                            <Navigation className="h-3 w-3" />{result.address}
+                          </button>
+                        </div>
+                        {result.rating && (
+                          <div className="flex items-center gap-1 bg-orange-600 px-2 py-1 rounded flex-shrink-0">
+                            <Star className="h-3 w-3 text-white fill-white" />
+                            <span className="text-sm text-white font-medium">{result.rating}</span>
+                          </div>
+                        )}
+                      </div>
+                      {/* Meal content */}
+                      <div className="grid md:grid-cols-3 gap-4">
+                        {/* Meal Image */}
                               <div className="relative h-48 md:h-auto">
                                 <ChefFlowImage
                                   src={
@@ -1210,9 +1176,6 @@ export default function MealFinder() {
                                 </div>
                               </div>
                             </div>
-                          );
-                        })}
-                      </div>
                     </div>
                   );
                 })}
