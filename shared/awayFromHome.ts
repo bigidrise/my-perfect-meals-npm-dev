@@ -285,6 +285,15 @@ export interface AwayFromHomeRecommendation {
     fatGrams?: number;
 
     /**
+     * Carbohydrate breakdown — null means unknown, not zero.
+     * fibrousCarbs is derived server-side from fiberGrams (= fiberGrams).
+     * AI supplies totalCarbohydrateGrams, fiberGrams, starchyCarbGrams.
+     */
+    fiberGrams?: number | null;
+    starchyCarbGrams?: number | null;
+    fibrousCarbGrams?: number | null;
+
+    /**
      * Range values for estimated nutrition (buffet / unverified).
      * The card displays the estimate value; range is kept for the
      * confirmation sheet so the user understands the uncertainty.

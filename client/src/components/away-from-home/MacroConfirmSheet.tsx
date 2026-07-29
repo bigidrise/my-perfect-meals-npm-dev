@@ -27,7 +27,7 @@ import {
   toMealPlanItemPayload,
   macrosAreEditable,
 } from "./awayFromHomeTranslator";
-import { getApiUrl } from "@/lib/apiBase";
+import { logMacros } from "@/lib/logMacros";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { getActiveBuilderNs } from "@/lib/activeBuilderNs";
@@ -127,13 +127,7 @@ export default function MacroConfirmSheet({
         mealType: selectedSlot,
         ...macroOverrides,
       });
-      const res = await fetch(getApiUrl("/api/biometrics/log"), {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error(`Log failed: ${res.status}`);
+      await logMacros(payload);
       onSuccess?.("logged");
       onClose();
     } catch (e: any) {
