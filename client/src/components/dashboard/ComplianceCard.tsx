@@ -1,13 +1,10 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Target, AlertCircle } from "lucide-react";
-import { useIsDesktop } from "@/hooks/useIsDesktop";
-import { getAuthHeaders } from "@/lib/auth";
-import { apiUrl } from "@/lib/resolveApiBase";
+import { AlertCircle, CheckCircle2, AlertTriangle } from "lucide-react";
 import { apiRequest } from "@/lib/apiRequest";
 
-interface ComplianceResponse {
+interface ActivitySummary {
   complianceScore: number | null;
   calorieCompliance: number;
   proteinCompliance: number;
@@ -17,41 +14,59 @@ interface ComplianceResponse {
   loggedDays7: number;
   windowDays: number;
   reason?: string;
-}
-
-function getScoreColor(score: number): string {
-  if (score >= 90) return "text-emerald-400";
-  if (score >= 70) return "text-yellow-400";
-  return "text-red-400";
-}
-
-function getScoreBorderColor(score: number): string {
-  if (score >= 90) return "border-emerald-500/30";
-  if (score >= 70) return "border-yellow-500/30";
-  return "border-red-500/30";
-}
-
-function getScoreBgColor(score: number): string {
-  if (score >= 90) return "from-emerald-500/20 to-emerald-700/20";
-  if (score >= 70) return "from-yellow-500/20 to-yellow-700/20";
-  return "from-red-500/20 to-red-700/20";
-}
-
-function getComplianceMessage(score: number | null, reason?: string, loggedDays?: number): string {
-  if (reason === "no_targets") return "Set your macro targets to begin compliance tracking.";
-  if (score === null || score === 0 || loggedDays === 0) return "Start recording your meals to activate compliance tracking.";
-  if (score >= 90) return "Excellent consistency. Your program is working.";
-  if (score >= 75) return "Good progress. A little more consistency will improve results.";
-  if (score >= 50) return "Your adherence is slipping. Focus on logging meals this week.";
-  return "Low compliance. Results will stall without consistent tracking.";
+  proteinGoalDays: number;
+  calorieGoalDays: number;
+  mealSlots: { breakfast: number; lunch: number; dinner: number };
+  biggestOpportunity: string;
+  coachingSummary: string;
 }
 
 interface ComplianceCardProps {
   userId: string | undefined;
 }
 
+function ScorePill({ score }: { score: number }) {
+  const color =
+    score >= 90 ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/30" :
+    score >= 70 ? "text-yellow-400 bg-yellow-500/10 border-yellow-500/30" :
+    "text-orange-400 bg-orange-500/10 border-orange-500/30";
+  return (
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-bold border ${color}`}>
+      {score}%
+    </span>
+  );
+}
+
+function BulletRow({
+  label,
+  value,
+  total,
+  highlight,
+}: {
+  label: string;
+  value: number;
+  total: number;
+  highlight?: "good" | "warn" | "neutral";
+}) {
+  const pct = total > 0 ? value / total : 0;
+  const tone = highlight ?? (pct >= 0.71 ? "good" : pct >= 0.43 ? "neutral" : "warn");
+  const Icon = tone === "good" ? CheckCircle2 : tone === "warn" ? AlertTriangle : CheckCircle2;
+  const iconColor = tone === "good" ? "text-emerald-400" : tone === "warn" ? "text-orange-400" : "text-white/40";
+  return (
+    <div className="flex items-center gap-2 text-sm">
+      <Icon className={`w-3.5 h-3.5 flex-shrink-0 ${iconColor}`} />
+      <span className="text-white/80">
+        {label}{" "}
+        <span className="font-semibold text-white">
+          {value} of {total}
+        </span>{" "}
+        days
+      </span>
+    </div>
+  );
+}
+
 export function ComplianceCard({ userId }: ComplianceCardProps) {
-  const isDesktop = useIsDesktop();
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -62,7 +77,7 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
     return () => window.removeEventListener("mpm:targetsUpdated", handleTargetsUpdated);
   }, [userId, queryClient]);
 
-  const { data, isLoading, isError } = useQuery<ComplianceResponse>({
+  const { data, isLoading, isError } = useQuery<ActivitySummary>({
     queryKey: ["compliance", userId],
     queryFn: async () => {
       return apiRequest(`/api/users/${userId}/compliance`);
@@ -76,12 +91,8 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
     return (
       <Card className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-xl">
         <CardContent className="p-6">
-          <div className="flex items-center gap-3">
-            <div className="p-3 rounded-lg bg-gradient-to-br from-white/5 to-white/10 border border-white/10">
-              <Target className="h-6 w-6 text-white" />
-            </div>
-            <div className="text-white text-sm">Loading compliance...</div>
-          </div>
+          <div className="h-4 w-40 bg-white/10 rounded animate-pulse mb-3" />
+          <div className="h-3 w-24 bg-white/5 rounded animate-pulse" />
         </CardContent>
       </Card>
     );
@@ -90,16 +101,12 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
   if (isError || !data) {
     return (
       <Card className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-xl">
-        <CardContent className="p-6">
-          <div className="flex items-center gap-3">
-            <div className="p-3 rounded-lg bg-gradient-to-br from-red-500/10 to-red-700/10 border border-red-500/20">
-              <AlertCircle className="h-6 w-6 text-red-400" />
-            </div>
-            <div>
-              <h3 className="text-white text-sm font-semibold">Compliance</h3>
-              <p className="text-red-400 text-sm">Unable to load compliance data</p>
-            </div>
-          </div>
+        <CardContent className="p-6 space-y-2">
+          <h3 className="text-white text-sm font-semibold">Nutrition Activity Summary</h3>
+          <p className="text-white/40 text-xs">Last 7 days</p>
+          <p className="text-white/60 text-sm pt-1">
+            No nutrition activity recorded yet. Start logging meals to see your personalized activity summary here.
+          </p>
         </CardContent>
       </Card>
     );
@@ -109,69 +116,76 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
     return (
       <Card className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-xl">
         <CardContent className="p-6 space-y-2">
-          <div className="flex items-center gap-3">
-            <div className="p-3 rounded-lg bg-gradient-to-br from-white/5 to-white/10 border border-white/10">
-              <Target className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <h3 className="text-white text-sm font-semibold">Compliance</h3>
-              <p className="text-white text-sm">Macro targets not set yet</p>
-            </div>
-          </div>
-          <p className="text-sm text-white italic">
-            {getComplianceMessage(null, "no_targets")}
-          </p>
+          <h3 className="text-white text-sm font-semibold">Nutrition Activity Summary</h3>
+          <p className="text-white/60 text-xs">Set your macro targets to activate full nutrition tracking.</p>
         </CardContent>
       </Card>
     );
   }
+
+  const win = data.windowDays ?? 7;
+  const score = data.complianceScore ?? 0;
+  const slots = data.mealSlots ?? { breakfast: 0, lunch: 0, dinner: 0 };
 
   if (data.loggedDays7 === 0) {
     return (
       <Card className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-xl">
-        <CardContent className="p-6 space-y-3">
-          <div className={isDesktop ? "flex items-center justify-between" : "space-y-3"}>
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-lg bg-gradient-to-br from-red-500/20 to-red-700/20 border border-red-500/30">
-                <Target className="h-6 w-6 text-red-400" />
-              </div>
-              <div>
-                <h3 className="text-white text-sm font-semibold">Compliance</h3>
-                <p className="text-white text-xs">Last {data.windowDays} days</p>
-                <p className="text-red-400 text-2xl font-bold">0%</p>
-              </div>
-            </div>
-          </div>
-          <p className="text-sm text-white">No meals logged yet</p>
-          <p className="text-sm text-white italic">
-            {getComplianceMessage(0, undefined, 0)}
+        <CardContent className="p-6 space-y-2">
+          <h3 className="text-white text-sm font-semibold">Nutrition Activity Summary</h3>
+          <p className="text-white/50 text-xs">Last {win} days</p>
+          <p className="text-white/70 text-sm pt-1">
+            No meals logged yet. Start recording your meals to see your activity summary.
           </p>
         </CardContent>
       </Card>
     );
   }
 
-  const score = data.complianceScore ?? 0;
-
   return (
     <Card className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-xl">
-      <CardContent className="p-6 space-y-3">
-        <div className={isDesktop ? "flex items-center justify-between" : "space-y-3"}>
-          <div className="flex items-center gap-3">
-            <div className={`p-3 rounded-lg bg-gradient-to-br ${getScoreBgColor(score)} border ${getScoreBorderColor(score)}`}>
-              <Target className={`h-6 w-6 ${getScoreColor(score)}`} />
-            </div>
-            <div>
-              <h3 className="text-white text-sm font-semibold">Compliance</h3>
-              <p className="text-white text-xs">Last {data.windowDays} days</p>
-              <p className={`text-3xl font-bold ${getScoreColor(score)}`}>{score}%</p>
-            </div>
-          </div>
+      <CardContent className="p-6 space-y-4">
+
+        {/* Header */}
+        <div>
+          <h3 className="text-white text-sm font-semibold">Nutrition Activity Summary</h3>
+          <p className="text-white/40 text-xs">Last {win} days</p>
         </div>
 
-        <p className="text-sm text-white italic">
-          {getComplianceMessage(score, undefined, data.loggedDays7)}
-        </p>
+        {/* Behavioral highlights — PRIMARY */}
+        <div className="space-y-2">
+          <BulletRow label="Logged meals" value={data.loggedDays7} total={win} />
+          <BulletRow label="Protein goal met" value={data.proteinGoalDays ?? 0} total={win} />
+          <BulletRow label="Calories on target" value={data.calorieGoalDays ?? 0} total={win} />
+          {(slots.breakfast + slots.lunch + slots.dinner > 0) && (
+            <>
+              <BulletRow label="Breakfast logged" value={slots.breakfast} total={win} highlight="neutral" />
+              <BulletRow label="Lunch logged" value={slots.lunch} total={win} highlight="neutral" />
+              <BulletRow
+                label="Dinner logged"
+                value={slots.dinner}
+                total={win}
+                highlight={slots.dinner < Math.max(slots.breakfast, slots.lunch) - 1 ? "warn" : "neutral"}
+              />
+            </>
+          )}
+        </div>
+
+        {/* Score — SECONDARY */}
+        <div className="flex items-center gap-2 pt-1 border-t border-white/10">
+          <span className="text-white/50 text-xs">Consistency Score</span>
+          <ScorePill score={score} />
+        </div>
+
+        {/* Biggest opportunity */}
+        {data.biggestOpportunity && (
+          <div className="bg-white/5 rounded-lg px-3 py-2 border border-white/10">
+            <p className="text-white/40 text-[10px] font-semibold uppercase tracking-wide mb-0.5">
+              Biggest Opportunity
+            </p>
+            <p className="text-white/80 text-xs leading-snug">{data.biggestOpportunity}</p>
+          </div>
+        )}
+
       </CardContent>
     </Card>
   );

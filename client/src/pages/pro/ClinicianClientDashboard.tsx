@@ -41,6 +41,7 @@ import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { ProClientBanner } from "@/components/pro/ProClientBanner";
 import WeeklyWeightTrendCard from "@/components/pro/WeeklyWeightTrendCard";
+import ProClientComplianceSnapshot from "@/components/pro/ProClientComplianceSnapshot";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import ClinicalProtocolCard from "@/components/protocol/ClinicalProtocolCard";
 import { NutritionPersonalizationSummaryCard } from "@/components/protocol/NutritionPersonalizationSummaryCard";
@@ -646,6 +647,8 @@ export default function ClinicianClientDashboard() {
             defaultExpanded={false}
           />
         )}
+
+        <ProClientComplianceSnapshot clientId={resolvedClientUserId} />
 
         {/* ── CLINICAL INTERVENTION PANEL ──────────────────────────────────── */}
         {client && (
