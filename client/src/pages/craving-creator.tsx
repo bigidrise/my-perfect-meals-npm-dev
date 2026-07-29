@@ -15,7 +15,7 @@ import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { isFeatureEnabled } from "@/lib/productionGates";
-import { useMealImages } from "@/hooks/useMealImages";
+import { useMealImages, lookupHydratedImageUrl } from "@/hooks/useMealImages";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import {
   Card,
@@ -295,7 +295,12 @@ export default function CravingCreator() {
   useEffect(() => {
     const cached = loadCravingCache();
     if (cached?.generatedMeal?.id) {
-      setGeneratedMeals([cached.generatedMeal]);
+      // Enrich with mini-cache imageUrl before setting state — survives the race
+      // where user navigated away before hydrateImages finished
+      const mealWithImage = cached.generatedMeal.imageUrl
+        ? cached.generatedMeal
+        : { ...cached.generatedMeal, imageUrl: lookupHydratedImageUrl(cached.generatedMeal.id) ?? undefined };
+      setGeneratedMeals([mealWithImage]);
       setCravingInput(cached.craving || "");
       setServings(cached.servings || 1); // Restore servings
       toast({
@@ -303,9 +308,9 @@ export default function CravingCreator() {
         description:
           "Your generated meal will remain saved on this page until you create a new one.",
       });
-      // If image wasn't saved to cache, re-fetch it now — DB cache returns instantly
-      if (!cached.generatedMeal.imageUrl) {
-        hydrateImages([cached.generatedMeal]);
+      // Only re-fetch if imageUrl is still missing after mini-cache lookup
+      if (!mealWithImage.imageUrl) {
+        hydrateImages([mealWithImage]);
       }
     }
 

@@ -2,7 +2,7 @@
 // BACKUP: backups/fridge-rescue-stable-version.tsx
 // FEATURES: Perfect fridge ingredient rescue, AI meal generation, ingredient optimization, medical personalization
 import { useState, useRef, useEffect } from "react";
-import { useMealImages } from "@/hooks/useMealImages";
+import { useMealImages, lookupHydratedImageUrl } from "@/hooks/useMealImages";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import { PillButton } from "@/components/ui/pill-button";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
@@ -354,11 +354,17 @@ const FridgeRescuePage = () => {
   useEffect(() => {
     const cached = loadFridgeRescueCache();
     if (cached?.generatedMeals?.length) {
-      setMeals(cached.generatedMeals);
+      // Enrich from mini-cache before setting state — fills imageUrls that were
+      // fetched in a prior mount but not saved due to early navigation
+      const enrichedMeals = cached.generatedMeals.map((m: any) => ({
+        ...m,
+        imageUrl: m.imageUrl || lookupHydratedImageUrl(m.id) || undefined,
+      }));
+      setMeals(enrichedMeals);
       setIngredients(cached.ingredients || "");
       setShowResults(true);
-      // Re-fetch images for any meals without imageUrl — DB cache returns instantly
-      const needImages = cached.generatedMeals.filter((m: any) => !m.imageUrl);
+      // Re-fetch only meals still missing imageUrl after mini-cache lookup
+      const needImages = enrichedMeals.filter((m: any) => !m.imageUrl);
       if (needImages.length > 0) {
         hydrateImages(needImages);
       }
