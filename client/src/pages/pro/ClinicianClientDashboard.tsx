@@ -648,7 +648,7 @@ export default function ClinicianClientDashboard() {
           />
         )}
 
-        <ProClientComplianceSnapshot clientUserId={resolvedClientUserId} />
+        <ProClientComplianceSnapshot clientId={resolvedClientUserId} />
 
         {/* ── CLINICAL INTERVENTION PANEL ──────────────────────────────────── */}
         {client && (
