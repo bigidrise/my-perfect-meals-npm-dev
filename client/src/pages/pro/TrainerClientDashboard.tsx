@@ -720,7 +720,7 @@ export default function TrainerClientDashboard() {
           defaultExpanded={false}
         />
 
-        <ProClientComplianceSnapshot clientUserId={resolvedClientUserId} />
+        <ProClientComplianceSnapshot clientId={resolvedClientUserId} />
 
         {bodyComp && (
           <Card className="bg-white/5 border border-white/20">
