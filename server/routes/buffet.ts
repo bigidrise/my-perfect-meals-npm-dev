@@ -4,6 +4,7 @@
  * POST /api/buffet/recommend
  *   Body: { foodsDescription: string, categories?: {...} }
  *   Auth: requireAuth (no Google Places, no Restaurant Intelligence Engine)
+ *   Returns: { recommendations: AwayFromHomeRecommendation[] }  (3 distinct plates)
  *
  * See ADR-003 (Away From Home Domain Model) for contract.
  */
@@ -11,7 +12,7 @@
 import { Router } from "express";
 import type { AuthenticatedRequest } from "../middleware/requireAuth";
 import { getActiveNutritionContext } from "../services/nutritionContext/getActiveNutritionContext";
-import { generateBuffetRecommendation } from "../services/buffetRecommendationAI";
+import { generateBuffetRecommendations } from "../services/buffetRecommendationAI";
 
 const router = Router();
 
@@ -36,17 +37,17 @@ router.post("/recommend", async (req, res) => {
 
     const nutritionContext = await getActiveNutritionContext(userId);
 
-    const recommendation = await generateBuffetRecommendation({
+    const recommendations = await generateBuffetRecommendations({
       foodsDescription: foodsDescription ?? "",
       categories,
       nutritionContext,
     });
 
-    return res.json({ recommendation });
+    return res.json({ recommendations });
   } catch (err) {
     console.error("[Buffet] Error:", err);
     return res.status(500).json({
-      error: "Failed to generate buffet recommendation.",
+      error: "Failed to generate buffet recommendations.",
       details: err instanceof Error ? err.message : "Unknown error",
     });
   }

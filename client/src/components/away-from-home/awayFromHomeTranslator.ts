@@ -140,23 +140,17 @@ export function fromLegacyRecommendation(
   };
 }
 
-// ── Biometrics log payload ────────────────────────────────────────────────────
+// ── Canonical macro log payload ───────────────────────────────────────────────
+// Uses MacroLogInput from shared/nutritionFacts — the same shape accepted by
+// /api/macros/log and the logMacros() client helper.
 
-export interface MacroLogPayload {
-  date_iso: string;
-  meal_type: "breakfast" | "lunch" | "dinner" | "snack";
-  calories_kcal: number;
-  protein_g: number;
-  carbs_g: number;
-  fat_g: number;
-  source: string;
-  title: string;
-  away_from_home_id?: string;
-}
+import type { MacroLogInput } from "@shared/nutritionFacts";
+export type { MacroLogInput };
 
 /**
- * Build the biometrics log payload from a recommendation.
+ * Build the canonical macro log payload from a recommendation.
  * Macro values may be user-overridden before calling this.
+ * Pass the result directly to logMacros() — do not build your own fetch.
  */
 export function toMacroLogPayload(
   rec: AwayFromHomeRecommendation,
@@ -168,17 +162,20 @@ export function toMacroLogPayload(
     carbohydrateGrams?: number;
     fatGrams?: number;
   }
-): MacroLogPayload {
+): MacroLogInput {
   return {
-    date_iso: overrides.dateIso,
-    meal_type: overrides.mealType,
-    calories_kcal: overrides.calories ?? rec.meal.calories ?? 0,
-    protein_g: overrides.proteinGrams ?? rec.meal.proteinGrams ?? 0,
-    carbs_g: overrides.carbohydrateGrams ?? rec.meal.carbohydrateGrams ?? 0,
-    fat_g: overrides.fatGrams ?? rec.meal.fatGrams ?? 0,
+    dateIso: overrides.dateIso,
+    mealType: overrides.mealType,
+    calories: overrides.calories ?? rec.meal.calories ?? 0,
+    protein: overrides.proteinGrams ?? rec.meal.proteinGrams ?? 0,
+    carbohydrates: overrides.carbohydrateGrams ?? rec.meal.carbohydrateGrams ?? 0,
+    fat: overrides.fatGrams ?? rec.meal.fatGrams ?? 0,
+    // Pass carb breakdown when available; null = unknown (not zero)
+    fiber: rec.meal.fiberGrams ?? null,
+    starchyCarbs: rec.meal.starchyCarbGrams ?? null,
     source: `away_from_home_${rec.source}`,
     title: rec.meal.name,
-    away_from_home_id: rec.id,
+    mealId: rec.id,
   };
 }
 

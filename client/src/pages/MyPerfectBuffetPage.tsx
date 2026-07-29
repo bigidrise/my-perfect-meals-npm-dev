@@ -2,8 +2,8 @@
  * My Perfect Buffet
  *
  * User describes the foods at a buffet (free-form or by category).
- * AI builds the best plate from those foods, honoring the user's full
- * active nutrition profile (diet, medical protocols, macros).
+ * AI builds THREE distinct protein-centered plates from those foods,
+ * honoring the user's full active nutrition profile. User picks one to log.
  *
  * No Google Places. No Restaurant Intelligence Engine. No chain menu data.
  * Source: "buffet" · nutritionStatus: "estimated"
@@ -21,7 +21,9 @@ import AwayFromHomeMealCard from "@/components/away-from-home/AwayFromHomeMealCa
 import type { AwayFromHomeRecommendation } from "@shared/awayFromHome";
 import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
 
-const BUFFET_CACHE_KEY = "mpm.buffet.cache.v1";
+const BUFFET_CACHE_KEY = "mpm.buffet.cache.v2";
+
+const PLATE_LABELS = ["Option A", "Option B", "Option C"];
 
 const CATEGORY_LABELS: { key: string; label: string; placeholder: string }[] = [
   { key: "proteins",   label: "Proteins",           placeholder: "grilled chicken, brisket, shrimp..." },
@@ -43,19 +45,21 @@ export default function MyPerfectBuffetPage() {
 
   const [loading, setLoading] = useState(false);
   const [recording, setRecording] = useState(false);
-  const [recommendation, setRecommendation] = useState<AwayFromHomeRecommendation | null>(null);
+  const [recommendations, setRecommendations] = useState<AwayFromHomeRecommendation[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
-  // Restore last recommendation on mount so navigating away and back keeps the result
+  // Restore last recommendations on mount
   useEffect(() => {
     try {
       const raw = localStorage.getItem(BUFFET_CACHE_KEY);
       if (raw) {
-        const parsed = JSON.parse(raw) as AwayFromHomeRecommendation;
-        if (parsed?.meal) setRecommendation(parsed);
+        const parsed = JSON.parse(raw) as AwayFromHomeRecommendation[];
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0]?.meal) {
+          setRecommendations(parsed);
+        }
       }
     } catch { /* corrupt cache — ignore */ }
   }, []);
@@ -111,7 +115,7 @@ export default function MyPerfectBuffetPage() {
 
     setLoading(true);
     setError(null);
-    setRecommendation(null);
+    setRecommendations([]);
 
     try {
       const body: Record<string, unknown> = { foodsDescription };
@@ -125,11 +129,12 @@ export default function MyPerfectBuffetPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
-      }) as { recommendation: AwayFromHomeRecommendation };
+      }) as { recommendations: AwayFromHomeRecommendation[] };
 
-      setRecommendation(data.recommendation);
-      try { localStorage.setItem(BUFFET_CACHE_KEY, JSON.stringify(data.recommendation)); } catch {}
-    } catch (err) {
+      const recs = data.recommendations ?? [];
+      setRecommendations(recs);
+      try { localStorage.setItem(BUFFET_CACHE_KEY, JSON.stringify(recs)); } catch {}
+    } catch {
       setError("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
@@ -137,7 +142,7 @@ export default function MyPerfectBuffetPage() {
   }
 
   function reset() {
-    setRecommendation(null);
+    setRecommendations([]);
     setError(null);
     setFoodsDescription("");
     setCategories({});
@@ -177,7 +182,7 @@ export default function MyPerfectBuffetPage() {
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5.5rem)" }}
       >
         <AnimatePresence mode="wait">
-          {!recommendation ? (
+          {recommendations.length === 0 ? (
             <motion.div
               key="input"
               initial={{ opacity: 0, y: 10 }}
@@ -188,8 +193,8 @@ export default function MyPerfectBuffetPage() {
               {/* ── Intro card ─────────────────────────────────────────── */}
               <div className="p-4 rounded-2xl bg-black/40 border border-white/10">
                 <p className="text-sm text-white leading-relaxed">
-                  Tell me what foods are available and I'll build the best plate for your goals.
-                  Speak or type freely — no need to categorize.
+                  Tell me what foods are available and I'll build three complete plate options for your goals.
+                  You pick the one you actually ate and log it.
                 </p>
               </div>
 
@@ -291,9 +296,9 @@ export default function MyPerfectBuffetPage() {
                 className="w-full py-4 rounded-2xl bg-orange-600 text-white font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
               >
                 {loading ? (
-                  <><Loader2 className="h-4 w-4 animate-spin" /> Building your plate...</>
+                  <><Loader2 className="h-4 w-4 animate-spin" /> Building your plates...</>
                 ) : (
-                  <><ChefHat className="h-4 w-4" /> Build My Plate</>
+                  <><ChefHat className="h-4 w-4" /> Build My Plates</>
                 )}
               </button>
 
@@ -306,19 +311,40 @@ export default function MyPerfectBuffetPage() {
               key="result"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="space-y-4"
+              className="space-y-6"
             >
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-white font-semibold uppercase tracking-wider">Your Plate</p>
+              {/* ── Results header ─────────────────────────────────────── */}
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm text-white font-semibold">Choose Your Plate</p>
+                  <p className="text-xs text-white/60 mt-0.5">
+                    Three options built from what's available. Log the one you ate.
+                  </p>
+                </div>
                 <button
                   onClick={reset}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform shrink-0 ml-3"
                 >
                   <RotateCcw className="h-3 w-3" /> New Search
                 </button>
               </div>
 
-              <AwayFromHomeMealCard recommendation={recommendation} />
+              {/* ── Three plate cards ──────────────────────────────────── */}
+              {recommendations.map((rec, i) => (
+                <div key={rec.id} className="space-y-2">
+                  <div className="flex items-center gap-2 px-1">
+                    <span className="text-[11px] font-bold text-orange-400 uppercase tracking-widest">
+                      {PLATE_LABELS[i] ?? `Option ${i + 1}`}
+                    </span>
+                    <div className="flex-1 h-px bg-white/10" />
+                  </div>
+                  <AwayFromHomeMealCard recommendation={rec} />
+                </div>
+              ))}
+
+              <p className="text-center text-[10px] text-white/40 px-4 leading-relaxed pb-2">
+                Tap "Log or Add to Plan" on the plate you actually ate.
+              </p>
             </motion.div>
           )}
         </AnimatePresence>

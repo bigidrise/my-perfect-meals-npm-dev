@@ -1,7 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { normalizeMealToMacros } from "@/utils/normalizeMealToMacros";
-import { getApiUrl } from "@/lib/apiBase";
-import { getAuthHeaders } from "@/lib/auth";
+import { logMacros } from "@/lib/logMacros";
 
 export function NewLogToMacrosButton({
   meal,
@@ -18,28 +16,18 @@ export function NewLogToMacrosButton({
 }) {
   async function onClick() {
     try {
-      const res = await fetch(getApiUrl("/api/biometrics/log"), {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        body: JSON.stringify({
-          date_iso: new Date().toISOString().split('T')[0],
-          meal_type: defaultMealType,
-          calories_kcal: meal.nutrition?.calories || meal.calories || 0,
-          protein_g: meal.nutrition?.protein_g || meal.protein || 0,
-          carbs_g: meal.nutrition?.carbs_g || meal.carbs || 0,
-          fat_g: meal.nutrition?.fat_g || meal.fat || 0,
-          starchy_carbs_g: meal.nutrition?.starchyCarbs || meal.starchyCarbs || 0,
-          fibrous_carbs_g: meal.nutrition?.fibrousCarbs || meal.fibrousCarbs || 0,
-          source: source,
-          title: meal.name || meal.title || "Meal",
-          meal_id: meal.id
-        }),
+      await logMacros({
+        calories: meal.nutrition?.calories || meal.calories || 0,
+        protein: meal.nutrition?.protein_g || meal.protein || 0,
+        carbohydrates: meal.nutrition?.carbs_g || meal.carbs || 0,
+        fat: meal.nutrition?.fat_g || meal.fat || 0,
+        starchyCarbs: meal.nutrition?.starchyCarbs || meal.starchyCarbs || null,
+        fiber: meal.nutrition?.fibrousCarbs || meal.fibrousCarbs || null,
+        source,
+        title: meal.name || meal.title || "Meal",
+        mealId: meal.id,
+        mealType: defaultMealType,
       });
-      if (!res.ok) {
-        const txt = await res.text().catch(() => "");
-        throw new Error(`Biometrics log failed: ${res.status} ${txt}`);
-      }
       onSuccess?.();
     } catch (e) {
       console.error("LogToMacros error", e);

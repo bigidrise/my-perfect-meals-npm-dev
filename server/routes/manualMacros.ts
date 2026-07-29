@@ -23,11 +23,10 @@ function kcalFrom(p = 0, c = 0, f = 0, alc = 0) {
   return 4 * p + 4 * c + 9 * f + 2 * alc;
 }
 
-// POST /api/macros/log - Legacy endpoint for backward compatibility
+// POST /api/macros/log — canonical macro logging endpoint
 router.post("/macros/log", requireAuth, async (req, res) => {
   try {
     const userId = getAuthUserId(req);
-    const deviceId = req.get("x-device-id") || "missing";
     const {
       loggedAt,
       mealType,
@@ -38,67 +37,36 @@ router.post("/macros/log", requireAuth, async (req, res) => {
       source = "manual",
       mealId,
       starchyCarbs,
-      fibrousCarbs,
+      fiber,
       nutrition,
     } = req.body ?? {};
 
-    // Extract values from nutrition object if present (new format)
-    const proteinVal = nutrition?.protein_g ?? protein ?? 0;
-    const carbsVal = nutrition?.carbs_g ?? carbs ?? 0;
-    const fatVal = nutrition?.fat_g ?? fat ?? 0;
-    const kcalVal = nutrition?.calories ?? kcal;
-    
-    // Starchy/fibrous carbs — check top-level first, then nutrition object (mirrors protein/fat handling)
-    const starchyCarbsVal = Number(starchyCarbs ?? nutrition?.starchyCarbs_g ?? nutrition?.starchyCarbs) || 0;
-    const fibrousCarbsVal = Number(fibrousCarbs ?? nutrition?.fibrousCarbs_g ?? nutrition?.fibrousCarbs) || 0;
+    // Support nested nutrition object (new format) or flat fields (legacy)
+    const proteinVal  = Number(nutrition?.protein_g ?? protein ?? 0);
+    const carbsVal    = Number(nutrition?.carbs_g ?? carbs ?? 0);
+    const fatVal      = Number(nutrition?.fat_g ?? fat ?? 0);
+    const kcalVal     = nutrition?.calories ?? kcal;
+    const fiberVal    = nutrition?.fiber_g != null ? Number(nutrition.fiber_g) : (fiber != null ? Number(fiber) : null);
+    const starchyVal  = starchyCarbs != null ? Number(starchyCarbs) : null;
 
-    // DEBUG: Log exactly what we're writing
-    console.log("[MACROS/LOG] device=%s userId=%s protein=%s carbs=%s fat=%s starchy=%s fibrous=%s loggedAt=%s",
-      deviceId, userId, proteinVal, carbsVal, fatVal, starchyCarbsVal, fibrousCarbsVal, loggedAt);
+    const calories = typeof kcalVal === "number" && kcalVal > 0
+      ? kcalVal
+      : Math.round(proteinVal * 4 + carbsVal * 4 + fatVal * 9);
 
-    const when = parseAt(loggedAt);
-    const resolvedKcal = typeof kcalVal === "number" && kcalVal > 0 ? kcalVal : Math.round(kcalFrom(Number(proteinVal), Number(carbsVal), Number(fatVal)));
-
-    const insertData = {
+    const { writeMacroLog } = await import("../services/macroLogService");
+    const row = await writeMacroLog({
       userId,
-      at: when,
+      calories,
+      protein: proteinVal,
+      carbohydrates: carbsVal,
+      fat: fatVal,
+      fiber: fiberVal,
+      starchyCarbs: starchyVal,
       source: source || "manual",
-      kcal: resolvedKcal.toString(),
-      protein: (Number(proteinVal) || 0).toString(),
-      carbs: (Number(carbsVal) || 0).toString(),
-      fat: (Number(fatVal) || 0).toString(),
-      fiber: (Number(nutrition?.fiber_g ?? req.body?.fiber) || 0).toString(),
-      alcohol: "0",
-      starchyCarbs: starchyCarbsVal.toString(),
-      fibrousCarbs: fibrousCarbsVal.toString(),
-    };
-
-    let row: any;
-    try {
-      [row] = await db.insert(macroLogs).values(insertData).returning();
-    } catch (insertErr: any) {
-      const isDuplicate = (insertErr?.cause?.code ?? insertErr?.code) === "23505";
-      if (!isDuplicate) throw insertErr;
-      // Duplicate daily entry — accumulate onto the existing row instead of failing
-      const dateStr = when.toISOString().slice(0, 10);
-      const [updated] = await db
-        .update(macroLogs)
-        .set({
-          kcal: sql`${macroLogs.kcal} + ${resolvedKcal}`,
-          protein: sql`${macroLogs.protein} + ${Number(proteinVal) || 0}`,
-          carbs: sql`${macroLogs.carbs} + ${Number(carbsVal) || 0}`,
-          fat: sql`${macroLogs.fat} + ${Number(fatVal) || 0}`,
-          starchyCarbs: sql`COALESCE(${macroLogs.starchyCarbs}, 0) + ${starchyCarbsVal}`,
-          fibrousCarbs: sql`COALESCE(${macroLogs.fibrousCarbs}, 0) + ${fibrousCarbsVal}`,
-        })
-        .where(and(
-          eq(macroLogs.userId, userId),
-          eq(macroLogs.source, insertData.source),
-          sql`(${macroLogs.at} AT TIME ZONE 'UTC')::date = ${dateStr}::date`,
-        ))
-        .returning();
-      row = updated;
-    }
+      mealType,
+      dateIso: loggedAt,
+      mealId,
+    });
 
     res.json({ success: true, log: row });
   } catch (e: any) {

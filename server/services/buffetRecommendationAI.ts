@@ -1,12 +1,17 @@
 /**
  * Buffet Recommendation AI
  *
- * Produces an AwayFromHomeRecommendation from a user's description of
- * foods physically available at a buffet. No Google Places, no Restaurant
- * Intelligence Engine, no chain menu data.
+ * Produces THREE distinct AwayFromHomeRecommendation objects from a user's
+ * description of foods physically available at a buffet. Each represents a
+ * genuinely different protein-centered plate (e.g. steak plate, salmon plate,
+ * chicken plate), not variations of the same meal.
  *
- * Source: "buffet"
- * Nutrition status: always "estimated"
+ * No Google Places. No Restaurant Intelligence Engine. No chain menu data.
+ * Source: "buffet" · Nutrition status: always "estimated"
+ *
+ * Carb breakdown rule (enforced here, not in AI prompts):
+ *   fibrousCarbGrams = fiberGrams  (application rule, not AI-derived)
+ *   fiberGrams + starchyCarbGrams ≤ estimatedCarbGrams  (constraint in prompt)
  */
 
 import OpenAI from "openai";
@@ -41,117 +46,42 @@ export interface BuffetRecommendationRequest {
   user?: Record<string, unknown>;
 }
 
-export async function generateBuffetRecommendation(
-  req: BuffetRecommendationRequest
-): Promise<AwayFromHomeRecommendation> {
-  const { foodsDescription, categories, nutritionContext } = req;
+/** Derive fibrousCarbs from fiber (application rule — never ask AI for this) */
+function deriveFibrousCarbGrams(fiberGrams: number | null | undefined): number | null {
+  if (fiberGrams == null) return null;
+  return fiberGrams;
+}
 
-  // ── Build available-foods block ─────────────────────────────────────────────
-  const foodsLines: string[] = [];
-  if (foodsDescription.trim()) {
-    foodsLines.push(`Available foods: ${foodsDescription.trim()}`);
-  }
-  if (categories) {
-    if (categories.proteins)    foodsLines.push(`Proteins: ${categories.proteins}`);
-    if (categories.vegetables)  foodsLines.push(`Vegetables: ${categories.vegetables}`);
-    if (categories.starches)    foodsLines.push(`Starches/Grains: ${categories.starches}`);
-    if (categories.sauces)      foodsLines.push(`Sauces/Condiments: ${categories.sauces}`);
-    if (categories.desserts)    foodsLines.push(`Desserts: ${categories.desserts}`);
-    if (categories.beverages)   foodsLines.push(`Beverages: ${categories.beverages}`);
-  }
-  const foodsBlock = foodsLines.join("\n");
-
-  const systemPrompt = `You are a clinical nutrition AI helping a user build the best plate at a buffet.
-Your job is to analyze the foods physically available and recommend the optimal plate for the user's active nutrition profile.
-
-STRICT RULES:
-- Only recommend foods from the list the user provides. Never invent items.
-- Nutrition values are always estimated — never claim they are exact.
-- Honor ALL dietary restrictions, allergies, and medical protocols exactly.
-- Use buffet-appropriate language: "How to Build Your Plate", "Suggested Portions", "What to Limit" — NOT waiter/ordering language.
-- If the user's protocol requires it (e.g. GLP-1, diabetic, anti-inflammatory), adjust portions and food choices accordingly.
-- Provide a second-choice plate option when practical.
-- Estimate macros conservatively for a typical plate serving.
-- caloriesRange low/high should reflect realistic variation (±15–25% of center estimate).
-
-Return ONLY valid JSON matching this schema (no markdown, no explanation):
-{
-  "plateName": string,
-  "plateDescription": string,
-  "estimatedCalories": number,
-  "estimatedProteinGrams": number,
-  "estimatedCarbGrams": number,
-  "estimatedFatGrams": number,
-  "estimatedFiberGrams": number,
-  "caloriesLow": number,
-  "caloriesHigh": number,
-  "buffetItems": [{ "food": string, "portion": string, "note": string | null }],
-  "foodsToPrioritize": [string],
-  "foodsToLimitOrSkip": [string],
-  "reason": string,
-  "portionGuidance": string,
-  "secondChoicePlate": string | null,
-  "cautionNotes": [string],
-  "dessertOrBeverageGuidance": string | null,
-  "protocolAlignmentSummary": string,
-  "medicalGuidance": string | null
-}`;
-
-  const userPrompt = `USER NUTRITION PROFILE:
-${nutritionContext.combinedBlock || "(standard healthy adult — no active protocols)"}
-
-BUFFET FOODS AVAILABLE:
-${foodsBlock}
-
-Build the best plate for this user from the available foods. Respect all protocols strictly.`;
-
-  const completion = await getOpenAI().chat.completions.create({
-    model: "gpt-4o",
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt },
-    ],
-    temperature: 0.4,
-    max_tokens: 1200,
-    response_format: { type: "json_object" },
-  });
-
-  const raw = completion.choices[0]?.message?.content ?? "{}";
-  let parsed: Record<string, unknown>;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    throw new Error("Buffet AI returned invalid JSON");
-  }
-
-  // ── Map AI response → AwayFromHomeRecommendation ────────────────────────────
-  const buffetItems = (parsed.buffetItems as Array<{ food: string; portion: string; note?: string | null }> | undefined) ?? [];
+/** Map a single parsed plate object → AwayFromHomeRecommendation */
+function mapPlate(parsed: Record<string, unknown>): AwayFromHomeRecommendation {
+  const buffetItems =
+    (parsed.buffetItems as Array<{ food: string; portion: string; note?: string | null }> | undefined) ?? [];
   const cautionNotes = (parsed.cautionNotes as string[] | undefined) ?? [];
 
-  const prioritize = (parsed.foodsToPrioritize as string[] | undefined) ?? [];
-  const limitSkip  = (parsed.foodsToLimitOrSkip as string[] | undefined) ?? [];
+  const calories  = typeof parsed.estimatedCalories    === "number" ? parsed.estimatedCalories    : undefined;
+  const protein   = typeof parsed.estimatedProteinGrams === "number" ? parsed.estimatedProteinGrams : undefined;
+  const carbs     = typeof parsed.estimatedCarbGrams    === "number" ? parsed.estimatedCarbGrams    : undefined;
+  const fat       = typeof parsed.estimatedFatGrams     === "number" ? parsed.estimatedFatGrams     : undefined;
+  const calLow    = typeof parsed.caloriesLow           === "number" ? parsed.caloriesLow           : undefined;
+  const calHigh   = typeof parsed.caloriesHigh          === "number" ? parsed.caloriesHigh          : undefined;
 
-  let howToOrderMods: string[] = [...limitSkip.map((f: string) => `Limit or skip: ${f}`)];
-  if (parsed.dessertOrBeverageGuidance) {
-    howToOrderMods.push(String(parsed.dessertOrBeverageGuidance));
-  }
-  if (parsed.secondChoicePlate) {
-    howToOrderMods.push(`Second-choice plate: ${String(parsed.secondChoicePlate)}`);
-  }
+  // Carb breakdown — AI provides fiber and starchy; fibrous is derived
+  const rawFiber   = typeof parsed.fiberGrams      === "number" ? parsed.fiberGrams      : null;
+  const rawStarchy = typeof parsed.starchyCarbGrams === "number" ? parsed.starchyCarbGrams : null;
+  const totalCarbs = carbs ?? 0;
 
-  const calories   = typeof parsed.estimatedCalories    === "number" ? parsed.estimatedCalories    : undefined;
-  const protein    = typeof parsed.estimatedProteinGrams === "number" ? parsed.estimatedProteinGrams : undefined;
-  const carbs      = typeof parsed.estimatedCarbGrams   === "number" ? parsed.estimatedCarbGrams   : undefined;
-  const fat        = typeof parsed.estimatedFatGrams    === "number" ? parsed.estimatedFatGrams    : undefined;
-  const calLow     = typeof parsed.caloriesLow          === "number" ? parsed.caloriesLow          : undefined;
-  const calHigh    = typeof parsed.caloriesHigh         === "number" ? parsed.caloriesHigh         : undefined;
+  // Enforce constraint: fiber + starchy ≤ total carbs (clamp, never reject)
+  let fiberGrams   = rawFiber   != null ? Math.min(rawFiber,   totalCarbs)                         : null;
+  let starchyCarbs = rawStarchy != null ? Math.min(rawStarchy, totalCarbs - (fiberGrams ?? 0))      : null;
+
+  // Application rule: fibrousCarbGrams = fiberGrams
+  const fibrousCarbGrams = deriveFibrousCarbGrams(fiberGrams);
 
   const reasonParts: string[] = [];
-  if (parsed.reason)            reasonParts.push(String(parsed.reason));
-  if (prioritize.length > 0)    reasonParts.push(`Prioritize: ${prioritize.join(", ")}.`);
-  if (parsed.medicalGuidance)   reasonParts.push(String(parsed.medicalGuidance));
+  if (parsed.reason)          reasonParts.push(String(parsed.reason));
+  if (parsed.medicalGuidance) reasonParts.push(String(parsed.medicalGuidance));
 
-  const recommendation: AwayFromHomeRecommendation = {
+  return {
     id: randomUUID(),
     source: "buffet",
     restaurantName: "Buffet",
@@ -164,16 +94,18 @@ Build the best plate for this user from the available foods. Respect all protoco
       proteinGrams: protein,
       carbohydrateGrams: carbs,
       fatGrams: fat,
-      ...(calLow != null && calHigh != null
-        ? { caloriesRange: { low: calLow, high: calHigh } }
-        : {}),
+      fiberGrams,
+      starchyCarbGrams: starchyCarbs,
+      fibrousCarbGrams,
+      ...(calLow != null && calHigh != null ? { caloriesRange: { low: calLow, high: calHigh } } : {}),
+      ingredients: buffetItems.map((item) => `${item.food} (${item.portion})`),
     },
     recommendation: {
       reason: reasonParts.join(" "),
       portionGuidance: parsed.portionGuidance ? String(parsed.portionGuidance) : undefined,
       howToOrder: {
         askFor: "Build Your Plate",
-        modify: howToOrderMods,
+        modify: [],
         swap: [],
       },
       cautionNotes: cautionNotes.length > 0 ? cautionNotes : undefined,
@@ -189,6 +121,108 @@ Build the best plate for this user from the available foods. Respect all protoco
       note: item.note ?? undefined,
     })),
   };
+}
 
-  return recommendation;
+export async function generateBuffetRecommendations(
+  req: BuffetRecommendationRequest
+): Promise<AwayFromHomeRecommendation[]> {
+  const { foodsDescription, categories, nutritionContext } = req;
+
+  const foodsLines: string[] = [];
+  if (foodsDescription.trim()) {
+    foodsLines.push(`Available foods: ${foodsDescription.trim()}`);
+  }
+  if (categories) {
+    if (categories.proteins)   foodsLines.push(`Proteins: ${categories.proteins}`);
+    if (categories.vegetables) foodsLines.push(`Vegetables: ${categories.vegetables}`);
+    if (categories.starches)   foodsLines.push(`Starches/Grains: ${categories.starches}`);
+    if (categories.sauces)     foodsLines.push(`Sauces/Condiments: ${categories.sauces}`);
+    if (categories.desserts)   foodsLines.push(`Desserts: ${categories.desserts}`);
+    if (categories.beverages)  foodsLines.push(`Beverages: ${categories.beverages}`);
+  }
+  const foodsBlock = foodsLines.join("\n");
+
+  const systemPrompt = `You are a clinical nutrition AI helping a user build the best plate at a buffet.
+Your job is to return THREE completely distinct plate options built from the available foods.
+
+Each plate must be centered on a DIFFERENT protein source (e.g. Plate 1: steak, Plate 2: salmon, Plate 3: chicken).
+Do NOT return three variations of the same protein with different vegetables.
+If fewer than three proteins are available, build genuinely different carb/fat strategies instead.
+
+STRICT RULES:
+- Only recommend foods from the list the user provides. Never invent items.
+- Nutrition values are always estimated — never claim they are exact.
+- Honor ALL dietary restrictions, allergies, and medical protocols exactly.
+- Use buffet-appropriate language: "Build Your Plate", "Suggested Portions" — NOT waiter/ordering language.
+- Estimate macros conservatively for a typical plate serving.
+- caloriesLow/High should reflect realistic variation (±15–25% of center estimate).
+- For each plate: fiberGrams + starchyCarbGrams MUST be ≤ estimatedCarbGrams.
+- fiberGrams = dietary fiber in the plate. starchyCarbGrams = rice, potato, bread fraction.
+- Do NOT produce a "fibrousCarbs" field — the application derives that from fiberGrams.
+
+Return ONLY valid JSON with this exact shape (no markdown, no explanation):
+{
+  "plates": [
+    {
+      "plateName": string,
+      "plateDescription": string,
+      "estimatedCalories": number,
+      "estimatedProteinGrams": number,
+      "estimatedCarbGrams": number,
+      "estimatedFatGrams": number,
+      "fiberGrams": number,
+      "starchyCarbGrams": number,
+      "caloriesLow": number,
+      "caloriesHigh": number,
+      "buffetItems": [{ "food": string, "portion": string, "note": string | null }],
+      "reason": string,
+      "portionGuidance": string,
+      "cautionNotes": [string],
+      "protocolAlignmentSummary": string,
+      "medicalGuidance": string | null
+    }
+  ]
+}`;
+
+  const userPrompt = `USER NUTRITION PROFILE:
+${nutritionContext.combinedBlock || "(standard healthy adult — no active protocols)"}
+
+BUFFET FOODS AVAILABLE:
+${foodsBlock}
+
+Build THREE distinct protein-centered plates from the available foods. Respect all protocols strictly.`;
+
+  const completion = await getOpenAI().chat.completions.create({
+    model: "gpt-4o",
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
+    ],
+    temperature: 0.5,
+    max_tokens: 2400,
+    response_format: { type: "json_object" },
+  });
+
+  const raw = completion.choices[0]?.message?.content ?? "{}";
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error("Buffet AI returned invalid JSON");
+  }
+
+  const plates = Array.isArray(parsed.plates) ? parsed.plates : [];
+  if (plates.length === 0) {
+    throw new Error("Buffet AI returned no plates");
+  }
+
+  return plates.map((plate) => mapPlate(plate as Record<string, unknown>));
+}
+
+/** @deprecated Use generateBuffetRecommendations (returns array of 3) */
+export async function generateBuffetRecommendation(
+  req: BuffetRecommendationRequest
+) {
+  const results = await generateBuffetRecommendations(req);
+  return results[0];
 }
