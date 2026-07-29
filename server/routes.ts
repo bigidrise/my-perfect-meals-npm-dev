@@ -68,6 +68,7 @@ import { saveGlycemicSettings, getGlycemicSettings } from './services/glycemicSe
 import multer from 'multer';
 import OpenAI from 'openai';
 import pushNotificationsRouter from './routes/pushNotifications';
+import remindersRouter from './routes/reminders';
 import mealPlanReplaceRouter from './routes/meal-plan-replace';
 import authSessionRouter from './routes/auth.session';
 import mfaRoutes from './routes/auth.mfa';
@@ -1785,6 +1786,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Push Notification Routes
   app.use("/api/push", pushNotificationsRouter);
+
+  // Reminder System v2 — canonical cross-platform meal reminders
+  app.use("/api/user/reminders", remindersRouter);
 
   // Enhanced Shopping List endpoint with scope support
   app.post("/api/shopping-list", requireAuth, requireEssentialAccess, async (req: any, res) => {
