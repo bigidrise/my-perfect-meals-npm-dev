@@ -9,8 +9,23 @@ export interface ChefFlowMeal {
   imageUrl?: string;
 }
 
-// Module-level session cache — survives navigation
+// Module-level session cache — survives SPA navigation within the same tab
 const sessionCache = new Map<string, string>();
+
+// localStorage persistence for stable https:// URLs — survives tab close / reload
+const LS_PREFIX = "mpm.imgcache.cf.";
+
+function readFromLS(id: string): string | null {
+  try {
+    const v = localStorage.getItem(LS_PREFIX + id);
+    return v && v.startsWith("https://") ? v : null;
+  } catch { return null; }
+}
+
+function writeToLS(id: string, url: string): void {
+  if (!url.startsWith("https://")) return;
+  try { localStorage.setItem(LS_PREFIX + id, url); } catch {}
+}
 
 // Module-level concurrency control — max 3 image requests at once globally
 // so the first visible cards get images before below-the-fold ones even start
@@ -80,6 +95,7 @@ export function useChefFlowImages(
       // Priority 1: imageUrl already provided by API response — use immediately
       if (meal.imageUrl) {
         sessionCache.set(id, meal.imageUrl);
+        writeToLS(id, meal.imageUrl);
         setImageMap((prev) =>
           prev[id] === meal.imageUrl ? prev : { ...prev, [id]: meal.imageUrl! },
         );
@@ -92,6 +108,14 @@ export function useChefFlowImages(
         setImageMap((prev) =>
           prev[id] === cached ? prev : { ...prev, [id]: cached },
         );
+        return;
+      }
+
+      // Priority 2.5: localStorage hit — populate sessionCache and use (survives reload)
+      const lsHit = readFromLS(id);
+      if (lsHit) {
+        sessionCache.set(id, lsHit);
+        setImageMap((prev) => prev[id] === lsHit ? prev : { ...prev, [id]: lsHit });
         return;
       }
 
@@ -131,6 +155,7 @@ export function useChefFlowImages(
 
           if (data.imageUrl) {
             sessionCache.set(id, data.imageUrl);
+            writeToLS(id, data.imageUrl);
             if (mountedRef.current) {
               setImageMap((prev) => ({ ...prev, [id]: data.imageUrl }));
             }

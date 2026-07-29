@@ -105,9 +105,29 @@ type CachedRestaurantState = {
   generatedAtISO: string;
 };
 
+function stripMealImages(meals: any[]): any[] {
+  return (meals || []).map((m: any) => {
+    const clean = { ...m, imageUrl: undefined };
+    if (clean.meal && typeof clean.meal === "object") {
+      clean.meal = { ...clean.meal, imageUrl: undefined };
+    }
+    return clean;
+  });
+}
+
 function saveRestaurantCache(state: CachedRestaurantState) {
+  // Strip imageUrl at every nesting level before saving.
+  // base64 images are 1–2 MB each; 3 meals = ~5 MB which is the entire quota.
+  // Images are re-fetched on mount via useChefFlowImages (hits server memCache fast).
+  const stripped: CachedRestaurantState = {
+    ...state,
+    restaurantData: {
+      ...state.restaurantData,
+      meals: stripMealImages(state.restaurantData?.meals),
+    },
+  };
   try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify(state));
+    localStorage.setItem(CACHE_KEY, JSON.stringify(stripped));
   } catch (err: any) {
     if (err?.name === "QuotaExceededError" || err?.code === 22) {
       console.warn("[RestaurantGuide] localStorage quota exceeded — evicting stale cache keys and retrying");
@@ -120,7 +140,7 @@ function saveRestaurantCache(state: CachedRestaurantState) {
           }
         }
         keysToEvict.forEach((k) => localStorage.removeItem(k));
-        localStorage.setItem(CACHE_KEY, JSON.stringify(state));
+        localStorage.setItem(CACHE_KEY, JSON.stringify(stripped));
       } catch (retryErr) {
         console.error("[RestaurantGuide] Could not persist session after eviction — cache lost:", retryErr);
       }
