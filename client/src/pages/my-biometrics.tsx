@@ -276,6 +276,14 @@ export default function MyBiometrics() {
     return () => window.removeEventListener("macros:updated", refetch);
   }, [userId]);
 
+  // Persist macroRows to localStorage whenever state changes so optimistic updates
+  // survive a page reload even before the next server fetch completes.
+  // Guard on storageLoaded so the initial empty-state render doesn't wipe the cache.
+  useEffect(() => {
+    if (!storageLoaded) return;
+    saveJSON(LS_MACROS, { rows: macroRows });
+  }, [macroRows, storageLoaded]);
+
   const [today, setToday] = useState(todayKey);
 
   // Midnight reset: re-arm a timeout each day so "today" updates and macros reset to zero
@@ -830,7 +838,10 @@ export default function MyBiometrics() {
       })
         .then(async (r) => {
           if (r.ok) {
-            window.dispatchEvent(new Event("macros:updated"));
+            // Do NOT dispatch "macros:updated" here. The optimistic setMacroRows
+            // update is already applied and correct. Dispatching the event triggers
+            // an immediate server refetch that races with the just-committed write
+            // and can overwrite the graph display with pre-write stale data.
           } else {
             const body = await r.json().catch(() => ({}));
             console.error("[MACROS/LOG] write failed", r.status, body);
