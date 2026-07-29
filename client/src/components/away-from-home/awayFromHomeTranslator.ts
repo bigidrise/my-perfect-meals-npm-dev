@@ -32,6 +32,9 @@ export interface LegacyMeal {
   protein?: number;
   carbs?: number;
   fat?: number;
+  /** Carb breakdown from the AI generator (starchy = rice/bread/potato; fibrous = vegetables). */
+  starchyCarbs?: number;
+  fibrousCarbs?: number;
   imageUrl?: string;
   ingredients?: string[];
   /** Flat modification string (pre-howToOrder era). */
@@ -123,6 +126,10 @@ export function fromLegacyRecommendation(
       proteinGrams: meal.protein,
       carbohydrateGrams: meal.carbs,
       fatGrams: meal.fat,
+      // Carb breakdown — carry through from the AI generator's starchyCarbs/fibrousCarbs.
+      // null = unknown (not zero). undefined means the generator didn't produce a value.
+      starchyCarbGrams: meal.starchyCarbs ?? null,
+      fibrousCarbGrams: meal.fibrousCarbs ?? null,
       ingredients: meal.ingredients,
     },
 
