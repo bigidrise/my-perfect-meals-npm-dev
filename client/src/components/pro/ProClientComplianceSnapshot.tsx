@@ -1,14 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import { apiUrl } from "@/lib/resolveApiBase";
-import { getAuthHeaders } from "@/lib/auth";
 import { apiRequest } from "@/lib/apiRequest";
-import { Loader2, Target, Flame, Drumstick, CalendarCheck } from "lucide-react";
+import { Loader2, CheckCircle2, AlertTriangle, Target } from "lucide-react";
 
 interface ProClientComplianceSnapshotProps {
   clientId: string;
 }
 
-interface ComplianceData {
+interface ActivitySummary {
   complianceScore: number | null;
   calorieCompliance: number;
   proteinCompliance: number;
@@ -16,28 +14,53 @@ interface ComplianceData {
   loggedDays7: number;
   windowDays: number;
   reason?: string;
+  proteinGoalDays: number;
+  calorieGoalDays: number;
+  mealSlots: { breakfast: number; lunch: number; dinner: number };
+  biggestOpportunity: string;
+  coachingSummary: string;
 }
 
 function getScoreColor(score: number): string {
   if (score >= 90) return "text-emerald-400";
   if (score >= 70) return "text-yellow-400";
-  return "text-red-400";
+  return "text-orange-400";
 }
 
 function getScoreBg(score: number): string {
-  if (score >= 90) return "bg-emerald-500/10";
-  if (score >= 70) return "bg-yellow-500/10";
-  return "bg-red-500/10";
+  if (score >= 90) return "bg-emerald-500/10 border-emerald-500/20";
+  if (score >= 70) return "bg-yellow-500/10 border-yellow-500/20";
+  return "bg-orange-500/10 border-orange-500/20";
 }
 
-function getScoreBorder(score: number): string {
-  if (score >= 90) return "border-emerald-500/20";
-  if (score >= 70) return "border-yellow-500/20";
-  return "border-red-500/20";
+function BehaviorRow({
+  label,
+  value,
+  total,
+  warn,
+}: {
+  label: string;
+  value: number;
+  total: number;
+  warn?: boolean;
+}) {
+  const Icon = warn ? AlertTriangle : CheckCircle2;
+  const iconColor = warn ? "text-orange-400" : "text-emerald-400";
+  return (
+    <div className="flex items-center gap-1.5 text-[11px]">
+      <Icon className={`w-3 h-3 flex-shrink-0 ${iconColor}`} />
+      <span className="text-white/70">
+        {label}{" "}
+        <span className="font-semibold text-white">
+          {value}/{total}
+        </span>
+      </span>
+    </div>
+  );
 }
 
 export default function ProClientComplianceSnapshot({ clientId }: ProClientComplianceSnapshotProps) {
-  const { data, isLoading, isError } = useQuery<ComplianceData | null>({
+  const { data, isLoading, isError } = useQuery<ActivitySummary | null>({
     queryKey: ["proClientCompliance", clientId],
     queryFn: async () => {
       try {
@@ -54,7 +77,7 @@ export default function ProClientComplianceSnapshot({ clientId }: ProClientCompl
   if (isLoading) {
     return (
       <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-        <h4 className="text-xs font-medium text-white/60 mb-2">Compliance</h4>
+        <h4 className="text-xs font-medium text-white/60 mb-2">Nutrition Activity</h4>
         <div className="flex items-center justify-center py-3">
           <Loader2 className="w-4 h-4 animate-spin text-white/40" />
         </div>
@@ -65,63 +88,92 @@ export default function ProClientComplianceSnapshot({ clientId }: ProClientCompl
   if (isError || !data || data.reason === "no_targets") {
     return (
       <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-        <h4 className="text-xs font-medium text-white/60 mb-1">Compliance</h4>
+        <h4 className="text-xs font-medium text-white/60 mb-1">Nutrition Activity</h4>
         <p className="text-[10px] text-white/30 italic">
-          {!data || isError ? "Not available — client account not linked" : "No active macro targets set yet"}
+          {!data || isError
+            ? "Not available — client account not linked"
+            : "No active macro targets set yet"}
         </p>
       </div>
     );
   }
 
   const score = data.complianceScore ?? 0;
-
-  const metrics = [
-    { label: "Calories", value: data.calorieCompliance, icon: Flame, color: getScoreColor(data.calorieCompliance) },
-    { label: "Protein", value: data.proteinCompliance, icon: Drumstick, color: getScoreColor(data.proteinCompliance) },
-    { label: "Logging", value: data.loggingCompliance, icon: CalendarCheck, color: getScoreColor(data.loggingCompliance) },
-  ];
+  const win = data.windowDays ?? 7;
+  const slots = data.mealSlots ?? { breakfast: 0, lunch: 0, dinner: 0 };
+  const proteinGoalDays = data.proteinGoalDays ?? 0;
+  const calorieGoalDays = data.calorieGoalDays ?? 0;
+  const maxSlot = Math.max(slots.breakfast, slots.lunch, slots.dinner);
+  const dinnerGap = maxSlot - slots.dinner >= 2;
+  const lunchGap = maxSlot - slots.lunch >= 2;
 
   return (
-    <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-      <h4 className="text-xs font-medium text-white/60 mb-2">Compliance</h4>
+    <div className="bg-white/5 rounded-lg p-3 border border-white/10 space-y-3">
 
-      <div className="flex items-center gap-3 mb-1">
-        <div className={`p-2 rounded-lg ${getScoreBg(score)} border ${getScoreBorder(score)}`}>
-          <Target className={`w-4 h-4 ${getScoreColor(score)}`} />
-        </div>
-        <div>
-          <p className={`text-xl font-bold ${getScoreColor(score)}`}>
-            {Math.round(score)}%
-          </p>
-          <p className="text-[10px] text-white/30">Last {data.windowDays} days</p>
+      {/* Header + score */}
+      <div className="flex items-center justify-between">
+        <h4 className="text-xs font-medium text-white/60">Nutrition Activity</h4>
+        <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border ${getScoreBg(score)}`}>
+          <Target className={`w-3 h-3 ${getScoreColor(score)}`} />
+          <span className={`text-xs font-bold ${getScoreColor(score)}`}>{score}%</span>
         </div>
       </div>
-      <p className="text-[10px] text-white/35 leading-snug mb-3">
-        Combines calorie accuracy, protein adherence, and daily logging frequency.{" "}
-        <span className="text-emerald-400">90%+</span> excellent ·{" "}
-        <span className="text-yellow-400">70–89%</span> on track ·{" "}
-        <span className="text-red-400">below 70%</span> check in.
-      </p>
 
-      {data.loggedDays7 === 0 && (
-        <p className="text-[10px] text-white/30 italic mb-2">
+      {data.loggedDays7 === 0 ? (
+        <p className="text-[10px] text-white/30 italic">
           No meal logs recorded in this window
         </p>
+      ) : (
+        <>
+          {/* Behavioral summary */}
+          <div className="space-y-1.5">
+            <p className="text-[10px] font-semibold text-white/40 uppercase tracking-wide">
+              Behavioral Summary
+            </p>
+            <BehaviorRow
+              label="Meal logging active"
+              value={data.loggedDays7}
+              total={win}
+              warn={data.loggedDays7 < Math.ceil(win * 0.5)}
+            />
+            <BehaviorRow
+              label="Protein goal achieved"
+              value={proteinGoalDays}
+              total={win}
+              warn={proteinGoalDays < Math.ceil(win * 0.5)}
+            />
+            <BehaviorRow
+              label="Calories on target"
+              value={calorieGoalDays}
+              total={win}
+              warn={calorieGoalDays < Math.ceil(win * 0.5)}
+            />
+            {(slots.breakfast + slots.lunch + slots.dinner > 0) && (
+              <>
+                {dinnerGap && (
+                  <BehaviorRow label="Dinner logging" value={slots.dinner} total={win} warn />
+                )}
+                {lunchGap && (
+                  <BehaviorRow label="Lunch logging" value={slots.lunch} total={win} warn />
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Coaching focus */}
+          {data.coachingSummary && (
+            <div className="border-t border-white/10 pt-2">
+              <p className="text-[10px] font-semibold text-orange-400/70 uppercase tracking-wide mb-1">
+                Suggested Coaching Focus
+              </p>
+              <p className="text-[10px] text-white/55 leading-snug">
+                {data.coachingSummary}
+              </p>
+            </div>
+          )}
+        </>
       )}
 
-      <div className="grid grid-cols-3 gap-1">
-        {metrics.map((m) => (
-          <div key={m.label} className="text-center">
-            <div className="flex items-center justify-center gap-1 mb-0.5">
-              <m.icon className={`w-3 h-3 ${m.color}`} />
-              <span className={`text-sm font-bold ${m.color}`}>
-                {Math.round(m.value)}%
-              </span>
-            </div>
-            <p className="text-[10px] text-white/40">{m.label}</p>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
