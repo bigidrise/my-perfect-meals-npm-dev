@@ -822,7 +822,17 @@ export default function MyBiometrics() {
     }
   };
 
-  const resetToday = async () => {
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+
+  const confirmReset = async () => {
+    setShowResetConfirm(false);
+
+    // Compute local-timezone day boundaries so server deletes the right rows
+    const localStart = new Date();
+    localStart.setHours(0, 0, 0, 0);
+    const localEnd = new Date();
+    localEnd.setHours(23, 59, 59, 999);
+
     // Clear local state and input fields immediately (optimistic)
     setMacroRows((prev) => prev.filter((r) => r.day !== today));
     setP("");
@@ -844,12 +854,16 @@ export default function MyBiometrics() {
     }
 
     // Delete from server so it doesn't come back on reload
+    // Pass local-timezone boundaries so entries logged near midnight are caught correctly
     if (userId) {
       try {
-        await apiRequest(`/api/users/${userId}/macro-logs/today`, {
+        const params = new URLSearchParams({
+          startISO: localStart.toISOString(),
+          endISO: localEnd.toISOString(),
+        });
+        await apiRequest(`/api/users/${userId}/macro-logs/today?${params}`, {
           method: "DELETE",
         });
-        // Invalidate any cached queries
         window.dispatchEvent(new Event("macros:updated"));
       } catch (e) {
         console.error("Failed to reset today on server:", e);
@@ -867,6 +881,8 @@ export default function MyBiometrics() {
       description: "Today's macros have been cleared.",
     });
   };
+
+  const resetToday = () => setShowResetConfirm(true);
 
   const handleIngredientScan = async () => {
     await launchIngredientPhotoCapture({
@@ -2651,6 +2667,30 @@ export default function MyBiometrics() {
         onAddProduct={(name) => {
           sendToShoppingList([{ name, quantity: 1, unit: "" }], { sourceBuilder: "smart-scan" });
         }}
+      />
+
+      <ConfirmationModal
+        open={showResetConfirm}
+        onOpenChange={(open) => setShowResetConfirm(open)}
+        title="Reset Today's Macros?"
+        description="This will permanently delete all macro entries logged today. Your targets, previous days, weight, and lab data are not affected."
+        className="bg-black/90 backdrop-blur-lg border-white/20 text-white max-w-sm mx-4"
+        footer={
+          <div className="flex gap-3 w-full">
+            <PillButton
+              onClick={() => setShowResetConfirm(false)}
+              className="flex-1 bg-white/10 text-white border border-white/20"
+            >
+              Cancel
+            </PillButton>
+            <PillButton
+              onClick={confirmReset}
+              className="flex-1 bg-red-600 text-white"
+            >
+              Reset Today
+            </PillButton>
+          </div>
+        }
       />
 
       <JustDescribeItModal
