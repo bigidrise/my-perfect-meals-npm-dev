@@ -2038,37 +2038,6 @@ export default function MyBiometrics() {
                 </p>
               </>
 
-            {/* Quick View Panel (display only, no auto-logging) */}
-            {qv && (
-              <div
-                className={[
-                  "rounded-2xl border p-3 mb-3 bg-black/20 backdrop-blur-sm transition-all duration-300",
-                  highlightQv
-                    ? "border-orange-400 shadow-[0_0_16px_2px_rgba(251,146,60,0.45)] animate-pulse"
-                    : "border-white/20",
-                ].join(" ")}
-              >
-                <div className="text-sm font-semibold mb-2 text-white flex items-center gap-2">
-                  <span>🍽️</span> Meal values pre-filled below
-                </div>
-                <div className="text-sm text-white/90 mb-2">
-                  Protein <b className="text-white">{qv.protein} g</b> · Carbs{" "}
-                  <b className="text-white">{qv.carbs} g</b> · Fat{" "}
-                  <b className="text-white">{qv.fat} g</b> · Calories{" "}
-                  <b className="text-white">{qv.calories}</b>
-                </div>
-                <div className="text-[11px] text-white/60 mb-2">
-                  Review the fields below, then tap <b>Add</b> to save to your macros.
-                </div>
-                <Button
-                  onClick={dismissQuickView}
-                  className="px-3 py-1 rounded-lg border border-white/20 bg-white/10 text-white hover:bg-white/20 text-sm"
-                  data-testid="button-dismiss-quickview"
-                >
-                  Dismiss
-                </Button>
-              </div>
-            )}
 
             <div
               data-testid="biometrics-macro-inputs"
