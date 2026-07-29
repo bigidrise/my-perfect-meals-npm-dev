@@ -162,17 +162,26 @@ export default function MealReminders() {
   // Mount: load reminders + run initial pipeline check
   useEffect(() => {
     async function init() {
+      console.log('[MealReminders] ① mounted — isNative:', isNative);
       try {
+        console.log('[MealReminders] ② calling loadRemindersFromServer');
         const saved = await loadRemindersFromServer();
+        console.log('[MealReminders] ③ fetch returned — slots:', saved.length);
         setSlots(saved.length > 0 ? saved : getDefaultSlots());
+        console.log('[MealReminders] ④ slots applied');
         if (isNative) {
+          console.log('[MealReminders] ⑤ iOS — checking notification permission');
           setiOSPermission(await checkNotificationPermission());
+          console.log('[MealReminders] ⑥ iOS — permission checked');
         } else {
           setWebPermission(getWebPushPermission());
           const result = await checkWebPushPipeline();
           setPipeline(result);
         }
+      } catch (e) {
+        console.error('[MealReminders] ✗ init error:', e);
       } finally {
+        console.log('[MealReminders] ⑦ setLoading(false)');
         setLoading(false);
       }
     }
