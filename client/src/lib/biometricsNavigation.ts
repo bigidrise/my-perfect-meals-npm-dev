@@ -8,17 +8,19 @@ export type BiometricsFrom =
   | "craving-studio"
   | "chefs-kitchen"
   | "macro-calculator"
-  | "dashboard";
+  | "dashboard"
+  | "buffet";
 
 export const BIOMETRICS_SOURCES: Record<BiometricsFrom, { label: string; path: string }> = {
-  "weekly-meal-board":    { label: "Weekly Meal Board",       path: "/weekly-meal-board" },
-  "beachbody-meal-board": { label: "Performance Nutrition Builder",   path: "/beachbody-meal-board" },
-  "saved-meals":          { label: "Saved Meals",             path: "/saved-meals" },
-  "quick-log":            { label: "Quick Log",               path: "/" },
-  "craving-studio":       { label: "Craving Creator",         path: "/craving-creator" },
-  "chefs-kitchen":        { label: "Create a Dish",            path: "/lifestyle/chefs-kitchen" },
-  "macro-calculator":     { label: "Macro Calculator",        path: "/macro-counter" },
-  "dashboard":            { label: "Dashboard",               path: "/" },
+  "weekly-meal-board":    { label: "Weekly Meal Board",             path: "/weekly-meal-board" },
+  "beachbody-meal-board": { label: "Performance Nutrition Builder", path: "/beachbody-meal-board" },
+  "saved-meals":          { label: "Saved Meals",                   path: "/saved-meals" },
+  "quick-log":            { label: "Quick Log",                     path: "/" },
+  "craving-studio":       { label: "Craving Creator",               path: "/craving-creator" },
+  "chefs-kitchen":        { label: "Create a Dish",                 path: "/lifestyle/chefs-kitchen" },
+  "macro-calculator":     { label: "Macro Calculator",              path: "/macro-counter" },
+  "dashboard":            { label: "Dashboard",                     path: "/" },
+  "buffet":               { label: "My Perfect Buffet",             path: "/my-perfect-buffet" },
 };
 
 export const SECTION_IDS: Record<BiometricsSection, string> = {
