@@ -601,10 +601,18 @@ router.delete("/users/:userId/macro-logs/today", requireAuth, async (req, res) =
       return res.status(403).json({ error: "Access denied." });
     }
 
-    const todayStart = new Date();
-    todayStart.setUTCHours(0, 0, 0, 0);
-    const todayEnd = new Date();
-    todayEnd.setUTCHours(23, 59, 59, 999);
+    // Client sends local-timezone day boundaries to avoid UTC mismatch.
+    // e.g. a Chicago user at 9pm CDT has "today" = July 29 locally but
+    // some entries sit on July 30 UTC — the server's UTC window would miss them.
+    const startISO = req.query.startISO as string | undefined;
+    const endISO = req.query.endISO as string | undefined;
+
+    const todayStart = startISO
+      ? new Date(startISO)
+      : (() => { const d = new Date(); d.setUTCHours(0, 0, 0, 0); return d; })();
+    const todayEnd = endISO
+      ? new Date(endISO)
+      : (() => { const d = new Date(); d.setUTCHours(23, 59, 59, 999); return d; })();
 
     await db
       .delete(macroLogs)
