@@ -17,10 +17,8 @@ import {
 } from "@/services/mealReminderService";
 import { useToast } from "@/hooks/use-toast";
 
-function webPushStatusMessage(permission: string): string | null {
-  if (permission === "unsupported") return "Meal reminders are not supported by this browser.";
-  if (permission === "denied") return "Notifications are blocked in your browser settings. To enable, open your browser's site settings and allow notifications for this site.";
-  return null;
+function isBlockedPermission(permission: string): boolean {
+  return permission === "unsupported" || permission === "denied";
 }
 
 function TimeRow({
@@ -160,6 +158,23 @@ export default function MealReminders() {
     return cleanup;
   }, [isNative]);
 
+  // Re-check web push permission whenever the user returns to this tab
+  // (they may have just changed browser settings)
+  useEffect(() => {
+    if (isNative) return;
+    function onVisible() {
+      if (document.visibilityState === "visible") {
+        setWebPermission(getWebPushPermission());
+      }
+    }
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [isNative]);
+
+  function recheckPermission() {
+    setWebPermission(getWebPushPermission());
+  }
+
   async function persist(next: ReminderSlot[]) {
     setSaving(true);
     try {
@@ -260,8 +275,7 @@ export default function MealReminders() {
     );
   }
 
-  // Status message for web browsers
-  const statusMsg = !isNative ? webPushStatusMessage(webPermission) : null;
+  const webBlocked = !isNative && isBlockedPermission(webPermission);
 
   return (
     <div className="bg-white/5 rounded-xl p-3 space-y-3">
@@ -272,9 +286,32 @@ export default function MealReminders() {
         {saving && <span className="text-white/30 text-[10px] ml-auto">Saving…</span>}
       </div>
 
-      {/* Unsupported / denied browser message */}
-      {statusMsg ? (
-        <p className="text-white/50 text-xs leading-relaxed">{statusMsg}</p>
+      {/* Blocked / unsupported state */}
+      {webBlocked ? (
+        <div className="space-y-2">
+          {webPermission === "unsupported" ? (
+            <p className="text-white/50 text-xs leading-relaxed">
+              Push notifications aren't supported by this browser. Try Chrome or Edge on desktop.
+            </p>
+          ) : (
+            <>
+              <p className="text-white/50 text-xs leading-relaxed">
+                Notifications are blocked for this site. To fix it:
+              </p>
+              <ol className="text-white/40 text-[11px] leading-relaxed list-decimal list-inside space-y-0.5">
+                <li>Click the <strong className="text-white/60">lock icon</strong> (🔒) in your browser's address bar</li>
+                <li>Find <strong className="text-white/60">Notifications</strong> and set it to <strong className="text-white/60">Allow</strong></li>
+                <li>Tap <strong className="text-white/60">Check again</strong> below — no reload needed</li>
+              </ol>
+              <button
+                onClick={recheckPermission}
+                className="mt-1 bg-orange-600 text-white text-xs rounded-lg px-3 py-1.5 font-medium"
+              >
+                Check again
+              </button>
+            </>
+          )}
+        </div>
       ) : (
         <>
           {/* Slots */}
