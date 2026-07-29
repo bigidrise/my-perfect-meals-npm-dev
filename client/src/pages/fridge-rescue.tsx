@@ -2,7 +2,7 @@
 // BACKUP: backups/fridge-rescue-stable-version.tsx
 // FEATURES: Perfect fridge ingredient rescue, AI meal generation, ingredient optimization, medical personalization
 import { useState, useRef, useEffect } from "react";
-import { useMealImages } from "@/hooks/useMealImages";
+import { useMealImages, lookupHydratedImageUrl } from "@/hooks/useMealImages";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import { PillButton } from "@/components/ui/pill-button";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
@@ -58,6 +58,7 @@ import { LockedBuilderCard } from "@/components/upgrade/LockedBuilderCard";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
+import { useTranslation } from "react-i18next";
 import { useStarchGuardPrecheck } from "@/hooks/useStarchGuardPrecheck";
 import { StarchGuardIntercept } from "@/components/StarchGuardIntercept";
 import { useAuth } from "@/contexts/AuthContext";
@@ -141,6 +142,7 @@ interface MealData {
 const FridgeRescuePage = () => {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { t } = useTranslation("fridgeRescue");
   const { runAction, open, startWalkthrough } = useCopilot();
   const quickTour = useQuickTour("fridge-rescue");
   // Get actual user ID from auth context for medical safety
@@ -352,11 +354,17 @@ const FridgeRescuePage = () => {
   useEffect(() => {
     const cached = loadFridgeRescueCache();
     if (cached?.generatedMeals?.length) {
-      setMeals(cached.generatedMeals);
+      // Enrich from mini-cache before setting state — fills imageUrls that were
+      // fetched in a prior mount but not saved due to early navigation
+      const enrichedMeals = cached.generatedMeals.map((m: any) => ({
+        ...m,
+        imageUrl: m.imageUrl || lookupHydratedImageUrl(m.id) || undefined,
+      }));
+      setMeals(enrichedMeals);
       setIngredients(cached.ingredients || "");
       setShowResults(true);
-      // Re-fetch images for any meals without imageUrl — DB cache returns instantly
-      const needImages = cached.generatedMeals.filter((m: any) => !m.imageUrl);
+      // Re-fetch only meals still missing imageUrl after mini-cache lookup
+      const needImages = enrichedMeals.filter((m: any) => !m.imageUrl);
       if (needImages.length > 0) {
         hydrateImages(needImages);
       }
@@ -755,7 +763,7 @@ const FridgeRescuePage = () => {
               data-wt="fridge-rescue-header"
               className="text-lg font-bold text-white truncate min-w-0"
             >
-              Fridge Rescue
+              {t("title")}
             </h1>
 
             <div className="flex-grow" />
@@ -793,7 +801,7 @@ const FridgeRescuePage = () => {
                   <div className="flex items-center gap-2">
                     <Refrigerator className="h-4 w-4 flex-shrink-0 text-orange-500" />
                     <h3 className="text-sm font-semibold text-white">
-                      Chef's Fridge Rescue Studio
+                      {t("studioTitle")}
                     </h3>
                   </div>
                   <p className="text-xs text-white/80 ml-6">
@@ -1034,7 +1042,7 @@ const FridgeRescuePage = () => {
                     className="w-full bg-lime-600 backdrop-blur-lg border border-white/20 text-white font-semibold py-4 px-6 rounded-xl transition-colors text-lg flex items-center justify-center gap-3"
                   >
                     <div className="flex items-center gap-2">
-                      Generate 3 Meals
+                      {t("generateBtn")}
                     </div>
                   </button>
                 )}
@@ -1068,14 +1076,14 @@ const FridgeRescuePage = () => {
             >
               <div className="flex items-center justify-between mb-8">
                 <h2 className="text-xl font-bold text-white">
-                  🍽️ Your Fridge Rescue Meals
+                  🍽️ {t("resultsTitle")}
                 </h2>
                 <button
                   onClick={handleNewSearch}
                   className="text-sm text-white/70 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg transition-colors"
                   data-testid="button-create-new"
                 >
-                  Create New
+                  {t("createNew")}
                 </button>
               </div>
 

@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { db } from "../db";
 import { users } from "@shared/schema";
 import { userCertifications } from "../db/schema/certifications";
-import { eq, and, isNotNull } from "drizzle-orm";
+import { eq, and, isNotNull, or } from "drizzle-orm";
 import { AuthenticatedRequest } from "./requireAuth";
 
 /**
@@ -101,19 +101,30 @@ export async function requirePhase1Cert(
       return;
     }
 
-    // Check Phase 1 (platform) certification
-    const [cert] = await db
+    // Check Phase 1 certification. Accepts:
+    //   - "platform_mastery" records (current Academy cert type, any cert-track flag)
+    //   - "platform" records with is_certification_track=true (legacy Academy completions)
+    // Plain "platform" records without cert-track flag are ProCare training records
+    // and must NOT satisfy the Phase 1 Academy gate.
+    const certs = await db
       .select({ status: userCertifications.status, completedAt: userCertifications.completedAt })
       .from(userCertifications)
       .where(
         and(
           eq(userCertifications.userId, authUser.id),
-          eq(userCertifications.certificationType, "platform")
+          or(
+            eq(userCertifications.certificationType, "platform_mastery"),
+            and(
+              eq(userCertifications.certificationType, "platform"),
+              eq(userCertifications.isCertificationTrack, true)
+            )
+          )
         )
-      )
-      .limit(1);
+      );
 
-    const phase1Complete = cert?.status === "completed" && !!cert?.completedAt;
+    const phase1Complete = certs.some(
+      (c) => c.status === "completed" && !!c.completedAt
+    );
 
     if (!phase1Complete) {
       res.status(403).json({

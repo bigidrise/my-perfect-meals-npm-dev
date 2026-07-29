@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { formatAmount } from "@/utils/formatAmount";
-import { useMealImages } from "@/hooks/useMealImages";
+import { useMealImages, lookupHydratedImageUrl } from "@/hooks/useMealImages";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import ThinkingDots from "@/components/ThinkingDots";
 import { useLocation } from "wouter";
@@ -172,6 +173,7 @@ const COOK_METHODS: { label: string; emoji: string }[] = [
 
 export default function CreateDishPage() {
   useCopilotPageExplanation();
+  const { t } = useTranslation();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [dishInput, setDishInput] = useState("");
@@ -305,12 +307,17 @@ export default function CreateDishPage() {
 
     const cached = loadDishCache();
     if (cached?.generatedMeal?.id) {
-      setGeneratedMeals([cached.generatedMeal]);
+      // Enrich with mini-cache imageUrl before setting state — survives the race
+      // where user navigated away before hydrateImages finished
+      const mealWithImage = cached.generatedMeal.imageUrl
+        ? cached.generatedMeal
+        : { ...cached.generatedMeal, imageUrl: lookupHydratedImageUrl(cached.generatedMeal.id) ?? undefined };
+      setGeneratedMeals([mealWithImage]);
       setServings(cached.servings || 2);
       // generatedInSession remains false — bar will not cold-mount
-      // If image wasn't saved to cache, re-fetch it now — DB cache returns instantly
-      if (!cached.generatedMeal.imageUrl) {
-        hydrateImages([cached.generatedMeal]);
+      // Only re-fetch if imageUrl is still missing after mini-cache lookup
+      if (!mealWithImage.imageUrl) {
+        hydrateImages([mealWithImage]);
       }
     }
   }, []);
@@ -421,8 +428,8 @@ export default function CreateDishPage() {
 
     if (!dishInput.trim()) {
       toast({
-        title: "Missing Information",
-        description: "Please describe the dish you want to create!",
+        title: t("createDish.errorMissing"),
+        description: t("createDish.errorDescribe"),
         variant: "destructive",
       });
       return;
@@ -546,7 +553,7 @@ export default function CreateDishPage() {
       });
 
       toast({
-        title: "Dish Created!",
+        title: t("createDish.successTitle"),
         description: `${meal.name} is ready for you.`,
       });
     } catch (error: any) {
@@ -554,14 +561,14 @@ export default function CreateDishPage() {
       const errorMsg = error.message || "";
       if (isAllergyRelatedError(errorMsg)) {
         toast({
-          title: "Allergy Alert",
+          title: t("createDish.allergyAlert"),
           description: formatAllergyAlertDescription(errorMsg),
           variant: "warning",
         });
       } else {
         toast({
-          title: "Something went wrong",
-          description: "Unable to create the dish. Please try again.",
+          title: t("common.error"),
+          description: t("createDish.errorFailed"),
           variant: "destructive",
         });
       }
@@ -589,11 +596,11 @@ export default function CreateDishPage() {
                 className="flex items-center gap-2 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
               >
                 <ArrowLeft className="h-5 w-5" />
-                <span className="text-sm font-medium">Back</span>
+                <span className="text-sm font-medium">{t("common.back")}</span>
               </button>
 
               <h1 className="text-lg font-bold text-white truncate min-w-0">
-                {activeKitchenName ? `${activeKitchenName}` : "Create a Dish"}
+                {activeKitchenName ? `${activeKitchenName}` : t("createDish.pageTitle")}
               </h1>
 
               <div className="flex-grow" />
@@ -630,7 +637,7 @@ export default function CreateDishPage() {
               <Card className="shadow-2xl bg-black/40 backdrop-blur-lg border border-orange-400/20 w-full max-w-xl mx-auto">
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-xl text-white">
-                    Create a Dish
+                    {t("createDish.pageTitle")}
                     <div className="flex-grow" />
                     <HowThisWorksLink
                       videoUrl="https://youtube.com/shorts/OxdqoAYQpsA?feature=share"
@@ -642,14 +649,14 @@ export default function CreateDishPage() {
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className="block text-md font-medium text-white">
-                        What dish do you want to create?
+                        {t("createDish.label")}
                       </label>
                     </div>
                     <div className="relative">
                       <textarea
                         value={dishInput}
                         onChange={(e) => setDishInput(e.target.value)}
-                        placeholder="e.g., a hearty chicken stir-fry with vegetables and garlic sauce, or spicy salmon tacos..."
+                        placeholder={t("createDish.placeholder")}
                         className="w-full px-3 py-2 pr-10 bg-black text-white placeholder:text-white/40 border border-orange-400/20 rounded-lg h-20 resize-none text-sm"
                         maxLength={300}
                       />
@@ -682,7 +689,7 @@ export default function CreateDishPage() {
 
                   <div>
                     <label className="block text-sm font-medium mb-2 text-white">
-                      Servings (1–12)
+                      {t("createDish.servings")}
                     </label>
                     <Select
                       value={servings.toString()}
@@ -707,7 +714,7 @@ export default function CreateDishPage() {
 
                   <div>
                     <label className="block text-sm font-medium mb-2 text-white">
-                      Cooking Method
+                      {t("createDish.cookMethod")}
                     </label>
                     <div className="flex flex-wrap gap-x-5 gap-y-3">
                       {COOK_METHODS.map((m) => (
@@ -730,12 +737,12 @@ export default function CreateDishPage() {
 
                   <div>
                     <label className="block text-sm font-medium mb-1 text-white">
-                      Optional Notes
+                      {t("createDish.notes")}
                     </label>
                     <textarea
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
-                      placeholder="e.g., no dairy, extra spicy, low sodium, for meal prep..."
+                      placeholder={t("createDish.notesPlaceholder")}
                       className="w-full px-3 py-2 bg-black text-white placeholder:text-white/40 border border-orange-400/20 rounded-lg h-16 resize-none text-sm"
                       maxLength={250}
                     />

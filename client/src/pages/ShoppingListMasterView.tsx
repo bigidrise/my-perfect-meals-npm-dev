@@ -48,6 +48,7 @@ import VoiceShoppingModal from "@/components/shopping/VoiceShoppingModal";
 import { saveProductScan, clearExpiredShoppingScans } from "@/lib/shoppingScanStorage";
 import RecentScans from "@/components/shopping/RecentScans";
 import { GUEST_SUITE_BRANDING } from "@/lib/guestSuiteBranding";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft } from "lucide-react";
 import { recordShoppingToBiometricsTransition, hasCompletedFirstLoop } from "@/lib/guestSuiteNavigator";
 import { useGuestNavigationGuard } from "@/hooks/useGuestNavigationGuard";
@@ -81,6 +82,7 @@ function sortedEntries<T>(grouped: Record<string, T>): [string, T][] {
 export default function ShoppingListMasterView() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { t } = useTranslation("shopping");
   const { user } = useAuth();
   const measurementSystem = ((user as any)?.measurementSystem ?? "imperial") as "imperial" | "metric";
   const entitlements: string[] = (user as any)?.entitlements || [];
@@ -467,7 +469,7 @@ export default function ShoppingListMasterView() {
 
           {/* Title */}
           <h1 className="text-lg font-bold text-white flex items-center gap-2">
-            Smart Grocery List
+            {t("pageTitle")}
             {isHydrating && (
               <span className="text-xs font-normal text-white/50 animate-pulse">syncing…</span>
             )}
@@ -716,9 +718,9 @@ export default function ShoppingListMasterView() {
         {uncheckedItems.length === 0 && checkedItems.length === 0 ? (
           <div className="rounded-2xl bg-white/5 border border-white/20 p-12 text-center backdrop-blur">
             <ShoppingCart className="h-16 w-16 text-white/30 mx-auto mb-4" />
-            <p className="text-white/60 text-lg">Your shopping list is empty</p>
+            <p className="text-white/60 text-lg">{t("emptyList")}</p>
             <p className="text-white/40 text-sm mt-2">
-              Paste items or quick add to get started
+              {t("emptyListHint")}
             </p>
           </div>
         ) : (

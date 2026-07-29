@@ -527,6 +527,20 @@ export default function LessonReader() {
   const load = useCallback(async () => {
     try {
       const d = await apiRequest("/api/academy/platform-mastery/status");
+
+      // Auto-enroll in learning mode on first lesson open.
+      // This ensures a user_certifications record always exists so that
+      // exercise/quiz progress, and eventually /complete, can reference it.
+      // If the user later upgrades to cert track via the Dashboard, the
+      // upsert sets isCertificationTrack=true without resetting progress.
+      if (!(d as any).enrolled) {
+        await apiRequest("/api/academy/platform-mastery/enroll", {
+          method: "POST",
+          body: JSON.stringify({ isCertificationTrack: false }),
+          headers: { "Content-Type": "application/json" },
+        }).catch(() => {});
+      }
+
       setStatus(d as any);
       const prog = (d as any).progress ?? {};
       const exSt = prog[`${lessonId}-exercise`]?.status;
@@ -669,7 +683,7 @@ export default function LessonReader() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-semibold text-orange-400 uppercase tracking-widest mb-1">
-                Lesson {lesson.lessonNumber} · My Perfect Meals Basics
+                Lesson {lesson.lessonNumber} · Platform Mastery
               </p>
               <h2 className="text-lg font-bold text-white leading-tight">
                 {lesson.title}
@@ -681,6 +695,30 @@ export default function LessonReader() {
           </div>
           <NarrationBar sections={lessonToNarrationSections(lesson)} />
         </motion.div>
+
+        {/* Learning Objectives */}
+        {lesson.learningObjectives && lesson.learningObjectives.length > 0 && (
+          <motion.div
+            className="bg-orange-500/10 border border-orange-500/25 rounded-2xl px-5 py-4 space-y-3"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.04 }}
+          >
+            <p className="text-xs font-bold text-orange-400 uppercase tracking-widest">
+              Learning Objectives
+            </p>
+            <ul className="space-y-2">
+              {lesson.learningObjectives.map((obj, i) => (
+                <li key={i} className="flex items-start gap-2.5">
+                  <span className="mt-0.5 flex-shrink-0 w-4 h-4 rounded-full bg-orange-500/20 border border-orange-500/40 flex items-center justify-center text-[9px] font-bold text-orange-400">
+                    {i + 1}
+                  </span>
+                  <span className="text-sm text-white/75 leading-relaxed">{obj}</span>
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+        )}
 
         {/* Opening paragraph */}
         <motion.div

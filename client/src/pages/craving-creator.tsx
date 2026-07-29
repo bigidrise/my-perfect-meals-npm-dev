@@ -15,7 +15,7 @@ import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { isFeatureEnabled } from "@/lib/productionGates";
-import { useMealImages } from "@/hooks/useMealImages";
+import { useMealImages, lookupHydratedImageUrl } from "@/hooks/useMealImages";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import {
   Card,
@@ -50,6 +50,7 @@ import {
 } from "@/utils/allergyAlert";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
+import { useTranslation } from "react-i18next";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
 import {
   generateMedicalBadges,
@@ -204,6 +205,7 @@ const CRAVING_TOUR_STEPS: TourStep[] = [
 export default function CravingCreator() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { t } = useTranslation("cravingCreator");
   const { startWalkthrough } = useCopilot();
   const quickTour = useQuickTour("craving-creator");
   const [useOnboarding, setUseOnboarding] = useState(true); // ENFORCED: Always use onboarding for medical safety
@@ -293,7 +295,12 @@ export default function CravingCreator() {
   useEffect(() => {
     const cached = loadCravingCache();
     if (cached?.generatedMeal?.id) {
-      setGeneratedMeals([cached.generatedMeal]);
+      // Enrich with mini-cache imageUrl before setting state — survives the race
+      // where user navigated away before hydrateImages finished
+      const mealWithImage = cached.generatedMeal.imageUrl
+        ? cached.generatedMeal
+        : { ...cached.generatedMeal, imageUrl: lookupHydratedImageUrl(cached.generatedMeal.id) ?? undefined };
+      setGeneratedMeals([mealWithImage]);
       setCravingInput(cached.craving || "");
       setServings(cached.servings || 1); // Restore servings
       toast({
@@ -301,9 +308,9 @@ export default function CravingCreator() {
         description:
           "Your generated meal will remain saved on this page until you create a new one.",
       });
-      // If image wasn't saved to cache, re-fetch it now — DB cache returns instantly
-      if (!cached.generatedMeal.imageUrl) {
-        hydrateImages([cached.generatedMeal]);
+      // Only re-fetch if imageUrl is still missing after mini-cache lookup
+      if (!mealWithImage.imageUrl) {
+        hydrateImages([mealWithImage]);
       }
     }
 
@@ -779,7 +786,7 @@ export default function CravingCreator() {
 
             {/* Title */}
             <h1 className="text-lg font-bold text-white truncate min-w-0">
-              Craving Creator
+              {t("title")}
             </h1>
 
             <div className="flex-grow" />
@@ -874,7 +881,7 @@ export default function CravingCreator() {
               <Card className="shadow-2xl bg-black/30 backdrop-blur-lg border border-white/20 w-full max-w-xl mx-auto">
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-xl text-white">
-                    Quick Create
+                    {t("quickCreate")}
                     <div className="flex-grow" />
                     <HowThisWorksLink
                       videoUrl="https://youtube.com/shorts/C3kZCNC1tq8?feature=share"
@@ -886,7 +893,7 @@ export default function CravingCreator() {
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className="block text-md font-medium text-white">
-                        What are you craving?
+                        {t("cravingLabel")}
                       </label>
                     </div>
                     <div className="relative">
@@ -1007,7 +1014,7 @@ export default function CravingCreator() {
                   {/* NEW: Serving Size Dropdown */}
                   <div>
                     <label className="block text-md font-medium mb-1 text-white">
-                      Number of Servings
+                      {t("servingsLabel")}
                     </label>
                     <Select
                       data-wt="cc-servings-selector"
@@ -1018,16 +1025,16 @@ export default function CravingCreator() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="1">1 serving (just me)</SelectItem>
-                        <SelectItem value="2">2 servings</SelectItem>
-                        <SelectItem value="3">3 servings</SelectItem>
-                        <SelectItem value="4">4 servings</SelectItem>
-                        <SelectItem value="5">5 servings</SelectItem>
-                        <SelectItem value="6">6 servings</SelectItem>
-                        <SelectItem value="7">7 servings</SelectItem>
-                        <SelectItem value="8">8 servings</SelectItem>
-                        <SelectItem value="9">9 servings</SelectItem>
-                        <SelectItem value="10">10 servings</SelectItem>
+                        <SelectItem value="1">{t("serving1")}</SelectItem>
+                        <SelectItem value="2">{t("servingN", { count: 2 })}</SelectItem>
+                        <SelectItem value="3">{t("servingN", { count: 3 })}</SelectItem>
+                        <SelectItem value="4">{t("servingN", { count: 4 })}</SelectItem>
+                        <SelectItem value="5">{t("servingN", { count: 5 })}</SelectItem>
+                        <SelectItem value="6">{t("servingN", { count: 6 })}</SelectItem>
+                        <SelectItem value="7">{t("servingN", { count: 7 })}</SelectItem>
+                        <SelectItem value="8">{t("servingN", { count: 8 })}</SelectItem>
+                        <SelectItem value="9">{t("servingN", { count: 9 })}</SelectItem>
+                        <SelectItem value="10">{t("servingN", { count: 10 })}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1206,8 +1213,8 @@ export default function CravingCreator() {
                       className="w-full bg-lime-600 overflow-hidden text-ellipsis whitespace-nowrap flex items-center justify-center gap-2"
                     >
                       {safetyChecking
-                        ? "Checking Safety..."
-                        : "Create My Craving"}
+                        ? t("checkingSafety")
+                        : t("createBtn")}
                     </GlassButton>
                   )}
                 </CardContent>

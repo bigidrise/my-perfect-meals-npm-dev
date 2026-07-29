@@ -21,6 +21,7 @@ import { WorkspaceChooser } from "@/components/WorkspaceChooser";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import ClientLegalModal from "@/components/pro/ClientLegalModal";
 import { SponsorEndedBanner } from "@/components/SponsorEndedBanner";
+import { useTranslation } from "react-i18next";
 
 interface ProCareFeature {
   title: string;
@@ -52,6 +53,7 @@ export default function MorePage() {
   const { user, refreshUser } = useAuth();
   const { requestUpgrade } = useUpgradeModal();
   const isDesktop = useIsDesktop();
+  const { t } = useTranslation("more");
   const isAdmin = user?.role === "admin";
   const userRole = user?.professionalRole || null;
 
@@ -69,7 +71,6 @@ export default function MorePage() {
   const [showClientLegalModal, setShowClientLegalModal] = useState(false);
   const [pendingLegalFlow, setPendingLegalFlow] = useState<"client" | "patient_physician">("client");
 
-  // Business account — owner or member
   const [businessCard, setBusinessCard] = useState<{
     mode: "owner" | "member";
     name: string;
@@ -119,14 +120,12 @@ export default function MorePage() {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
-  // Fetch real-time connection status from server
   useEffect(() => {
     async function fetchConnectionStatus() {
       try {
         const data = await apiRequest("/api/pro/connection-status");
         setConnectionStatus(data);
       } catch {
-        // Non-fatal — fall back to isProCare flag from user object
         setConnectionStatus({ connected: isProCareClient });
       }
     }
@@ -140,9 +139,6 @@ export default function MorePage() {
       setShowDisconnectConfirm(false);
       setConnectionStatus({ connected: false });
 
-      // Protocol Ownership Model: strip all physician medical flags from localStorage
-      // so the meal builder immediately reflects the disconnected state and no longer
-      // applies any physician-set clinical protocol (e.g. oncology, renal, cardiac).
       if (user?.id) {
         try {
           const clientMap: Record<string, string> = JSON.parse(
@@ -158,13 +154,13 @@ export default function MorePage() {
             }
           }
         } catch {
-          // Non-fatal — localStorage may be unavailable
+          // Non-fatal
         }
       }
 
       await refreshUser();
     } catch (e: any) {
-      alert("Failed to disconnect. Please try again.");
+      alert(t("errorDisconnect"));
     } finally {
       setDisconnecting(false);
     }
@@ -172,29 +168,21 @@ export default function MorePage() {
 
   const proCareFeatures: ProCareFeature[] = [
     {
-      title: "Physicians Clinic",
-      description: "Medical oversight, guardrails, and clinical nutrition tools",
+      title: t("physiciansClinicTitle"),
+      description: t("physiciansClinicDesc"),
       icon: Stethoscope,
       route: "/care-team/physician",
       testId: "card-procare-physician",
       roleKey: "physician",
     },
     {
-      title: "Trainers Studio",
-      description: "Coaching, personalization, and performance meal planning",
+      title: t("trainersStudioTitle"),
+      description: t("trainersStudioDesc"),
       icon: Dumbbell,
       route: "/care-team/trainer",
       testId: "card-procare-trainer",
       roleKey: "trainer",
     },
-    // {
-    //   title: "Supplement Hub",
-    //   description: "Evidence-based supplement guidance and trusted partners",
-    //   icon: Crown,
-    //   route: "/supplement-hub",
-    //   testId: "card-supplement-hub",
-    //   roleKey: null,
-    // },
   ];
 
   const isFeatureLocked = (feature: ProCareFeature) => {
@@ -216,7 +204,7 @@ export default function MorePage() {
     setError(null);
     setConnectedResult(null);
     if (!accessCode.trim()) {
-      setError("Enter your provider code.");
+      setError(t("errorCodeRequired"));
       return;
     }
     try {
@@ -235,7 +223,7 @@ export default function MorePage() {
         } else if (data?.error === "CLINICAL_REQUIRED") {
           requestUpgrade({ requiredTier: "clinical", featureName: "ProCare Connection" });
         } else {
-          setError(data?.error || "Invalid or expired provider code.");
+          setError(data?.error || t("errorCodeInvalid"));
         }
         return;
       }
@@ -243,7 +231,7 @@ export default function MorePage() {
       setConnectedResult(data);
       await refreshUser();
     } catch (e: any) {
-      setError(e?.message || "Unable to connect. Please try again.");
+      setError(e?.message || t("errorConnect"));
     } finally {
       setLoading(false);
     }
@@ -255,7 +243,7 @@ export default function MorePage() {
   }
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
@@ -268,8 +256,7 @@ export default function MorePage() {
         >
             <div className="px-6 py-3 flex items-center gap-3">
             <Crown className="h-6 w-6 text-orange-500" />
-            <h1 className="text-lg font-bold text-white flex-1">More</h1>
-            
+            <h1 className="text-lg font-bold text-white flex-1">{t("pageTitle")}</h1>
           </div>
         </div>
       )}
@@ -280,10 +267,9 @@ export default function MorePage() {
       >
         <div className="max-w-2xl mx-auto space-y-4">
           <SponsorEndedBanner />
-          {/* Hero Image Section */}
           <div className="relative h-48 rounded-xl overflow-hidden">
-            <img 
-              src="/images/procare-hero.png" 
+            <img
+              src="/images/procare-hero.png"
               alt="Professional coaching"
               className="w-full h-full object-cover"
               onError={(e) => {
@@ -296,15 +282,13 @@ export default function MorePage() {
               <div className="bg-black/55 backdrop-blur-sm rounded-xl px-3 py-2.5">
                 <h2 className="text-2xl font-bold text-white mb-1"></h2>
                 <p className="text-white/90 text-sm">
-                  Empower your coaching practice with precision macro planning.
+                  {t("proHeroDesc")}
                 </p>
               </div>
             </div>
           </div>
 
-          
-
-          {/* Tips & Strategies — always visible */}
+          {/* Tips & Strategies */}
           <div className="relative">
             <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(249,115,22,0.5), rgba(249,115,22,0.25), rgba(0,0,0,0))" }} />
           <Card
@@ -319,18 +303,18 @@ export default function MorePage() {
                   <Lightbulb className="h-5 w-5 text-orange-400" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-semibold text-white">Tips & Strategies</h3>
-                  <p className="text-xs text-white/70">Hidden features, workflow shortcuts, and coaching techniques</p>
+                  <h3 className="text-sm font-semibold text-white">{t("tipsTitle")}</h3>
+                  <p className="text-xs text-white/70">{t("tipsDesc")}</p>
                 </div>
                 <div className="flex-shrink-0 px-2 py-0.5 rounded-full bg-orange-500/20 border border-orange-500/30">
-                  <span className="text-[10px] font-bold text-orange-400 uppercase tracking-wide">Guide</span>
+                  <span className="text-[10px] font-bold text-orange-400 uppercase tracking-wide">{t("guideLabel")}</span>
                 </div>
               </div>
             </CardContent>
           </Card>
           </div>
 
-          {/* Household Profiles — Family plan only */}
+          {/* Household Profiles */}
           {isHouseholdPlan(user?.planLookupKey) && (
             <div className="relative">
               <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(245,158,11,0.5), rgba(245,158,11,0.25), rgba(0,0,0,0))" }} />
@@ -346,8 +330,8 @@ export default function MorePage() {
                       <Users className="h-5 w-5 text-amber-400" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-sm font-semibold text-white">Household Profiles</h3>
-                      <p className="text-xs text-white/70">Generate meals for any household member</p>
+                      <h3 className="text-sm font-semibold text-white">{t("householdTitle")}</h3>
+                      <p className="text-xs text-white/70">{t("householdDesc")}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -355,16 +339,14 @@ export default function MorePage() {
             </div>
           )}
 
-          {/* Switch to Workspace — only for professionals */}
+          {/* Switch to Workspace */}
           {(userRole === "trainer" || userRole === "physician") && (
             <div className="relative">
               <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(6,182,212,0.5), rgba(6,182,212,0.25), rgba(0,0,0,0))" }} />
               <Card
                 className="relative cursor-pointer active:scale-[0.98] bg-gradient-to-r from-black via-cyan-950/30 to-black backdrop-blur-lg border border-cyan-500/30 hover:border-cyan-500/60 hover:shadow-[0_0_30px_rgba(6,182,212,0.45)] transition-all duration-300 rounded-xl shadow-md overflow-hidden"
                 style={{ backgroundColor: "transparent" }}
-                onClick={() => {
-                  setShowWorkspaceChooser(true);
-                }}
+                onClick={() => setShowWorkspaceChooser(true)}
                 data-testid="card-switch-workspace"
               >
                 <CardContent className="p-4">
@@ -373,10 +355,8 @@ export default function MorePage() {
                       <Briefcase className="h-5 w-5 text-cyan-400" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-sm font-semibold text-white">
-                        Switch Workspace
-                      </h3>
-                      <p className="text-xs text-white/70">Go to Workspace Chooser</p>
+                      <h3 className="text-sm font-semibold text-white">{t("workspaceTitle")}</h3>
+                      <p className="text-xs text-white/70">{t("workspaceDesc")}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -384,7 +364,6 @@ export default function MorePage() {
             </div>
           )}
 
-          {/* Workspace Chooser Overlay */}
           {showWorkspaceChooser && (
             <WorkspaceChooser
               onChoose={(choice: "personal" | "workspace") => {
@@ -406,7 +385,7 @@ export default function MorePage() {
             />
           )}
 
-          {/* Become a Provider — only for users who are NOT already providers */}
+          {/* Become a Provider */}
           {!userRole && (
             <div className="relative">
               <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(59,130,246,0.5), rgba(59,130,246,0.25), rgba(0,0,0,0))" }} />
@@ -422,8 +401,8 @@ export default function MorePage() {
                       <UserPlus className="h-5 w-5 text-blue-400" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-sm font-semibold text-white">Become a Provider</h3>
-                      <p className="text-xs text-white/70">Apply to work with clients inside My Perfect Meals</p>
+                      <h3 className="text-sm font-semibold text-white">{t("becomeProviderTitle")}</h3>
+                      <p className="text-xs text-white/70">{t("becomeProviderDesc")}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -431,7 +410,7 @@ export default function MorePage() {
             </div>
           )}
 
-          {/* Saved Meals / Favorites — Essential+ only */}
+          {/* Saved Meals / Favorites */}
           {(() => {
             const favLocked = !hasActivePaidSubscription(user);
             return (
@@ -452,8 +431,8 @@ export default function MorePage() {
                         <Heart className={`h-5 w-5 ${favLocked ? "text-red-400/50" : "text-red-400"}`} fill="currentColor" />
                       </div>
                       <div className="flex-1">
-                        <h3 className={`text-sm font-semibold ${favLocked ? "text-white/50" : "text-white"}`}>Favorites</h3>
-                        <p className={`text-xs ${favLocked ? "text-white/40" : "text-white/70"}`}>Your saved meals — tap to view and reuse</p>
+                        <h3 className={`text-sm font-semibold ${favLocked ? "text-white/50" : "text-white"}`}>{t("favoritesTitle")}</h3>
+                        <p className={`text-xs ${favLocked ? "text-white/40" : "text-white/70"}`}>{t("favoritesDesc")}</p>
                       </div>
                       {favLocked && <Lock className="h-4 w-4 text-orange-400/70 flex-shrink-0" />}
                     </div>
@@ -478,15 +457,15 @@ export default function MorePage() {
                     <TrendingUp className="h-5 w-5 text-amber-400" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-sm font-semibold text-white">Business Suite</h3>
-                    <p className="text-xs text-white/70">Affiliates, coaching, academy &amp; partnerships</p>
+                    <h3 className="text-sm font-semibold text-white">{t("businessTitle")}</h3>
+                    <p className="text-xs text-white/70">{t("businessDesc")}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Organization Card — only shown when user owns or belongs to a business account */}
+          {/* Organization Card */}
           {businessCard && (
             <Card
               className="cursor-pointer active:scale-[0.98] bg-gradient-to-r from-black via-blue-950/40 to-black backdrop-blur-lg border border-blue-500/40 transition-all duration-300 rounded-xl shadow-md overflow-hidden"
@@ -502,14 +481,14 @@ export default function MorePage() {
                   <div className="flex-1 min-w-0">
                     {businessCard.mode === "owner" ? (
                       <>
-                        <h3 className="text-sm font-semibold text-white">Organization Dashboard</h3>
+                        <h3 className="text-sm font-semibold text-white">{t("orgDashTitle")}</h3>
                         <p className="text-xs text-white/60 truncate">
                           {businessCard.name} · {businessCard.usedSeats} of {businessCard.seatLimit} seats used
                         </p>
                       </>
                     ) : (
                       <>
-                        <h3 className="text-sm font-semibold text-white">My Business Team</h3>
+                        <h3 className="text-sm font-semibold text-white">{t("myTeamTitle")}</h3>
                         <p className="text-xs text-white/60 truncate">
                           {businessCard.name} · {businessCard.role ? businessCard.role.charAt(0).toUpperCase() + businessCard.role.slice(1) : "Member"}
                         </p>
@@ -521,15 +500,14 @@ export default function MorePage() {
             </Card>
           )}
 
-          {/* ProCare Features - Vertical Stack */}
           <div className="flex flex-col gap-3">
-            {/* 1. Professional Studios — HIDDEN: professionals must use workspace chooser to enter clinics */}
+            {/* Professional Studios — HIDDEN */}
             {false && proCareFeatures.filter(f => f.roleKey !== null).map((feature) => {
               const Icon = feature.icon;
               const isLocked = isFeatureLocked(feature);
               const lockedLabel = feature.roleKey === "physician"
-                ? "Physician ProCare is available to licensed physicians."
-                : "Trainer ProCare is available to certified trainers and coaches.";
+                ? t("physicianLock")
+                : t("trainerLock");
 
               return (
                 <Card
@@ -562,14 +540,13 @@ export default function MorePage() {
               );
             })}
 
-            {/* 2. Provider Connection Card — context-aware */}
+            {/* Provider Connection Card */}
             {connectionStatus?.connected && connectionStatus.provider ? (
-              /* ── CONNECTED STATE ── */
               <GlassCard className="border-2 border-green-500/40">
                 <GlassCardContent className="p-6 space-y-4">
                   <div className="flex items-center gap-2">
                     <ShieldCheck className="h-5 w-5 text-green-400" />
-                    <h2 className="text-xl font-bold text-white">ProCare Connected</h2>
+                    <h2 className="text-xl font-bold text-white">{t("connectedHeading")}</h2>
                   </div>
                   <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-1">
                     <p className="text-sm font-semibold text-white">{connectionStatus.provider.name}</p>
@@ -579,8 +556,7 @@ export default function MorePage() {
                     </p>
                   </div>
                   <p className="text-xs text-white/50">
-                    Your provider can view and manage your nutrition plan based on the permissions you've set.
-                    You can disconnect at any time — reconnecting requires a new access code from your provider.
+                    {t("connectedDesc")}
                   </p>
                   <Button
                     variant="destructive"
@@ -589,30 +565,28 @@ export default function MorePage() {
                     data-testid="button-disconnect-provider"
                   >
                     <Link2Off className="h-4 w-4 mr-2" />
-                    Disconnect from {connectionStatus.provider.name}
+                    {t("disconnectBtn", { name: connectionStatus.provider.name })}
                   </Button>
                 </GlassCardContent>
               </GlassCard>
             ) : (
-              /* ── NOT CONNECTED STATE ── */
               <GlassCard className="border-2 border-orange-500/40">
                 <GlassCardContent className="p-6 space-y-4">
                   <div className="flex items-center gap-2">
                     <KeyRound className="h-5 w-5 text-orange-500" />
                     <h2 className="text-xl font-bold text-white">
-                      Connect With Your Provider
+                      {t("connectHeading")}
                     </h2>
                   </div>
                   <p className="text-sm text-white/70">
-                    Use your provider's access code to link your account with your
-                    coach, trainer, or physician through the ProCare system.
+                    {t("connectDesc")}
                   </p>
                   <div>
-                    <Label className="text-white/80">Provider Access Code</Label>
+                    <Label className="text-white/80">{t("codeLabel")}</Label>
                     <Input
                       value={accessCode}
                       onChange={(e) => setAccessCode(e.target.value)}
-                      placeholder="Provider code (given by your coach or physician)"
+                      placeholder={t("codePlaceholder")}
                       className="bg-black/40 text-white border-white/20 placeholder:text-white/40"
                       data-testid="input-careteam-code"
                     />
@@ -629,10 +603,10 @@ export default function MorePage() {
                     data-testid="button-submit-code"
                   >
                     <ClipboardEdit className="h-4 w-4 mr-2" />
-                    Connect to Provider
+                    {t("connectBtn")}
                   </Button>
                   <p className="text-xs text-white/40 text-center">
-                    Access codes connect users with professionals. Subscriptions are purchased through the App Store.
+                    {t("connectDisclaimer")}
                   </p>
                 </GlassCardContent>
               </GlassCard>
@@ -644,26 +618,26 @@ export default function MorePage() {
                 <GlassCardContent className="p-6 space-y-3">
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="h-5 w-5 text-green-400" />
-                    <h2 className="text-lg font-bold text-white">Connected!</h2>
+                    <h2 className="text-lg font-bold text-white">{t("connectedBanner")}</h2>
                   </div>
                   {connectedResult.studio && (
                     <p className="text-sm text-white/80">
-                      You are now linked to <span className="text-green-300 font-semibold">{connectedResult.studio.studioName}</span>. Your trainer can now manage your meal plan.
+                      {t("connectedStudio", { studio: connectedResult.studio.studioName })}
                     </p>
                   )}
                   {!connectedResult.studio && (
                     <p className="text-sm text-white/80">
-                      You are now linked to your professional. They can manage your meal plan.
+                      {t("connectedNoStudio")}
                     </p>
                   )}
                   <p className="text-xs text-white/60">
-                    Your trainer will assign your meal builder. Check back on your dashboard to see updates.
+                    {t("connectedInstructions")}
                   </p>
                 </GlassCardContent>
               </GlassCard>
             )}
 
-            {/* 3. Account Security — Two-Factor Authentication */}
+            {/* Account Security — Two-Factor Authentication */}
             <div className="relative">
               <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(139,92,246,0.5), rgba(139,92,246,0.25), rgba(0,0,0,0))" }} />
               <GlassCard className="relative border border-violet-500/30">
@@ -673,7 +647,6 @@ export default function MorePage() {
               </GlassCard>
             </div>
 
-            {/* 4. Other features (Supplement Hub, etc.) */}
             {proCareFeatures.filter(f => f.roleKey === null).map((feature) => {
               const Icon = feature.icon;
               return (
@@ -702,7 +675,8 @@ export default function MorePage() {
           </div>
         </div>
       </div>
-      {/* Become a Provider — Role Picker Modal */}
+
+      {/* Role Picker Modal */}
       {showProviderModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4" onClick={() => setShowProviderModal(false)}>
           <div
@@ -711,8 +685,8 @@ export default function MorePage() {
           >
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-bold text-white">Choose your role</h2>
-                <p className="text-xs text-white/50 mt-0.5">Select the path that fits your professional background</p>
+                <h2 className="text-lg font-bold text-white">{t("chooseRole")}</h2>
+                <p className="text-xs text-white/50 mt-0.5">{t("chooseRoleSub")}</p>
               </div>
               <button onClick={() => setShowProviderModal(false)} className="p-2 rounded-full bg-white/10 active:scale-[0.95]">
                 <X className="h-4 w-4 text-white/70" />
@@ -731,8 +705,8 @@ export default function MorePage() {
                   <Dumbbell className="h-5 w-5 text-orange-400" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-white">Trainer / Coach</p>
-                  <p className="text-xs text-white/50">Personal trainers, coaches, and fitness professionals</p>
+                  <p className="text-sm font-semibold text-white">{t("trainerRole")}</p>
+                  <p className="text-xs text-white/50">{t("trainerRoleDesc")}</p>
                 </div>
               </div>
             </button>
@@ -749,8 +723,8 @@ export default function MorePage() {
                   <Stethoscope className="h-5 w-5 text-blue-400" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-white">Physician / Medical Provider</p>
-                  <p className="text-xs text-white/50">Licensed physicians, nurse practitioners, and healthcare providers</p>
+                  <p className="text-sm font-semibold text-white">{t("physicianRole")}</p>
+                  <p className="text-xs text-white/50">{t("physicianRoleDesc")}</p>
                 </div>
               </div>
             </button>
@@ -766,12 +740,10 @@ export default function MorePage() {
               <div className="p-2 rounded-full bg-red-900/40">
                 <Link2Off className="h-5 w-5 text-red-400" />
               </div>
-              <h3 className="text-lg font-bold text-white">Disconnect?</h3>
+              <h3 className="text-lg font-bold text-white">{t("disconnectConfirm")}</h3>
             </div>
             <p className="text-sm text-white/70">
-              This will remove your ProCare connection with{" "}
-              <span className="text-white font-semibold">{connectionStatus.provider.name}</span>.
-              Your history is preserved — to reconnect, you'll need a new access code from your provider.
+              {t("disconnectDesc", { name: connectionStatus.provider.name })}
             </p>
             <div className="flex gap-3 pt-1">
               <Button
@@ -788,7 +760,7 @@ export default function MorePage() {
                 disabled={disconnecting}
                 data-testid="button-confirm-disconnect"
               >
-                {disconnecting ? "Disconnecting…" : "Yes, Disconnect"}
+                {disconnecting ? t("disconnecting") : t("disconnectYes")}
               </Button>
             </div>
           </div>

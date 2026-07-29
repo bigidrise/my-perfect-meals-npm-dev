@@ -36,14 +36,13 @@ export default function ProfessionalOnboardingBridge() {
     (async () => {
       try {
         const [p1Res, p2Res] = await Promise.allSettled([
-          apiRequest("/api/certifications/platform/progress"),
+          apiRequest("/api/certifications/phase1-status"),
           apiRequest("/api/certifications/procare_training/progress"),
         ]);
 
         const phase1Complete =
           p1Res.status === "fulfilled" &&
-          (p1Res.value as any)?.certification?.status === "completed" &&
-          !!(p1Res.value as any)?.certification?.completedAt;
+          (p1Res.value as any)?.phase1Complete === true;
 
         const phase2Complete =
           p2Res.status === "fulfilled" &&
@@ -82,7 +81,7 @@ export default function ProfessionalOnboardingBridge() {
   }
 
   if (!phase1Done) {
-    return <CertPhase1Step onStart={() => setLocation("/certifications/platform")} />;
+    return <CertPhase1Step onStart={() => setLocation("/academy/platform-mastery")} />;
   }
 
   return <CertPhase2Step onStart={() => setLocation("/procare-training")} />;

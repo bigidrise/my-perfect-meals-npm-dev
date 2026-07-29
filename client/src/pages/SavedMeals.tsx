@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
+import { useTranslation } from "react-i18next";
 import { Heart, ChevronDown, ChevronRight, ArrowLeft, Loader2, Activity, AlertTriangle } from "lucide-react";
 import { useSavedMealsList, useDeleteSavedMeal } from "@/hooks/useSavedMeals";
 import { useToast } from "@/hooks/use-toast";
@@ -11,29 +12,6 @@ import { setQuickView } from "@/lib/macrosQuickView";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { buildBiometricsUrl } from "@/lib/biometricsNavigation";
 
-const SOURCE_LABELS: Record<string, string> = {
-  "meal-builder": "Meal Builder",
-  "general-nutrition": "General Nutrition",
-  "performance-competition": "Performance",
-  "diabetic": "Diabetic",
-  "glp1": "Metabolic Med",
-  "anti-inflammatory": "Anti-Inflammatory",
-  "craving-creator": "Craving Creator",
-  "dessert-creator": "Dessert Creator",
-  "fridge-rescue": "Fridge Rescue",
-  "chefs-kitchen": "Create a Dish",
-  "weekly-board": "Weekly Board",
-  "pairings-ai": "Drink Pairings",
-  "wine-list-helper": "Wine List Helper",
-  "my-inspiration": "Recipe Scan",
-  "grocery-coach": "Grocery Coach",
-  unknown: "Meal",
-};
-
-function sourceLabel(s: string): string {
-  return SOURCE_LABELS[s] || s.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
 function bglRangeLabel(bucket: string): string {
   switch (bucket) {
     case "low":      return "< 70 mg/dL";
@@ -44,65 +22,84 @@ function bglRangeLabel(bucket: string): string {
   }
 }
 
-const BGL_SECTIONS = [
-  {
-    key: "low",
-    label: "Low BGL Meals",
-    sublabel: "Generated under low glucose conditions (< 70 mg/dL)",
-    accent: "text-sky-400",
-    border: "border-sky-700/40",
-    bg: "bg-sky-950/60",
-    dot: "bg-sky-400",
-    buckets: ["low"],
-  },
-  {
-    key: "in-range",
-    label: "In-Range BGL Meals",
-    sublabel: "Generated within normal glucose range (70–140 mg/dL)",
-    accent: "text-lime-400",
-    border: "border-lime-700/40",
-    bg: "bg-lime-950/60",
-    dot: "bg-lime-400",
-    buckets: ["in-range"],
-  },
-  {
-    key: "elevated",
-    label: "Elevated / High BGL Meals",
-    sublabel: "Generated under elevated glucose conditions (> 140 mg/dL)",
-    accent: "text-amber-400",
-    border: "border-amber-700/40",
-    bg: "bg-amber-950/60",
-    dot: "bg-amber-400",
-    buckets: ["elevated", "high"],
-  },
-] as const;
-
 export default function SavedMeals() {
   const [, setLocation] = useLocation();
+  const { t } = useTranslation();
   const { data: meals, isLoading } = useSavedMealsList();
   const deleteMeal = useDeleteSavedMeal();
   const { toast } = useToast();
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  // Capture the ?from= param once on mount — useState initializer runs only
-  // once so re-renders don't see the stripped URL and lose the value.
+  const SOURCE_LABELS: Record<string, string> = {
+    "meal-builder": t("savedMeals.sourceMealBuilder"),
+    "general-nutrition": t("savedMeals.sourceGeneralNutrition"),
+    "performance-competition": t("savedMeals.sourcePerformance"),
+    "diabetic": t("savedMeals.sourceDiabetic"),
+    "glp1": t("savedMeals.sourceMetabolic"),
+    "anti-inflammatory": t("savedMeals.sourceAntiInflam"),
+    "craving-creator": t("savedMeals.sourceCravingCreator"),
+    "dessert-creator": t("savedMeals.sourceDessertCreator"),
+    "fridge-rescue": t("savedMeals.sourceFridgeRescue"),
+    "chefs-kitchen": t("savedMeals.sourceChefsKitchen"),
+    "weekly-board": t("savedMeals.sourceWeeklyBoard"),
+    "pairings-ai": t("savedMeals.sourcePairings"),
+    "wine-list-helper": t("savedMeals.sourceWineList"),
+    "my-inspiration": t("savedMeals.sourceRecipeScan"),
+    "grocery-coach": t("savedMeals.sourceGroceryCoach"),
+    unknown: t("savedMeals.sourceMeal"),
+  };
+
+  function sourceLabel(s: string): string {
+    return SOURCE_LABELS[s] || s.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+
+  const BGL_SECTIONS = [
+    {
+      key: "low",
+      label: t("savedMeals.lowBGL"),
+      sublabel: t("savedMeals.lowBGLDesc"),
+      accent: "text-sky-400",
+      border: "border-sky-700/40",
+      bg: "bg-sky-950/60",
+      dot: "bg-sky-400",
+      buckets: ["low"],
+    },
+    {
+      key: "in-range",
+      label: t("savedMeals.inRangeBGL"),
+      sublabel: t("savedMeals.inRangeBGLDesc"),
+      accent: "text-lime-400",
+      border: "border-lime-700/40",
+      bg: "bg-lime-950/60",
+      dot: "bg-lime-400",
+      buckets: ["in-range"],
+    },
+    {
+      key: "elevated",
+      label: t("savedMeals.elevatedBGL"),
+      sublabel: t("savedMeals.elevatedBGLDesc"),
+      accent: "text-amber-400",
+      border: "border-amber-700/40",
+      bg: "bg-amber-950/60",
+      dot: "bg-amber-400",
+      buckets: ["elevated", "high"],
+    },
+  ] as const;
+
   const [returnPath] = useState<string | null>(
     () => new URLSearchParams(window.location.search).get("from")
   );
 
-  // Capture ?mealId= param to deep-link directly to a specific card.
   const [deepLinkMealId] = useState<string | null>(
     () => new URLSearchParams(window.location.search).get("mealId")
   );
 
-  // Strip params from the URL after mount so they don't linger.
   useEffect(() => {
     if (returnPath || deepLinkMealId) {
       window.history.replaceState(null, "", window.location.pathname);
     }
   }, [returnPath, deepLinkMealId]);
 
-  // Auto-expand and scroll to the deep-linked card once data is available.
   useEffect(() => {
     if (!deepLinkMealId || !meals?.length) return;
     setExpandedId(deepLinkMealId);
@@ -120,7 +117,7 @@ export default function SavedMeals() {
   const handleRemove = (row: any) => {
     deleteMeal.mutate(row.id, {
       onSuccess: () => {
-        toast({ title: "Removed", description: `"${row.title}" removed from favorites.` });
+        toast({ title: t("savedMeals.removed"), description: `"${row.title}" removed from favorites.` });
         if (expandedId === row.id) setExpandedId(null);
       },
     });
@@ -196,7 +193,7 @@ export default function SavedMeals() {
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <Heart className="h-4 w-4 text-red-500 shrink-0" fill="currentColor" />
-            <span className="text-xs text-white/40">{calories} cal</span>
+            <span className="text-xs text-white/40">{calories} {t("savedMeals.cal")}</span>
             {isExpanded ? (
               <ChevronDown className="h-4 w-4 text-white/40" />
             ) : (
@@ -218,7 +215,7 @@ export default function SavedMeals() {
                 <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
                 <div className="space-y-0.5">
                   <div className="text-amber-400 font-semibold tracking-wide uppercase text-[10px]">
-                    Today's Nutrition Strategy
+                    {t("savedMeals.todayStrategy")}
                   </div>
                   <div className="text-white/80 text-xs">{row.dayMismatchNote}</div>
                 </div>
@@ -228,7 +225,7 @@ export default function SavedMeals() {
             {isDiabetic && generatedBglMgdl !== null && (
               <div className={`rounded-lg ${bannerAccent.bg} border ${bannerAccent.border} px-3 py-2 text-xs space-y-0.5`}>
                 <div className={`${bannerAccent.text} font-semibold tracking-wide uppercase text-[10px]`}>
-                  Diabetes Protocol
+                  {t("savedMeals.diabetesProtocol")}
                 </div>
                 <div className="text-white/80">
                   Generated for BGL:{" "}
@@ -241,7 +238,7 @@ export default function SavedMeals() {
                   <div className="text-white/50">{glucoseContext}</div>
                 )}
                 {rangeLabel && (
-                  <div className="text-white/50 text-[10px]">Relevant range: {rangeLabel}</div>
+                  <div className="text-white/50 text-[10px]">{t("savedMeals.relevantRange")} {rangeLabel}</div>
                 )}
               </div>
             )}
@@ -252,26 +249,26 @@ export default function SavedMeals() {
 
             <div className="grid grid-cols-4 gap-2 text-center">
               <div className="bg-black/30 border border-white/15 p-2 rounded-lg">
-                <div className="text-xs text-white/50">Cal</div>
+                <div className="text-xs text-white/50">{t("savedMeals.cal")}</div>
                 <div className="text-white font-bold">{Math.round(calories)}</div>
               </div>
               <div className="bg-black/30 border border-white/15 p-2 rounded-lg">
-                <div className="text-xs text-white/50">Protein</div>
+                <div className="text-xs text-white/50">{t("savedMeals.protein")}</div>
                 <div className="text-white font-bold">{Math.round(protein)}g</div>
               </div>
               <div className="bg-black/30 border border-white/15 p-2 rounded-lg">
-                <div className="text-xs text-white/50">Carbs</div>
+                <div className="text-xs text-white/50">{t("savedMeals.carbs")}</div>
                 <div className="text-white font-bold">{Math.round(carbs)}g</div>
               </div>
               <div className="bg-black/30 border border-white/15 p-2 rounded-lg">
-                <div className="text-xs text-white/50">Fat</div>
+                <div className="text-xs text-white/50">{t("savedMeals.fat")}</div>
                 <div className="text-white font-bold">{Math.round(fat)}g</div>
               </div>
             </div>
 
             {d?.ingredients && d.ingredients.length > 0 && (
               <div>
-                <h4 className="text-sm font-semibold text-white/70 mb-2">Ingredients</h4>
+                <h4 className="text-sm font-semibold text-white/70 mb-2">{t("savedMeals.ingredients")}</h4>
                 <ul className="space-y-1">
                   {d.ingredients.map((ing: any, i: number) => (
                     <li key={i} className="text-sm text-white/80 flex items-start gap-2">
@@ -289,7 +286,7 @@ export default function SavedMeals() {
 
             {d?.instructions && (
               <div>
-                <h4 className="text-sm font-semibold text-white/70 mb-2">Instructions</h4>
+                <h4 className="text-sm font-semibold text-white/70 mb-2">{t("savedMeals.instructions")}</h4>
                 <ol className="space-y-3">
                   {normalizeInstructions(d.instructions).map((step: string, i: number) => (
                     <li key={i} className="flex gap-3 text-sm text-white/80">
@@ -322,14 +319,14 @@ export default function SavedMeals() {
                 onClick={() => handleAddToMacros(row)}
                 className="flex-1 bg-white/10 text-white text-sm py-2 px-3 rounded-lg active:scale-[0.98]"
               >
-                Add to Macros
+                {t("savedMeals.addToMacros")}
               </button>
               <button
                 onClick={() => handleRemove(row)}
                 className="bg-white/10 text-red-400 text-sm py-2 px-3 rounded-lg active:scale-[0.98] flex items-center gap-1"
               >
                 <Heart className="h-4 w-4" fill="currentColor" />
-                Remove
+                {t("savedMeals.remove")}
               </button>
             </div>
 
@@ -374,7 +371,7 @@ export default function SavedMeals() {
           </button>
           <h1 className="text-xl font-bold flex items-center gap-2 flex-1">
             <Heart className="h-6 w-6 text-red-500" fill="currentColor" />
-            Saved Meals
+            {t("savedMeals.pageTitle")}
           </h1>
         </div>
       </div>
@@ -393,8 +390,8 @@ export default function SavedMeals() {
         {!isLoading && allMeals.length === 0 && (
           <div className="text-center py-16 space-y-3">
             <Heart className="h-12 w-12 mx-auto text-white/20" />
-            <p className="text-white/50 text-lg">No saved meals yet</p>
-            <p className="text-white/40 text-sm">Tap the heart icon on any meal to save it here.</p>
+            <p className="text-white/50 text-lg">{t("savedMeals.noMeals")}</p>
+            <p className="text-white/40 text-sm">{t("savedMeals.noMealsHint")}</p>
           </div>
         )}
 
@@ -403,7 +400,7 @@ export default function SavedMeals() {
 
             {hasDiabetic && BGL_SECTIONS.map((section) => {
               const sectionMeals = diabeticMeals.filter((r: any) =>
-                section.buckets.includes(r.bglBucket as any)
+                (section.buckets as readonly string[]).includes(r.bglBucket)
               );
               if (sectionMeals.length === 0) return null;
               return (
@@ -428,8 +425,8 @@ export default function SavedMeals() {
                   <div className="flex items-center gap-2 px-1 pt-2">
                     <span className="w-2 h-2 rounded-full bg-white/30 shrink-0" />
                     <div>
-                      <div className="text-sm font-semibold text-white/60">Other Saved Meals</div>
-                      <div className="text-xs text-white/40">Meals from all other builders</div>
+                      <div className="text-sm font-semibold text-white/60">{t("savedMeals.otherMeals")}</div>
+                      <div className="text-xs text-white/40">{t("savedMeals.otherMealsDesc")}</div>
                     </div>
                   </div>
                 )}

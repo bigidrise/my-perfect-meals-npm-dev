@@ -192,58 +192,56 @@ router.post('/sources', requireAuth, async (req, res) => {
   }
 });
 
-// Macro logging endpoint for meal generators
+// Macro logging endpoint — delegates to canonical macroLogService.
+// Accepts legacy biometrics-format payload (calories_kcal, protein_g, carbs_g, fat_g)
+// and maps it to the canonical service so all paths share one write implementation.
 router.post('/log', requireAuth, async (req, res) => {
   try {
     const userId = getAuthUserId(req);
-    const { date_iso, meal_type, calories_kcal, protein_g, carbs_g, fat_g, source, title, meal_id } = req.body;
+    const {
+      date_iso,
+      meal_type,
+      calories_kcal,
+      protein_g,
+      carbs_g,
+      fat_g,
+      starchy_g,
+      fiber_g,
+      source,
+      title,
+      meal_id,
+    } = req.body;
 
-    console.log("POST /api/biometrics/log", { userId });
-
-    // Validate required fields
     if (!calories_kcal && !protein_g && !carbs_g && !fat_g) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'At least one macro value is required',
-        detail: 'Please provide calories, protein, carbs, or fat'
+        detail: 'Please provide calories, protein, carbs, or fat',
       });
     }
 
-    // Import and use the existing food logs system
-    const { foodLogs } = await import('../../shared/schema') as any;
-
-    const [insertedRow] = (await db.insert(foodLogs).values({
+    const { writeMacroLog } = await import('../services/macroLogService');
+    const row = await writeMacroLog({
       userId,
-      loggedAt: new Date(date_iso || new Date().toISOString()),
-      mealType: meal_type || "lunch",
-      foodName: title || "Meal",
-      qty: "1",
-      unit: "serving",
       calories: Number(calories_kcal) || 0,
-      proteinG: String(Number(protein_g) || 0),
-      carbsG: String(Number(carbs_g) || 0),
-      fatG: String(Number(fat_g) || 0),
-      meta: {
-        source: source || "manual",
-        mealId: meal_id
-      }
-    }).returning()) as any[];
-
-    console.log("[biometrics] Log saved:", insertedRow.id);
-
-    // Trigger UI refresh events
-    res.status(201).json({ 
-      ok: true, 
-      id: insertedRow.id,
-      message: "Macro logged successfully" 
+      protein: Number(protein_g) || 0,
+      carbohydrates: Number(carbs_g) || 0,
+      fat: Number(fat_g) || 0,
+      fiber: fiber_g != null ? Number(fiber_g) : null,
+      starchyCarbs: starchy_g != null ? Number(starchy_g) : null,
+      source: String(source || "quick"),
+      mealType: meal_type,
+      dateIso: date_iso,
+      mealId: meal_id,
+      title,
     });
 
+    res.status(201).json({ ok: true, id: row?.id, message: "Macro logged successfully" });
   } catch (error: any) {
     console.error('❌ Biometrics log error:', error);
-    console.error('Error stack:', error?.stack);
-    res.status(500).json({ 
-      error: 'Failed to log macros', 
+    res.status(500).json({
+      error: 'Failed to log macros',
       detail: error?.message || 'Unknown error',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   }
 });

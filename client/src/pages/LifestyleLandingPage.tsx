@@ -21,6 +21,7 @@ import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { isProOrAbove, isClinicalOrAbove, hasActivePaidSubscription } from "@/lib/subscriptionCheck";
+import { useTranslation } from "react-i18next";
 
 interface AIFeature {
   title: string;
@@ -54,6 +55,7 @@ export default function LifestyleLandingPage() {
   const { requestUpgrade } = useUpgradeModal();
   const [featuredKitchens, setFeaturedKitchens] = useState<FeaturedKitchen[]>([]);
   const [kitchensIsAdmin, setKitchensIsAdmin] = useState(false);
+  const { t } = useTranslation("lifestyle");
 
   useEffect(() => {
     fetch(apiUrl("/api/kitchens/featured"), { headers: getAuthHeaders() })
@@ -72,9 +74,8 @@ export default function LifestyleLandingPage() {
 
   const lifestyleFeatures: AIFeature[] = [
     {
-      title: "Create a Dish",
-      description:
-        "Tell Chef what you want to cook. Get a complete recipe with macros, ingredients, and instructions.",
+      title: t("createDishTitle"),
+      description: t("createDishDesc"),
       icon: ChefHat,
       route: "/lifestyle/create-a-dish",
       gradient: "from-orange-500/20 to-red-500/20",
@@ -83,9 +84,8 @@ export default function LifestyleLandingPage() {
       badge: "emotion",
     },
     {
-      title: "Cravings, Sushi & Desserts Hub",
-      description:
-        "Craving Creator, Sushi Creator, and Dessert Creator — all in one place.",
+      title: t("cravingsTitle"),
+      description: t("cravingsDesc"),
       icon: Sparkles,
       route: "/craving-creator-landing",
       gradient: "from-orange-500/20 to-red-500/20",
@@ -94,9 +94,8 @@ export default function LifestyleLandingPage() {
       badge: "emotion",
     },
     {
-      title: "Beverage Creator Hub",
-      description:
-        "Create smoothies, protein shakes, coffee drinks, mocktails, cocktails, and more with AI.",
+      title: t("beverageTitle"),
+      description: t("beverageDesc"),
       icon: Wine,
       route: "/lifestyle/beverage-hub",
       gradient: "from-blue-500/20 to-cyan-500/20",
@@ -105,9 +104,8 @@ export default function LifestyleLandingPage() {
       badge: "behavioral",
     },
     {
-      title: "Spirit & Wine Pairing Hub",
-      description:
-        "AI, spirit, wine & beer pairing, wine list translator, and a drink reducing tool.",
+      title: t("pairingsTitle"),
+      description: t("pairingsDesc"),
       icon: Wine,
       route: "/lifestyle/pairings-hub",
       gradient: "from-orange-500/20 to-amber-500/20",
@@ -116,8 +114,8 @@ export default function LifestyleLandingPage() {
       badge: "behavioral",
     },
     {
-      title: "Fridge Rescue",
-      description: "Transform ingredients in your kitchen into delicious meals",
+      title: t("fridgeRescueTitle"),
+      description: t("fridgeRescueDesc"),
       icon: RefrigeratorIcon,
       route: "/fridge-rescue",
       gradient: "from-emerald-500/20 to-teal-500/20",
@@ -126,8 +124,8 @@ export default function LifestyleLandingPage() {
       badge: "behavioral",
     },
     {
-      title: "Meals Away From Home",
-      description: "Make smart choices when eating out with AI guidance",
+      title: t("awayFromHomeTitle"),
+      description: t("awayFromHomeDesc"),
       icon: Utensils,
       route: "/social-hub",
       gradient: "from-pink-500/20 to-purple-500/20",
@@ -136,8 +134,8 @@ export default function LifestyleLandingPage() {
       badge: "behavioral",
     },
     {
-      title: "My Perfect Pets",
-      description: "Personalized homemade dog meals, ingredient safety scanning, and wellness nutrition — built on the same adaptive protocol engine as your own meals.",
+      title: t("petsTitle"),
+      description: t("petsDesc"),
       icon: PawPrint,
       route: "/companion",
       gradient: "from-orange-600/20 to-amber-700/20",
@@ -188,7 +186,7 @@ export default function LifestyleLandingPage() {
         >
           <div className="px-8 py-3 flex items-center gap-3">
             <Sparkles className="h-6 w-6 text-orange-500" />
-            <h1 className="text-lg font-bold text-white">Lifestyle</h1>
+            <h1 className="text-lg font-bold text-white">{t("title")}</h1>
           </div>
         </div>
       )}
@@ -209,8 +207,7 @@ export default function LifestyleLandingPage() {
             <div className="absolute bottom-4 left-4 right-4">
               <div className="bg-black/55 backdrop-blur-sm rounded-xl px-3 py-2.5">
                 <p className="text-white/90 text-sm">
-                  Navigate cravings, dining out, and social moments with
-                  AI-powered guidance.
+                  {t("heroText")}
                 </p>
               </div>
             </div>
@@ -328,11 +325,11 @@ export default function LifestyleLandingPage() {
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center gap-2">
                     <span className={`text-base ${pregnancyLocked ? "opacity-50" : ""}`}>🩷</span>
-                    <h3 className={`text-sm font-semibold ${pregnancyLocked ? "text-white/50" : "text-white"}`}>My Perfect Pregnancy</h3>
+                    <h3 className={`text-sm font-semibold ${pregnancyLocked ? "text-white/50" : "text-white"}`}>{t("pregnancyTitle")}</h3>
                     {pregnancyLocked && <Lock className="h-3 w-3 text-orange-400/70 ml-auto" />}
                   </div>
                   <p className={`text-xs ml-6 ${pregnancyLocked ? "text-white/40" : "text-white/80"}`}>
-                    Nutrition, food safety &amp; support through every stage of your journey
+                    {t("pregnancyDesc")}
                   </p>
                 </div>
               </CardContent>
@@ -381,7 +378,7 @@ export default function LifestyleLandingPage() {
                     <h3
                       className={`text-sm font-semibold ${getawayLocked ? "text-white/50" : "text-white"}`}
                     >
-                      My Perfect Getaway
+                      {t("getawayTitle")}
                     </h3>
                     {getawayLocked && (
                       <Lock className="h-3 w-3 text-orange-400/70 ml-auto" />
@@ -390,7 +387,7 @@ export default function LifestyleLandingPage() {
                   <p
                     className={`text-xs ml-6 ${getawayLocked ? "text-white/40" : "text-white/80"}`}
                   >
-                    Disney, airports, cruises &amp; theme parks — your coach travels with you
+                    {t("getawayDesc")}
                   </p>
                 </div>
               </CardContent>
@@ -432,7 +429,7 @@ export default function LifestyleLandingPage() {
                     <h3
                       className={`text-sm font-semibold ${gatheringsLocked ? "text-white/50" : "text-white"}`}
                     >
-                      My Perfect Gatherings
+                      {t("gatheringsTitle")}
                     </h3>
                     {gatheringsLocked && (
                       <Lock className="h-3 w-3 text-amber-400/70 ml-auto" />
@@ -441,8 +438,7 @@ export default function LifestyleLandingPage() {
                   <p
                     className={`text-xs ml-6 ${gatheringsLocked ? "text-white/40" : "text-white/80"}`}
                   >
-                    Plan full meals for holidays, camping, tailgating &amp;
-                    special occasions
+                    {t("gatheringsDesc")}
                   </p>
                 </div>
               </CardContent>
@@ -576,13 +572,13 @@ export default function LifestyleLandingPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <h3 className="text-sm font-semibold text-white truncate">
-                          {user.creatorDisplayName || "My Studio"}
+                          {user.creatorDisplayName || t("myStudio")}
                         </h3>
                         <span className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/30 flex-shrink-0">
-                          Active
+                          {t("creatorStudioLabel")}
                         </span>
                       </div>
-                      <p className="text-xs text-white/60 mt-0.5">Your creator studio — tap to enter</p>
+                      <p className="text-xs text-white/60 mt-0.5">{t("creatorStudioSubtitle")}</p>
                     </div>
                     <ArrowRight className="h-4 w-4 text-orange-400 flex-shrink-0" />
                   </div>

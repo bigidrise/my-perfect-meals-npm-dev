@@ -23,6 +23,7 @@ import {
   Navigation,
   Copy,
   CalendarPlus,
+  Globe,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
@@ -113,9 +114,32 @@ type CachedMealFinderState = {
 };
 
 function saveMealFinderCache(state: CachedMealFinderState) {
+  // Strip imageUrl from every meal before saving — base64 images are 1–2 MB each
+  // and silently blow the 5 MB localStorage quota, wiping the entire cache.
+  // Images are re-fetched on mount via useChefFlowImages (hits server memCache fast).
+  const stripped: CachedMealFinderState = {
+    ...state,
+    results: state.results.map((r) => ({
+      ...r,
+      meal: { ...r.meal, imageUrl: undefined },
+    })),
+  };
   try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify(state));
-  } catch {}
+    localStorage.setItem(CACHE_KEY, JSON.stringify(stripped));
+  } catch (err: any) {
+    if (err?.name === "QuotaExceededError" || err?.code === 22) {
+      try {
+        // Evict other mpm.* image cache keys and retry once
+        const toEvict: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k !== CACHE_KEY && k.startsWith("mpm.")) toEvict.push(k);
+        }
+        toEvict.forEach((k) => localStorage.removeItem(k));
+        localStorage.setItem(CACHE_KEY, JSON.stringify(stripped));
+      } catch { /* quota still exceeded — cache lost for this session */ }
+    }
+  }
 }
 
 function loadMealFinderCache(): CachedMealFinderState | null {
@@ -150,6 +174,8 @@ interface MealResult {
     calories: number;
     protein: number;
     carbs: number;
+    starchyCarbs?: number;
+    fibrousCarbs?: number;
     fat: number;
     reason: string;
     modifications: string;
@@ -258,6 +284,8 @@ export default function MealFinder() {
   const { imageMap: chefFlowImages, failedSet: chefFlowFailed } = useChefFlowImages(chefFlowMeals, "restaurant");
 
   const [progress, setProgress] = useState(0);
+  const [mealTranslations, setMealTranslations] = useState<Record<string, { lang: string; data: any }>>({});
+  const [translatingId, setTranslatingId] = useState<string | null>(null);
   const hasRestoredRef = useRef(false);
   const hasSpokenEntryRef = useRef(false);
 
@@ -987,25 +1015,25 @@ export default function MealFinder() {
 
                         <div className="grid grid-cols-4 gap-2 mb-3">
                           <div className="text-center bg-white/10 rounded p-2">
-                            <div className="text-lg font-bold text-white">
-                              {result.meal.calories}
-                            </div>
-                            <div className="text-white/60 text-xs">Cal</div>
-                          </div>
-                          <div className="text-center bg-white/10 rounded p-2">
-                            <div className="text-lg font-bold text-white">
+                            <div className="text-lg font-bold text-blue-400">
                               {result.meal.protein}g
                             </div>
                             <div className="text-white/60 text-xs">Protein</div>
                           </div>
                           <div className="text-center bg-white/10 rounded p-2">
-                            <div className="text-lg font-bold text-white">
-                              {result.meal.carbs}g
+                            <div className="text-lg font-bold text-orange-400">
+                              {result.meal.starchyCarbs != null ? `${result.meal.starchyCarbs}g` : "—"}
                             </div>
-                            <div className="text-white/60 text-xs">Carbs</div>
+                            <div className="text-white/60 text-xs">Starchy</div>
                           </div>
                           <div className="text-center bg-white/10 rounded p-2">
-                            <div className="text-lg font-bold text-white">
+                            <div className="text-lg font-bold text-green-400">
+                              {result.meal.fibrousCarbs != null ? `${result.meal.fibrousCarbs}g` : "—"}
+                            </div>
+                            <div className="text-white/60 text-xs">Fibrous</div>
+                          </div>
+                          <div className="text-center bg-white/10 rounded p-2">
+                            <div className="text-lg font-bold text-yellow-400">
                               {result.meal.fat}g
                             </div>
                             <div className="text-white/60 text-xs">Fat</div>
@@ -1075,6 +1103,8 @@ export default function MealFinder() {
                               setQuickView({
                                 protein: Math.round(result.meal.protein || 0),
                                 carbs: Math.round(result.meal.carbs || 0),
+                                starchyCarbs: result.meal.starchyCarbs != null ? Math.round(result.meal.starchyCarbs) : undefined,
+                                fibrousCarbs: result.meal.fibrousCarbs != null ? Math.round(result.meal.fibrousCarbs) : undefined,
                                 fat: Math.round(result.meal.fat || 0),
                                 calories: Math.round(result.meal.calories || 0),
                                 dateISO: new Date().toISOString().slice(0, 10),
@@ -1112,6 +1142,116 @@ export default function MealFinder() {
                               fat: result.meal.fat,
                             }}
                           />
+
+                          {/* Translate */}
+                          {(() => {
+                            const cardKey = `find-meals-${result.restaurantName}-${index}`;
+                            const translation = mealTranslations[cardKey];
+                            const TRANSLATE_LANGUAGES = [
+                              { code: "es", label: "Spanish" },
+                              { code: "fr", label: "French" },
+                              { code: "de", label: "German" },
+                              { code: "it", label: "Italian" },
+                              { code: "pt", label: "Portuguese" },
+                              { code: "zh", label: "Chinese" },
+                              { code: "ja", label: "Japanese" },
+                              { code: "ko", label: "Korean" },
+                              { code: "ar", label: "Arabic" },
+                              { code: "hi", label: "Hindi" },
+                              { code: "ru", label: "Russian" },
+                              { code: "vi", label: "Vietnamese" },
+                              { code: "tl", label: "Tagalog" },
+                            ];
+                            return (
+                              <div className="mt-3 border-t border-white/10 pt-3">
+                                <div className="flex items-center gap-1.5 mb-2">
+                                  <Globe className="h-3.5 w-3.5 text-white/50" />
+                                  <span className="text-xs text-white/50 uppercase tracking-wide font-medium">Translate</span>
+                                  {translation && (
+                                    <button
+                                      onClick={() => {
+                                        setMealTranslations((prev) => {
+                                          const next = { ...prev };
+                                          delete next[cardKey];
+                                          return next;
+                                        });
+                                      }}
+                                      className="ml-auto text-white/40 text-xs"
+                                    >
+                                      Clear
+                                    </button>
+                                  )}
+                                </div>
+                                <div className="flex flex-wrap gap-1.5 mb-2">
+                                  {TRANSLATE_LANGUAGES.map((lang) => (
+                                    <button
+                                      key={lang.code}
+                                      disabled={translatingId === cardKey}
+                                      onClick={async () => {
+                                        if (translation?.lang === lang.code) return;
+                                        setTranslatingId(cardKey);
+                                        try {
+                                          const payload = {
+                                            name: result.meal.name,
+                                            description: result.meal.description,
+                                            reason: result.meal.reason,
+                                            modifications: result.meal.modifications,
+                                            medicalWaiterScript: result.meal.medicalWaiterScript,
+                                          };
+                                          const translated = await apiRequest("/api/translate", {
+                                            method: "POST",
+                                            headers: { "Content-Type": "application/json" },
+                                            body: JSON.stringify({ content: payload, targetLanguage: lang.code }),
+                                          });
+                                          setMealTranslations((prev) => ({
+                                            ...prev,
+                                            [cardKey]: { lang: lang.code, data: translated },
+                                          }));
+                                        } catch {
+                                          // silent — translate is non-critical
+                                        } finally {
+                                          setTranslatingId(null);
+                                        }
+                                      }}
+                                      className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                                        translation?.lang === lang.code
+                                          ? "bg-orange-600 text-white"
+                                          : "bg-white/10 text-white/80"
+                                      }`}
+                                    >
+                                      {translatingId === cardKey ? (
+                                        <Loader2 className="h-3 w-3 animate-spin inline" />
+                                      ) : (
+                                        lang.label
+                                      )}
+                                    </button>
+                                  ))}
+                                </div>
+                                {translation && (
+                                  <div className="bg-black/30 border border-white/10 rounded-lg p-3 space-y-2">
+                                    {translation.data.name && (
+                                      <p className="text-white font-semibold text-sm">{translation.data.name}</p>
+                                    )}
+                                    {translation.data.description && (
+                                      <p className="text-white/70 text-sm">{translation.data.description}</p>
+                                    )}
+                                    {translation.data.modifications && (
+                                      <div>
+                                        <span className="text-orange-300 text-xs font-medium">Ask For: </span>
+                                        <span className="text-orange-200 text-sm">{translation.data.modifications}</span>
+                                      </div>
+                                    )}
+                                    {translation.data.medicalWaiterScript && (
+                                      <div>
+                                        <span className="text-rose-300 text-xs font-medium">Tell Your Server: </span>
+                                        <span className="text-rose-200 text-sm italic">"{translation.data.medicalWaiterScript}"</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
                     </div>

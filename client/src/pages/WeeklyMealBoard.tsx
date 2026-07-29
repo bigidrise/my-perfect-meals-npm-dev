@@ -60,6 +60,7 @@ import { buildDiversityContext, type DiversityContext } from "@/lib/diversityCon
 import { useOnboardingProfile } from "@/hooks/useOnboardingProfile";
 import { computeTargetsFromOnboarding, sumBoard } from "@/lib/targets";
 import { useTodayMacros } from "@/hooks/useTodayMacros";
+import { useTranslation } from "react-i18next";
 import { useMidnightReset } from "@/hooks/useMidnightReset";
 import {
   getWeekStartISOInTZ,
@@ -191,6 +192,7 @@ export default function WeeklyMealBoard() {
   usePageTitle("Weekly Meal Builder");
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { t } = useTranslation("weeklyBoard");
   const isDesktop = useIsDesktop();
   const queryClient = useQueryClient();
   const { runAction, open, startWalkthrough } = useCopilot();
@@ -1367,7 +1369,7 @@ export default function WeeklyMealBoard() {
       transition={{ duration: 0.6 }}
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-28 overflow-x-hidden"
     >
-      <BuilderHeader title="Weekly Meal Builder" onOpenTour={quickTour.openTour} clientId={proClientId} />
+      <BuilderHeader title={t("title")} onOpenTour={quickTour.openTour} clientId={proClientId} />
 
       {/* Main Content */}
       <div

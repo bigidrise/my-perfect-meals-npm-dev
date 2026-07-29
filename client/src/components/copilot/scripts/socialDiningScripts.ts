@@ -16,7 +16,7 @@ export const FIND_MY_MEAL_GENERATING =
 
 // === RESTAURANT GUIDE ===
 export const RESTAURANT_GUIDE_ENTRY =
-  "Welcome to the Restaurant Guide. I'll help find the best options at your favorite restaurants.";
+  "Welcome to the Restaurant Assistant. I'll help find the best options at your favorite restaurants.";
 
 export const RESTAURANT_GUIDE_STEP1 =
   "What kind of dish sounds good right now?";

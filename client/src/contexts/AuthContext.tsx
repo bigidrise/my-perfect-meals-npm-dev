@@ -10,6 +10,7 @@ import {
 
 import { User, getCurrentUser, getAuthHeaders, getAuthToken, clearAuthToken } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
+import i18n, { resolveI18nLang } from "@/i18n";
 import { isGuestMode, getGuestSession } from "@/lib/guestMode";
 import { setUserContext, clearUserContext } from "@/lib/sentry";
 
@@ -147,6 +148,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           backAt: userData.backAt ?? null,
           measurementSystem: userData.measurementSystem || "imperial",
           countryCode: userData.countryCode || "US",
+          preferredLanguage: userData.preferredLanguage || "auto",
           pregnancyStage: userData.pregnancyStage ?? null,
           pregnancyDueDate: userData.pregnancyDueDate ?? null,
           pregnancySupportContext: userData.pregnancySupportContext ?? null,
@@ -219,6 +221,34 @@ export function AuthProvider({ children }: AuthProviderProps) {
     window.addEventListener("mpm:user-updated", handleUserUpdated);
     return () => window.removeEventListener("mpm:user-updated", handleUserUpdated);
   }, [refreshUser]);
+
+  // Sync i18n language whenever user's preferredLanguage changes.
+  useEffect(() => {
+    if (!user) return;
+    const lang = resolveI18nLang(user.preferredLanguage);
+    if (i18n.language !== lang) {
+      i18n.changeLanguage(lang);
+    }
+  }, [user?.preferredLanguage]);
+
+  // Auto-detect language from device when user's preference is "auto".
+  // Saves the resolved language to the profile so all AI generation uses it.
+  useEffect(() => {
+    if (!user || user.preferredLanguage !== "auto") return;
+    const SUPPORTED = ["es","fr","de","it","pt","zh","ja","ko","ar","hi","ru","vi","tl"];
+    const deviceLang = (navigator.language || "en").split("-")[0].toLowerCase();
+    if (!SUPPORTED.includes(deviceLang)) return; // English or unsupported → keep "auto"
+    const token = getAuthToken();
+    if (!token) return;
+    fetch(apiUrl("/api/user/preferences"), {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+      body: JSON.stringify({ preferredLanguage: deviceLang }),
+    }).then(() => {
+      refreshUser().catch(() => {});
+    }).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, user?.preferredLanguage]);
 
   // On app resume (tab becomes visible after being hidden), re-probe the session
   // if it has been more than 5 minutes since the last successful refresh.

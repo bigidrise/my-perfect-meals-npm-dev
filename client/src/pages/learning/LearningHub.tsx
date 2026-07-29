@@ -33,6 +33,9 @@ export default function LearningHub() {
     if (!user) return;
     (async () => {
       try {
+        // platformRes = ProCare Certification (platform cert) — displayed in the Phase 2 card.
+        // phase1Res = Business Success Certification (affiliate_social) — displayed in Phase 1 card.
+        // These are the Affiliate Coaching path steps, distinct from Platform Mastery Academy.
         const [platformRes, phase1Res, affiliateRes, updatesRes] = await Promise.allSettled([
           apiRequest("/api/certifications/platform/progress"),
           apiRequest("/api/certifications/affiliate_social/progress"),

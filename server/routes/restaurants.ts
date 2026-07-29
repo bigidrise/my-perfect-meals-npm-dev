@@ -1,8 +1,8 @@
 // 🔒 RESTAURANT GUIDE BACKEND - SHARED RESOLVER + AI MEALS 🔒
 // Refactored: Uses shared Restaurant Resolver (January 2026)
+// Phase 2: Restaurant Intelligence Engine integration
 import { Router } from "express";
 import axios from "axios";
-import { generateRestaurantMealsAI } from "../services/restaurantMealGeneratorAI";
 import { resolveRestaurantsByZip } from "../services/restaurantResolver";
 import { coordsToZip } from "../services/zipToCoordsService";
 import { db } from "../db";
@@ -14,11 +14,17 @@ import { scoreRestaurantsForDiet, buildDietQuery } from "../services/restaurantS
 import { zipToCoordinates } from "../services/zipToCoordsService";
 import { processMealImageForSave } from "../services/imageLifecycle";
 import type { AuthenticatedRequest } from "../middleware/requireAuth";
+import { restaurantEngine, officialJsonProvider } from "../services/away-from-home/ProviderRegistry";
+import { findBrandBySlug, getAllBrands } from "../services/away-from-home/BrandRegistry";
+import { generateMenuItemRecommendations } from "../services/away-from-home/generateMenuItemRecommendations";
+import { generateRestaurantMealsAI } from "../services/restaurantMealGeneratorAI";
 
 const router = Router();
 
 // Smart Restaurant Guide endpoint with craving + restaurant + ZIP code
-// Uses shared Restaurant Resolver for location logic
+// Phase 2: Routes through RestaurantIntelligenceEngine for verified menu data.
+// When the engine has menu data → AI selects from real items.
+// When the engine has no data → returns explicit unavailable state, no invention.
 router.post("/guide", async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser.id;
@@ -36,22 +42,32 @@ router.post("/guide", async (req, res) => {
       });
     }
 
-    console.log(`🍽️ Smart Restaurant Guide: "${craving}" at "${restaurantName}" near ZIP ${zipCode}`);
+    console.log(`🍽️ [Guide] "${craving}" at "${restaurantName}" near ZIP ${zipCode}`);
     
     const generationStart = Date.now();
 
-    let user = undefined;
+    // ── Load user profile ──────────────────────────────────────────────────────
+    let user: any = undefined;
     try {
       const [foundUser] = await db.select().from(users).where(eq(users.id, userId));
       if (foundUser) {
         user = foundUser;
-        console.log(`👤 [Guide] User profile loaded for meal generation`);
+        console.log(`👤 [Guide] User profile loaded`);
       }
     } catch (userError) {
-      console.warn(`⚠️ Could not fetch user profile:`, userError);
+      console.warn(`⚠️ [Guide] Could not fetch user profile:`, userError);
     }
 
-    // Step 1: Use shared resolver to find the restaurant
+    // Merge body-supplied dietary restrictions into user so engine pre-filter is constrained
+    const bodyDiet: string[] = dietaryRestrictions
+      ? (Array.isArray(dietaryRestrictions) ? dietaryRestrictions : [dietaryRestrictions]).filter(Boolean)
+      : [];
+    const effectiveDiet: string[] = Array.from(
+      new Set([...((user?.dietaryRestrictions as string[]) || []), ...bodyDiet])
+    );
+    const effectiveAllergies: string[] = (user?.allergies as string[]) || [];
+
+    // ── Step 1: Resolve location (for display, not for engine routing) ─────────
     const resolverResult = await resolveRestaurantsByZip({
       query: restaurantName,
       zipCode,
@@ -59,86 +75,137 @@ router.post("/guide", async (req, res) => {
       limit: 1,
       searchMode: 'restaurant'
     });
-    
-    let restaurantInfo;
+
+    let restaurantInfo: { name: string; address: string; rating?: number; photoUrl?: string };
     let detectedCuisine = cuisine || 'American';
-    
+
     if (resolverResult.success && resolverResult.restaurants.length > 0) {
-      const restaurant = resolverResult.restaurants[0];
-      detectedCuisine = restaurant.cuisine;
-      
-      restaurantInfo = {
-        name: restaurant.name,
-        address: restaurant.address,
-        rating: restaurant.rating,
-        photoUrl: restaurant.photoUrl
-      };
-      
-      console.log(`✅ Found restaurant via resolver: ${restaurantInfo.name} at ${restaurantInfo.address}`);
+      const r = resolverResult.restaurants[0];
+      detectedCuisine = r.cuisine;
+      restaurantInfo = { name: r.name, address: r.address, rating: r.rating, photoUrl: r.photoUrl };
+      console.log(`📍 [Guide] Resolver found: ${restaurantInfo.name} at ${restaurantInfo.address}`);
     } else {
-      console.warn(`⚠️ Restaurant "${restaurantName}" not found near ZIP ${zipCode}, using input name`);
-      restaurantInfo = {
-        name: restaurantName,
-        address: `Near ${zipCode}`,
-        rating: undefined,
-        photoUrl: undefined
-      };
-    }
-    
-    // Merge body-supplied dietary restrictions into the user object so the AI prompt is constrained
-    const bodyDiet: string[] = dietaryRestrictions
-      ? (Array.isArray(dietaryRestrictions) ? dietaryRestrictions : [dietaryRestrictions]).filter(Boolean)
-      : [];
-    let aiUser = user;
-    if (bodyDiet.length > 0) {
-      const existing = (user?.dietaryRestrictions as string[]) || [];
-      const merged = Array.from(new Set([...existing, ...bodyDiet]));
-      aiUser = { ...(user || {}), dietaryRestrictions: merged } as any;
+      console.warn(`⚠️ [Guide] Resolver found nothing for "${restaurantName}" — using input name`);
+      restaurantInfo = { name: restaurantName, address: `Near ${zipCode}` };
     }
 
-    // ── Unified nutrition context (protocol + active builder) ─────────────────
+    // ── Step 2: Restaurant Intelligence Engine ────────────────────────────────
+    // The engine resolves the restaurant name to verified menu items.
+    // If the engine returns "unavailable" we return that state to the client.
+    // We NEVER fall back to menu invention on an "unavailable" result.
+    const engineResult = await restaurantEngine.resolve({
+      restaurantName,
+      dietaryRestrictions: effectiveDiet,
+      allergies: effectiveAllergies,
+    });
+
+    if (engineResult.status === "unavailable") {
+      // Engine has no verified menu data for this restaurant.
+      // Fall back to AI generation so Restaurant Guide and Fast Food Hub always work.
+      console.log(
+        `ℹ️ [Guide] Engine: unavailable for "${restaurantName}" (reason: ${engineResult.reason}). ` +
+        `Falling back to AI generation.`
+      );
+
+      const aiUser = bodyDiet.length > 0
+        ? { ...(user || {}), dietaryRestrictions: effectiveDiet } as any
+        : user;
+
+      const aiRecs = await generateRestaurantMealsAI({
+        restaurantName: restaurantInfo.name,
+        cuisine: detectedCuisine,
+        cravingContext: craving,
+        user: aiUser,
+      });
+
+      const generationTime = Date.now() - generationStart;
+      console.log(`✅ [Guide/AI] ${aiRecs.length} recs in ${generationTime}ms`);
+
+      res.json({
+        recommendations: aiRecs,
+        restaurantInfo,
+        restaurantName: restaurantInfo.name,
+        craving,
+        cuisine: detectedCuisine,
+        generatedAt: new Date().toISOString(),
+        generationTime,
+      });
+
+      // Fire-and-forget: persist session
+      if (aiRecs.length > 0) {
+        (async () => {
+          try {
+            await db.insert(restaurantGuideSessions).values({
+              userId: String(userId),
+              restaurantName: restaurantInfo.name,
+              restaurantInfo: restaurantInfo as any,
+              craving: craving || null,
+              cuisine: detectedCuisine,
+              zipCode: zipCode || null,
+              meals: aiRecs as any,
+            });
+          } catch (saveErr) {
+            console.error(`⚠️ [Guide/AI] Failed to persist session:`, saveErr);
+          }
+        })();
+      }
+
+      return;
+    }
+
+    // Engine returned ok — we have verified menu items (Phase 2: Wendy's etc.)
+    const { identity, items, source, menuLastVerifiedAt } = engineResult;
+    console.log(
+      `✅ [Guide] Engine resolved ${items.length} items for "${identity.displayName}" via source="${source}"`
+    );
+
+    // ── Step 3: Nutrition context (protocol + active builder) ─────────────────
     const guideContext = await getActiveNutritionContext(userId);
-    const guideProtocolBlock = guideContext.combinedBlock;
-    console.log(`🔒 [GUIDE] Nutrition context: diet=[${guideContext.diet.join(",")}] medical=[${guideContext.medical.length} flags] builder=${guideContext.builder ?? "none"}`);
+    console.log(
+      `🔒 [Guide] Nutrition context: diet=[${guideContext.diet.join(",")}] ` +
+      `medical=[${guideContext.medical.length} flags] builder=${guideContext.builder ?? "none"}`
+    );
 
-    // Step 2: Generate AI meal recommendations for this restaurant
-    const recommendations = await generateRestaurantMealsAI({
-      restaurantName: restaurantInfo.name,
-      cuisine: detectedCuisine,
-      cravingContext: craving,
+    // ── Step 4: AI reasons over verified items ─────────────────────────────────
+    const aiUser = bodyDiet.length > 0
+      ? { ...(user || {}), dietaryRestrictions: effectiveDiet } as any
+      : user;
+
+    const recommendations = await generateMenuItemRecommendations({
+      restaurantName,
+      restaurantIdentity: identity,
+      restaurantInfo,
+      menuItems: items,
+      menuSource: source,
+      menuLastVerifiedAt,
+      craving,
       user: aiUser,
-      protocolBlock: guideProtocolBlock,
+      protocolBlock: guideContext.combinedBlock,
       protocolEnvelope: guideContext.envelope,
       builderBlock: guideContext.builderBlock || undefined,
     });
 
     const generationTime = Date.now() - generationStart;
-    console.log(`✅ Generated ${recommendations.length} recommendations in ${generationTime}ms`);
+    console.log(`✅ [Guide] ${recommendations.length} recommendations in ${generationTime}ms`);
 
-    // Respond immediately — do not block on DB save
+    // ── Respond immediately — do not block on DB save ──────────────────────────
     res.json({
+      status: "ok",
       recommendations,
       restaurantInfo,
       restaurantName: restaurantInfo.name,
       craving,
       cuisine: detectedCuisine,
+      menuSource: source,
+      menuLastVerifiedAt,
       generatedAt: new Date().toISOString(),
-      generationTime
+      generationTime,
     });
 
-    // Fire-and-forget: persist session to DB with permanent image URLs
+    // ── Fire-and-forget: persist session ───────────────────────────────────────
     if (recommendations.length > 0) {
       (async () => {
         try {
-          const mealsWithImages = await Promise.all(
-            recommendations.map(async (meal: any) => {
-              if (meal.imageUrl) {
-                const result = await processMealImageForSave(meal.imageUrl, meal.name || meal.meal || "restaurant meal");
-                return { ...meal, imageUrl: result.imageUrl };
-              }
-              return meal;
-            })
-          );
           await db.insert(restaurantGuideSessions).values({
             userId: String(userId),
             restaurantName: restaurantInfo.name,
@@ -146,17 +213,17 @@ router.post("/guide", async (req, res) => {
             craving: craving || null,
             cuisine: detectedCuisine,
             zipCode: zipCode || null,
-            meals: mealsWithImages as any,
+            meals: recommendations as any,
           });
-          console.log(`💾 [Guide] Session saved to DB for user ${userId} (${mealsWithImages.length} meals)`);
+          console.log(`💾 [Guide] Session saved (${recommendations.length} recs, source=${source})`);
         } catch (saveErr) {
-          console.error(`⚠️ [Guide] Failed to persist session to DB:`, saveErr);
+          console.error(`⚠️ [Guide] Failed to persist session:`, saveErr);
         }
       })();
     }
 
   } catch (error) {
-    console.error("Smart Restaurant Guide error:", error);
+    console.error("[Guide] Error:", error);
     return res.status(500).json({ 
       error: "Failed to generate restaurant recommendations",
       details: error instanceof Error ? error.message : "Unknown error"
@@ -181,64 +248,9 @@ router.get("/latest-session", async (req, res) => {
   }
 });
 
-// Restaurant meal generation endpoint - uses AI with fallback
-router.post("/analyze-menu", async (req, res) => {
-  try {
-    const userId = (req as AuthenticatedRequest).authUser.id;
-    const { restaurantName, cuisine } = req.body;
-    
-    if (!restaurantName || !cuisine) {
-      return res.status(400).json({ 
-        error: "Restaurant name and cuisine are required" 
-      });
-    }
-
-    console.log(`🍽️ Generating restaurant meals for ${restaurantName} (${cuisine} cuisine)`);
-    
-    // Fetch user data for health-based personalization
-    let user = undefined;
-    try {
-      const [foundUser] = await db.select().from(users).where(eq(users.id, userId));
-      if (foundUser) {
-        user = foundUser;
-        console.log(`👤 User medical profile loaded`);
-      }
-    } catch (userError) {
-      console.warn(`⚠️ Could not fetch user profile:`, userError);
-    }
-    
-    // ── Unified nutrition context (protocol + active builder) ─────────────────
-    const analyzeContext = await getActiveNutritionContext(userId);
-    const analyzeProtocolBlock = analyzeContext.combinedBlock;
-    console.log(`🔒 [ANALYZE-MENU] Nutrition context: diet=[${analyzeContext.diet.join(",")}] medical=[${analyzeContext.medical.length} flags] builder=${analyzeContext.builder ?? "none"}`);
-
-    // Use AI generator (automatically falls back to locked generator if AI fails)
-    const recommendations = await generateRestaurantMealsAI({
-      restaurantName: restaurantName || `${cuisine} Restaurant`,
-      cuisine: cuisine || "International",
-      user,
-      protocolBlock: analyzeProtocolBlock,
-      protocolEnvelope: analyzeContext.envelope,
-      builderBlock: analyzeContext.builderBlock || undefined,
-    });
-
-    console.log(`✅ Generated ${recommendations.length} restaurant meal recommendations`);
-
-    return res.json({
-      recommendations,
-      restaurantName,
-      cuisine,
-      generatedAt: new Date().toISOString()
-    });
-
-  } catch (error) {
-    console.error("Restaurant meal generation error:", error);
-    return res.status(500).json({ 
-      error: "Failed to generate restaurant meals",
-      details: error instanceof Error ? error.message : "Unknown error"
-    });
-  }
-});
+// ⛔ REMOVED: /analyze-menu — this endpoint invented plausible menu items for named restaurants.
+// The Restaurant Intelligence Engine (/api/restaurants/guide) replaced it. No frontend code
+// calls this endpoint. It is not mounted. Do not restore without engine integration.
 
 // Reverse geocoding endpoint - converts GPS coordinates to ZIP code
 router.post("/reverse-geocode", async (req, res) => {
@@ -443,6 +455,93 @@ router.post("/find-nearby", async (req, res) => {
       details: error instanceof Error ? error.message : "Unknown error",
     });
   }
+});
+
+// ── Development-only diagnostic router ────────────────────────────────────────
+// Mounted separately in routes.ts with requireAuth only (no requireProAccess).
+// Never exposed in production — each handler returns 404 when NODE_ENV === "production".
+export const debugRouter = Router();
+
+// GET /api/restaurants/debug/provider/:brandSlug
+// Returns which provider would handle a brand and its full provenance.
+//
+// Example response:
+//   GET /api/restaurants/debug/provider/wendys
+//   {
+//     "brand": "wendys",
+//     "displayName": "Wendy's",
+//     "provider": "OfficialJsonMenuProvider",
+//     "dataOrigin": "official_website",
+//     "sourceUrl": "https://www.wendys.com/nutrition-info",
+//     "verifiedAt": "2025-01-01",
+//     "sourceVersion": "wendys-official-9-item-poc-v1",
+//     "verifiedBy": "My Perfect Meals",
+//     "refreshPolicy": "manual",
+//     "itemCount": 9,
+//     "availableMenuSources": ["internal_canonical"]
+//   }
+debugRouter.get("/provider/:brandSlug", async (req, res) => {
+  if (process.env.NODE_ENV === "production") {
+    return res.status(404).json({ message: "Not found" });
+  }
+
+  const { brandSlug } = req.params;
+
+  if (brandSlug === "_all") {
+    const brands = getAllBrands();
+    const results = await Promise.all(
+      brands.map(async (brand) => {
+        const meta = brand.availableMenuSources.includes("internal_canonical")
+          ? await officialJsonProvider.getMetadata(brand.brandSlug)
+          : null;
+        return {
+          brand: brand.brandSlug,
+          displayName: brand.displayName,
+          provider: meta ? "OfficialJsonMenuProvider" : brand.availableMenuSources.length > 0 ? "stub" : "none",
+          dataOrigin: brand.dataOrigin ?? null,
+          verifiedAt: brand.verifiedAt ?? null,
+          sourceVersion: brand.sourceVersion ?? null,
+          verifiedBy: brand.verifiedBy ?? null,
+          refreshPolicy: brand.refreshPolicy ?? null,
+          itemCount: meta?.itemCount ?? 0,
+          availableMenuSources: brand.availableMenuSources,
+        };
+      })
+    );
+    return res.json(results);
+  }
+
+  const brand = findBrandBySlug(brandSlug);
+  if (!brand) {
+    return res.status(404).json({ error: `No brand registered with slug "${brandSlug}"` });
+  }
+
+  let provider = "none";
+  let itemCount = 0;
+
+  if (brand.availableMenuSources.includes("internal_canonical")) {
+    const meta = await officialJsonProvider.getMetadata(brand.brandSlug);
+    if (meta) {
+      provider = "OfficialJsonMenuProvider";
+      itemCount = meta.itemCount;
+    }
+  } else if (brand.availableMenuSources.length > 0) {
+    provider = `stub (${brand.availableMenuSources[0]})`;
+  }
+
+  return res.json({
+    brand: brand.brandSlug,
+    displayName: brand.displayName,
+    provider,
+    dataOrigin: brand.dataOrigin ?? null,
+    sourceUrl: brand.sourceUrl ?? null,
+    verifiedAt: brand.verifiedAt ?? null,
+    sourceVersion: brand.sourceVersion ?? null,
+    verifiedBy: brand.verifiedBy ?? null,
+    refreshPolicy: brand.refreshPolicy ?? null,
+    itemCount,
+    availableMenuSources: brand.availableMenuSources,
+  });
 });
 
 export default router;

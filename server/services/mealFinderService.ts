@@ -48,6 +48,8 @@ interface RestaurantResult {
     calories: number;
     protein: number;
     carbs: number;
+    starchyCarbs?: number;
+    fibrousCarbs?: number;
     fat: number;
     reason: string;
     modifications: string;
@@ -367,6 +369,8 @@ export async function findMealsNearby(request: MealFinderRequest): Promise<Resta
               calories: meal.calories,
               protein: meal.protein,
               carbs: meal.carbs,
+              starchyCarbs: meal.starchyCarbs,
+              fibrousCarbs: meal.fibrousCarbs,
               fat: meal.fat,
               reason: meal.reason,
               modifications: meal.modifications,
@@ -439,6 +443,8 @@ export async function findMealsNearby(request: MealFinderRequest): Promise<Resta
             calories: meal.calories,
             protein: meal.protein,
             carbs: meal.carbs,
+            starchyCarbs: meal.starchyCarbs,
+            fibrousCarbs: meal.fibrousCarbs,
             fat: meal.fat,
             reason: meal.reason,
             modifications: meal.modifications,

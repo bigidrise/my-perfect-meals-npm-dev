@@ -9,6 +9,27 @@ export interface HasMealImage {
   mealType?: string;
 }
 
+const IMAGE_CACHE_PREFIX = "mpm.imgcache.";
+
+/**
+ * Persist an imageUrl to localStorage.  Only writes stable https:// URLs —
+ * base64 data: URLs are ~1–2 MB each and would exhaust the 5 MB localStorage
+ * quota within 3–5 images, silently breaking every other cache in the app.
+ */
+function persistImageUrl(mealId: string, imageUrl: string) {
+  if (!imageUrl.startsWith("https://")) return;
+  try { localStorage.setItem(IMAGE_CACHE_PREFIX + mealId, imageUrl); } catch {}
+}
+
+/**
+ * Lookup a previously-hydrated imageUrl by mealId.
+ * Call this in each page's mount/restore handler to fill in imageUrls that
+ * were fetched in a prior session before the user navigated away.
+ */
+export function lookupHydratedImageUrl(mealId: string): string | null {
+  try { return localStorage.getItem(IMAGE_CACHE_PREFIX + mealId) ?? null; } catch { return null; }
+}
+
 export function useMealImages<T extends HasMealImage>(
   setMeals: React.Dispatch<React.SetStateAction<T[]>>,
   options?: { mealType?: string; concurrency?: number; dietType?: string }
@@ -48,6 +69,9 @@ export function useMealImages<T extends HasMealImage>(
               });
               const data = await res.json();
               if (data.imageUrl) {
+                // Persist to localStorage BEFORE setMeals — survives component unmount
+                // so the reactive cache-save useEffect doesn't race with navigation.
+                persistImageUrl(meal.id, data.imageUrl);
                 setMeals((prev) =>
                   prev.map((m) => m.id === meal.id ? { ...m, imageUrl: data.imageUrl } : m)
                 );

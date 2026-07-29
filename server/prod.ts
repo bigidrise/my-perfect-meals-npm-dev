@@ -236,6 +236,8 @@ async function initializeApp() {
           await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS clinical_context_updated_at timestamptz`);
           // Professional Launchpad — Phase 2 ProCare training completion gate
           await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS procare_training_completed boolean NOT NULL DEFAULT false`);
+          // Language Preference — Phase 1 internationalization
+          await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS preferred_language text DEFAULT 'auto'`);
           // LMS content tables
           await database.execute(sql`
             CREATE TABLE IF NOT EXISTS cert_modules (
@@ -335,6 +337,36 @@ async function initializeApp() {
           `);
           const grandfatheredCount = (grandfatherResult as any).rowCount ?? (grandfatherResult as any).count ?? '?';
           console.log(`✅ [INIT] Grandfather migration: ${grandfatheredCount} professional(s) grandfathered (procare_training_completed=true)`);
+          // Cert-type bridge migration — Platform Mastery rename
+          // Copies completed "platform" cert records to "platform_mastery" for users who
+          // completed the Academy before the cert type was renamed. Idempotent: skips users
+          // who already have a "platform_mastery" record. requirePhase1Cert accepts both types,
+          // so this migration is additive only — no records are deleted or modified.
+          const certBridgeResult = await database.execute(sql`
+            INSERT INTO user_certifications (user_id, certification_type, status, completed_at, certificate_number, certificate_name, is_certification_track, created_at, updated_at)
+            SELECT
+              uc.user_id,
+              'platform_mastery',
+              uc.status,
+              uc.completed_at,
+              CONCAT('cert-type-bridge-v1:', COALESCE(uc.certificate_number, '')),
+              uc.certificate_name,
+              uc.is_certification_track,
+              NOW(),
+              NOW()
+            FROM user_certifications uc
+            WHERE uc.certification_type = 'platform'
+              AND uc.status = 'completed'
+              AND uc.is_certification_track = true
+              AND uc.completed_at < '2026-07-15T00:00:00Z'
+              AND NOT EXISTS (
+                SELECT 1 FROM user_certifications pm
+                WHERE pm.user_id = uc.user_id
+                  AND pm.certification_type = 'platform_mastery'
+              )
+          `);
+          const certBridgeCount = (certBridgeResult as any).rowCount ?? (certBridgeResult as any).count ?? '?';
+          console.log(`✅ [INIT] Cert-type bridge: ${certBridgeCount} "platform" → "platform_mastery" record(s) created`);
           // Adaptive Coaching Engine (ACE) — Sprint 1+2
           const { runAceMigration } = await import("./services/ace/aceBootMigration");
           await runAceMigration();
@@ -765,6 +797,10 @@ async function initializeApp() {
     const mealPlanRouter = (await import("./routes/mealPlan")).default;
     app.use("/api/meal-plan", mealPlanRouter);
     app.use("/api/meal-plans", mealPlanRouter);
+
+    // My Perfect Buffet — plate-building from user-described buffet foods
+    const buffetRouter = (await import("./routes/buffet")).default;
+    app.use("/api/buffet", requireAuth, buffetRouter);
 
     // My Perfect Getaway — venue-aware dining coach
     const getawayRouter = (await import("./routes/getaway")).default;

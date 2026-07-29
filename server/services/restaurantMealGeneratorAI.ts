@@ -272,8 +272,15 @@ export async function generateRestaurantMealsAI(request: RestaurantMealRequest):
   const medicalWaiterBlock = buildMedicalWaiterBlock(userConditions);
   
   // Build craving context for Meal Finder (different from Restaurant Meal Generator)
+  // When the user has diabetes, add an explicit rule to preserve the protein and fix the sides —
+  // so the model doesn't drift to chicken simply because potatoes are blocked.
+  const hasDiabetesForPrompt = request.protocolEnvelope?.hasDiabetes ?? false;
   const cravingInstructions = cravingContext
-    ? `\n\nCRITICAL: The user is specifically craving "${cravingContext}". ALL meals MUST prominently feature ${cravingContext} as the main ingredient or protein. Focus on ${cravingContext}-based dishes that this restaurant would realistically serve.`
+    ? `\n\nCRITICAL: The user is specifically craving "${cravingContext}". ALL meals MUST prominently feature ${cravingContext} as the main ingredient or protein. Focus on ${cravingContext}-based dishes that this restaurant would realistically serve.${
+        hasDiabetesForPrompt
+          ? ` DIABETIC COMPLIANCE RULE: Keep "${cravingContext}" as the primary protein. Achieve low-carb compliance by using NON-STARCHY sides only (spinach, asparagus, zucchini, broccoli, mixed greens, salad without croutons, mushrooms, cucumber). Do NOT substitute the protein to meet carb targets — adjust the sides and sauces instead.`
+          : ''
+      }`
     : '';
 
   // ── Cuisine archetype classification ────────────────────────────────────────
@@ -434,7 +441,19 @@ Make the meals sound like something you would genuinely see on the menu at ${res
       messages: [
         {
           role: "system",
-          content: "You are a nutrition expert who provides accurate, restaurant-specific meal recommendations. Return only valid JSON. Always generate unique and varied meal suggestions."
+          content: (() => {
+            const langNames: Record<string, string> = {
+              es: "Spanish", fr: "French", de: "German", it: "Italian", pt: "Portuguese",
+              zh: "Chinese (Simplified)", ja: "Japanese", ko: "Korean", ar: "Arabic",
+              hi: "Hindi", ru: "Russian", vi: "Vietnamese", tl: "Filipino (Tagalog)",
+            };
+            const rawLang = (request.user as any)?.preferredLanguage || "auto";
+            const baseLang = rawLang !== "auto" ? rawLang.split("-")[0].toLowerCase() : "en";
+            const langInstr = baseLang !== "en" && langNames[baseLang]
+              ? ` 🌐 LANGUAGE REQUIREMENT — MANDATORY: Generate ALL content entirely in ${langNames[baseLang]}. Every word must be in ${langNames[baseLang]}.`
+              : "";
+            return `You are a nutrition expert who provides accurate, restaurant-specific meal recommendations. Return only valid JSON. Always generate unique and varied meal suggestions.${langInstr}`;
+          })()
         },
         {
           role: "user",
@@ -446,7 +465,7 @@ Make the meals sound like something you would genuinely see on the menu at ${res
     });
 
     const responseText = completion.choices[0]?.message?.content?.trim();
-    
+
     if (!responseText) {
       console.warn('⚠️ AI returned empty response, falling back to locked generator');
       return generateFallbackMeals(request);
@@ -701,18 +720,31 @@ Return ONLY a single JSON object (not an array) with this exact structure:
           : diabeticGlucoseState === 'low' ? 45
           : 30;
 
+        // If the user had a craving, the retry should still honor it.
+        // Steak is not the glucose problem — potatoes, bread, and rice are.
+        // Priority order: keep the protein → fix the sides → only swap protein if it IS the carb source.
+        const retryProteinInstruction = cravingContext
+          ? `PROTEIN PRIORITY: The user specifically requested "${cravingContext}". The rejection above was caused by high-carb SIDES or SAUCES, not the protein itself. Generate a meal that:
+- KEEPS "${cravingContext}" as the primary protein
+- REMOVES the high-carb sides (potatoes, rice, pasta, tortillas, bread, croutons, sugary sauce)
+- REPLACES them with non-starchy sides: spinach, asparagus, zucchini, broccoli, mixed greens, mushrooms, or salad without croutons
+Only choose a different protein if "${cravingContext}" itself is the direct source of excess carbohydrates (it almost never is for a meat or fish protein).`
+          : `Choose a meal with a lean protein (grilled meat, fish, shrimp, or eggs) paired with non-starchy sides only.`;
+
         const retryPrompt = `You are a nutrition expert for ${restaurantName}, a ${cuisine} restaurant.
 ${protocolBlock ? `\n${protocolBlock}\n` : ''}
 CRITICAL — PREVIOUS MEAL REJECTED BY DIABETIC SAFETY VALIDATOR.
-Violations detected: ${result.violations.join('; ')}
+The meal "${meal.name}" was rejected. Violations: ${result.violations.join('; ')}
 
-The user's current blood glucose is in the "${diabeticGlucoseState}" state.
+The user's blood glucose is in the "${diabeticGlucoseState}" state.
+
+${retryProteinInstruction}
+
 HARD RULES for this replacement meal:
 - Maximum ${carbLimit}g total carbohydrates — this is a clinical hard limit, not a guideline
 - ABSOLUTELY NO: potatoes, white rice, pasta, bread, tortillas, corn, sugar, mashed potatoes, french fries, hash browns, waffles, pancakes, bagels, or any high-starch/high-GI ingredient
 - Protein must be prominent (minimum 25g)
 - Non-starchy vegetables are required
-- Choose a completely different meal format from the one that was rejected ("${meal.name}")
 
 Return ONLY a single JSON object (not an array):
 {"name":"...","description":"...","calories":0,"protein":0,"starchyCarbs":0,"fibrousCarbs":0,"fat":0,"reason":"...","modifications":"...","ingredients":[],"menuAnchorItem":"...","howToOrder":{"askFor":"...","modify":[],"swap":[]},"medicalWaiterScript":""}`;

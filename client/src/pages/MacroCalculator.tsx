@@ -110,6 +110,7 @@ import { getAssignedBuilderFromStorage } from "@/lib/assignedBuilder";
 import MetabolicConsiderations from "@/components/macro-targeting/MetabolicConsiderations";
 import BodyCompositionSection from "@/components/macro-targeting/BodyCompositionSection";
 import WaistRiskSection from "@/components/macro-targeting/WaistRiskSection";
+import { useTranslation } from "react-i18next";
 import {
   MacroDeltas,
   AdvisorySources,
@@ -726,6 +727,7 @@ function ClinicalCategoryReasoningList({ categories }: { categories: string[] })
 export default function MacroCounter() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { t } = useTranslation("macroCalc");
   const { user, refreshUser } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
   const [isApplyingOverlay, setIsApplyingOverlay] = useState(false);
@@ -1519,7 +1521,7 @@ export default function MacroCounter() {
               </button>
             )}
             <h1 className="text-lg font-bold text-white flex items-center gap-2">
-              <span>Macro Calculator</span>
+              <span>{t("title")}</span>
             </h1>
 
             <div className="flex-grow" />
@@ -1535,7 +1537,7 @@ export default function MacroCounter() {
               title={coachMuted ? "Unmute coach narration" : "Mute coach narration"}
             >
               {coachMuted ? "🔇" : "🔊"}
-              <span className="hidden sm:inline">{coachMuted ? "Coach Off" : "Coach On"}</span>
+              <span className="hidden sm:inline">{coachMuted ? t("coachOff") : t("coachOn")}</span>
             </button>
             <QuickTourButton onClick={quickTour.openTour} />
           </div>
@@ -3380,7 +3382,7 @@ export default function MacroCounter() {
                     data-testid="recalculate-with-chef"
                   >
                     <ChefHat className="h-4 w-4 mr-2 text-white" />
-                    Recalculate
+                    {t("recalculate")}
                   </Button>
                 </CardContent>
               </Card>

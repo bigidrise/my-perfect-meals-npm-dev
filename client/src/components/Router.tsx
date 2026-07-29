@@ -208,10 +208,9 @@ function ProCareStudioGuard({ component: Component }: { component: React.Compone
         if (isInitial) setCertChecked(true);
         return;
       }
-      apiRequest("/api/certifications/platform/progress")
+      apiRequest("/api/certifications/phase1-status")
         .then((res: any) => {
-          const phase1Complete =
-            res?.certification?.status === "completed" && !!res?.certification?.completedAt;
+          const phase1Complete = res?.phase1Complete === true;
           if (!phase1Complete) {
             setCertified(false);
             certifiedRef.current = false;
@@ -401,6 +400,7 @@ import ReduceDrinkingPlan from "@/pages/lifestyle/ReduceDrinkingPlan";
 // RETIRED: CravingStudio, DessertStudio, FridgeRescueStudio — moved to client/src/legacy/studio-retired/
 import EditProfilePage from "@/pages/profile/EditProfilePage";
 import CoachingPreferencesPage from "@/pages/profile/CoachingPreferencesPage";
+import LanguagePreferencesPage from "@/pages/profile/LanguagePreferencesPage";
 import SavedMeals from "@/pages/SavedMeals";
 
 // DELETED: AlcoholHubLanding, AlcoholLeanAndSocial, AlcoholSmartSips, MocktailsLowCalMixers, AlcoholLog
@@ -413,6 +413,7 @@ import SocialFindMeals from "@/pages/SocialFindMeals";
 import SocialRestaurantGuide from "@/pages/SocialRestaurantGuide";
 import FastFoodGuidePage from "@/pages/FastFoodGuidePage";
 import RestaurantFinderPage from "@/pages/RestaurantFinderPage";
+import MyPerfectBuffetPage from "@/pages/MyPerfectBuffetPage";
 
 // Founders page
 import FoundersPage from "@/pages/Founders";
@@ -573,6 +574,7 @@ const GuardedSocialFindMeals = () => <ProGuard component={SocialFindMeals} />;
 const GuardedSocialRestaurantGuide = () => <ProGuard component={SocialRestaurantGuide} />;
 const GuardedFastFoodGuidePage = () => <ProGuard component={FastFoodGuidePage} />;
 const GuardedRestaurantFinderPage = () => <ProGuard component={RestaurantFinderPage} />;
+const GuardedMyPerfectBuffetPage = () => <ProGuard component={MyPerfectBuffetPage} />;
 
 export default function Router() {
   const [location, setLocation] = useLocation();
@@ -798,6 +800,7 @@ export default function Router() {
         {/* Profile Edit Page */}
         <Route path="/profile" component={EditProfilePage} />
         <Route path="/coaching-preferences" component={CoachingPreferencesPage} />
+        <Route path="/language-preferences" component={LanguagePreferencesPage} />
         <Route path="/saved-meals" component={GuardedSavedMeals} />
         {/* DELETED: AffiliatesPage, FoundersPage, FoundersSubmit, Changelog routes */}
         {/* DELETED: MealPlanning, LowGlycemicCarbPage, AiMealCreatorPage, MealPlanningHubRevised routes */}
@@ -848,6 +851,7 @@ export default function Router() {
         <Route path="/social-hub/restaurant-guide" component={GuardedSocialRestaurantGuide} />
         <Route path="/social-hub/fast-food" component={GuardedFastFoodGuidePage} />
         <Route path="/social-hub/restaurant-finder" component={GuardedRestaurantFinderPage} />
+        <Route path="/my-perfect-buffet" component={GuardedMyPerfectBuffetPage} />
         {/* DELETED: SmartWeekBuilder, AdultBeverageHubPage routes */}
         <Route path="/macro-counter" component={SafeMacroCounter} />
         {/* DELETED: All kids meal routes, all alcohol hub routes */}

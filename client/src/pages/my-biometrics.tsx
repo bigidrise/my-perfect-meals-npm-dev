@@ -67,6 +67,7 @@ import ReadOnlyNote from "@/components/ReadOnlyNote";
 import { launchMacroPhotoCapture } from "@/lib/photoMacroCapture";
 import { launchIngredientPhotoCapture, type IngredientScanResult } from "@/lib/photoIngredientCapture";
 import { IngredientIntelligenceSheet } from "@/components/biometrics/IngredientIntelligenceSheet";
+import { useTranslation } from "react-i18next";
 import { sendToShoppingList } from "@/lib/shoppingListApi";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
@@ -139,6 +140,7 @@ const saveJSON = (k: string, v: any) => {
 export default function MyBiometrics() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+  const { t } = useTranslation("biometrics");
   const isDesktop = useIsDesktop();
   const { requestUpgrade } = useUpgradeModal();
   
@@ -219,6 +221,7 @@ export default function MyBiometrics() {
     }
 
     const end = new Date();
+    end.setHours(23, 59, 59, 999); // end-of-day so noon-UTC logged entries are never past the boundary
     const start = new Date();
     start.setDate(end.getDate() - 365);
     const startISO = start.toISOString();
@@ -250,6 +253,7 @@ export default function MyBiometrics() {
     if (!userId) return;
     const refetch = () => {
       const end = new Date();
+      end.setHours(23, 59, 59, 999); // end-of-day so noon-UTC logged entries are never past the boundary
       const start = new Date();
       start.setDate(end.getDate() - 365);
       apiRequest(`/api/users/${userId}/macro-logs/daily-with-source?start=${encodeURIComponent(start.toISOString())}&end=${encodeURIComponent(end.toISOString())}`)
@@ -273,6 +277,14 @@ export default function MyBiometrics() {
     window.addEventListener("macros:updated", refetch);
     return () => window.removeEventListener("macros:updated", refetch);
   }, [userId]);
+
+  // Persist macroRows to localStorage whenever state changes so optimistic updates
+  // survive a page reload even before the next server fetch completes.
+  // Guard on storageLoaded so the initial empty-state render doesn't wipe the cache.
+  useEffect(() => {
+    if (!storageLoaded) return;
+    saveJSON(LS_MACROS, { rows: macroRows });
+  }, [macroRows, storageLoaded]);
 
   const [today, setToday] = useState(todayKey);
 
@@ -452,12 +464,35 @@ export default function MyBiometrics() {
             }
             return;
           }
+        // Server responded successfully with hasTargets: false.
+        // Fall through to local resolver; if that also has nothing, null is correct.
       } catch (_e) {
-        // Network failure — fall through to local resolver below
+        // Network failure — do not null out targets. Try local resolver as
+        // offline fallback; if that also misses, preserve whatever is currently
+        // displayed rather than flashing null on a transient error.
+        const fallback = getResolvedTargets(user?.id);
+        if (fallback.source !== "none") {
+          setTargets({
+            calories: fallback.calories,
+            protein_g: fallback.protein_g,
+            carbs_g: fallback.carbs_g,
+            fat_g: fallback.fat_g,
+            starchyCarbs_g: fallback.starchyCarbs_g,
+            fibrousCarbs_g: fallback.fibrousCarbs_g,
+          });
+          setTargetSource(fallback.source);
+          if (fallback.source === "pro" && fallback.setBy) {
+            setProName(fallback.setBy);
+          }
+        }
+        // If local also has nothing, preserve whatever targets are already shown.
+        // setTargets(null) must not run on a network failure.
+        return;
       }
     }
 
-    // Priority 2: local resolver (localStorage / proStore) — offline fallback.
+    // Priority 2: local resolver (localStorage / proStore).
+    // Reached when: server confirmed hasTargets: false, or user is not logged in.
     const resolved = getResolvedTargets(user?.id);
     if (resolved.source !== "none") {
       setTargets({
@@ -475,6 +510,9 @@ export default function MyBiometrics() {
       return;
     }
 
+    // Only reaches here when the server confirmed hasTargets: false (or no user)
+    // AND the local resolver also has nothing. This is the only path where null
+    // is the correct answer — the user genuinely has no targets configured.
     setTargets(null);
     setTargetSource("none");
   };
@@ -517,7 +555,11 @@ export default function MyBiometrics() {
   // Summary badges for top display (yellow-only system)
   const summaryBadges = useMemo(() => {
     if (!targets) return [];
-    const hasStarchySplit = (targets.starchyCarbs_g ?? 0) > 0 || (targets.fibrousCarbs_g ?? 0) > 0;
+    const hasStarchySplit =
+      (targets.starchyCarbs_g ?? 0) > 0 ||
+      (targets.fibrousCarbs_g ?? 0) > 0 ||
+      ((todayRow as any).starchyCarbs ?? 0) > 0 ||
+      ((todayRow as any).fibrousCarbs ?? 0) > 0;
     const carbRows = hasStarchySplit
       ? [
           { key: "Starchy Carbs", used: (todayRow as any).starchyCarbs ?? 0, max: targets.starchyCarbs_g ?? 0, unit: "g" },
@@ -785,7 +827,7 @@ export default function MyBiometrics() {
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
         body: JSON.stringify({
-          loggedAt: new Date(today + "T12:00:00").toISOString(),
+          loggedAt: new Date().toISOString(),
           mealType: "manual",
           protein: P,
           carbs: C,
@@ -798,7 +840,10 @@ export default function MyBiometrics() {
       })
         .then(async (r) => {
           if (r.ok) {
-            window.dispatchEvent(new Event("macros:updated"));
+            // Do NOT dispatch "macros:updated" here. The optimistic setMacroRows
+            // update is already applied and correct. Dispatching the event triggers
+            // an immediate server refetch that races with the just-committed write
+            // and can overwrite the graph display with pre-write stale data.
           } else {
             const body = await r.json().catch(() => ({}));
             console.error("[MACROS/LOG] write failed", r.status, body);
@@ -820,7 +865,11 @@ export default function MyBiometrics() {
     }
   };
 
-  const resetToday = async () => {
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+
+  const confirmReset = async () => {
+    setShowResetConfirm(false);
+
     // Clear local state and input fields immediately (optimistic)
     setMacroRows((prev) => prev.filter((r) => r.day !== today));
     setP("");
@@ -841,13 +890,14 @@ export default function MyBiometrics() {
       // ignore cache errors
     }
 
-    // Delete from server so it doesn't come back on reload
+    // Delete from server so it doesn't come back on reload.
+    // Server reads users.timezone to compute the correct local day boundary.
     if (userId) {
       try {
-        await apiRequest(`/api/users/${userId}/macro-logs/today`, {
+        const params = new URLSearchParams({ localDateISO: today });
+        await apiRequest(`/api/users/${userId}/macro-logs/today?${params}`, {
           method: "DELETE",
         });
-        // Invalidate any cached queries
         window.dispatchEvent(new Event("macros:updated"));
       } catch (e) {
         console.error("Failed to reset today on server:", e);
@@ -865,6 +915,8 @@ export default function MyBiometrics() {
       description: "Today's macros have been cleared.",
     });
   };
+
+  const resetToday = () => setShowResetConfirm(true);
 
   const handleIngredientScan = async () => {
     await launchIngredientPhotoCapture({
@@ -1132,7 +1184,7 @@ export default function MyBiometrics() {
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
         body: JSON.stringify({
-          loggedAt: new Date(today + "T12:00:00").toISOString(),
+          loggedAt: new Date().toISOString(),
           mealType: "manual",
           protein: P,
           carbs: C,
@@ -1762,7 +1814,7 @@ export default function MyBiometrics() {
           
           {/* Title */}
           <h1 className="text-lg font-bold text-white flex items-center gap-2">
-            My Biometrics
+            {t("title")}
           </h1>
 
           <div className="flex-grow" />
@@ -2029,37 +2081,6 @@ export default function MyBiometrics() {
                 </p>
               </>
 
-            {/* Quick View Panel (display only, no auto-logging) */}
-            {qv && (
-              <div
-                className={[
-                  "rounded-2xl border p-3 mb-3 bg-black/20 backdrop-blur-sm transition-all duration-300",
-                  highlightQv
-                    ? "border-orange-400 shadow-[0_0_16px_2px_rgba(251,146,60,0.45)] animate-pulse"
-                    : "border-white/20",
-                ].join(" ")}
-              >
-                <div className="text-sm font-semibold mb-2 text-white flex items-center gap-2">
-                  <span>🍽️</span> Meal values pre-filled below
-                </div>
-                <div className="text-sm text-white/90 mb-2">
-                  Protein <b className="text-white">{qv.protein} g</b> · Carbs{" "}
-                  <b className="text-white">{qv.carbs} g</b> · Fat{" "}
-                  <b className="text-white">{qv.fat} g</b> · Calories{" "}
-                  <b className="text-white">{qv.calories}</b>
-                </div>
-                <div className="text-[11px] text-white/60 mb-2">
-                  Review the fields below, then tap <b>Add</b> to save to your macros.
-                </div>
-                <Button
-                  onClick={dismissQuickView}
-                  className="px-3 py-1 rounded-lg border border-white/20 bg-white/10 text-white hover:bg-white/20 text-sm"
-                  data-testid="button-dismiss-quickview"
-                >
-                  Dismiss
-                </Button>
-              </div>
-            )}
 
             <div
               data-testid="biometrics-macro-inputs"
@@ -2579,7 +2600,7 @@ export default function MyBiometrics() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
           <div className="bg-black/30 backdrop-blur-lg border border-white/20 rounded-2xl p-6 max-w-md w-full shadow-xl">
             <h3 className="text-xl font-bold text-white mb-4">
-              About My Biometrics
+              {t("aboutTitle")}
             </h3>
 
             <div className="space-y-4 text-white/90 text-sm">
@@ -2609,7 +2630,7 @@ export default function MyBiometrics() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
           <div className="bg-black/30 backdrop-blur-lg border border-white/20 rounded-2xl p-6 max-w-md w-full shadow-xl">
             <h3 className="text-xl font-bold text-white mb-4">
-              Your Macro Targets Are Set
+              {t("macroTargetsSet")}
             </h3>
 
             <div className="space-y-4 text-white/90 text-sm">
@@ -2649,6 +2670,30 @@ export default function MyBiometrics() {
         onAddProduct={(name) => {
           sendToShoppingList([{ name, quantity: 1, unit: "" }], { sourceBuilder: "smart-scan" });
         }}
+      />
+
+      <ConfirmationModal
+        open={showResetConfirm}
+        onOpenChange={(open) => setShowResetConfirm(open)}
+        title="Reset Today's Macros?"
+        description="This will permanently delete all macro entries logged today. Your targets, previous days, weight, and lab data are not affected."
+        className="bg-black/90 backdrop-blur-lg border-white/20 text-white max-w-sm mx-4"
+        footer={
+          <div className="flex gap-3 w-full">
+            <PillButton
+              onClick={() => setShowResetConfirm(false)}
+              className="flex-1 bg-white/10 text-white border border-white/20"
+            >
+              Cancel
+            </PillButton>
+            <PillButton
+              onClick={confirmReset}
+              className="flex-1 bg-red-600 text-white"
+            >
+              Reset Today
+            </PillButton>
+          </div>
+        }
       />
 
       <JustDescribeItModal

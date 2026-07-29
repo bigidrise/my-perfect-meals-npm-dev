@@ -1,5 +1,6 @@
 import { useLocation } from "wouter";
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Activity, Pill, Trophy, Lock, Dumbbell, Utensils, LayoutGrid, ChevronRight } from "lucide-react";
@@ -21,6 +22,7 @@ export default function Builders() {
   const [, setLocation] = useLocation();
   const isDesktop = useIsDesktop();
   const { user, refreshUser } = useAuth();
+  const { t } = useTranslation();
 
   useEffect(() => {
     document.title = "Meal Builders | My Perfect Meals";
@@ -33,45 +35,40 @@ export default function Builders() {
   const builderFeatures: BuilderFeature[] = [
     // "My Weekly Meal Builder" hidden — route and data intact, not selectable
     {
-      title: "Diabetic Hub and Meal Builder",
-      description:
-        "Blood sugar monitoring and AI created meal plans for diabetics",
+      title: t("builders.diabeticTitle"),
+      description: t("builders.diabeticDesc"),
       icon: Activity,
       route: "/diabetic-hub",
       testId: "card-diabetic-hub",
       builderId: "diabetic",
     },
     {
-      title: "Metabolic Medication Hub and Builder",
-      description:
-        "Shot and location logging with specialized AI created meal plans for metabolic medication users",
+      title: t("builders.metabolicTitle"),
+      description: t("builders.metabolicDesc"),
       icon: Pill,
       route: "/glp1-hub",
       testId: "card-glp1-hub",
       builderId: "glp1",
     },
     {
-      title: "Anti-Inflammatory Meal Builder",
-      description:
-        "Autoimmune support, joint relief, and inflammation guardrails with AI created meal plans",
+      title: t("builders.antiInflamTitle"),
+      description: t("builders.antiInflamDesc"),
       icon: Pill,
       route: "/anti-inflammatory-menu-builder",
       testId: "card-anti-inflammatory",
       builderId: "anti_inflammatory",
     },
     {
-      title: "Performance Nutrition Hub and Builder",
-      description:
-        "Sport-specific fueling for athletes, fighters, and coaches — energy systems, carb timing, and recovery",
+      title: t("builders.performanceTitle"),
+      description: t("builders.performanceDesc"),
       icon: Trophy,
       route: "/performance",
       testId: "card-performance-nutrition-hub",
       builderId: "beach_body",
     },
     {
-      title: "General Nutrition Builder",
-      description:
-        "Coach guided professional-grade nutrition planning and custom protocols",
+      title: t("builders.generalTitle"),
+      description: t("builders.generalDesc"),
       icon: Utensils,
       route: "/pro/general-nutrition-builder",
       testId: "card-general-nutrition",
@@ -201,7 +198,7 @@ export default function Builders() {
         >
           <div className="px-8 pb-3 flex items-center gap-3">
             <LayoutGrid className="h-6 w-6 text-orange-500" />
-            <h1 className="text-lg font-bold text-white">Meal Builders</h1>
+            <h1 className="text-lg font-bold text-white">{t("builders.pageTitle")}</h1>
           </div>
         </div>
       )}
@@ -217,9 +214,9 @@ export default function Builders() {
               className="rounded-xl bg-orange-500/20 border border-orange-500/50 p-4 cursor-pointer hover:bg-orange-500/30 transition-colors"
               onClick={() => setLocation("/onboarding/extended?repair=1")}
             >
-              <p className="text-orange-200 text-sm font-medium mb-1">Select Your Meal Builder</p>
+              <p className="text-orange-200 text-sm font-medium mb-1">{t("builders.selectPrompt")}</p>
               <p className="text-orange-300/80 text-xs">
-                Tap here to select your meal builder and set your targets.
+                {t("builders.tapHereToSelect")}
               </p>
             </div>
           )}
@@ -239,7 +236,7 @@ export default function Builders() {
             <div className="absolute bottom-4 left-4 right-4">
               <div className="bg-black/55 backdrop-blur-sm rounded-xl px-3 py-2.5">
                 <p className="text-white/90 text-sm">
-                  Tailored meal planning for your specific health needs and goals.
+                  {t("builders.tailoredPlanning")}
                 </p>
               </div>
             </div>
@@ -247,7 +244,7 @@ export default function Builders() {
 
           {/* Instruction hint */}
           <p className="text-xs text-white/40 text-center tracking-wide uppercase">
-            Tap a builder to get started
+            {t("builders.tapToStart")}
           </p>
 
           {/* Builder Cards */}
@@ -279,22 +276,22 @@ export default function Builders() {
                           </h3>
                           {feature.builderId === "beach_body" && (
                             <span className="text-[10px] px-1.5 py-0.5 bg-amber-600/30 text-amber-300 rounded-full border border-amber-500/30 flex-shrink-0">
-                              Clinical
+                              {t("builders.badgeClinical")}
                             </span>
                           )}
                           {feature.builderId === "performance_competition" && (
                             <span className="text-[10px] px-1.5 py-0.5 bg-orange-600/30 text-orange-300 rounded-full border border-orange-500/30 flex-shrink-0">
-                              Pro
+                              {t("builders.badgePro")}
                             </span>
                           )}
                           {feature.builderId === userActiveBoard && (
                             <span className="text-[10px] px-1.5 py-0.5 bg-emerald-600/30 text-emerald-300 rounded-full border border-emerald-500/30 flex-shrink-0">
-                              Current
+                              {t("builders.badgeCurrent")}
                             </span>
                           )}
                           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-cyan-500/10 border border-cyan-400/25 rounded-full text-[8px] font-semibold text-cyan-300 tracking-wide flex-shrink-0">
                             <span className="w-1 h-1 bg-cyan-400 rounded-full" />
-                            Behavioral AI™
+                            {t("builders.badgeBehavioral")}
                           </span>
                         </div>
                         <p className="text-xs ml-6 text-white/70">{feature.description}</p>
@@ -318,7 +315,7 @@ export default function Builders() {
                           {feature.title}
                         </h3>
                       </div>
-                      <p className="text-xs ml-6 text-zinc-700">Not your assigned builder</p>
+                      <p className="text-xs ml-6 text-zinc-700">{t("builders.notYourBuilder")}</p>
                     </div>
                   </div>
                 </div>

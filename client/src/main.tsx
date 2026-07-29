@@ -5,6 +5,7 @@
 
 import { Capacitor } from "@capacitor/core";
 import { patchFetchForCredentials } from "@/lib/fetch-credentials-patch";
+import "@/i18n";
 
 const APP_STORAGE_VERSION = "3";
 const STORAGE_VERSION_KEY = "mpm.storage.version";

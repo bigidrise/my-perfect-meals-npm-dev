@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useOrgBranding } from "@/hooks/useOrgBranding";
 import { useOrgFlag } from "@/contexts/OrgContext";
 import { useLocation } from "wouter";
@@ -41,6 +42,7 @@ import {
   Users,
   LifeBuoy,
   Sparkles,
+  Globe,
 } from "lucide-react";
 import { logout, getAuthToken } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
@@ -64,12 +66,14 @@ interface ProfileSheetProps {
 
 export function ProfileSheet({ children }: ProfileSheetProps) {
   const [, setLocation] = useLocation();
+  const { t } = useTranslation();
   const { user, setUser, refreshUser } = useAuth();
   const { requestUpgrade } = useUpgradeModal();
   const { fontSize, setFontSize } = useFontSize();
   const { narrationSpeed, setNarrationSpeed } = useNarrationSpeed();
   const { supportEmail, appName } = useOrgBranding();
   const { toast } = useToast();
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [showPhotoOptions, setShowPhotoOptions] = useState(false);
@@ -279,6 +283,7 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
         requestUpgrade({ requiredTier: "meal-builders", featureName: "Meal Builder Exchange" });
         return;
       }
+      setSheetOpen(false);
       if (LEGAL_ROUTES.includes(item.route)) {
         window.location.href = item.route;
       } else {
@@ -334,22 +339,29 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
   const menuItems = [
     // Personal
     {
-      title: "My Profile",
-      description: "Update your personal info & preferences",
+      title: t("menu.myProfile"),
+      description: t("menu.myProfileDesc"),
       icon: User,
       route: "/profile",
       testId: "menu-my-profile",
     },
     {
-      title: "AI Coaching Preferences",
-      description: "Control your coaching style, focus areas, and check-in frequency",
+      title: t("menu.aiCoaching"),
+      description: t("menu.aiCoachingDesc"),
       icon: Sparkles,
       route: "/coaching-preferences",
       testId: "menu-coaching-preferences",
     },
     {
-      title: "Contact & Support",
-      description: "Questions, bugs, or feedback — we read everything",
+      title: t("menu.language"),
+      description: t("menu.languageDesc"),
+      icon: Globe,
+      route: "/language-preferences",
+      testId: "menu-language-preferences",
+    },
+    {
+      title: t("menu.contactSupport"),
+      description: t("menu.contactSupportDesc"),
       icon: LifeBuoy,
       action: "contactSupport",
       testId: "menu-contact-support",
@@ -359,8 +371,8 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
     ...(!isProCareClient
       ? [
           {
-            title: "Meal Builder Exchange",
-            description: "Switch to a different dietary focus",
+            title: t("menu.mealBuilderExchange"),
+            description: t("menu.mealBuilderExchangeDesc"),
             icon: Utensils,
             route: "/select-builder",
             testId: "menu-change-builder",
@@ -369,23 +381,22 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
       : []),
 
     {
-      title: "App Library",
-      description:
-        "Learn how Emotion AI, Safety Guard™, Glucose Guard™, Starch Guard™, and all core systems work.",
+      title: t("menu.appLibrary"),
+      description: t("menu.appLibraryDesc"),
       icon: Video,
       route: "/learn",
       testId: "menu-app-library",
     },
     {
-      title: "Team My Perfect Meals",
-      description: "Meet the team that built My Perfect Meals.",
+      title: t("menu.teamMPM"),
+      description: t("menu.teamMPMDesc"),
       icon: MessageCircle,
       route: "/founders",
       testId: "menu-about",
     },
     {
-      title: "Hire a Professional",
-      description: "Browse certified, professional coaches and physicians.",
+      title: t("menu.hireAPro"),
+      description: t("menu.hireAProDesc"),
       icon: Users,
       route: "/coaches",
       testId: "menu-find-coach",
@@ -393,15 +404,15 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
 
     // Billing
     {
-      title: "Subscription",
-      description: "Manage your plan & billing",
+      title: t("menu.subscription"),
+      description: t("menu.subscriptionDesc"),
       icon: CreditCard,
       route: "/pricing",
       testId: "menu-subscription",
     },
 
     {
-      title: "Restore Purchases",
+      title: t("menu.restorePurchases"),
       description: "Restore an active subscription on this device",
       icon: RefreshCcw,
       action: "restorePurchases",
@@ -427,11 +438,11 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
   ];
 
   return (
-    <Sheet>
-      <SheetTrigger asChild>{children}</SheetTrigger>
+    <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+      <SheetTrigger asChild onClick={() => setSheetOpen(true)}>{children}</SheetTrigger>
       <SheetContent className="bg-gradient-to-br from-black/75 via-orange-900/80 to-black/75 border-l border-white/10 backdrop-blur-xl overflow-y-auto pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
         <SheetHeader>
-          <SheetTitle className="text-white">My Hub</SheetTitle>
+          <SheetTitle className="text-white">{t("shell.myHub")}</SheetTitle>
           <SheetDescription className="text-white/70">
             Your personal space
           </SheetDescription>

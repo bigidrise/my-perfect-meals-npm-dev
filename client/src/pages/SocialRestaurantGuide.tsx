@@ -17,6 +17,7 @@
 // - Real-time progress ticker (0-90% with visual feedback)
 // - Medical personalization with user health data integration
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { useChefFlowImages, chefFlowMealId } from "@/hooks/useChefFlowImages";
 import { ChefFlowImage } from "@/components/ChefFlowImage";
 import { useAuth } from "@/contexts/AuthContext";
@@ -41,29 +42,22 @@ import {
   ArrowLeft,
   MapPin,
   Loader2,
-  Plus,
   Navigation,
   Copy,
-  CalendarPlus,
+  Plus,
 } from "lucide-react";
 import { useLocation } from "wouter";
-import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
-import {
-  generateMedicalBadges,
-  getUserMedicalProfile,
-} from "@/utils/medicalPersonalization";
+import { setQuickView } from "@/lib/macrosQuickView";
+import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import PhaseGate from "@/components/PhaseGate";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { getLocation } from "@/lib/capacitorLocation";
-import { setQuickView } from "@/lib/macrosQuickView";
 import { openInMaps, copyAddressToClipboard } from "@/utils/mapUtils";
 import { classifyMeal } from "@/utils/starchMealClassifier";
-import { getOrderInstructions } from "@/utils/restaurantOrderInstructions";
 import { useChefVoice } from "@/lib/useChefVoice";
 import {
   RESTAURANT_GUIDE_ENTRY,
@@ -72,10 +66,9 @@ import {
   RESTAURANT_GUIDE_STEP3,
   RESTAURANT_GUIDE_GENERATING,
 } from "@/components/copilot/scripts/socialDiningScripts";
-import { ChefHat } from "lucide-react";
+import { ChefHat, Globe, Loader2 as TranslateLoader } from "lucide-react";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
-import ProtocolVisibilityPanel from "@/components/ProtocolVisibilityPanel";
 
 // Guided flow step type - step-by-step wizard
 // entry → step1 (craving) → step2 (restaurant) → step3 (location) → generating → results
@@ -115,9 +108,29 @@ type CachedRestaurantState = {
   generatedAtISO: string;
 };
 
+function stripMealImages(meals: any[]): any[] {
+  return (meals || []).map((m: any) => {
+    const clean = { ...m, imageUrl: undefined };
+    if (clean.meal && typeof clean.meal === "object") {
+      clean.meal = { ...clean.meal, imageUrl: undefined };
+    }
+    return clean;
+  });
+}
+
 function saveRestaurantCache(state: CachedRestaurantState) {
+  // Strip imageUrl at every nesting level before saving.
+  // base64 images are 1–2 MB each; 3 meals = ~5 MB which is the entire quota.
+  // Images are re-fetched on mount via useChefFlowImages (hits server memCache fast).
+  const stripped: CachedRestaurantState = {
+    ...state,
+    restaurantData: {
+      ...state.restaurantData,
+      meals: stripMealImages(state.restaurantData?.meals),
+    },
+  };
   try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify(state));
+    localStorage.setItem(CACHE_KEY, JSON.stringify(stripped));
   } catch (err: any) {
     if (err?.name === "QuotaExceededError" || err?.code === 22) {
       console.warn("[RestaurantGuide] localStorage quota exceeded — evicting stale cache keys and retrying");
@@ -130,7 +143,7 @@ function saveRestaurantCache(state: CachedRestaurantState) {
           }
         }
         keysToEvict.forEach((k) => localStorage.removeItem(k));
-        localStorage.setItem(CACHE_KEY, JSON.stringify(state));
+        localStorage.setItem(CACHE_KEY, JSON.stringify(stripped));
       } catch (retryErr) {
         console.error("[RestaurantGuide] Could not persist session after eviction — cache lost:", retryErr);
       }
@@ -172,6 +185,31 @@ function clearRestaurantCache() {
   try {
     localStorage.removeItem(CACHE_KEY);
   } catch {}
+}
+
+function normalizeCachedMeals(meals: any[]): any[] {
+  return meals.map((m) => {
+    if (m && typeof m.meal === "object" && m.meal !== null) {
+      return {
+        id: m.id || String(Math.random()),
+        name: m.meal.name || "",
+        meal: m.meal.name || "",
+        description: m.meal.description || "",
+        calories: m.meal.calories || 0,
+        protein: m.meal.protein || 0,
+        carbs: m.meal.carbs || 0,
+        starchyCarbs: m.meal.starchyCarbs ?? undefined,
+        fibrousCarbs: m.meal.fibrousCarbs ?? undefined,
+        fat: m.meal.fat || 0,
+        imageUrl: m.meal.imageUrl || m.imageUrl || "",
+        reason: m.meal.reason || m.meal.howToOrder || "",
+        modifications: m.meal.howToOrder || (m.modificationNotes || []).join(". ") || "",
+        askFor: m.meal.howToOrder || "",
+        dietBadge: m.meal.dietBadge || "",
+      };
+    }
+    return m;
+  });
 }
 
 const DIET_PILL_CONFIG: Record<string, { label: string; color: string }> = {
@@ -307,6 +345,7 @@ const cuisineKeywords: Record<string, string> = {
 
 export default function RestaurantGuidePage() {
   const [, setLocation] = useLocation();
+  const { t } = useTranslation();
   const quickTour = useQuickTour("restaurant-guide");
   const { speak, stop } = useChefVoice();
 
@@ -355,6 +394,8 @@ export default function RestaurantGuidePage() {
     rating?: number;
     photoUrl?: string;
   } | null>(null);
+  const [mealTranslations, setMealTranslations] = useState<Record<string, { lang: string; data: any }>>({});
+  const [translatingId, setTranslatingId] = useState<string | null>(null);
 
   const chefFlowMeals = useMemo(
     () => generatedMeals.map((m) => ({ id: m.id, name: m.name || m.meal, imageUrl: m.imageUrl })),
@@ -400,7 +441,7 @@ export default function RestaurantGuidePage() {
   useEffect(() => {
     const cached = loadRestaurantCache();
     if (cached?.restaurantData?.meals?.length) {
-      setGeneratedMeals(cached.restaurantData.meals);
+      setGeneratedMeals(normalizeCachedMeals(cached.restaurantData.meals));
       setRestaurantInput(cached.restaurant || "");
       setCravingInput(cached.craving || "");
       setMatchedCuisine(cached.cuisine || null);
@@ -417,8 +458,9 @@ export default function RestaurantGuidePage() {
     if (!session?.meals?.length) return;
     serverRestoredRef.current = true;
     const userDiet = normalizeDiet(user?.dietaryRestrictions);
-    const meals = filterMealsByDiet(userDiet, session.meals as any[], (m) => m);
-    setGeneratedMeals(meals.length > 0 ? meals : session.meals);
+    const normalized = normalizeCachedMeals(session.meals as any[]);
+    const meals = filterMealsByDiet(userDiet, normalized, (m) => m);
+    setGeneratedMeals(meals.length > 0 ? meals : normalized);
     setRestaurantInput(session.restaurantName || "");
     setCravingInput(session.craving || "");
     setMatchedCuisine(session.cuisine || null);
@@ -426,12 +468,8 @@ export default function RestaurantGuidePage() {
     if (session.restaurantInfo) {
       setRestaurantInfo(session.restaurantInfo as any);
     }
-    // Keep localStorage in sync with server data
     saveRestaurantCache({
-      restaurantData: {
-        meals: meals.length > 0 ? meals : session.meals,
-        restaurantInfo: session.restaurantInfo,
-      },
+      restaurantData: { meals: session.meals, restaurantInfo: session.restaurantInfo },
       restaurant: session.restaurantName || "",
       craving: session.craving || "",
       cuisine: session.cuisine || "",
@@ -487,7 +525,6 @@ export default function RestaurantGuidePage() {
     },
     onSuccess: (data) => {
       stopProgressTicker();
-      // Dietary compliance: filter BEFORE render — never show non-compliant recommendations
       const userDiet = normalizeDiet(user?.dietaryRestrictions);
       const rawRecs = data.recommendations || [];
       const compliantRecs = filterMealsByDiet(userDiet, rawRecs, (r) => r);
@@ -496,42 +533,45 @@ export default function RestaurantGuidePage() {
         const isIdentityDiet = identityDiets.has(userDiet);
         const emptyDesc = rawRecs.length > 0
           ? isIdentityDiet
-            ? `No ${userDiet}-compliant options were found at this restaurant. Try a different location or search for ${userDiet}-friendly cuisine nearby.`
+            ? `No ${userDiet}-compliant options were found at this restaurant. Try a different location.`
             : `No recommendations matched your ${userDiet} diet. Try a different restaurant or craving.`
           : "No recommendations were generated. Please try again.";
-        toast({
-          title: "No matching meals found",
-          description: emptyDesc,
-          variant: "destructive",
-        });
+        toast({ title: t("restaurant.errorNoMatch"), description: emptyDesc, variant: "destructive" });
         return;
       }
+      // Surgically evict stale restaurant image cache: only remove slug-based keys
+      // that don't belong to the current result set, so fresh images persist.
+      try {
+        const LS_IMG_BASE = "mpm.imgcache.cf.";
+        const LS_SLUG_PREFIX = "mpm.imgcache.cf.cfm-restaurant-";
+        const currentKeys = new Set(
+          compliantRecs.map((m: any) => {
+            if (m.id) return LS_IMG_BASE + m.id;
+            const slug = (m.name || m.meal || "")
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, "-")
+              .slice(0, 40);
+            return LS_IMG_BASE + `cfm-restaurant-${slug}`;
+          })
+        );
+        Object.keys(localStorage)
+          .filter((k) => k.startsWith(LS_SLUG_PREFIX) && !currentKeys.has(k))
+          .forEach((k) => localStorage.removeItem(k));
+      } catch {}
       setGeneratedMeals(compliantRecs);
       setGuidedStep("results");
-
-      // Store restaurant info from Google Places
-      if (data.restaurantInfo) {
-        setRestaurantInfo(data.restaurantInfo);
-      }
-
-      // Cache what the user actually sees (compliantRecs, not raw recommendations)
+      if (data.restaurantInfo) setRestaurantInfo(data.restaurantInfo);
       saveRestaurantCache({
-        restaurantData: {
-          meals: compliantRecs,
-          restaurantInfo: data.restaurantInfo,
-        },
+        restaurantData: { meals: compliantRecs, restaurantInfo: data.restaurantInfo },
         restaurant: restaurantInput,
         craving: cravingInput,
         cuisine: matchedCuisine || "",
         generatedAtISO: new Date().toISOString(),
       });
-
       toast({
-        title: "🍽️ Restaurant Meals Generated!",
-        description: `Found ${data.recommendations?.length || 0} healthy options at ${data.restaurantInfo?.name || restaurantInput}.`,
+        title: t("restaurant.pageTitle"),
+        description: `Found ${compliantRecs.length} healthy options at ${data.restaurantInfo?.name || restaurantInput}.`,
       });
-
-      // Emit search-complete event after successful generation
       setTimeout(() => {
         const event = new CustomEvent("walkthrough:event", {
           detail: { testId: "restaurantguide-search-complete", event: "done" },
@@ -542,7 +582,7 @@ export default function RestaurantGuidePage() {
     onError: (error: Error) => {
       stopProgressTicker();
       toast({
-        title: "Generation Failed",
+        title: t("restaurant.generationFailed"),
         description:
           error.name === "AbortError"
             ? "Request timed out. Please try again."
@@ -555,8 +595,8 @@ export default function RestaurantGuidePage() {
   const handleSearch = () => {
     if (!cravingInput.trim() || !restaurantInput.trim()) {
       toast({
-        title: "Missing Information",
-        description: "Please enter both a food craving and a restaurant name.",
+        title: t("restaurant.errorMissing"),
+        description: t("restaurant.errorMissingDesc"),
         variant: "destructive",
       });
       return;
@@ -564,8 +604,8 @@ export default function RestaurantGuidePage() {
 
     if (!zipCode.trim() || !/^\d{5}$/.test(zipCode)) {
       toast({
-        title: "Invalid ZIP Code",
-        description: "Please enter a valid 5-digit ZIP code.",
+        title: t("restaurant.errorZip"),
+        description: t("restaurant.errorZipDesc"),
         variant: "destructive",
       });
       return;
@@ -666,12 +706,12 @@ export default function RestaurantGuidePage() {
               className="flex items-center gap-1 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
             >
               <ArrowLeft className="h-5 w-5" />
-              <span className="text-sm font-medium">Back</span>
+              <span className="text-sm font-medium">{t("common.back")}</span>
             </button>
 
             {/* Title */}
             <h1 className="text-lg font-bold text-white truncate min-w-0">
-              Restaurant Guide
+              {t("restaurant.pageTitle")}
             </h1>
 
             <div className="flex-grow" />
@@ -694,17 +734,16 @@ export default function RestaurantGuidePage() {
                   </div>
                 </div>
                 <h2 className="text-2xl font-bold text-white mb-3">
-                  Restaurant Guide
+                  {t("restaurant.entryTitle")}
                 </h2>
                 <p className="text-white/70 mb-6">
-                  Tell me where you're eating and what you're in the mood for,
-                  and I'll show you the best options from their menu.
+                  {t("restaurant.entryDesc")}
                 </p>
                 <Button
                   onClick={() => advanceGuided("step1")}
                   className="bg-lime-600 text-white px-8 py-3 text-lg font-semibold"
                 >
-                  Let's Find Dishes
+                  {t("restaurant.letsFindDishes")}
                 </Button>
               </CardContent>
             </Card>
@@ -722,16 +761,16 @@ export default function RestaurantGuidePage() {
                 <CardContent className="p-5 space-y-4">
                   <div className="flex items-center gap-2">
                     <ChefHat className="h-5 w-5 text-orange-500" />
-                    <h3 className="text-lg font-semibold text-white">Step 1</h3>
+                    <h3 className="text-lg font-semibold text-white">{t("restaurant.step1")}</h3>
                   </div>
                   <p className="text-white text-base">
-                    What dish or type of food are you craving?
+                    {t("restaurant.step1Question")}
                   </p>
                   <div className="relative">
                     <Input
                       data-wt="rg-craving-input"
                       id="craving-input"
-                      placeholder="e.g. chicken, salmon, pasta, steak"
+                      placeholder={t("restaurant.step1Placeholder")}
                       value={cravingInput}
                       onChange={(e) => setCravingInput(e.target.value)}
                       className="w-full pr-10 bg-black/40 backdrop-blur-lg border border-white/20 text-white placeholder:text-white/50 focus:bg-black/40 focus:text-white caret-white text-lg py-3"
@@ -757,7 +796,7 @@ export default function RestaurantGuidePage() {
                     disabled={!cravingInput.trim()}
                     className="w-full bg-orange-600 hover:bg-orange-500 text-white py-3 text-lg font-semibold"
                   >
-                    Next
+                    {t("common.next")}
                   </Button>
                 </CardContent>
               </Card>
@@ -776,17 +815,17 @@ export default function RestaurantGuidePage() {
                 <CardContent className="p-5 space-y-4">
                   <div className="flex items-center gap-2">
                     <ChefHat className="h-5 w-5 text-orange-500" />
-                    <h3 className="text-lg font-semibold text-white">Step 2</h3>
+                    <h3 className="text-lg font-semibold text-white">{t("restaurant.step2")}</h3>
                   </div>
                   <p className="text-white text-base">
-                    Where are you eating? Enter the restaurant name.
+                    {t("restaurant.step2Question")}
                   </p>
                   <div className="relative">
                     <Input
                       data-testid="restaurantguide-search"
                       data-wt="rg-restaurant-input"
                       id="restaurant-input"
-                      placeholder="e.g. Cheesecake Factory, P.F. Chang's, Chipotle"
+                      placeholder={t("restaurant.step2Placeholder")}
                       value={restaurantInput}
                       onChange={(e) => setRestaurantInput(e.target.value)}
                       className="w-full pr-10 bg-black/40 backdrop-blur-lg border border-white/20 text-white placeholder:text-white/50 focus:bg-black/40 focus:text-white caret-white text-lg py-3"
@@ -822,14 +861,14 @@ export default function RestaurantGuidePage() {
                         rounded-xl
                         transition-none"
                     >
-                      Back
+                      {t("common.back")}
                     </Button>
                     <Button
                       onClick={() => advanceGuided("step3")}
                       disabled={!restaurantInput.trim()}
                       className="flex-1 bg-orange-600 hover:bg-orange-500 text-white font-semibold"
                     >
-                      Next
+                      {t("common.next")}
                     </Button>
                   </div>
                 </CardContent>
@@ -849,17 +888,17 @@ export default function RestaurantGuidePage() {
                 <CardContent className="p-5 space-y-4">
                   <div className="flex items-center gap-2">
                     <ChefHat className="h-5 w-5 text-orange-500" />
-                    <h3 className="text-lg font-semibold text-white">Step 3</h3>
+                    <h3 className="text-lg font-semibold text-white">{t("restaurant.step3")}</h3>
                   </div>
                   <p className="text-white text-base">
-                    Enter your ZIP code so I can find the nearest location.
+                    {t("restaurant.step3Question")}
                   </p>
                   <div className="flex gap-2">
                     <div className="relative flex-1">
                       <Input
                         data-testid="restaurantguide-zip"
                         id="zip-input"
-                        placeholder="e.g. 30303, 90210, 10001"
+                        placeholder={t("restaurant.step3Placeholder")}
                         value={zipCode}
                         onChange={(e) =>
                           setZipCode(
@@ -916,14 +955,14 @@ export default function RestaurantGuidePage() {
                         rounded-xl
                         transition-none"
                     >
-                      Back
+                      {t("common.back")}
                     </Button>
                     <Button
                       onClick={handleSearch}
                       disabled={zipCode.length !== 5}
                       className="flex-1 bg-lime-600 hover:bg-lime-500 text-white font-semibold"
                     >
-                      Find Dishes
+                      {t("restaurant.findDishes")}
                     </Button>
                   </div>
                 </CardContent>
@@ -947,13 +986,13 @@ export default function RestaurantGuidePage() {
                     </div>
                   </div>
                   <h3 className="text-xl font-semibold text-white text-center">
-                    Finding Your Perfect Dishes...
+                    {t("restaurant.findingDishes")}
                   </h3>
                   <p className="text-white/70 text-center">
-                    Searching {restaurantInput} for {cravingInput} options
+                    {t("restaurant.searchingFor", { restaurant: restaurantInput, craving: cravingInput })}
                   </p>
                   <div className="mt-6 flex justify-center">
-                    <CometBar label="Scanning the menu…" />
+                    <CometBar label={t("restaurant.scanningMenu")} />
                   </div>
                 </CardContent>
               </Card>
@@ -968,7 +1007,7 @@ export default function RestaurantGuidePage() {
                   <div className="mb-4">
                     <div className="flex items-center justify-between">
                       <h2 className="text-xl font-bold text-white">
-                        🍽️ Recommended Meals at{" "}
+                        🍽️ {t("restaurant.recommendedAt")}{" "}
                         {restaurantInfo?.name ||
                           restaurantInput
                             .split(" ")
@@ -989,17 +1028,17 @@ export default function RestaurantGuidePage() {
                           setGuidedStep("entry");
                           hasSpokenEntryRef.current = false;
                         }}
-                        className="text-sm text-white/70 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg transition-colors"
+                        className="text-sm text-white/70 bg-white/10 px-3 py-1 rounded-lg"
                         data-testid="button-create-new"
                       >
-                        Search Again
+                        {t("restaurant.searchAgain")}
                       </button>
                     </div>
                     {restaurantInfo?.address && (
                       <div className="flex items-center gap-2 mt-1">
                         <button
                           onClick={() => openInMaps(restaurantInfo.address)}
-                          className="flex items-center gap-1 text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                          className="flex items-center gap-1 text-sm text-blue-400 transition-colors"
                           aria-label="Open in Maps"
                         >
                           <Navigation className="h-3 w-3" />
@@ -1013,13 +1052,13 @@ export default function RestaurantGuidePage() {
                               restaurantInfo.address,
                             );
                             toast({
-                              title: success ? "Address copied" : "Copy failed",
+                              title: success ? t("restaurant.addressCopied") : t("restaurant.copyFailed"),
                               description: success
-                                ? "Paste into Maps or Waze."
-                                : "Please copy manually.",
+                                ? t("restaurant.pasteHint")
+                                : t("restaurant.copyManually"),
                             });
                           }}
-                          className="p-1 text-white/50 hover:text-white/80 transition-colors"
+                          className="p-1 text-white/50 transition-colors"
                           aria-label="Copy address"
                         >
                           <Copy className="h-3.5 w-3.5" />
@@ -1032,325 +1071,241 @@ export default function RestaurantGuidePage() {
                       </div>
                     )}
                   </div>
-                  <div className="grid gap-4">
-                    {generatedMeals.map((meal, index) => (
-                      <Card
-                        data-wt="rg-restaurant-card"
-                        key={meal.id || index}
-                        className="overflow-hidden shadow-lg hover:shadow-orange-500/50 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 bg-black/40 backdrop-blur-lg border border-white/20"
-                      >
-                        <div className="grid md:grid-cols-3 gap-4">
-                          {/* Meal Image — ChefFlow Render System */}
-                          <div className="relative h-48 md:h-auto">
-                            {(!meal.imageUrl && chefFlowFailed.has(chefFlowMealId(meal, "restaurant"))) ? (
-                              <div className="h-48 flex flex-col items-center justify-center gap-2 bg-black/40 border-b border-orange-400/30 text-center px-4">
-                                <p className="text-white/70 text-xs mb-2">
-                                  This result was saved in an older session before images were stored. Generate a fresh search to get your image.
-                                </p>
-                                <button
-                                  onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-                                  className="px-3 py-1.5 rounded-full bg-orange-600 text-white text-xs font-medium"
-                                >
-                                  Scroll up to search again
-                                </button>
-                              </div>
-                            ) : (
-                              <ChefFlowImage
-                                src={chefFlowImages[chefFlowMealId(meal, "restaurant")]}
-                                alt={meal.name || meal.meal || "Meal"}
-                              />
-                            )}
-                          </div>
 
-                          {/* Meal Details */}
-                          <div className="md:col-span-2 p-4">
-                            <div className="flex items-start justify-between mb-2">
-                              <div className="flex flex-col gap-1">
-                                <div className="flex items-center gap-2">
-                                  <h3 className="text-lg font-semibold text-white">
-                                    {meal.name || meal.meal}
-                                  </h3>
+                  <div className="grid gap-4">
+                    {generatedMeals.map((meal, index) => {
+                      const mealKey = meal.id || `meal-${index}`;
+                      const translation = mealTranslations[mealKey];
+                      const displayMeal = translation ? translation.data : meal;
+                      const imageKey = chefFlowMealId(meal, "restaurant");
+                      const mealImage = chefFlowImages[imageKey] || meal.imageUrl;
+                      const TRANSLATE_LANGUAGES = [
+                        { code: "es", label: "Spanish" },
+                        { code: "fr", label: "French" },
+                        { code: "de", label: "German" },
+                        { code: "it", label: "Italian" },
+                        { code: "pt", label: "Portuguese" },
+                        { code: "zh", label: "Chinese" },
+                        { code: "ja", label: "Japanese" },
+                        { code: "ko", label: "Korean" },
+                        { code: "ar", label: "Arabic" },
+                        { code: "hi", label: "Hindi" },
+                        { code: "ru", label: "Russian" },
+                        { code: "vi", label: "Vietnamese" },
+                        { code: "tl", label: "Tagalog" },
+                      ];
+                      return (
+                        <Card
+                          data-wt="rg-restaurant-card"
+                          key={mealKey}
+                          className="overflow-hidden shadow-lg hover:shadow-orange-500/50 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 bg-black/40 backdrop-blur-lg border border-white/20"
+                        >
+                          <div className="md:grid md:grid-cols-3">
+                            {mealImage && (
+                              <div className="relative h-48 md:h-full">
+                                <ChefFlowImage
+                                  src={mealImage}
+                                  alt={displayMeal.name || displayMeal.meal || "Meal"}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            )}
+                            <div className={`p-4 ${mealImage ? "md:col-span-2" : "md:col-span-3"}`}>
+                              <div className="flex items-start justify-between mb-2">
+                                <h3 className="text-lg font-semibold text-white">
+                                  {displayMeal.name || displayMeal.meal}
+                                </h3>
+                                <div className="flex items-center gap-2 ml-2 flex-shrink-0">
+                                  <span className="text-sm text-white/90 bg-orange-600 px-2 py-1 rounded font-medium">
+                                    {meal.calories} cal
+                                  </span>
                                   <FavoriteButton
-                                    title={meal.name || meal.meal}
-                                    sourceType="restaurant-guide"
-                                    mealData={meal}
-                                    size={18}
+                                    title={meal.name || meal.meal || ""}
+                                    sourceType="restaurant"
+                                    mealData={{
+                                      id: mealKey,
+                                      name: meal.name || meal.meal,
+                                      calories: meal.calories,
+                                      protein: meal.protein,
+                                      carbs: meal.carbs,
+                                      fat: meal.fat,
+                                      description: meal.description || meal.reason,
+                                      ingredients: meal.ingredients || [],
+                                    }}
                                   />
                                 </div>
-                                {/* Starch Classification Badge */}
-                                {(() => {
-                                  const starchClass = classifyMeal({
-                                    name: meal.name || meal.meal,
-                                    ingredients: meal.ingredients || [],
-                                  });
-                                  return (
-                                    <span
-                                      className={`text-xs font-medium px-2 py-0.5 rounded-full inline-flex items-center gap-1 w-fit ${
-                                        starchClass.isStarchMeal
-                                          ? "bg-orange-500/20 text-orange-300 border border-orange-500/30"
-                                          : "bg-green-500/20 text-green-300 border border-green-500/30"
-                                      }`}
-                                    >
-                                      {starchClass.emoji} {starchClass.label}
-                                    </span>
-                                  );
-                                })()}
-                                {/* Diet Style Pills */}
-                                {(() => {
-                                  const restrictions: string[] = (user as any)?.dietaryRestrictions ?? [];
-                                  const active = restrictions
-                                    .map((r) => r.toLowerCase().trim())
-                                    .filter((r) => !DIET_SKIP.has(r) && DIET_PILL_CONFIG[r]);
-                                  if (active.length === 0) return null;
-                                  const qualifierText = DIET_QUALIFIER_MAP[active[0]];
-                                  return (
-                                    <div className="flex flex-col gap-1 mt-0.5">
-                                      <div className="flex flex-wrap gap-1">
-                                        {active.map((key) => {
-                                          const { label, color } = DIET_PILL_CONFIG[key];
-                                          return (
-                                            <span
-                                              key={key}
-                                              className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${color}`}
-                                            >
-                                              {label}
-                                            </span>
-                                          );
-                                        })}
-                                      </div>
-                                      {qualifierText && (
-                                        <p className="text-[11px] text-white/50 leading-tight">
-                                          {qualifierText}
-                                        </p>
-                                      )}
-                                    </div>
-                                  );
-                                })()}
                               </div>
-                              <span className="text-sm text-white/90 bg-orange-600 px-2 py-1 rounded font-medium">
-                                {meal.calories} cal
-                              </span>
-                            </div>
 
-                            <p className="text-white/80 mb-3">
-                              {meal.description || meal.reason}
-                            </p>
-
-                            {/* Medical Safety Badges */}
-                            {(() => {
-                              // Generate medical badges client-side like weekly meal calendar
-                              const userProfile = getUserMedicalProfile(1);
-                              const mealForBadges = {
-                                name: meal.name || meal.meal,
-                                calories: meal.calories,
-                                protein: meal.protein,
-                                carbs: meal.carbs,
-                                fat: meal.fat,
-                                ingredients:
-                                  meal.ingredients?.map((ing: any) => ({
-                                    name: ing,
-                                    amount: 1,
-                                    unit: "serving",
-                                  })) || [],
-                              };
-                              const medicalBadges = generateMedicalBadges(
-                                mealForBadges as any,
-                                userProfile,
-                              );
-                              // Convert complex badge objects to simple strings for HealthBadgesPopover
-                              const badgeStrings = medicalBadges.map(
-                                (b: any) => b.badge || b.label || b.id,
-                              );
-                              return (
-                                badgeStrings &&
-                                badgeStrings.length > 0 && (
-                                  <div className="mb-3">
-                                    <div className="flex items-center gap-3">
-                                      <HealthBadgesPopover
-                                        badges={badgeStrings}
-                                      />
-                                      <h3 className="font-semibold text-white">
-                                        Medical Safety
-                                      </h3>
-                                    </div>
-                                  </div>
-                                )
-                              );
-                            })()}
-
-                            {/* Nutrition Info */}
-                            <div className="grid grid-cols-3 gap-4 text-sm mb-3">
-                              <div className="text-center">
-                                <div className="font-semibold text-blue-400">
-                                  {meal.protein}g
-                                </div>
-                                <div className="text-white/60">Protein</div>
-                              </div>
-                              <div className="text-center">
-                                <div className="font-semibold text-green-400">
-                                  {meal.carbs}g
-                                </div>
-                                <div className="text-white/60">Carbs</div>
-                              </div>
-                              <div className="text-center">
-                                <div className="font-semibold text-yellow-400">
-                                  {meal.fat}g
-                                </div>
-                                <div className="text-white/60">Fat</div>
-                              </div>
-                            </div>
-
-                            {/* Why It's Healthy */}
-                            <div className="bg-black/20 border border-white/10 rounded-lg p-3 mb-3 backdrop-blur-sm">
-                              <h4 className="font-medium text-green-300 text-sm mb-1">
-                                Why This is Healthy:
-                              </h4>
-                              <p className="text-green-200 text-sm">
-                                {meal.reason}
+                              <p className="text-white/80 mb-3">
+                                {displayMeal.description || displayMeal.reason}
                               </p>
-                            </div>
 
-                            {/* How to Order — structured block */}
-                            {meal.howToOrder ? (
-                              <div className="bg-black/20 border border-white/10 rounded-lg p-3 backdrop-blur-sm mb-3 space-y-2">
-                                <h4 className="font-medium text-orange-300 text-sm">
-                                  How to Order:
-                                </h4>
-                                {meal.menuAnchorItem && (
-                                  <p className="text-white/40 text-xs italic">
-                                    Based on: {meal.menuAnchorItem}
-                                  </p>
-                                )}
-                                <div className="space-y-1.5">
-                                  <div className="flex items-start gap-2">
-                                    <span className="text-orange-400 text-xs font-semibold mt-0.5 shrink-0 w-16">Ask for:</span>
-                                    <span className="text-orange-200 text-sm">{meal.howToOrder.askFor}</span>
+                              {/* Nutrition Info */}
+                              <div className="grid grid-cols-4 gap-2 text-sm mb-3">
+                                <div className="text-center">
+                                  <div className="font-semibold text-blue-400">
+                                    {meal.protein}g
                                   </div>
-                                  {meal.howToOrder.modify.length > 0 && (
-                                    <div className="flex items-start gap-2">
-                                      <span className="text-orange-400 text-xs font-semibold mt-0.5 shrink-0 w-16">Modify:</span>
-                                      <span className="text-orange-200 text-sm">{meal.howToOrder.modify.join(", ")}</span>
-                                    </div>
-                                  )}
-                                  {meal.howToOrder.swap.length > 0 && (
-                                    <div className="flex items-start gap-2">
-                                      <span className="text-orange-400 text-xs font-semibold mt-0.5 shrink-0 w-16">Swap:</span>
-                                      <span className="text-orange-200 text-sm">{meal.howToOrder.swap.join(", ")}</span>
-                                    </div>
-                                  )}
+                                  <div className="text-white/60 text-xs">Protein</div>
+                                </div>
+                                <div className="text-center">
+                                  <div className="font-semibold text-orange-400">
+                                    {meal.starchyCarbs != null ? `${meal.starchyCarbs}g` : "—"}
+                                  </div>
+                                  <div className="text-white/60 text-xs">Starchy</div>
+                                </div>
+                                <div className="text-center">
+                                  <div className="font-semibold text-green-400">
+                                    {meal.fibrousCarbs != null ? `${meal.fibrousCarbs}g` : "—"}
+                                  </div>
+                                  <div className="text-white/60 text-xs">Fibrous</div>
+                                </div>
+                                <div className="text-center">
+                                  <div className="font-semibold text-yellow-400">
+                                    {meal.fat}g
+                                  </div>
+                                  <div className="text-white/60 text-xs">Fat</div>
                                 </div>
                               </div>
-                            ) : (
-                              <div className="bg-black/20 border border-white/10 rounded-lg p-3 backdrop-blur-sm mb-3">
-                                <h4 className="font-medium text-orange-300 text-sm mb-1">
-                                  Ask For:
-                                </h4>
-                                <p className="text-orange-200 text-sm">
-                                  {meal.modifications || meal.orderInstructions}
-                                </p>
-                              </div>
-                            )}
 
-                            {/* Diet-specific order tips */}
-                            {(() => {
-                              const restrictions: string[] = (user as any)?.dietaryRestrictions ?? [];
-                              const primaryDiet = restrictions
-                                .map((r) => r.toLowerCase().trim())
-                                .find((r) => !DIET_SKIP.has(r));
-                              if (!primaryDiet) return null;
-                              const orderInstructions = getOrderInstructions(primaryDiet, meal.name || meal.meal || "");
-                              if (orderInstructions.length === 0) return null;
-                              return (
-                                <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 backdrop-blur-sm mb-3">
-                                  <h4 className="font-medium text-blue-300 text-sm mb-1">
-                                    Diet Tips:
-                                  </h4>
-                                  <ul className="space-y-1">
-                                    {orderInstructions.map((item, i) => (
-                                      <li key={i} className="text-blue-200 text-sm flex items-start gap-1.5">
-                                        <span className="mt-0.5 flex-shrink-0">•</span>
-                                        <span>{item}</span>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              );
-                            })()}
-
-                            {/* Tell Your Server — medical condition waiter script */}
-                            {(meal as any).medicalWaiterScript && (
-                              <div className="bg-rose-500/10 border border-rose-500/30 rounded-lg p-3 backdrop-blur-sm mb-3">
-                                <h4 className="font-medium text-rose-300 text-sm mb-1.5 flex items-center gap-1.5">
-                                  🏥 Tell Your Server
-                                </h4>
-                                <p className="text-rose-200 text-sm italic">
-                                  "{(meal as any).medicalWaiterScript}"
-                                </p>
-                              </div>
-                            )}
-
-                            {/* Protocol Visibility */}
-                            <div className="mb-3">
-                              <ProtocolVisibilityPanel
-                                user={user}
-                                reasoning={meal.reason || meal.reasoning}
-                                context="restaurant"
-                              />
-                            </div>
-
-                            {/* Action Buttons */}
-                            <div className="flex flex-col gap-2">
-                              <Button
-                                onClick={() => {
-                                  setQuickView({
-                                    protein: Math.round(meal.protein || 0),
-                                    carbs: Math.round(meal.carbs || 0),
-                                    fat: Math.round(meal.fat || 0),
-                                    calories: Math.round(meal.calories || 0),
-                                    dateISO: new Date()
-                                      .toISOString()
-                                      .slice(0, 10),
-                                    mealSlot: "lunch",
-                                  });
-                                  setLocation(
-                                    "/biometrics?from=restaurant-guide&view=macros",
-                                  );
-                                }}
-                                className="w-full bg-black text-white font-medium"
-                              >
-                                <Plus className="h-4 w-4 mr-2" />
-                                Add Your Macros
-                              </Button>
-
-                              {/* Add to Meal Plan Button */}
-                              <AddToMealPlanButton
-                                meal={{
-                                  id:
-                                    meal.id ||
-                                    `restaurant-${index}-${Date.now()}`,
-                                  title: meal.name || meal.meal,
-                                  name: meal.name || meal.meal,
-                                  description: meal.description || meal.reason,
-                                  imageUrl: meal.imageUrl,
-                                  ingredients:
-                                    meal.ingredients?.map((ing: string) => ({
+                              {/* Action Buttons */}
+                              <div className="flex flex-col gap-2 mb-3">
+                                <Button
+                                  onClick={() => {
+                                    setQuickView({
+                                      protein: Math.round(meal.protein || 0),
+                                      carbs: Math.round(meal.carbs || 0),
+                                      starchyCarbs: meal.starchyCarbs != null ? Math.round(meal.starchyCarbs) : undefined,
+                                      fibrousCarbs: meal.fibrousCarbs != null ? Math.round(meal.fibrousCarbs) : undefined,
+                                      fat: Math.round(meal.fat || 0),
+                                      calories: Math.round(meal.calories || 0),
+                                      dateISO: new Date().toISOString().slice(0, 10),
+                                      mealSlot: "lunch",
+                                    });
+                                    setLocation("/biometrics?from=restaurant-guide&view=macros");
+                                  }}
+                                  className="w-full bg-orange-600 hover:bg-orange-700 text-white font-medium"
+                                >
+                                  <Plus className="h-4 w-4 mr-2" />
+                                  Add to Macros
+                                </Button>
+                                <AddToMealPlanButton
+                                  meal={{
+                                    id: mealKey,
+                                    title: meal.name || meal.meal || "",
+                                    name: meal.name || meal.meal || "",
+                                    description: meal.description || meal.reason || "",
+                                    imageUrl: mealImage || "",
+                                    ingredients: (meal.ingredients || []).map((ing: string) => ({
                                       item: ing,
                                       amount: "1 serving",
-                                    })) || [],
-                                  instructions: meal.modifications
-                                    ? [meal.modifications]
-                                    : [],
-                                  calories: meal.calories,
-                                  protein: meal.protein,
-                                  carbs: meal.carbs,
-                                  fat: meal.fat,
-                                }}
-                              />
+                                    })),
+                                    instructions: meal.modifications ? [meal.modifications] : [],
+                                    calories: meal.calories,
+                                    protein: meal.protein,
+                                    carbs: meal.carbs,
+                                    fat: meal.fat,
+                                  }}
+                                />
+                              </div>
+
+                              {/* Why It's Healthy */}
+                              <div className="bg-black/20 border border-white/10 rounded-lg p-3 mb-3 backdrop-blur-sm">
+                                <h4 className="font-medium text-green-300 text-sm mb-1">
+                                  {t("restaurant.whyHealthy")}
+                                </h4>
+                                <p className="text-green-200 text-sm">
+                                  {displayMeal.reason}
+                                </p>
+                              </div>
+
+                              {/* Ask For (Modifications) */}
+                              <div className="bg-black/20 border border-white/10 rounded-lg p-3 mb-3 backdrop-blur-sm">
+                                <h4 className="font-medium text-orange-300 text-sm mb-1">
+                                  {t("restaurant.askFor")}
+                                </h4>
+                                <p className="text-orange-200 text-sm">
+                                  {displayMeal.modifications || displayMeal.orderInstructions}
+                                </p>
+                              </div>
+
+                              {/* Translate */}
+                              <div className="mt-2">
+                                <details className="group">
+                                  <summary className="flex items-center gap-1.5 text-sm text-white/60 cursor-pointer list-none">
+                                    <Globe className="h-3.5 w-3.5" />
+                                    <span>
+                                      {translation
+                                        ? `Translated to ${TRANSLATE_LANGUAGES.find((l) => l.code === translation.lang)?.label || translation.lang}`
+                                        : "Translate"}
+                                    </span>
+                                    {translation && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          setMealTranslations((prev) => {
+                                            const next = { ...prev };
+                                            delete next[mealKey];
+                                            return next;
+                                          });
+                                        }}
+                                        className="ml-1 text-white/40 text-xs"
+                                      >
+                                        ✕
+                                      </button>
+                                    )}
+                                  </summary>
+                                  <div className="mt-2 flex flex-wrap gap-1.5">
+                                    {TRANSLATE_LANGUAGES.map((lang) => (
+                                      <button
+                                        key={lang.code}
+                                        disabled={translatingId === mealKey}
+                                        onClick={async () => {
+                                          if (translation?.lang === lang.code) return;
+                                          setTranslatingId(mealKey);
+                                          try {
+                                            const payload = {
+                                              name: meal.name || meal.meal,
+                                              description: meal.description || meal.reason,
+                                              reason: meal.reason,
+                                              modifications: meal.modifications || meal.orderInstructions,
+                                            };
+                                            const result = await apiRequest("/api/translate", {
+                                              method: "POST",
+                                              headers: { "Content-Type": "application/json" },
+                                              body: JSON.stringify({ content: payload, targetLanguage: lang.code }),
+                                            });
+                                            setMealTranslations((prev) => ({
+                                              ...prev,
+                                              [mealKey]: { lang: lang.code, data: { ...meal, ...result } },
+                                            }));
+                                          } catch {
+                                            toast({ title: t("restaurant.translationFailed"), description: "Please try again.", variant: "destructive" });
+                                          } finally {
+                                            setTranslatingId(null);
+                                          }
+                                        }}
+                                        className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                                          translation?.lang === lang.code
+                                            ? "bg-orange-600 text-white"
+                                            : "bg-white/10 text-white/80"
+                                        }`}
+                                      >
+                                        {translatingId === mealKey ? (
+                                          <TranslateLoader className="h-3 w-3 animate-spin inline" />
+                                        ) : (
+                                          lang.label
+                                        )}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </details>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </Card>
-                    ))}
+                        </Card>
+                      );
+                    })}
                   </div>
                 </div>
               </CardContent>
@@ -1361,7 +1316,7 @@ export default function RestaurantGuidePage() {
         <QuickTourModal
           isOpen={quickTour.shouldShow}
           onClose={quickTour.closeTour}
-          title="How to Use Restaurant Guide"
+          title="How to Use Restaurant Assistant"
           steps={RESTAURANT_TOUR_STEPS}
           onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
         />
