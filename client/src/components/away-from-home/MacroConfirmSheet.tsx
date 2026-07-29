@@ -59,6 +59,8 @@ interface MacroConfirmSheetProps {
   onClose: () => void;
   /** Called after a successful log or plan add. */
   onSuccess?: (action: "logged" | "planned") => void;
+  /** When true, hides the "Add to Meal Plan" button (buffet mode). */
+  logOnly?: boolean;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -68,6 +70,7 @@ export default function MacroConfirmSheet({
   open,
   onClose,
   onSuccess,
+  logOnly = false,
 }: MacroConfirmSheetProps) {
   const todayISO = getTodayISOSafe(TZ);
   const rollingDates = getRolling14Days(todayISO);
@@ -291,13 +294,15 @@ export default function MacroConfirmSheet({
             >
               {logging ? "Logging…" : "Log to Macros"}
             </button>
-            <button
-              onClick={handleAddToPlan}
-              disabled={logging || planning}
-              className="w-full py-3 rounded-xl bg-white/10 text-white font-semibold text-sm disabled:opacity-50 transition-opacity"
-            >
-              {planning ? "Adding…" : "Add to Meal Plan"}
-            </button>
+            {!logOnly && (
+              <button
+                onClick={handleAddToPlan}
+                disabled={logging || planning}
+                className="w-full py-3 rounded-xl bg-white/10 text-white font-semibold text-sm disabled:opacity-50 transition-opacity"
+              >
+                {planning ? "Adding…" : "Add to Meal Plan"}
+              </button>
+            )}
           </div>
 
         </div>
