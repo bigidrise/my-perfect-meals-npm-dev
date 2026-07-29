@@ -248,6 +248,7 @@ export async function generateRestaurantMealsAI(request: RestaurantMealRequest):
   const userConditions = user?.healthConditions || [];
 
   console.log(`🤖 AI Generator: Creating restaurant-specific meals for ${restaurantName} (${cuisine} cuisine)${cravingContext ? ` featuring ${cravingContext}` : ''}`);
+  console.log(`🔍 [DIAG] cravingContext received = ${JSON.stringify(cravingContext ?? null)} | userConditions = [${userConditions.join(", ")}] | diet = [${(user?.dietaryRestrictions || []).join(", ")}]`);
 
   const userAllergies = user?.allergies || [];
   const userDietaryRestrictions = user?.dietaryRestrictions || [];
@@ -457,8 +458,12 @@ Make the meals sound like something you would genuinely see on the menu at ${res
       max_tokens: 1800, // Increased to accommodate medicalWaiterScript per meal
     });
 
+    console.log(`🔍 [DIAG] ORIGINAL GENERATION prompt for "${restaurantName}" (cravingContext="${cravingContext ?? "none"}"):\n--- PROMPT START ---\n${prompt}\n--- PROMPT END ---`);
+
     const responseText = completion.choices[0]?.message?.content?.trim();
-    
+
+    console.log(`🔍 [DIAG] RAW AI RESPONSE for "${restaurantName}":\n--- RESPONSE START ---\n${responseText ?? "(empty)"}\n--- RESPONSE END ---`);
+
     if (!responseText) {
       console.warn('⚠️ AI returned empty response, falling back to locked generator');
       return generateFallbackMeals(request);
@@ -538,6 +543,7 @@ Make the meals sound like something you would genuinely see on the menu at ${res
       if (!group) continue;
       if (seenGroups.has(group)) {
         console.warn(`⚠️ [VARIETY] Duplicate format group "${group}" at index ${i} ("${meals[i].name}") — regenerating`);
+        console.log(`🔍 [DIAG] DUPLICATE-FIX PATH triggered for "${restaurantName}" meal[${i}]="${meals[i].name}" | cravingContext="${cravingContext ?? "none"}" — fix prompt will NOT include craving instruction`);
         try {
           const existingNames = meals.map(m => m.name).join(", ");
           const fixPrompt = `You are a nutrition expert for ${restaurantName}, a ${cuisine} restaurant.
