@@ -9,6 +9,7 @@ import { careTeamMember } from "../db/schema/careTeam";
 import { clientLinks } from "../db/schema/procare";
 import { pushToUser, pushToCoachOfClient } from "../services/pushNotify";
 import { getUserCompliance } from "../services/complianceEngine";
+import { getUserTimezone, todayInTimezone } from "../services/nutritionDayService";
 import { macroProgramHistory } from "../../shared/schema";
 
 const router = express.Router();
@@ -293,10 +294,11 @@ router.get("/users/:userId/macro-logs/daily", requireAuth, async (req, res) => {
     if (!start || !end)
       return res.status(400).json({ error: "start & end required (ISO)." });
 
-    // Group by YYYY-MM-DD (UTC); if you prefer local-day bucketing, shift here
+    // Group by the data owner's local calendar day via their stored IANA timezone
+    const tz = await getUserTimezone(targetUserId);
     const rows = await db.execute(sql/*sql*/ `
       SELECT
-        DATE_TRUNC('day', ${macroLogs.at})::date AS date,
+        (${macroLogs.at} AT TIME ZONE ${tz})::date AS date,
         COALESCE(SUM(${macroLogs.kcal}), 0)::int    AS kcal,
         COALESCE(SUM(${macroLogs.protein}), 0)::int AS protein,
         COALESCE(SUM(${macroLogs.carbs}), 0)::int   AS carbs,
@@ -601,28 +603,18 @@ router.delete("/users/:userId/macro-logs/today", requireAuth, async (req, res) =
       return res.status(403).json({ error: "Access denied." });
     }
 
-    // Client sends local-timezone day boundaries to avoid UTC mismatch.
-    // e.g. a Chicago user at 9pm CDT has "today" = July 29 locally but
-    // some entries sit on July 30 UTC — the server's UTC window would miss them.
-    const startISO = req.query.startISO as string | undefined;
-    const endISO = req.query.endISO as string | undefined;
+    // Server reads users.timezone to determine the correct local day boundary.
+    // Using AT TIME ZONE in SQL guarantees Delete and aggregation queries share
+    // identical day-boundary logic — no JS DST math involved.
+    const tz = await getUserTimezone(targetUserId);
+    const localDateISO = (req.query.localDateISO as string | undefined)
+      ?? todayInTimezone(tz);
 
-    const todayStart = startISO
-      ? new Date(startISO)
-      : (() => { const d = new Date(); d.setUTCHours(0, 0, 0, 0); return d; })();
-    const todayEnd = endISO
-      ? new Date(endISO)
-      : (() => { const d = new Date(); d.setUTCHours(23, 59, 59, 999); return d; })();
-
-    await db
-      .delete(macroLogs)
-      .where(
-        and(
-          eq(macroLogs.userId, targetUserId),
-          gte(macroLogs.at, todayStart),
-          lte(macroLogs.at, todayEnd),
-        ),
-      );
+    await db.execute(sql`
+      DELETE FROM macro_logs
+      WHERE user_id = ${targetUserId}
+        AND (at AT TIME ZONE ${tz})::date = ${localDateISO}::date
+    `);
 
     console.log(`🗑️ Reset today's macro logs for user ${targetUserId}`);
     res.json({ ok: true });
@@ -677,10 +669,13 @@ router.get("/users/:userId/macro-logs/daily-with-source", requireAuth, async (re
     if (!start || !end)
       return res.status(400).json({ error: "start & end required (ISO)." });
 
+    // Group by the data owner's local calendar day using their stored IANA timezone.
+    // AT TIME ZONE with a named IANA zone lets PostgreSQL handle DST correctly.
+    const tz = await getUserTimezone(userId);
     const rows = await db.execute(sql`
       WITH day_data AS (
         SELECT
-          (${macroLogs.at})::date AS date,
+          (${macroLogs.at} AT TIME ZONE ${tz})::date AS date,
           ${macroLogs.source} AS source,
           SUM(${macroLogs.kcal})::int AS kcal,
           SUM(${macroLogs.protein})::int AS protein,

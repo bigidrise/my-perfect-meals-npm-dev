@@ -16,6 +16,7 @@ import { db } from "../db";
 import { macroLogs } from "../../shared/schema";
 import { and, eq, sql } from "drizzle-orm";
 import { deriveFibrousCarbs } from "../../shared/nutritionFacts";
+import { getUserTimezone, todayInTimezone } from "./nutritionDayService";
 
 export interface MacroLogServiceInput {
   userId: string;
@@ -94,8 +95,11 @@ export async function writeMacroLog(input: MacroLogServiceInput) {
     const isDuplicate = (insertErr?.cause?.code ?? insertErr?.code) === "23505";
     if (!isDuplicate) throw insertErr;
 
-    // Duplicate daily entry — accumulate onto existing row
-    const dateStr = when.toISOString().slice(0, 10);
+    // Duplicate daily entry — accumulate onto existing row.
+    // Match by the owner's local calendar day (not UTC date) so a CDT user
+    // adding macros at 11pm doesn't create a new "UTC tomorrow" row.
+    const tz = await getUserTimezone(userId);
+    const dateStr = dateIso ? dateIso.slice(0, 10) : todayInTimezone(tz);
     const [updated] = await db
       .update(macroLogs)
       .set({
@@ -110,7 +114,7 @@ export async function writeMacroLog(input: MacroLogServiceInput) {
         and(
           eq(macroLogs.userId, userId),
           eq(macroLogs.source, sourceVal),
-          sql`(${macroLogs.at} AT TIME ZONE 'UTC')::date = ${dateStr}::date`
+          sql`(${macroLogs.at} AT TIME ZONE ${tz})::date = ${dateStr}::date`
         )
       )
       .returning();

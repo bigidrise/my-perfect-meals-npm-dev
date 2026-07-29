@@ -1,6 +1,7 @@
 import { db } from "../db";
 import { macroLogs, users } from "../../shared/schema";
 import { eq, sql } from "drizzle-orm";
+import { getUserTimezone, todayInTimezone, daysAgo } from "./nutritionDayService";
 
 export interface ComplianceResult {
   complianceScore: number | null;
@@ -71,22 +72,23 @@ export async function getUserCompliance(
     };
   }
 
-  const now = new Date();
-  const todayStr = now.toISOString().slice(0, 10);
-  const startDate = new Date(todayStr);
-  startDate.setDate(startDate.getDate() - (cappedWindow - 1));
+  // Use the data owner's local timezone so compliance windows reflect their calendar,
+  // not the server's UTC date. A CDT user at 11pm Monday is still on Monday.
+  const tz = await getUserTimezone(userId);
+  const todayStr = todayInTimezone(tz);
+  const startDateStr = daysAgo(todayStr, cappedWindow - 1);
 
   const rows = await db.execute(sql`
     WITH day_data AS (
       SELECT
-        (${macroLogs.at})::date AS date,
+        (${macroLogs.at} AT TIME ZONE ${tz})::date AS date,
         ${macroLogs.source} AS source,
         SUM(${macroLogs.kcal})::int AS kcal,
         SUM(${macroLogs.protein})::int AS protein
       FROM ${macroLogs}
       WHERE ${macroLogs.userId} = ${userId}
-        AND (${macroLogs.at})::date >= ${startDate.toISOString().slice(0, 10)}::date
-        AND (${macroLogs.at})::date <= ${todayStr}::date
+        AND (${macroLogs.at} AT TIME ZONE ${tz})::date >= ${startDateStr}::date
+        AND (${macroLogs.at} AT TIME ZONE ${tz})::date <= ${todayStr}::date
       GROUP BY 1, 2
     ),
     locked_dates AS (
