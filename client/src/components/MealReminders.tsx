@@ -117,7 +117,7 @@ function TimeRow({
         value={slot.time}
         onChange={(e) => onTimeChange(e.target.value)}
         disabled={disabled}
-        className="bg-white/10 border border-white/30 rounded-full px-3 py-[2px] text-white text-[11px] font-semibold tracking-wide focus:outline-none focus:ring-1 focus:ring-orange-500 disabled:opacity-40 flex-shrink-0"
+        className="bg-white/10 border border-white/30 rounded-full px-2 py-[1px] text-white text-[10px] font-semibold tracking-wide focus:outline-none focus:ring-1 focus:ring-orange-500 disabled:opacity-40 flex-shrink-0"
       />
 
       {/* Remove — always red so it's obvious */}
