@@ -473,7 +473,7 @@ export default function AwayFromHomeMealCard({
           ) : (
             <button
               onClick={() => setTranslateOpen(true)}
-              className="flex items-center gap-1.5 text-[11px] text-white/40 bg-white/5 px-3 py-1.5 rounded-full"
+              className="flex items-center gap-1.5 text-[11px] text-white/70 bg-white/10 border border-white/15 px-3 py-1.5 rounded-full"
             >
               <Languages className="w-3 h-3" />
               {translated ? `Translated: ${translated.langLabel}` : "Translate"}

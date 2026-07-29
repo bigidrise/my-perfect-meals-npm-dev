@@ -7,7 +7,7 @@
  *   - Date selection (today default, rolling 14 days)
  *   - Editable macro fields (always available; required for "estimated" status)
  *   - Log to Macros action (POST /api/biometrics/log)
- *   - Add to Plan action (POST /api/weekly-board/:week/slot)
+ *   - Add to Plan action (POST /api/weekly-board/add-meal)
  *
  * This component only knows about AwayFromHomeRecommendation.
  * It does not know whether the recommendation came from any specific feature.
@@ -33,7 +33,6 @@ import { getAuthHeaders } from "@/lib/auth";
 import { getActiveBuilderNs } from "@/lib/activeBuilderNs";
 import {
   getTodayISOSafe,
-  getWeekStartFromDate,
   formatDateDisplay,
 } from "@/utils/midnight";
 import { getRolling14Days } from "@/utils/dateRange";
@@ -143,21 +142,23 @@ export default function MacroConfirmSheet({
     setPlanning(true);
     setError(null);
     try {
-      const weekStart = getWeekStartFromDate(selectedDate, TZ);
       const ns = getActiveBuilderNs();
-      const btParam = ns ? `&bt=${encodeURIComponent(ns)}` : "";
-
       // Board slot uses "snacks" for snack entries
       const boardSlot = selectedSlot === "snack" ? "snacks" : selectedSlot;
-      const item = toMealPlanItemPayload(recommendation!, macroOverrides);
+      const meal = toMealPlanItemPayload(recommendation!, macroOverrides);
 
       const res = await fetch(
-        apiUrl(`/api/weekly-board/${weekStart}/slot?slot=${boardSlot}&date=${selectedDate}${btParam}`),
+        apiUrl("/api/weekly-board/add-meal"),
         {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-          body: JSON.stringify(item),
+          body: JSON.stringify({
+            dateISO: selectedDate,
+            slot: boardSlot,
+            meal,
+            ...(ns ? { bt: ns } : {}),
+          }),
         }
       );
       if (!res.ok) throw new Error(`Plan add failed: ${res.status}`);
@@ -203,7 +204,7 @@ export default function MacroConfirmSheet({
                 { label: "Fat",     value: fat,      set: setFat },
               ].map(({ label, value, set }) => (
                 <div key={label} className="flex flex-col items-center">
-                  <label className="text-[10px] text-white/40 mb-1">{label}</label>
+                  <label className="text-[10px] text-white/60 mb-1">{label}</label>
                   <input
                     type="number"
                     inputMode="decimal"
@@ -211,10 +212,10 @@ export default function MacroConfirmSheet({
                     onChange={(e) => set(e.target.value)}
                     readOnly={!isEditable}
                     className={cn(
-                      "w-full text-center text-sm font-semibold rounded-lg py-2 bg-white/8 border text-white",
+                      "w-full text-center text-sm font-semibold rounded-lg py-2 bg-gray-900 border text-white",
                       isEditable
-                        ? "border-orange-500/40 focus:border-orange-500 focus:outline-none"
-                        : "border-white/10 cursor-default"
+                        ? "border-orange-500/50 focus:border-orange-500 focus:outline-none"
+                        : "border-white/20 cursor-default"
                     )}
                   />
                   {recommendation.nutritionStatus === "estimated" && (
