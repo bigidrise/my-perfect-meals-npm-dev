@@ -338,12 +338,12 @@ export default function MyPerfectBuffetPage() {
                     </span>
                     <div className="flex-1 h-px bg-white/10" />
                   </div>
-                  <AwayFromHomeMealCard recommendation={rec} />
+                  <AwayFromHomeMealCard recommendation={rec} logOnly={true} />
                 </div>
               ))}
 
               <p className="text-center text-[10px] text-white/40 px-4 leading-relaxed pb-2">
-                Tap "Log or Add to Plan" on the plate you actually ate.
+                Tap "Log to Macros" on the plate you actually ate.
               </p>
             </motion.div>
           )}
