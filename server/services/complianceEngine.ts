@@ -190,27 +190,33 @@ export async function getUserCompliance(
   const loggedDays = dailyRows.length;
 
   // --- Meal slot query (count distinct days per slot via raw SQL) ---
-  // meal_type is not mapped in the Drizzle schema, so we use raw column names.
-  const slotResult = await db.execute(sql`
-    SELECT
-      COUNT(DISTINCT CASE WHEN meal_type = 'breakfast'
-        THEN (at AT TIME ZONE ${tz})::date END)::int AS breakfast_days,
-      COUNT(DISTINCT CASE WHEN meal_type = 'lunch'
-        THEN (at AT TIME ZONE ${tz})::date END)::int AS lunch_days,
-      COUNT(DISTINCT CASE WHEN meal_type = 'dinner'
-        THEN (at AT TIME ZONE ${tz})::date END)::int AS dinner_days
-    FROM macro_logs
-    WHERE user_id = ${userId}
-      AND (at AT TIME ZONE ${tz})::date >= ${startDateStr}::date
-      AND (at AT TIME ZONE ${tz})::date <= ${todayStr}::date
-  `);
-
-  const slotRow = slotResult.rows[0] as { breakfast_days: number; lunch_days: number; dinner_days: number } | undefined;
-  const mealSlots: MealSlots = {
-    breakfast: Number(slotRow?.breakfast_days ?? 0),
-    lunch: Number(slotRow?.lunch_days ?? 0),
-    dinner: Number(slotRow?.dinner_days ?? 0),
-  };
+  // meal_type column exists in the DB but is not mapped in the Drizzle schema.
+  // Wrapped in try/catch: if the column is missing in a given environment the
+  // rest of the summary still returns correctly with zeros for slots.
+  let mealSlots: MealSlots = { breakfast: 0, lunch: 0, dinner: 0 };
+  try {
+    const slotResult = await db.execute(sql`
+      SELECT
+        COUNT(DISTINCT CASE WHEN meal_type = 'breakfast'
+          THEN (at AT TIME ZONE ${tz})::date END)::int AS breakfast_days,
+        COUNT(DISTINCT CASE WHEN meal_type = 'lunch'
+          THEN (at AT TIME ZONE ${tz})::date END)::int AS lunch_days,
+        COUNT(DISTINCT CASE WHEN meal_type = 'dinner'
+          THEN (at AT TIME ZONE ${tz})::date END)::int AS dinner_days
+      FROM macro_logs
+      WHERE user_id = ${userId}
+        AND (at AT TIME ZONE ${tz})::date >= ${startDateStr}::date
+        AND (at AT TIME ZONE ${tz})::date <= ${todayStr}::date
+    `);
+    const slotRow = slotResult.rows[0] as { breakfast_days: number; lunch_days: number; dinner_days: number } | undefined;
+    mealSlots = {
+      breakfast: Number(slotRow?.breakfast_days ?? 0),
+      lunch: Number(slotRow?.lunch_days ?? 0),
+      dinner: Number(slotRow?.dinner_days ?? 0),
+    };
+  } catch {
+    // meal_type column not available in this environment — slots stay at zero
+  }
 
   if (loggedDays === 0) {
     return {
