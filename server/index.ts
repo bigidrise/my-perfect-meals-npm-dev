@@ -1031,6 +1031,32 @@ setTimeout(async () => {
   }
 }, 3000);
 
+// Reminder System v2 — canonical user_reminder_slots table
+setTimeout(async () => {
+  try {
+    const { db } = await import('./db');
+    const { sql } = await import('drizzle-orm');
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS user_reminder_slots (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id varchar(64) NOT NULL,
+        label text NOT NULL DEFAULT 'Meal',
+        time varchar(5) NOT NULL DEFAULT '12:00',
+        enabled boolean NOT NULL DEFAULT true,
+        type text NOT NULL DEFAULT 'meal',
+        sort_order integer NOT NULL DEFAULT 0,
+        last_sent_at timestamptz,
+        created_at timestamptz DEFAULT now(),
+        updated_at timestamptz DEFAULT now()
+      )
+    `);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_reminder_slots_user ON user_reminder_slots(user_id)`);
+    console.log('✅ Reminder System v2 boot migration complete (user_reminder_slots)');
+  } catch (err: any) {
+    console.error('❌ Reminder System v2 boot migration failed:', err.message);
+  }
+}, 3000);
+
 // Studio relationship integrity — deduplicate client_links and add unique pair constraint
 setTimeout(async () => {
   try {
@@ -1293,6 +1319,11 @@ async function start() {
   // Error handler LAST
   app.use(errorHandler);
 }
+
+// Reminder System v2 — start the per-minute scheduler
+import('./services/reminderScheduler').then(({ startReminderScheduler }) => {
+  startReminderScheduler();
+}).catch((err) => console.error('[index] Failed to start reminder scheduler:', err));
 
 // Global process error handlers for stability
 process.on('unhandledRejection', (reason, promise) => {
