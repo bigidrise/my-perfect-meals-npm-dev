@@ -198,6 +198,8 @@ function normalizeCachedMeals(meals: any[]): any[] {
         calories: m.meal.calories || 0,
         protein: m.meal.protein || 0,
         carbs: m.meal.carbs || 0,
+        starchyCarbs: m.meal.starchyCarbs ?? undefined,
+        fibrousCarbs: m.meal.fibrousCarbs ?? undefined,
         fat: m.meal.fat || 0,
         imageUrl: m.meal.imageUrl || m.imageUrl || "",
         reason: m.meal.reason || m.meal.howToOrder || "",
@@ -1127,24 +1129,30 @@ export default function RestaurantGuidePage() {
                               </p>
 
                               {/* Nutrition Info */}
-                              <div className="grid grid-cols-3 gap-4 text-sm mb-3">
+                              <div className="grid grid-cols-4 gap-2 text-sm mb-3">
                                 <div className="text-center">
                                   <div className="font-semibold text-blue-400">
                                     {meal.protein}g
                                   </div>
-                                  <div className="text-white/60">Protein</div>
+                                  <div className="text-white/60 text-xs">Protein</div>
+                                </div>
+                                <div className="text-center">
+                                  <div className="font-semibold text-orange-400">
+                                    {meal.starchyCarbs != null ? `${meal.starchyCarbs}g` : "—"}
+                                  </div>
+                                  <div className="text-white/60 text-xs">Starchy</div>
                                 </div>
                                 <div className="text-center">
                                   <div className="font-semibold text-green-400">
-                                    {meal.carbs}g
+                                    {meal.fibrousCarbs != null ? `${meal.fibrousCarbs}g` : "—"}
                                   </div>
-                                  <div className="text-white/60">Carbs</div>
+                                  <div className="text-white/60 text-xs">Fibrous</div>
                                 </div>
                                 <div className="text-center">
                                   <div className="font-semibold text-yellow-400">
                                     {meal.fat}g
                                   </div>
-                                  <div className="text-white/60">Fat</div>
+                                  <div className="text-white/60 text-xs">Fat</div>
                                 </div>
                               </div>
 
