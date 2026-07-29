@@ -125,12 +125,15 @@ interface AwayFromHomeMealCardProps {
   recommendation: AwayFromHomeRecommendation;
   /** Optionally suppress actions (e.g., inside a preview or loading state). */
   actionsDisabled?: boolean;
+  /** When true, only Log to Macros is available — Add to Meal Plan is hidden. */
+  logOnly?: boolean;
   className?: string;
 }
 
 export default function AwayFromHomeMealCard({
   recommendation: rec,
   actionsDisabled = false,
+  logOnly = false,
   className,
 }: AwayFromHomeMealCardProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -493,7 +496,7 @@ export default function AwayFromHomeMealCard({
                 onClick={() => setConfirmOpen(true)}
                 className="w-full py-3 rounded-xl bg-orange-600 text-white font-semibold text-sm"
               >
-                Log or Add to Plan
+                {logOnly ? "Log to Macros" : "Log or Add to Plan"}
               </button>
             )}
           </div>
@@ -506,6 +509,7 @@ export default function AwayFromHomeMealCard({
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
         onSuccess={handleSuccess}
+        logOnly={logOnly}
       />
     </>
   );
