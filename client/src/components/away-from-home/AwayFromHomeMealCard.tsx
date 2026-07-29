@@ -219,14 +219,27 @@ export default function AwayFromHomeMealCard({
   // Buffet (logOnly) — set QuickView and navigate to Biometrics for confirmation.
   // Values come directly from the plate the AI built; nothing is saved until
   // the user confirms from the Biometrics page.
+  //
+  // null = AI didn't know (shown as "—" on card) → passed as undefined to QuickView (unknown)
+  // 0   = AI confirmed zero → passed as 0 (known absence)
+  // number = known value → passed as-is
   function handleDirectLog() {
-    const p  = rec.meal.proteinGrams     ?? 0;
-    const sc = rec.meal.starchyCarbGrams ?? 0;
-    const fc = rec.meal.fibrousCarbGrams ?? 0;
-    const f  = rec.meal.fatGrams         ?? 0;
-    const calories = Math.round(p * 4 + sc * 4 + fc * 4 + f * 9);
+    const p  = rec.meal.proteinGrams            ?? 0;
+    const sc = rec.meal.starchyCarbGrams;              // null | number | undefined
+    const fc = rec.meal.fibrousCarbGrams;              // null | number | undefined
+    const f  = rec.meal.fatGrams                ?? 0;
+    const totalCarbs = rec.meal.carbohydrateGrams ?? ((sc ?? 0) + (fc ?? 0));
+    const calories = Math.round(p * 4 + totalCarbs * 4 + f * 9);
     const dateISO = new Date().toISOString().slice(0, 10);
-    setQuickView({ protein: p, carbs: sc + fc, starchyCarbs: sc, fibrousCarbs: fc, fat: f, calories, dateISO });
+    setQuickView({
+      protein: p,
+      carbs: totalCarbs,
+      starchyCarbs: sc ?? undefined,
+      fibrousCarbs: fc ?? undefined,
+      fat: f,
+      calories,
+      dateISO,
+    });
     setLocation(buildBiometricsUrl({ section: "macros", from: "buffet" }));
   }
 
@@ -324,11 +337,12 @@ export default function AwayFromHomeMealCard({
 
         {/* ── Macros ───────────────────────────────────────────────── */}
         <div className="mx-4 mt-3 rounded-xl bg-black/30 border border-white/8 px-4 py-3">
-          <div className="grid grid-cols-4 gap-2 text-center">
-            <MacroCell label="Cal"     value={meal.calories}           unit=""  status={nutritionStatus} />
-            <MacroCell label="Protein" value={meal.proteinGrams}       unit="g" status={nutritionStatus} />
-            <MacroCell label="Carbs"   value={meal.carbohydrateGrams}  unit="g" status={nutritionStatus} />
-            <MacroCell label="Fat"     value={meal.fatGrams}           unit="g" status={nutritionStatus} />
+          <div className="grid grid-cols-5 gap-1 text-center">
+            <MacroCell label="Cal"     value={meal.calories}                       unit=""  status={nutritionStatus} />
+            <MacroCell label="Protein" value={meal.proteinGrams}                   unit="g" status={nutritionStatus} />
+            <MacroCell label="Starchy" value={meal.starchyCarbGrams ?? undefined}  unit="g" status={nutritionStatus} />
+            <MacroCell label="Fibrous" value={meal.fibrousCarbGrams ?? undefined}  unit="g" status={nutritionStatus} />
+            <MacroCell label="Fat"     value={meal.fatGrams}                       unit="g" status={nutritionStatus} />
           </div>
           {meal.caloriesRange && (
             <p className="text-center text-[10px] text-orange-400/70 mt-1.5">

@@ -157,7 +157,10 @@ STRICT RULES:
 - Estimate macros conservatively for a typical plate serving.
 - caloriesLow/High should reflect realistic variation (±15–25% of center estimate).
 - For each plate: fiberGrams + starchyCarbGrams MUST be ≤ estimatedCarbGrams.
-- fiberGrams = dietary fiber in the plate. starchyCarbGrams = rice, potato, bread fraction.
+- starchyCarbGrams: energy-dense carbs from rice, pasta, bread, potatoes, grains, beans, corn, peas.
+- fiberGrams: volume-dense carbs from vegetables, leafy greens, broccoli, cauliflower, peppers, tomatoes, cucumbers.
+- Vegetables ARE carbs (fibrous source) — never return 0 for fiberGrams if any vegetables are on the plate.
+- Both fiberGrams and starchyCarbGrams are required fields. Never omit either.
 - Do NOT produce a "fibrousCarbs" field — the application derives that from fiberGrams.
 
 Return ONLY valid JSON with this exact shape (no markdown, no explanation):
