@@ -161,6 +161,16 @@ export function toMacroLogPayload(
     proteinGrams?: number;
     carbohydrateGrams?: number;
     fatGrams?: number;
+    /**
+     * Explicit starchy carb grams to log (buffet mode).
+     * When provided, overrides rec.meal.starchyCarbGrams.
+     */
+    starchyCarbs?: number | null;
+    /**
+     * Explicit fiber/fibrous carb grams to log (buffet mode).
+     * When provided, overrides rec.meal.fiberGrams.
+     */
+    fiber?: number | null;
   }
 ): MacroLogInput {
   return {
@@ -170,9 +180,10 @@ export function toMacroLogPayload(
     protein: overrides.proteinGrams ?? rec.meal.proteinGrams ?? 0,
     carbohydrates: overrides.carbohydrateGrams ?? rec.meal.carbohydrateGrams ?? 0,
     fat: overrides.fatGrams ?? rec.meal.fatGrams ?? 0,
-    // Pass carb breakdown when available; null = unknown (not zero)
-    fiber: rec.meal.fiberGrams ?? null,
-    starchyCarbs: rec.meal.starchyCarbGrams ?? null,
+    // Pass carb breakdown when available; null = unknown (not zero).
+    // Overrides take precedence (buffet mode passes user-adjusted values).
+    fiber: overrides.fiber !== undefined ? overrides.fiber : (rec.meal.fiberGrams ?? null),
+    starchyCarbs: overrides.starchyCarbs !== undefined ? overrides.starchyCarbs : (rec.meal.starchyCarbGrams ?? null),
     source: `away_from_home_${rec.source}`,
     title: rec.meal.name,
     mealId: rec.id,
