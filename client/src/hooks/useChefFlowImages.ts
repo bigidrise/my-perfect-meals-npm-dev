@@ -15,16 +15,28 @@ const sessionCache = new Map<string, string>();
 // localStorage persistence for stable https:// URLs — survives tab close / reload
 const LS_PREFIX = "mpm.imgcache.cf.";
 
+// sessionStorage persistence for base64/data: URIs — survives HMR and SPA
+// navigation within the same tab (clears on tab close, which is acceptable)
+const SS_PREFIX = "mpm.imgss.cf.";
+
 function readFromLS(id: string): string | null {
   try {
+    // Check sessionStorage first (base64 / data: URIs stored here)
+    const ss = sessionStorage.getItem(SS_PREFIX + id);
+    if (ss) return ss;
+    // Fall back to localStorage (https:// URLs stored here)
     const v = localStorage.getItem(LS_PREFIX + id);
     return v && v.startsWith("https://") ? v : null;
   } catch { return null; }
 }
 
 function writeToLS(id: string, url: string): void {
-  if (!url.startsWith("https://")) return;
-  try { localStorage.setItem(LS_PREFIX + id, url); } catch {}
+  if (url.startsWith("https://")) {
+    try { localStorage.setItem(LS_PREFIX + id, url); } catch {}
+  } else if (url.startsWith("data:")) {
+    // Store base64 in sessionStorage — tab-scoped, no cross-session quota risk
+    try { sessionStorage.setItem(SS_PREFIX + id, url); } catch {}
+  }
 }
 
 // Module-level concurrency control — max 3 image requests at once globally
