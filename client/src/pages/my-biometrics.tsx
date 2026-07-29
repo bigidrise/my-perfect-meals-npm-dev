@@ -221,6 +221,7 @@ export default function MyBiometrics() {
     }
 
     const end = new Date();
+    end.setHours(23, 59, 59, 999); // end-of-day so noon-UTC logged entries are never past the boundary
     const start = new Date();
     start.setDate(end.getDate() - 365);
     const startISO = start.toISOString();
@@ -252,6 +253,7 @@ export default function MyBiometrics() {
     if (!userId) return;
     const refetch = () => {
       const end = new Date();
+      end.setHours(23, 59, 59, 999); // end-of-day so noon-UTC logged entries are never past the boundary
       const start = new Date();
       start.setDate(end.getDate() - 365);
       apiRequest(`/api/users/${userId}/macro-logs/daily-with-source?start=${encodeURIComponent(start.toISOString())}&end=${encodeURIComponent(end.toISOString())}`)
@@ -825,7 +827,7 @@ export default function MyBiometrics() {
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
         body: JSON.stringify({
-          loggedAt: new Date(today + "T12:00:00").toISOString(),
+          loggedAt: new Date().toISOString(),
           mealType: "manual",
           protein: P,
           carbs: C,
@@ -1182,7 +1184,7 @@ export default function MyBiometrics() {
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
         body: JSON.stringify({
-          loggedAt: new Date(today + "T12:00:00").toISOString(),
+          loggedAt: new Date().toISOString(),
           mealType: "manual",
           protein: P,
           carbs: C,
