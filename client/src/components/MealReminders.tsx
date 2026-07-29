@@ -65,21 +65,22 @@ function TimeRow({
         onClick={onToggle}
         disabled={disabled}
         aria-pressed={slot.enabled}
-        className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-colors ${
+        className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center transition-colors ${
           slot.enabled
-            ? "bg-emerald-600/80 border border-emerald-400/40"
-            : "bg-white/10 border border-white/20"
+            ? "bg-emerald-600 border border-emerald-400/60"
+            : "bg-white/15 border border-white/30"
         } disabled:opacity-40`}
       >
         {slot.enabled ? (
           <Bell className="w-3 h-3 text-white" />
         ) : (
-          <BellOff className="w-3 h-3 text-white/50" />
+          <BellOff className="w-3 h-3 text-white/80" />
         )}
       </button>
 
-      {/* Label */}
-      <div className="flex-1 min-w-0">
+      {/* Label + time stacked vertically */}
+      <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+        {/* Label row */}
         {editing ? (
           <div className="flex items-center gap-1">
             <input
@@ -91,12 +92,12 @@ function TimeRow({
                 if (e.key === "Escape") { setDraft(slot.label); setEditing(false); }
               }}
               maxLength={30}
-              className="bg-white/10 border border-orange-400/40 rounded px-2 py-0.5 text-white text-xs w-full focus:outline-none"
+              className="bg-white/10 border border-orange-400/60 rounded px-2 py-0.5 text-white text-xs w-full focus:outline-none"
             />
             <button onClick={commitLabel} className="text-emerald-400">
               <Check className="w-3.5 h-3.5" />
             </button>
-            <button onClick={() => { setDraft(slot.label); setEditing(false); }} className="text-white/40">
+            <button onClick={() => { setDraft(slot.label); setEditing(false); }} className="text-white/70">
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -106,23 +107,23 @@ function TimeRow({
             className="flex items-center gap-1 group text-left"
           >
             <span className="text-white text-xs truncate">{slot.label}</span>
-            <Pencil className="w-2.5 h-2.5 text-white/20 group-hover:text-white/50 flex-shrink-0" />
+            <Pencil className="w-2.5 h-2.5 text-white/50 flex-shrink-0" />
           </button>
         )}
+
+        {/* Time pill — sits below the label */}
+        <input
+          type="time"
+          value={slot.time}
+          onChange={(e) => onTimeChange(e.target.value)}
+          disabled={disabled}
+          className="self-start bg-white/10 border border-white/30 rounded-full px-2 py-[1px] text-white text-[10px] font-semibold tracking-wide focus:outline-none focus:ring-1 focus:ring-orange-500 disabled:opacity-40"
+        />
       </div>
 
-      {/* Time picker */}
-      <input
-        type="time"
-        value={slot.time}
-        onChange={(e) => onTimeChange(e.target.value)}
-        disabled={disabled}
-        className="bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:ring-1 focus:ring-orange-500 disabled:opacity-40 flex-shrink-0"
-      />
-
-      {/* Remove */}
+      {/* Remove — always red so it's obvious */}
       {total > 1 && (
-        <button onClick={onRemove} className="text-white/20 hover:text-red-400 flex-shrink-0 transition-colors">
+        <button onClick={onRemove} className="text-red-400 flex-shrink-0">
           <Trash2 className="w-3.5 h-3.5" />
         </button>
       )}
@@ -309,17 +310,17 @@ export default function MealReminders() {
       <div className="flex items-center gap-2">
         <Bell className="w-4 h-4 text-orange-400" />
         <span className="text-white text-sm font-medium">Meal Reminders</span>
-        {saving && <span className="text-white/30 text-[10px] ml-auto">Saving…</span>}
+        {saving && <span className="text-white/60 text-[10px] ml-auto">Saving…</span>}
       </div>
 
       {/* ── Delivery channel badge ── */}
       <div className="flex items-center gap-1.5">
         {isNative ? (
-          <Smartphone className="w-3 h-3 text-white/30" />
+          <Smartphone className="w-3 h-3 text-white/60" />
         ) : (
-          <Globe className="w-3 h-3 text-white/30" />
+          <Globe className="w-3 h-3 text-white/60" />
         )}
-        <span className="text-white/30 text-[10px]">
+        <span className="text-white/60 text-[11px]">
           {isNative ? "Native iOS delivery" : "Web push delivery"}
         </span>
       </div>
@@ -330,31 +331,31 @@ export default function MealReminders() {
           {status === "ready" && (
             <>
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-              <span className="text-emerald-400 text-xs">Notifications connected</span>
+              <span className="text-emerald-400 text-xs font-medium">Notifications connected</span>
             </>
           )}
           {status === "partial" && (
             <>
               <XCircle className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />
-              <span className="text-white/70 text-xs">Not fully connected — toggle a slot to finish setup</span>
+              <span className="text-white text-xs">Not fully connected — toggle a slot to finish setup</span>
             </>
           )}
           {status === "pending" && (
             <>
-              <BellOff className="w-3.5 h-3.5 text-white/30 flex-shrink-0" />
-              <span className="text-white/40 text-xs">Toggle a slot to enable notifications</span>
+              <BellOff className="w-3.5 h-3.5 text-white/60 flex-shrink-0" />
+              <span className="text-white/80 text-xs">Toggle a slot to enable notifications</span>
             </>
           )}
           {status === "blocked" && (
             <>
               <XCircle className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />
-              <span className="text-white/70 text-xs">Notifications blocked in browser</span>
+              <span className="text-white text-xs font-medium">Notifications blocked in browser</span>
             </>
           )}
           {status === "unsupported" && (
             <>
-              <XCircle className="w-3.5 h-3.5 text-white/30 flex-shrink-0" />
-              <span className="text-white/50 text-xs">Not supported by this browser</span>
+              <XCircle className="w-3.5 h-3.5 text-white/60 flex-shrink-0" />
+              <span className="text-white/80 text-xs">Not supported by this browser</span>
             </>
           )}
         </div>
@@ -363,11 +364,11 @@ export default function MealReminders() {
       {/* ── Blocked: instructions + check again ── */}
       {status === "blocked" && (
         <div className="bg-white/5 rounded-lg p-3 space-y-2">
-          <p className="text-white/60 text-[11px] leading-relaxed font-medium">To unblock:</p>
-          <ol className="text-white/40 text-[11px] leading-relaxed list-decimal list-inside space-y-0.5">
-            <li>Click the <strong className="text-white/60">🔒 lock</strong> in your browser's address bar</li>
-            <li>Set <strong className="text-white/60">Notifications</strong> to <strong className="text-white/60">Allow</strong></li>
-            <li>Tap <strong className="text-white/60">Check again</strong> below</li>
+          <p className="text-white text-[11px] leading-relaxed font-medium">To unblock:</p>
+          <ol className="text-white/80 text-[11px] leading-relaxed list-decimal list-inside space-y-0.5">
+            <li>Click the <strong className="text-white">🔒 lock</strong> in your browser's address bar</li>
+            <li>Set <strong className="text-white">Notifications</strong> to <strong className="text-white">Allow</strong></li>
+            <li>Tap <strong className="text-white">Check again</strong> below</li>
           </ol>
           <button
             onClick={() => runPipelineCheck()}
@@ -381,8 +382,8 @@ export default function MealReminders() {
       )}
 
       {status === "unsupported" && (
-        <p className="text-white/40 text-[11px] leading-relaxed">
-          Try Chrome or Edge on desktop. Safari on iOS requires using the app instead.
+        <p className="text-white/70 text-[11px] leading-relaxed">
+          Try Chrome or Edge on desktop. Safari on iOS requires the app instead.
         </p>
       )}
 
@@ -391,7 +392,7 @@ export default function MealReminders() {
         <div>
           <button
             onClick={() => setShowDiagnostics((v) => !v)}
-            className="flex items-center gap-1 text-white/25 text-[10px]"
+            className="flex items-center gap-1 text-white/50 text-[10px]"
           >
             {showDiagnostics ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
             Connection diagnostics
@@ -407,11 +408,11 @@ export default function MealReminders() {
                     <XCircle className="w-3 h-3 text-orange-400 flex-shrink-0 mt-0.5" />
                   )}
                   <div className="min-w-0">
-                    <span className={`text-[11px] ${step.ok ? "text-white/40" : "text-white/70"}`}>
+                    <span className={`text-[11px] ${step.ok ? "text-white/70" : "text-white"}`}>
                       {step.label}
                     </span>
                     {!step.ok && step.detail && (
-                      <span className="block text-[10px] text-white/25 leading-tight">{step.detail}</span>
+                      <span className="block text-[10px] text-white/60 leading-tight">{step.detail}</span>
                     )}
                   </div>
                 </div>
@@ -457,7 +458,7 @@ export default function MealReminders() {
       )}
 
       {/* Footer hint */}
-      <p className="text-white/25 text-[10px] leading-relaxed">
+      <p className="text-white/60 text-[10px] leading-relaxed">
         {isNative
           ? "Tap a label to rename it. Reminders are delivered through the iOS app."
           : isBlocked
