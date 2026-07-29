@@ -454,12 +454,35 @@ export default function MyBiometrics() {
             }
             return;
           }
+        // Server responded successfully with hasTargets: false.
+        // Fall through to local resolver; if that also has nothing, null is correct.
       } catch (_e) {
-        // Network failure — fall through to local resolver below
+        // Network failure — do not null out targets. Try local resolver as
+        // offline fallback; if that also misses, preserve whatever is currently
+        // displayed rather than flashing null on a transient error.
+        const fallback = getResolvedTargets(user?.id);
+        if (fallback.source !== "none") {
+          setTargets({
+            calories: fallback.calories,
+            protein_g: fallback.protein_g,
+            carbs_g: fallback.carbs_g,
+            fat_g: fallback.fat_g,
+            starchyCarbs_g: fallback.starchyCarbs_g,
+            fibrousCarbs_g: fallback.fibrousCarbs_g,
+          });
+          setTargetSource(fallback.source);
+          if (fallback.source === "pro" && fallback.setBy) {
+            setProName(fallback.setBy);
+          }
+        }
+        // If local also has nothing, preserve whatever targets are already shown.
+        // setTargets(null) must not run on a network failure.
+        return;
       }
     }
 
-    // Priority 2: local resolver (localStorage / proStore) — offline fallback.
+    // Priority 2: local resolver (localStorage / proStore).
+    // Reached when: server confirmed hasTargets: false, or user is not logged in.
     const resolved = getResolvedTargets(user?.id);
     if (resolved.source !== "none") {
       setTargets({
@@ -477,6 +500,9 @@ export default function MyBiometrics() {
       return;
     }
 
+    // Only reaches here when the server confirmed hasTargets: false (or no user)
+    // AND the local resolver also has nothing. This is the only path where null
+    // is the correct answer — the user genuinely has no targets configured.
     setTargets(null);
     setTargetSource("none");
   };
@@ -519,7 +545,11 @@ export default function MyBiometrics() {
   // Summary badges for top display (yellow-only system)
   const summaryBadges = useMemo(() => {
     if (!targets) return [];
-    const hasStarchySplit = (targets.starchyCarbs_g ?? 0) > 0 || (targets.fibrousCarbs_g ?? 0) > 0;
+    const hasStarchySplit =
+      (targets.starchyCarbs_g ?? 0) > 0 ||
+      (targets.fibrousCarbs_g ?? 0) > 0 ||
+      ((todayRow as any).starchyCarbs ?? 0) > 0 ||
+      ((todayRow as any).fibrousCarbs ?? 0) > 0;
     const carbRows = hasStarchySplit
       ? [
           { key: "Starchy Carbs", used: (todayRow as any).starchyCarbs ?? 0, max: targets.starchyCarbs_g ?? 0, unit: "g" },
