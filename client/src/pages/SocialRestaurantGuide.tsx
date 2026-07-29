@@ -44,11 +44,14 @@ import {
   Loader2,
   Navigation,
   Copy,
+  Plus,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { setQuickView } from "@/lib/macrosQuickView";
+import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import PhaseGate from "@/components/PhaseGate";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
@@ -534,6 +537,13 @@ export default function RestaurantGuidePage() {
         toast({ title: t("restaurant.errorNoMatch"), description: emptyDesc, variant: "destructive" });
         return;
       }
+      // Clear stale image cache for restaurant meals so old searches don't bleed into new results
+      try {
+        const LS_IMG_PREFIX = "mpm.imgcache.cf.cfm-restaurant-";
+        Object.keys(localStorage)
+          .filter((k) => k.startsWith(LS_IMG_PREFIX))
+          .forEach((k) => localStorage.removeItem(k));
+      } catch {}
       setGeneratedMeals(compliantRecs);
       setGuidedStep("results");
       if (data.restaurantInfo) setRestaurantInfo(data.restaurantInfo);
@@ -1136,6 +1146,45 @@ export default function RestaurantGuidePage() {
                                   </div>
                                   <div className="text-white/60">Fat</div>
                                 </div>
+                              </div>
+
+                              {/* Action Buttons */}
+                              <div className="flex flex-col gap-2 mb-3">
+                                <Button
+                                  onClick={() => {
+                                    setQuickView({
+                                      protein: Math.round(meal.protein || 0),
+                                      carbs: Math.round(meal.carbs || 0),
+                                      fat: Math.round(meal.fat || 0),
+                                      calories: Math.round(meal.calories || 0),
+                                      dateISO: new Date().toISOString().slice(0, 10),
+                                      mealSlot: "lunch",
+                                    });
+                                    setLocation("/biometrics?from=restaurant-guide&view=macros");
+                                  }}
+                                  className="w-full bg-orange-600 hover:bg-orange-700 text-white font-medium"
+                                >
+                                  <Plus className="h-4 w-4 mr-2" />
+                                  Add to Macros
+                                </Button>
+                                <AddToMealPlanButton
+                                  meal={{
+                                    id: mealKey,
+                                    title: meal.name || meal.meal || "",
+                                    name: meal.name || meal.meal || "",
+                                    description: meal.description || meal.reason || "",
+                                    imageUrl: mealImage || "",
+                                    ingredients: (meal.ingredients || []).map((ing: string) => ({
+                                      item: ing,
+                                      amount: "1 serving",
+                                    })),
+                                    instructions: meal.modifications ? [meal.modifications] : [],
+                                    calories: meal.calories,
+                                    protein: meal.protein,
+                                    carbs: meal.carbs,
+                                    fat: meal.fat,
+                                  }}
+                                />
                               </div>
 
                               {/* Why It's Healthy */}
