@@ -15,7 +15,7 @@ import type { User } from '@shared/schema';
 import { violatesDietaryConstraints, getPrimaryDiet } from './allergyGuardrails';
 import type { UserProtocolEnvelope } from './protocolEnvelope';
 
-const MIN_RESULTS_TARGET = 6;
+const MIN_RESULTS_TARGET = 3;
 
 const IDENTITY_DIETS = new Set(['vegan', 'kosher', 'halal', 'vegetarian', 'pescatarian']);
 
@@ -412,7 +412,9 @@ export async function findMealsNearby(request: MealFinderRequest): Promise<Resta
   }
 
   // Take top candidates for meal generation
-  const candidates = filtered.slice(0, 6);
+  console.log(`[DEBUG] filtered.length before slice = ${filtered.length}`);
+  const candidates = filtered.slice(0, 3);
+  console.log(`[DEBUG] candidates.length after slice(0,3) = ${candidates.length}`);
   console.log(`🚀 Generating meals for ${candidates.length} ranked restaurants in parallel…`);
 
   // ── Step 4: AI meal generation ───────────────────────────────────────────
