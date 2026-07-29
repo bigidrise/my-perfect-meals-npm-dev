@@ -101,16 +101,12 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
   if (isError || !data) {
     return (
       <Card className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-xl">
-        <CardContent className="p-6">
-          <div className="flex items-center gap-3">
-            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20">
-              <AlertCircle className="h-5 w-5 text-red-400" />
-            </div>
-            <div>
-              <h3 className="text-white text-sm font-semibold">Nutrition Activity Summary</h3>
-              <p className="text-red-400 text-xs">Unable to load activity data</p>
-            </div>
-          </div>
+        <CardContent className="p-6 space-y-2">
+          <h3 className="text-white text-sm font-semibold">Nutrition Activity Summary</h3>
+          <p className="text-white/40 text-xs">Last 7 days</p>
+          <p className="text-white/60 text-sm pt-1">
+            No nutrition activity recorded yet. Start logging meals to see your personalized activity summary here.
+          </p>
         </CardContent>
       </Card>
     );
