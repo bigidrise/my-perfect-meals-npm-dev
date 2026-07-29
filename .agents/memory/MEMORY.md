@@ -41,3 +41,4 @@
 - [Feature Impact System](feature-impact-system.md) — mandatory 12-area report before every feature ships; skill at .local/skills/feature-impact/SKILL.md; full doc at docs/feature-impact-system.md.
 - [ProCare Physician Legal Policy](procare-legal-policy.md) — all activation paths for physician connections must call checkLegalAcceptance first; inviteAutoAccept was the bypass; careTeamMember now deactivated/reactivated with relationship; clientLinks unique pair index added.
 - [GLP-1 Hub Daily Check-in — Architecture](glp1-hub-checkin-arch.md) — separate glp1_daily_checkins table (not ace_daily_checkins); resolver v2 merge-by-timestamp; AdaptationEntry triad; 5 pending_review escalation rules; hub path preferred on same-second tie.
+- [Diabetic validator protein-preservation rule](diabetic-validator-protein-rule.md) — validator must fix sides/sauces before substituting protein; retry prompt must carry cravingContext or it defaults to chicken.

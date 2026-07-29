@@ -7,6 +7,11 @@
  * ARCHITECTURE RULE:
  *   Identity diets  → who you ARE  → hard constraint, no dialog
  *   Builder diets   → how you EAT  → coachable, show override dialog
+ *
+ * NOTE: ProCare is NOT a builder. ProCare is the professional workspace through
+ * which all builders are delivered. The legacy 'procare' builder type has been
+ * removed — any code that previously used dietType='procare' should be updated
+ * to use the specific builder key assigned to that client instead.
  */
 
 export type CoachableBuilder =
@@ -16,8 +21,7 @@ export type CoachableBuilder =
   | 'diabetic'
   | 'beachbody'
   | 'performance'
-  | 'general-nutrition'
-  | 'procare';
+  | 'general-nutrition';
 
 export const COACHABLE_BUILDERS: ReadonlySet<string> = new Set<CoachableBuilder>([
   'anti-inflammatory',
@@ -27,7 +31,6 @@ export const COACHABLE_BUILDERS: ReadonlySet<string> = new Set<CoachableBuilder>
   'beachbody',
   'performance',
   'general-nutrition',
-  'procare',
 ]);
 
 export function isCoachableBuilder(dietType: string | null | undefined): boolean {
@@ -74,7 +77,6 @@ export const BUILDER_SOFT_BLOCKS: Record<CoachableBuilder, string[]> = {
     'fried chicken', 'deep fried', 'heavy cream', 'full fat cheese',
   ],
   'general-nutrition': [],
-  'procare': [],
 };
 
 /**
@@ -115,7 +117,6 @@ export function getBuilderLabel(dietType: string): string {
     'performance': 'Performance',
     'liver-support': 'Liver Support',
     'general-nutrition': 'Nutrition',
-    'procare': 'ProCare',
   };
   return labels[dietType] ?? dietType;
 }
