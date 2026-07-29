@@ -539,11 +539,23 @@ export default function RestaurantGuidePage() {
         toast({ title: t("restaurant.errorNoMatch"), description: emptyDesc, variant: "destructive" });
         return;
       }
-      // Clear stale image cache for restaurant meals so old searches don't bleed into new results
+      // Surgically evict stale restaurant image cache: only remove slug-based keys
+      // that don't belong to the current result set, so fresh images persist.
       try {
-        const LS_IMG_PREFIX = "mpm.imgcache.cf.cfm-restaurant-";
+        const LS_IMG_BASE = "mpm.imgcache.cf.";
+        const LS_SLUG_PREFIX = "mpm.imgcache.cf.cfm-restaurant-";
+        const currentKeys = new Set(
+          compliantRecs.map((m: any) => {
+            if (m.id) return LS_IMG_BASE + m.id;
+            const slug = (m.name || m.meal || "")
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, "-")
+              .slice(0, 40);
+            return LS_IMG_BASE + `cfm-restaurant-${slug}`;
+          })
+        );
         Object.keys(localStorage)
-          .filter((k) => k.startsWith(LS_IMG_PREFIX))
+          .filter((k) => k.startsWith(LS_SLUG_PREFIX) && !currentKeys.has(k))
           .forEach((k) => localStorage.removeItem(k));
       } catch {}
       setGeneratedMeals(compliantRecs);
@@ -1163,6 +1175,8 @@ export default function RestaurantGuidePage() {
                                     setQuickView({
                                       protein: Math.round(meal.protein || 0),
                                       carbs: Math.round(meal.carbs || 0),
+                                      starchyCarbs: meal.starchyCarbs != null ? Math.round(meal.starchyCarbs) : undefined,
+                                      fibrousCarbs: meal.fibrousCarbs != null ? Math.round(meal.fibrousCarbs) : undefined,
                                       fat: Math.round(meal.fat || 0),
                                       calories: Math.round(meal.calories || 0),
                                       dateISO: new Date().toISOString().slice(0, 10),
