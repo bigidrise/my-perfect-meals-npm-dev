@@ -12,11 +12,12 @@ export interface HasMealImage {
 const IMAGE_CACHE_PREFIX = "mpm.imgcache.";
 
 /**
- * Persist an imageUrl to a separate localStorage key immediately after fetch,
- * before setMeals is called.  Survives component unmount so the reactive cache-
- * save useEffects in each page can't race with navigation.
+ * Persist an imageUrl to localStorage.  Only writes stable https:// URLs —
+ * base64 data: URLs are ~1–2 MB each and would exhaust the 5 MB localStorage
+ * quota within 3–5 images, silently breaking every other cache in the app.
  */
 function persistImageUrl(mealId: string, imageUrl: string) {
+  if (!imageUrl.startsWith("https://")) return;
   try { localStorage.setItem(IMAGE_CACHE_PREFIX + mealId, imageUrl); } catch {}
 }
 

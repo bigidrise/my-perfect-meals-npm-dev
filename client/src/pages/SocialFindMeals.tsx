@@ -114,9 +114,32 @@ type CachedMealFinderState = {
 };
 
 function saveMealFinderCache(state: CachedMealFinderState) {
+  // Strip imageUrl from every meal before saving — base64 images are 1–2 MB each
+  // and silently blow the 5 MB localStorage quota, wiping the entire cache.
+  // Images are re-fetched on mount via useChefFlowImages (hits server memCache fast).
+  const stripped: CachedMealFinderState = {
+    ...state,
+    results: state.results.map((r) => ({
+      ...r,
+      meal: { ...r.meal, imageUrl: undefined },
+    })),
+  };
   try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify(state));
-  } catch {}
+    localStorage.setItem(CACHE_KEY, JSON.stringify(stripped));
+  } catch (err: any) {
+    if (err?.name === "QuotaExceededError" || err?.code === 22) {
+      try {
+        // Evict other mpm.* image cache keys and retry once
+        const toEvict: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k !== CACHE_KEY && k.startsWith("mpm.")) toEvict.push(k);
+        }
+        toEvict.forEach((k) => localStorage.removeItem(k));
+        localStorage.setItem(CACHE_KEY, JSON.stringify(stripped));
+      } catch { /* quota still exceeded — cache lost for this session */ }
+    }
+  }
 }
 
 function loadMealFinderCache(): CachedMealFinderState | null {

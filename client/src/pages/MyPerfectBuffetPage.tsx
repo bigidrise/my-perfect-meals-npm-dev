@@ -10,7 +10,7 @@
  * Renders exclusively through AwayFromHomeMealCard.
  */
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mic, MicOff, ChefHat, Loader2, RotateCcw, ChevronDown, ChevronUp } from "lucide-react";
@@ -20,6 +20,8 @@ import { usePageTitle } from "@/contexts/PageTitleContext";
 import AwayFromHomeMealCard from "@/components/away-from-home/AwayFromHomeMealCard";
 import type { AwayFromHomeRecommendation } from "@shared/awayFromHome";
 import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
+
+const BUFFET_CACHE_KEY = "mpm.buffet.cache.v1";
 
 const CATEGORY_LABELS: { key: string; label: string; placeholder: string }[] = [
   { key: "proteins",   label: "Proteins",           placeholder: "grilled chicken, brisket, shrimp..." },
@@ -46,6 +48,17 @@ export default function MyPerfectBuffetPage() {
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+
+  // Restore last recommendation on mount so navigating away and back keeps the result
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(BUFFET_CACHE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as AwayFromHomeRecommendation;
+        if (parsed?.meal) setRecommendation(parsed);
+      }
+    } catch { /* corrupt cache — ignore */ }
+  }, []);
 
   if (!user) return null;
 
@@ -115,6 +128,7 @@ export default function MyPerfectBuffetPage() {
       }) as { recommendation: AwayFromHomeRecommendation };
 
       setRecommendation(data.recommendation);
+      try { localStorage.setItem(BUFFET_CACHE_KEY, JSON.stringify(data.recommendation)); } catch {}
     } catch (err) {
       setError("Something went wrong. Please try again.");
     } finally {
@@ -127,6 +141,7 @@ export default function MyPerfectBuffetPage() {
     setError(null);
     setFoodsDescription("");
     setCategories({});
+    try { localStorage.removeItem(BUFFET_CACHE_KEY); } catch {}
   }
 
   return (
