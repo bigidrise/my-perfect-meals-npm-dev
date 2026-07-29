@@ -49,7 +49,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useFontSize } from "@/contexts/FontSizeContext";
 import { useNarrationSpeed, type NarrationSpeed } from "@/contexts/NarrationSpeedContext";
 import { useToast } from "@/hooks/use-toast";
-import IOSMealReminders from "@/components/ios/IOSMealReminders";
+import MealReminders from "@/components/MealReminders";
 import { useUpdateState } from "@/contexts/UpdateContext";
 import { canAccessMealBuilders } from "@/lib/subscriptionCheck";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
@@ -479,7 +479,7 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
 
         {/* Meal Reminders */}
         <div className="mt-4">
-          <IOSMealReminders />
+          <MealReminders />
         </div>
 
         {/* Menu Items */}
