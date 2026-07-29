@@ -791,7 +791,7 @@ export default function MealFinder() {
                 <h2 className="text-xl font-bold text-white">
                   🍽️ Found{" "}
                   {new Set(results.map((r: MealResult) => r.restaurantName)).size}{" "}
-                  Restaurants with {results.length} Meals:
+                  {new Set(results.map((r: MealResult) => r.restaurantName)).size === 1 ? "Restaurant" : "Restaurants"}
                 </h2>
                 <button
                   onClick={() => {
