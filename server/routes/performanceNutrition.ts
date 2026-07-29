@@ -709,10 +709,12 @@ router.get("/today", async (req, res) => {
     const rawDateParam = typeof req.query.date === "string" ? req.query.date : null;
     const targetDate   = rawDateParam ? new Date(rawDateParam + "T12:00:00") : new Date();
 
-    // Fetch macro log totals for the target date (today's logs when no date param)
+    // Fetch macro log totals for the target date using the user's local timezone.
+    // AT TIME ZONE groups by local calendar day, not UTC date.
     const { macroLogs } = await import("../../shared/schema");
-    const logStart = new Date(targetDate); logStart.setHours(0, 0, 0, 0);
-    const logEnd   = new Date(targetDate); logEnd.setHours(23, 59, 59, 999);
+    const { getUserTimezone, todayInTimezone } = await import("../services/nutritionDayService");
+    const perfTz = await getUserTimezone(userId);
+    const targetDateStr = rawDateParam ?? todayInTimezone(perfTz);
     const [logged] = await db
       .select({
         calories:      sql<number>`COALESCE(SUM(${macroLogs.kcal}), 0)`,
@@ -724,7 +726,7 @@ router.get("/today", async (req, res) => {
       })
       .from(macroLogs)
       .where(
-        sql`${macroLogs.userId} = ${userId} AND ${macroLogs.at} >= ${logStart} AND ${macroLogs.at} <= ${logEnd}`
+        sql`${macroLogs.userId} = ${userId} AND (${macroLogs.at} AT TIME ZONE ${perfTz})::date = ${targetDateStr}::date`
       );
 
     const { resolveTodayTargets } = await import("../services/protocol/performanceProtocolResolver");

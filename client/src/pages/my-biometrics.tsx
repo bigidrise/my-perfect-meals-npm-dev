@@ -827,12 +827,6 @@ export default function MyBiometrics() {
   const confirmReset = async () => {
     setShowResetConfirm(false);
 
-    // Compute local-timezone day boundaries so server deletes the right rows
-    const localStart = new Date();
-    localStart.setHours(0, 0, 0, 0);
-    const localEnd = new Date();
-    localEnd.setHours(23, 59, 59, 999);
-
     // Clear local state and input fields immediately (optimistic)
     setMacroRows((prev) => prev.filter((r) => r.day !== today));
     setP("");
@@ -853,14 +847,11 @@ export default function MyBiometrics() {
       // ignore cache errors
     }
 
-    // Delete from server so it doesn't come back on reload
-    // Pass local-timezone boundaries so entries logged near midnight are caught correctly
+    // Delete from server so it doesn't come back on reload.
+    // Server reads users.timezone to compute the correct local day boundary.
     if (userId) {
       try {
-        const params = new URLSearchParams({
-          startISO: localStart.toISOString(),
-          endISO: localEnd.toISOString(),
-        });
+        const params = new URLSearchParams({ localDateISO: today });
         await apiRequest(`/api/users/${userId}/macro-logs/today?${params}`, {
           method: "DELETE",
         });
