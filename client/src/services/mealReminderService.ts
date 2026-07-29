@@ -183,6 +183,62 @@ export async function enrollWebPush(): Promise<{ success: boolean; reason?: stri
   }
 }
 
+// ── PIPELINE DIAGNOSTIC ──────────────────────────────────────────────────────
+
+export interface PipelineStep {
+  label: string;
+  ok: boolean | null; // null = not applicable / skipped
+  detail?: string;
+}
+
+export interface PipelineDiagnostic {
+  steps: PipelineStep[];
+  ready: boolean; // true only if ALL applicable steps pass
+}
+
+export async function checkWebPushPipeline(): Promise<PipelineDiagnostic> {
+  const steps: PipelineStep[] = [];
+
+  // Step 1 — API support
+  const supported = ('Notification' in window) && ('serviceWorker' in navigator) && ('PushManager' in window);
+  steps.push({ label: 'Browser supports push', ok: supported });
+  if (!supported) return { steps, ready: false };
+
+  // Step 2 — Permission
+  const perm = Notification.permission;
+  steps.push({
+    label: 'Notifications allowed',
+    ok: perm === 'granted',
+    detail: perm === 'denied' ? 'Blocked — use the lock icon in your address bar to allow' :
+            perm === 'default' ? 'Not yet asked — toggle a slot to enable' : undefined,
+  });
+  if (perm !== 'granted') return { steps, ready: false };
+
+  // Step 3 — Service worker
+  let swOk = false;
+  try {
+    const reg = await navigator.serviceWorker.getRegistration('/');
+    swOk = !!(reg && reg.active);
+    steps.push({ label: 'Service worker active', ok: swOk, detail: swOk ? undefined : 'Try refreshing the page' });
+  } catch {
+    steps.push({ label: 'Service worker active', ok: false, detail: 'Could not check' });
+  }
+  if (!swOk) return { steps, ready: false };
+
+  // Step 4 — Push subscription
+  let subOk = false;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    subOk = !!sub;
+    steps.push({ label: 'Push subscription registered', ok: subOk, detail: subOk ? undefined : 'Toggle a slot to subscribe' });
+  } catch {
+    steps.push({ label: 'Push subscription registered', ok: false, detail: 'Could not check' });
+  }
+
+  return { steps, ready: subOk };
+}
+
 // ── NOTIFICATION LISTENER (iOS tap handler) ───────────────────────────────────
 
 export function setupNotificationListeners(navigate: (path: string) => void): () => void {
