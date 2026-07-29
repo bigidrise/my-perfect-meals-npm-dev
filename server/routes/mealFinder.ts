@@ -88,7 +88,7 @@ router.post('/meal-finder', async (req, res) => {
 
     // Find meals — pass cuisine preference from the DB user profile so the
     // restaurant search query is biased toward the user's preferred cuisine type
-    const results = await findMealsNearby({
+    const rawResults = await findMealsNearby({
       mealQuery,
       zipCode,
       user: contextUser,
@@ -99,7 +99,22 @@ router.post('/meal-finder', async (req, res) => {
       cuisinePreference: contextUser?.cuisinePreference ?? null,
       protocolEnvelope,
     });
-    
+
+    // Hard cap: 3 restaurants max, 2 meals each (6 total)
+    // This enforces the limit regardless of what the service returns.
+    const seenRestaurants = new Set<string>();
+    const mealCountByRestaurant = new Map<string, number>();
+    const results = rawResults.filter((r) => {
+      const name = r.restaurantName;
+      const count = mealCountByRestaurant.get(name) ?? 0;
+      if (seenRestaurants.size >= 3 && !seenRestaurants.has(name)) return false;
+      if (count >= 2) return false;
+      seenRestaurants.add(name);
+      mealCountByRestaurant.set(name, count + 1);
+      return true;
+    });
+    console.log(`✅ [ROUTE CAP] ${rawResults.length} raw → ${results.length} capped (${seenRestaurants.size} restaurants)`);
+
     return res.status(200).json({
       success: true,
       query: mealQuery,

@@ -104,7 +104,7 @@ const FIND_MEALS_TOUR_STEPS: TourStep[] = [
   },
 ];
 
-const CACHE_KEY = "mealFinder.cache.v3";
+const CACHE_KEY = "mealFinder.cache.v4";
 
 type CachedMealFinderState = {
   results: MealResult[];
