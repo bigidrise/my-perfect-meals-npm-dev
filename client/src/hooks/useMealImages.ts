@@ -9,6 +9,26 @@ export interface HasMealImage {
   mealType?: string;
 }
 
+const IMAGE_CACHE_PREFIX = "mpm.imgcache.";
+
+/**
+ * Persist an imageUrl to a separate localStorage key immediately after fetch,
+ * before setMeals is called.  Survives component unmount so the reactive cache-
+ * save useEffects in each page can't race with navigation.
+ */
+function persistImageUrl(mealId: string, imageUrl: string) {
+  try { localStorage.setItem(IMAGE_CACHE_PREFIX + mealId, imageUrl); } catch {}
+}
+
+/**
+ * Lookup a previously-hydrated imageUrl by mealId.
+ * Call this in each page's mount/restore handler to fill in imageUrls that
+ * were fetched in a prior session before the user navigated away.
+ */
+export function lookupHydratedImageUrl(mealId: string): string | null {
+  try { return localStorage.getItem(IMAGE_CACHE_PREFIX + mealId) ?? null; } catch { return null; }
+}
+
 export function useMealImages<T extends HasMealImage>(
   setMeals: React.Dispatch<React.SetStateAction<T[]>>,
   options?: { mealType?: string; concurrency?: number; dietType?: string }
@@ -48,6 +68,9 @@ export function useMealImages<T extends HasMealImage>(
               });
               const data = await res.json();
               if (data.imageUrl) {
+                // Persist to localStorage BEFORE setMeals — survives component unmount
+                // so the reactive cache-save useEffect doesn't race with navigation.
+                persistImageUrl(meal.id, data.imageUrl);
                 setMeals((prev) =>
                   prev.map((m) => m.id === meal.id ? { ...m, imageUrl: data.imageUrl } : m)
                 );

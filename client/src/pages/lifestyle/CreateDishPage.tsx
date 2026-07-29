@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { formatAmount } from "@/utils/formatAmount";
-import { useMealImages } from "@/hooks/useMealImages";
+import { useMealImages, lookupHydratedImageUrl } from "@/hooks/useMealImages";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import ThinkingDots from "@/components/ThinkingDots";
 import { useLocation } from "wouter";
@@ -307,12 +307,17 @@ export default function CreateDishPage() {
 
     const cached = loadDishCache();
     if (cached?.generatedMeal?.id) {
-      setGeneratedMeals([cached.generatedMeal]);
+      // Enrich with mini-cache imageUrl before setting state — survives the race
+      // where user navigated away before hydrateImages finished
+      const mealWithImage = cached.generatedMeal.imageUrl
+        ? cached.generatedMeal
+        : { ...cached.generatedMeal, imageUrl: lookupHydratedImageUrl(cached.generatedMeal.id) ?? undefined };
+      setGeneratedMeals([mealWithImage]);
       setServings(cached.servings || 2);
       // generatedInSession remains false — bar will not cold-mount
-      // If image wasn't saved to cache, re-fetch it now — DB cache returns instantly
-      if (!cached.generatedMeal.imageUrl) {
-        hydrateImages([cached.generatedMeal]);
+      // Only re-fetch if imageUrl is still missing after mini-cache lookup
+      if (!mealWithImage.imageUrl) {
+        hydrateImages([mealWithImage]);
       }
     }
   }, []);

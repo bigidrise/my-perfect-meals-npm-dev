@@ -134,6 +134,11 @@ export default function DesktopHeader() {
 
   const fallbackTitle = getPageTitle(location);
   const title = contextTitle || (fallbackTitle === "Signature Kitchen Experience" ? appName : fallbackTitle);
+
+  // 🔍 DIAGNOSTIC — remove after confirming root cause of "Restaurant Guide" header
+  if (typeof window !== "undefined") {
+    console.log("[DesktopHeader] location:", location, "| contextTitle:", contextTitle, "| fallbackTitle:", fallbackTitle, "| finalTitle:", title);
+  }
   const planBadge = getPlanLabel(user);
   const hubBackEntry = HUB_BACK_KEY_MAP[location] ?? null;
 
