@@ -461,6 +461,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/white-label', whiteLabelRouter);
   app.use('/api/business', businessRouter);
 
+  // Partner Center — referral tools, monthly campaigns, messaging guidelines
+  const marketingCenterRouter = (await import('./routes/marketingCenterRoutes')).default;
+  app.use('/api/marketing-center', marketingCenterRouter);
+
   // Dev-only: seed certification / affiliate state without taking the test
   if (process.env.NODE_ENV !== "production") {
     const { default: devSeedRouter } = await import('./routes/devSeedRoutes');
