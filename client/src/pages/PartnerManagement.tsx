@@ -39,6 +39,7 @@ interface PartnerRecord {
   stripePromotionCodeId: string | null;
   rewardfulAffiliateId: string | null;
   referralCampaignName: string | null;
+  brandingMode: string;
   managedPayoutsStatus: string | null;
   status: string;
   notes: string | null;
@@ -119,6 +120,7 @@ export default function PartnerManagement() {
   });
 
   const [actionInputs, setActionInputs] = useState<Record<string, string>>({});
+  const [brandingModeDraft, setBrandingModeDraft] = useState<string | null>(null);
 
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -157,6 +159,7 @@ export default function PartnerManagement() {
     setLifecycle(null);
     setActivityLog([]);
     setShowCreateForm(false);
+    setBrandingModeDraft(null);
     try {
       const data = await apiRequest(`/api/partner/admin/users/${userId}/record`).catch(() => null);
       if (data && (data as any).partner) {
@@ -198,6 +201,25 @@ export default function PartnerManagement() {
       toast({ title: "Partner record created" });
     } catch (e: any) {
       toast({ title: e?.message ?? "Failed to create partner", variant: "destructive" });
+    }
+    setActionLoading(null);
+  };
+
+  // ── Branding mode ─────────────────────────────────────────────────────────
+
+  const handleBrandingModeSave = async () => {
+    if (!selectedUser || brandingModeDraft === null) return;
+    setActionLoading("branding-mode");
+    try {
+      const data = await apiRequest(`/api/partner/admin/records/${selectedUser.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ brandingMode: brandingModeDraft }),
+      });
+      setPartnerRecord((data as any).partner);
+      setBrandingModeDraft(null);
+      toast({ title: "Branding mode updated" });
+    } catch (e: any) {
+      toast({ title: e?.message ?? "Failed to update branding mode", variant: "destructive" });
     }
     setActionLoading(null);
   };
@@ -729,6 +751,45 @@ export default function PartnerManagement() {
                   <span className="text-xs text-white/80 font-medium">{partnerRecord.referralCampaignName}</span>
                 </div>
               )}
+
+              {/* Branding Mode */}
+              <div className="mb-3">
+                <p className="text-[9px] text-white/40 uppercase tracking-widest mb-2">Account Type (Branding Mode)</p>
+                <div className="flex gap-2 mb-2">
+                  {(["standard", "co-branded", "white-label"] as const).map((mode) => {
+                    const currentMode = brandingModeDraft ?? partnerRecord.brandingMode ?? "standard";
+                    const labels: Record<string, string> = {
+                      standard: "Standard",
+                      "co-branded": "Co-branded",
+                      "white-label": "White Label",
+                    };
+                    const selected = currentMode === mode;
+                    return (
+                      <button
+                        key={mode}
+                        onClick={() => setBrandingModeDraft(mode === partnerRecord.brandingMode && brandingModeDraft === null ? null : mode)}
+                        className={`flex-1 px-2 py-2 rounded-lg text-[10px] font-bold border transition-all ${
+                          selected
+                            ? "bg-orange-600 border-orange-500 text-white"
+                            : "bg-white/8 border-white/15 text-white/50"
+                        }`}
+                      >
+                        {labels[mode]}
+                      </button>
+                    );
+                  })}
+                </div>
+                {brandingModeDraft !== null && brandingModeDraft !== partnerRecord.brandingMode && (
+                  <button
+                    onClick={handleBrandingModeSave}
+                    disabled={actionLoading === "branding-mode"}
+                    className="w-full py-2 rounded-lg bg-orange-600 hover:bg-orange-500 disabled:opacity-40 text-white text-xs font-semibold transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    {actionLoading === "branding-mode" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                    Save Account Type
+                  </button>
+                )}
+              </div>
 
               {/* Status badges */}
               <div className="space-y-1.5 mb-3">

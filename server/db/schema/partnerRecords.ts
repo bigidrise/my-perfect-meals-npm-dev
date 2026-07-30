@@ -24,6 +24,8 @@ export const partnerRecords = pgTable("partner_records", {
   rewardfulAffiliateId: text("rewardful_affiliate_id"),
   referralCampaignName: text("referral_campaign_name"),
 
+  brandingMode: text("branding_mode").default("standard").notNull(),
+
   managedPayoutsStatus: text("managed_payouts_status").default("not_applicable"),
   status: text("status").default("pending"),
   notes: text("notes"),
