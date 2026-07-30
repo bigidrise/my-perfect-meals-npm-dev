@@ -193,7 +193,7 @@ export default function Builders() {
     >
       {!isDesktop && (
         <div
-          className="fixed top-0 left-0 right-0 z-40 bg-black/30 backdrop-blur-lg border-b border-white/10"
+          className="sticky top-0 z-40 bg-black/30 backdrop-blur-lg border-b border-white/10"
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
           <div className="px-8 pb-3 flex items-center gap-3">
@@ -205,7 +205,7 @@ export default function Builders() {
 
       <div
         className="flex-1 px-4 py-8"
-        style={{ paddingTop: isDesktop ? "0" : "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
+        style={{ paddingTop: isDesktop ? "0" : undefined }}
       >
         <div className="max-w-2xl mx-auto space-y-4">
           {/* Needs Onboarding Banner */}
