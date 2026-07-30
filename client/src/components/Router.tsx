@@ -420,6 +420,8 @@ import FoundersPage from "@/pages/Founders";
 import CoachesComingSoon from "@/pages/CoachesComingSoon";
 import BusinessCenter from "@/pages/BusinessCenter";
 import BusinessCenterSection from "@/pages/BusinessCenterSection";
+import PartnerCenter from "@/pages/PartnerCenter";
+import AdminCampaignManager from "@/pages/admin/AdminCampaignManager";
 import AcademyLandingPage from "@/pages/AcademyLandingPage";
 import PartnerProgramsHub from "@/pages/PartnerProgramsHub";
 import HowPartnershipsWork from "@/pages/HowPartnershipsWork";
@@ -1007,6 +1009,8 @@ export default function Router() {
         <Route path="/business-center/healthcare" component={PublicHealthcarePartnerships} />
         <Route path="/business-center/white-label" component={WhiteLabelSolutions} />
         <Route path="/business-center/partnerships" component={BusinessCenterSection} />
+        <Route path="/partner-center" component={PartnerCenter} />
+        <Route path="/admin/campaigns" component={() => <AdminGuard component={AdminCampaignManager} />} />
         {/* Public partner pages — no login required */}
         <Route path="/partners" component={PublicPartnersHub} />
         <Route path="/partners/founding" component={FoundingPartnerProgram} />

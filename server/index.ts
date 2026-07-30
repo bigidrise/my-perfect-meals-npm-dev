@@ -1031,6 +1031,48 @@ setTimeout(async () => {
   }
 }, 3000);
 
+// Partner Center — marketing_campaigns and marketing_assets tables
+setTimeout(async () => {
+  try {
+    const { db } = await import('./db');
+    const { sql } = await import('drizzle-orm');
+    await db.execute(sql`ALTER TABLE partner_records ADD COLUMN IF NOT EXISTS branding_mode text NOT NULL DEFAULT 'standard'`);
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS marketing_campaigns (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        title text NOT NULL,
+        description text,
+        month_key text NOT NULL UNIQUE,
+        status text NOT NULL DEFAULT 'draft',
+        audience_modes text[] NOT NULL DEFAULT '{}',
+        published_at timestamptz,
+        expires_at timestamptz,
+        created_by text NOT NULL,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS marketing_assets (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        campaign_id uuid NOT NULL REFERENCES marketing_campaigns(id) ON DELETE CASCADE,
+        asset_type text NOT NULL DEFAULT 'other',
+        label text,
+        filename text NOT NULL,
+        object_key text NOT NULL DEFAULT '',
+        mime_type text,
+        byte_size integer,
+        caption_text text,
+        display_order integer DEFAULT 0,
+        created_at timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+    console.log('✅ Partner Center boot migration complete (marketing_campaigns, marketing_assets)');
+  } catch (err: any) {
+    console.error('❌ Partner Center boot migration failed:', err.message);
+  }
+}, 3500);
+
 // Reminder System v2 — canonical user_reminder_slots table
 setTimeout(async () => {
   try {
