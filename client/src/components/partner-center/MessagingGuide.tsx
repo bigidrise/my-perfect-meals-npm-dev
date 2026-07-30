@@ -37,7 +37,7 @@ export default function MessagingGuide() {
     <div className="space-y-4">
       {/* Academy CTA */}
       <button
-        onClick={() => setLocation("/business-center/academy")}
+        onClick={() => setLocation("/academy/platform-mastery/lesson/lesson-09")}
         className="w-full rounded-2xl bg-gradient-to-r from-orange-500/20 to-amber-500/20 border border-orange-500/30 p-4 flex items-center gap-3 text-left active:scale-[0.98] transition-transform"
       >
         <div className="w-9 h-9 rounded-xl bg-orange-500/20 flex items-center justify-center flex-shrink-0">

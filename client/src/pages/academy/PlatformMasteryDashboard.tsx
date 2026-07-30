@@ -21,6 +21,7 @@ const LESSONS = [
   { id: "lesson-06", num: 6, title: "Biometrics & Tracking", subtitle: "Logging progress and reading your data" },
   { id: "lesson-07", num: 7, title: "Specialized Health & Performance Systems", subtitle: "Clinical programs, performance nutrition, and the protocol hierarchy" },
   { id: "lesson-08", num: 8, title: "AI Adaptation & Transparency", subtitle: "What the AI knows, what it estimates, and your boundaries" },
+  { id: "lesson-09", num: 9, title: "Marketing & Brand Standards", subtitle: "Approved language, prohibited claims, social media rules, and referral tools" },
 ];
 
 interface AcademyStatus {
