@@ -111,24 +111,25 @@ export default function ReferralTools() {
     );
   }
 
-  if (loadError) {
+  if (loadError || !profile?.hasPartnerAccount) {
     return (
-      <div className="text-center py-12 px-4">
-        <AlertCircle className="h-8 w-8 text-red-400/60 mx-auto mb-3" />
-        <p className="text-white/60 text-sm">Something went wrong.</p>
-        <p className="text-white/40 text-xs mt-1 leading-relaxed">{loadError}</p>
-      </div>
-    );
-  }
-
-  if (!profile?.hasPartnerAccount) {
-    return (
-      <div className="text-center py-12 px-4">
-        <AlertCircle className="h-8 w-8 text-white/30 mx-auto mb-3" />
-        <p className="text-white/60 text-sm">No partner account found.</p>
-        <p className="text-white/40 text-xs mt-1">
-          Contact us to set up your partner profile.
-        </p>
+      <div className="space-y-4">
+        <div className="rounded-2xl bg-black/40 border border-white/10 p-6 text-center">
+          <QrCode className="h-10 w-10 text-orange-400/40 mx-auto mb-3" />
+          <p className="text-white font-semibold text-sm mb-1">Referral Tools Coming Soon</p>
+          <p className="text-white/55 text-xs leading-relaxed">
+            Your promo code, referral link, and QR code will appear here once your partner profile is activated.
+            Reach out to your account manager to get set up.
+          </p>
+        </div>
+        <div className="rounded-2xl bg-orange-950/30 border border-orange-900/30 p-4">
+          <p className="text-[10px] text-orange-300/70 uppercase tracking-wider font-semibold mb-2">What you'll have access to</p>
+          <ul className="space-y-2 text-xs text-white/60">
+            <li className="flex items-start gap-2"><span className="text-orange-400 mt-0.5">·</span> A personal promo code to share verbally, on podcasts, or in videos</li>
+            <li className="flex items-start gap-2"><span className="text-orange-400 mt-0.5">·</span> A trackable referral link for websites, emails, and social profiles</li>
+            <li className="flex items-start gap-2"><span className="text-orange-400 mt-0.5">·</span> A downloadable QR code for flyers, business cards, and presentations</li>
+          </ul>
+        </div>
       </div>
     );
   }
