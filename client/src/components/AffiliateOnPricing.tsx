@@ -37,13 +37,15 @@ export default function AffiliateOnPricing() {
         </div>
       </CardHeader>
       <CardContent className="space-y-4 text-sm md:text-base text-white/90">
-        <div className="flex items-start gap-2.5 rounded-xl bg-orange-600/10 border border-orange-500/20 px-4 py-3">
-          <Lock className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
-          <p className="text-sm text-white/80 leading-relaxed">
-            The My Perfect Meals Business Suite — including the standard Affiliate Program — is available with the{" "}
-            <span className="font-semibold text-orange-300">Pro subscription and above.</span>
-          </p>
-        </div>
+        {!hasAccess && (
+          <div className="flex items-start gap-2.5 rounded-xl bg-orange-600/10 border border-orange-500/20 px-4 py-3">
+            <Lock className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
+            <p className="text-sm text-white/80 leading-relaxed">
+              The My Perfect Meals Business Suite — including the standard Affiliate Program — is available with the{" "}
+              <span className="font-semibold text-orange-300">Pro subscription and above.</span>
+            </p>
+          </div>
+        )}
 
         <p className="text-white/70 leading-relaxed text-sm">
           Share My Perfect Meals with your audience and earn recurring commissions on paid subscriptions you refer to the platform.
