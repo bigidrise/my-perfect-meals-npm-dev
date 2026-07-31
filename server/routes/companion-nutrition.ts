@@ -10,6 +10,8 @@ import {
   companionIngredientScans,
 } from "../db/schema/companionProfiles";
 import { buildCompanionProtocolEnvelope } from "../services/companionProtocolEnvelope";
+import { buildFelineProtocolEnvelope } from "../services/felineProtocolEnvelope";
+import { scanRecipeForFelineToxins } from "../services/felineToxicFirewall";
 import { checkIngredientSafety, scanRecipeForToxins } from "../services/companionToxicFirewall";
 import OpenAI from "openai";
 
@@ -530,7 +532,9 @@ router.post("/generate-meal", requireAuth, async (req, res) => {
       .where(eq(companionProfiles.id, profileId))
       .limit(1);
 
-    if (!profile) return res.status(404).json({ error: "Dog profile not found" });
+    if (!profile) return res.status(404).json({ error: "Pet profile not found" });
+
+    const petType = (profile.petType as string) || "dog";
 
     if (profile.status === "memorial") {
       return res.status(400).json({
@@ -538,19 +542,72 @@ router.post("/generate-meal", requireAuth, async (req, res) => {
       });
     }
 
-    const envelope = buildCompanionProtocolEnvelope(profile as any);
+    // ── Branch on petType — NEVER fall through cat profiles to canine logic ──
+    const envelope =
+      petType === "cat"
+        ? buildFelineProtocolEnvelope(profile as any)
+        : buildCompanionProtocolEnvelope(profile as any);
 
-    const mealTypeInstructions: Record<string, string> = {
-      main: "Generate a complete, nutritious main meal suitable for this dog's profile.",
-      treat: "Generate a healthy homemade dog treat recipe — small, bite-sized, easily digestible.",
-      snack: "Generate a healthy snack or light between-meal food for this dog.",
-      "meal-prep": "Generate a meal prep plan — a batch recipe that makes 5–7 servings, with storage instructions.",
+    const mealTypeInstructions: Record<string, Record<string, string>> = {
+      dog: {
+        main: "Generate a complete, nutritious main meal suitable for this dog's profile.",
+        treat: "Generate a healthy homemade dog treat recipe — small, bite-sized, easily digestible.",
+        snack: "Generate a healthy snack or light between-meal food for this dog.",
+        "meal-prep": "Generate a meal prep plan — a batch recipe that makes 5–7 servings, with storage instructions.",
+      },
+      cat: {
+        main: "Generate a complete, nutritious main meal suitable for this cat's profile. Ensure taurine-rich animal protein is the anchor ingredient.",
+        treat: "Generate a healthy homemade cat treat recipe — small, bite-sized, fully cooked, no raw fish, no dairy.",
+        snack: "Generate a healthy snack or light between-meal food for this cat. Must be fully cooked animal protein.",
+        "meal-prep": "Generate a meal prep plan — a batch recipe that makes 5–7 feline-appropriate servings with storage instructions. Refrigerate or freeze portions.",
+      },
     };
 
-    const typeInstruction = mealTypeInstructions[mealType] || mealTypeInstructions.main;
+    const typeInstructionMap = mealTypeInstructions[petType] ?? mealTypeInstructions.dog;
+    const typeInstruction = typeInstructionMap[mealType] || typeInstructionMap.main;
     const specialNote = specialRequest ? `Special request from owner: ${specialRequest}` : "";
 
-    const systemPrompt = `You are a companion nutrition intelligence specialist creating personalized, safe, homemade dog food recipes.
+    const systemPrompt =
+      petType === "cat"
+        ? `You are a feline nutrition intelligence specialist creating personalized, safe, homemade cat food recipes for an obligate carnivore.
+
+You have expert knowledge of feline-specific nutritional requirements:
+- Taurine is an essential amino acid for cats (cannot be synthesized — must come from animal protein)
+- Cats require preformed vitamin A from animal tissue (cannot convert beta-carotene)
+- Cats require arachidonic acid from animal fat (cannot convert plant-derived linoleic acid)
+- Cats have very limited carbohydrate metabolism (minimal glucokinase activity)
+- Cats have a low thirst drive — high dietary moisture is always beneficial
+
+${envelope.promptBlock}
+
+IMPORTANT: You are NOT a veterinarian. Do NOT make medical claims. Use language like "wellness support", "may help support", "nutrition guidance only".
+
+You must respond with valid JSON in exactly this structure:
+{
+  "title": "Recipe name",
+  "description": "2-3 sentence warm description of why this meal is great for this cat",
+  "mealType": "${mealType}",
+  "servingSize": "e.g. 1/3 cup per meal for a 10-lb cat",
+  "estimatedCalories": 150,
+  "proteinGrams": 18,
+  "ingredients": [
+    { "name": "Ingredient name", "amount": "Amount", "notes": "Optional prep note" }
+  ],
+  "instructions": [
+    "Step 1...",
+    "Step 2..."
+  ],
+  "wellnessNotes": [
+    "Note about taurine source and why it benefits this cat",
+    "Note about another key ingredient's feline benefit"
+  ],
+  "citationReferences": [
+    "Brief source reference relevant to wellness goals"
+  ],
+  "storageNote": "How long this keeps and how to store",
+  "veterinaryNote": "This recipe is for feline wellness nutrition support only. Consult your veterinarian for medical conditions, kidney disease, diabetes, or significant dietary changes."
+}`
+        : `You are a companion nutrition intelligence specialist creating personalized, safe, homemade dog food recipes.
 
 ${envelope.promptBlock}
 
@@ -582,7 +639,17 @@ You must respond with valid JSON in exactly this structure:
   "veterinaryNote": "This recipe is for wellness nutrition support only. Consult your veterinarian for medical conditions or significant dietary changes."
 }`;
 
-    const userPrompt = `${typeInstruction}
+    const userPrompt =
+      petType === "cat"
+        ? `${typeInstruction}
+${specialNote}
+
+Cat profile: ${profile.name}, ${profile.breed}, ${profile.ageYears} years old, ${profile.weightLbs} lbs, ${profile.activityLevel} activity level.
+Wellness goals: ${(profile.wellnessGoals as string[] || []).join(", ") || "general feline wellness"}
+Remember: obligate carnivore — taurine-rich animal protein must anchor this recipe. No raw fish, no dairy, no plant protein substitution.
+
+Generate a recipe now.`
+        : `${typeInstruction}
 ${specialNote}
 
 Dog profile: ${profile.name}, ${profile.breed}, ${profile.ageYears} years old, ${profile.weightLbs} lbs, ${profile.activityLevel} activity level.
@@ -619,12 +686,15 @@ Generate a recipe now.`;
     const ingredientScanText = (Array.isArray(meal.ingredients) ? meal.ingredients : [])
       .map((ing: any) => (typeof ing === "string" ? ing : JSON.stringify(ing)))
       .join(" | ");
-    const scanResult = scanRecipeForToxins(ingredientScanText);
+    const scanResult =
+      petType === "cat"
+        ? scanRecipeForFelineToxins(ingredientScanText)
+        : scanRecipeForToxins(ingredientScanText);
 
     if (!scanResult.safe) {
-      console.warn("[companion] Toxic firewall triggered, regenerating:", scanResult.violations);
+      console.warn(`[companion] ${petType} toxic firewall triggered, regenerating:`, scanResult.violations);
       return res.status(422).json({
-        error: "Generated recipe contained flagged ingredients and was blocked for your dog's safety. Please try again.",
+        error: `Generated recipe contained flagged ingredients and was blocked for your ${petType}'s safety. Please try again.`,
         violations: scanResult.violations.map((v) => ({
           ingredient: v.ingredient,
           reason: v.reason,
@@ -670,7 +740,7 @@ Generate a recipe now.`;
     });
   } catch (err) {
     console.error("[companion] generate-meal error:", err);
-    res.status(500).json({ error: "Failed to generate dog meal" });
+    res.status(500).json({ error: `Failed to generate ${petType} meal` });
   }
 });
 

@@ -520,15 +520,17 @@ export function MedicalSourcesInfo({
 
           <section>
             <h3 className="text-lg font-semibold text-white mb-3">
-              Companion nutrition &amp; veterinary sources
+              🐾 Companion Animal Nutrition
             </h3>
-            <p className="text-white/60 text-xs mb-3">
-              My Perfect Pets (Companion Nutrition Intelligence) uses publicly available veterinary nutrition guidelines to inform dog wellness meal design, toxic ingredient identification, and condition-specific nutritional protocols. These references are used for general wellness guidance only — not veterinary diagnosis, treatment, or individualized clinical care.
+            <p className="text-white/60 text-xs mb-4">
+              My Perfect Pets (Companion Nutrition Intelligence) uses publicly available veterinary nutrition guidelines to inform wellness meal design, toxic ingredient identification, and condition-specific nutritional protocols for dogs and cats. Both species have separate protocol engines — canine and feline logic are never mixed. These references are for general wellness guidance only — not veterinary diagnosis, treatment, or individualized clinical care.
             </p>
-            <ul className="space-y-3">
+
+            {/* Shared foundation sources */}
+            <ul className="space-y-3 mb-5">
               <SourceItem
                 title="WSAVA Global Nutrition Guidelines"
-                description="World Small Animal Veterinary Association guidelines for companion animal nutrition assessment, body condition scoring, and life-stage feeding recommendations"
+                description="World Small Animal Veterinary Association guidelines for companion animal nutrition assessment, body condition scoring, and life-stage feeding recommendations for both dogs and cats"
                 url="https://wsava.org/global-guidelines/global-nutrition-guidelines/"
               />
               <SourceItem
@@ -538,22 +540,22 @@ export function MedicalSourcesInfo({
               />
               <SourceItem
                 title="Tufts Cummings School of Veterinary Medicine — Clinical Nutrition Service"
-                description="Evidence-based companion animal nutrition research including kidney disease dietary management, weight loss protocols, and therapeutic nutrition for chronic conditions"
+                description="Evidence-based companion animal nutrition research including kidney disease dietary management, weight loss protocols, and therapeutic nutrition for chronic conditions in dogs and cats"
                 url="https://vetnutrition.tufts.edu/"
               />
               <SourceItem
                 title="ASPCA Animal Poison Control Center"
-                description="Primary authoritative reference for identifying foods, plants, and household substances toxic to dogs and cats — the foundational source for the Companion Toxic Ingredient Firewall"
+                description="Primary authoritative reference for identifying foods, plants, and household substances toxic to dogs and cats — the foundational source for both the Canine and Feline Toxic Ingredient Firewalls"
                 url="https://www.aspca.org/pet-care/animal-poison-control"
               />
               <SourceItem
                 title="IRIS — International Renal Interest Society"
-                description="Staging system and dietary management guidelines for canine chronic kidney disease, including phosphorus restriction protocols and nutritional management frameworks"
+                description="Staging system and dietary management guidelines for canine and feline chronic kidney disease, including phosphorus restriction protocols and nutritional management frameworks"
                 url="https://www.iris-kidney.com/"
               />
               <SourceItem
                 title="AAHA Diabetes Management Guidelines for Dogs and Cats"
-                description="Evidence-based nutritional management of canine diabetes mellitus, including glycemic control principles and dietary fiber recommendations"
+                description="Evidence-based nutritional management of diabetes mellitus in dogs and cats — including species-specific differences: very low carbohydrate is the primary feline intervention; fiber-based management for dogs"
                 url="https://www.aaha.org/globalassets/02-guidelines/diabetes-management/2018diabetesmanagementguidelines.pdf"
               />
               <SourceItem
@@ -562,8 +564,75 @@ export function MedicalSourcesInfo({
                 url="https://www.avma.org/"
               />
             </ul>
-            <p className="text-white/60 text-xs mt-3 leading-relaxed">
-              Companion nutrition guidance is for general wellness support only. It does not constitute veterinary advice. Always consult a licensed veterinarian for medical conditions, significant dietary changes, or any health concern.
+
+            {/* Canine Nutrition subsection */}
+            <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">🐕 Canine Nutrition</p>
+            <p className="text-white/50 text-xs mb-3">
+              Dog protocols — including life-stage feeding, wellness goal stacks (joint, kidney, weight, diabetes, digestive, skin), and the canine toxic ingredient firewall — are informed by the following additional references.
+            </p>
+            <ul className="space-y-3 mb-5">
+              <SourceItem
+                title="AAHA Senior Care Guidelines for Dogs and Cats"
+                description="Nutritional recommendations for aging companion animals — protein maintenance, kidney-aware phosphorus management, and antioxidant support for senior dogs"
+                url="https://www.aaha.org/resources/senior-care-guidelines/"
+              />
+              <SourceItem
+                title="Veterinary Evidence Journal — Omega-3 and Canine Osteoarthritis"
+                description="Evidence for EPA/DHA supplementation in canine joint health management — the basis for joint wellness protocol ingredient selection"
+                url="https://veterinaryevidence.org/"
+              />
+              <SourceItem
+                title="Journal of Veterinary Dermatology — Nutritional Approach to Skin Disorders"
+                description="Dietary fatty acids, biotin, and zinc in canine dermatological health — supporting the skin and coat wellness protocol"
+                url="https://onlinelibrary.wiley.com/journal/13652621"
+              />
+              <SourceItem
+                title="Canine Sports Medicine and Rehabilitation — Nutritional Requirements"
+                description="Macronutrient requirements and caloric density guidance for athletic and working dogs — the basis for the active dog performance nutrition protocol"
+                url="https://www.avma.org/"
+              />
+            </ul>
+
+            {/* Feline Nutrition subsection */}
+            <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">🐈 Feline Nutrition</p>
+            <p className="text-white/50 text-xs mb-3">
+              Cat protocols are built on feline-specific nutritional science. Cats are obligate carnivores with fundamentally different metabolic requirements from dogs. The feline protocol engine includes 15 condition-specific wellness protocols, a dedicated feline toxicity firewall, and mandatory taurine enforcement in every recipe.
+            </p>
+            <ul className="space-y-3 mb-4">
+              <SourceItem
+                title="NRC Nutrient Requirements of Cats, 2006"
+                description="National Research Council foundational reference for feline essential nutrients — including taurine as an essential amino acid, preformed vitamin A from animal tissue, arachidonic acid from animal fat, and obligate carnivore protein requirements. The primary reference for all feline nutrient minimum values."
+                url="https://nap.nationalacademies.org/catalog/10668/nutrient-requirements-of-dogs-and-cats"
+              />
+              <SourceItem
+                title="Journal of Veterinary Internal Medicine — Taurine and Feline Cardiomyopathy"
+                description="Evidence linking dietary taurine deficiency to dilated cardiomyopathy (DCM) in cats — the basis for mandatory taurine enforcement in every cat recipe and the feline taurine optimization protocol"
+                url="https://onlinelibrary.wiley.com/journal/19391676"
+              />
+              <SourceItem
+                title="AAHA Senior Care Guidelines for Dogs and Cats"
+                description="Feline senior nutrition: high-protein requirement for sarcopenia prevention, kidney-aware phosphorus management, and the updated guidance that protein should NOT be routinely restricted in senior cats without confirmed kidney disease"
+                url="https://www.aaha.org/resources/senior-care-guidelines/"
+              />
+              <SourceItem
+                title="Journal of Veterinary Dermatology — Nutritional Approach to Feline Skin Disorders"
+                description="Dietary fatty acids and taurine in feline dermatological health — supporting the feline skin and coat wellness protocol. Cats require arachidonic acid from animal fat sources, not plant-derived omega-6 precursors."
+                url="https://onlinelibrary.wiley.com/journal/13652621"
+              />
+              <SourceItem
+                title="Journal of Veterinary Internal Medicine — Omega-3 Fatty Acids in Feline Nutrition"
+                description="EPA and DHA from marine sources for anti-inflammatory benefit in cats — cats cannot efficiently convert plant-based ALA; marine-derived EPA/DHA required for effective anti-inflammatory support"
+                url="https://onlinelibrary.wiley.com/journal/19391676"
+              />
+              <SourceItem
+                title="FDA — Propylene Glycol in Cat Food (21 CFR 582.1666)"
+                description="FDA regulatory determination that propylene glycol is unsafe for cats — Heinz body anemia risk. The basis for propylene glycol inclusion in the Feline Toxic Ingredient Firewall."
+                url="https://www.fda.gov/animal-veterinary/animal-food-feeds/ingredients-food-animals"
+              />
+            </ul>
+
+            <p className="text-white/60 text-xs leading-relaxed">
+              Companion nutrition guidance is for general wellness support only and does not constitute veterinary advice. Always consult a licensed veterinarian for medical conditions, significant dietary changes, urinary blockages, kidney disease, diabetes, or any health concern affecting your pet.
             </p>
           </section>
 
