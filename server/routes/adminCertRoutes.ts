@@ -520,7 +520,7 @@ router.post("/relink-user", async (req, res) => {
       db
     );
 
-    if (!result.ok) {
+    if (result.ok === false) {
       return res.status(result.status).json({ error: result.error });
     }
 

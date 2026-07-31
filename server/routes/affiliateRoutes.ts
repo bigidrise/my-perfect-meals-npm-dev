@@ -37,27 +37,20 @@ router.post("/register-track", requireAuth, async (req, res) => {
       return res.status(400).json({ error: "Invalid track. Must be social_affiliate or business_affiliate." });
     }
 
-    // Both tracks require Pro or higher — gate Free and Essential users
-    const { authUser } = req as AuthenticatedRequest;
-    const userRecord = await db.select({ planLookupKey: users.planLookupKey, accessTier: users.accessTier })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1)
-      .then((r) => r[0]);
-
-    if (userRecord) {
-      const BILLING_ENFORCED = process.env.BILLING_ENFORCED === "true";
-      if (BILLING_ENFORCED) {
-        const tier = getTierForLookupKey(userRecord.planLookupKey);
-        const isInternal = userRecord.accessTier === "PAID_FULL" && !userRecord.planLookupKey;
-        const isPro = tier === "premium" || tier === "ultimate";
-        if (!isPro && !isInternal) {
-          return res.status(403).json({
-            error: "The Affiliate Program requires a Pro subscription or higher.",
-            code: "PRO_REQUIRED",
-            requiredTier: "pro",
-          });
-        }
+    // Both tracks require Pro or higher — gate Free and Essential users.
+    // accessTier and planLookupKey are already on the session user; no DB query needed.
+    const BILLING_ENFORCED = process.env.BILLING_ENFORCED === "true";
+    if (BILLING_ENFORCED) {
+      const { accessTier, planLookupKey } = (req as AuthenticatedRequest).authUser;
+      const tier = getTierForLookupKey(planLookupKey);
+      const isInternal = accessTier === "PAID_FULL" && !planLookupKey;
+      const isPro = tier === "premium" || tier === "ultimate";
+      if (!isPro && !isInternal) {
+        return res.status(403).json({
+          error: "The Affiliate Program requires a Pro subscription or higher.",
+          code: "PRO_REQUIRED",
+          requiredTier: "pro",
+        });
       }
     }
 
@@ -563,14 +556,14 @@ export async function handleRewardfulWebhook(req: any, res: any) {
                   referralUrl: emailReferralUrl,
                   referralToken: emailReferralToken,
                   track: account.affiliateTrack ?? "social_affiliate",
-                }).then((sent) => {
+                }).then((sent: boolean) => {
                   if (sent) {
                     db.update(userAffiliateAccounts)
                       .set({ welcomeEmailSentAt: new Date(), updatedAt: new Date() })
                       .where(eq(userAffiliateAccounts.userId, account.userId))
                       .catch(() => {});
                   }
-                }).catch((e) => console.error("[Rewardful Webhook] Welcome email failed:", e));
+                }).catch((e: unknown) => console.error("[Rewardful Webhook] Welcome email failed:", e));
               }
             }
           }
