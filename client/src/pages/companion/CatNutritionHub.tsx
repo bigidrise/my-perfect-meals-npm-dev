@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, ChefHat, Heart, Crown, ArrowLeft, BookOpen,
-  Archive, RotateCcw, ChevronDown, ChevronUp, Camera, PawPrint,
+  Archive, RotateCcw, ChevronDown, ChevronUp, Camera, PawPrint, Search,
 } from "lucide-react";
 import { PillButton } from "@/components/ui/pill-button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -184,6 +184,7 @@ export default function CatNutritionHub() {
           {[
             { icon: Plus, label: "Add a Cat", sub: "Create profile", action: () => guardAction(PREMIUM_MSG, () => setLocation("/companion/cat-setup")), color: "from-orange-600/30 to-orange-800/20" },
             { icon: ChefHat, label: "Meal Generator", sub: "Make a meal", action: () => guardAction(PREMIUM_MSG, () => setLocation("/companion/cat-generator")), color: "from-amber-600/30 to-orange-700/20" },
+            { icon: Search, label: "Scan Ingredients", sub: "Feline safety check", action: () => guardAction(PREMIUM_MSG, () => setLocation("/companion/cat-scanner")), color: "from-teal-600/30 to-orange-700/20" },
           ].map((item) => (
             <button
               key={item.label}

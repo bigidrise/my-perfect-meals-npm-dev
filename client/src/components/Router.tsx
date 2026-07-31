@@ -471,6 +471,7 @@ import DogProfileSetup from "@/pages/companion/DogProfileSetup";
 import CompanionMealGenerator from "@/pages/companion/CompanionMealGenerator";
 import DogIngredientScanner from "@/pages/companion/DogIngredientScanner";
 import CatNutritionHub from "@/pages/companion/CatNutritionHub";
+import CatIngredientScanner from "@/pages/companion/CatIngredientScanner";
 import CatProfileSetup from "@/pages/companion/CatProfileSetup";
 
 // Admin Dashboard
@@ -570,6 +571,8 @@ const GuardedCompanionHub = () => <ProGuard component={CompanionNutritionHub} />
 const GuardedDogProfileSetup = () => <ProGuard component={DogProfileSetup} />;
 const GuardedCompanionMealGenerator = () => <ProGuard component={CompanionMealGenerator} />;
 const GuardedDogIngredientScanner = () => <ProGuard component={DogIngredientScanner} />;
+
+const GuardedCatIngredientScanner = () => <ProGuard component={CatIngredientScanner} />;
 const GuardedCatNutritionHub = () => <ProGuard component={CatNutritionHub} />;
 const GuardedCatProfileSetup = () => <ProGuard component={CatProfileSetup} />;
 const GuardedSocializingHub = () => <ProGuard component={SocializingHub} />;
@@ -876,6 +879,7 @@ export default function Router() {
         <Route path="/companion/cat-setup" component={GuardedCatProfileSetup} />
         <Route path="/companion/cat-setup/:id" component={GuardedCatProfileSetup} />
         <Route path="/companion/cat-generator" component={GuardedCompanionMealGenerator} />
+        <Route path="/companion/cat-scanner" component={GuardedCatIngredientScanner} />
         <Route path="/ab-testing-demo" component={ABTestingDemo} />
         {/* DELETED: HolidayFeastPlannerPage, MealFinderPage, BreakfastMealsHub, LunchMealsHub, DinnerMealsHub, SnacksMealsHub, CulturalCuisinesPage, VegetableFiberInfo, PotluckPlanner, RestaurantGuide (old) routes */}
         {/* Socializing Hub Routes — Pro+ */}
@@ -1066,5 +1070,4 @@ export default function Router() {
     </>
   );
 }
-
 
