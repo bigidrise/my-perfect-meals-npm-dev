@@ -335,3 +335,165 @@ describe("GET /certificate — userId mismatch after account migration or merge"
     expect(result).toBeNull();
   });
 });
+
+// ── 7. Admin re-link restores GET /certificate access for a migrated user ─────
+
+/**
+ * Simulates the admin POST /relink-user operation.
+ *
+ * Guards mirrored from adminCertRoutes.ts:
+ *   • Source cert must exist under oldUserId with status="completed"
+ *   • newUserId must not already own a cert row for the same certificationType
+ *   • oldUserId === newUserId → idempotent no-op
+ *
+ * Returns the updated db state (cert row now owned by newUserId) on success,
+ * or an error string on failure.
+ */
+function simulateRelinkUser(
+  oldUserId: string,
+  newUserId: string,
+  certificationType: string,
+  db: Map<string, { userId: string; certificationType: string; status: string; certificateNumber: string; certificateName: string; completedAt: Date }>,
+): { ok: boolean; alreadyLinked?: boolean; certificateNumber?: string; certificateName?: string; error?: string } {
+  // Idempotent path
+  if (oldUserId === newUserId) {
+    const existing = db.get(`${newUserId}:${certificationType}`);
+    if (!existing || existing.status !== "completed") {
+      return { ok: false, error: "No completed certificate found for oldUserId" };
+    }
+    return { ok: true, alreadyLinked: true, certificateNumber: existing.certificateNumber, certificateName: existing.certificateName };
+  }
+
+  // Source must exist and be completed
+  const source = db.get(`${oldUserId}:${certificationType}`);
+  if (!source) {
+    return { ok: false, error: "No certificate record found for oldUserId with the given certificationType" };
+  }
+  if (source.status !== "completed") {
+    return { ok: false, error: "Source certificate is not completed" };
+  }
+
+  // Anti-theft: newUserId must not already own a cert row for this type
+  const conflict = db.get(`${newUserId}:${certificationType}`);
+  if (conflict) {
+    return { ok: false, error: "newUserId already has a certificate record for this certificationType" };
+  }
+
+  // Perform the re-link (mutate the in-memory map)
+  db.delete(`${oldUserId}:${certificationType}`);
+  db.set(`${newUserId}:${certificationType}`, { ...source, userId: newUserId });
+
+  return { ok: true, alreadyLinked: false, certificateNumber: source.certificateNumber, certificateName: source.certificateName };
+}
+
+describe("admin re-link — GET /certificate accessible after userId migration", () => {
+  const completedAt = new Date("2025-03-10T09:00:00Z");
+
+  function buildDb() {
+    return new Map([
+      [
+        "user-original-001:platform_mastery",
+        {
+          userId: "user-original-001",
+          certificationType: "platform_mastery",
+          status: "completed",
+          certificateNumber: "MPM-PM-MIG123",
+          certificateName: "Carol Davis",
+          completedAt,
+        },
+      ],
+    ]);
+  }
+
+  it("GET /certificate returns 404 for the new userId before re-link", () => {
+    const db = buildDb();
+    const row = db.get("user-migrated-002:platform_mastery");
+    const result = row ? simulateGetCertificateForUser("user-migrated-002", row) : null;
+    expect(result).toBeNull();
+  });
+
+  it("re-link succeeds and preserves certificateNumber and certificateName", () => {
+    const db = buildDb();
+    const response = simulateRelinkUser("user-original-001", "user-migrated-002", "platform_mastery", db);
+    expect(response.ok).toBe(true);
+    expect(response.alreadyLinked).toBe(false);
+    expect(response.certificateNumber).toBe("MPM-PM-MIG123");
+    expect(response.certificateName).toBe("Carol Davis");
+  });
+
+  it("GET /certificate returns the certificate under the new userId after re-link", () => {
+    const db = buildDb();
+    simulateRelinkUser("user-original-001", "user-migrated-002", "platform_mastery", db);
+
+    const row = db.get("user-migrated-002:platform_mastery")!;
+    const result = simulateGetCertificateForUser("user-migrated-002", row);
+    expect(result).not.toBeNull();
+    expect(result!.certificateNumber).toBe("MPM-PM-MIG123");
+    expect(result!.certificateName).toBe("Carol Davis");
+  });
+
+  it("GET /certificate returns 404 under the old userId after re-link (row moved)", () => {
+    const db = buildDb();
+    simulateRelinkUser("user-original-001", "user-migrated-002", "platform_mastery", db);
+
+    const row = db.get("user-original-001:platform_mastery");
+    const result = row ? simulateGetCertificateForUser("user-original-001", row) : null;
+    expect(result).toBeNull();
+  });
+
+  it("re-link is idempotent when oldUserId === newUserId", () => {
+    const db = buildDb();
+    const response = simulateRelinkUser("user-original-001", "user-original-001", "platform_mastery", db);
+    expect(response.ok).toBe(true);
+    expect(response.alreadyLinked).toBe(true);
+    expect(response.certificateNumber).toBe("MPM-PM-MIG123");
+  });
+
+  it("re-link is blocked when newUserId already owns a cert for the same type (anti-theft guard)", () => {
+    const db = buildDb();
+    // Give newUserId their own cert
+    db.set("user-migrated-002:platform_mastery", {
+      userId: "user-migrated-002",
+      certificationType: "platform_mastery",
+      status: "completed",
+      certificateNumber: "MPM-PM-OTHER999",
+      certificateName: "Different Person",
+      completedAt: new Date(),
+    });
+
+    const response = simulateRelinkUser("user-original-001", "user-migrated-002", "platform_mastery", db);
+    expect(response.ok).toBe(false);
+    expect(response.error).toMatch(/already has a certificate record/);
+
+    // Original cert is untouched
+    const original = db.get("user-original-001:platform_mastery");
+    expect(original?.certificateNumber).toBe("MPM-PM-MIG123");
+  });
+
+  it("re-link is rejected when the source cert is not completed", () => {
+    const db = new Map([
+      [
+        "user-in-progress:platform_mastery",
+        {
+          userId: "user-in-progress",
+          certificationType: "platform_mastery",
+          status: "in_progress",
+          certificateNumber: "",
+          certificateName: "",
+          completedAt: new Date(),
+        },
+      ],
+    ]);
+
+    const response = simulateRelinkUser("user-in-progress", "user-new-999", "platform_mastery", db);
+    expect(response.ok).toBe(false);
+    expect(response.error).toMatch(/not completed/);
+  });
+
+  it("re-link is rejected when oldUserId has no cert for the given certificationType", () => {
+    const db = buildDb();
+    const response = simulateRelinkUser("user-original-001", "user-migrated-002", "business_success", db);
+    expect(response.ok).toBe(false);
+    expect(response.error).toMatch(/No certificate record found/);
+  });
+});

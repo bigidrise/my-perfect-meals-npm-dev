@@ -14,6 +14,7 @@ import {
   userCertifications,
   certificationModuleProgress,
 } from "../db/schema/certifications";
+import { relinkCertificate } from "../services/certRelinkService";
 
 // Advisory lock key for the cert seed job.
 // Must be unique across the codebase — see advisory lock registry in server/routes/admin.ts.
@@ -492,6 +493,41 @@ router.get("/progress", async (req, res) => {
   } catch (err) {
     console.error("[AdminCert] progress GET error:", err);
     return res.status(500).json({ error: "Failed to fetch progress" });
+  }
+});
+
+// ─── CERTIFICATE USER RE-LINK ─────────────────────────────────────────────────
+//
+// POST /relink-user
+// Re-links a certificate row (and its module-progress rows) from one userId to
+// another when an account is merged or migrated.  Both DB updates run inside a
+// single transaction so a partial failure rolls back completely.
+//
+// Business logic lives in server/services/certRelinkService.ts.
+//
+router.post("/relink-user", async (req, res) => {
+  try {
+    const { oldUserId, newUserId, certificationType } = req.body as {
+      oldUserId?: string;
+      newUserId?: string;
+      certificationType?: string;
+    };
+
+    const result = await relinkCertificate(
+      oldUserId ?? "",
+      newUserId ?? "",
+      certificationType ?? "",
+      db
+    );
+
+    if (!result.ok) {
+      return res.status(result.status).json({ error: result.error });
+    }
+
+    return res.json(result);
+  } catch (err) {
+    console.error("[AdminCert] relink-user error:", err);
+    return res.status(500).json({ error: "Failed to re-link certificate" });
   }
 });
 
