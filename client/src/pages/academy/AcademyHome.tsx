@@ -111,7 +111,7 @@ export default function AcademyHome() {
             <ArrowLeft className="h-4 w-4" />
             Back
           </button>
-          <h1 className="text-base font-bold text-white">Academy</h1>
+          <h1 className="text-base font-bold text-white">My Perfect Meals Academy</h1>
         </div>
       </div>
 
