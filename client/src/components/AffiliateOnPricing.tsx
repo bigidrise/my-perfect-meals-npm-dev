@@ -2,6 +2,8 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { HandCoins, ShieldCheck, ChevronRight, Lock } from "lucide-react";
 import { useLocation } from "wouter";
+import { useAuth } from "@/contexts/AuthContext";
+import { getTierForLookupKey } from "@shared/planFeatures";
 
 const BENEFITS = [
   "30% recurring commissions for 24 months",
@@ -14,6 +16,12 @@ const BENEFITS = [
 
 export default function AffiliateOnPricing() {
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
+
+  const tier = getTierForLookupKey(user?.planLookupKey);
+  const isPro = tier === "premium" || tier === "ultimate";
+  const isInternal = user?.accessTier === "PAID_FULL" && !user?.planLookupKey;
+  const hasAccess = isPro || isInternal;
 
   return (
     <Card className="bg-black/60 text-white backdrop-blur-md border border-white/10 shadow-xl">
@@ -23,19 +31,23 @@ export default function AffiliateOnPricing() {
             <HandCoins className="w-5 h-5 text-orange-400" />
             Business Suite &amp; Affiliate Program
           </CardTitle>
-          <span className="shrink-0 px-2.5 py-1 rounded-full bg-orange-600/20 border border-orange-500/30 text-orange-400 text-[10px] font-semibold tracking-wide uppercase whitespace-nowrap">
-            Pro &amp; Above
-          </span>
+          {!hasAccess && (
+            <span className="shrink-0 px-2.5 py-1 rounded-full bg-orange-600/20 border border-orange-500/30 text-orange-400 text-[10px] font-semibold tracking-wide uppercase whitespace-nowrap">
+              Pro &amp; Above
+            </span>
+          )}
         </div>
       </CardHeader>
       <CardContent className="space-y-4 text-sm md:text-base text-white/90">
-        <div className="flex items-start gap-2.5 rounded-xl bg-orange-600/10 border border-orange-500/20 px-4 py-3">
-          <Lock className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
-          <p className="text-sm text-white/80 leading-relaxed">
-            The My Perfect Meals Business Suite — including the standard Affiliate Program — is available with the{" "}
-            <span className="font-semibold text-orange-300">Pro subscription and above.</span>
-          </p>
-        </div>
+        {!hasAccess && (
+          <div className="flex items-start gap-2.5 rounded-xl bg-orange-600/10 border border-orange-500/20 px-4 py-3">
+            <Lock className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
+            <p className="text-sm text-white/80 leading-relaxed">
+              The My Perfect Meals Business Suite — including the standard Affiliate Program — is available with the{" "}
+              <span className="font-semibold text-orange-300">Pro subscription and above.</span>
+            </p>
+          </div>
+        )}
 
         <p className="text-white/70 leading-relaxed text-sm">
           Share My Perfect Meals with your audience and earn recurring commissions on paid subscriptions you refer to the platform.
@@ -68,15 +80,26 @@ export default function AffiliateOnPricing() {
         </div>
 
         <div className="pt-1">
-          <Button
-            onClick={() => setLocation("/pricing#pro")}
-            className="inline-flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white"
-            data-testid="button-affiliate-upgrade"
-          >
-            <ShieldCheck className="w-4 h-4" />
-            Upgrade to Pro to Access
-            <ChevronRight className="w-3 h-3" />
-          </Button>
+          {hasAccess ? (
+            <Button
+              onClick={() => setLocation("/business-center")}
+              className="inline-flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white"
+              data-testid="button-affiliate-go"
+            >
+              Go to Business Suite
+              <ChevronRight className="w-3 h-3" />
+            </Button>
+          ) : (
+            <Button
+              onClick={() => setLocation("/pricing#pro")}
+              className="inline-flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white"
+              data-testid="button-affiliate-upgrade"
+            >
+              <ShieldCheck className="w-4 h-4" />
+              Upgrade to Pro to Access
+              <ChevronRight className="w-3 h-3" />
+            </Button>
+          )}
         </div>
 
         <p className="text-xs text-white/50">

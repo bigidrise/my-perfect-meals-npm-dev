@@ -13,6 +13,7 @@
  *  §5  Guard: missing required params
  *  §6  Transaction atomicity — progress update failure rolls back the cert update
  *  §7  Audit log — written inside the transaction on success, absent on failure
+ *  §8  Guard: quiz attempt conflict (newUserId already has quiz attempt rows)
  */
 
 import { relinkCertificate, type CertRelinkDb, type CertRelinkTx } from "../services/certRelinkService";
@@ -116,8 +117,12 @@ function buildMockTx(
  * Build a mock CertRelinkDb.
  *
  * @param selectRows        - Array of arrays; each element is the result of one SELECT call.
- *                            select calls: [0] = source cert lookup, [1] = conflict check.
+ *                            select calls: [0] = source cert lookup, [1] = dest cert conflict
+ *                            check, [2] = dest quiz attempt conflict check.
  *                            For the idempotent path: [0] = same-user cert lookup.
+ *                            Any call beyond the provided array returns [] by default (no
+ *                            conflict), so tests that only care about earlier guards can
+ *                            safely provide fewer than 3 elements.
  * @param progressRows      - Rows returned by the progress UPDATE RETURNING.
  * @param throwOnProgressUpdate - Whether the progress update should throw inside the tx.
  * @param auditInsertSpy    - Optional spy to capture the audit insert call.
@@ -553,5 +558,108 @@ describe("relinkCertificate — audit log", () => {
     await relinkCertificate("old-user", "new-user", "platform_mastery", db);
     expect(auditSpy.called).toBe(true);
     expect(auditSpy.values?.adminUserId).toBe("unknown");
+  });
+});
+
+// ── §8  Guard: quiz attempt conflict ──────────────────────────────────────────
+//
+// certificationQuizAttempts has a unique constraint on
+// (user_id, certification_type, module_id).  If newUserId already has quiz
+// attempt rows for this cert type the service must return a clear 409 before
+// entering the transaction — preventing an opaque DB constraint error and
+// leaving the database in a clean state.
+
+describe("relinkCertificate — guard: quiz attempt conflict", () => {
+  const SOURCE_CERT = {
+    certificateNumber: "MPM-PM-QA",
+    certificateName: "Quiz User",
+    status: "completed",
+  };
+  const QUIZ_CONFLICT = { id: "existing-quiz-attempt-id" };
+
+  it("returns 409 when newUserId already has quiz attempt rows for this certificationType", async () => {
+    const db = buildMockDb({
+      selectRows: [
+        [SOURCE_CERT],   // [0] source cert found
+        [],              // [1] no dest cert conflict
+        [QUIZ_CONFLICT], // [2] quiz attempt conflict → re-link blocked
+      ],
+    });
+
+    const result = await relinkCertificate("old-user", "new-user", "platform_mastery", db);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.status).toBe(409);
+    expect(result.error).toMatch(/quiz attempt rows/);
+  });
+
+  it("error message mentions the unique constraint so the admin knows what to fix", async () => {
+    const db = buildMockDb({
+      selectRows: [[SOURCE_CERT], [], [QUIZ_CONFLICT]],
+    });
+
+    const result = await relinkCertificate("old-user", "new-user", "platform_mastery", db);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error).toMatch(/unique constraint/);
+    expect(result.error).toMatch(/certification_quiz_attempts/);
+  });
+
+  it("does NOT call dbClient.transaction() when the quiz attempt guard fires", async () => {
+    let txCalls = 0;
+    const base = buildMockDb({
+      selectRows: [[SOURCE_CERT], [], [QUIZ_CONFLICT]],
+    });
+    const db: CertRelinkDb = {
+      ...base,
+      transaction: async (fn) => { txCalls++; return fn(buildMockTx([])); },
+    };
+
+    await relinkCertificate("old-user", "new-user", "platform_mastery", db);
+    expect(txCalls).toBe(0);
+  });
+
+  it("proceeds normally (returns ok:true) when newUserId has NO quiz attempt rows", async () => {
+    const db = buildMockDb({
+      selectRows: [
+        [SOURCE_CERT], // [0] source cert found
+        [],            // [1] no dest cert conflict
+        [],            // [2] no quiz attempt conflict
+      ],
+    });
+
+    const result = await relinkCertificate("old-user", "new-user", "platform_mastery", db);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.alreadyLinked).toBe(false);
+  });
+
+  it("checks for quiz attempt conflict AFTER the cert-row conflict guard, not before", async () => {
+    // When the dest cert guard fires (selectRows[1] has a row), the service
+    // must return 409 immediately without issuing the quiz attempt query.
+    // We verify this by providing a quiz conflict row at [2] — if the service
+    // reaches it, it would see a conflict, but the cert guard fires first and
+    // the tx is never entered.  The observable effect: txCalls stays 0 and
+    // the error message matches the cert guard, not the quiz guard.
+    const DEST_CERT_CONFLICT = { id: "dest-cert-id" };
+    let txCalls = 0;
+    const base = buildMockDb({
+      selectRows: [
+        [SOURCE_CERT],        // [0] source cert found
+        [DEST_CERT_CONFLICT], // [1] dest cert conflict — guard fires here
+        [QUIZ_CONFLICT],      // [2] would fire if reached (it should not be)
+      ],
+    });
+    const db: CertRelinkDb = {
+      ...base,
+      transaction: async (fn) => { txCalls++; return fn(buildMockTx([])); },
+    };
+
+    const result = await relinkCertificate("old-user", "new-user", "platform_mastery", db);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.status).toBe(409);
+    expect(result.error).toMatch(/already has a certificate record/);
+    expect(txCalls).toBe(0);
   });
 });

@@ -471,6 +471,7 @@ import DogProfileSetup from "@/pages/companion/DogProfileSetup";
 import CompanionMealGenerator from "@/pages/companion/CompanionMealGenerator";
 import DogIngredientScanner from "@/pages/companion/DogIngredientScanner";
 import CatNutritionHub from "@/pages/companion/CatNutritionHub";
+import CatIngredientScanner from "@/pages/companion/CatIngredientScanner";
 import CatProfileSetup from "@/pages/companion/CatProfileSetup";
 
 // Admin Dashboard
@@ -570,6 +571,8 @@ const GuardedCompanionHub = () => <ProGuard component={CompanionNutritionHub} />
 const GuardedDogProfileSetup = () => <ProGuard component={DogProfileSetup} />;
 const GuardedCompanionMealGenerator = () => <ProGuard component={CompanionMealGenerator} />;
 const GuardedDogIngredientScanner = () => <ProGuard component={DogIngredientScanner} />;
+
+const GuardedCatIngredientScanner = () => <ProGuard component={CatIngredientScanner} />;
 const GuardedCatNutritionHub = () => <ProGuard component={CatNutritionHub} />;
 const GuardedCatProfileSetup = () => <ProGuard component={CatProfileSetup} />;
 const GuardedSocializingHub = () => <ProGuard component={SocializingHub} />;
@@ -578,6 +581,36 @@ const GuardedSocialRestaurantGuide = () => <ProGuard component={SocialRestaurant
 const GuardedFastFoodGuidePage = () => <ProGuard component={FastFoodGuidePage} />;
 const GuardedRestaurantFinderPage = () => <ProGuard component={RestaurantFinderPage} />;
 const GuardedMyPerfectBuffetPage = () => <ProGuard component={MyPerfectBuffetPage} />;
+
+// Stable module-level wrappers for Business Suite gated routes.
+// These MUST stay at module scope — never defined inline inside JSX.
+// An inline () => <BusinessSuiteGate /> creates a new component type on every Router
+// render, which causes Wouter to unmount/remount the active page on every auth refresh
+// (profile load, refreshUser, navigation), resetting all local state and scroll position.
+const GatedBusinessCenter = () => <BusinessSuiteGate><BusinessCenter /></BusinessSuiteGate>;
+const GatedAffiliateDashboard = () => <BusinessSuiteGate><AffiliateDashboard /></BusinessSuiteGate>;
+const GatedAffiliateProgramOverview = () => <BusinessSuiteGate><AffiliateProgramOverview /></BusinessSuiteGate>;
+const GatedAffiliateOpportunities = () => <BusinessSuiteGate><AffiliateOpportunities /></BusinessSuiteGate>;
+const GatedAffiliatePathPage = () => <BusinessSuiteGate><AffiliatePathPage /></BusinessSuiteGate>;
+const GatedCertificationComplete = () => <BusinessSuiteGate><CertificationComplete /></BusinessSuiteGate>;
+const GatedCertificationCertificateView = () => <BusinessSuiteGate><CertificationCertificateView /></BusinessSuiteGate>;
+const GatedCertificationQuiz = () => <BusinessSuiteGate><CertificationQuiz /></BusinessSuiteGate>;
+const GatedCertificationLesson = () => <BusinessSuiteGate><CertificationLesson /></BusinessSuiteGate>;
+const GatedCertificationDashboard = () => <BusinessSuiteGate><CertificationDashboard /></BusinessSuiteGate>;
+const GatedPartnerProgramsHub = () => <BusinessSuiteGate><PartnerProgramsHub /></BusinessSuiteGate>;
+const GatedPartnerManagement = () => <BusinessSuiteGate><PartnerManagement /></BusinessSuiteGate>;
+const GatedHowPartnershipsWork = () => <BusinessSuiteGate><HowPartnershipsWork /></BusinessSuiteGate>;
+const GatedFoundingPartnerProgram = () => <BusinessSuiteGate><FoundingPartnerProgram /></BusinessSuiteGate>;
+const GatedAcademyLandingPage = () => <BusinessSuiteGate><AcademyLandingPage /></BusinessSuiteGate>;
+const GatedIndustryPartnerships = () => <BusinessSuiteGate><IndustryPartnerships /></BusinessSuiteGate>;
+const GatedPublicHealthcarePartnerships = () => <BusinessSuiteGate><PublicHealthcarePartnerships /></BusinessSuiteGate>;
+const GatedWhiteLabelSolutions = () => <BusinessSuiteGate><WhiteLabelSolutions /></BusinessSuiteGate>;
+const GatedBusinessCenterSection = () => <BusinessSuiteGate><BusinessCenterSection /></BusinessSuiteGate>;
+const GatedPartnerCenter = () => <BusinessSuiteGate><PartnerCenter /></BusinessSuiteGate>;
+
+// Stable module-level wrappers for AdminGuard routes — must stay at module scope.
+const GuardedAdminCertifications = () => <AdminGuard component={AdminCertifications} />;
+const GuardedAdminCampaignManager = () => <AdminGuard component={AdminCampaignManager} />;
 
 export default function Router() {
   const [location, setLocation] = useLocation();
@@ -846,6 +879,7 @@ export default function Router() {
         <Route path="/companion/cat-setup" component={GuardedCatProfileSetup} />
         <Route path="/companion/cat-setup/:id" component={GuardedCatProfileSetup} />
         <Route path="/companion/cat-generator" component={GuardedCompanionMealGenerator} />
+        <Route path="/companion/cat-scanner" component={GuardedCatIngredientScanner} />
         <Route path="/ab-testing-demo" component={ABTestingDemo} />
         {/* DELETED: HolidayFeastPlannerPage, MealFinderPage, BreakfastMealsHub, LunchMealsHub, DinnerMealsHub, SnacksMealsHub, CulturalCuisinesPage, VegetableFiberInfo, PotluckPlanner, RestaurantGuide (old) routes */}
         {/* Socializing Hub Routes — Pro+ */}
@@ -977,7 +1011,7 @@ export default function Router() {
         <Route path="/founders" component={FoundersPage} />
         <Route path="/coaches" component={CoachesComingSoon} />
         {/* Business Center — Pro+ gate applied to every route */}
-        <Route path="/business-center" component={() => <BusinessSuiteGate><BusinessCenter /></BusinessSuiteGate>} />
+        <Route path="/business-center" component={GatedBusinessCenter} />
         {/* LMS / Learning & Certification System */}
         <Route path="/learning" component={LearningHub} />
         <Route path="/certifications/updates" component={UpdatesInbox} />
@@ -986,32 +1020,32 @@ export default function Router() {
         <Route path="/certifications/:certType/quiz/:slug" component={PlatformCertQuiz} />
         <Route path="/certifications/:certType" component={PlatformCertDashboard} />
         {/* Admin */}
-        <Route path="/admin/certifications" component={() => <AdminGuard component={AdminCertifications} />} />
+        <Route path="/admin/certifications" component={GuardedAdminCertifications} />
         {/* Affiliate Program — overview gates path selection */}
-        <Route path="/business-center/affiliate/dashboard" component={() => <BusinessSuiteGate><AffiliateDashboard /></BusinessSuiteGate>} />
-        <Route path="/business-center/affiliate" component={() => <BusinessSuiteGate><AffiliateProgramOverview /></BusinessSuiteGate>} />
-        <Route path="/business-center/affiliate/choose" component={() => <BusinessSuiteGate><AffiliateOpportunities /></BusinessSuiteGate>} />
-        <Route path="/business-center/affiliate/social" component={() => <BusinessSuiteGate><AffiliatePathPage /></BusinessSuiteGate>} />
-        <Route path="/business-center/affiliate/coaching" component={() => <BusinessSuiteGate><AffiliatePathPage /></BusinessSuiteGate>} />
-        <Route path="/business-center/affiliate/:pathId/certification/complete" component={() => <BusinessSuiteGate><CertificationComplete /></BusinessSuiteGate>} />
-        <Route path="/business-center/affiliate/:pathId/certification/view" component={() => <BusinessSuiteGate><CertificationCertificateView /></BusinessSuiteGate>} />
-        <Route path="/business-center/affiliate/:pathId/certification/:moduleId/quiz" component={() => <BusinessSuiteGate><CertificationQuiz /></BusinessSuiteGate>} />
-        <Route path="/business-center/affiliate/:pathId/certification/:moduleId" component={() => <BusinessSuiteGate><CertificationLesson /></BusinessSuiteGate>} />
-        <Route path="/business-center/affiliate/:pathId/certification" component={() => <BusinessSuiteGate><CertificationDashboard /></BusinessSuiteGate>} />
-        <Route path="/business-center/partners" component={() => <BusinessSuiteGate><PartnerProgramsHub /></BusinessSuiteGate>} />
-        <Route path="/business-center/partners/manage" component={() => <BusinessSuiteGate><PartnerManagement /></BusinessSuiteGate>} />
-        <Route path="/business-center/how-partnerships-work" component={() => <BusinessSuiteGate><HowPartnershipsWork /></BusinessSuiteGate>} />
-        <Route path="/business-center/founding-partner" component={() => <BusinessSuiteGate><FoundingPartnerProgram /></BusinessSuiteGate>} />
-        <Route path="/business-center/academy" component={() => <BusinessSuiteGate><AcademyLandingPage /></BusinessSuiteGate>} />
+        <Route path="/business-center/affiliate/dashboard" component={GatedAffiliateDashboard} />
+        <Route path="/business-center/affiliate" component={GatedAffiliateProgramOverview} />
+        <Route path="/business-center/affiliate/choose" component={GatedAffiliateOpportunities} />
+        <Route path="/business-center/affiliate/social" component={GatedAffiliatePathPage} />
+        <Route path="/business-center/affiliate/coaching" component={GatedAffiliatePathPage} />
+        <Route path="/business-center/affiliate/:pathId/certification/complete" component={GatedCertificationComplete} />
+        <Route path="/business-center/affiliate/:pathId/certification/view" component={GatedCertificationCertificateView} />
+        <Route path="/business-center/affiliate/:pathId/certification/:moduleId/quiz" component={GatedCertificationQuiz} />
+        <Route path="/business-center/affiliate/:pathId/certification/:moduleId" component={GatedCertificationLesson} />
+        <Route path="/business-center/affiliate/:pathId/certification" component={GatedCertificationDashboard} />
+        <Route path="/business-center/partners" component={GatedPartnerProgramsHub} />
+        <Route path="/business-center/partners/manage" component={GatedPartnerManagement} />
+        <Route path="/business-center/how-partnerships-work" component={GatedHowPartnershipsWork} />
+        <Route path="/business-center/founding-partner" component={GatedFoundingPartnerProgram} />
+        <Route path="/business-center/academy" component={GatedAcademyLandingPage} />
         <Route path="/academy" component={AcademyHome} />
         <Route path="/academy/platform-mastery/lesson/:lessonId" component={LessonReader} />
         <Route path="/academy/platform-mastery" component={PlatformMasteryDashboard} />
-        <Route path="/business-center/industry" component={() => <BusinessSuiteGate><IndustryPartnerships /></BusinessSuiteGate>} />
-        <Route path="/business-center/healthcare" component={() => <BusinessSuiteGate><PublicHealthcarePartnerships /></BusinessSuiteGate>} />
-        <Route path="/business-center/white-label" component={() => <BusinessSuiteGate><WhiteLabelSolutions /></BusinessSuiteGate>} />
-        <Route path="/business-center/partnerships" component={() => <BusinessSuiteGate><BusinessCenterSection /></BusinessSuiteGate>} />
-        <Route path="/partner-center" component={() => <BusinessSuiteGate><PartnerCenter /></BusinessSuiteGate>} />
-        <Route path="/admin/campaigns" component={() => <AdminGuard component={AdminCampaignManager} />} />
+        <Route path="/business-center/industry" component={GatedIndustryPartnerships} />
+        <Route path="/business-center/healthcare" component={GatedPublicHealthcarePartnerships} />
+        <Route path="/business-center/white-label" component={GatedWhiteLabelSolutions} />
+        <Route path="/business-center/partnerships" component={GatedBusinessCenterSection} />
+        <Route path="/partner-center" component={GatedPartnerCenter} />
+        <Route path="/admin/campaigns" component={GuardedAdminCampaignManager} />
         {/* Public partner pages — no login required */}
         <Route path="/partners" component={PublicPartnersHub} />
         <Route path="/partners/founding" component={FoundingPartnerProgram} />
@@ -1036,5 +1070,4 @@ export default function Router() {
     </>
   );
 }
-
 

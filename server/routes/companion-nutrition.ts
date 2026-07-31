@@ -10,7 +10,10 @@ import {
   companionIngredientScans,
 } from "../db/schema/companionProfiles";
 import { buildCompanionProtocolEnvelope } from "../services/companionProtocolEnvelope";
+import { buildFelineProtocolEnvelope } from "../services/felineProtocolEnvelope";
+import { scanRecipeForFelineToxins } from "../services/felineToxicFirewall";
 import { checkIngredientSafety, scanRecipeForToxins } from "../services/companionToxicFirewall";
+import { checkFelineIngredientSafety } from "../services/felineToxicFirewall";
 import OpenAI from "openai";
 
 const router = express.Router();
@@ -518,6 +521,8 @@ router.put("/profiles/:id/images/:imageId/set-primary", requireAuth, async (req,
 
 // POST /api/companion/generate-meal
 router.post("/generate-meal", requireAuth, async (req, res) => {
+  // Declared outside try so the outer catch can reference it in its error message
+  let petType = "dog";
   try {
     const userId = resolveUserId(req);
     const { profileId, mealType = "main", specialRequest } = req.body;
@@ -530,7 +535,9 @@ router.post("/generate-meal", requireAuth, async (req, res) => {
       .where(eq(companionProfiles.id, profileId))
       .limit(1);
 
-    if (!profile) return res.status(404).json({ error: "Dog profile not found" });
+    if (!profile) return res.status(404).json({ error: "Pet profile not found" });
+
+    petType = (profile.petType as string) || "dog";
 
     if (profile.status === "memorial") {
       return res.status(400).json({
@@ -538,19 +545,82 @@ router.post("/generate-meal", requireAuth, async (req, res) => {
       });
     }
 
-    const envelope = buildCompanionProtocolEnvelope(profile as any);
+    // ── Branch on petType — NEVER fall through cat profiles to canine logic ──
+    let envelope;
+    if (petType === "cat") {
+      try {
+        envelope = buildFelineProtocolEnvelope(profile as any);
+      } catch (felineErr) {
+        console.error("[companion] feline protocol engine error:", felineErr);
+        return res.status(422).json({
+          error: "Feline engine unavailable — unable to generate a safe cat meal at this time. Please try again or contact support.",
+          code: "FELINE_ENGINE_ERROR",
+        });
+      }
+    } else {
+      envelope = buildCompanionProtocolEnvelope(profile as any);
+    }
 
-    const mealTypeInstructions: Record<string, string> = {
-      main: "Generate a complete, nutritious main meal suitable for this dog's profile.",
-      treat: "Generate a healthy homemade dog treat recipe — small, bite-sized, easily digestible.",
-      snack: "Generate a healthy snack or light between-meal food for this dog.",
-      "meal-prep": "Generate a meal prep plan — a batch recipe that makes 5–7 servings, with storage instructions.",
+    const mealTypeInstructions: Record<string, Record<string, string>> = {
+      dog: {
+        main: "Generate a complete, nutritious main meal suitable for this dog's profile.",
+        treat: "Generate a healthy homemade dog treat recipe — small, bite-sized, easily digestible.",
+        snack: "Generate a healthy snack or light between-meal food for this dog.",
+        "meal-prep": "Generate a meal prep plan — a batch recipe that makes 5–7 servings, with storage instructions.",
+      },
+      cat: {
+        main: "Generate a complete, nutritious main meal suitable for this cat's profile. Ensure taurine-rich animal protein is the anchor ingredient.",
+        treat: "Generate a healthy homemade cat treat recipe — small, bite-sized, fully cooked, no raw fish, no dairy.",
+        snack: "Generate a healthy snack or light between-meal food for this cat. Must be fully cooked animal protein.",
+        "meal-prep": "Generate a meal prep plan — a batch recipe that makes 5–7 feline-appropriate servings with storage instructions. Refrigerate or freeze portions.",
+      },
     };
 
-    const typeInstruction = mealTypeInstructions[mealType] || mealTypeInstructions.main;
+    const typeInstructionMap = mealTypeInstructions[petType] ?? mealTypeInstructions.dog;
+    const typeInstruction = typeInstructionMap[mealType] || typeInstructionMap.main;
     const specialNote = specialRequest ? `Special request from owner: ${specialRequest}` : "";
 
-    const systemPrompt = `You are a companion nutrition intelligence specialist creating personalized, safe, homemade dog food recipes.
+    const systemPrompt =
+      petType === "cat"
+        ? `You are a feline nutrition intelligence specialist creating personalized, safe, homemade cat food recipes for an obligate carnivore.
+
+You have expert knowledge of feline-specific nutritional requirements:
+- Taurine is an essential amino acid for cats (cannot be synthesized — must come from animal protein)
+- Cats require preformed vitamin A from animal tissue (cannot convert beta-carotene)
+- Cats require arachidonic acid from animal fat (cannot convert plant-derived linoleic acid)
+- Cats have very limited carbohydrate metabolism (minimal glucokinase activity)
+- Cats have a low thirst drive — high dietary moisture is always beneficial
+
+${envelope.promptBlock}
+
+IMPORTANT: You are NOT a veterinarian. Do NOT make medical claims. Use language like "wellness support", "may help support", "nutrition guidance only".
+
+You must respond with valid JSON in exactly this structure:
+{
+  "title": "Recipe name",
+  "description": "2-3 sentence warm description of why this meal is great for this cat",
+  "mealType": "${mealType}",
+  "servingSize": "e.g. 1/3 cup per meal for a 10-lb cat",
+  "estimatedCalories": 150,
+  "proteinGrams": 18,
+  "ingredients": [
+    { "name": "Ingredient name", "amount": "Amount", "notes": "Optional prep note" }
+  ],
+  "instructions": [
+    "Step 1...",
+    "Step 2..."
+  ],
+  "wellnessNotes": [
+    "Note about taurine source and why it benefits this cat",
+    "Note about another key ingredient's feline benefit"
+  ],
+  "citationReferences": [
+    "Brief source reference relevant to wellness goals"
+  ],
+  "storageNote": "How long this keeps and how to store",
+  "veterinaryNote": "This recipe is for feline wellness nutrition support only. Consult your veterinarian for medical conditions, kidney disease, diabetes, or significant dietary changes."
+}`
+        : `You are a companion nutrition intelligence specialist creating personalized, safe, homemade dog food recipes.
 
 ${envelope.promptBlock}
 
@@ -582,7 +652,17 @@ You must respond with valid JSON in exactly this structure:
   "veterinaryNote": "This recipe is for wellness nutrition support only. Consult your veterinarian for medical conditions or significant dietary changes."
 }`;
 
-    const userPrompt = `${typeInstruction}
+    const userPrompt =
+      petType === "cat"
+        ? `${typeInstruction}
+${specialNote}
+
+Cat profile: ${profile.name}, ${profile.breed}, ${profile.ageYears} years old, ${profile.weightLbs} lbs, ${profile.activityLevel} activity level.
+Wellness goals: ${(profile.wellnessGoals as string[] || []).join(", ") || "general feline wellness"}
+Remember: obligate carnivore — taurine-rich animal protein must anchor this recipe. No raw fish, no dairy, no plant protein substitution.
+
+Generate a recipe now.`
+        : `${typeInstruction}
 ${specialNote}
 
 Dog profile: ${profile.name}, ${profile.breed}, ${profile.ageYears} years old, ${profile.weightLbs} lbs, ${profile.activityLevel} activity level.
@@ -619,12 +699,15 @@ Generate a recipe now.`;
     const ingredientScanText = (Array.isArray(meal.ingredients) ? meal.ingredients : [])
       .map((ing: any) => (typeof ing === "string" ? ing : JSON.stringify(ing)))
       .join(" | ");
-    const scanResult = scanRecipeForToxins(ingredientScanText);
+    const scanResult =
+      petType === "cat"
+        ? scanRecipeForFelineToxins(ingredientScanText)
+        : scanRecipeForToxins(ingredientScanText);
 
     if (!scanResult.safe) {
-      console.warn("[companion] Toxic firewall triggered, regenerating:", scanResult.violations);
+      console.warn(`[companion] ${petType} toxic firewall triggered, regenerating:`, scanResult.violations);
       return res.status(422).json({
-        error: "Generated recipe contained flagged ingredients and was blocked for your dog's safety. Please try again.",
+        error: `Generated recipe contained flagged ingredients and was blocked for your ${petType}'s safety. Please try again.`,
         violations: scanResult.violations.map((v) => ({
           ingredient: v.ingredient,
           reason: v.reason,
@@ -670,7 +753,7 @@ Generate a recipe now.`;
     });
   } catch (err) {
     console.error("[companion] generate-meal error:", err);
-    res.status(500).json({ error: "Failed to generate dog meal" });
+    res.status(500).json({ error: "Failed to generate companion meal" });
   }
 });
 
@@ -705,42 +788,46 @@ router.get("/meals/:profileId", requireAuth, async (req, res) => {
 router.post("/scan-ingredient", requireAuth, async (req, res) => {
   try {
     const userId = resolveUserId(req);
-    const { ingredient, profileId } = req.body;
+    const { ingredient, profileId, species } = req.body;
+    const isCat = species === "cat";
 
     if (!ingredient?.trim()) {
       return res.status(400).json({ error: "ingredient required" });
     }
 
-    // Fetch dog profile if profileId provided — gives personalized results
-    let dogProfile: (typeof companionProfiles.$inferSelect) | null = null;
+    // Fetch pet profile if profileId provided — gives personalized results
+    let petProfile: (typeof companionProfiles.$inferSelect) | null = null;
     if (profileId && userId) {
       try {
         const [found] = await db
           .select()
           .from(companionProfiles)
           .where(and(eq(companionProfiles.id, profileId), eq(companionProfiles.userId, userId)));
-        dogProfile = found || null;
+        petProfile = found || null;
       } catch {}
     }
 
-    const safetyResult = checkIngredientSafety(ingredient.trim());
+    // Branch to feline firewall for cat species
+    const safetyResult = isCat
+      ? checkFelineIngredientSafety(ingredient.trim())
+      : checkIngredientSafety(ingredient.trim());
 
     // Check for profile-specific conflicts (allergies, sensitivities)
     const profileConflicts: string[] = [];
-    if (dogProfile) {
-      const allergies = (dogProfile.allergies as string[]) || [];
-      const sensitivities = (dogProfile.foodSensitivities as string[]) || [];
+    if (petProfile) {
+      const allergies = (petProfile.allergies as string[]) || [];
+      const sensitivities = (petProfile.foodSensitivities as string[]) || [];
       const ingredientLower = ingredient.trim().toLowerCase();
       for (const a of allergies) {
         if (ingredientLower.includes(a.toLowerCase()) || a.toLowerCase().includes(ingredientLower)) {
-          profileConflicts.push(`${dogProfile.name} is allergic to this ingredient`);
+          profileConflicts.push(`${petProfile.name} is allergic to this ingredient`);
           break;
         }
       }
       if (profileConflicts.length === 0) {
         for (const s of sensitivities) {
           if (ingredientLower.includes(s.toLowerCase()) || s.toLowerCase().includes(ingredientLower)) {
-            profileConflicts.push(`${dogProfile.name} has a known sensitivity to this`);
+            profileConflicts.push(`${petProfile.name} has a known sensitivity to this`);
             break;
           }
         }
@@ -752,38 +839,41 @@ router.post("/scan-ingredient", requireAuth, async (req, res) => {
     let betterOptions: string[] = [];
     let profileWellnessMatch: string[] = [];
 
+    const speciesLabel = isCat ? "cat" : "dog";
+    const expertLabel = isCat ? "feline nutrition expert" : "canine nutrition expert";
+
     try {
-      const profileContext = dogProfile
-        ? `Dog Profile — ${dogProfile.name}:
-- Breed: ${dogProfile.breed}${dogProfile.isMixedBreed ? " mix" : ""}
-- Age: ${dogProfile.ageYears}yr${dogProfile.ageMonths ? ` ${dogProfile.ageMonths}mo` : ""}  Weight: ${dogProfile.weightLbs} lbs  Activity: ${dogProfile.activityLevel}
-- Wellness Goals: ${((dogProfile.wellnessGoals as string[]) || []).join(", ") || "general wellness"}
-- Known Allergies: ${((dogProfile.allergies as string[]) || []).join(", ") || "none"}
-- Food Sensitivities: ${((dogProfile.foodSensitivities as string[]) || []).join(", ") || "none"}
-- Medications: ${((dogProfile.medications as string[]) || []).join(", ") || "none"}
-- Vet Dietary Notes: ${dogProfile.vetDietaryRestrictions || "none"}`
+      const profileContext = petProfile
+        ? `${isCat ? "Cat" : "Dog"} Profile — ${petProfile.name}:
+- Breed: ${petProfile.breed}${petProfile.isMixedBreed ? " mix" : ""}
+- Age: ${petProfile.ageYears}yr${petProfile.ageMonths ? ` ${petProfile.ageMonths}mo` : ""}  Weight: ${petProfile.weightLbs} lbs  Activity: ${petProfile.activityLevel}
+- Wellness Goals: ${((petProfile.wellnessGoals as string[]) || []).join(", ") || "general wellness"}
+- Known Allergies: ${((petProfile.allergies as string[]) || []).join(", ") || "none"}
+- Food Sensitivities: ${((petProfile.foodSensitivities as string[]) || []).join(", ") || "none"}
+- Medications: ${((petProfile.medications as string[]) || []).join(", ") || "none"}
+- Vet Dietary Notes: ${petProfile.vetDietaryRestrictions || "none"}`
         : null;
 
-      const systemContent = dogProfile
-        ? `You are a canine nutrition expert evaluating an ingredient specifically for ${dogProfile.name}. Respond with JSON:
+      const systemContent = petProfile
+        ? `You are a ${expertLabel} evaluating an ingredient specifically for ${petProfile.name}. Respond with JSON:
 {
   "wellnessScore": 1-10,
-  "wellnessNotes": "1-2 sentences on how this specifically benefits or affects ${dogProfile.name} given their breed, age, and wellness goals",
+  "wellnessNotes": "1-2 sentences on how this specifically benefits or affects ${petProfile.name} given their breed, age, and wellness goals",
   "betterOptions": ["alternative 1", "alternative 2"],
   "wellnessGoalMatches": ["any wellness goal from the profile this ingredient supports"]
 }
-Be specific to this dog. Mention their name. Keep it concise.`
-        : `You are a canine nutrition expert. Rate this ingredient for dogs and respond with JSON:
+Be specific to this ${speciesLabel}. Mention their name. Keep it concise.`
+        : `You are a ${expertLabel}. Rate this ingredient for ${speciesLabel}s and respond with JSON:
 {
   "wellnessScore": 1-10,
-  "wellnessNotes": "1-2 sentences on nutritional value for dogs",
+  "wellnessNotes": "1-2 sentences on nutritional value for ${speciesLabel}s",
   "betterOptions": ["alternative 1", "alternative 2"]
 }
-Keep it brief and dog-specific.`;
+Keep it brief and ${speciesLabel}-specific.`;
 
       const userContent = profileContext
         ? `${profileContext}\n\nIngredient to evaluate: ${ingredient}`
-        : `Evaluate for dogs: ${ingredient}`;
+        : `Evaluate for ${speciesLabel}s: ${ingredient}`;
 
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
@@ -830,7 +920,8 @@ Keep it brief and dog-specific.`;
       wellnessScore,
       wellnessNotes,
       betterOptions,
-      dogName: dogProfile?.name || null,
+      // Return species-appropriate name field
+      ...(isCat ? { catName: petProfile?.name || null } : { dogName: petProfile?.name || null }),
       profileConflicts,
       profileWellnessMatch,
     });

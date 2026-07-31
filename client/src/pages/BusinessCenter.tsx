@@ -17,6 +17,7 @@ import { motion } from "framer-motion";
 import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiRequest } from "@/lib/queryClient";
+import { getTierForLookupKey } from "@shared/planFeatures";
 
 interface CertProgress {
   personalDone: boolean;
@@ -116,6 +117,11 @@ export default function BusinessCenter() {
   const { user } = useAuth();
   const isProfessional = !!(user?.professionalRole || user?.isProCare);
 
+  const tier = getTierForLookupKey(user?.planLookupKey);
+  const isPro = tier === "premium" || tier === "ultimate";
+  const isInternal = user?.accessTier === "PAID_FULL" && !user?.planLookupKey;
+  const hasProAccess = isPro || isInternal;
+
   const [certProgress, setCertProgress] = useState<CertProgress>({
     personalDone: false,
     phase1Done: false,
@@ -176,9 +182,11 @@ export default function BusinessCenter() {
             Back
           </button>
           <h1 className="text-lg font-bold text-white">Business Suite</h1>
-          <span className="ml-auto px-2.5 py-0.5 rounded-full bg-orange-600/20 border border-orange-500/30 text-orange-400 text-[10px] font-semibold tracking-wide uppercase">
-            Pro+
-          </span>
+          {!hasProAccess && (
+            <span className="ml-auto px-2.5 py-0.5 rounded-full bg-orange-600/20 border border-orange-500/30 text-orange-400 text-[10px] font-semibold tracking-wide uppercase">
+              Pro+
+            </span>
+          )}
         </div>
       </div>
 
