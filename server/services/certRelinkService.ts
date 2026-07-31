@@ -27,6 +27,7 @@ import { eq, and } from "drizzle-orm";
 import {
   userCertifications,
   certificationModuleProgress,
+  certificationQuizAttempts,
 } from "../db/schema/certifications";
 
 // ── Minimal DB interface required by this service ─────────────────────────────
@@ -53,6 +54,7 @@ export type RelinkResult =
       certificateNumber: string | null | undefined;
       certificateName: string | null | undefined;
       progressRowsRelinked: number;
+      quizAttemptRowsRelinked: number;
     }
   | {
       ok: false;
@@ -117,6 +119,7 @@ export async function relinkCertificate(
       certificateNumber: existing.certificateNumber,
       certificateName: existing.certificateName,
       progressRowsRelinked: 0,
+      quizAttemptRowsRelinked: 0,
     };
   }
 
@@ -178,7 +181,7 @@ export async function relinkCertificate(
   // fails (e.g. uniqueness conflict, transient DB error), Postgres rolls back
   // the cert update automatically — no partial migration state is possible.
 
-  const progressRowsRelinked = await dbClient.transaction(async (tx) => {
+  const { progressRowsRelinked, quizAttemptRowsRelinked } = await dbClient.transaction(async (tx) => {
     // 1. Move the enrollment / certificate row
     await tx
       .update(userCertifications)
@@ -202,12 +205,25 @@ export async function relinkCertificate(
       )
       .returning({ id: certificationModuleProgress.id });
 
-    return progressResult.length;
+    // 3. Move all quiz attempt rows for this user+cert combination
+    const quizResult = await tx
+      .update(certificationQuizAttempts)
+      .set({ userId: newUserId })
+      .where(
+        and(
+          eq(certificationQuizAttempts.userId, oldUserId),
+          eq(certificationQuizAttempts.certificationType, certificationType)
+        )
+      )
+      .returning({ id: certificationQuizAttempts.id });
+
+    return { progressRowsRelinked: progressResult.length, quizAttemptRowsRelinked: quizResult.length };
   });
 
   console.info(
     `[certRelinkService] re-linked ${oldUserId} → ${newUserId} (${certificationType}), ` +
-      `cert: ${sourceCert.certificateNumber}, progress rows: ${progressRowsRelinked}`
+      `cert: ${sourceCert.certificateNumber}, progress rows: ${progressRowsRelinked}, ` +
+      `quiz attempt rows: ${quizAttemptRowsRelinked}`
   );
 
   return {
@@ -216,5 +232,6 @@ export async function relinkCertificate(
     certificateNumber: sourceCert.certificateNumber,
     certificateName: sourceCert.certificateName,
     progressRowsRelinked,
+    quizAttemptRowsRelinked,
   };
 }
