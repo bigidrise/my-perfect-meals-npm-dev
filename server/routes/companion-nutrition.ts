@@ -520,6 +520,8 @@ router.put("/profiles/:id/images/:imageId/set-primary", requireAuth, async (req,
 
 // POST /api/companion/generate-meal
 router.post("/generate-meal", requireAuth, async (req, res) => {
+  // Declared outside try so the outer catch can reference it in its error message
+  let petType = "pet";
   try {
     const userId = resolveUserId(req);
     const { profileId, mealType = "main", specialRequest } = req.body;
@@ -534,7 +536,7 @@ router.post("/generate-meal", requireAuth, async (req, res) => {
 
     if (!profile) return res.status(404).json({ error: "Pet profile not found" });
 
-    const petType = (profile.petType as string) || "dog";
+    petType = (profile.petType as string) || "dog";
 
     if (profile.status === "memorial") {
       return res.status(400).json({
@@ -543,10 +545,20 @@ router.post("/generate-meal", requireAuth, async (req, res) => {
     }
 
     // ── Branch on petType — NEVER fall through cat profiles to canine logic ──
-    const envelope =
-      petType === "cat"
-        ? buildFelineProtocolEnvelope(profile as any)
-        : buildCompanionProtocolEnvelope(profile as any);
+    let envelope;
+    if (petType === "cat") {
+      try {
+        envelope = buildFelineProtocolEnvelope(profile as any);
+      } catch (felineErr) {
+        console.error("[companion] feline protocol engine error:", felineErr);
+        return res.status(422).json({
+          error: "Feline engine unavailable — unable to generate a safe cat meal at this time. Please try again or contact support.",
+          code: "FELINE_ENGINE_ERROR",
+        });
+      }
+    } else {
+      envelope = buildCompanionProtocolEnvelope(profile as any);
+    }
 
     const mealTypeInstructions: Record<string, Record<string, string>> = {
       dog: {
