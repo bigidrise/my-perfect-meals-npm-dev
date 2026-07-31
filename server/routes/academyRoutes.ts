@@ -379,7 +379,16 @@ router.post("/platform-mastery/complete", requireAuth, async (req, res) => {
       });
     }
 
-    // All 6 base lessons must be completed for everyone
+    // Already certified — short-circuit so new lessons added after the fact
+    // never re-block an existing certificate holder.
+    if (enrollmentRecord.status === "completed" && enrollmentRecord.certificateNumber) {
+      return res.json({
+        ok: true,
+        certificateNumber: enrollmentRecord.certificateNumber,
+      });
+    }
+
+    // All base lessons must be completed for everyone
     const allLessonsDone = LESSON_IDS.every(
       (id) => progressMap.get(id)?.status === "completed"
     );
