@@ -1272,7 +1272,8 @@ export default function CravingCreator() {
             </div>
           )}
 
-          {!isPlatingMeal && mealOptions.length > 0 && (
+          {/* Initial picker — only shown before a meal has been selected */}
+          {!isPlatingMeal && mealOptions.length > 0 && generatedMeals.length === 0 && (
             <div className="mt-8 space-y-4">
               <div className="flex items-center gap-3 mb-2">
                 <Sparkles className="h-5 w-5 text-yellow-500" />
@@ -1755,6 +1756,64 @@ export default function CravingCreator() {
                   {/* Voice ingredient capture feature removed per user request */}
                 </div>
               ))}
+
+              {/* Generated Alternatives — remaining unchosen options, shown below the selected meal */}
+              {!isPlatingMeal && mealOptions.filter((o) => o.name !== generatedMeals[0]?.name).length > 0 && (
+                <div className="mt-2 space-y-3">
+                  <div className="flex items-center gap-2 pt-4 border-t border-white/10">
+                    <Sparkles className="h-4 w-4 text-yellow-500/60" />
+                    <h3 className="text-sm font-semibold text-white/60 uppercase tracking-wide">
+                      Generated Alternatives
+                    </h3>
+                  </div>
+                  {mealOptions
+                    .filter((o) => o.name !== generatedMeals[0]?.name)
+                    .map((option, idx) => (
+                      <Card
+                        key={idx}
+                        className="bg-black/25 backdrop-blur-lg border border-white/10 shadow-md rounded-2xl"
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-white font-semibold text-sm mb-1 break-words">
+                                {option.name}
+                              </h4>
+                              <p className="text-white/60 text-xs mb-2 line-clamp-2">
+                                {option.description}
+                              </p>
+                              <div className="flex gap-3 text-xs text-white/50 flex-wrap">
+                                <span>
+                                  {option.nutrition?.calories ?? option.calories ?? "—"} cal
+                                </span>
+                                <span>
+                                  {option.nutrition?.protein ?? option.protein ?? "—"}g protein
+                                </span>
+                                {option.cookingTime && <span>{option.cookingTime}</span>}
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => handleSelectMeal(option)}
+                              className="shrink-0 bg-lime-700 active:scale-95 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition-all"
+                            >
+                              Pick This
+                            </button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  <button
+                    onClick={() => {
+                      setMealOptions([]);
+                      clearCravingOptionsCache();
+                      setCravingInput("");
+                    }}
+                    className="w-full text-xs text-white/40 hover:text-white/70 py-2 transition-colors"
+                  >
+                    Start over with a different craving
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
