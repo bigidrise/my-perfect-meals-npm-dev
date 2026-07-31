@@ -249,3 +249,89 @@ describe("certificateName not overwritten by short-circuit path", () => {
     expect(certResponse!.certificateNumber).toBe("MPM-PM-ORIG001");
   });
 });
+
+// ── 6. userId mismatch after account migration or merge ───────────────────────
+
+/**
+ * Mirrors the GET /platform-mastery/certificate query:
+ *
+ *   SELECT * FROM user_certifications
+ *   WHERE userId = $authedUserId
+ *     AND certificationType = 'platform_mastery'
+ *     AND status = 'completed'
+ *   LIMIT 1
+ *
+ * When a user's account is merged or their userId changes, the DB record is
+ * stored under the OLD userId.  The query uses the NEW (authenticated) userId,
+ * so the WHERE clause finds nothing and the endpoint returns 404.
+ *
+ * Returns null (→ 404) when authedUserId !== record's userId.
+ */
+function simulateGetCertificateForUser(
+  authedUserId: string,
+  dbRecord: {
+    userId: string;
+    status: string;
+    certificateNumber: string | null | undefined;
+    certificateName: string | null | undefined;
+    completedAt: Date | null | undefined;
+  },
+): { certificateNumber: string; certificateName: string | null | undefined; completedAt: Date | null | undefined } | null {
+  // The DB query filters by userId — if they don't match, no row is returned.
+  if (dbRecord.userId !== authedUserId) {
+    return null; // 404
+  }
+  if (dbRecord.status !== "completed" || !dbRecord.certificateNumber) {
+    return null; // 404
+  }
+  return {
+    certificateNumber: dbRecord.certificateNumber,
+    certificateName: dbRecord.certificateName,
+    completedAt: dbRecord.completedAt,
+  };
+}
+
+describe("GET /certificate — userId mismatch after account migration or merge", () => {
+  const completedAt = new Date("2025-03-10T09:00:00Z");
+
+  // Record was written under the original userId before migration
+  const dbRecord = {
+    userId: "user-original-001",
+    status: "completed",
+    certificateNumber: "MPM-PM-MIG123",
+    certificateName: "Carol Davis",
+    completedAt,
+  };
+
+  it("returns 404 when the authenticated userId does not match the record's userId", () => {
+    // After migration the user authenticates as a new userId
+    const result = simulateGetCertificateForUser("user-migrated-002", dbRecord);
+    expect(result).toBeNull();
+  });
+
+  it("returns the certificate when the authenticated userId matches the record's userId", () => {
+    // Happy path: userId is consistent (no migration drift)
+    const result = simulateGetCertificateForUser("user-original-001", dbRecord);
+    expect(result).not.toBeNull();
+    expect(result!.certificateNumber).toBe("MPM-PM-MIG123");
+  });
+
+  it("certificateNumber from the short-circuit response matches what GET /certificate returns when userId is consistent", () => {
+    // Simulate POST /complete short-circuit returning a certificateNumber
+    const completeResponse = simulateCompleteShortCircuit(dbRecord);
+    expect(completeResponse).not.toBeNull();
+
+    // The same userId is used for GET /certificate — should resolve successfully
+    const certResponse = simulateGetCertificateForUser(dbRecord.userId, dbRecord);
+    expect(certResponse).not.toBeNull();
+
+    // The certificateNumber must be identical in both responses
+    expect(completeResponse!.certificateNumber).toBe(certResponse!.certificateNumber);
+  });
+
+  it("a different authenticated userId — even with a valid cert in the DB — still gets 404", () => {
+    // Proves the userId column is the discriminator, not just status + certificationType
+    const result = simulateGetCertificateForUser("user-totally-different-999", dbRecord);
+    expect(result).toBeNull();
+  });
+});
