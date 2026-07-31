@@ -1,6 +1,6 @@
 import express from "express";
 import { db } from "../db";
-import { eq, and, asc, inArray } from "drizzle-orm";
+import { eq, and, asc, desc, inArray, or } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import { users } from "../../shared/schema";
@@ -13,6 +13,7 @@ import {
 import {
   userCertifications,
   certificationModuleProgress,
+  certRelinkAuditLog,
 } from "../db/schema/certifications";
 import { relinkCertificate } from "../services/certRelinkService";
 
@@ -507,6 +508,9 @@ router.get("/progress", async (req, res) => {
 //
 router.post("/relink-user", async (req, res) => {
   try {
+    const authReq = req as AuthenticatedRequest;
+    const adminUserId = authReq.authUser?.id ?? "unknown";
+
     const { oldUserId, newUserId, certificationType } = req.body as {
       oldUserId?: string;
       newUserId?: string;
@@ -517,7 +521,8 @@ router.post("/relink-user", async (req, res) => {
       oldUserId ?? "",
       newUserId ?? "",
       certificationType ?? "",
-      db
+      db,
+      adminUserId
     );
 
     if (result.ok === false) {
@@ -528,6 +533,59 @@ router.post("/relink-user", async (req, res) => {
   } catch (err) {
     console.error("[AdminCert] relink-user error:", err);
     return res.status(500).json({ error: "Failed to re-link certificate" });
+  }
+});
+
+// ─── RE-LINK AUDIT LOG ────────────────────────────────────────────────────────
+//
+// GET /relink-audit?certificateNumber=XXX
+// GET /relink-audit?userId=XXX        (matches oldUserId OR newUserId)
+// GET /relink-audit                   (returns last 100 entries)
+
+router.get("/relink-audit", async (req, res) => {
+  try {
+    const { certificateNumber, userId } = req.query;
+
+    const rawLimit = Number(req.query.limit ?? 100);
+    const rawOffset = Number(req.query.offset ?? 0);
+    const limitVal = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 500) : 100;
+    const offsetVal = Number.isFinite(rawOffset) && rawOffset >= 0 ? rawOffset : 0;
+
+    let rows;
+    if (certificateNumber && typeof certificateNumber === "string") {
+      rows = await db
+        .select()
+        .from(certRelinkAuditLog)
+        .where(eq(certRelinkAuditLog.certificateNumber, certificateNumber))
+        .orderBy(desc(certRelinkAuditLog.createdAt))
+        .limit(limitVal)
+        .offset(offsetVal);
+    } else if (userId && typeof userId === "string") {
+      rows = await db
+        .select()
+        .from(certRelinkAuditLog)
+        .where(
+          or(
+            eq(certRelinkAuditLog.oldUserId, userId),
+            eq(certRelinkAuditLog.newUserId, userId)
+          )
+        )
+        .orderBy(desc(certRelinkAuditLog.createdAt))
+        .limit(limitVal)
+        .offset(offsetVal);
+    } else {
+      rows = await db
+        .select()
+        .from(certRelinkAuditLog)
+        .orderBy(desc(certRelinkAuditLog.createdAt))
+        .limit(limitVal)
+        .offset(offsetVal);
+    }
+
+    return res.json({ auditLog: rows });
+  } catch (err) {
+    console.error("[AdminCert] relink-audit GET error:", err);
+    return res.status(500).json({ error: "Failed to fetch re-link audit log" });
   }
 });
 
