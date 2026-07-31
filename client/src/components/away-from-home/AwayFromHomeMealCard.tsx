@@ -81,7 +81,7 @@ function MacroCell({
   return (
     <div className="flex flex-col items-center">
       <span className="text-lg font-bold text-white leading-tight">{display}</span>
-      <span className="text-[10px] text-white/50 uppercase tracking-wide">{label}</span>
+      <span className="text-[10px] text-white/80 uppercase tracking-wide">{label}</span>
     </div>
   );
 }
@@ -102,7 +102,7 @@ function BadgePill({ badge }: { badge: MedicalBadge }) {
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1.5">{children}</p>
+    <p className="text-[10px] text-white/75 uppercase tracking-wider mb-1.5">{children}</p>
   );
 }
 
@@ -110,7 +110,7 @@ function DisclosureRow({ status }: { status: NutritionDataStatus }) {
   const text = NUTRITION_DISCLOSURE[status];
   const color =
     status === "official"
-      ? "text-white/40"
+      ? "text-white/70"
       : status === "mixed"
       ? "text-amber-400/70"
       : "text-orange-400/70";
@@ -263,11 +263,11 @@ export default function AwayFromHomeMealCard({
                   {rec.restaurantName}
                 </span>
                 {rec.restaurantCuisine && (
-                  <span className="text-[10px] text-white/40">· {rec.restaurantCuisine}</span>
+                  <span className="text-[10px] text-white/75">· {rec.restaurantCuisine}</span>
                 )}
               </div>
               {rec.restaurantAddress && (
-                <p className="text-[10px] text-white/40 mt-0.5 pl-4">{rec.restaurantAddress}</p>
+                <p className="text-[10px] text-white/75 mt-0.5 pl-4">{rec.restaurantAddress}</p>
               )}
               <div className="flex items-center gap-2 mt-1 pl-4 flex-wrap">
                 {rec.restaurantRating != null && (
@@ -284,7 +284,7 @@ export default function AwayFromHomeMealCard({
                         ? "bg-emerald-600/25 text-emerald-300"
                         : rec.matchLabel === "Matches your diet"
                         ? "bg-orange-600/25 text-orange-300"
-                        : "bg-white/10 text-white/50"
+                        : "bg-white/10 text-white/80"
                     )}
                   >
                     {rec.matchLabel}
@@ -324,10 +324,10 @@ export default function AwayFromHomeMealCard({
             <div className="min-w-0">
               <p className="font-semibold text-white leading-snug">{displayName}</p>
               {displayDescription && (
-                <p className="text-xs text-white/55 mt-0.5 leading-relaxed">{displayDescription}</p>
+                <p className="text-xs text-white/85 mt-0.5 leading-relaxed">{displayDescription}</p>
               )}
               {meal.category && (
-                <span className="inline-block text-[10px] text-white/35 mt-1">
+                <span className="inline-block text-[10px] text-white/75 mt-1">
                   {meal.category}
                 </span>
               )}
@@ -383,14 +383,14 @@ export default function AwayFromHomeMealCard({
                 </p>
               )}
               {displayModify && displayModify.length > 0 && (
-                <ul className="text-xs text-white/60 space-y-0.5 pl-1">
+                <ul className="text-xs text-white/85 space-y-0.5 pl-1">
                   {displayModify.map((m, i) => (
                     <li key={i}>· {m}</li>
                   ))}
                 </ul>
               )}
               {displaySwap && displaySwap.length > 0 && (
-                <ul className="text-xs text-white/50 space-y-0.5 pl-1 mt-1">
+                <ul className="text-xs text-white/80 space-y-0.5 pl-1 mt-1">
                   {displaySwap.map((s, i) => (
                     <li key={i}>↔ {s}</li>
                   ))}
@@ -405,7 +405,7 @@ export default function AwayFromHomeMealCard({
           <div className="px-4 mt-3">
             <div className="bg-white/5 border border-white/8 rounded-xl px-3 py-2.5">
               <SectionLabel>Say to your server</SectionLabel>
-              <p className="text-xs text-white/75 leading-relaxed italic">
+              <p className="text-xs text-white/90 leading-relaxed italic">
                 "{displayWaiterScript}"
               </p>
             </div>
@@ -446,9 +446,9 @@ export default function AwayFromHomeMealCard({
                       <span className="text-xs text-white font-medium">
                         {translatedFood || item.food}
                       </span>
-                      <span className="text-xs text-white/45"> · {item.portion}</span>
+                      <span className="text-xs text-white/80"> · {item.portion}</span>
                       {item.note && (
-                        <p className="text-[10px] text-white/35 leading-snug">{item.note}</p>
+                        <p className="text-[10px] text-white/70 leading-snug">{item.note}</p>
                       )}
                     </div>
                   </div>
@@ -472,7 +472,7 @@ export default function AwayFromHomeMealCard({
             </div>
           ) : translateOpen ? (
             <div className="space-y-2">
-              <p className="text-[10px] text-white/40 uppercase tracking-wider">Translate to</p>
+              <p className="text-[10px] text-white/80 uppercase tracking-wider">Translate to</p>
               <div className="flex flex-wrap gap-2">
                 {TRANSLATE_LANGS.map(({ code, label }) => (
                   <button
@@ -482,7 +482,7 @@ export default function AwayFromHomeMealCard({
                       "px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
                       translated?.lang === code
                         ? "bg-blue-600 text-white"
-                        : "bg-white/10 text-white/70"
+                        : "bg-white/15 text-white"
                     )}
                   >
                     {label}
@@ -491,7 +491,7 @@ export default function AwayFromHomeMealCard({
                 {translated && (
                   <button
                     onClick={() => { setTranslated(null); setTranslateOpen(false); }}
-                    className="px-3 py-1.5 rounded-full text-xs font-medium bg-white/5 text-white/40 flex items-center gap-1"
+                    className="px-3 py-1.5 rounded-full text-xs font-medium bg-white/10 text-white/80 flex items-center gap-1"
                   >
                     <RotateCcw className="w-3 h-3" />
                     Reset
@@ -499,7 +499,7 @@ export default function AwayFromHomeMealCard({
                 )}
                 <button
                   onClick={() => setTranslateOpen(false)}
-                  className="px-3 py-1.5 rounded-full text-xs font-medium bg-white/5 text-white/40"
+                  className="px-3 py-1.5 rounded-full text-xs font-medium bg-white/10 text-white/80"
                 >
                   Cancel
                 </button>
@@ -508,7 +508,7 @@ export default function AwayFromHomeMealCard({
           ) : (
             <button
               onClick={() => setTranslateOpen(true)}
-              className="flex items-center gap-1.5 text-[11px] text-white/70 bg-white/10 border border-white/15 px-3 py-1.5 rounded-full"
+              className="flex items-center gap-1.5 text-[11px] text-white bg-white/15 border border-white/25 px-3 py-1.5 rounded-full"
             >
               <Languages className="w-3 h-3" />
               {translated ? `Translated: ${translated.langLabel}` : "Translate"}
