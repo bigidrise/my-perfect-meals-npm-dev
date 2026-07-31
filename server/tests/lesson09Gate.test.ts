@@ -16,6 +16,7 @@
  */
 
 import { LESSON_IDS, getPrerequisiteId } from "../routes/academyLessonIds";
+import { PLATFORM_MASTERY_LESSONS } from "@/data/platformMasteryLessons";
 
 // ── 1. Lesson registry ────────────────────────────────────────────────────────
 
@@ -100,5 +101,31 @@ describe("lesson-09 cert-mode gate (simulates route 403 logic)", () => {
   it("never blocks lesson-01 in cert mode (no prerequisite exists)", () => {
     const progress = new Map<string, { status: string }>();
     expect(wouldBlock("lesson-01", true, progress)).toBe(false);
+  });
+});
+
+// ── 4. Client/server lesson-order sync ───────────────────────────────────────
+//
+// PLATFORM_MASTERY_LESSONS (client) and LESSON_IDS (server) must stay in sync.
+// If someone adds or reorders a lesson in one file but not the other, the client
+// redirect and the server 403 will disagree — one will block, the other won't.
+
+describe("client/server lesson order sync", () => {
+  const clientIds = PLATFORM_MASTERY_LESSONS.map((l) => l.id);
+
+  it("client lesson IDs match server LESSON_IDS exactly (same order)", () => {
+    expect(clientIds).toEqual(LESSON_IDS);
+  });
+
+  it("every server LESSON_ID appears in the client data", () => {
+    for (const id of LESSON_IDS) {
+      expect(clientIds).toContain(id);
+    }
+  });
+
+  it("every client lesson ID appears in server LESSON_IDS", () => {
+    for (const id of clientIds) {
+      expect(LESSON_IDS).toContain(id);
+    }
   });
 });
