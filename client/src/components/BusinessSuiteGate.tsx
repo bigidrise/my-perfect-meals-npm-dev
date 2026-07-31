@@ -16,12 +16,12 @@ interface Props {
 }
 
 export function BusinessSuiteGate({ children }: Props) {
-  const { user, isLoading } = useAuth();
+  const { user, loading } = useAuth();
   const [determined, setDetermined] = useState(false);
   const [blocked, setBlocked] = useState(false);
 
   useEffect(() => {
-    if (isLoading) return;
+    if (loading) return;
 
     const tier = getTierForLookupKey(user?.planLookupKey);
     const isPro = tier === "premium" || tier === "ultimate";
@@ -30,7 +30,7 @@ export function BusinessSuiteGate({ children }: Props) {
 
     setBlocked(!isPro && !isInternal);
     setDetermined(true);
-  }, [user, isLoading]);
+  }, [user, loading]);
 
   // Don't flash page content while checking
   if (!determined) return null;
