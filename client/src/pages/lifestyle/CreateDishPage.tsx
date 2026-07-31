@@ -149,6 +149,34 @@ function clearDishCache() {
   } catch {}
 }
 
+// ---- Persist the three options so they survive navigation and selection ----
+// dishInput is intentionally NOT restored here — restoring it triggers the
+// starch-guard useEffect on mount (see GUARD comment above).
+const OPTIONS_KEY = "createDish.options.v1";
+
+function saveOptionsCache(options: any[]) {
+  try {
+    localStorage.setItem(OPTIONS_KEY, JSON.stringify(options));
+  } catch {}
+}
+
+function loadOptionsCache(): any[] {
+  try {
+    const raw = localStorage.getItem(OPTIONS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function clearOptionsCache() {
+  try {
+    localStorage.removeItem(OPTIONS_KEY);
+  } catch {}
+}
+
 function getMealNutrition(meal: any) {
   const n = meal?.nutrition || {};
   return {
@@ -320,6 +348,13 @@ export default function CreateDishPage() {
         hydrateImages([mealWithImage]);
       }
     }
+
+    // Restore the three pending options so they survive navigation and selection.
+    // dishInput is intentionally NOT restored here (starch-guard trigger risk).
+    const savedOptions = loadOptionsCache();
+    if (savedOptions.length > 0) {
+      setMealOptions(savedOptions);
+    }
   }, []);
 
   useEffect(() => {
@@ -332,8 +367,18 @@ export default function CreateDishPage() {
     }
   }, [generatedMeals, servings]);
 
+  // Persist the options list whenever it changes (non-empty → save; empty → clear).
+  useEffect(() => {
+    if (mealOptions.length > 0) {
+      saveOptionsCache(mealOptions);
+    } else {
+      clearOptionsCache();
+    }
+  }, [mealOptions]);
+
   const handleSelectMeal = async (meal: any) => {
-    setMealOptions([]);
+    // Do NOT clear mealOptions here — the other choices should stay visible
+    // until the user explicitly taps "Start over" or "Create New".
     addRecentMeal(meal.name);
     setIsPlatingMeal(true);
 
@@ -932,6 +977,7 @@ export default function CreateDishPage() {
               <button
                 onClick={() => {
                   setMealOptions([]);
+                  clearOptionsCache();
                   setDishInput("");
                 }}
                 className="w-full text-sm text-white/50 hover:text-white/80 py-2 transition-colors"
@@ -965,6 +1011,8 @@ export default function CreateDishPage() {
                               setGeneratedMeals([]);
                               setGeneratedInSession(false);
                               clearDishCache();
+                              setMealOptions([]);
+                              clearOptionsCache();
                               setDishInput("");
                               setSubstitutedStarchTerms([]);
                               clearStarchAlert();
