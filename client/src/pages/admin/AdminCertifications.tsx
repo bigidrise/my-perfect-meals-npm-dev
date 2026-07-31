@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
 
-type Tab = "modules" | "questions" | "progress" | "updates" | "waitlist";
+type Tab = "modules" | "questions" | "progress" | "updates" | "waitlist" | "relink";
 
 interface CertModule {
   id: string;
@@ -58,6 +58,17 @@ interface WaitlistRow {
   notifiedAt?: string | null;
   emailSentAt?: string | null;
   createdAt?: string;
+}
+
+interface RelinkAuditRow {
+  id: string;
+  adminUserId: string;
+  oldUserId: string;
+  newUserId: string;
+  certificationType: string;
+  certificateNumber?: string | null;
+  progressRowsRelinked: number;
+  createdAt: string;
 }
 
 interface RecoveryEventUser {
@@ -145,6 +156,12 @@ export default function AdminCertifications() {
   const [notifyRunLogs, setNotifyRunLogs] = useState<NotifyRunLog[]>([]);
   const [expandedRunLog, setExpandedRunLog] = useState<string | null>(null);
 
+  // Re-link audit state
+  const [relinkAudit, setRelinkAudit] = useState<RelinkAuditRow[]>([]);
+  const [relinkLoading, setRelinkLoading] = useState(false);
+  const [relinkFilterCert, setRelinkFilterCert] = useState("");
+  const [relinkFilterUser, setRelinkFilterUser] = useState("");
+
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -198,6 +215,14 @@ export default function AdminCertifications() {
         .then((d: { updates: UpdateModule[] }) => setUpdates(d.updates ?? []))
         .catch(() => {})
         .finally(() => setLoading(false));
+    } else if (tab === "relink") {
+      setLoading(false);
+      // relink uses its own loading state, but auto-load on first visit
+      setRelinkLoading(true);
+      apiRequest("/api/admin/certifications/relink-audit?limit=100")
+        .then((d: { auditLog: RelinkAuditRow[] }) => setRelinkAudit(d.auditLog ?? []))
+        .catch(() => {})
+        .finally(() => setRelinkLoading(false));
     } else {
       // waitlist tab uses its own dedicated loading state
       setLoading(false);
@@ -352,6 +377,7 @@ export default function AdminCertifications() {
           <button className={tabCls("progress")} onClick={() => setTab("progress")}>Progress</button>
           <button className={tabCls("updates")} onClick={() => setTab("updates")}>Updates</button>
           <button className={tabCls("waitlist")} onClick={() => setTab("waitlist")}>Waitlist</button>
+          <button className={tabCls("relink")} onClick={() => setTab("relink")}>Re-link</button>
         </div>
       </div>
 
@@ -365,8 +391,8 @@ export default function AdminCertifications() {
           )}
         </AnimatePresence>
 
-        {/* Cert type selector (not for updates or waitlist tabs) */}
-        {tab !== "updates" && tab !== "waitlist" && (
+        {/* Cert type selector (not for updates, waitlist, or relink tabs) */}
+        {tab !== "updates" && tab !== "waitlist" && tab !== "relink" && (
           <div className="flex gap-2">
             {CERT_TYPES.map((ct) => (
               <button key={ct} onClick={() => setSelectedCertType(ct)} className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${selectedCertType === ct ? "bg-white/20 text-white" : "bg-white/5 text-white/40 active:scale-[0.96]"}`}>
@@ -1099,6 +1125,124 @@ export default function AdminCertifications() {
                     >
                       Retry
                     </button>
+                  </div>
+                )}
+              </div>
+            )}
+            {/* ── RE-LINK HISTORY TAB ── */}
+            {tab === "relink" && (
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm font-semibold text-white">Re-link Audit Log</p>
+                  <p className="text-xs text-white/40 mt-0.5">Every certificate re-link performed by an admin is recorded here.</p>
+                </div>
+
+                {/* Filter inputs */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-white/40 uppercase tracking-wider font-semibold">Certificate #</label>
+                    <input
+                      type="text"
+                      value={relinkFilterCert}
+                      onChange={(e) => setRelinkFilterCert(e.target.value)}
+                      placeholder="e.g. CERT-00001"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder:text-white/20 focus:outline-none focus:border-orange-500/50"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-white/40 uppercase tracking-wider font-semibold">User ID</label>
+                    <input
+                      type="text"
+                      value={relinkFilterUser}
+                      onChange={(e) => setRelinkFilterUser(e.target.value)}
+                      placeholder="old or new user ID"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder:text-white/20 focus:outline-none focus:border-orange-500/50"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setRelinkLoading(true);
+                      const params = new URLSearchParams({ limit: "100" });
+                      if (relinkFilterCert.trim()) params.set("certificateNumber", relinkFilterCert.trim());
+                      else if (relinkFilterUser.trim()) params.set("userId", relinkFilterUser.trim());
+                      apiRequest(`/api/admin/certifications/relink-audit?${params}`)
+                        .then((d: { auditLog: RelinkAuditRow[] }) => setRelinkAudit(d.auditLog ?? []))
+                        .catch(() => {})
+                        .finally(() => setRelinkLoading(false));
+                    }}
+                    disabled={relinkLoading}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-orange-600 text-white text-xs font-semibold active:scale-[0.96] disabled:opacity-40"
+                  >
+                    <RefreshCw className={`h-3.5 w-3.5 ${relinkLoading ? "animate-spin" : ""}`} />
+                    {relinkLoading ? "Loading…" : "Search"}
+                  </button>
+                  {(relinkFilterCert || relinkFilterUser) && (
+                    <button
+                      onClick={() => {
+                        setRelinkFilterCert("");
+                        setRelinkFilterUser("");
+                        setRelinkLoading(true);
+                        apiRequest("/api/admin/certifications/relink-audit?limit=100")
+                          .then((d: { auditLog: RelinkAuditRow[] }) => setRelinkAudit(d.auditLog ?? []))
+                          .catch(() => {})
+                          .finally(() => setRelinkLoading(false));
+                      }}
+                      className="px-3 py-2 rounded-xl bg-white/10 text-white/50 text-xs active:scale-[0.96]"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+
+                {relinkLoading ? (
+                  <div className="flex justify-center py-12"><div className="w-6 h-6 border-2 border-orange-400/40 border-t-orange-400 rounded-full animate-spin" /></div>
+                ) : relinkAudit.length === 0 ? (
+                  <div className="p-6 rounded-2xl bg-black/20 border border-white/5 text-center">
+                    <p className="text-sm text-white/30">No re-link events found.</p>
+                    <p className="text-xs text-white/20 mt-1">Re-links are recorded here automatically when an admin moves a certificate to a new account.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-xs text-white/40">{relinkAudit.length} event{relinkAudit.length !== 1 ? "s" : ""} found</p>
+                    {relinkAudit.map((row) => (
+                      <div key={row.id} className="p-4 rounded-2xl bg-black/30 border border-white/10 space-y-3">
+                        {/* Header row: cert type + timestamp */}
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-[10px] text-white/30 font-semibold uppercase tracking-wider">{row.certificationType}</span>
+                            {row.certificateNumber && (
+                              <span className="text-[10px] font-mono text-orange-400 px-2 py-0.5 rounded-full bg-orange-500/10 border border-orange-500/20">
+                                {row.certificateNumber}
+                              </span>
+                            )}
+                            <span className="text-[10px] text-white/25 px-2 py-0.5 rounded-full bg-white/5 border border-white/10">
+                              {row.progressRowsRelinked} progress row{row.progressRowsRelinked !== 1 ? "s" : ""} moved
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-white/30 flex-shrink-0">{new Date(row.createdAt).toLocaleString()}</p>
+                        </div>
+
+                        {/* From → To */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="p-2.5 rounded-xl bg-black/20 border border-white/5 space-y-0.5">
+                            <p className="text-[10px] text-white/30 uppercase tracking-wider font-semibold">Old User</p>
+                            <p className="text-xs font-mono text-white/60 break-all">{row.oldUserId}</p>
+                          </div>
+                          <div className="p-2.5 rounded-xl bg-black/20 border border-green-500/10 space-y-0.5">
+                            <p className="text-[10px] text-green-400/50 uppercase tracking-wider font-semibold">New User</p>
+                            <p className="text-xs font-mono text-green-400/70 break-all">{row.newUserId}</p>
+                          </div>
+                        </div>
+
+                        {/* Admin */}
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-[10px] text-white/25">By admin:</p>
+                          <p className="text-[10px] font-mono text-white/40">{row.adminUserId}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>

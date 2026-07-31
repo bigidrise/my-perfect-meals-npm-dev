@@ -912,6 +912,18 @@ setTimeout(async () => {
     await db.execute(sql`
       ALTER TABLE waitlist_notify_run_logs ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'started'
     `);
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS cert_relink_audit_log (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        admin_user_id text NOT NULL,
+        old_user_id text NOT NULL,
+        new_user_id text NOT NULL,
+        certification_type text NOT NULL,
+        certificate_number text,
+        progress_rows_relinked int NOT NULL DEFAULT 0,
+        created_at timestamptz NOT NULL DEFAULT now()
+      )
+    `);
     // Reset orphaned rows and capture their user IDs atomically via CTE.
     // If any rows were reset, write a structured audit entry so admins can
     // see exactly which users were affected and when.

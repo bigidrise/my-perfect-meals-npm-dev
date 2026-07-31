@@ -1,29 +1,36 @@
 #!/bin/bash
-# MPM Git Hook Installer
-# Run once after cloning to wire up the pre-push validation hook.
-#
-# Usage: bash scripts/install-hooks.sh
+# Installs Git hooks for this repository.
+# Called automatically via the postinstall npm script.
 
-set -e
+HOOKS_DIR=".git/hooks"
 
-HOOK_DIR=".git/hooks"
-HOOK_FILE="$HOOK_DIR/pre-push"
+if [ ! -d "$HOOKS_DIR" ]; then
+  echo "  [hooks] .git/hooks not found — skipping hook installation (not a git repo or hooks dir missing)"
+  exit 0
+fi
 
-if [ ! -d "$HOOK_DIR" ]; then
-  echo "❌  .git/hooks directory not found. Run this from the repo root."
+cat > "$HOOKS_DIR/pre-push" << 'EOF'
+#!/bin/bash
+# MPM pre-push hook — installed by scripts/install-hooks.sh
+# Runs npm run validate before every push. Aborts the push on failure.
+
+echo ""
+echo "🔍 Running MPM pre-push validation..."
+echo ""
+
+npm run validate
+EXIT_CODE=$?
+
+if [ $EXIT_CODE -ne 0 ]; then
+  echo ""
+  echo "❌  Push aborted: validation failed."
+  echo "    Fix the issues above, then push again."
+  echo ""
   exit 1
 fi
 
-cat > "$HOOK_FILE" <<'EOF'
-#!/bin/bash
-# MPM pre-push hook — runs validate.sh before every push.
-# Bypass in emergencies: git push --no-verify
-bash scripts/validate.sh
+exit 0
 EOF
 
-chmod +x "$HOOK_FILE"
-
-echo "✅  Pre-push hook installed at $HOOK_FILE"
-echo "    'npm run validate' will now run automatically on every git push."
-echo ""
-echo "    To bypass in an emergency: git push --no-verify"
+chmod +x "$HOOKS_DIR/pre-push"
+echo "  [hooks] pre-push hook installed ✅"
