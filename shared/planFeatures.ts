@@ -249,6 +249,9 @@ export const LOOKUP_KEY_TO_TIER: Record<string, PlanTier> = {
   mpm_guidance: "premium",
   // Clinical Business — same Clinical (ultimate) access, business billing type
   clinical_business_monthly: "ultimate",
+  // Internal / contributor / special-access — full Clinical access, no Stripe subscription
+  mpm_contributor: "ultimate",
+  mpm_special_access: "ultimate",
 };
 
 export const TRIAL_UNLOCKS_TIER: PlanTier = "ultimate";
