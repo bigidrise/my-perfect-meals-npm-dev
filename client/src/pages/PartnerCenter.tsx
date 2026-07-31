@@ -34,10 +34,10 @@ export default function PartnerCenter() {
         <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
           <button
             onClick={() => setLocation("/business-center")}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-600 text-white text-xs font-bold active:scale-[0.95] transition-transform"
+            className="flex items-center gap-1.5 text-orange-400 text-sm font-medium active:scale-[0.95] transition-transform"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back
+            Business Suite
           </button>
           <h1 className="text-lg font-bold text-white">Partner Center</h1>
         </div>
