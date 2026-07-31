@@ -1428,6 +1428,176 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
       },
     ],
   },
+  {
+    id: "lesson-09",
+    lessonNumber: 9,
+    title: "Marketing & Brand Standards",
+    subtitle: "Approved language, prohibited claims, social media rules, and how referral tools work",
+    learningObjectives: [
+      "Identify the approved ways to describe My Perfect Meals and its capabilities",
+      "Recognize prohibited claims and understand why they put you and the platform at risk",
+      "Apply social media best practices and required disclaimers to your partner content",
+      "Understand how referral tracking works so you can explain it accurately to prospects",
+    ],
+    opening:
+      "Every partner message that reaches a prospect is part of the My Perfect Meals brand. When that message is accurate and clear, it builds trust — for you and for the platform. When it overstates what the platform does, it creates risk: legal exposure, regulatory scrutiny, and users whose expectations don't match reality.\n\nThis lesson gives you the complete rulebook. You'll learn exactly which descriptions are approved, which claims are off-limits and why, how to build a compliant social media presence, and how the referral tools in Partner Center work so you can explain them honestly to anyone you bring in.",
+    sections: [
+      {
+        heading: "Approved Descriptions",
+        body: "My Perfect Meals is a **personalized nutrition platform** powered by artificial intelligence. That's the foundation every approved description builds from.\n\nThe platform generates meal recommendations based on a user's dietary profile, health goals, and — where applicable — clinical conditions. It does not diagnose, treat, or cure any condition. It does not replace the judgment of a licensed healthcare professional. It is a sophisticated nutrition tool.\n\nApproved ways to describe the platform:\n\n- *\"A personalized nutrition app that builds meal plans around your dietary needs, goals, and lifestyle\"*\n- *\"AI-powered meal planning that adapts to what you eat, your health conditions, and your fitness targets\"*\n- *\"A platform that helps you build and follow a meal plan tailored to your profile — not a generic diet\"*\n- *\"My Perfect Meals uses your dietary identity to generate meals you'll actually want to eat\"*\n\nAll of these are accurate. They describe what the platform does without making clinical promises it cannot keep.\n\nWhen describing specific features — GlucoseGuard™, GLP-1 support, Performance Nutrition — describe them by their function, not their outcome. \"GlucoseGuard adapts meals to support blood sugar management\" is approved. \"GlucoseGuard will lower your A1C\" is not.",
+      },
+      {
+        heading: "Prohibited Claims",
+        body: "The following categories of claims are prohibited in all partner marketing, regardless of how they are phrased.\n\n**Clinical outcome guarantees.** You may not promise that using My Perfect Meals will produce a specific health result — weight loss, lower blood sugar, improved cholesterol, better energy, or any other clinical metric. The platform supports your nutrition goals; it does not guarantee outcomes.\n\n**Disease treatment or cure claims.** You may not state or imply that the platform treats, manages, cures, or reverses any condition. Approved language describes the platform as supportive of a user's needs, not as a medical intervention.\n\n**Income or earnings guarantees.** The Partner Program generates referral commissions when your links convert. You may not promise a specific income figure, and you may not present the program as a passive income guarantee.\n\n**Before-and-after medical claims.** You may share personal experiences. You may not attribute specific clinical outcomes (\"I lost 30 pounds because the platform fixed my insulin response\") to the platform in a way that implies medical causation.\n\n**Competitor disparagement.** You may not make false or misleading comparisons to competitor products. Factual, accurate comparisons are acceptable; invented or unverifiable claims are not.\n\nIf you're unsure whether a claim is prohibited, apply this test: *Would a new user's experience be harmed if this claim turned out to be untrue?* If yes, don't use it.",
+        type: "callout",
+      },
+      {
+        heading: "Social Media Best Practices",
+        body: "Social media is the primary channel through which most partners bring in referrals. The following practices keep your content compliant and effective.\n\n**Always include the required disclaimer.** Any post that promotes My Perfect Meals must include: *\"I am a My Perfect Meals partner and may earn a commission from referrals.\"* This must be visible without expanding the post — it cannot be buried in hashtags or placed below a \"read more\" truncation point.\n\n**Use first-person experience, not third-party promises.** \"I've used the platform for three months and my meal planning is faster\" is compliant. \"This app will change your relationship with food\" makes a promise you cannot keep on behalf of the platform.\n\n**Don't create fake urgency.** Countdown timers, invented limited-time offers, or false scarcity (\"only 3 spots left\") are prohibited unless they reflect actual current promotions published in Partner Center.\n\n**Tag content correctly.** On Instagram and TikTok, use the paid partnership label when applicable. On YouTube, include a verbal disclosure in the first 30 seconds of any video that promotes the platform.\n\n**Respond accurately to questions.** When followers ask what the platform does or whether it will work for their specific condition, direct them to the platform's free trial or the clinical information on the My Perfect Meals website. Don't answer clinical questions yourself.\n\n**Keep screenshots current.** If you post screenshots of the app, they should reflect the current interface. Outdated screenshots that misrepresent the current product are a compliance violation.",
+      },
+      {
+        heading: "How Referral Tools Work",
+        body: "Your Partner Center includes a set of referral tools you can use to track and share your link. Understanding how they work lets you explain them accurately to prospects.\n\n**Your referral link.** Every partner has a unique tracking link. When a prospect clicks that link and creates an account, the referral is attributed to you for a 30-day window. If they subscribe within that window, you earn the commission for that subscription. The tracking is cookie-based on the device they used to click your link.\n\n**Attribution window.** The 30-day window begins when the prospect clicks your link. If they return directly to the site or use a different device after the window expires, the referral is not attributed to you. This is standard for affiliate programs and is worth explaining honestly — you're not promising credit for every prospect you send.\n\n**Commission structure.** Commissions are paid on active subscriptions. If a referred subscriber cancels, the commission for that period is reversed. Commissions are paid monthly through the affiliate payment processor after a 30-day holding period.\n\n**The Messaging Guide.** The Messaging Guide tab in Partner Center shows approved language, prohibited claims, and the required disclaimers in one place. Any time you're writing new marketing content, start there. It is updated whenever platform language or compliance requirements change.\n\n**Tracking your performance.** Partner Center shows your click count, conversion rate, active referrals, and commission history. These numbers update in near real-time. If you notice a discrepancy, contact the partner support team — don't manually adjust or estimate your commissions in your own marketing materials.\n\nYou are not permitted to use paid advertising on Google, Meta, or other platforms that targets keywords associated with My Perfect Meals without prior written approval. Paid keyword bidding on brand terms is a violation of the partner agreement.",
+      },
+      {
+        heading: "When You're Not Sure",
+        body: "The single most reliable resource for compliance questions is the Messaging Guide in Partner Center. It reflects current, approved language — not this lesson, which covers the rules at a point in time.\n\nIf the Messaging Guide doesn't answer your question:\n\n1. Default to describing the platform by what it does functionally, not by what outcomes it promises\n2. Include the required disclaimer whenever you mention the platform in a promotional context\n3. Contact the partner support team before publishing content that feels borderline\n\nPartner accounts that repeatedly publish prohibited claims are subject to suspension. First violations that are corrected quickly are typically treated as compliance education events. Repeated or intentional violations are treated as agreement violations.\n\nThe goal of these rules is not to limit what you can say — it's to make sure that what you say is true, and that the people you bring in have an accurate picture of what they're signing up for. That's what makes referrals convert and stay.",
+      },
+    ],
+    exercise: {
+      steps: [
+        "Open the Messaging Guide tab in Partner Center and read the full Approved Language section.",
+        "Write three social media captions for My Perfect Meals using only approved language. Include the required disclaimer in each one.",
+        "Review your three captions against the Prohibited Claims list. Identify any phrase that could be read as a clinical outcome promise and revise it.",
+        "Share your referral link with one person this week and explain the 30-day attribution window honestly before they click.",
+      ],
+    },
+    remember:
+      "Accurate language builds lasting trust. Describe what the platform does, include the required disclaimer, and let users form their own outcome expectations — that's the standard every partner post should meet.",
+    closing:
+      "You've completed the Marketing & Brand Standards lesson. The rules in this lesson, combined with the live Messaging Guide in Partner Center, are your complete compliance framework. Apply them every time you create content, and you'll build a referral presence that's both effective and honest.",
+    quiz: [
+      {
+        id: "l09q01",
+        question:
+          "Which of the following is an approved way to describe My Perfect Meals?",
+        options: [
+          "\"My Perfect Meals will lower your blood sugar if you follow the meal plan\"",
+          "\"A personalized nutrition platform that adapts meal recommendations to your dietary profile and goals\"",
+          "\"The only app clinically proven to reverse metabolic disease\"",
+          "\"A guaranteed weight-loss system backed by AI\"",
+        ],
+        correctIndex: 1,
+      },
+      {
+        id: "l09q02",
+        question:
+          "A partner posts: \"I used My Perfect Meals for 60 days and my doctor confirmed my A1C dropped — this app treats insulin resistance.\" What is wrong with this post?",
+        options: [
+          "Nothing is wrong — sharing personal health outcomes is always permitted",
+          "The partner should not have mentioned a doctor",
+          "The post makes a disease-treatment claim, which is a prohibited claim category regardless of personal experience",
+          "The post is only prohibited if the partner didn't include their referral link",
+        ],
+        correctIndex: 2,
+      },
+      {
+        id: "l09q03",
+        question:
+          "Where must the required partner disclosure appear in a social media post?",
+        options: [
+          "It can appear anywhere in the caption, including below hashtags",
+          "It must be visible without the user expanding the post — not buried in hashtags or below a truncation point",
+          "It only needs to appear in Instagram Stories, not feed posts",
+          "It is only required for video content",
+        ],
+        correctIndex: 1,
+      },
+      {
+        id: "l09q04",
+        question:
+          "How long is the referral attribution window for My Perfect Meals partner links?",
+        options: [
+          "7 days from the click",
+          "60 days from account creation",
+          "90 days from the click",
+          "30 days from the click",
+        ],
+        correctIndex: 3,
+      },
+      {
+        id: "l09q05",
+        question:
+          "A follower asks: \"Will this app work for my Type 2 diabetes?\" What is the compliant response?",
+        options: [
+          "\"Yes, it includes GlucoseGuard which is proven to manage Type 2 diabetes\"",
+          "\"The platform has a GlucoseGuard system — I'd direct you to the My Perfect Meals website for the clinical detail and recommend you discuss it with your doctor\"",
+          "\"It will definitely help — I've seen great results in diabetic users\"",
+          "\"I can't comment on that because of HIPAA\"",
+        ],
+        correctIndex: 1,
+      },
+      {
+        id: "l09q06",
+        question:
+          "Which of the following is a prohibited claim in partner marketing?",
+        options: [
+          "\"My Perfect Meals uses AI to personalize your meal plan\"",
+          "\"The platform adapts to your dietary identity\"",
+          "\"My Perfect Meals will cure your metabolic condition\"",
+          "\"I'm a partner and may earn a commission from referrals\"",
+        ],
+        correctIndex: 2,
+      },
+      {
+        id: "l09q07",
+        question:
+          "A partner wants to run Google Ads targeting the keyword \"best nutrition app.\" What does the partner agreement say about this?",
+        options: [
+          "Paid advertising is fully permitted with no restrictions",
+          "Paid advertising is permitted only on Meta platforms",
+          "Paid keyword advertising on any platform requires prior written approval from My Perfect Meals",
+          "Paid advertising is prohibited only if the partner has fewer than 1,000 followers",
+        ],
+        correctIndex: 2,
+      },
+      {
+        id: "l09q08",
+        question: "What happens to a partner's commission if a referred subscriber cancels their subscription?",
+        options: [
+          "The commission is kept — cancellations after 30 days don't affect earnings",
+          "The commission for that subscription period is reversed",
+          "The commission is held for 90 days and then released regardless of cancellation",
+          "Cancellations have no effect on commission calculations",
+        ],
+        correctIndex: 1,
+      },
+      {
+        id: "l09q09",
+        question:
+          "Which social media practice is specifically required for YouTube videos that promote My Perfect Meals?",
+        options: [
+          "Pinning the referral link as a top comment",
+          "Using the paid partnership label in the video thumbnail",
+          "Including a verbal disclosure within the first 30 seconds of the video",
+          "Uploading a companion blog post with the required disclaimer",
+        ],
+        correctIndex: 2,
+      },
+      {
+        id: "l09q10",
+        question:
+          "What is the best first step before publishing any new marketing content about My Perfect Meals?",
+        options: [
+          "Post the content and monitor for complaints — compliance is reactive",
+          "Ask three other partners whether the language seems reasonable",
+          "Review the Messaging Guide in Partner Center for current approved language and required disclaimers",
+          "Check the My Perfect Meals homepage to see if similar language appears there",
+        ],
+        correctIndex: 2,
+      },
+    ],
+  },
 ];
 
 export function getLessonById(id: string): PlatformMasteryLesson | undefined {

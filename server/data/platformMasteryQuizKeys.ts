@@ -12,4 +12,5 @@ export const QUIZ_ANSWER_KEYS: Record<string, number[]> = {
   "lesson-06": [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
   "lesson-07": [2, 1, 1, 2, 1, 2, 1, 2, 1, 3],
   "lesson-08": [2, 2, 2, 3, 2, 1, 2, 1, 2, 1],
+  "lesson-09": [1, 2, 1, 3, 1, 2, 2, 1, 2, 2],
 };

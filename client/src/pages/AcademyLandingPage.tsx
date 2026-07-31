@@ -87,6 +87,12 @@ const PLATFORM_MASTERY_LESSONS = [
     description: "How the protocol hierarchy works, what the AI guarantees vs. estimates, macro truth enforcement, and where you remain in control.",
     icon: Star,
   },
+  {
+    number: "09",
+    title: "Marketing & Brand Standards",
+    description: "Approved descriptions, prohibited claims, required disclaimers, social media compliance rules, and how the Partner Center referral tools work.",
+    icon: Megaphone,
+  },
 ];
 
 const MARKETING_COACHING_MODULES = [
@@ -329,7 +335,7 @@ export default function AcademyLandingPage() {
                 </p>
               </div>
               <div className="px-2.5 py-1 rounded-full bg-orange-500/20 border border-orange-500/30 flex-shrink-0">
-                <span className="text-orange-300 text-xs font-semibold">8 modules</span>
+                <span className="text-orange-300 text-xs font-semibold">{PLATFORM_MASTERY_LESSONS.length} modules</span>
               </div>
             </div>
           </div>
@@ -461,7 +467,7 @@ export default function AcademyLandingPage() {
                 <CertPathRow
                   icon="🥉"
                   label="Platform Mastery"
-                  sublabel="8 modules · 80% quiz score required"
+                  sublabel={`${PLATFORM_MASTERY_LESSONS.length} modules · 80% quiz score required`}
                   done={progress.phase1Done}
                   score={progress.phase1Score}
                   available
