@@ -2,6 +2,8 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { HandCoins, ShieldCheck, ChevronRight, Lock } from "lucide-react";
 import { useLocation } from "wouter";
+import { useAuth } from "@/contexts/AuthContext";
+import { getTierForLookupKey } from "@shared/planFeatures";
 
 const BENEFITS = [
   "30% recurring commissions for 24 months",
@@ -14,6 +16,12 @@ const BENEFITS = [
 
 export default function AffiliateOnPricing() {
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
+
+  const tier = getTierForLookupKey(user?.planLookupKey);
+  const isPro = tier === "premium" || tier === "ultimate";
+  const isInternal = user?.accessTier === "PAID_FULL" && !user?.planLookupKey;
+  const hasAccess = isPro || isInternal;
 
   return (
     <Card className="bg-black/60 text-white backdrop-blur-md border border-white/10 shadow-xl">
@@ -68,15 +76,26 @@ export default function AffiliateOnPricing() {
         </div>
 
         <div className="pt-1">
-          <Button
-            onClick={() => setLocation("/pricing#pro")}
-            className="inline-flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white"
-            data-testid="button-affiliate-upgrade"
-          >
-            <ShieldCheck className="w-4 h-4" />
-            Upgrade to Pro to Access
-            <ChevronRight className="w-3 h-3" />
-          </Button>
+          {hasAccess ? (
+            <Button
+              onClick={() => setLocation("/business-center")}
+              className="inline-flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white"
+              data-testid="button-affiliate-go"
+            >
+              Go to Business Suite
+              <ChevronRight className="w-3 h-3" />
+            </Button>
+          ) : (
+            <Button
+              onClick={() => setLocation("/pricing#pro")}
+              className="inline-flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white"
+              data-testid="button-affiliate-upgrade"
+            >
+              <ShieldCheck className="w-4 h-4" />
+              Upgrade to Pro to Access
+              <ChevronRight className="w-3 h-3" />
+            </Button>
+          )}
         </div>
 
         <p className="text-xs text-white/50">
