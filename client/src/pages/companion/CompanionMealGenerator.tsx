@@ -51,10 +51,17 @@ interface GeneratedMeal {
 }
 
 export default function CompanionMealGenerator() {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const search = useSearch();
   const params = new URLSearchParams(search);
   const preselectedProfileId = params.get("profileId") || "";
+
+  // Detect species from the route so cat owners see cat-specific copy
+  const isCat = location.startsWith("/companion/cat-generator");
+  const species = isCat ? "cat" : "dog";
+  const speciesLabel = isCat ? "Cat" : "Dog";
+  const hubRoute = isCat ? "/companion/cats" : "/companion/dogs";
+  const setupRoute = isCat ? "/companion/cat-setup" : "/companion/setup";
 
   const { open, setLastResponse } = useCopilot();
   const [profiles, setProfiles] = useState<DogProfile[]>([]);
@@ -75,7 +82,8 @@ export default function CompanionMealGenerator() {
   }, []);
 
   useEffect(() => {
-    fetch(apiUrl("/api/companion/profiles"), { headers: getAuthHeaders() })
+    const typeParam = isCat ? "?type=cat" : "";
+    fetch(apiUrl(`/api/companion/profiles${typeParam}`), { headers: getAuthHeaders() })
       .then((r) => r.json())
       .then((d) => {
         const active = (d.profiles || []).filter((p: any) => !p.status || p.status === "active");
@@ -85,9 +93,9 @@ export default function CompanionMealGenerator() {
         }
       })
       .catch(() => {});
-  }, [preselectedProfileId]);
+  }, [preselectedProfileId, isCat]);
 
-  // No per-dog photo pool — always use generic food images
+  // No per-pet photo pool — always use generic food images
   useEffect(() => { setDogImages([]); }, [selectedProfileId]);
 
   const selectedProfile = profiles.find((p) => p.id === selectedProfileId);
@@ -99,9 +107,9 @@ export default function CompanionMealGenerator() {
       setLastResponse({
         title: "Companion Meal Generator",
         description:
-          "Select your dog's profile, choose a meal type, and tap Generate. The system assembles your dog's wellness protocol and sends it through the same AI generation engine that powers your own meals — but adapted for canine nutrition. Every recipe is screened through the Toxic Ingredient Firewall before you see it.",
+          `Select your ${species}'s profile, choose a meal type, and tap Generate. The system assembles your ${species}'s wellness protocol and sends it through the same AI generation engine that powers your own meals — but adapted for ${isCat ? "feline" : "canine"} nutrition. Every recipe is screened through the Toxic Ingredient Firewall before you see it.`,
         spokenText:
-          "Select your dog's profile, choose a meal type, and tap Generate. The system assembles your dog's wellness protocol and screens every recipe through the Toxic Ingredient Firewall for safety.",
+          `Select your ${species}'s profile, choose a meal type, and tap Generate. The system assembles your ${species}'s wellness protocol and screens every recipe through the Toxic Ingredient Firewall for safety.`,
         autoClose: false,
       });
     }, 300);
@@ -177,7 +185,7 @@ export default function CompanionMealGenerator() {
       <div className="max-w-lg mx-auto px-4" style={{ paddingTop: "calc(5rem + env(safe-area-inset-top, 0px))" }}>
 
         <div className="mb-4">
-          <PillButton onClick={() => setLocation("/companion/dogs")}>
+          <PillButton onClick={() => setLocation(hubRoute)}>
             <ArrowLeft className="h-3 w-3" /> Back
           </PillButton>
         </div>
@@ -192,14 +200,14 @@ export default function CompanionMealGenerator() {
                 {selectedProfile ? `${selectedProfile.name}'s Kitchen` : "Homemade Meal Generator"}
               </h1>
             </div>
-            <p className="text-white/60 text-xs">Personalized, safety-screened dog recipes</p>
+            <p className="text-white/60 text-xs">Personalized, safety-screened {species} recipes</p>
           </div>
         </div>
 
         {/* Profile Selector */}
         {profiles.length > 1 && (
           <div className="mb-5">
-            <p className="text-white/60 text-xs font-semibold uppercase mb-2">For which dog?</p>
+            <p className="text-white/60 text-xs font-semibold uppercase mb-2">For which {species}?</p>
             <div className="flex flex-wrap gap-2">
               {profiles.map((p) => (
                 <button
@@ -226,10 +234,10 @@ export default function CompanionMealGenerator() {
         {profiles.length === 0 && (
           <div className="bg-black/40 border border-white/10 rounded-xl p-5 mb-5 text-center">
             <PawPrint className="h-7 w-7 text-orange-400/50 mx-auto mb-2" />
-            <p className="text-white font-semibold text-sm mb-1">No dog profile yet</p>
+            <p className="text-white font-semibold text-sm mb-1">No {species} profile yet</p>
             <p className="text-white/50 text-xs mb-3">Create a profile to generate personalized meals.</p>
-            <PillButton onClick={() => setLocation("/companion/setup")}>
-              Add Your Dog
+            <PillButton onClick={() => setLocation(setupRoute)}>
+              Add Your {speciesLabel}
             </PillButton>
           </div>
         )}
@@ -270,7 +278,7 @@ export default function CompanionMealGenerator() {
         {/* Generate Button */}
         {generating ? (
           <div className="mb-6">
-            <ThinkingDots label={`Crafting ${selectedProfile?.name || "your dog"}'s meal…`} />
+            <ThinkingDots label={`Crafting ${selectedProfile?.name || `your ${species}`}'s meal…`} />
           </div>
         ) : (
           <PillButton
