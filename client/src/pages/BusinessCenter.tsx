@@ -176,6 +176,9 @@ export default function BusinessCenter() {
             Back
           </button>
           <h1 className="text-lg font-bold text-white">Business Suite</h1>
+          <span className="ml-auto px-2.5 py-0.5 rounded-full bg-orange-600/20 border border-orange-500/30 text-orange-400 text-[10px] font-semibold tracking-wide uppercase">
+            Pro+
+          </span>
         </div>
       </div>
 

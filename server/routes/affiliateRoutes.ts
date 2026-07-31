@@ -8,6 +8,7 @@ import { checkBusinessAffiliateEligibility } from "../services/affiliateEligibil
 import { getRewardfulMagicLink, getRewardfulAffiliate, getRewardfulAffiliateStatus, getRewardfulAffiliateByEmail } from "../services/rewardfulApi";
 import { sendAffiliateReferralInvite } from "../services/emailService";
 import { requireEmailService, emailServiceAvailable } from "../middleware/requireEmailService";
+import { getTierForLookupKey } from "../../shared/planFeatures";
 
 const router = Router();
 
@@ -36,7 +37,31 @@ router.post("/register-track", requireAuth, async (req, res) => {
       return res.status(400).json({ error: "Invalid track. Must be social_affiliate or business_affiliate." });
     }
 
-    // For business track, verify eligibility server-side
+    // Both tracks require Pro or higher — gate Free and Essential users
+    const { authUser } = req as AuthenticatedRequest;
+    const userRecord = await db.select({ planLookupKey: users.planLookupKey, accessTier: users.accessTier })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1)
+      .then((r) => r[0]);
+
+    if (userRecord) {
+      const BILLING_ENFORCED = process.env.BILLING_ENFORCED === "true";
+      if (BILLING_ENFORCED) {
+        const tier = getTierForLookupKey(userRecord.planLookupKey);
+        const isInternal = userRecord.accessTier === "PAID_FULL" && !userRecord.planLookupKey;
+        const isPro = tier === "premium" || tier === "ultimate";
+        if (!isPro && !isInternal) {
+          return res.status(403).json({
+            error: "The Affiliate Program requires a Pro subscription or higher.",
+            code: "PRO_REQUIRED",
+            requiredTier: "pro",
+          });
+        }
+      }
+    }
+
+    // For business track, also verify ProCare/studio eligibility
     if (track === "business_affiliate") {
       const eligibility = await checkBusinessAffiliateEligibility(userId);
       if (!eligibility.eligible) {

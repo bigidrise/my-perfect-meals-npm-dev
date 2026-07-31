@@ -1454,7 +1454,7 @@ export default function PricingPage() {
               Start Free. Upgrade When You're Ready.
             </p>
             <p className="text-white/70 text-xs leading-relaxed">
-              My Perfect Meals includes a free tier with Fridge Rescue (once a week), Macro Calculator, MacroScan, Biometrics Tracking, Copilot Voice Guidance, and Daily Journal.
+              My Perfect Meals includes a free tier with Fridge Rescue, Macro Calculator, MacroScan, Biometrics Tracking, Copilot Voice Guidance, and Daily Journal.
               Paid plans unlock the full platform — AI meal builders, weekly planning, specialty hubs, and more.
             </p>
             <p className="text-white/60 text-xs leading-relaxed">
@@ -1552,7 +1552,7 @@ export default function PricingPage() {
                 Start Free. Upgrade When You're Ready.
               </p>
               <p className="text-white/70 text-xs leading-relaxed">
-                My Perfect Meals includes a free tier with Fridge Rescue (once a week), Macro Calculator, MacroScan, Biometrics Tracking, Copilot Voice Guidance, and Daily Journal.
+                My Perfect Meals includes a free tier with Fridge Rescue, Macro Calculator, MacroScan, Biometrics Tracking, Copilot Voice Guidance, and Daily Journal.
                 Paid plans unlock the full platform — AI meal builders, weekly planning, specialty hubs, and more.
               </p>
               <p className="text-white/60 text-xs leading-relaxed">
