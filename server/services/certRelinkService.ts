@@ -181,6 +181,37 @@ export async function relinkCertificate(
     };
   }
 
+  // ── Guard: destination must not already have quiz attempt rows ────────────
+  //
+  // certificationQuizAttempts has a unique constraint on
+  // (user_id, certification_type, module_id).  If newUserId already has any
+  // quiz attempt rows for this cert type (e.g. they started the certification
+  // independently before the re-link was requested), the UPDATE inside the
+  // transaction would hit that constraint and throw an opaque DB error.
+  //
+  // We detect this up front and return a clear 409 so the admin knows exactly
+  // why the re-link was blocked — no silent constraint violation, no partial
+  // transaction, no orphaned state.
+  const [destQuizAttempt] = await dbClient
+    .select({ id: certificationQuizAttempts.id })
+    .from(certificationQuizAttempts)
+    .where(
+      and(
+        eq(certificationQuizAttempts.userId, newUserId),
+        eq(certificationQuizAttempts.certificationType, certificationType)
+      )
+    )
+    .limit(1);
+
+  if (destQuizAttempt) {
+    return {
+      ok: false,
+      status: 409,
+      error:
+        "newUserId already has quiz attempt rows for this certificationType — re-link cannot proceed because moving the source rows would violate the unique constraint on certification_quiz_attempts (user_id, certification_type, module_id). An admin must manually remove or reassign the conflicting rows before re-linking.",
+    };
+  }
+
   // ── Atomic re-link + audit (single transaction) ───────────────────────────
   //
   // All four writes run inside one transaction:
