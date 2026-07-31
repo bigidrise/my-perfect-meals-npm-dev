@@ -740,7 +740,7 @@ Generate a recipe now.`;
     });
   } catch (err) {
     console.error("[companion] generate-meal error:", err);
-    res.status(500).json({ error: `Failed to generate ${petType} meal` });
+    res.status(500).json({ error: "Failed to generate companion meal" });
   }
 });
 
