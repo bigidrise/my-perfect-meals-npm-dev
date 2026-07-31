@@ -31,9 +31,11 @@ export default function AffiliateOnPricing() {
             <HandCoins className="w-5 h-5 text-orange-400" />
             Business Suite &amp; Affiliate Program
           </CardTitle>
-          <span className="shrink-0 px-2.5 py-1 rounded-full bg-orange-600/20 border border-orange-500/30 text-orange-400 text-[10px] font-semibold tracking-wide uppercase whitespace-nowrap">
-            Pro &amp; Above
-          </span>
+          {!hasAccess && (
+            <span className="shrink-0 px-2.5 py-1 rounded-full bg-orange-600/20 border border-orange-500/30 text-orange-400 text-[10px] font-semibold tracking-wide uppercase whitespace-nowrap">
+              Pro &amp; Above
+            </span>
+          )}
         </div>
       </CardHeader>
       <CardContent className="space-y-4 text-sm md:text-base text-white/90">
