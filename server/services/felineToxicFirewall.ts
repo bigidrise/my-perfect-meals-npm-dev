@@ -78,9 +78,9 @@ export const FELINE_TOXIC_INGREDIENTS: ToxicIngredient[] = [
   // ── Cat-specific toxins not present in the canine firewall ────────────────
   {
     names: [
-      "lily", "lilies", "true lily", "easter lily", "tiger lily", "asiatic lily",
-      "day lily", "daylily", "stargazer lily", "oriental lily", "rubrum lily",
-      "japanese show lily", "wood lily",
+      "easter lily", "tiger lily", "asiatic lily", "day lily", "daylily",
+      "stargazer lily", "oriental lily", "rubrum lily", "japanese show lily",
+      "wood lily", "true lily", "lily", "lilies",
     ],
     reason: "TRUE LILIES (Lilium and Hemerocallis species) cause acute and often fatal kidney failure in cats. ALL parts — petals, leaves, pollen, and even water from the vase — are toxic. Even a small bite or grooming pollen off fur can be fatal. This is one of the most dangerous cat-specific toxins and must never appear in any feline recipe or food recommendation.",
     severity: "TOXIC",
@@ -103,7 +103,7 @@ export const FELINE_TOXIC_INGREDIENTS: ToxicIngredient[] = [
     substitution: "Plain whole herbs only if used at all (small amounts of parsley, catnip). Never use essential oil concentrates.",
   },
   {
-    names: ["raw salmon", "raw trout", "raw fish", "raw tuna", "raw tilapia", "raw cod", "raw herring"],
+    names: ["raw salmon", "raw salmon fillet", "raw trout", "raw fish", "raw tuna", "raw ahi tuna", "raw tilapia", "raw cod", "raw herring"],
     reason: "Raw fish contains thiaminase — an enzyme that destroys thiamine (vitamin B1). Cats are obligate carnivores with higher thiamine requirements than dogs; thiaminase-induced thiamine deficiency causes severe neurological damage, seizures, and death. Always cook fish thoroughly for cats.",
     severity: "TOXIC",
     substitution: "Fully cooked fish (salmon, sardines in water with no added salt) — excellent omega-3 and protein sources when cooked.",
