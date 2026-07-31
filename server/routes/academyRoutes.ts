@@ -129,7 +129,9 @@ router.post("/platform-mastery/enroll", requireAuth, async (req, res) => {
           userCertifications.certificationType,
         ],
         set: {
-          isCertificationTrack,
+          // Preserve isCertificationTrack when status is already completed so
+          // re-enrolling in Learning Mode doesn't strip a certified user's cert track flag.
+          isCertificationTrack: sql`CASE WHEN ${userCertifications.status} = 'completed' THEN ${userCertifications.isCertificationTrack} ELSE ${isCertificationTrack} END`,
           status: sql`CASE WHEN ${userCertifications.status} = 'completed' THEN 'completed' ELSE 'in_progress' END`,
         },
       });

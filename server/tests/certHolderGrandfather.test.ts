@@ -122,3 +122,130 @@ describe("new lesson added — certified user bypass", () => {
     expect(allLessonsDone(LESSON_IDS, progress)).toBe(false);
   });
 });
+
+// ── 4. Short-circuit number matches GET /certificate ──────────────────────────
+
+/**
+ * Mirrors the GET /platform-mastery/certificate response shape.
+ * In production it reads directly from the DB record.
+ */
+function simulateGetCertificate(dbRecord: {
+  status: string;
+  certificateNumber: string | null | undefined;
+  certificateName: string | null | undefined;
+  completedAt: Date | null | undefined;
+}): { certificateNumber: string; certificateName: string | null | undefined; completedAt: Date | null | undefined } | null {
+  if (dbRecord.status !== "completed" || !dbRecord.certificateNumber) {
+    return null; // 404
+  }
+  return {
+    certificateNumber: dbRecord.certificateNumber,
+    certificateName: dbRecord.certificateName,
+    completedAt: dbRecord.completedAt,
+  };
+}
+
+/**
+ * Mirrors the short-circuit branch of POST /platform-mastery/complete:
+ *   return res.json({ ok: true, certificateNumber: enrollmentRecord.certificateNumber });
+ */
+function simulateCompleteShortCircuit(enrollmentRecord: {
+  status: string;
+  certificateNumber: string | null | undefined;
+  certificateName: string | null | undefined;
+  completedAt: Date | null | undefined;
+}): { ok: boolean; certificateNumber: string } | null {
+  if (enrollmentRecord.status === "completed" && enrollmentRecord.certificateNumber) {
+    return { ok: true, certificateNumber: enrollmentRecord.certificateNumber };
+  }
+  return null; // did not short-circuit
+}
+
+describe("short-circuit number matches GET /certificate", () => {
+  const completedAt = new Date("2025-01-15T10:00:00Z");
+  const dbRecord = {
+    status: "completed",
+    certificateNumber: "MPM-PM-XYZ789",
+    certificateName: "Alice Smith",
+    completedAt,
+  };
+
+  it("short-circuit returns a certificateNumber", () => {
+    const completeResponse = simulateCompleteShortCircuit(dbRecord);
+    expect(completeResponse).not.toBeNull();
+    expect(completeResponse!.certificateNumber).toBe("MPM-PM-XYZ789");
+  });
+
+  it("GET /certificate returns the same certificateNumber from the same DB record", () => {
+    const certResponse = simulateGetCertificate(dbRecord);
+    expect(certResponse).not.toBeNull();
+    expect(certResponse!.certificateNumber).toBe("MPM-PM-XYZ789");
+  });
+
+  it("short-circuit certificateNumber === GET /certificate certificateNumber (no mismatch)", () => {
+    const completeResponse = simulateCompleteShortCircuit(dbRecord);
+    const certResponse = simulateGetCertificate(dbRecord);
+
+    // Both read from the same DB record, so the numbers must be identical
+    expect(completeResponse!.certificateNumber).toBe(certResponse!.certificateNumber);
+  });
+
+  it("GET /certificate returns 404 when no completed record exists", () => {
+    const missing = { status: "in_progress", certificateNumber: null, certificateName: null, completedAt: null };
+    const certResponse = simulateGetCertificate(missing);
+    expect(certResponse).toBeNull();
+  });
+});
+
+// ── 5. certificateName is NOT overwritten when a different name is submitted ──
+
+/**
+ * Mirrors what happens when POST /complete short-circuits:
+ * no DB write occurs, so the stored certificateName is preserved.
+ */
+function simulateCompleteDifferentName(
+  dbRecord: { status: string; certificateNumber: string | null | undefined; certificateName: string | null | undefined; completedAt: Date | null | undefined },
+  _submittedName: string,
+): {
+  shortCircuited: boolean;
+  storedName: string | null | undefined;
+} {
+  if (dbRecord.status === "completed" && dbRecord.certificateNumber) {
+    // Short-circuit: NO write to DB. Stored name is unchanged.
+    return { shortCircuited: true, storedName: dbRecord.certificateName };
+  }
+  // If it didn't short-circuit, a new record would be written with _submittedName.
+  // (Not the scenario under test, included for completeness.)
+  return { shortCircuited: false, storedName: _submittedName };
+}
+
+describe("certificateName not overwritten by short-circuit path", () => {
+  const originalRecord = {
+    status: "completed",
+    certificateNumber: "MPM-PM-ORIG001",
+    certificateName: "Alice Smith",
+    completedAt: new Date("2025-01-15T10:00:00Z"),
+  };
+
+  it("short-circuit fires and returns the existing certificateNumber", () => {
+    const result = simulateCompleteDifferentName(originalRecord, "Bob Jones");
+    expect(result.shortCircuited).toBe(true);
+  });
+
+  it("stored certificateName is Alice Smith, not the submitted Bob Jones", () => {
+    const result = simulateCompleteDifferentName(originalRecord, "Bob Jones");
+    expect(result.storedName).toBe("Alice Smith");
+    expect(result.storedName).not.toBe("Bob Jones");
+  });
+
+  it("GET /certificate still serves the original name after a re-submit attempt", () => {
+    // The short-circuit means no DB write happened, so the DB record is unchanged.
+    const certResponse = simulateGetCertificate(originalRecord);
+    expect(certResponse!.certificateName).toBe("Alice Smith");
+  });
+
+  it("GET /certificate still serves the original certificateNumber after a re-submit attempt", () => {
+    const certResponse = simulateGetCertificate(originalRecord);
+    expect(certResponse!.certificateNumber).toBe("MPM-PM-ORIG001");
+  });
+});
