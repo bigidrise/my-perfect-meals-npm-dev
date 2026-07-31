@@ -72,6 +72,17 @@ export const waitlistNotifyRunLogs = pgTable("waitlist_notify_run_logs", {
   failures: jsonb("failures").$type<string[]>().notNull().default([]),
 });
 
+export const certRelinkAuditLog = pgTable("cert_relink_audit_log", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  adminUserId: text("admin_user_id").notNull(),
+  oldUserId: text("old_user_id").notNull(),
+  newUserId: text("new_user_id").notNull(),
+  certificationType: text("certification_type").notNull(),
+  certificateNumber: text("certificate_number"),
+  progressRowsRelinked: integer("progress_rows_relinked").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const businessLeads = pgTable("business_leads", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: text("user_id"),
