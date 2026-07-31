@@ -23,9 +23,9 @@ const PARTNER_TYPES = [
     title: "Referral Partner",
     tagline: "You promote. You earn.",
     who: "Media companies, influencers, coaches, podcast hosts, magazine publishers, and community leaders.",
-    examples: ["Paul Carraso — Austin Fit Magazine", "Podcast hosts", "Health influencers"],
+    examples: ["Magazine publisher — fitness & wellness media", "Podcast hosts", "Health influencers"],
     gets: [
-      "Personalized promo code (e.g. PAUL or AUSTINFIT)",
+      "Personalized promo code (e.g. FITPRO or WELLNESSCO)",
       "Tracked referral link",
       "Downloadable QR code",
       "Customer discount to offer your audience",
@@ -43,7 +43,7 @@ const PARTNER_TYPES = [
     title: "Organization Partner",
     tagline: "You run a team. We power the platform.",
     who: "Gyms, training companies, coaching organizations, fitness studios, and wellness businesses.",
-    examples: ["Brian — coaching organization", "Turk", "Gyms and training companies"],
+    examples: ["Coaching organization", "Fitness studio", "Gyms and training companies"],
     gets: [
       "Organization Dashboard",
       "Team seat management",
@@ -65,7 +65,7 @@ const PARTNER_TYPES = [
     title: "Product Partner",
     tagline: "Your product meets our platform.",
     who: "Supplement brands, beverage companies, food brands, and nutrition product manufacturers.",
-    examples: ["Ronnie Coleman — supplement brand", "Beverage companies"],
+    examples: ["Supplement brand partner", "Beverage companies"],
     gets: [
       "Product and ingredient integration",
       "Brand and product placement inside meal experiences",
@@ -87,7 +87,7 @@ const PARTNER_TYPES = [
     title: "Hybrid Partner",
     tagline: "Everything that applies to your business.",
     who: "Clinical practices, functional medicine clinics, and organizations that operate a team, carry products, and refer customers.",
-    examples: ["Dr. Amy — clinical organization + supplement partner + referral"],
+    examples: ["Clinical organization + supplement partner + referral"],
     gets: [
       "Organization Dashboard and team seats",
       "Clinical workflow support",
@@ -109,7 +109,7 @@ const HOW_IT_WORKS_ITEMS = [
     icon: Tag,
     title: "Promo Code",
     description:
-      "Every approved partner receives a personalized promo code — like RONNIE or BRIAN. When a customer enters that code at checkout, they receive a discount. The code is short, memorable, and works in any format: on air, in print, in video, in conversation.",
+      "Every approved partner receives a personalized promo code — like FITPRO or WELLNESSCO. When a customer enters that code at checkout, they receive a discount. The code is short, memorable, and works in any format: on air, in print, in video, in conversation.",
   },
   {
     icon: Link2,
@@ -276,10 +276,10 @@ export default function HowPartnershipsWork() {
             One Partner, Multiple Roles
           </p>
           <p className="text-gray-300 text-sm leading-relaxed mb-3">
-            A partner can hold more than one role simultaneously. Dr. Amy operates a clinic, carries supplement products, and refers customers — she is an Organization Partner, a Product Partner, and a Referral Partner at the same time.
+            A partner can hold more than one role simultaneously. A clinical organization that carries supplement products and refers customers is an Organization Partner, a Product Partner, and a Referral Partner at the same time.
           </p>
           <p className="text-gray-300 text-sm leading-relaxed">
-            Brian manages a coaching organization and earns referral commissions — he is both an Organization Partner and a Referral Partner. Your Partner & Revenue Center reflects exactly your relationship — nothing more, nothing less.
+            A coaching organization that earns referral commissions is both an Organization Partner and a Referral Partner. Your Partner & Revenue Center reflects exactly your relationship — nothing more, nothing less.
           </p>
         </motion.div>
 
