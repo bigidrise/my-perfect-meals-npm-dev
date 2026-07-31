@@ -309,6 +309,263 @@ console.log("\nSection 4 — Error boundary: feline engine failure → 422\n");
   );
 }
 
+// ── SECTION 5: Cat-specific toxin isolation — feline catches, canine passes ───
+console.log("\nSection 5 — Cat-specific toxins: flagged by feline firewall, pass canine firewall\n");
+
+/**
+ * Helper: assert that a recipe text is flagged UNSAFE by the feline firewall,
+ * passes the canine firewall, and the violation matches the expected ingredient
+ * name fragment.
+ */
+function assertFelineOnly(
+  recipeText: string,
+  expectedIngredientFragment: string,
+  label: string,
+) {
+  const felineResult = scanRecipeForFelineToxins(recipeText);
+  const canineResult = scanRecipeForToxins(recipeText);
+
+  assert(
+    !felineResult.safe,
+    `[${label}] feline firewall flags as UNSAFE`,
+    `safe=${felineResult.safe}, violations=${JSON.stringify(felineResult.violations.map((v) => v.ingredient))}`,
+  );
+
+  const matchingViolation = felineResult.violations.find((v) =>
+    v.ingredient.includes(expectedIngredientFragment),
+  );
+  assert(
+    matchingViolation !== undefined,
+    `[${label}] feline violation names '${expectedIngredientFragment}'`,
+    `violations=${JSON.stringify(felineResult.violations.map((v) => v.ingredient))}`,
+  );
+
+  assert(
+    canineResult.safe,
+    `[${label}] canine firewall passes (feline-only toxin)`,
+    `safe=${canineResult.safe}, violations=${JSON.stringify(canineResult.violations.map((v) => v.ingredient))}`,
+  );
+}
+
+// ── 5a: Propylene glycol variants ─────────────────────────────────────────────
+console.log("  5a — Propylene glycol variants\n");
+
+assertFelineOnly(
+  "semi-moist treat with propylene glycol as humectant",
+  "propylene glycol",
+  "propylene glycol (plain)",
+);
+
+assertFelineOnly(
+  "treat preserved with propylene-glycol",
+  "propylene-glycol",
+  "propylene-glycol (hyphenated)",
+);
+
+assertFelineOnly(
+  "ingredient list includes 1,2-propanediol",
+  "1,2-propanediol",
+  "1,2-propanediol (IUPAC name)",
+);
+
+// ── 5b: Raw fish feline-specific variants ─────────────────────────────────────
+console.log("\n  5b — Raw fish feline-specific variants\n");
+
+// "raw salmon fillet" — 'raw salmon' is shared between feline and canine lists
+// (canine: salmon poisoning disease; feline: thiaminase). Verify feline catches it.
+{
+  const felineResult = scanRecipeForFelineToxins("serve raw salmon fillet over rice");
+  assert(
+    !felineResult.safe,
+    "[raw salmon fillet] feline firewall flags as UNSAFE",
+    `safe=${felineResult.safe}`,
+  );
+  const v = felineResult.violations.find((x) => x.ingredient.includes("raw salmon"));
+  assert(
+    v !== undefined,
+    "[raw salmon fillet] feline violation names 'raw salmon'",
+    `violations=${JSON.stringify(felineResult.violations.map((x) => x.ingredient))}`,
+  );
+  // Note: canine also catches 'raw salmon' (salmon poisoning disease), so no
+  // canine-passes assertion here — both firewalls correctly block raw salmon.
+}
+
+// "raw ahi tuna" — explicit name variant added to feline list
+assertFelineOnly(
+  "bowl with raw ahi tuna sliced thin",
+  "raw ahi tuna",
+  "raw ahi tuna (explicit variant)",
+);
+
+// Other feline-only raw fish names not present in canine list
+assertFelineOnly(
+  "cat meal with raw tilapia chunks",
+  "raw tilapia",
+  "raw tilapia (feline-only)",
+);
+
+assertFelineOnly(
+  "recipe calls for raw cod fillet",
+  "raw cod",
+  "raw cod (feline-only)",
+);
+
+assertFelineOnly(
+  "add raw herring to broth",
+  "raw herring",
+  "raw herring (feline-only)",
+);
+
+// Confirm raw tuna (without 'ahi') is also caught
+assertFelineOnly(
+  "top with raw tuna and cucumber",
+  "raw tuna",
+  "raw tuna (feline-only)",
+);
+
+// ── 5c: Essential oils ────────────────────────────────────────────────────────
+console.log("\n  5c — Essential oils (feline-only toxins)\n");
+
+assertFelineOnly(
+  "add a drop of tea tree oil for fragrance",
+  "tea tree oil",
+  "tea tree oil",
+);
+
+assertFelineOnly(
+  "melaleuca oil diluted in broth",
+  "melaleuca oil",
+  "melaleuca oil",
+);
+
+assertFelineOnly(
+  "eucalyptus oil used as flavoring",
+  "eucalyptus oil",
+  "eucalyptus oil",
+);
+
+assertFelineOnly(
+  "treat contains peppermint oil extract",
+  "peppermint oil",
+  "peppermint oil",
+);
+
+// ── 5d: Lily variants (beyond easter lily already tested in Section 1) ────────
+console.log("\n  5d — Lily variants (feline-only)\n");
+
+assertFelineOnly(
+  "garnished with tiger lily petals",
+  "tiger lily",
+  "tiger lily",
+);
+
+assertFelineOnly(
+  "daylily flowers as topping",
+  "daylily",
+  "daylily",
+);
+
+assertFelineOnly(
+  "stargazer lily decoration on plate",
+  "stargazer lily",
+  "stargazer lily",
+);
+
+assertFelineOnly(
+  "asiatic lily bloom alongside food bowl",
+  "asiatic lily",
+  "asiatic lily",
+);
+
+// ── 5e: Raw egg white ─────────────────────────────────────────────────────────
+console.log("\n  5e — Raw egg white (feline-only caution)\n");
+
+{
+  const recipeText = "blend raw egg whites into the mixture";
+  const felineResult = scanRecipeForFelineToxins(recipeText);
+  const canineResult = scanRecipeForToxins(recipeText);
+
+  assert(
+    !felineResult.safe,
+    "[raw egg whites] feline firewall flags as UNSAFE",
+    `safe=${felineResult.safe}`,
+  );
+  assert(
+    canineResult.safe,
+    "[raw egg whites] canine firewall passes (feline-only concern)",
+    `safe=${canineResult.safe}`,
+  );
+}
+
+{
+  const recipeText = "stir in uncooked egg white for protein";
+  const felineResult = scanRecipeForFelineToxins(recipeText);
+  const canineResult = scanRecipeForToxins(recipeText);
+
+  assert(
+    !felineResult.safe,
+    "[uncooked egg white] feline firewall flags as UNSAFE",
+    `safe=${felineResult.safe}`,
+  );
+  assert(
+    canineResult.safe,
+    "[uncooked egg white] canine firewall passes (feline-only concern)",
+    `safe=${canineResult.safe}`,
+  );
+}
+
+// ── 5f: Milk / dairy (feline lactose intolerance concern, absent from canine) ─
+console.log("\n  5f — Milk / dairy (feline-only caution)\n");
+
+{
+  const recipeText = "pour whole milk over kibble";
+  const felineResult = scanRecipeForFelineToxins(recipeText);
+  const canineResult = scanRecipeForToxins(recipeText);
+
+  assert(
+    !felineResult.safe,
+    "[whole milk] feline firewall flags as UNSAFE",
+    `safe=${felineResult.safe}`,
+  );
+  assert(
+    canineResult.safe,
+    "[whole milk] canine firewall passes (feline-only concern)",
+    `safe=${canineResult.safe}`,
+  );
+}
+
+{
+  const recipeText = "add heavy cream to sauce";
+  const felineResult = scanRecipeForFelineToxins(recipeText);
+  const canineResult = scanRecipeForToxins(recipeText);
+
+  assert(
+    !felineResult.safe,
+    "[heavy cream] feline firewall flags as UNSAFE",
+    `safe=${felineResult.safe}`,
+  );
+  assert(
+    canineResult.safe,
+    "[heavy cream] canine firewall passes (feline-only concern)",
+    `safe=${canineResult.safe}`,
+  );
+}
+
+// ── 5g: Dog food (nutritionally incomplete for cats) ─────────────────────────
+console.log("\n  5g — Dog food (feline-only toxin)\n");
+
+assertFelineOnly(
+  "mix in dog food as a base",
+  "dog food",
+  "dog food",
+);
+
+assertFelineOnly(
+  "supplement with canine formula",
+  "canine formula",
+  "canine formula",
+);
+
 // ── Summary ───────────────────────────────────────────────────────────────────
 console.log("\n══════════════════════════════════════════════════════════════");
 console.log(`  Results: ${passed} passed, ${failed} failed`);

@@ -693,6 +693,18 @@ Wellness goals: ${(profile.wellnessGoals as string[] || []).join(", ") || "gener
 
 Generate a recipe now.`;
 
+    // ── Pre-generation feline firewall assertion ──────────────────────────────
+    // Confirm the safety block was not accidentally stripped before sending
+    // anything to the AI. The Feline Toxic Ingredient Firewall layer MUST be
+    // present in the envelope for every cat recipe request.
+    if (petType === "cat" && !envelope.activeLayers.includes("Feline Toxic Ingredient Firewall")) {
+      console.error("[companion] Feline firewall layer missing from envelope — aborting generation. activeLayers:", envelope.activeLayers);
+      return res.status(422).json({
+        error: "Feline safety firewall is not active — recipe generation blocked for your cat's safety. Please try again or contact support.",
+        code: "FELINE_FIREWALL_MISSING",
+      });
+    }
+
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [

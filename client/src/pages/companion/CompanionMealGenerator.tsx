@@ -66,7 +66,7 @@ export default function CompanionMealGenerator() {
   const { open, setLastResponse } = useCopilot();
   const [profiles, setProfiles] = useState<DogProfile[]>([]);
   const [selectedProfileId, setSelectedProfileId] = useState(preselectedProfileId);
-  const [dogImages, setDogImages] = useState<string[]>([]);
+  const [petImages, setPetImages] = useState<string[]>([]);
   const [mealType, setMealType] = useState("main");
   const [specialRequest, setSpecialRequest] = useState("");
   const [generating, setGenerating] = useState(false);
@@ -96,10 +96,10 @@ export default function CompanionMealGenerator() {
   }, [preselectedProfileId, isCat]);
 
   // No per-pet photo pool — always use generic food images
-  useEffect(() => { setDogImages([]); }, [selectedProfileId]);
+  useEffect(() => { setPetImages([]); }, [selectedProfileId]);
 
   const selectedProfile = profiles.find((p) => p.id === selectedProfileId);
-  const heroImage = dogImages[0] || FALLBACK_HERO;
+  const heroImage = petImages[0] || FALLBACK_HERO;
 
   function handleCopilotOpen() {
     open();
@@ -162,7 +162,7 @@ export default function CompanionMealGenerator() {
   }
 
   const wellnessGoals = selectedProfile?.wellnessGoals ?? [];
-  const cardImage = meal ? getDogMealImage(dogImages, meal.id || meal.title) : FALLBACK_HERO;
+  const cardImage = meal ? getDogMealImage(petImages, meal.id || meal.title) : FALLBACK_HERO;
 
   return (
     <motion.div
@@ -189,9 +189,9 @@ export default function CompanionMealGenerator() {
             <ArrowLeft className="h-3 w-3" /> Back
           </PillButton>
         </div>
-        {/* Hero — uses dog's primary photo */}
+        {/* Hero */}
         <div className="relative h-36 rounded-xl overflow-hidden mb-5">
-          <img src={heroImage} alt={selectedProfile?.name || "Dog meal"} className="w-full h-full object-cover" />
+          <img src={heroImage} alt={selectedProfile?.name || `${speciesLabel} meal`} className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
           <div className="absolute bottom-3 left-4 right-4">
             <div className="flex items-center gap-2">
@@ -315,7 +315,7 @@ export default function CompanionMealGenerator() {
                 boxShadow: "0 8px 48px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)",
               }}
             >
-              {/* Card hero — uses dog's own image pool */}
+              {/* Card hero */}
               <div className="relative h-48">
                 <img src={cardImage} alt={meal.title} className="w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
