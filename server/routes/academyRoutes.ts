@@ -12,25 +12,8 @@ import { QUIZ_ANSWER_KEYS } from "../data/platformMasteryQuizKeys";
 const router = express.Router();
 
 const CERT_TYPE = "platform_mastery";
-const LESSON_IDS = [
-  "lesson-01",
-  "lesson-02",
-  "lesson-03",
-  "lesson-04",
-  "lesson-05",
-  "lesson-06",
-  "lesson-07",
-  "lesson-08",
-  "lesson-09",
-];
-
-// Returns the lesson that must be completed before accessing lessonId in cert mode.
-// null = no prerequisite (first lesson).
-function getPrerequisiteId(lessonId: string): string | null {
-  const idx = LESSON_IDS.indexOf(lessonId);
-  if (idx <= 0) return null;
-  return LESSON_IDS[idx - 1];
-}
+import { LESSON_IDS, getPrerequisiteId } from "./academyLessonIds";
+export { LESSON_IDS, getPrerequisiteId };
 
 // Helper: fetch enrollment + progress for a user
 async function getUserState(userId: string) {
