@@ -82,7 +82,7 @@ export default function CompanionMealGenerator() {
   }, []);
 
   useEffect(() => {
-    const typeParam = isCat ? "?type=cat" : "";
+    const typeParam = isCat ? "?type=cat" : "?type=dog";
     fetch(apiUrl(`/api/companion/profiles${typeParam}`), { headers: getAuthHeaders() })
       .then((r) => r.json())
       .then((d) => {
