@@ -172,6 +172,32 @@ function clearCravingCache() {
   } catch {}
 }
 
+// ---- Persist the three options so they survive navigation and selection ----
+const OPTIONS_CACHE_KEY = "cravingCreator.options.v1";
+
+function saveCravingOptionsCache(options: any[]) {
+  try {
+    localStorage.setItem(OPTIONS_CACHE_KEY, JSON.stringify(options));
+  } catch {}
+}
+
+function loadCravingOptionsCache(): any[] {
+  try {
+    const raw = localStorage.getItem(OPTIONS_CACHE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function clearCravingOptionsCache() {
+  try {
+    localStorage.removeItem(OPTIONS_CACHE_KEY);
+  } catch {}
+}
+
 // Utility to normalize macros shape from either meal.nutrition or top-level fields
 function getMealNutrition(meal: any) {
   const n = meal?.nutrition || {};
@@ -314,6 +340,12 @@ export default function CravingCreator() {
       }
     }
 
+    // Restore the three pending options so they survive navigation and selection.
+    const savedOptions = loadCravingOptionsCache();
+    if (savedOptions.length > 0) {
+      setMealOptions(savedOptions);
+    }
+
     // Emit ready event after page loads
     setTimeout(() => {
       const event = new CustomEvent("walkthrough:event", {
@@ -322,6 +354,15 @@ export default function CravingCreator() {
       window.dispatchEvent(event);
     }, 500);
   }, []); // Only run once on mount
+
+  // Persist the options list whenever it changes (non-empty → save; empty → clear).
+  useEffect(() => {
+    if (mealOptions.length > 0) {
+      saveCravingOptionsCache(mealOptions);
+    } else {
+      clearCravingOptionsCache();
+    }
+  }, [mealOptions]);
 
   // Auto-save whenever relevant state changes (so it's always fresh)
   useEffect(() => {
@@ -337,7 +378,8 @@ export default function CravingCreator() {
   }, [generatedMeals, cravingInput, servings]);
 
   const handleSelectMeal = (meal: any) => {
-    setMealOptions([]);
+    // Do NOT clear mealOptions here — the other choices stay visible
+    // until the user explicitly taps "Start over" or "Create New".
     addRecentMeal(meal.name);
     // Show card immediately — image hydrates in parallel
     setGeneratedMeals([meal]);
@@ -1101,6 +1143,7 @@ export default function CravingCreator() {
                         clearDietAlert();
                         setGeneratedMeals([]);
                         setMealOptions([]);
+                        clearCravingOptionsCache();
                         setCravingInput("");
                       } else if (decision === "let_chef_adapt") {
                         setDietDecision("let_chef_adapt");
@@ -1265,7 +1308,7 @@ export default function CravingCreator() {
                 </Card>
               ))}
               <button
-                onClick={() => { setMealOptions([]); setCravingInput(""); }}
+                onClick={() => { setMealOptions([]); clearCravingOptionsCache(); setCravingInput(""); }}
                 className="w-full text-sm text-white/50 hover:text-white/80 py-2 transition-colors"
               >
                 Start over with a different craving
@@ -1300,6 +1343,8 @@ export default function CravingCreator() {
                             onClick={() => {
                               setGeneratedMeals([]);
                               clearCravingCache();
+                              setMealOptions([]);
+                              clearCravingOptionsCache();
                               setCravingInput("");
                               setSubstitutedStarchTerms([]);
                               clearStarchAlert();
