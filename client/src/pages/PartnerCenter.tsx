@@ -70,7 +70,7 @@ export default function PartnerCenter() {
       {/* Tab content — padded to clear the two-row fixed header */}
       <div
         className="px-4 max-w-2xl mx-auto"
-        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 7.5rem)" }}
+        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
         {activeTab === "referral" && <ReferralTools />}
         {activeTab === "marketing" && <MonthlyMarketing />}
