@@ -419,6 +419,7 @@ import MyPerfectBuffetPage from "@/pages/MyPerfectBuffetPage";
 import FoundersPage from "@/pages/Founders";
 import CoachesComingSoon from "@/pages/CoachesComingSoon";
 import BusinessCenter from "@/pages/BusinessCenter";
+import { BusinessSuiteGate } from "@/components/BusinessSuiteGate";
 import BusinessCenterSection from "@/pages/BusinessCenterSection";
 import PartnerCenter from "@/pages/PartnerCenter";
 import AdminCampaignManager from "@/pages/admin/AdminCampaignManager";
@@ -975,8 +976,8 @@ export default function Router() {
         {/* Founders Route */}
         <Route path="/founders" component={FoundersPage} />
         <Route path="/coaches" component={CoachesComingSoon} />
-        {/* Business Center */}
-        <Route path="/business-center" component={BusinessCenter} />
+        {/* Business Center — Pro+ gate applied to every route */}
+        <Route path="/business-center" component={() => <BusinessSuiteGate><BusinessCenter /></BusinessSuiteGate>} />
         {/* LMS / Learning & Certification System */}
         <Route path="/learning" component={LearningHub} />
         <Route path="/certifications/updates" component={UpdatesInbox} />
@@ -987,29 +988,29 @@ export default function Router() {
         {/* Admin */}
         <Route path="/admin/certifications" component={() => <AdminGuard component={AdminCertifications} />} />
         {/* Affiliate Program — overview gates path selection */}
-        <Route path="/business-center/affiliate/dashboard" component={AffiliateDashboard} />
-        <Route path="/business-center/affiliate" component={AffiliateProgramOverview} />
-        <Route path="/business-center/affiliate/choose" component={AffiliateOpportunities} />
-        <Route path="/business-center/affiliate/social" component={AffiliatePathPage} />
-        <Route path="/business-center/affiliate/coaching" component={AffiliatePathPage} />
-        <Route path="/business-center/affiliate/:pathId/certification/complete" component={CertificationComplete} />
-        <Route path="/business-center/affiliate/:pathId/certification/view" component={CertificationCertificateView} />
-        <Route path="/business-center/affiliate/:pathId/certification/:moduleId/quiz" component={CertificationQuiz} />
-        <Route path="/business-center/affiliate/:pathId/certification/:moduleId" component={CertificationLesson} />
-        <Route path="/business-center/affiliate/:pathId/certification" component={CertificationDashboard} />
-        <Route path="/business-center/partners" component={PartnerProgramsHub} />
-        <Route path="/business-center/partners/manage" component={PartnerManagement} />
-        <Route path="/business-center/how-partnerships-work" component={HowPartnershipsWork} />
-        <Route path="/business-center/founding-partner" component={FoundingPartnerProgram} />
-        <Route path="/business-center/academy" component={AcademyLandingPage} />
+        <Route path="/business-center/affiliate/dashboard" component={() => <BusinessSuiteGate><AffiliateDashboard /></BusinessSuiteGate>} />
+        <Route path="/business-center/affiliate" component={() => <BusinessSuiteGate><AffiliateProgramOverview /></BusinessSuiteGate>} />
+        <Route path="/business-center/affiliate/choose" component={() => <BusinessSuiteGate><AffiliateOpportunities /></BusinessSuiteGate>} />
+        <Route path="/business-center/affiliate/social" component={() => <BusinessSuiteGate><AffiliatePathPage /></BusinessSuiteGate>} />
+        <Route path="/business-center/affiliate/coaching" component={() => <BusinessSuiteGate><AffiliatePathPage /></BusinessSuiteGate>} />
+        <Route path="/business-center/affiliate/:pathId/certification/complete" component={() => <BusinessSuiteGate><CertificationComplete /></BusinessSuiteGate>} />
+        <Route path="/business-center/affiliate/:pathId/certification/view" component={() => <BusinessSuiteGate><CertificationCertificateView /></BusinessSuiteGate>} />
+        <Route path="/business-center/affiliate/:pathId/certification/:moduleId/quiz" component={() => <BusinessSuiteGate><CertificationQuiz /></BusinessSuiteGate>} />
+        <Route path="/business-center/affiliate/:pathId/certification/:moduleId" component={() => <BusinessSuiteGate><CertificationLesson /></BusinessSuiteGate>} />
+        <Route path="/business-center/affiliate/:pathId/certification" component={() => <BusinessSuiteGate><CertificationDashboard /></BusinessSuiteGate>} />
+        <Route path="/business-center/partners" component={() => <BusinessSuiteGate><PartnerProgramsHub /></BusinessSuiteGate>} />
+        <Route path="/business-center/partners/manage" component={() => <BusinessSuiteGate><PartnerManagement /></BusinessSuiteGate>} />
+        <Route path="/business-center/how-partnerships-work" component={() => <BusinessSuiteGate><HowPartnershipsWork /></BusinessSuiteGate>} />
+        <Route path="/business-center/founding-partner" component={() => <BusinessSuiteGate><FoundingPartnerProgram /></BusinessSuiteGate>} />
+        <Route path="/business-center/academy" component={() => <BusinessSuiteGate><AcademyLandingPage /></BusinessSuiteGate>} />
         <Route path="/academy" component={AcademyHome} />
         <Route path="/academy/platform-mastery/lesson/:lessonId" component={LessonReader} />
         <Route path="/academy/platform-mastery" component={PlatformMasteryDashboard} />
-        <Route path="/business-center/industry" component={IndustryPartnerships} />
-        <Route path="/business-center/healthcare" component={PublicHealthcarePartnerships} />
-        <Route path="/business-center/white-label" component={WhiteLabelSolutions} />
-        <Route path="/business-center/partnerships" component={BusinessCenterSection} />
-        <Route path="/partner-center" component={PartnerCenter} />
+        <Route path="/business-center/industry" component={() => <BusinessSuiteGate><IndustryPartnerships /></BusinessSuiteGate>} />
+        <Route path="/business-center/healthcare" component={() => <BusinessSuiteGate><PublicHealthcarePartnerships /></BusinessSuiteGate>} />
+        <Route path="/business-center/white-label" component={() => <BusinessSuiteGate><WhiteLabelSolutions /></BusinessSuiteGate>} />
+        <Route path="/business-center/partnerships" component={() => <BusinessSuiteGate><BusinessCenterSection /></BusinessSuiteGate>} />
+        <Route path="/partner-center" component={() => <BusinessSuiteGate><PartnerCenter /></BusinessSuiteGate>} />
         <Route path="/admin/campaigns" component={() => <AdminGuard component={AdminCampaignManager} />} />
         {/* Public partner pages — no login required */}
         <Route path="/partners" component={PublicPartnersHub} />

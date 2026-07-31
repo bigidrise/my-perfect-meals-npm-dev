@@ -7,6 +7,7 @@ const config: Config = {
   moduleFileExtensions: ["ts", "tsx", "js", "json"],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/client/src/$1",
+    "^@shared/(.*)$": "<rootDir>/shared/$1",
   },
   setupFiles: ["<rootDir>/server/tests/testEnv.setup.ts"],
   verbose: true,
