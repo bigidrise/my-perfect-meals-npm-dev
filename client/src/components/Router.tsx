@@ -605,6 +605,10 @@ const GatedWhiteLabelSolutions = () => <BusinessSuiteGate><WhiteLabelSolutions /
 const GatedBusinessCenterSection = () => <BusinessSuiteGate><BusinessCenterSection /></BusinessSuiteGate>;
 const GatedPartnerCenter = () => <BusinessSuiteGate><PartnerCenter /></BusinessSuiteGate>;
 
+// Stable module-level wrappers for AdminGuard routes — must stay at module scope.
+const GuardedAdminCertifications = () => <AdminGuard component={AdminCertifications} />;
+const GuardedAdminCampaignManager = () => <AdminGuard component={AdminCampaignManager} />;
+
 export default function Router() {
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
@@ -1012,7 +1016,7 @@ export default function Router() {
         <Route path="/certifications/:certType/quiz/:slug" component={PlatformCertQuiz} />
         <Route path="/certifications/:certType" component={PlatformCertDashboard} />
         {/* Admin */}
-        <Route path="/admin/certifications" component={() => <AdminGuard component={AdminCertifications} />} />
+        <Route path="/admin/certifications" component={GuardedAdminCertifications} />
         {/* Affiliate Program — overview gates path selection */}
         <Route path="/business-center/affiliate/dashboard" component={GatedAffiliateDashboard} />
         <Route path="/business-center/affiliate" component={GatedAffiliateProgramOverview} />
@@ -1037,7 +1041,7 @@ export default function Router() {
         <Route path="/business-center/white-label" component={GatedWhiteLabelSolutions} />
         <Route path="/business-center/partnerships" component={GatedBusinessCenterSection} />
         <Route path="/partner-center" component={GatedPartnerCenter} />
-        <Route path="/admin/campaigns" component={() => <AdminGuard component={AdminCampaignManager} />} />
+        <Route path="/admin/campaigns" component={GuardedAdminCampaignManager} />
         {/* Public partner pages — no login required */}
         <Route path="/partners" component={PublicPartnersHub} />
         <Route path="/partners/founding" component={FoundingPartnerProgram} />
