@@ -3,6 +3,10 @@ import { useLocation } from "wouter";
 import {
   ArrowLeft,
   Award,
+  CheckCircle2,
+  ChevronRight,
+  Circle,
+  Clock,
   Loader2,
   X,
   GraduationCap,
@@ -21,6 +25,7 @@ const LESSONS = [
   { id: "lesson-06", num: 6, title: "Biometrics & Tracking", subtitle: "Logging progress and reading your data" },
   { id: "lesson-07", num: 7, title: "Specialized Health & Performance Systems", subtitle: "Clinical programs, performance nutrition, and the protocol hierarchy" },
   { id: "lesson-08", num: 8, title: "AI Adaptation & Transparency", subtitle: "What the AI knows, what it estimates, and your boundaries" },
+  { id: "lesson-09", num: 9, title: "Marketing & Brand Standards", subtitle: "Approved language, prohibited claims, social media rules, and referral tools" },
 ];
 
 interface AcademyStatus {
@@ -176,6 +181,83 @@ export default function PlatformMasteryDashboard() {
               {completedCount} of {LESSONS.length} lessons complete
             </p>
           )}
+        </div>
+
+        {/* Lesson rows */}
+        <div className="space-y-2">
+          {LESSONS.map((lesson, idx) => {
+            const lessonStatus = getLessonStatus(prog, lesson.id);
+            const isCompleted = lessonStatus === "completed";
+            const isInProgress = lessonStatus === "in_progress";
+
+            // A lesson is accessible if it's the first, or if the previous lesson is completed
+            const prevLesson = idx > 0 ? LESSONS[idx - 1] : null;
+            const prevCompleted = !prevLesson || getLessonStatus(prog, prevLesson.id) === "completed";
+            const isAccessible = prevCompleted || isCompleted || isInProgress;
+
+            return (
+              <motion.button
+                key={lesson.id}
+                className={`w-full text-left p-4 rounded-2xl border transition-colors ${
+                  isCompleted
+                    ? "bg-emerald-500/10 border-emerald-500/25"
+                    : isInProgress
+                    ? "bg-orange-500/10 border-orange-500/25"
+                    : isAccessible
+                    ? "bg-black/40 border-white/10 active:bg-white/5"
+                    : "bg-black/20 border-white/5 opacity-50 cursor-not-allowed"
+                }`}
+                onClick={() => {
+                  if (isAccessible) {
+                    setLocation(`/academy/platform-mastery/lesson/${lesson.id}`);
+                  }
+                }}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.04 }}
+              >
+                <div className="flex items-center gap-3">
+                  {/* Status icon */}
+                  <div className="flex-shrink-0">
+                    {loading ? (
+                      <div className="h-5 w-5 rounded-full bg-white/10 animate-pulse" />
+                    ) : isCompleted ? (
+                      <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+                    ) : isInProgress ? (
+                      <Clock className="h-5 w-5 text-orange-400" />
+                    ) : (
+                      <Circle className="h-5 w-5 text-white/25" />
+                    )}
+                  </div>
+
+                  {/* Lesson info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-white/35 uppercase tracking-widest">
+                        {lesson.num.toString().padStart(2, "0")}
+                      </span>
+                      {isInProgress && (
+                        <span className="text-[9px] font-bold text-orange-400 uppercase tracking-wide bg-orange-500/15 px-1.5 py-0.5 rounded-full">
+                          In Progress
+                        </span>
+                      )}
+                    </div>
+                    <p className={`text-sm font-semibold mt-0.5 ${isCompleted ? "text-emerald-300" : "text-white"}`}>
+                      {lesson.title}
+                    </p>
+                    <p className="text-xs text-white/40 mt-0.5 leading-snug">
+                      {lesson.subtitle}
+                    </p>
+                  </div>
+
+                  {/* Chevron */}
+                  {isAccessible && (
+                    <ChevronRight className="h-4 w-4 text-white/30 flex-shrink-0" />
+                  )}
+                </div>
+              </motion.button>
+            );
+          })}
         </div>
 
         {/* Claim certificate button — cert track only, all lessons done */}

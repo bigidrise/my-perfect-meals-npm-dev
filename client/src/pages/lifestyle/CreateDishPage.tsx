@@ -149,6 +149,34 @@ function clearDishCache() {
   } catch {}
 }
 
+// ---- Persist the three options so they survive navigation and selection ----
+// dishInput is intentionally NOT restored here — restoring it triggers the
+// starch-guard useEffect on mount (see GUARD comment above).
+const OPTIONS_KEY = "createDish.options.v1";
+
+function saveOptionsCache(options: any[]) {
+  try {
+    localStorage.setItem(OPTIONS_KEY, JSON.stringify(options));
+  } catch {}
+}
+
+function loadOptionsCache(): any[] {
+  try {
+    const raw = localStorage.getItem(OPTIONS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function clearOptionsCache() {
+  try {
+    localStorage.removeItem(OPTIONS_KEY);
+  } catch {}
+}
+
 function getMealNutrition(meal: any) {
   const n = meal?.nutrition || {};
   return {
@@ -320,6 +348,13 @@ export default function CreateDishPage() {
         hydrateImages([mealWithImage]);
       }
     }
+
+    // Restore the three pending options so they survive navigation and selection.
+    // dishInput is intentionally NOT restored here (starch-guard trigger risk).
+    const savedOptions = loadOptionsCache();
+    if (savedOptions.length > 0) {
+      setMealOptions(savedOptions);
+    }
   }, []);
 
   useEffect(() => {
@@ -332,8 +367,18 @@ export default function CreateDishPage() {
     }
   }, [generatedMeals, servings]);
 
+  // Persist the options list whenever it changes (non-empty → save; empty → clear).
+  useEffect(() => {
+    if (mealOptions.length > 0) {
+      saveOptionsCache(mealOptions);
+    } else {
+      clearOptionsCache();
+    }
+  }, [mealOptions]);
+
   const handleSelectMeal = async (meal: any) => {
-    setMealOptions([]);
+    // Do NOT clear mealOptions here — the other choices should stay visible
+    // until the user explicitly taps "Start over" or "Create New".
     addRecentMeal(meal.name);
     setIsPlatingMeal(true);
 
@@ -871,7 +916,8 @@ export default function CreateDishPage() {
             </div>
           )}
 
-          {!isPlatingMeal && mealOptions.length > 0 && (
+          {/* Initial picker — only shown before a meal has been selected */}
+          {!isPlatingMeal && mealOptions.length > 0 && generatedMeals.length === 0 && (
             <div className="mt-8 space-y-4" ref={mealOptionsRef}>
               <div className="flex items-center gap-3 mb-2">
                 <Sparkles className="h-5 w-5 text-orange-400" />
@@ -932,6 +978,7 @@ export default function CreateDishPage() {
               <button
                 onClick={() => {
                   setMealOptions([]);
+                  clearOptionsCache();
                   setDishInput("");
                 }}
                 className="w-full text-sm text-white/50 hover:text-white/80 py-2 transition-colors"
@@ -965,6 +1012,8 @@ export default function CreateDishPage() {
                               setGeneratedMeals([]);
                               setGeneratedInSession(false);
                               clearDishCache();
+                              setMealOptions([]);
+                              clearOptionsCache();
                               setDishInput("");
                               setSubstitutedStarchTerms([]);
                               clearStarchAlert();
@@ -1391,6 +1440,64 @@ export default function CreateDishPage() {
                   </Card>
                 </div>
               ))}
+
+              {/* Generated Alternatives — remaining unchosen options, shown below the selected meal */}
+              {!isPlatingMeal && mealOptions.filter((o) => o.name !== generatedMeals[0]?.name).length > 0 && (
+                <div className="mt-2 space-y-3">
+                  <div className="flex items-center gap-2 pt-4 border-t border-white/10">
+                    <Sparkles className="h-4 w-4 text-orange-400/60" />
+                    <h3 className="text-sm font-semibold text-white/60 uppercase tracking-wide">
+                      Generated Alternatives
+                    </h3>
+                  </div>
+                  {mealOptions
+                    .filter((o) => o.name !== generatedMeals[0]?.name)
+                    .map((option, idx) => (
+                      <Card
+                        key={idx}
+                        className="bg-black/25 backdrop-blur-lg border border-orange-400/10 shadow-md rounded-2xl"
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-white font-semibold text-sm mb-1 break-words">
+                                {option.name}
+                              </h4>
+                              <p className="text-white/60 text-xs mb-2 line-clamp-2">
+                                {option.description}
+                              </p>
+                              <div className="flex gap-3 text-xs text-white/50 flex-wrap">
+                                <span>
+                                  {option.nutrition?.calories ?? option.calories ?? "—"} cal
+                                </span>
+                                <span>
+                                  {option.nutrition?.protein ?? option.protein ?? "—"}g protein
+                                </span>
+                                {option.cookingTime && <span>{option.cookingTime}</span>}
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => handleSelectMeal(option)}
+                              className="shrink-0 bg-lime-700 active:scale-95 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition-all"
+                            >
+                              Pick This
+                            </button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  <button
+                    onClick={() => {
+                      setMealOptions([]);
+                      clearOptionsCache();
+                      setDishInput("");
+                    }}
+                    className="w-full text-xs text-white/40 hover:text-white/70 py-2 transition-colors"
+                  >
+                    Start over with a different dish
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -12,24 +12,8 @@ import { QUIZ_ANSWER_KEYS } from "../data/platformMasteryQuizKeys";
 const router = express.Router();
 
 const CERT_TYPE = "platform_mastery";
-const LESSON_IDS = [
-  "lesson-01",
-  "lesson-02",
-  "lesson-03",
-  "lesson-04",
-  "lesson-05",
-  "lesson-06",
-  "lesson-07",
-  "lesson-08",
-];
-
-// Returns the lesson that must be completed before accessing lessonId in cert mode.
-// null = no prerequisite (first lesson).
-function getPrerequisiteId(lessonId: string): string | null {
-  const idx = LESSON_IDS.indexOf(lessonId);
-  if (idx <= 0) return null;
-  return LESSON_IDS[idx - 1];
-}
+import { LESSON_IDS, getPrerequisiteId } from "./academyLessonIds";
+export { LESSON_IDS, getPrerequisiteId };
 
 // Helper: fetch enrollment + progress for a user
 async function getUserState(userId: string) {
@@ -145,7 +129,9 @@ router.post("/platform-mastery/enroll", requireAuth, async (req, res) => {
           userCertifications.certificationType,
         ],
         set: {
-          isCertificationTrack,
+          // Preserve isCertificationTrack when status is already completed so
+          // re-enrolling in Learning Mode doesn't strip a certified user's cert track flag.
+          isCertificationTrack: sql`CASE WHEN ${userCertifications.status} = 'completed' THEN ${userCertifications.isCertificationTrack} ELSE ${isCertificationTrack} END`,
           status: sql`CASE WHEN ${userCertifications.status} = 'completed' THEN 'completed' ELSE 'in_progress' END`,
         },
       });
@@ -395,7 +381,16 @@ router.post("/platform-mastery/complete", requireAuth, async (req, res) => {
       });
     }
 
-    // All 6 base lessons must be completed for everyone
+    // Already certified — short-circuit so new lessons added after the fact
+    // never re-block an existing certificate holder.
+    if (enrollmentRecord.status === "completed" && enrollmentRecord.certificateNumber) {
+      return res.json({
+        ok: true,
+        certificateNumber: enrollmentRecord.certificateNumber,
+      });
+    }
+
+    // All base lessons must be completed for everyone
     const allLessonsDone = LESSON_IDS.every(
       (id) => progressMap.get(id)?.status === "completed"
     );

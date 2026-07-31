@@ -25,10 +25,11 @@ const PLATFORM_MASTERY_LESSONS = [
   { num: 6, title: "Biometrics & Tracking", subtitle: "Logging progress and reading your data" },
   { num: 7, title: "Specialized Health & Performance Systems", subtitle: "Clinical programs, performance nutrition, and the protocol hierarchy" },
   { num: 8, title: "AI Adaptation & Transparency", subtitle: "What the AI knows, what it estimates, and your boundaries" },
+  { num: 9, title: "Marketing & Brand Standards", subtitle: "Approved language, prohibited claims, social media rules, and referral tools" },
 ];
 
 const BECOME_CERTIFIED = [
-  { icon: "🎓", label: "Platform Mastery", desc: "8 modules · Workflow exercises · Quiz", route: "/academy/platform-mastery/lesson/lesson-01" },
+  { icon: "🎓", label: "Platform Mastery", desc: "9 modules · Workflow exercises · Quiz", route: "/academy/platform-mastery/lesson/lesson-01" },
   { icon: "📈", label: "Marketing & Coaching", desc: "5 lessons · Coaching philosophy · Quiz", route: "/business-center/affiliate/coaching/certification" },
   { icon: "🩺", label: "ProCare Certification", desc: "3 training videos · Final assessment", route: null },
 ];
@@ -169,7 +170,7 @@ export default function AcademyHome() {
               ) : (
                 <div className="px-2.5 py-1 rounded-full bg-orange-500/20 border border-orange-500/30 flex-shrink-0">
                   <span className="text-orange-300 text-xs font-semibold">
-                    {isCertified ? "Certified" : `${completedLessons}/8 modules`}
+                    {isCertified ? "Certified" : `${completedLessons}/${PLATFORM_MASTERY_LESSONS.length} modules`}
                   </span>
                 </div>
               )}

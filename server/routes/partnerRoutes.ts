@@ -121,11 +121,15 @@ router.patch("/admin/records/:userId", requireAuth, requireAdmin, async (req, re
     const updates: Record<string, unknown> = { updatedAt: new Date() };
     const timestampFields = ["acceptedAt","rewardfulCreatedAt","promoCodeAssignedAt","orgActivatedAt",
       "managedPayoutsAt","marketingKitReadyAt","campaignActiveAt"];
+    const VALID_BRANDING_MODES = ["standard", "co-branded", "white-label"];
+    if ("brandingMode" in req.body && !VALID_BRANDING_MODES.includes(req.body.brandingMode)) {
+      return res.status(400).json({ error: "Invalid brandingMode. Must be standard, co-branded, or white-label." });
+    }
     const allowed = ["partnerName","partnerTypes","promoCode","promoCodeSecondary","customerDiscount",
       "discountDurationMonths","commissionRate","commissionMonths","commissionPendingDays",
       "minimumPayoutCents","cookieDurationDays","stripePromotionCodeId","rewardfulAffiliateId",
       "referralCampaignName","managedPayoutsStatus","partnerTier","contactName",
-      "status","notes","adminNote", ...timestampFields];
+      "brandingMode","status","notes","adminNote", ...timestampFields];
     for (const key of allowed) {
       if (key in req.body) {
         updates[key] = timestampFields.includes(key) ? (req.body[key] ? new Date(req.body[key]) : null) : req.body[key];
