@@ -2,6 +2,7 @@ import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from 
 import { Switch, Route, useLocation } from "wouter";
 import { BUILDER_MAP, type BuilderKey } from "@/lib/builderMap";
 import GeneralNutritionBuilder from "@/pages/pro/GeneralNutritionBuilder";
+import GeneralNutritionBuilderEntry from "@/pages/pro/GeneralNutritionBuilderEntry";
 import ScrollRestorer from "@/components/ScrollRestorer";
 import BottomNav from "@/components/BottomNav";
 import { withPageErrorBoundary } from "@/components/PageErrorBoundary";
@@ -543,6 +544,7 @@ const GuardedWeeklyMealBoard = () => <BuilderAccessGuard builderKey="weekly" com
 const GuardedShoppingList = () => <PaywallGuard component={SafeShoppingList} />;
 const GuardedBeachBodyBuilder = () => <BuilderAccessGuard builderKey="beach_body" component={BeachBodyMealBoard} />;
 const GuardedAntiInflammatoryBuilder = () => <BuilderAccessGuard builderKey="anti_inflammatory" component={SafeAntiInflammatoryMenuBuilder} />;
+const GuardedGeneralNutritionBuilderEntry = () => <BuilderAccessGuard builderKey="general_nutrition" component={GeneralNutritionBuilderEntry} />;
 const GuardedGeneralNutritionBuilder = () => <BuilderAccessGuard builderKey="general_nutrition" component={GeneralNutritionBuilder} />;
 const GuardedPerformanceBuilder = () => <ClinicalGuard component={PerformanceCompetitionBuilderStandalone} />;
 const GuardedPerformanceHub = () => <ClinicalGuard component={PerformanceNutritionHub} />;
@@ -671,6 +673,7 @@ export default function Router() {
 
   const isInPersonalBuilder =
     location === "/pro/general-nutrition-builder" ||
+    location === "/pro/general-nutrition-builder/build" ||
     location === "/performance-competition-builder";
 
   const isInClinicWorkspace =
@@ -973,6 +976,10 @@ export default function Router() {
         />
         <Route
           path="/pro/general-nutrition-builder"
+          component={GuardedGeneralNutritionBuilderEntry}
+        />
+        <Route
+          path="/pro/general-nutrition-builder/build"
           component={GuardedGeneralNutritionBuilder}
         />
         <Route
