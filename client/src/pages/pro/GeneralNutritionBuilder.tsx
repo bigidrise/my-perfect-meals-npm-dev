@@ -48,7 +48,7 @@ import {
 } from "@/utils/midnight";
 import { getRolling14Days } from "@/utils/dateRange";
 import { useQueryClient } from "@tanstack/react-query";
-import { Check, Sparkles, BarChart3, ShoppingCart, X, Calendar, Lock, Save } from "lucide-react";
+import { Check, Sparkles, BarChart3, ShoppingCart, X, Calendar, Lock, Save, Dumbbell } from "lucide-react";
 import { FEATURES } from "@/utils/features";
 import { DayChips } from "@/components/DayChips";
 import { DailyStarchIndicator } from "@/components/DailyStarchIndicator";
@@ -65,7 +65,8 @@ import { setActiveBuilderNs } from "@/lib/activeBuilderNs";
 // CHICAGO CALENDAR FIX v1.0: getMondayISO replaced with getWeekStartISOInTZ from midnight.ts
 import { v4 as uuidv4 } from "uuid";
 import { CreateWithChefModal } from "@/components/CreateWithChefModal";
-import { useBaselineNutrition } from "@/hooks/useBaselineNutrition";
+import { useBaselineNutrition, usePerformanceNutrition } from "@/hooks/useBaselineNutrition";
+import { TrainingNutritionScheduleModal } from "@/components/TrainingNutritionScheduleModal";
 import { classifyMeal } from "@/utils/starchMealClassifier";
 import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
 import { InformationModal } from "@/components/ui/universal-modal";
@@ -113,8 +114,14 @@ export default function WeeklyMealBoard() {
   const isProCareMode = !!params?.id;
   const effectiveUserId = proClientId || user?.id;
 
-  // Resolve nutrition ONCE. Presentation components receive it as props.
-  const nutritionTargets = useBaselineNutrition(effectiveUserId);
+  // Resolve nutrition ONCE. Use performance-aware resolver so Training Nutrition
+  // Schedule adjustments are reflected when the user has saved a schedule.
+  // Falls through to baseline (MacroCalc / Pro) when no schedule is active —
+  // identical behavior to useBaselineNutrition for users without a schedule.
+  const nutritionTargets = usePerformanceNutrition(effectiveUserId);
+
+  // Training Nutrition Schedule modal state
+  const [trainingScheduleOpen, setTrainingScheduleOpen] = React.useState(false);
 
   // 🎯 BULLETPROOF BOARD LOADING: Cache-first, guaranteed to render
   // CHICAGO CALENDAR FIX v1.0: Using noon UTC anchor pattern
@@ -1089,6 +1096,34 @@ export default function WeeklyMealBoard() {
           ))
         )}
 
+        {/* Training Nutrition Schedule entry point */}
+        <div className="col-span-full">
+          <button
+            onClick={() => setTrainingScheduleOpen(true)}
+            className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl border border-white/10 bg-white/5 hover:bg-orange-600/10 hover:border-orange-500/30 transition-colors text-left group"
+          >
+            <div className="w-9 h-9 rounded-xl bg-orange-600/20 border border-orange-500/30 flex items-center justify-center flex-shrink-0">
+              <Dumbbell className="w-4 h-4 text-orange-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-white text-sm font-semibold leading-tight">Training Nutrition Schedule</p>
+              <p className="text-white/40 text-xs mt-0.5 leading-relaxed">
+                {user?.weeklyTrainingSchedule
+                  ? "Schedule active — macros adjusting by training day"
+                  : "Adjust daily macros based on your training schedule"}
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              {user?.weeklyTrainingSchedule && (
+                <span className="text-xs font-semibold text-orange-400 bg-orange-600/20 border border-orange-500/20 px-2 py-0.5 rounded-full">
+                  Active
+                </span>
+              )}
+              <span className="text-white/30 text-sm group-hover:text-white/60 transition-colors">›</span>
+            </div>
+          </button>
+        </div>
+
         {/* Pro Tip Card */}
         <ProTipCard />
 
@@ -1389,6 +1424,12 @@ export default function WeeklyMealBoard() {
         title="General Nutrition Builder"
         steps={GENERAL_NUTRITION_TOUR_STEPS}
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
+      />
+
+      {/* Training Nutrition Schedule Modal */}
+      <TrainingNutritionScheduleModal
+        open={trainingScheduleOpen}
+        onOpenChange={setTrainingScheduleOpen}
       />
       </div>
     </motion.div>
