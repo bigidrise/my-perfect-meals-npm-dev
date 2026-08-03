@@ -1,3 +1,5 @@
+import { PAID_PLAN_KEYS } from "../../shared/planFeatures";
+
 export type AccessTier = "PAID_FULL" | "FREE";
 
 interface UserForAccess {
@@ -7,40 +9,10 @@ interface UserForAccess {
   isSandbox?: boolean | null;
 }
 
-const PAID_PLAN_KEYS = [
-  // Legacy / _monthly-suffixed keys (kept for backward compatibility)
-  "mpm_basic_monthly",
-  "mpm_upgrade_monthly",
-  "mpm_upgrade_beta_monthly",
-  "mpm_ultimate_monthly",
-  "mpm_family_base_monthly",
-  "mpm_family_premium",
-  "mpm_family_all_upgrade_monthly",
-  "mpm_family_all_premium_monthly",
-  "mpm_family_all_ultimate_monthly",
-  "mpm_procare_monthly",
-  "mpm_basic_plan_999",
-  "mpm_premium_plan_1999",
-  "mpm_ultimate_plan_2999",
-  // Frontend short keys — written to DB by checkout.session.completed webhook via metadata.sku
-  "mpm_basic",
-  "mpm_premium",
-  "mpm_ultimate",
-  "mpm_family_base",
-  "mpm_family_ultimate",
-  "mpm_trainer_5",
-  "mpm_trainer_10",
-  "mpm_trainer_25",
-  "mpm_trainer_50",
-  "mpm_physician_50",
-  "mpm_physician_150",
-  "mpm_guidance",
-  // Internal / contributor / special-access keys — never expire
-  "mpm_contributor",
-  "mpm_special_access",
-  // Clinical Business — org-sponsored seat (same clinical tier as ultimate)
-  "clinical_business_monthly",
-];
+// PAID_PLAN_KEYS is now the single source of truth: it lives in shared/planFeatures.ts
+// and is derived from LOOKUP_KEY_TO_TIER. Adding a key to LOOKUP_KEY_TO_TIER with a
+// non-free tier automatically grants server-side PAID_FULL access — no separate list
+// to maintain here.
 
 // BILLING_ENFORCED=true in env means real paywalls are live.
 // While false (or unset), everyone gets PAID_FULL (pre-launch mode).
@@ -59,7 +31,7 @@ export function resolveAccessTier(user: UserForAccess, now: Date = new Date()): 
   if (user.isFounder) return "PAID_FULL";
 
   // Tier 2: Active paid subscription
-  if (user.planLookupKey && PAID_PLAN_KEYS.includes(user.planLookupKey)) {
+  if (user.planLookupKey && PAID_PLAN_KEYS.has(user.planLookupKey)) {
     return "PAID_FULL";
   }
 
