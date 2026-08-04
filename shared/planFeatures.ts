@@ -87,6 +87,7 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
       "Find Meals Near Me",
       "My Perfect Gatherings — AI meal planning for holidays, parties, camping, date nights, tailgates, and special occasions.",
       "My Perfect Pets — AI-generated nutrition and meal plans for your pets",
+      "My Perfect Beginning — age-appropriate nutrition guidance and meal support for children from infancy through the early years.",
       "Grocery Store Coach — AI grocery advisor personalized to your full nutrition protocol",
       "Athlete Beverage Creator — performance drinks calibrated to your training phase, sport, and recovery goals.",
       "My Perfect Getaway™ — stay on track anywhere: theme parks, airports, resorts, and cruises with venue-specific, protocol-aware dining recommendations.",
