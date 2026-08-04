@@ -11,6 +11,7 @@ export default function DiabeticTrainingPage() {
   return (
     <TrainingNutritionHub
       pageTitle="Training Nutrition Schedule"
+      continueLabel="Launch Diabetic Menu Builder"
       continueTo="/diabetic-menu-builder"
       returnTo="/diabetic-hub"
     />
