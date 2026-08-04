@@ -899,11 +899,25 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
         <div className="px-4 pt-4 max-w-xl mx-auto flex justify-end">
           <button
             onClick={() => setLocation(setupPath)}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-orange-600 text-white text-sm font-semibold shadow-md"
+            className="relative flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-bold overflow-hidden group"
+            style={{ background: "linear-gradient(135deg, #ea580c, #f97316, #fb923c, #ea580c)", backgroundSize: "300% 300%", animation: "gradientShift 3s ease infinite" }}
           >
-            <Settings className="w-4 h-4" />
-            Update Setup
+            {/* Animated glow ring */}
+            <span className="absolute inset-0 rounded-xl opacity-60 blur-sm group-hover:opacity-90 transition-opacity duration-300" style={{ background: "linear-gradient(135deg, #ea580c, #f97316)", animation: "pulse 2s ease-in-out infinite" }} />
+            {/* Shimmer sweep */}
+            <span className="absolute inset-0 rounded-xl overflow-hidden">
+              <span className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12" />
+            </span>
+            <Settings className="relative w-4 h-4 drop-shadow" />
+            <span className="relative drop-shadow">Update Setup</span>
           </button>
+          <style>{`
+            @keyframes gradientShift {
+              0%   { background-position: 0% 50%; }
+              50%  { background-position: 100% 50%; }
+              100% { background-position: 0% 50%; }
+            }
+          `}</style>
         </div>
       )}
 
