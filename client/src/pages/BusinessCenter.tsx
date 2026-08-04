@@ -11,7 +11,7 @@ import {
   CheckCircle2,
   Circle,
   Loader2,
-  Megaphone,
+
   Salad,
   X,
 } from "lucide-react";
@@ -57,17 +57,6 @@ const PROFESSIONAL_CERTS: {
 ];
 
 const pillars = [
-  {
-    id: "partner-center",
-    title: "Partner Center",
-    description:
-      "Your referral link, promo code, QR code, monthly marketing downloads, and messaging guidelines — all in one place.",
-    icon: Megaphone,
-    route: "/partner-center",
-    accent: "bg-orange-500/20",
-    iconColor: "text-orange-400",
-    border: "border-orange-500/20",
-  },
   {
     id: "partners",
     title: "Partner Programs",
