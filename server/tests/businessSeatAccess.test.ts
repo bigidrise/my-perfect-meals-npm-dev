@@ -905,7 +905,189 @@ describe("businessRoutes.ts — POST /invite pending-invite guard regression", (
   });
 });
 
-// ── 11. requireProAccess middleware source structure ──────────────────────────
+// ── 11. POST /invite — cross-business isolation of the active-member guard ────
+/**
+ * Confirms that the active-member guard in POST /invite is scoped to the
+ * CURRENT business only.  A user who is an active member of Business A must
+ * still be invite-able by Business B when their row in Business B is either
+ * absent or has status="removed".
+ *
+ * This is INTENTIONAL behaviour: cross-business membership is independent.
+ * The guard must match on (businessId, userId, status="active") — a global
+ * active-membership check would incorrectly block the invite.
+ *
+ * Simulation model
+ * ────────────────
+ * We extend the invite guard simulation to carry explicit businessId context.
+ * The "activeMemberLookup" result is always scoped to the inviting business;
+ * cross-business rows are invisible to the guard.
+ */
+
+interface CrossBusinessMemberRow {
+  businessId: string;
+  userId: string;
+  status: "active" | "removed" | "invited";
+}
+
+/**
+ * Mirrors the real guard's businessId-scoped query:
+ *
+ *   SELECT * FROM business_members
+ *   WHERE business_id = $invitingBusinessId
+ *     AND user_id     = $targetUserId
+ *     AND status      = 'active'
+ *   LIMIT 1
+ *
+ * Only the inviting business's rows are consulted — rows belonging to other
+ * businesses are completely ignored.
+ */
+function simulateCrossBusinessInviteGuard(
+  invitingBusinessId: string,
+  targetUserId: string,
+  allMemberRows: CrossBusinessMemberRow[],
+): { blocked: true; reason: "ALREADY_ACTIVE_MEMBER" } | { blocked: false } {
+  // Scope the lookup to (invitingBusinessId, targetUserId, active) exactly
+  const activeInThisBusiness = allMemberRows.find(
+    (row) =>
+      row.businessId === invitingBusinessId &&
+      row.userId === targetUserId &&
+      row.status === "active",
+  );
+  if (activeInThisBusiness) {
+    return { blocked: true, reason: "ALREADY_ACTIVE_MEMBER" };
+  }
+  return { blocked: false };
+}
+
+describe("POST /api/business/invite — cross-business isolation of active-member guard", () => {
+  const BUSINESS_A = "biz-aaa-001";
+  const BUSINESS_B = "biz-bbb-002";
+  const TARGET_USER = "user-target-xyz";
+
+  // ── Guard must fire for same-business active row ───────────────────────────
+  it("blocks when the user has an active row in the INVITING business", () => {
+    const rows: CrossBusinessMemberRow[] = [
+      { businessId: BUSINESS_A, userId: TARGET_USER, status: "active" },
+    ];
+    const result = simulateCrossBusinessInviteGuard(BUSINESS_A, TARGET_USER, rows);
+    expect(result.blocked).toBe(true);
+    expect((result as any).reason).toBe("ALREADY_ACTIVE_MEMBER");
+  });
+
+  // ── Cross-business active row must NOT block the invite ───────────────────
+  it("does NOT block when the user is active in Business A but has no row in Business B", () => {
+    // User is active in Business A only — Business B sees no membership row
+    const rows: CrossBusinessMemberRow[] = [
+      { businessId: BUSINESS_A, userId: TARGET_USER, status: "active" },
+    ];
+    // Business B is inviting → guard must not fire
+    const result = simulateCrossBusinessInviteGuard(BUSINESS_B, TARGET_USER, rows);
+    expect(result.blocked).toBe(false);
+  });
+
+  it("does NOT block when user is active in Business A but removed in Business B", () => {
+    // This is the core cross-business scenario:
+    //   - Business A: active (joined, never removed)
+    //   - Business B: removed (was previously a member, then removed)
+    // Business B wants to re-invite — the guard must pass.
+    const rows: CrossBusinessMemberRow[] = [
+      { businessId: BUSINESS_A, userId: TARGET_USER, status: "active" },
+      { businessId: BUSINESS_B, userId: TARGET_USER, status: "removed" },
+    ];
+    const result = simulateCrossBusinessInviteGuard(BUSINESS_B, TARGET_USER, rows);
+    expect(result.blocked).toBe(false);
+  });
+
+  it("does NOT block when user is active in multiple OTHER businesses but not in the inviting one", () => {
+    const BUSINESS_C = "biz-ccc-003";
+    const BUSINESS_D = "biz-ddd-004";
+    const rows: CrossBusinessMemberRow[] = [
+      { businessId: BUSINESS_A, userId: TARGET_USER, status: "active" },
+      { businessId: BUSINESS_C, userId: TARGET_USER, status: "active" },
+      { businessId: BUSINESS_D, userId: TARGET_USER, status: "active" },
+    ];
+    // Business B (none of A/C/D) is inviting
+    const result = simulateCrossBusinessInviteGuard(BUSINESS_B, TARGET_USER, rows);
+    expect(result.blocked).toBe(false);
+  });
+
+  it("blocks only the business whose own active row matches — not bystander businesses", () => {
+    // Business A and Business B each have their own active row for the same user.
+    // Inviting from Business B should be blocked; inviting from a hypothetical
+    // Business C (no row) should pass.
+    const BUSINESS_C = "biz-ccc-003";
+    const rows: CrossBusinessMemberRow[] = [
+      { businessId: BUSINESS_A, userId: TARGET_USER, status: "active" },
+      { businessId: BUSINESS_B, userId: TARGET_USER, status: "active" },
+    ];
+
+    const fromA = simulateCrossBusinessInviteGuard(BUSINESS_A, TARGET_USER, rows);
+    const fromB = simulateCrossBusinessInviteGuard(BUSINESS_B, TARGET_USER, rows);
+    const fromC = simulateCrossBusinessInviteGuard(BUSINESS_C, TARGET_USER, rows);
+
+    expect(fromA.blocked).toBe(true);  // blocked — has active row in A
+    expect(fromB.blocked).toBe(true);  // blocked — has active row in B
+    expect(fromC.blocked).toBe(false); // passes — no row in C at all
+  });
+
+  it("removed row in the inviting business allows re-invite regardless of other businesses", () => {
+    // User was removed from Business B. They are active elsewhere.
+    // Business B can re-invite them.
+    const rows: CrossBusinessMemberRow[] = [
+      { businessId: BUSINESS_A, userId: TARGET_USER, status: "active" },
+      { businessId: BUSINESS_B, userId: TARGET_USER, status: "removed" },
+    ];
+    const result = simulateCrossBusinessInviteGuard(BUSINESS_B, TARGET_USER, rows);
+    expect(result.blocked).toBe(false);
+  });
+});
+
+// ── 11b. Source-scan: businessId is in the invite guard WHERE clause ──────────
+/**
+ * Confirms that the WHERE clause in the active-member guard inside
+ * POST /invite includes businessMembers.businessId, preventing the guard
+ * from accidentally widening to a global membership check in the future.
+ */
+describe("businessRoutes.ts — invite guard WHERE clause includes businessId (cross-business regression)", () => {
+  const routeFilePath = path.resolve(__dirname, "../routes/businessRoutes.ts");
+  let inviteHandlerSlice: string;
+
+  beforeAll(() => {
+    const source = fs.readFileSync(routeFilePath, "utf-8");
+    const inviteStart = source.indexOf('router.post("/invite"');
+    const afterInvite = source.slice(inviteStart);
+    const nextSectionMatch = afterInvite.match(/\n\/\/ ──/);
+    inviteHandlerSlice = nextSectionMatch
+      ? afterInvite.slice(0, nextSectionMatch.index!)
+      : afterInvite.slice(0, 4000);
+  });
+
+  it("active-member guard WHERE clause references businessMembers.businessId", () => {
+    // The guard query must be scoped to the current business.
+    // A global query (without businessId) would block cross-business re-invites.
+    expect(inviteHandlerSlice).toContain("businessMembers.businessId");
+  });
+
+  it("active-member guard WHERE clause references businessMembers.userId", () => {
+    expect(inviteHandlerSlice).toContain("businessMembers.userId");
+  });
+
+  it("active-member guard WHERE clause references status active", () => {
+    // The status filter ensures removed members do not block re-invites.
+    expect(inviteHandlerSlice).toContain('"active"');
+  });
+
+  it("businessMembers.businessId appears before businessMembers.userId in the guard (AND order)", () => {
+    // businessId should narrow the scan first (index-aligned with the FK) before userId.
+    const bizIdIdx = inviteHandlerSlice.indexOf("businessMembers.businessId");
+    const userIdIdx = inviteHandlerSlice.indexOf("businessMembers.userId");
+    expect(bizIdIdx).toBeGreaterThan(-1);
+    expect(userIdIdx).toBeGreaterThan(-1);
+    expect(bizIdIdx).toBeLessThan(userIdIdx);
+  });
+});
+
+// ── 12. requireProAccess middleware source structure ──────────────────────────
 
 describe("requireProAccess.ts — middleware structure regression", () => {
   const middlewareFilePath = path.resolve(__dirname, "../middleware/requireProAccess.ts");
