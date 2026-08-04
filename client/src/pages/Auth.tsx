@@ -41,14 +41,8 @@ export default function Auth() {
     const isBusinessUser = fullUser?.professionalRole === "business";
 
     if (isBusinessUser) {
-      // Business accounts require a paid Pro subscription to access Business Center.
-      // If they don't have one yet, send them to the Pro checkout with a return path.
-      if (isProOrAbove(fullUser)) {
-        setLocation("/business-center");
-      } else {
-        sessionStorage.setItem("mpm_business_return", "/business-center");
-        setLocation("/pricing?plan=mpm_premium_monthly");
-      }
+      // Business accounts land in Business Center — browsing is free, actions require Pro
+      setLocation("/business-center");
     } else if (isProfessional && mode === "login") {
       localStorage.removeItem("mpm_workspace_preference");
       setShowWorkspaceChooser(true);

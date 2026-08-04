@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { BC_HEADER } from "@/components/BusinessCenterShell";
 import { useLocation } from "wouter";
+import { ProActionLock } from "@/components/ProActionLock";
 import {
   ArrowLeft, DollarSign, Clock, TrendingUp, Users, ShieldCheck,
   ChevronRight, CheckCircle2, XCircle, Stethoscope, Briefcase, Calculator,
@@ -562,6 +563,8 @@ export default function AffiliateProgramOverview() {
         </Section>
 
         {/* Bottom CTA — acknowledgments for new users, quick action for returning */}
+        {/* These are operational actions — require Pro subscription */}
+        <ProActionLock feature="activate your partner account and begin the certification">
         {!hasStartedJourney ? (
           <>
             {/* Acknowledgment gate — new users only */}
@@ -660,6 +663,7 @@ export default function AffiliateProgramOverview() {
             )}
           </motion.div>
         )}
+        </ProActionLock>
       </div>
     </motion.div>
   );

@@ -12,6 +12,7 @@ import {
   Video,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { ProActionLock } from "@/components/ProActionLock";
 
 interface Asset {
   id: string;
@@ -294,6 +295,7 @@ export default function MonthlyMarketing() {
   const previous = campaigns.filter((c) => c.monthKey < thisMonth);
 
   return (
+    <ProActionLock feature="download and copy your monthly marketing assets">
     <div className="space-y-5">
       <p className="text-xs text-white/40 text-center leading-relaxed">
         Download assets and copy for your marketing materials. Only campaigns approved for your
@@ -331,5 +333,6 @@ export default function MonthlyMarketing() {
         </div>
       )}
     </div>
+    </ProActionLock>
   );
 }
