@@ -7410,6 +7410,9 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   const { default: getawayRouterShared } = await import("./routes/getaway");
   app.use("/api/getaway", requireAuth, requireProAccess, getawayRouterShared);
 
+  const { default: myPerfectBeginningRouter } = await import("./routes/my-perfect-beginning");
+  app.use("/api/my-perfect-beginning", requireAuth, myPerfectBeginningRouter);
+
   const { default: gatheringsRouterShared } = await import("./routes/gatherings");
   app.use("/api/gatherings", requireAuth, requireProAccess, gatheringsRouterShared);
 

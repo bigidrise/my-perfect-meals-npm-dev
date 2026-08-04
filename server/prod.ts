@@ -826,6 +826,10 @@ async function initializeApp() {
     const getawayRouter = (await import("./routes/getaway")).default;
     app.use("/api/getaway", requireAuth, getawayRouter);
 
+    // My Perfect Beginning — kid-friendly recipe generator
+    const myPerfectBeginningRouter = (await import("./routes/my-perfect-beginning")).default;
+    app.use("/api/my-perfect-beginning", requireAuth, myPerfectBeginningRouter);
+
     // My Perfect Pregnancy — trimester-aware nutrition coach
     const pregnancyCoachRouter = (await import("./routes/pregnancyCoach")).default;
     app.use("/api/pregnancy", requireAuth, pregnancyCoachRouter);

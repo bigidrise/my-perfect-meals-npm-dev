@@ -5,7 +5,6 @@ import {
   ChevronDown,
   ChevronRight,
   Plus,
-  X,
   Utensils,
   MessageCircle,
   User,
