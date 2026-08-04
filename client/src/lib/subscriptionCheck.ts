@@ -94,6 +94,18 @@ export function isActualProPlanOrAbove(user: UserForSubscriptionCheck | null | u
   return isProOrAbove(user);
 }
 
+/**
+ * isInTrial — returns true when the user has a trial window that has not yet expired
+ * and does NOT have an active paid subscription.
+ * trialEndsAt is an ISO string from the server.
+ */
+export function isInTrial(user: UserForSubscriptionCheck | null | undefined): boolean {
+  if (!user) return false;
+  if (hasActivePaidSubscription(user)) return false;
+  if (!user.trialEndsAt) return false;
+  return new Date(user.trialEndsAt) > new Date();
+}
+
 export function hasPaidPlan(user: UserForSubscriptionCheck | null | undefined): boolean {
   if (!user) return false;
   if (user.isFounder) return true;

@@ -51,65 +51,118 @@ export type AccessTier = "PAID_FULL" | "FREE";
 
 export interface User {
   id: string;
+
   email: string;
+
   name?: string;
+
   username?: string;
+
   entitlements?: string[];
+
   planLookupKey?: string | null;
+
   selectedMealBuilder?: MealBuilderType | null;
+
   isTester?: boolean;
+
   accessTier?: AccessTier;
+
   profilePhotoUrl?: string | null;
   // Role-based access control
+
   role?: UserRole;
+
   isProCare?: boolean;
+
   activeBoard?: MealBuilderType | null;
+
   builderSwitchUnlimited?: boolean;
   // Onboarding completion - CRITICAL for enforcing onboarding gate
+
   onboardingCompletedAt?: string | null;
   // Profile data from onboarding (used by Edit Profile)
+
   firstName?: string | null;
+
   lastName?: string | null;
+
   nickname?: string | null;
+
   age?: number | null;
+
   height?: number | null;
+
   weight?: number | null;
+
   activityLevel?: string | null;
+
   fitnessGoal?: string | null;
+
   allergies?: string[];
+
   dietaryRestrictions?: string[];
   // Onboarding V2 fields
+
   medicalConditions?: string[];
+
   healthConditions?: string[];
+
   preferredBuilder?: string | null;
+
   flavorPreference?: string | null;
+
   heatPreference?: string | null;
+
   sweetenerPreferences?: string[];
+
   palateSpiceTolerance?: string | null;
+
   palateSeasoningIntensity?: string | null;
+
   palateFlavorStyle?: string | null;
+
   avoidedFoods?: string[];
+
   hasAllergyPin?: boolean;
   // Macro targets (from DB — survive reinstall)
+
   dailyCalorieTarget?: number | null;
+
   dailyProteinTarget?: number | null;
+
   dailyCarbsTarget?: number | null;
+
   dailyFatTarget?: number | null;
   // Display preferences
+
   fontSizePreference?: "standard" | "large" | "xl";
+
   narrationSpeedPreference?: "0.75" | "1.0" | "1.25" | "1.5";
   // ProCare Professional fields
+
   professionalRole?: "trainer" | "physician" | null;
+
   professionalCategory?: "certified" | "experienced" | "non_certified" | null;
+
   credentialType?: string | null;
+
   credentialBody?: string | null;
+
   credentialNumber?: string | null;
+
   credentialYear?: string | null;
+
   attestationText?: string | null;
+
   procareEntryPath?: string | null;
+
   attestedAt?: string | null;
+
   procareTrainingCompleted?: boolean;
+
   phase2GateEnabled?: boolean;
+
   studioMembership?: {
     studioId: string;
     studioName: string | null;
@@ -118,71 +171,108 @@ export interface User {
     ownerUserId: string | null;
     status?: string;
     assignedBuilder?: string | null;
+
   } | null;
-  // Client goal fields
+
   goalType?: "lose" | "maintain" | "gain" | null;
+
   goalTarget?: string | null;
+
   goalTimelineWeeks?: number | null;
+
   goalStartDate?: string | null;
   // Professional availability fields
+
   availabilityStatus?: "available" | "busy" | "away" | "offline" | null;
+
   backAt?: string | null;
   // Oncology support onboarding intent (NOT a clinical protocol toggle)
+
   oncologySupportIntent?: "own_provider" | "request_support" | "self_directed" | null;
   // Self-selected specialty health protocol (edit profile page)
+
   specialtyCondition?: string | null;
+
   specialtyConditions?: string[];
   // Thyroid subtype — "hypothyroid" | "hyperthyroid" | "hashimotos"
+
   thyroidType?: "hypothyroid" | "hyperthyroid" | "hashimotos" | null;
   // Thyroid Support — medication name if disclosed (e.g. "Levothyroxine")
+
   thyroidMedication?: string | null;
   // Physician-set oncology context (Protocol Ownership Model)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   oncologySupportContext?: any | null;
   // Creator Studio
+
   activeSystem?: string | null;
+
   isCreator?: boolean;
+
   creatorDisplayName?: string | null;
   // Starch preferences — persisted via PATCH /api/prescription/starch-preferences
+
   defaultStarchMealsPerDay?: number | null;
+
   starchDistributionStrategy?: "even" | "workout" | "morning" | "evening" | "ai" | null;
   // Clinical Context Screening — self-reported medication/hormone gate
+
   clinicalContextResponse?: "yes" | "no" | "unsure" | null;
+
   clinicalContextCategories?: string[] | null;
   // Culture Intelligence
+
   cuisinePreference?: string | null;
+
   cuisineIntensity?: string | null;
   // Admin access
+
   isAdmin?: boolean;
   // International / Metric Support
+
   measurementSystem?: "imperial" | "metric";
+
   countryCode?: "US" | "CA" | "AU" | "UK" | "NZ";
   // Language Preference
+
   preferredLanguage?: string;
   // Pregnancy Support
+
   pregnancyStage?: string | null;
+
   pregnancyDueDate?: string | null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   pregnancySupportContext?: any | null;
   // Performance Nutrition Protocol
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   performanceContext?: any | null;
+
   competitionPrepContext?: any | null;
+
   activeProtocolTrack?: "athletic" | "competition" | null;
+
   weeklyTrainingSchedule?: any | null;
+
   performanceProtocolConfig?: any | null;
   // Multi-factor authentication
+
   mfaEnabled?: boolean;
-  // Trial period
+  // Trial access window
+
   trialEndsAt?: string | null;
   // Business sponsorship (populated from effectiveAccess per-request)
+
   sponsoredByBusinessId?: string | null;
+
   sponsoredByBusinessName?: string | null;
+
   recentlyRemovedFromBusiness?: {
     businessId: string;
     businessName: string;
     removedAt: string;
-  } | null;
 }
 
 export function getAuthToken(): string | null {
