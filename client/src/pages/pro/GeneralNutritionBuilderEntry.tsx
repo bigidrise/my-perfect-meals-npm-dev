@@ -14,7 +14,7 @@
 import React from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { ChevronRight, Dumbbell, CalendarDays, Check } from "lucide-react";
+import { ChevronRight, Dumbbell, CalendarDays, Utensils } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function GeneralNutritionBuilderEntry() {
@@ -53,13 +53,13 @@ export default function GeneralNutritionBuilderEntry() {
       >
         {/* Header */}
         <div className="mb-8">
-          <p className="text-white/40 text-xs font-semibold uppercase tracking-wider mb-2">
+          <p className="text-white text-xs font-semibold uppercase tracking-wider mb-2">
             Meal Builder
           </p>
           <h1 className="text-white font-bold text-2xl leading-tight mb-2">
             General Nutrition Builder
           </h1>
-          <p className="text-white/50 text-sm leading-relaxed">
+          <p className="text-white text-sm leading-relaxed">
             Build meals using your Nutrition Profile.
           </p>
         </div>
@@ -67,26 +67,29 @@ export default function GeneralNutritionBuilderEntry() {
         {/* Option 1: Continue */}
         <button
           onClick={() => setLocation("/general-nutrition-builder/build")}
-          className="w-full flex items-center gap-4 px-5 py-5 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors text-left mb-4 group"
+          className="w-full flex items-center gap-4 px-5 py-5 rounded-2xl border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/15 transition-colors text-left mb-4 group"
         >
+          <div className="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center flex-shrink-0">
+            <Utensils className="w-5 h-5 text-blue-400" />
+          </div>
           <div className="flex-1 min-w-0">
             <p className="text-white font-semibold text-base leading-tight mb-0.5">
               Continue to General Nutrition Builder
             </p>
-            <p className="text-white/40 text-sm leading-relaxed">
+            <p className="text-white text-sm leading-relaxed">
               Generate meals using your current Nutrition Profile and macro targets.
             </p>
           </div>
-          <ChevronRight className="w-5 h-5 text-white/30 group-hover:text-white/60 transition-colors flex-shrink-0" />
+          <ChevronRight className="w-5 h-5 text-blue-400/60 group-hover:text-blue-400 transition-colors flex-shrink-0" />
         </button>
 
-        {/* Divider */}
-        <div className="flex items-center gap-3 my-5">
-          <div className="flex-1 h-px bg-white/10" />
-          <span className="text-white/30 text-xs font-semibold uppercase tracking-wider">
-            Optional
-          </span>
-          <div className="flex-1 h-px bg-white/10" />
+        {/* Section Header */}
+        <div className="mt-6 mb-4">
+          <div className="h-px bg-white/10 mb-4" />
+          <p className="text-white font-semibold text-base mb-1">Train or work out regularly?</p>
+          <p className="text-white text-sm leading-relaxed">
+            Set up your Training Nutrition Schedule so your meals automatically adapt to your workout schedule while continuing to honor your nutrition goals and active nutrition protocols.
+          </p>
         </div>
 
         {/* Option 2: Training Nutrition Schedule */}
@@ -108,7 +111,7 @@ export default function GeneralNutritionBuilderEntry() {
                 </span>
               )}
             </div>
-            <p className="text-white/40 text-sm leading-relaxed mb-2">
+            <p className="text-white text-sm leading-relaxed mb-2">
               Automatically adjust your daily macro targets based on your weekly workout schedule.
             </p>
 
@@ -119,8 +122,8 @@ export default function GeneralNutritionBuilderEntry() {
                 <span className="text-orange-300 text-xs font-semibold">
                   Today: {todayLabel}
                 </span>
-                <span className="text-white/30 text-xs">·</span>
-                <span className="text-white/40 text-xs">Training adjustments active</span>
+                <span className="text-white/60 text-xs">·</span>
+                <span className="text-white text-xs">Training adjustments active</span>
               </div>
             )}
 
@@ -134,7 +137,7 @@ export default function GeneralNutritionBuilderEntry() {
         {/* Explainer — only shown when no schedule is active */}
         {!hasSchedule && (
           <div className="mt-4 px-4 py-3 rounded-xl bg-white/5 border border-white/10">
-            <p className="text-white/30 text-xs leading-relaxed">
+            <p className="text-white text-xs leading-relaxed">
               When configured, your macro targets automatically shift each day based on your training — more carbohydrates on power days, reduced targets on rest days. Your macro baseline always stays under your Macro Calculator.
             </p>
           </div>
