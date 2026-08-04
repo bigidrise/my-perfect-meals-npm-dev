@@ -34,7 +34,11 @@ function hasMacroProfile(user: any): boolean {
 }
 
 function isProfessional(user: any): boolean {
-  return user?.professionalRole === "trainer" || user?.professionalRole === "physician";
+  return (
+    user?.professionalRole === "trainer" ||
+    user?.professionalRole === "physician" ||
+    user?.professionalRole === "business"
+  );
 }
 
 export default function AppRouter({ children }: AppRouterProps) {
@@ -139,6 +143,12 @@ export default function AppRouter({ children }: AppRouterProps) {
 
       if (needsOnboarding === true) {
         setLocation("/onboarding");
+        return;
+      }
+
+      // Business accounts always land in Business Center
+      if (user?.professionalRole === "business") {
+        setLocation("/business-center");
         return;
       }
 

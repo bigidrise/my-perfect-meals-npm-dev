@@ -14,7 +14,7 @@ export default function Auth() {
   const { user, setUser, refreshUser } = useAuth();
   const isProCare = useMemo(() => new URLSearchParams(search).get("procare") === "true", [search]);
   const urlMode = useMemo(() => new URLSearchParams(search).get("mode"), [search]);
-  const urlRole = useMemo(() => new URLSearchParams(search).get("role") as "trainer" | "physician" | null, [search]);
+  const urlRole = useMemo(() => new URLSearchParams(search).get("role") as "trainer" | "physician" | "business" | null, [search]);
   const isIdleTimeout = useMemo(() => new URLSearchParams(search).get("reason") === "idle_timeout", [search]);
   const [mode, setMode] = useState<"signup" | "login">(
     isProCare || urlRole ? "signup" : urlMode === "signup" ? "signup" : "login"
@@ -38,9 +38,17 @@ export default function Auth() {
     const isProfessional = isProfessionalFromLogin || isProfessionalFromRefresh;
     const onboardingDone = fullUser?.onboardingCompletedAt;
 
-    if (isProfessional && mode === "login") {
+    const isBusinessUser = fullUser?.professionalRole === "business";
+
+    if (isBusinessUser) {
+      // Business accounts always land in Business Center — on both signup and login
+      setLocation("/business-center");
+    } else if (isProfessional && mode === "login") {
       localStorage.removeItem("mpm_workspace_preference");
       setShowWorkspaceChooser(true);
+    } else if (mode === "signup" && urlRole === "business") {
+      // Fallback (should be caught above by isBusinessUser, but kept for safety)
+      setLocation("/business-center");
     } else if (mode === "signup" && urlRole === "trainer") {
       setLocation("/trainer-welcome");
     } else if (mode === "signup" && urlRole === "physician") {
@@ -67,7 +75,8 @@ export default function Auth() {
       let u: User;
       if (mode === "signup") {
         let procareData = isProCare ? getProCareSignupData() : null;
-        if (!procareData && urlRole) {
+        const isBusinessSignup = urlRole === "business";
+        if (!procareData && urlRole && !isBusinessSignup) {
           procareData = {
             professionalRole: urlRole,
             professionalCategory: "certified",
@@ -76,7 +85,7 @@ export default function Auth() {
             procareEntryPath: urlRole,
           };
         }
-        u = await signUp(email.trim(), pwd, procareData);
+        u = await signUp(email.trim(), pwd, procareData, isBusinessSignup);
         if (isProCare) {
           clearProCareSignupData();
         }
@@ -163,7 +172,7 @@ export default function Auth() {
             <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-900/40 rounded-full border border-blue-400/30">
               <Stethoscope className="w-4 h-4 text-blue-400" />
               <span className="text-xs font-semibold text-blue-300">
-                {urlRole === "trainer" ? "Trainer Account" : urlRole === "physician" ? "Physician Account" : "Professional Account"}
+                {urlRole === "trainer" ? "Trainer Account" : urlRole === "physician" ? "Physician Account" : urlRole === "business" ? "Business Account" : "Professional Account"}
               </span>
             </div>
           </div>
@@ -173,6 +182,7 @@ export default function Auth() {
           {mode === "signup"
             ? urlRole === "trainer" ? "Create Trainer Account"
             : urlRole === "physician" ? "Create Physician Account"
+            : urlRole === "business" ? "Create Business Account"
             : isProCare ? "Create Professional Account"
             : "Create Your Account"
             : "Welcome Back"}
