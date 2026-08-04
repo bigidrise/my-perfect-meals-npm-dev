@@ -431,28 +431,8 @@ export default function AffiliateDashboard() {
                 <div className="h-8 w-8 rounded-lg bg-orange-500/20 border border-orange-500/30 flex items-center justify-center flex-shrink-0">
                   <Award className="h-4 w-4 text-orange-400" />
                 </div>
-                <CardLabel>Partner Identity</CardLabel>
+                <CardLabel>Partner Information</CardLabel>
               </div>
-              {partnerRecord.promoCode && (
-                <div className="flex items-center justify-between gap-3 py-2.5 border-b border-white/10 mb-2">
-                  <div>
-                    <p className="text-[10px] text-gray-400 mb-0.5">Your Promo Code</p>
-                    <p className="text-sm font-black text-orange-400 tracking-widest">{partnerRecord.promoCode}</p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(partnerRecord.promoCode!).then(() => {
-                        setCopiedPromo(true);
-                        setTimeout(() => setCopiedPromo(false), 2000);
-                      });
-                    }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
-                  >
-                    {copiedPromo ? <Check className="h-3.5 w-3.5 text-green-400" /> : <Copy className="h-3.5 w-3.5" />}
-                    {copiedPromo ? "Copied!" : "Copy"}
-                  </button>
-                </div>
-              )}
               <div className="grid grid-cols-3 gap-2 mb-3">
                 {partnerRecord.customerDiscount != null && (
                   <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-center">
@@ -521,29 +501,30 @@ export default function AffiliateDashboard() {
             </div>
           </Card>
 
-          {/* Card 2 — Referral Link */}
+          {/* Card 2 — Share My Perfect Meals */}
           <Card delay={0.07}>
             <div className="flex items-center gap-3 mb-3">
               <div className="h-8 w-8 rounded-lg bg-orange-500/20 border border-orange-500/30 flex items-center justify-center flex-shrink-0">
                 <Link2 className="h-4 w-4 text-orange-400" />
               </div>
-              <CardLabel>Your Referral Link</CardLabel>
+              <CardLabel>Share My Perfect Meals</CardLabel>
             </div>
 
             {account.rewardfulReferralUrl ? (
               <>
-                <div className="rounded-xl bg-white/10 border border-white/10 p-3 mb-3">
-                  <p className="font-mono text-xs text-gray-300 break-all leading-relaxed">
-                    {account.rewardfulReferralUrl}
-                  </p>
-                  {account.rewardfulReferralToken && (
-                    <p className="text-[10px] text-gray-500 mt-1.5">
-                      Your token: <span className="text-orange-400 font-bold">{account.rewardfulReferralToken}</span>
+                {/* Referral Link row */}
+                <div className="mb-3">
+                  <p className="text-[10px] text-gray-400 mb-1.5">Referral Link</p>
+                  <div className="rounded-xl bg-white/10 border border-white/10 p-3 mb-2">
+                    <p className="font-mono text-xs text-gray-300 break-all leading-relaxed">
+                      {account.rewardfulReferralUrl}
                     </p>
-                  )}
-                </div>
-
-                <div className="flex gap-2 flex-wrap">
+                    {account.rewardfulReferralToken && (
+                      <p className="text-[10px] text-gray-500 mt-1.5">
+                        Your token: <span className="text-orange-400 font-bold">{account.rewardfulReferralToken}</span>
+                      </p>
+                    )}
+                  </div>
                   <button
                     onClick={copyLink}
                     className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-[0.97]"
@@ -552,12 +533,39 @@ export default function AffiliateDashboard() {
                     {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                     {copied ? "Copied!" : "Copy Link"}
                   </button>
+                </div>
+
+                {/* Promo Code row — only when assigned */}
+                {partnerRecord?.promoCode && (
+                  <div className="mb-3 pt-3 border-t border-white/10">
+                    <p className="text-[10px] text-gray-400 mb-1.5">Promo Code</p>
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-black text-orange-400 tracking-widest">{partnerRecord.promoCode}</p>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(partnerRecord!.promoCode!).then(() => {
+                            setCopiedPromo(true);
+                            setTimeout(() => setCopiedPromo(false), 2000);
+                          });
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
+                      >
+                        {copiedPromo ? <Check className="h-3.5 w-3.5 text-green-400" /> : <Copy className="h-3.5 w-3.5" />}
+                        {copiedPromo ? "Copied!" : "Copy"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* QR Code toggle */}
+                <div className={`${partnerRecord?.promoCode ? "" : "mt-0"} pt-3 border-t border-white/10`}>
+                  <p className="text-[10px] text-gray-400 mb-1.5">QR Code</p>
                   <button
                     onClick={() => setShowQR((v) => !v)}
                     className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 text-white font-semibold text-sm active:scale-[0.97] transition-all"
                   >
                     <QrCode className="h-4 w-4" />
-                    {showQR ? "Hide QR" : "QR Code"}
+                    {showQR ? "Hide QR" : "Show QR Code"}
                   </button>
                 </div>
 
