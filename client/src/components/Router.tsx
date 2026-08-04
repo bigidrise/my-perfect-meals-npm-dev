@@ -669,6 +669,8 @@ export default function Router() {
     "/coach-corner/home",
     "/coach-corner/progress-slowed",
     "/coach-corner/tired",
+    "/my-perfect-beginning/parents-corner",
+    "/lifestyle/my-perfect-beginning/parents-corner",
   ];
 
   const shouldShowBottomNav = !hideBottomNavRoutes.includes(location);
@@ -865,7 +867,8 @@ export default function Router() {
         <Route path="/lifestyle/my-perfect-pregnancy" component={GuardedPregnancy} />
         <Route path="/lifestyle/my-perfect-beginning" component={GuardedMyPerfectBeginning} />
         <Route path="/lifestyle/my-perfect-beginning/create-meal" component={GuardedMyPerfectBeginningStub} />
-        <Route path="/lifestyle/my-perfect-beginning/parents-corner" component={GuardedMyPerfectBeginningStub} />
+        <Route path="/lifestyle/my-perfect-beginning/parents-corner" component={lazy(() => import("@/pages/MyPerfectBeginningParentsCorner"))} />
+        <Route path="/my-perfect-beginning/parents-corner" component={lazy(() => import("@/pages/MyPerfectBeginningParentsCorner"))} />
         <Route path="/lifestyle/my-perfect-beginning/profile" component={GuardedMyPerfectBeginningStub} />
         <Route path="/lifestyle/my-perfect-beginning/journey" component={GuardedMyPerfectBeginningStub} />
         <Route path="/lifestyle/my-perfect-beginning/better-favorites" component={GuardedMyPerfectBeginningStub} />

@@ -856,6 +856,10 @@ async function initializeApp() {
     app.use("/api/ace/interventions", aceInterventionsRouter);
     app.use("/api/coach-corner", coachCornerRouter);
 
+    // My Perfect Beginning — Parent's Corner AI
+    const myPerfectBeginningRouter = (await import("./routes/myPerfectBeginning")).default;
+    app.use("/api/my-perfect-beginning", requireAuth, myPerfectBeginningRouter);
+
     console.log("✅ [INIT] Parity routes mounted");
 
     // ── Org Config — PUBLIC endpoint, must be registered before requireAuth layers ──
