@@ -99,7 +99,7 @@ import { CreateWithChefModal } from "@/components/CreateWithChefModal";
 import { SnackCreatorModal } from "@/components/SnackCreatorModal";
 import { GlobalMealActionBar } from "@/components/GlobalMealActionBar";
 import { useNavigateToFavorites } from "@/hooks/useNavigateToFavorites";
-import { useBaselineNutrition } from "@/hooks/useBaselineNutrition";
+import { usePerformanceNutrition } from "@/hooks/useBaselineNutrition";
 import { classifyMeal } from "@/utils/starchMealClassifier";
 import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
 import DailyMealProgressBar from "@/components/guided/DailyMealProgressBar";
@@ -192,7 +192,7 @@ export default function DiabeticMenuBuilder() {
   const effectiveUserId = proClientId || user?.id;
 
   // Resolve nutrition ONCE. Presentation components receive it as props.
-  const nutritionTargets = useBaselineNutrition(effectiveUserId);
+  const nutritionTargets = usePerformanceNutrition(effectiveUserId);
 
   // Diabetic Meal Memory: fetch latest glucose (own user only; ProCare stamp deferred)
   const { data: glucoseLogsData } = useGlucoseLogs(proClientId ? undefined : user?.id?.toString(), 1);

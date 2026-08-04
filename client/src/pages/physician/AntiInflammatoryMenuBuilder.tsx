@@ -96,7 +96,7 @@ import { SnackCreatorModal } from "@/components/SnackCreatorModal";
 import { GlobalMealActionBar } from "@/components/GlobalMealActionBar";
 import { useNavigateToFavorites } from "@/hooks/useNavigateToFavorites";
 import { getNutritionBaseline, clearResolvedTargetsCache } from "@/lib/macroResolver";
-import { useBaselineNutrition } from "@/hooks/useBaselineNutrition";
+import { usePerformanceNutrition } from "@/hooks/useBaselineNutrition";
 import { proStore } from "@/lib/proData";
 import { classifyMeal } from "@/utils/starchMealClassifier";
 import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
@@ -157,7 +157,7 @@ export default function AntiInflammatoryMenuBuilder() {
   const effectiveUserId = proClientId || user?.id;
 
   // Resolve nutrition ONCE. Presentation components receive it as props.
-  const nutritionTargets = useBaselineNutrition(effectiveUserId);
+  const nutritionTargets = usePerformanceNutrition(effectiveUserId);
 
   // 🎯 BULLETPROOF BOARD LOADING: Cache-first, guaranteed to render
   // CHICAGO CALENDAR FIX v1.0: Using noon UTC anchor pattern
