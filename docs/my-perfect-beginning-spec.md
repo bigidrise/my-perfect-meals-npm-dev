@@ -616,8 +616,7 @@ Every rule must cite a source from this list (or request addition of a new sourc
 
 ---
 
----
-
+*Document version: 1.0 | Status: Awaiting review before implementation begins*
 ## 15. Pediatric Protocol Registry
 
 My Perfect Beginning must have its own **Pediatric Protocol Registry**, completely separate from the adult protocol registry. No pediatric protocol is allowed to inherit an adult protocol by default. Every pediatric protocol must be independently reviewed against pediatric-specific guidance, even when the disease name is the same as an adult condition.
@@ -1023,6 +1022,22 @@ My Perfect Beginning — Emma's Journey
 *v1.4 — Locked: one active child at a time + Netflix switcher (Section 20), platform Definition of Done + Pro subscription copy + Lifestyle Dashboard placement (Section 21); "Child Profile" → "Child Nutrition Profile" throughout; Sibling Comparison deferred to Phase 4*
 
 ---
+
+
+## 22. Developmental Milestone Registry
+
+Developmental milestones are **not diseases and not protocols**. They are nutrition-relevant developmental events that can influence meal generation independently of any condition. They sit alongside the Protocol Registry as a separate data source fed into the Protocol Resolver.
+
+```
+Child Nutrition Profile
+        ↓
+        ├── Pediatric Protocol Registry  (condition-based rules)
+        └── Developmental Milestone Registry  (event-based rules)
+                ↓
+        Protocol Resolver (merges both)
+                ↓
+        Meal Generator
+```
 
 ## 20. Multi-Child Architecture — One Active Child at a Time
 

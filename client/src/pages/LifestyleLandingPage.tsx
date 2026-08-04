@@ -145,6 +145,8 @@ export default function LifestyleLandingPage() {
     },
   ];
 
+  const beginningLocked = !isProOrAbove(user);
+
   const isCardLocked = (feature: AIFeature): boolean => {
     if (feature.freeAccess) return false;
     if (feature.requiredTier === "essential") return !hasActivePaidSubscription(user);
@@ -439,6 +441,50 @@ export default function LifestyleLandingPage() {
                     className={`text-xs ml-6 ${gatheringsLocked ? "text-white/40" : "text-white/80"}`}
                   >
                     {t("gatheringsDesc")}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* ── My Perfect Beginning featured card ── */}
+          <div className="relative">
+            <div
+              className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-60"
+              style={{
+                background:
+                  "radial-gradient(120% 120% at 50% 0%, rgba(52,211,153,0.55), rgba(20,184,166,0.25), rgba(0,0,0,0))",
+              }}
+            />
+            <Card
+              className="relative rounded-xl shadow-md overflow-hidden cursor-pointer transition-all duration-300 active:scale-95 hover:scale-[1.02] bg-gradient-to-r from-black via-emerald-950/50 to-black backdrop-blur-lg border border-emerald-500/35 hover:shadow-[0_0_30px_rgba(52,211,153,0.4)] hover:border-emerald-400/55"
+              onClick={() => {
+                if (beginningLocked) {
+                  requestUpgrade({ requiredTier: "pro", featureName: "My Perfect Beginning" });
+                  return;
+                }
+                setLocation("/lifestyle/my-perfect-beginning");
+              }}
+              data-testid="card-my-perfect-beginning"
+            >
+              {/* NEW badge */}
+              <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-black via-emerald-700/80 to-black rounded-full border border-emerald-400/30 shadow-lg z-10">
+                <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+                <span className="text-emerald-200 font-semibold text-[8px] tracking-wide">
+                  NEW
+                </span>
+              </div>
+              <CardContent className="p-3">
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
+                    <span className={`text-base ${beginningLocked ? "opacity-50" : ""}`}>🌱</span>
+                    <h3 className={`text-sm font-semibold ${beginningLocked ? "text-white/50" : "text-white"}`}>
+                      My Perfect Beginning
+                    </h3>
+                    {beginningLocked && <Lock className="h-3 w-3 text-orange-400/70 ml-auto" />}
+                  </div>
+                  <p className={`text-xs ml-6 ${beginningLocked ? "text-white/40" : "text-white/80"}`}>
+                    Stage-by-stage child nutrition — from first foods to growing years
                   </p>
                 </div>
               </CardContent>

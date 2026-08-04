@@ -62,7 +62,10 @@ export async function setupVite(app: Express, server: Server) {
         `src="/src/main.tsx"`,
         `src="/src/main.tsx?v=${nanoid()}"`,
       );
-      const page = await vite.transformIndexHtml(url, template);
+      // Strip the @vite/client script tag — HMR is disabled (hmr: false) but
+      // Vite still injects it, which causes a WebSocket error in the console.
+      const page = (await vite.transformIndexHtml(url, template))
+        .replace(/<script[^>]*src="\/@vite\/client"[^>]*><\/script>\s*/g, "");
       res.status(200).set({ "Content-Type": "text/html" }).end(page);
     } catch (e) {
       vite.ssrFixStacktrace(e as Error);

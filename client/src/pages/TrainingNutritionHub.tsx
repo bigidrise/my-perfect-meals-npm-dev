@@ -13,7 +13,6 @@ import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { getResolvedTargets, setPerfSelectedDate } from "@/lib/macroResolver";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
-import PerformanceSetupModal from "@/components/PerformanceSetupModal";
 import {
   computeDemandProfile,
   FUEL_DEMAND_LABELS,
@@ -421,9 +420,23 @@ interface CarbCycleData {
 
 type ActiveTab = "protocol" | "starch" | "protocols";
 
-export default function TrainingNutritionHub() {
-  usePageTitle("Performance Hub");
+interface PerformanceHubSharedProps {
+  /** When set, hub renders in shared/training-schedule mode for non-Performance builders */
+  continueLabel?: string; // label for the launch/continue button (e.g. "Launch General Nutrition Builder")
+  continueTo?: string;    // where the launch button navigates
+  returnTo?: string;      // where the back button goes
+  pageTitle?: string;     // overrides the header title
+}
+
+export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, continueLabel }: PerformanceHubSharedProps = {}) {
+  usePageTitle(pageTitle ?? "Performance Hub");
   const [, setLocation] = useLocation();
+  // Shared-mode helpers — derived once, used throughout
+  const setupPath = continueTo
+    ? `/performance/setup?returnTo=${encodeURIComponent(window.location.pathname)}`
+    : "/performance/setup";
+  const builderPath = continueTo ?? "/beach-body-meal-board";
+  const backPath = returnTo ?? "/";
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -475,7 +488,6 @@ export default function TrainingNutritionHub() {
 
   const [macroCalcRequired, setMacroCalcRequired] = useState(false);
   const [protocolCopied, setProtocolCopied] = useState(false);
-  const [setupOpen, setSetupOpen] = useState(false);
 
   // ── Clinical paywall ─────────────────────────────────────────────────────
   const entitlements: string[] = (user as any)?.entitlements || [];
@@ -733,7 +745,7 @@ export default function TrainingNutritionHub() {
   };
 
   // ── Clinical paywall gate ─────────────────────────────────────────────────
-  if (!hasPerformanceAccess) {
+  if (!hasPerformanceAccess && !continueTo) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white pb-20">
         {!isDesktop && (
@@ -742,7 +754,7 @@ export default function TrainingNutritionHub() {
             style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
           >
             <button
-              onClick={() => setLocation("/")}
+              onClick={() => setLocation(backPath)}
               className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0"
             >
               <ArrowLeft className="w-4 h-4 text-white" />
@@ -788,31 +800,33 @@ export default function TrainingNutritionHub() {
       transition={{ duration: 0.4 }}
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-32"
     >
-      {/* Header — all screen sizes */}
-      <div
-        className="sticky top-0 z-10 bg-black/60 backdrop-blur-md border-b border-white/10 px-4 pb-3 flex items-center gap-3"
-        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
-      >
-        <button
-          onClick={() => setLocation("/")}
-          className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0"
+      {/* Header — mobile only; DesktopHeader shows the title on desktop */}
+      {!isDesktop && (
+        <div
+          className="sticky top-0 z-10 bg-black/60 backdrop-blur-md border-b border-white/10 px-4 pb-3 flex items-center gap-3"
+          style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
         >
-          <ArrowLeft className="w-4 h-4 text-white" />
-        </button>
-        <div className="flex-1">
-          <p className="text-white font-bold text-base leading-none">Performance Hub</p>
-          <p className="text-orange-300 text-xs mt-0.5">
-            {activeTrack === "competition" ? "Competition prep protocol" : "Sport-specific nutrition protocol"}
-          </p>
+          <button
+            onClick={() => setLocation(backPath)}
+            className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0"
+          >
+            <ArrowLeft className="w-4 h-4 text-white" />
+          </button>
+          <div className="flex-1">
+            <p className="text-white font-bold text-base leading-none">{pageTitle ?? "Performance Hub"}</p>
+            <p className="text-orange-300 text-xs mt-0.5">
+              {continueTo ? "Training schedule & daily macro adjustments" : activeTrack === "competition" ? "Competition prep protocol" : "Sport-specific nutrition protocol"}
+            </p>
+          </div>
+          <button
+            onClick={() => setLocation(setupPath)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-600/20 border border-orange-500/30 text-orange-300 text-xs font-semibold"
+          >
+            <Settings className="w-3.5 h-3.5" />
+            {isActive ? "Update" : "Setup"}
+          </button>
         </div>
-        <button
-          onClick={() => setSetupOpen(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-600/20 border border-orange-500/30 text-orange-300 text-xs font-semibold"
-        >
-          <Settings className="w-3.5 h-3.5" />
-          {isActive ? "Update" : "Setup"}
-        </button>
-      </div>
+      )}
 
       {/* ── Macro Calculator gate — shown when targets are missing ── */}
       {macroCalcRequired && (
@@ -837,14 +851,16 @@ export default function TrainingNutritionHub() {
       {!isActive && !macroCalcRequired && (
         <div className="px-4 pt-10 max-w-lg mx-auto">
           <div className="text-center mb-8">
-            <p className="text-white font-bold text-xl mb-2">Performance Nutrition Hub</p>
+            <p className="text-white font-bold text-xl mb-2">{pageTitle ?? "Performance Nutrition Hub"}</p>
             <p className="text-white/80 text-sm leading-relaxed">
-              Two separate protocol engines. Choose the one that matches your goal.
+              {continueTo
+                ? "Set up your weekly training schedule to automatically adjust your daily macro targets."
+                : "Two separate protocol engines. Choose the one that matches your goal."}
             </p>
           </div>
           <div className="space-y-3">
             <button
-              onClick={() => setSetupOpen(true)}
+              onClick={() => setLocation(setupPath)}
               className="w-full text-left px-4 py-4 rounded-2xl bg-black/50 border border-white/10 active:scale-[0.98] transition-transform"
             >
               <div className="flex items-start gap-3">
@@ -859,7 +875,7 @@ export default function TrainingNutritionHub() {
               </div>
             </button>
             <button
-              onClick={() => setSetupOpen(true)}
+              onClick={() => setLocation(setupPath)}
               className="w-full text-left px-4 py-4 rounded-2xl bg-black/50 border border-white/10 active:scale-[0.98] transition-transform"
             >
               <div className="flex items-start gap-3">
@@ -877,17 +893,44 @@ export default function TrainingNutritionHub() {
         </div>
       )}
 
+      {/* ── Desktop: Update Setup button (restored — was hidden by isDesktop header guard) ── */}
+      {isDesktop && isActive && (
+        <div className="px-4 pt-4 max-w-xl mx-auto flex justify-end">
+          <button
+            onClick={() => setLocation(setupPath)}
+            className="relative flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-bold overflow-hidden group"
+            style={{ background: "linear-gradient(135deg, #ea580c, #f97316, #fb923c, #ea580c)", backgroundSize: "300% 300%", animation: "gradientShift 3s ease infinite" }}
+          >
+            {/* Animated glow ring */}
+            <span className="absolute inset-0 rounded-xl opacity-60 blur-sm group-hover:opacity-90 transition-opacity duration-300" style={{ background: "linear-gradient(135deg, #ea580c, #f97316)", animation: "pulse 2s ease-in-out infinite" }} />
+            {/* Shimmer sweep */}
+            <span className="absolute inset-0 rounded-xl overflow-hidden">
+              <span className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12" />
+            </span>
+            <Settings className="relative w-4 h-4 drop-shadow" />
+            <span className="relative drop-shadow">Update Setup</span>
+          </button>
+          <style>{`
+            @keyframes gradientShift {
+              0%   { background-position: 0% 50%; }
+              50%  { background-position: 100% 50%; }
+              100% { background-position: 0% 50%; }
+            }
+          `}</style>
+        </div>
+      )}
+
       {/* ── Active: Competition Prep ── */}
       {isActive && activeTrack === "competition" && compCtx && (
         <div className="px-4 pt-4 max-w-xl mx-auto space-y-4">
 
           {/* ── Quick Launch ── */}
           <button
-            onClick={() => setLocation("/beach-body-meal-board")}
+            onClick={() => setLocation(builderPath)}
             className="w-full flex items-center justify-between px-4 py-4 rounded-2xl bg-orange-600/20 border border-orange-500/30 text-white"
           >
             <div className="text-left">
-              <p className="font-bold text-sm">Launch Performance Nutrition Builder</p>
+              <p className="font-bold text-sm">{continueLabel ?? (continueTo ? "Continue to Builder" : "Launch Performance Nutrition Builder")}</p>
               <p className="text-white/80 text-xs mt-0.5">Build meals calibrated for your prep phase</p>
             </div>
             <ChevronRight className="w-5 h-5 text-orange-400 flex-shrink-0" />
@@ -993,25 +1036,27 @@ export default function TrainingNutritionHub() {
             )}
           </div>
 
-          {/* Tabs */}
-          <div className="flex bg-black/30 rounded-xl p-1 gap-1">
-            {(["protocol", "starch", "protocols"] as ActiveTab[]).map(tab => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                  activeTab === tab ? "bg-orange-600 text-white" : "text-white/40"
-                }`}
-              >
-                {tabLabel(tab)}
-              </button>
-            ))}
-          </div>
+          {/* Tabs — Starch and Protocols hidden in shared/training-schedule mode */}
+          {!continueTo && (
+            <div className="flex bg-black/30 rounded-xl p-1 gap-1">
+              {(["protocol", "starch", "protocols"] as ActiveTab[]).map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                    activeTab === tab ? "bg-orange-600 text-white" : "text-white/40"
+                  }`}
+                >
+                  {tabLabel(tab)}
+                </button>
+              ))}
+            </div>
+          )}
 
-          {activeTab === "starch"    && renderStarchTab()}
-          {activeTab === "protocols" && renderProtocolsTab()}
+          {!continueTo && activeTab === "starch"    && renderStarchTab()}
+          {!continueTo && activeTab === "protocols" && renderProtocolsTab()}
 
-          {activeTab === "protocol" && (
+          {(continueTo || activeTab === "protocol") && (
             <div className="space-y-4">
               {compPhase?.phase === "fat_loss" && (
                 <div className="rounded-2xl bg-black/50 border border-white/10 p-4">
@@ -1087,11 +1132,11 @@ export default function TrainingNutritionHub() {
               </div>
 
               <button
-                onClick={() => setLocation("/beach-body-meal-board")}
+                onClick={() => setLocation(builderPath)}
                 className="w-full flex items-center justify-between px-4 py-4 rounded-2xl bg-orange-600/20 border border-orange-500/30 text-white"
               >
                 <div className="text-left">
-                  <p className="font-bold text-sm">Launch Performance Nutrition Builder</p>
+                  <p className="font-bold text-sm">{continueLabel ?? (continueTo ? "Continue to Builder" : "Launch Performance Nutrition Builder")}</p>
                   <p className="text-white/80 text-xs mt-0.5">Build meals calibrated for your prep phase</p>
                 </div>
                 <ChevronRight className="w-5 h-5 text-orange-400 flex-shrink-0" />
@@ -1107,11 +1152,11 @@ export default function TrainingNutritionHub() {
 
           {/* ── Quick Launch ── */}
           <button
-            onClick={() => setLocation("/beach-body-meal-board")}
+            onClick={() => setLocation(builderPath)}
             className="w-full flex items-center justify-between px-4 py-4 rounded-2xl bg-orange-600/20 border border-orange-500/30 text-white"
           >
             <div className="text-left">
-              <p className="font-bold text-sm">Launch Performance Nutrition Builder</p>
+              <p className="font-bold text-sm">{continueLabel ?? (continueTo ? "Continue to Builder" : "Launch Performance Nutrition Builder")}</p>
               <p className="text-white/80 text-xs mt-0.5">Build meals calibrated for your training phase</p>
             </div>
             <ChevronRight className="w-5 h-5 text-orange-400 flex-shrink-0" />
@@ -1130,7 +1175,7 @@ export default function TrainingNutritionHub() {
                     <p className="text-xs text-orange-300 font-semibold uppercase tracking-wider">Weekly Coaching Schedule</p>
                   </div>
                   <button
-                    onClick={() => setSetupOpen(true)}
+                    onClick={() => setLocation(setupPath)}
                     className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/10 border border-white/10 text-white/70 text-xs font-medium"
                   >
                     <Settings className="w-3 h-3" />
@@ -1386,25 +1431,27 @@ export default function TrainingNutritionHub() {
             </div>
           </div>
 
-          {/* Tabs */}
-          <div className="flex bg-black/30 rounded-xl p-1 gap-1">
-            {(["protocol", "starch", "protocols"] as ActiveTab[]).map(tab => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                  activeTab === tab ? "bg-orange-600 text-white" : "text-white/40"
-                }`}
-              >
-                {tabLabel(tab)}
-              </button>
-            ))}
-          </div>
+          {/* Tabs — Starch and Protocols hidden in shared/training-schedule mode */}
+          {!continueTo && (
+            <div className="flex bg-black/30 rounded-xl p-1 gap-1">
+              {(["protocol", "starch", "protocols"] as ActiveTab[]).map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                    activeTab === tab ? "bg-orange-600 text-white" : "text-white/40"
+                  }`}
+                >
+                  {tabLabel(tab)}
+                </button>
+              ))}
+            </div>
+          )}
 
-          {activeTab === "starch"    && renderStarchTab()}
-          {activeTab === "protocols" && renderProtocolsTab()}
+          {!continueTo && activeTab === "starch"    && renderStarchTab()}
+          {!continueTo && activeTab === "protocols" && renderProtocolsTab()}
 
-          {activeTab === "protocol" && (
+          {(continueTo || activeTab === "protocol") && (
             <div className="space-y-4">
 
               {/* ── Pro View toggle (procare / care_team / admin only) ── */}
@@ -1602,11 +1649,11 @@ export default function TrainingNutritionHub() {
               )}
 
               <button
-                onClick={() => setLocation("/beach-body-meal-board")}
+                onClick={() => setLocation(builderPath)}
                 className="w-full flex items-center justify-between px-4 py-4 rounded-2xl bg-orange-600/20 border border-orange-500/30 text-white"
               >
                 <div className="text-left">
-                  <p className="font-bold text-sm">Launch Performance Nutrition Builder</p>
+                  <p className="font-bold text-sm">{continueLabel ?? (continueTo ? "Continue to Builder" : "Launch Performance Nutrition Builder")}</p>
                   <p className="text-white/80 text-xs mt-0.5">Build sport-calibrated meals now</p>
                 </div>
                 <ChevronRight className="w-5 h-5 text-orange-400 flex-shrink-0" />
@@ -1616,14 +1663,6 @@ export default function TrainingNutritionHub() {
         </div>
       )}
 
-      {/* Setup modal — inline wizard, all 10 steps for Athletic, 4 for Competition */}
-      <PerformanceSetupModal
-        isOpen={setupOpen}
-        onClose={() => setSetupOpen(false)}
-        onSuccess={() => { setSetupOpen(false); queryClient.invalidateQueries({ queryKey: ["/api/user/profile"] }); }}
-        existingContext={pCtx}
-        existingCompContext={compCtx}
-      />
     </motion.div>
   );
 
