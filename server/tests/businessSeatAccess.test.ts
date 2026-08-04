@@ -765,7 +765,147 @@ describe("businessRoutes.ts — POST /invite active-member guard regression", ()
   });
 });
 
-// ── 10. requireProAccess middleware source structure ──────────────────────────
+// ── 10. POST /invite — pending-invite guard blocks duplicate invites ──────────
+/**
+ * The POST /invite handler must reject an invite request when a pending
+ * invitation already exists in businessInvitations for the same
+ * (businessId, email, status="pending") combination — regardless of whether
+ * the email address belongs to a registered user.
+ *
+ * Guard location in the real handler (businessRoutes.ts, ~line 187-202):
+ *   1. Query businessInvitations WHERE businessId=X AND email=Y AND status="pending".
+ *   2. If a row is found → 400 "A pending invitation already exists for this email."
+ *   3. If not found     → handler continues to the active-member check and insert.
+ *
+ * This mirrors the decision tree without touching the DB, following the same
+ * source-scan regression pattern used in §9b.
+ */
+
+interface MockPendingInviteLookup {
+  /** null when no pending invite exists for this email in this business */
+  inviteId: string | null;
+}
+
+/**
+ * Mirrors the invite-handler pending-invite guard:
+ *
+ *   - existingInvite found (status=pending) → 400 PENDING_INVITE_EXISTS
+ *   - no existing pending invite            → null (handler continues)
+ */
+function simulateSendInvitePendingGuard(
+  pendingLookup: MockPendingInviteLookup,
+): { status: 400; code: "PENDING_INVITE_EXISTS" } | null {
+  if (pendingLookup.inviteId !== null) {
+    return { status: 400, code: "PENDING_INVITE_EXISTS" };
+  }
+  return null;
+}
+
+describe("POST /api/business/invite — pending-invite guard blocks duplicate invites", () => {
+  // ── no existing pending invite ────────────────────────────────────────────
+  it("does not fire when no pending invite exists for this email", () => {
+    const result = simulateSendInvitePendingGuard({ inviteId: null });
+    expect(result).toBeNull(); // guard passes, invite proceeds
+  });
+
+  it("does not fire for an email whose previous invite was accepted (no pending row)", () => {
+    // After acceptance the status changes to "accepted", so the pending lookup
+    // returns null — a re-invite to the same address would be allowed here
+    // (though the active-member guard would then catch it).
+    const result = simulateSendInvitePendingGuard({ inviteId: null });
+    expect(result).toBeNull();
+  });
+
+  it("does not fire for an email whose previous invite was cancelled (no pending row)", () => {
+    // status="cancelled" is excluded by the WHERE status="pending" clause.
+    const result = simulateSendInvitePendingGuard({ inviteId: null });
+    expect(result).toBeNull();
+  });
+
+  // ── pending invite exists — the blocked cases ─────────────────────────────
+  it("blocks when a pending invite already exists for the same email", () => {
+    const result = simulateSendInvitePendingGuard({ inviteId: "bi-pending-001" });
+    expect(result).not.toBeNull();
+    expect(result!.status).toBe(400);
+    expect(result!.code).toBe("PENDING_INVITE_EXISTS");
+  });
+
+  it("blocks even when the business has spare seats (guard fires before seat insert)", () => {
+    // The pending-invite guard fires independently of seat availability.
+    const result = simulateSendInvitePendingGuard({ inviteId: "bi-pending-spare-seats" });
+    expect(result).not.toBeNull();
+    expect(result!.status).toBe(400);
+    expect(result!.code).toBe("PENDING_INVITE_EXISTS");
+  });
+
+  it("blocks for an unregistered email that already has a pending invite", () => {
+    // The pending-invite guard runs before the user-lookup guard, so even an
+    // unregistered email address is blocked if it already has a pending invite.
+    const result = simulateSendInvitePendingGuard({ inviteId: "bi-pending-unregistered" });
+    expect(result).not.toBeNull();
+    expect(result!.status).toBe(400);
+  });
+});
+
+// ── 10b. POST /invite — source-scan: pending-invite guard is present and correct
+
+describe("businessRoutes.ts — POST /invite pending-invite guard regression", () => {
+  const routeFilePath = path.resolve(__dirname, "../routes/businessRoutes.ts");
+  let source: string;
+  let inviteHandlerSlice: string;
+
+  beforeAll(() => {
+    source = fs.readFileSync(routeFilePath, "utf-8");
+
+    // Isolate the POST /invite handler body (between its route declaration and
+    // the next top-level comment/route).
+    const inviteStart = source.indexOf('router.post("/invite"');
+    const afterInvite = source.slice(inviteStart);
+    const nextSectionMatch = afterInvite.match(/\n\/\/ ──/);
+    inviteHandlerSlice = nextSectionMatch
+      ? afterInvite.slice(0, nextSectionMatch.index)
+      : afterInvite.slice(0, 4000);
+  });
+
+  it("invite handler queries businessInvitations for a pending invite before inserting", () => {
+    // The guard must query businessInvitations scoped by email and status.
+    expect(inviteHandlerSlice).toContain("businessInvitations");
+    expect(inviteHandlerSlice).toContain('"pending"');
+  });
+
+  it("invite handler queries businessInvitations for the pending invite using the email field", () => {
+    expect(inviteHandlerSlice).toContain("businessInvitations.email");
+  });
+
+  it("invite handler returns 400 when an existing pending invite is found", () => {
+    // The guard must respond with 400, not 409 or 403.
+    const pendingBlockIdx = inviteHandlerSlice.indexOf("pending invitation already exists");
+    expect(pendingBlockIdx).toBeGreaterThan(-1);
+    // Confirm the 400 status appears nearby (within 200 chars before the message)
+    const surrounding = inviteHandlerSlice.slice(
+      Math.max(0, pendingBlockIdx - 200),
+      pendingBlockIdx + 100,
+    );
+    expect(surrounding).toContain("400");
+  });
+
+  it("pending-invite check is scoped to the current business (businessId guard present)", () => {
+    // The WHERE clause must include businessId so pending invites for other
+    // businesses do not block this one.
+    expect(inviteHandlerSlice).toContain("businessInvitations.businessId");
+  });
+
+  it("pending-invite check appears before the businessInvitations insert call", () => {
+    // The guard must run before the db.insert(businessInvitations) call.
+    const pendingIdx = inviteHandlerSlice.indexOf("pending invitation already exists");
+    const insertIdx = inviteHandlerSlice.indexOf("db.insert(businessInvitations)");
+    expect(pendingIdx).toBeGreaterThan(-1);
+    expect(insertIdx).toBeGreaterThan(-1);
+    expect(pendingIdx).toBeLessThan(insertIdx);
+  });
+});
+
+// ── 11. requireProAccess middleware source structure ──────────────────────────
 
 describe("requireProAccess.ts — middleware structure regression", () => {
   const middlewareFilePath = path.resolve(__dirname, "../middleware/requireProAccess.ts");
