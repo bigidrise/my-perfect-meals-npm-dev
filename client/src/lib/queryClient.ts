@@ -26,6 +26,21 @@ async function throwIfResNotOk(res: Response) {
       window.dispatchEvent(new CustomEvent("mpm:session-idle-timeout"));
     }
 
+    // If the server rejected a request due to a plan gate, the user's subscription
+    // has likely been downgraded since their client-side state was last fetched.
+    // Signal AuthContext to refresh the user profile so ProActionLock and other
+    // plan-aware UI reflect the current tier immediately — no logout required.
+    const PLAN_GATE_CODES = new Set([
+      "PRO_REQUIRED",
+      "PREMIUM_REQUIRED",
+      "CLINICAL_REQUIRED",
+      "CLINICAL_LABS_REQUIRED",
+      "ESSENTIAL_REQUIRED",
+    ]);
+    if (res.status === 403 && code && PLAN_GATE_CODES.has(code)) {
+      window.dispatchEvent(new CustomEvent("mpm:plan-downgraded"));
+    }
+
     throw new Error(`${res.status}: ${message}`);
   }
 }

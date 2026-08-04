@@ -267,7 +267,163 @@ describe("businessRoutes.ts — requireProAccess declared on read endpoints", ()
   });
 });
 
-// ── 4. requireProAccess middleware source structure ───────────────────────────
+// ── 4. Downgraded-member edge case ───────────────────────────────────────────
+/**
+ * Edge case: a user joins a business while on Pro, then downgrades to Free.
+ * Their businessMembers row keeps status = "active" (no automated cleanup).
+ *
+ * Policy:
+ *   - The member is immediately blocked from /membership (requireProAccess → 403).
+ *   - The owner's /mine view still counts them as occupying a seat until the
+ *     owner explicitly removes them (GET /mine queries by status="active" only,
+ *     with no plan-tier filter on the member's own subscription).
+ *   - This is intentional: seat release is an owner action, not an automatic one.
+ *     The owner dashboard shows the member row and can use DELETE /members/:id.
+ */
+
+describe("Downgraded-member blocked from GET /api/business/membership", () => {
+  const enforced = true;
+
+  /**
+   * A user who joined as Pro and then downgraded will have accessTier = "FREE"
+   * (set by the billing webhook on downgrade).  requireProAccess sees FREE and
+   * returns 403 before the DB query ever runs.
+   */
+  it("blocks a formerly-Pro member who downgraded to Free (accessTier=FREE)", () => {
+    const downgradedMember: MockAuthUser = {
+      id: "user-downgraded-pro-001",
+      accessTier: "FREE",         // set by billing webhook after downgrade
+      planLookupKey: null,        // cleared on downgrade
+    };
+    const result = simulateRequireProAccess(downgradedMember, enforced, stubGetTier);
+    expect(result).toBe(403);
+  });
+
+  it("blocks a formerly-Pro member whose subscription expired (accessTier=EXPIRED)", () => {
+    const expiredMember: MockAuthUser = {
+      id: "user-expired-member-002",
+      accessTier: "EXPIRED",
+      planLookupKey: "mpm_premium_monthly", // old key, still set in DB
+    };
+    const result = simulateRequireProAccess(expiredMember, enforced, stubGetTier);
+    expect(result).toBe(403);
+  });
+
+  it("still allows an active Pro member to read their membership (control case)", () => {
+    const activeMember: MockAuthUser = {
+      id: "user-active-pro-003",
+      accessTier: "PAID_FULL",
+      planLookupKey: "mpm_premium_monthly",
+    };
+    const result = simulateRequireProAccess(activeMember, enforced, stubGetTier);
+    expect(result).toBeNull(); // passes through to handler
+  });
+});
+
+// ── 5. Owner /mine view — seat count behaviour for downgraded members ─────────
+
+/**
+ * Simulates the member-list aggregation logic from GET /api/business/mine.
+ *
+ * The real query filters by `businessMembers.status = "active"` only.
+ * It does NOT inspect the member's own subscription tier.
+ *
+ * This means a downgraded member whose row was not yet removed by the owner
+ * will still appear in the member list and count against usedSeats.
+ * Releasing the seat requires the owner to call DELETE /api/business/members/:id.
+ */
+
+interface MockMemberRow {
+  userId: string;
+  status: "active" | "invited" | "removed";
+  /** Simulated current plan of the member — NOT stored in businessMembers table. */
+  currentAccessTier: "PAID_FULL" | "FREE" | "EXPIRED";
+}
+
+/**
+ * Mirrors the /mine handler aggregation:
+ *   usedSeats = members.filter(status === "active").length
+ *
+ * Note: the real query joins businessMembers + users but does NOT join the
+ * member's subscription state.  The seat count is purely status-based.
+ */
+function simulateMineSeats(rows: MockMemberRow[]): {
+  usedSeats: number;
+  visibleMembers: MockMemberRow[];
+} {
+  const visibleMembers = rows.filter((m) => m.status === "active");
+  return { usedSeats: visibleMembers.length, visibleMembers };
+}
+
+describe("GET /api/business/mine — seat count includes downgraded-but-still-active members", () => {
+  it("counts an active member with a current Pro plan — baseline", () => {
+    const rows: MockMemberRow[] = [
+      { userId: "u1", status: "active", currentAccessTier: "PAID_FULL" },
+    ];
+    const { usedSeats, visibleMembers } = simulateMineSeats(rows);
+    expect(usedSeats).toBe(1);
+    expect(visibleMembers).toHaveLength(1);
+  });
+
+  it("still counts a downgraded member (FREE) whose row was not removed", () => {
+    // This is the intentional policy: the owner must manually remove the member.
+    const rows: MockMemberRow[] = [
+      { userId: "u-downgraded", status: "active", currentAccessTier: "FREE" },
+    ];
+    const { usedSeats, visibleMembers } = simulateMineSeats(rows);
+    expect(usedSeats).toBe(1);
+    expect(visibleMembers[0].userId).toBe("u-downgraded");
+  });
+
+  it("still counts an expired member whose row was not removed", () => {
+    const rows: MockMemberRow[] = [
+      { userId: "u-expired", status: "active", currentAccessTier: "EXPIRED" },
+    ];
+    const { usedSeats } = simulateMineSeats(rows);
+    expect(usedSeats).toBe(1);
+  });
+
+  it("does NOT count a member who has been explicitly removed (status=removed)", () => {
+    const rows: MockMemberRow[] = [
+      { userId: "u-removed", status: "removed", currentAccessTier: "FREE" },
+    ];
+    const { usedSeats } = simulateMineSeats(rows);
+    expect(usedSeats).toBe(0);
+  });
+
+  it("mixed roster: one active Pro + one downgraded-active → usedSeats = 2", () => {
+    const rows: MockMemberRow[] = [
+      { userId: "u-pro", status: "active", currentAccessTier: "PAID_FULL" },
+      { userId: "u-downgraded", status: "active", currentAccessTier: "FREE" },
+    ];
+    const { usedSeats } = simulateMineSeats(rows);
+    expect(usedSeats).toBe(2);
+  });
+
+  it("mixed roster: one removed downgraded + one active Pro → usedSeats = 1", () => {
+    const rows: MockMemberRow[] = [
+      { userId: "u-pro", status: "active", currentAccessTier: "PAID_FULL" },
+      { userId: "u-downgraded-removed", status: "removed", currentAccessTier: "FREE" },
+    ];
+    const { usedSeats, visibleMembers } = simulateMineSeats(rows);
+    expect(usedSeats).toBe(1);
+    expect(visibleMembers[0].userId).toBe("u-pro");
+  });
+
+  it("availableSeats = seatLimit - usedSeats still reflects downgraded occupants", () => {
+    const seatLimit = 4;
+    const rows: MockMemberRow[] = [
+      { userId: "u-pro", status: "active", currentAccessTier: "PAID_FULL" },
+      { userId: "u-downgraded", status: "active", currentAccessTier: "FREE" },
+    ];
+    const { usedSeats } = simulateMineSeats(rows);
+    const availableSeats = seatLimit - usedSeats;
+    // Owner sees only 2 free slots even though the downgraded member can't use the seat
+    expect(availableSeats).toBe(2);
+  });
+});
+
+// ── 6. requireProAccess middleware source structure ───────────────────────────
 
 describe("requireProAccess.ts — middleware structure regression", () => {
   const middlewareFilePath = path.resolve(__dirname, "../middleware/requireProAccess.ts");

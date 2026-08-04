@@ -96,14 +96,24 @@ export function isActualProPlanOrAbove(user: UserForSubscriptionCheck | null | u
 
 /**
  * isInTrial — returns true when the user has a trial window that has not yet expired
- * and does NOT have an active paid subscription.
- * trialEndsAt is an ISO string from the server.
+ * and does NOT have a real paid plan key.
+ *
+ * We deliberately do NOT call hasActivePaidSubscription() here because trial users
+ * also receive accessTier="PAID_FULL" from the server (that is how the trial grants
+ * access). Using hasActivePaidSubscription() would therefore always return false for
+ * trial users and the banner would never show. Instead we check for a real paid
+ * planLookupKey explicitly.
+ *
+ * trialEndsAt is an ISO string (or Date) from the server.
  */
 export function isInTrial(user: UserForSubscriptionCheck | null | undefined): boolean {
   if (!user) return false;
-  if (hasActivePaidSubscription(user)) return false;
   if (!user.trialEndsAt) return false;
-  return new Date(user.trialEndsAt) > new Date();
+  if (new Date(user.trialEndsAt) <= new Date()) return false;
+  // Founders and users with a real paid plan are not "in trial"
+  if (user.isFounder) return false;
+  if (user.planLookupKey && getTierForLookupKey(user.planLookupKey) !== "free") return false;
+  return true;
 }
 
 export function hasPaidPlan(user: UserForSubscriptionCheck | null | undefined): boolean {
