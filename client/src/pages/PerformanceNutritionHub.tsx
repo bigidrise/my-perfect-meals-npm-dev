@@ -423,12 +423,13 @@ type ActiveTab = "protocol" | "starch" | "protocols";
 
 interface PerformanceHubSharedProps {
   /** When set, hub renders in shared/training-schedule mode for non-Performance builders */
-  continueTo?: string;  // where the "Continue to Builder" button goes
-  returnTo?: string;    // where the back button goes
-  pageTitle?: string;   // overrides the header title
+  continueLabel?: string; // label for the launch/continue button (e.g. "Launch General Nutrition Builder")
+  continueTo?: string;    // where the launch button navigates
+  returnTo?: string;      // where the back button goes
+  pageTitle?: string;     // overrides the header title
 }
 
-export default function PerformanceNutritionHub({ continueTo, returnTo, pageTitle }: PerformanceHubSharedProps = {}) {
+export default function PerformanceNutritionHub({ continueTo, returnTo, pageTitle, continueLabel }: PerformanceHubSharedProps = {}) {
   usePageTitle(pageTitle ?? "Performance Hub");
   const [, setLocation] = useLocation();
   // Shared-mode helpers — derived once, used throughout
@@ -903,7 +904,7 @@ export default function PerformanceNutritionHub({ continueTo, returnTo, pageTitl
             className="w-full flex items-center justify-between px-4 py-4 rounded-2xl bg-orange-600/20 border border-orange-500/30 text-white"
           >
             <div className="text-left">
-              <p className="font-bold text-sm">Launch Performance Nutrition Builder</p>
+              <p className="font-bold text-sm">{continueLabel ?? "Launch Performance Nutrition Builder"}</p>
               <p className="text-white/80 text-xs mt-0.5">Build meals calibrated for your prep phase</p>
             </div>
             <ChevronRight className="w-5 h-5 text-orange-400 flex-shrink-0" />
@@ -1107,7 +1108,7 @@ export default function PerformanceNutritionHub({ continueTo, returnTo, pageTitl
                 className="w-full flex items-center justify-between px-4 py-4 rounded-2xl bg-orange-600/20 border border-orange-500/30 text-white"
               >
                 <div className="text-left">
-                  <p className="font-bold text-sm">{continueTo ? "Continue to Builder" : "Launch Performance Nutrition Builder"}</p>
+                  <p className="font-bold text-sm">{continueLabel ?? "Launch Performance Nutrition Builder"}</p>
                   <p className="text-white/80 text-xs mt-0.5">Build meals calibrated for your prep phase</p>
                 </div>
                 <ChevronRight className="w-5 h-5 text-orange-400 flex-shrink-0" />
@@ -1127,7 +1128,7 @@ export default function PerformanceNutritionHub({ continueTo, returnTo, pageTitl
             className="w-full flex items-center justify-between px-4 py-4 rounded-2xl bg-orange-600/20 border border-orange-500/30 text-white"
           >
             <div className="text-left">
-              <p className="font-bold text-sm">Launch Performance Nutrition Builder</p>
+              <p className="font-bold text-sm">{continueLabel ?? "Launch Performance Nutrition Builder"}</p>
               <p className="text-white/80 text-xs mt-0.5">Build meals calibrated for your training phase</p>
             </div>
             <ChevronRight className="w-5 h-5 text-orange-400 flex-shrink-0" />
@@ -1622,7 +1623,7 @@ export default function PerformanceNutritionHub({ continueTo, returnTo, pageTitl
                 className="w-full flex items-center justify-between px-4 py-4 rounded-2xl bg-orange-600/20 border border-orange-500/30 text-white"
               >
                 <div className="text-left">
-                  <p className="font-bold text-sm">{continueTo ? "Continue to Builder" : "Launch Performance Nutrition Builder"}</p>
+                  <p className="font-bold text-sm">{continueLabel ?? "Launch Performance Nutrition Builder"}</p>
                   <p className="text-white/80 text-xs mt-0.5">Build sport-calibrated meals now</p>
                 </div>
                 <ChevronRight className="w-5 h-5 text-orange-400 flex-shrink-0" />
