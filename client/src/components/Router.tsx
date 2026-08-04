@@ -270,7 +270,6 @@ function ProCareStudioGuard({ component: Component }: { component: React.Compone
   if (!certified) return null;
   return <Component />;
 }
-
 // Plan Builder Pages
 // DELETED: PlanBuilderTurbo, PlanBuilderHub, CompetitionBeachbodyBoard
 import Builders from "@/pages/Builders";
@@ -467,6 +466,7 @@ import AdminCertifications from "@/pages/admin/AdminCertifications";
 // DELETED: AffiliatesPage
 
 // Vitals Logger - Creating a placeholder for this route
+import MyPerfectBeginning from "@/pages/lifestyle/MyPerfectBeginning";
 const VitalsLogger = () => <div>Vitals Logger - Coming Soon</div>;
 
 // Supplement Hub imports
