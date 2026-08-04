@@ -9,6 +9,7 @@ import {
   Utensils,
   Leaf,
   ChevronRight,
+  Dumbbell,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -318,6 +319,21 @@ export default function DiabeticHub() {
               <p className="text-white/80 text-xs mt-0.5">Low-GI meals built for your glucose guardrails</p>
             </div>
             <ChevronRight className="w-5 h-5 text-lime-400 flex-shrink-0" />
+          </button>
+
+          {/* ── Training Nutrition Schedule ── */}
+          <button
+            onClick={() => setLocation("/diabetic/training")}
+            className="w-full flex items-center gap-3 px-4 py-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-orange-600/10 hover:border-orange-500/30 transition-colors text-left group"
+          >
+            <div className="w-9 h-9 rounded-xl bg-orange-600/20 border border-orange-500/30 flex items-center justify-center flex-shrink-0">
+              <Dumbbell className="w-4 h-4 text-orange-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-sm text-white leading-tight">Training Nutrition Schedule</p>
+              <p className="text-white/40 text-xs mt-0.5">Adjust daily macro targets based on your workout schedule</p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-white/30 group-hover:text-orange-400 transition-colors flex-shrink-0" />
           </button>
 
           {/* ── Copilot Banner — adapts to diabetes type ── */}

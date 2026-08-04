@@ -4,6 +4,9 @@ import { BUILDER_MAP, type BuilderKey } from "@/lib/builderMap";
 import GeneralNutritionBuilder from "@/pages/pro/GeneralNutritionBuilder";
 import GeneralNutritionBuilderEntry from "@/pages/pro/GeneralNutritionBuilderEntry";
 import GeneralNutritionTrainingPage from "@/pages/GeneralNutritionTrainingPage";
+import DiabeticTrainingPage from "@/pages/DiabeticTrainingPage";
+import GLP1TrainingPage from "@/pages/GLP1TrainingPage";
+import AntiInflammatoryTrainingPage from "@/pages/AntiInflammatoryTrainingPage";
 import ScrollRestorer from "@/components/ScrollRestorer";
 import BottomNav from "@/components/BottomNav";
 import { withPageErrorBoundary } from "@/components/PageErrorBoundary";
@@ -856,6 +859,9 @@ export default function Router() {
         <Route path="/performance" component={GuardedPerformanceHub} />
         <Route path="/performance/setup" component={GuardedPerformanceSetup} />
         <Route path="/general-nutrition/training" component={GeneralNutritionTrainingPage} />
+        <Route path="/diabetic/training" component={DiabeticTrainingPage} />
+        <Route path="/glp1/training" component={GLP1TrainingPage} />
+        <Route path="/anti-inflammatory/training" component={AntiInflammatoryTrainingPage} />
         <Route path="/lifestyle/my-perfect-getaway" component={GuardedGetaway} />
         <Route path="/lifestyle/my-perfect-gatherings" component={GuardedGatheringsPage} />
         <Route path="/lifestyle/ultimate-experiences" component={GuardedGatheringsPage} />
