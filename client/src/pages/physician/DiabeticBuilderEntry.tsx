@@ -69,13 +69,13 @@ export default function DiabeticBuilderEntry() {
           <ChevronRight className="w-5 h-5 text-rose-400/60 group-hover:text-rose-400 transition-colors flex-shrink-0" />
         </button>
 
-        {/* Divider */}
-        <div className="flex items-center gap-3 my-5">
-          <div className="flex-1 h-px bg-white/10" />
-          <span className="text-white/30 text-xs font-semibold uppercase tracking-wider">
-            Optional
-          </span>
-          <div className="flex-1 h-px bg-white/10" />
+        {/* Section Header */}
+        <div className="mt-6 mb-4">
+          <div className="h-px bg-white/10 mb-4" />
+          <p className="text-white font-semibold text-base mb-1">Train or work out regularly?</p>
+          <p className="text-white text-sm leading-relaxed">
+            Set up your Training Nutrition Schedule so your meals automatically adapt to your workout schedule while continuing to honor your nutrition goals and active nutrition protocols.
+          </p>
         </div>
 
         {/* Option 2: Training Nutrition Schedule */}
