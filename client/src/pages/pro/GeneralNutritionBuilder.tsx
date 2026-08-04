@@ -65,7 +65,7 @@ import { setActiveBuilderNs } from "@/lib/activeBuilderNs";
 // CHICAGO CALENDAR FIX v1.0: getMondayISO replaced with getWeekStartISOInTZ from midnight.ts
 import { v4 as uuidv4 } from "uuid";
 import { CreateWithChefModal } from "@/components/CreateWithChefModal";
-import { useBaselineNutrition } from "@/hooks/useBaselineNutrition";
+import { useBaselineNutrition, usePerformanceNutrition } from "@/hooks/useBaselineNutrition";
 import { classifyMeal } from "@/utils/starchMealClassifier";
 import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
 import { InformationModal } from "@/components/ui/universal-modal";
@@ -113,8 +113,11 @@ export default function WeeklyMealBoard() {
   const isProCareMode = !!params?.id;
   const effectiveUserId = proClientId || user?.id;
 
-  // Resolve nutrition ONCE. Presentation components receive it as props.
-  const nutritionTargets = useBaselineNutrition(effectiveUserId);
+  // Resolve nutrition ONCE. Use performance-aware resolver so Training Nutrition
+  // Schedule adjustments are reflected when the user has saved a schedule.
+  // Falls through to baseline (MacroCalc / Pro) when no schedule is active —
+  // identical behavior to useBaselineNutrition for users without a schedule.
+  const nutritionTargets = usePerformanceNutrition(effectiveUserId);
 
   // 🎯 BULLETPROOF BOARD LOADING: Cache-first, guaranteed to render
   // CHICAGO CALENDAR FIX v1.0: Using noon UTC anchor pattern
@@ -889,6 +892,7 @@ export default function WeeklyMealBoard() {
       </div>
 
       <div className="pb-10 grid grid-cols-1 xl:grid-cols-2 gap-4 xl:gap-6">
+
         {/* Render day view or week view based on mode */}
         {FEATURES.dayPlanning === 'alpha' && planningMode === 'day' && activeDayISO && board ? (
           // DAY MODE: Show Meal 1/2/3, dynamic Meal 4+, and Snack Creator
@@ -1390,6 +1394,7 @@ export default function WeeklyMealBoard() {
         steps={GENERAL_NUTRITION_TOUR_STEPS}
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />
+
       </div>
     </motion.div>
   );

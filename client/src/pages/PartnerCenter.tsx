@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { ArrowLeft, QrCode, Megaphone, BookOpen } from "lucide-react";
 import { motion } from "framer-motion";
-import { BC_GRADIENT } from "@/components/BusinessCenterShell";
+import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
 import ReferralTools from "@/components/partner-center/ReferralTools";
 import MonthlyMarketing from "@/components/partner-center/MonthlyMarketing";
 import MessagingGuide from "@/components/partner-center/MessagingGuide";
@@ -26,18 +26,18 @@ export default function PartnerCenter() {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
     >
-      {/* Sticky header — uses sticky not fixed to avoid iOS transform/scroll conflict */}
+      {/* Fixed header — flush to top with no gap */}
       <div
-        className="sticky top-0 z-40 bg-black/55 backdrop-blur-md border-b border-white/10"
+        className={BC_HEADER}
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
           <button
             onClick={() => setLocation("/business-center")}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
+            className="flex items-center gap-1.5 text-orange-400 text-sm font-medium active:scale-[0.95] transition-transform"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back
+            Business Suite
           </button>
           <h1 className="text-lg font-bold text-white">Partner Center</h1>
         </div>
@@ -67,8 +67,11 @@ export default function PartnerCenter() {
         </div>
       </div>
 
-      {/* Tab content */}
-      <div className="px-4 pt-4 max-w-2xl mx-auto">
+      {/* Tab content — padded to clear the two-row fixed header */}
+      <div
+        className="px-4 max-w-2xl mx-auto"
+        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
+      >
         {activeTab === "referral" && <ReferralTools />}
         {activeTab === "marketing" && <MonthlyMarketing />}
         {activeTab === "guidelines" && <MessagingGuide />}

@@ -29,7 +29,7 @@ const imageUpload = multer({
   },
 });
 
-const MAX_ACTIVE_DOGS = 8;
+const MAX_ACTIVE_COMPANIONS_PER_SPECIES = 8;
 const MAX_IMAGES_PER_DOG = 4;
 
 function resolveUserId(req: any): string | undefined {
@@ -111,17 +111,6 @@ router.post("/profiles", requireAuth, async (req, res) => {
     const userId = resolveUserId(req);
     if (!userId) return res.status(401).json({ error: "Not authenticated" });
 
-    // Enforce max 8 active dogs
-    const [{ total }] = await db
-      .select({ total: count() })
-      .from(companionProfiles)
-      .where(and(eq(companionProfiles.userId, userId), eq(companionProfiles.status, "active")));
-    if (Number(total) >= MAX_ACTIVE_DOGS) {
-      return res.status(400).json({
-        error: `You can have up to ${MAX_ACTIVE_DOGS} active dog profiles. Move a dog to Previous Companions to free a slot.`,
-      });
-    }
-
     const {
       petType, name, breed, isMixedBreed, ageYears, ageMonths, sex, isNeutered,
       weightLbs, goalWeightLbs, activityLevel, bodyConditionScore,
@@ -133,11 +122,30 @@ router.post("/profiles", requireAuth, async (req, res) => {
       return res.status(400).json({ error: "Required fields: name, breed, ageYears, sex, weightLbs" });
     }
 
+    // Enforce per-species cap: count only profiles of the same petType
+    const resolvedPetType = petType ?? "dog";
+    const speciesLabel = resolvedPetType === "cat" ? "cat" : "dog";
+    const [{ total }] = await db
+      .select({ total: count() })
+      .from(companionProfiles)
+      .where(
+        and(
+          eq(companionProfiles.userId, userId),
+          eq(companionProfiles.status, "active"),
+          eq(companionProfiles.petType, resolvedPetType)
+        )
+      );
+    if (Number(total) >= MAX_ACTIVE_COMPANIONS_PER_SPECIES) {
+      return res.status(400).json({
+        error: `You can have up to ${MAX_ACTIVE_COMPANIONS_PER_SPECIES} active ${speciesLabel} profiles. Move a ${speciesLabel} to Previous Companions to free a slot.`,
+      });
+    }
+
     const [profile] = await db
       .insert(companionProfiles)
       .values({
         userId,
-        petType: petType ?? "dog",
+        petType: resolvedPetType,
         name,
         breed,
         isMixedBreed: isMixedBreed ?? false,
@@ -165,7 +173,7 @@ router.post("/profiles", requireAuth, async (req, res) => {
     res.json({ profile: { ...profile, images: [] } });
   } catch (err) {
     console.error("[companion] POST profile error:", err);
-    res.status(500).json({ error: "Failed to create dog profile" });
+    res.status(500).json({ error: "Failed to create companion profile" });
   }
 });
 
@@ -236,13 +244,28 @@ router.put("/profiles/:id/restore", requireAuth, async (req, res) => {
     const userId = resolveUserId(req);
     if (!userId) return res.status(401).json({ error: "Not authenticated" });
 
+    // Look up the profile's species so the cap is applied per-species
+    const [profileToRestore] = await db
+      .select({ petType: companionProfiles.petType })
+      .from(companionProfiles)
+      .where(and(eq(companionProfiles.id, req.params.id), eq(companionProfiles.userId, userId)))
+      .limit(1);
+    if (!profileToRestore) return res.status(404).json({ error: "Profile not found" });
+
+    const speciesLabel = profileToRestore.petType === "cat" ? "cat" : "dog";
     const [{ total }] = await db
       .select({ total: count() })
       .from(companionProfiles)
-      .where(and(eq(companionProfiles.userId, userId), eq(companionProfiles.status, "active")));
-    if (Number(total) >= MAX_ACTIVE_DOGS) {
+      .where(
+        and(
+          eq(companionProfiles.userId, userId),
+          eq(companionProfiles.status, "active"),
+          eq(companionProfiles.petType, profileToRestore.petType)
+        )
+      );
+    if (Number(total) >= MAX_ACTIVE_COMPANIONS_PER_SPECIES) {
       return res.status(400).json({
-        error: `You already have ${MAX_ACTIVE_DOGS} active dogs. Move one to Previous Companions first.`,
+        error: `You already have ${MAX_ACTIVE_COMPANIONS_PER_SPECIES} active ${speciesLabel} profiles. Move one to Previous Companions first.`,
       });
     }
 
@@ -669,6 +692,18 @@ Dog profile: ${profile.name}, ${profile.breed}, ${profile.ageYears} years old, $
 Wellness goals: ${(profile.wellnessGoals as string[] || []).join(", ") || "general wellness"}
 
 Generate a recipe now.`;
+
+    // ── Pre-generation feline firewall assertion ──────────────────────────────
+    // Confirm the safety block was not accidentally stripped before sending
+    // anything to the AI. The Feline Toxic Ingredient Firewall layer MUST be
+    // present in the envelope for every cat recipe request.
+    if (petType === "cat" && !envelope.activeLayers.includes("Feline Toxic Ingredient Firewall")) {
+      console.error("[companion] Feline firewall layer missing from envelope — aborting generation. activeLayers:", envelope.activeLayers);
+      return res.status(422).json({
+        error: "Feline safety firewall is not active — recipe generation blocked for your cat's safety. Please try again or contact support.",
+        code: "FELINE_FIREWALL_MISSING",
+      });
+    }
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",

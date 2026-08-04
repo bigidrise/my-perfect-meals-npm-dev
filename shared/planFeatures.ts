@@ -247,12 +247,27 @@ export const LOOKUP_KEY_TO_TIER: Record<string, PlanTier> = {
   mpm_physician_50: "ultimate",
   mpm_physician_150: "ultimate",
   mpm_guidance: "premium",
+  // Legacy price-ID-style keys (kept for backward compatibility)
+  mpm_basic_plan_999: "basic",
+  mpm_premium_plan_1999: "premium",
+  mpm_ultimate_plan_2999: "ultimate",
   // Clinical Business — same Clinical (ultimate) access, business billing type
   clinical_business_monthly: "ultimate",
   // Internal / contributor / special-access — full Clinical access, no Stripe subscription
   mpm_contributor: "ultimate",
   mpm_special_access: "ultimate",
 };
+
+/**
+ * Every plan key that grants PAID_FULL access on the server.
+ * Derived directly from LOOKUP_KEY_TO_TIER so the two lists can never drift.
+ * Import this in server/lib/accessTier.ts instead of maintaining a separate array.
+ */
+export const PAID_PLAN_KEYS: ReadonlySet<string> = new Set(
+  Object.entries(LOOKUP_KEY_TO_TIER)
+    .filter(([, tier]) => tier !== "free")
+    .map(([key]) => key),
+);
 
 export const TRIAL_UNLOCKS_TIER: PlanTier = "ultimate";
 

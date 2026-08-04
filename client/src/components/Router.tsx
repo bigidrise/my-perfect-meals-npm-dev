@@ -2,6 +2,14 @@ import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from 
 import { Switch, Route, useLocation } from "wouter";
 import { BUILDER_MAP, type BuilderKey } from "@/lib/builderMap";
 import GeneralNutritionBuilder from "@/pages/pro/GeneralNutritionBuilder";
+import GeneralNutritionBuilderEntry from "@/pages/pro/GeneralNutritionBuilderEntry";
+import GeneralNutritionTrainingPage from "@/pages/GeneralNutritionTrainingPage";
+import DiabeticTrainingPage from "@/pages/DiabeticTrainingPage";
+import DiabeticBuilderEntry from "@/pages/physician/DiabeticBuilderEntry";
+import GLP1TrainingPage from "@/pages/GLP1TrainingPage";
+import GLP1BuilderEntry from "@/pages/physician/GLP1BuilderEntry";
+import AntiInflammatoryTrainingPage from "@/pages/AntiInflammatoryTrainingPage";
+import AntiInflammatoryBuilderEntry from "@/pages/physician/AntiInflammatoryBuilderEntry";
 import ScrollRestorer from "@/components/ScrollRestorer";
 import BottomNav from "@/components/BottomNav";
 import { withPageErrorBoundary } from "@/components/PageErrorBoundary";
@@ -383,7 +391,7 @@ import CreateDishPage from "@/pages/lifestyle/CreateDishPage";
 import GatheringsPage from "@/pages/lifestyle/GatheringsPage";
 import MyPerfectGetaway from "@/pages/lifestyle/MyPerfectGetaway";
 import MyPerfectPregnancyPage from "@/pages/MyPerfectPregnancyPage";
-import PerformanceNutritionHub from "@/pages/PerformanceNutritionHub";
+import TrainingNutritionHub from "@/pages/TrainingNutritionHub";
 import PerformanceNutritionSetupPage from "@/pages/PerformanceNutritionSetupPage";
 import CravingCreatorLanding from "@/pages/CravingCreatorLanding";
 import SushiCreator from "@/pages/SushiCreator";
@@ -543,9 +551,10 @@ const GuardedWeeklyMealBoard = () => <BuilderAccessGuard builderKey="weekly" com
 const GuardedShoppingList = () => <PaywallGuard component={SafeShoppingList} />;
 const GuardedBeachBodyBuilder = () => <BuilderAccessGuard builderKey="beach_body" component={BeachBodyMealBoard} />;
 const GuardedAntiInflammatoryBuilder = () => <BuilderAccessGuard builderKey="anti_inflammatory" component={SafeAntiInflammatoryMenuBuilder} />;
+const GuardedGeneralNutritionBuilderEntry = () => <BuilderAccessGuard builderKey="general_nutrition" component={GeneralNutritionBuilderEntry} />;
 const GuardedGeneralNutritionBuilder = () => <BuilderAccessGuard builderKey="general_nutrition" component={GeneralNutritionBuilder} />;
 const GuardedPerformanceBuilder = () => <ClinicalGuard component={PerformanceCompetitionBuilderStandalone} />;
-const GuardedPerformanceHub = () => <ClinicalGuard component={PerformanceNutritionHub} />;
+const GuardedPerformanceHub = () => <ClinicalGuard component={TrainingNutritionHub} />;
 const GuardedPerformanceSetup = () => <ClinicalGuard component={PerformanceNutritionSetupPage} />;
 const GuardedDiabeticBuilder = () => <BuilderAccessGuard builderKey="diabetic" component={SafeDiabeticMenuBuilder} />;
 const GuardedGLP1Builder = () => <BuilderAccessGuard builderKey="glp1" component={SafeGLP1MealBuilder} />;
@@ -670,7 +679,8 @@ export default function Router() {
     user?.professionalRole === "physician";
 
   const isInPersonalBuilder =
-    location === "/pro/general-nutrition-builder" ||
+    location === "/general-nutrition-builder" ||
+    location === "/general-nutrition-builder/build" ||
     location === "/performance-competition-builder";
 
   const isInClinicWorkspace =
@@ -851,6 +861,13 @@ export default function Router() {
         <Route path="/lifestyle/my-perfect-pregnancy" component={GuardedPregnancy} />
         <Route path="/performance" component={GuardedPerformanceHub} />
         <Route path="/performance/setup" component={GuardedPerformanceSetup} />
+        <Route path="/general-nutrition/training" component={GeneralNutritionTrainingPage} />
+        <Route path="/diabetic-builder" component={DiabeticBuilderEntry} />
+        <Route path="/glp1-builder" component={GLP1BuilderEntry} />
+        <Route path="/anti-inflammatory-builder" component={AntiInflammatoryBuilderEntry} />
+        <Route path="/diabetic/training" component={DiabeticTrainingPage} />
+        <Route path="/glp1/training" component={GLP1TrainingPage} />
+        <Route path="/anti-inflammatory/training" component={AntiInflammatoryTrainingPage} />
         <Route path="/lifestyle/my-perfect-getaway" component={GuardedGetaway} />
         <Route path="/lifestyle/my-perfect-gatherings" component={GuardedGatheringsPage} />
         <Route path="/lifestyle/ultimate-experiences" component={GuardedGatheringsPage} />
@@ -972,7 +989,11 @@ export default function Router() {
           component={GuardedPerformanceBuilder}
         />
         <Route
-          path="/pro/general-nutrition-builder"
+          path="/general-nutrition-builder"
+          component={GuardedGeneralNutritionBuilderEntry}
+        />
+        <Route
+          path="/general-nutrition-builder/build"
           component={GuardedGeneralNutritionBuilder}
         />
         <Route
@@ -1070,4 +1091,3 @@ export default function Router() {
     </>
   );
 }
-
