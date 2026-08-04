@@ -11,9 +11,9 @@ export default function AntiInflammatoryTrainingPage() {
   return (
     <TrainingNutritionHub
       pageTitle="Training Nutrition Schedule"
-      continueLabel="Launch Anti-Inflammatory Builder"
       continueTo="/anti-inflammatory-menu-builder"
-      returnTo="/anti-inflammatory-builder"
+      returnTo="/anti-inflammatory-menu-builder"
+      continueLabel="Continue to Anti-Inflammatory Builder"
     />
   );
 }

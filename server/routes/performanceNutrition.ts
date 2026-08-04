@@ -193,13 +193,36 @@ router.post("/setup", async (req, res) => {
         updatedAt: now,
       };
 
+      // Optionally save competition event info alongside athletic context
+      // (unified wizard — one track, all questions including optional event date)
+      const {
+        competitionType: inlineCompType,
+        eventDate: inlineEventDate,
+        division: inlineDivision,
+        currentWeight: inlineCurrentWeight,
+        targetWeight: inlineTargetWeight,
+      } = req.body;
+
+      const dbSet: any = {
+        performanceContext: performanceContext as any,
+        activeProtocolTrack: "athletic",
+        specialtyConditions: updated as any,
+      };
+
+      if (inlineCompType || inlineEventDate) {
+        dbSet.competitionPrepContext = {
+          competitionType: inlineCompType ?? null,
+          eventDate: inlineEventDate ?? null,
+          division: inlineDivision ?? null,
+          currentWeight: inlineCurrentWeight ?? null,
+          targetWeight: inlineTargetWeight ?? null,
+          updatedAt: now,
+        };
+      }
+
       await db
         .update(users)
-        .set({
-          performanceContext: performanceContext as any,
-          activeProtocolTrack: "athletic",
-          specialtyConditions: updated as any,
-        } as any)
+        .set(dbSet)
         .where(eq(users.id, userId));
 
       logAudit({ actor: userId, action: "WRITE", resourceType: "performance_context", table: "users", field: "performance_context", route: req.path, ip: getClientIp(req as any), meta: { track: "athletic" } });

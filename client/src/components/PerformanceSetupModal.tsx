@@ -15,10 +15,8 @@ interface PerformanceSetupModalProps {
   onSuccess?: () => void;
   existingContext?: any | null;
   existingCompContext?: any | null;
-  existingTrack?: "athletic" | "competition" | null;
 }
 
-type ProtocolTrack = "athletic" | "competition";
 type AthleticGoal = "fat_loss" | "muscle_gain" | "maintenance" | "performance";
 type TrainingType = "strength" | "hypertrophy" | "powerlifting" | "olympic_lifting" | "mma" | "boxing" | "wrestling" | "bjj" | "crossfit" | "endurance_running" | "cycling" | "triathlon" | "tactical" | "general_fitness" | "other";
 type TrainingFrequency = "1-2" | "3-4" | "5-6" | "7+";
@@ -174,8 +172,7 @@ const DEFAULT_WEEKLY_SCHEDULE: Record<string, APNSessionType> = {
   friday: "off", saturday: "off", sunday: "off",
 };
 
-const ATHLETIC_TOTAL = 10;
-const COMP_TOTAL = 4;
+const TOTAL_STEPS = 10;
 
 export default function PerformanceSetupModal({
   isOpen,
@@ -183,7 +180,6 @@ export default function PerformanceSetupModal({
   onSuccess,
   existingContext,
   existingCompContext,
-  existingTrack,
 }: PerformanceSetupModalProps) {
   const { toast } = useToast();
   const { refreshUser } = useAuth();
@@ -192,20 +188,18 @@ export default function PerformanceSetupModal({
   const [saving, setSaving] = useState(false);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
 
-  const [track, setTrack] = useState<ProtocolTrack | "">(existingTrack ?? "");
-
   // Athletic fields
-  const [primaryGoal, setPrimaryGoal]         = useState<AthleticGoal | "">(existingContext?.primaryGoal ?? "");
-  const [trainingType, setTrainingType]       = useState<TrainingType | "">(existingContext?.trainingType ?? "");
-  const [frequency, setFrequency]             = useState<TrainingFrequency | "">(existingContext?.trainingFrequency ?? "");
-  const [cardioFocus, setCardioFocus]         = useState<CardioFocus | "">(existingContext?.cardioFocus ?? "");
-  const [trainingPhase, setTrainingPhase]     = useState<AthleticPhase | "">(existingContext?.trainingPhase ?? "");
-  const [twoADays, setTwoADays]               = useState<boolean>(existingContext?.twoADays ?? false);
-  const [sessionDuration, setSessionDuration] = useState<SessionDuration | "">(existingContext?.sessionDuration ?? "");
-  const [recoveryStatus, setRecoveryStatus]   = useState<RecoveryStatus | "">(existingContext?.recoveryStatus ?? "");
+  const [primaryGoal, setPrimaryGoal]           = useState<AthleticGoal | "">(existingContext?.primaryGoal ?? "");
+  const [trainingType, setTrainingType]         = useState<TrainingType | "">(existingContext?.trainingType ?? "");
+  const [frequency, setFrequency]               = useState<TrainingFrequency | "">(existingContext?.trainingFrequency ?? "");
+  const [cardioFocus, setCardioFocus]           = useState<CardioFocus | "">(existingContext?.cardioFocus ?? "");
+  const [trainingPhase, setTrainingPhase]       = useState<AthleticPhase | "">(existingContext?.trainingPhase ?? "");
+  const [twoADays, setTwoADays]                 = useState<boolean>(existingContext?.twoADays ?? false);
+  const [sessionDuration, setSessionDuration]   = useState<SessionDuration | "">(existingContext?.sessionDuration ?? "");
+  const [recoveryStatus, setRecoveryStatus]     = useState<RecoveryStatus | "">(existingContext?.recoveryStatus ?? "");
   const [adaptationTarget, setAdaptationTarget] = useState<AdaptationTarget | "">(existingContext?.adaptationTarget ?? "");
 
-  // Adaptive Performance Nutrition fields (step 9)
+  // Weekly schedule (step 9)
   const [weeklySchedule, setWeeklySchedule] = useState<Record<string, APNSessionType>>(
     existingContext?.weeklyTrainingSchedule
       ? { ...DEFAULT_WEEKLY_SCHEDULE, ...existingContext.weeklyTrainingSchedule }
@@ -215,45 +209,44 @@ export default function PerformanceSetupModal({
     existingContext?.weeklyTrainingSchedule?.trainingPhase ?? ""
   );
 
-  // Competition Prep fields
+  // Competition event fields (step 8 — optional)
   const [compType, setCompType]           = useState<CompType | "">(existingCompContext?.competitionType ?? "");
   const [division, setDivision]           = useState<string>(existingCompContext?.division ?? "");
   const [eventDate, setEventDate]         = useState<string>(existingCompContext?.eventDate ?? "");
   const [currentWeight, setCurrentWeight] = useState<string>(existingCompContext?.currentWeight ?? "");
   const [targetWeight, setTargetWeight]   = useState<string>(existingCompContext?.targetWeight ?? "");
 
-  // Custom sport (shared between both tracks)
-  const [customSportName, setCustomSportName] = useState<string>(
-    existingContext?.customSportName ?? existingCompContext?.customSportName ?? ""
-  );
-  const [customSportGroup, setCustomSportGroup] = useState<string>(
-    existingContext?.customSportGroup ?? existingCompContext?.customSportGroup ?? ""
-  );
+  // Custom sport name
+  const [customSportName, setCustomSportName]   = useState<string>(existingContext?.customSportName ?? "");
+  const [customSportGroup, setCustomSportGroup] = useState<string>(existingContext?.customSportGroup ?? "");
 
   if (!isOpen) return null;
 
-  const totalSteps = track === "competition" ? COMP_TOTAL : ATHLETIC_TOTAL;
-
+  // ── Step validation ──────────────────────────────────────────────────────────
+  // Step layout (0-indexed):
+  //  0  Primary goal
+  //  1  Training type / sport
+  //  2  Training frequency
+  //  3  Cardio focus
+  //  4  Training phase
+  //  5  Session duration
+  //  6  Recovery status
+  //  7  Adaptation target
+  //  8  Upcoming competition / event (optional — always valid)
+  //  9  Weekly training schedule (day picker)
   function stepValid(): boolean {
-    if (step === 0) return !!track;
-    if (track === "athletic" || track === "") {
-      if (step === 1) return !!primaryGoal;
-      if (step === 2) return !!trainingType && (trainingType !== "other" || !!customSportName.trim());
-      if (step === 3) return !!frequency;
-      if (step === 4) return !!cardioFocus;
-      if (step === 5) return !!trainingPhase;
-      if (step === 6) return !!sessionDuration;
-      if (step === 7) return !!recoveryStatus;
-      if (step === 8) return !!adaptationTarget;
-      if (step === 9) {
-        const allDaysSet = APN_DAYS.every(d => weeklySchedule[d.key] && weeklySchedule[d.key] !== "");
-        return allDaysSet && !!apnPhase;
-      }
-    }
-    if (track === "competition") {
-      if (step === 1) return !!compType && (compType !== "other" || !!customSportName.trim());
-      if (step === 2) return !!eventDate && !isNaN(Date.parse(eventDate));
-      if (step === 3) return true;
+    if (step === 0) return !!primaryGoal;
+    if (step === 1) return !!trainingType && (trainingType !== "other" || !!customSportName.trim());
+    if (step === 2) return !!frequency;
+    if (step === 3) return !!cardioFocus;
+    if (step === 4) return !!trainingPhase;
+    if (step === 5) return !!sessionDuration;
+    if (step === 6) return !!recoveryStatus;
+    if (step === 7) return !!adaptationTarget;
+    if (step === 8) return true; // optional — always valid
+    if (step === 9) {
+      const allDaysSet = APN_DAYS.every(d => weeklySchedule[d.key] && weeklySchedule[d.key] !== "");
+      return allDaysSet && !!apnPhase;
     }
     return false;
   }
@@ -261,28 +254,26 @@ export default function PerformanceSetupModal({
   async function handleSave() {
     setSaving(true);
     try {
-      const body: any = { track };
-      if (track === "athletic") {
-        Object.assign(body, {
-          primaryGoal, trainingType, trainingFrequency: frequency,
-          cardioFocus, trainingPhase, twoADays,
-          sessionDuration:  sessionDuration  || undefined,
-          recoveryStatus:   recoveryStatus   || undefined,
-          adaptationTarget: adaptationTarget || undefined,
-          customSportName: trainingType === "other" ? customSportName.trim() : undefined,
-          customSportGroup: trainingType === "other" ? customSportGroup : undefined,
-        });
-      } else {
-        Object.assign(body, {
-          competitionType: compType,
-          division: division || undefined,
-          eventDate,
-          currentWeight: currentWeight || undefined,
-          targetWeight: targetWeight || undefined,
-          customSportName: compType === "other" ? customSportName.trim() : undefined,
-          customSportGroup: compType === "other" ? customSportGroup : undefined,
-        });
-      }
+      const body: any = {
+        track: "athletic",
+        primaryGoal,
+        trainingType,
+        trainingFrequency: frequency,
+        cardioFocus,
+        trainingPhase,
+        twoADays,
+        sessionDuration:  sessionDuration  || undefined,
+        recoveryStatus:   recoveryStatus   || undefined,
+        adaptationTarget: adaptationTarget || undefined,
+        customSportName: trainingType === "other" ? customSportName.trim() : undefined,
+        customSportGroup: trainingType === "other" ? customSportGroup : undefined,
+        // Competition event fields (optional — saved alongside athletic context)
+        competitionType: compType || undefined,
+        eventDate:       eventDate || undefined,
+        division:        division || undefined,
+        currentWeight:   currentWeight || undefined,
+        targetWeight:    targetWeight || undefined,
+      };
 
       const res = await fetch(apiUrl("/api/performance/setup"), {
         method: "POST",
@@ -292,7 +283,8 @@ export default function PerformanceSetupModal({
       });
       if (!res.ok) throw new Error("Save failed");
 
-      if (track === "athletic" && apnPhase) {
+      // Save weekly schedule
+      if (apnPhase) {
         await fetch(apiUrl("/api/performance/schedule"), {
           method: "POST",
           headers: { "Content-Type": "application/json", ...getAuthHeaders() },
@@ -307,8 +299,7 @@ export default function PerformanceSetupModal({
 
       await refreshUser();
       await queryClient.invalidateQueries({ queryKey: ["carbCycleDashboard"] });
-      const label = track === "competition" ? "Competition prep protocol saved." : "Athletic performance protocol saved.";
-      toast({ title: "Protocol activated", description: label });
+      toast({ title: "Protocol activated", description: "Performance nutrition protocol saved." });
       onSuccess?.();
       onClose();
     } catch {
@@ -321,14 +312,12 @@ export default function PerformanceSetupModal({
   function handleCustomSportInput(group: string, groupKey: string, value: string, setTypeFn: (v: any) => void) {
     setCustomSportName(value);
     setCustomSportGroup(groupKey);
-    if (value.trim()) {
-      setTypeFn("other");
-    }
+    if (value.trim()) setTypeFn("other");
   }
 
   const groups = Array.from(new Set(TRAINING_TYPES.map(t => t.group)));
   const compGroups = Array.from(new Set(COMP_TYPES.map(c => c.group)));
-  const isLastStep = step === totalSteps - 1;
+  const isLastStep = step === TOTAL_STEPS - 1;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
@@ -339,13 +328,11 @@ export default function PerformanceSetupModal({
         <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-white/10 flex-shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-orange-600/20 border border-orange-500/30 flex items-center justify-center">
-              {track === "competition" ? <Trophy className="w-4 h-4 text-orange-400" /> : <Dumbbell className="w-4 h-4 text-orange-400" />}
+              <Dumbbell className="w-4 h-4 text-orange-400" />
             </div>
             <div>
-              <p className="text-white font-bold text-sm">
-                {step === 0 ? "Performance Setup" : track === "competition" ? "Competition Prep" : "Athletic Performance"}
-              </p>
-              <p className="text-white/40 text-xs">Step {step + 1} of {track ? totalSteps : "?"}</p>
+              <p className="text-white font-bold text-sm">Performance Setup</p>
+              <p className="text-white/40 text-xs">Step {step + 1} of {TOTAL_STEPS}</p>
             </div>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
@@ -357,64 +344,15 @@ export default function PerformanceSetupModal({
         <div className="h-1 bg-white/10 flex-shrink-0">
           <div
             className="h-full bg-orange-500 transition-all duration-300"
-            style={{ width: track ? `${((step + 1) / totalSteps) * 100}%` : "5%" }}
+            style={{ width: `${((step + 1) / TOTAL_STEPS) * 100}%` }}
           />
         </div>
 
         {/* Body */}
         <div className="flex-1 min-h-0 overflow-y-auto px-5 py-5 space-y-4">
 
-          {/* ── Step 0: Track Selector ── */}
+          {/* ── Step 0 — Primary Goal ── */}
           {step === 0 && (
-            <div>
-              <p className="text-white font-bold text-lg mb-1">What describes your goal?</p>
-              <p className="text-white/50 text-sm mb-5">Each track uses a completely different protocol engine.</p>
-              <div className="space-y-3">
-                <button
-                  onClick={() => setTrack("athletic")}
-                  className={`w-full text-left px-4 py-4 rounded-2xl border transition-colors ${
-                    track === "athletic" ? "bg-orange-600/20 border-orange-400/60" : "bg-white/5 border-white/10"
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-orange-600/20 border border-orange-500/30 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <Dumbbell className="w-4 h-4 text-orange-400" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="text-white font-bold text-sm">Athletic Performance</p>
-                        {track === "athletic" && <Check className="w-4 h-4 text-orange-400" />}
-                      </div>
-                      <p className="text-white/50 text-xs mt-0.5 leading-relaxed">MMA, boxing, wrestling, football, CrossFit, endurance, tactical. Goal is performance — fueling, recovery, adaptation.</p>
-                    </div>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => setTrack("competition")}
-                  className={`w-full text-left px-4 py-4 rounded-2xl border transition-colors ${
-                    track === "competition" ? "bg-orange-600/20 border-orange-400/60" : "bg-white/5 border-white/10"
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-orange-600/20 border border-orange-500/30 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <Trophy className="w-4 h-4 text-orange-400" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="text-white font-bold text-sm">Competition Prep</p>
-                        {track === "competition" && <Check className="w-4 h-4 text-orange-400" />}
-                      </div>
-                      <p className="text-white/50 text-xs mt-0.5 leading-relaxed">Bodybuilding, physique, powerlifting meet, fight camp, wrestling season. Your event date drives every phase automatically.</p>
-                    </div>
-                  </div>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* ── Athletic: Step 1 — Primary Goal ── */}
-          {track === "athletic" && step === 1 && (
             <div>
               <p className="text-white font-bold text-lg mb-1">What's your primary goal?</p>
               <p className="text-white/50 text-sm mb-4">This shapes macro priorities and meal energy density.</p>
@@ -443,7 +381,7 @@ export default function PerformanceSetupModal({
           )}
 
           {/* ── Athletic: Step 2 — Training Type ── */}
-          {track === "athletic" && step === 2 && (
+          {step === 1 && (
             <div>
               <p className="text-white font-bold text-lg mb-1">What type of training do you do?</p>
               <p className="text-white/50 text-sm mb-4">Select your primary sport or discipline.</p>
@@ -492,7 +430,7 @@ export default function PerformanceSetupModal({
           )}
 
           {/* ── Athletic: Step 3 — Frequency ── */}
-          {track === "athletic" && step === 3 && (
+          {step === 2 && (
             <div>
               <p className="text-white font-bold text-lg mb-1">How often do you train?</p>
               <p className="text-white/50 text-sm mb-4">Weekly training sessions (not counting rest days).</p>
@@ -525,7 +463,7 @@ export default function PerformanceSetupModal({
           )}
 
           {/* ── Athletic: Step 4 — Cardio Focus ── */}
-          {track === "athletic" && step === 4 && (
+          {step === 3 && (
             <div>
               <p className="text-white font-bold text-lg mb-1">What's your cardio focus?</p>
               <p className="text-white/50 text-sm mb-4">Determines carb timing and glycolytic fuel needs.</p>
@@ -554,7 +492,7 @@ export default function PerformanceSetupModal({
           )}
 
           {/* ── Athletic: Step 5 — Training Phase ── */}
-          {track === "athletic" && step === 5 && (
+          {step === 4 && (
             <div>
               <p className="text-white font-bold text-lg mb-1">Where are you in your training cycle?</p>
               <p className="text-white/50 text-sm mb-4">Your phase calibrates macro targets and food choices.</p>
@@ -583,7 +521,7 @@ export default function PerformanceSetupModal({
           )}
 
           {/* ── Athletic: Step 6 — Session Duration ── */}
-          {track === "athletic" && step === 6 && (
+          {step === 5 && (
             <div>
               <p className="text-white font-bold text-lg mb-1">How long are your typical sessions?</p>
               <p className="text-white/50 text-sm mb-4">Used to calculate glycogen expenditure and recovery nutrition needs.</p>
@@ -612,7 +550,7 @@ export default function PerformanceSetupModal({
           )}
 
           {/* ── Athletic: Step 7 — Recovery Status ── */}
-          {track === "athletic" && step === 7 && (
+          {step === 6 && (
             <div>
               <p className="text-white font-bold text-lg mb-1">How is your recovery right now?</p>
               <p className="text-white/50 text-sm mb-4">Your current recovery state shapes protein timing, anti-inflammatory priorities, and calorie density.</p>
@@ -641,7 +579,7 @@ export default function PerformanceSetupModal({
           )}
 
           {/* ── Athletic: Step 8 — Adaptation Target ── */}
-          {track === "athletic" && step === 8 && (
+          {step === 7 && (
             <div>
               <p className="text-white font-bold text-lg mb-1">What are you adapting for?</p>
               <p className="text-white/50 text-sm mb-4">Your adaptation target drives the demand engine — every meal generated is calibrated to support this outcome.</p>
@@ -670,7 +608,7 @@ export default function PerformanceSetupModal({
           )}
 
           {/* ── Athletic: Step 9 — Weekly Training Schedule (APN) ── */}
-          {track === "athletic" && step === 9 && (
+          {step === 9 && (
             <div>
               <p className="text-white font-bold text-lg mb-1">Set your weekly training schedule</p>
               <p className="text-white/50 text-sm mb-4">
@@ -737,64 +675,44 @@ export default function PerformanceSetupModal({
             </div>
           )}
 
-          {/* ── Competition: Step 1 — Competition Type ── */}
-          {track === "competition" && step === 1 && (
+          {/* ── Step 8 — Upcoming Competition / Event (optional) ── */}
+          {step === 8 && (
             <div>
-              <p className="text-white font-bold text-lg mb-1">What type of competition?</p>
-              <p className="text-white/50 text-sm mb-4">Each competition type uses a different prep timeline and peak week protocol.</p>
-              <div className="space-y-4">
-                {compGroups.map(group => (
-                  <div key={group}>
-                    <p className="text-white/40 text-xs font-semibold uppercase tracking-wider mb-2">{group}</p>
-                    <div className="space-y-1.5">
-                      {COMP_TYPES.filter(c => c.group === group).map(c => (
-                        <button
-                          key={c.value}
-                          onClick={() => { setCompType(c.value); if (c.value !== "other") setCustomSportName(""); }}
-                          className={`w-full text-left px-4 py-2.5 rounded-xl border transition-colors text-sm font-semibold ${
-                            compType === c.value
-                              ? "bg-orange-600/20 border-orange-400/60 text-white"
-                              : "bg-white/5 border-white/10 text-white/70"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span>{c.label}</span>
-                            {compType === c.value && <Check className="w-4 h-4 text-orange-400 flex-shrink-0" />}
-                          </div>
-                        </button>
-                      ))}
-                      <div className="relative mt-1">
-                        <input
-                          type="text"
-                          value={compType === "other" && customSportGroup === COMP_GROUP_KEYS[group] ? customSportName : ""}
-                          onChange={e => handleCustomSportInput(group, COMP_GROUP_KEYS[group], e.target.value, setCompType)}
-                          placeholder={`Other ${group.toLowerCase()} sport…`}
-                          className={`w-full bg-white/5 border rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-white/20 outline-none focus:border-orange-500/60 transition-colors ${
-                            compType === "other" && customSportGroup === COMP_GROUP_KEYS[group]
-                              ? "border-orange-400/60 bg-orange-600/10"
-                              : "border-white/10"
-                          }`}
-                        />
-                        {compType === "other" && customSportGroup === COMP_GROUP_KEYS[group] && customSportName.trim() && (
-                          <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-orange-400" />
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+              <p className="text-white font-bold text-lg mb-1">Upcoming competition or event?</p>
+              <p className="text-white/50 text-sm mb-1">All optional — skip if you're not prepping for a specific event.</p>
+              <p className="text-orange-300/70 text-xs mb-5">Your weekly schedule and macro targets work the same either way.</p>
 
-          {/* ── Competition: Step 2 — Event Date + Division ── */}
-          {track === "competition" && step === 2 && (
-            <div>
-              <p className="text-white font-bold text-lg mb-1">When is your event?</p>
-              <p className="text-white/50 text-sm mb-5">Your event date drives every phase automatically — no guessing.</p>
-
-              <div className="space-y-4">
+              <div className="space-y-5">
+                {/* Competition type */}
                 <div>
-                  <p className="text-white/70 text-xs font-semibold uppercase tracking-wider mb-2">Event Date <span className="text-orange-400">*</span></p>
+                  <p className="text-white/70 text-xs font-semibold uppercase tracking-wider mb-2">Event Type <span className="text-white/30">(optional)</span></p>
+                  <div className="space-y-3">
+                    {compGroups.map(group => (
+                      <div key={group}>
+                        <p className="text-white/30 text-xs font-semibold uppercase tracking-wider mb-1.5">{group}</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {COMP_TYPES.filter(c => c.group === group).map(c => (
+                            <button
+                              key={c.value}
+                              onClick={() => setCompType(prev => prev === c.value ? "" : c.value)}
+                              className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                                compType === c.value
+                                  ? "bg-orange-600/30 border-orange-400/60 text-white"
+                                  : "bg-white/5 border-white/10 text-white/60"
+                              }`}
+                            >
+                              {c.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Event date */}
+                <div>
+                  <p className="text-white/70 text-xs font-semibold uppercase tracking-wider mb-2">Event Date <span className="text-white/30">(optional)</span></p>
                   <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
                     <PopoverTrigger asChild>
                       <button
@@ -805,8 +723,13 @@ export default function PerformanceSetupModal({
                         <span className={eventDate ? "text-white" : "text-white/30"}>
                           {eventDate
                             ? new Date(eventDate + "T00:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
-                            : "Pick event date"}
+                            : "Pick event date (optional)"}
                         </span>
+                        {eventDate && (
+                          <span className="ml-auto text-orange-300 text-xs font-medium">
+                            {Math.max(0, Math.round((new Date(eventDate).getTime() - Date.now()) / (7 * 24 * 60 * 60 * 1000)))} wks out
+                          </span>
+                        )}
                       </button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0 bg-zinc-900 border-white/20" align="start">
@@ -837,60 +760,30 @@ export default function PerformanceSetupModal({
                       />
                     </PopoverContent>
                   </Popover>
-                  {eventDate && (
-                    <p className="text-orange-300 text-xs mt-2">
-                      {Math.max(0, Math.round((new Date(eventDate).getTime() - Date.now()) / (7 * 24 * 60 * 60 * 1000)))} weeks out
-                    </p>
-                  )}
                 </div>
 
-                <div>
-                  <p className="text-white/70 text-xs font-semibold uppercase tracking-wider mb-2">Division <span className="text-white/30">(optional)</span></p>
-                  <input
-                    type="text"
-                    value={division}
-                    onChange={e => setDivision(e.target.value)}
-                    placeholder="e.g. Open, Masters 35+, 93kg class..."
-                    className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-3 text-white text-sm placeholder:text-white/30 outline-none focus:border-orange-500/60"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ── Competition: Step 3 — Weight Info ── */}
-          {track === "competition" && step === 3 && (
-            <div>
-              <p className="text-white font-bold text-lg mb-1">Weight information</p>
-              <p className="text-white/50 text-sm mb-5">Optional — helps your protocol give precise guidance on cut strategy and calorie targets.</p>
-
-              <div className="space-y-4">
-                <div>
-                  <p className="text-white/70 text-xs font-semibold uppercase tracking-wider mb-2">Current Weight <span className="text-white/30">(optional)</span></p>
-                  <input
-                    type="text"
-                    value={currentWeight}
-                    onChange={e => setCurrentWeight(e.target.value)}
-                    placeholder="e.g. 185 lbs, 84 kg..."
-                    className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-3 text-white text-sm placeholder:text-white/30 outline-none focus:border-orange-500/60"
-                  />
-                </div>
-                <div>
-                  <p className="text-white/70 text-xs font-semibold uppercase tracking-wider mb-2">Target Weight / Class <span className="text-white/30">(optional)</span></p>
-                  <input
-                    type="text"
-                    value={targetWeight}
-                    onChange={e => setTargetWeight(e.target.value)}
-                    placeholder="e.g. 175 lbs, 83kg class, stage ready..."
-                    className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-3 text-white text-sm placeholder:text-white/30 outline-none focus:border-orange-500/60"
-                  />
-                </div>
-
-                <div className="bg-orange-950/30 border border-orange-500/20 rounded-xl px-4 py-3">
-                  <p className="text-orange-300 text-xs font-semibold mb-1">How this works</p>
-                  <p className="text-white/50 text-xs leading-relaxed">
-                    MPM calculates your current phase from your event date automatically. As your event approaches, protocols shift. The calendar decides — not AI.
-                  </p>
+                {/* Division + weights in a 2-col grid */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-white/70 text-xs font-semibold uppercase tracking-wider mb-2">Division</p>
+                    <input
+                      type="text"
+                      value={division}
+                      onChange={e => setDivision(e.target.value)}
+                      placeholder="e.g. Open, 93kg…"
+                      className="w-full bg-white/5 border border-white/20 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-white/25 outline-none focus:border-orange-500/60"
+                    />
+                  </div>
+                  <div>
+                    <p className="text-white/70 text-xs font-semibold uppercase tracking-wider mb-2">Target Weight</p>
+                    <input
+                      type="text"
+                      value={targetWeight}
+                      onChange={e => setTargetWeight(e.target.value)}
+                      placeholder="e.g. 175 lbs…"
+                      className="w-full bg-white/5 border border-white/20 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-white/25 outline-none focus:border-orange-500/60"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
