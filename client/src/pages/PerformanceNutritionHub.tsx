@@ -421,9 +421,22 @@ interface CarbCycleData {
 
 type ActiveTab = "protocol" | "starch" | "protocols";
 
-export default function PerformanceNutritionHub() {
-  usePageTitle("Performance Hub");
+interface PerformanceHubSharedProps {
+  /** When set, hub renders in shared/training-schedule mode for non-Performance builders */
+  continueTo?: string;  // where the "Continue to Builder" button goes
+  returnTo?: string;    // where the back button goes
+  pageTitle?: string;   // overrides the header title
+}
+
+export default function PerformanceNutritionHub({ continueTo, returnTo, pageTitle }: PerformanceHubSharedProps = {}) {
+  usePageTitle(pageTitle ?? "Performance Hub");
   const [, setLocation] = useLocation();
+  // Shared-mode helpers — derived once, used throughout
+  const setupPath = continueTo
+    ? `/performance/setup?returnTo=${encodeURIComponent(window.location.pathname)}`
+    : "/performance/setup";
+  const builderPath = continueTo ?? "/beach-body-meal-board";
+  const backPath = returnTo ?? "/";
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -732,7 +745,7 @@ export default function PerformanceNutritionHub() {
   };
 
   // ── Clinical paywall gate ─────────────────────────────────────────────────
-  if (!hasPerformanceAccess) {
+  if (!hasPerformanceAccess && !continueTo) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white pb-20">
         {!isDesktop && (
@@ -741,7 +754,7 @@ export default function PerformanceNutritionHub() {
             style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
           >
             <button
-              onClick={() => setLocation("/")}
+              onClick={() => setLocation(backPath)}
               className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0"
             >
               <ArrowLeft className="w-4 h-4 text-white" />
@@ -794,19 +807,19 @@ export default function PerformanceNutritionHub() {
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
         >
           <button
-            onClick={() => setLocation("/")}
+            onClick={() => setLocation(backPath)}
             className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0"
           >
             <ArrowLeft className="w-4 h-4 text-white" />
           </button>
           <div className="flex-1">
-            <p className="text-white font-bold text-base leading-none">Performance Hub</p>
+            <p className="text-white font-bold text-base leading-none">{pageTitle ?? "Performance Hub"}</p>
             <p className="text-orange-300 text-xs mt-0.5">
-              {activeTrack === "competition" ? "Competition prep protocol" : "Sport-specific nutrition protocol"}
+              {continueTo ? "Training schedule & daily macro adjustments" : activeTrack === "competition" ? "Competition prep protocol" : "Sport-specific nutrition protocol"}
             </p>
           </div>
           <button
-            onClick={() => setLocation("/performance/setup")}
+            onClick={() => setLocation(setupPath)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-600/20 border border-orange-500/30 text-orange-300 text-xs font-semibold"
           >
             <Settings className="w-3.5 h-3.5" />
@@ -838,14 +851,16 @@ export default function PerformanceNutritionHub() {
       {!isActive && !macroCalcRequired && (
         <div className="px-4 pt-10 max-w-lg mx-auto">
           <div className="text-center mb-8">
-            <p className="text-white font-bold text-xl mb-2">Performance Nutrition Hub</p>
+            <p className="text-white font-bold text-xl mb-2">{pageTitle ?? "Performance Nutrition Hub"}</p>
             <p className="text-white/80 text-sm leading-relaxed">
-              Two separate protocol engines. Choose the one that matches your goal.
+              {continueTo
+                ? "Set up your weekly training schedule to automatically adjust your daily macro targets."
+                : "Two separate protocol engines. Choose the one that matches your goal."}
             </p>
           </div>
           <div className="space-y-3">
             <button
-              onClick={() => setLocation("/performance/setup")}
+              onClick={() => setLocation(setupPath)}
               className="w-full text-left px-4 py-4 rounded-2xl bg-black/50 border border-white/10 active:scale-[0.98] transition-transform"
             >
               <div className="flex items-start gap-3">
@@ -860,7 +875,7 @@ export default function PerformanceNutritionHub() {
               </div>
             </button>
             <button
-              onClick={() => setLocation("/performance/setup")}
+              onClick={() => setLocation(setupPath)}
               className="w-full text-left px-4 py-4 rounded-2xl bg-black/50 border border-white/10 active:scale-[0.98] transition-transform"
             >
               <div className="flex items-start gap-3">
@@ -884,7 +899,7 @@ export default function PerformanceNutritionHub() {
 
           {/* ── Quick Launch ── */}
           <button
-            onClick={() => setLocation("/beach-body-meal-board")}
+            onClick={() => setLocation(builderPath)}
             className="w-full flex items-center justify-between px-4 py-4 rounded-2xl bg-orange-600/20 border border-orange-500/30 text-white"
           >
             <div className="text-left">
@@ -1088,11 +1103,11 @@ export default function PerformanceNutritionHub() {
               </div>
 
               <button
-                onClick={() => setLocation("/beach-body-meal-board")}
+                onClick={() => setLocation(builderPath)}
                 className="w-full flex items-center justify-between px-4 py-4 rounded-2xl bg-orange-600/20 border border-orange-500/30 text-white"
               >
                 <div className="text-left">
-                  <p className="font-bold text-sm">Launch Performance Nutrition Builder</p>
+                  <p className="font-bold text-sm">{continueTo ? "Continue to Builder" : "Launch Performance Nutrition Builder"}</p>
                   <p className="text-white/80 text-xs mt-0.5">Build meals calibrated for your prep phase</p>
                 </div>
                 <ChevronRight className="w-5 h-5 text-orange-400 flex-shrink-0" />
@@ -1108,7 +1123,7 @@ export default function PerformanceNutritionHub() {
 
           {/* ── Quick Launch ── */}
           <button
-            onClick={() => setLocation("/beach-body-meal-board")}
+            onClick={() => setLocation(builderPath)}
             className="w-full flex items-center justify-between px-4 py-4 rounded-2xl bg-orange-600/20 border border-orange-500/30 text-white"
           >
             <div className="text-left">
@@ -1131,7 +1146,7 @@ export default function PerformanceNutritionHub() {
                     <p className="text-xs text-orange-300 font-semibold uppercase tracking-wider">Weekly Coaching Schedule</p>
                   </div>
                   <button
-                    onClick={() => setLocation("/performance/setup")}
+                    onClick={() => setLocation(setupPath)}
                     className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/10 border border-white/10 text-white/70 text-xs font-medium"
                   >
                     <Settings className="w-3 h-3" />
@@ -1603,11 +1618,11 @@ export default function PerformanceNutritionHub() {
               )}
 
               <button
-                onClick={() => setLocation("/beach-body-meal-board")}
+                onClick={() => setLocation(builderPath)}
                 className="w-full flex items-center justify-between px-4 py-4 rounded-2xl bg-orange-600/20 border border-orange-500/30 text-white"
               >
                 <div className="text-left">
-                  <p className="font-bold text-sm">Launch Performance Nutrition Builder</p>
+                  <p className="font-bold text-sm">{continueTo ? "Continue to Builder" : "Launch Performance Nutrition Builder"}</p>
                   <p className="text-white/80 text-xs mt-0.5">Build sport-calibrated meals now</p>
                 </div>
                 <ChevronRight className="w-5 h-5 text-orange-400 flex-shrink-0" />

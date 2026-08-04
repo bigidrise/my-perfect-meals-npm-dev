@@ -5,6 +5,10 @@ import PerformanceNutritionSetupForm from "@/components/performance/PerformanceN
 export default function PerformanceNutritionSetupPage() {
   const [, setLocation] = useLocation();
 
+  // Support ?returnTo so callers (e.g. General Nutrition Training page) can
+  // send the user back to the right place after setup completes.
+  const returnTo = new URLSearchParams(window.location.search).get("returnTo") ?? "/performance";
+
   return (
     <div className="min-h-svh bg-gradient-to-b from-black via-orange-950/20 to-black flex flex-col">
 
@@ -14,7 +18,7 @@ export default function PerformanceNutritionSetupPage() {
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
       >
         <button
-          onClick={() => setLocation("/performance")}
+          onClick={() => setLocation(returnTo)}
           className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0"
         >
           <ArrowLeft className="w-4 h-4 text-white" />
@@ -31,7 +35,7 @@ export default function PerformanceNutritionSetupPage() {
       </div>
 
       {/* Form — fills remaining height, handles its own scroll + sticky footer */}
-      <PerformanceNutritionSetupForm onSave={() => setLocation("/performance")} />
+      <PerformanceNutritionSetupForm onSave={() => setLocation(returnTo)} />
 
     </div>
   );
