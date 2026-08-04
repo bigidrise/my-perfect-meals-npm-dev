@@ -899,9 +899,9 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
         <div className="px-4 pt-4 max-w-xl mx-auto flex justify-end">
           <button
             onClick={() => setLocation(setupPath)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-600/20 border border-orange-500/30 text-orange-300 text-xs font-semibold"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-orange-600 text-white text-sm font-semibold shadow-md"
           >
-            <Settings className="w-3.5 h-3.5" />
+            <Settings className="w-4 h-4" />
             Update Setup
           </button>
         </div>
