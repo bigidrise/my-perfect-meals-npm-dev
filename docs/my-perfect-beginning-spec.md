@@ -293,24 +293,29 @@ Critical ingredient and preparation rules by stage. These are **generation block
 
 | Rule ID | Rule | Applies To Stages | Severity | Source |
 |---|---|---|---|---|
-| `MPB-S001` | No honey | `beginning_foods`, `young_toddler` | Hard stop | CDC, AAP |
-| `MPB-S002` | No cow's milk as main drink | `beginning_foods` | Hard stop | CDC |
-| `MPB-S003` | No juice | `beginning_foods` | Hard stop | CDC, AAP |
-| `MPB-S004` | Texture ≤ mashed/soft | `beginning_foods` | Hard stop | CDC |
-| `MPB-S005` | No whole nuts or large nut pieces | All stages | Hard stop | AAP, NIAID |
-| `MPB-S006` | No whole grapes — must be quartered | `beginning_foods` through `preschool` | Hard stop | CDC |
-| `MPB-S007` | No whole cherry tomatoes — halve or quarter | `beginning_foods` through `preschool` | Hard stop | CDC |
-| `MPB-S008` | No large pieces of raw carrot, celery, apple | `beginning_foods` through `young_toddler` | Hard stop | CDC |
-| `MPB-S009` | No popcorn | All stages through `preschool` | Hard stop | AAP |
-| `MPB-S010` | No hard candy | All stages through `early_school_age` | Hard stop | AAP |
-| `MPB-S011` | No large chunks of meat — must be finely chopped or shredded | `beginning_foods` through `toddler` | Hard stop | CDC |
-| `MPB-S012` | No high-mercury fish (swordfish, shark, king mackerel, tilefish, bigeye tuna) | All stages | Hard stop | FDA/EPA |
-| `MPB-S013` | No homemade infant formula recommendations | `early_infant`, `beginning_foods` | Hard stop | FDA, AAP |
-| `MPB-S014` | No recipe generation if `swallowingDifficulty === true` without clinicianPrescribedTextureLevel | All stages | Hard stop | Clinical safety |
-| `MPB-S015` | No recipe generation if `hasFeedingTube === true` without explicit clinician instructions | All stages | Hard stop | Clinical safety |
-| `MPB-S016` | Limit added sugar; no sugary drinks as primary beverage | All stages | Guidance | CDC, AAP |
-| `MPB-S017` | Limit sodium; no high-sodium processed foods as primary ingredients | All stages | Guidance | NHLBI, Dietary Guidelines |
-| `MPB-S018` | Serving size must match age-appropriate ranges | All stages | Guidance | CDC, USDA |
+| `MPB-S001` | No honey | `beginning_foods`, `young_toddler` | Hard stop | CDC, AAP | **Strong** |
+| `MPB-S002` | No cow's milk as main drink | `beginning_foods` | Hard stop | CDC | **Strong** |
+| `MPB-S003` | No juice | `beginning_foods` | Hard stop | CDC, AAP | **Strong** |
+| `MPB-S004` | Texture ≤ mashed/soft | `beginning_foods` | Hard stop | CDC | **Strong** |
+| `MPB-S005` | No whole nuts or large nut pieces | All stages | Hard stop | AAP, NIAID | **Strong** |
+| `MPB-S006` | No whole grapes — must be quartered | `beginning_foods` through `preschool` | Hard stop | CDC | **Strong** |
+| `MPB-S007` | No whole cherry tomatoes — halve or quarter | `beginning_foods` through `preschool` | Hard stop | CDC | **Strong** |
+| `MPB-S008` | No large pieces of raw carrot, celery, apple | `beginning_foods` through `young_toddler` | Hard stop | CDC | **Strong** |
+| `MPB-S009` | No popcorn | All stages through `preschool` | Hard stop | AAP | **Strong** |
+| `MPB-S010` | No hard candy | All stages through `early_school_age` | Hard stop | AAP | **Strong** |
+| `MPB-S011` | No large chunks of meat — must be finely chopped or shredded | `beginning_foods` through `toddler` | Hard stop | CDC | **Strong** |
+| `MPB-S012` | No high-mercury fish (swordfish, shark, king mackerel, tilefish, bigeye tuna) | All stages | Hard stop | FDA/EPA | **Strong** |
+| `MPB-S013` | No homemade infant formula recommendations | `early_infant`, `beginning_foods` | Hard stop | FDA, AAP | **Strong** |
+| `MPB-S014` | No recipe generation if `swallowingDifficulty === true` without clinicianPrescribedTextureLevel | All stages | Hard stop | Clinical safety | **Strong** |
+| `MPB-S015` | No recipe generation if `hasFeedingTube === true` without explicit clinician instructions | All stages | Hard stop | Clinical safety | **Strong** |
+| `MPB-S016` | Limit added sugar; no sugary drinks as primary beverage | All stages | Guidance | CDC, AAP | **Strong** |
+| `MPB-S017` | Limit sodium; no high-sodium processed foods as primary ingredients | All stages | Guidance | NHLBI, Dietary Guidelines | **Moderate** |
+| `MPB-S018` | Serving size must match age-appropriate ranges | All stages | Guidance | CDC, USDA | **Strong** |
+| `MPB-S019` | Texture progression strategy (soft → pieces → family foods) | `beginning_foods` through `toddler` | Guidance | CDC | **Strong** |
+| `MPB-S020` | Picky eating exposure strategies (repeated neutral exposure) | `toddler` through `early_school_age` | Guidance | AAP | **Moderate** |
+| `MPB-S021` | Sensory-based eating adaptation approaches | All stages | Guidance | OT/SLP literature | **Limited** |
+
+(Evidence strength column added per v1.2 review. Reviewers should treat **Limited** rules with heightened scrutiny — language must be appropriately hedged and clinical referral offered.)
 
 **Rule governance fields** (each rule in the rule registry carries):
 
@@ -657,7 +662,60 @@ interface PediatricProtocol {
   clinicalReviewer?: string;
   parentAdultProtocolId?: string;  // Reference only — never inherit rules from it
   inheritanceRule: "none";         // Always "none" — explicit, enforced
+
+  // ── Protocol Objective (required) ────────────────────────────────────
+  objective: ProtocolObjective;
+
+  // ── Exit Conditions ───────────────────────────────────────────────────
+  exitConditions: ProtocolExitCondition[];
+
+  // ── Evidence Strength ─────────────────────────────────────────────────
+  evidenceStrength: "strong" | "moderate" | "limited" | "consensus";
+  evidenceNotes?: string;  // Explains why strength is limited/consensus
 }
+
+interface ProtocolObjective {
+  primaryObjective: string;
+  secondaryObjectives: string[];
+  notIntendedToDo: string[];  // Explicit scope boundary — shown to clinical reviewers
+}
+
+// Examples:
+// Type 1 Diabetes:
+//   primaryObjective: "Maintain meal consistency that supports the child's diabetes management plan"
+//   notIntendedToDo: ["Adjust insulin", "Replace diabetes education", "Treat emergencies", "Override clinician instructions"]
+//
+// Picky Eating:
+//   primaryObjective: "Increase dietary variety while preserving positive food experiences"
+//   notIntendedToDo: ["Force eating", "Diagnose ARFID", "Replace feeding therapy"]
+
+type ProtocolExitTrigger =
+  | "child_advances_to_next_stage"   // Automatic — stage-based protocols only
+  | "parent_removes_protocol"
+  | "clinician_removes_protocol"
+  | "clinician_indicates_resolved"
+  | "child_reaches_age"              // e.g. allergy introduction window closes
+  | "manual_review_required";        // Flags for human decision
+
+interface ProtocolExitCondition {
+  trigger: ProtocolExitTrigger;
+  description: string;           // Human-readable explanation
+  automatic: boolean;            // true = system acts; false = notification only
+  notifyParent: boolean;
+  notifyClinician: boolean;
+}
+
+// Examples:
+// Beginning Foods:
+//   { trigger: "child_advances_to_next_stage", automatic: true, description: "Expires when parent confirms child has moved to Young Toddler stage" }
+//
+// Constipation Support:
+//   { trigger: "parent_removes_protocol", automatic: false, description: "Parent manually removes when no longer needed" }
+//   { trigger: "clinician_removes_protocol", automatic: false }
+//
+// Iron Support:
+//   { trigger: "clinician_indicates_resolved", automatic: false, description: "Clinician indicates iron levels normalized" }
+//   { trigger: "parent_removes_protocol", automatic: false }
 ```
 
 **The `inheritanceRule: "none"` field is required and immutable.** It documents the architectural decision and makes it impossible to accidentally wire up adult rule inheritance.
@@ -731,6 +789,76 @@ Violation of this rule is a blocking issue in any Phase 2+ protocol implementati
 
 ---
 
-*Document version: 1.1 | Status: Awaiting review before implementation begins*
+## 16. Developmental Milestone Registry
+
+Developmental milestones are **not diseases and not protocols**. They are nutrition-relevant developmental events that can influence meal generation independently of any condition. They sit alongside the Protocol Registry as a separate data source fed into the Protocol Resolver.
+
+```
+Child Nutrition Profile
+        ↓
+        ├── Pediatric Protocol Registry  (condition-based rules)
+        └── Developmental Milestone Registry  (event-based rules)
+                ↓
+        Protocol Resolver (merges both)
+                ↓
+        Meal Generator
+```
+
+### What Belongs in the Milestone Registry
+
+These are events in a child's feeding development that carry specific nutrition guidance:
+
+| Milestone ID | Milestone | Typical Age | Nutrition Influence |
+|---|---|---|---|
+| `MPB-M001` | Beginning solid foods | ~6 months | Texture: purée only; iron-rich first foods; single-ingredient introduction |
+| `MPB-M002` | Texture progression — soft lumps | ~7–9 months | Advance from smooth purée; soft mashed pieces; spoon self-feeding begins |
+| `MPB-M003` | Finger foods introduction | ~8–10 months | Small soft pieces; pincer grasp foods; self-feeding practice |
+| `MPB-M004` | Cup introduction | ~6–12 months | Introduces sips of water; breast milk / formula remains primary drink |
+| `MPB-M005` | Transition off formula/breast milk | ~12 months | Cow's milk (or alternative) becomes acceptable; juice still limited |
+| `MPB-M006` | Self-feeding emerging | ~12–18 months | Utensil use beginning; messier meals expected; family food textures |
+| `MPB-M007` | Family food participation | ~12–24 months | Child eating versions of family meals; portion adaptation |
+| `MPB-M008` | Picky eating peak | ~18 months–3 years | Food neophobia common; exposure over pressure; familiar + one new |
+| `MPB-M009` | Snack structure | ~12 months onward | 3 meals + 2–3 snacks; structured eating windows |
+| `MPB-M010` | Preschool food independence | ~3–5 years | Self-serving small portions; color/shape presentation matters |
+| `MPB-M011` | School lunch independence | ~5–6 years | Packable foods; school-safe allergen requirements; peer eating context |
+| `MPB-M012` | After-school fueling | ~6+ years | Energy timing for activity; snack before sports |
+| `MPB-M013` | Youth sports nutrition | ~6+ years | Pre/post-activity fueling; hydration; recovery foods |
+
+### Milestone Schema
+
+```typescript
+interface DevelopmentalMilestone {
+  milestoneId: string;
+  label: string;
+  typicalAgeRangeMonths: [number, number];
+  stagesApplicable: DevelopmentalStage[];
+  nutritionInfluences: string[];       // What changes in generation
+  textureImplications?: string;
+  servingImplications?: string;
+  ingredientInfluences?: string[];     // Foods to introduce or adapt
+  presentationGuidance?: string;       // How to present food for this stage
+  parentGuidanceNote: string;          // Shown in UI
+  evidenceStrength: "strong" | "moderate" | "limited" | "consensus";
+  sourceIds: string[];                 // From source registry
+  activeWhen: MilestoneActivationRule;
+  exitConditions: ProtocolExitCondition[];
+}
+
+type MilestoneActivationRule =
+  | { type: "stage_based"; stages: DevelopmentalStage[] }         // Auto-active for stage
+  | { type: "parent_confirms"; description: string }               // Parent taps "Yes, we're here"
+  | { type: "age_range"; minMonths: number; maxMonths: number };   // Age window
+```
+
+### Key Design Rule
+
+Milestone rules carry guidance-level severity only — they inform the generator but never hard-block it the way Level A safety rules do. A child at the "picky eating peak" milestone gets exposure-friendly presentation suggestions; a child with the honey hard stop (`MPB-S001`) is blocked regardless of milestone state.
+
+Milestones can **co-exist with protocols**. A child with celiac disease (Level C protocol) can also be at the "school lunch independence" milestone — both inform the same generation request simultaneously.
+
+---
+
+*Document version: 1.2 | Status: Awaiting review before implementation begins*
 *v1.0 — Initial specification*
 *v1.1 — Added Pediatric Protocol Registry (Section 15), non-inheritance rule, phase roadmap, and protocol governance schema*
+*v1.2 — Added protocol objectives + "not intended to do" fields, exit conditions, evidence strength column across safety matrix and protocol schema, Developmental Milestone Registry (Section 16)*
