@@ -53,13 +53,13 @@ export default function GeneralNutritionBuilderEntry() {
       >
         {/* Header */}
         <div className="mb-8">
-          <p className="text-white/40 text-xs font-semibold uppercase tracking-wider mb-2">
+          <p className="text-white text-xs font-semibold uppercase tracking-wider mb-2">
             Meal Builder
           </p>
           <h1 className="text-white font-bold text-2xl leading-tight mb-2">
             General Nutrition Builder
           </h1>
-          <p className="text-white/50 text-sm leading-relaxed">
+          <p className="text-white text-sm leading-relaxed">
             Build meals using your Nutrition Profile.
           </p>
         </div>
@@ -76,7 +76,7 @@ export default function GeneralNutritionBuilderEntry() {
             <p className="text-white font-semibold text-base leading-tight mb-0.5">
               Continue to General Nutrition Builder
             </p>
-            <p className="text-white/40 text-sm leading-relaxed">
+            <p className="text-white text-sm leading-relaxed">
               Generate meals using your current Nutrition Profile and macro targets.
             </p>
           </div>
@@ -111,7 +111,7 @@ export default function GeneralNutritionBuilderEntry() {
                 </span>
               )}
             </div>
-            <p className="text-white/40 text-sm leading-relaxed mb-2">
+            <p className="text-white text-sm leading-relaxed mb-2">
               Automatically adjust your daily macro targets based on your weekly workout schedule.
             </p>
 
@@ -122,8 +122,8 @@ export default function GeneralNutritionBuilderEntry() {
                 <span className="text-orange-300 text-xs font-semibold">
                   Today: {todayLabel}
                 </span>
-                <span className="text-white/30 text-xs">·</span>
-                <span className="text-white/40 text-xs">Training adjustments active</span>
+                <span className="text-white/60 text-xs">·</span>
+                <span className="text-white text-xs">Training adjustments active</span>
               </div>
             )}
 
@@ -137,7 +137,7 @@ export default function GeneralNutritionBuilderEntry() {
         {/* Explainer — only shown when no schedule is active */}
         {!hasSchedule && (
           <div className="mt-4 px-4 py-3 rounded-xl bg-white/5 border border-white/10">
-            <p className="text-white/30 text-xs leading-relaxed">
+            <p className="text-white text-xs leading-relaxed">
               When configured, your macro targets automatically shift each day based on your training — more carbohydrates on power days, reduced targets on rest days. Your macro baseline always stays under your Macro Calculator.
             </p>
           </div>
