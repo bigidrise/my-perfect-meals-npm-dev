@@ -13,7 +13,7 @@ import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { getResolvedTargets, setPerfSelectedDate } from "@/lib/macroResolver";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
-// import PerformanceSetupModal from "@/components/PerformanceSetupModal"; // kept during validation — see PerformanceNutritionSetupPage
+import PerformanceSetupModal from "@/components/PerformanceSetupModal";
 import {
   computeDemandProfile,
   FUEL_DEMAND_LABELS,
@@ -475,6 +475,7 @@ export default function TrainingNutritionHub() {
 
   const [macroCalcRequired, setMacroCalcRequired] = useState(false);
   const [protocolCopied, setProtocolCopied] = useState(false);
+  const [setupOpen, setSetupOpen] = useState(false);
 
   // ── Clinical paywall ─────────────────────────────────────────────────────
   const entitlements: string[] = (user as any)?.entitlements || [];
@@ -787,33 +788,31 @@ export default function TrainingNutritionHub() {
       transition={{ duration: 0.4 }}
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-32"
     >
-      {/* Header — mobile only; DesktopHeader shows the title on desktop */}
-      {!isDesktop && (
-        <div
-          className="sticky top-0 z-10 bg-black/60 backdrop-blur-md border-b border-white/10 px-4 pb-3 flex items-center gap-3"
-          style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
+      {/* Header — all screen sizes */}
+      <div
+        className="sticky top-0 z-10 bg-black/60 backdrop-blur-md border-b border-white/10 px-4 pb-3 flex items-center gap-3"
+        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
+      >
+        <button
+          onClick={() => setLocation("/")}
+          className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0"
         >
-          <button
-            onClick={() => setLocation("/")}
-            className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0"
-          >
-            <ArrowLeft className="w-4 h-4 text-white" />
-          </button>
-          <div className="flex-1">
-            <p className="text-white font-bold text-base leading-none">Performance Hub</p>
-            <p className="text-orange-300 text-xs mt-0.5">
-              {activeTrack === "competition" ? "Competition prep protocol" : "Sport-specific nutrition protocol"}
-            </p>
-          </div>
-          <button
-            onClick={() => setLocation("/performance/setup")}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-600/20 border border-orange-500/30 text-orange-300 text-xs font-semibold"
-          >
-            <Settings className="w-3.5 h-3.5" />
-            {isActive ? "Update" : "Setup"}
-          </button>
+          <ArrowLeft className="w-4 h-4 text-white" />
+        </button>
+        <div className="flex-1">
+          <p className="text-white font-bold text-base leading-none">Performance Hub</p>
+          <p className="text-orange-300 text-xs mt-0.5">
+            {activeTrack === "competition" ? "Competition prep protocol" : "Sport-specific nutrition protocol"}
+          </p>
         </div>
-      )}
+        <button
+          onClick={() => setSetupOpen(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-600/20 border border-orange-500/30 text-orange-300 text-xs font-semibold"
+        >
+          <Settings className="w-3.5 h-3.5" />
+          {isActive ? "Update" : "Setup"}
+        </button>
+      </div>
 
       {/* ── Macro Calculator gate — shown when targets are missing ── */}
       {macroCalcRequired && (
@@ -845,7 +844,7 @@ export default function TrainingNutritionHub() {
           </div>
           <div className="space-y-3">
             <button
-              onClick={() => setLocation("/performance/setup")}
+              onClick={() => setSetupOpen(true)}
               className="w-full text-left px-4 py-4 rounded-2xl bg-black/50 border border-white/10 active:scale-[0.98] transition-transform"
             >
               <div className="flex items-start gap-3">
@@ -860,7 +859,7 @@ export default function TrainingNutritionHub() {
               </div>
             </button>
             <button
-              onClick={() => setLocation("/performance/setup")}
+              onClick={() => setSetupOpen(true)}
               className="w-full text-left px-4 py-4 rounded-2xl bg-black/50 border border-white/10 active:scale-[0.98] transition-transform"
             >
               <div className="flex items-start gap-3">
@@ -1131,7 +1130,7 @@ export default function TrainingNutritionHub() {
                     <p className="text-xs text-orange-300 font-semibold uppercase tracking-wider">Weekly Coaching Schedule</p>
                   </div>
                   <button
-                    onClick={() => setLocation("/performance/setup")}
+                    onClick={() => setSetupOpen(true)}
                     className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/10 border border-white/10 text-white/70 text-xs font-medium"
                   >
                     <Settings className="w-3 h-3" />
@@ -1617,15 +1616,14 @@ export default function TrainingNutritionHub() {
         </div>
       )}
 
-      {/* Setup modal — commented out during validation of PerformanceNutritionSetupPage (/performance/setup) */}
-      {/* <PerformanceSetupModal
+      {/* Setup modal — inline wizard, all 10 steps for Athletic, 4 for Competition */}
+      <PerformanceSetupModal
         isOpen={setupOpen}
         onClose={() => setSetupOpen(false)}
-        onSuccess={() => setSetupOpen(false)}
+        onSuccess={() => { setSetupOpen(false); queryClient.invalidateQueries({ queryKey: ["/api/user/profile"] }); }}
         existingContext={pCtx}
         existingCompContext={compCtx}
-        existingTrack={activeTrack}
-      /> */}
+      />
     </motion.div>
   );
 
