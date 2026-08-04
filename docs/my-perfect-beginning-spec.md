@@ -577,11 +577,11 @@ Every rule must cite a source from this list (or request addition of a new sourc
 - Early Infant gate: education screen instead of generator
 - No DB storage of child profiles yet (session-only)
 
-### Phase 2 — Child Profile Storage
+### Phase 2 — Child Nutrition Profile Storage
 - DB table: `child_nutrition_profiles`
-- Parent can save and switch between multiple child profiles
+- Parent can save and switch between multiple Child Nutrition Profiles
 - Profile builder wizard (full intake flow, Sections 1–9)
-- Profile appears in a "Nutrition Profiles" switcher on the home screen
+- Netflix-style active child switcher at top of hub (see Section 20)
 
 ### Phase 3 — Level B Goals
 - All NutritionSupportGoal values integrated into prompt context
@@ -800,7 +800,7 @@ My Perfect Beginning is not a builder with a landing page. It is a **destination
 | Today's Tip | *(persistent, top of hub)* | Daily confidence builder — one evidence-backed sentence |
 | 🍽 Create a Meal | "Make something delicious" | Recipe creator — the core generator |
 | 🧑‍🍼 Parent's Corner | "Ask your nutrition guide" | AI Q&A for parenting questions, not recipes |
-| 👶 Child Profile | "Your child's nutrition profile" | Build and edit the full ChildNutritionProfile |
+| 👶 Child Nutrition Profile | "Your child's nutrition profile" | Build and edit the full ChildNutritionProfile |
 | 🌱 The Journey | "Where you are right now" | Timeline of developmental stages — grows with the child |
 | 🎂 Better Favorites | "Make their favorites healthier" | Parent names a food; AI makes a better version |
 | 🎒 Lunchbox Builder | "Pack the perfect lunch" | School, sports, road trip, field trip |
@@ -1015,15 +1015,162 @@ My Perfect Beginning — Emma's Journey
 
 ---
 
-*Document version: 1.3 | Status: Awaiting review before implementation begins*
+*Document version: 1.4 | Status: Approved for implementation*
 *v1.0 — Initial specification*
-*v1.1 — Added Pediatric Protocol Registry (Section 15), non-inheritance rule, phase roadmap, and protocol governance schema*
-*v1.2 — Added protocol objectives, exit conditions, evidence strength, Developmental Milestone Registry (Section 16)*
-*v1.3 — Added Hub Architecture (Section 16→now renumbered), Parent's Corner with reasoning engine and persona (Section 17), Parent Education Registry with topic library (Section 18), The Journey timeline (Section 19)*
+*v1.1 — Added Pediatric Protocol Registry, non-inheritance rule, phase roadmap, protocol governance schema*
+*v1.2 — Added protocol objectives, exit conditions, evidence strength, Developmental Milestone Registry*
+*v1.3 — Added Hub Architecture, Parent's Corner (reasoning engine + persona), Parent Education Registry, Journey timeline*
+*v1.4 — Locked: one active child at a time + Netflix switcher (Section 20), platform Definition of Done + Pro subscription copy + Lifestyle Dashboard placement (Section 21); "Child Profile" → "Child Nutrition Profile" throughout; Sibling Comparison deferred to Phase 4*
 
 ---
 
-## 20. Developmental Milestone Registry
+## 20. Multi-Child Architecture — One Active Child at a Time
+
+**Locked decision:** One active child at a time. Netflix-style switcher at the top of the hub.
+
+### Why This Is Architecturally Correct
+
+Everything in My Perfect Beginning is child-specific: recipes, Parent's Corner responses, the Timeline, Lunchbox Builder, Better Favorites, Nutrition Support protocols. If the hub shows all children simultaneously, the AI must ask "which child?" on every interaction. With one active child, the entire platform already knows.
+
+**The Child Nutrition Profile is the single source of truth** — the pediatric equivalent of the adult Nutrition Profile/Macro Calculator. Everything else reads from it:
+
+```
+Child Nutrition Profile (active)
+        ↓
+        ├── Pediatric Protocol Registry
+        ├── Developmental Milestone Registry
+        ├── Parent Education Registry
+        └── Protocol Resolver
+                ↓
+        ┌───────────────────────────────┐
+        │  Parent's Corner              │
+        │  Meal Generator               │
+        │  Timeline                     │
+        │  Lunchbox Builder             │
+        │  Better Favorites             │
+        │  Nutrition Support            │
+        └───────────────────────────────┘
+```
+
+### Hub Header UI
+
+```
+My Perfect Beginning
+
+Currently Helping
+
+👧 Emma · Age 4 · Preschool
+
+[ Switch Child ▼ ]
+
+────────────────────────────
+Today's Tip
+...
+```
+
+Tapping **Switch Child** opens a fast picker — no searching, no filters, one tap:
+
+```
+👧 Emma   (4)   Preschool
+👦 Jackson (7)   Early School Age
+👧 Olivia  (10)  Growing Child
+
++ Add Child Nutrition Profile
+```
+
+Switching is instant. The entire hub re-renders for the selected child.
+
+### Child Nutrition Profile Card
+
+Each profile shows:
+- Photo / avatar
+- Nickname
+- Date of birth → current age computed at runtime
+- Confirmed developmental stage
+- Favorite foods (top 3 chips)
+- Active protocols
+- Current milestone
+
+### Naming Convention — Locked
+
+The feature uses **Child Nutrition Profile** everywhere, not "Child Profile." A parent already has a child. What they're creating here is a **nutrition identity** for that child — consistent with how the adult side uses "Nutrition Profile."
+
+### Sibling Comparison — Deferred (Phase 4)
+
+Locked as a future capability, not V1. Parents occasionally want to understand why eating patterns differ between siblings. When built, it's framed as educational insight, never competition:
+
+```
+Emma (4)          Jackson (7)
+Vegetables: 18    Vegetables: 34
+```
+
+---
+
+## 21. Platform Integration — Definition of Done
+
+My Perfect Beginning launches as a **fully integrated platform feature**, not just a new page. Every item below is required before the feature is considered shipped.
+
+| Item | Description |
+|---|---|
+| ✅ Lifestyle Dashboard entry | Featured position above Pets; prominent "NEW" badge at launch |
+| ✅ Pro Subscription feature card | Listed as a major capability with the full feature bullet list |
+| ✅ App Library / Copilot knowledge | Copilot knows what My Perfect Beginning is and can navigate to it |
+| ✅ Parent's Corner knowledge base | Parent Education Registry populated for V1 topics |
+| ✅ Medical Sources page | Pediatric sources listed (CDC, AAP, FDA, USDA, NHLBI) |
+| ✅ Pediatric Protocol Registry | Level A rules implemented and auditable |
+| ✅ Navigation integration | Route registered in Router.tsx; accessible from Lifestyle |
+| ✅ Help & explanations | Page explanations for each hub section |
+| ✅ Search indexing | Hub and key sections discoverable from platform search |
+| ✅ Analytics events | Entry, child switcher, recipe generation, Parent's Corner queries tracked |
+| ✅ Academy lesson | Placeholder reserved; content in future phase |
+
+### Pro Subscription Page — Feature Copy
+
+```
+My Perfect Beginning
+
+Age-appropriate nutrition guidance for infants, toddlers, and children.
+
+• Child Nutrition Profiles
+• Better versions of their favorite foods
+• Pediatric nutrition protocols
+• Parent's Corner AI
+• Lunchbox Builder
+• Developmental nutrition guidance
+• Child-safe recipe generation
+• Growth-stage meal planning
+```
+
+### Lifestyle Dashboard — Launch Placement
+
+```
+⭐ My Perfect Beginning   NEW
+Helping parents build healthy nutrition habits from infancy through childhood.
+[ Enter ]
+
+────────────────────────
+Restaurant Guide
+Create a Dish
+My Perfect Gatherings
+Pets
+```
+
+After the launch window (first ~3 months), transitions to standard card position above Pets. Long-term, when a "Family" nav group is added, My Perfect Beginning and Pets move there:
+
+```
+Lifestyle
+  • Create a Dish
+  • Restaurant Guide
+  • My Perfect Gatherings
+
+Family
+  • My Perfect Beginning
+  • Pets
+```
+
+---
+
+## 22. Developmental Milestone Registry
 
 Developmental milestones are **not diseases and not protocols**. They are nutrition-relevant developmental events that can influence meal generation independently of any condition. They sit alongside the Protocol Registry as a separate data source fed into the Protocol Resolver.
 
