@@ -391,6 +391,7 @@ import GatheringsPage from "@/pages/lifestyle/GatheringsPage";
 import MyPerfectGetaway from "@/pages/lifestyle/MyPerfectGetaway";
 import MyPerfectBeginningPage from "@/pages/lifestyle/MyPerfectBeginningPage";
 import MyPerfectBeginningStub from "@/pages/lifestyle/MyPerfectBeginningStub";
+import MyPerfectBeginningCreateMealPage from "@/pages/lifestyle/MyPerfectBeginningCreateMealPage";
 import MyPerfectPregnancyPage from "@/pages/MyPerfectPregnancyPage";
 import TrainingNutritionHub from "@/pages/TrainingNutritionHub";
 import PerformanceNutritionSetupPage from "@/pages/PerformanceNutritionSetupPage";
