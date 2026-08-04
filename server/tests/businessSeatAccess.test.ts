@@ -423,7 +423,179 @@ describe("GET /api/business/mine — seat count includes downgraded-but-still-ac
   });
 });
 
-// ── 6. requireProAccess middleware source structure ───────────────────────────
+// ── 6. Accept-invite re-accept guard ─────────────────────────────────────────
+/**
+ * Mirrors the accept-invite handler logic in businessRoutes.ts.
+ *
+ * The handler must:
+ *   1. Look up an existing businessMembers row for the accepting user (any status).
+ *   2. If status=active  → reject 400 "already a member" (covers downgraded-but-
+ *      not-removed members who somehow receive a second invite link).
+ *   3. If status=removed → check seat availability, then re-activate the existing
+ *      row instead of inserting a duplicate.
+ *   4. If no row exists  → check seat availability, then insert a fresh row.
+ *
+ * The membership check runs BEFORE the seat check so the error message is always
+ * correct (active members see "already a member", not "seats full").
+ */
+
+type MemberStatus = "active" | "removed" | "invited";
+
+interface MockExistingMember {
+  id: string;
+  status: MemberStatus;
+}
+
+/**
+ * Mirrors the accept-invite decision tree.
+ *
+ * Returns:
+ *   { status: 400, code: "ALREADY_MEMBER" }  — user already active
+ *   { status: 400, code: "SEATS_FULL" }       — no free seats (for new / removed)
+ *   { status: 200, action: "reactivate" }     — removed member re-joined
+ *   { status: 200, action: "insert" }         — brand-new member
+ */
+function simulateAcceptInvite(
+  existing: MockExistingMember | null,
+  usedSeats: number,
+  seatLimit: number,
+): { status: number; code?: string; action?: "reactivate" | "insert" } {
+  // Step 1: existing-member check (runs BEFORE seat check)
+  if (existing && existing.status === "active") {
+    return { status: 400, code: "ALREADY_MEMBER" };
+  }
+
+  // Step 2: seat availability
+  if (usedSeats >= seatLimit) {
+    return { status: 400, code: "SEATS_FULL" };
+  }
+
+  // Step 3: re-activate or insert
+  if (existing && existing.status === "removed") {
+    return { status: 200, action: "reactivate" };
+  }
+  return { status: 200, action: "insert" };
+}
+
+describe("POST /api/business/invite/:token/accept — re-accept guard", () => {
+  const SEAT_LIMIT = 3;
+
+  // ── Baseline: brand-new member ─────────────────────────────────────────────
+  it("inserts a fresh row for a brand-new user (no existing member row)", () => {
+    const result = simulateAcceptInvite(null, 0, SEAT_LIMIT);
+    expect(result.status).toBe(200);
+    expect(result.action).toBe("insert");
+  });
+
+  // ── Formerly-removed member re-accepts a new invite ────────────────────────
+  it("re-activates (not inserts) a formerly-removed member who accepts a new invite", () => {
+    const removedRow: MockExistingMember = { id: "bm-removed-001", status: "removed" };
+    const result = simulateAcceptInvite(removedRow, 1, SEAT_LIMIT); // 1 of 3 seats used
+    expect(result.status).toBe(200);
+    expect(result.action).toBe("reactivate"); // existing row updated, no duplicate
+  });
+
+  it("blocks a formerly-removed member from re-joining when no seats remain", () => {
+    const removedRow: MockExistingMember = { id: "bm-removed-002", status: "removed" };
+    const result = simulateAcceptInvite(removedRow, SEAT_LIMIT, SEAT_LIMIT); // all full
+    expect(result.status).toBe(400);
+    expect(result.code).toBe("SEATS_FULL");
+  });
+
+  // ── Downgraded-but-not-removed member re-accepts (the duplicate-row edge case)
+  it("rejects a currently-active member who tries to accept a second invite link", () => {
+    // This covers a downgraded member whose businessMembers row was NOT removed.
+    // The owner may have inadvertently sent a new invite, or the member forwarded
+    // an old link. Status is still "active", so the response must be ALREADY_MEMBER,
+    // not SEATS_FULL, regardless of how many seats remain.
+    const activeRow: MockExistingMember = { id: "bm-active-downgraded-001", status: "active" };
+    const result = simulateAcceptInvite(activeRow, 1, SEAT_LIMIT);
+    expect(result.status).toBe(400);
+    expect(result.code).toBe("ALREADY_MEMBER");
+  });
+
+  it("rejects a currently-active member even when the business has spare seats", () => {
+    const activeRow: MockExistingMember = { id: "bm-active-001", status: "active" };
+    // 0 of 3 seats used — plenty of room, but user is already in
+    const result = simulateAcceptInvite(activeRow, 0, SEAT_LIMIT);
+    expect(result.status).toBe(400);
+    expect(result.code).toBe("ALREADY_MEMBER");
+  });
+
+  it("rejects a currently-active member even when the business is at capacity", () => {
+    // Membership check must fire BEFORE seat check so the error is always correct.
+    const activeRow: MockExistingMember = { id: "bm-active-002", status: "active" };
+    const result = simulateAcceptInvite(activeRow, SEAT_LIMIT, SEAT_LIMIT);
+    expect(result.status).toBe(400);
+    expect(result.code).toBe("ALREADY_MEMBER"); // NOT "SEATS_FULL"
+  });
+
+  // ── Control: new member blocked by no available seats ──────────────────────
+  it("blocks a brand-new user when the business is at seat capacity", () => {
+    const result = simulateAcceptInvite(null, SEAT_LIMIT, SEAT_LIMIT);
+    expect(result.status).toBe(400);
+    expect(result.code).toBe("SEATS_FULL");
+  });
+});
+
+// ── 7. Accept-invite route source — guard ordering regression ─────────────────
+/**
+ * Verifies that the existing-member check appears before the seat-count check
+ * in the route source.  If someone swaps the order, this test fails immediately.
+ */
+describe("businessRoutes.ts — accept-invite handler guard ordering", () => {
+  const routeFilePath = path.resolve(__dirname, "../routes/businessRoutes.ts");
+  let source: string;
+
+  beforeAll(() => {
+    source = fs.readFileSync(routeFilePath, "utf-8");
+  });
+
+  it("existing-member lookup appears before getActiveSeats call in accept handler", () => {
+    // Isolate the accept-invite handler by finding the route declaration and
+    // taking everything up to the next router.post/router.get/router.delete call.
+    const acceptStart = source.indexOf('"/invite/:token/accept"');
+    expect(acceptStart).toBeGreaterThan(-1);
+
+    // Find the closing of this handler (next top-level router.X declaration)
+    const afterStart = source.slice(acceptStart);
+    const nextRouteMatch = afterStart.match(/\n\/\/ ──/);
+    const handlerSlice = nextRouteMatch
+      ? afterStart.slice(0, nextRouteMatch.index)
+      : afterStart.slice(0, 3000); // fallback: first 3 KB
+
+    const existingIdx = handlerSlice.indexOf("businessMembers.userId, userId");
+    const seatsIdx = handlerSlice.indexOf("getActiveSeats");
+
+    expect(existingIdx).toBeGreaterThan(-1);
+    expect(seatsIdx).toBeGreaterThan(-1);
+    // The membership lookup must come first (before seat check)
+    expect(existingIdx).toBeLessThan(seatsIdx);
+  });
+
+  it("accept handler rejects active existing member before checking seats", () => {
+    // Isolate accept handler slice (same approach as above)
+    const acceptStart = source.indexOf('"/invite/:token/accept"');
+    expect(acceptStart).toBeGreaterThan(-1);
+
+    const afterStart = source.slice(acceptStart);
+    const nextRouteMatch = afterStart.match(/\n\/\/ ──/);
+    const handlerSlice = nextRouteMatch
+      ? afterStart.slice(0, nextRouteMatch.index)
+      : afterStart.slice(0, 3000);
+
+    // "already a member" guard must precede the getActiveSeats call within
+    // this handler so the error message is always correct.
+    const alreadyMemberIdx = handlerSlice.indexOf("already a member");
+    const getActiveSeatsIdx = handlerSlice.indexOf("getActiveSeats");
+
+    expect(alreadyMemberIdx).toBeGreaterThan(-1);
+    expect(getActiveSeatsIdx).toBeGreaterThan(-1);
+    expect(alreadyMemberIdx).toBeLessThan(getActiveSeatsIdx);
+  });
+});
+
+// ── 8. requireProAccess middleware source structure ───────────────────────────
 
 describe("requireProAccess.ts — middleware structure regression", () => {
   const middlewareFilePath = path.resolve(__dirname, "../middleware/requireProAccess.ts");

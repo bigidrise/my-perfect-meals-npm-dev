@@ -608,6 +608,25 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
       return res.status(403).json({ error: "This business account is no longer active." });
     }
 
+    // ── Existing membership check (any status) ────────────────────────────────
+    // Must run BEFORE the seat-count check so we emit the correct error and
+    // never create a duplicate row.  A removed member re-accepting a new invite
+    // re-activates their existing row instead of inserting a second one.
+    const [existing] = await db
+      .select()
+      .from(businessMembers)
+      .where(and(eq(businessMembers.businessId, business.id), eq(businessMembers.userId, userId)))
+      .limit(1);
+
+    if (existing && existing.status === "active") {
+      // User is already an active member (covers downgraded-but-not-removed members
+      // who somehow receive a second invite link — reject cleanly without touching seats).
+      return res.status(400).json({ error: "You are already a member of this business." });
+    }
+
+    // ── Seat availability check ────────────────────────────────────────────────
+    // Only needed for brand-new members or removed members re-joining.
+    // (Active members are already counted and were rejected above.)
     const usedSeats = await getActiveSeats(business.id);
     if (usedSeats >= business.seatLimit) {
       return res.status(400).json({
@@ -615,13 +634,6 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
         code: "SEATS_FULL",
       });
     }
-
-    // Check not already a member
-    const [existing] = await db
-      .select()
-      .from(businessMembers)
-      .where(and(eq(businessMembers.businessId, business.id), eq(businessMembers.userId, userId)))
-      .limit(1);
 
     // ── Snapshot personal plan before activating membership ───────────────────
     // We NEVER overwrite the user's Stripe planLookupKey with the business plan.
@@ -649,15 +661,14 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
         .where(eq(users.id, userId));
     }
 
-    if (existing && existing.status === "active") {
-      return res.status(400).json({ error: "You are already a member of this business." });
-    }
-
     // Atomically update member row + mark invite accepted so they can never diverge
     await db.transaction(async (tx) => {
       if (existing) {
-        // Re-activate if previously removed
-        await tx.update(businessMembers).set({ status: "active", joinedAt: new Date() }).where(eq(businessMembers.id, existing.id));
+        // Re-activate a previously-removed member row — never insert a duplicate.
+        await tx
+          .update(businessMembers)
+          .set({ status: "active", joinedAt: new Date() })
+          .where(eq(businessMembers.id, existing.id));
       } else {
         await tx.insert(businessMembers).values({
           businessId: business.id,
