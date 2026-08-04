@@ -553,8 +553,8 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     autoClose: true,
   },
 
-  "/pro/general-nutrition-builder": {
-    pageId: "pro-general-nutrition-builder-standalone",
+  "/general-nutrition-builder": {
+    pageId: "general-nutrition-builder-standalone",
     title: "General Nutrition Meal Builder",
     description:
       "Build balanced, everyday meals for sustainable nutrition. Each meal slot has a My Favorites button — tap the red star to instantly reuse any saved meal with macros updated automatically. Taste Memory is active — the more you save, the more the app learns your preferences. Use the 'How builders work' button on this page to watch a quick video tutorial on how to use this builder.",
