@@ -11,17 +11,15 @@
  * Diabetic, GLP-1, or Anti-Inflammatory builders until this is approved.
  */
 
-import React, { useState } from "react";
+import React from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { ChevronRight, Dumbbell, CalendarDays, Check } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { TrainingNutritionScheduleModal } from "@/components/TrainingNutritionScheduleModal";
 
 export default function GeneralNutritionBuilderEntry() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
-  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
 
   const hasSchedule = !!(user?.weeklyTrainingSchedule);
 
@@ -93,7 +91,7 @@ export default function GeneralNutritionBuilderEntry() {
 
         {/* Option 2: Training Nutrition Schedule */}
         <button
-          onClick={() => setScheduleModalOpen(true)}
+          onClick={() => setLocation("/general-nutrition/training")}
           className="w-full flex items-start gap-4 px-5 py-5 rounded-2xl border border-white/10 bg-white/5 hover:bg-orange-600/10 hover:border-orange-500/30 transition-colors text-left group"
         >
           <div className="w-10 h-10 rounded-xl bg-orange-600/20 border border-orange-500/30 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -143,11 +141,6 @@ export default function GeneralNutritionBuilderEntry() {
         )}
       </div>
 
-      {/* Training Nutrition Schedule Modal */}
-      <TrainingNutritionScheduleModal
-        open={scheduleModalOpen}
-        onOpenChange={setScheduleModalOpen}
-      />
     </motion.div>
   );
 }
