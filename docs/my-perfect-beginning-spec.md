@@ -1024,6 +1024,22 @@ My Perfect Beginning — Emma's Journey
 
 ---
 
+
+## 22. Developmental Milestone Registry
+
+Developmental milestones are **not diseases and not protocols**. They are nutrition-relevant developmental events that can influence meal generation independently of any condition. They sit alongside the Protocol Registry as a separate data source fed into the Protocol Resolver.
+
+```
+Child Nutrition Profile
+        ↓
+        ├── Pediatric Protocol Registry  (condition-based rules)
+        └── Developmental Milestone Registry  (event-based rules)
+                ↓
+        Protocol Resolver (merges both)
+                ↓
+        Meal Generator
+```
+
 ## 20. Multi-Child Architecture — One Active Child at a Time
 
 **Locked decision:** One active child at a time. Netflix-style switcher at the top of the hub.

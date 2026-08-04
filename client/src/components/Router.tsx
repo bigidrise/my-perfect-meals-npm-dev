@@ -390,6 +390,8 @@ import ChefsKitchenPage from "@/pages/lifestyle/ChefsKitchenPage";
 import CreateDishPage from "@/pages/lifestyle/CreateDishPage";
 import GatheringsPage from "@/pages/lifestyle/GatheringsPage";
 import MyPerfectGetaway from "@/pages/lifestyle/MyPerfectGetaway";
+import MyPerfectBeginningPage from "@/pages/lifestyle/MyPerfectBeginningPage";
+import MyPerfectBeginningStub from "@/pages/lifestyle/MyPerfectBeginningStub";
 import MyPerfectPregnancyPage from "@/pages/MyPerfectPregnancyPage";
 import TrainingNutritionHub from "@/pages/TrainingNutritionHub";
 import PerformanceNutritionSetupPage from "@/pages/PerformanceNutritionSetupPage";
@@ -590,6 +592,8 @@ const GuardedSocialRestaurantGuide = () => <ProGuard component={SocialRestaurant
 const GuardedFastFoodGuidePage = () => <ProGuard component={FastFoodGuidePage} />;
 const GuardedRestaurantFinderPage = () => <ProGuard component={RestaurantFinderPage} />;
 const GuardedMyPerfectBuffetPage = () => <ProGuard component={MyPerfectBuffetPage} />;
+const GuardedMyPerfectBeginning = () => <ProGuard component={MyPerfectBeginningPage} />;
+const GuardedMyPerfectBeginningStub = () => <ProGuard component={MyPerfectBeginningStub} />;
 
 // Stable module-level wrappers for Business Suite gated routes.
 // These MUST stay at module scope — never defined inline inside JSX.
@@ -859,6 +863,15 @@ export default function Router() {
         {/* DELETED: /healthy-kids-meals, /kids-meals, /toddler-meals routes (Phase 1 cleanup) */}
         <Route path="/glp1-meals-tracking" component={GLP1MealsTracking} />
         <Route path="/lifestyle/my-perfect-pregnancy" component={GuardedPregnancy} />
+        <Route path="/lifestyle/my-perfect-beginning" component={GuardedMyPerfectBeginning} />
+        <Route path="/lifestyle/my-perfect-beginning/create-meal" component={GuardedMyPerfectBeginningStub} />
+        <Route path="/lifestyle/my-perfect-beginning/parents-corner" component={GuardedMyPerfectBeginningStub} />
+        <Route path="/lifestyle/my-perfect-beginning/profile" component={GuardedMyPerfectBeginningStub} />
+        <Route path="/lifestyle/my-perfect-beginning/journey" component={GuardedMyPerfectBeginningStub} />
+        <Route path="/lifestyle/my-perfect-beginning/better-favorites" component={GuardedMyPerfectBeginningStub} />
+        <Route path="/lifestyle/my-perfect-beginning/lunchbox" component={GuardedMyPerfectBeginningStub} />
+        <Route path="/lifestyle/my-perfect-beginning/nutrition-support" component={GuardedMyPerfectBeginningStub} />
+        <Route path="/lifestyle/my-perfect-beginning/growth" component={GuardedMyPerfectBeginningStub} />
         <Route path="/performance" component={GuardedPerformanceHub} />
         <Route path="/performance/setup" component={GuardedPerformanceSetup} />
         <Route path="/general-nutrition/training" component={GeneralNutritionTrainingPage} />
