@@ -339,7 +339,6 @@ interface SafetyRule {
 ```
 
 ---
-
 ## 6. Protocol Levels
 
 ### Level A — Universal Developmental & Safety Protocols
@@ -615,8 +614,6 @@ Every rule must cite a source from this list (or request addition of a new sourc
 8. **Never apply Level C protocols without a confirmed approved protocol in the registry.** Default to Level A + B only.
 
 ---
-
-*Document version: 1.0 | Status: Awaiting review before implementation begins*
 ## 15. Pediatric Protocol Registry
 
 My Perfect Beginning must have its own **Pediatric Protocol Registry**, completely separate from the adult protocol registry. No pediatric protocol is allowed to inherit an adult protocol by default. Every pediatric protocol must be independently reviewed against pediatric-specific guidance, even when the disease name is the same as an adult condition.
@@ -787,6 +784,7 @@ This principle protects the quality and safety of My Perfect Beginning as it gro
 Violation of this rule is a blocking issue in any Phase 2+ protocol implementation review.
 
 ---
+
 
 ## 16. Hub Architecture — My Perfect Beginning
 
