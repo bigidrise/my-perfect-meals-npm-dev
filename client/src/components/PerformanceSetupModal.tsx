@@ -445,18 +445,12 @@ export default function PerformanceSetupModal({
                   </PillButton>
                 ))}
               </div>
-              <div className="bg-white/5 rounded-xl px-4 py-3 border border-white/10">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-white font-semibold text-sm">Training twice per day?</p>
-                    <p className="text-white/40 text-xs mt-0.5">Enables 2-a-day recovery meal guidance</p>
-                  </div>
-                  <button
-                    onClick={() => setTwoADays(v => !v)}
-                    className={`w-12 h-6 rounded-full transition-colors relative ${twoADays ? "bg-orange-500" : "bg-white/20"}`}
-                  >
-                    <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${twoADays ? "translate-x-6" : "translate-x-0.5"}`} />
-                  </button>
+              <div>
+                <p className="text-white font-semibold text-sm mb-1">Training twice per day?</p>
+                <p className="text-white/60 text-xs mb-3">Enables 2-a-day recovery meal guidance</p>
+                <div className="flex gap-3">
+                  <PillButton active={!twoADays} onClick={() => setTwoADays(false)}>No</PillButton>
+                  <PillButton active={twoADays} onClick={() => setTwoADays(true)}>Yes</PillButton>
                 </div>
               </div>
             </div>
