@@ -894,6 +894,19 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
         </div>
       )}
 
+      {/* ── Desktop: Update Setup button (restored — was hidden by isDesktop header guard) ── */}
+      {isDesktop && isActive && (
+        <div className="px-4 pt-4 max-w-xl mx-auto flex justify-end">
+          <button
+            onClick={() => setLocation(setupPath)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-600/20 border border-orange-500/30 text-orange-300 text-xs font-semibold"
+          >
+            <Settings className="w-3.5 h-3.5" />
+            Update Setup
+          </button>
+        </div>
+      )}
+
       {/* ── Active: Competition Prep ── */}
       {isActive && activeTrack === "competition" && compCtx && (
         <div className="px-4 pt-4 max-w-xl mx-auto space-y-4">
