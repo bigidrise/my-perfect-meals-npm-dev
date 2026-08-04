@@ -48,7 +48,7 @@ router.get("/mine", requireAuth, requireProAccess, async (req, res) => {
       return res.status(404).json({ error: "No business account found." });
     }
 
-    const members = await db
+    const rawMembers = await db
       .select({
         id: businessMembers.id,
         userId: businessMembers.userId,
@@ -57,10 +57,18 @@ router.get("/mine", requireAuth, requireProAccess, async (req, res) => {
         joinedAt: businessMembers.joinedAt,
         name: users.username,
         email: users.email,
+        planLookupKey: users.planLookupKey,
       })
       .from(businessMembers)
       .leftJoin(users, eq(users.id, businessMembers.userId))
       .where(and(eq(businessMembers.businessId, business.id), eq(businessMembers.status, "active")));
+
+    // planLost: true when the member has no paid plan (null planLookupKey) and is not the owner
+    // (the owner's subscription is irrelevant — their seat is reserved for business management)
+    const members = rawMembers.map(({ planLookupKey, ...m }) => ({
+      ...m,
+      planLost: m.role !== "owner" && planLookupKey === null,
+    }));
 
     const pendingInvitations = await db
       .select()
@@ -86,6 +94,7 @@ router.get("/mine", requireAuth, requireProAccess, async (req, res) => {
     const invitations = pendingInvitations.filter((inv) => !stuckInviteIds.includes(inv.id));
 
     const usedSeats = members.length;
+    const planLostCount = members.filter((m) => m.planLost).length;
 
     return res.json({
       business,
@@ -93,6 +102,7 @@ router.get("/mine", requireAuth, requireProAccess, async (req, res) => {
       invitations,
       usedSeats,
       availableSeats: business.seatLimit - usedSeats,
+      planLostCount,
     });
   } catch (err) {
     console.error("[business/mine] error:", err);
