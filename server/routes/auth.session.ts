@@ -143,6 +143,12 @@ router.post("/api/auth/signup", async (req, res) => {
       ...(isTester ? { planLookupKey: 'mpm_ultimate_monthly' } : {}),
     };
 
+    // Business / Organization account — not a ProCare practitioner.
+    // Gets professionalRole="business" only; no isProCare, no role=coach, no plan override.
+    if (body.businessAccount === true) {
+      userValues.professionalRole = "business";
+    }
+
     if (procare && procare.professionalCategory) {
       const validRoles = ["trainer", "physician", "dietitian", "nurse_practitioner"];
       const validCategories = ["certified", "experienced", "non_certified"];

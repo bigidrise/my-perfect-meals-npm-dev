@@ -258,7 +258,7 @@ export async function upgradeToProCare(procareData: ProCareSignupData): Promise<
   return res.json();
 }
 
-export async function signUp(email: string, password: string, procareData?: ProCareSignupData | null): Promise<User> {
+export async function signUp(email: string, password: string, procareData?: ProCareSignupData | null, businessAccount?: boolean): Promise<User> {
   if (password.length < 6) {
     throw new Error("Password must be at least 6 characters");
   }
@@ -281,7 +281,7 @@ export async function signUp(email: string, password: string, procareData?: ProC
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, ...(procareData ? { procare: procareData } : {}) }),
+      body: JSON.stringify({ email, password, ...(procareData ? { procare: procareData } : {}), ...(businessAccount ? { businessAccount: true } : {}) }),
     });
 
     if (!response.ok) {

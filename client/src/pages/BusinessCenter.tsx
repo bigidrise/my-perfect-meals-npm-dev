@@ -12,6 +12,7 @@ import {
   Circle,
   Loader2,
   Megaphone,
+  Salad,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
@@ -115,7 +116,12 @@ const pillars = [
 export default function BusinessCenter() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
-  const isProfessional = !!(user?.professionalRole || user?.isProCare);
+  // Business-only accounts are NOT ProCare practitioners — exclude from cert card
+  const isProfessional = !!(
+    (user?.professionalRole && user?.professionalRole !== "business") ||
+    user?.isProCare
+  );
+  const isBusinessAccount = user?.professionalRole === "business";
 
   const tier = getTierForLookupKey(user?.planLookupKey);
   const isPro = tier === "premium" || tier === "ultimate";
@@ -205,7 +211,36 @@ export default function BusinessCenter() {
           </p>
         </div>
 
-        {/* Professional Certifications card — only for ProCare professionals */}
+        {/* Personal nutrition nudge — shown once for business accounts that haven't set up nutrition yet */}
+        {isBusinessAccount && !user?.onboardingCompletedAt && (
+          <motion.div
+            className="w-full text-left p-5 rounded-2xl bg-black/40 border border-white/10"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <div className="flex items-start gap-4">
+              <div className="p-3 rounded-xl bg-emerald-500/10 flex-shrink-0">
+                <Salad className="h-6 w-6 text-emerald-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-bold text-white leading-snug mb-1">
+                  Complete Your Personal Nutrition Profile
+                </h3>
+                <p className="text-xs text-white/55 mb-3 leading-relaxed">
+                  Set up your own nutrition profile whenever you're ready to experience My Perfect Meals personally and see what your clients will experience.
+                </p>
+                <button
+                  onClick={() => setLocation("/onboarding")}
+                  className="text-xs font-semibold text-emerald-400 active:opacity-60 transition-opacity"
+                >
+                  Complete My Nutrition Profile →
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Professional Certifications card — only for ProCare practitioners */}
         {isProfessional && (
           <motion.div
             className="w-full text-left p-5 rounded-2xl bg-black/50 border border-orange-500/30"

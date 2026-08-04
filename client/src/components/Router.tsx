@@ -203,7 +203,8 @@ function ProCareStudioGuard({ component: Component }: { component: React.Compone
         if (isInitial) setCertChecked(true);
         return;
       }
-      if (!user.professionalRole) {
+      if (!user.professionalRole || user.professionalRole === "business") {
+        // No practitioner role (or business-only): not subject to ProCare cert checks
         setCertified(true);
         certifiedRef.current = true;
         if (isInitial) setCertChecked(true);
@@ -259,7 +260,8 @@ function ProCareStudioGuard({ component: Component }: { component: React.Compone
 
   // Periodic re-verification while the page stays open
   useEffect(() => {
-    if (!user?.professionalRole) return;
+    // Business accounts have no practitioner certification to poll
+    if (!user?.professionalRole || user?.professionalRole === "business") return;
     const intervalId = setInterval(() => {
       verifyCert(false);
     }, PROCARE_CERT_POLL_MS);
@@ -720,7 +722,9 @@ export default function Router() {
   const isMacroRoute = location === "/macro-counter" || location.startsWith("/macro-counter");
 
   const isProfessionalUser =
-    user?.professionalRole === "trainer" || user?.professionalRole === "physician";
+    user?.professionalRole === "trainer" ||
+    user?.professionalRole === "physician" ||
+    user?.professionalRole === "business";
 
   // Onboarding + Macro route guards with toast feedback
   useEffect(() => {
