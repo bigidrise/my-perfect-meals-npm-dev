@@ -259,13 +259,70 @@ async function getConversation(userId: string, childProfileId: string): Promise<
     return [];
   }
 }
+
+async function clearConversation(userId: string, childProfileId: string): Promise<void> {
+  await db.execute(sql`
+    DELETE FROM parents_corner_conversations
+    WHERE user_id = ${userId} AND child_profile_id = ${childProfileId}
+  `);
+}
+
+async function saveConversation(userId: string, childProfileId: string, messages: any[]): Promise<void> {
+  const msgsJson = JSON.stringify(messages);
+  await db.execute(sql`
+    INSERT INTO parents_corner_conversations (user_id, child_profile_id, messages, updated_at)
+    VALUES (${userId}, ${childProfileId}, ${msgsJson}::jsonb, now())
+    ON CONFLICT (user_id, child_profile_id)
+    DO UPDATE SET messages = ${msgsJson}::jsonb, updated_at = now()
+  `);
+}
+
+// ─── Routes ───────────────────────────────────────────────────────────────────
+
+// GET /tip — returns today's rotating tip for a given developmental stage
+router.get("/tip", requireAuth, async (req, res) => {
   const stage = (req.query.stage as string) || "toddler";
+  const tip = getTodaysTip(stage);
+  res.json({ tip });
+});
 
-    const userId = (req as AuthenticatedRequest).authUser?.id;
+// GET /conversation — load saved conversation for a child profile
+router.get("/conversation", requireAuth, async (req, res) => {
+  const userId = (req as AuthenticatedRequest).authUser?.id;
+  const childProfileId = req.query.childProfileId as string;
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+  if (!childProfileId) return res.json({ messages: [] });
+  const messages = await getConversation(userId, childProfileId);
+  res.json({ messages });
+});
 
-    const userId = (req as AuthenticatedRequest).authUser?.id;
+// DELETE /conversation — clear saved conversation for a child profile
+router.delete("/conversation", requireAuth, async (req, res) => {
+  const userId = (req as AuthenticatedRequest).authUser?.id;
+  const { childProfileId } = req.body;
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+  if (childProfileId) await clearConversation(userId, childProfileId);
+  res.json({ ok: true });
+});
 
+// PUT /conversation — persist conversation for a child profile (keep last 20 turns)
+router.put("/conversation", requireAuth, async (req, res) => {
+  const userId = (req as AuthenticatedRequest).authUser?.id;
+  const { childProfileId, messages } = req.body;
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+  if (childProfileId && Array.isArray(messages)) {
+    const trimmed = messages.slice(-20);
+    await saveConversation(userId, childProfileId, trimmed);
+  }
+  res.json({ ok: true });
+});
+
+// POST /ask — main Parent's Corner AI chat endpoint
+router.post("/ask", requireAuth, async (req, res) => {
+  try {
     const userId = (req as AuthenticatedRequest).authUser?.id;
+    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
     const { message, childContext = {}, conversationHistory = [] } = req.body;
 
     if (!message || typeof message !== "string" || !message.trim()) {
@@ -327,26 +384,3 @@ async function getConversation(userId: string, childProfileId: string): Promise<
 });
 
 export default router;
-
-    const trimmed = messages.slice(-20);
-
-async function clearConversation(userId: string, childProfileId: string): Promise<void> {
-  await db.execute(sql`
-    DELETE FROM parents_corner_conversations
-    WHERE user_id = ${userId} AND child_profile_id = ${childProfileId}
-  `);
-}
-
-async function saveConversation(userId: string, childProfileId: string, messages: any[]): Promise<void> {
-  const msgsJson = JSON.stringify(messages);
-  await db.execute(sql`
-    INSERT INTO parents_corner_conversations (user_id, child_profile_id, messages, updated_at)
-    VALUES (${userId}, ${childProfileId}, ${msgsJson}::jsonb, now())
-    ON CONFLICT (user_id, child_profile_id)
-    DO UPDATE SET messages = ${msgsJson}::jsonb, updated_at = now()
-  `);
-}
-
-    const childProfileId = req.query.childProfileId as string;
-
-    const { childProfileId, messages } = req.body;
