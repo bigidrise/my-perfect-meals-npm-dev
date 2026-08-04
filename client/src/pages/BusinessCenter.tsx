@@ -14,14 +14,12 @@ import {
   Megaphone,
   Salad,
   X,
-  Clock,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiRequest } from "@/lib/queryClient";
 import { getTierForLookupKey } from "@shared/planFeatures";
-import { isInTrial } from "@/lib/subscriptionCheck";
 
 interface CertProgress {
   personalDone: boolean;
@@ -116,11 +114,6 @@ const pillars = [
   },
 ];
 
-function getDaysRemaining(trialEndsAt: string): number {
-  const msLeft = new Date(trialEndsAt).getTime() - Date.now();
-  return Math.max(0, Math.ceil(msLeft / (1000 * 60 * 60 * 24)));
-}
-
 export default function BusinessCenter() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
@@ -135,24 +128,6 @@ export default function BusinessCenter() {
   const isPro = tier === "premium" || tier === "ultimate";
   const isInternal = user?.accessTier === "PAID_FULL" && !user?.planLookupKey;
   const hasProAccess = isPro || isInternal;
-
-  // Trial banner state
-  const trialActive = isInTrial(user);
-  const [trialBannerDismissed, setTrialBannerDismissed] = useState(() => {
-    return sessionStorage.getItem("mpm_bc_trial_banner_dismissed") === "1";
-  });
-  const showTrialBanner = trialActive && !trialBannerDismissed;
-  const daysLeft = user?.trialEndsAt ? getDaysRemaining(user.trialEndsAt) : 0;
-
-  const handleTrialUpgrade = () => {
-    sessionStorage.setItem("mpm_business_return", "/business-center");
-    setLocation("/pricing");
-  };
-
-  const handleDismissTrialBanner = () => {
-    sessionStorage.setItem("mpm_bc_trial_banner_dismissed", "1");
-    setTrialBannerDismissed(true);
-  };
 
   const [certProgress, setCertProgress] = useState<CertProgress>({
     personalDone: false,
@@ -227,44 +202,9 @@ export default function BusinessCenter() {
         </div>
       </div>
 
-      {/* Trial countdown banner */}
-      <AnimatePresence>
-        {showTrialBanner && (
-          <motion.div
-            key="trial-banner"
-            className="fixed left-0 right-0 z-40 px-4 max-w-2xl mx-auto"
-            style={{ top: "calc(env(safe-area-inset-top, 0px) + 56px)" }}
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
-          >
-            <div className="flex items-center gap-3 bg-orange-500/90 backdrop-blur-md rounded-2xl px-4 py-3 border border-orange-400/40 shadow-lg">
-              <Clock className="h-4 w-4 text-white shrink-0" />
-              <p className="flex-1 text-white text-xs font-medium leading-snug">
-                <span className="font-bold">{daysLeft} {daysLeft === 1 ? "day" : "days"} left</span> in your Pro trial —{" "}
-                <button
-                  onClick={handleTrialUpgrade}
-                  className="underline underline-offset-2 font-semibold active:opacity-70 transition-opacity"
-                >
-                  upgrade to keep access
-                </button>
-              </p>
-              <button
-                onClick={handleDismissTrialBanner}
-                className="text-white/70 active:text-white transition-colors shrink-0"
-                aria-label="Dismiss trial banner"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       <div
         className="px-4 max-w-2xl mx-auto space-y-3"
-        style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${showTrialBanner ? "8.5rem" : "5rem"})` }}
+        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5rem)" }}
       >
         <div className="py-3 text-center">
           <p className="text-white/55 text-sm leading-relaxed">
