@@ -611,4 +611,126 @@ Every rule must cite a source from this list (or request addition of a new sourc
 
 ---
 
-*Document version: 1.0 | Status: Awaiting review before implementation begins*
+---
+
+## 15. Pediatric Protocol Registry
+
+My Perfect Beginning must have its own **Pediatric Protocol Registry**, completely separate from the adult protocol registry. No pediatric protocol is allowed to inherit an adult protocol by default. Every pediatric protocol must be independently reviewed against pediatric-specific guidance, even when the disease name is the same as an adult condition.
+
+### Architecture
+
+```
+My Perfect Beginning
+        ↓
+Child Nutrition Profile
+        ↓
+Pediatric Protocol Registry
+        ↓
+Protocol Resolver
+        ↓
+Meal Generator
+```
+
+This mirrors exactly how the adult system works: user profile → protocol registry → resolver → generator. The Pediatric Protocol Registry is a parallel registry, not a subset or extension of the adult one.
+
+### Protocol Governance Fields
+
+Every entry in the Pediatric Protocol Registry carries:
+
+```typescript
+interface PediatricProtocol {
+  protocolId: string;              // e.g. "MPB-PROTO-T1D-001"
+  pediatricSpecialty: string;      // e.g. "Pediatric Endocrine"
+  displayName: string;
+  applicableStages: DevelopmentalStage[];
+  supportedDiagnoses: string[];
+  nutritionGoals: string[];
+  safetyGuardrails: string[];      // Rule IDs from the safety matrix
+  foodsToEncourage: string[];
+  foodsToLimit: string[];          // Only when evidence supports it
+  escalationCriteria: string[];
+  clinicalReferences: string[];    // Source IDs from the source registry
+  version: string;
+  effectiveDate: string;
+  reviewDate: string;
+  clinicalApprovalStatus: "draft" | "pending_review" | "approved" | "removed";
+  clinicalReviewer?: string;
+  parentAdultProtocolId?: string;  // Reference only — never inherit rules from it
+  inheritanceRule: "none";         // Always "none" — explicit, enforced
+}
+```
+
+**The `inheritanceRule: "none"` field is required and immutable.** It documents the architectural decision and makes it impossible to accidentally wire up adult rule inheritance.
+
+### Protocol Registry — Separated by Population
+
+```
+Adult Protocols (existing system)
+  • GLP-1
+  • Diabetes
+  • Cardiac
+  • Renal
+  • Liver
+  • Anti-inflammatory
+
+────────────────────────────────
+Pediatric Protocols (My Perfect Beginning)
+  • Healthy Growth
+  • Type 1 Diabetes in Children
+  • Type 2 Diabetes in Youth
+  • Childhood Obesity Support (family-centered)
+  • Pediatric Cardiac
+  • Pediatric Renal
+  • Pediatric Liver
+  • Celiac Disease
+  • Food Allergies (integrates with adult allergy engine — same data, different rules)
+  • Picky Eating / Selective Eating
+  • Sensory Eating Support
+  • Active Child / Youth Sports
+  • Constipation-Supportive Nutrition
+  • Lunchbox Nutrition
+  • Pediatric IBD
+  • Gastroesophageal Reflux in Children
+  • Feeding Disorders (with SLP boundary)
+  • ADHD Routine Support (behavioral framing only — no treatment claims)
+  • Autism Spectrum Sensory Eating Support (behavioral + food, not metabolic)
+```
+
+### Phase Roadmap for Protocol Release
+
+**Phase 1 — Highest value, strongest evidence base:**
+- Healthy growth
+- Picky eating / selective eating
+- Food allergies (Big 9, structured)
+- Celiac disease
+- Type 1 diabetes in children
+- Childhood obesity support (family-centered, non-stigmatizing)
+- Active child / youth sports nutrition
+- Constipation-supportive nutrition
+- Lunchbox nutrition
+
+**Phase 2 — Requires specialist review:**
+- Pediatric kidney disease
+- Pediatric liver disease
+- Pediatric cardiac conditions
+- Inflammatory bowel disease in children
+- Failure to thrive / faltering growth
+- Feeding disorders (with SLP governance boundary)
+- Sensory eating support
+
+**Phase 3 — Specialized metabolic and rare conditions:**
+- Developed with appropriate clinical oversight; scope defined at time of build.
+
+### The Non-Inheritance Rule
+
+> **No pediatric protocol is allowed to inherit an adult protocol by default. Every pediatric protocol must be independently reviewed against pediatric guidance, even if the disease name is the same.**
+
+This principle protects the quality and safety of My Perfect Beginning as it grows. Pediatric nutritional protocols, safety considerations, growth needs, and evidence bases differ from adult protocols even when the condition shares a name. A child with Type 1 diabetes has different carbohydrate targets, growth requirements, and safety considerations than an adult. A child with kidney disease is still growing. A child with a cardiac condition requires pediatric-specific reference ranges.
+
+Violation of this rule is a blocking issue in any Phase 2+ protocol implementation review.
+
+---
+
+*Document version: 1.1 | Status: Awaiting review before implementation begins*
+*v1.0 — Initial specification*
+*v1.1 — Added Pediatric Protocol Registry (Section 15), non-inheritance rule, phase roadmap, and protocol governance schema*
