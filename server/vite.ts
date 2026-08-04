@@ -33,7 +33,11 @@ export async function setupVite(app: Express, server: Server) {
       ...viteLogger,
       error: (msg, options) => {
         viteLogger.error(msg, options);
-        process.exit(1);
+        // Only exit on truly fatal Vite startup errors, not runtime warnings
+        // (e.g. WebSocket disconnect messages must not kill the server)
+        if (msg.includes("Failed to load config") || msg.includes("Cannot find module")) {
+          process.exit(1);
+        }
       },
     },
     server: serverOptions,
