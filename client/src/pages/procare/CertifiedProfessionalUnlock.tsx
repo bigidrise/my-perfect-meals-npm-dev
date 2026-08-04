@@ -10,7 +10,7 @@ const UNLOCKED_ITEMS = [
   { icon: "👥", label: "Client Management" },
   { icon: "📋", label: "Care Plans" },
   { icon: "📝", label: "Professional Questionnaires" },
-  { icon: "💼", label: "Business Suite" },
+  { icon: "💼", label: "Business Center" },
   { icon: "💰", label: "Affiliate Resources" },
   { icon: "📣", label: "Marketing Materials" },
   { icon: "🎓", label: "Continuing Education" },
@@ -22,7 +22,7 @@ const NEXT_STEPS = [
   "Invite your first client to the platform",
   "Build your first meal plan",
   "Set up your affiliate account to earn commissions",
-  "Explore the Business Suite",
+  "Explore the Business Center",
 ];
 
 export default function CertifiedProfessionalUnlock() {
@@ -151,7 +151,7 @@ export default function CertifiedProfessionalUnlock() {
         >
           <p className="text-xs text-orange-300 leading-relaxed">
             🏆 <span className="font-semibold">Certified My Perfect Meals Professional</span><br />
-            <span className="text-white/40">Your certification is permanently recorded in your Business Suite.</span>
+            <span className="text-white/40">Your certification is permanently recorded in your Business Center.</span>
           </p>
         </motion.div>
       </div>

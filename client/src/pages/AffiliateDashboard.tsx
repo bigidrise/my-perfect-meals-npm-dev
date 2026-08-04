@@ -81,6 +81,13 @@ function formatDate(iso: string | null) {
 export default function AffiliateDashboard() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const handleBack = useCallback(() => {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      setLocation("/business-center");
+    }
+  }, [setLocation]);
   const isDesktop = useIsDesktop();
   const [copiedDesktopUrl, setCopiedDesktopUrl] = useState(false);
   const [account, setAccount] = useState<AffiliateAccount | null>(null);
@@ -253,11 +260,11 @@ export default function AffiliateDashboard() {
         >
           <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
             <button
-              onClick={() => setLocation("/business-center/partners")}
+              onClick={handleBack}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
             >
               <ArrowLeft className="h-4 w-4" />
-              Partner Programs
+              Back
             </button>
             <div className="flex-1 min-w-0">
               <h1 className="text-base font-bold text-white">Partner & Revenue Center</h1>

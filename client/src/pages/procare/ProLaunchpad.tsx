@@ -288,7 +288,7 @@ function CertifiedDashboard({ user, onEnterStudio }: { user: any; onEnterStudio:
         <div className="grid grid-cols-2 gap-3 mb-6">
           {[
             { icon: Users, label: "Client Studio", sub: "Manage clients & meal plans", route: user?.professionalRole === "physician" ? "/pro/physician-clients" : "/pro/clients", accent: "bg-orange-500/20", iconColor: "text-orange-400" },
-            { icon: Briefcase, label: "Business Suite", sub: "Affiliate, Academy, Partners", route: "/business-center", accent: "bg-blue-500/20", iconColor: "text-blue-400" },
+            { icon: Briefcase, label: "Business Center", sub: "Affiliate, Academy, Partners", route: "/business-center", accent: "bg-blue-500/20", iconColor: "text-blue-400" },
             { icon: GraduationCap, label: "Certifications", sub: "View & expand your training", route: "/business-center/academy", accent: "bg-emerald-500/20", iconColor: "text-emerald-400" },
             { icon: TrendingUp, label: "Affiliate Program", sub: "Earn 25% per referral", route: "/business-center/affiliate", accent: "bg-amber-500/20", iconColor: "text-amber-400" },
           ].map((item, i) => {
