@@ -16,6 +16,8 @@ import { Router } from "express";
 import OpenAI from "openai";
 import { requireAuth } from "../middleware/requireAuth";
 import type { AuthenticatedRequest } from "../middleware/requireAuth";
+import { db } from "../db";
+import { sql } from "drizzle-orm";
 
 const router = Router();
 
@@ -240,23 +242,30 @@ function getTodaysTip(stage: string): string {
   return tips[dayOfYear % tips.length];
 }
 
-// ─── Routes ───────────────────────────────────────────────────────────────────
-
-/**
- * GET /api/my-perfect-beginning/parents-corner/tip
- * Returns a stage-appropriate Today's Tip.
- */
-router.get("/parents-corner/tip", requireAuth, (req, res) => {
-  const stage = (req.query.stage as string) || "toddler";
-  res.json({ tip: getTodaysTip(stage) });
-});
-
-/**
- * POST /api/my-perfect-beginning/parents-corner
- * Main AI endpoint. Accepts a parent question grounded in the child profile.
- */
-router.post("/parents-corner", requireAuth, async (req, res) => {
+async function getConversation(userId: string, childProfileId: string): Promise<any[]> {
   try {
+    const rows = await db.execute(sql`
+      SELECT messages FROM parents_corner_conversations
+      WHERE user_id = ${userId} AND child_profile_id = ${childProfileId}
+      LIMIT 1
+    `);
+    const row = (rows as any).rows?.[0] ?? (Array.isArray(rows) ? rows[0] : null);
+    if (!row) return [];
+    const msgs = row.messages;
+    if (Array.isArray(msgs)) return msgs;
+    if (typeof msgs === "string") return JSON.parse(msgs);
+    return [];
+  } catch {
+    return [];
+  }
+}
+  const stage = (req.query.stage as string) || "toddler";
+
+    const userId = (req as AuthenticatedRequest).authUser?.id;
+
+    const userId = (req as AuthenticatedRequest).authUser?.id;
+
+    const userId = (req as AuthenticatedRequest).authUser?.id;
     const { message, childContext = {}, conversationHistory = [] } = req.body;
 
     if (!message || typeof message !== "string" || !message.trim()) {
@@ -318,3 +327,26 @@ router.post("/parents-corner", requireAuth, async (req, res) => {
 });
 
 export default router;
+
+    const trimmed = messages.slice(-20);
+
+async function clearConversation(userId: string, childProfileId: string): Promise<void> {
+  await db.execute(sql`
+    DELETE FROM parents_corner_conversations
+    WHERE user_id = ${userId} AND child_profile_id = ${childProfileId}
+  `);
+}
+
+async function saveConversation(userId: string, childProfileId: string, messages: any[]): Promise<void> {
+  const msgsJson = JSON.stringify(messages);
+  await db.execute(sql`
+    INSERT INTO parents_corner_conversations (user_id, child_profile_id, messages, updated_at)
+    VALUES (${userId}, ${childProfileId}, ${msgsJson}::jsonb, now())
+    ON CONFLICT (user_id, child_profile_id)
+    DO UPDATE SET messages = ${msgsJson}::jsonb, updated_at = now()
+  `);
+}
+
+    const childProfileId = req.query.childProfileId as string;
+
+    const { childProfileId, messages } = req.body;

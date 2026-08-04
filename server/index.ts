@@ -1170,6 +1170,31 @@ setTimeout(async () => {
   }
 }, 3500);
 
+// Parent's Corner — persist conversations per child profile
+setTimeout(async () => {
+  try {
+    const { db } = await import('./db');
+    const { sql } = await import('drizzle-orm');
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS parents_corner_conversations (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id text NOT NULL,
+        child_profile_id text NOT NULL,
+        messages jsonb NOT NULL DEFAULT '[]',
+        updated_at timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT uniq_parents_corner_convo UNIQUE (user_id, child_profile_id)
+      )
+    `);
+    await db.execute(sql`
+      CREATE INDEX IF NOT EXISTS idx_parents_corner_convos_user
+      ON parents_corner_conversations (user_id)
+    `);
+    console.log('✅ Parent\'s Corner boot migration complete (parents_corner_conversations)');
+  } catch (err: any) {
+    console.error('❌ Parent\'s Corner boot migration failed:', err.message);
+  }
+}, 4000);
+
 // Backfill: purge stale temp URLs from meal_image_cache
 // Any non-S3 URL is expired or will expire — delete so next request regenerates clean
 setTimeout(async () => {

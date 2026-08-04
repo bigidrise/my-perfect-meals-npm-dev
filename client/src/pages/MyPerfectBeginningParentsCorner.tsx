@@ -2,11 +2,15 @@
  * My Perfect Beginning — Parent's Corner page wrapper
  *
  * Reads the active child from the hub's session storage and passes it as
- * childContext into ParentsCorner so the AI knows who it's advising.
+ * childContext into ParentsCorner so the AI knows who it's advising and
+ * so conversation persistence works (childContext.id is required for save/load).
+ *
  * Falls back gracefully to an empty profile if no child is selected.
+ * Re-reads sessionStorage on window focus in case the user switched children
+ * on the hub and navigated back.
  */
 
-import { Suspense, useMemo } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import ParentsCorner from "@/components/my-perfect-beginning/ParentsCorner";
 
@@ -19,9 +23,9 @@ const SESSION_CHILDREN_KEY = "mpb.children.v1";
 
 interface StoredChild {
   id: string;
-  nickname: string;
-  age: number; // years (approximate)
-  stage: string;
+  nickname?: string;
+  age?: number; // years (approximate)
+  stage?: string;
   emoji?: string;
 }
 
@@ -44,17 +48,26 @@ function readActiveChild(): StoredChild | null {
 export default function MyPerfectBeginningParentsCornerPage() {
   const [, setLocation] = useLocation();
 
-  // Read once on mount — sessionStorage is synchronous so no async needed.
-  const childContext = useMemo(() => {
-    const child = readActiveChild();
-    if (!child) return undefined;
-    return {
-      nickname: child.nickname,
-      developmentalStage: child.stage,
-      // Hub stores age in whole years; convert to approximate months for the AI.
-      currentAgeMonths: Math.round(child.age * 12),
-    };
+  const [activeChild, setActiveChild] = useState<StoredChild | null>(() =>
+    readActiveChild()
+  );
+
+  // Re-read on focus in case the user switched children on the hub and navigated back
+  useEffect(() => {
+    const handler = () => setActiveChild(readActiveChild());
+    window.addEventListener("focus", handler);
+    return () => window.removeEventListener("focus", handler);
   }, []);
+
+  const childContext = activeChild
+    ? {
+        id: activeChild.id,
+        nickname: activeChild.nickname,
+        developmentalStage: activeChild.stage,
+        // Hub stores age in whole years; convert to approximate months for the AI.
+        currentAgeMonths: activeChild.age != null ? Math.round(activeChild.age * 12) : undefined,
+      }
+    : undefined;
 
   function handleBack() {
     setLocation("/lifestyle/my-perfect-beginning");
