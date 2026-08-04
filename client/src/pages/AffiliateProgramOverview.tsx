@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { BC_HEADER } from "@/components/BusinessCenterShell";
 import { useLocation } from "wouter";
-import { ProActionLock } from "@/components/ProActionLock";
+import { FeatureUpgradeModal } from "@/components/modals/FeatureUpgradeModal";
+import { useAuth } from "@/contexts/AuthContext";
+import { isProOrAbove } from "@/lib/subscriptionCheck";
 import {
   ArrowLeft, DollarSign, Clock, TrendingUp, Users, ShieldCheck,
   ChevronRight, CheckCircle2, XCircle, Stethoscope, Briefcase, Calculator,
@@ -228,6 +230,9 @@ const ACKNOWLEDGMENTS = [
 
 export default function AffiliateProgramOverview() {
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
+  const hasPro = isProOrAbove(user);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [checked, setChecked] = useState<boolean[]>([false, false, false]);
   const [loading, setLoading] = useState(true);
   const [acct, setAcct] = useState<AffiliateAccount | null>(null);
@@ -564,7 +569,6 @@ export default function AffiliateProgramOverview() {
 
         {/* Bottom CTA — acknowledgments for new users, quick action for returning */}
         {/* These are operational actions — require Pro subscription */}
-        <ProActionLock feature="activate your partner account and begin the certification">
         {!hasStartedJourney ? (
           <>
             {/* Acknowledgment gate — new users only */}
@@ -617,7 +621,11 @@ export default function AffiliateProgramOverview() {
               transition={{ delay: 0.30 }}
             >
               <button
-                onClick={() => { if (allChecked) handleStartAcademy(); }}
+                onClick={() => {
+                  if (!allChecked) return;
+                  if (!hasPro) { setUpgradeOpen(true); return; }
+                  handleStartAcademy();
+                }}
                 disabled={!allChecked}
                 className="w-full p-4 rounded-2xl font-bold text-sm flex items-center justify-between transition-all duration-200 active:scale-[0.98]"
                 style={{
@@ -646,7 +654,7 @@ export default function AffiliateProgramOverview() {
           >
             {isActive || academyComplete ? (
               <button
-                onClick={handleDashboard}
+                onClick={() => { if (!hasPro) { setUpgradeOpen(true); return; } handleDashboard(); }}
                 className="w-full p-4 rounded-2xl bg-orange-600 text-white font-bold text-sm flex items-center justify-between active:scale-[0.98] transition-all"
               >
                 <span>Open Partner Dashboard</span>
@@ -654,7 +662,7 @@ export default function AffiliateProgramOverview() {
               </button>
             ) : (
               <button
-                onClick={handleContinueAcademy}
+                onClick={() => { if (!hasPro) { setUpgradeOpen(true); return; } handleContinueAcademy(); }}
                 className="w-full p-4 rounded-2xl bg-orange-600 text-white font-bold text-sm flex items-center justify-between active:scale-[0.98] transition-all"
               >
                 <span>Continue Your Academy</span>
@@ -663,7 +671,13 @@ export default function AffiliateProgramOverview() {
             )}
           </motion.div>
         )}
-        </ProActionLock>
+
+      <FeatureUpgradeModal
+        open={upgradeOpen}
+        onClose={() => setUpgradeOpen(false)}
+        featureName="Partner Program Activation"
+        description="Activate your affiliate account, earn commissions, and access the Partner Dashboard by upgrading to Pro."
+      />
       </div>
     </motion.div>
   );
