@@ -896,6 +896,35 @@ export default function WeeklyMealBoard() {
       </div>
 
       <div className="pb-10 grid grid-cols-1 xl:grid-cols-2 gap-4 xl:gap-6">
+
+        {/* Training Nutrition Schedule entry point */}
+        <div className="col-span-full">
+          <button
+            onClick={() => setTrainingScheduleOpen(true)}
+            className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl border border-white/10 bg-white/5 hover:bg-orange-600/10 hover:border-orange-500/30 transition-colors text-left group"
+          >
+            <div className="w-9 h-9 rounded-xl bg-orange-600/20 border border-orange-500/30 flex items-center justify-center flex-shrink-0">
+              <Dumbbell className="w-4 h-4 text-orange-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-white text-sm font-semibold leading-tight">Training Nutrition Schedule</p>
+              <p className="text-white/40 text-xs mt-0.5 leading-relaxed">
+                {user?.weeklyTrainingSchedule
+                  ? "Schedule active — macros adjusting by training day"
+                  : "Adjust daily macros based on your training schedule"}
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              {user?.weeklyTrainingSchedule && (
+                <span className="text-xs font-semibold text-orange-400 bg-orange-600/20 border border-orange-500/20 px-2 py-0.5 rounded-full">
+                  Active
+                </span>
+              )}
+              <span className="text-white/30 text-sm group-hover:text-white/60 transition-colors">›</span>
+            </div>
+          </button>
+        </div>
+
         {/* Render day view or week view based on mode */}
         {FEATURES.dayPlanning === 'alpha' && planningMode === 'day' && activeDayISO && board ? (
           // DAY MODE: Show Meal 1/2/3, dynamic Meal 4+, and Snack Creator
@@ -1095,34 +1124,6 @@ export default function WeeklyMealBoard() {
             </section>
           ))
         )}
-
-        {/* Training Nutrition Schedule entry point */}
-        <div className="col-span-full">
-          <button
-            onClick={() => setTrainingScheduleOpen(true)}
-            className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl border border-white/10 bg-white/5 hover:bg-orange-600/10 hover:border-orange-500/30 transition-colors text-left group"
-          >
-            <div className="w-9 h-9 rounded-xl bg-orange-600/20 border border-orange-500/30 flex items-center justify-center flex-shrink-0">
-              <Dumbbell className="w-4 h-4 text-orange-400" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-white text-sm font-semibold leading-tight">Training Nutrition Schedule</p>
-              <p className="text-white/40 text-xs mt-0.5 leading-relaxed">
-                {user?.weeklyTrainingSchedule
-                  ? "Schedule active — macros adjusting by training day"
-                  : "Adjust daily macros based on your training schedule"}
-              </p>
-            </div>
-            <div className="flex items-center gap-1.5 flex-shrink-0">
-              {user?.weeklyTrainingSchedule && (
-                <span className="text-xs font-semibold text-orange-400 bg-orange-600/20 border border-orange-500/20 px-2 py-0.5 rounded-full">
-                  Active
-                </span>
-              )}
-              <span className="text-white/30 text-sm group-hover:text-white/60 transition-colors">›</span>
-            </div>
-          </button>
-        </div>
 
         {/* Pro Tip Card */}
         <ProTipCard />
