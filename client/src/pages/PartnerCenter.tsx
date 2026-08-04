@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { ArrowLeft, QrCode, Megaphone, BookOpen } from "lucide-react";
 import { motion } from "framer-motion";
@@ -19,6 +19,11 @@ export default function PartnerCenter() {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState<TabId>("referral");
 
+  useEffect(() => {
+    document.title = "Partner Center | My Perfect Meals";
+    return () => { document.title = "My Perfect Meals"; };
+  }, []);
+
   return (
     <motion.div
       className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} pb-28`}
@@ -34,10 +39,10 @@ export default function PartnerCenter() {
         <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
           <button
             onClick={() => setLocation("/business-center")}
-            className="flex items-center gap-1.5 text-orange-400 text-sm font-medium active:scale-[0.95] transition-transform"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
           >
             <ArrowLeft className="h-4 w-4" />
-            Business Suite
+            Business Center
           </button>
           <h1 className="text-lg font-bold text-white">Partner Center</h1>
         </div>

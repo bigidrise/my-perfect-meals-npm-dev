@@ -420,6 +420,11 @@ export default function WhiteLabelSolutions() {
   const allBoxesChecked = appChecks.every(Boolean);
 
   useEffect(() => {
+    document.title = "White Label Solutions | My Perfect Meals";
+    return () => { document.title = "My Perfect Meals"; };
+  }, []);
+
+  useEffect(() => {
     saveProgress({ currentStage, acknowledged });
   }, [currentStage, acknowledged]);
 

@@ -130,6 +130,11 @@ export default function BusinessCenter() {
   });
 
   useEffect(() => {
+    document.title = "Business Center | My Perfect Meals";
+    return () => { document.title = "My Perfect Meals"; };
+  }, []);
+
+  useEffect(() => {
     if (!isProfessional) {
       setCertProgress((p) => ({ ...p, loading: false }));
       return;
@@ -181,7 +186,7 @@ export default function BusinessCenter() {
             <ArrowLeft className="h-4 w-4" />
             Back
           </button>
-          <h1 className="text-lg font-bold text-white">Business Suite</h1>
+          <h1 className="text-lg font-bold text-white">Business Center</h1>
           {!hasProAccess && (
             <span className="ml-auto px-2.5 py-0.5 rounded-full bg-orange-600/20 border border-orange-500/30 text-orange-400 text-[10px] font-semibold tracking-wide uppercase">
               Pro+

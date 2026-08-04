@@ -171,6 +171,11 @@ export default function BusinessDashboard() {
   const pollCount = useRef(0);
 
   useEffect(() => {
+    document.title = "Organization Dashboard | My Perfect Meals";
+    return () => { document.title = "My Perfect Meals"; };
+  }, []);
+
+  useEffect(() => {
     if (ownerData?.business?.independentClientPolicy) {
       setPolicyValue(ownerData.business.independentClientPolicy);
     }

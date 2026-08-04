@@ -164,6 +164,11 @@ export default function AcademyLandingPage() {
   const [lessonLoading, setLessonLoading] = useState(true);
 
   useEffect(() => {
+    document.title = "MPM Academy | My Perfect Meals";
+    return () => { document.title = "My Perfect Meals"; };
+  }, []);
+
+  useEffect(() => {
     if (!user) return;
     (async () => {
       try {

@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useLocation } from "wouter";
 import {
   ArrowLeft,
@@ -98,6 +99,11 @@ const programs = [
 export default function PartnerProgramsHub() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+
+  useEffect(() => {
+    document.title = "Partner Programs | My Perfect Meals";
+    return () => { document.title = "My Perfect Meals"; };
+  }, []);
 
   return (
     <motion.div

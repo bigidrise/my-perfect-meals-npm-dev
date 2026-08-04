@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useLocation } from "wouter";
 import {
   ArrowLeft,
@@ -136,6 +137,11 @@ export default function HowPartnershipsWork() {
   const isPublic = location.startsWith("/partners");
   const backPath = isPublic ? "/partners" : "/business-center/partners";
   const backLabel = "Partner Programs";
+
+  useEffect(() => {
+    document.title = "How Partnerships Work | My Perfect Meals";
+    return () => { document.title = "My Perfect Meals"; };
+  }, []);
 
   return (
     <motion.div
