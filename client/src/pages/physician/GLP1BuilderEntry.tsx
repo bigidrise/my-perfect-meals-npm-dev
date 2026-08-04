@@ -1,7 +1,7 @@
 import React from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { ChevronRight, Dumbbell, CalendarDays } from "lucide-react";
+import { ChevronRight, Dumbbell, CalendarDays, Pill } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function GLP1BuilderEntry() {
@@ -53,8 +53,11 @@ export default function GLP1BuilderEntry() {
         {/* Option 1: Continue */}
         <button
           onClick={() => setLocation("/glp1-meal-builder")}
-          className="w-full flex items-center gap-4 px-5 py-5 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors text-left mb-4 group"
+          className="w-full flex items-center gap-4 px-5 py-5 rounded-2xl border border-cyan-500/30 bg-cyan-500/10 hover:bg-cyan-500/15 transition-colors text-left mb-4 group"
         >
+          <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center flex-shrink-0">
+            <Pill className="w-5 h-5 text-cyan-400" />
+          </div>
           <div className="flex-1 min-w-0">
             <p className="text-white font-semibold text-base leading-tight mb-0.5">
               Continue to GLP-1 Meal Builder
@@ -63,7 +66,7 @@ export default function GLP1BuilderEntry() {
               Generate meals using your current GLP-1 nutrition profile and macro targets.
             </p>
           </div>
-          <ChevronRight className="w-5 h-5 text-white/30 group-hover:text-white/60 transition-colors flex-shrink-0" />
+          <ChevronRight className="w-5 h-5 text-cyan-400/60 group-hover:text-cyan-400 transition-colors flex-shrink-0" />
         </button>
 
         {/* Divider */}

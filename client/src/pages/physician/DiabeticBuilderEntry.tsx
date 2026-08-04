@@ -1,7 +1,7 @@
 import React from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { ChevronRight, Dumbbell, CalendarDays } from "lucide-react";
+import { ChevronRight, Dumbbell, CalendarDays, Activity } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function DiabeticBuilderEntry() {
@@ -53,8 +53,11 @@ export default function DiabeticBuilderEntry() {
         {/* Option 1: Continue */}
         <button
           onClick={() => setLocation("/diabetic-menu-builder")}
-          className="w-full flex items-center gap-4 px-5 py-5 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors text-left mb-4 group"
+          className="w-full flex items-center gap-4 px-5 py-5 rounded-2xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/15 transition-colors text-left mb-4 group"
         >
+          <div className="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center flex-shrink-0">
+            <Activity className="w-5 h-5 text-rose-400" />
+          </div>
           <div className="flex-1 min-w-0">
             <p className="text-white font-semibold text-base leading-tight mb-0.5">
               Continue to Diabetic Menu Builder
@@ -63,7 +66,7 @@ export default function DiabeticBuilderEntry() {
               Generate meals using your current diabetic nutrition profile and macro targets.
             </p>
           </div>
-          <ChevronRight className="w-5 h-5 text-white/30 group-hover:text-white/60 transition-colors flex-shrink-0" />
+          <ChevronRight className="w-5 h-5 text-rose-400/60 group-hover:text-rose-400 transition-colors flex-shrink-0" />
         </button>
 
         {/* Divider */}
