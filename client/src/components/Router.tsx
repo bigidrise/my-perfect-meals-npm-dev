@@ -5,8 +5,11 @@ import GeneralNutritionBuilder from "@/pages/pro/GeneralNutritionBuilder";
 import GeneralNutritionBuilderEntry from "@/pages/pro/GeneralNutritionBuilderEntry";
 import GeneralNutritionTrainingPage from "@/pages/GeneralNutritionTrainingPage";
 import DiabeticTrainingPage from "@/pages/DiabeticTrainingPage";
+import DiabeticBuilderEntry from "@/pages/physician/DiabeticBuilderEntry";
 import GLP1TrainingPage from "@/pages/GLP1TrainingPage";
+import GLP1BuilderEntry from "@/pages/physician/GLP1BuilderEntry";
 import AntiInflammatoryTrainingPage from "@/pages/AntiInflammatoryTrainingPage";
+import AntiInflammatoryBuilderEntry from "@/pages/physician/AntiInflammatoryBuilderEntry";
 import ScrollRestorer from "@/components/ScrollRestorer";
 import BottomNav from "@/components/BottomNav";
 import { withPageErrorBoundary } from "@/components/PageErrorBoundary";
@@ -859,6 +862,9 @@ export default function Router() {
         <Route path="/performance" component={GuardedPerformanceHub} />
         <Route path="/performance/setup" component={GuardedPerformanceSetup} />
         <Route path="/general-nutrition/training" component={GeneralNutritionTrainingPage} />
+        <Route path="/diabetic-builder" component={DiabeticBuilderEntry} />
+        <Route path="/glp1-builder" component={GLP1BuilderEntry} />
+        <Route path="/anti-inflammatory-builder" component={AntiInflammatoryBuilderEntry} />
         <Route path="/diabetic/training" component={DiabeticTrainingPage} />
         <Route path="/glp1/training" component={GLP1TrainingPage} />
         <Route path="/anti-inflammatory/training" component={AntiInflammatoryTrainingPage} />

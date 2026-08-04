@@ -13,7 +13,7 @@ export default function GLP1TrainingPage() {
       pageTitle="Training Nutrition Schedule"
       continueLabel="Launch GLP-1 Meal Builder"
       continueTo="/glp1-meal-builder"
-      returnTo="/glp1-hub"
+      returnTo="/glp1-builder"
     />
   );
 }
