@@ -13,7 +13,7 @@ export default function DiabeticTrainingPage() {
       pageTitle="Training Nutrition Schedule"
       continueLabel="Launch Diabetic Menu Builder"
       continueTo="/diabetic-menu-builder"
-      returnTo="/diabetic-hub"
+      returnTo="/diabetic-builder"
     />
   );
 }

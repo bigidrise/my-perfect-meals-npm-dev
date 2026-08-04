@@ -24,19 +24,19 @@ export const BUILDER_MAP: Record<BuilderKey, BuilderEntry> = {
   diabetic: {
     key: "diabetic",
     label: "Diabetic",
-    clientRoute: "/diabetic-menu-builder",
+    clientRoute: "/diabetic-builder",
     proRoute: "diabetic-builder",
   },
   glp1: {
     key: "glp1",
     label: "Metabolic Med",
-    clientRoute: "/glp1-meal-builder",
+    clientRoute: "/glp1-builder",
     proRoute: "glp1-builder",
   },
   anti_inflammatory: {
     key: "anti_inflammatory",
     label: "Anti-Inflammatory",
-    clientRoute: "/anti-inflammatory-menu-builder",
+    clientRoute: "/anti-inflammatory-builder",
     proRoute: "anti-inflammatory-builder",
   },
   beach_body: {
