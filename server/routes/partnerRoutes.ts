@@ -6,6 +6,7 @@ import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import { requireAdmin } from "../middleware/requireAdmin";
 import { partnerRecords } from "../db/schema/partnerRecords";
 import { partnerActivityLog } from "../db/schema/partnerActivityLog";
+import { userAffiliateAccounts } from "../db/schema/affiliateAccounts";
 import { users } from "../../shared/schema";
 import { computePartnerLifecycle } from "../../shared/partnerLifecycle";
 
@@ -53,8 +54,27 @@ function lifecycleResponse(record: typeof partnerRecords.$inferSelect, log: (typ
 router.get("/identity", requireAuth, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser.id;
-    const record = await getRecord(userId);
+    let record = await getRecord(userId);
     if (!record) return res.json({ partner: null, lifecycle: null });
+
+    // Lazy backfill: if acceptedAt or rewardfulCreatedAt are missing but the user
+    // already has a live Rewardful affiliate, stamp them now so the timeline reflects reality.
+    if (!record.acceptedAt || !record.rewardfulCreatedAt) {
+      const [affiliateAccount] = await db
+        .select({ rewardfulAffiliateId: userAffiliateAccounts.rewardfulAffiliateId, activatedAt: userAffiliateAccounts.activatedAt })
+        .from(userAffiliateAccounts)
+        .where(eq(userAffiliateAccounts.userId, userId))
+        .limit(1);
+
+      if (affiliateAccount?.rewardfulAffiliateId) {
+        const stamps: Record<string, Date> = { updatedAt: new Date() };
+        const ts = affiliateAccount.activatedAt ?? new Date();
+        if (!record.acceptedAt) stamps.acceptedAt = ts;
+        if (!record.rewardfulCreatedAt) stamps.rewardfulCreatedAt = ts;
+        await db.update(partnerRecords).set(stamps as any).where(eq(partnerRecords.userId, userId));
+        record = { ...record, ...stamps };
+      }
+    }
 
     const lifecycle = computePartnerLifecycle({
       partnerTypes: record.partnerTypes ?? [],
@@ -203,6 +223,14 @@ router.post("/admin/create", requireAuth, requireAdmin, async (req, res) => {
     const existing = await getRecord(userId);
     if (existing) return res.status(409).json({ error: "A partner record already exists for this user" });
 
+    // Check if user already has Rewardful activated — auto-stamp rewardfulCreatedAt if so
+    const [existingAffiliate] = await db
+      .select({ rewardfulAffiliateId: userAffiliateAccounts.rewardfulAffiliateId, activatedAt: userAffiliateAccounts.activatedAt })
+      .from(userAffiliateAccounts)
+      .where(eq(userAffiliateAccounts.userId, userId))
+      .limit(1);
+    const alreadyOnRewardful = !!existingAffiliate?.rewardfulAffiliateId;
+
     const result = await db.transaction(async (tx) => {
       const [created] = await tx
         .insert(partnerRecords)
@@ -215,6 +243,10 @@ router.post("/admin/create", requireAuth, requireAdmin, async (req, res) => {
           customerDiscount: customerDiscount ?? null,
           status: "active",
           notes: notes ?? null,
+          // Creating the record is the admin's formal acceptance decision
+          acceptedAt: new Date(),
+          // Auto-stamp Rewardful connection if user is already activated
+          ...(alreadyOnRewardful ? { rewardfulCreatedAt: existingAffiliate.activatedAt ?? new Date() } : {}),
         })
         .returning();
 
@@ -222,7 +254,7 @@ router.post("/admin/create", requireAuth, requireAdmin, async (req, res) => {
         userId,
         actorId: actor,
         action: "partner_created",
-        details: { partnerName, partnerTypes, commissionRate, commissionMonths, customerDiscount },
+        details: { partnerName, partnerTypes, commissionRate, commissionMonths, customerDiscount, autoStampedRewardful: alreadyOnRewardful },
       });
 
       return created;

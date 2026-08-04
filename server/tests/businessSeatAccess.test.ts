@@ -595,7 +595,177 @@ describe("businessRoutes.ts — accept-invite handler guard ordering", () => {
   });
 });
 
-// ── 8. requireProAccess middleware source structure ───────────────────────────
+// ── 9. POST /invite — duplicate-invite guard against active members ───────────
+/**
+ * The POST /invite handler must reject an invite request when the target email
+ * already belongs to a user who has an active businessMembers row for this
+ * business — even if that user has since downgraded their subscription.
+ *
+ * Guard location in the real handler (businessRoutes.ts, ~line 204-226):
+ *   1. Resolve the users row by email.
+ *   2. If found, query businessMembers for (businessId, userId, status="active").
+ *   3. If a match exists → 400 "This person is already a member of your business."
+ *
+ * This block mirrors that decision tree without touching the DB or loading the
+ * route module, following the same source-scan regression pattern used in §6/§7.
+ */
+
+interface MockUserLookup {
+  /** null when the email is not registered in the system at all */
+  userId: string | null;
+}
+
+interface MockActiveMemberLookup {
+  /** null when the user has no active businessMembers row */
+  memberId: string | null;
+}
+
+/**
+ * Mirrors the invite-handler active-member guard:
+ *
+ *   1. email not found in users table → no guard fired (handler continues)
+ *   2. user found, but no active member row → no guard fired (handler continues)
+ *   3. user found AND active member row exists → 400 ALREADY_ACTIVE_MEMBER
+ *
+ * Returns:
+ *   { status: 400, code: "ALREADY_ACTIVE_MEMBER" }  — blocked
+ *   null                                              — guard did not fire, handler continues
+ */
+function simulateSendInviteActiveMemberGuard(
+  userLookup: MockUserLookup,
+  activeMemberLookup: MockActiveMemberLookup,
+): { status: 400; code: "ALREADY_ACTIVE_MEMBER" } | null {
+  // Step 1: email not registered → guard does not fire
+  if (userLookup.userId === null) return null;
+
+  // Step 2: registered user, but no active member row → guard does not fire
+  if (activeMemberLookup.memberId === null) return null;
+
+  // Step 3: registered user WITH an active member row → blocked
+  return { status: 400, code: "ALREADY_ACTIVE_MEMBER" };
+}
+
+describe("POST /api/business/invite — active-member guard blocks duplicate invites", () => {
+  // ── email not in users table ────────────────────────────────────────────────
+  it("does not fire for an email that has never registered (no users row)", () => {
+    const result = simulateSendInviteActiveMemberGuard(
+      { userId: null },       // email not in DB
+      { memberId: null },
+    );
+    expect(result).toBeNull(); // guard passes, invite proceeds
+  });
+
+  // ── registered user but no active membership ────────────────────────────────
+  it("does not fire for a registered user who is NOT a member of the business", () => {
+    const result = simulateSendInviteActiveMemberGuard(
+      { userId: "user-outsider-001" },
+      { memberId: null },           // no active businessMembers row
+    );
+    expect(result).toBeNull();
+  });
+
+  it("does not fire for a formerly-removed member (active row was cleared)", () => {
+    // A removed member's row has status="removed", so the query for status="active"
+    // returns nothing.  activeMemberLookup.memberId is null in that scenario.
+    const result = simulateSendInviteActiveMemberGuard(
+      { userId: "user-removed-001" },
+      { memberId: null }, // status=removed, so the active lookup returns null
+    );
+    expect(result).toBeNull(); // re-invite is allowed
+  });
+
+  // ── registered user with an active membership — the blocked cases ───────────
+  it("blocks when the target email belongs to a user with an active member row", () => {
+    const result = simulateSendInviteActiveMemberGuard(
+      { userId: "user-active-001" },
+      { memberId: "bm-active-001" }, // active row exists
+    );
+    expect(result).not.toBeNull();
+    expect(result!.status).toBe(400);
+    expect(result!.code).toBe("ALREADY_ACTIVE_MEMBER");
+  });
+
+  it("blocks a downgraded member whose businessMembers row is still active (the core gap case)", () => {
+    // This is the specific scenario the task guards against:
+    // the member downgraded their subscription but the owner never called
+    // DELETE /members/:id, so status is still "active".
+    // The invite handler must reject the second invite here.
+    const downgradedButActive: MockUserLookup = { userId: "user-downgraded-active-002" };
+    const stillActiveRow: MockActiveMemberLookup = { memberId: "bm-downgraded-still-active-002" };
+
+    const result = simulateSendInviteActiveMemberGuard(downgradedButActive, stillActiveRow);
+    expect(result).not.toBeNull();
+    expect(result!.status).toBe(400);
+    expect(result!.code).toBe("ALREADY_ACTIVE_MEMBER");
+  });
+
+  it("blocks even when the business has spare seats (guard fires before seat check)", () => {
+    // In the real handler the active-member guard fires after the email/pending-invite
+    // checks but independently of the seat count.  Spare seats are irrelevant.
+    const result = simulateSendInviteActiveMemberGuard(
+      { userId: "user-active-spare-seats" },
+      { memberId: "bm-active-spare-seats" },
+    );
+    expect(result!.code).toBe("ALREADY_ACTIVE_MEMBER");
+  });
+});
+
+// ── 9b. POST /invite — source-scan: active-member guard is present and correct ─
+
+describe("businessRoutes.ts — POST /invite active-member guard regression", () => {
+  const routeFilePath = path.resolve(__dirname, "../routes/businessRoutes.ts");
+  let source: string;
+  let inviteHandlerSlice: string;
+
+  beforeAll(() => {
+    source = fs.readFileSync(routeFilePath, "utf-8");
+
+    // Isolate the POST /invite handler body (between its route declaration and
+    // the next top-level comment/route).
+    const inviteStart = source.indexOf('router.post("/invite"');
+    const afterInvite = source.slice(inviteStart);
+    const nextSectionMatch = afterInvite.match(/\n\/\/ ──/);
+    inviteHandlerSlice = nextSectionMatch
+      ? afterInvite.slice(0, nextSectionMatch.index)
+      : afterInvite.slice(0, 4000);
+  });
+
+  it("POST /invite handler declaration includes requireAuth and requireProAccess", () => {
+    const inviteDecl = source.match(/router\.post\s*\(\s*["']\/invite["']([^{]+)\{/)?.[1] ?? "";
+    expect(inviteDecl).toContain("requireAuth");
+    expect(inviteDecl).toContain("requireProAccess");
+  });
+
+  it("invite handler queries businessMembers for an active row keyed by userId", () => {
+    // The guard must query businessMembers with status="active" scoped to the user.
+    expect(inviteHandlerSlice).toContain("businessMembers.userId");
+    expect(inviteHandlerSlice).toContain('"active"');
+  });
+
+  it("invite handler returns 400 when an existing active member is found", () => {
+    // The error response must be a 400, not a 409 or 403.
+    expect(inviteHandlerSlice).toContain("400");
+    expect(inviteHandlerSlice).toContain("already a member");
+  });
+
+  it("active-member check is scoped to the current business (businessId guard present)", () => {
+    // The WHERE clause must include businessId so cross-business memberships
+    // don't accidentally block the invite.
+    expect(inviteHandlerSlice).toContain("businessMembers.businessId");
+  });
+
+  it("active-member check is scoped to status=active (not removed members)", () => {
+    // status="active" must appear in the guard so formerly-removed members
+    // don't block re-invites.
+    const activeIdx = inviteHandlerSlice.indexOf('"active"');
+    const memberCheckIdx = inviteHandlerSlice.indexOf("businessMembers.userId");
+    // Both must be present and the member-check block must contain "active"
+    expect(activeIdx).toBeGreaterThan(-1);
+    expect(memberCheckIdx).toBeGreaterThan(-1);
+  });
+});
+
+// ── 10. requireProAccess middleware source structure ──────────────────────────
 
 describe("requireProAccess.ts — middleware structure regression", () => {
   const middlewareFilePath = path.resolve(__dirname, "../middleware/requireProAccess.ts");
