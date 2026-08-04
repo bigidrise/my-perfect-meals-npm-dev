@@ -118,6 +118,20 @@ export default function CheckoutSuccess() {
           return;
         }
 
+        // Business / Organization signup return path — send them straight to Business Center
+        const businessReturn = sessionStorage.getItem("mpm_business_return");
+        if (businessReturn) {
+          sessionStorage.removeItem("mpm_business_return");
+          localStorage.removeItem("mpm_purchase_required");
+          toast({
+            title: "Pro access activated!",
+            description: "Welcome to Business Center.",
+          });
+          setIsActivating(false);
+          setLocation(businessReturn);
+          return;
+        }
+
         if (isCoaching) {
           setIsCoachingPurchase(true);
 

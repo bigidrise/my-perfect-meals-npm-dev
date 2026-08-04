@@ -4,7 +4,7 @@ import WelcomeGate from "./WelcomeGate";
 import { Route } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { isGuestMode, isGuestAllowedRoute } from "@/lib/guestMode";
-import { hasActivePaidSubscription } from "@/lib/subscriptionCheck";
+import { hasActivePaidSubscription, isProOrAbove } from "@/lib/subscriptionCheck";
 import AppLayout from "@/layout/AppLayout";
 
 interface AppRouterProps {
@@ -146,9 +146,14 @@ export default function AppRouter({ children }: AppRouterProps) {
         return;
       }
 
-      // Business accounts always land in Business Center
+      // Business accounts always land in Business Center — but only after Pro is active.
       if (user?.professionalRole === "business") {
-        setLocation("/business-center");
+        if (isProOrAbove(user)) {
+          setLocation("/business-center");
+        } else {
+          sessionStorage.setItem("mpm_business_return", "/business-center");
+          setLocation("/pricing?plan=mpm_premium_monthly");
+        }
         return;
       }
 
