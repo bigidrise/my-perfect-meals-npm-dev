@@ -35,7 +35,7 @@ async function getActiveSeats(businessId: string): Promise<number> {
 }
 
 // ── GET /api/business/mine — owner fetches their business dashboard data
-router.get("/mine", requireAuth, requireProAccess, async (req, res) => {
+router.get("/mine", requireAuth, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   try {
     const [business] = await db
@@ -784,7 +784,7 @@ router.post("/dev-seed", requireAuth, async (req, res) => {
 });
 
 // ── GET /api/business/policy-history — owner views policy change log
-router.get("/policy-history", requireAuth, requireProAccess, async (req, res) => {
+router.get("/policy-history", requireAuth, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   try {
     const [business] = await db
@@ -817,7 +817,7 @@ router.get("/policy-history", requireAuth, requireProAccess, async (req, res) =>
 });
 
 // ── GET /api/business/members/:memberId/clients — owner views a member's client accounting
-router.get("/members/:memberId/clients", requireAuth, requireProAccess, async (req, res) => {
+router.get("/members/:memberId/clients", requireAuth, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   const { memberId } = req.params;
 

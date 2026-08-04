@@ -146,14 +146,9 @@ export default function AppRouter({ children }: AppRouterProps) {
         return;
       }
 
-      // Business accounts always land in Business Center — but only after Pro is active.
+      // Business accounts always land in Business Center — browsing is free, actions require Pro
       if (user?.professionalRole === "business") {
-        if (isProOrAbove(user)) {
-          setLocation("/business-center");
-        } else {
-          sessionStorage.setItem("mpm_business_return", "/business-center");
-          setLocation("/pricing?plan=mpm_premium_monthly");
-        }
+        setLocation("/business-center");
         return;
       }
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { ArrowLeft } from "lucide-react";
+import { ProActionLock } from "@/components/ProActionLock";
 
 const TOTAL_STAGES = 14;
 const LS_KEY = "mpm.wl.progress";
@@ -561,8 +562,9 @@ export default function WhiteLabelSolutions() {
           </div>
         )}
 
-        {/* Application stage */}
+        {/* Application stage — requires Pro */}
         {(stage as any).isApplication && (
+          <ProActionLock feature="submit your partnership application">
           <div className="mt-2 space-y-4" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 2rem)" }}>
             <div className="space-y-3">
               <p className="text-gray-500 text-xs uppercase tracking-wider font-semibold">
@@ -616,6 +618,7 @@ export default function WhiteLabelSolutions() {
               </p>
             </div>
           </div>
+          </ProActionLock>
         )}
       </div>
 

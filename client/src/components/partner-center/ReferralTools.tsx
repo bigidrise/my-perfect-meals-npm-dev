@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { ProActionLock } from "@/components/ProActionLock";
 
 interface PartnerProfile {
   hasPartnerAccount: boolean;
@@ -137,6 +138,7 @@ export default function ReferralTools() {
   const hasAnyTool = profile.promoCode || profile.referralUrl;
 
   return (
+    <ProActionLock feature="access your promo code, referral link, and QR code">
     <div className="space-y-4">
       {/* Promo Code */}
       {profile.promoCode && (
@@ -235,5 +237,6 @@ export default function ReferralTools() {
         </div>
       )}
     </div>
+    </ProActionLock>
   );
 }
