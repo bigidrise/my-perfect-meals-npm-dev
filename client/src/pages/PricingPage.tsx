@@ -761,6 +761,57 @@ export default function PricingPage() {
           </div>
         </div>
 
+        {/* My Perfect Beginning Feature Card */}
+        <div className="mb-12">
+          <div className="text-center mb-6">
+            <div className="inline-flex items-center gap-2 bg-green-600/20 border border-green-500/30 rounded-full px-4 py-2 mb-4">
+              <span className="text-green-300 text-sm font-semibold tracking-wide uppercase">
+                Included with Pro &amp; Ultimate
+              </span>
+            </div>
+            <h2 className="text-2xl font-bold text-white">My Perfect Beginning</h2>
+            <p className="text-white/60 text-sm mt-2 max-w-xl mx-auto">
+              Age-appropriate nutrition guidance for infants, toddlers, and children — built right into your subscription.
+            </p>
+          </div>
+
+          <Card
+            className="relative bg-black/30 backdrop-blur-lg border border-green-500/30 text-white shadow-xl max-w-2xl mx-auto cursor-pointer hover:border-green-400/50 transition-colors ring-1 ring-green-500/10"
+            onClick={() => setLocation("/lifestyle/my-perfect-beginning")}
+          >
+            <CardContent className="pt-6 pb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {[
+                  "Child Nutrition Profiles",
+                  "Better versions of their favorite foods",
+                  "Pediatric nutrition protocols",
+                  "Parent's Corner AI",
+                  "Lunchbox Builder",
+                  "Developmental nutrition guidance",
+                  "Child-safe recipe generation",
+                  "Growth-stage meal planning",
+                ].map((feat, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-white/90">{feat}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-6">
+                <Button
+                  className="w-full bg-green-600/20 hover:bg-green-600/30 text-green-300 border border-green-500/40 font-semibold"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setLocation("/lifestyle/my-perfect-beginning");
+                  }}
+                >
+                  Explore My Perfect Beginning
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Founder Coaching Tier */}
         <div className="mb-16">
             <h2 className="text-xl font-bold mb-6 text-center">
