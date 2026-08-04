@@ -35,6 +35,7 @@ import { apiUrl } from "@/lib/resolveApiBase";
 interface Message {
   role: "user" | "assistant";
   content: string;
+  suggestedFollowUps?: string[];
 }
 
 interface ChildContextProps {
@@ -239,9 +240,16 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
       }
 
       const data = await response.json();
+      const followUps: string[] = Array.isArray(data.suggestedFollowUps)
+        ? data.suggestedFollowUps.filter((q: unknown) => typeof q === "string" && q.trim()).slice(0, 3)
+        : [];
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: data.reply || "I'm sorry, I didn't get a response. Please try again." },
+        {
+          role: "assistant",
+          content: data.reply || "I'm sorry, I didn't get a response. Please try again.",
+          suggestedFollowUps: followUps.length > 0 ? followUps : undefined,
+        },
       ]);
     } catch {
       setMessages((prev) => [
@@ -401,27 +409,57 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
         {messages.length > 0 && (
           <div className="px-4 mt-4 pb-2 flex flex-col gap-3">
             {messages.map((msg, i) => (
-              <div
-                key={i}
-                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-              >
-                {msg.role === "assistant" && (
-                  <div className="w-7 h-7 rounded-full bg-teal-600/30 border border-teal-500/30 flex items-center justify-center shrink-0 mt-0.5 mr-2">
-                    <span className="text-sm">🧑‍🍼</span>
+              <div key={i} className="flex flex-col gap-2">
+                <div className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                  {msg.role === "assistant" && (
+                    <div className="w-7 h-7 rounded-full bg-teal-600/30 border border-teal-500/30 flex items-center justify-center shrink-0 mt-0.5 mr-2">
+                      <span className="text-sm">🧑‍🍼</span>
+                    </div>
+                  )}
+                  <div
+                    className={`
+                      max-w-[82%] rounded-2xl px-4 py-2.5 text-[13px] leading-relaxed
+                      ${
+                        msg.role === "user"
+                          ? "bg-teal-600/60 text-white rounded-br-md"
+                          : "bg-white/10 text-white/90 rounded-bl-md border border-white/10"
+                      }
+                    `}
+                  >
+                    {msg.content}
                   </div>
-                )}
-                <div
-                  className={`
-                    max-w-[82%] rounded-2xl px-4 py-2.5 text-[13px] leading-relaxed
-                    ${
-                      msg.role === "user"
-                        ? "bg-teal-600/60 text-white rounded-br-md"
-                        : "bg-white/10 text-white/90 rounded-bl-md border border-white/10"
-                    }
-                  `}
-                >
-                  {msg.content}
                 </div>
+
+                {/* ── Suggested follow-up chips ────────────────────────────── */}
+                {msg.role === "assistant" &&
+                  msg.suggestedFollowUps &&
+                  msg.suggestedFollowUps.length > 0 && (
+                    <div className="pl-9 flex flex-col gap-1.5">
+                      <p className="text-[10.5px] text-white/35 uppercase tracking-widest font-medium">
+                        Follow-up
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {msg.suggestedFollowUps.map((q, qi) => (
+                          <button
+                            key={qi}
+                            onClick={() => handleCardTap(q)}
+                            disabled={loading}
+                            className="
+                              text-left text-[12px] text-teal-300/90 leading-snug
+                              px-3 py-1.5 rounded-full
+                              bg-teal-900/40 border border-teal-500/30
+                              hover:bg-teal-800/50 hover:border-teal-400/50
+                              active:scale-[0.97] transition-all duration-150
+                              disabled:opacity-40 disabled:pointer-events-none
+                              max-w-[260px] text-left
+                            "
+                          >
+                            {q}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
               </div>
             ))}
 

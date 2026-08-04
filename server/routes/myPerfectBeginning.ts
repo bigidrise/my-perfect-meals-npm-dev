@@ -175,7 +175,16 @@ Before responding, reason through these steps in order (internally — do not ex
 • Never suggest calorie restriction or dieting language for children
 
 ━━━ KNOWLEDGE FOUNDATION ━━━
-You draw from: AAP feeding guidelines, WHO growth standards, USDA Dietary Guidelines for Americans (birth through 24 months; 2–5 years editions), Division of Responsibility (Ellyn Satter Institute), pediatric nutrition research, and standard pediatric dietitian practice.`;
+You draw from: AAP feeding guidelines, WHO growth standards, USDA Dietary Guidelines for Americans (birth through 24 months; 2–5 years editions), Division of Responsibility (Ellyn Satter Institute), pediatric nutrition research, and standard pediatric dietitian practice.
+
+━━━ RESPONSE FORMAT ━━━
+You MUST respond with a JSON object containing exactly two fields:
+{
+  "reply": "<your full warm, conversational answer here>",
+  "suggestedFollowUps": ["<question 1>", "<question 2>", "<question 3>"]
+}
+
+The "suggestedFollowUps" array must contain exactly 2–3 short, natural follow-up questions a parent would genuinely want to ask next based on your reply. Questions should be specific to the topic just discussed and helpful for parents who don't know what to ask next. Write them as a parent would naturally phrase them (not as "Ask about…" but as the actual question, e.g. "How often should I offer the new food?"). Never repeat the question just asked. No markdown outside the JSON.`;
 }
 
 // ─── Today's Tips by stage ────────────────────────────────────────────────────
@@ -275,13 +284,33 @@ router.post("/parents-corner", requireAuth, async (req, res) => {
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
       messages,
-      max_tokens: 600,
+      max_tokens: 700,
       temperature: 0.6,
+      response_format: { type: "json_object" },
     });
 
-    const reply = completion.choices[0]?.message?.content ?? "";
+    const raw = completion.choices[0]?.message?.content ?? "{}";
 
-    res.json({ reply });
+    let reply = "";
+    let suggestedFollowUps: string[] = [];
+    try {
+      const parsed = JSON.parse(raw);
+      reply = typeof parsed.reply === "string" ? parsed.reply : raw;
+      if (Array.isArray(parsed.suggestedFollowUps)) {
+        suggestedFollowUps = parsed.suggestedFollowUps
+          .filter((q: unknown) => typeof q === "string" && q.trim())
+          .slice(0, 3);
+      }
+    } catch {
+      // Fallback: treat entire content as the reply
+      reply = raw;
+    }
+
+    if (!reply) {
+      reply = "I'm sorry, I didn't get a response. Please try again.";
+    }
+
+    res.json({ reply, suggestedFollowUps });
   } catch (err: any) {
     console.error("[MyPerfectBeginning/ParentsCorner] Error:", err.message);
     res.status(500).json({ error: "Something went wrong. Please try again." });
