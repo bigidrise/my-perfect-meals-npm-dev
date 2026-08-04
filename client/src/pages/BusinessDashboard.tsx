@@ -34,6 +34,7 @@ import {
   Shield,
   FileText,
   DollarSign,
+  AlertTriangle,
 } from "lucide-react";
 
 const ROLE_OPTIONS = [
@@ -78,6 +79,7 @@ interface BusinessData {
     joinedAt: string;
     name?: string;
     email?: string;
+    planLost?: boolean;
   }[];
   invitations: {
     id: string;
@@ -88,6 +90,7 @@ interface BusinessData {
   }[];
   usedSeats: number;
   availableSeats: number;
+  planLostCount?: number;
 }
 
 interface MembershipData {
@@ -1147,6 +1150,21 @@ export default function BusinessDashboard() {
           </DialogContent>
         </Dialog>
 
+        {/* Plan-lost alert banner */}
+        {(ownerData.planLostCount ?? 0) > 0 && (
+          <div className="bg-yellow-900/25 border border-yellow-500/30 rounded-xl p-3 flex items-start gap-2.5">
+            <AlertTriangle className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-yellow-300 text-sm font-semibold">
+                {ownerData.planLostCount} member{(ownerData.planLostCount ?? 0) !== 1 ? "s have" : " has"} downgraded to Free
+              </p>
+              <p className="text-yellow-200/60 text-xs mt-0.5 leading-relaxed">
+                These seats are occupied but the members no longer have a paid plan. Remove them to reclaim the seats.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Active Members */}
         <div>
           <h2 className="text-white/70 text-xs font-semibold uppercase tracking-wide mb-2 px-1">
@@ -1154,13 +1172,24 @@ export default function BusinessDashboard() {
           </h2>
           <div className="space-y-2">
             {members.map((m) => (
-              <Card key={m.id} className="bg-white/5 border border-white/10 text-white p-3">
+              <Card
+                key={m.id}
+                className={`text-white p-3 ${m.planLost ? "bg-yellow-900/15 border border-yellow-500/25" : "bg-white/5 border border-white/10"}`}
+              >
                 <div className="flex items-center justify-between gap-2">
                   <button
                     className="flex-1 min-w-0 text-left"
                     onClick={() => setSelectedMemberId(m.id)}
                   >
-                    <p className="text-sm font-medium truncate">{m.name || m.email || "Unknown"}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium truncate">{m.name || m.email || "Unknown"}</p>
+                      {m.planLost && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-yellow-500/20 text-yellow-300 text-xs font-medium flex-shrink-0">
+                          <AlertTriangle className="w-3 h-3" />
+                          No Plan
+                        </span>
+                      )}
+                    </div>
                     <p className="text-white/50 text-xs truncate">{m.email || ""}</p>
                   </button>
                   <div className="flex items-center gap-2 flex-shrink-0">
@@ -1176,10 +1205,10 @@ export default function BusinessDashboard() {
                     </button>
                     {m.role !== "owner" && (
                       <button
-                        className="p-1.5 rounded-lg bg-red-900/30 text-red-400 transition-colors disabled:opacity-40"
+                        className={`p-1.5 rounded-lg transition-colors disabled:opacity-40 ${m.planLost ? "bg-yellow-900/40 text-yellow-400" : "bg-red-900/30 text-red-400"}`}
                         onClick={() => handleRemoveMember(m.id)}
                         disabled={removingId === m.id}
-                        title="Remove member"
+                        title={m.planLost ? "Remove member (no plan)" : "Remove member"}
                       >
                         {removingId === m.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                       </button>
