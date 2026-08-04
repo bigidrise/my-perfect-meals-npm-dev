@@ -6,6 +6,7 @@ import { eq, and, sql, isNull } from "drizzle-orm";
 import { businesses, businessMembers, businessInvitations } from "../db/schema/business";
 import { users } from "@shared/schema";
 import { requireAuth } from "../middleware/requireAuth";
+import { requireProAccess } from "../middleware/requireProAccess";
 import { sendBusinessInviteEmail } from "../services/emailService";
 
 const stripeKey = process.env.STRIPE_SECRET_KEY ?? "";
@@ -34,7 +35,7 @@ async function getActiveSeats(businessId: string): Promise<number> {
 }
 
 // ── GET /api/business/mine — owner fetches their business dashboard data
-router.get("/mine", requireAuth, async (req, res) => {
+router.get("/mine", requireAuth, requireProAccess, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   try {
     const [business] = await db
@@ -132,7 +133,7 @@ router.get("/membership", requireAuth, async (req, res) => {
 });
 
 // ── POST /api/business/invite — owner sends an invite
-router.post("/invite", requireAuth, async (req, res) => {
+router.post("/invite", requireAuth, requireProAccess, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   const { email, role = "staff" } = req.body as { email: string; role?: string };
 
@@ -259,7 +260,7 @@ router.post("/invite", requireAuth, async (req, res) => {
 });
 
 // ── DELETE /api/business/members/:memberId — owner removes a member
-router.delete("/members/:memberId", requireAuth, async (req, res) => {
+router.delete("/members/:memberId", requireAuth, requireProAccess, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   const { memberId } = req.params;
 
@@ -325,7 +326,7 @@ router.post("/removal-notice/dismiss", requireAuth, async (req, res) => {
 });
 
 // ── DELETE /api/business/invitations/:token — owner cancels a pending invite
-router.delete("/invitations/:token", requireAuth, async (req, res) => {
+router.delete("/invitations/:token", requireAuth, requireProAccess, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   const { token } = req.params;
 
@@ -359,7 +360,7 @@ router.delete("/invitations/:token", requireAuth, async (req, res) => {
 });
 
 // ── POST /api/business/invitations/:token/resend — owner resends an invite
-router.post("/invitations/:token/resend", requireAuth, async (req, res) => {
+router.post("/invitations/:token/resend", requireAuth, requireProAccess, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   const { token } = req.params;
 
@@ -421,7 +422,7 @@ router.post("/invitations/:token/resend", requireAuth, async (req, res) => {
 });
 
 // ── PATCH /api/business/policy — owner updates independent_client_policy
-router.patch("/policy", requireAuth, async (req, res) => {
+router.patch("/policy", requireAuth, requireProAccess, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   const { policy } = req.body as { policy: string };
 
@@ -461,7 +462,7 @@ router.patch("/policy", requireAuth, async (req, res) => {
 });
 
 // ── PATCH /api/business/org-policies — owner updates org-level policy flags
-router.patch("/org-policies", requireAuth, async (req, res) => {
+router.patch("/org-policies", requireAuth, requireProAccess, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   const { requireAcademy, requireProfessionalVerification } = req.body as {
     requireAcademy?: boolean;
@@ -675,7 +676,7 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
 });
 
 // ── PATCH /api/business/name — owner renames the business
-router.patch("/name", requireAuth, async (req, res) => {
+router.patch("/name", requireAuth, requireProAccess, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   const { name } = req.body as { name: string };
 
@@ -697,7 +698,7 @@ router.patch("/name", requireAuth, async (req, res) => {
 });
 
 // ── POST /api/business/seats — owner updates seat count (syncs Stripe subscription quantity)
-router.post("/seats", requireAuth, async (req, res) => {
+router.post("/seats", requireAuth, requireProAccess, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   if (!userId) return res.status(401).json({ error: "Not authenticated." });
 
@@ -783,7 +784,7 @@ router.post("/dev-seed", requireAuth, async (req, res) => {
 });
 
 // ── GET /api/business/policy-history — owner views policy change log
-router.get("/policy-history", requireAuth, async (req, res) => {
+router.get("/policy-history", requireAuth, requireProAccess, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   try {
     const [business] = await db
@@ -816,7 +817,7 @@ router.get("/policy-history", requireAuth, async (req, res) => {
 });
 
 // ── GET /api/business/members/:memberId/clients — owner views a member's client accounting
-router.get("/members/:memberId/clients", requireAuth, async (req, res) => {
+router.get("/members/:memberId/clients", requireAuth, requireProAccess, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   const { memberId } = req.params;
 

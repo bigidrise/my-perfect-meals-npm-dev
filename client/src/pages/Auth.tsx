@@ -5,7 +5,7 @@ import { login, signUp, getProCareSignupData, clearProCareSignupData } from "@/l
 import type { User } from "@/lib/auth";
 import { Stethoscope } from "lucide-react";
 import { WorkspaceChooser } from "@/components/WorkspaceChooser";
-import { hasActivePaidSubscription } from "@/lib/subscriptionCheck";
+import { hasActivePaidSubscription, isProOrAbove } from "@/lib/subscriptionCheck";
 import { MfaChallengeModal } from "@/components/MfaChallengeModal";
 
 export default function Auth() {
@@ -41,8 +41,14 @@ export default function Auth() {
     const isBusinessUser = fullUser?.professionalRole === "business";
 
     if (isBusinessUser) {
-      // Business accounts always land in Business Center — on both signup and login
-      setLocation("/business-center");
+      // Business accounts require a paid Pro subscription to access Business Center.
+      // If they don't have one yet, send them to the Pro checkout with a return path.
+      if (isProOrAbove(fullUser)) {
+        setLocation("/business-center");
+      } else {
+        sessionStorage.setItem("mpm_business_return", "/business-center");
+        setLocation("/pricing?plan=mpm_premium_monthly");
+      }
     } else if (isProfessional && mode === "login") {
       localStorage.removeItem("mpm_workspace_preference");
       setShowWorkspaceChooser(true);
