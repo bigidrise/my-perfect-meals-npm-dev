@@ -74,7 +74,7 @@ export default function Planner() {
       title: t("generalTitle"),
       description: t("generalDesc"),
       icon: Utensils,
-      route: "/pro/general-nutrition-builder",
+      route: "/general-nutrition-builder",
       testId: "card-general-nutrition",
       builderId: "general_nutrition",
     },

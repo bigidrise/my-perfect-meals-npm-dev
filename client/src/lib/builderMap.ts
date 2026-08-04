@@ -48,7 +48,7 @@ export const BUILDER_MAP: Record<BuilderKey, BuilderEntry> = {
   general_nutrition: {
     key: "general_nutrition",
     label: "General Nutrition",
-    clientRoute: "/pro/general-nutrition-builder",
+    clientRoute: "/general-nutrition-builder",
     proRoute: "general-nutrition-builder",
   },
   performance_competition: {
