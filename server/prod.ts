@@ -861,8 +861,8 @@ async function initializeApp() {
     app.use("/api/coach-corner", coachCornerRouter);
 
     // My Perfect Beginning — Parent's Corner AI
-    const myPerfectBeginningRouter = (await import("./routes/myPerfectBeginning")).default;
-    app.use("/api/my-perfect-beginning", requireAuth, myPerfectBeginningRouter);
+    const myPerfectBeginningParentRouter = (await import("./routes/myPerfectBeginning")).default;
+    app.use("/api/my-perfect-beginning", requireAuth, myPerfectBeginningParentRouter);
 
     console.log("✅ [INIT] Parity routes mounted");
 
