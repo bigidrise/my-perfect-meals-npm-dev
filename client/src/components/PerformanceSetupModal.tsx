@@ -381,12 +381,17 @@ export default function PerformanceSetupModal({
                       <Dumbbell className="w-4 h-4 text-orange-400" />
                     </div>
                     <div className="flex-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center justify-between gap-2">
                         <p className="text-white font-bold text-sm">Athletic Performance</p>
-                        {track === "athletic" && <Check className="w-4 h-4 text-orange-400" />}
+                        <span className="text-orange-400 text-xs font-semibold flex-shrink-0">10 steps</span>
                       </div>
                       <p className="text-white/50 text-xs mt-0.5 leading-relaxed">MMA, boxing, wrestling, football, CrossFit, endurance, tactical. Goal is performance — fueling, recovery, adaptation.</p>
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        <span className="px-2 py-0.5 rounded-full bg-orange-600/20 border border-orange-500/30 text-orange-300 text-[10px] font-medium">✓ Weekly training schedule</span>
+                        <span className="px-2 py-0.5 rounded-full bg-orange-600/20 border border-orange-500/30 text-orange-300 text-[10px] font-medium">✓ Day-by-day macro targets</span>
+                      </div>
                     </div>
+                    {track === "athletic" && <Check className="w-4 h-4 text-orange-400 flex-shrink-0 mt-1" />}
                   </div>
                 </button>
 
@@ -401,12 +406,17 @@ export default function PerformanceSetupModal({
                       <Trophy className="w-4 h-4 text-orange-400" />
                     </div>
                     <div className="flex-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center justify-between gap-2">
                         <p className="text-white font-bold text-sm">Competition Prep</p>
-                        {track === "competition" && <Check className="w-4 h-4 text-orange-400" />}
+                        <span className="text-white/40 text-xs font-semibold flex-shrink-0">4 steps</span>
                       </div>
                       <p className="text-white/50 text-xs mt-0.5 leading-relaxed">Bodybuilding, physique, powerlifting meet, fight camp, wrestling season. Your event date drives every phase automatically.</p>
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        <span className="px-2 py-0.5 rounded-full bg-white/10 border border-white/10 text-white/40 text-[10px] font-medium">✓ Event date countdown</span>
+                        <span className="px-2 py-0.5 rounded-full bg-white/10 border border-white/10 text-white/40 text-[10px] font-medium">✓ Phase-based nutrition</span>
+                      </div>
                     </div>
+                    {track === "competition" && <Check className="w-4 h-4 text-orange-400 flex-shrink-0 mt-1" />}
                   </div>
                 </button>
               </div>
