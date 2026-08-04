@@ -8,6 +8,9 @@
  * - Nine curated question cards
  * - Free-text "Ask Anything" input
  * - Boundary language on first open
+ * - Suggested follow-up question chips after each assistant reply
+ * - Conversation persisted per child profile (hydrated on mount, saved after each reply)
+ * - "Start fresh" to clear the conversation
  */
 
 import { useState, useEffect, useRef } from "react";
@@ -27,6 +30,7 @@ import {
   Pizza,
   Lightbulb,
   X,
+  RotateCcw,
 } from "lucide-react";
 import { apiUrl } from "@/lib/resolveApiBase";
 
@@ -35,9 +39,11 @@ import { apiUrl } from "@/lib/resolveApiBase";
 interface Message {
   role: "user" | "assistant";
   content: string;
+  suggestedFollowUps?: string[];
 }
 
 interface ChildContextProps {
+  id?: string;
   nickname?: string;
   developmentalStage?: string;
   currentAgeMonths?: number;
@@ -160,6 +166,7 @@ function stageBadgeLabel(stage?: string): string {
 export default function ParentsCorner({ childContext = {}, onBack }: ParentsCornerProps) {
   const [, setLocation] = useLocation();
 
+  const childProfileId = childContext.id ?? null;
   const childName = childContext.nickname || "your child";
   const stage = childContext.developmentalStage || "toddler";
   const stageLabel = stageBadgeLabel(stage);
@@ -168,9 +175,11 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [hydrating, setHydrating] = useState(false);
   const [tip, setTip] = useState<string | null>(null);
   const [showBoundary, setShowBoundary] = useState(false);
   const [cardsVisible, setCardsVisible] = useState(true);
+  const [showStartFreshConfirm, setShowStartFreshConfirm] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -198,6 +207,37 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
   function dismissBoundary() {
     localStorage.setItem(BOUNDARY_KEY, "1");
     setShowBoundary(false);
+  }
+
+  // ── Hydrate saved conversation on mount ──────────────────────────────────
+  useEffect(() => {
+    if (!childProfileId) return;
+
+    setHydrating(true);
+    fetch(
+      apiUrl(`/api/my-perfect-beginning/parents-corner/conversation?childProfileId=${encodeURIComponent(childProfileId)}`),
+      { credentials: "include" }
+    )
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data.messages) && data.messages.length > 0) {
+          setMessages(data.messages);
+          setCardsVisible(false);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setHydrating(false));
+  }, [childProfileId]);
+
+  // ── Persist conversation after each assistant reply ───────────────────────
+  function persistConversation(updatedMessages: Message[]) {
+    if (!childProfileId) return;
+    fetch(apiUrl("/api/my-perfect-beginning/parents-corner/conversation"), {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ childProfileId, messages: updatedMessages }),
+    }).catch(() => {});
   }
 
   // ── Auto-scroll ───────────────────────────────────────────────────────────
@@ -239,10 +279,17 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
       }
 
       const data = await response.json();
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: data.reply || "I'm sorry, I didn't get a response. Please try again." },
-      ]);
+      const followUps: string[] = Array.isArray(data.suggestedFollowUps)
+        ? data.suggestedFollowUps.filter((q: unknown) => typeof q === "string" && q.trim()).slice(0, 3)
+        : [];
+      const assistantMsg: Message = {
+        role: "assistant",
+        content: data.reply || "I'm sorry, I didn't get a response. Please try again.",
+        suggestedFollowUps: followUps.length > 0 ? followUps : undefined,
+      };
+      const finalMessages = [...updatedMessages, assistantMsg];
+      setMessages(finalMessages);
+      persistConversation(finalMessages);
     } catch {
       setMessages((prev) => [
         ...prev,
@@ -255,6 +302,19 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
     } finally {
       setLoading(false);
     }
+  }
+
+  // ── Start fresh ───────────────────────────────────────────────────────────
+  async function handleStartFresh() {
+    setShowStartFreshConfirm(false);
+    setMessages([]);
+    setCardsVisible(true);
+
+    if (!childProfileId) return;
+    fetch(
+      apiUrl(`/api/my-perfect-beginning/parents-corner/conversation?childProfileId=${encodeURIComponent(childProfileId)}`),
+      { method: "DELETE", credentials: "include" }
+    ).catch(() => {});
   }
 
   function handleCardTap(question: string) {
@@ -315,7 +375,40 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
             ) : null}
           </p>
         </div>
+        {/* Start fresh button — only shown when there's a conversation to clear */}
+        {messages.length > 0 && childProfileId && (
+          <button
+            onClick={() => setShowStartFreshConfirm(true)}
+            className="mt-0.5 w-9 h-9 shrink-0 rounded-full bg-white/10 border border-white/15 flex items-center justify-center"
+            aria-label="Start fresh"
+            title="Start a new conversation"
+          >
+            <RotateCcw className="w-4 h-4 text-white/60" />
+          </button>
+        )}
       </div>
+
+      {/* ── Start fresh confirmation ────────────────────────────────────────── */}
+      {showStartFreshConfirm && (
+        <div className="mx-4 mt-3 rounded-2xl bg-white/10 border border-white/15 px-4 py-3 flex items-center gap-3">
+          <p className="flex-1 text-[12.5px] text-white/80 leading-snug">
+            Clear this conversation and start fresh?
+          </p>
+          <button
+            onClick={handleStartFresh}
+            className="px-3 py-1.5 rounded-xl bg-rose-600/70 text-white text-[12px] font-medium"
+          >
+            Clear
+          </button>
+          <button
+            onClick={() => setShowStartFreshConfirm(false)}
+            className="text-white/40 hover:text-white/70"
+            aria-label="Cancel"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* ── Scrollable content ─────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto">
@@ -352,8 +445,16 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
           </div>
         )}
 
+        {/* ── Loading prior conversation ───────────────────────────────────── */}
+        {hydrating && (
+          <div className="px-4 mt-5 flex items-center gap-2 text-white/40">
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            <span className="text-[12px]">Loading your conversation…</span>
+          </div>
+        )}
+
         {/* ── Curated question cards ───────────────────────────────────────── */}
-        {cardsVisible && (
+        {cardsVisible && !hydrating && (
           <div className="px-4 mt-5">
             <p className="text-[11px] text-white/50 uppercase tracking-widest font-medium mb-3">
               Common questions
@@ -401,27 +502,57 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
         {messages.length > 0 && (
           <div className="px-4 mt-4 pb-2 flex flex-col gap-3">
             {messages.map((msg, i) => (
-              <div
-                key={i}
-                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-              >
-                {msg.role === "assistant" && (
-                  <div className="w-7 h-7 rounded-full bg-teal-600/30 border border-teal-500/30 flex items-center justify-center shrink-0 mt-0.5 mr-2">
-                    <span className="text-sm">🧑‍🍼</span>
+              <div key={i} className="flex flex-col gap-2">
+                <div className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                  {msg.role === "assistant" && (
+                    <div className="w-7 h-7 rounded-full bg-teal-600/30 border border-teal-500/30 flex items-center justify-center shrink-0 mt-0.5 mr-2">
+                      <span className="text-sm">🧑‍🍼</span>
+                    </div>
+                  )}
+                  <div
+                    className={`
+                      max-w-[82%] rounded-2xl px-4 py-2.5 text-[13px] leading-relaxed
+                      ${
+                        msg.role === "user"
+                          ? "bg-teal-600/60 text-white rounded-br-md"
+                          : "bg-white/10 text-white/90 rounded-bl-md border border-white/10"
+                      }
+                    `}
+                  >
+                    {msg.content}
                   </div>
-                )}
-                <div
-                  className={`
-                    max-w-[82%] rounded-2xl px-4 py-2.5 text-[13px] leading-relaxed
-                    ${
-                      msg.role === "user"
-                        ? "bg-teal-600/60 text-white rounded-br-md"
-                        : "bg-white/10 text-white/90 rounded-bl-md border border-white/10"
-                    }
-                  `}
-                >
-                  {msg.content}
                 </div>
+
+                {/* ── Suggested follow-up chips ────────────────────────────── */}
+                {msg.role === "assistant" &&
+                  msg.suggestedFollowUps &&
+                  msg.suggestedFollowUps.length > 0 && (
+                    <div className="pl-9 flex flex-col gap-1.5">
+                      <p className="text-[10.5px] text-white/35 uppercase tracking-widest font-medium">
+                        Follow-up
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {msg.suggestedFollowUps.map((q, qi) => (
+                          <button
+                            key={qi}
+                            onClick={() => handleCardTap(q)}
+                            disabled={loading}
+                            className="
+                              text-left text-[12px] text-teal-300/90 leading-snug
+                              px-3 py-1.5 rounded-full
+                              bg-teal-900/40 border border-teal-500/30
+                              hover:bg-teal-800/50 hover:border-teal-400/50
+                              active:scale-[0.97] transition-all duration-150
+                              disabled:opacity-40 disabled:pointer-events-none
+                              max-w-[260px] text-left
+                            "
+                          >
+                            {q}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
               </div>
             ))}
 
@@ -443,7 +574,7 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
         )}
 
         {/* ── Empty state prompt ───────────────────────────────────────────── */}
-        {messages.length === 0 && !cardsVisible && (
+        {messages.length === 0 && !cardsVisible && !hydrating && (
           <div className="px-4 mt-6 text-center">
             <p className="text-[13px] text-white/40">
               Tap a card above or ask anything below.

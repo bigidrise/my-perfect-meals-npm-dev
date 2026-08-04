@@ -16,6 +16,8 @@ import { Router } from "express";
 import OpenAI from "openai";
 import { requireAuth } from "../middleware/requireAuth";
 import type { AuthenticatedRequest } from "../middleware/requireAuth";
+import { db } from "../db";
+import { sql } from "drizzle-orm";
 
 const router = Router();
 
@@ -175,7 +177,16 @@ Before responding, reason through these steps in order (internally — do not ex
 • Never suggest calorie restriction or dieting language for children
 
 ━━━ KNOWLEDGE FOUNDATION ━━━
-You draw from: AAP feeding guidelines, WHO growth standards, USDA Dietary Guidelines for Americans (birth through 24 months; 2–5 years editions), Division of Responsibility (Ellyn Satter Institute), pediatric nutrition research, and standard pediatric dietitian practice.`;
+You draw from: AAP feeding guidelines, WHO growth standards, USDA Dietary Guidelines for Americans (birth through 24 months; 2–5 years editions), Division of Responsibility (Ellyn Satter Institute), pediatric nutrition research, and standard pediatric dietitian practice.
+
+━━━ RESPONSE FORMAT ━━━
+You MUST respond with a JSON object containing exactly two fields:
+{
+  "reply": "<your full warm, conversational answer here>",
+  "suggestedFollowUps": ["<question 1>", "<question 2>", "<question 3>"]
+}
+
+The "suggestedFollowUps" array must contain exactly 2–3 short, natural follow-up questions a parent would genuinely want to ask next based on your reply. Questions should be specific to the topic just discussed and helpful for parents who don't know what to ask next. Write them as a parent would naturally phrase them (not as "Ask about…" but as the actual question, e.g. "How often should I offer the new food?"). Never repeat the question just asked. No markdown outside the JSON.`;
 }
 
 // ─── Today's Tips by stage ────────────────────────────────────────────────────
@@ -231,23 +242,87 @@ function getTodaysTip(stage: string): string {
   return tips[dayOfYear % tips.length];
 }
 
+async function getConversation(userId: string, childProfileId: string): Promise<any[]> {
+  try {
+    const rows = await db.execute(sql`
+      SELECT messages FROM parents_corner_conversations
+      WHERE user_id = ${userId} AND child_profile_id = ${childProfileId}
+      LIMIT 1
+    `);
+    const row = (rows as any).rows?.[0] ?? (Array.isArray(rows) ? rows[0] : null);
+    if (!row) return [];
+    const msgs = row.messages;
+    if (Array.isArray(msgs)) return msgs;
+    if (typeof msgs === "string") return JSON.parse(msgs);
+    return [];
+  } catch {
+    return [];
+  }
+}
+
+async function clearConversation(userId: string, childProfileId: string): Promise<void> {
+  await db.execute(sql`
+    DELETE FROM parents_corner_conversations
+    WHERE user_id = ${userId} AND child_profile_id = ${childProfileId}
+  `);
+}
+
+async function saveConversation(userId: string, childProfileId: string, messages: any[]): Promise<void> {
+  const msgsJson = JSON.stringify(messages);
+  await db.execute(sql`
+    INSERT INTO parents_corner_conversations (user_id, child_profile_id, messages, updated_at)
+    VALUES (${userId}, ${childProfileId}, ${msgsJson}::jsonb, now())
+    ON CONFLICT (user_id, child_profile_id)
+    DO UPDATE SET messages = ${msgsJson}::jsonb, updated_at = now()
+  `);
+}
+
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
-/**
- * GET /api/my-perfect-beginning/parents-corner/tip
- * Returns a stage-appropriate Today's Tip.
- */
-router.get("/parents-corner/tip", requireAuth, (req, res) => {
+// GET /tip — returns today's rotating tip for a given developmental stage
+router.get("/tip", requireAuth, async (req, res) => {
   const stage = (req.query.stage as string) || "toddler";
-  res.json({ tip: getTodaysTip(stage) });
+  const tip = getTodaysTip(stage);
+  res.json({ tip });
 });
 
-/**
- * POST /api/my-perfect-beginning/parents-corner
- * Main AI endpoint. Accepts a parent question grounded in the child profile.
- */
-router.post("/parents-corner", requireAuth, async (req, res) => {
+// GET /conversation — load saved conversation for a child profile
+router.get("/conversation", requireAuth, async (req, res) => {
+  const userId = (req as AuthenticatedRequest).authUser?.id;
+  const childProfileId = req.query.childProfileId as string;
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+  if (!childProfileId) return res.json({ messages: [] });
+  const messages = await getConversation(userId, childProfileId);
+  res.json({ messages });
+});
+
+// DELETE /conversation — clear saved conversation for a child profile
+router.delete("/conversation", requireAuth, async (req, res) => {
+  const userId = (req as AuthenticatedRequest).authUser?.id;
+  const { childProfileId } = req.body;
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+  if (childProfileId) await clearConversation(userId, childProfileId);
+  res.json({ ok: true });
+});
+
+// PUT /conversation — persist conversation for a child profile (keep last 20 turns)
+router.put("/conversation", requireAuth, async (req, res) => {
+  const userId = (req as AuthenticatedRequest).authUser?.id;
+  const { childProfileId, messages } = req.body;
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+  if (childProfileId && Array.isArray(messages)) {
+    const trimmed = messages.slice(-20);
+    await saveConversation(userId, childProfileId, trimmed);
+  }
+  res.json({ ok: true });
+});
+
+// POST /ask — main Parent's Corner AI chat endpoint
+router.post("/ask", requireAuth, async (req, res) => {
   try {
+    const userId = (req as AuthenticatedRequest).authUser?.id;
+    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
     const { message, childContext = {}, conversationHistory = [] } = req.body;
 
     if (!message || typeof message !== "string" || !message.trim()) {
@@ -275,13 +350,33 @@ router.post("/parents-corner", requireAuth, async (req, res) => {
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
       messages,
-      max_tokens: 600,
+      max_tokens: 700,
       temperature: 0.6,
+      response_format: { type: "json_object" },
     });
 
-    const reply = completion.choices[0]?.message?.content ?? "";
+    const raw = completion.choices[0]?.message?.content ?? "{}";
 
-    res.json({ reply });
+    let reply = "";
+    let suggestedFollowUps: string[] = [];
+    try {
+      const parsed = JSON.parse(raw);
+      reply = typeof parsed.reply === "string" ? parsed.reply : raw;
+      if (Array.isArray(parsed.suggestedFollowUps)) {
+        suggestedFollowUps = parsed.suggestedFollowUps
+          .filter((q: unknown) => typeof q === "string" && q.trim())
+          .slice(0, 3);
+      }
+    } catch {
+      // Fallback: treat entire content as the reply
+      reply = raw;
+    }
+
+    if (!reply) {
+      reply = "I'm sorry, I didn't get a response. Please try again.";
+    }
+
+    res.json({ reply, suggestedFollowUps });
   } catch (err: any) {
     console.error("[MyPerfectBeginning/ParentsCorner] Error:", err.message);
     res.status(500).json({ error: "Something went wrong. Please try again." });

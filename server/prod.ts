@@ -826,9 +826,8 @@ async function initializeApp() {
     const getawayRouter = (await import("./routes/getaway")).default;
     app.use("/api/getaway", requireAuth, getawayRouter);
 
-    // My Perfect Beginning — kid-friendly recipe generator
-    const myPerfectBeginningRouter = (await import("./routes/my-perfect-beginning")).default;
-    app.use("/api/my-perfect-beginning", requireAuth, myPerfectBeginningRouter);
+    // My Perfect Beginning — kid-friendly recipe generator + Parent's Corner AI
+    // (routes/myPerfectBeginning.ts is the canonical file; routes/my-perfect-beginning.ts is the older stub)
 
     // My Perfect Pregnancy — trimester-aware nutrition coach
     const pregnancyCoachRouter = (await import("./routes/pregnancyCoach")).default;
@@ -1206,6 +1205,31 @@ async function initializeApp() {
           console.error("❌ [prod] client_links integrity migration failed:", err.message);
         }
       }, 4500);
+
+      // Parent's Corner — persist conversations per child profile
+      setTimeout(async () => {
+        try {
+          const { db: database } = await import("./db");
+          const { sql } = await import("drizzle-orm");
+          await database.execute(sql`
+            CREATE TABLE IF NOT EXISTS parents_corner_conversations (
+              id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+              user_id text NOT NULL,
+              child_profile_id text NOT NULL,
+              messages jsonb NOT NULL DEFAULT '[]',
+              updated_at timestamptz NOT NULL DEFAULT now(),
+              CONSTRAINT uniq_parents_corner_convo UNIQUE (user_id, child_profile_id)
+            )
+          `);
+          await database.execute(sql`
+            CREATE INDEX IF NOT EXISTS idx_parents_corner_convos_user
+            ON parents_corner_conversations (user_id)
+          `);
+          console.log("✅ [prod] Parent's Corner boot migration complete (parents_corner_conversations)");
+        } catch (err: any) {
+          console.error("❌ [prod] Parent's Corner boot migration failed:", err.message);
+        }
+      }, 5000);
     }, 4000);
   } catch (error) {
     console.error("❌ [INIT] Initialization failed:", error);
