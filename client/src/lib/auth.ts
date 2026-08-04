@@ -173,6 +173,8 @@ export interface User {
   performanceProtocolConfig?: any | null;
   // Multi-factor authentication
   mfaEnabled?: boolean;
+  // Trial period
+  trialEndsAt?: string | null;
   // Business sponsorship (populated from effectiveAccess per-request)
   sponsoredByBusinessId?: string | null;
   sponsoredByBusinessName?: string | null;
