@@ -5,11 +5,11 @@
  * Anti-Inflammatory builder flow. Reuses PerformanceNutritionHub as-is —
  * only the title, back destination, and "Continue" destination differ.
  */
-import PerformanceNutritionHub from "@/pages/PerformanceNutritionHub";
+import TrainingNutritionHub from "@/pages/TrainingNutritionHub";
 
 export default function AntiInflammatoryTrainingPage() {
   return (
-    <PerformanceNutritionHub
+    <TrainingNutritionHub
       pageTitle="Training Nutrition Schedule"
       continueTo="/anti-inflammatory-menu-builder"
       returnTo="/anti-inflammatory-menu-builder"

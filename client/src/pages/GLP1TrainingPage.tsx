@@ -5,11 +5,11 @@
  * GLP-1 / Metabolic builder flow. Reuses PerformanceNutritionHub as-is —
  * only the title, back destination, and "Continue" destination differ.
  */
-import PerformanceNutritionHub from "@/pages/PerformanceNutritionHub";
+import TrainingNutritionHub from "@/pages/TrainingNutritionHub";
 
 export default function GLP1TrainingPage() {
   return (
-    <PerformanceNutritionHub
+    <TrainingNutritionHub
       pageTitle="Training Nutrition Schedule"
       continueTo="/glp1-meal-builder"
       returnTo="/glp1-hub"

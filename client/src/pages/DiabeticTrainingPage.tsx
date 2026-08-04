@@ -5,11 +5,11 @@
  * Diabetic builder flow. Reuses PerformanceNutritionHub as-is — only
  * the title, back destination, and "Continue" destination differ.
  */
-import PerformanceNutritionHub from "@/pages/PerformanceNutritionHub";
+import TrainingNutritionHub from "@/pages/TrainingNutritionHub";
 
 export default function DiabeticTrainingPage() {
   return (
-    <PerformanceNutritionHub
+    <TrainingNutritionHub
       pageTitle="Training Nutrition Schedule"
       continueTo="/diabetic-menu-builder"
       returnTo="/diabetic-hub"
