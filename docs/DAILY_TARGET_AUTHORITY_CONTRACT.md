@@ -58,7 +58,7 @@ Without this call, the resolver reads a stale date and returns the wrong day-typ
 | `BeachBodyMealBoard.tsx` — Budget Banner within board | ✅ Calls `setPerfSelectedDate(activeDayISO)` on day change |
 | `my-biometrics.tsx` — Biometrics macro target display | ✅ Uses `getResolvedTargets` |
 | `QuickAddMacrosModal.tsx` — Quick Add reference targets | ✅ Uses `getResolvedTargets` |
-| `PerformanceNutritionHub.tsx` — Performance Hub display | ✅ Uses `getResolvedTargets` + `setPerfSelectedDate` |
+| `TrainingNutritionHub.tsx` — Training Nutrition Hub display | ✅ Uses `getResolvedTargets` + `setPerfSelectedDate` |
 | `pro/PerformanceCompetitionBuilder.tsx` — Competition builder | ✅ Uses `setPerfSelectedDate` on day change |
 
 ---

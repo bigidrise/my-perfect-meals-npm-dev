@@ -85,7 +85,7 @@ Every completed task must end with:
 ### `client/src/lib/macroResolver.ts`
 
 **Why protected:** Single source of truth for all macro targets across the app. MacroCalculator,
-PerformanceNutritionHub, BeachBodyMealBoard, and every meal builder consume this. Any change
+TrainingNutritionHub, BeachBodyMealBoard, and every meal builder consume this. Any change
 here propagates everywhere. Logic must not be duplicated in consumers.
 
 **Acceptance checklist:**
@@ -99,7 +99,7 @@ here propagates everywhere. Logic must not be duplicated in consumers.
 
 ---
 
-### `client/src/pages/PerformanceNutritionHub.tsx`
+### `client/src/pages/TrainingNutritionHub.tsx`
 
 **Why protected:** Primary performance nutrition UI. Contains multiple independent feature
 sections (competition track, athletic track, carb cycle tab, protocols tab, pro view). Task
@@ -193,10 +193,10 @@ meal builder. Field naming here must stay consistent with frontend expectations.
 
 | Source of Truth | File | Consumers |
 |---|---|---|
-| User macro targets | `client/src/lib/macroResolver.ts` → `getResolvedTargets()` | MacroCalculator, PerformanceNutritionHub, BeachBodyMealBoard, meal builders |
+| User macro targets | `client/src/lib/macroResolver.ts` → `getResolvedTargets()` | MacroCalculator, TrainingNutritionHub, BeachBodyMealBoard, meal builders |
 | Carb split floor logic | `macroResolver.ts` → `splitStarchyFibrous()` | All starchy/fibrous carb displays |
 | AI constraint hierarchy | `server/services/protocolEnvelope.ts` | All meal generation endpoints |
-| Performance session targets | `server/routes/performanceNutrition.ts` `/today` | BeachBodyMealBoard, PerformanceNutritionHub Today's Training card |
+| Performance session targets | `server/routes/performanceNutrition.ts` `/today` | BeachBodyMealBoard, TrainingNutritionHub Today's Training card |
 
 ---
 

@@ -393,7 +393,7 @@ export default function BeachBodyMealBoard() {
   // phase is active.
   // Cached in sessionStorage so the bar appears instantly on reload with no extra
   // network call. The cache is invalidated whenever a carb-cycle write succeeds
-  // (see PerformanceNutritionHub.tsx submitCarbLog / handleRefeedToggle).
+  // (see TrainingNutritionHub.tsx submitCarbLog / handleRefeedToggle).
   const CARB_CYCLE_CACHE_KEY = "mpm.carbCyclePickerState";
 
   function readCarbCycleCache(): { phase: string; carbTargetG: number } | null {

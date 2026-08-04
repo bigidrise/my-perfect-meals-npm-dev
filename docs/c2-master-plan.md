@@ -137,7 +137,7 @@ The `combined` field is already produced by `getActiveNutritionContext()` via `e
 - Link to "Why is this changing my recommendations?" explanation.
 
 **Files likely involved:**
-- `client/src/pages/PerformanceNutritionHub.tsx` (or equivalent)
+- `client/src/pages/TrainingNutritionHub.tsx` (or equivalent)
 - `server/routes/performanceNutrition.ts` (already has envelope load)
 - `server/services/dailyNutritionState.ts` (already produces the display data)
 
