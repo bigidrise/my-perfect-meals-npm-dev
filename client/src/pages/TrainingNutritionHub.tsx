@@ -904,7 +904,7 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
             className="w-full flex items-center justify-between px-4 py-4 rounded-2xl bg-orange-600/20 border border-orange-500/30 text-white"
           >
             <div className="text-left">
-              <p className="font-bold text-sm">{continueLabel ?? "Launch Performance Nutrition Builder"}</p>
+              <p className="font-bold text-sm">{continueLabel ?? (continueTo ? "Continue to Builder" : "Launch Performance Nutrition Builder")}</p>
               <p className="text-white/80 text-xs mt-0.5">Build meals calibrated for your prep phase</p>
             </div>
             <ChevronRight className="w-5 h-5 text-orange-400 flex-shrink-0" />
@@ -1010,25 +1010,27 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
             )}
           </div>
 
-          {/* Tabs */}
-          <div className="flex bg-black/30 rounded-xl p-1 gap-1">
-            {(["protocol", "starch", "protocols"] as ActiveTab[]).map(tab => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                  activeTab === tab ? "bg-orange-600 text-white" : "text-white/40"
-                }`}
-              >
-                {tabLabel(tab)}
-              </button>
-            ))}
-          </div>
+          {/* Tabs — Starch and Protocols hidden in shared/training-schedule mode */}
+          {!continueTo && (
+            <div className="flex bg-black/30 rounded-xl p-1 gap-1">
+              {(["protocol", "starch", "protocols"] as ActiveTab[]).map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                    activeTab === tab ? "bg-orange-600 text-white" : "text-white/40"
+                  }`}
+                >
+                  {tabLabel(tab)}
+                </button>
+              ))}
+            </div>
+          )}
 
-          {activeTab === "starch"    && renderStarchTab()}
-          {activeTab === "protocols" && renderProtocolsTab()}
+          {!continueTo && activeTab === "starch"    && renderStarchTab()}
+          {!continueTo && activeTab === "protocols" && renderProtocolsTab()}
 
-          {activeTab === "protocol" && (
+          {(continueTo || activeTab === "protocol") && (
             <div className="space-y-4">
               {compPhase?.phase === "fat_loss" && (
                 <div className="rounded-2xl bg-black/50 border border-white/10 p-4">
@@ -1108,7 +1110,7 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
                 className="w-full flex items-center justify-between px-4 py-4 rounded-2xl bg-orange-600/20 border border-orange-500/30 text-white"
               >
                 <div className="text-left">
-                  <p className="font-bold text-sm">{continueLabel ?? "Launch Performance Nutrition Builder"}</p>
+                  <p className="font-bold text-sm">{continueLabel ?? (continueTo ? "Continue to Builder" : "Launch Performance Nutrition Builder")}</p>
                   <p className="text-white/80 text-xs mt-0.5">Build meals calibrated for your prep phase</p>
                 </div>
                 <ChevronRight className="w-5 h-5 text-orange-400 flex-shrink-0" />
@@ -1128,7 +1130,7 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
             className="w-full flex items-center justify-between px-4 py-4 rounded-2xl bg-orange-600/20 border border-orange-500/30 text-white"
           >
             <div className="text-left">
-              <p className="font-bold text-sm">{continueLabel ?? "Launch Performance Nutrition Builder"}</p>
+              <p className="font-bold text-sm">{continueLabel ?? (continueTo ? "Continue to Builder" : "Launch Performance Nutrition Builder")}</p>
               <p className="text-white/80 text-xs mt-0.5">Build meals calibrated for your training phase</p>
             </div>
             <ChevronRight className="w-5 h-5 text-orange-400 flex-shrink-0" />
@@ -1403,25 +1405,27 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
             </div>
           </div>
 
-          {/* Tabs */}
-          <div className="flex bg-black/30 rounded-xl p-1 gap-1">
-            {(["protocol", "starch", "protocols"] as ActiveTab[]).map(tab => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                  activeTab === tab ? "bg-orange-600 text-white" : "text-white/40"
-                }`}
-              >
-                {tabLabel(tab)}
-              </button>
-            ))}
-          </div>
+          {/* Tabs — Starch and Protocols hidden in shared/training-schedule mode */}
+          {!continueTo && (
+            <div className="flex bg-black/30 rounded-xl p-1 gap-1">
+              {(["protocol", "starch", "protocols"] as ActiveTab[]).map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                    activeTab === tab ? "bg-orange-600 text-white" : "text-white/40"
+                  }`}
+                >
+                  {tabLabel(tab)}
+                </button>
+              ))}
+            </div>
+          )}
 
-          {activeTab === "starch"    && renderStarchTab()}
-          {activeTab === "protocols" && renderProtocolsTab()}
+          {!continueTo && activeTab === "starch"    && renderStarchTab()}
+          {!continueTo && activeTab === "protocols" && renderProtocolsTab()}
 
-          {activeTab === "protocol" && (
+          {(continueTo || activeTab === "protocol") && (
             <div className="space-y-4">
 
               {/* ── Pro View toggle (procare / care_team / admin only) ── */}
@@ -1623,7 +1627,7 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
                 className="w-full flex items-center justify-between px-4 py-4 rounded-2xl bg-orange-600/20 border border-orange-500/30 text-white"
               >
                 <div className="text-left">
-                  <p className="font-bold text-sm">{continueLabel ?? "Launch Performance Nutrition Builder"}</p>
+                  <p className="font-bold text-sm">{continueLabel ?? (continueTo ? "Continue to Builder" : "Launch Performance Nutrition Builder")}</p>
                   <p className="text-white/80 text-xs mt-0.5">Build sport-calibrated meals now</p>
                 </div>
                 <ChevronRight className="w-5 h-5 text-orange-400 flex-shrink-0" />
