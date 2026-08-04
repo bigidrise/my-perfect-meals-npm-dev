@@ -1363,10 +1363,9 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
 
           {/* Remaining Macros Footer - Inline Mode */}
           {board &&
-            FEATURES.dayPlanning === "alpha" &&
             planningMode === "day" &&
             activeDayISO && (() => {
-              const dayLists = getDayLists(board, activeDayISO);
+              const dayLists = currentLists;
               const computeSlotMacros = (meals: Meal[]) => {
                 let sc = 0, fc = 0;
                 for (const m of meals) {
