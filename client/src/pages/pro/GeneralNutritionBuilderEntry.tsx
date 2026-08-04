@@ -68,7 +68,7 @@ export default function GeneralNutritionBuilderEntry() {
 
         {/* Option 1: Continue */}
         <button
-          onClick={() => setLocation("/pro/general-nutrition-builder/build")}
+          onClick={() => setLocation("/general-nutrition-builder/build")}
           className="w-full flex items-center gap-4 px-5 py-5 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors text-left mb-4 group"
         >
           <div className="flex-1 min-w-0">
