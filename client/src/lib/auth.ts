@@ -273,6 +273,7 @@ export interface User {
     businessId: string;
     businessName: string;
     removedAt: string;
+  } | null;
 }
 
 export function getAuthToken(): string | null {
