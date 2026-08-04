@@ -789,7 +789,241 @@ Violation of this rule is a blocking issue in any Phase 2+ protocol implementati
 
 ---
 
-## 16. Developmental Milestone Registry
+## 16. Hub Architecture — My Perfect Beginning
+
+My Perfect Beginning is not a builder with a landing page. It is a **destination** — a place parents return to throughout their child's early years. The hub is the first thing a parent sees when they enter.
+
+### Hub Sections
+
+| Section | Entry Label | Purpose |
+|---|---|---|
+| Today's Tip | *(persistent, top of hub)* | Daily confidence builder — one evidence-backed sentence |
+| 🍽 Create a Meal | "Make something delicious" | Recipe creator — the core generator |
+| 🧑‍🍼 Parent's Corner | "Ask your nutrition guide" | AI Q&A for parenting questions, not recipes |
+| 👶 Child Profile | "Your child's nutrition profile" | Build and edit the full ChildNutritionProfile |
+| 🌱 The Journey | "Where you are right now" | Timeline of developmental stages — grows with the child |
+| 🎂 Better Favorites | "Make their favorites healthier" | Parent names a food; AI makes a better version |
+| 🎒 Lunchbox Builder | "Pack the perfect lunch" | School, sports, road trip, field trip |
+| ❤️ Nutrition Support | "Specialized nutrition guidance" | Protocol entry points (allergies, celiac, T1D, etc.) |
+| 📚 Growth & Development | "Learn about this stage" | Education hub tied to milestones |
+
+### Hub Aesthetic Principles
+
+**Warm. Hopeful. Encouraging.** Not childish. Not cartoonish. Not clinical.
+
+The visual language should feel like opening a scrapbook of healthy beginnings — the kind of place a parent returns to because it makes them feel capable, not overwhelmed.
+
+- Tone: reassuring, never alarming
+- Language: plain, never medical jargon unless explaining a term
+- Imagery: real food, real families, warmth over sterility
+- Layout: generous whitespace, clear sections, nothing dense
+- The child's name and current stage should be visible on entry ("Emma · Toddler")
+
+### Today's Tip
+
+A single, rotating evidence-backed sentence displayed at the top of the hub. Indexed to the child's current developmental stage. Never a recipe suggestion — always a confidence builder.
+
+Examples:
+- "Children often need 10–15 exposures to a new food before accepting it. Tonight's rejection isn't permanent."
+- "Packing one familiar food and one new food together is a simple way to build variety without overwhelming children."
+- "Many toddlers naturally eat more some days and less on others. A week-level view is more useful than a single meal."
+- "Self-feeding is messy by design. The mess is development in progress."
+
+Tips are sourced from the Parent Education Registry (Section 18) and tagged by developmental stage. They rotate daily.
+
+---
+
+## 17. Parent's Corner
+
+**Name decision: Parent's Corner** — parallels Coach's Corner. Same architecture, different reasoning engine, different audience.
+
+> *"Your trusted nutrition guide for every stage of childhood."*
+
+### UI Pattern — Guided First, Open Second
+
+The most important design decision: **no blank chat box as the entry point.** Parents don't know what to ask. They don't even know what's normal.
+
+**Step 1 — Common Questions (large cards, always visible):**
+
+```
+🍼 My baby won't eat.
+🥦 My toddler hates vegetables.
+🥪 What should I pack for lunch?
+🍓 Healthy snacks after school.
+🥛 Is my child getting enough calcium?
+🥚 How do I introduce new foods?
+⚽ What should my young athlete eat?
+💧 How much water does my child need?
+🍕 Can my child still have pizza?
+```
+
+Each card starts a conversation — it's a prompt seed, not a static FAQ. Tapping a card loads the question into the conversation and the AI responds contextually using the child's profile.
+
+**Step 2 — Ask Anything (below the cards):**
+
+> *"Still have a question?"*
+
+Free-text input. For parents who know exactly what they need. This gives the full conversation experience without stranding confused parents in front of a blank box.
+
+### Reasoning Engine
+
+Parent's Corner must **reason first, answer second**. The engine never jumps straight to an explanation.
+
+Decision chain for every parent question:
+
+```
+Parent message
+      ↓
+1. What is the child's developmental stage?
+      ↓
+2. Is there a safety concern? (choking, food safety, formula modification)
+      ↓
+3. Is there a growth concern? (flagged by clinician, pediatricianConcern field)
+      ↓
+4. Is there a relevant medical condition? (Level C protocol active)
+      ↓
+5. Is this normal developmental behavior? (match against milestone registry)
+      ↓
+6. Behavioral/feeding strategy suggestion?  (match against education registry)
+      ↓
+7. Recipe or meal suggestion appropriate?
+      ↓
+8. Education content to surface? (Parent Education Registry topic)
+      ↓
+9. Escalation recommended? (red-flag trigger)
+      ↓
+Response assembled — warm, calm, specific to this child's stage and profile
+```
+
+This is the same decision-engine architecture as Coach's Corner, with different inputs, different knowledge sources, and a fundamentally different persona.
+
+### Parent's Corner Persona
+
+The AI should sound like **the most reassuring pediatric dietitian a parent has ever spoken to.** Not a chatbot. Not a doctor. Not a search engine. A knowledgeable, calm, been-there guide who has helped hundreds of families and knows that most parenting food panic is normal.
+
+**Voice rules:**
+- Always start by normalizing when the situation is normal ("This is very common at this stage...")
+- Never lead with alarming information — reassure first, then educate
+- Never diagnose or suggest a diagnosis
+- Offer one actionable step, not a list of ten
+- When escalation is needed, deliver it gently but clearly: "This is worth mentioning to your pediatrician"
+- Never shame eating choices, food preferences, or parenting decisions
+- Always ground answers in the child's actual stage and profile when available
+
+### Boundary Language
+
+Delivered warmly, not as a disclaimer wall. Example:
+
+> "I can share evidence-based nutrition guidance to support your family. For medical concerns, your child's pediatrician or a registered pediatric dietitian is always the right next step — I'll let you know when something sounds like it needs that conversation."
+
+This appears once on first entry, then is woven naturally into responses when relevant — not repeated on every message.
+
+---
+
+## 18. Parent Education Registry
+
+A fourth registry, alongside Adult Protocol Registry, Pediatric Protocol Registry, and Developmental Milestone Registry. This registry governs what Parent's Corner knows — it is not a content CMS, it is a governed knowledge base that the reasoning engine consults before responding.
+
+### What It Is
+
+- Not medical
+- Not recipes
+- Education — the kind a great pediatric dietitian gives to parents in a 20-minute visit
+
+### Registry Schema
+
+```typescript
+interface ParentEducationTopic {
+  topicId: string;                   // e.g. "PET-001"
+  title: string;                     // e.g. "Introducing Vegetables"
+  summary: string;                   // 1–2 sentence overview for the AI to anchor to
+  keyPoints: string[];               // Evidence-backed bullets the AI can draw from
+  stagesApplicable: DevelopmentalStage[];
+  evidenceStrength: "strong" | "moderate" | "limited" | "consensus";
+  sourceIds: string[];               // From source registry
+  reviewDate: string;
+  suggestedFollowUpQuestions: string[];  // Surfaces in Parent's Corner after this topic
+  relatedRecipePrompts: string[];        // Can seed Create a Meal
+  relatedProtocolIds: string[];          // Links to active protocols
+  relatedMilestoneIds: string[];         // Links to milestone registry
+  commonParentPanic: boolean;            // true = likely to be asked anxiously; prime for reassurance-first response
+  escalationTriggers: string[];          // Phrases in parent message that should trigger "talk to your pediatrician"
+}
+```
+
+### Topic Library (V1)
+
+| Topic ID | Title | Stage Range | Evidence |
+|---|---|---|---|
+| `PET-001` | Introducing solid foods | beginning_foods | Strong |
+| `PET-002` | Texture progression | beginning_foods–young_toddler | Strong |
+| `PET-003` | Introducing allergens | beginning_foods–toddler | Strong |
+| `PET-004` | Picky eating and food neophobia | toddler–preschool | Moderate |
+| `PET-005` | Mealtime routines and structure | young_toddler onward | Moderate |
+| `PET-006` | Healthy snacks | young_toddler onward | Strong |
+| `PET-007` | Lunchbox nutrition | preschool onward | Strong |
+| `PET-008` | Sugar — what matters, what doesn't | toddler onward | Moderate |
+| `PET-009` | Hydration for children | all stages | Strong |
+| `PET-010` | Calcium and bone health | young_toddler onward | Strong |
+| `PET-011` | Iron and brain development | beginning_foods onward | Strong |
+| `PET-012` | Youth sports nutrition | early_school_age onward | Strong |
+| `PET-013` | Birthday parties, holidays, and special events | preschool onward | Consensus |
+| `PET-014` | Restaurant eating with children | toddler onward | Consensus |
+| `PET-015` | Cooking together | toddler onward | Consensus |
+| `PET-016` | Grocery shopping with children | preschool onward | Consensus |
+| `PET-017` | Screens during meals | young_toddler onward | Moderate |
+| `PET-018` | Food marketing and children | preschool onward | Moderate |
+| `PET-019` | Helping children develop a healthy food relationship | all stages | Moderate |
+| `PET-020` | When to call the pediatrician about eating | all stages | Strong |
+| `PET-021` | Self-feeding and independence | beginning_foods–young_toddler | Strong |
+| `PET-022` | After-school hunger | early_school_age onward | Consensus |
+| `PET-023` | Breakfast habits | preschool onward | Moderate |
+| `PET-024` | Vegetable exposure strategies | toddler onward | Moderate |
+| `PET-025` | Protein for growing children | all stages | Strong |
+
+**`commonParentPanic: true` topics** (engine primes reassurance-first response):
+`PET-004` (picky eating), `PET-009` (hydration), `PET-010` (calcium), `PET-011` (iron), `PET-020` (when to call pediatrician)
+
+---
+
+## 19. The Journey — Developmental Timeline
+
+The Timeline is the emotional anchor of the hub. It lives on the main hub screen as a progress path, always visible, always current.
+
+```
+My Perfect Beginning — Emma's Journey
+
+────────────────────────
+👶 Beginning Foods        ✓ Completed
+────────────────────────
+🥄 Self Feeding           ← Current Stage
+────────────────────────
+🍎 Building Variety       Coming Soon
+────────────────────────
+🎒 School Lunches         Future Stage
+────────────────────────
+🏃 Active Child           Future Stage
+────────────────────────
+```
+
+**Design rules:**
+- Shows child's name and current stage on entry
+- Completed stages show a check — they carry memories (recipes made, milestones noted)
+- Current stage is highlighted — tapping opens Growth & Development content for that stage
+- Future stages are visible but not locked behind a gate — parents can preview what's coming
+- The timeline is powered by the Developmental Milestone Registry (Section 16)
+
+---
+
+*Document version: 1.3 | Status: Awaiting review before implementation begins*
+*v1.0 — Initial specification*
+*v1.1 — Added Pediatric Protocol Registry (Section 15), non-inheritance rule, phase roadmap, and protocol governance schema*
+*v1.2 — Added protocol objectives, exit conditions, evidence strength, Developmental Milestone Registry (Section 16)*
+*v1.3 — Added Hub Architecture (Section 16→now renumbered), Parent's Corner with reasoning engine and persona (Section 17), Parent Education Registry with topic library (Section 18), The Journey timeline (Section 19)*
+
+---
+
+## 20. Developmental Milestone Registry
 
 Developmental milestones are **not diseases and not protocols**. They are nutrition-relevant developmental events that can influence meal generation independently of any condition. They sit alongside the Protocol Registry as a separate data source fed into the Protocol Resolver.
 
