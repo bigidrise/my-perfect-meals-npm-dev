@@ -297,40 +297,6 @@ export default function LifestyleLandingPage() {
             )}
           </div>}
 
-          {/* ── My Perfect Beginning card ── */}
-          <div className="relative">
-            <div
-              className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-60"
-              style={{
-                background:
-                  "radial-gradient(120% 120% at 50% 0%, rgba(34,197,94,0.5), rgba(16,185,129,0.25), rgba(0,0,0,0))",
-              }}
-            />
-            <Card
-              className="relative rounded-xl shadow-md overflow-hidden cursor-pointer transition-all duration-300 active:scale-95 hover:scale-[1.02] bg-gradient-to-r from-black via-green-950/40 to-black backdrop-blur-lg border border-green-500/30 hover:shadow-[0_0_30px_rgba(34,197,94,0.4)] hover:border-green-400/50"
-              onClick={() => setLocation("/lifestyle/my-perfect-beginning")}
-              data-testid="card-my-perfect-beginning"
-            >
-              <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-black via-green-700/80 to-black rounded-full border border-green-400/30 shadow-lg z-10">
-                <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-                <span className="text-green-200 font-semibold text-[8px] tracking-wide">
-                  Safety AI™
-                </span>
-              </div>
-              <CardContent className="p-3">
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-base">🍼</span>
-                    <h3 className="text-sm font-semibold text-white">My Perfect Beginning</h3>
-                  </div>
-                  <p className="text-xs ml-6 text-white/80">
-                    Age-safe, kid-friendly recipes built for how your child eats — not how you do.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
           {/* ── My Perfect Pregnancy card ── */}
           <div className="relative">
             <div
