@@ -429,7 +429,7 @@ interface PerformanceHubSharedProps {
   pageTitle?: string;     // overrides the header title
 }
 
-export default function PerformanceNutritionHub({ continueTo, returnTo, pageTitle, continueLabel }: PerformanceHubSharedProps = {}) {
+export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, continueLabel }: PerformanceHubSharedProps = {}) {
   usePageTitle(pageTitle ?? "Performance Hub");
   const [, setLocation] = useLocation();
   // Shared-mode helpers — derived once, used throughout
