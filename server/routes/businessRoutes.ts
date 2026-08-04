@@ -35,7 +35,7 @@ async function getActiveSeats(businessId: string): Promise<number> {
 }
 
 // ── GET /api/business/mine — owner fetches their business dashboard data
-router.get("/mine", requireAuth, async (req, res) => {
+router.get("/mine", requireAuth, requireProAccess, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   try {
     const [business] = await db
@@ -101,7 +101,7 @@ router.get("/mine", requireAuth, async (req, res) => {
 });
 
 // ── GET /api/business/membership — member (non-owner) checks if they're in a business
-router.get("/membership", requireAuth, async (req, res) => {
+router.get("/membership", requireAuth, requireProAccess, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   try {
     const [membership] = await db
