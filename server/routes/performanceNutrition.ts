@@ -681,6 +681,38 @@ router.post("/schedule", async (req, res) => {
 });
 
 /**
+ * GET /api/performance/schedule
+ * Returns the saved weeklyTrainingSchedule and performanceProtocolConfig.
+ */
+router.get("/schedule", async (req, res) => {
+  try {
+    const userId = resolveUserId(req);
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
+    const [userRow] = await db
+      .select({
+        weeklyTrainingSchedule:    users.weeklyTrainingSchedule,
+        performanceProtocolConfig: users.performanceProtocolConfig,
+      } as any)
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    const schedule = (userRow as any)?.weeklyTrainingSchedule ?? null;
+    const config   = (userRow as any)?.performanceProtocolConfig ?? null;
+
+    if (!schedule) {
+      return res.json({ configured: false, weeklyTrainingSchedule: null, performanceProtocolConfig: null });
+    }
+
+    res.json({ configured: true, weeklyTrainingSchedule: schedule, performanceProtocolConfig: config });
+  } catch (err: any) {
+    console.error("[APN] GET /schedule error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/**
  * GET /api/performance/today
  * Returns today's resolved session type + macro targets.
  * Sprint 1 success criterion: { sessionType, sessionLabel, calories, proteinG, carbsG, fatG }

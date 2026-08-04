@@ -285,7 +285,7 @@ export default function PerformanceSetupModal({
 
       // Save weekly schedule
       if (apnPhase) {
-        await fetch(apiUrl("/api/performance/schedule"), {
+        const scheduleRes = await fetch(apiUrl("/api/performance/schedule"), {
           method: "POST",
           headers: { "Content-Type": "application/json", ...getAuthHeaders() },
           credentials: "include",
@@ -295,6 +295,7 @@ export default function PerformanceSetupModal({
             primaryGoal: primaryGoal || undefined,
           }),
         });
+        if (!scheduleRes.ok) throw new Error("Schedule save failed");
       }
 
       await refreshUser();

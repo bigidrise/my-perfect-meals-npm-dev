@@ -616,8 +616,7 @@ Every rule must cite a source from this list (or request addition of a new sourc
 
 ---
 
----
-
+*Document version: 1.0 | Status: Awaiting review before implementation begins*
 ## 15. Pediatric Protocol Registry
 
 My Perfect Beginning must have its own **Pediatric Protocol Registry**, completely separate from the adult protocol registry. No pediatric protocol is allowed to inherit an adult protocol by default. Every pediatric protocol must be independently reviewed against pediatric-specific guidance, even when the disease name is the same as an adult condition.
