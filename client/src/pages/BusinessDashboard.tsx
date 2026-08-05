@@ -1082,17 +1082,24 @@ export default function BusinessDashboard() {
           <button
             className="flex-1 py-3 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
             onClick={() => setInviteOpen(true)}
-            disabled={seatsFull}
+            disabled={seatsFull || business.status !== "active"}
           >
             <UserPlus className="w-4 h-4" />
             {seatsFull ? "No Seats" : "Invite Team Member"}
           </button>
           <button
-            className="flex-1 py-3 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2"
-            onClick={() => setClientInviteOpen(true)}
+            className="flex-1 py-3 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+            onClick={() => {
+              if (business.status !== "active") {
+                setLocation("/pricing");
+                return;
+              }
+              setClientInviteOpen(true);
+            }}
+            disabled={business.status !== "active"}
           >
             <UserPlus className="w-4 h-4" />
-            Invite Client
+            {business.status !== "active" ? "Subscription Required" : "Invite Client"}
           </button>
         </div>
 
