@@ -39,6 +39,7 @@ import {
   Copy,
   ExternalLink,
 } from "lucide-react";
+import { FeatureUpgradeModal } from "@/components/modals/FeatureUpgradeModal";
 
 const ROLE_OPTIONS = [
   { value: "coach", label: "Coach" },
@@ -97,6 +98,7 @@ interface BusinessData {
   clientInvitations?: {
     id: string;
     email: string;
+    token: string;
     programName: string | null;
     trialDays: number | null;
     status: string;
@@ -152,8 +154,13 @@ export default function BusinessDashboard() {
   const [inviteRole, setInviteRole] = useState("staff");
   const [inviteLoading, setInviteLoading] = useState(false);
 
-  // Invite client modal
+  // Invite client modal + entitlement gate
+  const [clientUpgradeModalOpen, setClientUpgradeModalOpen] = useState(false);
   const [clientInviteOpen, setClientInviteOpen] = useState(false);
+  // A user can perform Pro business actions when their accessTier is PAID_FULL —
+  // this matches requireProAccess exactly: covers active trials, paid Pro/Clinical,
+  // and internal/founder accounts. Free or expired users are locked.
+  const hasProAccess = user?.accessTier === "PAID_FULL";
   const [clientEmail, setClientEmail] = useState("");
   const [clientProgramName, setClientProgramName] = useState("");
   const [clientTrialOption, setClientTrialOption] = useState("30");
@@ -1088,18 +1095,17 @@ export default function BusinessDashboard() {
             {seatsFull ? "No Seats" : "Invite Team Member"}
           </button>
           <button
-            className="flex-1 py-3 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex-1 py-3 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2"
             onClick={() => {
-              if (business.status !== "active") {
-                setLocation("/pricing");
+              if (!hasProAccess) {
+                setClientUpgradeModalOpen(true);
                 return;
               }
               setClientInviteOpen(true);
             }}
-            disabled={business.status !== "active"}
           >
             <UserPlus className="w-4 h-4" />
-            {business.status !== "active" ? "Subscription Required" : "Invite Client"}
+            Invite Client
           </button>
         </div>
 
@@ -1409,12 +1415,14 @@ export default function BusinessDashboard() {
             </h2>
             <div className="space-y-2">
               {ownerData.clientInvitations!.map((inv) => {
+                const isPending = inv.status === "pending" && new Date(inv.expiresAt) > new Date();
                 const statusColor =
                   inv.status === "accepted" ? "text-green-400" :
-                  inv.status === "pending" ? "text-blue-400" : "text-white/30";
+                  isPending ? "text-blue-400" : "text-white/30";
                 const statusLabel =
                   inv.status === "accepted" ? "Active" :
-                  inv.status === "pending" ? "Pending" :
+                  isPending ? "Pending" :
+                  inv.status === "pending" ? "Expired" :
                   inv.status.charAt(0).toUpperCase() + inv.status.slice(1);
                 const programLabel = inv.programName || "My Perfect Meals Complimentary Access";
                 return (
@@ -1426,6 +1434,11 @@ export default function BusinessDashboard() {
                         {inv.inviterName && (
                           <p className="text-white/30 text-xs mt-0.5">Sent by {inv.inviterName}</p>
                         )}
+                        {isPending && (
+                          <p className="text-white/30 text-xs mt-0.5">
+                            Expires {new Date(inv.expiresAt).toLocaleDateString()}
+                          </p>
+                        )}
                       </div>
                       <span className={`text-xs font-semibold flex-shrink-0 mt-0.5 ${statusColor}`}>{statusLabel}</span>
                     </div>
@@ -1433,6 +1446,35 @@ export default function BusinessDashboard() {
                       <p className="text-white/30 text-xs mt-1.5">
                         Accepted {new Date(inv.acceptedAt).toLocaleDateString()}
                       </p>
+                    )}
+                    {isPending && (
+                      <div className="flex items-center gap-2 mt-2 pt-2 border-t border-white/10">
+                        <button
+                          onClick={() => handleResendInvite(inv.token)}
+                          disabled={resendingToken === inv.token || cancellingToken === inv.token}
+                          className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 disabled:opacity-50 transition-colors"
+                        >
+                          {resendingToken === inv.token ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <RefreshCw className="w-3 h-3" />
+                          )}
+                          Resend
+                        </button>
+                        <span className="text-white/20 text-xs">·</span>
+                        <button
+                          onClick={() => handleCancelInvite(inv.token)}
+                          disabled={cancellingToken === inv.token || resendingToken === inv.token}
+                          className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 disabled:opacity-50 transition-colors"
+                        >
+                          {cancellingToken === inv.token ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <X className="w-3 h-3" />
+                          )}
+                          Cancel
+                        </button>
+                      </div>
                     )}
                   </Card>
                 );
@@ -1539,6 +1581,14 @@ export default function BusinessDashboard() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Pro-access gate for client invitations */}
+      <FeatureUpgradeModal
+        open={clientUpgradeModalOpen}
+        onClose={() => setClientUpgradeModalOpen(false)}
+        featureName="Invite Client"
+        description="Upgrade to Pro to invite clients and grant complimentary access through your organization."
+      />
 
       {/* Invite Client Modal */}
       <Dialog open={clientInviteOpen} onOpenChange={(open) => { setClientInviteOpen(open); if (!open) resetClientForm(); }}>
