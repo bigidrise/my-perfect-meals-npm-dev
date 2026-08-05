@@ -327,6 +327,16 @@ export default function AffiliateDashboard() {
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5.5rem)" }}
         >
 
+          {isDesktop && (
+            <button
+              onClick={() => setLocation("/business-dashboard")}
+              className="flex items-center gap-1.5 text-orange-400 text-sm font-medium mb-4"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Organization Dashboard
+            </button>
+          )}
+
           {/* ── REWARDFUL ACCOUNT SETUP CARD ── */}
           {needsRewardfulSetup && (
             <motion.div
