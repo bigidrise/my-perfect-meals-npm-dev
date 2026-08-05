@@ -139,6 +139,13 @@ function QRPreviewModal({ link, promoName, onClose }: { link: string; promoName:
   const [copied, setCopied] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Close on Escape
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [onClose]);
+
   // Generate plain QR on mount
   useEffect(() => {
     generateQRDataUrl(link).then(url => {
