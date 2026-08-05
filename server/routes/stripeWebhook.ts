@@ -210,6 +210,24 @@ router.post("/", async (req, res) => {
               stripeSubscriptionId: subscriptionId,
             });
             console.log(`✅ [webhook] invoice.payment_succeeded — access restored for user ${user.id} → ${lookupKey}`);
+
+            // CONVENTION NOTE — business membership reactivation:
+            // This handler currently restores access only on the `users` table
+            // (planLookupKey, accessTier) via updateUserSubscription.  It does NOT
+            // auto-reactivate a businessMembers row that was previously set to
+            // status="removed" by the owner or an automated cleanup job.
+            //
+            // If a future change adds logic to flip a businessMembers row back to
+            // status="active" here (e.g. to auto-restore a lapsed-then-renewed
+            // business member), that code MUST also call:
+            //
+            //   await clearRemovalNotice(db, userId, businessId);
+            //
+            // which is defined in server/routes/businessRoutes.ts.  Failure to do
+            // so will leave the stale removal-notice banner visible to the
+            // reactivated member.  The same rule applies to any other webhook
+            // event handler (customer.subscription.updated, etc.) that may one
+            // day write status="active" to businessMembers.
           }
         } else {
           console.log(`[webhook] invoice.payment_succeeded — user ${user.id} already active, no action needed`);

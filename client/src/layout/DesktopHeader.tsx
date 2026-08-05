@@ -91,16 +91,11 @@ const ROUTE_KEY_MAP: Record<string, string> = {
   "/trainer-welcome": "trainerWelcome",
   "/physician-welcome": "physicianWelcome",
   "/pro-launchpad": "proLaunchpad",
+  "/procare-training": "procareTraining",
 };
 
 /** Maps hub-back routes to their hub's routeTitles key */
-const HUB_BACK_KEY_MAP: Record<string, { hub: string; key: string }> = {
-  "/beach-body-meal-board":                 { hub: "/performance",              key: "performanceHub" },
-  "/diabetic-menu-builder":            { hub: "/diabetic-hub", key: "diabetesHub" },
-  "/glp1-meal-builder":               { hub: "/glp1-hub",     key: "metabolicHubBack" },
-  "/anti-inflammatory-menu-builder":   { hub: "/diabetic-hub", key: "diabetesHub" },
-  "/performance-competition-builder":  { hub: "/performance",  key: "performanceHub" },
-};
+const HUB_BACK_KEY_MAP: Record<string, { hub: string; key: string }> = {};
 
 type PlanBadgeVariant = "free" | "paid" | "professional";
 interface PlanBadgeInfo { text: string; variant: PlanBadgeVariant }

@@ -1267,6 +1267,8 @@ export default function AntiInflammatoryMenuBuilder() {
       title="Anti-Inflammatory Meal Builder"
       onOpenTour={quickTour.openTour}
       clientId={proClientId}
+      backTo="/diabetic-hub"
+      backLabel="Diabetes Hub"
       protocols={[
         activePrimaryBadge,
         ...resolvedProtocol.modifierBadges,

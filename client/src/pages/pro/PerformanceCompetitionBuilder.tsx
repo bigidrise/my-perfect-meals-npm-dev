@@ -881,7 +881,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
       transition={{ duration: 0.6 }}
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-28"
     >
-      <BuilderHeader title="Performance Builder" onOpenTour={quickTour.openTour} clientId={mode === "procare" ? clientId : null} />
+      <BuilderHeader title="Performance Builder" onOpenTour={quickTour.openTour} clientId={mode === "procare" ? clientId : null} backTo="/performance" backLabel="Performance Hub" />
 
 
       {/* Main Content Wrapper - padding pushes content below header while gradient shows through */}
