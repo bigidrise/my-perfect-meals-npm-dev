@@ -71,6 +71,10 @@ export default function PromoRedemption() {
       if (result.type === "extended_trial") {
         await refreshUser();
       }
+      // Store the Stripe promo code ID so checkout can pre-apply the discount
+      if (result.type === "discount" && result.appliedPromoCodeId) {
+        sessionStorage.setItem("pendingStripePromoCodeId", result.appliedPromoCodeId);
+      }
     } catch (err: any) {
       setRedeemError(err.message || "Failed to redeem promotion");
     } finally {
