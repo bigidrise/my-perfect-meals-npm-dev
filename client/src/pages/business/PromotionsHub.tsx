@@ -6,8 +6,9 @@ import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Plus, Copy, Check, Pause, Play, Trash2,
-  Tag, Clock, Users, ChevronDown, ChevronUp, Zap,
+  Tag, Clock, Users, ChevronDown, ChevronUp, Zap, QrCode,
 } from "lucide-react";
+import QRCode from "qrcode";
 
 type PromoType = "extended_trial" | "discount";
 type PromoStatus = "active" | "paused" | "deleted";
@@ -45,6 +46,20 @@ function promoSummary(p: Promotion) {
     return `${p.discount_percent}% off — ${dur}`;
   }
   return "";
+}
+
+async function downloadQR(link: string, promoName: string) {
+  const canvas = document.createElement("canvas");
+  await QRCode.toCanvas(canvas, link, {
+    width: 512,
+    margin: 2,
+    color: { dark: "#000000", light: "#ffffff" },
+  });
+  const dataUrl = canvas.toDataURL("image/png");
+  const a = document.createElement("a");
+  a.href = dataUrl;
+  a.download = `${promoName.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_qr.png`;
+  a.click();
 }
 
 function CopyButton({ text }: { text: string }) {
@@ -145,7 +160,8 @@ function PromoCard({ promo, onStatusChange, onDelete }: {
               )}
 
               {/* Actions */}
-              <div className="flex gap-2 pt-1">
+              <div className="flex flex-wrap gap-2 pt-1">
+                <DownloadQRButton link={link} promoName={promo.name} />
                 <button
                   onClick={() => onStatusChange(promo.id, isActive ? "paused" : "active")}
                   className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-white/5 text-white/60 hover:bg-white/10 transition-colors"
@@ -496,5 +512,27 @@ export default function PromotionsHub() {
         )}
       </div>
     </div>
+  );
+}
+
+function DownloadQRButton({ link, promoName }: { link: string; promoName: string }) {
+  const [downloading, setDownloading] = useState(false);
+  const handle = async () => {
+    setDownloading(true);
+    try {
+      await downloadQR(link, promoName);
+    } finally {
+      setDownloading(false);
+    }
+  };
+  return (
+    <button
+      onClick={handle}
+      disabled={downloading}
+      className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-white/5 text-white/60 hover:bg-white/10 transition-colors disabled:opacity-50"
+    >
+      <QrCode className="w-3.5 h-3.5" />
+      {downloading ? "Saving…" : "Download QR"}
+    </button>
   );
 }
