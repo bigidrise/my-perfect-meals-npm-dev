@@ -17,6 +17,8 @@
 // - Real-time progress ticker (0-90% with visual feedback)
 // - Medical personalization with user health data integration
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { usePageTitle } from "@/contexts/PageTitleContext";
 import { useTranslation } from "react-i18next";
 import { useChefFlowImages, chefFlowMealId } from "@/hooks/useChefFlowImages";
 import { ChefFlowImage } from "@/components/ChefFlowImage";
@@ -345,6 +347,8 @@ const cuisineKeywords: Record<string, string> = {
 
 export default function RestaurantGuidePage() {
   const [, setLocation] = useLocation();
+  const isDesktop = useIsDesktop();
+  usePageTitle("Restaurant Assistant");
   const { t } = useTranslation();
   const quickTour = useQuickTour("restaurant-guide");
   const { speak, stop } = useChefVoice();
@@ -724,6 +728,15 @@ export default function RestaurantGuidePage() {
           className="max-w-4xl mx-auto px-4 sm:px-6 overflow-x-hidden pb-8"
           style={{ paddingTop: "6rem" }}
         >
+          {isDesktop && (
+            <button
+              onClick={() => setLocation("/social-hub")}
+              className="flex items-center gap-2 text-orange-400 hover:text-orange-300 mb-6 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="text-sm font-medium">Social Hub</span>
+            </button>
+          )}
           {/* ENTRY SCREEN - Guided Copilot Entry (matches Macro Calculator pattern) */}
           {guidedStep === "entry" && (
             <Card className="bg-black/40 backdrop-blur-lg border border-white/20 shadow-xl rounded-2xl mb-6">

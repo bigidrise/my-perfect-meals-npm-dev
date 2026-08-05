@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
 import ThinkingDots from "@/components/ThinkingDots";
-import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { usePageTitle } from "@/contexts/PageTitleContext";
 
 interface ScoredRestaurant {
   name: string;
@@ -184,6 +184,7 @@ export default function RestaurantFinderPage() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  usePageTitle("Find Restaurants");
 
   const primaryDiet: string =
     Array.isArray((user as any)?.dietaryRestrictions) && (user as any).dietaryRestrictions.length > 0
@@ -242,9 +243,8 @@ export default function RestaurantFinderPage() {
   const dietLabel = DIET_LABELS[primaryDiet] ?? primaryDiet;
 
   return (
-    <MobileHeaderGuard>
-      <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
-        <div className="max-w-lg mx-auto px-4 pt-6 pb-24">
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
+      <div className="max-w-lg mx-auto px-4 pt-6 pb-24">
 
           <div className="flex items-center gap-3 mb-6">
             <button onClick={() => navigate("/social-hub")} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">
@@ -351,8 +351,7 @@ export default function RestaurantFinderPage() {
             </div>
           )}
 
-        </div>
       </div>
-    </MobileHeaderGuard>
+    </div>
   );
 }

@@ -13,7 +13,8 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, MicOff, ChefHat, Loader2, RotateCcw, ChevronDown, ChevronUp } from "lucide-react";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { Mic, MicOff, ChefHat, Loader2, RotateCcw, ChevronDown, ChevronUp, ArrowLeft } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePageTitle } from "@/contexts/PageTitleContext";
@@ -36,6 +37,7 @@ const CATEGORY_LABELS: { key: string; label: string; placeholder: string }[] = [
 
 export default function MyPerfectBuffetPage() {
   const [, setLocation] = useLocation();
+  const isDesktop = useIsDesktop();
   const { user } = useAuth();
   usePageTitle("My Perfect Buffet");
 
@@ -181,6 +183,15 @@ export default function MyPerfectBuffetPage() {
         className="px-4 max-w-2xl mx-auto space-y-5"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5.5rem)" }}
       >
+        {isDesktop && (
+          <button
+            onClick={() => setLocation("/social-hub")}
+            className="flex items-center gap-2 text-orange-400 hover:text-orange-300 mb-2 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span className="text-sm font-medium">Social Hub</span>
+          </button>
+        )}
         <AnimatePresence mode="wait">
           {recommendations.length === 0 ? (
             <motion.div
