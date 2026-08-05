@@ -1038,6 +1038,15 @@ setTimeout(async () => {
         changed_at timestamptz NOT NULL DEFAULT now()
       )
     `);
+    // Unique partial index — prevents a second active row for the same
+    // (business_id, user_id) pair even if the in-code guard is bypassed
+    // (race condition, partial failure). Allows re-invite because removed
+    // rows are not covered by the WHERE clause. Idempotent via IF NOT EXISTS.
+    await db.execute(sql`
+      CREATE UNIQUE INDEX IF NOT EXISTS uq_business_members_active
+        ON business_members (business_id, user_id)
+        WHERE status = 'active'
+    `);
     console.log('✅ Business tables boot migration complete');
   } catch (err: any) {
     console.error('❌ Business tables boot migration failed:', err.message);

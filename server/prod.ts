@@ -536,6 +536,17 @@ async function initializeApp() {
           if (orphanCount > 0) {
             console.log(`♻️  [INIT] Waitlist orphan recovery: reset notified_at for ${orphanCount} row(s) claimed but never confirmed sent (server restart mid-send). Audit row written to waitlist_recovery_events. They will be retried on next notify run.`);
           }
+
+          // Unique partial index — prevents a second active row for the same
+          // (business_id, user_id) pair even if the in-code guard is bypassed
+          // (race condition, partial failure). Allows re-invite because removed
+          // rows are not covered by the WHERE clause. Idempotent via IF NOT EXISTS.
+          await database.execute(sql`
+            CREATE UNIQUE INDEX IF NOT EXISTS uq_business_members_active
+              ON business_members (business_id, user_id)
+              WHERE status = 'active'
+          `);
+          console.log("✅ [INIT] business_members active uniqueness index ensured");
         })(),
         migTimeout(6000),
       ]);
