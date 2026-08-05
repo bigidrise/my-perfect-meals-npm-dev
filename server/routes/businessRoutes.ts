@@ -874,8 +874,15 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
         // Using COALESCE so NULL trial_ends_at is treated as a past date, not a GREATEST-stopper.
         // This means a brand-new user (7-day default trial) gets exactly 30 days from acceptance,
         // not 7+30. A user already on a longer custom trial keeps their longer end date.
+        // Reset trial_reminders_sent to '{}' when the invitation extends the trial
+        // by more than 7 days. Without this, reminder milestones from a previous
+        // short trial (e.g. "day_6") would block the cron from sending the same
+        // milestone before the new, much-later expiry date.
         await db.execute(
-          sql`UPDATE users SET trial_ends_at = GREATEST(COALESCE(trial_ends_at, '1970-01-01'::timestamptz), NOW() + (${trialDays}::text || ' days')::interval) WHERE id = ${userId}`
+          sql`UPDATE users
+              SET trial_ends_at = GREATEST(COALESCE(trial_ends_at, '1970-01-01'::timestamptz), NOW() + (${trialDays}::text || ' days')::interval),
+                  trial_reminders_sent = CASE WHEN ${trialDays} > 7 THEN '{}'::text[] ELSE trial_reminders_sent END
+              WHERE id = ${userId}`
         );
       } else {
         console.log(
