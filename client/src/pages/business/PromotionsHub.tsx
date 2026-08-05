@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -48,18 +48,92 @@ function promoSummary(p: Promotion) {
   return "";
 }
 
-async function downloadQR(link: string, promoName: string) {
+async function generateQRDataUrl(link: string): Promise<string> {
   const canvas = document.createElement("canvas");
   await QRCode.toCanvas(canvas, link, {
     width: 512,
     margin: 2,
     color: { dark: "#000000", light: "#ffffff" },
   });
-  const dataUrl = canvas.toDataURL("image/png");
+  return canvas.toDataURL("image/png");
+}
+
+function triggerDownload(dataUrl: string, promoName: string) {
   const a = document.createElement("a");
   a.href = dataUrl;
   a.download = `${promoName.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_qr.png`;
   a.click();
+}
+
+function QRPreviewModal({ link, promoName, onClose }: { link: string; promoName: string; onClose: () => void }) {
+  const [dataUrl, setDataUrl] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
+
+  // Generate QR on mount
+  useEffect(() => {
+    generateQRDataUrl(link).then(setDataUrl);
+  }, [link]);
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      const url = dataUrl ?? await generateQRDataUrl(link);
+      triggerDownload(url, promoName);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.92 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.92 }}
+        transition={{ duration: 0.18 }}
+        className="bg-gray-900 border border-white/10 rounded-2xl p-6 w-full max-w-xs flex flex-col items-center gap-4 shadow-2xl"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between w-full">
+          <div className="flex items-center gap-2">
+            <QrCode className="w-4 h-4 text-orange-400" />
+            <p className="text-sm font-semibold text-white">QR Code</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-white/40 hover:text-white/70 transition-colors text-lg leading-none"
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </div>
+
+        <p className="text-xs text-white/50 text-center -mt-1 w-full truncate">{promoName}</p>
+
+        {/* QR preview */}
+        <div className="w-56 h-56 rounded-xl bg-white flex items-center justify-center overflow-hidden">
+          {dataUrl
+            ? <img src={dataUrl} alt="QR Code" className="w-full h-full object-contain" />
+            : <div className="w-8 h-8 border-2 border-gray-300 border-t-orange-500 rounded-full animate-spin" />
+          }
+        </div>
+
+        <p className="text-[11px] text-white/30 text-center">Scan to verify it opens the invite link</p>
+
+        <button
+          onClick={handleDownload}
+          disabled={!dataUrl || downloading}
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold transition-colors disabled:opacity-50"
+        >
+          <QrCode className="w-4 h-4" />
+          {downloading ? "Saving…" : "Download PNG"}
+        </button>
+      </motion.div>
+    </div>
+  );
 }
 
 function CopyButton({ text }: { text: string }) {
@@ -516,23 +590,21 @@ export default function PromotionsHub() {
 }
 
 function DownloadQRButton({ link, promoName }: { link: string; promoName: string }) {
-  const [downloading, setDownloading] = useState(false);
-  const handle = async () => {
-    setDownloading(true);
-    try {
-      await downloadQR(link, promoName);
-    } finally {
-      setDownloading(false);
-    }
-  };
+  const [showModal, setShowModal] = useState(false);
   return (
-    <button
-      onClick={handle}
-      disabled={downloading}
-      className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-white/5 text-white/60 hover:bg-white/10 transition-colors disabled:opacity-50"
-    >
-      <QrCode className="w-3.5 h-3.5" />
-      {downloading ? "Saving…" : "Download QR"}
-    </button>
+    <>
+      <button
+        onClick={() => setShowModal(true)}
+        className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-white/5 text-white/60 hover:bg-white/10 transition-colors"
+      >
+        <QrCode className="w-3.5 h-3.5" />
+        QR Code
+      </button>
+      <AnimatePresence>
+        {showModal && (
+          <QRPreviewModal link={link} promoName={promoName} onClose={() => setShowModal(false)} />
+        )}
+      </AnimatePresence>
+    </>
   );
 }
