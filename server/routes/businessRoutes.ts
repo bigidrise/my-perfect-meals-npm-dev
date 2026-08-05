@@ -849,13 +849,36 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
     // ── Client invitation path — extend trial, no seat consumed ──────────────
     if (invite.invitationType === "client") {
       const trialDays = invite.trialDays ?? 30;
-      // Set trial to MAX(existing end, now + N days).
-      // Using COALESCE so NULL trial_ends_at is treated as a past date, not a GREATEST-stopper.
-      // This means a brand-new user (7-day default trial) gets exactly 30 days from acceptance,
-      // not 7+30. A user already on a longer custom trial keeps their longer end date.
-      await db.execute(
-        sql`UPDATE users SET trial_ends_at = GREATEST(COALESCE(trial_ends_at, '1970-01-01'::timestamptz), NOW() + (${trialDays}::text || ' days')::interval) WHERE id = ${userId}`
-      );
+
+      // Guard: skip the trial_ends_at write for users who already have an active
+      // paid subscription. Their access is governed by Stripe billing, not by
+      // trial_ends_at. Writing a future trial_ends_at for them is a no-op now,
+      // but when their paid plan eventually lapses (planLookupKey goes null),
+      // the stale trial_ends_at timestamp could cause the trial banner to
+      // reappear — which would be wrong and confusing.
+      const [acceptingUser] = await db
+        .select({ planLookupKey: users.planLookupKey })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      const hasActivePaidPlan =
+        acceptingUser?.planLookupKey != null && acceptingUser.planLookupKey !== "";
+
+      if (!hasActivePaidPlan) {
+        // Set trial to MAX(existing end, now + N days).
+        // Using COALESCE so NULL trial_ends_at is treated as a past date, not a GREATEST-stopper.
+        // This means a brand-new user (7-day default trial) gets exactly 30 days from acceptance,
+        // not 7+30. A user already on a longer custom trial keeps their longer end date.
+        await db.execute(
+          sql`UPDATE users SET trial_ends_at = GREATEST(COALESCE(trial_ends_at, '1970-01-01'::timestamptz), NOW() + (${trialDays}::text || ' days')::interval) WHERE id = ${userId}`
+        );
+      } else {
+        console.log(
+          `ℹ️ [business] Client invite accepted by paid subscriber — trial_ends_at write skipped | user=${userId} | planLookupKey=${acceptingUser.planLookupKey}`
+        );
+      }
+
       await db
         .update(businessInvitations)
         .set({ status: "accepted", acceptedAt: new Date(), acceptedByUserId: userId })
