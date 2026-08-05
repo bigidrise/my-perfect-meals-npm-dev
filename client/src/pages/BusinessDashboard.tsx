@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/contexts/OrgContext";
@@ -116,6 +117,7 @@ export default function BusinessDashboard() {
   const [ownerData, setOwnerData] = useState<BusinessData | null>(null);
   const [memberData, setMemberData] = useState<MembershipData | null>(null);
   const [viewMode, setViewMode] = useState<"owner" | "member" | "none" | null>(null);
+  const isDesktop = useIsDesktop();
   const [loading, setLoading] = useState(true);
   const [polling, setPolling] = useState(fromCheckout);
 
@@ -505,20 +507,22 @@ export default function BusinessDashboard() {
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-black/80 via-orange-900/60 to-black/80 pb-24" style={{ paddingBottom: "max(6rem, calc(env(safe-area-inset-bottom) + 5rem))" }}>
-        {/* Header */}
-        <div className="fixed top-0 left-0 right-0 z-10 bg-black/60 backdrop-blur-md border-b border-white/10" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
-          <div className="px-4 py-3 flex items-center gap-3">
-            <button onClick={() => setLocation("/more")} className="text-white/60 active:text-white transition-colors">
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <div>
-              <h1 className="text-white font-bold text-base leading-tight">My Business Team</h1>
-              <p className="text-white/50 text-xs">Organization Member</p>
+        {/* Header — mobile only; desktop uses DesktopLayout shell header */}
+        {!isDesktop && (
+          <div className="fixed top-0 left-0 right-0 z-10 bg-black/60 backdrop-blur-md border-b border-white/10" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+            <div className="px-4 py-3 flex items-center gap-3">
+              <button onClick={() => setLocation("/more")} className="text-white/60 active:text-white transition-colors">
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <div>
+                <h1 className="text-white font-bold text-base leading-tight">My Business Team</h1>
+                <p className="text-white/50 text-xs">Organization Member</p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        <div className="px-4 pb-10 max-w-lg mx-auto space-y-4" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 4.5rem)" }}>
+        <div className="px-4 pb-10 max-w-lg mx-auto space-y-4" style={{ paddingTop: isDesktop ? "1rem" : "calc(env(safe-area-inset-top, 0px) + 4.5rem)" }}>
 
           {/* Welcome banner */}
           <div className="bg-gradient-to-r from-orange-900/50 to-orange-700/30 border border-orange-500/20 rounded-2xl p-5 text-center">
@@ -790,27 +794,29 @@ export default function BusinessDashboard() {
   // ── Full owner dashboard ────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gradient-to-br from-black/80 via-orange-900/60 to-black/80 pb-24" style={{ paddingBottom: "max(6rem, calc(env(safe-area-inset-bottom) + 5rem))" }}>
-      {/* Header */}
-      <div className="fixed top-0 left-0 right-0 z-10 bg-black/60 backdrop-blur-md border-b border-white/10" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
-        <div className="px-4 py-3 flex items-center gap-3">
-          <button onClick={() => setLocation("/more")} className="text-white/60 active:text-white transition-colors">
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <div className="flex-1">
-            <h1 className="text-white font-bold text-base leading-tight">Organization Dashboard</h1>
-            <p className="text-white/50 text-xs">Manage team members, seats &amp; invitations</p>
+      {/* Header — mobile only; desktop uses DesktopLayout shell header */}
+      {!isDesktop && (
+        <div className="fixed top-0 left-0 right-0 z-10 bg-black/60 backdrop-blur-md border-b border-white/10" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+          <div className="px-4 py-3 flex items-center gap-3">
+            <button onClick={() => setLocation("/more")} className="text-white/60 active:text-white transition-colors">
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <div className="flex-1">
+              <h1 className="text-white font-bold text-base leading-tight">Organization Dashboard</h1>
+              <p className="text-white/50 text-xs">Manage team members, seats &amp; invitations</p>
+            </div>
+            <button
+              onClick={() => fetchData()}
+              className="text-white/50 active:text-white transition-colors p-1.5 rounded-lg active:bg-white/10"
+              title="Refresh"
+            >
+              <RefreshCw className="w-4 h-4" />
+            </button>
           </div>
-          <button
-            onClick={() => fetchData()}
-            className="text-white/50 active:text-white transition-colors p-1.5 rounded-lg active:bg-white/10"
-            title="Refresh"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
         </div>
-      </div>
+      )}
 
-      <div className="px-4 space-y-4 max-w-2xl mx-auto" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 4.5rem)" }}>
+      <div className="px-4 space-y-4 max-w-2xl mx-auto" style={{ paddingTop: isDesktop ? "1rem" : "calc(env(safe-area-inset-top, 0px) + 4.5rem)" }}>
 
         {/* Launch Guide Checklist — shown until dismissed */}
         {!launchGuideDismissed && (() => {

@@ -146,7 +146,17 @@
     "appName": "My Perfect Meals",
     "performanceHub": "Performance Hub",
     "diabetesHub": "Diabetes Hub",
-    "metabolicHubBack": "Metabolic Hub"
+    "metabolicHubBack": "Metabolic Hub",
+    "businessCenter": "Business Center",
+    "partnerPrograms": "Partner Programs",
+    "academy": "Academy",
+    "partnerProgram": "Partner Program",
+    "partnerManagement": "Partner Management",
+    "organizationDashboard": "Organization Dashboard",
+    "partnerCenter": "Partner Center",
+    "partnerRevenueCenter": "Partner & Revenue Center",
+    "creatorBrandStudio": "Creator & Brand Studio",
+    "whiteLabelSolutions": "White Label Solutions"
   },
   "dashboard": {
     "professionalBadge": "Professional",
