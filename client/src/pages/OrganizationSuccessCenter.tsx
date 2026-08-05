@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useOrgFlag } from "@/contexts/OrgContext";
 import {
   ChevronLeft,
@@ -45,6 +46,7 @@ interface PolicyHistoryItem {
 
 export default function OrganizationSuccessCenter() {
   const [, setLocation] = useLocation();
+  const isDesktop = useIsDesktop();
   const showMarketplace = useOrgFlag("partnerMarketplace");
   const [expandedId, setExpandedId] = useState<string | null>("welcome");
   const [policyHistory, setPolicyHistory] = useState<PolicyHistoryItem[]>([]);
@@ -665,24 +667,27 @@ export default function OrganizationSuccessCenter() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-950/30 to-black/80 pb-28" style={{ paddingBottom: "max(7rem, calc(env(safe-area-inset-bottom) + 6rem))" }}>
       {/* Header */}
-      <div className="fixed top-0 left-0 right-0 z-10 bg-black/80 backdrop-blur-md border-b border-white/10" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
-        <div className="px-4 py-3 flex items-center gap-3">
-          <button
-            onClick={() => setLocation("/business-dashboard")}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            Organization Dashboard
-          </button>
-          <div>
-            <h1 className="text-white font-bold text-base leading-tight">Organization Success Center</h1>
-            <p className="text-white/60 text-xs">Your complete guide to running your organization</p>
+      {/* Header — mobile only; desktop uses DesktopLayout shell header */}
+      {!isDesktop && (
+        <div className="fixed top-0 left-0 right-0 z-10 bg-black/80 backdrop-blur-md border-b border-white/10" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+          <div className="px-4 py-3 flex items-center gap-3">
+            <button
+              onClick={() => setLocation("/business-dashboard")}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Organization Dashboard
+            </button>
+            <div>
+              <h1 className="text-white font-bold text-base leading-tight">Organization Success Center</h1>
+              <p className="text-white/60 text-xs">Your complete guide to running your organization</p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Hero */}
-      <div className="px-4 pb-4" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 4.5rem)" }}>
+      <div className="px-4 pb-4" style={{ paddingTop: isDesktop ? "1rem" : "calc(env(safe-area-inset-top, 0px) + 4.5rem)" }}>
         <div className="bg-gradient-to-br from-orange-600/20 via-orange-600/10 to-transparent border border-orange-500/20 rounded-2xl p-5">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 rounded-full bg-orange-600/30 border border-orange-500/40 flex items-center justify-center">

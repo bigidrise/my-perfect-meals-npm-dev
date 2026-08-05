@@ -156,7 +156,12 @@
     "partnerCenter": "Partner Center",
     "partnerRevenueCenter": "Partner & Revenue Center",
     "creatorBrandStudio": "Creator & Brand Studio",
-    "whiteLabelSolutions": "White Label Solutions"
+    "whiteLabelSolutions": "White Label Solutions",
+    "howPartnershipsWork": "How Partnerships Work",
+    "foundingPartnerProgram": "Founding Partner Program",
+    "industryPartnerships": "Industry Partnerships",
+    "healthcarePartnerships": "Healthcare & Clinical Partnerships",
+    "organizationSuccessCenter": "Organization Success Center"
   },
   "dashboard": {
     "professionalBadge": "Professional",

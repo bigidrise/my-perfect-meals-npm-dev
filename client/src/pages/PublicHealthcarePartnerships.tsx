@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { BC_HEADER } from "@/components/BusinessCenterShell";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 
 const CONSULTATION_FORM = "https://forms.gle/pKoWYSdTTFGsKnWd9";
 
@@ -180,6 +181,7 @@ const IMPLEMENTATION_ITEMS = [
 
 export default function PublicHealthcarePartnerships() {
   const [location, setLocation] = useLocation();
+  const isDesktop = useIsDesktop();
   const isPublicRoute = location.startsWith("/partners");
   const backDest = isPublicRoute ? "/partners" : "/business-center/partners";
   const backLabel = "Partner Programs";
@@ -192,25 +194,28 @@ export default function PublicHealthcarePartnerships() {
       transition={{ duration: 0.3 }}
     >
       {/* Header */}
-      <div
-        className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`}
-        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
-      >
-        <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
-          <button
-            onClick={() => setLocation(backDest)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            {backLabel}
-          </button>
-          <h1 className="text-base font-bold text-white truncate">Healthcare & Clinical Partnerships</h1>
+      {/* Header — mobile only; desktop uses DesktopLayout shell header */}
+      {!isDesktop && (
+        <div
+          className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`}
+          style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+        >
+          <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
+            <button
+              onClick={() => setLocation(backDest)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              {backLabel}
+            </button>
+            <h1 className="text-base font-bold text-white truncate">Healthcare & Clinical Partnerships</h1>
+          </div>
         </div>
-      </div>
+      )}
 
       <div
         className="px-4 max-w-2xl mx-auto space-y-5"
-        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5rem)" }}
+        style={{ paddingTop: isDesktop ? "1rem" : "calc(env(safe-area-inset-top, 0px) + 5rem)" }}
       >
         {/* In-content back button — always visible on desktop where fixed header is trapped */}
         <button
