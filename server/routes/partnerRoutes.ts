@@ -12,6 +12,14 @@ import { computePartnerLifecycle } from "../../shared/partnerLifecycle";
 
 const router = Router();
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Tier requirement: partner records are admin-provisioned — a user cannot
+// self-enrol. GET /identity is therefore informational (returns null for any
+// non-partner) and carries no revenue participation risk; no tier gate needed.
+// All /admin/* routes are already guarded by requireAdmin which implies a
+// higher privilege level than any plan tier.
+// ─────────────────────────────────────────────────────────────────────────────
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function actorId(req: AuthenticatedRequest): string {

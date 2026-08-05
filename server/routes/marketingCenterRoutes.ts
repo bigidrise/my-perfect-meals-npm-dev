@@ -4,6 +4,7 @@ import { eq, and, desc } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import { requireAdmin } from "../middleware/requireAdmin";
+import { requireProAccess } from "../middleware/requireProAccess";
 import { partnerRecords } from "../db/schema/partnerRecords";
 import { userAffiliateAccounts } from "../db/schema/affiliateAccounts";
 import { marketingCampaigns, marketingAssets } from "../db/schema/marketingCenter";
@@ -12,6 +13,15 @@ import QRCode from "qrcode";
 
 const router = Router();
 const objectStorage = new ObjectStorageService();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tier requirement: partner participation endpoints (profile, QR code, campaign
+// downloads) require Pro or higher via requireProAccess. Free and Essential
+// users are blocked when BILLING_ENFORCED=true — partners are only enrolled on
+// Pro+ plans and must remain gated at the API layer, not just the UI.
+// The single exception is GET /guidelines — it returns informational brand copy
+// with no revenue participation, so any authenticated user may read it.
+// ─────────────────────────────────────────────────────────────────────────────
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -53,8 +63,8 @@ async function getAffiliateAccount(userId: string) {
 }
 
 // ─── Partner: GET /profile ────────────────────────────────────────────────────
-
-router.get("/profile", requireAuth, async (req, res) => {
+// requireProAccess: exposes promo code and referral URL — revenue participation data.
+router.get("/profile", requireAuth, requireProAccess, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser.id;
     const [partner, affiliate] = await Promise.all([
@@ -89,8 +99,8 @@ router.get("/profile", requireAuth, async (req, res) => {
 });
 
 // ─── Partner: GET /qr  (?format=png|svg  &download=0|1) ──────────────────────
-
-router.get("/qr", requireAuth, async (req, res) => {
+// requireProAccess: QR code generation encodes a live referral URL — revenue participation.
+router.get("/qr", requireAuth, requireProAccess, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser.id;
     const format = req.query.format === "svg" ? "svg" : "png";
@@ -144,9 +154,9 @@ router.get("/qr", requireAuth, async (req, res) => {
 // ─── Partner: GET /campaigns ──────────────────────────────────────────────────
 // Returns only published campaigns where the partner's branding_mode is
 // included in audienceModes — enforced server-side, never trusted from client.
-// Non-partners (no active partner record) receive 403 — they cannot see any campaigns.
-
-router.get("/campaigns", requireAuth, async (req, res) => {
+// requireProAccess: campaign access is part of revenue participation; a
+// downgraded partner with an active record must not retain access on Free tier.
+router.get("/campaigns", requireAuth, requireProAccess, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser.id;
     const brandingMode = await getActiveBrandingMode(userId);
@@ -195,8 +205,8 @@ router.get("/campaigns", requireAuth, async (req, res) => {
 });
 
 // ─── Partner: GET /campaigns/:campaignId/assets/:assetId/download ─────────────
-
-router.get("/campaigns/:campaignId/assets/:assetId/download", requireAuth, async (req, res) => {
+// requireProAccess: downloading marketing assets supports active revenue participation.
+router.get("/campaigns/:campaignId/assets/:assetId/download", requireAuth, requireProAccess, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser.id;
     const { campaignId, assetId } = req.params;

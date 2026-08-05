@@ -16,6 +16,14 @@ const stripe = stripeKey
 
 const router = Router();
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Tier requirement: ALL revenue-generating endpoints in this router require Pro
+// or higher via requireProAccess. Free and Essential users are blocked at the
+// API level when BILLING_ENFORCED=true. The only exception is
+// POST /removal-notice/dismiss — that is a passive member UI action (dismissing
+// a banner after being removed) that carries no revenue participation risk.
+// ─────────────────────────────────────────────────────────────────────────────
+
 const getAppUrl = () =>
   process.env.PUBLIC_APP_URL ||
   process.env.APP_URL ||
