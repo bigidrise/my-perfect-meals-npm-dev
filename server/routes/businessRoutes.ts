@@ -727,10 +727,26 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
       await db.transaction(async (tx) => {
         if (existing) {
           // Re-activate a previously-removed member row — never insert a duplicate.
+          // Also set noticeDismissedAt so the stale removal-notice banner is cleared
+          // immediately on re-join and never shown to an active member.
           await tx
             .update(businessMembers)
-            .set({ status: "active", joinedAt: new Date() })
+            .set({ status: "active", joinedAt: new Date(), noticeDismissedAt: new Date() })
             .where(eq(businessMembers.id, existing.id));
+
+          // Belt-and-suspenders: dismiss any other undismissed removal-notice rows
+          // for this user in this business (historical rows from prior removals).
+          await tx
+            .update(businessMembers)
+            .set({ noticeDismissedAt: new Date() })
+            .where(
+              and(
+                eq(businessMembers.userId, userId),
+                eq(businessMembers.businessId, business.id),
+                eq(businessMembers.status, "removed"),
+                isNull(businessMembers.noticeDismissedAt),
+              ),
+            );
         } else {
           await tx.insert(businessMembers).values({
             businessId: business.id,
