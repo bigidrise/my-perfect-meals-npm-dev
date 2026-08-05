@@ -63,7 +63,7 @@ const NEXT_STEPS = [
 export default function BusinessInviteAccept() {
   const params = useParams<{ token: string }>();
   const token = params.token;
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -103,6 +103,9 @@ export default function BusinessInviteAccept() {
         toast({ title: "Could not accept invite", description: data.error, variant: "destructive" });
         return;
       }
+      // Refresh the auth session immediately so the dashboard sees the
+      // newly-activated business membership without a stale access tier.
+      try { await refreshUser(); } catch { /* non-fatal — dashboard retries */ }
       setAcceptedData({ businessName: data.businessName, role: data.role });
       setAccepted(true);
     } catch {

@@ -107,7 +107,7 @@ interface MembershipData {
 const DEFAULT_BUSINESS_NAME = "My Business Team";
 
 export default function BusinessDashboard() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -253,11 +253,25 @@ export default function BusinessDashboard() {
       }
 
       // Try member
-      const memberRes = await fetch("/api/business/membership", {
+      let memberRes = await fetch("/api/business/membership", {
         headers: { ...getAuthHeaders() },
         credentials: "include",
         cache: "no-store",
       });
+
+      // A 403 here can happen when the client's auth session is stale right
+      // after accepting a re-invite (access tier not yet updated). Refresh
+      // the user profile once and retry before giving up.
+      if (memberRes.status === 403) {
+        try { await refreshUser(); } catch { /* non-fatal */ }
+        await new Promise((r) => setTimeout(r, 300));
+        memberRes = await fetch("/api/business/membership", {
+          headers: { ...getAuthHeaders() },
+          credentials: "include",
+          cache: "no-store",
+        });
+      }
+
       if (memberRes.ok) {
         const json = await memberRes.json();
         setMemberData(json);
