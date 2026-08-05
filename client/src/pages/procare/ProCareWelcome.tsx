@@ -1,7 +1,9 @@
+import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { ArrowRight, ArrowLeft, GraduationCap, User, Rocket, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { NarrationBar } from "@/components/NarrationBar";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 
 const COPILOT_SECTIONS = [
   {
@@ -48,6 +50,8 @@ const CERT_BENEFITS = [
 export default function ProCareWelcome() {
   const [location, setLocation] = useLocation();
   const { user } = useAuth();
+  const isDesktop = useIsDesktop();
+
   const isTrainerWelcome = location === "/trainer-welcome";
   const isPhysicianWelcome = location === "/physician-welcome";
   const role: "trainer" | "physician" | null = isTrainerWelcome
@@ -55,6 +59,14 @@ export default function ProCareWelcome() {
     : isPhysicianWelcome
       ? "physician"
       : null;
+
+  // Returning professionals already have a role set — send them to their workspace
+  useEffect(() => {
+    if (!user) return;
+    if (user.professionalRole === "trainer" || user.professionalRole === "physician") {
+      setLocation("/pro-launchpad");
+    }
+  }, [user?.professionalRole]);
 
   const handleBegin = () => {
     if (role === "trainer" || role === "physician") {
@@ -71,10 +83,28 @@ export default function ProCareWelcome() {
         ? "Physician"
         : "Professional";
 
+  const cta = (
+    <>
+      {user?.onboardingCompletedAt ? (
+        <div className="mb-2 text-center">
+          <p className="text-xs text-white/40">Personal profile already complete — continuing to certification</p>
+        </div>
+      ) : null}
+      <button
+        onClick={handleBegin}
+        className="w-full h-14 text-md font-bold rounded-2xl bg-orange-600 text-white shadow-lg transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98]"
+      >
+        Begin Your Professional Journey
+        <ArrowRight className="w-5 h-5" />
+      </button>
+    </>
+  );
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white flex flex-col">
-      <div className="flex-1 overflow-y-auto px-4 pb-36">
-        <div className="pt-10 pb-2" />
+    <div className={`bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white ${isDesktop ? "pb-8" : "min-h-screen flex flex-col"}`}>
+      {/* Scrollable content */}
+      <div className={isDesktop ? "max-w-2xl mx-auto px-4 py-6" : "flex-1 overflow-y-auto px-4 pb-36"}>
+        {!isDesktop && <div className="pt-10 pb-2" />}
 
         {/* In-content back button — visible on both mobile and desktop */}
         <button
@@ -155,23 +185,21 @@ export default function ProCareWelcome() {
             and grow their businesses faster."
           </p>
         </div>
+
+        {/* CTA inline on desktop */}
+        {isDesktop && (
+          <div className="mt-6">
+            {cta}
+          </div>
+        )}
       </div>
 
-      {/* Fixed CTA */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/95 to-transparent">
-        {user?.onboardingCompletedAt ? (
-          <div className="mb-2 text-center">
-            <p className="text-xs text-white/40">Personal profile already complete — continuing to certification</p>
-          </div>
-        ) : null}
-        <button
-          onClick={handleBegin}
-          className="w-full h-14 text-md font-bold rounded-2xl bg-orange-600 text-white shadow-lg transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98]"
-        >
-          Begin Your Professional Journey
-          <ArrowRight className="w-5 h-5" />
-        </button>
-      </div>
+      {/* CTA fixed on mobile */}
+      {!isDesktop && (
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/95 to-transparent">
+          {cta}
+        </div>
+      )}
     </div>
   );
 }
