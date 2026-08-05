@@ -1039,3 +1039,102 @@ export async function sendBusinessInviteEmail({
     return null;
   }
 }
+
+// ── Trial Expiry Reminder ────────────────────────────────────────────────────
+export async function sendTrialExpiryReminderEmail({
+  to,
+  firstName,
+  daysRemaining,
+  trialEndsAt,
+}: {
+  to: string;
+  firstName: string;
+  daysRemaining: number;
+  trialEndsAt: Date;
+}) {
+  if (!resend) {
+    console.log('⚠️ Resend not available — skipping trial expiry reminder');
+    return null;
+  }
+
+  const expiryStr = trialEndsAt.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  const isLastDay = daysRemaining === 1;
+  const urgencyColor = isLastDay ? "#dc2626" : daysRemaining <= 3 ? "#d97706" : "#2563eb";
+  const subjectLine = isLastDay
+    ? `⏰ Last day of your My Perfect Meals trial`
+    : `Your My Perfect Meals trial ends in ${daysRemaining} day${daysRemaining === 1 ? "" : "s"}`;
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: EMAIL_FROM,
+      to: [to],
+      subject: subjectLine,
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
+
+          <!-- Header -->
+          <div style="background: linear-gradient(135deg, #111827 0%, #1f2937 100%); padding: 36px 30px; border-radius: 12px 12px 0 0; text-align: center;">
+            <p style="color: #9ca3af; margin: 0 0 8px; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; font-weight: 600;">My Perfect Meals</p>
+            <h1 style="color: white; margin: 0; font-size: 26px; font-weight: 700; line-height: 1.2;">
+              ${isLastDay ? "Today is your last day" : `${daysRemaining} days left`}
+            </h1>
+            <p style="color: #d1d5db; margin: 10px 0 0; font-size: 15px;">Your complimentary Pro trial expires on <strong style="color: white;">${expiryStr}</strong></p>
+          </div>
+
+          <!-- Body -->
+          <div style="background: #f9fafb; padding: 32px 30px; border-left: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb;">
+
+            <p style="color: #374151; font-size: 16px; margin: 0 0 20px;">Hi ${firstName},</p>
+
+            <p style="color: #374151; font-size: 15px; line-height: 1.7; margin: 0 0 24px;">
+              ${isLastDay
+                ? "Your free trial ends today. After today, your account will move to the Free tier — your data and meal history stay safe, but Pro features like personalized meal plans, clinical protocols, and coaching tools will lock."
+                : `You have <strong style="color: ${urgencyColor};">${daysRemaining} days</strong> left to experience everything My Perfect Meals has to offer. After your trial ends on ${expiryStr}, your account moves to the Free tier.`
+              }
+            </p>
+
+            <!-- Feature list -->
+            <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 20px 24px; margin-bottom: 28px;">
+              <p style="color: #1e40af; font-size: 14px; font-weight: 700; margin: 0 0 12px;">What you keep with a Pro subscription:</p>
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr><td style="padding: 4px 0; color: #1e3a5f; font-size: 14px;">✅&nbsp; AI-personalized meal plans</td></tr>
+                <tr><td style="padding: 4px 0; color: #1e3a5f; font-size: 14px;">✅&nbsp; Clinical nutrition protocols</td></tr>
+                <tr><td style="padding: 4px 0; color: #1e3a5f; font-size: 14px;">✅&nbsp; Dietary restriction &amp; condition support</td></tr>
+                <tr><td style="padding: 4px 0; color: #1e3a5f; font-size: 14px;">✅&nbsp; Business Center &amp; ProCare tools</td></tr>
+                <tr><td style="padding: 4px 0; color: #1e3a5f; font-size: 14px;">✅&nbsp; All your saved meals &amp; history</td></tr>
+              </table>
+            </div>
+
+            <!-- CTA -->
+            <div style="text-align: center; margin: 0 0 28px;">
+              <a href="https://myperfectmeals.app/pricing" style="display: inline-block; background: ${urgencyColor}; color: white; padding: 16px 44px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 17px; letter-spacing: 0.2px;">
+                ${isLastDay ? "Upgrade Now — Keep Pro Access" : "Upgrade to Pro"}
+              </a>
+              <p style="color: #6b7280; font-size: 13px; margin: 10px 0 0;">No obligation. Cancel anytime.</p>
+            </div>
+
+            <p style="color: #6b7280; font-size: 13px; line-height: 1.6; margin: 0;">
+              Not ready to upgrade? No problem — your account and all your data will still be here whenever you decide to continue.
+            </p>
+          </div>
+
+          <!-- Footer -->
+          <div style="background: #1f2937; padding: 20px 30px; border-radius: 0 0 12px 12px; text-align: center;">
+            <p style="color: #6b7280; font-size: 12px; margin: 0;">
+              My Perfect Meals &mdash; Clinical Nutrition Platform<br/>
+              <span style="color: #4b5563;">You're receiving this because your free trial is ending soon.</span>
+            </p>
+          </div>
+
+        </div>
+      `,
+    });
+
+    if (error) { console.error('❌ [trial-reminder] Resend error:', error); return null; }
+    console.log(`✅ [trial-reminder] day_${daysRemaining} email sent to ${to}:`, data?.id);
+    return data;
+  } catch (err) {
+    console.error('❌ [trial-reminder] Email failed:', err);
+    return null;
+  }
+}
