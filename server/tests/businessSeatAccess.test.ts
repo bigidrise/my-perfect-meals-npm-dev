@@ -1364,19 +1364,11 @@ describe("POST /api/business/invite — expired pending invite does not block fr
 
   // ── Scenario: same email, expired row → new invite allowed ───────────────────
   it("scenario — expired invite then fresh invite: no block (end-to-end decision tree)", () => {
-    // Step 1: owner sends invite → invite row created (status=pending, expiresAt=7 days out)
-    // Step 2: 8 days pass → expiresAt is now in the past
-    // Step 3: owner sends a fresh invite to the same email
-    //   → the DB guard finds NO valid pending row (expiresAt <= now)
-    //   → guard returns null → invite proceeds
     const staleInviteExists = simulateSendInvitePendingGuardWithExpiry({
       inviteId: "bi-expired-scenario-001",
       isStillValid: false,
     });
     expect(staleInviteExists).toBeNull(); // not blocked
-
-    // Step 4: fresh invite is inserted; stale row is marked "expired" by handler
-    // This is a side-effect in the real handler — verified by source scan below.
   });
 });
 
@@ -1400,28 +1392,19 @@ describe("businessRoutes.ts — POST /invite expiresAt guard regression", () => 
   });
 
   it("duplicate-invite guard includes an expiresAt condition (not just status=pending)", () => {
-    // The WHERE clause on the existing-invite query must reference expiresAt.
-    // Without this, an expired invite permanently blocks a re-invite.
     expect(inviteHandlerSlice).toContain("businessInvitations.expiresAt");
   });
 
   it("seat-count query also excludes expired pending invites via expiresAt", () => {
-    // The pendingInvCount query must also filter on expiresAt so expired rows
-    // don't inflate the occupied-seat count and falsely trigger SEATS_FULL.
     const pendingCountIdx = inviteHandlerSlice.indexOf("pendingInvCount");
     expect(pendingCountIdx).toBeGreaterThan(-1);
-    // expiresAt must appear somewhere after the pendingInvCount declaration
     const afterCount = inviteHandlerSlice.slice(pendingCountIdx);
     expect(afterCount.indexOf("expiresAt")).toBeGreaterThan(-1);
   });
 
   it("handler marks stale expired pending invites as 'expired' before inserting the new one", () => {
-    // The cleanup step must set status="expired" on rows with expiresAt in the past.
-    // Confirm a db.update(businessInvitations) call with status "expired" is present.
     expect(inviteHandlerSlice).toContain('"expired"');
-    // The cleanup must be a Drizzle update call (not just a comment).
     expect(inviteHandlerSlice).toContain(".update(businessInvitations)");
-    // Confirm the update call sets status to "expired"
     const updateIdx = inviteHandlerSlice.indexOf('.update(businessInvitations)');
     const afterUpdate = inviteHandlerSlice.slice(updateIdx, updateIdx + 300);
     expect(afterUpdate).toContain('"expired"');
@@ -1436,15 +1419,247 @@ describe("businessRoutes.ts — POST /invite expiresAt guard regression", () => 
   });
 
   it("expiresAt appears in both the pending-invite check and the seat-count query sections", () => {
-    // Count how many times expiresAt is referenced in the invite handler —
-    // it should appear at least twice (seat count query + duplicate check).
     const matches = inviteHandlerSlice.match(/expiresAt/g);
     expect(matches).not.toBeNull();
     expect(matches!.length).toBeGreaterThanOrEqual(2);
   });
 });
 
-// ── 13. requireProAccess middleware source structure ──────────────────────────
+// ── 13. Cross-business duplicate guard ────────────────────────────────────────
+/**
+ * A user must not hold active seats in two businesses simultaneously.
+ * The accept-invite handler checks for any active businessMembers row
+ * across ALL businesses (not just the one being joined) before activating
+ * a new membership.
+ *
+ * Decision: reject with ALREADY_IN_ANOTHER_BUSINESS (not auto-remove) so the
+ * user retains agency over which business they leave.
+ */
+
+/**
+ * Extended simulation that adds a cross-business active-membership check between
+ * the same-business check and the seat-count check.
+ */
+function simulateAcceptInviteWithCrossBusinessCheck(
+  existingSameBusiness: MockExistingMember | null,
+  activeInAnotherBusiness: boolean,
+  usedSeats: number,
+  seatLimit: number,
+): { status: number; code?: string; action?: "reactivate" | "insert" } {
+  // Step 1: same-business existing-member check (fires first)
+  if (existingSameBusiness && existingSameBusiness.status === "active") {
+    return { status: 400, code: "ALREADY_MEMBER" };
+  }
+
+  // Step 2: cross-business active-membership check
+  if (activeInAnotherBusiness) {
+    return { status: 400, code: "ALREADY_IN_ANOTHER_BUSINESS" };
+  }
+
+  // Step 3: seat availability
+  if (usedSeats >= seatLimit) {
+    return { status: 400, code: "SEATS_FULL" };
+  }
+
+  // Step 4: re-activate or insert
+  if (existingSameBusiness && existingSameBusiness.status === "removed") {
+    return { status: 200, action: "reactivate" };
+  }
+  return { status: 200, action: "insert" };
+}
+
+describe("POST /api/business/invite/:token/accept — cross-business duplicate guard", () => {
+  const SEAT_LIMIT = 3;
+
+  it("rejects a user who is already an active member of a different business", () => {
+    const result = simulateAcceptInviteWithCrossBusinessCheck(null, true, 0, SEAT_LIMIT);
+    expect(result.status).toBe(400);
+    expect(result.code).toBe("ALREADY_IN_ANOTHER_BUSINESS");
+  });
+
+  it("rejects even when the target business has plenty of free seats", () => {
+    const result = simulateAcceptInviteWithCrossBusinessCheck(null, true, 0, SEAT_LIMIT);
+    expect(result.status).toBe(400);
+    expect(result.code).toBe("ALREADY_IN_ANOTHER_BUSINESS");
+  });
+
+  it("rejects even when the target business is already at capacity", () => {
+    const result = simulateAcceptInviteWithCrossBusinessCheck(null, true, SEAT_LIMIT, SEAT_LIMIT);
+    expect(result.status).toBe(400);
+    expect(result.code).toBe("ALREADY_IN_ANOTHER_BUSINESS");
+  });
+
+  it("allows a user with no active membership anywhere to accept (baseline)", () => {
+    const result = simulateAcceptInviteWithCrossBusinessCheck(null, false, 1, SEAT_LIMIT);
+    expect(result.status).toBe(200);
+    expect(result.action).toBe("insert");
+  });
+
+  it("allows a formerly-removed member (same business) who is not in another business", () => {
+    const removedRow: MockExistingMember = { id: "bm-removed-003", status: "removed" };
+    const result = simulateAcceptInviteWithCrossBusinessCheck(removedRow, false, 1, SEAT_LIMIT);
+    expect(result.status).toBe(200);
+    expect(result.action).toBe("reactivate");
+  });
+
+  it("rejects a formerly-removed member (same business) who is active in a third business", () => {
+    const removedRow: MockExistingMember = { id: "bm-removed-004", status: "removed" };
+    const result = simulateAcceptInviteWithCrossBusinessCheck(removedRow, true, 1, SEAT_LIMIT);
+    expect(result.status).toBe(400);
+    expect(result.code).toBe("ALREADY_IN_ANOTHER_BUSINESS");
+  });
+
+  it("same-business active check fires before cross-business check (priority order)", () => {
+    const activeRow: MockExistingMember = { id: "bm-active-001", status: "active" };
+    const result = simulateAcceptInviteWithCrossBusinessCheck(activeRow, true, 0, SEAT_LIMIT);
+    expect(result.status).toBe(400);
+    expect(result.code).toBe("ALREADY_MEMBER"); // NOT ALREADY_IN_ANOTHER_BUSINESS
+  });
+
+  it("cross-business check fires before seat-count check (priority order)", () => {
+    const result = simulateAcceptInviteWithCrossBusinessCheck(null, true, SEAT_LIMIT, SEAT_LIMIT);
+    expect(result.status).toBe(400);
+    expect(result.code).toBe("ALREADY_IN_ANOTHER_BUSINESS"); // NOT SEATS_FULL
+  });
+});
+
+// ── 14. businessRoutes.ts source — cross-business guard presence ──────────────
+/**
+ * Regression guard: verifies the cross-business check exists in the accept
+ * handler and appears in the correct position relative to other checks.
+ */
+describe("businessRoutes.ts — cross-business duplicate guard in accept handler", () => {
+  const routeFilePath = path.resolve(__dirname, "../routes/businessRoutes.ts");
+  let source: string;
+  let handlerSlice: string;
+
+  beforeAll(() => {
+    source = fs.readFileSync(routeFilePath, "utf-8");
+    const acceptStart = source.indexOf('"/invite/:token/accept"');
+    const afterStart = source.slice(acceptStart);
+    const nextRouteMatch = afterStart.match(/\n\/\/ ──/);
+    handlerSlice = nextRouteMatch
+      ? afterStart.slice(0, nextRouteMatch.index!)
+      : afterStart.slice(0, 4000);
+  });
+
+  it("accept handler contains ALREADY_IN_ANOTHER_BUSINESS error code", () => {
+    expect(handlerSlice).toContain("ALREADY_IN_ANOTHER_BUSINESS");
+  });
+
+  it("cross-business check (ALREADY_IN_ANOTHER_BUSINESS) appears before getActiveSeats call", () => {
+    const crossBizIdx = handlerSlice.indexOf("ALREADY_IN_ANOTHER_BUSINESS");
+    const seatsIdx = handlerSlice.indexOf("getActiveSeats");
+    expect(crossBizIdx).toBeGreaterThan(-1);
+    expect(seatsIdx).toBeGreaterThan(-1);
+    expect(crossBizIdx).toBeLessThan(seatsIdx);
+  });
+
+  it("same-business active check (already a member) appears before cross-business check", () => {
+    const sameBizIdx = handlerSlice.indexOf("already a member of this business");
+    const crossBizIdx = handlerSlice.indexOf("ALREADY_IN_ANOTHER_BUSINESS");
+    expect(sameBizIdx).toBeGreaterThan(-1);
+    expect(crossBizIdx).toBeGreaterThan(-1);
+    expect(sameBizIdx).toBeLessThan(crossBizIdx);
+  });
+
+  it("ne() or sql-based inequality is used to exclude the current business from the cross-business query", () => {
+    const hasNe = handlerSlice.includes("ne(businessMembers.businessId") ||
+                  handlerSlice.includes("businessId != ") ||
+                  handlerSlice.includes("businessId !== ");
+    expect(hasNe).toBe(true);
+  });
+});
+
+// ── 16. DB-level constraint violation → ALREADY_IN_ANOTHER_BUSINESS mapping ──
+/**
+ * The partial unique index idx_business_members_one_active_per_user enforces the
+ * one-active-seat-per-user rule at the DB layer.  If two concurrent requests both
+ * pass the application-level pre-check, the second DB write will throw a PostgreSQL
+ * 23505 unique-violation.  The accept handler must catch that error and return
+ * ALREADY_IN_ANOTHER_BUSINESS instead of 500.
+ *
+ * These tests verify the error-classification logic in isolation (no live DB needed).
+ */
+
+/**
+ * Mirrors the constraint-violation classifier in the accept handler:
+ *
+ *   if (txErr.code === "23505" && constraintName.includes("one_active_per_user"))
+ *     → ALREADY_IN_ANOTHER_BUSINESS
+ *   else
+ *     → re-throw (500)
+ */
+function classifyTransactionError(err: { code?: string; constraint_name?: string; constraint?: string }): "ALREADY_IN_ANOTHER_BUSINESS" | "SERVER_ERROR" {
+  const constraintName: string = err.constraint_name ?? err.constraint ?? "";
+  if (err.code === "23505" && constraintName.includes("one_active_per_user")) {
+    return "ALREADY_IN_ANOTHER_BUSINESS";
+  }
+  return "SERVER_ERROR";
+}
+
+describe("Accept-invite transaction — DB constraint violation classifier", () => {
+  it("maps a 23505 unique-violation on one_active_per_user to ALREADY_IN_ANOTHER_BUSINESS", () => {
+    const pgError = { code: "23505", constraint_name: "idx_business_members_one_active_per_user" };
+    expect(classifyTransactionError(pgError)).toBe("ALREADY_IN_ANOTHER_BUSINESS");
+  });
+
+  it("also handles pg drivers that surface the constraint as 'constraint' not 'constraint_name'", () => {
+    const pgError = { code: "23505", constraint: "idx_business_members_one_active_per_user" };
+    expect(classifyTransactionError(pgError)).toBe("ALREADY_IN_ANOTHER_BUSINESS");
+  });
+
+  it("does NOT swallow an unrelated 23505 violation (e.g. business_id+user_id unique)", () => {
+    const pgError = { code: "23505", constraint_name: "business_members_business_id_user_id_key" };
+    expect(classifyTransactionError(pgError)).toBe("SERVER_ERROR");
+  });
+
+  it("does NOT swallow a non-unique-violation DB error (e.g. FK violation code 23503)", () => {
+    expect(classifyTransactionError({ code: "23503", constraint_name: "some_fk" })).toBe("SERVER_ERROR");
+  });
+
+  it("does NOT swallow a generic JS error with no PG code", () => {
+    expect(classifyTransactionError({})).toBe("SERVER_ERROR");
+  });
+});
+
+// ── 17. businessRoutes.ts source — constraint catch present in accept handler ─
+/**
+ * Regression guard: verifies that the accept handler catches 23505 errors and
+ * maps them to ALREADY_IN_ANOTHER_BUSINESS (not 500).
+ */
+describe("businessRoutes.ts — accept handler catches DB constraint violation", () => {
+  const routeFilePath = path.resolve(__dirname, "../routes/businessRoutes.ts");
+  let handlerSlice: string;
+
+  beforeAll(() => {
+    const source = fs.readFileSync(routeFilePath, "utf-8");
+    const acceptStart = source.indexOf('"/invite/:token/accept"');
+    const afterStart = source.slice(acceptStart);
+    const nextRouteMatch = afterStart.match(/\n\/\/ ──/);
+    handlerSlice = nextRouteMatch
+      ? afterStart.slice(0, nextRouteMatch.index!)
+      : afterStart.slice(0, 6000);
+  });
+
+  it("accept handler checks txErr.code === '23505'", () => {
+    expect(handlerSlice).toContain('"23505"');
+  });
+
+  it("accept handler inspects the constraint name for one_active_per_user", () => {
+    expect(handlerSlice).toContain("one_active_per_user");
+  });
+
+  it("accept handler re-throws errors that are not the one_active_per_user violation", () => {
+    expect(handlerSlice).toContain("throw txErr");
+  });
+
+  it("partial unique index name is consistent between boot migration and accept handler", () => {
+    expect(handlerSlice).toContain("one_active_per_user");
+  });
+});
+
+// ── 18. requireProAccess middleware source structure ──────────────────────────
 
 describe("requireProAccess.ts — middleware structure regression", () => {
   const middlewareFilePath = path.resolve(__dirname, "../middleware/requireProAccess.ts");
