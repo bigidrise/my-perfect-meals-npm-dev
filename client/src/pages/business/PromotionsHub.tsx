@@ -136,6 +136,7 @@ function QRPreviewModal({ link, promoName, onClose }: { link: string; promoName:
   const [compositing, setCompositing] = useState(false);
   const [previewDataUrl, setPreviewDataUrl] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const [copied, setCopied] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Generate plain QR on mount
@@ -166,6 +167,13 @@ function QRPreviewModal({ link, promoName, onClose }: { link: string; promoName:
     const reader = new FileReader();
     reader.onload = (ev) => setLogoDataUrl(ev.target?.result as string);
     reader.readAsDataURL(file);
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(link).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
   };
 
   const handleDownload = async () => {
@@ -248,6 +256,14 @@ function QRPreviewModal({ link, promoName, onClose }: { link: string; promoName:
             <p className="text-[10px] text-white/25 text-center mt-1.5">Logo centred at ≤25% of QR width</p>
           )}
         </div>
+
+        <button
+          onClick={handleCopyLink}
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white text-sm font-semibold transition-colors border border-white/10"
+        >
+          {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+          <span className={copied ? "text-emerald-400" : ""}>{copied ? "Copied!" : "Copy link"}</span>
+        </button>
 
         <button
           onClick={handleDownload}

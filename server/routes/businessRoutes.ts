@@ -818,6 +818,23 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
       return res.status(410).json({ error: "This invitation has expired." });
     }
 
+    // ── Email-address enforcement ─────────────────────────────────────────────
+    // The invitation is tied to a specific email. Verify the authenticated user's
+    // email matches before doing anything else — prevents one person from redeeming
+    // an invitation meant for another.
+    const [acceptingUser] = await db
+      .select({ email: users.email })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (!acceptingUser || acceptingUser.email?.toLowerCase() !== invite.email.toLowerCase()) {
+      return res.status(403).json({
+        error: "This invitation was sent to a different email address. Please log in with the email that received the invitation.",
+        code: "EMAIL_MISMATCH",
+      });
+    }
+
     const [business] = await db
       .select()
       .from(businesses)
@@ -831,9 +848,12 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
     // ── Client invitation path — extend trial, no seat consumed ──────────────
     if (invite.invitationType === "client") {
       const trialDays = invite.trialDays ?? 30;
-      // Extend trial: take the later of (current trial end, now) and add trialDays
+      // Set trial to MAX(existing end, now + N days).
+      // Using COALESCE so NULL trial_ends_at is treated as a past date, not a GREATEST-stopper.
+      // This means a brand-new user (7-day default trial) gets exactly 30 days from acceptance,
+      // not 7+30. A user already on a longer custom trial keeps their longer end date.
       await db.execute(
-        sql`UPDATE users SET trial_ends_at = GREATEST(COALESCE(trial_ends_at, NOW()), NOW()) + (${trialDays}::text || ' days')::interval WHERE id = ${userId}`
+        sql`UPDATE users SET trial_ends_at = GREATEST(COALESCE(trial_ends_at, '1970-01-01'::timestamptz), NOW() + (${trialDays}::text || ' days')::interval) WHERE id = ${userId}`
       );
       await db
         .update(businessInvitations)
