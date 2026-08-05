@@ -1051,6 +1051,15 @@ export default function GLP1MealBuilder() {
         className="max-w-[1600px] mx-auto px-4 space-y-6"
         style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${proClientId ? '9rem' : '6rem'})` }}
       >
+        {isDesktop && (
+          <button
+            onClick={() => setLocation("/glp1-hub")}
+            className="flex items-center gap-2 text-orange-400 hover:text-orange-300 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span className="text-sm font-medium">GLP-1 Hub</span>
+          </button>
+        )}
         {/* NutritionBudgetBanner hidden — low value vs Remaining Today footer; restore when reactivity is fixed */}
       <div className="mb-6 mt-2 border border-zinc-800 bg-zinc-900/60 backdrop-blur rounded-2xl mx-4">
         <div className="px-4 py-4 flex flex-col gap-3">
