@@ -95,6 +95,7 @@ import academyRouter from './routes/academyRoutes';
 import lmsRouter from './routes/lmsRoutes';
 import affiliateRouter, { handleRewardfulWebhook } from './routes/affiliateRoutes';
 import partnerRouter from './routes/partnerRoutes';
+import promotionRouter from './routes/promotionRoutes';
 import whiteLabelRouter from './routes/whiteLabelRoutes';
 import { cookingRouter } from './routes/cooking';
 import { mealImagesRouter } from './routes/mealImages';
@@ -457,6 +458,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/lms', lmsRouter);
   app.use('/api/affiliate', affiliateRouter);
   app.use('/api/partner', partnerRouter);
+  app.use('/api/promotions', promotionRouter);
   app.post('/api/webhooks/rewardful', handleRewardfulWebhook);
   app.use('/api/white-label', whiteLabelRouter);
   app.use('/api/business', businessRouter);

@@ -31,6 +31,7 @@ interface CheckoutRequestBody {
   priceLookupKey?: LookupKey;
   context?: string;
   rewardfulReferralId?: string;
+  stripePromoCodeId?: string; // Stripe promotion code ID to pre-apply (from Promotion Engine)
 }
 
 router.post("/checkout", requireAuth, async (req, res) => {
@@ -95,6 +96,18 @@ router.post("/checkout", requireAuth, async (req, res) => {
       );
     }
 
+    const stripePromoCodeId =
+      typeof body.stripePromoCodeId === "string" &&
+      body.stripePromoCodeId.trim().length > 0
+        ? body.stripePromoCodeId.trim()
+        : undefined;
+
+    if (stripePromoCodeId) {
+      console.log(
+        `🏷️  Promotion code pre-applied | promoCodeId=${stripePromoCodeId} | user=${userId}`,
+      );
+    }
+
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
 
@@ -109,6 +122,12 @@ router.post("/checkout", requireAuth, async (req, res) => {
 
       cancel_url: `${appUrl}/billing/cancel`,
 
+      // Promotion Engine: pre-apply a partner discount code if provided.
+      // Cannot be combined with allow_promotion_codes (Stripe rejects both).
+      ...(stripePromoCodeId
+        ? { discounts: [{ promotion_code: stripePromoCodeId }] }
+        : { allow_promotion_codes: true }),
+
       ...(rewardfulReferralId && {
         client_reference_id: rewardfulReferralId,
       }),
@@ -117,6 +136,7 @@ router.post("/checkout", requireAuth, async (req, res) => {
         userId,
         sku: lookupKey,
         context: body.context ?? "unknown",
+        ...(stripePromoCodeId && { promoCodeId: stripePromoCodeId }),
       },
     });
 

@@ -816,6 +816,10 @@ async function initializeApp() {
     const partnerRouter = (await import("./routes/partnerRoutes")).default;
     app.use("/api/partner", partnerRouter);
 
+    // promotions — Promotion Engine (trial extensions, discount codes, invite links)
+    const promotionRouter = (await import("./routes/promotionRoutes")).default;
+    app.use("/api/promotions", promotionRouter);
+
     // marketing-center — referral tools, monthly campaigns, messaging guidelines
     const marketingCenterRouter = (await import("./routes/marketingCenterRoutes")).default;
     app.use("/api/marketing-center", marketingCenterRouter);
