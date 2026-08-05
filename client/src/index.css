@@ -274,7 +274,7 @@ body.hide-bottom-nav nav[class*="bottom-0"] {
   --background: hsl(222, 84%, 4.9%);
   --foreground: hsl(210, 40%, 98%);
   --muted: hsl(217, 32%, 17%);
-  --muted-foreground: hsl(215, 16%, 46.9%);
+  --muted-foreground: hsl(215, 20%, 78%);
   --popover: hsl(222, 84%, 4.9%);
   --popover-foreground: hsl(210, 40%, 98%);
   --card: hsl(222, 84%, 4.9%);
@@ -857,7 +857,7 @@ a {
   --input: 0 0% 20%; /* Dark input background */
   --border: 0 0% 80%; /* Light borders */
   --ring: 0 0% 80%; /* Light focus ring */
-  --muted-foreground: 0 0% 60%; /* Muted text/placeholders */
+  --muted-foreground: 0 0% 78%; /* Muted text/placeholders — readable on dark backgrounds */
 }
 
 /* Additional input styling for glass effect */
@@ -1455,5 +1455,37 @@ button, a, [role="button"], .interactive {
   animation: none !important;
   box-shadow: 0 0 10px 3px rgba(139, 92, 246, 0.45), 0 0 18px 5px rgba(109, 40, 217, 0.2);
   border-color: rgba(196, 181, 253, 0.85);
+}
+
+/* ==========================================
+   DARK MODE TEXT VISIBILITY — GLOBAL RULE
+   All gray/zinc/slate text classes that are
+   unreadable on dark backgrounds are rescued
+   here. Do NOT use text-gray-500/600 or
+   text-muted-foreground expecting it to be
+   subtle — on dark it must still be legible.
+   ========================================== */
+.dark .text-gray-400,
+.dark .text-zinc-400,
+.dark .text-slate-400 {
+  color: hsl(215, 15%, 75%) !important;
+}
+
+.dark .text-gray-500,
+.dark .text-zinc-500,
+.dark .text-slate-500 {
+  color: hsl(215, 15%, 72%) !important;
+}
+
+.dark .text-gray-600,
+.dark .text-zinc-600,
+.dark .text-slate-600 {
+  color: hsl(215, 15%, 68%) !important;
+}
+
+.dark .text-gray-700,
+.dark .text-zinc-700,
+.dark .text-slate-700 {
+  color: hsl(215, 15%, 65%) !important;
 }
 
