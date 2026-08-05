@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -48,6 +48,70 @@ function promoSummary(p: Promotion) {
   return "";
 }
 
+// Composites a logo onto an existing QR data URL and returns the new data URL.
+// Logo is capped at 25% of the QR side length (≈6% of area — well within the 30% area scan-safety limit).
+async function applyLogoToDataUrl(qrDataUrl: string, logoDataUrl: string): Promise<string> {
+  const QR_SIZE = 512;
+  const canvas = document.createElement("canvas");
+  canvas.width = QR_SIZE;
+  canvas.height = QR_SIZE;
+  const ctx = canvas.getContext("2d")!;
+
+  // Draw the QR base
+  const qrImg = new Image();
+  await new Promise<void>((resolve, reject) => {
+    qrImg.onload = () => resolve();
+    qrImg.onerror = reject;
+    qrImg.src = qrDataUrl;
+  });
+  ctx.drawImage(qrImg, 0, 0, QR_SIZE, QR_SIZE);
+
+  // Draw the logo centered
+  const logoImg = new Image();
+  await new Promise<void>((resolve, reject) => {
+    logoImg.onload = () => resolve();
+    logoImg.onerror = reject;
+    logoImg.src = logoDataUrl;
+  });
+
+  const maxLogoSize = Math.round(QR_SIZE * 0.25);
+  const aspect = logoImg.naturalWidth / logoImg.naturalHeight;
+  let logoW = maxLogoSize;
+  let logoH = Math.round(maxLogoSize / aspect);
+  if (logoH > maxLogoSize) {
+    logoH = maxLogoSize;
+    logoW = Math.round(maxLogoSize * aspect);
+  }
+
+  const pad = 8;
+  const bgW = logoW + pad * 2;
+  const bgH = logoH + pad * 2;
+  const x = Math.round((QR_SIZE - bgW) / 2);
+  const y = Math.round((QR_SIZE - bgH) / 2);
+
+  // White rounded-rect background
+  const r = 10;
+  ctx.save();
+  ctx.fillStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + bgW - r, y);
+  ctx.quadraticCurveTo(x + bgW, y, x + bgW, y + r);
+  ctx.lineTo(x + bgW, y + bgH - r);
+  ctx.quadraticCurveTo(x + bgW, y + bgH, x + bgW - r, y + bgH);
+  ctx.lineTo(x + r, y + bgH);
+  ctx.quadraticCurveTo(x, y + bgH, x, y + bgH - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+
+  ctx.drawImage(logoImg, x + pad, y + pad, logoW, logoH);
+
+  return canvas.toDataURL("image/png");
+}
+
 async function generateQRDataUrl(link: string): Promise<string> {
   const canvas = document.createElement("canvas");
   await QRCode.toCanvas(canvas, link, {
@@ -66,18 +130,48 @@ function triggerDownload(dataUrl: string, promoName: string) {
 }
 
 function QRPreviewModal({ link, promoName, onClose }: { link: string; promoName: string; onClose: () => void }) {
-  const [dataUrl, setDataUrl] = useState<string | null>(null);
+  const [baseDataUrl, setBaseDataUrl] = useState<string | null>(null);
+  const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
+  const [logoName, setLogoName] = useState<string>("");
+  const [compositing, setCompositing] = useState(false);
+  const [previewDataUrl, setPreviewDataUrl] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
-  // Generate QR on mount
+  // Generate plain QR on mount
   useEffect(() => {
-    generateQRDataUrl(link).then(setDataUrl);
+    generateQRDataUrl(link).then(url => {
+      setBaseDataUrl(url);
+      setPreviewDataUrl(url);
+    });
   }, [link]);
+
+  // Re-composite whenever logo changes
+  useEffect(() => {
+    if (!baseDataUrl) return;
+    if (!logoDataUrl) {
+      setPreviewDataUrl(baseDataUrl);
+      return;
+    }
+    setCompositing(true);
+    applyLogoToDataUrl(baseDataUrl, logoDataUrl)
+      .then(setPreviewDataUrl)
+      .finally(() => setCompositing(false));
+  }, [baseDataUrl, logoDataUrl]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLogoName(file.name);
+    const reader = new FileReader();
+    reader.onload = (ev) => setLogoDataUrl(ev.target?.result as string);
+    reader.readAsDataURL(file);
+  };
 
   const handleDownload = async () => {
     setDownloading(true);
     try {
-      const url = dataUrl ?? await generateQRDataUrl(link);
+      const url = previewDataUrl ?? baseDataUrl ?? await generateQRDataUrl(link);
       triggerDownload(url, promoName);
     } finally {
       setDownloading(false);
@@ -114,18 +208,50 @@ function QRPreviewModal({ link, promoName, onClose }: { link: string; promoName:
         <p className="text-xs text-white/50 text-center -mt-1 w-full truncate">{promoName}</p>
 
         {/* QR preview */}
-        <div className="w-56 h-56 rounded-xl bg-white flex items-center justify-center overflow-hidden">
-          {dataUrl
-            ? <img src={dataUrl} alt="QR Code" className="w-full h-full object-contain" />
+        <div className="w-56 h-56 rounded-xl bg-white flex items-center justify-center overflow-hidden relative">
+          {previewDataUrl
+            ? <img src={previewDataUrl} alt="QR Code" className="w-full h-full object-contain" />
             : <div className="w-8 h-8 border-2 border-gray-300 border-t-orange-500 rounded-full animate-spin" />
           }
+          {compositing && (
+            <div className="absolute inset-0 flex items-center justify-center bg-white/60 rounded-xl">
+              <div className="w-6 h-6 border-2 border-gray-300 border-t-orange-500 rounded-full animate-spin" />
+            </div>
+          )}
         </div>
 
         <p className="text-[11px] text-white/30 text-center">Scan to verify it opens the invite link</p>
 
+        {/* Logo upload */}
+        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+        <div className="w-full">
+          {logoDataUrl ? (
+            <div className="flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2">
+              <img src={logoDataUrl} alt="logo" className="w-7 h-7 rounded object-contain bg-white/10" />
+              <p className="text-[11px] text-white/60 flex-1 truncate">{logoName}</p>
+              <button
+                onClick={() => { setLogoDataUrl(null); setLogoName(""); if (fileRef.current) fileRef.current.value = ""; }}
+                className="text-[10px] text-red-400 hover:text-red-300 shrink-0"
+              >
+                Remove
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => fileRef.current?.click()}
+              className="w-full flex items-center justify-center gap-1.5 text-xs px-3 py-2 rounded-xl border border-dashed border-white/20 text-white/40 hover:border-orange-500/40 hover:text-orange-400 transition-colors"
+            >
+              Add clinic logo to center
+            </button>
+          )}
+          {logoDataUrl && (
+            <p className="text-[10px] text-white/25 text-center mt-1.5">Logo centred at ≤25% of QR width</p>
+          )}
+        </div>
+
         <button
           onClick={handleDownload}
-          disabled={!dataUrl || downloading}
+          disabled={!previewDataUrl || downloading || compositing}
           className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold transition-colors disabled:opacity-50"
         >
           <QrCode className="w-4 h-4" />
