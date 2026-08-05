@@ -71,6 +71,17 @@ const ROUTE_KEY_MAP: Record<string, string> = {
   "/weaning-off-tool": "weaningOff",
   "/founders": "founders",
   "/apply-guidance": "applyGuidance",
+  "/business-center": "businessCenter",
+  "/business-center/partners": "partnerPrograms",
+  "/business-center/academy": "academy",
+  "/business-center/affiliate": "partnerProgram",
+  "/business-center/partners/manage": "partnerManagement",
+  "/business-dashboard": "organizationDashboard",
+  "/business/dashboard": "organizationDashboard",
+  "/partner-center": "partnerCenter",
+  "/affiliate-dashboard": "partnerRevenueCenter",
+  "/creator-studio": "creatorBrandStudio",
+  "/business-center/white-label": "whiteLabelSolutions",
 };
 
 /** Maps hub-back routes to their hub's routeTitles key */

@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiRequest } from "@/lib/queryClient";
 import { getTierForLookupKey } from "@shared/planFeatures";
@@ -106,6 +107,7 @@ const pillars = [
 export default function BusinessCenter() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+  const isDesktop = useIsDesktop();
   // Business-only accounts are NOT ProCare practitioners — exclude from cert card
   const isProfessional = !!(
     (user?.professionalRole && user?.professionalRole !== "business") ||
@@ -169,31 +171,33 @@ export default function BusinessCenter() {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
     >
-      {/* Header */}
-      <div
-        className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`}
-        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
-      >
-        <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
-          <button
-            onClick={() => setLocation("/more")}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </button>
-          <h1 className="text-lg font-bold text-white">Business Center</h1>
-          {!hasProAccess && (
-            <span className="ml-auto px-2.5 py-0.5 rounded-full bg-orange-600/20 border border-orange-500/30 text-orange-400 text-[10px] font-semibold tracking-wide uppercase">
-              Pro+
-            </span>
-          )}
+      {/* Header — mobile only; desktop uses DesktopLayout shell header */}
+      {!isDesktop && (
+        <div
+          className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`}
+          style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+        >
+          <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
+            <button
+              onClick={() => setLocation("/more")}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </button>
+            <h1 className="text-lg font-bold text-white">Business Center</h1>
+            {!hasProAccess && (
+              <span className="ml-auto px-2.5 py-0.5 rounded-full bg-orange-600/20 border border-orange-500/30 text-orange-400 text-[10px] font-semibold tracking-wide uppercase">
+                Pro+
+              </span>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       <div
         className="px-4 max-w-2xl mx-auto space-y-3"
-        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5rem)" }}
+        style={{ paddingTop: isDesktop ? "1rem" : "calc(env(safe-area-inset-top, 0px) + 5rem)" }}
       >
         <div className="py-3 text-center">
           <p className="text-white/55 text-sm leading-relaxed">
