@@ -3,6 +3,7 @@ import { eq, and } from "drizzle-orm";
 import { users } from "../../shared/schema";
 import { userCertifications } from "../db/schema/certifications";
 import { userAffiliateAccounts } from "../db/schema/affiliateAccounts";
+import { partnerRecords } from "../db/schema/partnerRecords";
 import { createRewardfulAffiliate } from "./rewardfulApi";
 import { sendAffiliateWelcomeEmail } from "./emailService";
 
@@ -107,6 +108,7 @@ export async function evaluateAffiliateActivation(userId: string): Promise<void>
     const referralUrl = affiliate.links?.[0]?.url ?? "";
     const referralToken = affiliate.links?.[0]?.token ?? "";
 
+    const activatedAt = new Date();
     await db.update(userAffiliateAccounts)
       .set({
         rewardfulAffiliateId: affiliate.id,
@@ -114,10 +116,26 @@ export async function evaluateAffiliateActivation(userId: string): Promise<void>
         rewardfulReferralUrl: referralUrl,
         rewardfulReferralToken: referralToken,
         rewardfulCampaignId: CAMPAIGN_ID,
-        activatedAt: new Date(),
+        activatedAt,
         updatedAt: new Date(),
       })
       .where(eq(userAffiliateAccounts.userId, userId));
+
+    // Auto-stamp partner_records lifecycle milestones if a record exists.
+    // rewardfulCreatedAt and acceptedAt are inferred from activation — no manual admin step needed.
+    const [partnerRecord] = await db
+      .select({ rewardfulCreatedAt: partnerRecords.rewardfulCreatedAt, acceptedAt: partnerRecords.acceptedAt })
+      .from(partnerRecords)
+      .where(eq(partnerRecords.userId, userId))
+      .limit(1);
+    if (partnerRecord) {
+      const stamps: Record<string, Date> = { updatedAt: new Date() };
+      if (!partnerRecord.rewardfulCreatedAt) stamps.rewardfulCreatedAt = activatedAt;
+      if (!partnerRecord.acceptedAt) stamps.acceptedAt = activatedAt;
+      if (Object.keys(stamps).length > 1) {
+        await db.update(partnerRecords).set(stamps as any).where(eq(partnerRecords.userId, userId));
+      }
+    }
 
     console.log(`[Affiliate] ✅ Rewardful affiliate created: ${affiliate.id} | state=${affiliate.state}`);
     // Welcome email is sent AFTER Rewardful confirms activation via webhook (state → "active"),

@@ -16,14 +16,12 @@ const FULL_SCREEN_ROUTES = [
   "/guest-builder",
   "/guest-suite",
   "/guest",
-  "/procare-welcome",
-  "/trainer-welcome",
-  "/physician-welcome",
   "/procare-identity",
   "/procare-attestation",
   "/consumer-welcome",
   "/checkout/success",
   "/affiliates",
+  "/join/promo",
 ];
 
 const UNAUTHENTICATED_FULL_SCREEN_ROUTES: string[] = [];

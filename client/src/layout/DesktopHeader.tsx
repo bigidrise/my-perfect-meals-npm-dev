@@ -71,16 +71,33 @@ const ROUTE_KEY_MAP: Record<string, string> = {
   "/weaning-off-tool": "weaningOff",
   "/founders": "founders",
   "/apply-guidance": "applyGuidance",
+  "/business-center": "businessCenter",
+  "/business-center/promotions": "promotions",
+  "/business-center/partners": "partnerPrograms",
+  "/business-center/academy": "academy",
+  "/business-center/affiliate": "partnerProgram",
+  "/business-center/partners/manage": "partnerManagement",
+  "/business-dashboard": "organizationDashboard",
+  "/business/dashboard": "organizationDashboard",
+  "/partner-center": "partnerCenter",
+  "/affiliate-dashboard": "partnerRevenueCenter",
+  "/creator-studio": "creatorBrandStudio",
+  "/business-center/white-label": "whiteLabelSolutions",
+  "/business-center/how-partnerships-work": "howPartnershipsWork",
+  "/business-center/founding-partner": "foundingPartnerProgram",
+  "/business-center/industry": "industryPartnerships",
+  "/business-center/healthcare": "healthcarePartnerships",
+  "/org-success-center": "organizationSuccessCenter",
+  "/procare-welcome": "procareWelcome",
+  "/trainer-welcome": "trainerWelcome",
+  "/physician-welcome": "physicianWelcome",
+  "/pro-launchpad": "proLaunchpad",
+  "/procare-training": "procareTraining",
+  "/procare-certified": "procareCertified",
 };
 
 /** Maps hub-back routes to their hub's routeTitles key */
-const HUB_BACK_KEY_MAP: Record<string, { hub: string; key: string }> = {
-  "/beach-body-meal-board":            { hub: "/performance",  key: "performanceHub" },
-  "/diabetic-menu-builder":            { hub: "/diabetic-hub", key: "diabetesHub" },
-  "/glp1-meal-builder":               { hub: "/glp1-hub",     key: "metabolicHubBack" },
-  "/anti-inflammatory-menu-builder":   { hub: "/diabetic-hub", key: "diabetesHub" },
-  "/performance-competition-builder":  { hub: "/performance",  key: "performanceHub" },
-};
+const HUB_BACK_KEY_MAP: Record<string, { hub: string; key: string }> = {};
 
 type PlanBadgeVariant = "free" | "paid" | "professional";
 interface PlanBadgeInfo { text: string; variant: PlanBadgeVariant }
@@ -143,7 +160,7 @@ export default function DesktopHeader() {
       <div className="flex items-center gap-3">
         {hubBackEntry && (
           <button
-            onClick={() => setLocation(hubBackEntry.hub)}
+            onClick={() => window.history.back()}
             className="flex items-center gap-1 text-orange-400 hover:text-orange-300 transition-colors"
           >
             <ChevronLeft className="w-4 h-4" />

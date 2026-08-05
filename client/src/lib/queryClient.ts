@@ -26,6 +26,27 @@ async function throwIfResNotOk(res: Response) {
       window.dispatchEvent(new CustomEvent("mpm:session-idle-timeout"));
     }
 
+    // If the server rejected a request due to a plan gate, the user's subscription
+    // has likely been downgraded since their client-side state was last fetched.
+    // Signal AuthContext to refresh the user profile so ProActionLock and other
+    // plan-aware UI reflect the current tier immediately — no logout required.
+    const PLAN_GATE_CODES = new Set([
+      "PRO_REQUIRED",
+      "PREMIUM_REQUIRED",
+      "CLINICAL_REQUIRED",
+      "CLINICAL_LABS_REQUIRED",
+      "ESSENTIAL_REQUIRED",
+    ]);
+    if (res.status === 403 && code && PLAN_GATE_CODES.has(code)) {
+      window.dispatchEvent(new CustomEvent("mpm:plan-downgraded"));
+    }
+
+    // ProCare Studio-specific gate: dispatch a dedicated event so the Studio guard
+    // can surface a clear "trial ended — upgrade" prompt rather than a blank error.
+    if (res.status === 403 && code === "PRO_REQUIRED") {
+      window.dispatchEvent(new CustomEvent("mpm:pro-required"));
+    }
+
     throw new Error(`${res.status}: ${message}`);
   }
 }

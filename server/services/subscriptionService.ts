@@ -27,6 +27,7 @@ export async function updateUserSubscription(opts: {
     planLookupKey: lookupKey,
     entitlements,
     subscriptionStatus: "active",
+    trialEndsAt: null,
   };
   if (stripeCustomerId !== undefined) updateFields.stripeCustomerId = stripeCustomerId;
   if (stripeSubscriptionId !== undefined) updateFields.stripeSubscriptionId = stripeSubscriptionId;

@@ -536,6 +536,17 @@ async function initializeApp() {
           if (orphanCount > 0) {
             console.log(`♻️  [INIT] Waitlist orphan recovery: reset notified_at for ${orphanCount} row(s) claimed but never confirmed sent (server restart mid-send). Audit row written to waitlist_recovery_events. They will be retried on next notify run.`);
           }
+
+          // Unique partial index — prevents a second active row for the same
+          // (business_id, user_id) pair even if the in-code guard is bypassed
+          // (race condition, partial failure). Allows re-invite because removed
+          // rows are not covered by the WHERE clause. Idempotent via IF NOT EXISTS.
+          await database.execute(sql`
+            CREATE UNIQUE INDEX IF NOT EXISTS uq_business_members_active
+              ON business_members (business_id, user_id)
+              WHERE status = 'active'
+          `);
+          console.log("✅ [INIT] business_members active uniqueness index ensured");
         })(),
         migTimeout(6000),
       ]);
@@ -805,6 +816,10 @@ async function initializeApp() {
     const partnerRouter = (await import("./routes/partnerRoutes")).default;
     app.use("/api/partner", partnerRouter);
 
+    // promotions — Promotion Engine (trial extensions, discount codes, invite links)
+    const promotionRouter = (await import("./routes/promotionRoutes")).default;
+    app.use("/api/promotions", promotionRouter);
+
     // marketing-center — referral tools, monthly campaigns, messaging guidelines
     const marketingCenterRouter = (await import("./routes/marketingCenterRoutes")).default;
     app.use("/api/marketing-center", marketingCenterRouter);
@@ -825,6 +840,9 @@ async function initializeApp() {
     // My Perfect Getaway — venue-aware dining coach
     const getawayRouter = (await import("./routes/getaway")).default;
     app.use("/api/getaway", requireAuth, getawayRouter);
+
+    // My Perfect Beginning — kid-friendly recipe generator + Parent's Corner AI
+    // (routes/myPerfectBeginning.ts is the canonical file; routes/my-perfect-beginning.ts is the older stub)
 
     // My Perfect Pregnancy — trimester-aware nutrition coach
     const pregnancyCoachRouter = (await import("./routes/pregnancyCoach")).default;
@@ -855,6 +873,10 @@ async function initializeApp() {
     app.use("/api/ace/profile", aceProfilesRouter);
     app.use("/api/ace/interventions", aceInterventionsRouter);
     app.use("/api/coach-corner", coachCornerRouter);
+
+    // My Perfect Beginning — Parent's Corner AI
+    const myPerfectBeginningParentRouter = (await import("./routes/myPerfectBeginning")).default;
+    app.use("/api/my-perfect-beginning", requireAuth, myPerfectBeginningParentRouter);
 
     console.log("✅ [INIT] Parity routes mounted");
 
@@ -1088,6 +1110,15 @@ async function initializeApp() {
         await db.execute(sql`ALTER TABLE business_invitations ADD COLUMN IF NOT EXISTS policy_snapshot text`);
         await db.execute(sql`ALTER TABLE business_members ADD COLUMN IF NOT EXISTS policy_snapshot text`);
         await db.execute(sql`ALTER TABLE business_members ADD COLUMN IF NOT EXISTS policy_acknowledged_at timestamptz`);
+        // ── One-active-seat-per-user constraint ───────────────────────────────
+        // Prevents a user from holding active seats in two businesses simultaneously,
+        // even under concurrent invite-accept requests that bypass the application-
+        // level pre-check.  Only one row with status='active' per user_id is allowed.
+        await db.execute(sql`
+          CREATE UNIQUE INDEX IF NOT EXISTS idx_business_members_one_active_per_user
+          ON business_members(user_id)
+          WHERE status = 'active'
+        `);
         await db.execute(sql`
           CREATE TABLE IF NOT EXISTS business_policy_history (
             id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1198,6 +1229,81 @@ async function initializeApp() {
           console.error("❌ [prod] client_links integrity migration failed:", err.message);
         }
       }, 4500);
+
+      // Parent's Corner — persist conversations per child profile
+      setTimeout(async () => {
+        try {
+          const { db: database } = await import("./db");
+          const { sql } = await import("drizzle-orm");
+          await database.execute(sql`
+            CREATE TABLE IF NOT EXISTS parents_corner_conversations (
+              id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+              user_id text NOT NULL,
+              child_profile_id text NOT NULL,
+              messages jsonb NOT NULL DEFAULT '[]',
+              updated_at timestamptz NOT NULL DEFAULT now(),
+              CONSTRAINT uniq_parents_corner_convo UNIQUE (user_id, child_profile_id)
+            )
+          `);
+          await database.execute(sql`
+            CREATE INDEX IF NOT EXISTS idx_parents_corner_convos_user
+            ON parents_corner_conversations (user_id)
+          `);
+          console.log("✅ [prod] Parent's Corner boot migration complete (parents_corner_conversations)");
+        } catch (err: any) {
+          console.error("❌ [prod] Parent's Corner boot migration failed:", err.message);
+        }
+      }, 5000);
+
+      // Promotion Engine — partner_promotions + promotion_redemptions tables
+      setTimeout(async () => {
+        try {
+          const { db: database } = await import("./db");
+          const { sql } = await import("drizzle-orm");
+          await database.execute(sql`
+            CREATE TABLE IF NOT EXISTS partner_promotions (
+              id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+              owner_user_id text NOT NULL,
+              name text NOT NULL,
+              type text NOT NULL CHECK (type IN ('extended_trial', 'discount')),
+              trial_days integer,
+              discount_percent integer,
+              discount_duration text,
+              discount_months integer,
+              max_uses integer,
+              used_count integer NOT NULL DEFAULT 0,
+              expires_at timestamptz,
+              status text NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'paused', 'deleted')),
+              invite_token text UNIQUE NOT NULL DEFAULT md5(random()::text || clock_timestamp()::text),
+              stripe_coupon_id text,
+              stripe_promo_code_id text,
+              stripe_promo_code text,
+              created_at timestamptz NOT NULL DEFAULT now(),
+              updated_at timestamptz NOT NULL DEFAULT now()
+            )
+          `);
+          await database.execute(sql`
+            CREATE TABLE IF NOT EXISTS promotion_redemptions (
+              id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+              promotion_id uuid NOT NULL REFERENCES partner_promotions(id),
+              redeemed_by_user_id text NOT NULL,
+              applied_trial_days integer,
+              applied_stripe_promo_code text,
+              redeemed_at timestamptz NOT NULL DEFAULT now(),
+              CONSTRAINT uniq_promotion_redemption UNIQUE (promotion_id, redeemed_by_user_id)
+            )
+          `);
+          await database.execute(sql`
+            CREATE INDEX IF NOT EXISTS idx_partner_promotions_owner ON partner_promotions (owner_user_id)
+          `);
+          await database.execute(sql`
+            CREATE INDEX IF NOT EXISTS idx_partner_promotions_token ON partner_promotions (invite_token)
+          `);
+          console.log("✅ [prod] Promotion Engine boot migration complete (partner_promotions, promotion_redemptions)");
+        } catch (err: any) {
+          console.error("❌ [prod] Promotion Engine boot migration failed:", err.message);
+        }
+      }, 5500);
     }, 4000);
   } catch (error) {
     console.error("❌ [INIT] Initialization failed:", error);

@@ -4,9 +4,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { apiRequest } from "@/lib/queryClient";
 import { PillButton } from "@/components/ui/pill-button";
 import { motion } from "framer-motion";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 import {
   Loader2, Trophy, Users, ClipboardList, GraduationCap,
-  Briefcase, ArrowRight, TrendingUp, Star,
+  Briefcase, ArrowLeft, ArrowRight, TrendingUp, Star,
 } from "lucide-react";
 
 interface CertStatus {
@@ -24,6 +25,7 @@ interface DashboardState {
 export default function ProfessionalDashboard() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+  const isDesktop = useIsDesktop();
   const [state, setState] = useState<DashboardState>({
     phase1: { status: "not_started" },
     phase2: { status: "not_started" },
@@ -117,11 +119,13 @@ export default function ProfessionalDashboard() {
       phase1={state.phase1}
       phase2={state.phase2}
       personalDone={state.personalOnboardingDone}
+      isDesktop={isDesktop}
+      onBack={() => setLocation("/business-center")}
       onContinue={() => setLocation("/professional-onboarding-bridge")}
     />;
   }
 
-  return <CertifiedDashboard user={user} onEnterStudio={() => {
+  return <CertifiedDashboard user={user} isDesktop={isDesktop} onBack={() => setLocation("/business-center")} onEnterStudio={() => {
     localStorage.setItem("mpm_active_space", "workspace");
     const route = user?.professionalRole === "physician" ? "/pro/physician-clients" : "/pro/clients";
     setLocation(route);
@@ -133,12 +137,16 @@ function ResumeCertification({
   phase1,
   phase2,
   personalDone,
+  isDesktop,
+  onBack,
   onContinue,
 }: {
   user: any;
   phase1: CertStatus;
   phase2: CertStatus;
   personalDone: boolean;
+  isDesktop: boolean;
+  onBack: () => void;
   onContinue: () => void;
 }) {
   const totalSteps = 3;
@@ -157,9 +165,28 @@ function ResumeCertification({
         ? "Phase 1 — Platform Fundamentals"
         : "Phase 2 — Business & ProCare Success";
 
+  const continueBtn = (
+    <button
+      onClick={onContinue}
+      className="w-full h-14 font-bold rounded-2xl bg-orange-600 text-white flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+    >
+      Continue Certification
+      <ArrowRight className="w-5 h-5" />
+    </button>
+  );
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white flex flex-col">
-      <div className="flex-1 px-4 pt-16 pb-32 max-w-lg mx-auto w-full">
+    <div className={`bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white ${isDesktop ? "pb-8" : "min-h-screen flex flex-col"}`}>
+      <div className={`px-4 max-w-lg mx-auto w-full ${isDesktop ? "pt-6 pb-0" : "flex-1 pt-16 pb-32"}`}>
+        {isDesktop && (
+          <button
+            onClick={onBack}
+            className="flex items-center gap-1.5 text-orange-400 text-sm font-medium mb-6"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Business Center
+          </button>
+        )}
         <motion.div className="text-center mb-8" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
           <p className="text-white/50 text-sm mb-1">Welcome back{firstName ? `, ${firstName}` : ""}.</p>
           <h1 className="text-2xl font-black mb-2">Professional Certification</h1>
@@ -208,17 +235,17 @@ function ResumeCertification({
             locked={phase1.status !== "completed"}
           />
         </motion.div>
+
+        {/* CTA inline on desktop */}
+        {isDesktop && continueBtn}
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/95 to-transparent">
-        <button
-          onClick={onContinue}
-          className="w-full h-14 font-bold rounded-2xl bg-orange-600 text-white flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
-        >
-          Continue Certification
-          <ArrowRight className="w-5 h-5" />
-        </button>
-      </div>
+      {/* CTA fixed on mobile */}
+      {!isDesktop && (
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/95 to-transparent">
+          {continueBtn}
+        </div>
+      )}
     </div>
   );
 }
@@ -260,17 +287,36 @@ function StepRow({
   );
 }
 
-function CertifiedDashboard({ user, onEnterStudio }: { user: any; onEnterStudio: () => void }) {
+function CertifiedDashboard({ user, isDesktop, onBack, onEnterStudio }: { user: any; isDesktop: boolean; onBack: () => void; onEnterStudio: () => void }) {
   const [, setLocation] = useLocation();
   const firstName = (user?.name || user?.email || "").split(" ")[0] || "Professional";
 
+  const enterStudioBtn = (
+    <button
+      onClick={onEnterStudio}
+      className="w-full h-14 font-bold rounded-2xl bg-orange-600 text-white flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+    >
+      Enter Client Studio
+      <ArrowRight className="w-5 h-5" />
+    </button>
+  );
+
   return (
     <motion.div
-      className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white overflow-y-auto pb-36"
+      className={`bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white ${isDesktop ? "pb-8" : "min-h-screen overflow-y-auto pb-36"}`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
-      <div className="px-4 pt-14 max-w-lg mx-auto">
+      <div className={`px-4 max-w-lg mx-auto ${isDesktop ? "pt-6" : "pt-14"}`}>
+        {isDesktop && (
+          <button
+            onClick={onBack}
+            className="flex items-center gap-1.5 text-orange-400 text-sm font-medium mb-6"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Business Center
+          </button>
+        )}
         <motion.div className="flex items-center gap-3 mb-6" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
           <div className="w-12 h-12 rounded-full bg-orange-500/20 border border-orange-500/30 flex items-center justify-center">
             <Trophy className="w-6 h-6 text-orange-400" />
@@ -288,7 +334,7 @@ function CertifiedDashboard({ user, onEnterStudio }: { user: any; onEnterStudio:
         <div className="grid grid-cols-2 gap-3 mb-6">
           {[
             { icon: Users, label: "Client Studio", sub: "Manage clients & meal plans", route: user?.professionalRole === "physician" ? "/pro/physician-clients" : "/pro/clients", accent: "bg-orange-500/20", iconColor: "text-orange-400" },
-            { icon: Briefcase, label: "Business Suite", sub: "Affiliate, Academy, Partners", route: "/business-center", accent: "bg-blue-500/20", iconColor: "text-blue-400" },
+            { icon: Briefcase, label: "Business Center", sub: "Affiliate, Academy, Partners", route: "/business-center", accent: "bg-blue-500/20", iconColor: "text-blue-400" },
             { icon: GraduationCap, label: "Certifications", sub: "View & expand your training", route: "/business-center/academy", accent: "bg-emerald-500/20", iconColor: "text-emerald-400" },
             { icon: TrendingUp, label: "Affiliate Program", sub: "Earn 25% per referral", route: "/business-center/affiliate", accent: "bg-amber-500/20", iconColor: "text-amber-400" },
           ].map((item, i) => {
@@ -313,7 +359,7 @@ function CertifiedDashboard({ user, onEnterStudio }: { user: any; onEnterStudio:
         </div>
 
         <motion.div
-          className="p-4 rounded-2xl bg-black/30 border border-orange-500/20"
+          className="p-4 rounded-2xl bg-black/30 border border-orange-500/20 mb-6"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4 }}
@@ -336,17 +382,17 @@ function CertifiedDashboard({ user, onEnterStudio }: { user: any; onEnterStudio:
             ))}
           </div>
         </motion.div>
+
+        {/* CTA inline on desktop */}
+        {isDesktop && enterStudioBtn}
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/95 to-transparent">
-        <button
-          onClick={onEnterStudio}
-          className="w-full h-14 font-bold rounded-2xl bg-orange-600 text-white flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
-        >
-          Enter Client Studio
-          <ArrowRight className="w-5 h-5" />
-        </button>
-      </div>
+      {/* CTA fixed on mobile */}
+      {!isDesktop && (
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/95 to-transparent">
+          {enterStudioBtn}
+        </div>
+      )}
     </motion.div>
   );
 }

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { GlassCard, GlassCardContent } from "@/components/glass/GlassCard";
-import { Crown, Lock, Stethoscope, Dumbbell, LogOut, KeyRound, ClipboardEdit, CheckCircle2, Heart, Briefcase, UserPlus, X, Link2Off, ShieldCheck, Users, TrendingUp, Lightbulb, Building2 } from "lucide-react";
+import { Crown, Lock, Stethoscope, Dumbbell, LogOut, KeyRound, ClipboardEdit, CheckCircle2, Heart, Briefcase, UserPlus, X, Link2Off, ShieldCheck, Users, TrendingUp, Lightbulb, Building2, Gift } from "lucide-react";
 import { MfaSetupSection } from "@/components/MfaSetupSection";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasActivePaidSubscription, isClinicalOrAbove } from "@/lib/subscriptionCheck";
@@ -464,6 +464,41 @@ export default function MorePage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Client Access Card — shown when this user accepted a client invitation */}
+          {user?.activeClientAccess && (
+            <Card
+              className="bg-gradient-to-r from-black via-emerald-950/40 to-black backdrop-blur-lg border border-emerald-500/40 rounded-xl shadow-md overflow-hidden"
+              style={{ backgroundColor: "transparent" }}
+              data-testid="card-client-access"
+            >
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-emerald-600/20 mt-0.5">
+                    <Gift className="h-5 w-5 text-emerald-400" />
+                  </div>
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <h3 className="text-sm font-semibold text-white">
+                      Access granted by {user.activeClientAccess.businessName}
+                    </h3>
+                    {user.activeClientAccess.programName && (
+                      <p className="text-xs text-white/70 truncate">
+                        Program: {user.activeClientAccess.programName}
+                      </p>
+                    )}
+                    <p className="text-xs text-white/50">
+                      {user.activeClientAccess.trialDays
+                        ? `${user.activeClientAccess.trialDays}-day trial`
+                        : "Trial access"}
+                      {user.activeClientAccess.inviterName
+                        ? ` · Invited by ${user.activeClientAccess.inviterName}`
+                        : ""}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Organization Card */}
           {businessCard && (

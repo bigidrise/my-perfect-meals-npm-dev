@@ -2,6 +2,7 @@ import { useLocation } from "wouter";
 import { ArrowLeft, ChevronRight, Handshake, Pill, Dumbbell, GraduationCap, HeartPulse, Code2, HelpCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { BC_HEADER } from "@/components/BusinessCenterShell";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 
 const STRATEGIC_FORM = "https://forms.gle/Udi3yWGp5SHuktdi8";
 
@@ -113,6 +114,7 @@ const INDUSTRIES = [
 
 export default function IndustryPartnerships() {
   const [location, setLocation] = useLocation();
+  const isDesktop = useIsDesktop();
   const isPublic = location.startsWith("/partners");
   const backPath = isPublic ? "/partners" : "/business-center/partners";
   const backLabel = "Partner Programs";
@@ -124,21 +126,24 @@ export default function IndustryPartnerships() {
       className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black"
     >
       {/* Header */}
-      <div className={BC_HEADER} style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
-        <div className="flex items-center gap-3 px-4 py-3">
-          <button
-            onClick={() => setLocation(backPath)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            {backLabel}
-          </button>
+      {/* Header — mobile only; desktop uses DesktopLayout shell header */}
+      {!isDesktop && (
+        <div className={BC_HEADER} style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+          <div className="flex items-center gap-3 px-4 py-3">
+            <button
+              onClick={() => setLocation(backPath)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              {backLabel}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       <div
         className="pb-24 px-4 max-w-lg mx-auto space-y-5"
-        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 4rem)" }}
+        style={{ paddingTop: isDesktop ? "1rem" : "calc(env(safe-area-inset-top, 0px) + 4rem)" }}
       >
 
         {/* In-content back button — always visible on desktop where fixed header is trapped */}

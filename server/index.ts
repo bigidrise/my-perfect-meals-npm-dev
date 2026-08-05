@@ -15,7 +15,7 @@ import session from "express-session";
 import path from "path";
 
 // Startup performance optimization
-const startTime = Date.now();
+    const startTime = Date.now();
 
 // ⬇️ Your existing helpers (keep these imports as-is)
 import { registerRoutes } from "./routes";
@@ -114,6 +114,7 @@ import adminRouter from "./routes/admin";
 import aceProfilesRouter from "./routes/aceProfiles";
 import aceInterventionsRouter from "./routes/aceInterventions";
 import coachCornerRouter from "./routes/coachCorner";
+import myPerfectBeginningRouter from "./routes/myPerfectBeginning";
 
 const app = express();
 
@@ -443,15 +444,7 @@ app.post("/api/meals/holiday-feast", requireAuth, requireActiveAccess, async (re
 
     console.log("🔍 Mapped data:", { occasion, servings, counts });
 
-    const result = await generateHolidayFeast({
-      occasion,
-      servings,
-      counts,
-      dietaryRestrictions: req.body.dietaryRestrictions || [],
-      cuisineType: req.body.cuisineType,
-      budgetLevel: req.body.budgetLevel || "moderate",
-      familyRecipe: req.body.familyRecipe,
-    });
+    const result = await generateHolidayFeast({ occasion, servings, counts });
 
     res.json({
       holiday: occasion,
@@ -490,11 +483,8 @@ app.post("/api/meals/kids", async (req, res) => {
 
     // Use stable kids lunchbox generator with proper kid-friendly catalog
     const { kidsLunchboxV1Generate } = await import("./services/kidsLunchboxV1");
-    
-    const result = await kidsLunchboxV1Generate({
-      favorites: preferences || "",
-      allergies: allergies
-    });
+
+    const result = await kidsLunchboxV1Generate({ allergies });
     
     if (!result.meal) {
       throw new Error("Failed to generate kids meal");
@@ -597,6 +587,17 @@ const initDataRetentionLazy = async () => {
 };
 setTimeout(initDataRetentionLazy, 5000);
 
+// Trial expiry reminder cron (daily 9 AM — emails at 6, 5, 3, 1 days remaining)
+let trialReminderInitialized = false;
+const initTrialReminderLazy = async () => {
+  if (!trialReminderInitialized) {
+    const { initTrialReminderCron } = await import("./cron/trialReminders");
+    initTrialReminderCron();
+    trialReminderInitialized = true;
+  }
+};
+setTimeout(initTrialReminderLazy, 7000);
+
 // Import and start warmup service
 import { warmupService } from "./services/warmupService";
 import { reminderService } from "./reminderService";
@@ -616,7 +617,7 @@ setTimeout(() => {
 // LMS boot migrations — idempotent CREATE/ALTER for LMS tables
 setTimeout(async () => {
   try {
-    const { db } = await import('./db');
+    const { db } = await import("./db");
     const { sql } = await import('drizzle-orm');
     await db.execute(sql`ALTER TABLE certification_module_progress ADD COLUMN IF NOT EXISTS video_watched_pct integer DEFAULT 0`);
     await db.execute(sql`ALTER TABLE user_certifications ADD COLUMN IF NOT EXISTS is_current_version boolean DEFAULT true`);
@@ -641,6 +642,13 @@ setTimeout(async () => {
     // DailyNutritionPrescription — persistent starch preferences
     await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS default_starch_meals_per_day integer`);
     await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS starch_distribution_strategy text`);
+    // Client Invitation Engine — extend business_invitations to support client type
+    await db.execute(sql`ALTER TABLE business_invitations ADD COLUMN IF NOT EXISTS invitation_type text NOT NULL DEFAULT 'team_member'`);
+    await db.execute(sql`ALTER TABLE business_invitations ADD COLUMN IF NOT EXISTS trial_days integer`);
+    await db.execute(sql`ALTER TABLE business_invitations ADD COLUMN IF NOT EXISTS program_name text`);
+    await db.execute(sql`ALTER TABLE business_invitations ADD COLUMN IF NOT EXISTS partner_record_id text`);
+    // Trial Expiry Reminders — milestone tracking column
+    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS trial_reminders_sent text[] DEFAULT '{}'`);
     // Clinical Context Screening — self-reported medication/hormone gate
     await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS clinical_context_response text`);
     await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS clinical_context_categories jsonb`);
@@ -968,212 +976,190 @@ setTimeout(async () => {
   }
 }, 2500);
 
+// Promotion Engine boot migration — idempotent
+setTimeout(async () => {
+  try {
+    const { db } = await import("./db");
+    const { sql } = await import('drizzle-orm');
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS partner_promotions (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        owner_user_id text NOT NULL,
+        name text NOT NULL,
+        type text NOT NULL CHECK (type IN ('extended_trial', 'discount')),
+        trial_days integer,
+        discount_percent integer,
+        discount_duration text CHECK (discount_duration IN ('once', 'repeating', 'forever')),
+        discount_months integer,
+        invite_token text UNIQUE NOT NULL DEFAULT md5(random()::text || clock_timestamp()::text),
+        stripe_coupon_id text,
+        stripe_promo_code_id text,
+        stripe_promo_code text,
+        max_uses integer,
+        used_count integer NOT NULL DEFAULT 0,
+        expires_at timestamptz,
+        status text NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'paused', 'deleted')),
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS promotion_redemptions (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        promotion_id uuid NOT NULL REFERENCES partner_promotions(id),
+        redeemed_by_user_id text NOT NULL,
+        redeemed_at timestamptz NOT NULL DEFAULT now(),
+        applied_trial_days integer,
+        applied_stripe_promo_code text,
+        CONSTRAINT uniq_promo_redemption UNIQUE (promotion_id, redeemed_by_user_id)
+      )
+    `);
+    await db.execute(sql`
+      CREATE INDEX IF NOT EXISTS idx_partner_promotions_owner ON partner_promotions (owner_user_id)
+    `);
+    await db.execute(sql`
+      CREATE INDEX IF NOT EXISTS idx_partner_promotions_token ON partner_promotions (invite_token)
+    `);
+    console.log('✅ Promotion Engine boot migration complete (partner_promotions, promotion_redemptions)');
+  } catch (err: any) {
+    console.error('❌ Promotion Engine boot migration failed:', err.message);
+  }
+}, 3200);
+
 // Business tables boot migration — idempotent
 setTimeout(async () => {
   try {
-    const { db } = await import('./db');
+    const { db } = await import("./db");
     const { sql } = await import('drizzle-orm');
     await db.execute(sql`
-      CREATE TABLE IF NOT EXISTS businesses (
+      CREATE TABLE IF NOT EXISTS parents_corner_conversations (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-        name text NOT NULL,
-        owner_user_id text NOT NULL UNIQUE,
-        stripe_customer_id text,
-        stripe_subscription_id text,
-        plan text NOT NULL DEFAULT 'clinical_business_monthly',
-        seat_limit int NOT NULL DEFAULT 4,
-        status text NOT NULL DEFAULT 'active',
-        created_at timestamptz NOT NULL DEFAULT now(),
-        updated_at timestamptz NOT NULL DEFAULT now()
-      )
-    `);
-    await db.execute(sql`
-      CREATE TABLE IF NOT EXISTS business_members (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-        business_id uuid NOT NULL,
         user_id text NOT NULL,
-        role text NOT NULL DEFAULT 'staff',
-        status text NOT NULL DEFAULT 'active',
-        joined_at timestamptz DEFAULT now(),
-        created_at timestamptz NOT NULL DEFAULT now(),
-        UNIQUE (business_id, user_id)
+        child_profile_id text NOT NULL,
+        messages jsonb NOT NULL DEFAULT '[]',
+        updated_at timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT uniq_parents_corner_convo UNIQUE (user_id, child_profile_id)
       )
     `);
     await db.execute(sql`
-      CREATE TABLE IF NOT EXISTS business_invitations (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-        business_id uuid NOT NULL,
-        email text NOT NULL,
-        token text NOT NULL UNIQUE,
-        role text NOT NULL DEFAULT 'staff',
-        status text NOT NULL DEFAULT 'pending',
-        invited_by_user_id text NOT NULL,
-        expires_at timestamptz NOT NULL,
-        accepted_at timestamptz,
-        accepted_by_user_id text,
-        created_at timestamptz NOT NULL DEFAULT now()
-      )
+      CREATE INDEX IF NOT EXISTS idx_parents_corner_convos_user
+      ON parents_corner_conversations (user_id)
     `);
-    // ── Phase 1 additive columns on businesses ────────────────────────────────
-    await db.execute(sql`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS organization_id uuid`);
-    await db.execute(sql`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS independent_client_policy text NOT NULL DEFAULT 'allowed_with_disclosure'`);
-    // ── Phase 1 personal plan snapshot columns on users ───────────────────────
-    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS personal_plan_lookup_key varchar(100)`);
-    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS personal_entitlements text[] NOT NULL DEFAULT ARRAY[]::text[]`);
-    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS personal_subscription_status text`);
-    await db.execute(sql`ALTER TABLE business_members ADD COLUMN IF NOT EXISTS removed_at timestamptz`);
-    await db.execute(sql`ALTER TABLE business_members ADD COLUMN IF NOT EXISTS notice_dismissed_at timestamptz`);
-    // ── Phase 0 client ownership policy columns ───────────────────────────────
-    await db.execute(sql`ALTER TABLE business_invitations ADD COLUMN IF NOT EXISTS policy_snapshot text`);
-    await db.execute(sql`ALTER TABLE business_members ADD COLUMN IF NOT EXISTS policy_snapshot text`);
-    await db.execute(sql`ALTER TABLE business_members ADD COLUMN IF NOT EXISTS policy_acknowledged_at timestamptz`);
-    await db.execute(sql`
-      CREATE TABLE IF NOT EXISTS business_policy_history (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-        business_id uuid NOT NULL,
-        changed_by_user_id text NOT NULL,
-        old_policy text,
-        new_policy text NOT NULL,
-        changed_at timestamptz NOT NULL DEFAULT now()
-      )
-    `);
-    console.log('✅ Business tables boot migration complete');
+    console.log('✅ Parent\'s Corner boot migration complete (parents_corner_conversations)');
   } catch (err: any) {
-    console.error('❌ Business tables boot migration failed:', err.message);
+    console.error('❌ Parent\'s Corner boot migration failed:', err.message);
   }
-}, 3000);
-
-// Partner Center — marketing_campaigns and marketing_assets tables
-setTimeout(async () => {
-  try {
-    const { db } = await import('./db');
-    const { sql } = await import('drizzle-orm');
-    await db.execute(sql`ALTER TABLE partner_records ADD COLUMN IF NOT EXISTS branding_mode text NOT NULL DEFAULT 'standard'`);
-    await db.execute(sql`
-      CREATE TABLE IF NOT EXISTS marketing_campaigns (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-        title text NOT NULL,
-        description text,
-        month_key text NOT NULL UNIQUE,
-        status text NOT NULL DEFAULT 'draft',
-        audience_modes text[] NOT NULL DEFAULT '{}',
-        published_at timestamptz,
-        expires_at timestamptz,
-        created_by text NOT NULL,
-        created_at timestamptz NOT NULL DEFAULT now(),
-        updated_at timestamptz NOT NULL DEFAULT now()
-      )
-    `);
-    await db.execute(sql`
-      CREATE TABLE IF NOT EXISTS marketing_assets (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-        campaign_id uuid NOT NULL REFERENCES marketing_campaigns(id) ON DELETE CASCADE,
-        asset_type text NOT NULL DEFAULT 'other',
-        label text,
-        filename text NOT NULL,
-        object_key text NOT NULL DEFAULT '',
-        mime_type text,
-        byte_size integer,
-        caption_text text,
-        display_order integer DEFAULT 0,
-        created_at timestamptz NOT NULL DEFAULT now()
-      )
-    `);
-    console.log('✅ Partner Center boot migration complete (marketing_campaigns, marketing_assets)');
-  } catch (err: any) {
-    console.error('❌ Partner Center boot migration failed:', err.message);
-  }
-}, 3500);
-
-// Reminder System v2 — canonical user_reminder_slots table
-setTimeout(async () => {
-  try {
-    const { db } = await import('./db');
-    const { sql } = await import('drizzle-orm');
-    await db.execute(sql`
-      CREATE TABLE IF NOT EXISTS user_reminder_slots (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-        user_id varchar(64) NOT NULL,
-        label text NOT NULL DEFAULT 'Meal',
-        time varchar(5) NOT NULL DEFAULT '12:00',
-        enabled boolean NOT NULL DEFAULT true,
-        type text NOT NULL DEFAULT 'meal',
-        sort_order integer NOT NULL DEFAULT 0,
-        last_sent_at timestamptz,
-        created_at timestamptz DEFAULT now(),
-        updated_at timestamptz DEFAULT now()
-      )
-    `);
-    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_reminder_slots_user ON user_reminder_slots(user_id)`);
-    console.log('✅ Reminder System v2 boot migration complete (user_reminder_slots)');
-  } catch (err: any) {
-    console.error('❌ Reminder System v2 boot migration failed:', err.message);
-  }
-}, 3000);
-
-// Studio relationship integrity — deduplicate client_links and add unique pair constraint
-setTimeout(async () => {
-  try {
-    const { db } = await import('./db');
-    const { sql } = await import('drizzle-orm');
-
-    // Deduplicate: for each (client_user_id, pro_user_id) pair keep the active row
-    // (if any) or the most recently created row, then delete the rest.
-    await db.execute(sql`
-      DELETE FROM client_links
-      WHERE id NOT IN (
-        SELECT DISTINCT ON (client_user_id, pro_user_id) id
-        FROM client_links
-        ORDER BY client_user_id, pro_user_id,
-          (CASE WHEN active = true THEN 0 ELSE 1 END),
-          created_at DESC
-      )
-    `);
-
-    // Unique constraint: one relationship record per (client, pro) pair.
-    // A second attempt by the same client+pro reactivates the existing row; it never
-    // creates a duplicate. The partial index idx_client_links_single_active already
-    // prevents two ACTIVE rows; this adds the broader dedup guarantee.
-    await db.execute(sql`
-      CREATE UNIQUE INDEX IF NOT EXISTS idx_client_links_unique_pair
-      ON client_links (client_user_id, pro_user_id)
-    `);
-
-    // Reconcile stale careTeamMember rows left active while their parent studio
-    // membership is revoked — a pre-existing state from before the deactivation fix.
-    await db.execute(sql`
-      UPDATE care_team_member ctm
-      SET status = 'revoked', updated_at = now()
-      FROM studios s
-      WHERE ctm.pro_user_id = s.owner_user_id
-        AND ctm.status = 'active'
-        AND EXISTS (
-          SELECT 1 FROM studio_memberships sm
-          WHERE sm.client_user_id = ctm.user_id
-            AND sm.studio_id = s.id
-            AND sm.status = 'revoked'
-            AND sm.is_archived = true
-        )
-        AND NOT EXISTS (
-          SELECT 1 FROM studio_memberships sm
-          WHERE sm.client_user_id = ctm.user_id
-            AND sm.studio_id = s.id
-            AND sm.status = 'active'
-            AND sm.is_archived = false
-        )
-    `);
-
-    console.log('✅ client_links integrity migration complete (dedup + unique pair index + careTeamMember reconcile)');
-  } catch (err: any) {
-    console.error('❌ client_links integrity migration failed:', err.message);
-  }
-}, 3500);
+}, 4000);
 
 // Backfill: purge stale temp URLs from meal_image_cache
 // Any non-S3 URL is expired or will expire — delete so next request regenerates clean
 setTimeout(async () => {
   try {
-    const { db } = await import('./db');
+    const { db } = await import("./db");
+    const { sql } = await import('drizzle-orm');
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS parents_corner_conversations (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id text NOT NULL,
+        child_profile_id text NOT NULL,
+        messages jsonb NOT NULL DEFAULT '[]',
+        updated_at timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT uniq_parents_corner_convo UNIQUE (user_id, child_profile_id)
+      )
+    `);
+    await db.execute(sql`
+      CREATE INDEX IF NOT EXISTS idx_parents_corner_convos_user
+      ON parents_corner_conversations (user_id)
+    `);
+    console.log('✅ Parent\'s Corner boot migration complete (parents_corner_conversations)');
+  } catch (err: any) {
+    console.error('❌ Parent\'s Corner boot migration failed:', err.message);
+  }
+}, 4000);
+
+// Backfill: purge stale temp URLs from meal_image_cache
+// Any non-S3 URL is expired or will expire — delete so next request regenerates clean
+setTimeout(async () => {
+  try {
+    const { db } = await import("./db");
+    const { sql } = await import('drizzle-orm');
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS parents_corner_conversations (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id text NOT NULL,
+        child_profile_id text NOT NULL,
+        messages jsonb NOT NULL DEFAULT '[]',
+        updated_at timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT uniq_parents_corner_convo UNIQUE (user_id, child_profile_id)
+      )
+    `);
+    await db.execute(sql`
+      CREATE INDEX IF NOT EXISTS idx_parents_corner_convos_user
+      ON parents_corner_conversations (user_id)
+    `);
+    console.log('✅ Parent\'s Corner boot migration complete (parents_corner_conversations)');
+  } catch (err: any) {
+    console.error('❌ Parent\'s Corner boot migration failed:', err.message);
+  }
+}, 4000);
+
+// Backfill: purge stale temp URLs from meal_image_cache
+// Any non-S3 URL is expired or will expire — delete so next request regenerates clean
+setTimeout(async () => {
+  try {
+    const { db } = await import("./db");
+    const { sql } = await import('drizzle-orm');
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS parents_corner_conversations (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id text NOT NULL,
+        child_profile_id text NOT NULL,
+        messages jsonb NOT NULL DEFAULT '[]',
+        updated_at timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT uniq_parents_corner_convo UNIQUE (user_id, child_profile_id)
+      )
+    `);
+    await db.execute(sql`
+      CREATE INDEX IF NOT EXISTS idx_parents_corner_convos_user
+      ON parents_corner_conversations (user_id)
+    `);
+    console.log('✅ Parent\'s Corner boot migration complete (parents_corner_conversations)');
+  } catch (err: any) {
+    console.error('❌ Parent\'s Corner boot migration failed:', err.message);
+  }
+}, 4000);
+
+// Backfill: purge stale temp URLs from meal_image_cache
+// Any non-S3 URL is expired or will expire — delete so next request regenerates clean
+setTimeout(async () => {
+  try {
+    const { db } = await import("./db");
+    const { sql } = await import('drizzle-orm');
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS parents_corner_conversations (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id text NOT NULL,
+        child_profile_id text NOT NULL,
+        messages jsonb NOT NULL DEFAULT '[]',
+        updated_at timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT uniq_parents_corner_convo UNIQUE (user_id, child_profile_id)
+      )
+    `);
+    await db.execute(sql`
+      CREATE INDEX IF NOT EXISTS idx_parents_corner_convos_user
+      ON parents_corner_conversations (user_id)
+    `);
+    console.log('✅ Parent\'s Corner boot migration complete (parents_corner_conversations)');
+  } catch (err: any) {
+    console.error('❌ Parent\'s Corner boot migration failed:', err.message);
+  }
+}, 4000);
+
+// Backfill: purge stale temp URLs from meal_image_cache
+// Any non-S3 URL is expired or will expire — delete so next request regenerates clean
+setTimeout(async () => {
+  try {
+    const { db } = await import("./db");
     const { mealImageCache } = await import('./db/schema/mealImageCache');
     const { sql } = await import('drizzle-orm');
 
@@ -1224,7 +1210,6 @@ app.post("/twilio/inbound", express.urlencoded({ extended: false }), async (req,
 // AI Voice & Journaling routes
 import aiVoiceJournalRoutes from "./routes/ai-voice-journal";
 app.use("/api/ai-voice-journal", aiVoiceJournalRoutes);
-
 
 
 // Health check endpoints - BEFORE other routes
@@ -1338,6 +1323,7 @@ async function start() {
   app.use("/api/ace/profile", aceProfilesRouter);
   app.use("/api/ace/interventions", aceInterventionsRouter);
   app.use("/api/coach-corner", coachCornerRouter);
+  app.use("/api/my-perfect-beginning", myPerfectBeginningRouter);
 
   // 🎯 CRITICAL: API routes FIRST to prevent Vite middleware interference
   await registerRoutes(app);

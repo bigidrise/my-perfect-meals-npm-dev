@@ -192,6 +192,17 @@ function ProCareStudioGuard({ component: Component }: { component: React.Compone
   const certifiedRef = useRef(false);
   const { org, isLoading: orgLoading } = useOrg();
   const requireAcademy = org.featureFlags.requireAcademy !== false; // default: true
+  const { requestUpgrade } = useUpgradeModal();
+
+  // When any /api/pro/* call returns PRO_REQUIRED (e.g. trial expired), show
+  // a clear upgrade prompt so professionals aren't left with a blank error.
+  useEffect(() => {
+    const handleProRequired = () => {
+      requestUpgrade({ requiredTier: "pro", featureName: "ProCare Studio" });
+    };
+    window.addEventListener("mpm:pro-required", handleProRequired);
+    return () => window.removeEventListener("mpm:pro-required", handleProRequired);
+  }, [requestUpgrade]);
 
   const verifyCert = useCallback(
     (isInitial: boolean) => {
@@ -203,7 +214,8 @@ function ProCareStudioGuard({ component: Component }: { component: React.Compone
         if (isInitial) setCertChecked(true);
         return;
       }
-      if (!user.professionalRole) {
+      if (!user.professionalRole || user.professionalRole === "business") {
+        // No practitioner role (or business-only): not subject to ProCare cert checks
         setCertified(true);
         certifiedRef.current = true;
         if (isInitial) setCertChecked(true);
@@ -259,7 +271,8 @@ function ProCareStudioGuard({ component: Component }: { component: React.Compone
 
   // Periodic re-verification while the page stays open
   useEffect(() => {
-    if (!user?.professionalRole) return;
+    // Business accounts have no practitioner certification to poll
+    if (!user?.professionalRole || user?.professionalRole === "business") return;
     const intervalId = setInterval(() => {
       verifyCert(false);
     }, PROCARE_CERT_POLL_MS);
@@ -270,7 +283,6 @@ function ProCareStudioGuard({ component: Component }: { component: React.Compone
   if (!certified) return null;
   return <Component />;
 }
-
 // Plan Builder Pages
 // DELETED: PlanBuilderTurbo, PlanBuilderHub, CompetitionBeachbodyBoard
 import Builders from "@/pages/Builders";
@@ -390,6 +402,9 @@ import ChefsKitchenPage from "@/pages/lifestyle/ChefsKitchenPage";
 import CreateDishPage from "@/pages/lifestyle/CreateDishPage";
 import GatheringsPage from "@/pages/lifestyle/GatheringsPage";
 import MyPerfectGetaway from "@/pages/lifestyle/MyPerfectGetaway";
+import MyPerfectBeginningPage from "@/pages/lifestyle/MyPerfectBeginningPage";
+import MyPerfectBeginningStub from "@/pages/lifestyle/MyPerfectBeginningStub";
+import MyPerfectBeginningCreateMealPage from "@/pages/lifestyle/MyPerfectBeginningCreateMealPage";
 import MyPerfectPregnancyPage from "@/pages/MyPerfectPregnancyPage";
 import TrainingNutritionHub from "@/pages/TrainingNutritionHub";
 import PerformanceNutritionSetupPage from "@/pages/PerformanceNutritionSetupPage";
@@ -430,6 +445,8 @@ import BusinessCenter from "@/pages/BusinessCenter";
 import { BusinessSuiteGate } from "@/components/BusinessSuiteGate";
 import BusinessCenterSection from "@/pages/BusinessCenterSection";
 import PartnerCenter from "@/pages/PartnerCenter";
+import PromotionsHub from "@/pages/business/PromotionsHub";
+import PromoRedemption from "@/pages/PromoRedemption";
 import AdminCampaignManager from "@/pages/admin/AdminCampaignManager";
 import AcademyLandingPage from "@/pages/AcademyLandingPage";
 import PartnerProgramsHub from "@/pages/PartnerProgramsHub";
@@ -465,6 +482,7 @@ import AdminCertifications from "@/pages/admin/AdminCertifications";
 // DELETED: AffiliatesPage
 
 // Vitals Logger - Creating a placeholder for this route
+import MyPerfectBeginning from "@/pages/lifestyle/MyPerfectBeginning";
 const VitalsLogger = () => <div>Vitals Logger - Coming Soon</div>;
 
 // Supplement Hub imports
@@ -590,6 +608,8 @@ const GuardedSocialRestaurantGuide = () => <ProGuard component={SocialRestaurant
 const GuardedFastFoodGuidePage = () => <ProGuard component={FastFoodGuidePage} />;
 const GuardedRestaurantFinderPage = () => <ProGuard component={RestaurantFinderPage} />;
 const GuardedMyPerfectBuffetPage = () => <ProGuard component={MyPerfectBuffetPage} />;
+const GuardedMyPerfectBeginning = () => <ProGuard component={MyPerfectBeginningPage} />;
+const GuardedMyPerfectBeginningStub = () => <ProGuard component={MyPerfectBeginningStub} />;
 
 // Stable module-level wrappers for Business Suite gated routes.
 // These MUST stay at module scope — never defined inline inside JSX.
@@ -665,6 +685,8 @@ export default function Router() {
     "/coach-corner/home",
     "/coach-corner/progress-slowed",
     "/coach-corner/tired",
+    "/my-perfect-beginning/parents-corner",
+    "/lifestyle/my-perfect-beginning/parents-corner",
   ];
 
   const shouldShowBottomNav = !hideBottomNavRoutes.includes(location);
@@ -713,7 +735,9 @@ export default function Router() {
   const isMacroRoute = location === "/macro-counter" || location.startsWith("/macro-counter");
 
   const isProfessionalUser =
-    user?.professionalRole === "trainer" || user?.professionalRole === "physician";
+    user?.professionalRole === "trainer" ||
+    user?.professionalRole === "physician" ||
+    user?.professionalRole === "business";
 
   // Onboarding + Macro route guards with toast feedback
   useEffect(() => {
@@ -859,6 +883,16 @@ export default function Router() {
         {/* DELETED: /healthy-kids-meals, /kids-meals, /toddler-meals routes (Phase 1 cleanup) */}
         <Route path="/glp1-meals-tracking" component={GLP1MealsTracking} />
         <Route path="/lifestyle/my-perfect-pregnancy" component={GuardedPregnancy} />
+        <Route path="/lifestyle/my-perfect-beginning" component={GuardedMyPerfectBeginning} />
+        <Route path="/lifestyle/my-perfect-beginning/create-meal" component={lazy(() => import("@/pages/MyPerfectBeginningCreateMealPage"))} />
+        <Route path="/lifestyle/my-perfect-beginning/parents-corner" component={lazy(() => import("@/pages/MyPerfectBeginningParentsCorner"))} />
+        <Route path="/my-perfect-beginning/parents-corner" component={lazy(() => import("@/pages/MyPerfectBeginningParentsCorner"))} />
+        <Route path="/lifestyle/my-perfect-beginning/profile" component={GuardedMyPerfectBeginningStub} />
+        <Route path="/lifestyle/my-perfect-beginning/journey" component={GuardedMyPerfectBeginningStub} />
+        <Route path="/lifestyle/my-perfect-beginning/better-favorites" component={GuardedMyPerfectBeginningStub} />
+        <Route path="/lifestyle/my-perfect-beginning/lunchbox" component={GuardedMyPerfectBeginningStub} />
+        <Route path="/lifestyle/my-perfect-beginning/nutrition-support" component={GuardedMyPerfectBeginningStub} />
+        <Route path="/lifestyle/my-perfect-beginning/growth" component={GuardedMyPerfectBeginningStub} />
         <Route path="/performance" component={GuardedPerformanceHub} />
         <Route path="/performance/setup" component={GuardedPerformanceSetup} />
         <Route path="/general-nutrition/training" component={GeneralNutritionTrainingPage} />
@@ -1066,6 +1100,9 @@ export default function Router() {
         <Route path="/business-center/white-label" component={GatedWhiteLabelSolutions} />
         <Route path="/business-center/partnerships" component={GatedBusinessCenterSection} />
         <Route path="/partner-center" component={GatedPartnerCenter} />
+        {/* Promotion Engine */}
+        <Route path="/business-center/promotions" component={PromotionsHub} />
+        <Route path="/join/promo/:token" component={PromoRedemption} />
         <Route path="/admin/campaigns" component={GuardedAdminCampaignManager} />
         {/* Public partner pages — no login required */}
         <Route path="/partners" component={PublicPartnersHub} />

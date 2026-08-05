@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Sparkles, LogIn, X, ArrowLeft, UserPlus, Stethoscope, User, Dumbbell } from "lucide-react";
+import { ChevronLeft, ChevronRight, Sparkles, LogIn, X, ArrowLeft, UserPlus, Stethoscope, User, Dumbbell, Building2 } from "lucide-react";
 import { bustImageCache } from "@/utils/imageCache";
 import { startGuestSession, endGuestSession } from "@/lib/guestMode";
 import { motion, AnimatePresence } from "framer-motion";
@@ -200,6 +200,11 @@ export default function Welcome() {
     setLocation("/auth?mode=signup&role=physician");
   };
 
+  const handleBusinessSignUp = () => {
+    closeModal();
+    setLocation("/auth?mode=signup&role=business");
+  };
+
   const renderModal = () => (
     <AnimatePresence>
       {showModal && (
@@ -364,6 +369,21 @@ export default function Welcome() {
                       <div>
                         <h3 className="text-white font-semibold text-base">Physician / Medical</h3>
                         <p className="text-white/50 text-sm mt-0.5">Clinical and medical professional</p>
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={handleBusinessSignUp}
+                    className="w-full p-4 rounded-xl bg-white/5 border border-white/10 active:scale-[0.98] transition-transform text-left"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="p-2.5 rounded-xl bg-orange-500/20 border border-orange-500/20">
+                        <Building2 className="h-5 w-5 text-orange-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-white font-semibold text-base">Business / Organization</h3>
+                        <p className="text-white/50 text-sm mt-0.5">Clinic, partner, affiliate, or white label</p>
                       </div>
                     </div>
                   </button>

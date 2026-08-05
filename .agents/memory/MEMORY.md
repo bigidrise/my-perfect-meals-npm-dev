@@ -1,3 +1,4 @@
+- [Promotion Engine](promotion-engine.md) — one engine for all partner offers (trial extensions, discounts, invite links); tables partner_promotions + promotion_redemptions; /api/promotions; /business-center/promotions + /join/promo/:token.
 - [GLP-1 Tolerance Phase 1 — Architecture](glp1-tolerance-phase1.md) — governance contract, data model (glp1_daily_tolerance), surface coverage, safetyEscalations vs nutritionAdaptations split.
 - [Clinical Labs Phase 5 — Architecture](clinical-labs-phase5.md) — 7 new lab columns + hormone/thyroid subtype resolver pattern; drizzle-kit not installed, use migration script.
 - [drizzle-kit push instability](drizzle-kit-push-instability.md) — `db:push` can fail schema-pull with a zod error unrelated to your change; fall back to a small `IF NOT EXISTS` migration script instead of debugging the whole schema diff.
@@ -42,3 +43,4 @@
 - [ProCare Physician Legal Policy](procare-legal-policy.md) — all activation paths for physician connections must call checkLegalAcceptance first; inviteAutoAccept was the bypass; careTeamMember now deactivated/reactivated with relationship; clientLinks unique pair index added.
 - [GLP-1 Hub Daily Check-in — Architecture](glp1-hub-checkin-arch.md) — separate glp1_daily_checkins table (not ace_daily_checkins); resolver v2 merge-by-timestamp; AdaptationEntry triad; 5 pending_review escalation rules; hub path preferred on same-second tie.
 - [Diabetic validator protein-preservation rule](diabetic-validator-protein-rule.md) — validator must fix sides/sauces before substituting protein; retry prompt must carry cravingContext or it defaults to chicken.
+- [Professional Context Architecture](professional-context-architecture.md) — Phase 1/2/3 roadmap; UNIQUE(businessId,userId) stays until Phase 2; no workspaces table yet; two-worlds model (personal vs professional).

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
@@ -96,6 +97,7 @@ function userDisplayName(u: UserSearchResult) {
 
 export default function PartnerManagement() {
   const { user } = useAuth();
+  const isDesktop = useIsDesktop();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -458,24 +460,36 @@ export default function PartnerManagement() {
       animate={{ opacity: 1 }}
     >
       {/* Header */}
-      <div className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`} style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
-        <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
+      {/* Header — mobile only; desktop uses DesktopLayout shell header */}
+      {!isDesktop && (
+        <div className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`} style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+          <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
+            <button
+              onClick={() => setLocation("/business-center/partners")}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Partner Programs
+            </button>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-base font-bold text-white">Partner Management</h1>
+              <p className="text-xs text-orange-400/80">Admin only</p>
+            </div>
+            <Shield className="h-4 w-4 text-orange-400" />
+          </div>
+        </div>
+      )}
+
+      <div className="px-4 max-w-2xl mx-auto space-y-4" style={{ paddingTop: isDesktop ? "1rem" : "calc(env(safe-area-inset-top, 0px) + 4.5rem)" }}>
+        {isDesktop && (
           <button
             onClick={() => setLocation("/business-center/partners")}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
+            className="flex items-center gap-1.5 text-orange-400 text-sm font-medium"
           >
             <ArrowLeft className="h-4 w-4" />
             Partner Programs
           </button>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-base font-bold text-white">Partner Management</h1>
-            <p className="text-xs text-orange-400/80">Admin only</p>
-          </div>
-          <Shield className="h-4 w-4 text-orange-400" />
-        </div>
-      </div>
-
-      <div className="px-4 max-w-2xl mx-auto space-y-4" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 4.5rem)" }}>
+        )}
 
         {/* ── User Search ──────────────────────────────────────────────────── */}
         <SectionCard icon={<Search className="h-4 w-4 text-orange-400" />} title="Find Partner">

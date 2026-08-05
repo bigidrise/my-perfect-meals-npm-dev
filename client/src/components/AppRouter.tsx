@@ -4,7 +4,7 @@ import WelcomeGate from "./WelcomeGate";
 import { Route } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { isGuestMode, isGuestAllowedRoute } from "@/lib/guestMode";
-import { hasActivePaidSubscription } from "@/lib/subscriptionCheck";
+import { hasActivePaidSubscription, isProOrAbove } from "@/lib/subscriptionCheck";
 import AppLayout from "@/layout/AppLayout";
 
 interface AppRouterProps {
@@ -34,7 +34,11 @@ function hasMacroProfile(user: any): boolean {
 }
 
 function isProfessional(user: any): boolean {
-  return user?.professionalRole === "trainer" || user?.professionalRole === "physician";
+  return (
+    user?.professionalRole === "trainer" ||
+    user?.professionalRole === "physician" ||
+    user?.professionalRole === "business"
+  );
 }
 
 export default function AppRouter({ children }: AppRouterProps) {
@@ -139,6 +143,12 @@ export default function AppRouter({ children }: AppRouterProps) {
 
       if (needsOnboarding === true) {
         setLocation("/onboarding");
+        return;
+      }
+
+      // Business accounts always land in Business Center — browsing is free, actions require Pro
+      if (user?.professionalRole === "business") {
+        setLocation("/business-center");
         return;
       }
 

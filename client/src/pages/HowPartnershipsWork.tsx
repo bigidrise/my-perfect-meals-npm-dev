@@ -1,4 +1,6 @@
+import { useEffect } from "react";
 import { useLocation } from "wouter";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 import {
   ArrowLeft,
   ChevronRight,
@@ -133,9 +135,15 @@ const HOW_IT_WORKS_ITEMS = [
 
 export default function HowPartnershipsWork() {
   const [location, setLocation] = useLocation();
+  const isDesktop = useIsDesktop();
   const isPublic = location.startsWith("/partners");
   const backPath = isPublic ? "/partners" : "/business-center/partners";
   const backLabel = "Partner Programs";
+
+  useEffect(() => {
+    document.title = "How Partnerships Work | My Perfect Meals";
+    return () => { document.title = "My Perfect Meals"; };
+  }, []);
 
   return (
     <motion.div
@@ -143,22 +151,25 @@ export default function HowPartnershipsWork() {
       animate={{ opacity: 1 }}
       className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} pb-28`}
     >
-      <div className={BC_HEADER} style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
-        <div className="flex items-center gap-3 px-4 py-3 max-w-2xl mx-auto">
-          <button
-            onClick={() => setLocation(backPath)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            {backLabel}
-          </button>
-          <h1 className="text-base font-bold text-white">How Partnerships Work</h1>
+      {/* Header — mobile only; desktop uses DesktopLayout shell header */}
+      {!isDesktop && (
+        <div className={BC_HEADER} style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+          <div className="flex items-center gap-3 px-4 py-3 max-w-2xl mx-auto">
+            <button
+              onClick={() => setLocation(backPath)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              {backLabel}
+            </button>
+            <h1 className="text-base font-bold text-white">How Partnerships Work</h1>
+          </div>
         </div>
-      </div>
+      )}
 
       <div
         className="pb-24 px-4 max-w-2xl mx-auto space-y-5"
-        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5rem)" }}
+        style={{ paddingTop: isDesktop ? "1rem" : "calc(env(safe-area-inset-top, 0px) + 5rem)" }}
       >
         <button
           onClick={() => setLocation(backPath)}

@@ -86,6 +86,13 @@ export async function startCheckout(
 
     const rewardfulReferralId = getRewardfulReferral();
 
+    // Pick up any discount promo code stored by the Promotion Engine redemption flow
+    const pendingStripePromoCodeId = sessionStorage.getItem("pendingStripePromoCodeId") || undefined;
+    if (pendingStripePromoCodeId) {
+      sessionStorage.removeItem("pendingStripePromoCodeId");
+      console.log("[Checkout] Promo code pre-applied from Promotion Engine:", pendingStripePromoCodeId);
+    }
+
     const checkoutBody: Record<string, unknown> = {
       priceLookupKey,
       context: opts?.context || "unknown",
@@ -94,6 +101,10 @@ export async function startCheckout(
     if (rewardfulReferralId) {
       checkoutBody.rewardfulReferralId = rewardfulReferralId;
       console.log("[Checkout] Rewardful referral captured:", rewardfulReferralId);
+    }
+
+    if (pendingStripePromoCodeId) {
+      checkoutBody.stripePromoCodeId = pendingStripePromoCodeId;
     }
 
     const response = await fetch(apiUrl("/api/stripe/checkout"), {

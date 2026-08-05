@@ -8,6 +8,7 @@ import { isProOrAbove } from "@/lib/subscriptionCheck";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { usePageTitle } from "@/contexts/PageTitleContext";
 
 interface CatalogZone {
   id: string;
@@ -113,6 +114,7 @@ export default function MyPerfectGetaway() {
   const { user } = useAuth();
   const { requestUpgrade } = useUpgradeModal();
   const isDesktop = useIsDesktop();
+  usePageTitle("My Perfect Getaway");
 
   useEffect(() => {
     if (user !== undefined && !isProOrAbove(user)) {
@@ -414,18 +416,6 @@ export default function MyPerfectGetaway() {
         className="max-w-2xl mx-auto px-4"
         style={{ paddingTop: isDesktop ? "2rem" : "calc(env(safe-area-inset-top, 0px) + 5.5rem)" }}
       >
-        {isDesktop && (
-          <div className="flex items-center gap-3 mb-6">
-            <button
-              onClick={() => setLocation("/lifestyle")}
-              className="p-1.5 rounded-lg bg-white/10 text-white"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </button>
-            <Palmtree className="h-5 w-5 text-orange-400" />
-            <h1 className="text-xl font-bold text-white">My Perfect Getaway</h1>
-          </div>
-        )}
 
         {/* Hero banner */}
         <div className="relative rounded-2xl overflow-hidden mb-6 border border-orange-500/20">

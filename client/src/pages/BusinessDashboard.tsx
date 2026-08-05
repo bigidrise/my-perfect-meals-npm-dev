@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/contexts/OrgContext";
@@ -31,10 +32,16 @@ import {
   Settings,
   BookOpen,
   ChevronRight,
+  ChevronDown,
   Shield,
   FileText,
   DollarSign,
+  AlertTriangle,
+  Copy,
+  ExternalLink,
+  HelpCircle,
 } from "lucide-react";
+import { FeatureUpgradeModal } from "@/components/modals/FeatureUpgradeModal";
 
 const ROLE_OPTIONS = [
   { value: "coach", label: "Coach" },
@@ -78,6 +85,7 @@ interface BusinessData {
     joinedAt: string;
     name?: string;
     email?: string;
+    planLost?: boolean;
   }[];
   invitations: {
     id: string;
@@ -88,6 +96,19 @@ interface BusinessData {
   }[];
   usedSeats: number;
   availableSeats: number;
+  planLostCount?: number;
+  clientInvitations?: {
+    id: string;
+    email: string;
+    token: string;
+    programName: string | null;
+    trialDays: number | null;
+    status: string;
+    createdAt: string;
+    expiresAt: string;
+    acceptedAt: string | null;
+    inviterName: string | null;
+  }[];
 }
 
 interface MembershipData {
@@ -103,7 +124,7 @@ interface MembershipData {
 const DEFAULT_BUSINESS_NAME = "My Business Team";
 
 export default function BusinessDashboard() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -112,21 +133,51 @@ export default function BusinessDashboard() {
 
   const [ownerData, setOwnerData] = useState<BusinessData | null>(null);
   const [memberData, setMemberData] = useState<MembershipData | null>(null);
+  // viewMode === null means the membership API has not yet responded.
+  // INVARIANT: no membership-status-dependent UI (removal notices, member
+  // banners, etc.) may render while viewMode is null. The loading guard below
+  // enforces this by showing only a generic spinner until fetchData() resolves
+  // and sets viewMode to "owner" | "member" | "none". Do not add any
+  // membership-dependent JSX above or outside that guard.
   const [viewMode, setViewMode] = useState<"owner" | "member" | "none" | null>(null);
+  const isDesktop = useIsDesktop();
   const [loading, setLoading] = useState(true);
   const [polling, setPolling] = useState(fromCheckout);
 
   // Setup screen state
   const [setupMode, setSetupMode] = useState(false);
   const [setupName, setSetupName] = useState("");
-  const [setupRole, setSetupRole] = useState("coach");
   const [savingSetup, setSavingSetup] = useState(false);
 
-  // Invite modal
+  // Invite modal (team member)
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("staff");
   const [inviteLoading, setInviteLoading] = useState(false);
+
+  // Invite client modal + entitlement gate
+  const [clientUpgradeModalOpen, setClientUpgradeModalOpen] = useState(false);
+  const [clientInviteOpen, setClientInviteOpen] = useState(false);
+  // A user can perform Pro business actions when their accessTier is PAID_FULL —
+  // this matches requireProAccess exactly: covers active trials, paid Pro/Clinical,
+  // and internal/founder accounts. Free or expired users are locked.
+  const hasProAccess = user?.accessTier === "PAID_FULL";
+  const [clientEmail, setClientEmail] = useState("");
+  const [clientProgramName, setClientProgramName] = useState("");
+  const [clientTrialOption, setClientTrialOption] = useState("30");
+  const [clientCustomDays, setClientCustomDays] = useState("30");
+  const [clientInviteLoading, setClientInviteLoading] = useState(false);
+
+  const resolvedTrialDays = clientTrialOption === "custom"
+    ? (parseInt(clientCustomDays) || 30)
+    : parseInt(clientTrialOption);
+
+  const resetClientForm = () => {
+    setClientEmail("");
+    setClientProgramName("");
+    setClientTrialOption("30");
+    setClientCustomDays("30");
+  };
 
   // Actions
   const [removingId, setRemovingId] = useState<string | null>(null);
@@ -169,6 +220,11 @@ export default function BusinessDashboard() {
 
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollCount = useRef(0);
+
+  useEffect(() => {
+    document.title = "Organization Dashboard | My Perfect Meals";
+    return () => { document.title = "My Perfect Meals"; };
+  }, []);
 
   useEffect(() => {
     if (ownerData?.business?.independentClientPolicy) {
@@ -243,11 +299,25 @@ export default function BusinessDashboard() {
       }
 
       // Try member
-      const memberRes = await fetch("/api/business/membership", {
+      let memberRes = await fetch("/api/business/membership", {
         headers: { ...getAuthHeaders() },
         credentials: "include",
         cache: "no-store",
       });
+
+      // A 403 here can happen when the client's auth session is stale right
+      // after accepting a re-invite (access tier not yet updated). Refresh
+      // the user profile once and retry before giving up.
+      if (memberRes.status === 403) {
+        try { await refreshUser(); } catch { /* non-fatal */ }
+        await new Promise((r) => setTimeout(r, 300));
+        memberRes = await fetch("/api/business/membership", {
+          headers: { ...getAuthHeaders() },
+          credentials: "include",
+          cache: "no-store",
+        });
+      }
+
       if (memberRes.ok) {
         const json = await memberRes.json();
         setMemberData(json);
@@ -380,6 +450,59 @@ export default function BusinessDashboard() {
     }
   };
 
+  const handleClientInvite = async (deliveryMethod: "email" | "link" | "mailto") => {
+    if (!clientEmail.includes("@")) {
+      toast({ title: "Valid email required", variant: "destructive" });
+      return;
+    }
+    setClientInviteLoading(true);
+    try {
+      const res = await fetch("/api/business/invite", {
+        method: "POST",
+        headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          email: clientEmail,
+          invitationType: "client",
+          trialDays: resolvedTrialDays,
+          programName: clientProgramName.trim() || null,
+          sendEmail: deliveryMethod === "email",
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        toast({ title: "Invite failed", description: json.error, variant: "destructive" });
+        return;
+      }
+      const link: string = json.inviteLink;
+      const programLabel = clientProgramName.trim() || "My Perfect Meals Complimentary Access";
+
+      if (deliveryMethod === "email") {
+        toast({ title: "Invitation sent!", description: `${clientEmail} will receive an email.` });
+      } else if (deliveryMethod === "link") {
+        await navigator.clipboard.writeText(link);
+        toast({ title: "Link copied!", description: "Share this link with your client." });
+      } else {
+        // Open Email: generate the same message the MPM email would send
+        const subject = encodeURIComponent(`You're invited to ${programLabel}`);
+        const body = encodeURIComponent(
+          `Hi,\n\n` +
+          `I'd like to invite you to ${programLabel} — ${resolvedTrialDays} days of complimentary access to My Perfect Meals.\n\n` +
+          `Click the link below to activate your access:\n${link}\n\n` +
+          `This invitation is reserved for ${clientEmail}. You'll create a free account to get started.\n`
+        );
+        window.open(`mailto:${clientEmail}?subject=${subject}&body=${body}`, "_blank");
+      }
+      setClientInviteOpen(false);
+      resetClientForm();
+      fetchData();
+    } catch {
+      toast({ title: "Error", description: "Could not create invitation.", variant: "destructive" });
+    } finally {
+      setClientInviteLoading(false);
+    }
+  };
+
   const handleCancelInvite = async (token: string) => {
     setCancellingToken(token);
     try {
@@ -404,7 +527,13 @@ export default function BusinessDashboard() {
         headers: { ...getAuthHeaders() },
         credentials: "include",
       });
-      if (res.ok) toast({ title: "Invite resent!" });
+      if (res.ok) {
+        toast({ title: "Invite resent!" });
+        fetchData();
+      } else {
+        const json = await res.json().catch(() => ({}));
+        toast({ title: "Could not resend", description: json.error || "Please try again.", variant: "destructive" });
+      }
     } catch {
       toast({ title: "Error", description: "Could not resend invite.", variant: "destructive" });
     } finally {
@@ -455,6 +584,13 @@ export default function BusinessDashboard() {
   };
 
   // ── Polling / Loading screen ────────────────────────────────────────────────
+  // INVARIANT: this guard must remain the first conditional render in this
+  // component. It ensures that while `loading` is true (i.e. fetchData() has
+  // not yet resolved) or while we are polling for a newly-created business,
+  // only the generic spinner is displayed — never any UI that depends on
+  // `viewMode`, `memberData`, or `ownerData`. This prevents a re-joined member
+  // from briefly seeing stale removal-notice UI before the membership API
+  // responds. Never hoist membership-status-dependent JSX above this block.
   if (loading || polling) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-black/80 via-orange-900/60 to-black/80 flex flex-col items-center justify-center px-4 text-center">
@@ -497,20 +633,22 @@ export default function BusinessDashboard() {
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-black/80 via-orange-900/60 to-black/80 pb-24" style={{ paddingBottom: "max(6rem, calc(env(safe-area-inset-bottom) + 5rem))" }}>
-        {/* Header */}
-        <div className="fixed top-0 left-0 right-0 z-10 bg-black/60 backdrop-blur-md border-b border-white/10" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
-          <div className="px-4 py-3 flex items-center gap-3">
-            <button onClick={() => setLocation("/more")} className="text-white/60 active:text-white transition-colors">
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <div>
-              <h1 className="text-white font-bold text-base leading-tight">My Business Team</h1>
-              <p className="text-white/50 text-xs">Organization Member</p>
+        {/* Header — mobile only; desktop uses DesktopLayout shell header */}
+        {!isDesktop && (
+          <div className="fixed top-0 left-0 right-0 z-10 bg-black/60 backdrop-blur-md border-b border-white/10" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+            <div className="px-4 py-3 flex items-center gap-3">
+              <button onClick={() => setLocation("/more")} className="text-white/60 active:text-white transition-colors">
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <div>
+                <h1 className="text-white font-bold text-base leading-tight">My Business Team</h1>
+                <p className="text-white/50 text-xs">Organization Member</p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        <div className="px-4 pb-10 max-w-lg mx-auto space-y-4" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 4.5rem)" }}>
+        <div className="px-4 pb-10 max-w-lg mx-auto space-y-4" style={{ paddingTop: isDesktop ? "1rem" : "calc(env(safe-area-inset-top, 0px) + 4.5rem)" }}>
 
           {/* Welcome banner */}
           <div className="bg-gradient-to-r from-orange-900/50 to-orange-700/30 border border-orange-500/20 rounded-2xl p-5 text-center">
@@ -745,26 +883,6 @@ export default function BusinessDashboard() {
               />
             </div>
 
-            <div>
-              <label className="text-white/70 text-xs font-semibold uppercase tracking-wide block mb-1.5">
-                Your Role
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {ROLE_OPTIONS.map((r) => (
-                  <button
-                    key={r.value}
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                      setupRole === r.value
-                        ? "bg-orange-600 text-white"
-                        : "bg-white/10 text-white/70 hover:bg-white/15"
-                    }`}
-                    onClick={() => setSetupRole(r.value)}
-                  >
-                    {r.label}
-                  </button>
-                ))}
-              </div>
-            </div>
           </Card>
 
           <button
@@ -782,27 +900,29 @@ export default function BusinessDashboard() {
   // ── Full owner dashboard ────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gradient-to-br from-black/80 via-orange-900/60 to-black/80 pb-24" style={{ paddingBottom: "max(6rem, calc(env(safe-area-inset-bottom) + 5rem))" }}>
-      {/* Header */}
-      <div className="fixed top-0 left-0 right-0 z-10 bg-black/60 backdrop-blur-md border-b border-white/10" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
-        <div className="px-4 py-3 flex items-center gap-3">
-          <button onClick={() => setLocation("/more")} className="text-white/60 active:text-white transition-colors">
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <div className="flex-1">
-            <h1 className="text-white font-bold text-base leading-tight">Organization Dashboard</h1>
-            <p className="text-white/50 text-xs">Manage team members, seats &amp; invitations</p>
+      {/* Header — mobile only; desktop uses DesktopLayout shell header */}
+      {!isDesktop && (
+        <div className="fixed top-0 left-0 right-0 z-10 bg-black/60 backdrop-blur-md border-b border-white/10" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+          <div className="px-4 py-3 flex items-center gap-3">
+            <button onClick={() => setLocation("/more")} className="text-white/60 active:text-white transition-colors">
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <div className="flex-1">
+              <h1 className="text-white font-bold text-base leading-tight">Organization Dashboard</h1>
+              <p className="text-white/50 text-xs">Manage team members, seats &amp; invitations</p>
+            </div>
+            <button
+              onClick={() => fetchData()}
+              className="text-white/50 active:text-white transition-colors p-1.5 rounded-lg active:bg-white/10"
+              title="Refresh"
+            >
+              <RefreshCw className="w-4 h-4" />
+            </button>
           </div>
-          <button
-            onClick={() => fetchData()}
-            className="text-white/50 active:text-white transition-colors p-1.5 rounded-lg active:bg-white/10"
-            title="Refresh"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
         </div>
-      </div>
+      )}
 
-      <div className="px-4 space-y-4 max-w-2xl mx-auto" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 4.5rem)" }}>
+      <div className="px-4 space-y-4 max-w-2xl mx-auto" style={{ paddingTop: isDesktop ? "1rem" : "calc(env(safe-area-inset-top, 0px) + 4.5rem)" }}>
 
         {/* Launch Guide Checklist — shown until dismissed */}
         {!launchGuideDismissed && (() => {
@@ -831,12 +951,7 @@ export default function BusinessDashboard() {
                     label: "Invite your first team member",
                     action: () => setInviteOpen(true),
                   },
-                  {
-                    done: false,
-                    label: "Complete My Perfect Meals Academy",
-                    link: "/business-center/academy",
-                  },
-                ].map(({ done, label, action, link }) => (
+                ].map(({ done, label, action }) => (
                   <div key={label} className="flex items-center gap-2.5">
                     <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 border ${
                       done ? "bg-green-500/20 border-green-500/40" : "bg-white/5 border-white/20"
@@ -851,13 +966,6 @@ export default function BusinessDashboard() {
                       <button
                         onClick={action}
                         className={`text-sm flex-1 text-left ${done ? "text-white/40 line-through" : "text-white/80 underline decoration-white/20"}`}
-                      >
-                        {label}
-                      </button>
-                    ) : link ? (
-                      <button
-                        onClick={() => setLocation(link)}
-                        className="text-sm flex-1 text-left text-white/80 underline decoration-white/20"
                       >
                         {label}
                       </button>
@@ -951,15 +1059,39 @@ export default function BusinessDashboard() {
           </div>
         </Card>
 
-        {/* Invite Button */}
-        <button
-          className="w-full py-3 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          onClick={() => setInviteOpen(true)}
-          disabled={seatsFull}
-        >
-          <UserPlus className="w-4 h-4" />
-          {seatsFull ? "No Seats Available" : "Invite a Team Member"}
-        </button>
+        <InfoCallout title="What is a team seat?">
+          A seat is a spot for a staff member — a coach, trainer, physician, or any professional on your team who needs access to the platform. Each person you invite as a team member consumes one seat. Seats are billed as part of your Organization plan, and you can add or remove them at any time.
+        </InfoCallout>
+
+        {/* Invite Buttons */}
+        <div className="flex gap-2">
+          <button
+            className="flex-1 py-3 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+            onClick={() => setInviteOpen(true)}
+            disabled={seatsFull || business.status !== "active"}
+          >
+            <UserPlus className="w-4 h-4" />
+            {seatsFull ? "No Seats" : "Invite Team Member"}
+          </button>
+          <button
+            className="flex-1 py-3 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2"
+            onClick={() => {
+              if (!hasProAccess) {
+                setClientUpgradeModalOpen(true);
+                return;
+              }
+              setClientInviteOpen(true);
+            }}
+          >
+            <UserPlus className="w-4 h-4" />
+            Invite Client
+          </button>
+        </div>
+
+        <InfoCallout title="Team Member vs. Client Invitation — what's the difference?">
+          <p><span className="text-white/75 font-medium">Invite Team Member</span> is for your staff — coaches, trainers, and physicians who work inside your organization. They get a seat, log in with their own account, and access ProCare Studio to manage clients.</p>
+          <p className="mt-1.5"><span className="text-white/75 font-medium">Invite Client</span> is for patients and end-users. They don't consume a seat. Instead, they receive a link granting free complimentary access for 30, 60, or 90 days. When that period ends, they keep a free account and can upgrade on their own.</p>
+        </InfoCallout>
 
         {/* Partner & Revenue Center */}
         <button
@@ -975,6 +1107,11 @@ export default function BusinessDashboard() {
           </div>
           <ChevronRight className="w-4 h-4 text-white/30 flex-shrink-0" />
         </button>
+
+        <InfoCallout title="What is the Partner & Revenue Center?">
+          <p>This is where you manage your affiliate relationship with My Perfect Meals. You get a unique referral link — when someone signs up through it, you earn a commission tracked automatically.</p>
+          <p className="mt-1.5">You can also create <span className="text-white/75 font-medium">promo codes</span> here. A promo code is a shareable shortcut that gives your clients a discount or trial extension. The outcome is the same as a direct Client Invitation, but promo codes can be handed out broadly (posted on a website, printed on a flyer) without entering each person's email one by one.</p>
+        </InfoCallout>
 
         {/* Organization Success Center */}
         <button
@@ -1041,6 +1178,11 @@ export default function BusinessDashboard() {
             Learn how policies work →
           </button>
         </Card>
+
+        <InfoCallout title="What does Client Ownership Policy mean for your clinic?">
+          <p>This setting tells your team members whether they can work with clients <span className="text-white/75 font-medium">outside</span> of your organization. For most clinics, <span className="text-white/75 font-medium">Allowed with Disclosure</span> is the right choice — your coaches can maintain private clients, but they must tell you about those relationships so there are no conflicts.</p>
+          <p className="mt-1.5">If your clinic model depends on exclusive client relationships (e.g. a hospital referral program), choose <span className="text-white/75 font-medium">Organization Clients Only</span>. This setting appears in every team member's dashboard so they always know the rules.</p>
+        </InfoCallout>
 
         {/* Organization Policies */}
         <Card className="bg-white/5 border border-orange-500/20 text-white p-4 space-y-4">
@@ -1113,6 +1255,11 @@ export default function BusinessDashboard() {
           </div>
         </Card>
 
+        <InfoCallout title="What does My Perfect Meals handle vs. what your organization owns?">
+          <p><span className="text-white/75 font-medium">My Perfect Meals</span> provides the nutrition platform, meal intelligence, coaching tools, and all the software infrastructure. When a client uses the app, MPM handles meal generation, dietary protocols, data storage, and platform support.</p>
+          <p className="mt-1.5"><span className="text-white/75 font-medium">Your organization</span> owns the client relationship — the intake, the care plan, the coaching conversations, and the clinical decisions. MPM is the tool your team uses; you remain the professional of record. The Client Ownership Policy above determines what happens to those relationships if a team member leaves.</p>
+        </InfoCallout>
+
         {/* Confirmation: disable professional verification */}
         <Dialog open={confirmVerifOff} onOpenChange={setConfirmVerifOff}>
           <DialogContent className="bg-black/90 border border-orange-500/30 text-white max-w-sm mx-auto rounded-2xl">
@@ -1142,6 +1289,21 @@ export default function BusinessDashboard() {
           </DialogContent>
         </Dialog>
 
+        {/* Plan-lost alert banner */}
+        {(ownerData.planLostCount ?? 0) > 0 && (
+          <div className="bg-yellow-900/25 border border-yellow-500/30 rounded-xl p-3 flex items-start gap-2.5">
+            <AlertTriangle className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-yellow-300 text-sm font-semibold">
+                {ownerData.planLostCount} member{(ownerData.planLostCount ?? 0) !== 1 ? "s have" : " has"} downgraded to Free
+              </p>
+              <p className="text-yellow-200/60 text-xs mt-0.5 leading-relaxed">
+                These seats are occupied but the members no longer have a paid plan. Remove them to reclaim the seats.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Active Members */}
         <div>
           <h2 className="text-white/70 text-xs font-semibold uppercase tracking-wide mb-2 px-1">
@@ -1149,13 +1311,24 @@ export default function BusinessDashboard() {
           </h2>
           <div className="space-y-2">
             {members.map((m) => (
-              <Card key={m.id} className="bg-white/5 border border-white/10 text-white p-3">
+              <Card
+                key={m.id}
+                className={`text-white p-3 ${m.planLost ? "bg-yellow-900/15 border border-yellow-500/25" : "bg-white/5 border border-white/10"}`}
+              >
                 <div className="flex items-center justify-between gap-2">
                   <button
                     className="flex-1 min-w-0 text-left"
                     onClick={() => setSelectedMemberId(m.id)}
                   >
-                    <p className="text-sm font-medium truncate">{m.name || m.email || "Unknown"}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium truncate">{m.name || m.email || "Unknown"}</p>
+                      {m.planLost && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-yellow-500/20 text-yellow-300 text-xs font-medium flex-shrink-0">
+                          <AlertTriangle className="w-3 h-3" />
+                          No Plan
+                        </span>
+                      )}
+                    </div>
                     <p className="text-white/50 text-xs truncate">{m.email || ""}</p>
                   </button>
                   <div className="flex items-center gap-2 flex-shrink-0">
@@ -1171,10 +1344,10 @@ export default function BusinessDashboard() {
                     </button>
                     {m.role !== "owner" && (
                       <button
-                        className="p-1.5 rounded-lg bg-red-900/30 text-red-400 transition-colors disabled:opacity-40"
+                        className={`p-1.5 rounded-lg transition-colors disabled:opacity-40 ${m.planLost ? "bg-yellow-900/40 text-yellow-400" : "bg-red-900/30 text-red-400"}`}
                         onClick={() => handleRemoveMember(m.id)}
                         disabled={removingId === m.id}
-                        title="Remove member"
+                        title={m.planLost ? "Remove member (no plan)" : "Remove member"}
                       >
                         {removingId === m.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                       </button>
@@ -1232,6 +1405,115 @@ export default function BusinessDashboard() {
         )}
 
       </div>
+
+        {/* Client Invitations */}
+        {(() => {
+          const clientInvites = ownerData.clientInvitations ?? [];
+          return (
+          <div>
+            <h2 className="text-white/70 text-xs font-semibold uppercase tracking-wide mb-2 px-1">
+              Client Invitations ({clientInvites.length})
+            </h2>
+            <div className="mb-3">
+              <InfoCallout title="How does complimentary access work?">
+                <p>When you invite a client, they receive a secure link granting them full platform access for the number of days you choose (30, 60, or 90). This is completely free for them — no credit card, no commitment.</p>
+                <p className="mt-1.5">When the trial expires, their account automatically <span className="text-white/75 font-medium">converts to a Free plan</span>. They keep their account and can continue using free features or upgrade on their own. They won't lose their data. You'll see the status of each invitation — Pending, Active, or Expired — in the list below.</p>
+              </InfoCallout>
+            </div>
+            {clientInvites.length === 0 ? (
+              <div className="bg-white/5 border border-white/10 rounded-xl p-5 text-center">
+                <UserPlus className="w-7 h-7 text-white/20 mx-auto mb-2" />
+                <p className="text-white/60 text-sm font-medium">No client invitations yet</p>
+                <p className="text-white/40 text-xs mt-1 leading-relaxed max-w-xs mx-auto">
+                  Send a Client Invitation to give a patient or client complimentary access to My Perfect Meals.
+                </p>
+                <button
+                  className="mt-3 px-4 py-2 rounded-lg bg-orange-600/80 hover:bg-orange-600 text-white text-xs font-semibold transition-colors"
+                  onClick={() => {
+                    if (!hasProAccess) { setClientUpgradeModalOpen(true); return; }
+                    setClientInviteOpen(true);
+                  }}
+                >
+                  Invite a Client
+                </button>
+              </div>
+            ) : (
+            <div className="space-y-2">
+              {clientInvites.map((inv) => {
+                const isPending = inv.status === "pending" && new Date(inv.expiresAt) > new Date();
+                const isExpired = (inv.status === "expired") || (inv.status === "pending" && new Date(inv.expiresAt) <= new Date());
+                const statusColor =
+                  inv.status === "accepted" ? "text-green-400" :
+                  isPending ? "text-blue-400" : "text-white/30";
+                const statusLabel =
+                  inv.status === "accepted" ? "Active" :
+                  isPending ? "Pending" :
+                  isExpired ? "Expired" :
+                  inv.status.charAt(0).toUpperCase() + inv.status.slice(1);
+                const programLabel = inv.programName || "My Perfect Meals Complimentary Access";
+                return (
+                  <Card key={inv.id} className="bg-white/5 border border-white/10 text-white p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium truncate">{inv.email}</p>
+                        <p className="text-white/60 text-xs mt-0.5 truncate">{programLabel} · {inv.trialDays ?? 30} days</p>
+                        {inv.inviterName && (
+                          <p className="text-white/30 text-xs mt-0.5">Sent by {inv.inviterName}</p>
+                        )}
+                        {isPending && (
+                          <p className="text-white/30 text-xs mt-0.5">
+                            Expires {new Date(inv.expiresAt).toLocaleDateString()}
+                          </p>
+                        )}
+                      </div>
+                      <span className={`text-xs font-semibold flex-shrink-0 mt-0.5 ${statusColor}`}>{statusLabel}</span>
+                    </div>
+                    {inv.acceptedAt && (
+                      <p className="text-white/30 text-xs mt-1.5">
+                        Accepted {new Date(inv.acceptedAt).toLocaleDateString()}
+                      </p>
+                    )}
+                    {(isPending || isExpired) && (
+                      <div className="flex items-center gap-2 mt-2 pt-2 border-t border-white/10">
+                        <button
+                          onClick={() => handleResendInvite(inv.token)}
+                          disabled={resendingToken === inv.token || cancellingToken === inv.token}
+                          className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 disabled:opacity-50 transition-colors"
+                        >
+                          {resendingToken === inv.token ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <RefreshCw className="w-3 h-3" />
+                          )}
+                          Resend
+                        </button>
+                        {isPending && (
+                          <>
+                            <span className="text-white/20 text-xs">·</span>
+                            <button
+                              onClick={() => handleCancelInvite(inv.token)}
+                              disabled={cancellingToken === inv.token || resendingToken === inv.token}
+                              className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 disabled:opacity-50 transition-colors"
+                            >
+                              {cancellingToken === inv.token ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <X className="w-3 h-3" />
+                              )}
+                              Cancel
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </Card>
+                );
+              })}
+            </div>
+            )}
+          </div>
+          );
+        })()}
 
       {/* Manage Seats Modal */}
       <Dialog open={seatModalOpen} onOpenChange={setSeatModalOpen}>
@@ -1332,11 +1614,153 @@ export default function BusinessDashboard() {
         </DialogContent>
       </Dialog>
 
+      {/* Pro-access gate for client invitations */}
+      <FeatureUpgradeModal
+        open={clientUpgradeModalOpen}
+        onClose={() => setClientUpgradeModalOpen(false)}
+        featureName="Invite Client"
+        description="Upgrade to Pro to invite clients and grant complimentary access through your organization."
+      />
+
+      {/* Invite Client Modal */}
+      <Dialog open={clientInviteOpen} onOpenChange={(open) => { setClientInviteOpen(open); if (!open) resetClientForm(); }}>
+        <DialogContent className="bg-gray-900 border border-orange-500/20 text-white max-w-sm mx-auto">
+          <DialogHeader>
+            <DialogTitle className="text-white">Invite Client</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div>
+              <label className="text-white/70 text-xs font-semibold uppercase tracking-wide block mb-1.5">Client Email</label>
+              <input
+                type="email"
+                className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-orange-400 placeholder-white/30"
+                placeholder="patient@example.com"
+                value={clientEmail}
+                onChange={(e) => setClientEmail(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="text-white/70 text-xs font-semibold uppercase tracking-wide block mb-1.5">
+                Program Name <span className="text-white/30 normal-case font-normal">(optional)</span>
+              </label>
+              <input
+                type="text"
+                className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-orange-400 placeholder-white/30"
+                placeholder="My Perfect Meals Complimentary Access"
+                value={clientProgramName}
+                onChange={(e) => setClientProgramName(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="text-white/70 text-xs font-semibold uppercase tracking-wide block mb-1.5">Trial Length</label>
+              <div className="flex flex-wrap gap-2">
+                {["7", "14", "30", "60", "90"].map((d) => (
+                  <button
+                    key={d}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${clientTrialOption === d ? "bg-orange-600 text-white" : "bg-white/10 text-white/70 hover:bg-white/15"}`}
+                    onClick={() => setClientTrialOption(d)}
+                  >
+                    {d} Days
+                  </button>
+                ))}
+                <button
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${clientTrialOption === "custom" ? "bg-orange-600 text-white" : "bg-white/10 text-white/70 hover:bg-white/15"}`}
+                  onClick={() => setClientTrialOption("custom")}
+                >
+                  Custom
+                </button>
+              </div>
+              {clientTrialOption === "custom" && (
+                <input
+                  type="number"
+                  min={1}
+                  max={365}
+                  className="mt-2 w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-orange-400"
+                  placeholder="Days (1–365)"
+                  value={clientCustomDays}
+                  onChange={(e) => setClientCustomDays(e.target.value)}
+                />
+              )}
+            </div>
+            {/* Invitation Preview */}
+            <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+              <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">Invitation Preview</p>
+              <div className="space-y-1.5">
+                {[
+                  `${resolvedTrialDays} days complimentary access`,
+                  "Uses a secure invitation link",
+                  "Must be redeemed using this email",
+                  "No team seat consumed",
+                  "Converts to Free plan when trial expires",
+                ].map((item) => (
+                  <div key={item} className="flex items-center gap-2">
+                    <CheckCircle className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
+                    <span className="text-white/70 text-xs">{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {/* Three delivery options */}
+            <div className="space-y-2">
+              <button
+                className="w-full py-3 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                onClick={() => handleClientInvite("mailto")}
+                disabled={clientInviteLoading}
+              >
+                <ExternalLink className="w-4 h-4" />
+                Open Email
+              </button>
+              <button
+                className="w-full py-2.5 rounded-lg bg-white/10 hover:bg-white/15 text-white font-medium text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                onClick={() => handleClientInvite("email")}
+                disabled={clientInviteLoading}
+              >
+                {clientInviteLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+                Send from My Perfect Meals
+              </button>
+              <button
+                className="w-full py-2.5 rounded-lg bg-white/10 hover:bg-white/15 text-white font-medium text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                onClick={() => handleClientInvite("link")}
+                disabled={clientInviteLoading}
+              >
+                <Copy className="w-4 h-4" />
+                Copy Link
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {selectedMemberId && (
         <MemberClientAccountingModal
           memberId={selectedMemberId}
           onClose={() => setSelectedMemberId(null)}
         />
+      )}
+    </div>
+  );
+}
+
+// ── Inline educational callout ───────────────────────────────────────────────
+// Collapsed by default; expands on tap to reveal plain-language explanation.
+function InfoCallout({ title, children }: { title: string; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/[0.03] overflow-hidden">
+      <button
+        className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-left active:opacity-70 transition-opacity"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <HelpCircle className="w-3.5 h-3.5 text-orange-400/70 flex-shrink-0" />
+        <span className="flex-1 text-xs font-medium text-white/50">{title}</span>
+        <ChevronDown
+          className={`w-3.5 h-3.5 text-white/30 flex-shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+      {open && (
+        <div className="px-3.5 pb-3.5 pt-0 space-y-2 border-t border-white/8">
+          <div className="text-xs text-white/55 leading-relaxed pt-2.5">{children}</div>
+        </div>
       )}
     </div>
   );

@@ -130,7 +130,11 @@ router.post("/api/auth/signup", async (req, res) => {
     const isAdmin = isAdminEmail(email);
 
     // Build user values with optional ProCare professional fields
-    // No trial is granted on signup — new users start as FREE tier
+    const isBusinessAccount = req.body.businessAccount === true;
+
+    // Every new account gets a 7-day full-access trial regardless of signup path.
+    // accessTier.ts Tier 2.5 already handles the trial window — it just needs
+    // trialEndsAt to be present on every user row.
     const userValues: any = {
       email,
       username: email.split("@")[0],
@@ -141,7 +145,15 @@ router.post("/api/auth/signup", async (req, res) => {
       isAdmin,
       isFounder: isTester, // tester-allowlisted signups are founder/partner accounts
       ...(isTester ? { planLookupKey: 'mpm_ultimate_monthly' } : {}),
+      trialStartedAt: new Date(),
+      trialEndsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     };
+
+    // Business / Organization account — not a ProCare practitioner.
+    // Gets professionalRole="business" only; no isProCare, no role=coach, no plan override.
+    if (isBusinessAccount) {
+      userValues.professionalRole = "business";
+    }
 
     if (procare && procare.professionalCategory) {
       const validRoles = ["trainer", "physician", "dietitian", "nurse_practitioner"];

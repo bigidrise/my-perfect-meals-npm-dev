@@ -2,10 +2,11 @@ import { Router } from "express";
 import { randomBytes } from "crypto";
 import Stripe from "stripe";
 import { db } from "../db";
-import { eq, and, sql, isNull } from "drizzle-orm";
+import { eq, and, ne, sql, isNull, gt, or } from "drizzle-orm";
 import { businesses, businessMembers, businessInvitations } from "../db/schema/business";
 import { users } from "@shared/schema";
 import { requireAuth } from "../middleware/requireAuth";
+import { requireProAccess } from "../middleware/requireProAccess";
 import { sendBusinessInviteEmail } from "../services/emailService";
 
 const stripeKey = process.env.STRIPE_SECRET_KEY ?? "";
@@ -14,6 +15,14 @@ const stripe = stripeKey
   : null;
 
 const router = Router();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tier requirement: ALL revenue-generating endpoints in this router require Pro
+// or higher via requireProAccess. Free and Essential users are blocked at the
+// API level when BILLING_ENFORCED=true. The only exception is
+// POST /removal-notice/dismiss — that is a passive member UI action (dismissing
+// a banner after being removed) that carries no revenue participation risk.
+// ─────────────────────────────────────────────────────────────────────────────
 
 const getAppUrl = () =>
   process.env.PUBLIC_APP_URL ||
@@ -25,6 +34,39 @@ function generateInviteToken(): string {
   return randomBytes(32).toString("hex");
 }
 
+/**
+ * clearRemovalNotice — stamp noticeDismissedAt on every undismissed "removed"
+ * businessMembers row for this user+business pair.
+ *
+ * Call this inside any transaction that reactivates a removed member so the
+ * stale removal-notice banner is never shown to an active member, regardless
+ * of which code path triggered the reactivation (invite-accept, admin restore,
+ * future API endpoints, etc.).
+ *
+ * The WHERE clause intentionally targets status="removed" rows only — the
+ * reactivating row has already been flipped to "active" by the time this
+ * runs, so this call covers historical rows from prior removal cycles.
+ */
+type DbOrTx = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+async function clearRemovalNotice(
+  tx: DbOrTx,
+  userId: string,
+  businessId: string,
+): Promise<void> {
+  await tx
+    .update(businessMembers)
+    .set({ noticeDismissedAt: new Date() })
+    .where(
+      and(
+        eq(businessMembers.userId, userId),
+        eq(businessMembers.businessId, businessId),
+        eq(businessMembers.status, "removed"),
+        isNull(businessMembers.noticeDismissedAt),
+      ),
+    );
+}
+
 async function getActiveSeats(businessId: string): Promise<number> {
   const result = await db
     .select({ count: sql<number>`count(*)::int` })
@@ -34,7 +76,7 @@ async function getActiveSeats(businessId: string): Promise<number> {
 }
 
 // ── GET /api/business/mine — owner fetches their business dashboard data
-router.get("/mine", requireAuth, async (req, res) => {
+router.get("/mine", requireAuth, requireProAccess, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   try {
     const [business] = await db
@@ -47,7 +89,7 @@ router.get("/mine", requireAuth, async (req, res) => {
       return res.status(404).json({ error: "No business account found." });
     }
 
-    const members = await db
+    const rawMembers = await db
       .select({
         id: businessMembers.id,
         userId: businessMembers.userId,
@@ -56,15 +98,32 @@ router.get("/mine", requireAuth, async (req, res) => {
         joinedAt: businessMembers.joinedAt,
         name: users.username,
         email: users.email,
+        planLookupKey: users.planLookupKey,
       })
       .from(businessMembers)
       .leftJoin(users, eq(users.id, businessMembers.userId))
       .where(and(eq(businessMembers.businessId, business.id), eq(businessMembers.status, "active")));
 
+    // planLost: true when the member has no paid plan (null planLookupKey) and is not the owner
+    // (the owner's subscription is irrelevant — their seat is reserved for business management)
+    const members = rawMembers.map(({ planLookupKey, ...m }) => ({
+      ...m,
+      planLost: m.role !== "owner" && planLookupKey === null,
+    }));
+
+    const now = new Date();
+    // Only team_member pending invitations count against seat reservations
     const pendingInvitations = await db
       .select()
       .from(businessInvitations)
-      .where(and(eq(businessInvitations.businessId, business.id), eq(businessInvitations.status, "pending")));
+      .where(
+        and(
+          eq(businessInvitations.businessId, business.id),
+          eq(businessInvitations.status, "pending"),
+          gt(businessInvitations.expiresAt, now),
+          eq(businessInvitations.invitationType, "team_member"),
+        ),
+      );
 
     // Auto-heal: if a pending invite's email already belongs to an active member
     // (happens when the accept transaction partially failed), mark it accepted now.
@@ -84,14 +143,42 @@ router.get("/mine", requireAuth, async (req, res) => {
 
     const invitations = pendingInvitations.filter((inv) => !stuckInviteIds.includes(inv.id));
 
+    // Client invitations — all statuses, newest first, for the dashboard section
+    const clientInvitations = await db
+      .select({
+        id: businessInvitations.id,
+        email: businessInvitations.email,
+        token: businessInvitations.token,
+        programName: businessInvitations.programName,
+        trialDays: businessInvitations.trialDays,
+        status: businessInvitations.status,
+        createdAt: businessInvitations.createdAt,
+        expiresAt: businessInvitations.expiresAt,
+        acceptedAt: businessInvitations.acceptedAt,
+        inviterName: users.username,
+      })
+      .from(businessInvitations)
+      .leftJoin(users, eq(users.id, businessInvitations.invitedByUserId))
+      .where(
+        and(
+          eq(businessInvitations.businessId, business.id),
+          eq(businessInvitations.invitationType, "client"),
+        ),
+      )
+      .orderBy(sql`${businessInvitations.createdAt} DESC`)
+      .limit(200);
+
     const usedSeats = members.length;
+    const planLostCount = members.filter((m) => m.planLost).length;
 
     return res.json({
       business,
       members,
       invitations,
+      clientInvitations,
       usedSeats,
       availableSeats: business.seatLimit - usedSeats,
+      planLostCount,
     });
   } catch (err) {
     console.error("[business/mine] error:", err);
@@ -100,7 +187,7 @@ router.get("/mine", requireAuth, async (req, res) => {
 });
 
 // ── GET /api/business/membership — member (non-owner) checks if they're in a business
-router.get("/membership", requireAuth, async (req, res) => {
+router.get("/membership", requireAuth, requireProAccess, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   try {
     const [membership] = await db
@@ -131,18 +218,45 @@ router.get("/membership", requireAuth, async (req, res) => {
   }
 });
 
-// ── POST /api/business/invite — owner sends an invite
-router.post("/invite", requireAuth, async (req, res) => {
+// ── POST /api/business/invite — owner sends a team member or client invitation
+router.post("/invite", requireAuth, requireProAccess, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
-  const { email, role = "staff" } = req.body as { email: string; role?: string };
+  const {
+    email,
+    role = "staff",
+    invitationType = "team_member",
+    trialDays,
+    programName,
+    partnerRecordId,
+    sendEmail: shouldSendEmail = true,
+  } = req.body as {
+    email: string;
+    role?: string;
+    invitationType?: "team_member" | "client";
+    trialDays?: number;
+    programName?: string;
+    partnerRecordId?: string;
+    sendEmail?: boolean;
+  };
 
   if (!email || !email.includes("@")) {
     return res.status(400).json({ error: "Valid email required." });
   }
 
-  const validRoles = ["coach", "trainer", "physician", "staff"];
-  if (!validRoles.includes(role)) {
-    return res.status(400).json({ error: "Invalid role." });
+  const isClient = invitationType === "client";
+
+  if (!isClient) {
+    const validRoles = ["coach", "trainer", "physician", "staff"];
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({ error: "Invalid role." });
+    }
+  }
+
+  if (isClient) {
+    const days = Number(trialDays);
+    if (!days || days < 1 || days > 365) {
+      return res.status(400).json({ error: "Trial length must be between 1 and 365 days." });
+    }
   }
 
   try {
@@ -160,20 +274,32 @@ router.post("/invite", requireAuth, async (req, res) => {
       return res.status(403).json({ error: "Business subscription is not active." });
     }
 
-    const usedSeats = await getActiveSeats(business.id);
-    const [pendingInvCount] = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(businessInvitations)
-      .where(and(eq(businessInvitations.businessId, business.id), eq(businessInvitations.status, "pending")));
-    const occupiedSeats = usedSeats + (pendingInvCount?.count ?? 0);
-    if (occupiedSeats >= business.seatLimit) {
-      return res.status(400).json({
-        error: `No seats available. Your plan includes ${business.seatLimit} seats and all are filled or reserved by pending invitations.`,
-        code: "SEATS_FULL",
-      });
+    const now = new Date();
+
+    // Seat check — only for team member invitations (clients don't consume seats)
+    if (!isClient) {
+      const usedSeats = await getActiveSeats(business.id);
+      const [pendingInvCount] = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(businessInvitations)
+        .where(
+          and(
+            eq(businessInvitations.businessId, business.id),
+            eq(businessInvitations.status, "pending"),
+            gt(businessInvitations.expiresAt, now),
+            eq(businessInvitations.invitationType, "team_member"),
+          ),
+        );
+      const occupiedSeats = usedSeats + (pendingInvCount?.count ?? 0);
+      if (occupiedSeats >= business.seatLimit) {
+        return res.status(400).json({
+          error: `No seats available. Your plan includes ${business.seatLimit} seats and all are filled or reserved by pending invitations.`,
+          code: "SEATS_FULL",
+        });
+      }
     }
 
-    // Check if email already has a pending invite
+    // Block duplicate pending invites for same type+email combo
     const [existingInvite] = await db
       .select()
       .from(businessInvitations)
@@ -182,6 +308,8 @@ router.post("/invite", requireAuth, async (req, res) => {
           eq(businessInvitations.businessId, business.id),
           eq(businessInvitations.email, email.toLowerCase()),
           eq(businessInvitations.status, "pending"),
+          gt(businessInvitations.expiresAt, now),
+          eq(businessInvitations.invitationType, invitationType as any),
         ),
       )
       .limit(1);
@@ -190,48 +318,71 @@ router.post("/invite", requireAuth, async (req, res) => {
       return res.status(400).json({ error: "A pending invitation already exists for this email." });
     }
 
-    // Check if user is already an active member
-    const [existingUser] = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.email, email.toLowerCase()))
-      .limit(1);
+    // Expire stale pending invites for this email+type
+    await db
+      .update(businessInvitations)
+      .set({ status: "expired" })
+      .where(
+        and(
+          eq(businessInvitations.businessId, business.id),
+          eq(businessInvitations.email, email.toLowerCase()),
+          eq(businessInvitations.status, "pending"),
+          eq(businessInvitations.invitationType, invitationType as any),
+          sql`${businessInvitations.expiresAt} <= ${now}`,
+        ),
+      );
 
-    if (existingUser) {
-      const [existingMember] = await db
-        .select()
-        .from(businessMembers)
-        .where(
-          and(
-            eq(businessMembers.businessId, business.id),
-            eq(businessMembers.userId, existingUser.id),
-            eq(businessMembers.status, "active"),
-          ),
-        )
+    // For team members only: block if already an active member
+    if (!isClient) {
+      const [existingUser] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.email, email.toLowerCase()))
         .limit(1);
 
-      if (existingMember) {
-        return res.status(400).json({ error: "This person is already a member of your business." });
+      if (existingUser) {
+        const [existingMember] = await db
+          .select()
+          .from(businessMembers)
+          .where(
+            and(
+              eq(businessMembers.businessId, business.id),
+              eq(businessMembers.userId, existingUser.id),
+              eq(businessMembers.status, "active"),
+            ),
+          )
+          .limit(1);
+
+        if (existingMember) {
+          return res.status(400).json({ error: "This person is already a member of your business." });
+        }
       }
     }
 
     const token = generateInviteToken();
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    const resolvedTrialDays = isClient ? (Number(trialDays) || 30) : null;
 
     await db.insert(businessInvitations).values({
       businessId: business.id,
       email: email.toLowerCase(),
       token,
-      role: role as any,
+      role: isClient ? "staff" : (role as any),
       status: "pending",
       invitedByUserId: userId,
       expiresAt,
+      invitationType: invitationType as any,
+      trialDays: resolvedTrialDays,
+      programName: isClient ? (programName?.trim() || null) : null,
+      partnerRecordId: partnerRecordId ?? null,
     });
 
-    // Stamp the current policy at time of invite (raw SQL — column added via boot migration)
-    await db.execute(
-      sql`UPDATE business_invitations SET policy_snapshot = ${business.independentClientPolicy} WHERE token = ${token}`
-    );
+    // Stamp policy snapshot for team member invites
+    if (!isClient) {
+      await db.execute(
+        sql`UPDATE business_invitations SET policy_snapshot = ${business.independentClientPolicy} WHERE token = ${token}`
+      );
+    }
 
     const [owner] = await db
       .select({ username: users.username })
@@ -241,25 +392,96 @@ router.post("/invite", requireAuth, async (req, res) => {
 
     const inviteLink = `${getAppUrl()}/business/join/${token}`;
 
-    await sendBusinessInviteEmail({
-      to: email.toLowerCase(),
-      businessName: business.name,
-      inviterName: owner?.username || "Your team owner",
-      inviteLink,
-      role,
-      expiresAt,
-    });
+    if (shouldSendEmail) {
+      await sendBusinessInviteEmail({
+        to: email.toLowerCase(),
+        businessName: business.name,
+        inviterName: owner?.username || "Your organization",
+        inviteLink,
+        role,
+        expiresAt,
+        invitationType: invitationType as any,
+        trialDays: resolvedTrialDays,
+        programName: isClient ? (programName?.trim() || null) : undefined,
+      });
+    }
 
-    console.log(`✅ [business] Invite sent | business=${business.id} | to=${email} | role=${role}`);
-    return res.json({ success: true, message: `Invitation sent to ${email}.` });
+    console.log(`✅ [business] Invite sent | business=${business.id} | to=${email} | type=${invitationType}`);
+    return res.json({ success: true, inviteLink, message: `Invitation created for ${email}.` });
   } catch (err) {
     console.error("[business/invite] error:", err);
     return res.status(500).json({ error: "Server error." });
   }
 });
 
+// ── PATCH /api/business/members/:memberId/restore — owner manually reactivates a removed member
+//
+// This is the "direct API call" reactivation path the task description calls out.
+// It mirrors the same notice-clearing contract as the invite-accept path:
+//   1. Flip the row back to active (with a fresh joinedAt).
+//   2. Call clearRemovalNotice() so any undismissed removal-notice rows — including
+//      historical rows from prior removal cycles — are stamped immediately.
+// Both steps run inside one transaction so they can never diverge.
+router.patch("/members/:memberId/restore", requireAuth, requireProAccess, async (req, res) => {
+  const userId = (req as any).authUser?.id as string;
+  const { memberId } = req.params;
+
+  try {
+    const [business] = await db
+      .select()
+      .from(businesses)
+      .where(eq(businesses.ownerUserId, userId))
+      .limit(1);
+
+    if (!business) {
+      return res.status(403).json({ error: "No business account found." });
+    }
+
+    const [member] = await db
+      .select()
+      .from(businessMembers)
+      .where(and(eq(businessMembers.id, memberId), eq(businessMembers.businessId, business.id)))
+      .limit(1);
+
+    if (!member) {
+      return res.status(404).json({ error: "Member not found." });
+    }
+
+    if (member.status !== "removed") {
+      return res.status(400).json({ error: "Member is not in a removed state." });
+    }
+
+    // Seat check — restoring a removed member consumes a seat.
+    const usedSeats = await getActiveSeats(business.id);
+    if (usedSeats >= business.seatLimit) {
+      return res.status(400).json({
+        error: "All seats are currently in use. Free a seat before restoring this member.",
+        code: "SEATS_FULL",
+      });
+    }
+
+    await db.transaction(async (tx) => {
+      // Reactivate the row.
+      await tx
+        .update(businessMembers)
+        .set({ status: "active", joinedAt: new Date(), noticeDismissedAt: new Date() })
+        .where(eq(businessMembers.id, memberId));
+
+      // Clear any other undismissed removal-notice rows for this user in this business
+      // (covers historical rows from prior removal cycles).
+      await clearRemovalNotice(tx, member.userId, business.id);
+    });
+
+    console.log(`✅ [business] Member restored | business=${business.id} | member=${memberId}`);
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("[business/members/restore] error:", err);
+    return res.status(500).json({ error: "Server error." });
+  }
+});
+
 // ── DELETE /api/business/members/:memberId — owner removes a member
-router.delete("/members/:memberId", requireAuth, async (req, res) => {
+router.delete("/members/:memberId", requireAuth, requireProAccess, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   const { memberId } = req.params;
 
@@ -325,7 +547,7 @@ router.post("/removal-notice/dismiss", requireAuth, async (req, res) => {
 });
 
 // ── DELETE /api/business/invitations/:token — owner cancels a pending invite
-router.delete("/invitations/:token", requireAuth, async (req, res) => {
+router.delete("/invitations/:token", requireAuth, requireProAccess, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   const { token } = req.params;
 
@@ -359,7 +581,7 @@ router.delete("/invitations/:token", requireAuth, async (req, res) => {
 });
 
 // ── POST /api/business/invitations/:token/resend — owner resends an invite
-router.post("/invitations/:token/resend", requireAuth, async (req, res) => {
+router.post("/invitations/:token/resend", requireAuth, requireProAccess, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   const { token } = req.params;
 
@@ -381,7 +603,10 @@ router.post("/invitations/:token/resend", requireAuth, async (req, res) => {
         and(
           eq(businessInvitations.token, token),
           eq(businessInvitations.businessId, business.id),
-          eq(businessInvitations.status, "pending"),
+          or(
+            eq(businessInvitations.status, "pending"),
+            eq(businessInvitations.status, "expired"),
+          ),
         ),
       )
       .limit(1);
@@ -391,9 +616,10 @@ router.post("/invitations/:token/resend", requireAuth, async (req, res) => {
     }
 
     const newExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const newToken = generateInviteToken();
     await db
       .update(businessInvitations)
-      .set({ expiresAt: newExpiry })
+      .set({ status: "pending", expiresAt: newExpiry, token: newToken })
       .where(eq(businessInvitations.id, invite.id));
 
     const [owner] = await db
@@ -402,7 +628,7 @@ router.post("/invitations/:token/resend", requireAuth, async (req, res) => {
       .where(eq(users.id, userId))
       .limit(1);
 
-    const inviteLink = `${getAppUrl()}/business/join/${token}`;
+    const inviteLink = `${getAppUrl()}/business/join/${newToken}`;
 
     await sendBusinessInviteEmail({
       to: invite.email,
@@ -411,9 +637,12 @@ router.post("/invitations/:token/resend", requireAuth, async (req, res) => {
       inviteLink,
       role: invite.role,
       expiresAt: newExpiry,
+      invitationType: (invite.invitationType ?? "team_member") as any,
+      trialDays: invite.trialDays,
+      programName: invite.programName,
     });
 
-    return res.json({ success: true, message: "Invite resent." });
+    return res.json({ success: true, message: "Invite resent.", newToken });
   } catch (err) {
     console.error("[business/invitations/resend] error:", err);
     return res.status(500).json({ error: "Server error." });
@@ -421,7 +650,7 @@ router.post("/invitations/:token/resend", requireAuth, async (req, res) => {
 });
 
 // ── PATCH /api/business/policy — owner updates independent_client_policy
-router.patch("/policy", requireAuth, async (req, res) => {
+router.patch("/policy", requireAuth, requireProAccess, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   const { policy } = req.body as { policy: string };
 
@@ -461,7 +690,7 @@ router.patch("/policy", requireAuth, async (req, res) => {
 });
 
 // ── PATCH /api/business/org-policies — owner updates org-level policy flags
-router.patch("/org-policies", requireAuth, async (req, res) => {
+router.patch("/org-policies", requireAuth, requireProAccess, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   const { requireAcademy, requireProfessionalVerification } = req.body as {
     requireAcademy?: boolean;
@@ -526,11 +755,16 @@ router.get("/invite/:token", async (req, res) => {
         role: businessInvitations.role,
         status: businessInvitations.status,
         expiresAt: businessInvitations.expiresAt,
+        invitationType: businessInvitations.invitationType,
+        trialDays: businessInvitations.trialDays,
+        programName: businessInvitations.programName,
+        inviterName: users.username,
         businessName: businesses.name,
         independentClientPolicy: businesses.independentClientPolicy,
       })
       .from(businessInvitations)
       .innerJoin(businesses, eq(businesses.id, businessInvitations.businessId))
+      .leftJoin(users, eq(users.id, businessInvitations.invitedByUserId))
       .where(eq(businessInvitations.token, token))
       .limit(1);
 
@@ -559,6 +793,10 @@ router.get("/invite/:token", async (req, res) => {
       businessName: invite.businessName,
       expiresAt: invite.expiresAt,
       independentClientPolicy: invite.independentClientPolicy,
+      invitationType: invite.invitationType ?? "team_member",
+      trialDays: invite.trialDays,
+      programName: invite.programName,
+      inviterName: invite.inviterName,
     });
   } catch (err) {
     console.error("[business/invite/get] error:", err);
@@ -587,6 +825,23 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
       return res.status(410).json({ error: "This invitation has expired." });
     }
 
+    // ── Email-address enforcement ─────────────────────────────────────────────
+    // The invitation is tied to a specific email. Verify the authenticated user's
+    // email matches before doing anything else — prevents one person from redeeming
+    // an invitation meant for another.
+    const [acceptingUser] = await db
+      .select({ email: users.email })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (!acceptingUser || acceptingUser.email?.toLowerCase() !== invite.email.toLowerCase()) {
+      return res.status(403).json({
+        error: "This invitation was sent to a different email address. Please log in with the email that received the invitation.",
+        code: "EMAIL_MISMATCH",
+      });
+    }
+
     const [business] = await db
       .select()
       .from(businesses)
@@ -597,6 +852,104 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
       return res.status(403).json({ error: "This business account is no longer active." });
     }
 
+    // ── Client invitation path — extend trial, no seat consumed ──────────────
+    if (invite.invitationType === "client") {
+      const trialDays = invite.trialDays ?? 30;
+
+      // Guard: skip the trial_ends_at write for users who already have an active
+      // paid subscription. Their access is governed by Stripe billing, not by
+      // trial_ends_at. Writing a future trial_ends_at for them is a no-op now,
+      // but when their paid plan eventually lapses (planLookupKey goes null),
+      // the stale trial_ends_at timestamp could cause the trial banner to
+      // reappear — which would be wrong and confusing.
+      const [acceptingUser] = await db
+        .select({ planLookupKey: users.planLookupKey })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      const hasActivePaidPlan =
+        acceptingUser?.planLookupKey != null && acceptingUser.planLookupKey !== "";
+
+      if (!hasActivePaidPlan) {
+        // Set trial to MAX(existing end, now + N days).
+        // Using COALESCE so NULL trial_ends_at is treated as a past date, not a GREATEST-stopper.
+        // This means a brand-new user (7-day default trial) gets exactly 30 days from acceptance,
+        // not 7+30. A user already on a longer custom trial keeps their longer end date.
+        // Reset trial_reminders_sent to '{}' when the invitation extends the trial
+        // by more than 7 days. Without this, reminder milestones from a previous
+        // short trial (e.g. "day_6") would block the cron from sending the same
+        // milestone before the new, much-later expiry date.
+        await db.execute(
+          sql`UPDATE users
+              SET trial_ends_at = GREATEST(COALESCE(trial_ends_at, '1970-01-01'::timestamptz), NOW() + (${trialDays}::text || ' days')::interval),
+                  trial_reminders_sent = CASE WHEN ${trialDays} > 7 THEN '{}'::text[] ELSE trial_reminders_sent END
+              WHERE id = ${userId}`
+        );
+      } else {
+        console.log(
+          `ℹ️ [business] Client invite accepted by paid subscriber — trial_ends_at write skipped | user=${userId} | planLookupKey=${acceptingUser.planLookupKey}`
+        );
+      }
+
+      await db
+        .update(businessInvitations)
+        .set({ status: "accepted", acceptedAt: new Date(), acceptedByUserId: userId })
+        .where(eq(businessInvitations.id, invite.id));
+
+      const programName = invite.programName || "My Perfect Meals Complimentary Access";
+      console.log(`✅ [business] Client invite accepted | business=${business.id} | user=${userId} | days=${trialDays}`);
+      return res.json({
+        success: true,
+        invitationType: "client",
+        businessName: business.name,
+        programName,
+        trialDays,
+      });
+    }
+
+    // ── Existing membership check (any status) ────────────────────────────────
+    // Must run BEFORE the seat-count check so we emit the correct error and
+    // never create a duplicate row.  A removed member re-accepting a new invite
+    // re-activates their existing row instead of inserting a second one.
+    const [existing] = await db
+      .select()
+      .from(businessMembers)
+      .where(and(eq(businessMembers.businessId, business.id), eq(businessMembers.userId, userId)))
+      .limit(1);
+
+    if (existing && existing.status === "active") {
+      // User is already an active member (covers downgraded-but-not-removed members
+      // who somehow receive a second invite link — reject cleanly without touching seats).
+      return res.status(400).json({ error: "You are already a member of this business." });
+    }
+
+    // ── Cross-business duplicate check ────────────────────────────────────────
+    // A user may not hold active seats in two businesses simultaneously.
+    // Check for any active businessMembers row in a *different* business before
+    // activating this membership so seat accounting stays consistent platform-wide.
+    const [activeElsewhere] = await db
+      .select({ businessId: businessMembers.businessId })
+      .from(businessMembers)
+      .where(
+        and(
+          eq(businessMembers.userId, userId),
+          eq(businessMembers.status, "active"),
+          ne(businessMembers.businessId, business.id),
+        ),
+      )
+      .limit(1);
+
+    if (activeElsewhere) {
+      return res.status(400).json({
+        error: "You are already an active member of another business. Leave that business before joining a new one.",
+        code: "ALREADY_IN_ANOTHER_BUSINESS",
+      });
+    }
+
+    // ── Seat availability check ────────────────────────────────────────────────
+    // Only needed for brand-new members or removed members re-joining.
+    // (Active members are already counted and were rejected above.)
     const usedSeats = await getActiveSeats(business.id);
     if (usedSeats >= business.seatLimit) {
       return res.status(400).json({
@@ -604,13 +957,6 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
         code: "SEATS_FULL",
       });
     }
-
-    // Check not already a member
-    const [existing] = await db
-      .select()
-      .from(businessMembers)
-      .where(and(eq(businessMembers.businessId, business.id), eq(businessMembers.userId, userId)))
-      .limit(1);
 
     // ── Snapshot personal plan before activating membership ───────────────────
     // We NEVER overwrite the user's Stripe planLookupKey with the business plan.
@@ -638,29 +984,55 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
         .where(eq(users.id, userId));
     }
 
-    if (existing && existing.status === "active") {
-      return res.status(400).json({ error: "You are already a member of this business." });
-    }
+    // Atomically update member row + mark invite accepted so they can never diverge.
+    // The partial unique index idx_business_members_one_active_per_user enforces
+    // one active seat per user across all businesses at the DB level.  Any concurrent
+    // request that races past the application-level pre-check will be rejected here
+    // with a 23505 unique-violation, which we map to ALREADY_IN_ANOTHER_BUSINESS.
+    try {
+      await db.transaction(async (tx) => {
+        if (existing) {
+          // Re-activate a previously-removed member row — never insert a duplicate.
+          // Also set noticeDismissedAt so the stale removal-notice banner is cleared
+          // immediately on re-join and never shown to an active member.
+          await tx
+            .update(businessMembers)
+            .set({ status: "active", joinedAt: new Date(), noticeDismissedAt: new Date() })
+            .where(eq(businessMembers.id, existing.id));
 
-    // Atomically update member row + mark invite accepted so they can never diverge
-    await db.transaction(async (tx) => {
-      if (existing) {
-        // Re-activate if previously removed
-        await tx.update(businessMembers).set({ status: "active", joinedAt: new Date() }).where(eq(businessMembers.id, existing.id));
-      } else {
-        await tx.insert(businessMembers).values({
-          businessId: business.id,
-          userId,
-          role: invite.role as any,
-          status: "active",
+          // Belt-and-suspenders: dismiss any other undismissed removal-notice rows
+          // for this user in this business (historical rows from prior removals).
+          // Using the shared clearRemovalNotice helper so any future reactivation
+          // path (admin restore, direct API, etc.) gets the same guarantee by
+          // calling one function rather than duplicating the WHERE clause.
+          await clearRemovalNotice(tx, userId, business.id);
+        } else {
+          await tx.insert(businessMembers).values({
+            businessId: business.id,
+            userId,
+            role: invite.role as any,
+            status: "active",
+          });
+        }
+
+        await tx
+          .update(businessInvitations)
+          .set({ status: "accepted", acceptedAt: new Date(), acceptedByUserId: userId })
+          .where(eq(businessInvitations.id, invite.id));
+      });
+    } catch (txErr: any) {
+      // PostgreSQL unique-violation code: 23505.
+      // The partial index name contains "one_active_per_user" — match on both
+      // to avoid swallowing unrelated unique violations (e.g. business_id+user_id).
+      const constraintName: string = txErr.constraint_name ?? txErr.constraint ?? "";
+      if (txErr.code === "23505" && constraintName.includes("one_active_per_user")) {
+        return res.status(400).json({
+          error: "You are already an active member of another business. Leave that business before joining a new one.",
+          code: "ALREADY_IN_ANOTHER_BUSINESS",
         });
       }
-
-      await tx
-        .update(businessInvitations)
-        .set({ status: "accepted", acceptedAt: new Date(), acceptedByUserId: userId })
-        .where(eq(businessInvitations.id, invite.id));
-    });
+      throw txErr; // re-throw so the outer catch returns 500
+    }
 
     // NOTE: Do NOT call updateUserSubscription here. The user's planLookupKey
     // stays as their personal plan. Access tier is computed at runtime by
@@ -675,7 +1047,7 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
 });
 
 // ── PATCH /api/business/name — owner renames the business
-router.patch("/name", requireAuth, async (req, res) => {
+router.patch("/name", requireAuth, requireProAccess, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   const { name } = req.body as { name: string };
 
@@ -697,7 +1069,7 @@ router.patch("/name", requireAuth, async (req, res) => {
 });
 
 // ── POST /api/business/seats — owner updates seat count (syncs Stripe subscription quantity)
-router.post("/seats", requireAuth, async (req, res) => {
+router.post("/seats", requireAuth, requireProAccess, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   if (!userId) return res.status(401).json({ error: "Not authenticated." });
 

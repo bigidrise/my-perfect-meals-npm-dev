@@ -62,6 +62,11 @@ export const businessInvitations = pgTable("business_invitations", {
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   acceptedAt: timestamp("accepted_at", { withTimezone: true }),
   acceptedByUserId: text("accepted_by_user_id"),
+  // Client Invitation Engine — added via boot migration
+  invitationType: text("invitation_type").$type<"team_member" | "client">().notNull().default("team_member"),
+  trialDays: integer("trial_days"),
+  programName: text("program_name"),
+  partnerRecordId: text("partner_record_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 

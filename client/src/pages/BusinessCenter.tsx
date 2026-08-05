@@ -6,15 +6,19 @@ import {
   ChefHat,
   GraduationCap,
   Handshake,
+  Tag,
   ChevronRight,
   Trophy,
   CheckCircle2,
   Circle,
   Loader2,
-  Megaphone,
+
+  Salad,
+  X,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiRequest } from "@/lib/queryClient";
 import { getTierForLookupKey } from "@shared/planFeatures";
@@ -56,17 +60,6 @@ const PROFESSIONAL_CERTS: {
 
 const pillars = [
   {
-    id: "partner-center",
-    title: "Partner Center",
-    description:
-      "Your referral link, promo code, QR code, monthly marketing downloads, and messaging guidelines — all in one place.",
-    icon: Megaphone,
-    route: "/partner-center",
-    accent: "bg-orange-500/20",
-    iconColor: "text-orange-400",
-    border: "border-orange-500/20",
-  },
-  {
     id: "partners",
     title: "Partner Programs",
     description:
@@ -100,6 +93,17 @@ const pillars = [
     border: "border-orange-500/20",
   },
   {
+    id: "promotions",
+    title: "Promotions",
+    description:
+      "Create trial extensions and discount codes for patients, clients, and campaigns. One engine — trials, discounts, invite links.",
+    icon: Tag,
+    route: "/business-center/promotions",
+    accent: "bg-amber-500/20",
+    iconColor: "text-amber-400",
+    border: "border-amber-500/20",
+  },
+  {
     id: "creator-brand",
     title: "Creator & Brand Studio",
     description:
@@ -115,7 +119,13 @@ const pillars = [
 export default function BusinessCenter() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
-  const isProfessional = !!(user?.professionalRole || user?.isProCare);
+  const isDesktop = useIsDesktop();
+  // Business-only accounts are NOT ProCare practitioners — exclude from cert card
+  const isProfessional = !!(
+    (user?.professionalRole && user?.professionalRole !== "business") ||
+    user?.isProCare
+  );
+  const isBusinessAccount = user?.professionalRole === "business";
 
   const tier = getTierForLookupKey(user?.planLookupKey);
   const isPro = tier === "premium" || tier === "ultimate";
@@ -128,6 +138,11 @@ export default function BusinessCenter() {
     phase2Done: false,
     loading: true,
   });
+
+  useEffect(() => {
+    document.title = "Business Center | My Perfect Meals";
+    return () => { document.title = "My Perfect Meals"; };
+  }, []);
 
   useEffect(() => {
     if (!isProfessional) {
@@ -168,31 +183,33 @@ export default function BusinessCenter() {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
     >
-      {/* Header */}
-      <div
-        className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`}
-        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
-      >
-        <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
-          <button
-            onClick={() => setLocation("/more")}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </button>
-          <h1 className="text-lg font-bold text-white">Business Suite</h1>
-          {!hasProAccess && (
-            <span className="ml-auto px-2.5 py-0.5 rounded-full bg-orange-600/20 border border-orange-500/30 text-orange-400 text-[10px] font-semibold tracking-wide uppercase">
-              Pro+
-            </span>
-          )}
+      {/* Header — mobile only; desktop uses DesktopLayout shell header */}
+      {!isDesktop && (
+        <div
+          className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`}
+          style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+        >
+          <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
+            <button
+              onClick={() => setLocation("/more")}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </button>
+            <h1 className="text-lg font-bold text-white">Business Center</h1>
+            {!hasProAccess && (
+              <span className="ml-auto px-2.5 py-0.5 rounded-full bg-orange-600/20 border border-orange-500/30 text-orange-400 text-[10px] font-semibold tracking-wide uppercase">
+                Pro+
+              </span>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       <div
         className="px-4 max-w-2xl mx-auto space-y-3"
-        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5rem)" }}
+        style={{ paddingTop: isDesktop ? "1rem" : "calc(env(safe-area-inset-top, 0px) + 5rem)" }}
       >
         <div className="py-3 text-center">
           <p className="text-white/55 text-sm leading-relaxed">
@@ -200,7 +217,36 @@ export default function BusinessCenter() {
           </p>
         </div>
 
-        {/* Professional Certifications card — only for ProCare professionals */}
+        {/* Personal nutrition nudge — shown once for business accounts that haven't set up nutrition yet */}
+        {isBusinessAccount && !user?.onboardingCompletedAt && (
+          <motion.div
+            className="w-full text-left p-5 rounded-2xl bg-black/40 border border-white/10"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <div className="flex items-start gap-4">
+              <div className="p-3 rounded-xl bg-emerald-500/10 flex-shrink-0">
+                <Salad className="h-6 w-6 text-emerald-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-bold text-white leading-snug mb-1">
+                  Complete Your Personal Nutrition Profile
+                </h3>
+                <p className="text-xs text-white/55 mb-3 leading-relaxed">
+                  Set up your own nutrition profile whenever you're ready to experience My Perfect Meals personally and see what your clients will experience.
+                </p>
+                <button
+                  onClick={() => setLocation("/onboarding")}
+                  className="text-xs font-semibold text-emerald-400 active:opacity-60 transition-opacity"
+                >
+                  Complete My Nutrition Profile →
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Professional Certifications card — only for ProCare practitioners */}
         {isProfessional && (
           <motion.div
             className="w-full text-left p-5 rounded-2xl bg-black/50 border border-orange-500/30"

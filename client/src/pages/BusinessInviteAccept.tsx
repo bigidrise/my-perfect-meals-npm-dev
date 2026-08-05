@@ -29,6 +29,10 @@ interface InviteInfo {
   businessName: string;
   expiresAt: string;
   independentClientPolicy?: string;
+  invitationType?: "team_member" | "client";
+  trialDays?: number | null;
+  programName?: string | null;
+  inviterName?: string | null;
 }
 
 const NEXT_STEPS = [
@@ -63,7 +67,7 @@ const NEXT_STEPS = [
 export default function BusinessInviteAccept() {
   const params = useParams<{ token: string }>();
   const token = params.token;
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -71,7 +75,7 @@ export default function BusinessInviteAccept() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [accepting, setAccepting] = useState(false);
   const [accepted, setAccepted] = useState(false);
-  const [acceptedData, setAcceptedData] = useState<{ businessName: string; role: string } | null>(null);
+  const [acceptedData, setAcceptedData] = useState<{ businessName: string; role: string; invitationType?: string; programName?: string; trialDays?: number } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -103,7 +107,10 @@ export default function BusinessInviteAccept() {
         toast({ title: "Could not accept invite", description: data.error, variant: "destructive" });
         return;
       }
-      setAcceptedData({ businessName: data.businessName, role: data.role });
+      // Refresh the auth session immediately so the dashboard sees the
+      // newly-activated business membership without a stale access tier.
+      try { await refreshUser(); } catch { /* non-fatal — dashboard retries */ }
+      setAcceptedData({ businessName: data.businessName, role: data.role, invitationType: data.invitationType, programName: data.programName, trialDays: data.trialDays });
       setAccepted(true);
     } catch {
       toast({ title: "Error", description: "Something went wrong. Please try again.", variant: "destructive" });
@@ -122,6 +129,53 @@ export default function BusinessInviteAccept() {
 
   // ── Post-acceptance welcome screen ──────────────────────────────────────────
   if (accepted && acceptedData) {
+    // ── Client success screen ──
+    if (acceptedData.invitationType === "client") {
+      const programLabel = acceptedData.programName || "My Perfect Meals Complimentary Access";
+      const trialDays = acceptedData.trialDays ?? 30;
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-black/60 via-green-900/30 to-black/80 pb-16" style={{ paddingBottom: "max(4rem, calc(env(safe-area-inset-bottom) + 3rem))" }}>
+          <div className="bg-gradient-to-r from-green-900/80 to-emerald-700/60 border-b border-green-500/30 px-6 py-10 text-center" style={{ paddingTop: "max(2.5rem, calc(env(safe-area-inset-top, 0px) + 2rem))" }}>
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-500/20 border border-green-400/40 mb-4">
+              <CheckCircle className="w-8 h-8 text-green-400" />
+            </div>
+            <h1 className="text-white text-2xl font-bold mb-1">Access Activated!</h1>
+            <p className="text-green-200 text-base">
+              You have <span className="text-white font-semibold">{trialDays} days</span> of complimentary access to My Perfect Meals.
+            </p>
+          </div>
+          <div className="px-5 pt-6 max-w-lg mx-auto space-y-5">
+            <div className="bg-green-950/50 border border-green-500/30 rounded-2xl p-4">
+              <p className="text-green-300 text-sm font-semibold mb-2">{programLabel} includes:</p>
+              <div className="space-y-1.5">
+                {[
+                  "AI-powered meal generation & customization",
+                  "Dietary tracking & nutrition guidance",
+                  "Biometric monitoring & progress tracking",
+                  "Evidence-based meal recommendations",
+                ].map((item) => (
+                  <div key={item} className="flex items-center gap-2">
+                    <CheckCircle className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
+                    <span className="text-white/80 text-sm">{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <button
+              className="w-full py-4 rounded-xl bg-green-600 hover:bg-green-500 text-white font-bold text-base transition-colors flex items-center justify-center gap-2"
+              onClick={() => setLocation("/")}
+            >
+              Start My Meal Plan
+              <ChevronRight className="w-5 h-5" />
+            </button>
+            <p className="text-white/30 text-xs text-center pb-4">
+              Your {trialDays}-day trial begins now.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
     const roleLabel = acceptedData.role.charAt(0).toUpperCase() + acceptedData.role.slice(1);
     return (
       <div className="min-h-screen bg-gradient-to-br from-black/60 via-blue-900/40 to-black/80 pb-16" style={{ paddingBottom: "max(4rem, calc(env(safe-area-inset-bottom) + 3rem))" }}>
@@ -219,9 +273,9 @@ export default function BusinessInviteAccept() {
           {/* CTA */}
           <button
             className="w-full py-4 rounded-xl bg-blue-600 text-white font-bold text-base transition-colors flex items-center justify-center gap-2"
-            onClick={() => setLocation("/home")}
+            onClick={() => setLocation("/business/dashboard")}
           >
-            Continue to My Perfect Meals
+            Go to My Team Dashboard
             <ChevronRight className="w-5 h-5" />
           </button>
 
@@ -253,10 +307,91 @@ export default function BusinessInviteAccept() {
   if (!invite) return null;
 
   // ── Pre-acceptance invitation screen ───────────────────────────────────────
-  const roleLabel = invite.role.charAt(0).toUpperCase() + invite.role.slice(1);
   const expiryDate = new Date(invite.expiresAt).toLocaleDateString("en-US", {
     month: "long", day: "numeric", year: "numeric",
   });
+
+  // ── Client invitation pre-acceptance screen ──
+  if (invite.invitationType === "client") {
+    const programLabel = invite.programName || "My Perfect Meals Complimentary Access";
+    const trialDays = invite.trialDays ?? 30;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-black/60 via-green-900/30 to-black/80 pb-16" style={{ paddingBottom: "max(4rem, calc(env(safe-area-inset-bottom) + 3rem))" }}>
+        {/* Header */}
+        <div className="bg-gradient-to-r from-green-900/80 to-emerald-700/60 border-b border-green-500/30 px-6 py-10 text-center" style={{ paddingTop: "max(2.5rem, calc(env(safe-area-inset-top, 0px) + 2rem))" }}>
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-green-600/20 border border-green-500/30 mb-4">
+            <CheckCircle className="w-7 h-7 text-green-400" />
+          </div>
+          <p className="text-green-300 text-xs font-semibold uppercase tracking-widest mb-2">My Perfect Meals</p>
+          <h1 className="text-white text-2xl font-bold mb-2">{programLabel}</h1>
+          <p className="text-green-200 text-base">
+            {invite.businessName} has given you{" "}
+            <span className="text-white font-semibold">{trialDays} days</span> of complimentary access
+          </p>
+          {invite.inviterName && (
+            <p className="text-green-300/70 text-sm mt-2">Sent by {invite.inviterName}</p>
+          )}
+        </div>
+
+        <div className="px-5 pt-6 max-w-lg mx-auto space-y-5">
+          {/* What you get */}
+          <div className="bg-green-950/50 border border-green-500/30 rounded-2xl p-5">
+            <p className="text-green-300 text-sm font-semibold mb-3">During your {trialDays}-day access you'll have:</p>
+            <div className="space-y-2">
+              {[
+                "AI-powered meal plans personalized to you",
+                "Dietary tracking & nutrition guidance",
+                "Biometric monitoring & progress tracking",
+                "Evidence-based meal recommendations",
+                "Clinical nutrition support tools",
+              ].map((item) => (
+                <div key={item} className="flex items-center gap-2">
+                  <CheckCircle className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
+                  <span className="text-white/80 text-sm">{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Expiry */}
+          <div className="bg-amber-950/40 border border-amber-500/30 rounded-xl px-4 py-3">
+            <p className="text-amber-300 text-xs">
+              This invitation is reserved for <span className="font-semibold">{invite.email}</span> and expires on{" "}
+              <span className="font-semibold">{expiryDate}</span>.
+            </p>
+          </div>
+
+          {/* Login notice */}
+          {!user && (
+            <div className="bg-green-900/30 border border-green-500/20 rounded-xl px-4 py-3 text-center">
+              <p className="text-green-300 text-sm">
+                You'll log in or create a free account to activate — takes under a minute.
+              </p>
+            </div>
+          )}
+
+          {/* CTA */}
+          <button
+            className="w-full py-4 rounded-xl bg-green-600 hover:bg-green-500 text-white font-bold text-base transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+            onClick={handleAccept}
+            disabled={accepting}
+          >
+            {accepting ? (
+              <><Loader2 className="w-5 h-5 animate-spin" /> Activating…</>
+            ) : (
+              <><UserCheck className="w-5 h-5" /> {user ? "Activate My Access" : "Log In to Activate"}</>
+            )}
+          </button>
+
+          <p className="text-white/30 text-xs text-center pb-4">
+            {trialDays} days free · No credit card required
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const roleLabel = invite.role.charAt(0).toUpperCase() + invite.role.slice(1);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black/60 via-blue-900/40 to-black/80 pb-16" style={{ paddingBottom: "max(4rem, calc(env(safe-area-inset-bottom) + 3rem))" }}>

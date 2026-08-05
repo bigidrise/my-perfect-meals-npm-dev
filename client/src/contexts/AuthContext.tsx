@@ -157,9 +157,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
           activeProtocolTrack: userData.activeProtocolTrack ?? null,
           weeklyTrainingSchedule: userData.weeklyTrainingSchedule ?? null,
           performanceProtocolConfig: userData.performanceProtocolConfig ?? null,
+          trialEndsAt: userData.trialEndsAt ?? null,
           sponsoredByBusinessId: userData.sponsoredByBusinessId ?? null,
           sponsoredByBusinessName: userData.sponsoredByBusinessName ?? null,
           recentlyRemovedFromBusiness: userData.recentlyRemovedFromBusiness ?? null,
+          activeClientAccess: userData.activeClientAccess ?? null,
         };
         if (userData.weeklyTrainingSchedule && userData.performanceProtocolConfig) {
           const uid = String(updatedUser.id);
@@ -220,6 +222,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
     window.addEventListener("mpm:user-updated", handleUserUpdated);
     return () => window.removeEventListener("mpm:user-updated", handleUserUpdated);
+  }, [refreshUser]);
+
+  // When any API call is rejected with a plan-gate code (PRO_REQUIRED, etc.),
+  // the user's subscription has been downgraded since their last profile fetch.
+  // Refresh immediately so ProActionLock and plan-aware UI update on the next
+  // render — one page navigation at most, no logout required.
+  useEffect(() => {
+    const handlePlanDowngraded = () => {
+      console.log("📡 [AuthContext] mpm:plan-downgraded received — refreshing user plan");
+      refreshUser().catch(() => {});
+    };
+    window.addEventListener("mpm:plan-downgraded", handlePlanDowngraded);
+    return () => window.removeEventListener("mpm:plan-downgraded", handlePlanDowngraded);
   }, [refreshUser]);
 
   // Sync i18n language whenever user's preferredLanguage changes.

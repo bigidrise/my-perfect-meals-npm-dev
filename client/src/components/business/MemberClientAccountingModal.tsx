@@ -129,25 +129,20 @@ export default function MemberClientAccountingModal({ memberId, onClose }: Props
                 <p className="text-white/50 text-xs mt-1 leading-relaxed">{POLICY_DESC[data.policy]}</p>
               </div>
 
-              {/* Client counts */}
-              <div className="grid grid-cols-3 gap-2">
-                <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
-                  <Building2 className="w-4 h-4 text-orange-400 mx-auto mb-1" />
-                  <p className="text-white font-bold text-xl">{data.organizationClients.count}</p>
-                  <p className="text-white/40 text-[10px] leading-tight mt-0.5">Org Clients</p>
+              {/* Client counts — ownership stamping not yet implemented */}
+              <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <Users className="w-4 h-4 text-white/30" />
+                  <p className="text-white/50 text-[10px] uppercase tracking-wide font-semibold">Client Count</p>
                 </div>
-                <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
-                  <User className="w-4 h-4 text-white/40 mx-auto mb-1" />
-                  <p className="text-white font-bold text-xl">{data.personalClients.count}</p>
-                  <p className="text-white/40 text-[10px] leading-tight mt-0.5">Personal</p>
-                </div>
-                <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
-                  <Users className="w-4 h-4 text-white/40 mx-auto mb-1" />
-                  <p className="text-white font-bold text-xl">
-                    {data.organizationClients.count + data.personalClients.count}
+                <p className="text-white/60 text-sm leading-relaxed">
+                  Client ownership tracking is coming soon. Once active, org-assigned and personal client counts will appear here.
+                </p>
+                {data.unknownClientCount > 0 && (
+                  <p className="text-white/40 text-xs mt-2 leading-relaxed">
+                    {data.unknownClientCount} unclassified client connection{data.unknownClientCount !== 1 ? "s" : ""} detected — classification pending ownership stamping.
                   </p>
-                  <p className="text-white/40 text-[10px] leading-tight mt-0.5">Total</p>
-                </div>
+                )}
               </div>
 
               {/* Compliance */}

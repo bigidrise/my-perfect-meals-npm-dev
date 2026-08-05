@@ -95,6 +95,7 @@ import academyRouter from './routes/academyRoutes';
 import lmsRouter from './routes/lmsRoutes';
 import affiliateRouter, { handleRewardfulWebhook } from './routes/affiliateRoutes';
 import partnerRouter from './routes/partnerRoutes';
+import promotionRouter from './routes/promotionRoutes';
 import whiteLabelRouter from './routes/whiteLabelRoutes';
 import { cookingRouter } from './routes/cooking';
 import { mealImagesRouter } from './routes/mealImages';
@@ -457,6 +458,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/lms', lmsRouter);
   app.use('/api/affiliate', affiliateRouter);
   app.use('/api/partner', partnerRouter);
+  app.use('/api/promotions', promotionRouter);
   app.post('/api/webhooks/rewardful', handleRewardfulWebhook);
   app.use('/api/white-label', whiteLabelRouter);
   app.use('/api/business', businessRouter);
@@ -2408,9 +2410,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         activeProtocolTrack: (user as any).activeProtocolTrack ?? null,
         weeklyTrainingSchedule: (user as any).weeklyTrainingSchedule ?? null,
         performanceProtocolConfig: (user as any).performanceProtocolConfig ?? null,
+        // Trial period — expose to client so it can show a countdown banner
+        trialEndsAt: user.trialEndsAt?.toISOString() ?? null,
         // Business sponsorship — from effective access (computed per-request, not cached)
         sponsoredByBusinessId: authReq.authUser.sponsoredByBusinessId ?? null,
         sponsoredByBusinessName: authReq.authUser.sponsoredByBusinessName ?? null,
+        // Client invitation access — show the client which org granted their trial
+        activeClientAccess: await (async () => {
+          try {
+            const { businesses: biz, businessInvitations: bi } = await import("./db/schema/business");
+            const [inv] = await db
+              .select({
+                programName: bi.programName,
+                businessName: biz.name,
+                inviterName: users.username,
+                trialDays: bi.trialDays,
+                acceptedAt: bi.acceptedAt,
+              })
+              .from(bi)
+              .innerJoin(biz, eq(biz.id, bi.businessId))
+              .leftJoin(users, eq(users.id, bi.invitedByUserId))
+              .where(and(eq(bi.acceptedByUserId, userId), eq(bi.invitationType, "client"), eq(bi.status, "accepted")))
+              .orderBy(desc(bi.acceptedAt))
+              .limit(1);
+            if (!inv?.acceptedAt) return null;
+            return {
+              programName: inv.programName ?? null,
+              businessName: inv.businessName,
+              inviterName: inv.inviterName ?? null,
+              trialDays: inv.trialDays ?? null,
+              acceptedAt: inv.acceptedAt.toISOString(),
+            };
+          } catch (_) { return null; }
+        })(),
         // If user is no longer sponsored, check for a removal within the last 30 days
         recentlyRemovedFromBusiness: await (async () => {
           if (authReq.authUser.sponsoredByBusinessId) return null;
@@ -7409,6 +7441,9 @@ Provide a single exceptional meal recommendation in JSON format with the followi
 
   const { default: getawayRouterShared } = await import("./routes/getaway");
   app.use("/api/getaway", requireAuth, requireProAccess, getawayRouterShared);
+
+  const { default: myPerfectBeginningRouter } = await import("./routes/my-perfect-beginning");
+  app.use("/api/my-perfect-beginning", requireAuth, myPerfectBeginningRouter);
 
   const { default: gatheringsRouterShared } = await import("./routes/gatherings");
   app.use("/api/gatherings", requireAuth, requireProAccess, gatheringsRouterShared);

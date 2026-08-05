@@ -13,6 +13,9 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { computePartnerLifecycle, LifecycleResult } from "@shared/partnerLifecycle";
+import { useAuth } from "@/contexts/AuthContext";
+import { isProOrAbove } from "@/lib/subscriptionCheck";
+import { ProActionLock } from "@/components/ProActionLock";
 
 interface AffiliateAccount {
   affiliateTrack: string;
@@ -81,7 +84,16 @@ function formatDate(iso: string | null) {
 export default function AffiliateDashboard() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const handleBack = useCallback(() => {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      setLocation("/business-center");
+    }
+  }, [setLocation]);
   const isDesktop = useIsDesktop();
+  const { user } = useAuth();
+  const hasPro = isProOrAbove(user);
   const [copiedDesktopUrl, setCopiedDesktopUrl] = useState(false);
   const [account, setAccount] = useState<AffiliateAccount | null>(null);
   const [rewardfulStatus, setRewardfulStatus] = useState<RewardfulStatus | null>(null);
@@ -235,6 +247,41 @@ export default function AffiliateDashboard() {
 
   if (!account) return null;
 
+  // Operational page — all actions require Pro subscription
+  if (!hasPro) {
+    return (
+      <div className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} flex flex-col`}>
+        <div
+          className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`}
+          style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+        >
+          <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
+            <button
+              onClick={handleBack}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </button>
+            <h1 className="text-base font-bold text-white">Partner & Revenue Center</h1>
+          </div>
+        </div>
+        <div
+          className="px-4 max-w-2xl mx-auto w-full"
+          style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5.5rem)" }}
+        >
+          <ProActionLock feature="your Partner & Revenue Center">
+            <div className="space-y-4">
+              <div className="h-32 rounded-2xl bg-white/5 border border-white/10" />
+              <div className="h-48 rounded-2xl bg-white/5 border border-white/10" />
+              <div className="h-24 rounded-2xl bg-white/5 border border-white/10" />
+            </div>
+          </ProActionLock>
+        </div>
+      </div>
+    );
+  }
+
   const qrSrc = account.rewardfulReferralUrl
     ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=16&color=000000&bgcolor=ffffff&data=${encodeURIComponent(account.rewardfulReferralUrl)}`
     : null;
@@ -253,23 +300,25 @@ export default function AffiliateDashboard() {
         >
           <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
             <button
-              onClick={() => setLocation("/business-center/partners")}
+              onClick={handleBack}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
             >
               <ArrowLeft className="h-4 w-4" />
-              Partner Programs
+              Back
             </button>
             <div className="flex-1 min-w-0">
               <h1 className="text-base font-bold text-white">Partner & Revenue Center</h1>
               <p className="text-xs text-white/40 truncate">{partnerRecord?.partnerName ?? trackLabel}</p>
             </div>
-            <button
-              onClick={() => setShowInvite(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-600 text-white text-xs font-bold active:scale-[0.95] transition-transform"
-            >
-              <UserPlus className="h-3.5 w-3.5" />
-              Invite
-            </button>
+            {hasPro && (
+              <button
+                onClick={() => setShowInvite(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-600 text-white text-xs font-bold active:scale-[0.95] transition-transform"
+              >
+                <UserPlus className="h-3.5 w-3.5" />
+                Invite
+              </button>
+            )}
           </div>
         </div>
 
@@ -277,6 +326,16 @@ export default function AffiliateDashboard() {
           className="px-4 max-w-2xl mx-auto space-y-4"
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5.5rem)" }}
         >
+
+          {isDesktop && (
+            <button
+              onClick={() => setLocation("/business-dashboard")}
+              className="flex items-center gap-1.5 text-orange-400 text-sm font-medium mb-4"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Organization Dashboard
+            </button>
+          )}
 
           {/* ── REWARDFUL ACCOUNT SETUP CARD ── */}
           {needsRewardfulSetup && (
@@ -382,28 +441,8 @@ export default function AffiliateDashboard() {
                 <div className="h-8 w-8 rounded-lg bg-orange-500/20 border border-orange-500/30 flex items-center justify-center flex-shrink-0">
                   <Award className="h-4 w-4 text-orange-400" />
                 </div>
-                <CardLabel>Partner Identity</CardLabel>
+                <CardLabel>Partner Information</CardLabel>
               </div>
-              {partnerRecord.promoCode && (
-                <div className="flex items-center justify-between gap-3 py-2.5 border-b border-white/10 mb-2">
-                  <div>
-                    <p className="text-[10px] text-gray-400 mb-0.5">Your Promo Code</p>
-                    <p className="text-sm font-black text-orange-400 tracking-widest">{partnerRecord.promoCode}</p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(partnerRecord.promoCode!).then(() => {
-                        setCopiedPromo(true);
-                        setTimeout(() => setCopiedPromo(false), 2000);
-                      });
-                    }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
-                  >
-                    {copiedPromo ? <Check className="h-3.5 w-3.5 text-green-400" /> : <Copy className="h-3.5 w-3.5" />}
-                    {copiedPromo ? "Copied!" : "Copy"}
-                  </button>
-                </div>
-              )}
               <div className="grid grid-cols-3 gap-2 mb-3">
                 {partnerRecord.customerDiscount != null && (
                   <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-center">
@@ -472,29 +511,30 @@ export default function AffiliateDashboard() {
             </div>
           </Card>
 
-          {/* Card 2 — Referral Link */}
+          {/* Card 2 — Share My Perfect Meals */}
           <Card delay={0.07}>
             <div className="flex items-center gap-3 mb-3">
               <div className="h-8 w-8 rounded-lg bg-orange-500/20 border border-orange-500/30 flex items-center justify-center flex-shrink-0">
                 <Link2 className="h-4 w-4 text-orange-400" />
               </div>
-              <CardLabel>Your Referral Link</CardLabel>
+              <CardLabel>Share My Perfect Meals</CardLabel>
             </div>
 
             {account.rewardfulReferralUrl ? (
               <>
-                <div className="rounded-xl bg-white/10 border border-white/10 p-3 mb-3">
-                  <p className="font-mono text-xs text-gray-300 break-all leading-relaxed">
-                    {account.rewardfulReferralUrl}
-                  </p>
-                  {account.rewardfulReferralToken && (
-                    <p className="text-[10px] text-gray-500 mt-1.5">
-                      Your token: <span className="text-orange-400 font-bold">{account.rewardfulReferralToken}</span>
+                {/* Referral Link row */}
+                <div className="mb-3">
+                  <p className="text-[10px] text-gray-400 mb-1.5">Referral Link</p>
+                  <div className="rounded-xl bg-white/10 border border-white/10 p-3 mb-2">
+                    <p className="font-mono text-xs text-gray-300 break-all leading-relaxed">
+                      {account.rewardfulReferralUrl}
                     </p>
-                  )}
-                </div>
-
-                <div className="flex gap-2 flex-wrap">
+                    {account.rewardfulReferralToken && (
+                      <p className="text-[10px] text-gray-500 mt-1.5">
+                        Your token: <span className="text-orange-400 font-bold">{account.rewardfulReferralToken}</span>
+                      </p>
+                    )}
+                  </div>
                   <button
                     onClick={copyLink}
                     className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-[0.97]"
@@ -503,12 +543,39 @@ export default function AffiliateDashboard() {
                     {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                     {copied ? "Copied!" : "Copy Link"}
                   </button>
+                </div>
+
+                {/* Promo Code row — only when assigned */}
+                {partnerRecord?.promoCode && (
+                  <div className="mb-3 pt-3 border-t border-white/10">
+                    <p className="text-[10px] text-gray-400 mb-1.5">Promo Code</p>
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-black text-orange-400 tracking-widest">{partnerRecord.promoCode}</p>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(partnerRecord!.promoCode!).then(() => {
+                            setCopiedPromo(true);
+                            setTimeout(() => setCopiedPromo(false), 2000);
+                          });
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
+                      >
+                        {copiedPromo ? <Check className="h-3.5 w-3.5 text-green-400" /> : <Copy className="h-3.5 w-3.5" />}
+                        {copiedPromo ? "Copied!" : "Copy"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* QR Code toggle */}
+                <div className={`${partnerRecord?.promoCode ? "" : "mt-0"} pt-3 border-t border-white/10`}>
+                  <p className="text-[10px] text-gray-400 mb-1.5">QR Code</p>
                   <button
                     onClick={() => setShowQR((v) => !v)}
                     className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 text-white font-semibold text-sm active:scale-[0.97] transition-all"
                   >
                     <QrCode className="h-4 w-4" />
-                    {showQR ? "Hide QR" : "QR Code"}
+                    {showQR ? "Hide QR" : "Show QR Code"}
                   </button>
                 </div>
 

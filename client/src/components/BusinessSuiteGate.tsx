@@ -1,15 +1,15 @@
 /**
  * BusinessSuiteGate
  * ─────────────────
- * Wraps any Business Suite page. If the current user is on a Free or Essential
- * plan, the page content is NOT rendered — only the upgrade modal is shown.
- * Pro (premium) and Clinical (ultimate) users, plus internal accounts
- * (PAID_FULL with no planLookupKey), pass through immediately.
+ * Ensures the user is authenticated before rendering any Business Center page.
+ * Unauthenticated users are handled by AppRouter — this gate only guards
+ * against the user object being absent after a race condition on mount.
+ *
+ * Browsing is open to all authenticated users (Free, Pro, or higher).
+ * Individual operational actions inside Business Center pages use
+ * <ProActionLock> to enforce paid Pro access at the action level.
  */
-import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { getTierForLookupKey } from "@shared/planFeatures";
-import { TierUpgradeModal } from "@/components/modals/TierUpgradeModal";
 
 interface Props {
   children: React.ReactNode;
@@ -17,34 +17,10 @@ interface Props {
 
 export function BusinessSuiteGate({ children }: Props) {
   const { user, loading } = useAuth();
-  const [determined, setDetermined] = useState(false);
-  const [blocked, setBlocked] = useState(false);
 
-  useEffect(() => {
-    if (loading) return;
-
-    const tier = getTierForLookupKey(user?.planLookupKey);
-    const isPro = tier === "premium" || tier === "ultimate";
-    // Internal / founder accounts have PAID_FULL but no planLookupKey
-    const isInternal = user?.accessTier === "PAID_FULL" && !user?.planLookupKey;
-
-    setBlocked(!isPro && !isInternal);
-    setDetermined(true);
-  }, [user, loading]);
-
-  // Don't flash page content while checking
-  if (!determined) return null;
-
-  if (blocked) {
-    return (
-      <TierUpgradeModal
-        open={true}
-        onClose={() => {}}
-        requiredTier="pro"
-        featureName="Business Suite"
-      />
-    );
-  }
+  // Wait for auth to resolve; AppRouter handles redirecting unauthenticated users
+  if (loading) return null;
+  if (!user) return null;
 
   return <>{children}</>;
 }
