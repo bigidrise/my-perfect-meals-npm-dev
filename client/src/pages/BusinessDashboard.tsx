@@ -32,12 +32,14 @@ import {
   Settings,
   BookOpen,
   ChevronRight,
+  ChevronDown,
   Shield,
   FileText,
   DollarSign,
   AlertTriangle,
   Copy,
   ExternalLink,
+  HelpCircle,
 } from "lucide-react";
 import { FeatureUpgradeModal } from "@/components/modals/FeatureUpgradeModal";
 
@@ -1090,6 +1092,10 @@ export default function BusinessDashboard() {
           </div>
         </Card>
 
+        <InfoCallout title="What is a team seat?">
+          A seat is a spot for a staff member — a coach, trainer, physician, or any professional on your team who needs access to the platform. Each person you invite as a team member consumes one seat. Seats are billed as part of your Organization plan, and you can add or remove them at any time.
+        </InfoCallout>
+
         {/* Invite Buttons */}
         <div className="flex gap-2">
           <button
@@ -1115,6 +1121,11 @@ export default function BusinessDashboard() {
           </button>
         </div>
 
+        <InfoCallout title="Team Member vs. Client Invitation — what's the difference?">
+          <p><span className="text-white/75 font-medium">Invite Team Member</span> is for your staff — coaches, trainers, and physicians who work inside your organization. They get a seat, log in with their own account, and access ProCare Studio to manage clients.</p>
+          <p className="mt-1.5"><span className="text-white/75 font-medium">Invite Client</span> is for patients and end-users. They don't consume a seat. Instead, they receive a link granting free complimentary access for 30, 60, or 90 days. When that period ends, they keep a free account and can upgrade on their own.</p>
+        </InfoCallout>
+
         {/* Partner & Revenue Center */}
         <button
           className="w-full flex items-center gap-3 p-3.5 rounded-xl bg-gradient-to-r from-orange-600/15 via-orange-600/10 to-transparent border border-orange-500/25 active:opacity-80 transition-opacity text-left"
@@ -1129,6 +1140,11 @@ export default function BusinessDashboard() {
           </div>
           <ChevronRight className="w-4 h-4 text-white/30 flex-shrink-0" />
         </button>
+
+        <InfoCallout title="What is the Partner & Revenue Center?">
+          <p>This is where you manage your affiliate relationship with My Perfect Meals. You get a unique referral link — when someone signs up through it, you earn a commission tracked automatically.</p>
+          <p className="mt-1.5">You can also create <span className="text-white/75 font-medium">promo codes</span> here. A promo code is a shareable shortcut that gives your clients a discount or trial extension. The outcome is the same as a direct Client Invitation, but promo codes can be handed out broadly (posted on a website, printed on a flyer) without entering each person's email one by one.</p>
+        </InfoCallout>
 
         {/* Organization Success Center */}
         <button
@@ -1195,6 +1211,11 @@ export default function BusinessDashboard() {
             Learn how policies work →
           </button>
         </Card>
+
+        <InfoCallout title="What does Client Ownership Policy mean for your clinic?">
+          <p>This setting tells your team members whether they can work with clients <span className="text-white/75 font-medium">outside</span> of your organization. For most clinics, <span className="text-white/75 font-medium">Allowed with Disclosure</span> is the right choice — your coaches can maintain private clients, but they must tell you about those relationships so there are no conflicts.</p>
+          <p className="mt-1.5">If your clinic model depends on exclusive client relationships (e.g. a hospital referral program), choose <span className="text-white/75 font-medium">Organization Clients Only</span>. This setting appears in every team member's dashboard so they always know the rules.</p>
+        </InfoCallout>
 
         {/* Organization Policies */}
         <Card className="bg-white/5 border border-orange-500/20 text-white p-4 space-y-4">
@@ -1266,6 +1287,11 @@ export default function BusinessDashboard() {
             </div>
           </div>
         </Card>
+
+        <InfoCallout title="What does My Perfect Meals handle vs. what your organization owns?">
+          <p><span className="text-white/75 font-medium">My Perfect Meals</span> provides the nutrition platform, meal intelligence, coaching tools, and all the software infrastructure. When a client uses the app, MPM handles meal generation, dietary protocols, data storage, and platform support.</p>
+          <p className="mt-1.5"><span className="text-white/75 font-medium">Your organization</span> owns the client relationship — the intake, the care plan, the coaching conversations, and the clinical decisions. MPM is the tool your team uses; you remain the professional of record. The Client Ownership Policy above determines what happens to those relationships if a team member leaves.</p>
+        </InfoCallout>
 
         {/* Confirmation: disable professional verification */}
         <Dialog open={confirmVerifOff} onOpenChange={setConfirmVerifOff}>
@@ -1419,6 +1445,12 @@ export default function BusinessDashboard() {
             <h2 className="text-white/70 text-xs font-semibold uppercase tracking-wide mb-2 px-1">
               Client Invitations ({ownerData.clientInvitations!.length})
             </h2>
+            <div className="mb-3">
+              <InfoCallout title="How does complimentary access work?">
+                <p>When you invite a client, they receive a secure link granting them full platform access for the number of days you choose (30, 60, or 90). This is completely free for them — no credit card, no commitment.</p>
+                <p className="mt-1.5">When the trial expires, their account automatically <span className="text-white/75 font-medium">converts to a Free plan</span>. They keep their account and can continue using free features or upgrade on their own. They won't lose their data. You'll see the status of each invitation — Pending, Active, or Expired — in the list below.</p>
+              </InfoCallout>
+            </div>
             <div className="space-y-2">
               {ownerData.clientInvitations!.map((inv) => {
                 const isPending = inv.status === "pending" && new Date(inv.expiresAt) > new Date();
@@ -1715,6 +1747,31 @@ export default function BusinessDashboard() {
           memberId={selectedMemberId}
           onClose={() => setSelectedMemberId(null)}
         />
+      )}
+    </div>
+  );
+}
+
+// ── Inline educational callout ───────────────────────────────────────────────
+// Collapsed by default; expands on tap to reveal plain-language explanation.
+function InfoCallout({ title, children }: { title: string; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/[0.03] overflow-hidden">
+      <button
+        className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-left active:opacity-70 transition-opacity"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <HelpCircle className="w-3.5 h-3.5 text-orange-400/70 flex-shrink-0" />
+        <span className="flex-1 text-xs font-medium text-white/50">{title}</span>
+        <ChevronDown
+          className={`w-3.5 h-3.5 text-white/30 flex-shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+      {open && (
+        <div className="px-3.5 pb-3.5 pt-0 space-y-2 border-t border-white/8">
+          <div className="text-xs text-white/55 leading-relaxed pt-2.5">{children}</div>
+        </div>
       )}
     </div>
   );
