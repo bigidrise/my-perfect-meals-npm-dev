@@ -5,6 +5,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
+import { usePageTitle } from "@/contexts/PageTitleContext";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { isFeatureEnabled } from "@/lib/productionGates";
 import { useMealImages } from "@/hooks/useMealImages";
@@ -193,6 +194,7 @@ const CRAVING_TOUR_STEPS: TourStep[] = [
 
 export default function SushiCreator() {
   const [, setLocation] = useLocation();
+  usePageTitle("Sushi Creator");
   const { toast } = useToast();
   const { startWalkthrough } = useCopilot();
   const quickTour = useQuickTour("sushi-creator");
