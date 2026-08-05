@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Brain, Sparkles, Fish } from "lucide-react";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { usePageTitle } from "@/contexts/PageTitleContext";
 interface CravingFeature {
   title: string;
   description: string;
@@ -14,6 +15,7 @@ interface CravingFeature {
 
 export default function CravingCreatorLanding() {
   const [, setLocation] = useLocation();
+  usePageTitle("Craving Hub");
 
   useEffect(() => {
     document.title = "Cravings, Sushi & Desserts Hub | My Perfect Meals";
