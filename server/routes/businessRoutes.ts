@@ -2,7 +2,7 @@ import { Router } from "express";
 import { randomBytes } from "crypto";
 import Stripe from "stripe";
 import { db } from "../db";
-import { eq, and, sql, isNull } from "drizzle-orm";
+import { eq, and, ne, sql, isNull, gt } from "drizzle-orm";
 import { businesses, businessMembers, businessInvitations } from "../db/schema/business";
 import { users } from "@shared/schema";
 import { requireAuth } from "../middleware/requireAuth";
@@ -171,11 +171,21 @@ router.post("/invite", requireAuth, requireProAccess, async (req, res) => {
       return res.status(403).json({ error: "Business subscription is not active." });
     }
 
+    const now = new Date();
+
     const usedSeats = await getActiveSeats(business.id);
+    // Only count non-expired pending invites against seats — expired rows no longer
+    // reserve a seat (they will be cleaned up below when a fresh invite is sent).
     const [pendingInvCount] = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(businessInvitations)
-      .where(and(eq(businessInvitations.businessId, business.id), eq(businessInvitations.status, "pending")));
+      .where(
+        and(
+          eq(businessInvitations.businessId, business.id),
+          eq(businessInvitations.status, "pending"),
+          gt(businessInvitations.expiresAt, now),
+        ),
+      );
     const occupiedSeats = usedSeats + (pendingInvCount?.count ?? 0);
     if (occupiedSeats >= business.seatLimit) {
       return res.status(400).json({
@@ -184,7 +194,9 @@ router.post("/invite", requireAuth, requireProAccess, async (req, res) => {
       });
     }
 
-    // Check if email already has a pending invite
+    // Check if email already has a non-expired pending invite.
+    // An expired pending invite does NOT block a fresh invite — it is instead
+    // marked "expired" below so the stale row is cleaned up automatically.
     const [existingInvite] = await db
       .select()
       .from(businessInvitations)
@@ -193,6 +205,7 @@ router.post("/invite", requireAuth, requireProAccess, async (req, res) => {
           eq(businessInvitations.businessId, business.id),
           eq(businessInvitations.email, email.toLowerCase()),
           eq(businessInvitations.status, "pending"),
+          gt(businessInvitations.expiresAt, now),
         ),
       )
       .limit(1);
@@ -200,6 +213,20 @@ router.post("/invite", requireAuth, requireProAccess, async (req, res) => {
     if (existingInvite) {
       return res.status(400).json({ error: "A pending invitation already exists for this email." });
     }
+
+    // Expire any stale pending invites for this email (expiresAt in the past)
+    // so they don't accumulate in the table.
+    await db
+      .update(businessInvitations)
+      .set({ status: "expired" })
+      .where(
+        and(
+          eq(businessInvitations.businessId, business.id),
+          eq(businessInvitations.email, email.toLowerCase()),
+          eq(businessInvitations.status, "pending"),
+          sql`${businessInvitations.expiresAt} <= ${now}`,
+        ),
+      );
 
     // Check if user is already an active member
     const [existingUser] = await db
@@ -624,6 +651,29 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
       return res.status(400).json({ error: "You are already a member of this business." });
     }
 
+    // ── Cross-business duplicate check ────────────────────────────────────────
+    // A user may not hold active seats in two businesses simultaneously.
+    // Check for any active businessMembers row in a *different* business before
+    // activating this membership so seat accounting stays consistent platform-wide.
+    const [activeElsewhere] = await db
+      .select({ businessId: businessMembers.businessId })
+      .from(businessMembers)
+      .where(
+        and(
+          eq(businessMembers.userId, userId),
+          eq(businessMembers.status, "active"),
+          ne(businessMembers.businessId, business.id),
+        ),
+      )
+      .limit(1);
+
+    if (activeElsewhere) {
+      return res.status(400).json({
+        error: "You are already an active member of another business. Leave that business before joining a new one.",
+        code: "ALREADY_IN_ANOTHER_BUSINESS",
+      });
+    }
+
     // ── Seat availability check ────────────────────────────────────────────────
     // Only needed for brand-new members or removed members re-joining.
     // (Active members are already counted and were rejected above.)
@@ -661,28 +711,46 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
         .where(eq(users.id, userId));
     }
 
-    // Atomically update member row + mark invite accepted so they can never diverge
-    await db.transaction(async (tx) => {
-      if (existing) {
-        // Re-activate a previously-removed member row — never insert a duplicate.
+    // Atomically update member row + mark invite accepted so they can never diverge.
+    // The partial unique index idx_business_members_one_active_per_user enforces
+    // one active seat per user across all businesses at the DB level.  Any concurrent
+    // request that races past the application-level pre-check will be rejected here
+    // with a 23505 unique-violation, which we map to ALREADY_IN_ANOTHER_BUSINESS.
+    try {
+      await db.transaction(async (tx) => {
+        if (existing) {
+          // Re-activate a previously-removed member row — never insert a duplicate.
+          await tx
+            .update(businessMembers)
+            .set({ status: "active", joinedAt: new Date() })
+            .where(eq(businessMembers.id, existing.id));
+        } else {
+          await tx.insert(businessMembers).values({
+            businessId: business.id,
+            userId,
+            role: invite.role as any,
+            status: "active",
+          });
+        }
+
         await tx
-          .update(businessMembers)
-          .set({ status: "active", joinedAt: new Date() })
-          .where(eq(businessMembers.id, existing.id));
-      } else {
-        await tx.insert(businessMembers).values({
-          businessId: business.id,
-          userId,
-          role: invite.role as any,
-          status: "active",
+          .update(businessInvitations)
+          .set({ status: "accepted", acceptedAt: new Date(), acceptedByUserId: userId })
+          .where(eq(businessInvitations.id, invite.id));
+      });
+    } catch (txErr: any) {
+      // PostgreSQL unique-violation code: 23505.
+      // The partial index name contains "one_active_per_user" — match on both
+      // to avoid swallowing unrelated unique violations (e.g. business_id+user_id).
+      const constraintName: string = txErr.constraint_name ?? txErr.constraint ?? "";
+      if (txErr.code === "23505" && constraintName.includes("one_active_per_user")) {
+        return res.status(400).json({
+          error: "You are already an active member of another business. Leave that business before joining a new one.",
+          code: "ALREADY_IN_ANOTHER_BUSINESS",
         });
       }
-
-      await tx
-        .update(businessInvitations)
-        .set({ status: "accepted", acceptedAt: new Date(), acceptedByUserId: userId })
-        .where(eq(businessInvitations.id, invite.id));
-    });
+      throw txErr; // re-throw so the outer catch returns 500
+    }
 
     // NOTE: Do NOT call updateUserSubscription here. The user's planLookupKey
     // stays as their personal plan. Access tier is computed at runtime by

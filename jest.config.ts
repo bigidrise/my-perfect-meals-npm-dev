@@ -12,6 +12,11 @@ const config: Config = {
   setupFiles: ["<rootDir>/server/tests/testEnv.setup.ts"],
   verbose: true,
   clearMocks: true,
+  // forceExit is required for integration tests that hold open a pg connection
+  // pool (the pool keeps the Node process alive after test assertions complete).
+  // This does not affect test correctness — it only prevents jest from hanging
+  // indefinitely waiting for the pool's idle timer to fire.
+  forceExit: true,
   testTimeout: 10000,
   transform: {
     "^.+\\.tsx?$": ["ts-jest", {

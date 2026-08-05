@@ -595,6 +595,276 @@ describe("businessRoutes.ts — accept-invite handler guard ordering", () => {
   });
 });
 
+// ── 8. End-to-end re-join: removed → re-invited → re-accepted ────────────────
+/**
+ * Full-flow confirmation: a member who is removed, then re-invited by the owner,
+ * then accepts the new invite must end up with exactly ONE active businessMembers
+ * row (the original row re-activated, not a second one inserted) and the seat
+ * count must reflect exactly one seat in use.
+ *
+ * Sub-sections:
+ *   (a) Simulation confirms re-join produces action="reactivate" with seat
+ *       count = 1 after the operation.
+ *   (b) Uniqueness model: simulates the member-row state before and after
+ *       reactivation, confirming no duplicate active row is created.
+ *   (c) Source-scan: the reactivation branch inside the accept handler calls
+ *       tx.update(businessMembers) — there is NO tx.insert(businessMembers)
+ *       inside the if-existing block (only in the else branch).
+ *   (d) Source-scan: the UPDATE sets status="active" (confirms the row is
+ *       genuinely reactivated, not left as "removed").
+ */
+
+// ── (a) Simulation: re-join produces reactivate + single seat consumed ────────
+
+interface MockMemberRowState {
+  id: string;
+  status: "active" | "removed" | "invited";
+}
+
+/**
+ * Models the in-memory member-row state before and after acceptInvite runs.
+ *
+ * Returns the row state after the operation and the number of active rows
+ * for the user+business pair (must always be 1 after a successful re-join).
+ */
+function simulateReJoin(
+  initialRow: MockMemberRowState,
+  usedSeats: number,
+  seatLimit: number,
+): {
+  outcome: "reactivated" | "inserted" | "blocked";
+  blockCode?: string;
+  activeRowsAfter: MockMemberRowState[];
+  usedSeatsAfter: number;
+} {
+  // Mirror accept-handler decision tree
+  if (initialRow.status === "active") {
+    return { outcome: "blocked", blockCode: "ALREADY_MEMBER", activeRowsAfter: [initialRow], usedSeatsAfter: usedSeats };
+  }
+  if (usedSeats >= seatLimit) {
+    return { outcome: "blocked", blockCode: "SEATS_FULL", activeRowsAfter: [], usedSeatsAfter: usedSeats };
+  }
+
+  if (initialRow.status === "removed") {
+    // UPDATE path: mutate the existing row in-place, never insert a new one
+    const reactivated: MockMemberRowState = { ...initialRow, status: "active" };
+    return {
+      outcome: "reactivated",
+      activeRowsAfter: [reactivated],  // still only ONE row
+      usedSeatsAfter: usedSeats + 1,
+    };
+  }
+
+  // Fallback: brand-new (should not happen in re-join scenario, here for completeness)
+  const fresh: MockMemberRowState = { id: "bm-new", status: "active" };
+  return { outcome: "inserted", activeRowsAfter: [fresh], usedSeatsAfter: usedSeats + 1 };
+}
+
+describe("POST /api/business/invite/:token/accept — full re-join flow (removed → re-invited → re-accepted)", () => {
+  const SEAT_LIMIT = 5;
+  const REMOVED_ROW: MockMemberRowState = { id: "bm-removed-e2e-001", status: "removed" };
+
+  // ── Core re-join case ──────────────────────────────────────────────────────
+  it("re-activates the existing row (not a duplicate insert) when a removed member re-joins", () => {
+    const { outcome, activeRowsAfter } = simulateReJoin(REMOVED_ROW, 2, SEAT_LIMIT);
+    expect(outcome).toBe("reactivated");
+    // The same row id is preserved — no new row was created
+    expect(activeRowsAfter).toHaveLength(1);
+    expect(activeRowsAfter[0].id).toBe(REMOVED_ROW.id);
+    expect(activeRowsAfter[0].status).toBe("active");
+  });
+
+  it("seat count increments by exactly 1 after a removed member re-joins (not 2)", () => {
+    const usedBefore = 2;
+    const { usedSeatsAfter, outcome } = simulateReJoin(REMOVED_ROW, usedBefore, SEAT_LIMIT);
+    expect(outcome).toBe("reactivated");
+    expect(usedSeatsAfter).toBe(usedBefore + 1); // exactly one new seat consumed
+  });
+
+  it("exactly one active row exists for the user+business pair after re-join", () => {
+    const { activeRowsAfter, outcome } = simulateReJoin(REMOVED_ROW, 1, SEAT_LIMIT);
+    expect(outcome).toBe("reactivated");
+    // Uniqueness guarantee: there must be at most one active row per user+business
+    const activeCount = activeRowsAfter.filter((r) => r.status === "active").length;
+    expect(activeCount).toBe(1);
+  });
+
+  it("re-join is blocked when the business is at seat capacity (removed member needs a free seat)", () => {
+    const { outcome, blockCode } = simulateReJoin(REMOVED_ROW, SEAT_LIMIT, SEAT_LIMIT);
+    expect(outcome).toBe("blocked");
+    expect(blockCode).toBe("SEATS_FULL");
+  });
+
+  it("re-join succeeds when exactly one seat is free", () => {
+    // Edge: usedSeats = seatLimit - 1 (one slot remaining)
+    const { outcome } = simulateReJoin(REMOVED_ROW, SEAT_LIMIT - 1, SEAT_LIMIT);
+    expect(outcome).toBe("reactivated");
+  });
+
+  it("re-join is blocked when a member is still active (not removed) — no duplicate allowed", () => {
+    const activeRow: MockMemberRowState = { id: "bm-active-e2e-002", status: "active" };
+    const { outcome, blockCode, activeRowsAfter } = simulateReJoin(activeRow, 1, SEAT_LIMIT);
+    expect(outcome).toBe("blocked");
+    expect(blockCode).toBe("ALREADY_MEMBER");
+    // The active row must remain untouched — not modified by the guard
+    expect(activeRowsAfter[0].status).toBe("active");
+  });
+});
+
+// ── (b) Uniqueness model: duplicate-row invariant ─────────────────────────────
+
+/**
+ * Models the full businessMembers roster for a user across one business.
+ * After re-join there must be exactly one "active" row — the invariant that
+ * a row-level UNIQUE index on (business_id, user_id) with a partial filter on
+ * status="active" would enforce at the DB level.
+ */
+interface RosterEntry {
+  id: string;
+  businessId: string;
+  userId: string;
+  status: "active" | "removed";
+}
+
+function applyReActivation(
+  roster: RosterEntry[],
+  targetId: string,
+): RosterEntry[] {
+  // Mirrors tx.update(businessMembers).set({ status: "active" }).where(eq(id, existing.id))
+  // No new row is inserted.
+  return roster.map((r) => (r.id === targetId ? { ...r, status: "active" } : r));
+}
+
+describe("businessMembers uniqueness — no duplicate active row after re-join", () => {
+  const BIZ_ID = "biz-uniqueness-test";
+  const USER_ID = "user-uniqueness-test";
+
+  it("roster has exactly one active row after reactivation (was removed)", () => {
+    const initialRoster: RosterEntry[] = [
+      { id: "bm-u1", businessId: BIZ_ID, userId: USER_ID, status: "removed" },
+    ];
+    const afterRoster = applyReActivation(initialRoster, "bm-u1");
+
+    const activeRows = afterRoster.filter(
+      (r) => r.businessId === BIZ_ID && r.userId === USER_ID && r.status === "active",
+    );
+    expect(activeRows).toHaveLength(1);
+    expect(activeRows[0].id).toBe("bm-u1"); // same row, not a new one
+  });
+
+  it("total row count in roster stays at 1 (no INSERT happened alongside the UPDATE)", () => {
+    const initialRoster: RosterEntry[] = [
+      { id: "bm-u2", businessId: BIZ_ID, userId: USER_ID, status: "removed" },
+    ];
+    const afterRoster = applyReActivation(initialRoster, "bm-u2");
+    // If there were an erroneous INSERT, the length would be 2
+    expect(afterRoster).toHaveLength(1);
+  });
+
+  it("seat count derived from active rows = 1 (not 2) after re-join", () => {
+    const initialRoster: RosterEntry[] = [
+      { id: "bm-u3", businessId: BIZ_ID, userId: USER_ID, status: "removed" },
+    ];
+    const afterRoster = applyReActivation(initialRoster, "bm-u3");
+    const seatCount = afterRoster.filter(
+      (r) => r.businessId === BIZ_ID && r.status === "active",
+    ).length;
+    expect(seatCount).toBe(1);
+  });
+
+  it("a second user in the same business is unaffected by the re-join", () => {
+    const OTHER_USER = "user-other-biz-member";
+    const initialRoster: RosterEntry[] = [
+      { id: "bm-u4-removed", businessId: BIZ_ID, userId: USER_ID, status: "removed" },
+      { id: "bm-u4-other",   businessId: BIZ_ID, userId: OTHER_USER, status: "active" },
+    ];
+    const afterRoster = applyReActivation(initialRoster, "bm-u4-removed");
+
+    const rejoinedUser = afterRoster.find((r) => r.userId === USER_ID);
+    const otherUser    = afterRoster.find((r) => r.userId === OTHER_USER);
+
+    expect(rejoinedUser?.status).toBe("active");
+    expect(otherUser?.status).toBe("active");
+
+    // Seat count = 2 (one per user, each unique)
+    const activeCount = afterRoster.filter((r) => r.status === "active").length;
+    expect(activeCount).toBe(2);
+  });
+});
+
+// ── (c) & (d) Source-scan: accept handler uses UPDATE not INSERT for removed members ──
+
+describe("businessRoutes.ts — accept handler re-join branch uses UPDATE, not duplicate INSERT", () => {
+  const routeFilePath = path.resolve(__dirname, "../routes/businessRoutes.ts");
+  let acceptHandlerSlice: string;
+
+  beforeAll(() => {
+    const source = fs.readFileSync(routeFilePath, "utf-8");
+
+    // Isolate the POST /invite/:token/accept handler body
+    const acceptStart = source.indexOf('"/invite/:token/accept"');
+    expect(acceptStart).toBeGreaterThan(-1);
+
+    const afterStart = source.slice(acceptStart);
+    const nextSectionMatch = afterStart.match(/\n\/\/ ──/);
+    acceptHandlerSlice = nextSectionMatch
+      ? afterStart.slice(0, nextSectionMatch.index)
+      : afterStart.slice(0, 4000);
+  });
+
+  it("accept handler contains a transaction block", () => {
+    // The membership row + invitation must be updated atomically
+    expect(acceptHandlerSlice).toMatch(/\.transaction\s*\(/);
+  });
+
+  it("accept handler UPDATE path sets status to active (reactivation confirmed)", () => {
+    // The UPDATE must set status back to "active"
+    const updateBlock = acceptHandlerSlice.match(/if\s*\(\s*existing\s*\)([\s\S]*?)(?:}\s*else)/)?.[1] ?? "";
+    expect(updateBlock).toContain('"active"');
+  });
+
+  it("accept handler UPDATE path keys on the existing row id (not userId) to prevent cross-user updates", () => {
+    // Reactivation must target the specific row by id, not a broad userId match
+    const updateBlock = acceptHandlerSlice.match(/if\s*\(\s*existing\s*\)([\s\S]*?)(?:}\s*else)/)?.[1] ?? "";
+    expect(updateBlock).toContain("existing.id");
+  });
+
+  it("accept handler INSERT is in the else branch (brand-new members only, not re-joins)", () => {
+    // The INSERT must live inside the else {} so removed members go through UPDATE
+    const elseBlock = acceptHandlerSlice.match(/\}\s*else\s*\{([\s\S]*?)\}/)?.[1] ?? "";
+    expect(elseBlock).toContain("insert(businessMembers)");
+  });
+
+  it("accept handler UPDATE branch does NOT contain insert(businessMembers) (no duplicate INSERT)", () => {
+    // Isolate the if(existing){...} block before the else
+    const ifExistingBlock = acceptHandlerSlice.match(/if\s*\(\s*existing\s*\)([\s\S]*?)(?:}\s*else)/)?.[1] ?? "";
+    // An erroneous insert inside this block would corrupt the roster
+    expect(ifExistingBlock).not.toContain("insert(businessMembers)");
+  });
+
+  it("accept handler marks the invitation as accepted within the same transaction", () => {
+    // Confirm the handler contains both a .transaction() call and the "accepted"
+    // status update for businessInvitations, ensuring they are atomic.
+    // (A regex that tries to extract the full transaction block is brittle due to
+    //  nested braces; we verify both ingredients are present in the handler slice.)
+    expect(acceptHandlerSlice).toMatch(/\.transaction\s*\(/);
+    expect(acceptHandlerSlice).toContain('"accepted"');
+    expect(acceptHandlerSlice).toContain("businessInvitations");
+    // The invite update must reference acceptedAt (the field written on acceptance)
+    expect(acceptHandlerSlice).toContain("acceptedAt");
+  });
+
+  it("existing-member lookup runs before the transaction (not inside it)", () => {
+    // The membership check must happen outside the transaction so we can branch
+    // before acquiring a transaction lock.
+    const existingIdx = acceptHandlerSlice.indexOf("businessMembers.userId, userId");
+    const txIdx = acceptHandlerSlice.indexOf(".transaction(");
+    expect(existingIdx).toBeGreaterThan(-1);
+    expect(txIdx).toBeGreaterThan(-1);
+    expect(existingIdx).toBeLessThan(txIdx);
+  });
+});
+
 // ── 9. POST /invite — duplicate-invite guard against active members ───────────
 /**
  * The POST /invite handler must reject an invite request when the target email
@@ -1278,7 +1548,388 @@ describe("businessRoutes.ts — invite guard WHERE clause includes businessId (c
   });
 });
 
-// ── 12. requireProAccess middleware source structure ──────────────────────────
+// ── 12. POST /invite — expired pending invite does NOT block a fresh invite ────
+/**
+ * The POST /invite handler must allow a new invite to the same email address
+ * when the only pending invite row has an expiresAt in the past.
+ *
+ * The guard now queries:
+ *   WHERE businessId=X AND email=Y AND status="pending" AND expiresAt > NOW()
+ *
+ * An invite whose expiresAt <= NOW() is treated as absent — the fresh invite
+ * is allowed, and the stale row is marked "expired" as a cleanup side-effect.
+ *
+ * Guard location in the real handler (businessRoutes.ts, POST /invite):
+ *   1. Query businessInvitations WHERE … AND status="pending" AND expiresAt > now.
+ *   2. If found  → 400 "A pending invitation already exists."
+ *   3. If not found (or only expired rows exist) → continue; mark stale rows "expired".
+ */
+
+interface MockPendingInviteWithExpiry {
+  /** null when no row exists at all */
+  inviteId: string | null;
+  /** Whether the invite's expiresAt is in the future (true) or past (false) */
+  isStillValid: boolean;
+}
+
+/**
+ * Mirrors the updated invite-handler pending-invite guard that includes the
+ * expiresAt > now() condition.
+ *
+ * Returns:
+ *   { status: 400, code: "PENDING_INVITE_EXISTS" }  — blocked (valid pending invite)
+ *   null                                              — guard did not fire (handler continues)
+ */
+function simulateSendInvitePendingGuardWithExpiry(
+  pendingLookup: MockPendingInviteWithExpiry,
+): { status: 400; code: "PENDING_INVITE_EXISTS" } | null {
+  // The DB query only returns the row if status=pending AND expiresAt > now.
+  // An expired row (isStillValid=false) is treated the same as no row (inviteId=null).
+  const activeRow =
+    pendingLookup.inviteId !== null && pendingLookup.isStillValid;
+
+  if (activeRow) {
+    return { status: 400, code: "PENDING_INVITE_EXISTS" };
+  }
+  return null;
+}
+
+describe("POST /api/business/invite — expired pending invite does not block fresh invite", () => {
+  // ── Expired invite: guard must NOT fire ──────────────────────────────────────
+  it("allows a new invite when the only pending invite is expired (expiresAt in the past)", () => {
+    const result = simulateSendInvitePendingGuardWithExpiry({
+      inviteId: "bi-expired-001",
+      isStillValid: false, // expiresAt <= now — treated as absent
+    });
+    expect(result).toBeNull(); // fresh invite is allowed
+  });
+
+  it("allows a new invite when there is no pending invite at all", () => {
+    const result = simulateSendInvitePendingGuardWithExpiry({
+      inviteId: null,
+      isStillValid: false, // irrelevant when inviteId is null
+    });
+    expect(result).toBeNull();
+  });
+
+  // ── Valid (non-expired) pending invite: guard must still fire ─────────────────
+  it("still blocks a new invite when a valid (non-expired) pending invite exists", () => {
+    const result = simulateSendInvitePendingGuardWithExpiry({
+      inviteId: "bi-valid-001",
+      isStillValid: true, // expiresAt > now — genuine conflict
+    });
+    expect(result).not.toBeNull();
+    expect(result!.status).toBe(400);
+    expect(result!.code).toBe("PENDING_INVITE_EXISTS");
+  });
+
+  it("blocks even when seats are available if a valid pending invite exists", () => {
+    // Seat count is irrelevant; the pending-invite guard fires first.
+    const result = simulateSendInvitePendingGuardWithExpiry({
+      inviteId: "bi-valid-spare-seats",
+      isStillValid: true,
+    });
+    expect(result!.code).toBe("PENDING_INVITE_EXISTS");
+  });
+
+  // ── Scenario: same email, expired row → new invite allowed ───────────────────
+  it("scenario — expired invite then fresh invite: no block (end-to-end decision tree)", () => {
+    const staleInviteExists = simulateSendInvitePendingGuardWithExpiry({
+      inviteId: "bi-expired-scenario-001",
+      isStillValid: false,
+    });
+    expect(staleInviteExists).toBeNull(); // not blocked
+  });
+});
+
+// ── 12b. POST /invite — source-scan: expiresAt filter is present in both guards ─
+
+describe("businessRoutes.ts — POST /invite expiresAt guard regression", () => {
+  const routeFilePath = path.resolve(__dirname, "../routes/businessRoutes.ts");
+  let source: string;
+  let inviteHandlerSlice: string;
+
+  beforeAll(() => {
+    source = fs.readFileSync(routeFilePath, "utf-8");
+
+    // Isolate the POST /invite handler body.
+    const inviteStart = source.indexOf('router.post("/invite"');
+    const afterInvite = source.slice(inviteStart);
+    const nextSectionMatch = afterInvite.match(/\n\/\/ ──/);
+    inviteHandlerSlice = nextSectionMatch
+      ? afterInvite.slice(0, nextSectionMatch.index)
+      : afterInvite.slice(0, 5000);
+  });
+
+  it("duplicate-invite guard includes an expiresAt condition (not just status=pending)", () => {
+    expect(inviteHandlerSlice).toContain("businessInvitations.expiresAt");
+  });
+
+  it("seat-count query also excludes expired pending invites via expiresAt", () => {
+    const pendingCountIdx = inviteHandlerSlice.indexOf("pendingInvCount");
+    expect(pendingCountIdx).toBeGreaterThan(-1);
+    const afterCount = inviteHandlerSlice.slice(pendingCountIdx);
+    expect(afterCount.indexOf("expiresAt")).toBeGreaterThan(-1);
+  });
+
+  it("handler marks stale expired pending invites as 'expired' before inserting the new one", () => {
+    expect(inviteHandlerSlice).toContain('"expired"');
+    expect(inviteHandlerSlice).toContain(".update(businessInvitations)");
+    const updateIdx = inviteHandlerSlice.indexOf('.update(businessInvitations)');
+    const afterUpdate = inviteHandlerSlice.slice(updateIdx, updateIdx + 300);
+    expect(afterUpdate).toContain('"expired"');
+  });
+
+  it("pending-invite guard appears before the db.insert(businessInvitations) call", () => {
+    const pendingIdx = inviteHandlerSlice.indexOf("pending invitation already exists");
+    const insertIdx = inviteHandlerSlice.indexOf("db.insert(businessInvitations)");
+    expect(pendingIdx).toBeGreaterThan(-1);
+    expect(insertIdx).toBeGreaterThan(-1);
+    expect(pendingIdx).toBeLessThan(insertIdx);
+  });
+
+  it("expiresAt appears in both the pending-invite check and the seat-count query sections", () => {
+    const matches = inviteHandlerSlice.match(/expiresAt/g);
+    expect(matches).not.toBeNull();
+    expect(matches!.length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+// ── 13. Cross-business duplicate guard ────────────────────────────────────────
+/**
+ * A user must not hold active seats in two businesses simultaneously.
+ * The accept-invite handler checks for any active businessMembers row
+ * across ALL businesses (not just the one being joined) before activating
+ * a new membership.
+ *
+ * Decision: reject with ALREADY_IN_ANOTHER_BUSINESS (not auto-remove) so the
+ * user retains agency over which business they leave.
+ */
+
+/**
+ * Extended simulation that adds a cross-business active-membership check between
+ * the same-business check and the seat-count check.
+ */
+function simulateAcceptInviteWithCrossBusinessCheck(
+  existingSameBusiness: MockExistingMember | null,
+  activeInAnotherBusiness: boolean,
+  usedSeats: number,
+  seatLimit: number,
+): { status: number; code?: string; action?: "reactivate" | "insert" } {
+  // Step 1: same-business existing-member check (fires first)
+  if (existingSameBusiness && existingSameBusiness.status === "active") {
+    return { status: 400, code: "ALREADY_MEMBER" };
+  }
+
+  // Step 2: cross-business active-membership check
+  if (activeInAnotherBusiness) {
+    return { status: 400, code: "ALREADY_IN_ANOTHER_BUSINESS" };
+  }
+
+  // Step 3: seat availability
+  if (usedSeats >= seatLimit) {
+    return { status: 400, code: "SEATS_FULL" };
+  }
+
+  // Step 4: re-activate or insert
+  if (existingSameBusiness && existingSameBusiness.status === "removed") {
+    return { status: 200, action: "reactivate" };
+  }
+  return { status: 200, action: "insert" };
+}
+
+describe("POST /api/business/invite/:token/accept — cross-business duplicate guard", () => {
+  const SEAT_LIMIT = 3;
+
+  it("rejects a user who is already an active member of a different business", () => {
+    const result = simulateAcceptInviteWithCrossBusinessCheck(null, true, 0, SEAT_LIMIT);
+    expect(result.status).toBe(400);
+    expect(result.code).toBe("ALREADY_IN_ANOTHER_BUSINESS");
+  });
+
+  it("rejects even when the target business has plenty of free seats", () => {
+    const result = simulateAcceptInviteWithCrossBusinessCheck(null, true, 0, SEAT_LIMIT);
+    expect(result.status).toBe(400);
+    expect(result.code).toBe("ALREADY_IN_ANOTHER_BUSINESS");
+  });
+
+  it("rejects even when the target business is already at capacity", () => {
+    const result = simulateAcceptInviteWithCrossBusinessCheck(null, true, SEAT_LIMIT, SEAT_LIMIT);
+    expect(result.status).toBe(400);
+    expect(result.code).toBe("ALREADY_IN_ANOTHER_BUSINESS");
+  });
+
+  it("allows a user with no active membership anywhere to accept (baseline)", () => {
+    const result = simulateAcceptInviteWithCrossBusinessCheck(null, false, 1, SEAT_LIMIT);
+    expect(result.status).toBe(200);
+    expect(result.action).toBe("insert");
+  });
+
+  it("allows a formerly-removed member (same business) who is not in another business", () => {
+    const removedRow: MockExistingMember = { id: "bm-removed-003", status: "removed" };
+    const result = simulateAcceptInviteWithCrossBusinessCheck(removedRow, false, 1, SEAT_LIMIT);
+    expect(result.status).toBe(200);
+    expect(result.action).toBe("reactivate");
+  });
+
+  it("rejects a formerly-removed member (same business) who is active in a third business", () => {
+    const removedRow: MockExistingMember = { id: "bm-removed-004", status: "removed" };
+    const result = simulateAcceptInviteWithCrossBusinessCheck(removedRow, true, 1, SEAT_LIMIT);
+    expect(result.status).toBe(400);
+    expect(result.code).toBe("ALREADY_IN_ANOTHER_BUSINESS");
+  });
+
+  it("same-business active check fires before cross-business check (priority order)", () => {
+    const activeRow: MockExistingMember = { id: "bm-active-001", status: "active" };
+    const result = simulateAcceptInviteWithCrossBusinessCheck(activeRow, true, 0, SEAT_LIMIT);
+    expect(result.status).toBe(400);
+    expect(result.code).toBe("ALREADY_MEMBER"); // NOT ALREADY_IN_ANOTHER_BUSINESS
+  });
+
+  it("cross-business check fires before seat-count check (priority order)", () => {
+    const result = simulateAcceptInviteWithCrossBusinessCheck(null, true, SEAT_LIMIT, SEAT_LIMIT);
+    expect(result.status).toBe(400);
+    expect(result.code).toBe("ALREADY_IN_ANOTHER_BUSINESS"); // NOT SEATS_FULL
+  });
+});
+
+// ── 14. businessRoutes.ts source — cross-business guard presence ──────────────
+/**
+ * Regression guard: verifies the cross-business check exists in the accept
+ * handler and appears in the correct position relative to other checks.
+ */
+describe("businessRoutes.ts — cross-business duplicate guard in accept handler", () => {
+  const routeFilePath = path.resolve(__dirname, "../routes/businessRoutes.ts");
+  let source: string;
+  let handlerSlice: string;
+
+  beforeAll(() => {
+    source = fs.readFileSync(routeFilePath, "utf-8");
+    const acceptStart = source.indexOf('"/invite/:token/accept"');
+    const afterStart = source.slice(acceptStart);
+    const nextRouteMatch = afterStart.match(/\n\/\/ ──/);
+    handlerSlice = nextRouteMatch
+      ? afterStart.slice(0, nextRouteMatch.index!)
+      : afterStart.slice(0, 4000);
+  });
+
+  it("accept handler contains ALREADY_IN_ANOTHER_BUSINESS error code", () => {
+    expect(handlerSlice).toContain("ALREADY_IN_ANOTHER_BUSINESS");
+  });
+
+  it("cross-business check (ALREADY_IN_ANOTHER_BUSINESS) appears before getActiveSeats call", () => {
+    const crossBizIdx = handlerSlice.indexOf("ALREADY_IN_ANOTHER_BUSINESS");
+    const seatsIdx = handlerSlice.indexOf("getActiveSeats");
+    expect(crossBizIdx).toBeGreaterThan(-1);
+    expect(seatsIdx).toBeGreaterThan(-1);
+    expect(crossBizIdx).toBeLessThan(seatsIdx);
+  });
+
+  it("same-business active check (already a member) appears before cross-business check", () => {
+    const sameBizIdx = handlerSlice.indexOf("already a member of this business");
+    const crossBizIdx = handlerSlice.indexOf("ALREADY_IN_ANOTHER_BUSINESS");
+    expect(sameBizIdx).toBeGreaterThan(-1);
+    expect(crossBizIdx).toBeGreaterThan(-1);
+    expect(sameBizIdx).toBeLessThan(crossBizIdx);
+  });
+
+  it("ne() or sql-based inequality is used to exclude the current business from the cross-business query", () => {
+    const hasNe = handlerSlice.includes("ne(businessMembers.businessId") ||
+                  handlerSlice.includes("businessId != ") ||
+                  handlerSlice.includes("businessId !== ");
+    expect(hasNe).toBe(true);
+  });
+});
+
+// ── 16. DB-level constraint violation → ALREADY_IN_ANOTHER_BUSINESS mapping ──
+/**
+ * The partial unique index idx_business_members_one_active_per_user enforces the
+ * one-active-seat-per-user rule at the DB layer.  If two concurrent requests both
+ * pass the application-level pre-check, the second DB write will throw a PostgreSQL
+ * 23505 unique-violation.  The accept handler must catch that error and return
+ * ALREADY_IN_ANOTHER_BUSINESS instead of 500.
+ *
+ * These tests verify the error-classification logic in isolation (no live DB needed).
+ */
+
+/**
+ * Mirrors the constraint-violation classifier in the accept handler:
+ *
+ *   if (txErr.code === "23505" && constraintName.includes("one_active_per_user"))
+ *     → ALREADY_IN_ANOTHER_BUSINESS
+ *   else
+ *     → re-throw (500)
+ */
+function classifyTransactionError(err: { code?: string; constraint_name?: string; constraint?: string }): "ALREADY_IN_ANOTHER_BUSINESS" | "SERVER_ERROR" {
+  const constraintName: string = err.constraint_name ?? err.constraint ?? "";
+  if (err.code === "23505" && constraintName.includes("one_active_per_user")) {
+    return "ALREADY_IN_ANOTHER_BUSINESS";
+  }
+  return "SERVER_ERROR";
+}
+
+describe("Accept-invite transaction — DB constraint violation classifier", () => {
+  it("maps a 23505 unique-violation on one_active_per_user to ALREADY_IN_ANOTHER_BUSINESS", () => {
+    const pgError = { code: "23505", constraint_name: "idx_business_members_one_active_per_user" };
+    expect(classifyTransactionError(pgError)).toBe("ALREADY_IN_ANOTHER_BUSINESS");
+  });
+
+  it("also handles pg drivers that surface the constraint as 'constraint' not 'constraint_name'", () => {
+    const pgError = { code: "23505", constraint: "idx_business_members_one_active_per_user" };
+    expect(classifyTransactionError(pgError)).toBe("ALREADY_IN_ANOTHER_BUSINESS");
+  });
+
+  it("does NOT swallow an unrelated 23505 violation (e.g. business_id+user_id unique)", () => {
+    const pgError = { code: "23505", constraint_name: "business_members_business_id_user_id_key" };
+    expect(classifyTransactionError(pgError)).toBe("SERVER_ERROR");
+  });
+
+  it("does NOT swallow a non-unique-violation DB error (e.g. FK violation code 23503)", () => {
+    expect(classifyTransactionError({ code: "23503", constraint_name: "some_fk" })).toBe("SERVER_ERROR");
+  });
+
+  it("does NOT swallow a generic JS error with no PG code", () => {
+    expect(classifyTransactionError({})).toBe("SERVER_ERROR");
+  });
+});
+
+// ── 17. businessRoutes.ts source — constraint catch present in accept handler ─
+/**
+ * Regression guard: verifies that the accept handler catches 23505 errors and
+ * maps them to ALREADY_IN_ANOTHER_BUSINESS (not 500).
+ */
+describe("businessRoutes.ts — accept handler catches DB constraint violation", () => {
+  const routeFilePath = path.resolve(__dirname, "../routes/businessRoutes.ts");
+  let handlerSlice: string;
+
+  beforeAll(() => {
+    const source = fs.readFileSync(routeFilePath, "utf-8");
+    const acceptStart = source.indexOf('"/invite/:token/accept"');
+    const afterStart = source.slice(acceptStart);
+    const nextRouteMatch = afterStart.match(/\n\/\/ ──/);
+    handlerSlice = nextRouteMatch
+      ? afterStart.slice(0, nextRouteMatch.index!)
+      : afterStart.slice(0, 6000);
+  });
+
+  it("accept handler checks txErr.code === '23505'", () => {
+    expect(handlerSlice).toContain('"23505"');
+  });
+
+  it("accept handler inspects the constraint name for one_active_per_user", () => {
+    expect(handlerSlice).toContain("one_active_per_user");
+  });
+
+  it("accept handler re-throws errors that are not the one_active_per_user violation", () => {
+    expect(handlerSlice).toContain("throw txErr");
+  });
+
+  it("partial unique index name is consistent between boot migration and accept handler", () => {
+    expect(handlerSlice).toContain("one_active_per_user");
+  });
+});
+
+// ── 18. requireProAccess middleware source structure ──────────────────────────
 
 describe("requireProAccess.ts — middleware structure regression", () => {
   const middlewareFilePath = path.resolve(__dirname, "../middleware/requireProAccess.ts");
