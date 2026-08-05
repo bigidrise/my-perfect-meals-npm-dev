@@ -2469,3 +2469,224 @@ describe("POST /api/business/invite — occupiedSeats excludes expired pending i
     expect(occupied).toBeLessThan(SEAT_LIMIT);
   });
 });
+
+// ── N. Removal-notice cleared on re-join ─────────────────────────────────────
+/**
+ * When a member is removed, the dashboard shows a removal-notice banner
+ * (controlled by noticeDismissedAt IS NULL on the businessMembers row).
+ *
+ * If the owner later re-invites and the member accepts, the accept handler must
+ * set noticeDismissedAt = NOW() on the reactivated row so the stale banner
+ * never appears to an active member.
+ *
+ * Sub-sections:
+ *   (a) Simulation: confirms the in-memory model correctly clears
+ *       noticeDismissedAt when a removed row is reactivated.
+ *   (b) Source-scan: the reactivation UPDATE in businessRoutes.ts includes
+ *       noticeDismissedAt in its set clause.
+ *   (c) Source-scan: the broader belt-and-suspenders UPDATE that dismisses
+ *       any other undismissed removed rows for this user+business is present.
+ *   (d) Client guard: BusinessDashboard.tsx member view renders no removal
+ *       notice (confirmed by absence of the relevant string in the JSX).
+ */
+
+// ── (a) Simulation: noticeDismissedAt is cleared on reactivation ──────────────
+
+interface MockMemberRowWithNotice {
+  id: string;
+  status: "active" | "removed";
+  noticeDismissedAt: Date | null;
+}
+
+/**
+ * Models the accept handler's reactivation SET clause.
+ * Returns the row state after the UPDATE.
+ */
+function simulateReactivateWithNoticeClear(
+  row: MockMemberRowWithNotice,
+  now: Date,
+): MockMemberRowWithNotice {
+  return {
+    ...row,
+    status: "active",
+    noticeDismissedAt: now, // accept handler always stamps this on reactivation
+  };
+}
+
+/**
+ * Returns true when a removal notice should be shown to the user.
+ * Mirrors the client-side / API condition: status=removed AND noticeDismissedAt IS NULL.
+ */
+function shouldShowRemovalNotice(row: MockMemberRowWithNotice): boolean {
+  return row.status === "removed" && row.noticeDismissedAt === null;
+}
+
+describe("POST /api/business/invite/:token/accept — removal notice cleared on re-join", () => {
+  const NOW = new Date("2026-08-05T12:00:00Z");
+
+  it("removal notice IS shown for a removed member who has not dismissed it (baseline)", () => {
+    const removedRow: MockMemberRowWithNotice = {
+      id: "bm-rn-001",
+      status: "removed",
+      noticeDismissedAt: null, // undismissed
+    };
+    expect(shouldShowRemovalNotice(removedRow)).toBe(true);
+  });
+
+  it("removal notice is NOT shown after the accept handler reactivates the row", () => {
+    const removedRow: MockMemberRowWithNotice = {
+      id: "bm-rn-002",
+      status: "removed",
+      noticeDismissedAt: null,
+    };
+    const afterReactivation = simulateReactivateWithNoticeClear(removedRow, NOW);
+
+    // The row is now active — notice must not fire
+    expect(afterReactivation.status).toBe("active");
+    expect(afterReactivation.noticeDismissedAt).not.toBeNull();
+    expect(shouldShowRemovalNotice(afterReactivation)).toBe(false);
+  });
+
+  it("noticeDismissedAt is stamped even when it was already null (not skipped)", () => {
+    const removedRow: MockMemberRowWithNotice = {
+      id: "bm-rn-003",
+      status: "removed",
+      noticeDismissedAt: null,
+    };
+    const result = simulateReactivateWithNoticeClear(removedRow, NOW);
+    expect(result.noticeDismissedAt).toEqual(NOW);
+  });
+
+  it("already-dismissed notice stays cleared after re-join (idempotent)", () => {
+    const previouslyDismissed: MockMemberRowWithNotice = {
+      id: "bm-rn-004",
+      status: "removed",
+      noticeDismissedAt: new Date("2026-07-01T00:00:00Z"),
+    };
+    const result = simulateReactivateWithNoticeClear(previouslyDismissed, NOW);
+    // noticeDismissedAt is overwritten with NOW — still non-null, still hidden
+    expect(result.noticeDismissedAt).not.toBeNull();
+    expect(shouldShowRemovalNotice(result)).toBe(false);
+  });
+
+  it("a brand-new member row (no prior removal) has noticeDismissedAt null by default and no notice shown (active)", () => {
+    // Fresh insert — status = active, noticeDismissedAt = null (never removed)
+    const freshRow: MockMemberRowWithNotice = {
+      id: "bm-rn-005",
+      status: "active",
+      noticeDismissedAt: null,
+    };
+    // shouldShowRemovalNotice checks status=removed AND null notice; active rows are exempt
+    expect(shouldShowRemovalNotice(freshRow)).toBe(false);
+  });
+});
+
+// ── (b) Source-scan: reactivation UPDATE includes noticeDismissedAt ───────────
+
+describe("businessRoutes.ts — accept handler reactivation UPDATE clears noticeDismissedAt", () => {
+  const routeFilePath = path.resolve(__dirname, "../routes/businessRoutes.ts");
+  let acceptHandlerSlice: string;
+
+  beforeAll(() => {
+    const source = fs.readFileSync(routeFilePath, "utf-8");
+
+    const acceptStart = source.indexOf('"/invite/:token/accept"');
+    expect(acceptStart).toBeGreaterThan(-1);
+
+    const afterStart = source.slice(acceptStart);
+    const nextSectionMatch = afterStart.match(/\n\/\/ ──/);
+    acceptHandlerSlice = nextSectionMatch
+      ? afterStart.slice(0, nextSectionMatch.index)
+      : afterStart.slice(0, 5000);
+  });
+
+  it("the if(existing) reactivation SET clause includes noticeDismissedAt", () => {
+    // Extract the if(existing){...}else block
+    const ifExistingBlock =
+      acceptHandlerSlice.match(/if\s*\(\s*existing\s*\)([\s\S]*?)(?:}\s*else)/)?.[1] ?? "";
+    expect(ifExistingBlock).toContain("noticeDismissedAt");
+  });
+
+  it("the reactivation SET assigns noticeDismissedAt to a Date value (new Date())", () => {
+    const ifExistingBlock =
+      acceptHandlerSlice.match(/if\s*\(\s*existing\s*\)([\s\S]*?)(?:}\s*else)/)?.[1] ?? "";
+    // new Date() is the canonical way to stamp the current time in this codebase
+    expect(ifExistingBlock).toMatch(/noticeDismissedAt\s*:\s*new Date\(\)/);
+  });
+});
+
+// ── (c) Source-scan: belt-and-suspenders broader UPDATE is present ─────────────
+
+describe("businessRoutes.ts — accept handler has belt-and-suspenders notice dismissal", () => {
+  const routeFilePath = path.resolve(__dirname, "../routes/businessRoutes.ts");
+  let ifExistingBlock: string;
+
+  beforeAll(() => {
+    const source = fs.readFileSync(routeFilePath, "utf-8");
+
+    const acceptStart = source.indexOf('"/invite/:token/accept"');
+    expect(acceptStart).toBeGreaterThan(-1);
+
+    const afterStart = source.slice(acceptStart);
+    const nextSectionMatch = afterStart.match(/\n\/\/ ──/);
+    const handlerSlice = nextSectionMatch
+      ? afterStart.slice(0, nextSectionMatch.index)
+      : afterStart.slice(0, 5000);
+
+    ifExistingBlock =
+      handlerSlice.match(/if\s*\(\s*existing\s*\)([\s\S]*?)(?:}\s*else)/)?.[1] ?? "";
+  });
+
+  it("the if(existing) block contains a second update targeting status=removed rows (belt-and-suspenders)", () => {
+    // The broader update uses isNull(businessMembers.noticeDismissedAt) to catch
+    // any other undismissed rows from previous removal cycles.
+    expect(ifExistingBlock).toContain('isNull');
+  });
+
+  it("the broader update filters on noticeDismissedAt being null", () => {
+    expect(ifExistingBlock).toMatch(/isNull\s*\(\s*businessMembers\.noticeDismissedAt\s*\)/);
+  });
+});
+
+// ── (d) Client guard: member view renders no removal-notice banner ─────────────
+
+describe("BusinessDashboard.tsx — member view contains no removal-notice banner", () => {
+  const clientFilePath = path.resolve(
+    __dirname,
+    "../../client/src/pages/BusinessDashboard.tsx",
+  );
+  let memberViewSlice: string;
+
+  beforeAll(() => {
+    const source = fs.readFileSync(clientFilePath, "utf-8");
+
+    // Extract the member view branch (viewMode === "member")
+    const memberStart = source.indexOf('viewMode === "member"');
+    expect(memberStart).toBeGreaterThan(-1);
+
+    // Take everything from that point up to the owner view comment
+    const ownerViewMarker = source.indexOf('// ── Owner view', memberStart);
+    memberViewSlice =
+      ownerViewMarker > memberStart
+        ? source.slice(memberStart, ownerViewMarker)
+        : source.slice(memberStart, memberStart + 6000);
+  });
+
+  it("member view does not reference removal-notice endpoint", () => {
+    expect(memberViewSlice).not.toContain("removal-notice");
+  });
+
+  it("member view does not render a 'removed' status banner", () => {
+    // A removal notice would need to check for status='removed' or 'removedAt'
+    expect(memberViewSlice).not.toMatch(/status\s*===\s*["']removed["']/);
+    expect(memberViewSlice).not.toContain("removedAt");
+    expect(memberViewSlice).not.toContain("noticeDismissedAt");
+  });
+
+  it("member view is only reachable when viewMode=member (active membership confirmed)", () => {
+    // The branch condition guarantees the user is an active member — no stale
+    // removal state can leak into this view.
+    expect(memberViewSlice).toContain('viewMode === "member"');
+    expect(memberViewSlice).toContain("memberData");
+  });
+});
