@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { X, Clock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { hasActivePaidSubscription } from "@/lib/subscriptionCheck";
+import { isInTrial } from "@/lib/subscriptionCheck";
 
 // Routes where the banner should not appear
 const EXCLUDED_ROUTES = [
@@ -47,14 +47,12 @@ export function TrialBanner() {
     return null;
   }
 
-  // Only show when trialEndsAt is set
-  if (!user?.trialEndsAt) return null;
-
-  // Don't show if user already has a paid plan
-  if (hasActivePaidSubscription(user)) return null;
+  // Only show when the user is actively in their trial window
+  // (isInTrial handles: trialEndsAt must be set + not expired + no real paid plan + not founder)
+  if (!isInTrial(user)) return null;
 
   // Only show when 1–7 days remain
-  const daysLeft = getDaysRemaining(user.trialEndsAt);
+  const daysLeft = getDaysRemaining(user.trialEndsAt as string);
   if (daysLeft <= 0 || daysLeft > 7) return null;
 
   // Don't show if dismissed
