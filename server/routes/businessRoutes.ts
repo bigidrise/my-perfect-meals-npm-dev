@@ -146,6 +146,7 @@ router.get("/mine", requireAuth, requireProAccess, async (req, res) => {
       .select({
         id: businessInvitations.id,
         email: businessInvitations.email,
+        token: businessInvitations.token,
         programName: businessInvitations.programName,
         trialDays: businessInvitations.trialDays,
         status: businessInvitations.status,
