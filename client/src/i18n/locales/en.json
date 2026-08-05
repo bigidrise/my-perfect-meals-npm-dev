@@ -166,7 +166,8 @@
     "trainerWelcome": "Trainer Welcome",
     "physicianWelcome": "Physician Welcome",
     "proLaunchpad": "Professional Dashboard",
-    "procareTraining": "ProCare Training"
+    "procareTraining": "ProCare Training",
+    "procareCertified": "ProCare Certified"
   },
   "dashboard": {
     "professionalBadge": "Professional",

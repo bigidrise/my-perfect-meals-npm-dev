@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { motion } from "framer-motion";
 import { Trophy, Star, Users, ClipboardList, Briefcase, TrendingUp, ArrowRight, Loader2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
@@ -28,6 +29,7 @@ const NEXT_STEPS = [
 export default function CertifiedProfessionalUnlock() {
   const [, setLocation] = useLocation();
   const { user, refreshUser } = useAuth();
+  const isDesktop = useIsDesktop();
   const [refreshing, setRefreshing] = useState(true);
 
   useEffect(() => {
@@ -49,7 +51,7 @@ export default function CertifiedProfessionalUnlock() {
 
   if (refreshing) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 flex items-center justify-center">
+      <div className={`${isDesktop ? "flex-1" : "min-h-screen"} bg-gradient-to-br from-black/60 via-orange-600 to-black/80 flex items-center justify-center`}>
         <Loader2 className="w-8 h-8 text-orange-400 animate-spin" />
       </div>
     );
@@ -57,7 +59,7 @@ export default function CertifiedProfessionalUnlock() {
 
   return (
     <motion.div
-      className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white overflow-y-auto pb-36"
+      className={`${isDesktop ? "" : "min-h-screen"} bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white overflow-y-auto ${isDesktop ? "pb-8" : "pb-36"}`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
@@ -156,8 +158,8 @@ export default function CertifiedProfessionalUnlock() {
         </motion.div>
       </div>
 
-      {/* Fixed CTA */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/95 to-transparent">
+      {/* CTA — fixed on mobile, inline on desktop */}
+      <div className={isDesktop ? "px-4 mt-6 max-w-lg mx-auto" : "fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/95 to-transparent"}>
         <motion.button
           onClick={handleEnterStudio}
           className="w-full h-14 font-bold rounded-2xl bg-orange-600 text-white flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"

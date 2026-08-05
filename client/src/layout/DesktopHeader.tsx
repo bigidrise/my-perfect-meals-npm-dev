@@ -92,6 +92,7 @@ const ROUTE_KEY_MAP: Record<string, string> = {
   "/physician-welcome": "physicianWelcome",
   "/pro-launchpad": "proLaunchpad",
   "/procare-training": "procareTraining",
+  "/procare-certified": "procareCertified",
 };
 
 /** Maps hub-back routes to their hub's routeTitles key */
