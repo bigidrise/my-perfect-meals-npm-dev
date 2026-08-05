@@ -3,6 +3,8 @@ import { ArrowLeft, Baby, Utensils, BookOpen, Apple, Brain, ShoppingBag, Sparkle
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { usePageTitle } from "@/contexts/PageTitleContext";
 
 const FEATURES = [
   { icon: Baby, label: "Child Nutrition Profiles", description: "Personalized profiles for every stage of your child's growth" },
@@ -17,6 +19,8 @@ const FEATURES = [
 
 export default function MyPerfectBeginning() {
   const [, setLocation] = useLocation();
+  const isDesktop = useIsDesktop();
+  usePageTitle("My Perfect Beginning");
 
   return (
     <motion.div
@@ -25,34 +29,36 @@ export default function MyPerfectBeginning() {
       transition={{ duration: 0.5 }}
       className="min-h-screen bg-gradient-to-br from-green-950 via-emerald-900 to-black/90 pb-safe-nav"
     >
-      {/* Header */}
-      <div
-        className="fixed top-0 left-0 right-0 z-50 bg-black/20 backdrop-blur-md border-b border-white/10"
-        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
-      >
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-3">
-          <Button
-            onClick={() => setLocation("/lifestyle")}
-            className="bg-black/20 hover:bg-black/40 text-white rounded-xl border border-white/10 flex items-center gap-1.5 px-2.5 h-9 flex-shrink-0"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span className="text-xs font-medium">Back</span>
-          </Button>
-          <h1 className="text-lg font-bold text-white">My Perfect Beginning</h1>
+      {/* Header — mobile only */}
+      {!isDesktop && (
+        <div
+          className="fixed top-0 left-0 right-0 z-50 bg-black/20 backdrop-blur-md border-b border-white/10"
+          style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+        >
+          <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-3">
+            <Button
+              onClick={() => setLocation("/lifestyle")}
+              className="bg-black/20 hover:bg-black/40 text-white rounded-xl border border-white/10 flex items-center gap-1.5 px-2.5 h-9 flex-shrink-0"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="text-xs font-medium">Back</span>
+            </Button>
+            <h1 className="text-lg font-bold text-white">My Perfect Beginning</h1>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Content */}
       <div
         className="max-w-4xl mx-auto px-4 text-white"
-        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5rem)" }}
+        style={{ paddingTop: isDesktop ? "1rem" : "calc(env(safe-area-inset-top, 0px) + 5rem)" }}
       >
         {/* Hero */}
         <div className="text-center mb-10">
           <div className="w-16 h-16 mx-auto bg-green-500/20 rounded-full flex items-center justify-center mb-4 border border-green-400/30">
             <Baby className="w-8 h-8 text-green-400" />
           </div>
-          <h2 className="text-3xl font-bold mb-3">My Perfect Beginning</h2>
+          {!isDesktop && <h2 className="text-3xl font-bold mb-3">My Perfect Beginning</h2>}
           <p className="text-white/70 text-base max-w-lg mx-auto leading-relaxed">
             Age-appropriate nutrition guidance for infants, toddlers, and children — personalized to your child's stage and needs.
           </p>
