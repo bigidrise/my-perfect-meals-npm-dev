@@ -274,6 +274,14 @@ export interface User {
     businessName: string;
     removedAt: string;
   } | null;
+  // Client invitation access — populated when this user accepted a client invitation
+  activeClientAccess?: {
+    programName: string | null;
+    businessName: string;
+    inviterName: string | null;
+    trialDays: number | null;
+    acceptedAt: string;
+  } | null;
 }
 
 export function getAuthToken(): string | null {
