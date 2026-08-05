@@ -4,6 +4,7 @@ import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useOrgFlag } from "@/contexts/OrgContext";
 import {
   ChevronLeft,
+  ArrowLeft,
   ChevronDown,
   ChevronUp,
   BookOpen,
@@ -688,6 +689,15 @@ export default function OrganizationSuccessCenter() {
 
       {/* Hero */}
       <div className="px-4 pb-4" style={{ paddingTop: isDesktop ? "1rem" : "calc(env(safe-area-inset-top, 0px) + 4.5rem)" }}>
+        {isDesktop && (
+          <button
+            onClick={() => setLocation("/business-dashboard")}
+            className="flex items-center gap-1.5 text-orange-400 text-sm font-medium mb-4"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Organization Dashboard
+          </button>
+        )}
         <div className="bg-gradient-to-br from-orange-600/20 via-orange-600/10 to-transparent border border-orange-500/20 rounded-2xl p-5">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 rounded-full bg-orange-600/30 border border-orange-500/40 flex items-center justify-center">
