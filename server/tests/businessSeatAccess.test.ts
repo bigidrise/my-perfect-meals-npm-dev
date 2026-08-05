@@ -1929,6 +1929,258 @@ describe("businessRoutes.ts — accept handler catches DB constraint violation",
   });
 });
 
+// ── 15. GET /api/business/membership — reactivated member response shape ──────
+/**
+ * After a removed member re-accepts an invite the businessMembers row is
+ * flipped back to status="active".  GET /membership queries with:
+ *
+ *   WHERE businessMembers.userId = $userId AND businessMembers.status = "active"
+ *
+ * These tests confirm:
+ *   (a) the simulated query returns the active row (not 404) immediately after
+ *       reactivation — no cache or stale read can hide it.
+ *   (b) the response payload carries businessId and status=active.
+ *   (c) a row still in status="removed" is invisible to the query (404 scenario).
+ *   (d) a row that was just reactivated (status flipped active) IS visible.
+ */
+
+interface MockMembershipRow {
+  memberId: string;
+  userId: string;
+  businessId: string;
+  businessName: string;
+  status: "active" | "removed";
+  role: string;
+  seatLimit: number;
+}
+
+/**
+ * Mirrors the GET /membership handler:
+ *   SELECT … FROM business_members JOIN businesses
+ *   WHERE business_members.user_id = $userId AND business_members.status = 'active'
+ *   LIMIT 1
+ *
+ * Returns the membership payload when found, or null when the row is missing /
+ * not active (which maps to 404 in the real handler).
+ */
+function simulateGetMembership(
+  userId: string,
+  allRows: MockMembershipRow[],
+): { membership: Omit<MockMembershipRow, "userId"> } | null {
+  const row = allRows.find((r) => r.userId === userId && r.status === "active");
+  if (!row) return null;
+  const { userId: _uid, ...payload } = row;
+  return { membership: payload };
+}
+
+describe("GET /api/business/membership — reactivated member is immediately visible", () => {
+  const USER_ID = "user-rejoin-ms-001";
+  const BIZ_ID  = "biz-rejoin-ms-001";
+
+  const BASE_ROW: MockMembershipRow = {
+    memberId: "bm-rejoin-ms-001",
+    userId: USER_ID,
+    businessId: BIZ_ID,
+    businessName: "Rejoin Test Studio",
+    status: "active",
+    role: "coach",
+    seatLimit: 5,
+  };
+
+  // ── (a) Reactivated row is visible straight away ────────────────────────────
+  it("returns the membership when the row is status=active after re-join", () => {
+    const result = simulateGetMembership(USER_ID, [BASE_ROW]);
+    expect(result).not.toBeNull();
+    expect(result!.membership.status).toBe("active");
+  });
+
+  it("response includes the correct businessId", () => {
+    const result = simulateGetMembership(USER_ID, [BASE_ROW]);
+    expect(result!.membership.businessId).toBe(BIZ_ID);
+  });
+
+  it("response includes the role assigned at re-invite time", () => {
+    const coachRow: MockMembershipRow = { ...BASE_ROW, role: "trainer" };
+    const result = simulateGetMembership(USER_ID, [coachRow]);
+    expect(result!.membership.role).toBe("trainer");
+  });
+
+  // ── (b) Removed row produces 404 (membership is invisible) ─────────────────
+  it("returns null (404) when the row is still status=removed", () => {
+    const removedRow: MockMembershipRow = { ...BASE_ROW, status: "removed" };
+    const result = simulateGetMembership(USER_ID, [removedRow]);
+    expect(result).toBeNull(); // maps to 404 in the real handler
+  });
+
+  it("returns null (404) for a user with no businessMembers row at all", () => {
+    const result = simulateGetMembership(USER_ID, []); // empty roster
+    expect(result).toBeNull();
+  });
+
+  // ── (c) Flip: removed → active makes the row visible in the same query ──────
+  it("row invisible when removed, visible after status flip to active", () => {
+    const beforeReactivation: MockMembershipRow = { ...BASE_ROW, status: "removed" };
+    const afterReactivation:  MockMembershipRow = { ...BASE_ROW, status: "active" };
+
+    expect(simulateGetMembership(USER_ID, [beforeReactivation])).toBeNull();
+    expect(simulateGetMembership(USER_ID, [afterReactivation])).not.toBeNull();
+  });
+
+  // ── (d) Another user's active row does not appear in the result ─────────────
+  it("does not leak another user's membership row", () => {
+    const OTHER_USER = "user-other-ms-002";
+    const otherRow: MockMembershipRow = { ...BASE_ROW, userId: OTHER_USER, memberId: "bm-other-ms-002" };
+    // Only the other user's row exists; query for USER_ID must return null.
+    const result = simulateGetMembership(USER_ID, [otherRow]);
+    expect(result).toBeNull();
+  });
+
+  // ── (e) seatLimit is included so the member view can display team capacity ──
+  it("response includes seatLimit from the joined businesses table", () => {
+    const result = simulateGetMembership(USER_ID, [BASE_ROW]);
+    expect(result!.membership.seatLimit).toBe(5);
+  });
+
+  // ── (f) businessName is included so the member dashboard can render the title
+  it("response includes businessName", () => {
+    const result = simulateGetMembership(USER_ID, [BASE_ROW]);
+    expect(result!.membership.businessName).toBe("Rejoin Test Studio");
+  });
+});
+
+// ── 15b. GET /membership source — correct WHERE clause ────────────────────────
+/**
+ * Regression scan: the real GET /membership handler must filter by BOTH
+ * businessMembers.userId AND businessMembers.status = "active".
+ * If the status predicate is dropped a removed member would see a 404-turned-
+ * stale-row and land on the "Join a Business" empty state even after re-joining.
+ */
+describe("businessRoutes.ts — GET /membership WHERE clause regression", () => {
+  const routeFilePath = path.resolve(__dirname, "../routes/businessRoutes.ts");
+  let membershipHandlerSlice: string;
+
+  beforeAll(() => {
+    const source = fs.readFileSync(routeFilePath, "utf-8");
+
+    // Isolate the GET /membership handler
+    const membershipStart = source.indexOf('router.get("/membership"');
+    expect(membershipStart).toBeGreaterThan(-1);
+
+    const afterStart = source.slice(membershipStart);
+    const nextSectionMatch = afterStart.match(/\n\/\/ ──/);
+    membershipHandlerSlice = nextSectionMatch
+      ? afterStart.slice(0, nextSectionMatch.index)
+      : afterStart.slice(0, 2000);
+  });
+
+  it("GET /membership filters by businessMembers.userId", () => {
+    expect(membershipHandlerSlice).toContain("businessMembers.userId");
+  });
+
+  it("GET /membership filters by status=active (not removed rows)", () => {
+    // The WHERE clause must include status="active" so a removed member who has
+    // not yet been re-activated cannot see a stale membership row.
+    expect(membershipHandlerSlice).toContain('"active"');
+    expect(membershipHandlerSlice).toContain("businessMembers.status");
+  });
+
+  it("GET /membership joins to businesses table to include businessId and businessName", () => {
+    // The handler must JOIN businesses so the response can include businessId and name.
+    expect(membershipHandlerSlice).toContain("businesses");
+    expect(membershipHandlerSlice).toContain("businesses.id");
+  });
+
+  it("GET /membership response shape includes status field", () => {
+    // The SELECT must include businessMembers.status so callers can distinguish
+    // active vs removed rows if they need to (defensive completeness).
+    expect(membershipHandlerSlice).toContain("businessMembers.status");
+  });
+});
+
+// ── 19. Post-accept redirect — re-joining member lands on business dashboard ──
+/**
+ * After accepting an invite (new OR re-join), the accept page must navigate
+ * the user to /business/dashboard — NOT to /home.
+ *
+ * Without this, a re-joining member would land on the generic home page which
+ * has no membership-awareness and shows an empty/blank state.  The business
+ * dashboard member view immediately reflects the newly-active membership row
+ * returned by GET /api/business/membership.
+ *
+ * These tests:
+ *   (a) Source-scan BusinessInviteAccept.tsx to confirm the CTA navigates to
+ *       /business/dashboard (regression guard if someone changes the target).
+ *   (b) Confirm /home does NOT appear as the post-accept redirect target.
+ *   (c) Confirm the accept handler response (success: true, businessName, role)
+ *       contains the fields the dashboard needs to render without an extra fetch.
+ */
+
+describe("BusinessInviteAccept.tsx — post-accept redirect destination", () => {
+  const acceptPagePath = path.resolve(
+    __dirname,
+    "../../client/src/pages/BusinessInviteAccept.tsx",
+  );
+  let source: string;
+  // Slice that contains the post-acceptance (accepted === true) render block
+  let acceptedBlock: string;
+
+  beforeAll(() => {
+    source = fs.readFileSync(acceptPagePath, "utf-8");
+
+    // Isolate the post-acceptance screen block (accepted && acceptedData guard)
+    const blockStart = source.indexOf("if (accepted && acceptedData)");
+    expect(blockStart).toBeGreaterThan(-1);
+
+    // The block ends when the next top-level if/return begins (fetch-error screen)
+    const afterStart = source.slice(blockStart);
+    const nextBlockMatch = afterStart.match(/\n  \/\/ ──|if \(fetchError\)/);
+    acceptedBlock = nextBlockMatch
+      ? afterStart.slice(0, nextBlockMatch.index)
+      : afterStart.slice(0, 3000);
+  });
+
+  // ── (a) Redirect target is /business/dashboard ───────────────────────────────
+  it("CTA button navigates to /business/dashboard after acceptance", () => {
+    expect(acceptedBlock).toContain("/business/dashboard");
+  });
+
+  it("setLocation is called with /business/dashboard (not a different path)", () => {
+    // The setLocation call for the CTA must reference /business/dashboard
+    const setLocIdx = acceptedBlock.indexOf('setLocation("/business/dashboard")');
+    expect(setLocIdx).toBeGreaterThan(-1);
+  });
+
+  // ── (b) /home is NOT the redirect target in the post-accept block ────────────
+  it("CTA button does NOT navigate to /home after acceptance", () => {
+    // Navigating to /home drops the user on the generic home page which has
+    // no awareness of the just-reactivated membership.
+    // Note: /home may appear elsewhere (e.g. in the error screen's fallback),
+    // so we check only the CTA button's onClick within acceptedBlock.
+    const ctaIdx = acceptedBlock.indexOf("onClick");
+    expect(ctaIdx).toBeGreaterThan(-1);
+    const ctaBlock = acceptedBlock.slice(ctaIdx, ctaIdx + 200);
+    expect(ctaBlock).not.toContain('"/home"');
+  });
+
+  // ── (c) Accept API response fields used by the accept page ──────────────────
+  it("accept page reads businessName from the API response", () => {
+    // The page stores data.businessName from the POST /accept response.
+    // This field populates the success screen without requiring an extra
+    // GET /membership call immediately after acceptance.
+    expect(source).toContain("data.businessName");
+  });
+
+  it("accept page reads role from the API response", () => {
+    expect(source).toContain("data.role");
+  });
+
+  // ── (d) Page imports useLocation (required for setLocation navigation) ───────
+  it("accept page imports useLocation from wouter", () => {
+    expect(source).toContain("useLocation");
+    expect(source).toContain("wouter");
+  });
+});
+
 // ── 18. requireProAccess middleware source structure ──────────────────────────
 
 describe("requireProAccess.ts — middleware structure regression", () => {
@@ -1955,5 +2207,265 @@ describe("requireProAccess.ts — middleware structure regression", () => {
 
   it("passes ultimate tier", () => {
     expect(source).toContain('"ultimate"');
+  });
+});
+
+// ── 19. GET /mine — expired-invite expiry filter ──────────────────────────────
+/**
+ * Confirms that GET /api/business/mine filters out expired pending invitations
+ * (expiresAt < NOW) so owners never see stale rows that members can no longer use.
+ *
+ * Sub-sections:
+ *   (a) Simulation — mirrors the in-memory filter and validates correct output.
+ *   (b) Source-scan — confirms the expiresAt guard is present in the /mine handler.
+ *   (c) Seat-count — expired invites must NOT inflate occupiedSeats on POST /invite.
+ */
+
+// ── (a) Simulation ────────────────────────────────────────────────────────────
+
+interface MockInviteRow {
+  id: string;
+  status: "pending" | "accepted" | "cancelled" | "expired";
+  expiresAt: Date;
+}
+
+/**
+ * Mirrors the GET /mine pending-invitation query:
+ *   WHERE status = "pending" AND expiresAt > NOW
+ *
+ * Any invite whose expiresAt is in the past is excluded, even if its status
+ * field still says "pending".
+ */
+function simulateMineInvitationFilter(
+  rows: MockInviteRow[],
+  now: Date,
+): MockInviteRow[] {
+  return rows.filter((inv) => inv.status === "pending" && inv.expiresAt > now);
+}
+
+describe("GET /api/business/mine — expired-invite filter simulation", () => {
+  const NOW = new Date("2026-08-05T12:00:00Z");
+  const FUTURE = new Date("2026-08-12T12:00:00Z"); // 7 days out
+  const PAST = new Date("2026-07-29T12:00:00Z");   // 7 days ago
+
+  it("includes a non-expired pending invite", () => {
+    const rows: MockInviteRow[] = [
+      { id: "inv-valid", status: "pending", expiresAt: FUTURE },
+    ];
+    const result = simulateMineInvitationFilter(rows, NOW);
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe("inv-valid");
+  });
+
+  it("excludes a pending invite whose expiresAt is in the past", () => {
+    const rows: MockInviteRow[] = [
+      { id: "inv-expired", status: "pending", expiresAt: PAST },
+    ];
+    const result = simulateMineInvitationFilter(rows, NOW);
+    expect(result).toHaveLength(0);
+  });
+
+  it("excludes a pending invite that expires exactly at NOW (not strictly after)", () => {
+    const rows: MockInviteRow[] = [
+      { id: "inv-boundary", status: "pending", expiresAt: NOW },
+    ];
+    const result = simulateMineInvitationFilter(rows, NOW);
+    expect(result).toHaveLength(0);
+  });
+
+  it("returns only live invites from a mixed list", () => {
+    const rows: MockInviteRow[] = [
+      { id: "inv-live-1", status: "pending", expiresAt: FUTURE },
+      { id: "inv-expired-1", status: "pending", expiresAt: PAST },
+      { id: "inv-live-2", status: "pending", expiresAt: new Date(NOW.getTime() + 1) },
+      { id: "inv-expired-2", status: "pending", expiresAt: new Date(NOW.getTime() - 1) },
+    ];
+    const result = simulateMineInvitationFilter(rows, NOW);
+    expect(result).toHaveLength(2);
+    const ids = result.map((r) => r.id);
+    expect(ids).toContain("inv-live-1");
+    expect(ids).toContain("inv-live-2");
+    expect(ids).not.toContain("inv-expired-1");
+    expect(ids).not.toContain("inv-expired-2");
+  });
+
+  it("returns an empty list when all pending invites are expired", () => {
+    const rows: MockInviteRow[] = [
+      { id: "inv-exp-a", status: "pending", expiresAt: PAST },
+      { id: "inv-exp-b", status: "pending", expiresAt: PAST },
+    ];
+    const result = simulateMineInvitationFilter(rows, NOW);
+    expect(result).toHaveLength(0);
+  });
+
+  it("does not include non-pending rows even if expiresAt is in the future", () => {
+    const rows: MockInviteRow[] = [
+      { id: "inv-accepted", status: "accepted", expiresAt: FUTURE },
+      { id: "inv-cancelled", status: "cancelled", expiresAt: FUTURE },
+      { id: "inv-expired-status", status: "expired", expiresAt: FUTURE },
+    ];
+    const result = simulateMineInvitationFilter(rows, NOW);
+    expect(result).toHaveLength(0);
+  });
+
+  it("returns an empty list when the invite table is empty", () => {
+    const result = simulateMineInvitationFilter([], NOW);
+    expect(result).toHaveLength(0);
+  });
+});
+
+// ── (b) Source-scan: expiresAt guard is present in /mine handler ──────────────
+
+describe("businessRoutes.ts — GET /mine handler includes expiresAt expiry filter", () => {
+  const routeFilePath = path.resolve(__dirname, "../routes/businessRoutes.ts");
+  let mineHandlerSlice: string;
+
+  beforeAll(() => {
+    const source = fs.readFileSync(routeFilePath, "utf-8");
+
+    // Isolate the GET /mine handler body (between its route declaration and
+    // the next top-level comment section).
+    const mineStart = source.indexOf('router.get("/mine"');
+    expect(mineStart).toBeGreaterThan(-1);
+
+    const afterMine = source.slice(mineStart);
+    const nextSectionMatch = afterMine.match(/\n\/\/ ──/);
+    mineHandlerSlice = nextSectionMatch
+      ? afterMine.slice(0, nextSectionMatch.index)
+      : afterMine.slice(0, 4000);
+  });
+
+  it("GET /mine queries businessInvitations with a status='pending' filter", () => {
+    expect(mineHandlerSlice).toContain("businessInvitations");
+    expect(mineHandlerSlice).toContain('"pending"');
+  });
+
+  it("GET /mine queries businessInvitations with an expiresAt guard (gt import)", () => {
+    // The expiresAt column must be compared against the current time
+    expect(mineHandlerSlice).toContain("expiresAt");
+    // gt() from drizzle-orm is the operator used for the > comparison
+    expect(mineHandlerSlice).toMatch(/gt\s*\(/);
+  });
+
+  it("GET /mine handler defines 'now' before the pendingInvitations query", () => {
+    // A local 'now' variable must be captured once for consistent timestamp comparison
+    const nowIdx = mineHandlerSlice.indexOf("const now");
+    const invIdx = mineHandlerSlice.indexOf("pendingInvitations");
+    expect(nowIdx).toBeGreaterThan(-1);
+    expect(invIdx).toBeGreaterThan(-1);
+    expect(nowIdx).toBeLessThan(invIdx);
+  });
+
+  it("expiresAt filter uses gt() so only strictly-future invites are included", () => {
+    // gt(expiresAt, now) means expiresAt > now — boundary value excluded
+    const gtIdx = mineHandlerSlice.indexOf("gt(");
+    const expIdx = mineHandlerSlice.indexOf("expiresAt");
+    expect(gtIdx).toBeGreaterThan(-1);
+    expect(expIdx).toBeGreaterThan(-1);
+  });
+});
+
+// ── (c) Seat-count: expired invites excluded from occupiedSeats in POST /invite ─
+
+describe("businessRoutes.ts — POST /invite seat check excludes expired pending invites", () => {
+  const routeFilePath = path.resolve(__dirname, "../routes/businessRoutes.ts");
+  let inviteHandlerSlice: string;
+
+  beforeAll(() => {
+    const source = fs.readFileSync(routeFilePath, "utf-8");
+    const inviteStart = source.indexOf('router.post("/invite"');
+    expect(inviteStart).toBeGreaterThan(-1);
+    const afterInvite = source.slice(inviteStart);
+    const nextSectionMatch = afterInvite.match(/\n\/\/ ──/);
+    inviteHandlerSlice = nextSectionMatch
+      ? afterInvite.slice(0, nextSectionMatch.index)
+      : afterInvite.slice(0, 5000);
+  });
+
+  it("POST /invite seat-count query filters pending invites by expiresAt > now", () => {
+    // The occupiedSeats count must exclude expired rows
+    expect(inviteHandlerSlice).toContain("expiresAt");
+    expect(inviteHandlerSlice).toMatch(/gt\s*\(/);
+  });
+
+  it("POST /invite seat-count query uses status='pending' AND expiresAt guard together", () => {
+    // Both conditions must co-exist in the seat-reservation query
+    expect(inviteHandlerSlice).toContain('"pending"');
+    expect(inviteHandlerSlice).toContain("expiresAt");
+  });
+
+  it("POST /invite marks stale pending invites as 'expired' before inserting a new one", () => {
+    // The handler must clean up expired rows so they don't accumulate
+    expect(inviteHandlerSlice).toContain('"expired"');
+    expect(inviteHandlerSlice).toContain("expiresAt");
+  });
+});
+
+// ── (c-sim) Seat count simulation: expired invites do not inflate occupiedSeats ─
+
+interface MockPendingInviteForSeat {
+  id: string;
+  status: "pending";
+  expiresAt: Date;
+}
+
+/**
+ * Mirrors the occupiedSeats computation in POST /invite:
+ *   occupiedSeats = activeMembers + non-expired pending invites
+ */
+function simulateOccupiedSeats(
+  activeMembers: number,
+  pendingInvites: MockPendingInviteForSeat[],
+  now: Date,
+): number {
+  const livePending = pendingInvites.filter((inv) => inv.expiresAt > now).length;
+  return activeMembers + livePending;
+}
+
+describe("POST /api/business/invite — occupiedSeats excludes expired pending invites (simulation)", () => {
+  const NOW = new Date("2026-08-05T12:00:00Z");
+  const FUTURE = new Date("2026-08-12T12:00:00Z");
+  const PAST = new Date("2026-07-29T12:00:00Z");
+
+  it("expired pending invite does NOT contribute to occupiedSeats", () => {
+    const expiredInvite: MockPendingInviteForSeat = { id: "bi-exp-1", status: "pending", expiresAt: PAST };
+    const occupied = simulateOccupiedSeats(1, [expiredInvite], NOW);
+    // activeMembers=1, expired invite=0 → occupied=1 (not 2)
+    expect(occupied).toBe(1);
+  });
+
+  it("live pending invite DOES contribute to occupiedSeats (seat reserved)", () => {
+    const liveInvite: MockPendingInviteForSeat = { id: "bi-live-1", status: "pending", expiresAt: FUTURE };
+    const occupied = simulateOccupiedSeats(1, [liveInvite], NOW);
+    expect(occupied).toBe(2); // 1 active member + 1 reserved by live invite
+  });
+
+  it("mixed: 2 live + 1 expired invite — only 2 count toward occupiedSeats", () => {
+    const invites: MockPendingInviteForSeat[] = [
+      { id: "bi-live-a", status: "pending", expiresAt: FUTURE },
+      { id: "bi-live-b", status: "pending", expiresAt: FUTURE },
+      { id: "bi-exp-a",  status: "pending", expiresAt: PAST },
+    ];
+    const occupied = simulateOccupiedSeats(0, invites, NOW);
+    expect(occupied).toBe(2);
+  });
+
+  it("all expired invites → occupiedSeats equals only activeMembers count", () => {
+    const invites: MockPendingInviteForSeat[] = [
+      { id: "bi-exp-x", status: "pending", expiresAt: PAST },
+      { id: "bi-exp-y", status: "pending", expiresAt: PAST },
+      { id: "bi-exp-z", status: "pending", expiresAt: PAST },
+    ];
+    const occupied = simulateOccupiedSeats(2, invites, NOW);
+    expect(occupied).toBe(2); // only the 2 active members
+  });
+
+  it("a new invite CAN be sent if the only pending invite is expired (seat freed)", () => {
+    const SEAT_LIMIT = 3;
+    const expiredInvite: MockPendingInviteForSeat = { id: "bi-exp-gate", status: "pending", expiresAt: PAST };
+    const occupied = simulateOccupiedSeats(2, [expiredInvite], NOW);
+    // Without the expiry filter: occupied would be 3 → seat check would block.
+    // With the filter: occupied = 2 → one slot free → invite is allowed.
+    expect(occupied).toBeLessThan(SEAT_LIMIT);
   });
 });

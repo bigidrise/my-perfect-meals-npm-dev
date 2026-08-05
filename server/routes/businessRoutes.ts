@@ -70,10 +70,17 @@ router.get("/mine", requireAuth, requireProAccess, async (req, res) => {
       planLost: m.role !== "owner" && planLookupKey === null,
     }));
 
+    const now = new Date();
     const pendingInvitations = await db
       .select()
       .from(businessInvitations)
-      .where(and(eq(businessInvitations.businessId, business.id), eq(businessInvitations.status, "pending")));
+      .where(
+        and(
+          eq(businessInvitations.businessId, business.id),
+          eq(businessInvitations.status, "pending"),
+          gt(businessInvitations.expiresAt, now),
+        ),
+      );
 
     // Auto-heal: if a pending invite's email already belongs to an active member
     // (happens when the accept transaction partially failed), mark it accepted now.
