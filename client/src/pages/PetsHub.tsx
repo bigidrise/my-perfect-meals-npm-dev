@@ -1,8 +1,8 @@
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { PawPrint, ArrowLeft, ChevronRight, Clock } from "lucide-react";
-import { PillButton } from "@/components/ui/pill-button";
-import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { usePageTitle } from "@/contexts/PageTitleContext";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 
 const DOG_HERO = "/images/companion-hero.png";
 
@@ -33,6 +33,8 @@ const pets = [
 
 export default function PetsHub() {
   const [, setLocation] = useLocation();
+  const isDesktop = useIsDesktop();
+  usePageTitle("My Perfect Pets");
 
   return (
     <motion.div
@@ -40,26 +42,30 @@ export default function PetsHub() {
       animate={{ opacity: 1 }}
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-24"
     >
-      <MobileHeaderGuard>
+      {!isDesktop && (
         <div
           className="fixed top-0 left-0 right-0 z-40 bg-black/40 backdrop-blur-lg border-b border-white/10"
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
-          <div className="px-4 py-3 flex items-center gap-2">
-            <PawPrint className="h-4 w-4 text-orange-400" />
-            <h1 className="text-base font-bold text-white">My Perfect Pets</h1>
+          <div className="px-4 pb-3 pt-2 flex items-center gap-3">
+            <button
+              onClick={() => setLocation("/lifestyle")}
+              className="p-1.5 rounded-lg bg-white/10 text-white"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </button>
+            <div className="flex items-center gap-2">
+              <PawPrint className="h-4 w-4 text-orange-400" />
+              <h1 className="text-base font-bold text-white">My Perfect Pets</h1>
+            </div>
           </div>
         </div>
-      </MobileHeaderGuard>
+      )}
 
-      <div className="max-w-2xl mx-auto px-4" style={{ paddingTop: "calc(5rem + env(safe-area-inset-top, 0px))" }}>
-
-        {/* Back */}
-        <div className="mb-4">
-          <PillButton onClick={() => setLocation("/lifestyle")}>
-            <ArrowLeft className="h-3 w-3" /> Back
-          </PillButton>
-        </div>
+      <div
+        className="max-w-2xl mx-auto px-4"
+        style={{ paddingTop: isDesktop ? "2rem" : "calc(env(safe-area-inset-top, 0px) + 5.5rem)" }}
+      >
 
         {/* Hero */}
         <div className="relative h-48 rounded-2xl overflow-hidden mb-4">
