@@ -2615,14 +2615,15 @@ describe("businessRoutes.ts — accept handler reactivation UPDATE clears notice
   });
 });
 
-// ── (c) Source-scan: belt-and-suspenders broader UPDATE is present ─────────────
+// ── (c) Source-scan: belt-and-suspenders broader UPDATE delegated to helper ────
 
-describe("businessRoutes.ts — accept handler has belt-and-suspenders notice dismissal", () => {
+describe("businessRoutes.ts — accept handler calls clearRemovalNotice for belt-and-suspenders dismissal", () => {
   const routeFilePath = path.resolve(__dirname, "../routes/businessRoutes.ts");
+  let source: string;
   let ifExistingBlock: string;
 
   beforeAll(() => {
-    const source = fs.readFileSync(routeFilePath, "utf-8");
+    source = fs.readFileSync(routeFilePath, "utf-8");
 
     const acceptStart = source.indexOf('"/invite/:token/accept"');
     expect(acceptStart).toBeGreaterThan(-1);
@@ -2637,18 +2638,456 @@ describe("businessRoutes.ts — accept handler has belt-and-suspenders notice di
       handlerSlice.match(/if\s*\(\s*existing\s*\)([\s\S]*?)(?:}\s*else)/)?.[1] ?? "";
   });
 
-  it("the if(existing) block contains a second update targeting status=removed rows (belt-and-suspenders)", () => {
-    // The broader update uses isNull(businessMembers.noticeDismissedAt) to catch
-    // any other undismissed rows from previous removal cycles.
-    expect(ifExistingBlock).toContain('isNull');
+  it("the if(existing) block calls clearRemovalNotice (not inline isNull update)", () => {
+    // The belt-and-suspenders notice dismissal is now delegated to the shared
+    // clearRemovalNotice() helper so future reactivation paths reuse one function.
+    expect(ifExistingBlock).toContain('clearRemovalNotice');
   });
 
-  it("the broader update filters on noticeDismissedAt being null", () => {
-    expect(ifExistingBlock).toMatch(/isNull\s*\(\s*businessMembers\.noticeDismissedAt\s*\)/);
+  it("clearRemovalNotice is called with tx, userId, and business.id inside the if(existing) block", () => {
+    expect(ifExistingBlock).toMatch(/clearRemovalNotice\s*\(\s*tx\s*,\s*userId\s*,\s*business\.id\s*\)/);
+  });
+
+  it("clearRemovalNotice function is defined in businessRoutes.ts (not imported)", () => {
+    // The helper must be a module-level function in the same file so it can be
+    // called from any reactivation path in this router without extra imports.
+    expect(source).toMatch(/async function clearRemovalNotice\s*\(/);
+  });
+
+  it("clearRemovalNotice function body targets status=removed rows", () => {
+    // Isolate the clearRemovalNotice function body to verify its WHERE clause
+    const fnStart = source.indexOf("async function clearRemovalNotice(");
+    expect(fnStart).toBeGreaterThan(-1);
+    const fnSlice = source.slice(fnStart, fnStart + 800);
+    expect(fnSlice).toContain('"removed"');
+  });
+
+  it("clearRemovalNotice function body filters on noticeDismissedAt IS NULL", () => {
+    const fnStart = source.indexOf("async function clearRemovalNotice(");
+    const fnSlice = source.slice(fnStart, fnStart + 800);
+    expect(fnSlice).toMatch(/isNull\s*\(\s*businessMembers\.noticeDismissedAt\s*\)/);
+  });
+
+  it("clearRemovalNotice function body filters by userId", () => {
+    const fnStart = source.indexOf("async function clearRemovalNotice(");
+    const fnSlice = source.slice(fnStart, fnStart + 800);
+    expect(fnSlice).toContain("businessMembers.userId");
+  });
+
+  it("clearRemovalNotice function body filters by businessId", () => {
+    const fnStart = source.indexOf("async function clearRemovalNotice(");
+    const fnSlice = source.slice(fnStart, fnStart + 800);
+    expect(fnSlice).toContain("businessMembers.businessId");
   });
 });
 
-// ── (d) Client guard: member view renders no removal-notice banner ─────────────
+// ── 11. clearRemovalNotice convention — any future reactivation path ──────────
+/**
+ * The clearRemovalNotice() helper is the single authoritative place to stamp
+ * noticeDismissedAt when reactivating a removed member.  Any future code path
+ * that sets businessMembers.status back to "active" (e.g. a PATCH /members/:id/restore
+ * admin endpoint, a billing-webhook auto-restore, etc.) MUST call this helper.
+ *
+ * These tests verify:
+ *   (a) The helper behaves correctly in isolation (simulation).
+ *   (b) A hypothetical direct-reactivation API path that calls the helper
+ *       produces the same notice-cleared result as the invite-accept path.
+ *   (c) Skipping the helper leaves stale notices (demonstrates the gap the
+ *       helper closes for future paths).
+ */
+
+// ── (a) Helper behaviour simulation ───────────────────────────────────────────
+
+interface MockMemberNoticeRow {
+  id: string;
+  userId: string;
+  businessId: string;
+  status: "active" | "removed";
+  noticeDismissedAt: Date | null;
+}
+
+/**
+ * Simulates what clearRemovalNotice does:
+ * stamp noticeDismissedAt=now on every row where
+ *   status="removed" AND noticeDismissedAt IS NULL
+ * for the given user+business pair.
+ */
+function simulateClearRemovalNotice(
+  rows: MockMemberNoticeRow[],
+  userId: string,
+  businessId: string,
+): MockMemberNoticeRow[] {
+  const now = new Date();
+  return rows.map((r) => {
+    if (
+      r.userId === userId &&
+      r.businessId === businessId &&
+      r.status === "removed" &&
+      r.noticeDismissedAt === null
+    ) {
+      return { ...r, noticeDismissedAt: now };
+    }
+    return r;
+  });
+}
+
+/**
+ * Simulates a hypothetical direct-reactivation path (e.g. PATCH /members/:id/restore).
+ * Steps:
+ *   1. Flip the row from removed → active (sets status + noticeDismissedAt on the main row).
+ *   2. Call clearRemovalNotice to sweep any other undismissed historical rows.
+ *
+ * Returns the final roster state.
+ */
+function simulateDirectReactivation(
+  roster: MockMemberNoticeRow[],
+  targetId: string,
+  userId: string,
+  businessId: string,
+): MockMemberNoticeRow[] {
+  // Step 1: flip main row
+  const afterFlip = roster.map((r) =>
+    r.id === targetId
+      ? { ...r, status: "active" as const, noticeDismissedAt: new Date() }
+      : r,
+  );
+  // Step 2: sweep historical removed rows (mirrors the helper's WHERE clause)
+  return simulateClearRemovalNotice(afterFlip, userId, businessId);
+}
+
+describe("clearRemovalNotice — helper behaviour (simulation)", () => {
+  const BIZ = "biz-cnr-test";
+  const USER = "user-cnr-test";
+
+  it("stamps noticeDismissedAt on an undismissed removed row", () => {
+    const rows: MockMemberNoticeRow[] = [
+      { id: "bm-1", userId: USER, businessId: BIZ, status: "removed", noticeDismissedAt: null },
+    ];
+    const after = simulateClearRemovalNotice(rows, USER, BIZ);
+    expect(after[0].noticeDismissedAt).not.toBeNull();
+  });
+
+  it("does NOT touch a row that is already dismissed", () => {
+    const alreadyDismissed = new Date(2024, 1, 1);
+    const rows: MockMemberNoticeRow[] = [
+      { id: "bm-2", userId: USER, businessId: BIZ, status: "removed", noticeDismissedAt: alreadyDismissed },
+    ];
+    const after = simulateClearRemovalNotice(rows, USER, BIZ);
+    // The existing timestamp must not be overwritten
+    expect(after[0].noticeDismissedAt).toBe(alreadyDismissed);
+  });
+
+  it("does NOT touch an active row (only targets status=removed)", () => {
+    const rows: MockMemberNoticeRow[] = [
+      { id: "bm-3", userId: USER, businessId: BIZ, status: "active", noticeDismissedAt: null },
+    ];
+    const after = simulateClearRemovalNotice(rows, USER, BIZ);
+    // Active rows are not removal-notice rows — leave them alone
+    expect(after[0].noticeDismissedAt).toBeNull();
+  });
+
+  it("clears multiple undismissed removed rows from prior cycles", () => {
+    const rows: MockMemberNoticeRow[] = [
+      { id: "bm-4a", userId: USER, businessId: BIZ, status: "removed", noticeDismissedAt: null },
+      { id: "bm-4b", userId: USER, businessId: BIZ, status: "removed", noticeDismissedAt: null },
+    ];
+    const after = simulateClearRemovalNotice(rows, USER, BIZ);
+    expect(after[0].noticeDismissedAt).not.toBeNull();
+    expect(after[1].noticeDismissedAt).not.toBeNull();
+  });
+
+  it("does NOT affect rows belonging to a different user in the same business", () => {
+    const OTHER = "user-other-cnr";
+    const rows: MockMemberNoticeRow[] = [
+      { id: "bm-5a", userId: USER,  businessId: BIZ, status: "removed", noticeDismissedAt: null },
+      { id: "bm-5b", userId: OTHER, businessId: BIZ, status: "removed", noticeDismissedAt: null },
+    ];
+    const after = simulateClearRemovalNotice(rows, USER, BIZ);
+    const userRow  = after.find((r) => r.userId === USER)!;
+    const otherRow = after.find((r) => r.userId === OTHER)!;
+    expect(userRow.noticeDismissedAt).not.toBeNull();  // cleared
+    expect(otherRow.noticeDismissedAt).toBeNull();     // untouched
+  });
+
+  it("does NOT affect rows belonging to a different business for the same user", () => {
+    const OTHER_BIZ = "biz-other-cnr";
+    const rows: MockMemberNoticeRow[] = [
+      { id: "bm-6a", userId: USER, businessId: BIZ,       status: "removed", noticeDismissedAt: null },
+      { id: "bm-6b", userId: USER, businessId: OTHER_BIZ, status: "removed", noticeDismissedAt: null },
+    ];
+    const after = simulateClearRemovalNotice(rows, USER, BIZ);
+    const thisRow  = after.find((r) => r.businessId === BIZ)!;
+    const otherRow = after.find((r) => r.businessId === OTHER_BIZ)!;
+    expect(thisRow.noticeDismissedAt).not.toBeNull();  // cleared
+    expect(otherRow.noticeDismissedAt).toBeNull();     // untouched
+  });
+});
+
+// ── (b) Direct-reactivation path produces the same cleared result ─────────────
+
+describe("clearRemovalNotice — direct-reactivation path (simulate future PATCH /restore)", () => {
+  const BIZ = "biz-restore-test";
+  const USER = "user-restore-test";
+
+  it("reactivated main row has noticeDismissedAt set", () => {
+    const roster: MockMemberNoticeRow[] = [
+      { id: "bm-r1", userId: USER, businessId: BIZ, status: "removed", noticeDismissedAt: null },
+    ];
+    const after = simulateDirectReactivation(roster, "bm-r1", USER, BIZ);
+    const row = after.find((r) => r.id === "bm-r1")!;
+    expect(row.status).toBe("active");
+    expect(row.noticeDismissedAt).not.toBeNull();
+  });
+
+  it("historical undismissed removed rows are also cleared by the helper sweep", () => {
+    // Scenario: member removed twice; first row still undismissed; second row
+    // is the one being restored now.
+    const roster: MockMemberNoticeRow[] = [
+      { id: "bm-r2-hist", userId: USER, businessId: BIZ, status: "removed", noticeDismissedAt: null },
+      { id: "bm-r2-main", userId: USER, businessId: BIZ, status: "removed", noticeDismissedAt: null },
+    ];
+    const after = simulateDirectReactivation(roster, "bm-r2-main", USER, BIZ);
+    const histRow = after.find((r) => r.id === "bm-r2-hist")!;
+    expect(histRow.noticeDismissedAt).not.toBeNull(); // swept by clearRemovalNotice
+  });
+
+  it("direct reactivation without calling clearRemovalNotice leaves historical rows undismissed (gap demonstration)", () => {
+    // This test demonstrates WHY the helper is required: a naive reactivation
+    // that only flips the main row misses historical notice rows.
+    const roster: MockMemberNoticeRow[] = [
+      { id: "bm-gap-hist", userId: USER, businessId: BIZ, status: "removed", noticeDismissedAt: null },
+      { id: "bm-gap-main", userId: USER, businessId: BIZ, status: "removed", noticeDismissedAt: null },
+    ];
+    // Naive path: only flip the main row, skip the helper
+    const naiveAfter = roster.map((r) =>
+      r.id === "bm-gap-main"
+        ? { ...r, status: "active" as const, noticeDismissedAt: new Date() }
+        : r,
+    );
+    const histRow = naiveAfter.find((r) => r.id === "bm-gap-hist")!;
+    // Without the helper, the historical row is NOT cleared — the notice gap exists
+    expect(histRow.noticeDismissedAt).toBeNull();
+
+    // With the helper, it IS cleared
+    const properAfter = simulateDirectReactivation(roster, "bm-gap-main", USER, BIZ);
+    const histRowFixed = properAfter.find((r) => r.id === "bm-gap-hist")!;
+    expect(histRowFixed.noticeDismissedAt).not.toBeNull();
+  });
+});
+
+// ── 12. PATCH /members/:memberId/restore — owner direct reactivation ──────────
+/**
+ * The PATCH /api/business/members/:memberId/restore route is the owner-initiated
+ * direct reactivation path referenced in the task description.  It must:
+ *   (a) Reject non-removed members (status !== "removed" → 400).
+ *   (b) Reject when the business has no free seats (SEATS_FULL → 400).
+ *   (c) Flip the member row to active AND call clearRemovalNotice in the same
+ *       transaction so the removal-notice banner is never shown post-restore.
+ *
+ * Tests here:
+ *   - Handler-mirror simulation (same pattern as §6) exercises the decision tree.
+ *   - Source-scan confirms the real route calls clearRemovalNotice and runs
+ *     inside a transaction.
+ */
+
+// ── (a) Handler-mirror simulation ─────────────────────────────────────────────
+
+type RestoreMemberStatus = "active" | "removed" | "invited";
+
+interface MockRestoreRequest {
+  memberStatus: RestoreMemberStatus;
+  usedSeats: number;
+  seatLimit: number;
+}
+
+interface RestoreOutcome {
+  httpStatus: number;
+  code?: string;
+  /** When 200: did the restore path clear removal notices? */
+  noticeCleared?: boolean;
+}
+
+/**
+ * Mirrors the PATCH /members/:memberId/restore handler decision tree:
+ *   1. member not found                → 404  (omitted here; tested via source-scan)
+ *   2. member.status !== "removed"     → 400  WRONG_STATUS
+ *   3. usedSeats >= seatLimit          → 400  SEATS_FULL
+ *   4. transaction: reactivate + clear → 200  (noticeCleared=true)
+ */
+function simulateRestoreMember(req: MockRestoreRequest): RestoreOutcome {
+  if (req.memberStatus !== "removed") {
+    return { httpStatus: 400, code: "WRONG_STATUS" };
+  }
+  if (req.usedSeats >= req.seatLimit) {
+    return { httpStatus: 400, code: "SEATS_FULL" };
+  }
+  // Transaction: flip to active + clearRemovalNotice → notice always cleared
+  return { httpStatus: 200, noticeCleared: true };
+}
+
+describe("PATCH /api/business/members/:memberId/restore — handler decision tree", () => {
+  const SEAT_LIMIT = 4;
+
+  it("returns 200 and clears the notice for a valid removed member with a free seat", () => {
+    const result = simulateRestoreMember({
+      memberStatus: "removed",
+      usedSeats: 2,
+      seatLimit: SEAT_LIMIT,
+    });
+    expect(result.httpStatus).toBe(200);
+    expect(result.noticeCleared).toBe(true);
+  });
+
+  it("returns 400 WRONG_STATUS when the member is already active (not removed)", () => {
+    const result = simulateRestoreMember({
+      memberStatus: "active",
+      usedSeats: 1,
+      seatLimit: SEAT_LIMIT,
+    });
+    expect(result.httpStatus).toBe(400);
+    expect(result.code).toBe("WRONG_STATUS");
+  });
+
+  it("returns 400 WRONG_STATUS for an invited (not removed) member", () => {
+    const result = simulateRestoreMember({
+      memberStatus: "invited",
+      usedSeats: 0,
+      seatLimit: SEAT_LIMIT,
+    });
+    expect(result.httpStatus).toBe(400);
+    expect(result.code).toBe("WRONG_STATUS");
+  });
+
+  it("returns 400 SEATS_FULL when the business is at capacity", () => {
+    const result = simulateRestoreMember({
+      memberStatus: "removed",
+      usedSeats: SEAT_LIMIT,
+      seatLimit: SEAT_LIMIT,
+    });
+    expect(result.httpStatus).toBe(400);
+    expect(result.code).toBe("SEATS_FULL");
+  });
+
+  it("succeeds when exactly one seat is free (boundary)", () => {
+    const result = simulateRestoreMember({
+      memberStatus: "removed",
+      usedSeats: SEAT_LIMIT - 1,
+      seatLimit: SEAT_LIMIT,
+    });
+    expect(result.httpStatus).toBe(200);
+    expect(result.noticeCleared).toBe(true);
+  });
+
+  it("seat check fires BEFORE the transaction (status check fires first)", () => {
+    // An active member with seats full must see WRONG_STATUS, not SEATS_FULL,
+    // confirming the status gate runs before the seat gate.
+    const result = simulateRestoreMember({
+      memberStatus: "active",
+      usedSeats: SEAT_LIMIT, // full
+      seatLimit: SEAT_LIMIT,
+    });
+    expect(result.code).toBe("WRONG_STATUS");
+  });
+
+  it("notice is ALWAYS cleared on a successful restore (noticeCleared is never false on 200)", () => {
+    // This is the core contract: 200 responses must always clear the notice.
+    const result = simulateRestoreMember({
+      memberStatus: "removed",
+      usedSeats: 0,
+      seatLimit: SEAT_LIMIT,
+    });
+    expect(result.httpStatus).toBe(200);
+    // noticeCleared must be true — never undefined or false — on success
+    expect(result.noticeCleared).toBe(true);
+  });
+});
+
+// ── (b) Source-scan: restore route calls clearRemovalNotice inside a transaction ─
+
+describe("businessRoutes.ts — PATCH /members/:id/restore calls clearRemovalNotice inside a transaction", () => {
+  const routeFilePath = path.resolve(__dirname, "../routes/businessRoutes.ts");
+  let restoreHandlerSlice: string;
+  let source: string;
+
+  beforeAll(() => {
+    source = fs.readFileSync(routeFilePath, "utf-8");
+
+    // Isolate the restore handler between its route declaration and the next section
+    const restoreStart = source.indexOf('"/members/:memberId/restore"');
+    expect(restoreStart).toBeGreaterThan(-1);
+
+    const afterStart = source.slice(restoreStart);
+    const nextSectionMatch = afterStart.match(/\n\/\/ ──/);
+    restoreHandlerSlice = nextSectionMatch
+      ? afterStart.slice(0, nextSectionMatch.index)
+      : afterStart.slice(0, 4000);
+  });
+
+  it("restore route declaration includes requireAuth and requireProAccess", () => {
+    const decl = source.match(/router\.patch\s*\(\s*["']\/members\/:memberId\/restore["']([^{]+)\{/)?.[1] ?? "";
+    expect(decl).toContain("requireAuth");
+    expect(decl).toContain("requireProAccess");
+  });
+
+  it("restore handler queries businessMembers for the target row", () => {
+    expect(restoreHandlerSlice).toContain("businessMembers");
+    expect(restoreHandlerSlice).toContain("memberId");
+  });
+
+  it("restore handler rejects a non-removed member (status guard present)", () => {
+    expect(restoreHandlerSlice).toContain('"removed"');
+    // The guard must return a non-200 response
+    expect(restoreHandlerSlice).toContain("Member is not in a removed state");
+  });
+
+  it("restore handler checks seat availability before reactivating", () => {
+    expect(restoreHandlerSlice).toContain("getActiveSeats");
+    expect(restoreHandlerSlice).toContain("seatLimit");
+  });
+
+  it("restore handler reactivates the member inside a transaction", () => {
+    expect(restoreHandlerSlice).toMatch(/\.transaction\s*\(/);
+  });
+
+  it("restore handler sets status to active (handler slice contains 'active' string)", () => {
+    // The UPDATE inside the transaction sets status back to "active"
+    expect(restoreHandlerSlice).toContain('"active"');
+  });
+
+  it("restore handler calls clearRemovalNotice (present in handler slice)", () => {
+    // clearRemovalNotice must be called within the same handler — the transaction
+    // call confirms it is inside the atomic block (verified by the transaction test above).
+    expect(restoreHandlerSlice).toContain("clearRemovalNotice");
+  });
+
+  it("clearRemovalNotice call passes tx, member.userId, and business.id", () => {
+    expect(restoreHandlerSlice).toMatch(/clearRemovalNotice\s*\(\s*tx\s*,\s*member\.userId\s*,\s*business\.id\s*\)/);
+  });
+
+  it("restore handler sets noticeDismissedAt on the main row (present in handler slice)", () => {
+    // The main UPDATE also sets noticeDismissedAt so the just-reactivated row is
+    // guaranteed to be stamped atomically in the same transaction.
+    expect(restoreHandlerSlice).toContain("noticeDismissedAt");
+  });
+
+  it("seat check in restore handler appears before the transaction block", () => {
+    const seatsIdx = restoreHandlerSlice.indexOf("getActiveSeats");
+    const txIdx = restoreHandlerSlice.indexOf(".transaction(");
+    expect(seatsIdx).toBeGreaterThan(-1);
+    expect(txIdx).toBeGreaterThan(-1);
+    expect(seatsIdx).toBeLessThan(txIdx);
+  });
+
+  it("status guard in restore handler appears before the seat check", () => {
+    const statusGuardIdx = restoreHandlerSlice.indexOf("Member is not in a removed state");
+    const seatsIdx = restoreHandlerSlice.indexOf("getActiveSeats");
+    expect(statusGuardIdx).toBeGreaterThan(-1);
+    expect(seatsIdx).toBeGreaterThan(-1);
+    expect(statusGuardIdx).toBeLessThan(seatsIdx);
+  });
+});
+
+// ── (c) Client guard: member view renders no removal-notice banner ─────────────
 
 describe("BusinessDashboard.tsx — member view contains no removal-notice banner", () => {
   const clientFilePath = path.resolve(

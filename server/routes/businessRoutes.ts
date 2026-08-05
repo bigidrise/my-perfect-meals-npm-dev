@@ -26,6 +26,37 @@ function generateInviteToken(): string {
   return randomBytes(32).toString("hex");
 }
 
+/**
+ * clearRemovalNotice — stamp noticeDismissedAt on every undismissed "removed"
+ * businessMembers row for this user+business pair.
+ *
+ * Call this inside any transaction that reactivates a removed member so the
+ * stale removal-notice banner is never shown to an active member, regardless
+ * of which code path triggered the reactivation (invite-accept, admin restore,
+ * future API endpoints, etc.).
+ *
+ * The WHERE clause intentionally targets status="removed" rows only — the
+ * reactivating row has already been flipped to "active" by the time this
+ * runs, so this call covers historical rows from prior removal cycles.
+ */
+async function clearRemovalNotice(
+  tx: typeof db,
+  userId: string,
+  businessId: string,
+): Promise<void> {
+  await tx
+    .update(businessMembers)
+    .set({ noticeDismissedAt: new Date() })
+    .where(
+      and(
+        eq(businessMembers.userId, userId),
+        eq(businessMembers.businessId, businessId),
+        eq(businessMembers.status, "removed"),
+        isNull(businessMembers.noticeDismissedAt),
+      ),
+    );
+}
+
 async function getActiveSeats(businessId: string): Promise<number> {
   const result = await db
     .select({ count: sql<number>`count(*)::int` })
@@ -299,6 +330,72 @@ router.post("/invite", requireAuth, requireProAccess, async (req, res) => {
     return res.json({ success: true, message: `Invitation sent to ${email}.` });
   } catch (err) {
     console.error("[business/invite] error:", err);
+    return res.status(500).json({ error: "Server error." });
+  }
+});
+
+// ── PATCH /api/business/members/:memberId/restore — owner manually reactivates a removed member
+//
+// This is the "direct API call" reactivation path the task description calls out.
+// It mirrors the same notice-clearing contract as the invite-accept path:
+//   1. Flip the row back to active (with a fresh joinedAt).
+//   2. Call clearRemovalNotice() so any undismissed removal-notice rows — including
+//      historical rows from prior removal cycles — are stamped immediately.
+// Both steps run inside one transaction so they can never diverge.
+router.patch("/members/:memberId/restore", requireAuth, requireProAccess, async (req, res) => {
+  const userId = (req as any).authUser?.id as string;
+  const { memberId } = req.params;
+
+  try {
+    const [business] = await db
+      .select()
+      .from(businesses)
+      .where(eq(businesses.ownerUserId, userId))
+      .limit(1);
+
+    if (!business) {
+      return res.status(403).json({ error: "No business account found." });
+    }
+
+    const [member] = await db
+      .select()
+      .from(businessMembers)
+      .where(and(eq(businessMembers.id, memberId), eq(businessMembers.businessId, business.id)))
+      .limit(1);
+
+    if (!member) {
+      return res.status(404).json({ error: "Member not found." });
+    }
+
+    if (member.status !== "removed") {
+      return res.status(400).json({ error: "Member is not in a removed state." });
+    }
+
+    // Seat check — restoring a removed member consumes a seat.
+    const usedSeats = await getActiveSeats(business.id);
+    if (usedSeats >= business.seatLimit) {
+      return res.status(400).json({
+        error: "All seats are currently in use. Free a seat before restoring this member.",
+        code: "SEATS_FULL",
+      });
+    }
+
+    await db.transaction(async (tx) => {
+      // Reactivate the row.
+      await tx
+        .update(businessMembers)
+        .set({ status: "active", joinedAt: new Date(), noticeDismissedAt: new Date() })
+        .where(eq(businessMembers.id, memberId));
+
+      // Clear any other undismissed removal-notice rows for this user in this business
+      // (covers historical rows from prior removal cycles).
+      await clearRemovalNotice(tx, member.userId, business.id);
+    });
+
+    console.log(`✅ [business] Member restored | business=${business.id} | member=${memberId}`);
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("[business/members/restore] error:", err);
     return res.status(500).json({ error: "Server error." });
   }
 });
@@ -736,17 +833,10 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
 
           // Belt-and-suspenders: dismiss any other undismissed removal-notice rows
           // for this user in this business (historical rows from prior removals).
-          await tx
-            .update(businessMembers)
-            .set({ noticeDismissedAt: new Date() })
-            .where(
-              and(
-                eq(businessMembers.userId, userId),
-                eq(businessMembers.businessId, business.id),
-                eq(businessMembers.status, "removed"),
-                isNull(businessMembers.noticeDismissedAt),
-              ),
-            );
+          // Using the shared clearRemovalNotice helper so any future reactivation
+          // path (admin restore, direct API, etc.) gets the same guarantee by
+          // calling one function rather than duplicating the WHERE clause.
+          await clearRemovalNotice(tx, userId, business.id);
         } else {
           await tx.insert(businessMembers).values({
             businessId: business.id,
