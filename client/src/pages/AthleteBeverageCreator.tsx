@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from "react";
+import { usePageTitle } from "@/contexts/PageTitleContext";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import ThinkingDots from "@/components/ThinkingDots";
@@ -153,6 +155,8 @@ const BEVERAGE_TOUR_STEPS: TourStep[] = [
 
 export default function AthleteBeverageCreator() {
   const [, setLocation] = useLocation();
+  const isDesktop = useIsDesktop();
+  usePageTitle("Athletes Beverage Creator");
   const { toast } = useToast();
   const quickTour = useQuickTour("athlete-beverage-creator");
   const { user } = useAuth();
@@ -499,6 +503,15 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
           className="max-w-2xl mx-auto px-4 pb-24"
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
         >
+          {isDesktop && (
+            <button
+              onClick={() => setLocation("/lifestyle/beverage-hub")}
+              className="flex items-center gap-2 text-orange-400 hover:text-orange-300 mb-6 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="text-sm font-medium">Beverage Creator Hub</span>
+            </button>
+          )}
           <Card className="shadow-2xl bg-black/30 backdrop-blur-lg border border-white/20 w-full max-w-xl mx-auto mb-6">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-lg text-white">

@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { usePageTitle } from "@/contexts/PageTitleContext";
 import { useChefFlowImages, chefFlowMealId } from "@/hooks/useChefFlowImages";
 import { ChefFlowImage } from "@/components/ChefFlowImage";
 import { motion } from "framer-motion";
@@ -215,6 +217,8 @@ const MATCH_LABEL_CONFIG: Record<string, { color: string }> = {
 
 export default function MealFinder() {
   const [, setLocation] = useLocation();
+  const isDesktop = useIsDesktop();
+  usePageTitle("Find Meals Near Me");
   const { toast } = useToast();
   const { user } = useAuth();
   const quickTour = useQuickTour("social-find-meals");
@@ -272,10 +276,12 @@ export default function MealFinder() {
   const chefFlowMeals = useMemo(
     () =>
       results.map((r) => ({
-        id: `findmeals-${r.restaurantName}-${r.meal.name}`
+        // Prefix "fmr-" (find-meals-restaurant) isolates these IDs from the
+        // beverage cache namespace (cfm-beverage-*) and other ChefFlow pages.
+        id: `fmr-${r.restaurantName}-${r.meal.name}`
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, "-")
-          .slice(0, 60),
+          .slice(0, 64),
         name: r.meal.name,
         imageUrl: r.meal.imageUrl,
       })),
@@ -501,6 +507,15 @@ export default function MealFinder() {
           className="max-w-4xl mx-auto px-4"
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
         >
+          {isDesktop && (
+            <button
+              onClick={() => setLocation("/social-hub")}
+              className="flex items-center gap-2 text-orange-400 hover:text-orange-300 mb-6 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="text-sm font-medium">Social Hub</span>
+            </button>
+          )}
           {/* ENTRY SCREEN - Guided Copilot Entry (matches Macro Calculator pattern) */}
           {guidedStep === "entry" && (
             <Card className="bg-black/40 backdrop-blur-lg border border-white/20 shadow-xl rounded-2xl mb-6">
@@ -812,7 +827,12 @@ export default function MealFinder() {
               {/* One card per meal — flat list, restaurant name on each card */}
               <div className="space-y-6">
                 {results.map((result, index) => {
-                  const cardKey = `find-meals-${result.restaurantName}-${index}`;
+                  // Content-stable key — not index-based, so React doesn't
+                  // reuse a mounted card when results shift positions.
+                  const cardKey = `find-meals-${result.restaurantName}-${result.meal.name}`
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, "-")
+                    .slice(0, 80);
                           const translation = mealTranslations[cardKey];
                           const TRANSLATE_LANGUAGES = [
                             { code: "es", label: "Spanish" },
@@ -829,6 +849,14 @@ export default function MealFinder() {
                             { code: "vi", label: "Vietnamese" },
                             { code: "tl", label: "Tagalog" },
                           ];
+                  // Look up image by the result object itself — not by array
+                  // index — so image assignment is stable across result shifts.
+                  const mealImageKey = `fmr-${result.restaurantName}-${result.meal.name}`
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, "-")
+                    .slice(0, 64);
+                  const mealImage = chefFlowImages[mealImageKey] || result.meal.imageUrl;
+
                   return (
                     <div key={cardKey} className="bg-black/40 backdrop-blur-lg border border-white/20 rounded-xl overflow-hidden shadow-lg" data-testid={`card-result-${index}`}>
                       {/* Restaurant info */}
@@ -868,7 +896,7 @@ export default function MealFinder() {
                         {/* Meal Image */}
                               <div className="relative h-48 md:h-auto">
                                 <ChefFlowImage
-                                  src={chefFlowImages[chefFlowMealId(chefFlowMeals[index], "restaurant")]}
+                                  src={mealImage}
                                   alt={result.meal.name}
                                 />
                               </div>

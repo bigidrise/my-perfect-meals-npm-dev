@@ -1156,6 +1156,15 @@ export default function BeachBodyMealBoard() {
         className="max-w-[1600px] mx-auto px-4 space-y-6"
         style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${proClientId ? '9rem' : '6rem'})` }}
       >
+        {isDesktop && (
+          <button
+            onClick={() => setLocation("/performance")}
+            className="flex items-center gap-2 text-orange-400 hover:text-orange-300 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span className="text-sm font-medium">Performance Hub</span>
+          </button>
+        )}
         {/* NutritionBudgetBanner hidden — restore when reactivity is fixed */}
 
         {/* ── Protocol Active Banner ── */}

@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Wine, Zap, ArrowLeft, Lock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { usePageTitle } from "@/contexts/PageTitleContext";
 
 const ADMIN_ID = "6796ce88-dff8-4336-adcb-e53986830f3f";
 
@@ -43,6 +44,7 @@ export default function BeverageCreatorHub() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const isAdmin = user?.id === ADMIN_ID;
+  usePageTitle("Beverage Creator Hub");
 
   useEffect(() => {
     document.title = "Beverage Hub | My Perfect Meals";

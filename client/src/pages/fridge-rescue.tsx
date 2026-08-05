@@ -2,6 +2,8 @@
 // BACKUP: backups/fridge-rescue-stable-version.tsx
 // FEATURES: Perfect fridge ingredient rescue, AI meal generation, ingredient optimization, medical personalization
 import { useState, useRef, useEffect } from "react";
+import { usePageTitle } from "@/contexts/PageTitleContext";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useMealImages, lookupHydratedImageUrl } from "@/hooks/useMealImages";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import { PillButton } from "@/components/ui/pill-button";
@@ -141,6 +143,8 @@ interface MealData {
 
 const FridgeRescuePage = () => {
   const [, setLocation] = useLocation();
+  const isDesktop = useIsDesktop();
+  usePageTitle("Fridge Rescue");
   const { toast } = useToast();
   const { t } = useTranslation("fridgeRescue");
   const { runAction, open, startWalkthrough } = useCopilot();
@@ -776,6 +780,15 @@ const FridgeRescuePage = () => {
           className="max-w-4xl mx-auto px-6"
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
         >
+          {isDesktop && (
+            <button
+              onClick={() => setLocation("/lifestyle")}
+              className="flex items-center gap-2 text-orange-400 hover:text-orange-300 mb-6 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="text-sm font-medium">Lifestyle Hub</span>
+            </button>
+          )}
           {/* Create with Chef Entry Point — Studio hidden */}
           <div className="relative mb-4 max-w-2xl mx-auto hidden">
             <div
