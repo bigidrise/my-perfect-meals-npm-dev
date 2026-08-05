@@ -39,6 +39,7 @@ import {
   Copy,
   ExternalLink,
 } from "lucide-react";
+import { FeatureUpgradeModal } from "@/components/modals/FeatureUpgradeModal";
 
 const ROLE_OPTIONS = [
   { value: "coach", label: "Coach" },
@@ -153,8 +154,13 @@ export default function BusinessDashboard() {
   const [inviteRole, setInviteRole] = useState("staff");
   const [inviteLoading, setInviteLoading] = useState(false);
 
-  // Invite client modal
+  // Invite client modal + entitlement gate
+  const [clientUpgradeModalOpen, setClientUpgradeModalOpen] = useState(false);
   const [clientInviteOpen, setClientInviteOpen] = useState(false);
+  // A user can perform Pro business actions when their accessTier is PAID_FULL —
+  // this matches requireProAccess exactly: covers active trials, paid Pro/Clinical,
+  // and internal/founder accounts. Free or expired users are locked.
+  const hasProAccess = user?.accessTier === "PAID_FULL";
   const [clientEmail, setClientEmail] = useState("");
   const [clientProgramName, setClientProgramName] = useState("");
   const [clientTrialOption, setClientTrialOption] = useState("30");
@@ -1089,18 +1095,17 @@ export default function BusinessDashboard() {
             {seatsFull ? "No Seats" : "Invite Team Member"}
           </button>
           <button
-            className="flex-1 py-3 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex-1 py-3 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2"
             onClick={() => {
-              if (business.status !== "active") {
-                setLocation("/pricing");
+              if (!hasProAccess) {
+                setClientUpgradeModalOpen(true);
                 return;
               }
               setClientInviteOpen(true);
             }}
-            disabled={business.status !== "active"}
           >
             <UserPlus className="w-4 h-4" />
-            {business.status !== "active" ? "Subscription Required" : "Invite Client"}
+            Invite Client
           </button>
         </div>
 
@@ -1576,6 +1581,14 @@ export default function BusinessDashboard() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Pro-access gate for client invitations */}
+      <FeatureUpgradeModal
+        open={clientUpgradeModalOpen}
+        onClose={() => setClientUpgradeModalOpen(false)}
+        featureName="Invite Client"
+        description="Upgrade to Pro to invite clients and grant complimentary access through your organization."
+      />
 
       {/* Invite Client Modal */}
       <Dialog open={clientInviteOpen} onOpenChange={(open) => { setClientInviteOpen(open); if (!open) resetClientForm(); }}>
