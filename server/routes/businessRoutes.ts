@@ -2,7 +2,7 @@ import { Router } from "express";
 import { randomBytes } from "crypto";
 import Stripe from "stripe";
 import { db } from "../db";
-import { eq, and, ne, sql, isNull, gt } from "drizzle-orm";
+import { eq, and, ne, sql, isNull, gt, or } from "drizzle-orm";
 import { businesses, businessMembers, businessInvitations } from "../db/schema/business";
 import { users } from "@shared/schema";
 import { requireAuth } from "../middleware/requireAuth";
@@ -601,7 +601,10 @@ router.post("/invitations/:token/resend", requireAuth, requireProAccess, async (
         and(
           eq(businessInvitations.token, token),
           eq(businessInvitations.businessId, business.id),
-          eq(businessInvitations.status, "pending"),
+          or(
+            eq(businessInvitations.status, "pending"),
+            eq(businessInvitations.status, "expired"),
+          ),
         ),
       )
       .limit(1);
@@ -611,9 +614,10 @@ router.post("/invitations/:token/resend", requireAuth, requireProAccess, async (
     }
 
     const newExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const newToken = generateInviteToken();
     await db
       .update(businessInvitations)
-      .set({ expiresAt: newExpiry })
+      .set({ status: "pending", expiresAt: newExpiry, token: newToken })
       .where(eq(businessInvitations.id, invite.id));
 
     const [owner] = await db
@@ -622,7 +626,7 @@ router.post("/invitations/:token/resend", requireAuth, requireProAccess, async (
       .where(eq(users.id, userId))
       .limit(1);
 
-    const inviteLink = `${getAppUrl()}/business/join/${token}`;
+    const inviteLink = `${getAppUrl()}/business/join/${newToken}`;
 
     await sendBusinessInviteEmail({
       to: invite.email,
@@ -636,7 +640,7 @@ router.post("/invitations/:token/resend", requireAuth, requireProAccess, async (
       programName: invite.programName,
     });
 
-    return res.json({ success: true, message: "Invite resent." });
+    return res.json({ success: true, message: "Invite resent.", newToken });
   } catch (err) {
     console.error("[business/invitations/resend] error:", err);
     return res.status(500).json({ error: "Server error." });

@@ -526,7 +526,13 @@ export default function BusinessDashboard() {
         headers: { ...getAuthHeaders() },
         credentials: "include",
       });
-      if (res.ok) toast({ title: "Invite resent!" });
+      if (res.ok) {
+        toast({ title: "Invite resent!" });
+        fetchData();
+      } else {
+        const json = await res.json().catch(() => ({}));
+        toast({ title: "Could not resend", description: json.error || "Please try again.", variant: "destructive" });
+      }
     } catch {
       toast({ title: "Error", description: "Could not resend invite.", variant: "destructive" });
     } finally {
@@ -1416,13 +1422,14 @@ export default function BusinessDashboard() {
             <div className="space-y-2">
               {ownerData.clientInvitations!.map((inv) => {
                 const isPending = inv.status === "pending" && new Date(inv.expiresAt) > new Date();
+                const isExpired = (inv.status === "expired") || (inv.status === "pending" && new Date(inv.expiresAt) <= new Date());
                 const statusColor =
                   inv.status === "accepted" ? "text-green-400" :
                   isPending ? "text-blue-400" : "text-white/30";
                 const statusLabel =
                   inv.status === "accepted" ? "Active" :
                   isPending ? "Pending" :
-                  inv.status === "pending" ? "Expired" :
+                  isExpired ? "Expired" :
                   inv.status.charAt(0).toUpperCase() + inv.status.slice(1);
                 const programLabel = inv.programName || "My Perfect Meals Complimentary Access";
                 return (
@@ -1447,7 +1454,7 @@ export default function BusinessDashboard() {
                         Accepted {new Date(inv.acceptedAt).toLocaleDateString()}
                       </p>
                     )}
-                    {isPending && (
+                    {(isPending || isExpired) && (
                       <div className="flex items-center gap-2 mt-2 pt-2 border-t border-white/10">
                         <button
                           onClick={() => handleResendInvite(inv.token)}
@@ -1461,19 +1468,23 @@ export default function BusinessDashboard() {
                           )}
                           Resend
                         </button>
-                        <span className="text-white/20 text-xs">·</span>
-                        <button
-                          onClick={() => handleCancelInvite(inv.token)}
-                          disabled={cancellingToken === inv.token || resendingToken === inv.token}
-                          className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 disabled:opacity-50 transition-colors"
-                        >
-                          {cancellingToken === inv.token ? (
-                            <Loader2 className="w-3 h-3 animate-spin" />
-                          ) : (
-                            <X className="w-3 h-3" />
-                          )}
-                          Cancel
-                        </button>
+                        {isPending && (
+                          <>
+                            <span className="text-white/20 text-xs">·</span>
+                            <button
+                              onClick={() => handleCancelInvite(inv.token)}
+                              disabled={cancellingToken === inv.token || resendingToken === inv.token}
+                              className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 disabled:opacity-50 transition-colors"
+                            >
+                              {cancellingToken === inv.token ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <X className="w-3 h-3" />
+                              )}
+                              Cancel
+                            </button>
+                          </>
+                        )}
                       </div>
                     )}
                   </Card>
