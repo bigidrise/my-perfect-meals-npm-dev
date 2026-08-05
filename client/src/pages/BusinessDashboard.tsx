@@ -36,6 +36,8 @@ import {
   FileText,
   DollarSign,
   AlertTriangle,
+  Copy,
+  ExternalLink,
 } from "lucide-react";
 
 const ROLE_OPTIONS = [
@@ -92,6 +94,17 @@ interface BusinessData {
   usedSeats: number;
   availableSeats: number;
   planLostCount?: number;
+  clientInvitations?: {
+    id: string;
+    email: string;
+    programName: string | null;
+    trialDays: number | null;
+    status: string;
+    createdAt: string;
+    expiresAt: string;
+    acceptedAt: string | null;
+    inviterName: string | null;
+  }[];
 }
 
 interface MembershipData {
@@ -133,11 +146,30 @@ export default function BusinessDashboard() {
   const [setupRole, setSetupRole] = useState("coach");
   const [savingSetup, setSavingSetup] = useState(false);
 
-  // Invite modal
+  // Invite modal (team member)
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("staff");
   const [inviteLoading, setInviteLoading] = useState(false);
+
+  // Invite client modal
+  const [clientInviteOpen, setClientInviteOpen] = useState(false);
+  const [clientEmail, setClientEmail] = useState("");
+  const [clientProgramName, setClientProgramName] = useState("");
+  const [clientTrialOption, setClientTrialOption] = useState("30");
+  const [clientCustomDays, setClientCustomDays] = useState("30");
+  const [clientInviteLoading, setClientInviteLoading] = useState(false);
+
+  const resolvedTrialDays = clientTrialOption === "custom"
+    ? (parseInt(clientCustomDays) || 30)
+    : parseInt(clientTrialOption);
+
+  const resetClientForm = () => {
+    setClientEmail("");
+    setClientProgramName("");
+    setClientTrialOption("30");
+    setClientCustomDays("30");
+  };
 
   // Actions
   const [removingId, setRemovingId] = useState<string | null>(null);
@@ -407,6 +439,59 @@ export default function BusinessDashboard() {
       toast({ title: "Error", description: "Could not remove member.", variant: "destructive" });
     } finally {
       setRemovingId(null);
+    }
+  };
+
+  const handleClientInvite = async (deliveryMethod: "email" | "link" | "mailto") => {
+    if (!clientEmail.includes("@")) {
+      toast({ title: "Valid email required", variant: "destructive" });
+      return;
+    }
+    setClientInviteLoading(true);
+    try {
+      const res = await fetch("/api/business/invite", {
+        method: "POST",
+        headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          email: clientEmail,
+          invitationType: "client",
+          trialDays: resolvedTrialDays,
+          programName: clientProgramName.trim() || null,
+          sendEmail: deliveryMethod === "email",
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        toast({ title: "Invite failed", description: json.error, variant: "destructive" });
+        return;
+      }
+      const link: string = json.inviteLink;
+      const programLabel = clientProgramName.trim() || "My Perfect Meals Complimentary Access";
+
+      if (deliveryMethod === "email") {
+        toast({ title: "Invitation sent!", description: `${clientEmail} will receive an email.` });
+      } else if (deliveryMethod === "link") {
+        await navigator.clipboard.writeText(link);
+        toast({ title: "Link copied!", description: "Share this link with your client." });
+      } else {
+        // Open Email: generate the same message the MPM email would send
+        const subject = encodeURIComponent(`You're invited to ${programLabel}`);
+        const body = encodeURIComponent(
+          `Hi,\n\n` +
+          `I'd like to invite you to ${programLabel} — ${resolvedTrialDays} days of complimentary access to My Perfect Meals.\n\n` +
+          `Click the link below to activate your access:\n${link}\n\n` +
+          `This invitation is reserved for ${clientEmail}. You'll create a free account to get started.\n`
+        );
+        window.open(`mailto:${clientEmail}?subject=${subject}&body=${body}`, "_blank");
+      }
+      setClientInviteOpen(false);
+      resetClientForm();
+      fetchData();
+    } catch {
+      toast({ title: "Error", description: "Could not create invitation.", variant: "destructive" });
+    } finally {
+      setClientInviteLoading(false);
     }
   };
 
@@ -992,15 +1077,24 @@ export default function BusinessDashboard() {
           </div>
         </Card>
 
-        {/* Invite Button */}
-        <button
-          className="w-full py-3 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          onClick={() => setInviteOpen(true)}
-          disabled={seatsFull}
-        >
-          <UserPlus className="w-4 h-4" />
-          {seatsFull ? "No Seats Available" : "Invite a Team Member"}
-        </button>
+        {/* Invite Buttons */}
+        <div className="flex gap-2">
+          <button
+            className="flex-1 py-3 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+            onClick={() => setInviteOpen(true)}
+            disabled={seatsFull}
+          >
+            <UserPlus className="w-4 h-4" />
+            {seatsFull ? "No Seats" : "Invite Team Member"}
+          </button>
+          <button
+            className="flex-1 py-3 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2"
+            onClick={() => setClientInviteOpen(true)}
+          >
+            <UserPlus className="w-4 h-4" />
+            Invite Client
+          </button>
+        </div>
 
         {/* Partner & Revenue Center */}
         <button
@@ -1300,6 +1394,46 @@ export default function BusinessDashboard() {
 
       </div>
 
+        {/* Client Invitations */}
+        {(ownerData.clientInvitations?.length ?? 0) > 0 && (
+          <div>
+            <h2 className="text-white/70 text-xs font-semibold uppercase tracking-wide mb-2 px-1">
+              Client Invitations ({ownerData.clientInvitations!.length})
+            </h2>
+            <div className="space-y-2">
+              {ownerData.clientInvitations!.map((inv) => {
+                const statusColor =
+                  inv.status === "accepted" ? "text-green-400" :
+                  inv.status === "pending" ? "text-blue-400" : "text-white/30";
+                const statusLabel =
+                  inv.status === "accepted" ? "Active" :
+                  inv.status === "pending" ? "Pending" :
+                  inv.status.charAt(0).toUpperCase() + inv.status.slice(1);
+                const programLabel = inv.programName || "My Perfect Meals Complimentary Access";
+                return (
+                  <Card key={inv.id} className="bg-white/5 border border-white/10 text-white p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium truncate">{inv.email}</p>
+                        <p className="text-white/60 text-xs mt-0.5 truncate">{programLabel} · {inv.trialDays ?? 30} days</p>
+                        {inv.inviterName && (
+                          <p className="text-white/30 text-xs mt-0.5">Sent by {inv.inviterName}</p>
+                        )}
+                      </div>
+                      <span className={`text-xs font-semibold flex-shrink-0 mt-0.5 ${statusColor}`}>{statusLabel}</span>
+                    </div>
+                    {inv.acceptedAt && (
+                      <p className="text-white/30 text-xs mt-1.5">
+                        Accepted {new Date(inv.acceptedAt).toLocaleDateString()}
+                      </p>
+                    )}
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
       {/* Manage Seats Modal */}
       <Dialog open={seatModalOpen} onOpenChange={setSeatModalOpen}>
         <DialogContent className="bg-gray-900 border border-orange-500/20 text-white max-w-sm mx-auto">
@@ -1395,6 +1529,115 @@ export default function BusinessDashboard() {
             >
               {inviteLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending…</> : <><Mail className="w-4 h-4" /> Send Invitation</>}
             </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Invite Client Modal */}
+      <Dialog open={clientInviteOpen} onOpenChange={(open) => { setClientInviteOpen(open); if (!open) resetClientForm(); }}>
+        <DialogContent className="bg-gray-900 border border-orange-500/20 text-white max-w-sm mx-auto">
+          <DialogHeader>
+            <DialogTitle className="text-white">Invite Client</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div>
+              <label className="text-white/70 text-xs font-semibold uppercase tracking-wide block mb-1.5">Client Email</label>
+              <input
+                type="email"
+                className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-orange-400 placeholder-white/30"
+                placeholder="patient@example.com"
+                value={clientEmail}
+                onChange={(e) => setClientEmail(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="text-white/70 text-xs font-semibold uppercase tracking-wide block mb-1.5">
+                Program Name <span className="text-white/30 normal-case font-normal">(optional)</span>
+              </label>
+              <input
+                type="text"
+                className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-orange-400 placeholder-white/30"
+                placeholder="My Perfect Meals Complimentary Access"
+                value={clientProgramName}
+                onChange={(e) => setClientProgramName(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="text-white/70 text-xs font-semibold uppercase tracking-wide block mb-1.5">Trial Length</label>
+              <div className="flex flex-wrap gap-2">
+                {["7", "14", "30", "60", "90"].map((d) => (
+                  <button
+                    key={d}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${clientTrialOption === d ? "bg-orange-600 text-white" : "bg-white/10 text-white/70 hover:bg-white/15"}`}
+                    onClick={() => setClientTrialOption(d)}
+                  >
+                    {d} Days
+                  </button>
+                ))}
+                <button
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${clientTrialOption === "custom" ? "bg-orange-600 text-white" : "bg-white/10 text-white/70 hover:bg-white/15"}`}
+                  onClick={() => setClientTrialOption("custom")}
+                >
+                  Custom
+                </button>
+              </div>
+              {clientTrialOption === "custom" && (
+                <input
+                  type="number"
+                  min={1}
+                  max={365}
+                  className="mt-2 w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-orange-400"
+                  placeholder="Days (1–365)"
+                  value={clientCustomDays}
+                  onChange={(e) => setClientCustomDays(e.target.value)}
+                />
+              )}
+            </div>
+            {/* Invitation Preview */}
+            <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+              <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">Invitation Preview</p>
+              <div className="space-y-1.5">
+                {[
+                  `${resolvedTrialDays} days complimentary access`,
+                  "Uses a secure invitation link",
+                  "Must be redeemed using this email",
+                  "No team seat consumed",
+                  "Converts to Free plan when trial expires",
+                ].map((item) => (
+                  <div key={item} className="flex items-center gap-2">
+                    <CheckCircle className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
+                    <span className="text-white/70 text-xs">{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {/* Three delivery options */}
+            <div className="space-y-2">
+              <button
+                className="w-full py-3 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                onClick={() => handleClientInvite("mailto")}
+                disabled={clientInviteLoading}
+              >
+                <ExternalLink className="w-4 h-4" />
+                Open Email
+              </button>
+              <button
+                className="w-full py-2.5 rounded-lg bg-white/10 hover:bg-white/15 text-white font-medium text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                onClick={() => handleClientInvite("email")}
+                disabled={clientInviteLoading}
+              >
+                {clientInviteLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+                Send from My Perfect Meals
+              </button>
+              <button
+                className="w-full py-2.5 rounded-lg bg-white/10 hover:bg-white/15 text-white font-medium text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                onClick={() => handleClientInvite("link")}
+                disabled={clientInviteLoading}
+              >
+                <Copy className="w-4 h-4" />
+                Copy Link
+              </button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

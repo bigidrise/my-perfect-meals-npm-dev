@@ -110,6 +110,7 @@ router.get("/mine", requireAuth, requireProAccess, async (req, res) => {
     }));
 
     const now = new Date();
+    // Only team_member pending invitations count against seat reservations
     const pendingInvitations = await db
       .select()
       .from(businessInvitations)
@@ -118,6 +119,7 @@ router.get("/mine", requireAuth, requireProAccess, async (req, res) => {
           eq(businessInvitations.businessId, business.id),
           eq(businessInvitations.status, "pending"),
           gt(businessInvitations.expiresAt, now),
+          eq(businessInvitations.invitationType, "team_member"),
         ),
       );
 
@@ -139,6 +141,30 @@ router.get("/mine", requireAuth, requireProAccess, async (req, res) => {
 
     const invitations = pendingInvitations.filter((inv) => !stuckInviteIds.includes(inv.id));
 
+    // Client invitations — all statuses, newest first, for the dashboard section
+    const clientInvitations = await db
+      .select({
+        id: businessInvitations.id,
+        email: businessInvitations.email,
+        programName: businessInvitations.programName,
+        trialDays: businessInvitations.trialDays,
+        status: businessInvitations.status,
+        createdAt: businessInvitations.createdAt,
+        expiresAt: businessInvitations.expiresAt,
+        acceptedAt: businessInvitations.acceptedAt,
+        inviterName: users.username,
+      })
+      .from(businessInvitations)
+      .leftJoin(users, eq(users.id, businessInvitations.invitedByUserId))
+      .where(
+        and(
+          eq(businessInvitations.businessId, business.id),
+          eq(businessInvitations.invitationType, "client"),
+        ),
+      )
+      .orderBy(sql`${businessInvitations.createdAt} DESC`)
+      .limit(200);
+
     const usedSeats = members.length;
     const planLostCount = members.filter((m) => m.planLost).length;
 
@@ -146,6 +172,7 @@ router.get("/mine", requireAuth, requireProAccess, async (req, res) => {
       business,
       members,
       invitations,
+      clientInvitations,
       usedSeats,
       availableSeats: business.seatLimit - usedSeats,
       planLostCount,
@@ -188,18 +215,45 @@ router.get("/membership", requireAuth, requireProAccess, async (req, res) => {
   }
 });
 
-// ── POST /api/business/invite — owner sends an invite
+// ── POST /api/business/invite — owner sends a team member or client invitation
 router.post("/invite", requireAuth, requireProAccess, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
-  const { email, role = "staff" } = req.body as { email: string; role?: string };
+  const {
+    email,
+    role = "staff",
+    invitationType = "team_member",
+    trialDays,
+    programName,
+    partnerRecordId,
+    sendEmail: shouldSendEmail = true,
+  } = req.body as {
+    email: string;
+    role?: string;
+    invitationType?: "team_member" | "client";
+    trialDays?: number;
+    programName?: string;
+    partnerRecordId?: string;
+    sendEmail?: boolean;
+  };
 
   if (!email || !email.includes("@")) {
     return res.status(400).json({ error: "Valid email required." });
   }
 
-  const validRoles = ["coach", "trainer", "physician", "staff"];
-  if (!validRoles.includes(role)) {
-    return res.status(400).json({ error: "Invalid role." });
+  const isClient = invitationType === "client";
+
+  if (!isClient) {
+    const validRoles = ["coach", "trainer", "physician", "staff"];
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({ error: "Invalid role." });
+    }
+  }
+
+  if (isClient) {
+    const days = Number(trialDays);
+    if (!days || days < 1 || days > 365) {
+      return res.status(400).json({ error: "Trial length must be between 1 and 365 days." });
+    }
   }
 
   try {
@@ -219,30 +273,30 @@ router.post("/invite", requireAuth, requireProAccess, async (req, res) => {
 
     const now = new Date();
 
-    const usedSeats = await getActiveSeats(business.id);
-    // Only count non-expired pending invites against seats — expired rows no longer
-    // reserve a seat (they will be cleaned up below when a fresh invite is sent).
-    const [pendingInvCount] = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(businessInvitations)
-      .where(
-        and(
-          eq(businessInvitations.businessId, business.id),
-          eq(businessInvitations.status, "pending"),
-          gt(businessInvitations.expiresAt, now),
-        ),
-      );
-    const occupiedSeats = usedSeats + (pendingInvCount?.count ?? 0);
-    if (occupiedSeats >= business.seatLimit) {
-      return res.status(400).json({
-        error: `No seats available. Your plan includes ${business.seatLimit} seats and all are filled or reserved by pending invitations.`,
-        code: "SEATS_FULL",
-      });
+    // Seat check — only for team member invitations (clients don't consume seats)
+    if (!isClient) {
+      const usedSeats = await getActiveSeats(business.id);
+      const [pendingInvCount] = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(businessInvitations)
+        .where(
+          and(
+            eq(businessInvitations.businessId, business.id),
+            eq(businessInvitations.status, "pending"),
+            gt(businessInvitations.expiresAt, now),
+            eq(businessInvitations.invitationType, "team_member"),
+          ),
+        );
+      const occupiedSeats = usedSeats + (pendingInvCount?.count ?? 0);
+      if (occupiedSeats >= business.seatLimit) {
+        return res.status(400).json({
+          error: `No seats available. Your plan includes ${business.seatLimit} seats and all are filled or reserved by pending invitations.`,
+          code: "SEATS_FULL",
+        });
+      }
     }
 
-    // Check if email already has a non-expired pending invite.
-    // An expired pending invite does NOT block a fresh invite — it is instead
-    // marked "expired" below so the stale row is cleaned up automatically.
+    // Block duplicate pending invites for same type+email combo
     const [existingInvite] = await db
       .select()
       .from(businessInvitations)
@@ -252,6 +306,7 @@ router.post("/invite", requireAuth, requireProAccess, async (req, res) => {
           eq(businessInvitations.email, email.toLowerCase()),
           eq(businessInvitations.status, "pending"),
           gt(businessInvitations.expiresAt, now),
+          eq(businessInvitations.invitationType, invitationType as any),
         ),
       )
       .limit(1);
@@ -260,8 +315,7 @@ router.post("/invite", requireAuth, requireProAccess, async (req, res) => {
       return res.status(400).json({ error: "A pending invitation already exists for this email." });
     }
 
-    // Expire any stale pending invites for this email (expiresAt in the past)
-    // so they don't accumulate in the table.
+    // Expire stale pending invites for this email+type
     await db
       .update(businessInvitations)
       .set({ status: "expired" })
@@ -270,52 +324,62 @@ router.post("/invite", requireAuth, requireProAccess, async (req, res) => {
           eq(businessInvitations.businessId, business.id),
           eq(businessInvitations.email, email.toLowerCase()),
           eq(businessInvitations.status, "pending"),
+          eq(businessInvitations.invitationType, invitationType as any),
           sql`${businessInvitations.expiresAt} <= ${now}`,
         ),
       );
 
-    // Check if user is already an active member
-    const [existingUser] = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.email, email.toLowerCase()))
-      .limit(1);
-
-    if (existingUser) {
-      const [existingMember] = await db
-        .select()
-        .from(businessMembers)
-        .where(
-          and(
-            eq(businessMembers.businessId, business.id),
-            eq(businessMembers.userId, existingUser.id),
-            eq(businessMembers.status, "active"),
-          ),
-        )
+    // For team members only: block if already an active member
+    if (!isClient) {
+      const [existingUser] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.email, email.toLowerCase()))
         .limit(1);
 
-      if (existingMember) {
-        return res.status(400).json({ error: "This person is already a member of your business." });
+      if (existingUser) {
+        const [existingMember] = await db
+          .select()
+          .from(businessMembers)
+          .where(
+            and(
+              eq(businessMembers.businessId, business.id),
+              eq(businessMembers.userId, existingUser.id),
+              eq(businessMembers.status, "active"),
+            ),
+          )
+          .limit(1);
+
+        if (existingMember) {
+          return res.status(400).json({ error: "This person is already a member of your business." });
+        }
       }
     }
 
     const token = generateInviteToken();
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    const resolvedTrialDays = isClient ? (Number(trialDays) || 30) : null;
 
     await db.insert(businessInvitations).values({
       businessId: business.id,
       email: email.toLowerCase(),
       token,
-      role: role as any,
+      role: isClient ? "staff" : (role as any),
       status: "pending",
       invitedByUserId: userId,
       expiresAt,
+      invitationType: invitationType as any,
+      trialDays: resolvedTrialDays,
+      programName: isClient ? (programName?.trim() || null) : null,
+      partnerRecordId: partnerRecordId ?? null,
     });
 
-    // Stamp the current policy at time of invite (raw SQL — column added via boot migration)
-    await db.execute(
-      sql`UPDATE business_invitations SET policy_snapshot = ${business.independentClientPolicy} WHERE token = ${token}`
-    );
+    // Stamp policy snapshot for team member invites
+    if (!isClient) {
+      await db.execute(
+        sql`UPDATE business_invitations SET policy_snapshot = ${business.independentClientPolicy} WHERE token = ${token}`
+      );
+    }
 
     const [owner] = await db
       .select({ username: users.username })
@@ -325,17 +389,22 @@ router.post("/invite", requireAuth, requireProAccess, async (req, res) => {
 
     const inviteLink = `${getAppUrl()}/business/join/${token}`;
 
-    await sendBusinessInviteEmail({
-      to: email.toLowerCase(),
-      businessName: business.name,
-      inviterName: owner?.username || "Your team owner",
-      inviteLink,
-      role,
-      expiresAt,
-    });
+    if (shouldSendEmail) {
+      await sendBusinessInviteEmail({
+        to: email.toLowerCase(),
+        businessName: business.name,
+        inviterName: owner?.username || "Your organization",
+        inviteLink,
+        role,
+        expiresAt,
+        invitationType: invitationType as any,
+        trialDays: resolvedTrialDays,
+        programName: isClient ? (programName?.trim() || null) : undefined,
+      });
+    }
 
-    console.log(`✅ [business] Invite sent | business=${business.id} | to=${email} | role=${role}`);
-    return res.json({ success: true, message: `Invitation sent to ${email}.` });
+    console.log(`✅ [business] Invite sent | business=${business.id} | to=${email} | type=${invitationType}`);
+    return res.json({ success: true, inviteLink, message: `Invitation created for ${email}.` });
   } catch (err) {
     console.error("[business/invite] error:", err);
     return res.status(500).json({ error: "Server error." });
@@ -561,6 +630,9 @@ router.post("/invitations/:token/resend", requireAuth, requireProAccess, async (
       inviteLink,
       role: invite.role,
       expiresAt: newExpiry,
+      invitationType: (invite.invitationType ?? "team_member") as any,
+      trialDays: invite.trialDays,
+      programName: invite.programName,
     });
 
     return res.json({ success: true, message: "Invite resent." });
@@ -676,11 +748,16 @@ router.get("/invite/:token", async (req, res) => {
         role: businessInvitations.role,
         status: businessInvitations.status,
         expiresAt: businessInvitations.expiresAt,
+        invitationType: businessInvitations.invitationType,
+        trialDays: businessInvitations.trialDays,
+        programName: businessInvitations.programName,
+        inviterName: users.username,
         businessName: businesses.name,
         independentClientPolicy: businesses.independentClientPolicy,
       })
       .from(businessInvitations)
       .innerJoin(businesses, eq(businesses.id, businessInvitations.businessId))
+      .leftJoin(users, eq(users.id, businessInvitations.invitedByUserId))
       .where(eq(businessInvitations.token, token))
       .limit(1);
 
@@ -709,6 +786,10 @@ router.get("/invite/:token", async (req, res) => {
       businessName: invite.businessName,
       expiresAt: invite.expiresAt,
       independentClientPolicy: invite.independentClientPolicy,
+      invitationType: invite.invitationType ?? "team_member",
+      trialDays: invite.trialDays,
+      programName: invite.programName,
+      inviterName: invite.inviterName,
     });
   } catch (err) {
     console.error("[business/invite/get] error:", err);
@@ -745,6 +826,29 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
 
     if (!business || business.status !== "active") {
       return res.status(403).json({ error: "This business account is no longer active." });
+    }
+
+    // ── Client invitation path — extend trial, no seat consumed ──────────────
+    if (invite.invitationType === "client") {
+      const trialDays = invite.trialDays ?? 30;
+      // Extend trial: take the later of (current trial end, now) and add trialDays
+      await db.execute(
+        sql`UPDATE users SET trial_ends_at = GREATEST(COALESCE(trial_ends_at, NOW()), NOW()) + (${trialDays}::text || ' days')::interval WHERE id = ${userId}`
+      );
+      await db
+        .update(businessInvitations)
+        .set({ status: "accepted", acceptedAt: new Date(), acceptedByUserId: userId })
+        .where(eq(businessInvitations.id, invite.id));
+
+      const programName = invite.programName || "My Perfect Meals Complimentary Access";
+      console.log(`✅ [business] Client invite accepted | business=${business.id} | user=${userId} | days=${trialDays}`);
+      return res.json({
+        success: true,
+        invitationType: "client",
+        businessName: business.name,
+        programName,
+        trialDays,
+      });
     }
 
     // ── Existing membership check (any status) ────────────────────────────────
