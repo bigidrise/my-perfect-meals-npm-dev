@@ -1,49 +1,51 @@
 ---
 name: Professional Context Architecture
-description: Agreed architectural decisions from the workspace/professional context design session — governs what gets built in Phase 1 vs Phase 2 for multi-business/workspace support.
+description: Phase roadmap, design constraints, and policy model for the two-worlds (personal vs professional) workspace system
 ---
 
-# Professional Context Architecture — Agreed Decisions
+## Two permanent worlds
+- **Personal world:** nutrition, health, diary — belongs to the user forever, never affected by org membership
+- **Professional world:** businesses, clients, revenue — contextual, org-funded or independently purchased
 
-## Phase 1 (current — finish before any architecture work)
-- Finish Business Center UX and educational content
-- Finish partner onboarding experience
-- Finish invitation experience (done)
-- Finish Dr. Amy / Amber workflow (done)
-- Finish trial flows (done)
+## Current constraint (Phase 1)
+- `UNIQUE(businessId, userId)` constraint stays — removing it before the Professional Context engine exists creates an uninterpretable state
+- No `workspaces` table yet — that is Phase 2
+- No "Personal Workspace" concept — personal nutrition IS the personal space
 
-## Phase 2 (after real partner feedback)
-- Introduce Professional Context service — thin layer answering "what am I working inside right now?"
-- Allow one identity to belong to multiple business contexts
-- Build context switcher UI
-- No new tables in Phase 1 that anticipate Phase 2
+## Phase roadmap
+- **Phase 1 (now):** Business Center UX + education + partner onboarding polish
+- **Phase 2:** Professional Context service + context switcher (thin layer, no new table migration)
+- **Phase 3:** Unified Workspace model + subscription migration
 
-## Phase 3 (after Phase 2 is proven)
-- Refactor businesses + organizations + studios into unified Workspace model
-- Move subscriptions to workspace level
-- Enterprise hierarchy if needed
+## Client-ownership policies (team workspaces)
+Organizations choose one of four policies that governs how seat-holders may use the platform professionally:
 
-## Explicit "do NOT" decisions
-- Do NOT build `workspaces` table yet
-- Do NOT build `workspace_members` or `user_active_workspace` yet
-- Do NOT add a Personal Workspace concept — personal nutrition IS the personal space
-- Do NOT remove `UNIQUE(businessId, userId)` constraint before Professional Context exists
-  (DB would allow multi-membership but auth, billing, UI, client ownership all assume one)
-- Do NOT commit a Phase 2 architecture document to the repo — keep it as external planning artifact
+1. **Organization clients only** — members cannot add outside clients to this workspace, but may operate a separately paid independent MPM business
+2. **Outside clients allowed with disclosure** — members may serve personal clients, clearly labeled as personally owned
+3. **Outside clients allowed without restriction** — members may freely serve personal clients, with ownership still recorded
+4. **Exclusive organizational use** — members may NOT operate a separate independent professional MPM business (affiliate profile, referral code, client invitations, independent ProCare) while the org-funded seat is active
 
-## Two-worlds model (permanent design principle)
-**Personal World** — belongs to the individual forever, never transferred to employer:
-  nutrition, biometrics, meal plans, medical history, Academy progress, preferences, behavior profile
+### Policy 4 — Exclusive Organizational Use (DO NOT CODE UNTIL PHASE 2)
+**What it does:**
+- Blocks Start Independent Business, affiliate activation, personal client invitations, personal ProCare
+- Shows an explanatory message: "Your organization currently provides your professional My Perfect Meals access under an exclusive-use policy. Independent business tools are unavailable while this organization-sponsored seat remains active."
+- When org removes member or changes policy: permanent personal identity, Academy/certs, personal nutrition data all remain; org workspace + org clients stay with the org; member may then purchase independently
 
-**Professional World** — contextual, can change:
-  organizations, studios, clients, invitations, seats, policies, revenue, Business Center
+**Must be disclosed at invitation time** — this materially limits how the coach can use the platform; they must see and accept it before joining.
 
-## UNIQUE constraint status
-`businessMembers UNIQUE(businessId, userId)` — INTENTIONALLY LEFT IN PLACE until Phase 2.
-Removing it before Professional Context exists creates an inconsistent state the app cannot interpret.
+**Why deferred:**
+- The platform cannot yet safely distinguish an org-funded professional entitlement from an independently purchased one under the same user identity
+- Depends on the Phase 2 Professional Context engine
 
-**Why:** From advisory session — "I don't like schema changes that enable functionality the application cannot yet correctly interpret."
+**Legal boundary (IMPORTANT):**
+- This is an **org-selected contractual policy**, NOT a universal MPM rule
+- Restrictions on outside work vary heavily by jurisdiction and worker classification
+- FTC nationwide noncompete rule is not currently in effect; state law governs (California broadly voids restraints on lawful professions)
+- Independent contractor classification raises separate issues
+- **MPM can technically enforce the setting, but the org is responsible for confirming its policy is lawful** with its employment or contractor agreements
+- **Attorney review required before this option ships**
 
-## Phase 2 document status
-Not in repo. To be written externally as an alignment document when Phase 2 starts.
-Will be informed by real organization usage, not theoretical design.
+**How to apply:**
+- Add a `clientOwnershipPolicy` enum column to the business/workspace table in Phase 2 with values: `org_only | outside_with_disclosure | outside_unrestricted | exclusive_org_use`
+- Default for new orgs: `org_only`
+- Gate enforcement on `exclusive_org_use` in the Professional Context middleware, not the individual feature routes
