@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
 import ThinkingDots from "@/components/ThinkingDots";
 import { usePageTitle } from "@/contexts/PageTitleContext";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 
 interface ScoredRestaurant {
   name: string;
@@ -183,6 +184,7 @@ function SectionHeader({
 export default function RestaurantFinderPage() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
+  const isDesktop = useIsDesktop();
   const { toast } = useToast();
   usePageTitle("Find Restaurants");
 
@@ -245,6 +247,16 @@ export default function RestaurantFinderPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
       <div className="max-w-lg mx-auto px-4 pt-6 pb-24">
+
+          {isDesktop && (
+            <button
+              onClick={() => navigate("/social-hub")}
+              className="flex items-center gap-2 text-orange-400 hover:text-orange-300 mb-6 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="text-sm font-medium">Social Hub</span>
+            </button>
+          )}
 
           <div className="flex items-center gap-3 mb-6">
             <button onClick={() => navigate("/social-hub")} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">
