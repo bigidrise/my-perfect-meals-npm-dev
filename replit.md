@@ -129,6 +129,10 @@ git reset --hard <commit-hash>
 - Push without running `npm run validate` first
 - Run `git rebase` in production — use merge only
 
+## User Preferences
+
+- **Text on dark backgrounds must always be legible.** Every background in this app is dark. Never use `text-gray-500`, `text-gray-600`, `text-muted-foreground`, `text-zinc-500`, `text-slate-500`, or any mid-gray Tailwind class expecting it to be readable — it won't be. For secondary/supporting text use `text-gray-300` or lighter. For body/paragraph text use `text-white/80` or `text-gray-200`. The CSS variable `--muted-foreground` in the dark theme is set to 78% lightness — use `text-muted-foreground` freely, it is now visible.
+
 ## Pointers
 
 - **Agent Rules**: `docs/agent-rules.md`
