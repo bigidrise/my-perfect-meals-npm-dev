@@ -105,6 +105,7 @@ const HUB_BACK_KEY_MAP: Record<string, { hub: string; key: string }> = {
   "/glp1-meal-builder":               { hub: "/glp1-hub",     key: "metabolicHubBack" },
   "/anti-inflammatory-menu-builder":   { hub: "/diabetic-hub", key: "diabetesHub" },
   "/performance-competition-builder":  { hub: "/performance",  key: "performanceHub" },
+  "/pro-launchpad":                    { hub: "/business-center", key: "businessCenter" },
 };
 
 type PlanBadgeVariant = "free" | "paid" | "professional";
@@ -168,7 +169,7 @@ export default function DesktopHeader() {
       <div className="flex items-center gap-3">
         {hubBackEntry && (
           <button
-            onClick={() => setLocation(hubBackEntry.hub)}
+            onClick={() => window.history.back()}
             className="flex items-center gap-1 text-orange-400 hover:text-orange-300 transition-colors"
           >
             <ChevronLeft className="w-4 h-4" />
