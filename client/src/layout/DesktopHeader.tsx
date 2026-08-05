@@ -87,6 +87,10 @@ const ROUTE_KEY_MAP: Record<string, string> = {
   "/business-center/industry": "industryPartnerships",
   "/business-center/healthcare": "healthcarePartnerships",
   "/org-success-center": "organizationSuccessCenter",
+  "/procare-welcome": "procareWelcome",
+  "/trainer-welcome": "trainerWelcome",
+  "/physician-welcome": "physicianWelcome",
+  "/pro-launchpad": "proLaunchpad",
 };
 
 /** Maps hub-back routes to their hub's routeTitles key */

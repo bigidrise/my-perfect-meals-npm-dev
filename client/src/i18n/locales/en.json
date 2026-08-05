@@ -161,7 +161,11 @@
     "foundingPartnerProgram": "Founding Partner Program",
     "industryPartnerships": "Industry Partnerships",
     "healthcarePartnerships": "Healthcare & Clinical Partnerships",
-    "organizationSuccessCenter": "Organization Success Center"
+    "organizationSuccessCenter": "Organization Success Center",
+    "procareWelcome": "ProCare Welcome",
+    "trainerWelcome": "Trainer Welcome",
+    "physicianWelcome": "Physician Welcome",
+    "proLaunchpad": "Professional Dashboard"
   },
   "dashboard": {
     "professionalBadge": "Professional",
