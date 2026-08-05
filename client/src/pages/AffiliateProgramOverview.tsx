@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { BC_HEADER } from "@/components/BusinessCenterShell";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useLocation } from "wouter";
 import { FeatureUpgradeModal } from "@/components/modals/FeatureUpgradeModal";
 import { useAuth } from "@/contexts/AuthContext";
@@ -231,6 +232,7 @@ const ACKNOWLEDGMENTS = [
 export default function AffiliateProgramOverview() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+  const isDesktop = useIsDesktop();
   const hasPro = isProOrAbove(user);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [checked, setChecked] = useState<boolean[]>([false, false, false]);
@@ -325,28 +327,31 @@ export default function AffiliateProgramOverview() {
       animate={{ opacity: 1 }}
     >
       {/* Header */}
-      <div
-        className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`}
-        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
-      >
-        <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
-          <button
-            onClick={() => setLocation("/business-center/partners")}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Partner Programs
-          </button>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-base font-bold text-white">Partner Program</h1>
-            <p className="text-xs text-white/50">How it works — read before you apply</p>
+      {/* Header — mobile only; desktop uses DesktopLayout shell header */}
+      {!isDesktop && (
+        <div
+          className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`}
+          style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+        >
+          <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
+            <button
+              onClick={() => setLocation("/business-center/partners")}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Partner Programs
+            </button>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-base font-bold text-white">Partner Program</h1>
+              <p className="text-xs text-white/50">How it works — read before you apply</p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div
         className="px-4 max-w-2xl mx-auto space-y-4"
-        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5.5rem)" }}
+        style={{ paddingTop: isDesktop ? "1rem" : "calc(env(safe-area-inset-top, 0px) + 5.5rem)" }}
       >
         {/* In-content back button — always visible on desktop where fixed header is trapped */}
         <button
