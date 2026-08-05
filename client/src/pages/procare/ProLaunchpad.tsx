@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import {
   Loader2, Trophy, Users, ClipboardList, GraduationCap,
-  Briefcase, ArrowRight, TrendingUp, Star,
+  Briefcase, ArrowLeft, ArrowRight, TrendingUp, Star,
 } from "lucide-react";
 
 interface CertStatus {
