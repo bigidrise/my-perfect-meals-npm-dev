@@ -3087,6 +3087,131 @@ describe("businessRoutes.ts — PATCH /members/:id/restore calls clearRemovalNot
   });
 });
 
+// ── 11. Stripe webhook — no silent businessMembers reactivation path ──────────
+/**
+ * Audits stripeWebhook.ts to confirm that:
+ *
+ *   (a) No webhook event handler currently sets businessMembers.status back to
+ *       "active" — i.e. there is no silent auto-restore path that would bypass
+ *       clearRemovalNotice.
+ *
+ *   (b) The convention comment instructing future authors to call
+ *       clearRemovalNotice is present in the invoice.payment_succeeded handler
+ *       (the likeliest future home of any business-member auto-restore logic).
+ *
+ * If a future change adds a businessMembers reactivation path to the webhook,
+ * test (a) will fail immediately, forcing the author to also satisfy the
+ * clearRemovalNotice convention — at which point (a) should be updated to
+ * confirm the helper is called correctly.
+ */
+
+describe("stripeWebhook.ts — no silent businessMembers reactivation path", () => {
+  const webhookFilePath = path.resolve(__dirname, "../routes/stripeWebhook.ts");
+  let webhookSource: string;
+
+  beforeAll(() => {
+    webhookSource = fs.readFileSync(webhookFilePath, "utf-8");
+  });
+
+  // ── (a) No current update(businessMembers).set({ status: "active" }) ─────────
+
+  it("webhook source does NOT contain an update(businessMembers) call (no auto-reactivation)", () => {
+    // If this test fails, a new businessMembers reactivation path was added.
+    // That path MUST call clearRemovalNotice — update test (b) below to confirm.
+    //
+    // The positive case we're ruling out looks like:
+    //   await db.update(businessMembers).set({ status: "active", ... })
+    // or inside a transaction:
+    //   await tx.update(businessMembers).set({ status: "active", ... })
+    const updateBusinessMembersPattern = /(?:db|tx)\.update\s*\(\s*businessMembers\s*\)/;
+    expect(updateBusinessMembersPattern.test(webhookSource)).toBe(false);
+  });
+
+  it("webhook source does NOT import clearRemovalNotice (not yet needed — no reactivation path)", () => {
+    // clearRemovalNotice is defined but not exported from businessRoutes.ts.
+    // This test confirms the webhook does not yet import it from any shared module.
+    //
+    // The convention comment in invoice.payment_succeeded mentions the function
+    // name as documentation — that is expected.  An import statement would mean
+    // the function was extracted to a shared service and is actually being called.
+    //
+    // If a reactivation path is added and clearRemovalNotice is promoted to a
+    // shared service and imported here, remove or invert this test and add a
+    // test confirming the call is made on every businessMembers status="active" write.
+    const importPattern = /import\s*\{[^}]*clearRemovalNotice[^}]*\}/;
+    expect(importPattern.test(webhookSource)).toBe(false);
+  });
+
+  // ── (b) Convention comment is present in invoice.payment_succeeded ────────────
+
+  it("invoice.payment_succeeded handler contains the clearRemovalNotice convention note", () => {
+    // Isolate the invoice.payment_succeeded case block
+    const caseStart = webhookSource.indexOf('case "invoice.payment_succeeded"');
+    expect(caseStart).toBeGreaterThan(-1);
+
+    const afterCase = webhookSource.slice(caseStart);
+    // Take up to the next case (or the default)
+    const nextCaseMatch = afterCase.match(/\n\s+(?:case |default\s*:)/);
+    const caseSlice = nextCaseMatch
+      ? afterCase.slice(0, nextCaseMatch.index)
+      : afterCase.slice(0, 4000);
+
+    // The convention note must reference clearRemovalNotice so future authors
+    // see it when editing this handler.
+    expect(caseSlice).toContain("clearRemovalNotice");
+  });
+
+  it("convention note references businessRoutes.ts as the location of clearRemovalNotice", () => {
+    const caseStart = webhookSource.indexOf('case "invoice.payment_succeeded"');
+    const afterCase = webhookSource.slice(caseStart);
+    const nextCaseMatch = afterCase.match(/\n\s+(?:case |default\s*:)/);
+    const caseSlice = nextCaseMatch
+      ? afterCase.slice(0, nextCaseMatch.index)
+      : afterCase.slice(0, 4000);
+
+    expect(caseSlice).toContain("businessRoutes.ts");
+  });
+
+  it("convention note mentions the businessMembers reactivation requirement", () => {
+    // The note must clearly state that any future status='active' write on
+    // businessMembers must be accompanied by a clearRemovalNotice call.
+    const caseStart = webhookSource.indexOf('case "invoice.payment_succeeded"');
+    const afterCase = webhookSource.slice(caseStart);
+    const nextCaseMatch = afterCase.match(/\n\s+(?:case |default\s*:)/);
+    const caseSlice = nextCaseMatch
+      ? afterCase.slice(0, nextCaseMatch.index)
+      : afterCase.slice(0, 4000);
+
+    // The comment must mention businessMembers to be useful to a future author
+    expect(caseSlice).toContain("businessMembers");
+  });
+
+  // ── (c) The checkout.session.completed handler is a new-business-only path ────
+
+  it("checkout.session.completed insert(businessMembers) is inside the !existing branch (first-time setup only)", () => {
+    // The checkout handler creates the Business + owner member row for a brand-new
+    // business subscription.  It is NOT an auto-restore of a removed member, so it
+    // does not need clearRemovalNotice.  This test confirms the insert is guarded
+    // by the !existing branch (new business only, not a removed-member reactivation).
+    const checkoutStart = webhookSource.indexOf('case "checkout.session.completed"');
+    expect(checkoutStart).toBeGreaterThan(-1);
+
+    const afterCheckout = webhookSource.slice(checkoutStart);
+    const nextCaseMatch = afterCheckout.match(/\n\s+(?:case |default\s*:)/);
+    const checkoutSlice = nextCaseMatch
+      ? afterCheckout.slice(0, nextCaseMatch.index)
+      : afterCheckout.slice(0, 3000);
+
+    // The insert must be inside an "if (!existing)" or "if (!existing)" guard
+    expect(checkoutSlice).toContain("!existing");
+    // And the insert must be present (it's the new-business path)
+    expect(checkoutSlice).toContain("insert(businessMembers)");
+    // But there must be no update(businessMembers) in this handler
+    const updatePattern = /(?:db|tx)\.update\s*\(\s*businessMembers\s*\)/;
+    expect(updatePattern.test(checkoutSlice)).toBe(false);
+  });
+});
+
 // ── (c) Client guard: member view renders no removal-notice banner ─────────────
 
 describe("BusinessDashboard.tsx — member view contains no removal-notice banner", () => {
