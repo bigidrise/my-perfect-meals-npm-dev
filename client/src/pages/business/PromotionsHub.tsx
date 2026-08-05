@@ -137,6 +137,7 @@ function QRPreviewModal({ link, promoName, onClose }: { link: string; promoName:
   const [previewDataUrl, setPreviewDataUrl] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [logoError, setLogoError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Close on Escape
@@ -162,8 +163,13 @@ function QRPreviewModal({ link, promoName, onClose }: { link: string; promoName:
       return;
     }
     setCompositing(true);
+    setLogoError(null);
     applyLogoToDataUrl(baseDataUrl, logoDataUrl)
       .then(setPreviewDataUrl)
+      .catch(() => {
+        setLogoError("Couldn't load that image — try a PNG or JPG");
+        setPreviewDataUrl(baseDataUrl);
+      })
       .finally(() => setCompositing(false));
   }, [baseDataUrl, logoDataUrl]);
 
@@ -171,6 +177,7 @@ function QRPreviewModal({ link, promoName, onClose }: { link: string; promoName:
     const file = e.target.files?.[0];
     if (!file) return;
     setLogoName(file.name);
+    setLogoError(null);
     const reader = new FileReader();
     reader.onload = (ev) => setLogoDataUrl(ev.target?.result as string);
     reader.readAsDataURL(file);
@@ -245,7 +252,7 @@ function QRPreviewModal({ link, promoName, onClose }: { link: string; promoName:
               <img src={logoDataUrl} alt="logo" className="w-7 h-7 rounded object-contain bg-white/10" />
               <p className="text-[11px] text-white/60 flex-1 truncate">{logoName}</p>
               <button
-                onClick={() => { setLogoDataUrl(null); setLogoName(""); if (fileRef.current) fileRef.current.value = ""; }}
+                onClick={() => { setLogoDataUrl(null); setLogoName(""); setLogoError(null); if (fileRef.current) fileRef.current.value = ""; }}
                 className="text-[10px] text-red-400 hover:text-red-300 shrink-0"
               >
                 Remove
@@ -259,7 +266,10 @@ function QRPreviewModal({ link, promoName, onClose }: { link: string; promoName:
               Add clinic logo to center
             </button>
           )}
-          {logoDataUrl && (
+          {logoError && (
+            <p className="text-[11px] text-red-400 text-center mt-1.5">{logoError}</p>
+          )}
+          {logoDataUrl && !logoError && (
             <p className="text-[10px] text-white/25 text-center mt-1.5">Logo centred at ≤25% of QR width</p>
           )}
         </div>
