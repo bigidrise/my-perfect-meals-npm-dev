@@ -2,7 +2,7 @@ import { Router } from "express";
 import { randomBytes } from "crypto";
 import Stripe from "stripe";
 import { db } from "../db";
-import { eq, and, sql, isNull } from "drizzle-orm";
+import { eq, and, sql, isNull, gt } from "drizzle-orm";
 import { businesses, businessMembers, businessInvitations } from "../db/schema/business";
 import { users } from "@shared/schema";
 import { requireAuth } from "../middleware/requireAuth";
@@ -171,11 +171,21 @@ router.post("/invite", requireAuth, requireProAccess, async (req, res) => {
       return res.status(403).json({ error: "Business subscription is not active." });
     }
 
+    const now = new Date();
+
     const usedSeats = await getActiveSeats(business.id);
+    // Only count non-expired pending invites against seats — expired rows no longer
+    // reserve a seat (they will be cleaned up below when a fresh invite is sent).
     const [pendingInvCount] = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(businessInvitations)
-      .where(and(eq(businessInvitations.businessId, business.id), eq(businessInvitations.status, "pending")));
+      .where(
+        and(
+          eq(businessInvitations.businessId, business.id),
+          eq(businessInvitations.status, "pending"),
+          gt(businessInvitations.expiresAt, now),
+        ),
+      );
     const occupiedSeats = usedSeats + (pendingInvCount?.count ?? 0);
     if (occupiedSeats >= business.seatLimit) {
       return res.status(400).json({
@@ -184,7 +194,9 @@ router.post("/invite", requireAuth, requireProAccess, async (req, res) => {
       });
     }
 
-    // Check if email already has a pending invite
+    // Check if email already has a non-expired pending invite.
+    // An expired pending invite does NOT block a fresh invite — it is instead
+    // marked "expired" below so the stale row is cleaned up automatically.
     const [existingInvite] = await db
       .select()
       .from(businessInvitations)
@@ -193,6 +205,7 @@ router.post("/invite", requireAuth, requireProAccess, async (req, res) => {
           eq(businessInvitations.businessId, business.id),
           eq(businessInvitations.email, email.toLowerCase()),
           eq(businessInvitations.status, "pending"),
+          gt(businessInvitations.expiresAt, now),
         ),
       )
       .limit(1);
@@ -200,6 +213,20 @@ router.post("/invite", requireAuth, requireProAccess, async (req, res) => {
     if (existingInvite) {
       return res.status(400).json({ error: "A pending invitation already exists for this email." });
     }
+
+    // Expire any stale pending invites for this email (expiresAt in the past)
+    // so they don't accumulate in the table.
+    await db
+      .update(businessInvitations)
+      .set({ status: "expired" })
+      .where(
+        and(
+          eq(businessInvitations.businessId, business.id),
+          eq(businessInvitations.email, email.toLowerCase()),
+          eq(businessInvitations.status, "pending"),
+          sql`${businessInvitations.expiresAt} <= ${now}`,
+        ),
+      );
 
     // Check if user is already an active member
     const [existingUser] = await db

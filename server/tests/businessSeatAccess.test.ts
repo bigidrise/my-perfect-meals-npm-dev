@@ -1278,7 +1278,173 @@ describe("businessRoutes.ts — invite guard WHERE clause includes businessId (c
   });
 });
 
-// ── 12. requireProAccess middleware source structure ──────────────────────────
+// ── 12. POST /invite — expired pending invite does NOT block a fresh invite ────
+/**
+ * The POST /invite handler must allow a new invite to the same email address
+ * when the only pending invite row has an expiresAt in the past.
+ *
+ * The guard now queries:
+ *   WHERE businessId=X AND email=Y AND status="pending" AND expiresAt > NOW()
+ *
+ * An invite whose expiresAt <= NOW() is treated as absent — the fresh invite
+ * is allowed, and the stale row is marked "expired" as a cleanup side-effect.
+ *
+ * Guard location in the real handler (businessRoutes.ts, POST /invite):
+ *   1. Query businessInvitations WHERE … AND status="pending" AND expiresAt > now.
+ *   2. If found  → 400 "A pending invitation already exists."
+ *   3. If not found (or only expired rows exist) → continue; mark stale rows "expired".
+ */
+
+interface MockPendingInviteWithExpiry {
+  /** null when no row exists at all */
+  inviteId: string | null;
+  /** Whether the invite's expiresAt is in the future (true) or past (false) */
+  isStillValid: boolean;
+}
+
+/**
+ * Mirrors the updated invite-handler pending-invite guard that includes the
+ * expiresAt > now() condition.
+ *
+ * Returns:
+ *   { status: 400, code: "PENDING_INVITE_EXISTS" }  — blocked (valid pending invite)
+ *   null                                              — guard did not fire (handler continues)
+ */
+function simulateSendInvitePendingGuardWithExpiry(
+  pendingLookup: MockPendingInviteWithExpiry,
+): { status: 400; code: "PENDING_INVITE_EXISTS" } | null {
+  // The DB query only returns the row if status=pending AND expiresAt > now.
+  // An expired row (isStillValid=false) is treated the same as no row (inviteId=null).
+  const activeRow =
+    pendingLookup.inviteId !== null && pendingLookup.isStillValid;
+
+  if (activeRow) {
+    return { status: 400, code: "PENDING_INVITE_EXISTS" };
+  }
+  return null;
+}
+
+describe("POST /api/business/invite — expired pending invite does not block fresh invite", () => {
+  // ── Expired invite: guard must NOT fire ──────────────────────────────────────
+  it("allows a new invite when the only pending invite is expired (expiresAt in the past)", () => {
+    const result = simulateSendInvitePendingGuardWithExpiry({
+      inviteId: "bi-expired-001",
+      isStillValid: false, // expiresAt <= now — treated as absent
+    });
+    expect(result).toBeNull(); // fresh invite is allowed
+  });
+
+  it("allows a new invite when there is no pending invite at all", () => {
+    const result = simulateSendInvitePendingGuardWithExpiry({
+      inviteId: null,
+      isStillValid: false, // irrelevant when inviteId is null
+    });
+    expect(result).toBeNull();
+  });
+
+  // ── Valid (non-expired) pending invite: guard must still fire ─────────────────
+  it("still blocks a new invite when a valid (non-expired) pending invite exists", () => {
+    const result = simulateSendInvitePendingGuardWithExpiry({
+      inviteId: "bi-valid-001",
+      isStillValid: true, // expiresAt > now — genuine conflict
+    });
+    expect(result).not.toBeNull();
+    expect(result!.status).toBe(400);
+    expect(result!.code).toBe("PENDING_INVITE_EXISTS");
+  });
+
+  it("blocks even when seats are available if a valid pending invite exists", () => {
+    // Seat count is irrelevant; the pending-invite guard fires first.
+    const result = simulateSendInvitePendingGuardWithExpiry({
+      inviteId: "bi-valid-spare-seats",
+      isStillValid: true,
+    });
+    expect(result!.code).toBe("PENDING_INVITE_EXISTS");
+  });
+
+  // ── Scenario: same email, expired row → new invite allowed ───────────────────
+  it("scenario — expired invite then fresh invite: no block (end-to-end decision tree)", () => {
+    // Step 1: owner sends invite → invite row created (status=pending, expiresAt=7 days out)
+    // Step 2: 8 days pass → expiresAt is now in the past
+    // Step 3: owner sends a fresh invite to the same email
+    //   → the DB guard finds NO valid pending row (expiresAt <= now)
+    //   → guard returns null → invite proceeds
+    const staleInviteExists = simulateSendInvitePendingGuardWithExpiry({
+      inviteId: "bi-expired-scenario-001",
+      isStillValid: false,
+    });
+    expect(staleInviteExists).toBeNull(); // not blocked
+
+    // Step 4: fresh invite is inserted; stale row is marked "expired" by handler
+    // This is a side-effect in the real handler — verified by source scan below.
+  });
+});
+
+// ── 12b. POST /invite — source-scan: expiresAt filter is present in both guards ─
+
+describe("businessRoutes.ts — POST /invite expiresAt guard regression", () => {
+  const routeFilePath = path.resolve(__dirname, "../routes/businessRoutes.ts");
+  let source: string;
+  let inviteHandlerSlice: string;
+
+  beforeAll(() => {
+    source = fs.readFileSync(routeFilePath, "utf-8");
+
+    // Isolate the POST /invite handler body.
+    const inviteStart = source.indexOf('router.post("/invite"');
+    const afterInvite = source.slice(inviteStart);
+    const nextSectionMatch = afterInvite.match(/\n\/\/ ──/);
+    inviteHandlerSlice = nextSectionMatch
+      ? afterInvite.slice(0, nextSectionMatch.index)
+      : afterInvite.slice(0, 5000);
+  });
+
+  it("duplicate-invite guard includes an expiresAt condition (not just status=pending)", () => {
+    // The WHERE clause on the existing-invite query must reference expiresAt.
+    // Without this, an expired invite permanently blocks a re-invite.
+    expect(inviteHandlerSlice).toContain("businessInvitations.expiresAt");
+  });
+
+  it("seat-count query also excludes expired pending invites via expiresAt", () => {
+    // The pendingInvCount query must also filter on expiresAt so expired rows
+    // don't inflate the occupied-seat count and falsely trigger SEATS_FULL.
+    const pendingCountIdx = inviteHandlerSlice.indexOf("pendingInvCount");
+    expect(pendingCountIdx).toBeGreaterThan(-1);
+    // expiresAt must appear somewhere after the pendingInvCount declaration
+    const afterCount = inviteHandlerSlice.slice(pendingCountIdx);
+    expect(afterCount.indexOf("expiresAt")).toBeGreaterThan(-1);
+  });
+
+  it("handler marks stale expired pending invites as 'expired' before inserting the new one", () => {
+    // The cleanup step must set status="expired" on rows with expiresAt in the past.
+    // Confirm a db.update(businessInvitations) call with status "expired" is present.
+    expect(inviteHandlerSlice).toContain('"expired"');
+    // The cleanup must be a Drizzle update call (not just a comment).
+    expect(inviteHandlerSlice).toContain(".update(businessInvitations)");
+    // Confirm the update call sets status to "expired"
+    const updateIdx = inviteHandlerSlice.indexOf('.update(businessInvitations)');
+    const afterUpdate = inviteHandlerSlice.slice(updateIdx, updateIdx + 300);
+    expect(afterUpdate).toContain('"expired"');
+  });
+
+  it("pending-invite guard appears before the db.insert(businessInvitations) call", () => {
+    const pendingIdx = inviteHandlerSlice.indexOf("pending invitation already exists");
+    const insertIdx = inviteHandlerSlice.indexOf("db.insert(businessInvitations)");
+    expect(pendingIdx).toBeGreaterThan(-1);
+    expect(insertIdx).toBeGreaterThan(-1);
+    expect(pendingIdx).toBeLessThan(insertIdx);
+  });
+
+  it("expiresAt appears in both the pending-invite check and the seat-count query sections", () => {
+    // Count how many times expiresAt is referenced in the invite handler —
+    // it should appear at least twice (seat count query + duplicate check).
+    const matches = inviteHandlerSlice.match(/expiresAt/g);
+    expect(matches).not.toBeNull();
+    expect(matches!.length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+// ── 13. requireProAccess middleware source structure ──────────────────────────
 
 describe("requireProAccess.ts — middleware structure regression", () => {
   const middlewareFilePath = path.resolve(__dirname, "../middleware/requireProAccess.ts");
