@@ -36,6 +36,25 @@ import {
 
 const router = Router();
 
+// ─── GATE CONVENTION (enforced by server/tests/procareRouteGates.test.ts) ───
+//
+// Every route that uses requirePhase1Cert or requirePhase2Training MUST also
+// include requireProAccess in its middleware chain.
+//
+// • requireProAccess  — subscription/billing gate (Pro or Clinical tier)
+// • requirePhase1Cert — clinical certification gate (Platform Mastery cert)
+// • requirePhase2Training — Phase 2 training gate
+//
+// The cert/training gates enforce clinical capability but do NOT check billing.
+// Omitting requireProAccess silently lets free-tier users reach Studio endpoints.
+//
+// Correct order:  requireAuth, requireProAccess, requirePhase1Cert, requirePhase2Training
+//
+// Routes legitimately exempt from ALL gates (client self-service flows, Stripe
+// webhooks, connection-status) are annotated with [PHASE2-EXEMPT] and must NOT
+// include requirePhase1Cert so the test won't flag them.
+// ─────────────────────────────────────────────────────────────────────────────
+
 function getUserId(req: any): string {
   const authUser = (req as AuthenticatedRequest).authUser;
   if (authUser?.id) return authUser.id;
