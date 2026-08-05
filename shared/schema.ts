@@ -357,6 +357,7 @@ export const users = pgTable("users", {
   // Trial + Meal Builder Selection (Paywall system)
   trialStartedAt: timestamp("trial_started_at", { withTimezone: true }),
   trialEndsAt: timestamp("trial_ends_at", { withTimezone: true }),
+  trialRemindersSent: text("trial_reminders_sent").array().default([]), // milestones sent: ["day_6","day_5","day_3","day_1"]
   selectedMealBuilder: text("selected_meal_builder"), // weekly, diabetic, glp1, anti_inflammatory
   // Builder Switch Controls (Beta)
   builderSwitchUnlimited: boolean("builder_switch_unlimited").default(false), // true = no limit (admin/internal accounts only)

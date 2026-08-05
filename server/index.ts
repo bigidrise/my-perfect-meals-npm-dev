@@ -591,6 +591,17 @@ const initDataRetentionLazy = async () => {
 };
 setTimeout(initDataRetentionLazy, 5000);
 
+// Trial expiry reminder cron (daily 9 AM — emails at 6, 5, 3, 1 days remaining)
+let trialReminderInitialized = false;
+const initTrialReminderLazy = async () => {
+  if (!trialReminderInitialized) {
+    const { initTrialReminderCron } = await import("./cron/trialReminders");
+    initTrialReminderCron();
+    trialReminderInitialized = true;
+  }
+};
+setTimeout(initTrialReminderLazy, 7000);
+
 // Import and start warmup service
 import { warmupService } from "./services/warmupService";
 import { reminderService } from "./reminderService";
@@ -640,6 +651,8 @@ setTimeout(async () => {
     await db.execute(sql`ALTER TABLE business_invitations ADD COLUMN IF NOT EXISTS trial_days integer`);
     await db.execute(sql`ALTER TABLE business_invitations ADD COLUMN IF NOT EXISTS program_name text`);
     await db.execute(sql`ALTER TABLE business_invitations ADD COLUMN IF NOT EXISTS partner_record_id text`);
+    // Trial Expiry Reminders — milestone tracking column
+    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS trial_reminders_sent text[] DEFAULT '{}'`);
     // Clinical Context Screening — self-reported medication/hormone gate
     await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS clinical_context_response text`);
     await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS clinical_context_categories jsonb`);
