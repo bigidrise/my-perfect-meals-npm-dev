@@ -444,9 +444,7 @@ app.post("/api/meals/holiday-feast", requireAuth, requireActiveAccess, async (re
 
     console.log("🔍 Mapped data:", { occasion, servings, counts });
 
-    const result = await db
-      .delete(mealImageCache)
-      .where(sql`${mealImageCache.imageUrl} NOT LIKE '%amazonaws.com%'`);
+    const result = await generateHolidayFeast({ occasion, servings, counts });
 
     res.json({
       holiday: occasion,
@@ -485,10 +483,8 @@ app.post("/api/meals/kids", async (req, res) => {
 
     // Use stable kids lunchbox generator with proper kid-friendly catalog
     const { kidsLunchboxV1Generate } = await import("./services/kidsLunchboxV1");
-    
-    const result = await db
-      .delete(mealImageCache)
-      .where(sql`${mealImageCache.imageUrl} NOT LIKE '%amazonaws.com%'`);
+
+    const result = await kidsLunchboxV1Generate({ allergies });
     
     if (!result.meal) {
       throw new Error("Failed to generate kids meal");

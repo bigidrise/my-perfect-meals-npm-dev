@@ -47,8 +47,10 @@ function generateInviteToken(): string {
  * reactivating row has already been flipped to "active" by the time this
  * runs, so this call covers historical rows from prior removal cycles.
  */
+type DbOrTx = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 async function clearRemovalNotice(
-  tx: typeof db,
+  tx: DbOrTx,
   userId: string,
   businessId: string,
 ): Promise<void> {

@@ -75,7 +75,7 @@ router.post("/", requireAuth, requireProAccess, async (req, res) => {
       });
 
       const promoCode = await stripe.promotionCodes.create({
-        coupon: coupon.id,
+        promotion: { type: 'coupon', coupon: coupon.id },
         ...(maxUses && { max_redemptions: maxUses }),
         ...(expiryTs && { expires_at: expiryTs }),
         metadata: { owner_user_id: userId },
