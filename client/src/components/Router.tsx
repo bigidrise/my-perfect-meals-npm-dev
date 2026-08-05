@@ -434,6 +434,8 @@ import BusinessCenter from "@/pages/BusinessCenter";
 import { BusinessSuiteGate } from "@/components/BusinessSuiteGate";
 import BusinessCenterSection from "@/pages/BusinessCenterSection";
 import PartnerCenter from "@/pages/PartnerCenter";
+import PromotionsHub from "@/pages/business/PromotionsHub";
+import PromoRedemption from "@/pages/PromoRedemption";
 import AdminCampaignManager from "@/pages/admin/AdminCampaignManager";
 import AcademyLandingPage from "@/pages/AcademyLandingPage";
 import PartnerProgramsHub from "@/pages/PartnerProgramsHub";
@@ -1087,6 +1089,9 @@ export default function Router() {
         <Route path="/business-center/white-label" component={GatedWhiteLabelSolutions} />
         <Route path="/business-center/partnerships" component={GatedBusinessCenterSection} />
         <Route path="/partner-center" component={GatedPartnerCenter} />
+        {/* Promotion Engine */}
+        <Route path="/business-center/promotions" component={PromotionsHub} />
+        <Route path="/join/promo/:token" component={PromoRedemption} />
         <Route path="/admin/campaigns" component={GuardedAdminCampaignManager} />
         {/* Public partner pages — no login required */}
         <Route path="/partners" component={PublicPartnersHub} />

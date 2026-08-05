@@ -962,6 +962,56 @@ setTimeout(async () => {
   }
 }, 2500);
 
+// Promotion Engine boot migration — idempotent
+setTimeout(async () => {
+  try {
+    const { db } = await import("./db");
+    const { sql } = await import('drizzle-orm');
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS partner_promotions (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        owner_user_id text NOT NULL,
+        name text NOT NULL,
+        type text NOT NULL CHECK (type IN ('extended_trial', 'discount')),
+        trial_days integer,
+        discount_percent integer,
+        discount_duration text CHECK (discount_duration IN ('once', 'repeating', 'forever')),
+        discount_months integer,
+        invite_token text UNIQUE NOT NULL DEFAULT md5(random()::text || clock_timestamp()::text),
+        stripe_coupon_id text,
+        stripe_promo_code_id text,
+        stripe_promo_code text,
+        max_uses integer,
+        used_count integer NOT NULL DEFAULT 0,
+        expires_at timestamptz,
+        status text NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'paused', 'deleted')),
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS promotion_redemptions (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        promotion_id uuid NOT NULL REFERENCES partner_promotions(id),
+        redeemed_by_user_id text NOT NULL,
+        redeemed_at timestamptz NOT NULL DEFAULT now(),
+        applied_trial_days integer,
+        applied_stripe_promo_code text,
+        CONSTRAINT uniq_promo_redemption UNIQUE (promotion_id, redeemed_by_user_id)
+      )
+    `);
+    await db.execute(sql`
+      CREATE INDEX IF NOT EXISTS idx_partner_promotions_owner ON partner_promotions (owner_user_id)
+    `);
+    await db.execute(sql`
+      CREATE INDEX IF NOT EXISTS idx_partner_promotions_token ON partner_promotions (invite_token)
+    `);
+    console.log('✅ Promotion Engine boot migration complete (partner_promotions, promotion_redemptions)');
+  } catch (err: any) {
+    console.error('❌ Promotion Engine boot migration failed:', err.message);
+  }
+}, 3200);
+
 // Business tables boot migration — idempotent
 setTimeout(async () => {
   try {

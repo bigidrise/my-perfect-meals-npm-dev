@@ -21,6 +21,7 @@ const FULL_SCREEN_ROUTES = [
   "/consumer-welcome",
   "/checkout/success",
   "/affiliates",
+  "/join/promo",
 ];
 
 const UNAUTHENTICATED_FULL_SCREEN_ROUTES: string[] = [];

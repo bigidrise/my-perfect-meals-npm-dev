@@ -72,6 +72,7 @@ const ROUTE_KEY_MAP: Record<string, string> = {
   "/founders": "founders",
   "/apply-guidance": "applyGuidance",
   "/business-center": "businessCenter",
+  "/business-center/promotions": "promotions",
   "/business-center/partners": "partnerPrograms",
   "/business-center/academy": "academy",
   "/business-center/affiliate": "partnerProgram",

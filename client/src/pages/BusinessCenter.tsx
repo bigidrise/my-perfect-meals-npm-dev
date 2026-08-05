@@ -6,6 +6,7 @@ import {
   ChefHat,
   GraduationCap,
   Handshake,
+  Tag,
   ChevronRight,
   Trophy,
   CheckCircle2,
@@ -90,6 +91,17 @@ const pillars = [
     accent: "bg-orange-500/20",
     iconColor: "text-orange-400",
     border: "border-orange-500/20",
+  },
+  {
+    id: "promotions",
+    title: "Promotions",
+    description:
+      "Create trial extensions and discount codes for patients, clients, and campaigns. One engine — trials, discounts, invite links.",
+    icon: Tag,
+    route: "/business-center/promotions",
+    accent: "bg-amber-500/20",
+    iconColor: "text-amber-400",
+    border: "border-amber-500/20",
   },
   {
     id: "creator-brand",
