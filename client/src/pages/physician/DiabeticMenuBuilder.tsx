@@ -75,6 +75,7 @@ import {
   X,
   Trash2,
   Save,
+  ArrowLeft,
 } from "lucide-react";
 import { FEATURES } from "@/utils/features";
 import { DayChips } from "@/components/DayChips";
