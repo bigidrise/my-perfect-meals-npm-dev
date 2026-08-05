@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { usePageTitle } from "@/contexts/PageTitleContext";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -212,6 +213,7 @@ function loadActiveId(children: MockChild[]): string {
 export default function MyPerfectBeginningPage() {
   const [, setLocation] = useLocation();
   const isDesktop = useIsDesktop();
+  usePageTitle("My Perfect Beginning");
 
   // Session-only child list (Phase 1 — no DB)
   const [children, setChildren] = useState<MockChild[]>(() => loadChildren());
@@ -299,19 +301,6 @@ export default function MyPerfectBeginningPage() {
             : "calc(env(safe-area-inset-top, 0px) + 5.5rem)",
         }}
       >
-        {/* ── Desktop back nav ── */}
-        {isDesktop && (
-          <div className="flex items-center gap-3 mb-6">
-            <button
-              onClick={() => setLocation("/lifestyle")}
-              className="p-1.5 rounded-lg bg-white/10 text-white"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </button>
-            <Baby className="h-5 w-5 text-emerald-400" />
-            <h1 className="text-xl font-bold text-white">My Perfect Beginning</h1>
-          </div>
-        )}
 
         {/* ── Hero banner ── */}
         <div className="relative rounded-2xl overflow-hidden mb-5 border border-emerald-500/20">
