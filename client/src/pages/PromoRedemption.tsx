@@ -82,14 +82,34 @@ export default function PromoRedemption() {
     }
   };
 
-  // Auto-redeem if returning from auth with a pending token
+  // Auto-redeem if returning from auth with a pending token.
+  // All logic is inlined here to avoid stale-closure issues with the
+  // `redeem` callback (which captures `redeemed` / `isAuthenticated`
+  // at definition time and changes on every render).
   useEffect(() => {
-    if (!isAuthenticated || !token) return;
+    if (!isAuthenticated || !token || redeemed) return;
     const pending = sessionStorage.getItem("pendingPromoToken");
-    if (pending === token && !redeemed) {
-      sessionStorage.removeItem("pendingPromoToken");
-      redeem();
-    }
+    if (pending !== token) return;
+    sessionStorage.removeItem("pendingPromoToken");
+
+    // Fire the redemption directly, mirroring `redeem()` to avoid dependency on its ref.
+    setRedeeming(true);
+    setRedeemError("");
+    apiRequest(`/api/promotions/redeem/${token}`, { method: "POST" })
+      .then((result) => {
+        setRedeemResult(result);
+        setRedeemed(true);
+        if (result.type === "extended_trial") {
+          refreshUser();
+        }
+      })
+      .catch((err: any) => {
+        const msg: string = err.message || "Failed to redeem promotion";
+        // Surface the subscription-conflict message clearly.
+        setRedeemError(msg);
+      })
+      .finally(() => setRedeeming(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated]);
 
   if (loading) {
