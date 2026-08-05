@@ -54,7 +54,8 @@ export function TrialBanner() {
   if (!isInTrial(user)) return null;
 
   const daysLeft = getDaysRemaining(user!.trialEndsAt as string);
-  if (daysLeft <= 0) return null;
+  // Only show when 1–6 days remain
+  if (daysLeft <= 0 || daysLeft > 6) return null;
 
   // Don't show if already dismissed for this trial window
   if (dismissed) return null;
@@ -96,7 +97,7 @@ export function TrialBanner() {
                   onClick={() => setLocation("/pricing")}
                   className="mt-2 text-xs font-semibold text-white bg-red-600 hover:bg-red-500 px-3 py-1.5 rounded-lg transition-colors active:bg-red-700"
                 >
-                  Upgrade Now
+                  Upgrade to Pro
                 </button>
               </div>
               <button
@@ -117,19 +118,15 @@ export function TrialBanner() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-white leading-tight mb-0.5">
-                  🎉 You're enjoying complimentary Pro access —{" "}
-                  <span className="text-orange-400">{dayLabel} remaining</span>
-                </p>
-                <p className="text-xs text-white/60 leading-relaxed">
-                  Explore Business Center, ProCare, Clinical Tools, and every
-                  premium feature before your complimentary access ends.
+                  <span className="text-orange-400">{dayLabel} left</span>{" "}
+                  to experience every My Perfect Meals feature.
                 </p>
                 <div className="flex items-center gap-3 mt-2">
                   <button
                     onClick={() => setLocation("/pricing")}
                     className="text-xs font-semibold text-white bg-orange-600 hover:bg-orange-500 px-3 py-1.5 rounded-lg transition-colors active:bg-orange-700"
                   >
-                    Upgrade Now
+                    Upgrade to Pro
                   </button>
                   <button
                     onClick={() => setLocation("/business-center")}
