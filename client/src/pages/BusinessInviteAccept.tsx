@@ -219,9 +219,9 @@ export default function BusinessInviteAccept() {
           {/* CTA */}
           <button
             className="w-full py-4 rounded-xl bg-blue-600 text-white font-bold text-base transition-colors flex items-center justify-center gap-2"
-            onClick={() => setLocation("/home")}
+            onClick={() => setLocation("/business/dashboard")}
           >
-            Continue to My Perfect Meals
+            Go to My Team Dashboard
             <ChevronRight className="w-5 h-5" />
           </button>
 

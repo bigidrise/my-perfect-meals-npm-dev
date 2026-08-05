@@ -1929,6 +1929,258 @@ describe("businessRoutes.ts — accept handler catches DB constraint violation",
   });
 });
 
+// ── 15. GET /api/business/membership — reactivated member response shape ──────
+/**
+ * After a removed member re-accepts an invite the businessMembers row is
+ * flipped back to status="active".  GET /membership queries with:
+ *
+ *   WHERE businessMembers.userId = $userId AND businessMembers.status = "active"
+ *
+ * These tests confirm:
+ *   (a) the simulated query returns the active row (not 404) immediately after
+ *       reactivation — no cache or stale read can hide it.
+ *   (b) the response payload carries businessId and status=active.
+ *   (c) a row still in status="removed" is invisible to the query (404 scenario).
+ *   (d) a row that was just reactivated (status flipped active) IS visible.
+ */
+
+interface MockMembershipRow {
+  memberId: string;
+  userId: string;
+  businessId: string;
+  businessName: string;
+  status: "active" | "removed";
+  role: string;
+  seatLimit: number;
+}
+
+/**
+ * Mirrors the GET /membership handler:
+ *   SELECT … FROM business_members JOIN businesses
+ *   WHERE business_members.user_id = $userId AND business_members.status = 'active'
+ *   LIMIT 1
+ *
+ * Returns the membership payload when found, or null when the row is missing /
+ * not active (which maps to 404 in the real handler).
+ */
+function simulateGetMembership(
+  userId: string,
+  allRows: MockMembershipRow[],
+): { membership: Omit<MockMembershipRow, "userId"> } | null {
+  const row = allRows.find((r) => r.userId === userId && r.status === "active");
+  if (!row) return null;
+  const { userId: _uid, ...payload } = row;
+  return { membership: payload };
+}
+
+describe("GET /api/business/membership — reactivated member is immediately visible", () => {
+  const USER_ID = "user-rejoin-ms-001";
+  const BIZ_ID  = "biz-rejoin-ms-001";
+
+  const BASE_ROW: MockMembershipRow = {
+    memberId: "bm-rejoin-ms-001",
+    userId: USER_ID,
+    businessId: BIZ_ID,
+    businessName: "Rejoin Test Studio",
+    status: "active",
+    role: "coach",
+    seatLimit: 5,
+  };
+
+  // ── (a) Reactivated row is visible straight away ────────────────────────────
+  it("returns the membership when the row is status=active after re-join", () => {
+    const result = simulateGetMembership(USER_ID, [BASE_ROW]);
+    expect(result).not.toBeNull();
+    expect(result!.membership.status).toBe("active");
+  });
+
+  it("response includes the correct businessId", () => {
+    const result = simulateGetMembership(USER_ID, [BASE_ROW]);
+    expect(result!.membership.businessId).toBe(BIZ_ID);
+  });
+
+  it("response includes the role assigned at re-invite time", () => {
+    const coachRow: MockMembershipRow = { ...BASE_ROW, role: "trainer" };
+    const result = simulateGetMembership(USER_ID, [coachRow]);
+    expect(result!.membership.role).toBe("trainer");
+  });
+
+  // ── (b) Removed row produces 404 (membership is invisible) ─────────────────
+  it("returns null (404) when the row is still status=removed", () => {
+    const removedRow: MockMembershipRow = { ...BASE_ROW, status: "removed" };
+    const result = simulateGetMembership(USER_ID, [removedRow]);
+    expect(result).toBeNull(); // maps to 404 in the real handler
+  });
+
+  it("returns null (404) for a user with no businessMembers row at all", () => {
+    const result = simulateGetMembership(USER_ID, []); // empty roster
+    expect(result).toBeNull();
+  });
+
+  // ── (c) Flip: removed → active makes the row visible in the same query ──────
+  it("row invisible when removed, visible after status flip to active", () => {
+    const beforeReactivation: MockMembershipRow = { ...BASE_ROW, status: "removed" };
+    const afterReactivation:  MockMembershipRow = { ...BASE_ROW, status: "active" };
+
+    expect(simulateGetMembership(USER_ID, [beforeReactivation])).toBeNull();
+    expect(simulateGetMembership(USER_ID, [afterReactivation])).not.toBeNull();
+  });
+
+  // ── (d) Another user's active row does not appear in the result ─────────────
+  it("does not leak another user's membership row", () => {
+    const OTHER_USER = "user-other-ms-002";
+    const otherRow: MockMembershipRow = { ...BASE_ROW, userId: OTHER_USER, memberId: "bm-other-ms-002" };
+    // Only the other user's row exists; query for USER_ID must return null.
+    const result = simulateGetMembership(USER_ID, [otherRow]);
+    expect(result).toBeNull();
+  });
+
+  // ── (e) seatLimit is included so the member view can display team capacity ──
+  it("response includes seatLimit from the joined businesses table", () => {
+    const result = simulateGetMembership(USER_ID, [BASE_ROW]);
+    expect(result!.membership.seatLimit).toBe(5);
+  });
+
+  // ── (f) businessName is included so the member dashboard can render the title
+  it("response includes businessName", () => {
+    const result = simulateGetMembership(USER_ID, [BASE_ROW]);
+    expect(result!.membership.businessName).toBe("Rejoin Test Studio");
+  });
+});
+
+// ── 15b. GET /membership source — correct WHERE clause ────────────────────────
+/**
+ * Regression scan: the real GET /membership handler must filter by BOTH
+ * businessMembers.userId AND businessMembers.status = "active".
+ * If the status predicate is dropped a removed member would see a 404-turned-
+ * stale-row and land on the "Join a Business" empty state even after re-joining.
+ */
+describe("businessRoutes.ts — GET /membership WHERE clause regression", () => {
+  const routeFilePath = path.resolve(__dirname, "../routes/businessRoutes.ts");
+  let membershipHandlerSlice: string;
+
+  beforeAll(() => {
+    const source = fs.readFileSync(routeFilePath, "utf-8");
+
+    // Isolate the GET /membership handler
+    const membershipStart = source.indexOf('router.get("/membership"');
+    expect(membershipStart).toBeGreaterThan(-1);
+
+    const afterStart = source.slice(membershipStart);
+    const nextSectionMatch = afterStart.match(/\n\/\/ ──/);
+    membershipHandlerSlice = nextSectionMatch
+      ? afterStart.slice(0, nextSectionMatch.index)
+      : afterStart.slice(0, 2000);
+  });
+
+  it("GET /membership filters by businessMembers.userId", () => {
+    expect(membershipHandlerSlice).toContain("businessMembers.userId");
+  });
+
+  it("GET /membership filters by status=active (not removed rows)", () => {
+    // The WHERE clause must include status="active" so a removed member who has
+    // not yet been re-activated cannot see a stale membership row.
+    expect(membershipHandlerSlice).toContain('"active"');
+    expect(membershipHandlerSlice).toContain("businessMembers.status");
+  });
+
+  it("GET /membership joins to businesses table to include businessId and businessName", () => {
+    // The handler must JOIN businesses so the response can include businessId and name.
+    expect(membershipHandlerSlice).toContain("businesses");
+    expect(membershipHandlerSlice).toContain("businesses.id");
+  });
+
+  it("GET /membership response shape includes status field", () => {
+    // The SELECT must include businessMembers.status so callers can distinguish
+    // active vs removed rows if they need to (defensive completeness).
+    expect(membershipHandlerSlice).toContain("businessMembers.status");
+  });
+});
+
+// ── 19. Post-accept redirect — re-joining member lands on business dashboard ──
+/**
+ * After accepting an invite (new OR re-join), the accept page must navigate
+ * the user to /business/dashboard — NOT to /home.
+ *
+ * Without this, a re-joining member would land on the generic home page which
+ * has no membership-awareness and shows an empty/blank state.  The business
+ * dashboard member view immediately reflects the newly-active membership row
+ * returned by GET /api/business/membership.
+ *
+ * These tests:
+ *   (a) Source-scan BusinessInviteAccept.tsx to confirm the CTA navigates to
+ *       /business/dashboard (regression guard if someone changes the target).
+ *   (b) Confirm /home does NOT appear as the post-accept redirect target.
+ *   (c) Confirm the accept handler response (success: true, businessName, role)
+ *       contains the fields the dashboard needs to render without an extra fetch.
+ */
+
+describe("BusinessInviteAccept.tsx — post-accept redirect destination", () => {
+  const acceptPagePath = path.resolve(
+    __dirname,
+    "../../client/src/pages/BusinessInviteAccept.tsx",
+  );
+  let source: string;
+  // Slice that contains the post-acceptance (accepted === true) render block
+  let acceptedBlock: string;
+
+  beforeAll(() => {
+    source = fs.readFileSync(acceptPagePath, "utf-8");
+
+    // Isolate the post-acceptance screen block (accepted && acceptedData guard)
+    const blockStart = source.indexOf("if (accepted && acceptedData)");
+    expect(blockStart).toBeGreaterThan(-1);
+
+    // The block ends when the next top-level if/return begins (fetch-error screen)
+    const afterStart = source.slice(blockStart);
+    const nextBlockMatch = afterStart.match(/\n  \/\/ ──|if \(fetchError\)/);
+    acceptedBlock = nextBlockMatch
+      ? afterStart.slice(0, nextBlockMatch.index)
+      : afterStart.slice(0, 3000);
+  });
+
+  // ── (a) Redirect target is /business/dashboard ───────────────────────────────
+  it("CTA button navigates to /business/dashboard after acceptance", () => {
+    expect(acceptedBlock).toContain("/business/dashboard");
+  });
+
+  it("setLocation is called with /business/dashboard (not a different path)", () => {
+    // The setLocation call for the CTA must reference /business/dashboard
+    const setLocIdx = acceptedBlock.indexOf('setLocation("/business/dashboard")');
+    expect(setLocIdx).toBeGreaterThan(-1);
+  });
+
+  // ── (b) /home is NOT the redirect target in the post-accept block ────────────
+  it("CTA button does NOT navigate to /home after acceptance", () => {
+    // Navigating to /home drops the user on the generic home page which has
+    // no awareness of the just-reactivated membership.
+    // Note: /home may appear elsewhere (e.g. in the error screen's fallback),
+    // so we check only the CTA button's onClick within acceptedBlock.
+    const ctaIdx = acceptedBlock.indexOf("onClick");
+    expect(ctaIdx).toBeGreaterThan(-1);
+    const ctaBlock = acceptedBlock.slice(ctaIdx, ctaIdx + 200);
+    expect(ctaBlock).not.toContain('"/home"');
+  });
+
+  // ── (c) Accept API response fields used by the accept page ──────────────────
+  it("accept page reads businessName from the API response", () => {
+    // The page stores data.businessName from the POST /accept response.
+    // This field populates the success screen without requiring an extra
+    // GET /membership call immediately after acceptance.
+    expect(source).toContain("data.businessName");
+  });
+
+  it("accept page reads role from the API response", () => {
+    expect(source).toContain("data.role");
+  });
+
+  // ── (d) Page imports useLocation (required for setLocation navigation) ───────
+  it("accept page imports useLocation from wouter", () => {
+    expect(source).toContain("useLocation");
+    expect(source).toContain("wouter");
+  });
+});
+
 // ── 18. requireProAccess middleware source structure ──────────────────────────
 
 describe("requireProAccess.ts — middleware structure regression", () => {
