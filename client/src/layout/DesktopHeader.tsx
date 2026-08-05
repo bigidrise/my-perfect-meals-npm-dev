@@ -95,17 +95,11 @@ const ROUTE_KEY_MAP: Record<string, string> = {
 
 /** Maps hub-back routes to their hub's routeTitles key */
 const HUB_BACK_KEY_MAP: Record<string, { hub: string; key: string }> = {
-  "/business-center/partners":              { hub: "/business-center",          key: "businessCenter" },
-  "/business-center/how-partnerships-work": { hub: "/business-center/partners", key: "partnerPrograms" },
-  "/business-center/founding-partner":      { hub: "/business-center/partners", key: "partnerPrograms" },
-  "/business-center/partners/manage":       { hub: "/business-center/partners", key: "partnerPrograms" },
-  "/org-success-center":                    { hub: "/business-dashboard",       key: "organizationDashboard" },
   "/beach-body-meal-board":                 { hub: "/performance",              key: "performanceHub" },
   "/diabetic-menu-builder":            { hub: "/diabetic-hub", key: "diabetesHub" },
   "/glp1-meal-builder":               { hub: "/glp1-hub",     key: "metabolicHubBack" },
   "/anti-inflammatory-menu-builder":   { hub: "/diabetic-hub", key: "diabetesHub" },
   "/performance-competition-builder":  { hub: "/performance",  key: "performanceHub" },
-  "/pro-launchpad":                    { hub: "/business-center", key: "businessCenter" },
 };
 
 type PlanBadgeVariant = "free" | "paid" | "professional";

@@ -481,6 +481,15 @@ export default function PartnerManagement() {
       )}
 
       <div className="px-4 max-w-2xl mx-auto space-y-4" style={{ paddingTop: isDesktop ? "1rem" : "calc(env(safe-area-inset-top, 0px) + 4.5rem)" }}>
+        {isDesktop && (
+          <button
+            onClick={() => setLocation("/business-center/partners")}
+            className="flex items-center gap-1.5 text-orange-400 text-sm font-medium"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Partner Programs
+          </button>
+        )}
 
         {/* ── User Search ──────────────────────────────────────────────────── */}
         <SectionCard icon={<Search className="h-4 w-4 text-orange-400" />} title="Find Partner">

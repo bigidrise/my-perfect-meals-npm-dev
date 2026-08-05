@@ -120,11 +120,12 @@ export default function ProfessionalDashboard() {
       phase2={state.phase2}
       personalDone={state.personalOnboardingDone}
       isDesktop={isDesktop}
+      onBack={() => setLocation("/business-center")}
       onContinue={() => setLocation("/professional-onboarding-bridge")}
     />;
   }
 
-  return <CertifiedDashboard user={user} isDesktop={isDesktop} onEnterStudio={() => {
+  return <CertifiedDashboard user={user} isDesktop={isDesktop} onBack={() => setLocation("/business-center")} onEnterStudio={() => {
     localStorage.setItem("mpm_active_space", "workspace");
     const route = user?.professionalRole === "physician" ? "/pro/physician-clients" : "/pro/clients";
     setLocation(route);
@@ -137,6 +138,7 @@ function ResumeCertification({
   phase2,
   personalDone,
   isDesktop,
+  onBack,
   onContinue,
 }: {
   user: any;
@@ -144,6 +146,7 @@ function ResumeCertification({
   phase2: CertStatus;
   personalDone: boolean;
   isDesktop: boolean;
+  onBack: () => void;
   onContinue: () => void;
 }) {
   const totalSteps = 3;
@@ -175,6 +178,15 @@ function ResumeCertification({
   return (
     <div className={`bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white ${isDesktop ? "pb-8" : "min-h-screen flex flex-col"}`}>
       <div className={`px-4 max-w-lg mx-auto w-full ${isDesktop ? "pt-6 pb-0" : "flex-1 pt-16 pb-32"}`}>
+        {isDesktop && (
+          <button
+            onClick={onBack}
+            className="flex items-center gap-1.5 text-orange-400 text-sm font-medium mb-6"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Business Center
+          </button>
+        )}
         <motion.div className="text-center mb-8" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
           <p className="text-white/50 text-sm mb-1">Welcome back{firstName ? `, ${firstName}` : ""}.</p>
           <h1 className="text-2xl font-black mb-2">Professional Certification</h1>
@@ -275,7 +287,7 @@ function StepRow({
   );
 }
 
-function CertifiedDashboard({ user, isDesktop, onEnterStudio }: { user: any; isDesktop: boolean; onEnterStudio: () => void }) {
+function CertifiedDashboard({ user, isDesktop, onBack, onEnterStudio }: { user: any; isDesktop: boolean; onBack: () => void; onEnterStudio: () => void }) {
   const [, setLocation] = useLocation();
   const firstName = (user?.name || user?.email || "").split(" ")[0] || "Professional";
 
@@ -296,6 +308,15 @@ function CertifiedDashboard({ user, isDesktop, onEnterStudio }: { user: any; isD
       animate={{ opacity: 1 }}
     >
       <div className={`px-4 max-w-lg mx-auto ${isDesktop ? "pt-6" : "pt-14"}`}>
+        {isDesktop && (
+          <button
+            onClick={onBack}
+            className="flex items-center gap-1.5 text-orange-400 text-sm font-medium mb-6"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Business Center
+          </button>
+        )}
         <motion.div className="flex items-center gap-3 mb-6" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
           <div className="w-12 h-12 rounded-full bg-orange-500/20 border border-orange-500/30 flex items-center justify-center">
             <Trophy className="w-6 h-6 text-orange-400" />
