@@ -14,6 +14,7 @@ import {
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
 import { PillButton } from "@/components/ui/pill-button";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 
 interface TrainingSection {
   id: string;
@@ -97,6 +98,7 @@ const SECTIONS: TrainingSection[] = [
 export default function ProCareTraining() {
   const [, setLocation] = useLocation();
   const { refreshUser } = useAuth();
+  const isDesktop = useIsDesktop();
   const [step, setStep] = useState(0);
   const [completing, setCompleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -135,9 +137,37 @@ export default function ProCareTraining() {
     }
   };
 
+  const ctaButton = isLast ? (
+    <button
+      onClick={handleComplete}
+      disabled={completing}
+      className="w-full h-14 text-md font-semibold rounded-2xl bg-orange-600 text-white shadow-lg transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50"
+    >
+      {completing ? (
+        <>
+          <Loader2 className="w-5 h-5 animate-spin" />
+          Completing Training...
+        </>
+      ) : (
+        <>
+          Complete Training & Unlock Studio
+          <CheckCircle2 className="w-5 h-5" />
+        </>
+      )}
+    </button>
+  ) : (
+    <button
+      onClick={handleNext}
+      className="w-full h-14 text-md font-semibold rounded-2xl bg-orange-600 text-white shadow-lg transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98]"
+    >
+      Continue
+      <ArrowRight className="w-5 h-5" />
+    </button>
+  );
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white">
-      <div className="px-4 pt-10 pb-32 max-w-lg mx-auto">
+    <div className={`bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white ${isDesktop ? "pb-8" : "min-h-screen flex flex-col"}`}>
+      <div className={`px-4 max-w-lg mx-auto w-full ${isDesktop ? "pt-6 pb-0" : "flex-1 pt-10 pb-32"}`}>
 
         <button
           onClick={handleBack}
@@ -214,39 +244,23 @@ export default function ProCareTraining() {
             <p className="text-sm text-red-300">{error}</p>
           </div>
         )}
+
+        {/* CTA inline on desktop */}
+        {isDesktop && (
+          <div className="mt-6">
+            {ctaButton}
+          </div>
+        )}
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/95 to-transparent">
-        <div className="max-w-lg mx-auto">
-          {isLast ? (
-            <button
-              onClick={handleComplete}
-              disabled={completing}
-              className="w-full h-14 text-md font-semibold rounded-2xl bg-orange-600 text-white shadow-lg transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50"
-            >
-              {completing ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Completing Training...
-                </>
-              ) : (
-                <>
-                  Complete Training & Unlock Studio
-                  <CheckCircle2 className="w-5 h-5" />
-                </>
-              )}
-            </button>
-          ) : (
-            <button
-              onClick={handleNext}
-              className="w-full h-14 text-md font-semibold rounded-2xl bg-orange-600 text-white shadow-lg transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98]"
-            >
-              Continue
-              <ArrowRight className="w-5 h-5" />
-            </button>
-          )}
+      {/* CTA fixed on mobile */}
+      {!isDesktop && (
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/95 to-transparent">
+          <div className="max-w-lg mx-auto">
+            {ctaButton}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
