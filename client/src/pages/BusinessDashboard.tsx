@@ -116,6 +116,12 @@ export default function BusinessDashboard() {
 
   const [ownerData, setOwnerData] = useState<BusinessData | null>(null);
   const [memberData, setMemberData] = useState<MembershipData | null>(null);
+  // viewMode === null means the membership API has not yet responded.
+  // INVARIANT: no membership-status-dependent UI (removal notices, member
+  // banners, etc.) may render while viewMode is null. The loading guard below
+  // enforces this by showing only a generic spinner until fetchData() resolves
+  // and sets viewMode to "owner" | "member" | "none". Do not add any
+  // membership-dependent JSX above or outside that guard.
   const [viewMode, setViewMode] = useState<"owner" | "member" | "none" | null>(null);
   const isDesktop = useIsDesktop();
   const [loading, setLoading] = useState(true);
@@ -479,6 +485,13 @@ export default function BusinessDashboard() {
   };
 
   // ── Polling / Loading screen ────────────────────────────────────────────────
+  // INVARIANT: this guard must remain the first conditional render in this
+  // component. It ensures that while `loading` is true (i.e. fetchData() has
+  // not yet resolved) or while we are polling for a newly-created business,
+  // only the generic spinner is displayed — never any UI that depends on
+  // `viewMode`, `memberData`, or `ownerData`. This prevents a re-joined member
+  // from briefly seeing stale removal-notice UI before the membership API
+  // responds. Never hoist membership-status-dependent JSX above this block.
   if (loading || polling) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-black/80 via-orange-900/60 to-black/80 flex flex-col items-center justify-center px-4 text-center">
