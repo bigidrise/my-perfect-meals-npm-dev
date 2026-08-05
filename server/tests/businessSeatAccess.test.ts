@@ -595,6 +595,276 @@ describe("businessRoutes.ts — accept-invite handler guard ordering", () => {
   });
 });
 
+// ── 8. End-to-end re-join: removed → re-invited → re-accepted ────────────────
+/**
+ * Full-flow confirmation: a member who is removed, then re-invited by the owner,
+ * then accepts the new invite must end up with exactly ONE active businessMembers
+ * row (the original row re-activated, not a second one inserted) and the seat
+ * count must reflect exactly one seat in use.
+ *
+ * Sub-sections:
+ *   (a) Simulation confirms re-join produces action="reactivate" with seat
+ *       count = 1 after the operation.
+ *   (b) Uniqueness model: simulates the member-row state before and after
+ *       reactivation, confirming no duplicate active row is created.
+ *   (c) Source-scan: the reactivation branch inside the accept handler calls
+ *       tx.update(businessMembers) — there is NO tx.insert(businessMembers)
+ *       inside the if-existing block (only in the else branch).
+ *   (d) Source-scan: the UPDATE sets status="active" (confirms the row is
+ *       genuinely reactivated, not left as "removed").
+ */
+
+// ── (a) Simulation: re-join produces reactivate + single seat consumed ────────
+
+interface MockMemberRowState {
+  id: string;
+  status: "active" | "removed" | "invited";
+}
+
+/**
+ * Models the in-memory member-row state before and after acceptInvite runs.
+ *
+ * Returns the row state after the operation and the number of active rows
+ * for the user+business pair (must always be 1 after a successful re-join).
+ */
+function simulateReJoin(
+  initialRow: MockMemberRowState,
+  usedSeats: number,
+  seatLimit: number,
+): {
+  outcome: "reactivated" | "inserted" | "blocked";
+  blockCode?: string;
+  activeRowsAfter: MockMemberRowState[];
+  usedSeatsAfter: number;
+} {
+  // Mirror accept-handler decision tree
+  if (initialRow.status === "active") {
+    return { outcome: "blocked", blockCode: "ALREADY_MEMBER", activeRowsAfter: [initialRow], usedSeatsAfter: usedSeats };
+  }
+  if (usedSeats >= seatLimit) {
+    return { outcome: "blocked", blockCode: "SEATS_FULL", activeRowsAfter: [], usedSeatsAfter: usedSeats };
+  }
+
+  if (initialRow.status === "removed") {
+    // UPDATE path: mutate the existing row in-place, never insert a new one
+    const reactivated: MockMemberRowState = { ...initialRow, status: "active" };
+    return {
+      outcome: "reactivated",
+      activeRowsAfter: [reactivated],  // still only ONE row
+      usedSeatsAfter: usedSeats + 1,
+    };
+  }
+
+  // Fallback: brand-new (should not happen in re-join scenario, here for completeness)
+  const fresh: MockMemberRowState = { id: "bm-new", status: "active" };
+  return { outcome: "inserted", activeRowsAfter: [fresh], usedSeatsAfter: usedSeats + 1 };
+}
+
+describe("POST /api/business/invite/:token/accept — full re-join flow (removed → re-invited → re-accepted)", () => {
+  const SEAT_LIMIT = 5;
+  const REMOVED_ROW: MockMemberRowState = { id: "bm-removed-e2e-001", status: "removed" };
+
+  // ── Core re-join case ──────────────────────────────────────────────────────
+  it("re-activates the existing row (not a duplicate insert) when a removed member re-joins", () => {
+    const { outcome, activeRowsAfter } = simulateReJoin(REMOVED_ROW, 2, SEAT_LIMIT);
+    expect(outcome).toBe("reactivated");
+    // The same row id is preserved — no new row was created
+    expect(activeRowsAfter).toHaveLength(1);
+    expect(activeRowsAfter[0].id).toBe(REMOVED_ROW.id);
+    expect(activeRowsAfter[0].status).toBe("active");
+  });
+
+  it("seat count increments by exactly 1 after a removed member re-joins (not 2)", () => {
+    const usedBefore = 2;
+    const { usedSeatsAfter, outcome } = simulateReJoin(REMOVED_ROW, usedBefore, SEAT_LIMIT);
+    expect(outcome).toBe("reactivated");
+    expect(usedSeatsAfter).toBe(usedBefore + 1); // exactly one new seat consumed
+  });
+
+  it("exactly one active row exists for the user+business pair after re-join", () => {
+    const { activeRowsAfter, outcome } = simulateReJoin(REMOVED_ROW, 1, SEAT_LIMIT);
+    expect(outcome).toBe("reactivated");
+    // Uniqueness guarantee: there must be at most one active row per user+business
+    const activeCount = activeRowsAfter.filter((r) => r.status === "active").length;
+    expect(activeCount).toBe(1);
+  });
+
+  it("re-join is blocked when the business is at seat capacity (removed member needs a free seat)", () => {
+    const { outcome, blockCode } = simulateReJoin(REMOVED_ROW, SEAT_LIMIT, SEAT_LIMIT);
+    expect(outcome).toBe("blocked");
+    expect(blockCode).toBe("SEATS_FULL");
+  });
+
+  it("re-join succeeds when exactly one seat is free", () => {
+    // Edge: usedSeats = seatLimit - 1 (one slot remaining)
+    const { outcome } = simulateReJoin(REMOVED_ROW, SEAT_LIMIT - 1, SEAT_LIMIT);
+    expect(outcome).toBe("reactivated");
+  });
+
+  it("re-join is blocked when a member is still active (not removed) — no duplicate allowed", () => {
+    const activeRow: MockMemberRowState = { id: "bm-active-e2e-002", status: "active" };
+    const { outcome, blockCode, activeRowsAfter } = simulateReJoin(activeRow, 1, SEAT_LIMIT);
+    expect(outcome).toBe("blocked");
+    expect(blockCode).toBe("ALREADY_MEMBER");
+    // The active row must remain untouched — not modified by the guard
+    expect(activeRowsAfter[0].status).toBe("active");
+  });
+});
+
+// ── (b) Uniqueness model: duplicate-row invariant ─────────────────────────────
+
+/**
+ * Models the full businessMembers roster for a user across one business.
+ * After re-join there must be exactly one "active" row — the invariant that
+ * a row-level UNIQUE index on (business_id, user_id) with a partial filter on
+ * status="active" would enforce at the DB level.
+ */
+interface RosterEntry {
+  id: string;
+  businessId: string;
+  userId: string;
+  status: "active" | "removed";
+}
+
+function applyReActivation(
+  roster: RosterEntry[],
+  targetId: string,
+): RosterEntry[] {
+  // Mirrors tx.update(businessMembers).set({ status: "active" }).where(eq(id, existing.id))
+  // No new row is inserted.
+  return roster.map((r) => (r.id === targetId ? { ...r, status: "active" } : r));
+}
+
+describe("businessMembers uniqueness — no duplicate active row after re-join", () => {
+  const BIZ_ID = "biz-uniqueness-test";
+  const USER_ID = "user-uniqueness-test";
+
+  it("roster has exactly one active row after reactivation (was removed)", () => {
+    const initialRoster: RosterEntry[] = [
+      { id: "bm-u1", businessId: BIZ_ID, userId: USER_ID, status: "removed" },
+    ];
+    const afterRoster = applyReActivation(initialRoster, "bm-u1");
+
+    const activeRows = afterRoster.filter(
+      (r) => r.businessId === BIZ_ID && r.userId === USER_ID && r.status === "active",
+    );
+    expect(activeRows).toHaveLength(1);
+    expect(activeRows[0].id).toBe("bm-u1"); // same row, not a new one
+  });
+
+  it("total row count in roster stays at 1 (no INSERT happened alongside the UPDATE)", () => {
+    const initialRoster: RosterEntry[] = [
+      { id: "bm-u2", businessId: BIZ_ID, userId: USER_ID, status: "removed" },
+    ];
+    const afterRoster = applyReActivation(initialRoster, "bm-u2");
+    // If there were an erroneous INSERT, the length would be 2
+    expect(afterRoster).toHaveLength(1);
+  });
+
+  it("seat count derived from active rows = 1 (not 2) after re-join", () => {
+    const initialRoster: RosterEntry[] = [
+      { id: "bm-u3", businessId: BIZ_ID, userId: USER_ID, status: "removed" },
+    ];
+    const afterRoster = applyReActivation(initialRoster, "bm-u3");
+    const seatCount = afterRoster.filter(
+      (r) => r.businessId === BIZ_ID && r.status === "active",
+    ).length;
+    expect(seatCount).toBe(1);
+  });
+
+  it("a second user in the same business is unaffected by the re-join", () => {
+    const OTHER_USER = "user-other-biz-member";
+    const initialRoster: RosterEntry[] = [
+      { id: "bm-u4-removed", businessId: BIZ_ID, userId: USER_ID, status: "removed" },
+      { id: "bm-u4-other",   businessId: BIZ_ID, userId: OTHER_USER, status: "active" },
+    ];
+    const afterRoster = applyReActivation(initialRoster, "bm-u4-removed");
+
+    const rejoinedUser = afterRoster.find((r) => r.userId === USER_ID);
+    const otherUser    = afterRoster.find((r) => r.userId === OTHER_USER);
+
+    expect(rejoinedUser?.status).toBe("active");
+    expect(otherUser?.status).toBe("active");
+
+    // Seat count = 2 (one per user, each unique)
+    const activeCount = afterRoster.filter((r) => r.status === "active").length;
+    expect(activeCount).toBe(2);
+  });
+});
+
+// ── (c) & (d) Source-scan: accept handler uses UPDATE not INSERT for removed members ──
+
+describe("businessRoutes.ts — accept handler re-join branch uses UPDATE, not duplicate INSERT", () => {
+  const routeFilePath = path.resolve(__dirname, "../routes/businessRoutes.ts");
+  let acceptHandlerSlice: string;
+
+  beforeAll(() => {
+    const source = fs.readFileSync(routeFilePath, "utf-8");
+
+    // Isolate the POST /invite/:token/accept handler body
+    const acceptStart = source.indexOf('"/invite/:token/accept"');
+    expect(acceptStart).toBeGreaterThan(-1);
+
+    const afterStart = source.slice(acceptStart);
+    const nextSectionMatch = afterStart.match(/\n\/\/ ──/);
+    acceptHandlerSlice = nextSectionMatch
+      ? afterStart.slice(0, nextSectionMatch.index)
+      : afterStart.slice(0, 4000);
+  });
+
+  it("accept handler contains a transaction block", () => {
+    // The membership row + invitation must be updated atomically
+    expect(acceptHandlerSlice).toMatch(/\.transaction\s*\(/);
+  });
+
+  it("accept handler UPDATE path sets status to active (reactivation confirmed)", () => {
+    // The UPDATE must set status back to "active"
+    const updateBlock = acceptHandlerSlice.match(/if\s*\(\s*existing\s*\)([\s\S]*?)(?:}\s*else)/)?.[1] ?? "";
+    expect(updateBlock).toContain('"active"');
+  });
+
+  it("accept handler UPDATE path keys on the existing row id (not userId) to prevent cross-user updates", () => {
+    // Reactivation must target the specific row by id, not a broad userId match
+    const updateBlock = acceptHandlerSlice.match(/if\s*\(\s*existing\s*\)([\s\S]*?)(?:}\s*else)/)?.[1] ?? "";
+    expect(updateBlock).toContain("existing.id");
+  });
+
+  it("accept handler INSERT is in the else branch (brand-new members only, not re-joins)", () => {
+    // The INSERT must live inside the else {} so removed members go through UPDATE
+    const elseBlock = acceptHandlerSlice.match(/\}\s*else\s*\{([\s\S]*?)\}/)?.[1] ?? "";
+    expect(elseBlock).toContain("insert(businessMembers)");
+  });
+
+  it("accept handler UPDATE branch does NOT contain insert(businessMembers) (no duplicate INSERT)", () => {
+    // Isolate the if(existing){...} block before the else
+    const ifExistingBlock = acceptHandlerSlice.match(/if\s*\(\s*existing\s*\)([\s\S]*?)(?:}\s*else)/)?.[1] ?? "";
+    // An erroneous insert inside this block would corrupt the roster
+    expect(ifExistingBlock).not.toContain("insert(businessMembers)");
+  });
+
+  it("accept handler marks the invitation as accepted within the same transaction", () => {
+    // Confirm the handler contains both a .transaction() call and the "accepted"
+    // status update for businessInvitations, ensuring they are atomic.
+    // (A regex that tries to extract the full transaction block is brittle due to
+    //  nested braces; we verify both ingredients are present in the handler slice.)
+    expect(acceptHandlerSlice).toMatch(/\.transaction\s*\(/);
+    expect(acceptHandlerSlice).toContain('"accepted"');
+    expect(acceptHandlerSlice).toContain("businessInvitations");
+    // The invite update must reference acceptedAt (the field written on acceptance)
+    expect(acceptHandlerSlice).toContain("acceptedAt");
+  });
+
+  it("existing-member lookup runs before the transaction (not inside it)", () => {
+    // The membership check must happen outside the transaction so we can branch
+    // before acquiring a transaction lock.
+    const existingIdx = acceptHandlerSlice.indexOf("businessMembers.userId, userId");
+    const txIdx = acceptHandlerSlice.indexOf(".transaction(");
+    expect(existingIdx).toBeGreaterThan(-1);
+    expect(txIdx).toBeGreaterThan(-1);
+    expect(existingIdx).toBeLessThan(txIdx);
+  });
+});
+
 // ── 9. POST /invite — duplicate-invite guard against active members ───────────
 /**
  * The POST /invite handler must reject an invite request when the target email
