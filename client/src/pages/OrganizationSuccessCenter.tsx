@@ -672,11 +672,11 @@ export default function OrganizationSuccessCenter() {
         <div className="fixed top-0 left-0 right-0 z-10 bg-black/80 backdrop-blur-md border-b border-white/10" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
           <div className="px-4 py-3 flex items-center gap-3">
             <button
-              onClick={() => window.history.back()}
+              onClick={() => setLocation("/business-dashboard")}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
             >
               <ChevronLeft className="w-4 h-4" />
-              Back
+              Organization Dashboard
             </button>
             <div>
               <h1 className="text-white font-bold text-base leading-tight">Organization Success Center</h1>
