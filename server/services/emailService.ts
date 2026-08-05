@@ -798,6 +798,9 @@ export async function sendBusinessInviteEmail({
   inviteLink,
   role,
   expiresAt,
+  invitationType = 'team_member',
+  trialDays,
+  programName,
 }: {
   to: string;
   businessName: string;
@@ -805,14 +808,101 @@ export async function sendBusinessInviteEmail({
   inviteLink: string;
   role: string;
   expiresAt: Date;
+  invitationType?: 'team_member' | 'client';
+  trialDays?: number | null;
+  programName?: string | null;
 }) {
   if (!resend) {
     console.log('⚠️ Resend service not available - skipping business invite email');
     return null;
   }
 
-  const roleLabel = role.charAt(0).toUpperCase() + role.slice(1);
   const expiryStr = expiresAt.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  const resolvedProgram = programName || "My Perfect Meals Complimentary Access";
+  const resolvedDays = trialDays ?? 30;
+
+  // ── Client invitation email ────────────────────────────────────────────────
+  if (invitationType === 'client') {
+    try {
+      const { data, error } = await resend.emails.send({
+        from: EMAIL_FROM,
+        to: [to],
+        subject: `${businessName} invited you to ${resolvedProgram}`,
+        html: `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
+
+            <!-- Header -->
+            <div style="background: linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 100%); padding: 36px 30px; border-radius: 12px 12px 0 0; text-align: center;">
+              <p style="color: #93c5fd; margin: 0 0 8px; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; font-weight: 600;">My Perfect Meals</p>
+              <h1 style="color: white; margin: 0; font-size: 26px; font-weight: 700; line-height: 1.2;">Welcome to ${resolvedProgram}</h1>
+              <p style="color: #bfdbfe; margin: 12px 0 0; font-size: 16px;">${businessName} has given you <strong style="color: white;">${resolvedDays} days</strong> of complimentary access</p>
+            </div>
+
+            <!-- Body -->
+            <div style="background: #f9fafb; padding: 32px 30px; border-left: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb;">
+
+              <!-- Sent by -->
+              <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 16px 20px; margin-bottom: 28px;">
+                <p style="color: #374151; font-size: 14px; margin: 0;">
+                  <strong style="color: #1d4ed8;">Sent by ${inviterName}</strong> on behalf of ${businessName}
+                </p>
+              </div>
+
+              <!-- What you get -->
+              <h2 style="color: #111827; font-size: 17px; margin: 0 0 12px; font-weight: 700;">What's included in your ${resolvedDays}-day access:</h2>
+              <table style="width: 100%; border-collapse: collapse; margin-bottom: 28px;">
+                <tr><td style="padding: 5px 0; color: #374151; font-size: 14px;">✅&nbsp; AI-powered personalized meal plans</td></tr>
+                <tr><td style="padding: 5px 0; color: #374151; font-size: 14px;">✅&nbsp; Dietary tracking &amp; biometric monitoring</td></tr>
+                <tr><td style="padding: 5px 0; color: #374151; font-size: 14px;">✅&nbsp; Clinical nutrition protocols &amp; guidance</td></tr>
+                <tr><td style="padding: 5px 0; color: #374151; font-size: 14px;">✅&nbsp; No credit card required to get started</td></tr>
+              </table>
+
+              <!-- CTA -->
+              <div style="text-align: center; margin: 0 0 32px;">
+                <a href="${inviteLink}" style="display: inline-block; background: #2563eb; color: white; padding: 16px 44px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 17px; letter-spacing: 0.2px;">
+                  Activate Your Access →
+                </a>
+                <p style="color: #6b7280; font-size: 13px; margin: 10px 0 0;">
+                  This invitation is reserved for ${to}. Create a free account to get started.
+                </p>
+              </div>
+
+              <!-- Expiry notice -->
+              <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 14px 16px; margin-bottom: 24px; border-radius: 4px;">
+                <p style="color: #92400e; font-size: 13px; margin: 0; line-height: 1.6;">
+                  <strong>This invitation expires on ${expiryStr}.</strong> Accept before then to claim your complimentary access.
+                </p>
+              </div>
+
+              <!-- Fallback link -->
+              <p style="color: #6b7280; font-size: 12px; line-height: 1.6; margin: 0;">
+                Button not working? Copy and paste this link:<br/>
+                <span style="word-break: break-all; color: #2563eb;">${inviteLink}</span>
+              </p>
+            </div>
+
+            <!-- Footer -->
+            <div style="background: #1f2937; padding: 20px 30px; border-radius: 0 0 12px 12px; text-align: center;">
+              <p style="color: #6b7280; font-size: 12px; margin: 0;">
+                My Perfect Meals &mdash; Clinical Nutrition Platform<br/>
+                <span style="color: #4b5563;">Questions? Contact ${inviterName} or reply to this email.</span>
+              </p>
+            </div>
+
+          </div>
+        `,
+      });
+      if (error) { console.error('❌ [client invite] Resend error:', error); return null; }
+      console.log('✅ [client invite] Email sent:', data?.id);
+      return data;
+    } catch (err) {
+      console.error('❌ [client invite] Email failed:', err);
+      return null;
+    }
+  }
+
+  // ── Team member invitation email (existing) ────────────────────────────────
+  const roleLabel = role.charAt(0).toUpperCase() + role.slice(1);
 
   try {
     const { data, error } = await resend.emails.send({
