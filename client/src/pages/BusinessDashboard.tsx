@@ -147,7 +147,6 @@ export default function BusinessDashboard() {
   // Setup screen state
   const [setupMode, setSetupMode] = useState(false);
   const [setupName, setSetupName] = useState("");
-  const [setupRole, setSetupRole] = useState("coach");
   const [savingSetup, setSavingSetup] = useState(false);
 
   // Invite modal (team member)
@@ -884,26 +883,6 @@ export default function BusinessDashboard() {
               />
             </div>
 
-            <div>
-              <label className="text-white/70 text-xs font-semibold uppercase tracking-wide block mb-1.5">
-                Your Role
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {ROLE_OPTIONS.map((r) => (
-                  <button
-                    key={r.value}
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                      setupRole === r.value
-                        ? "bg-orange-600 text-white"
-                        : "bg-white/10 text-white/70 hover:bg-white/15"
-                    }`}
-                    onClick={() => setSetupRole(r.value)}
-                  >
-                    {r.label}
-                  </button>
-                ))}
-              </div>
-            </div>
           </Card>
 
           <button
@@ -972,12 +951,7 @@ export default function BusinessDashboard() {
                     label: "Invite your first team member",
                     action: () => setInviteOpen(true),
                   },
-                  {
-                    done: false,
-                    label: "Complete My Perfect Meals Academy",
-                    link: "/business-center/academy",
-                  },
-                ].map(({ done, label, action, link }) => (
+                ].map(({ done, label, action }) => (
                   <div key={label} className="flex items-center gap-2.5">
                     <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 border ${
                       done ? "bg-green-500/20 border-green-500/40" : "bg-white/5 border-white/20"
@@ -992,13 +966,6 @@ export default function BusinessDashboard() {
                       <button
                         onClick={action}
                         className={`text-sm flex-1 text-left ${done ? "text-white/40 line-through" : "text-white/80 underline decoration-white/20"}`}
-                      >
-                        {label}
-                      </button>
-                    ) : link ? (
-                      <button
-                        onClick={() => setLocation(link)}
-                        className="text-sm flex-1 text-left text-white/80 underline decoration-white/20"
                       >
                         {label}
                       </button>
@@ -1440,10 +1407,12 @@ export default function BusinessDashboard() {
       </div>
 
         {/* Client Invitations */}
-        {(ownerData.clientInvitations?.length ?? 0) > 0 && (
+        {(() => {
+          const clientInvites = ownerData.clientInvitations ?? [];
+          return (
           <div>
             <h2 className="text-white/70 text-xs font-semibold uppercase tracking-wide mb-2 px-1">
-              Client Invitations ({ownerData.clientInvitations!.length})
+              Client Invitations ({clientInvites.length})
             </h2>
             <div className="mb-3">
               <InfoCallout title="How does complimentary access work?">
@@ -1451,8 +1420,26 @@ export default function BusinessDashboard() {
                 <p className="mt-1.5">When the trial expires, their account automatically <span className="text-white/75 font-medium">converts to a Free plan</span>. They keep their account and can continue using free features or upgrade on their own. They won't lose their data. You'll see the status of each invitation — Pending, Active, or Expired — in the list below.</p>
               </InfoCallout>
             </div>
+            {clientInvites.length === 0 ? (
+              <div className="bg-white/5 border border-white/10 rounded-xl p-5 text-center">
+                <UserPlus className="w-7 h-7 text-white/20 mx-auto mb-2" />
+                <p className="text-white/60 text-sm font-medium">No client invitations yet</p>
+                <p className="text-white/40 text-xs mt-1 leading-relaxed max-w-xs mx-auto">
+                  Send a Client Invitation to give a patient or client complimentary access to My Perfect Meals.
+                </p>
+                <button
+                  className="mt-3 px-4 py-2 rounded-lg bg-orange-600/80 hover:bg-orange-600 text-white text-xs font-semibold transition-colors"
+                  onClick={() => {
+                    if (!hasProAccess) { setClientUpgradeModalOpen(true); return; }
+                    setClientInviteOpen(true);
+                  }}
+                >
+                  Invite a Client
+                </button>
+              </div>
+            ) : (
             <div className="space-y-2">
-              {ownerData.clientInvitations!.map((inv) => {
+              {clientInvites.map((inv) => {
                 const isPending = inv.status === "pending" && new Date(inv.expiresAt) > new Date();
                 const isExpired = (inv.status === "expired") || (inv.status === "pending" && new Date(inv.expiresAt) <= new Date());
                 const statusColor =
@@ -1523,8 +1510,10 @@ export default function BusinessDashboard() {
                 );
               })}
             </div>
+            )}
           </div>
-        )}
+          );
+        })()}
 
       {/* Manage Seats Modal */}
       <Dialog open={seatModalOpen} onOpenChange={setSeatModalOpen}>
