@@ -192,6 +192,17 @@ function ProCareStudioGuard({ component: Component }: { component: React.Compone
   const certifiedRef = useRef(false);
   const { org, isLoading: orgLoading } = useOrg();
   const requireAcademy = org.featureFlags.requireAcademy !== false; // default: true
+  const { requestUpgrade } = useUpgradeModal();
+
+  // When any /api/pro/* call returns PRO_REQUIRED (e.g. trial expired), show
+  // a clear upgrade prompt so professionals aren't left with a blank error.
+  useEffect(() => {
+    const handleProRequired = () => {
+      requestUpgrade({ requiredTier: "pro", featureName: "ProCare Studio" });
+    };
+    window.addEventListener("mpm:pro-required", handleProRequired);
+    return () => window.removeEventListener("mpm:pro-required", handleProRequired);
+  }, [requestUpgrade]);
 
   const verifyCert = useCallback(
     (isInitial: boolean) => {

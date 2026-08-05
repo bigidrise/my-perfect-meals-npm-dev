@@ -2,17 +2,27 @@ import { Router } from "express";
 import { db } from "../db";
 import { eq } from "drizzle-orm";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
+import { requireProAccess } from "../middleware/requireProAccess";
 import { userAffiliateAccounts } from "../db/schema/affiliateAccounts";
 import { users } from "../../shared/schema";
 import { checkBusinessAffiliateEligibility } from "../services/affiliateEligibility";
 import { getRewardfulMagicLink, getRewardfulAffiliate, getRewardfulAffiliateStatus, getRewardfulAffiliateByEmail } from "../services/rewardfulApi";
 import { sendAffiliateReferralInvite } from "../services/emailService";
 import { requireEmailService, emailServiceAvailable } from "../middleware/requireEmailService";
-import { getTierForLookupKey } from "../../shared/planFeatures";
 
 const router = Router();
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Tier requirement: ALL participation endpoints (register, account reads,
+// dashboard, link generation, activation, invitations) require Pro or higher.
+// Free and Essential users receive 403 PRO_REQUIRED when BILLING_ENFORCED=true.
+// The single exception is GET /eligibility — it is informational only (no
+// revenue participation) so it passes with any authenticated account.
+// ─────────────────────────────────────────────────────────────────────────────
+
 // ─── GET /api/affiliate/eligibility ──────────────────────────────────────────
+// Informational only — checks whether the user qualifies; does not enrol them.
+// No tier gate: Free users may learn their eligibility status before upgrading.
 router.get("/eligibility", requireAuth, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser.id;
@@ -28,30 +38,14 @@ router.get("/eligibility", requireAuth, async (req, res) => {
 });
 
 // ─── POST /api/affiliate/register-track ──────────────────────────────────────
-router.post("/register-track", requireAuth, async (req, res) => {
+// requireProAccess: Free/Essential users cannot enrol in the affiliate program.
+router.post("/register-track", requireAuth, requireProAccess, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser.id;
     const { track } = req.body as { track?: string };
 
     if (!track || !["social_affiliate", "business_affiliate"].includes(track)) {
       return res.status(400).json({ error: "Invalid track. Must be social_affiliate or business_affiliate." });
-    }
-
-    // Both tracks require Pro or higher — gate Free and Essential users.
-    // accessTier and planLookupKey are already on the session user; no DB query needed.
-    const BILLING_ENFORCED = process.env.BILLING_ENFORCED === "true";
-    if (BILLING_ENFORCED) {
-      const { accessTier, planLookupKey } = (req as AuthenticatedRequest).authUser;
-      const tier = getTierForLookupKey(planLookupKey);
-      const isInternal = accessTier === "PAID_FULL" && !planLookupKey;
-      const isPro = tier === "premium" || tier === "ultimate";
-      if (!isPro && !isInternal) {
-        return res.status(403).json({
-          error: "The Affiliate Program requires a Pro subscription or higher.",
-          code: "PRO_REQUIRED",
-          requiredTier: "pro",
-        });
-      }
     }
 
     // For business track, also verify ProCare/studio eligibility
@@ -105,7 +99,8 @@ router.post("/register-track", requireAuth, async (req, res) => {
 });
 
 // ─── GET /api/affiliate/account ───────────────────────────────────────────────
-router.get("/account", requireAuth, async (req, res) => {
+// requireProAccess: reading affiliate account data is part of programme participation.
+router.get("/account", requireAuth, requireProAccess, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser.id;
     const [account] = await db
@@ -192,7 +187,8 @@ router.get("/account", requireAuth, async (req, res) => {
 // ─── GET /api/affiliate/dashboard ─────────────────────────────────────────────
 // Returns the full affiliate account record for the partner dashboard page.
 // Same data as /account but unwrapped (no nesting) to match AffiliateDashboard expectations.
-router.get("/dashboard", requireAuth, async (req, res) => {
+// requireProAccess: dashboard access is programme participation, not browsing.
+router.get("/dashboard", requireAuth, requireProAccess, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser.id;
     const [account] = await db
@@ -270,7 +266,8 @@ router.get("/dashboard", requireAuth, async (req, res) => {
 });
 
 // ─── GET /api/affiliate/dashboard-link ────────────────────────────────────────
-router.get("/dashboard-link", requireAuth, async (req, res) => {
+// requireProAccess: generating a Rewardful SSO link is programme participation.
+router.get("/dashboard-link", requireAuth, requireProAccess, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser.id;
     let [account] = await db
@@ -339,7 +336,8 @@ router.get("/dashboard-link", requireAuth, async (req, res) => {
 // ─── GET /api/affiliate/rewardful-status ─────────────────────────────────────
 // Returns live Rewardful account status: email confirmed, signed in, SSO portal URL.
 // Called once by the dashboard on mount to show the account-setup card when needed.
-router.get("/rewardful-status", requireAuth, async (req, res) => {
+// requireProAccess: only active affiliates (Pro+) access their Rewardful account.
+router.get("/rewardful-status", requireAuth, requireProAccess, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser.id;
     const [account] = await db
@@ -367,7 +365,8 @@ router.get("/rewardful-status", requireAuth, async (req, res) => {
 // ─── POST /api/affiliate/sync-link ────────────────────────────────────────────
 // Manually fetches the latest referral URL/token from Rewardful for accounts
 // where the URL is missing (e.g., link wasn't available at creation time).
-router.post("/sync-link", requireAuth, async (req, res) => {
+// requireProAccess: syncing a referral link is programme participation.
+router.post("/sync-link", requireAuth, requireProAccess, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser.id;
     const [account] = await db
@@ -403,7 +402,8 @@ router.post("/sync-link", requireAuth, async (req, res) => {
 // ─── POST /api/affiliate/activate-retry ──────────────────────────────────────
 // Re-triggers Rewardful activation for users whose cert requirements are met
 // but whose Rewardful account was never created (e.g., campaign ID missing at time of cert).
-router.post("/activate-retry", requireAuth, async (req, res) => {
+// requireProAccess: triggering activation is the final step of programme enrolment.
+router.post("/activate-retry", requireAuth, requireProAccess, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser.id;
     const { evaluateAffiliateActivation } = await import("../services/affiliateActivation");
@@ -416,7 +416,8 @@ router.post("/activate-retry", requireAuth, async (req, res) => {
 });
 
 // ─── POST /api/affiliate/send-invite ─────────────────────────────────────────
-router.post("/send-invite", requireAuth, requireEmailService, async (req, res) => {
+// requireProAccess: sending referral invitations is a revenue-generating action.
+router.post("/send-invite", requireAuth, requireProAccess, requireEmailService, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser.id;
     const { name, email } = req.body as { name?: string; email?: string };

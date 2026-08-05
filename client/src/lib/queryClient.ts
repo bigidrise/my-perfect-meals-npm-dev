@@ -41,6 +41,12 @@ async function throwIfResNotOk(res: Response) {
       window.dispatchEvent(new CustomEvent("mpm:plan-downgraded"));
     }
 
+    // ProCare Studio-specific gate: dispatch a dedicated event so the Studio guard
+    // can surface a clear "trial ended — upgrade" prompt rather than a blank error.
+    if (res.status === 403 && code === "PRO_REQUIRED") {
+      window.dispatchEvent(new CustomEvent("mpm:pro-required"));
+    }
+
     throw new Error(`${res.status}: ${message}`);
   }
 }

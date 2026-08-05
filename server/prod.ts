@@ -1254,6 +1254,56 @@ async function initializeApp() {
           console.error("❌ [prod] Parent's Corner boot migration failed:", err.message);
         }
       }, 5000);
+
+      // Promotion Engine — partner_promotions + promotion_redemptions tables
+      setTimeout(async () => {
+        try {
+          const { db: database } = await import("./db");
+          const { sql } = await import("drizzle-orm");
+          await database.execute(sql`
+            CREATE TABLE IF NOT EXISTS partner_promotions (
+              id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+              owner_user_id text NOT NULL,
+              name text NOT NULL,
+              type text NOT NULL CHECK (type IN ('extended_trial', 'discount')),
+              trial_days integer,
+              discount_percent integer,
+              discount_duration text,
+              discount_months integer,
+              max_uses integer,
+              used_count integer NOT NULL DEFAULT 0,
+              expires_at timestamptz,
+              status text NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'paused', 'deleted')),
+              invite_token text UNIQUE NOT NULL DEFAULT md5(random()::text || clock_timestamp()::text),
+              stripe_coupon_id text,
+              stripe_promo_code_id text,
+              stripe_promo_code text,
+              created_at timestamptz NOT NULL DEFAULT now(),
+              updated_at timestamptz NOT NULL DEFAULT now()
+            )
+          `);
+          await database.execute(sql`
+            CREATE TABLE IF NOT EXISTS promotion_redemptions (
+              id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+              promotion_id uuid NOT NULL REFERENCES partner_promotions(id),
+              redeemed_by_user_id text NOT NULL,
+              applied_trial_days integer,
+              applied_stripe_promo_code text,
+              redeemed_at timestamptz NOT NULL DEFAULT now(),
+              CONSTRAINT uniq_promotion_redemption UNIQUE (promotion_id, redeemed_by_user_id)
+            )
+          `);
+          await database.execute(sql`
+            CREATE INDEX IF NOT EXISTS idx_partner_promotions_owner ON partner_promotions (owner_user_id)
+          `);
+          await database.execute(sql`
+            CREATE INDEX IF NOT EXISTS idx_partner_promotions_token ON partner_promotions (invite_token)
+          `);
+          console.log("✅ [prod] Promotion Engine boot migration complete (partner_promotions, promotion_redemptions)");
+        } catch (err: any) {
+          console.error("❌ [prod] Promotion Engine boot migration failed:", err.message);
+        }
+      }, 5500);
     }, 4000);
   } catch (error) {
     console.error("❌ [INIT] Initialization failed:", error);
