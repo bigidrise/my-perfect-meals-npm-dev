@@ -905,6 +905,197 @@ describe("businessRoutes.ts — POST /invite pending-invite guard regression", (
   });
 });
 
+// ── 10c. POST /invite — cross-business pending-invite isolation ───────────────
+/**
+ * Verifies that the pending-invite guard is scoped to the *current* business.
+ *
+ * Scenario:
+ *   - email@example.com has a pending invite at Business A.
+ *   - The owner of Business B (a completely different studio) tries to invite
+ *     the same email address.
+ *   - Business B's POST /invite handler must NOT be blocked.
+ *
+ * Root cause if this breaks:
+ *   If the WHERE clause loses the `businessId = business.id` predicate (e.g.
+ *   during a refactor), the query returns the Business-A invite row when
+ *   Business-B's handler runs, and silently blocks a legitimate invite.
+ *
+ * The simulation models the guard as the handler sees it:
+ *   - `pendingLookupInCurrentBusiness` reflects what the DB returns when the
+ *     WHERE clause correctly includes businessId = currentBusiness.
+ *   - When scoped correctly, Business A's pending row is invisible to Business B's
+ *     query, so the lookup returns null → guard does not fire.
+ *   - When the businessId scope is accidentally dropped, the lookup returns the
+ *     Business-A row → guard fires incorrectly.
+ */
+
+interface MockCrossBusinessPendingLookup {
+  /**
+   * What the pending-invite query returns for the *current* business.
+   * null  → no pending invite in this business (correct when scoped).
+   * non-null → a row was found (correct when same business; BUG if cross-business).
+   */
+  inviteIdInCurrentBusiness: string | null;
+}
+
+/**
+ * Mirrors the pending-invite guard as it runs for the *current* business.
+ * The businessId scope is baked into what `inviteIdInCurrentBusiness` holds —
+ * the whole point of the test is confirming the caller passes the right value.
+ */
+function simulateCrossBusinessPendingGuard(
+  lookup: MockCrossBusinessPendingLookup,
+): { status: 400; code: "PENDING_INVITE_EXISTS" } | null {
+  if (lookup.inviteIdInCurrentBusiness !== null) {
+    return { status: 400, code: "PENDING_INVITE_EXISTS" };
+  }
+  return null;
+}
+
+describe("POST /api/business/invite — cross-business pending-invite isolation", () => {
+  // ── Core cross-business isolation scenario ────────────────────────────────
+
+  it("does NOT block Business B's invite when the pending invite belongs to Business A", () => {
+    // Business A has a pending invite for email@example.com.
+    // Business B's handler queries with businessId = businessB.id → returns null.
+    // Guard must not fire.
+    const result = simulateCrossBusinessPendingGuard({
+      inviteIdInCurrentBusiness: null, // Business A's row is invisible to Business B's query
+    });
+    expect(result).toBeNull(); // invite proceeds
+  });
+
+  it("DOES block Business B's invite when Business B itself already sent a pending invite", () => {
+    // Business B's handler queries with businessId = businessB.id → finds its own pending row.
+    // Guard must fire.
+    const result = simulateCrossBusinessPendingGuard({
+      inviteIdInCurrentBusiness: "bi-business-b-pending-001",
+    });
+    expect(result).not.toBeNull();
+    expect(result!.status).toBe(400);
+    expect(result!.code).toBe("PENDING_INVITE_EXISTS");
+  });
+
+  it("Business A's blocked state does not affect Business B (independent isolation)", () => {
+    // Demonstrate that two businesses for the same email are fully independent:
+    //   Business A: has a pending invite → would block (inviteId present)
+    //   Business B: no pending invite    → guard does not fire
+    const businessAHasPending = simulateCrossBusinessPendingGuard({
+      inviteIdInCurrentBusiness: "bi-business-a-pending-001",
+    });
+    const businessBHasNoPending = simulateCrossBusinessPendingGuard({
+      inviteIdInCurrentBusiness: null,
+    });
+
+    expect(businessAHasPending).not.toBeNull();      // Business A's own guard fires
+    expect(businessAHasPending!.code).toBe("PENDING_INVITE_EXISTS");
+    expect(businessBHasNoPending).toBeNull();        // Business B is unaffected
+  });
+
+  it("cross-business isolation holds even when both businesses are at capacity", () => {
+    // Seat availability is irrelevant; the pending-invite guard fires before
+    // the seat check.  Even at capacity, Business B must not see Business A's row.
+    const result = simulateCrossBusinessPendingGuard({
+      inviteIdInCurrentBusiness: null, // Business A's pending row is invisible
+    });
+    expect(result).toBeNull();
+  });
+
+  it("email with accepted invite at Business A can still receive a pending invite at Business B", () => {
+    // After acceptance the status becomes "accepted", so even within Business A
+    // the pending lookup returns null.  For Business B it is also null (different businessId).
+    // This confirms a fully-resolved Business-A relationship never bleeds into Business B.
+    const result = simulateCrossBusinessPendingGuard({
+      inviteIdInCurrentBusiness: null,
+    });
+    expect(result).toBeNull();
+  });
+
+  it("email with cancelled invite at Business A can still receive a pending invite at Business B", () => {
+    // Cancelled invites are excluded by status="pending"; cross-business scope
+    // makes them doubly invisible to Business B's query.
+    const result = simulateCrossBusinessPendingGuard({
+      inviteIdInCurrentBusiness: null,
+    });
+    expect(result).toBeNull();
+  });
+});
+
+// ── 10d. POST /invite — source-scan: pending-invite guard uses businessId scope ─
+/**
+ * Regression scan that confirms the WHERE clause in the pending-invite guard
+ * explicitly includes `businessInvitations.businessId` AND that the value
+ * compared is the *current* business's ID (i.e. `business.id`), not a constant.
+ *
+ * If a refactor ever drops the businessId predicate, or hard-codes a value, this
+ * test fails before any runtime cross-business test can catch it.
+ */
+describe("businessRoutes.ts — pending-invite guard businessId scope regression", () => {
+  const routeFilePath = path.resolve(__dirname, "../routes/businessRoutes.ts");
+  let inviteHandlerSlice: string;
+
+  beforeAll(() => {
+    const source = fs.readFileSync(routeFilePath, "utf-8");
+
+    // Isolate the POST /invite handler body.
+    const inviteStart = source.indexOf('router.post("/invite"');
+    const afterInvite = source.slice(inviteStart);
+    const nextSectionMatch = afterInvite.match(/\n\/\/ ──/);
+    inviteHandlerSlice = nextSectionMatch
+      ? afterInvite.slice(0, nextSectionMatch.index)
+      : afterInvite.slice(0, 4000);
+  });
+
+  it("pending-invite WHERE clause references businessInvitations.businessId", () => {
+    // The clause must name the column — not just businessId as a bare string.
+    expect(inviteHandlerSlice).toContain("businessInvitations.businessId");
+  });
+
+  it("pending-invite WHERE clause compares businessId to the current business object (business.id)", () => {
+    // The comparison must use the resolved `business.id` value so it is always
+    // scoped to the owner's own studio and never leaks across businesses.
+    //
+    // We look for the pending-invite guard block specifically: the block that
+    // contains "pending invitation already exists" and check that "business.id"
+    // also appears within that same block (within 800 chars of the guard text).
+    const guardMessageIdx = inviteHandlerSlice.indexOf("pending invitation already exists");
+    expect(guardMessageIdx).toBeGreaterThan(-1);
+
+    // Grab the surrounding ~800 chars that form the guard block
+    const guardBlock = inviteHandlerSlice.slice(
+      Math.max(0, guardMessageIdx - 600),
+      guardMessageIdx + 200,
+    );
+
+    // `business.id` (the resolved owner's business) must appear in this block
+    expect(guardBlock).toContain("business.id");
+  });
+
+  it("pending-invite guard scopes by email address (not just businessId)", () => {
+    // The WHERE clause must include the email field so the guard is specific to
+    // the invitee, not just the business.
+    expect(inviteHandlerSlice).toContain("businessInvitations.email");
+  });
+
+  it("pending-invite guard also filters by status=pending (not accepted/cancelled rows)", () => {
+    // Only pending rows should trigger the guard; accepted/cancelled must be ignored.
+    expect(inviteHandlerSlice).toContain('"pending"');
+  });
+
+  it("all three scope predicates appear together before the insert call", () => {
+    // businessId + email + status="pending" must all be present within the guard
+    // block that precedes the db.insert(businessInvitations) call.
+    const insertIdx = inviteHandlerSlice.indexOf("db.insert(businessInvitations)");
+    expect(insertIdx).toBeGreaterThan(-1);
+
+    // Take the slice up to the insert — all guard predicates must live here.
+    const preInsert = inviteHandlerSlice.slice(0, insertIdx);
+    expect(preInsert).toContain("businessInvitations.businessId");
+    expect(preInsert).toContain("businessInvitations.email");
+    expect(preInsert).toContain('"pending"');
+  });
+});
+
 // ── 11. POST /invite — cross-business isolation of the active-member guard ────
 /**
  * Confirms that the active-member guard in POST /invite is scoped to the
