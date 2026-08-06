@@ -2,7 +2,15 @@ import { Router } from "express";
 import OpenAI from "openai";
 import type { AuthenticatedRequest } from "../middleware/requireAuth";
 import { computeParentEducationLayer } from "../services/pediatric/pediatricConfidenceScorer";
+import { requireAuth } from "../middleware/requireAuth";
+import { db } from "../db";
+import { sql } from "drizzle-orm";
 import { enforceBeforeGenerate, scanGeneratedOutput } from "../services/pediatric/pediatricGuardrails";
+import {
+  buildPediatricGuidanceBlocks,
+  type ChildProfileInput,
+  type ProtocolConflict,
+} from "../services/pediatric/buildPediatricGuidanceBlocks";
 
 const router = Router();
 
@@ -265,7 +273,13 @@ function buildAllergySystemBlock(allergies: AllergyEntry[]): string {
 
 // ── Build system prompt (static, no user text) ────────────────────────────────
 
-function buildSystemPrompt(stage: DevelopmentalStage, allergies: AllergyEntry[], parentPrefs: ParentPrefs): string {
+function buildSystemPrompt(
+  stage: DevelopmentalStage,
+  allergies: AllergyEntry[],
+  parentPrefs: ParentPrefs,
+  conditionGuidanceBlocks: string[],
+  stageDRIBlock: string,
+): string {
   const stageLabel = STAGE_LABELS[stage];
   const safetyRules = buildSafetyRulesBlock(stage);
   const allergyBlock = buildAllergySystemBlock(allergies);
@@ -292,10 +306,32 @@ function buildSystemPrompt(stage: DevelopmentalStage, allergies: AllergyEntry[],
     ? `\nHOUSEHOLD CONSTRAINTS (validated, enumerated):\n${constraintLines.join("\n")}`
     : "";
 
+  // Medical condition guidance blocks — injected verbatim, server-verified
+  const medicalBlock = conditionGuidanceBlocks.length > 0
+    ? `\n\nMEDICAL CONDITION PROTOCOLS — MANDATORY (server-verified, clinically sourced):\n` +
+      `These override default recipe choices. Apply ALL of the following blocks exactly.\n\n` +
+      conditionGuidanceBlocks.join("\n\n---\n\n")
+    : "";
+
+  // DRI baselines — always present, never AI-generated
+  const driBlock = stageDRIBlock
+    ? `\n\n${stageDRIBlock}`
+    : "";
+
   return `You are a pediatric nutrition AI assistant that creates age-safe, kid-friendly recipes.
 
 CORE MANDATE:
 Create a version of the requested food that stays recognizable and enjoyable for children while improving nutritional quality where appropriate. Preserve the identity of the food. Never replace it with something unrecognizable. Improve the recipe, do not reinvent it.
+
+PROTOCOL PRIORITY ORDER (apply in this order — lower number wins conflicts):
+1. Life-threatening safety (allergens, choking hazards, early_infant block)
+2. Developmental stage hard stops (texture, food forms)
+3. Medical condition hard limits (see MEDICAL CONDITION PROTOCOLS below)
+4. Growth context (caloric density needs)
+5. Sensory and feeding development
+6. Medical optimization
+7. Family goals and preferences
+8. Kitchen reality (cook time, budget, packability)
 
 CHILD DEVELOPMENTAL STAGE: ${stageLabel}
 
@@ -305,14 +341,17 @@ ${safetyRules}
 ALLERGY / INTOLERANCE RULES:
 ${allergyBlock}
 ${constraintsBlock}
+${medicalBlock}
+${driBlock}
 
 ABSOLUTE PROHIBITIONS:
 - Never generate a recipe for Early Infant stage (birth–5 months)
-- Never inherit adult macros, GLP-1, or diabetes settings
+- Never inherit adult macros, GLP-1, or diabetes settings from adult users
 - Never diagnose weight status or label a child's body
 - Never suggest formula modifications or homemade formula
 - Never give medication, dosing, or clinical treatment instructions
 - Never use adult body-type labels (ectomorph, endomorph, etc.)
+- Never override medical condition protocol guidance with "kid-friendly" substitutions
 
 RESPONSE FORMAT:
 Return valid JSON only. No markdown. No extra text outside JSON.
@@ -330,9 +369,10 @@ Required schema:
   "funPresentationIdea": "string",
   "storageAndLunchboxGuidance": "string|omit",
   "askPediatricianNote": "string|omit",
-  "rulesFireLog": [{ "ruleId": "string", "level": "A", "description": "string", "action": "string" }],
-  "whyThisMealWasChosen": "string — plain English explanation for a parent with no nutrition background. Cover which profile elements shaped this output (stage, allergies, dietary pattern, goals). End with: 'Always follow your pediatrician\\'s guidance for your child\\'s specific nutritional needs.'",
-  "reasoningTrace": ["string — one rule or protocol applied, e.g. 'Preschool Stage — calcium and iron DRI baseline applied', 'Confirmed peanut allergy — peanuts excluded in all forms'"]
+  "estimatedCarbsPerServing": "string|omit — include when T1D/T2D protocol is active (e.g. '22–28g')",
+  "rulesFireLog": [{ "ruleId": "string", "level": "A|B|C", "description": "string", "action": "string" }],
+  "whyThisMealWasChosen": "string — plain English explanation for a parent with no nutrition background. Cover which profile elements shaped this output (stage, allergies, medical conditions, dietary pattern, goals). End with: 'Always follow your pediatrician\\'s guidance for your child\\'s specific nutritional needs.'",
+  "reasoningTrace": ["string — one rule or protocol applied, e.g. 'Preschool Stage — calcium and iron DRI baseline applied', 'Confirmed peanut allergy — peanuts excluded in all forms', 'T1D protocol active — carb count estimated'"]
 }`;
 }
 
@@ -375,13 +415,109 @@ function buildUserMessage(
   return msg;
 }
 
+/**
+ * Fetches the active child profile from the database and returns it as a
+ * ChildProfileInput for the protocol engine.
+ *
+ * Returns null if:
+ *  - childProfileId is not provided (anonymous / no-profile mode)
+ *  - the profile does not exist or is not owned by the requesting user
+ *  - the child_profiles table does not yet exist (graceful degradation)
+ */
+async function fetchChildProfileInput(
+  userId: string,
+  childProfileId: string | undefined,
+): Promise<ChildProfileInput | null> {
+  if (!childProfileId || typeof childProfileId !== "string") return null;
+
+  // Validate UUID format (prevents injection)
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(childProfileId)) {
+    return null;
+  }
+
+  try {
+    const rows = await db.execute(sql`
+      SELECT
+        id,
+        age_stage,
+        medical_conditions,
+        sensory_issues,
+        feeding_concerns,
+        feeding_ability,
+        growth_context
+      FROM child_profiles
+      WHERE id = ${childProfileId}
+        AND user_id = ${userId}
+        AND is_archived = false
+      LIMIT 1
+    `);
+
+    if (!rows.rows || rows.rows.length === 0) return null;
+
+    const row = rows.rows[0] as any;
+
+    // Parse JSONB arrays (DB returns them as objects or strings)
+    const parseJsonbArray = (val: any): string[] => {
+      if (Array.isArray(val)) return val.filter(Boolean).map(String);
+      if (typeof val === "string") {
+        try { return JSON.parse(val); } catch { return []; }
+      }
+      return [];
+    };
+
+    const parseJsonbObject = (val: any): Record<string, any> => {
+      if (val && typeof val === "object" && !Array.isArray(val)) return val;
+      if (typeof val === "string") {
+        try { return JSON.parse(val); } catch { return {}; }
+      }
+      return {};
+    };
+
+    const feedingAbilityRaw = parseJsonbObject(row.feeding_ability);
+    const growthRaw = parseJsonbObject(row.growth_context);
+
+    const profileInput: ChildProfileInput = {
+      developmentalStage: (row.age_stage as DevelopmentalStage) || "toddler",
+      medicalConditions: parseJsonbArray(row.medical_conditions),
+      sensoryIssues: parseJsonbArray(row.sensory_issues),
+      feedingConcerns: parseJsonbArray(row.feeding_concerns),
+      feedingAbility: {
+        textureLevel: feedingAbilityRaw.textureLevel,
+        swallowingDifficulty: !!feedingAbilityRaw.swallowingDifficulty,
+        hasFeedingTube: !!feedingAbilityRaw.hasFeedingTube,
+        historyOfChokingOrGagging: !!feedingAbilityRaw.historyOfChokingOrGagging,
+      },
+      growth: {
+        pediatricianConcern: growthRaw.pediatricianConcern,
+      },
+    };
+
+    return profileInput;
+  } catch (err: any) {
+    // 42P01 = undefined_table — child_profiles table not yet created
+    if (err?.code === "42P01") return null;
+    console.error("[MyPerfectBeginning/create-dish] child profile lookup error:", err.message);
+    return null;
+  }
+}
+
 // ── POST /create-dish ──────────────────────────────────────────────────────────
 
-router.post("/create-dish", async (req, res) => {
+router.post("/create-dish", requireAuth, async (req, res) => {
   try {
-    // ── Validate request ─────────────────────────────────────────────────────
-    const validation = validateRequest(req.body);
+    const authReq = req as AuthenticatedRequest;
+    const userId = authReq.authUser.id;
 
+    // ── Fetch child profile from DB (if childProfileId provided) ────────────
+    const childProfileId = typeof req.body.childProfileId === "string"
+      ? req.body.childProfileId
+      : undefined;
+
+    const childProfileInput = await fetchChildProfileInput(userId, childProfileId);
+
+    // ── Build protocol guidance blocks ───────────────────────────────────────
+    // Validate request first so we have ageStage for the fallback profile
+    const validation = validateRequest(req.body);
     if (!validation.valid) {
       return res.status(400).json({ error: validation.error });
     }
@@ -415,6 +551,28 @@ router.post("/create-dish", async (req, res) => {
       });
     }
 
+    // ── Build protocol guidance blocks from child profile ────────────────────
+    const profileForEngine: ChildProfileInput = childProfileInput ?? {
+      developmentalStage: ageStage as DevelopmentalStage,
+      medicalConditions: [],
+      sensoryIssues: [],
+      feedingConcerns: [],
+    };
+
+    const guidanceOutput = buildPediatricGuidanceBlocks(profileForEngine);
+    const conditionGuidanceBlocks = guidanceOutput.conditionGuidanceBlocks;
+    const stageDRIBlock           = guidanceOutput.stageDRIBlock;
+    const conflictLog: ProtocolConflict[] = guidanceOutput.conflictLog;
+    const activeProtocolIds       = guidanceOutput.activeProtocolIds;
+    const activeProtocolEvidence  = guidanceOutput.activeProtocolEvidence;
+
+    if (activeProtocolIds.length > 0) {
+      console.log(
+        `[MyPerfectBeginning/create-dish] Active protocols for user=${userId} child=${childProfileId ?? "no-profile"}:`,
+        activeProtocolIds.join(", ")
+      );
+    }
+
     // ── Extract free-text pref fields (user-controlled, kept out of system prompt) ──
     const rawPrefs = req.body.parentPrefs && typeof req.body.parentPrefs === "object"
       ? req.body.parentPrefs
@@ -434,7 +592,13 @@ router.post("/create-dish", async (req, res) => {
     const educationLayer = computeParentEducationLayer({ ageStage, allergies, parentPrefs, foodRequest });
 
     // ── Build prompts ────────────────────────────────────────────────────────
-    const systemPrompt = buildSystemPrompt(ageStage, allergies, parentPrefs);
+    const systemPrompt = buildSystemPrompt(
+      ageStage,
+      allergies,
+      parentPrefs,
+      conditionGuidanceBlocks,
+      stageDRIBlock,
+    );
     const userMessage = buildUserMessage(foodRequest, ageStage, allergies, rawCulturalCuisine, rawGoals);
 
     // ── Call OpenAI ──────────────────────────────────────────────────────────
@@ -446,7 +610,7 @@ router.post("/create-dish", async (req, res) => {
         { role: "user", content: userMessage },
       ],
       temperature: 0.7,
-      max_tokens: 2000,
+      max_tokens: 2500,
       response_format: { type: "json_object" },
     });
 
@@ -495,6 +659,14 @@ router.post("/create-dish", async (req, res) => {
       clinicalReviewStatus: educationLayer.clinicalReviewStatus,
       personalizationLevel: educationLayer.personalizationLevel,
       conflictResolutions: educationLayer.conflictResolutions,
+      // Protocol engine metadata — for client transparency and debugging
+      protocolEngine: {
+        activeProtocolIds,
+        activeProtocolEvidence,
+        conflictLog,
+        childProfileId: childProfileId ?? null,
+        profileLoaded: childProfileInput !== null,
+      },
     });
   } catch (err: any) {
     console.error("[MyPerfectBeginning] create-dish error:", err);
