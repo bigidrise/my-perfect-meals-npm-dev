@@ -193,7 +193,10 @@ export default function PerformanceNutritionSetupForm({ onSave }: PerformanceNut
   const [twoADays, setTwoADays]                 = useState<boolean>(existingContext?.twoADays ?? false);
   const [sessionDuration, setSessionDuration]   = useState<SessionDuration | "">(existingContext?.sessionDuration ?? "");
   const [recoveryStatus, setRecoveryStatus]     = useState<RecoveryStatus | "">(existingContext?.recoveryStatus ?? "");
-  const [adaptationTarget, setAdaptationTarget] = useState<AdaptationTarget | "">(existingContext?.adaptationTarget ?? "");
+  const [adaptationTargets, setAdaptationTargets] = useState<AdaptationTarget[]>(
+    (existingContext as any)?.adaptationTargets ??
+    (existingContext?.adaptationTarget ? [existingContext.adaptationTarget as AdaptationTarget] : [])
+  );
 
   // Adaptive Performance Nutrition fields
   const [weeklySchedule, setWeeklySchedule] = useState<Record<string, APNSessionType>>(
@@ -232,7 +235,7 @@ export default function PerformanceNutritionSetupForm({ onSave }: PerformanceNut
       if (step === 5) return !!trainingPhase;
       if (step === 6) return !!sessionDuration;
       if (step === 7) return !!recoveryStatus;
-      if (step === 8) return !!adaptationTarget;
+      if (step === 8) return adaptationTargets.length > 0;
       if (step === 9) {
         const allDaysSet = APN_DAYS.every(d => weeklySchedule[d.key] && weeklySchedule[d.key] !== "");
         return allDaysSet && !!apnPhase;
@@ -256,7 +259,8 @@ export default function PerformanceNutritionSetupForm({ onSave }: PerformanceNut
           cardioFocus, trainingPhase, twoADays,
           sessionDuration:  sessionDuration  || undefined,
           recoveryStatus:   recoveryStatus   || undefined,
-          adaptationTarget: adaptationTarget || undefined,
+          adaptationTarget:  adaptationTargets[0] || undefined,
+          adaptationTargets: adaptationTargets.length ? adaptationTargets : undefined,
           customSportName:  trainingType === "other" ? customSportName.trim() : undefined,
           customSportGroup: trainingType === "other" ? customSportGroup : undefined,
         });
@@ -619,9 +623,11 @@ export default function PerformanceNutritionSetupForm({ onSave }: PerformanceNut
               {ADAPTATION_TARGETS.map(a => (
                 <button
                   key={a.value}
-                  onClick={() => setAdaptationTarget(a.value)}
+                  onClick={() => setAdaptationTargets(prev =>
+                    prev.includes(a.value) ? prev.filter(t => t !== a.value) : [...prev, a.value]
+                  )}
                   className={`w-full text-left px-4 py-3 rounded-xl border transition-colors ${
-                    adaptationTarget === a.value
+                    adaptationTargets.includes(a.value)
                       ? "bg-orange-600/20 border-orange-400/60 text-white"
                       : "bg-white/5 border-white/10 text-white/70"
                   }`}
@@ -631,19 +637,19 @@ export default function PerformanceNutritionSetupForm({ onSave }: PerformanceNut
                       <p className="font-semibold text-sm">{a.label}</p>
                       <p className="text-xs text-white/40 mt-0.5">{a.desc}</p>
                     </div>
-                    {adaptationTarget === a.value && <Check className="w-4 h-4 text-orange-400 flex-shrink-0" />}
+                    {adaptationTargets.includes(a.value) && <Check className="w-4 h-4 text-orange-400 flex-shrink-0" />}
                   </div>
                 </button>
               ))}
             </div>
-            {adaptationTarget && (
-              <div className="mt-4 bg-orange-950/30 border border-orange-500/20 rounded-xl px-4 py-3">
-                <p className="text-orange-300 text-xs font-semibold mb-0.5">
-                  {ADAPTATION_TARGETS.find(a => a.value === adaptationTarget)?.label}
-                </p>
-                <p className="text-white/50 text-xs leading-relaxed">
-                  {ADAPTATION_TARGETS.find(a => a.value === adaptationTarget)?.desc}
-                </p>
+            {adaptationTargets.length > 0 && (
+              <div className="mt-4 space-y-2">
+                {ADAPTATION_TARGETS.filter(a => adaptationTargets.includes(a.value)).map(a => (
+                  <div key={a.value} className="bg-orange-950/30 border border-orange-500/20 rounded-xl px-4 py-3">
+                    <p className="text-orange-300 text-xs font-semibold mb-0.5">{a.label}</p>
+                    <p className="text-white/50 text-xs leading-relaxed">{a.desc}</p>
+                  </div>
+                ))}
               </div>
             )}
           </div>

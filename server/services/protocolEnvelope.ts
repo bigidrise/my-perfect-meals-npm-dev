@@ -649,6 +649,7 @@ export interface UserProtocolEnvelope {
     sessionDuration?: string;
     recoveryStatus?: string;
     adaptationTarget?: string;
+    adaptationTargets?: string[];
   } | null;
 
   /**
@@ -1144,6 +1145,7 @@ export async function loadUserProtocolEnvelope(
       sessionDuration?: string;
       recoveryStatus?: string;
       adaptationTarget?: string;
+      adaptationTargets?: string[];
     } | null = null;
 
     let performanceDemandProfile: DemandProfile | null = null;
@@ -1159,6 +1161,7 @@ export async function loadUserProtocolEnvelope(
         sessionDuration?: string;
         recoveryStatus?: string;
         adaptationTarget?: string;
+        adaptationTargets?: string[];
       } | null) ?? null;
 
       if (rawPerf?.primaryGoal && rawPerf?.trainingType) {
@@ -1173,6 +1176,7 @@ export async function loadUserProtocolEnvelope(
           sessionDuration: rawPerf.sessionDuration,
           recoveryStatus: rawPerf.recoveryStatus,
           adaptationTarget: rawPerf.adaptationTarget,
+          adaptationTargets: rawPerf.adaptationTargets,
         };
         performanceDemandProfile = computeDemandProfile(rawPerf as any);
       }
