@@ -54,6 +54,42 @@ export interface PediatricProtocolEvidence {
 }
 
 export const CLINICAL_EVIDENCE_REGISTRY: PediatricProtocolEvidence[] = [
+  // ── Tier 1 — Hard stops ──────────────────────────────────────────────────
+  {
+    conditionId: "pku",
+    conditionName: "Phenylketonuria (PKU)",
+    sources: ["AAP", "NIH", "AND"],
+    references: [
+      "NIH National PKU Alliance — Nutrition Management Guidelines for PKU (2021)",
+      "AAP Clinical Report: Phenylketonuria and Other Hyperphenylalaninemias",
+      "AND Pediatric Nutrition Care Manual — PKU and Metabolic Disorders",
+    ],
+    version: "1.0.0",
+    effectiveDate: "2025-01-01",
+    reviewDate: "2027-01-01",
+    status: "approved",
+    internalNotes:
+      "PKU requires individual phenylalanine tolerance calculation by a metabolic dietitian. " +
+      "Standard recipe generation is categorically unsafe. Hard stop — no meal generation.",
+  },
+  {
+    conditionId: "g_tube",
+    conditionName: "G-Tube / Enteral Feeding",
+    sources: ["AAP", "AND", "NASPGHAN"],
+    references: [
+      "NASPGHAN Position Paper on Enteral Nutrition in Infants and Children",
+      "AND Pediatric Nutrition Care Manual — Enteral Nutrition",
+      "AAP Guidance on Home Enteral Nutrition for Pediatric Patients",
+    ],
+    version: "1.0.0",
+    effectiveDate: "2025-01-01",
+    reviewDate: "2027-01-01",
+    status: "approved",
+    internalNotes:
+      "Enteral-fed children may or may not have any oral feeding clearance. " +
+      "Meal generation without clinician oral-feeding clearance is unsafe. Hard stop.",
+  },
+  // ── Tier 3–5 — Medical condition protocols ───────────────────────────────
   {
     conditionId: "t1d",
     conditionName: "Type 1 Diabetes (Pediatric)",

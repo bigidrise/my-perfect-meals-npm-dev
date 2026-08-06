@@ -13,6 +13,7 @@
 import {
   PEDIATRIC_PROTOCOL_REGISTRY,
   matchProtocols,
+  checkHardStop,
   type PediatricProtocolBlock,
 } from "./pediatricProtocolRegistry";
 import { buildStageDRIBlock, type DevelopmentalStage } from "./pediatricStageConstants";
@@ -57,8 +58,25 @@ export interface ProtocolConflict {
 
 export interface PediatricGuidanceOutput {
   /**
+   * When true, meal generation must be blocked immediately.
+   * Check this before injecting any guidance blocks.
+   */
+  hardBlocked: boolean;
+  /** Populated when hardBlocked is true — the conditionId that caused the block. */
+  hardBlockConditionId?: string;
+  /** Populated when hardBlocked is true — shown to the parent. */
+  hardBlockMessage?: string;
+  /**
+   * When hardBlocked is true, at least one active protocol requires a
+   * clinician (always true for hard stops, but exposed for the inspector).
+   */
+  requiresClinicianFlag: boolean;
+  /** True if at least one active protocol requires a dietitian. */
+  requiresDietitianFlag: boolean;
+  /**
    * Array of directive prompt strings — one per active condition.
    * Ordered by priority tier. Injected into system prompt.
+   * Empty when hardBlocked is true.
    */
   conditionGuidanceBlocks: string[];
   /**
@@ -346,29 +364,59 @@ function buildConflictResolutionPromptBlock(conflicts: ProtocolConflict[]): stri
 /**
  * Builds the complete set of guidance blocks for a child's active profile.
  * Returns conditionGuidanceBlocks[], stageDRIBlock, conflictLog, and metadata.
+ *
+ * ALWAYS check hardBlocked before injecting guidance or calling AI.
+ * If hardBlocked is true, return the hardBlockMessage to the parent immediately.
  */
 export function buildPediatricGuidanceBlocks(profile: ChildProfileInput): PediatricGuidanceOutput {
   // 1. Build the merged condition list
   const allConditions = buildConditionList(profile);
 
-  // 2. Match active protocols (sorted by priority tier, approved-only)
-  const activeProtocols = matchProtocols(allConditions);
+  // 2. Hard stop check — runs before anything else
+  const hardStop = checkHardStop(allConditions);
+  if (hardStop) {
+    return {
+      hardBlocked: true,
+      hardBlockConditionId: hardStop.conditionId,
+      hardBlockMessage: hardStop.hardStopMessage,
+      requiresClinicianFlag: true,
+      requiresDietitianFlag: true,
+      conditionGuidanceBlocks: [],
+      stageDRIBlock: buildStageDRIBlock(profile.developmentalStage),
+      conflictLog: [],
+      activeProtocolIds: [hardStop.conditionId],
+      activeProtocolEvidence: [{
+        conditionId: hardStop.conditionId,
+        conditionName: hardStop.conditionName,
+        version: EVIDENCE_BY_CONDITION_ID.get(hardStop.conditionId)?.version ?? "1.0.0",
+        sources: EVIDENCE_BY_CONDITION_ID.get(hardStop.conditionId)?.sources ?? [],
+        status: EVIDENCE_BY_CONDITION_ID.get(hardStop.conditionId)?.status ?? "approved",
+      }],
+    };
+  }
 
-  // 3. Detect conflicts
+  // 3. Match active protocols (sorted by priority tier, approved-only)
+  const activeProtocols = matchProtocols(allConditions).filter(p => !p.hardStop);
+
+  // 4. Detect conflicts
   const conflictLog = detectConflicts(activeProtocols);
 
-  // 4. Assemble guidance blocks
-  const conditionGuidanceBlocks = activeProtocols.map(p => p.guidance);
+  // 5. Assemble guidance blocks
+  const conditionGuidanceBlocks = activeProtocols.map(p => p.guidance).filter(Boolean);
 
-  // 5. Add conflict resolution block to the last guidance entry, or as a standalone block
+  // 6. Add conflict resolution block
   if (conflictLog.length > 0) {
     conditionGuidanceBlocks.push(buildConflictResolutionPromptBlock(conflictLog));
   }
 
-  // 6. Stage DRI block
+  // 7. Stage DRI block
   const stageDRIBlock = buildStageDRIBlock(profile.developmentalStage);
 
-  // 7. Evidence metadata for each active protocol
+  // 8. Clinician/dietitian flags — true if ANY active protocol requires them
+  const requiresClinicianFlag = activeProtocols.some(p => p.requiresClinicianFlag);
+  const requiresDietitianFlag = activeProtocols.some(p => p.requiresDietitianFlag);
+
+  // 9. Evidence metadata
   const activeProtocolEvidence = activeProtocols.map(p => {
     const evidence = EVIDENCE_BY_CONDITION_ID.get(p.conditionId);
     return {
@@ -381,6 +429,9 @@ export function buildPediatricGuidanceBlocks(profile: ChildProfileInput): Pediat
   });
 
   return {
+    hardBlocked: false,
+    requiresClinicianFlag,
+    requiresDietitianFlag,
     conditionGuidanceBlocks,
     stageDRIBlock,
     conflictLog,

@@ -39,6 +39,27 @@ export interface PediatricProtocolBlock {
    */
   triggerKeys: string[];
   /**
+   * When true: meal generation is completely blocked. The resolver returns
+   * a hard-stop response without calling AI. Used for PKU, G-tube, and
+   * any condition where meal generation is clinically unsafe without
+   * specialist oversight.
+   */
+  hardStop?: boolean;
+  /** Human-readable reason shown to the parent when hardStop is true. */
+  hardStopMessage?: string;
+  /**
+   * When true: every generated output must include a mandatory note
+   * directing the family to their pediatrician before acting on this meal.
+   * Displayed prominently in the Resolver Inspector.
+   */
+  requiresClinicianFlag: boolean;
+  /**
+   * When true: every generated output must include a mandatory note
+   * directing the family to a registered pediatric dietitian.
+   * Displayed prominently in the Resolver Inspector.
+   */
+  requiresDietitianFlag: boolean;
+  /**
    * Prompt-ready guidance block.
    * Injected verbatim into the system prompt — must be directive and precise.
    */
@@ -56,6 +77,40 @@ export interface PediatricProtocolBlock {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// TIER 1 — Life-threatening safety hard stops (no meal generation)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const PKU_PROTOCOL: PediatricProtocolBlock = {
+  conditionId: "pku",
+  conditionName: "Phenylketonuria (PKU)",
+  priorityTier: 1,
+  triggerKeys: ["pku", "phenylketonuria", "phenylketonuria classic", "classic pku", "hyperphenylalaninemia"],
+  hardStop: true,
+  hardStopMessage:
+    "PKU (phenylketonuria) requires a strictly phenylalanine-controlled diet that must be " +
+    "individually calculated by a metabolic dietitian. Standard recipe generation cannot safely " +
+    "produce meals for this child. Please work with your metabolic care team for all meal planning.",
+  requiresClinicianFlag: true,
+  requiresDietitianFlag: true,
+  guidance: "", // never injected — hardStop blocks generation before guidance is used
+};
+
+const GTUBE_PROTOCOL: PediatricProtocolBlock = {
+  conditionId: "g_tube",
+  conditionName: "G-Tube / Enteral Feeding",
+  priorityTier: 1,
+  triggerKeys: ["g-tube", "g tube", "gtube", "gastrostomy tube", "enteral feeding", "tube feeding", "peg tube", "ng tube", "nasogastric tube", "enteral nutrition"],
+  hardStop: true,
+  hardStopMessage:
+    "This child is receiving enteral (tube) feeding. Oral meal generation is not safe without " +
+    "explicit clinician clearance for oral feeding. Please consult your child's care team before " +
+    "introducing or changing oral meals.",
+  requiresClinicianFlag: true,
+  requiresDietitianFlag: true,
+  guidance: "", // never injected — hardStop blocks generation before guidance is used
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // TIER 3 — Medical condition hard limits
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -64,6 +119,8 @@ const T1D_PROTOCOL: PediatricProtocolBlock = {
   conditionName: "Type 1 Diabetes",
   priorityTier: 3,
   triggerKeys: ["t1d", "type 1 diabetes", "type1 diabetes", "type 1 diabetic", "t1 diabetes", "insulin-dependent diabetes"],
+  requiresClinicianFlag: true,
+  requiresDietitianFlag: true,
   requiresOrPrefers: ["whole grains", "lean protein", "non-starchy vegetables", "fiber-rich foods"],
   blocks: ["added sugar", "white bread", "white rice as primary starch", "sugary beverages", "candy", "pastries"],
   guidance: `
@@ -86,6 +143,8 @@ const T2D_PROTOCOL: PediatricProtocolBlock = {
   conditionName: "Type 2 Diabetes / Prediabetes",
   priorityTier: 3,
   triggerKeys: ["t2d", "type 2 diabetes", "type2 diabetes", "type 2 diabetic", "prediabetes", "pre-diabetes", "insulin resistance"],
+  requiresClinicianFlag: true,
+  requiresDietitianFlag: true,
   requiresOrPrefers: ["whole grains", "lean protein", "non-starchy vegetables", "legumes", "fiber-rich foods"],
   blocks: ["added sugar", "refined flour", "sugary beverages", "deep-fried foods", "ultra-processed foods"],
   guidance: `
@@ -107,6 +166,8 @@ const CELIAC_PROTOCOL: PediatricProtocolBlock = {
   conditionName: "Celiac Disease (Confirmed)",
   priorityTier: 3,
   triggerKeys: ["celiac", "celiac disease", "coeliac", "coeliac disease", "celiac confirmed", "biopsy confirmed celiac"],
+  requiresClinicianFlag: true,
+  requiresDietitianFlag: true,
   blocks: ["wheat", "barley", "rye", "spelt", "kamut", "farro", "semolina", "durum", "triticale", "malt", "brewer's yeast", "regular oats"],
   guidance: `
 ⚠️ CELIAC DISEASE — STRICT GLUTEN-FREE PROTOCOL (medical necessity, not preference):
@@ -135,6 +196,8 @@ const NCGS_PROTOCOL: PediatricProtocolBlock = {
   conditionName: "Non-Celiac Gluten Sensitivity",
   priorityTier: 3,
   triggerKeys: ["non-celiac gluten sensitivity", "ncgs", "gluten sensitivity", "gluten intolerance", "gluten-sensitive"],
+  requiresClinicianFlag: false,
+  requiresDietitianFlag: true,
   blocks: ["wheat", "barley", "rye"],
   guidance: `
 ⚠️ GLUTEN SENSITIVITY PROTOCOL — GLUTEN-FREE APPROACH:
@@ -153,6 +216,8 @@ const CKD_PROTOCOL: PediatricProtocolBlock = {
   conditionName: "Chronic Kidney Disease",
   priorityTier: 3,
   triggerKeys: ["ckd", "chronic kidney disease", "kidney disease", "renal disease", "pediatric ckd", "renal failure", "kidney failure"],
+  requiresClinicianFlag: true,
+  requiresDietitianFlag: true,
   blocks: ["banana", "orange", "avocado", "tomato large amounts", "spinach large amounts", "potato", "sweet potato", "dried fruit", "chocolate", "cheese large amounts", "milk large amounts", "nuts", "seeds", "beans large amounts", "salt", "processed meats"],
   requiresOrPrefers: ["egg whites", "white fish", "white rice", "apple", "blueberries", "cabbage", "cauliflower", "green beans", "peppers"],
   guidance: `
@@ -179,6 +244,8 @@ const LIVER_DISEASE_PROTOCOL: PediatricProtocolBlock = {
   conditionName: "Pediatric Liver Disease",
   priorityTier: 3,
   triggerKeys: ["liver disease", "cholestasis", "nafld", "pediatric nafld", "fatty liver", "liver failure", "cirrhosis", "biliary atresia", "hepatitis", "liver support"],
+  requiresClinicianFlag: true,
+  requiresDietitianFlag: true,
   blocks: ["alcohol", "fried foods", "added sugar", "ultra-processed foods", "large amounts of fat"],
   requiresOrPrefers: ["cruciferous vegetables", "leafy greens", "omega-3 fish", "whole grains", "legumes", "olive oil"],
   guidance: `
@@ -205,6 +272,8 @@ const CYSTIC_FIBROSIS_PROTOCOL: PediatricProtocolBlock = {
   conditionName: "Cystic Fibrosis",
   priorityTier: 3,
   triggerKeys: ["cystic fibrosis", "cf", "cftr", "mucoviscidosis"],
+  requiresClinicianFlag: true,
+  requiresDietitianFlag: true,
   requiresOrPrefers: ["calorie-dense foods", "healthy fats", "whole milk", "avocado", "nut butter", "olive oil", "full-fat dairy", "extra protein"],
   guidance: `
 🫁 CYSTIC FIBROSIS PROTOCOL — MANDATORY (unique: HIGH calorie density required):
@@ -226,6 +295,8 @@ const CROHNS_PROTOCOL: PediatricProtocolBlock = {
   conditionName: "Crohn's Disease",
   priorityTier: 3,
   triggerKeys: ["crohn's", "crohns", "crohn's disease", "crohns disease", "ibd crohns", "inflammatory bowel disease crohns"],
+  requiresClinicianFlag: true,
+  requiresDietitianFlag: true,
   blocks: ["raw cruciferous vegetables large amounts", "fried foods", "ultra-processed foods", "high-fat greasy meals", "large amounts of seeds or skin"],
   requiresOrPrefers: ["well-cooked vegetables", "lean protein", "easily digestible starches", "low-fiber options during flares"],
   guidance: `
@@ -254,6 +325,8 @@ const UC_PROTOCOL: PediatricProtocolBlock = {
   conditionName: "Ulcerative Colitis",
   priorityTier: 3,
   triggerKeys: ["ulcerative colitis", "uc", "colitis", "ibd uc", "inflammatory bowel disease uc", "inflammatory bowel disease colitis"],
+  requiresClinicianFlag: true,
+  requiresDietitianFlag: true,
   blocks: ["raw high-fiber vegetables during flares", "fried foods", "high-fat greasy foods", "spicy foods during flares"],
   requiresOrPrefers: ["well-cooked vegetables", "lean protein", "easily digestible starches", "omega-3 fish"],
   guidance: `
@@ -281,6 +354,8 @@ const JIA_PROTOCOL: PediatricProtocolBlock = {
   conditionName: "Juvenile Idiopathic Arthritis",
   priorityTier: 3,
   triggerKeys: ["jia", "juvenile idiopathic arthritis", "juvenile arthritis", "pediatric arthritis", "juvenile rheumatoid arthritis", "jra"],
+  requiresClinicianFlag: true,
+  requiresDietitianFlag: false,
   blocks: ["seed oils", "processed meats", "added sugars", "trans fats"],
   requiresOrPrefers: ["omega-3 fish", "colorful vegetables", "berries", "turmeric", "ginger", "olive oil", "calcium-rich foods", "vitamin D foods"],
   guidance: `
@@ -309,6 +384,8 @@ const LUPUS_PROTOCOL: PediatricProtocolBlock = {
   conditionName: "Pediatric Lupus (SLE)",
   priorityTier: 3,
   triggerKeys: ["lupus", "sle", "systemic lupus erythematosus", "pediatric lupus", "juvenile lupus"],
+  requiresClinicianFlag: true,
+  requiresDietitianFlag: false,
   blocks: ["alfalfa sprouts", "seed oils", "processed meats", "added sugars", "high-sodium foods"],
   requiresOrPrefers: ["omega-3 fish", "colorful vegetables", "berries", "olive oil", "calcium-rich foods", "vitamin D foods"],
   guidance: `
@@ -343,6 +420,8 @@ const IRON_DEFICIENCY_PROTOCOL: PediatricProtocolBlock = {
   conditionName: "Iron Deficiency Anemia",
   priorityTier: 4,
   triggerKeys: ["iron deficiency", "iron deficiency anemia", "iron deficiency anaemia", "anemia", "anaemia iron", "iron-deficiency anemia"],
+  requiresClinicianFlag: true,
+  requiresDietitianFlag: false,
   requiresOrPrefers: ["lean red meat", "chicken", "turkey", "fish", "legumes", "fortified cereal", "spinach", "broccoli", "vitamin C foods"],
   guidance: `
 🩸 IRON DEFICIENCY ANEMIA PROTOCOL — MANDATORY:
@@ -373,6 +452,8 @@ const FAILURE_TO_THRIVE_PROTOCOL: PediatricProtocolBlock = {
   conditionName: "Failure to Thrive / Pediatric Undernutrition",
   priorityTier: 4,
   triggerKeys: ["failure to thrive", "ftt", "undernutrition", "pediatric undernutrition", "growth faltering", "weight faltering"],
+  requiresClinicianFlag: true,
+  requiresDietitianFlag: true,
   requiresOrPrefers: ["calorie-dense foods", "healthy fats", "fortified foods", "high-protein foods", "nutrient-dense additions"],
   guidance: `
 📈 FAILURE TO THRIVE / UNDERNUTRITION PROTOCOL — MANDATORY:
@@ -396,6 +477,8 @@ const PEDIATRIC_OBESITY_PROTOCOL: PediatricProtocolBlock = {
   conditionName: "Pediatric Obesity / Overweight",
   priorityTier: 4,
   triggerKeys: ["pediatric obesity", "obesity", "overweight", "childhood obesity", "pediatric overweight", "high bmi"],
+  requiresClinicianFlag: false,
+  requiresDietitianFlag: true,
   blocks: ["added sugar", "sugary beverages", "fried foods", "ultra-processed foods", "refined flour as primary starch"],
   requiresOrPrefers: ["whole grains", "lean protein", "non-starchy vegetables", "fiber-rich foods", "water as beverage"],
   guidance: `
@@ -424,6 +507,8 @@ const UNDERWEIGHT_PROTOCOL: PediatricProtocolBlock = {
   conditionName: "Underweight (Growth Monitoring Context)",
   priorityTier: 4,
   triggerKeys: ["underweight", "low weight", "thin", "growth monitoring underweight", "pediatric underweight"],
+  requiresClinicianFlag: false,
+  requiresDietitianFlag: false,
   requiresOrPrefers: ["calorie-dense foods", "healthy fats", "protein-rich foods", "whole milk dairy"],
   guidance: `
 📊 UNDERWEIGHT PROTOCOL — MANDATORY:
@@ -446,6 +531,8 @@ const ADHD_EATING_PROTOCOL: PediatricProtocolBlock = {
   conditionName: "ADHD — Eating Pattern Support",
   priorityTier: 5,
   triggerKeys: ["adhd", "attention deficit", "attention-deficit", "adhd eating", "adhd nutrition", "adhd food"],
+  requiresClinicianFlag: false,
+  requiresDietitianFlag: false,
   requiresOrPrefers: ["omega-3 fish", "iron-rich foods", "protein at breakfast", "complex carbohydrates", "zinc-rich foods"],
   blocks: ["artificial food dyes", "high added sugar", "ultra-processed foods", "heavily caffeinated foods"],
   guidance: `
@@ -472,6 +559,8 @@ const AUTISM_SENSORY_PROTOCOL: PediatricProtocolBlock = {
   conditionName: "Autism Spectrum Disorder — Sensory Eating",
   priorityTier: 5,
   triggerKeys: ["autism", "asd", "autism spectrum", "autism spectrum disorder", "autistic", "sensory eating autism", "sensory food aversion"],
+  requiresClinicianFlag: false,
+  requiresDietitianFlag: false,
   guidance: `
 🎨 AUTISM / SENSORY EATING PROTOCOL — MANDATORY:
 SENSORY EXPERIENCE IS CENTRAL: Texture, color, smell, and visual appearance matter as much as nutrition.
@@ -496,6 +585,8 @@ const DYSPHAGIA_PROTOCOL: PediatricProtocolBlock = {
   conditionName: "Feeding Disorder / Dysphagia",
   priorityTier: 5,
   triggerKeys: ["dysphagia", "swallowing disorder", "feeding disorder", "swallowing difficulty", "feeding therapy", "aspiration risk", "iddsi", "modified texture", "thickened liquids"],
+  requiresClinicianFlag: true,
+  requiresDietitianFlag: true,
   blocks: ["whole grapes", "whole nuts", "raw hard vegetables", "sticky foods", "mixed textures", "thin liquids unless prescribed"],
   guidance: `
 ⚠️ DYSPHAGIA / FEEDING DISORDER PROTOCOL — MANDATORY:
@@ -523,6 +614,9 @@ INCLUDE in askPediatricianNote: "Texture and liquid requirements should be confi
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const PEDIATRIC_PROTOCOL_REGISTRY: PediatricProtocolBlock[] = [
+  // Tier 1 — Hard stops (no meal generation)
+  PKU_PROTOCOL,
+  GTUBE_PROTOCOL,
   // Tier 3 — Medical condition hard limits
   T1D_PROTOCOL,
   T2D_PROTOCOL,
@@ -554,6 +648,7 @@ export const PROTOCOL_BY_ID: Map<string, PediatricProtocolBlock> =
  * Given a list of condition keys (from child_profiles.medical_conditions),
  * returns all matching protocol blocks, sorted by priority tier (ascending).
  * Only returns blocks whose conditionId is in the approved evidence registry.
+ * Hard-stop protocols are included and will appear first (Tier 1).
  */
 export function matchProtocols(conditions: string[]): PediatricProtocolBlock[] {
   const approvedIds = getApprovedProtocolIds();
@@ -572,4 +667,24 @@ export function matchProtocols(conditions: string[]): PediatricProtocolBlock[] {
 
   // Sort ascending by priority tier — lower tier number = higher priority
   return matched.sort((a, b) => a.priorityTier - b.priorityTier);
+}
+
+/**
+ * Returns the first hard-stop protocol that matches the condition list,
+ * or undefined if no hard stop applies. Call this before building guidance
+ * blocks — if a hard stop is present, generation must be blocked immediately.
+ */
+export function checkHardStop(conditions: string[]): PediatricProtocolBlock | undefined {
+  const approvedIds = getApprovedProtocolIds();
+  const normalizedConditions = conditions.map(c => c.trim().toLowerCase());
+
+  for (const protocol of PEDIATRIC_PROTOCOL_REGISTRY) {
+    if (!protocol.hardStop) continue;
+    if (!approvedIds.has(protocol.conditionId)) continue;
+    const isMatch = protocol.triggerKeys.some(key =>
+      normalizedConditions.some(c => c.includes(key) || key.includes(c))
+    );
+    if (isMatch) return protocol;
+  }
+  return undefined;
 }
