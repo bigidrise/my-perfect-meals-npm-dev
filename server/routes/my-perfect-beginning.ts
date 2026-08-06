@@ -2,7 +2,7 @@ import { Router } from "express";
 import OpenAI from "openai";
 import type { AuthenticatedRequest } from "../middleware/requireAuth";
 import { computeParentEducationLayer } from "../services/pediatric/pediatricConfidenceScorer";
-import {
+import { enforceBeforeGenerate, scanGeneratedOutput } from "../services/pediatric/pediatricGuardrails";
 
 const router = Router();
 
@@ -382,7 +382,6 @@ router.post("/create-dish", async (req, res) => {
     // ── Validate request ─────────────────────────────────────────────────────
     const validation = validateRequest(req.body);
 
-    const { ageStage, allergies, foodRequest, parentPrefs, childName } = validation as Required<typeof validation>;
     if (!validation.valid) {
       return res.status(400).json({ error: validation.error });
     }
@@ -404,6 +403,16 @@ router.post("/create-dish", async (req, res) => {
     // ── Gate: foodRequest required for generation ────────────────────────────
     if (!foodRequest) {
       return res.status(400).json({ error: "foodRequest is required" });
+    }
+
+    // ── Pre-generation guardrail check ───────────────────────────────────────
+    const preCheck = enforceBeforeGenerate({ ageStage, foodRequest });
+    if (preCheck.blocked) {
+      return res.status(200).json({
+        blocked: true,
+        blockReason: preCheck.blockReason,
+        educationMessage: preCheck.educationMessage,
+      });
     }
 
     // ── Extract free-text pref fields (user-controlled, kept out of system prompt) ──
@@ -457,28 +466,30 @@ router.post("/create-dish", async (req, res) => {
 
     // ── Validate response schema ──────────────────────────────────────────────
     const schemaCheck = validateRecipeResponse(recipe);
-
-    const postScan = scanGeneratedOutput(recipe, ageStage);
     if (!schemaCheck.valid) {
       console.error("[MyPerfectBeginning] AI response schema invalid:", schemaCheck.error, JSON.stringify(recipe).slice(0, 300));
       return res.status(500).json({ error: "AI returned an incomplete recipe. Please try again." });
     }
 
+    // ── Post-generation guardrail scan ────────────────────────────────────────
+    const postScan = scanGeneratedOutput(recipe, ageStage);
+    const finalRecipe = postScan.patchedRecipe ?? recipe;
+
     // ── Ensure mandatory pediatrician disclaimer in whyThisMealWasChosen ─────
     const disclaimerSuffix = childName
       ? `Always follow your pediatrician's guidance for ${childName}'s specific nutritional needs.`
       : "Always follow your pediatrician's guidance for your child's specific nutritional needs.";
-    if (typeof recipe.whyThisMealWasChosen === "string" && recipe.whyThisMealWasChosen.trim()) {
-      const trimmed = recipe.whyThisMealWasChosen.trim();
+    if (typeof finalRecipe.whyThisMealWasChosen === "string" && finalRecipe.whyThisMealWasChosen.trim()) {
+      const trimmed = finalRecipe.whyThisMealWasChosen.trim();
       if (!trimmed.endsWith(disclaimerSuffix)) {
-        recipe.whyThisMealWasChosen = trimmed + " " + disclaimerSuffix;
+        finalRecipe.whyThisMealWasChosen = trimmed + " " + disclaimerSuffix;
       }
     } else {
-      recipe.whyThisMealWasChosen = disclaimerSuffix;
+      finalRecipe.whyThisMealWasChosen = disclaimerSuffix;
     }
 
     return res.json({
-      recipe,
+      recipe: finalRecipe,
       blocked: false,
       mealConfidence: educationLayer.mealConfidence,
       clinicalReviewStatus: educationLayer.clinicalReviewStatus,
@@ -492,7 +503,3 @@ router.post("/create-dish", async (req, res) => {
 });
 
 export default router;
-
-    const finalRecipe = postScan.patchedRecipe ?? recipe;
-
-    const preCheck = enforceBeforeGenerate({ ageStage, foodRequest });
