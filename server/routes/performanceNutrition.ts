@@ -119,6 +119,7 @@ router.post("/setup", async (req, res) => {
         sessionDuration,
         recoveryStatus,
         adaptationTarget,
+        adaptationTargets,
       } = req.body;
 
       const validGoals = ["fat_loss", "muscle_gain", "maintenance", "performance"];
@@ -163,6 +164,11 @@ router.post("/setup", async (req, res) => {
       if (adaptationTarget && !validAdaptationTargets.includes(adaptationTarget)) {
         return res.status(400).json({ error: "Invalid adaptationTarget" });
       }
+      if (adaptationTargets) {
+        if (!Array.isArray(adaptationTargets) || adaptationTargets.some((t: string) => !validAdaptationTargets.includes(t))) {
+          return res.status(400).json({ error: "Invalid adaptationTargets" });
+        }
+      }
 
       const now = new Date().toISOString();
 
@@ -187,7 +193,8 @@ router.post("/setup", async (req, res) => {
         twoADays: !!twoADays,
         sessionDuration:   sessionDuration   ?? undefined,
         recoveryStatus:    recoveryStatus    ?? undefined,
-        adaptationTarget:  adaptationTarget  ?? undefined,
+        adaptationTarget:  adaptationTargets?.[0] ?? adaptationTarget ?? undefined,
+        adaptationTargets: adaptationTargets?.length ? adaptationTargets : (adaptationTarget ? [adaptationTarget] : undefined),
         customSportName: athleteCustomSport?.trim() ?? undefined,
         activatedAt: now,
         updatedAt: now,
@@ -497,7 +504,7 @@ Use these signals to inform the specificity and urgency of your coaching respons
 - Frequency: ${pCtx.trainingFrequency} sessions/week${pCtx.twoADays ? " (2-a-days)" : ""}
 - Primary Goal: ${pCtx.primaryGoal}
 - Training Phase: ${pCtx.trainingPhase}
-- Cardio Focus: ${pCtx.cardioFocus}${pCtx.sessionDuration ? `\n- Session Duration: ${pCtx.sessionDuration}` : ""}${pCtx.recoveryStatus ? `\n- Self-Reported Recovery: ${pCtx.recoveryStatus}` : ""}${pCtx.adaptationTarget ? `\n- Adaptation Target: ${pCtx.adaptationTarget}` : ""}${demandLines}
+- Cardio Focus: ${pCtx.cardioFocus}${pCtx.sessionDuration ? `\n- Session Duration: ${pCtx.sessionDuration}` : ""}${pCtx.recoveryStatus ? `\n- Self-Reported Recovery: ${pCtx.recoveryStatus}` : ""}${(pCtx.adaptationTargets?.length ?? 0) > 1 ? `\n- Adaptation Targets: ${pCtx.adaptationTargets!.join(", ")}` : pCtx.adaptationTarget ? `\n- Adaptation Target: ${pCtx.adaptationTarget}` : ""}${demandLines}
 
 ATHLETIC COACHING RULES:
 - Fueling is about performance output — strength and endurance, not appearance.

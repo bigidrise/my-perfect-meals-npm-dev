@@ -373,7 +373,13 @@ function buildDemandSignalTrace(pCtx: any): {
   if (pCtx?.sessionDuration) recovery.push(durShort[pCtx.sessionDuration] ?? pCtx.sessionDuration);
 
   const adaptation: string[] = [];
-  if (pCtx?.adaptationTarget) adaptation.push(ADAPTATION_TARGET_LABELS[pCtx.adaptationTarget]?.replace(" Adaptation","") ?? pCtx.adaptationTarget);
+  if ((pCtx as any)?.adaptationTargets?.length) {
+    for (const t of (pCtx as any).adaptationTargets as string[]) {
+      adaptation.push(ADAPTATION_TARGET_LABELS[t]?.replace(" Adaptation","") ?? t);
+    }
+  } else if (pCtx?.adaptationTarget) {
+    adaptation.push(ADAPTATION_TARGET_LABELS[pCtx.adaptationTarget]?.replace(" Adaptation","") ?? pCtx.adaptationTarget);
+  }
   if (pCtx?.trainingType) adaptation.push(TYPE_LABELS[pCtx.trainingType] ?? pCtx.trainingType);
   if (pCtx?.primaryGoal) adaptation.push(GOAL_LABELS[pCtx.primaryGoal] ?? pCtx.primaryGoal);
 
@@ -1422,7 +1428,9 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
                 pCtx.twoADays ? "2-a-Days" : null,
                 pCtx.sessionDuration ? (SESSION_DURATION_LABELS[pCtx.sessionDuration] ?? pCtx.sessionDuration) : null,
                 pCtx.recoveryStatus ? (RECOVERY_STATUS_LABELS[pCtx.recoveryStatus] ?? pCtx.recoveryStatus) : null,
-                pCtx.adaptationTarget ? (ADAPTATION_TARGET_LABELS[pCtx.adaptationTarget] ?? pCtx.adaptationTarget) : null,
+                ...((pCtx as any).adaptationTargets?.length
+                  ? ((pCtx as any).adaptationTargets as string[]).map((t: string) => ADAPTATION_TARGET_LABELS[t] ?? t)
+                  : pCtx.adaptationTarget ? [ADAPTATION_TARGET_LABELS[pCtx.adaptationTarget] ?? pCtx.adaptationTarget] : []),
               ].filter(Boolean).map((label, i) => (
                 <span key={i} className="px-2.5 py-1 rounded-full bg-white/10 border border-white/10 text-white/80 text-xs font-medium">
                   {label}

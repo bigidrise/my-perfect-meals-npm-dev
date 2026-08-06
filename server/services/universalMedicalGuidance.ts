@@ -72,6 +72,7 @@ export interface UniversalGuidanceInput {
     sessionDuration?: string;
     recoveryStatus?: string;
     adaptationTarget?: string;
+    adaptationTargets?: string[];
   } | null;
   /** Demand profile computed from the user's performanceContext — encodes fuel/recovery/adaptation. */
   performanceDemandProfile?: DemandProfile | null;
