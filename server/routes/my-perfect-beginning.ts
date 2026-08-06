@@ -12,7 +12,7 @@ import {
   type ProtocolConflict,
 } from "../services/pediatric/buildPediatricGuidanceBlocks";
 import {
-  resolvePediatricContext,
+  resolvePediatricContextFromInput,
   type PediatricMealGenerationContext,
   type DevelopmentalStageKey,
 } from "../services/pediatric/pediatricResolver";
@@ -588,7 +588,7 @@ router.post("/resolve-context", requireAuth, async (req, res) => {
         : undefined,
     };
 
-    const context = await resolvePediatricContext({
+    const context = await resolvePediatricContextFromInput({
       childProfileId: typeof childProfileId === "string" ? childProfileId : null,
       childProfileIds: Array.isArray(childProfileIds) ? childProfileIds : undefined,
       stageOverride,
@@ -695,7 +695,7 @@ router.post("/create-dish", requireAuth, async (req, res) => {
     // ── Phase 1: Run Resolver — all decisions made here, BEFORE AI ───────────
     let resolverCtx: PediatricMealGenerationContext | null = null;
     try {
-      resolverCtx = await resolvePediatricContext({
+      resolverCtx = await resolvePediatricContextFromInput({
         childProfileId,
         stageOverride: ageStage as DevelopmentalStageKey,
         allergyOverride: allergies.map(a => ({
