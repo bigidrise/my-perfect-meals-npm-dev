@@ -67,6 +67,13 @@ export interface ProtocolBlock {
   hardLimits: string[];
   optimizations: string[];
   escalationTriggers: string[];
+  /**
+   * When true, meal generation is completely blocked for this condition.
+   * The resolver must return a hard-stop response without calling AI.
+   * Used for PKU, G-tube, and any condition requiring specialist oversight
+   * before any oral meal is generated.
+   */
+  hardStop?: boolean;
 }
 
 /** DRI baseline by stage — from USDA / AAP guidelines */
@@ -580,6 +587,214 @@ const PROTOCOL_REGISTRY: Record<string, ProtocolBlock> = {
     hardLimits: ["HARD STOP on all physician-prescribed elimination foods."],
     optimizations: [],
     escalationTriggers: ["Food impaction, severe dysphagia, or failure to thrive → GI specialist follow-up"],
+  },
+
+  // ── COND-0014 through COND-0021 — migrated from adapter-only logic ──────────
+  // Previously these conditions existed only in the adapter's CONDITION_PROTOCOLS
+  // lookup. Adding them here makes the production resolver the single source of
+  // truth and prevents silent drift when resolver logic is updated.
+
+  pediatric_obesity: {
+    conditionId: "COND-0014",
+    conditionLabel: "Pediatric Obesity / Overweight",
+    guidance: [
+      "Whole-food, quality-first approach — focus on nutrient density, not calorie restriction or dieting.",
+      "Prioritize fiber-rich foods: vegetables, legumes, whole grains, fruit.",
+      "Lean protein at every meal: chicken, turkey, fish, eggs, Greek yogurt (unsweetened), legumes.",
+      "Healthy fats: olive oil, avocado, nuts (age-appropriate form).",
+      "Water or plain milk as the primary beverage — eliminate sugary drinks.",
+      "Use weight-neutral, wellness-positive language. Never mention weight, body size, or appearance.",
+    ],
+    hardLimits: [
+      "Do NOT restrict calories, skip meals, or suggest portion deprivation.",
+      "No mention of weight loss, dieting, calorie deficits, BMI, or body weight.",
+      "EXCLUDE added sugar, sugary beverages, fried foods, ultra-processed foods, refined flour as the primary starch.",
+    ],
+    optimizations: [
+      "Non-starchy vegetables as the base of every meal.",
+      "Pair all carbohydrates with fiber, protein, or healthy fat to moderate glycemic response.",
+      "Positive framing: 'foods that give you energy and help you feel great' — never restriction framing.",
+    ],
+    escalationTriggers: [
+      "Signs of metabolic syndrome, hypertension, or sleep apnea → pediatrician referral",
+      "Significant emotional distress around eating → pediatric behavioral health referral",
+    ],
+  },
+
+  adhd: {
+    conditionId: "COND-0015",
+    conditionLabel: "ADHD (Attention-Deficit/Hyperactivity Disorder)",
+    guidance: [
+      "Structured, predictable meal presentation — consistent appearance, plating, and routine support focus.",
+      "Minimize meal complexity: simple, recognizable components presented separately (not mixed).",
+      "Protein-rich breakfast: supports neurotransmitter production and sustained attention through the morning.",
+      "Omega-3 rich foods: salmon, sardines, walnuts, chia seeds — prioritize when compatible with meal request.",
+      "Iron-rich foods: iron deficiency is common in ADHD and worsens symptoms.",
+      "Limit added sugar and refined carbohydrates — can worsen attention instability.",
+    ],
+    hardLimits: [
+      "No mention of ADHD medications, stimulants, or any medication timing.",
+      "Do NOT suggest behavioral interventions, discipline strategies, or therapy.",
+    ],
+    optimizations: [
+      "Breakfast: eggs, whole grain toast, nut butter, Greek yogurt — protein-anchored.",
+      "Simple, separated components rather than casseroles or mixed dishes.",
+      "Finger foods and easy-to-eat formats reduce mealtime distraction.",
+    ],
+    escalationTriggers: [
+      "Significant appetite suppression (likely medication effect) → pediatrician review",
+      "Severe food refusal or nutritional gaps → pediatric dietitian referral",
+    ],
+  },
+
+  autism_spectrum: {
+    conditionId: "COND-0016",
+    conditionLabel: "Autism Spectrum Disorder (ASD)",
+    guidance: [
+      "Strict texture consistency throughout the dish — mixed textures are a common sensory trigger.",
+      "Keep crunchy and soft components fully separate; do not combine unless the child is known to tolerate mixing.",
+      "Avoid strong-smelling ingredients: pungent cheeses, fish sauce, fermented foods, heavy spices.",
+      "Uniform, predictable presentation — consistent color, shape, and plating build trust with food.",
+      "Food bridging: introduce new items that share a sensory property (same color, same texture, same shape) with accepted foods.",
+      "Never disguise, hide, or 'sneak in' ingredients — this erodes trust and can worsen food refusal.",
+    ],
+    hardLimits: [
+      "Do NOT suggest mixed-texture dishes unless the child's profile explicitly indicates tolerance.",
+      "No 'hide the vegetable' strategies.",
+      "No mention of ABA, behavior therapy, sensory integration therapy, or therapeutic interventions.",
+    ],
+    optimizations: [
+      "Single-texture preparations are safest: all smooth, all soft-chopped, or all crunchy (served separately).",
+      "Familiar food bridges: if the child accepts a specific shape or brand, reference it as the anchor.",
+      "Small, incremental food expansion — one new sensory property at a time.",
+    ],
+    escalationTriggers: [
+      "Severe food restriction leading to nutritional deficiencies → feeding therapist (OT/SLP) + pediatric dietitian referral",
+      "Significant weight loss or growth faltering → pediatrician referral",
+    ],
+  },
+
+  crohns_disease: {
+    conditionId: "COND-0017",
+    conditionLabel: "Crohn's Disease (Pediatric IBD)",
+    guidance: [
+      "Default to remission-phase guidance: easily digestible, anti-inflammatory, gentle on the gut.",
+      "During active flare: low-fiber, low-residue approach — well-cooked vegetables only, avoid raw produce.",
+      "Well-cooked vegetables preferred in all phases: carrots, zucchini, squash, green beans (steamed or roasted until soft).",
+      "Lean protein: chicken breast, turkey, white fish, well-cooked eggs.",
+      "Easily digestible starches: white rice, peeled white potato, oatmeal, plain pasta.",
+      "Omega-3 fatty acids (salmon, sardines) — anti-inflammatory effect.",
+      "Nutritional density matters: malabsorption is common — meals should be nutrient-dense even when small.",
+      "Low-lactose dairy or lactose-free options if dairy is tolerated.",
+    ],
+    hardLimits: [
+      "EXCLUDE during flare: raw cruciferous vegetables, high-fiber foods, seeds, nuts, popcorn, spicy preparations, fried foods, high-fat greasy meals, lactose (if intolerant).",
+      "EXCLUDE in all phases: ultra-processed foods, fast food, heavily spiced preparations, high-sugar foods.",
+      "No mention of immunosuppressants, biologics, steroids, or any Crohn's medications.",
+    ],
+    optimizations: [
+      "Remission: broader vegetable variety, omega-3 fish, whole grains where tolerated.",
+      "Flare: white rice, peeled potato, plain oatmeal, poached chicken — lowest-irritation staples.",
+      "Monitor vitamin B12, iron, vitamin D, zinc — flag in meal notes when these nutrients are prioritized.",
+    ],
+    escalationTriggers: [
+      "Active flare symptoms (significant diarrhea, blood in stool, severe abdominal pain) → GI specialist immediately",
+      "Weight loss or growth faltering → GI dietitian referral",
+      "Nutritional deficiency signs → pediatric dietitian referral",
+    ],
+  },
+
+  ckd: {
+    conditionId: "COND-0018",
+    conditionLabel: "Chronic Kidney Disease (Pediatric)",
+    guidance: [
+      "Potassium — strict limit: high-potassium foods can cause dangerous cardiac arrhythmias.",
+      "Safe low-potassium options: apple, blueberries, cranberries, grapes, cabbage, cauliflower, green beans, peppers, onions, white rice, white bread.",
+      "Phosphorus — strict limit: excess phosphorus damages blood vessels in CKD.",
+      "Sodium — no added salt; avoid canned foods, processed meats, soy sauce, high-sodium condiments.",
+      "Protein — moderate only: do not suggest high-protein meals; excess protein burdens the kidneys.",
+      "Preferred proteins: egg whites, small portions of white-meat chicken or white fish.",
+    ],
+    hardLimits: [
+      "EXCLUDE high-potassium foods: banana, plantain, orange, all citrus juice, tomato (large amounts), avocado, spinach (large amounts), potato, sweet potato, beets, dried fruit, raisins, prunes, apricots.",
+      "EXCLUDE high-phosphorus foods: large amounts of dairy, chocolate, cocoa, nuts, seeds, peanut/almond butter, beans/lentils in large quantities, dark cola, energy drinks, processed foods with phosphate additives.",
+      "EXCLUDE high-sodium foods: added salt, canned soups, deli meats, processed cheese, soy sauce, high-sodium condiments.",
+      "No protein powders or protein-first meal framing.",
+      "No mention of dialysis, kidney transplant, phosphate binders, erythropoietin, or clinical treatments.",
+    ],
+    optimizations: [
+      "Egg whites, white-meat chicken, and white fish are the safest protein sources.",
+      "Apple, blueberries, cabbage, cauliflower, and green beans are low-risk staples.",
+      "Every meal note should flag: confirm potassium and phosphorus limits with the nephrology dietitian.",
+    ],
+    escalationTriggers: [
+      "Any new symptom or lab value change → nephrology team review before dietary change",
+      "Potassium or phosphorus out of target range → nephrology dietitian immediately",
+    ],
+  },
+
+  cystic_fibrosis: {
+    conditionId: "COND-0019",
+    conditionLabel: "Cystic Fibrosis",
+    guidance: [
+      "HIGH calorie density is required — CF children need 110–200% of standard DRI depending on disease severity.",
+      "High fat is required: full-fat dairy, avocado, olive oil, nut butters, whole milk, cream — all encouraged.",
+      "High protein: target ≥130% of age-appropriate DRI protein; include protein at every meal.",
+      "Salt / sodium: unlike other conditions, extra salt is often needed — CF causes excessive sodium losses through sweat.",
+      "Fat-soluble vitamins (A, D, E, K): prioritize dairy, fortified milks, and fatty fish for vitamin D and calcium.",
+      "Pancreatic enzyme reminder: include a note that PERT (pancreatic enzyme replacement therapy) should be taken with this meal.",
+    ],
+    hardLimits: [
+      "Do NOT restrict calories, fat, or sodium.",
+      "EXCLUDE low-fat or fat-free product versions — full-fat is always preferred.",
+      "No mention of CFTR modulators, pancreatic enzyme dosing, or clinical treatment adjustments.",
+    ],
+    optimizations: [
+      "Calorie-dense additions to every dish: olive oil drizzle, avocado, nut butter stir-in, full-fat dairy.",
+      "Fatty protein sources preferred: chicken thighs, salmon, eggs, whole-milk Greek yogurt.",
+      "Complex carbohydrates for sustained energy alongside high-fat additions.",
+    ],
+    escalationTriggers: [
+      "Continued weight loss or failure to meet growth targets → CF dietitian immediately",
+      "Increased respiratory symptoms → CF care team review",
+    ],
+  },
+
+  pku: {
+    conditionId: "COND-0020",
+    conditionLabel: "Phenylketonuria (PKU)",
+    hardStop: true,
+    guidance: [
+      "PKU requires a strictly phenylalanine-controlled diet that must be individually calculated by a metabolic dietitian.",
+      "Standard recipe generation cannot safely produce meals for a child with PKU.",
+      "All protein intake must be precisely controlled — virtually all natural protein sources contain phenylalanine.",
+    ],
+    hardLimits: [
+      "HARD STOP — do not generate any meal for a child with PKU without specialist metabolic dietitian oversight.",
+      "No standard recipes, no protein recommendations, no standard meal planning.",
+    ],
+    optimizations: [],
+    escalationTriggers: [
+      "Any meal planning for PKU → metabolic dietitian and metabolic care team required before any food is introduced",
+    ],
+  },
+
+  g_tube: {
+    conditionId: "COND-0021",
+    conditionLabel: "G-Tube / Enteral Feeding",
+    hardStop: true,
+    guidance: [
+      "This child is receiving enteral (tube) feeding. Oral meal generation is not safe without explicit clinician clearance.",
+      "Oral feeding for a child with a G-tube must be authorized by the care team — do not assume oral intake is permitted.",
+    ],
+    hardLimits: [
+      "HARD STOP — do not generate oral meal recipes for a child receiving tube feeding without clinician clearance.",
+      "Enteral formula type, volume, and schedule are determined by the care team, not by a meal planner.",
+    ],
+    optimizations: [],
+    escalationTriggers: [
+      "Any oral feeding consideration → consult pediatric care team and speech-language pathologist before introducing oral meals",
+    ],
   },
 };
 
@@ -1937,18 +2152,25 @@ const MED_RULE_IDS: Record<string, string> = {
 };
 
 // ── Condition protocols ───────────────────────────────────────────────────────
+// Each entry that previously existed only here now has a corresponding
+// PROTOCOL_REGISTRY entry (COND-XXXX) in pediatricResolver.ts as the
+// authoritative clinical source. The protocol strings below are the
+// adapter-layer named directives that extend those registry blocks.
 const CONDITION_PROTOCOLS: Record<string, string[]> = {
-  celiac_disease:         ["celiac-strict-gluten-free"],
-  iron_deficiency_anemia: ["iron-rich-foods-priority", "vitamin-c-iron-pairing", "iron-absorption-enhancers", "iron-fortified-foods", "plant-based-iron-enhancers"],
-  iron_deficiency:        ["iron-rich-foods-priority", "vitamin-c-iron-pairing", "iron-absorption-enhancers", "iron-fortified-foods", "plant-based-iron-enhancers"],
-  failure_to_thrive:      ["ftt-caloric-density", "energy-dense-additions", "growth-support-framing", "healthy-fat-fortification"],
-  type1_diabetes:         ["t1d-carb-consistent", "glycemic-index-awareness", "paired-protein-fat"],
-  type2_diabetes:         ["t2d-glycemic-management", "low-glycemic-index-focus", "fiber-rich-foods", "wellness-positive-framing"],
-  pediatric_obesity:      ["pediatric-obesity-wellness-framing", "balanced-nutrient-density", "no-restriction-language", "fiber-rich-foods"],
-  ckd:                    ["ckd-sodium-restriction", "ckd-phosphorus-restriction", "ckd-potassium-monitoring", "kidney-safe-protein-levels"],
-  cystic_fibrosis:        ["cf-caloric-density", "fat-soluble-vitamins-support", "energy-dense-additions", "healthy-fat-fortification", "salt-replacement-awareness"],
-  adhd:                   ["adhd-structured-eating", "minimal-meal-complexity", "routine-consistent-presentation", "protein-rich-morning-start"],
-  autism_spectrum:        ["autism-sensory-texture-control", "uniform-texture-presentation", "sensory-safe-ingredients", "smooth-only-preparation", "food-bridging-strategy"],
+  celiac_disease:         ["celiac-strict-gluten-free"],                           // → COND-0001
+  iron_deficiency_anemia: ["iron-rich-foods-priority", "vitamin-c-iron-pairing", "iron-absorption-enhancers", "iron-fortified-foods", "plant-based-iron-enhancers"], // → COND-0005
+  iron_deficiency:        ["iron-rich-foods-priority", "vitamin-c-iron-pairing", "iron-absorption-enhancers", "iron-fortified-foods", "plant-based-iron-enhancers"], // → COND-0005
+  failure_to_thrive:      ["ftt-caloric-density", "energy-dense-additions", "growth-support-framing", "healthy-fat-fortification"],                                  // → COND-0004
+  type1_diabetes:         ["t1d-carb-consistent", "glycemic-index-awareness", "paired-protein-fat"],                                                                  // → COND-0008
+  type2_diabetes:         ["t2d-glycemic-management", "low-glycemic-index-focus", "fiber-rich-foods", "wellness-positive-framing"],                                   // → COND-0009
+  pediatric_obesity:      ["pediatric-obesity-wellness-framing", "balanced-nutrient-density", "no-restriction-language", "fiber-rich-foods"],                         // → COND-0014
+  adhd:                   ["adhd-structured-eating", "minimal-meal-complexity", "routine-consistent-presentation", "protein-rich-morning-start"],                     // → COND-0015
+  autism_spectrum:        ["autism-sensory-texture-control", "uniform-texture-presentation", "sensory-safe-ingredients", "smooth-only-preparation", "food-bridging-strategy"], // → COND-0016
+  crohns_disease:         ["crohns-anti-inflammatory", "low-residue-flare-protocol", "easily-digestible-starches", "omega3-anti-inflammatory"],                       // → COND-0017
+  ckd:                    ["ckd-sodium-restriction", "ckd-phosphorus-restriction", "ckd-potassium-monitoring", "kidney-safe-protein-levels"],                         // → COND-0018
+  cystic_fibrosis:        ["cf-caloric-density", "fat-soluble-vitamins-support", "energy-dense-additions", "healthy-fat-fortification", "salt-replacement-awareness"], // → COND-0019
+  // pku and g_tube are hard stops (COND-0020, COND-0021) — handled via PROTOCOL_REGISTRY.hardStop
+  // and the dedicated hard-stop gate logic below; no adapter protocol strings needed.
 };
 
 const CLINICIAN_CONDITIONS = new Set([
