@@ -826,26 +826,146 @@ interface ActiveChildSummary {
   allergies: AllergyEntry[];
 }
 
-async function fetchActiveChild(): Promise<ActiveChildSummary | null> {
-  try {
-    const activeId = (() => { try { return localStorage.getItem(LS_ACTIVE_CHILD_KEY); } catch { return null; } })();
-    const res = await fetch(apiUrl("/api/my-perfect-beginning/children"), {
-      credentials: "include",
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    const children: any[] = data.children ?? [];
-    const found = activeId ? children.find(c => c.id === activeId) : children[0];
-    if (!found) return null;
-    const allergies: AllergyEntry[] = Array.isArray(found.allergies)
-      ? found.allergies.filter(
-          (a: any) => a && typeof a.allergenId === "string" && typeof a.severity === "string"
-        )
-      : [];
-    return { id: found.id, name: found.name, age_stage: found.age_stage, allergies };
-  } catch {
-    return null;
+interface ChildListItem {
+  id: string;
+  name: string;
+  age_stage: DevelopmentalStage;
+  date_of_birth: string | null;
+  emoji: string;
+  allergies: any[];
+  medical_conditions: any[];
+}
+
+function getStoredActiveId(): string | null {
+  try { return localStorage.getItem(LS_ACTIVE_CHILD_KEY); } catch { return null; }
+}
+
+function stageAgeLabel(child: ChildListItem): string {
+  if (child.date_of_birth) {
+    const dob = new Date(child.date_of_birth);
+    const now = new Date();
+    const months = (now.getFullYear() - dob.getFullYear()) * 12 + (now.getMonth() - dob.getMonth());
+    if (months < 24) return `${months} mo`;
+    const years = Math.floor(months / 12);
+    return `${years}`;
   }
+  const stageMap: Record<string, string> = {
+    early_infant: "0–5 mo",
+    beginning_foods: "6–11 mo",
+    young_toddler: "1–2 yr",
+    toddler: "2–3 yr",
+    preschool: "4–5 yr",
+    early_school_age: "6–8 yr",
+    growing_child: "9–12 yr",
+  };
+  return stageMap[child.age_stage] ?? child.age_stage;
+}
+
+function toActiveSummary(child: ChildListItem): ActiveChildSummary {
+  const allergies: AllergyEntry[] = Array.isArray(child.allergies)
+    ? child.allergies.filter(
+        (a: any) => a && typeof a.allergenId === "string" && typeof a.severity === "string"
+      )
+    : [];
+  return { id: child.id, name: child.name, age_stage: child.age_stage, allergies };
+}
+
+async function fetchAllChildren(): Promise<ChildListItem[]> {
+  try {
+    const res = await fetch(apiUrl("/api/my-perfect-beginning/children"), { credentials: "include" });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.children ?? [];
+  } catch {
+    return [];
+  }
+}
+
+// ── Child Picker Sheet ─────────────────────────────────────────────────────────
+
+function ChildPickerSheet({
+  children,
+  onSelect,
+  onGeneral,
+}: {
+  children: ChildListItem[];
+  onSelect: (child: ChildListItem) => void;
+  onGeneral: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm px-4 pb-safe-nav"
+    >
+      <motion.div
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", damping: 24, stiffness: 260 }}
+        className="w-full max-w-sm bg-[#0f1a13] border border-green-400/20 rounded-2xl shadow-2xl overflow-hidden"
+      >
+        {/* Handle */}
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="w-10 h-1 rounded-full bg-white/15" />
+        </div>
+
+        <div className="px-5 pb-6 space-y-4">
+          {/* Title */}
+          <div className="space-y-0.5 pt-1">
+            <h2 className="text-base font-bold text-white">Who are you cooking for?</h2>
+            <p className="text-xs text-white/40">Choose a child or cook a general meal.</p>
+          </div>
+
+          {/* Child options */}
+          <div className="space-y-2">
+            {children.map(child => (
+              <button
+                key={child.id}
+                type="button"
+                onClick={() => onSelect(child)}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-emerald-900/30 hover:border-emerald-500/30 transition-all text-left active:scale-[0.98]"
+              >
+                <span className="text-2xl flex-shrink-0" aria-hidden="true">
+                  {child.emoji || "👶"}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-white truncate">{child.name}</p>
+                  <p className="text-xs text-white/40">
+                    {STAGES.find(s => s.id === child.age_stage)?.label ?? child.age_stage}
+                    {" · "}
+                    {stageAgeLabel(child)}
+                    {child.age_stage !== "early_infant" && !child.date_of_birth
+                      ? ""
+                      : child.date_of_birth
+                        ? " yrs"
+                        : ""}
+                  </p>
+                </div>
+                {child.allergies?.length > 0 && (
+                  <span className="flex-shrink-0 text-[10px] text-red-300/70 bg-red-900/30 border border-red-400/20 rounded-full px-2 py-0.5">
+                    {child.allergies.length} allerg{child.allergies.length === 1 ? "y" : "ies"}
+                  </span>
+                )}
+              </button>
+            ))}
+
+            {/* General option */}
+            <button
+              type="button"
+              onClick={onGeneral}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-left active:scale-[0.98]"
+            >
+              <span className="text-2xl flex-shrink-0" aria-hidden="true">🍽️</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-white">General children's meal</p>
+                <p className="text-xs text-white/40">No specific child — choose an age range</p>
+              </div>
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
 }
 
 export default function MyPerfectBeginningCreateMealPage() {
@@ -861,6 +981,10 @@ export default function MyPerfectBeginningCreateMealPage() {
   const [activeChild, setActiveChild] = useState<ActiveChildSummary | null>(null);
   const [profileLoaded, setProfileLoaded] = useState(false);
 
+  // Child picker
+  const [showChildPicker, setShowChildPicker] = useState(false);
+  const [allChildren, setAllChildren] = useState<ChildListItem[]>([]);
+
   // UI state
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -869,17 +993,66 @@ export default function MyPerfectBeginningCreateMealPage() {
   const [showEarlyInfantScreen, setShowEarlyInfantScreen] = useState(false);
   const [hardStopState, setHardStopState] = useState<{ blockReason: string; educationMessage: string } | null>(null);
 
-  // Load active child profile on mount and pre-populate form
+  // Apply a child selection from the picker
+  const applyChild = (child: ChildListItem) => {
+    try { localStorage.setItem(LS_ACTIVE_CHILD_KEY, child.id); } catch {}
+    const summary = toActiveSummary(child);
+    setActiveChild(summary);
+    setSelectedStage(summary.age_stage);
+    setAllergies(summary.allergies);
+    setShowChildPicker(false);
+    if (summary.age_stage === "early_infant") {
+      setShowEarlyInfantScreen(true);
+    }
+  };
+
+  const applyGeneral = () => {
+    try { localStorage.removeItem(LS_ACTIVE_CHILD_KEY); } catch {}
+    setActiveChild(null);
+    setSelectedStage("");
+    setAllergies([]);
+    setShowChildPicker(false);
+  };
+
+  // Load children on mount and decide whether to show picker
   useEffect(() => {
-    fetchActiveChild().then(child => {
-      if (child) {
-        setActiveChild(child);
-        setSelectedStage(child.age_stage);
-        setAllergies(child.allergies);
-        if (child.age_stage === "early_infant") {
-          setShowEarlyInfantScreen(true);
+    fetchAllChildren().then(children => {
+      setAllChildren(children);
+
+      const storedId = getStoredActiveId();
+
+      // Returning user with a valid stored selection → skip picker
+      if (storedId) {
+        const found = children.find(c => c.id === storedId);
+        if (found) {
+          const summary = toActiveSummary(found);
+          setActiveChild(summary);
+          setSelectedStage(summary.age_stage);
+          setAllergies(summary.allergies);
+          if (summary.age_stage === "early_infant") setShowEarlyInfantScreen(true);
+          setProfileLoaded(true);
+          return;
         }
       }
+
+      // Single child → auto-select, no picker needed
+      if (children.length === 1) {
+        const summary = toActiveSummary(children[0]);
+        try { localStorage.setItem(LS_ACTIVE_CHILD_KEY, children[0].id); } catch {}
+        setActiveChild(summary);
+        setSelectedStage(summary.age_stage);
+        setAllergies(summary.allergies);
+        if (summary.age_stage === "early_infant") setShowEarlyInfantScreen(true);
+        setProfileLoaded(true);
+        return;
+      }
+
+      // Multiple children, no stored selection → show picker
+      if (children.length >= 2) {
+        setShowChildPicker(true);
+      }
+
+      // 0 children or fallthrough → bare form
       setProfileLoaded(true);
     });
   }, []);
@@ -980,6 +1153,14 @@ export default function MyPerfectBeginningCreateMealPage() {
       transition={{ duration: 0.5 }}
       className="min-h-screen bg-gradient-to-br from-black/70 via-green-900/30 to-black/80 pb-safe-nav"
     >
+      {/* Child picker sheet — shown when multiple children and no active selection */}
+      {showChildPicker && allChildren.length >= 2 && (
+        <ChildPickerSheet
+          children={allChildren}
+          onSelect={applyChild}
+          onGeneral={applyGeneral}
+        />
+      )}
       {/* Header */}
       <MobileHeaderGuard>
         <div
@@ -1066,7 +1247,13 @@ export default function MyPerfectBeginningCreateMealPage() {
                   </p>
                 </div>
                 <button
-                  onClick={() => setLocation("/lifestyle/my-perfect-beginning")}
+                  onClick={() => {
+                    if (allChildren.length >= 2) {
+                      setShowChildPicker(true);
+                    } else {
+                      setLocation("/lifestyle/my-perfect-beginning");
+                    }
+                  }}
                   className="flex-shrink-0 text-[11px] text-emerald-400/70 hover:text-emerald-300 underline underline-offset-2"
                 >
                   Switch child
