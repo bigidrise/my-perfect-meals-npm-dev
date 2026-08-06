@@ -7,6 +7,7 @@ import {
   Plus,
   Utensils,
   MessageCircle,
+  User,
   Sprout,
   Baby,
   Loader2,
@@ -107,6 +108,17 @@ interface SectionCard {
 }
 
 const SECTION_CARDS: SectionCard[] = [
+  {
+    id: "profile",
+    emoji: "👶",
+    icon: User,
+    title: "Child Nutrition Profile",
+    subtitle: "Build and update your child's full profile",
+    route: "/lifestyle/my-perfect-beginning/profile",
+    accentColor: "text-sky-400",
+    borderColor: "border-sky-500/30 hover:border-sky-400/50",
+    glowColor: "rgba(56,189,248,0.5)",
+  },
   {
     id: "create-meal",
     emoji: "🍽",
@@ -324,6 +336,20 @@ export default function MyPerfectBeginningPage() {
     try { localStorage.setItem(LS_ACTIVE_CHILD_KEY, child.id); } catch {}
   };
 
+  // Derive profile completion status from the active child's saved fields
+  const profileStatus = (() => {
+    if (!activeChild) return "Not started";
+    const hasCore = activeChild.name && activeChild.age_stage;
+    const hasDetail =
+      (activeChild.allergies?.length ?? 0) > 0 ||
+      (activeChild.dietary_preferences?.length ?? 0) > 0 ||
+      (activeChild.medical_conditions?.length ?? 0) > 0 ||
+      activeChild.cultural_preferences;
+    if (hasCore && hasDetail) return "Complete";
+    if (hasCore) return "In progress";
+    return "Not started";
+  })();
+
   const tip = activeChild
     ? (STAGE_TIPS[activeChild.age_stage] ?? STAGE_TIPS["toddler"])
     : STAGE_TIPS["toddler"];
@@ -405,7 +431,7 @@ export default function MyPerfectBeginningPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] text-emerald-400/80 font-semibold tracking-wide uppercase mb-0.5">
-                  Currently Helping
+                  Preparing meals for
                 </p>
                 {isLoading ? (
                   <p className="text-white/40 text-sm">Loading profiles…</p>
@@ -413,7 +439,7 @@ export default function MyPerfectBeginningPage() {
                   <p className="text-white font-semibold text-sm truncate">
                     {activeChild.name}
                     <span className="text-white/50 font-normal">
-                      {" · "}{STAGE_LABELS[activeChild.age_stage]}
+                      {" / "}{STAGE_LABELS[activeChild.age_stage]}
                     </span>
                   </p>
                 ) : (
@@ -493,37 +519,6 @@ export default function MyPerfectBeginningPage() {
           </div>
         </div>
 
-        {/* ── Today's Tip ── */}
-        <div className="mb-5">
-          <div className="rounded-2xl bg-gradient-to-r from-emerald-950/60 via-teal-950/40 to-black border border-emerald-400/20 px-4 py-4">
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 p-2 rounded-xl bg-emerald-500/15 border border-emerald-400/20 mt-0.5">
-                <Sprout className="h-4 w-4 text-emerald-400" />
-              </div>
-              <div>
-                <p className="text-[10px] text-emerald-400/80 font-semibold tracking-wide uppercase mb-1">
-                  Today's Tip
-                  {activeChild && (
-                    <span className="text-emerald-400/50 normal-case font-normal">
-                      {" · "}{STAGE_LABELS[activeChild.age_stage]}
-                    </span>
-                  )}
-                </p>
-                <p className="text-sm text-white/85 leading-relaxed">{tip}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ── Section header ── */}
-        {activeChild && (
-          <div className="mb-3 px-1">
-            <p className="text-xs text-white/40 leading-relaxed">
-              Helping <span className="text-emerald-300 font-semibold">{activeChild.name}</span> build healthy habits
-            </p>
-          </div>
-        )}
-
         {/* ── No child prompt ── */}
         {!isLoading && children.length === 0 && (
           <div className="mb-5 rounded-2xl bg-emerald-900/20 border border-emerald-500/20 px-5 py-6 text-center">
@@ -542,9 +537,17 @@ export default function MyPerfectBeginningPage() {
         )}
 
         {/* ── Section cards ── */}
-        <div className="space-y-3 mb-6">
+        <div className="space-y-3 mb-5">
           {SECTION_CARDS.map(card => {
             const Icon = card.icon;
+            const isProfile = card.id === "profile";
+            const statusLabel = isProfile ? profileStatus : null;
+            const statusColor =
+              profileStatus === "Complete"
+                ? "bg-emerald-500/15 border-emerald-400/30 text-emerald-300"
+                : profileStatus === "In progress"
+                ? "bg-amber-500/15 border-amber-400/30 text-amber-300"
+                : "bg-white/8 border-white/12 text-white/40";
             return (
               <div key={card.id} className="relative">
                 <div
@@ -567,12 +570,39 @@ export default function MyPerfectBeginningPage() {
                     <p className="text-xs text-white/55 leading-relaxed truncate">
                       {card.subtitle}
                     </p>
+                    {statusLabel && (
+                      <span className={`inline-block mt-1 px-2 py-0.5 rounded-full border text-[10px] font-medium ${statusColor}`}>
+                        {statusLabel}
+                      </span>
+                    )}
                   </div>
                   <ChevronRight className="h-4 w-4 text-white/25 flex-shrink-0" />
                 </button>
               </div>
             );
           })}
+        </div>
+
+        {/* ── Today's Tip ── */}
+        <div className="mb-5">
+          <div className="rounded-2xl bg-gradient-to-r from-emerald-950/60 via-teal-950/40 to-black border border-emerald-400/20 px-4 py-4">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 p-2 rounded-xl bg-emerald-500/15 border border-emerald-400/20 mt-0.5">
+                <Sprout className="h-4 w-4 text-emerald-400" />
+              </div>
+              <div>
+                <p className="text-[10px] text-emerald-400/80 font-semibold tracking-wide uppercase mb-1">
+                  Today's Tip
+                  {activeChild && (
+                    <span className="text-emerald-400/50 normal-case font-normal">
+                      {" · "}{STAGE_LABELS[activeChild.age_stage]}
+                    </span>
+                  )}
+                </p>
+                <p className="text-sm text-white/85 leading-relaxed">{tip}</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </motion.div>
