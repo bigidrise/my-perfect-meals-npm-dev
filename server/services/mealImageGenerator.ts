@@ -422,6 +422,7 @@ The rendered food MUST visually match this texture — a purée stage must look 
 PORTION: ${ctx.portionNote} — this is a child's serving, NOT a full adult restaurant plate.${presentationLine ? `\n${presentationLine}` : ""}
 The food should look like what a parent would actually put on a small child's plate: appropriately sized, soft-looking if needed, simply presented.
 Do NOT show adult-sized portions. Do NOT show elaborate restaurant plating. Do NOT show raw or hard-textured ingredients if the texture class is purée or mashed.${conditionNotes ? "\n" + conditionNotes : ""}`;
+}
 
 function buildMealImagePrompt(mealName: string, ingredients: string[], sourceType?: ImageSourceType, pediatricContext?: PediatricImageContext): string {
   const topIngredients = ingredients.slice(0, 5).join(", ");
