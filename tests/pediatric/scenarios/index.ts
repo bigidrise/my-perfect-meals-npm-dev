@@ -1,7 +1,7 @@
 /**
  * Pediatric Test Scenario Index
  *
- * Exports all 110 scenarios across 21 groups.
+ * Exports all 113 scenarios across 22 groups.
  * Hard-stop scenarios: S001, S076–S081 (6 total) — must reach 100% pass rate
  * Soft scenarios: all others — must reach 95%+ aggregate pass rate
  */
@@ -29,6 +29,7 @@ import { familyMealScenarios }          from "./18-family-meals";
 import { mealContextScenarios }         from "./19-meal-contexts";
 import { parentControlScenarios }       from "./20-parent-controls";
 import { multipleConditionScenarios }   from "./21-multiple-conditions";
+import { unknownStageScenarios }         from "./22-unknown-stage";
 
 export const ALL_SCENARIOS: PediatricScenario[] = [
   ...healthyChildrenScenarios,      //  8  S001–S008
@@ -52,6 +53,7 @@ export const ALL_SCENARIOS: PediatricScenario[] = [
   ...mealContextScenarios,          //  5  S092–S096
   ...parentControlScenarios,        //  4  S097–S100
   ...multipleConditionScenarios,    // 10  S101–S110
+  ...unknownStageScenarios,         //  3  S111–S113
 ];
 
 export const HARD_STOP_SCENARIOS = ALL_SCENARIOS.filter(s => s.expectHardStop);
@@ -79,4 +81,5 @@ export {
   mealContextScenarios,
   parentControlScenarios,
   multipleConditionScenarios,
+  unknownStageScenarios,
 };

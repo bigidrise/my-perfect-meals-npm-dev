@@ -1894,10 +1894,23 @@ export interface PediatricContext {
   protocols: string[];
   hardStop: boolean;
   hardStopReason?: string;
+  /** True when profile.ageStage was missing or not a recognised DevelopmentalStageKey */
+  stageError?: boolean;
   languageFlags: string[];
   conditionGuidanceBlocks: string[];
   mealType?: string;
 }
+
+/** All recognised developmental stage keys — used to guard against stale or partial DB rows */
+export const VALID_PEDIATRIC_STAGE_KEYS = new Set<string>([
+  "early_infant",
+  "beginning_foods",
+  "young_toddler",
+  "toddler",
+  "preschool",
+  "early_school_age",
+  "growing_child",
+]);
 
 // ── RULE-XXXX → MPB-SXXX ─────────────────────────────────────────────────────
 const RULE_TO_MPB: Record<string, string> = {
@@ -2110,6 +2123,25 @@ export async function resolvePediatricContext(
   },
 ): Promise<PediatricContext> {
   const stage = profile.ageStage;
+
+  // ── Unknown-stage guard ───────────────────────────────────────────────────
+  // If ageStage is missing or not a recognised DevelopmentalStageKey (e.g. a
+  // stale DB row from partial onboarding), return a safe minimal context with
+  // stageError=true instead of silently producing partial output.
+  if (!stage || !VALID_PEDIATRIC_STAGE_KEYS.has(stage)) {
+    return {
+      stage: stage ?? "",
+      hardStop: false,
+      stageError: true,
+      rulesFired: [],
+      protocols: [],
+      exclusions: [],
+      languageFlags: [],
+      conditionGuidanceBlocks: [],
+      mealType: "any",
+    };
+  }
+
   const conditions = (profile.medicalConditions ?? []).map((c: string) => c.toLowerCase().replace(/[\s\-]/g, "_"));
   const behavioralFlags = (profile.behavioralFlags ?? []).map((f: string) => f.toLowerCase().replace(/[\s\-]/g, "_"));
   const allergies = profile.allergies ?? [];
