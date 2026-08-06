@@ -2,6 +2,7 @@ import { Router } from "express";
 import OpenAI from "openai";
 import type { AuthenticatedRequest } from "../middleware/requireAuth";
 import { computeParentEducationLayer } from "../services/pediatric/pediatricConfidenceScorer";
+import {
 
 const router = Router();
 
@@ -380,6 +381,8 @@ router.post("/create-dish", async (req, res) => {
   try {
     // ── Validate request ─────────────────────────────────────────────────────
     const validation = validateRequest(req.body);
+
+    const { ageStage, allergies, foodRequest, parentPrefs, childName } = validation as Required<typeof validation>;
     if (!validation.valid) {
       return res.status(400).json({ error: validation.error });
     }
@@ -454,6 +457,8 @@ router.post("/create-dish", async (req, res) => {
 
     // ── Validate response schema ──────────────────────────────────────────────
     const schemaCheck = validateRecipeResponse(recipe);
+
+    const postScan = scanGeneratedOutput(recipe, ageStage);
     if (!schemaCheck.valid) {
       console.error("[MyPerfectBeginning] AI response schema invalid:", schemaCheck.error, JSON.stringify(recipe).slice(0, 300));
       return res.status(500).json({ error: "AI returned an incomplete recipe. Please try again." });
@@ -487,3 +492,7 @@ router.post("/create-dish", async (req, res) => {
 });
 
 export default router;
+
+    const finalRecipe = postScan.patchedRecipe ?? recipe;
+
+    const preCheck = enforceBeforeGenerate({ ageStage, foodRequest });
