@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
@@ -7,18 +7,16 @@ import {
   Plus,
   Utensils,
   MessageCircle,
-  User,
-  Map,
-  Heart,
-  ShoppingBag,
-  Shield,
-  BookOpen,
   Sprout,
   Baby,
+  Loader2,
+  Check,
+  X,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { usePageTitle } from "@/contexts/PageTitleContext";
+import { apiUrl } from "@/lib/resolveApiBase";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -31,12 +29,20 @@ type DevelopmentalStage =
   | "early_school_age"
   | "growing_child";
 
-interface MockChild {
+interface DbChild {
   id: string;
-  nickname: string;
-  age: number; // years, approximate
-  stage: DevelopmentalStage;
+  name: string;
+  age_stage: DevelopmentalStage;
   emoji: string;
+  date_of_birth?: string | null;
+  allergies: any[];
+  dietary_preferences: string[];
+  medical_conditions: string[];
+  feeding_concerns: string[];
+  sensory_issues: string[];
+  dislikes: string[];
+  cultural_preferences?: string | null;
+  created_at?: string;
 }
 
 // ── Stage Labels ──────────────────────────────────────────────────────────────
@@ -51,16 +57,23 @@ const STAGE_LABELS: Record<DevelopmentalStage, string> = {
   growing_child: "Growing Child",
 };
 
-// ── Mock Data ─────────────────────────────────────────────────────────────────
-
-const INITIAL_CHILDREN: MockChild[] = [
-  { id: "mock-1", nickname: "Emma", age: 4, stage: "preschool", emoji: "👧" },
+const STAGES: { id: DevelopmentalStage; label: string; ageRange: string }[] = [
+  { id: "early_infant",     label: "Early Infant",      ageRange: "Birth–~5 months" },
+  { id: "beginning_foods",  label: "Beginning Foods",   ageRange: "~6–11 months" },
+  { id: "young_toddler",    label: "Young Toddler",     ageRange: "12–23 months" },
+  { id: "toddler",          label: "Toddler",           ageRange: "2–3 years" },
+  { id: "preschool",        label: "Preschool",         ageRange: "4–5 years" },
+  { id: "early_school_age", label: "Early School Age",  ageRange: "6–8 years" },
+  { id: "growing_child",    label: "Growing Child",     ageRange: "9–12 years" },
 ];
 
-const SESSION_KEY = "mpb.activeChild.v1";
-const SESSION_CHILDREN_KEY = "mpb.children.v1";
+const EMOJI_OPTIONS = ["👶", "👧", "👦", "🧒", "🧒‍♀️", "🧒‍♂️", "🍼", "⭐"];
 
-// ── Today's Tips (static placeholder — rotates by stage in Phase 2) ───────────
+// ── localStorage keys ─────────────────────────────────────────────────────────
+
+const LS_ACTIVE_CHILD_KEY = "mpb.activeChildId.v1";
+
+// ── Today's Tips ──────────────────────────────────────────────────────────────
 
 const STAGE_TIPS: Record<DevelopmentalStage, string> = {
   early_infant:
@@ -116,96 +129,110 @@ const SECTION_CARDS: SectionCard[] = [
     borderColor: "border-amber-500/30 hover:border-amber-400/50",
     glowColor: "rgba(251,191,36,0.5)",
   },
-  {
-    id: "profile",
-    emoji: "👶",
-    icon: User,
-    title: "Child Nutrition Profile",
-    subtitle: "Build and update your child's full profile",
-    route: "/lifestyle/my-perfect-beginning/profile",
-    accentColor: "text-sky-400",
-    borderColor: "border-sky-500/30 hover:border-sky-400/50",
-    glowColor: "rgba(56,189,248,0.5)",
-  },
-  {
-    id: "journey",
-    emoji: "🌱",
-    icon: Map,
-    title: "The Journey",
-    subtitle: "Where you are right now — and what's ahead",
-    route: "/lifestyle/my-perfect-beginning/journey",
-    accentColor: "text-teal-400",
-    borderColor: "border-teal-500/30 hover:border-teal-400/50",
-    glowColor: "rgba(45,212,191,0.5)",
-  },
-  {
-    id: "better-favorites",
-    emoji: "🎂",
-    icon: Heart,
-    title: "Better Favorites",
-    subtitle: "Healthier versions of foods they already love",
-    route: "/lifestyle/my-perfect-beginning/better-favorites",
-    accentColor: "text-rose-400",
-    borderColor: "border-rose-500/30 hover:border-rose-400/50",
-    glowColor: "rgba(251,113,133,0.5)",
-  },
-  {
-    id: "lunchbox",
-    emoji: "🎒",
-    icon: ShoppingBag,
-    title: "Lunchbox Builder",
-    subtitle: "Pack the perfect lunch for school, sports, or travel",
-    route: "/lifestyle/my-perfect-beginning/lunchbox",
-    accentColor: "text-orange-400",
-    borderColor: "border-orange-500/30 hover:border-orange-400/50",
-    glowColor: "rgba(251,146,60,0.5)",
-  },
-  {
-    id: "nutrition-support",
-    emoji: "❤️",
-    icon: Shield,
-    title: "Nutrition Support",
-    subtitle: "Allergies, celiac, T1D, and specialized protocols",
-    route: "/lifestyle/my-perfect-beginning/nutrition-support",
-    accentColor: "text-violet-400",
-    borderColor: "border-violet-500/30 hover:border-violet-400/50",
-    glowColor: "rgba(167,139,250,0.5)",
-  },
-  {
-    id: "growth",
-    emoji: "📚",
-    icon: BookOpen,
-    title: "Growth & Development",
-    subtitle: "Learn about this stage and what's coming next",
-    route: "/lifestyle/my-perfect-beginning/growth",
-    accentColor: "text-cyan-400",
-    borderColor: "border-cyan-500/30 hover:border-cyan-400/50",
-    glowColor: "rgba(34,211,238,0.5)",
-  },
 ];
 
-// ── Helper ────────────────────────────────────────────────────────────────────
+// ── Add Child Form ─────────────────────────────────────────────────────────────
 
-function loadChildren(): MockChild[] {
-  try {
-    const raw = sessionStorage.getItem(SESSION_CHILDREN_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {}
-  return INITIAL_CHILDREN;
+interface AddChildFormProps {
+  onSave: (child: DbChild) => void;
+  onCancel: () => void;
 }
 
-function saveChildren(children: MockChild[]) {
-  try {
-    sessionStorage.setItem(SESSION_CHILDREN_KEY, JSON.stringify(children));
-  } catch {}
-}
+function AddChildForm({ onSave, onCancel }: AddChildFormProps) {
+  const [name, setName] = useState("");
+  const [ageStage, setAgeStage] = useState<DevelopmentalStage>("toddler");
+  const [emoji, setEmoji] = useState("👶");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
-function loadActiveId(children: MockChild[]): string {
-  try {
-    const saved = sessionStorage.getItem(SESSION_KEY);
-    if (saved && children.find(c => c.id === saved)) return saved;
-  } catch {}
-  return children[0]?.id ?? "";
+  async function handleSave() {
+    if (!name.trim()) { setError("Please enter a name."); return; }
+    setSaving(true);
+    setError("");
+    try {
+      const res = await fetch(apiUrl("/api/my-perfect-beginning/children"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ name: name.trim(), age_stage: ageStage, emoji }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to save");
+      onSave(data.child);
+    } catch (err: any) {
+      setError(err.message || "Something went wrong");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="border-t border-emerald-500/15 px-3 py-3 space-y-3">
+      <p className="text-[11px] text-emerald-400/70 font-semibold uppercase tracking-wide">
+        Add Child Profile
+      </p>
+
+      {/* Emoji picker */}
+      <div className="flex flex-wrap gap-2">
+        {EMOJI_OPTIONS.map(e => (
+          <button
+            key={e}
+            type="button"
+            onClick={() => setEmoji(e)}
+            className={`w-9 h-9 rounded-xl text-xl flex items-center justify-center transition-all ${
+              emoji === e
+                ? "bg-emerald-500/30 border border-emerald-400/50 ring-1 ring-emerald-400/30"
+                : "bg-white/5 border border-white/10 hover:bg-white/10"
+            }`}
+          >
+            {e}
+          </button>
+        ))}
+      </div>
+
+      {/* Name */}
+      <input
+        type="text"
+        value={name}
+        onChange={e => setName(e.target.value)}
+        placeholder="Child's nickname or name"
+        maxLength={40}
+        className="w-full bg-black/40 text-white text-sm border border-white/15 rounded-xl px-3 py-2 placeholder:text-white/30 focus:border-emerald-400/50 focus:outline-none"
+      />
+
+      {/* Age stage */}
+      <select
+        value={ageStage}
+        onChange={e => setAgeStage(e.target.value as DevelopmentalStage)}
+        className="w-full bg-black/40 text-white text-sm border border-white/15 rounded-xl px-3 py-2 focus:border-emerald-400/50 focus:outline-none"
+      >
+        {STAGES.map(s => (
+          <option key={s.id} value={s.id}>
+            {s.label} ({s.ageRange})
+          </option>
+        ))}
+      </select>
+
+      {error && <p className="text-xs text-red-400">{error}</p>}
+
+      <div className="flex gap-2">
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-emerald-600/40 border border-emerald-500/40 text-emerald-200 text-xs font-semibold transition-all disabled:opacity-50"
+        >
+          {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+          {saving ? "Saving…" : "Save Profile"}
+        </button>
+        <button
+          onClick={onCancel}
+          className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white/50 text-xs"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    </div>
+  );
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -215,31 +242,59 @@ export default function MyPerfectBeginningPage() {
   const isDesktop = useIsDesktop();
   usePageTitle("My Perfect Beginning");
 
-  // Session-only child list (Phase 1 — no DB)
-  const [children, setChildren] = useState<MockChild[]>(() => loadChildren());
-  const [activeId, setActiveId] = useState<string>(() =>
-    loadActiveId(loadChildren())
-  );
+  // DB-backed child state
+  const [children, setChildren] = useState<DbChild[]>([]);
+  const [activeId, setActiveId] = useState<string>(() => {
+    try { return localStorage.getItem(LS_ACTIVE_CHILD_KEY) ?? ""; } catch { return ""; }
+  });
+  const [isLoading, setIsLoading] = useState(true);
   const [switcherOpen, setSwitcherOpen] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
   const switcherRef = useRef<HTMLDivElement>(null);
 
-  const activeChild = children.find(c => c.id === activeId) ?? children[0];
+  const activeChild = children.find(c => c.id === activeId) ?? children[0] ?? null;
 
-  // Persist across same session
-  useEffect(() => {
-    saveChildren(children);
-  }, [children]);
-
-  useEffect(() => {
+  // Load children from API on mount
+  const loadChildren = useCallback(async () => {
     try {
-      sessionStorage.setItem(SESSION_KEY, activeId);
-    } catch {}
-  }, [activeId]);
+      const res = await fetch(apiUrl("/api/my-perfect-beginning/children"), {
+        credentials: "include",
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      const list: DbChild[] = data.children ?? [];
+      setChildren(list);
+
+      // Restore persisted active child or default to first
+      const savedId = (() => { try { return localStorage.getItem(LS_ACTIVE_CHILD_KEY); } catch { return null; } })();
+      if (savedId && list.find(c => c.id === savedId)) {
+        setActiveId(savedId);
+      } else if (list.length > 0) {
+        setActiveId(list[0].id);
+        try { localStorage.setItem(LS_ACTIVE_CHILD_KEY, list[0].id); } catch {}
+      }
+    } catch (err) {
+      console.error("[MPB hub] Failed to load children:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadChildren();
+  }, [loadChildren]);
 
   useEffect(() => {
     document.title = "My Perfect Beginning | My Perfect Meals";
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
+
+  // Persist active child ID to localStorage
+  useEffect(() => {
+    if (activeId) {
+      try { localStorage.setItem(LS_ACTIVE_CHILD_KEY, activeId); } catch {}
+    }
+  }, [activeId]);
 
   // Close switcher on outside tap
   useEffect(() => {
@@ -247,6 +302,7 @@ export default function MyPerfectBeginningPage() {
     const handler = (e: MouseEvent) => {
       if (switcherRef.current && !switcherRef.current.contains(e.target as Node)) {
         setSwitcherOpen(false);
+        setShowAddForm(false);
       }
     };
     document.addEventListener("mousedown", handler);
@@ -256,14 +312,21 @@ export default function MyPerfectBeginningPage() {
   const handleSwitch = (id: string) => {
     setActiveId(id);
     setSwitcherOpen(false);
+    setShowAddForm(false);
+    try { localStorage.setItem(LS_ACTIVE_CHILD_KEY, id); } catch {}
   };
 
-  const handleAddChild = () => {
+  const handleChildSaved = (child: DbChild) => {
+    setChildren(prev => [...prev, child]);
+    setActiveId(child.id);
     setSwitcherOpen(false);
-    setLocation("/lifestyle/my-perfect-beginning/profile?new=1");
+    setShowAddForm(false);
+    try { localStorage.setItem(LS_ACTIVE_CHILD_KEY, child.id); } catch {}
   };
 
-  const tip = activeChild ? STAGE_TIPS[activeChild.stage] : STAGE_TIPS["preschool"];
+  const tip = activeChild
+    ? (STAGE_TIPS[activeChild.age_stage] ?? STAGE_TIPS["toddler"])
+    : STAGE_TIPS["toddler"];
 
   return (
     <motion.div
@@ -305,7 +368,6 @@ export default function MyPerfectBeginningPage() {
         {/* ── Hero banner ── */}
         <div className="relative rounded-2xl overflow-hidden mb-5 border border-emerald-500/20">
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-950/70 via-teal-950/50 to-black" />
-          {/* Soft organic shapes */}
           <div className="absolute inset-0 opacity-15 pointer-events-none">
             <svg viewBox="0 0 400 140" className="w-full h-full" preserveAspectRatio="xMidYMid slice">
               <circle cx="340" cy="30" r="55" fill="rgba(52,211,153,0.4)" />
@@ -337,19 +399,21 @@ export default function MyPerfectBeginningPage() {
             {/* Child strip */}
             <div className="px-4 py-3 flex items-center gap-3">
               <div className="flex-shrink-0 w-9 h-9 rounded-full bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-lg">
-                {activeChild?.emoji ?? "👶"}
+                {isLoading
+                  ? <Loader2 className="h-4 w-4 text-emerald-400 animate-spin" />
+                  : (activeChild?.emoji ?? "👶")}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] text-emerald-400/80 font-semibold tracking-wide uppercase mb-0.5">
                   Currently Helping
                 </p>
-                {activeChild ? (
+                {isLoading ? (
+                  <p className="text-white/40 text-sm">Loading profiles…</p>
+                ) : activeChild ? (
                   <p className="text-white font-semibold text-sm truncate">
-                    {activeChild.nickname}
+                    {activeChild.name}
                     <span className="text-white/50 font-normal">
-                      {" · "}Age {activeChild.age}
-                      {" · "}
-                      {STAGE_LABELS[activeChild.stage]}
+                      {" · "}{STAGE_LABELS[activeChild.age_stage]}
                     </span>
                   </p>
                 ) : (
@@ -357,10 +421,10 @@ export default function MyPerfectBeginningPage() {
                 )}
               </div>
               <button
-                onClick={() => setSwitcherOpen(o => !o)}
+                onClick={() => { setSwitcherOpen(o => !o); setShowAddForm(false); }}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600/25 border border-emerald-500/30 text-emerald-200 text-xs font-semibold transition-all active:scale-95"
               >
-                Switch Child
+                {children.length > 0 ? "Switch" : "Add"}
                 <ChevronDown
                   className={`h-3.5 w-3.5 transition-transform ${switcherOpen ? "rotate-180" : ""}`}
                 />
@@ -377,43 +441,52 @@ export default function MyPerfectBeginningPage() {
                   transition={{ duration: 0.22 }}
                   className="overflow-hidden"
                 >
-                  <div className="border-t border-emerald-500/15 px-3 py-2 space-y-1">
-                    {children.map(child => (
-                      <button
-                        key={child.id}
-                        onClick={() => handleSwitch(child.id)}
-                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left ${
-                          child.id === activeId
-                            ? "bg-emerald-500/20 border border-emerald-400/30"
-                            : "hover:bg-white/5 border border-transparent"
-                        }`}
-                      >
-                        <span className="text-xl flex-shrink-0">{child.emoji}</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-white text-sm font-semibold truncate">
-                            {child.nickname}
-                          </p>
-                          <p className="text-white/50 text-xs">
-                            Age {child.age} · {STAGE_LABELS[child.stage]}
-                          </p>
-                        </div>
-                        {child.id === activeId && (
-                          <div className="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0" />
-                        )}
-                      </button>
-                    ))}
+                  {!showAddForm && (
+                    <div className="border-t border-emerald-500/15 px-3 py-2 space-y-1">
+                      {children.map(child => (
+                        <button
+                          key={child.id}
+                          onClick={() => handleSwitch(child.id)}
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left ${
+                            child.id === activeId
+                              ? "bg-emerald-500/20 border border-emerald-400/30"
+                              : "hover:bg-white/5 border border-transparent"
+                          }`}
+                        >
+                          <span className="text-xl flex-shrink-0">{child.emoji}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white text-sm font-semibold truncate">
+                              {child.name}
+                            </p>
+                            <p className="text-white/50 text-xs">
+                              {STAGE_LABELS[child.age_stage]}
+                            </p>
+                          </div>
+                          {child.id === activeId && (
+                            <div className="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0" />
+                          )}
+                        </button>
+                      ))}
 
-                    {/* Add child */}
-                    <button
-                      onClick={handleAddChild}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-dashed border-emerald-500/25 hover:border-emerald-400/40 transition-all text-left hover:bg-emerald-500/5"
-                    >
-                      <div className="w-8 h-8 rounded-full bg-white/5 border border-white/15 flex items-center justify-center flex-shrink-0">
-                        <Plus className="h-3.5 w-3.5 text-white/50" />
-                      </div>
-                      <p className="text-white/50 text-sm">Add Child Nutrition Profile</p>
-                    </button>
-                  </div>
+                      {/* Add child button */}
+                      <button
+                        onClick={() => setShowAddForm(true)}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-dashed border-emerald-500/25 hover:border-emerald-400/40 transition-all text-left hover:bg-emerald-500/5"
+                      >
+                        <div className="w-8 h-8 rounded-full bg-white/5 border border-white/15 flex items-center justify-center flex-shrink-0">
+                          <Plus className="h-3.5 w-3.5 text-white/50" />
+                        </div>
+                        <p className="text-white/50 text-sm">Add Child Nutrition Profile</p>
+                      </button>
+                    </div>
+                  )}
+
+                  {showAddForm && (
+                    <AddChildForm
+                      onSave={handleChildSaved}
+                      onCancel={() => setShowAddForm(false)}
+                    />
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -432,7 +505,7 @@ export default function MyPerfectBeginningPage() {
                   Today's Tip
                   {activeChild && (
                     <span className="text-emerald-400/50 normal-case font-normal">
-                      {" · "}{STAGE_LABELS[activeChild.stage]}
+                      {" · "}{STAGE_LABELS[activeChild.age_stage]}
                     </span>
                   )}
                 </p>
@@ -442,12 +515,29 @@ export default function MyPerfectBeginningPage() {
           </div>
         </div>
 
-        {/* ── Parent's Corner header ── */}
+        {/* ── Section header ── */}
         {activeChild && (
           <div className="mb-3 px-1">
             <p className="text-xs text-white/40 leading-relaxed">
-              Helping <span className="text-emerald-300 font-semibold">{activeChild.nickname}</span> build healthy habits
+              Helping <span className="text-emerald-300 font-semibold">{activeChild.name}</span> build healthy habits
             </p>
+          </div>
+        )}
+
+        {/* ── No child prompt ── */}
+        {!isLoading && children.length === 0 && (
+          <div className="mb-5 rounded-2xl bg-emerald-900/20 border border-emerald-500/20 px-5 py-6 text-center">
+            <div className="text-3xl mb-3">👶</div>
+            <p className="text-sm text-white/70 leading-relaxed mb-4">
+              Add your first child's profile to get personalized meal ideas and nutrition guidance.
+            </p>
+            <button
+              onClick={() => { setSwitcherOpen(true); setShowAddForm(true); }}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600/40 border border-emerald-500/40 text-emerald-200 text-sm font-semibold"
+            >
+              <Plus className="h-4 w-4" />
+              Add Child Profile
+            </button>
           </div>
         )}
 
@@ -457,7 +547,6 @@ export default function MyPerfectBeginningPage() {
             const Icon = card.icon;
             return (
               <div key={card.id} className="relative">
-                {/* Subtle glow */}
                 <div
                   className="pointer-events-none absolute -inset-0.5 rounded-2xl blur-sm opacity-40"
                   style={{
@@ -484,13 +573,6 @@ export default function MyPerfectBeginningPage() {
               </div>
             );
           })}
-        </div>
-
-        {/* ── Phase note ── */}
-        <div className="rounded-xl bg-black/20 border border-white/6 px-4 py-3 mb-4">
-          <p className="text-xs text-white/30 leading-relaxed text-center">
-            Child profiles are saved in this session. Full cloud sync coming in the next update.
-          </p>
         </div>
       </div>
     </motion.div>

@@ -1155,6 +1155,42 @@ setTimeout(async () => {
   }
 }, 4000);
 
+// child_profiles boot migration — My Perfect Beginning persistent child profiles
+setTimeout(async () => {
+  try {
+    const { db } = await import("./db");
+    const { sql } = await import('drizzle-orm');
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS child_profiles (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id text NOT NULL,
+        name text NOT NULL,
+        date_of_birth text,
+        age_stage text NOT NULL DEFAULT 'toddler',
+        allergies jsonb NOT NULL DEFAULT '[]',
+        dietary_preferences jsonb NOT NULL DEFAULT '[]',
+        medical_conditions jsonb NOT NULL DEFAULT '[]',
+        feeding_concerns jsonb NOT NULL DEFAULT '[]',
+        sensory_issues jsonb NOT NULL DEFAULT '[]',
+        dislikes jsonb NOT NULL DEFAULT '[]',
+        cultural_preferences text,
+        emoji text NOT NULL DEFAULT '👶',
+        is_archived boolean NOT NULL DEFAULT false,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+    await db.execute(sql`
+      CREATE INDEX IF NOT EXISTS idx_child_profiles_user
+      ON child_profiles (user_id)
+      WHERE is_archived = false
+    `);
+    console.log('✅ child_profiles boot migration complete (My Perfect Beginning)');
+  } catch (err: any) {
+    console.error('❌ child_profiles boot migration failed:', err.message);
+  }
+}, 4600);
+
 // Backfill: purge stale temp URLs from meal_image_cache
 // Any non-S3 URL is expired or will expire — delete so next request regenerates clean
 setTimeout(async () => {
