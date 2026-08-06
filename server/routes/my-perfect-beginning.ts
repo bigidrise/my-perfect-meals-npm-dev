@@ -488,7 +488,8 @@ async function fetchChildProfileInput(
         sensory_issues,
         feeding_concerns,
         feeding_ability,
-        growth_context
+        growth_context,
+        g_tube
       FROM child_profiles
       WHERE id = ${childProfileId}
         AND user_id = ${userId}
@@ -518,15 +519,30 @@ async function fetchChildProfileInput(
     const feedingAbilityRaw = parseJsonbObject(row.feeding_ability);
     const growthRaw = parseJsonbObject(row.growth_context);
 
+    // G-tube status may be stored in the dedicated boolean column OR in
+    // feeding_ability.hasFeedingTube (set by the child profile form's feeding
+    // section). Normalize both sources into medicalConditions so that the
+    // downstream gate (loadedMedConditions.includes("g_tube")) always fires.
+    const hasFeedingTubeFromAbility = !!feedingAbilityRaw.hasFeedingTube;
+    const hasFeedingTubeFromBoolCol = !!row.g_tube;
+    const baseConditions = parseJsonbArray(row.medical_conditions);
+    const normalizedConditions =
+      (hasFeedingTubeFromAbility || hasFeedingTubeFromBoolCol) &&
+      !baseConditions.some(
+        (c: string) => c.toLowerCase().replace(/[\s\-]/g, "_") === "g_tube",
+      )
+        ? [...baseConditions, "g_tube"]
+        : baseConditions;
+
     const profileInput: ChildProfileInput = {
       developmentalStage: (row.age_stage as DevelopmentalStage) || "toddler",
-      medicalConditions: parseJsonbArray(row.medical_conditions),
+      medicalConditions: normalizedConditions,
       sensoryIssues: parseJsonbArray(row.sensory_issues),
       feedingConcerns: parseJsonbArray(row.feeding_concerns),
       feedingAbility: {
         textureLevel: feedingAbilityRaw.textureLevel,
         swallowingDifficulty: !!feedingAbilityRaw.swallowingDifficulty,
-        hasFeedingTube: !!feedingAbilityRaw.hasFeedingTube,
+        hasFeedingTube: hasFeedingTubeFromAbility || hasFeedingTubeFromBoolCol,
         historyOfChokingOrGagging: !!feedingAbilityRaw.historyOfChokingOrGagging,
       },
       growth: {
