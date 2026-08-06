@@ -154,6 +154,30 @@ async function verifyScenario(scenario: PediatricScenario): Promise<ScenarioResu
       }
     }
 
+    // 7. Stage error flag check
+    if (scenario.expectStageError) {
+      if (!context.stageError) {
+        failures.push(
+          `Expected stageError=true (unrecognised ageStage) but context.stageError was not set`,
+        );
+      }
+      // A stageError context must be minimal — no protocols or exclusions
+      if (context.protocols.length > 0) {
+        failures.push(
+          `stageError context must not populate protocols, got: ${context.protocols.join(", ")}`,
+        );
+      }
+      if (context.exclusions.length > 0) {
+        failures.push(
+          `stageError context must not populate exclusions, got: ${context.exclusions.join(", ")}`,
+        );
+      }
+    } else if (context.stageError) {
+      failures.push(
+        `Unexpected stageError=true on a scenario with a valid ageStage`,
+      );
+    }
+
   } catch (err: any) {
     return {
       scenario,

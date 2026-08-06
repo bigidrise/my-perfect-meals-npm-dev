@@ -639,6 +639,35 @@ router.post("/create-dish", requireAuth, async (req, res) => {
       });
     }
 
+    // ── Gate: PKU ────────────────────────────────────────────────────────────
+    // Phenylketonuria requires metabolic dietitian oversight — block generation.
+    const loadedMedConditions = (childProfileInput?.medicalConditions ?? []).map(
+      (c: string) => c.toLowerCase().replace(/[\s\-]/g, "_"),
+    );
+    if (loadedMedConditions.includes("pku")) {
+      return res.status(200).json({
+        blocked: true,
+        blockReason: "pku",
+        educationMessage:
+          "Phenylketonuria (PKU) requires strict phenylalanine management under the direct supervision of a " +
+          "metabolic dietitian. We can't generate meal suggestions for a child with PKU. " +
+          "Please work with your child's metabolic nutrition team for safe meal planning.",
+      });
+    }
+
+    // ── Gate: G-tube ─────────────────────────────────────────────────────────
+    // Enteral feeding — oral meal generation is not appropriate.
+    if (loadedMedConditions.includes("g_tube")) {
+      return res.status(200).json({
+        blocked: true,
+        blockReason: "g_tube",
+        educationMessage:
+          "Children receiving G-tube (enteral) nutrition have specialized feeding requirements managed by " +
+          "their care team. We can't generate oral meal recipes for this profile. " +
+          "Please follow your child's enteral nutrition plan from their dietitian.",
+      });
+    }
+
     // ── Gate: foodRequest required for generation ────────────────────────────
     if (!foodRequest) {
       return res.status(400).json({ error: "foodRequest is required" });
@@ -729,13 +758,21 @@ router.post("/create-dish", requireAuth, async (req, res) => {
 
     const userMessage = buildUserMessage(foodRequest, ageStage, allergies, rawCulturalCuisine, rawGoals);
 
+    // ── Inject resolver mealType into user message ────────────────────────────
+    // When the resolver derives a specific meal type from the profile or request,
+    // seed it into the prompt so the AI targets the right meal occasion.
+    const resolvedMealType = resolverCtx?.mealType;
+    const finalUserMessage = (resolvedMealType && resolvedMealType !== "any")
+      ? userMessage + `\n\nMeal type context (resolver-derived): ${resolvedMealType}`
+      : userMessage;
+
     // ── Phase 3: Call OpenAI ─────────────────────────────────────────────────
     const openai = getOpenAI();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: userMessage },
+        { role: "user", content: finalUserMessage },
       ],
       temperature: 0.7,
       max_tokens: 2500,

@@ -76,7 +76,8 @@ export type BehavioralFlag =
 
 export interface ChildProfile {
   childId: string;
-  ageStage: DevelopmentalStage;
+  /** Normally a DevelopmentalStage — accept string so unknown-stage tests can pass invalid values */
+  ageStage: string;
   allergies: AllergyEntry[];
   medicalConditions: MedicalCondition[];
   behavioralFlags?: BehavioralFlag[];
@@ -120,7 +121,7 @@ export interface FiredRule {
 }
 
 export interface PediatricContext {
-  stage: DevelopmentalStage;
+  stage: string;
   rulesFired: FiredRule[];
   /** Ingredient / allergen names that are excluded */
   exclusions: string[];
@@ -128,6 +129,8 @@ export interface PediatricContext {
   protocols: string[];
   hardStop: boolean;
   hardStopReason?: string;
+  /** True when profile.ageStage was missing or unrecognised */
+  stageError?: boolean;
   /** Language patterns the prompt must never produce */
   languageFlags: string[];
   /** Condition guidance block IDs to inject */
@@ -172,6 +175,8 @@ export interface PediatricScenario {
   /** If true, context.hardStop must be true */
   expectHardStop: boolean;
   expectHardStopReason?: string;
+  /** If true, context.stageError must be true (missing / unrecognised ageStage) */
+  expectStageError?: boolean;
   /** Optional: expected meal type in context */
   expectedMealType?: string;
 }
