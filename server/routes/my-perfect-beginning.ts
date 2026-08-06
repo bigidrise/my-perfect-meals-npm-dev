@@ -1,6 +1,7 @@
 import { Router } from "express";
 import OpenAI from "openai";
 import type { AuthenticatedRequest } from "../middleware/requireAuth";
+import { computeParentEducationLayer } from "../services/pediatric/pediatricConfidenceScorer";
 
 const router = Router();
 
@@ -93,6 +94,7 @@ function validateRequest(body: any): {
   allergies?: AllergyEntry[];
   foodRequest?: string;
   parentPrefs?: ParentPrefs;
+  childName?: string;
 } {
   // ── ageStage ──────────────────────────────────────────────────────────────
   if (!body.ageStage || typeof body.ageStage !== "string") {
@@ -152,7 +154,12 @@ function validateRequest(body: any): {
   // culturalCuisine and goals are user text — sanitized and kept in user message only
   // (not injected into the system prompt — see buildUserMessage below)
 
-  return { valid: true, ageStage, allergies, foodRequest, parentPrefs };
+  // ── childName ─────────────────────────────────────────────────────────────
+  const childName = typeof body.childName === "string"
+    ? sanitizeText(body.childName, 60)
+    : undefined;
+
+  return { valid: true, ageStage, allergies, foodRequest, parentPrefs, childName };
 }
 
 // ── Response validator ─────────────────────────────────────────────────────────
@@ -170,6 +177,8 @@ function validateRecipeResponse(raw: any): { valid: boolean; error?: string } {
   if (typeof raw.serveSuggestion !== "string") return { valid: false, error: "Missing serveSuggestion" };
   if (typeof raw.funPresentationIdea !== "string") return { valid: false, error: "Missing funPresentationIdea" };
   if (!Array.isArray(raw.rulesFireLog)) raw.rulesFireLog = [];
+  if (typeof raw.whyThisMealWasChosen !== "string") raw.whyThisMealWasChosen = "";
+  if (!Array.isArray(raw.reasoningTrace)) raw.reasoningTrace = [];
 
   // Validate ingredient shapes
   for (let i = 0; i < raw.ingredients.length; i++) {
@@ -320,7 +329,9 @@ Required schema:
   "funPresentationIdea": "string",
   "storageAndLunchboxGuidance": "string|omit",
   "askPediatricianNote": "string|omit",
-  "rulesFireLog": [{ "ruleId": "string", "level": "A", "description": "string", "action": "string" }]
+  "rulesFireLog": [{ "ruleId": "string", "level": "A", "description": "string", "action": "string" }],
+  "whyThisMealWasChosen": "string — plain English explanation for a parent with no nutrition background. Cover which profile elements shaped this output (stage, allergies, dietary pattern, goals). End with: 'Always follow your pediatrician\\'s guidance for your child\\'s specific nutritional needs.'",
+  "reasoningTrace": ["string — one rule or protocol applied, e.g. 'Preschool Stage — calcium and iron DRI baseline applied', 'Confirmed peanut allergy — peanuts excluded in all forms'"]
 }`;
 }
 
@@ -373,7 +384,7 @@ router.post("/create-dish", async (req, res) => {
       return res.status(400).json({ error: validation.error });
     }
 
-    const { ageStage, allergies, foodRequest, parentPrefs } = validation as Required<typeof validation>;
+    const { ageStage, allergies, foodRequest, parentPrefs, childName } = validation as Required<typeof validation>;
 
     // ── Gate: Early Infant ───────────────────────────────────────────────────
     if (ageStage === "early_infant") {
@@ -406,6 +417,9 @@ router.post("/create-dish", async (req, res) => {
           .filter(Boolean)
           .slice(0, 10)
       : undefined;
+
+    // ── Compute parent education layer (server-side, deterministic) ──────────
+    const educationLayer = computeParentEducationLayer({ ageStage, allergies, parentPrefs, foodRequest });
 
     // ── Build prompts ────────────────────────────────────────────────────────
     const systemPrompt = buildSystemPrompt(ageStage, allergies, parentPrefs);
@@ -445,7 +459,27 @@ router.post("/create-dish", async (req, res) => {
       return res.status(500).json({ error: "AI returned an incomplete recipe. Please try again." });
     }
 
-    return res.json({ recipe, blocked: false });
+    // ── Ensure mandatory pediatrician disclaimer in whyThisMealWasChosen ─────
+    const disclaimerSuffix = childName
+      ? `Always follow your pediatrician's guidance for ${childName}'s specific nutritional needs.`
+      : "Always follow your pediatrician's guidance for your child's specific nutritional needs.";
+    if (typeof recipe.whyThisMealWasChosen === "string" && recipe.whyThisMealWasChosen.trim()) {
+      const trimmed = recipe.whyThisMealWasChosen.trim();
+      if (!trimmed.endsWith(disclaimerSuffix)) {
+        recipe.whyThisMealWasChosen = trimmed + " " + disclaimerSuffix;
+      }
+    } else {
+      recipe.whyThisMealWasChosen = disclaimerSuffix;
+    }
+
+    return res.json({
+      recipe,
+      blocked: false,
+      mealConfidence: educationLayer.mealConfidence,
+      clinicalReviewStatus: educationLayer.clinicalReviewStatus,
+      personalizationLevel: educationLayer.personalizationLevel,
+      conflictResolutions: educationLayer.conflictResolutions,
+    });
   } catch (err: any) {
     console.error("[MyPerfectBeginning] create-dish error:", err);
     return res.status(500).json({ error: "Failed to generate recipe" });

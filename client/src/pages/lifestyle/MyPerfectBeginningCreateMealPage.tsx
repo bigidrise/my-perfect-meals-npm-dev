@@ -15,6 +15,10 @@ import {
   BookOpen,
   Utensils,
   Info,
+  Star,
+  FlaskConical,
+  Brain,
+  Stethoscope,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import ThinkingDots from "@/components/ThinkingDots";
@@ -93,6 +97,42 @@ interface ChildRecipeResponse {
   storageAndLunchboxGuidance?: string;
   askPediatricianNote?: string;
   rulesFireLog?: RuleFiredEntry[];
+  // Parent Education Layer — AI-generated
+  whyThisMealWasChosen?: string;
+  reasoningTrace?: string[];
+}
+
+// ── Parent Education Layer — server-computed ──────────────────────────────────
+
+interface MealConfidence {
+  stars: number;
+  profileCompleteness: number;
+  fieldsUsed: string[];
+}
+
+interface ClinicalReviewStatus {
+  protocolId: string;
+  status: string;
+  version: string;
+  sources: string[];
+}
+
+interface PersonalizationLevel {
+  stars: number;
+  dimensionsUsed: string[];
+}
+
+interface ConflictResolution {
+  protocol1: string;
+  protocol2: string;
+  resolution: string;
+}
+
+interface ParentEducationLayerData {
+  mealConfidence: MealConfidence;
+  clinicalReviewStatus: ClinicalReviewStatus[];
+  personalizationLevel: PersonalizationLevel;
+  conflictResolutions: ConflictResolution[];
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -320,10 +360,164 @@ function AllergenSelector({
   );
 }
 
+// ── Star Rating helper ────────────────────────────────────────────────────────
+
+function StarRating({ stars, max = 5 }: { stars: number; max?: number }) {
+  return (
+    <span className="flex items-center gap-0.5">
+      {Array.from({ length: max }).map((_, i) => (
+        <Star
+          key={i}
+          className={`h-3.5 w-3.5 ${i < stars ? "text-yellow-400 fill-yellow-400" : "text-white/15 fill-white/10"}`}
+        />
+      ))}
+    </span>
+  );
+}
+
+// ── Parent Education Layer Panel ──────────────────────────────────────────────
+
+function ParentEducationPanel({ layer }: { layer: ParentEducationLayerData }) {
+  const [showProtocols, setShowProtocols] = useState(false);
+  const [showConflicts, setShowConflicts] = useState(false);
+
+  return (
+    <div className="space-y-3">
+      {/* Confidence grid */}
+      <div className="grid grid-cols-2 gap-2">
+        {/* Meal Confidence */}
+        <div className="col-span-2 sm:col-span-1 rounded-xl bg-black/40 border border-white/10 p-3.5 space-y-2">
+          <div className="flex items-center gap-2">
+            <Brain className="h-3.5 w-3.5 text-purple-400 flex-shrink-0" />
+            <p className="text-xs font-semibold text-white/70 uppercase tracking-wider">Meal Confidence</p>
+          </div>
+          <StarRating stars={layer.mealConfidence.stars} />
+          <p className="text-xs text-white/40">
+            Profile completeness: {layer.mealConfidence.profileCompleteness}%
+          </p>
+          <div className="space-y-0.5">
+            {layer.mealConfidence.fieldsUsed.map((f, i) => (
+              <div key={i} className="flex items-center gap-1.5 text-xs text-white/50">
+                <CheckCircle2 className="h-2.5 w-2.5 text-purple-400/70 flex-shrink-0" />
+                {f}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Personalization Level */}
+        <div className="col-span-2 sm:col-span-1 rounded-xl bg-black/40 border border-white/10 p-3.5 space-y-2">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-3.5 w-3.5 text-green-400 flex-shrink-0" />
+            <p className="text-xs font-semibold text-white/70 uppercase tracking-wider">Personalization</p>
+          </div>
+          <StarRating stars={layer.personalizationLevel.stars} />
+          <p className="text-xs text-white/40">Dimensions shaping this meal:</p>
+          <div className="space-y-0.5">
+            {layer.personalizationLevel.dimensionsUsed.map((d, i) => (
+              <div key={i} className="flex items-center gap-1.5 text-xs text-white/50">
+                <CheckCircle2 className="h-2.5 w-2.5 text-green-400/70 flex-shrink-0" />
+                {d}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Clinical Review Status */}
+      <div>
+        <button
+          type="button"
+          onClick={() => setShowProtocols(!showProtocols)}
+          className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/50 transition-colors"
+        >
+          <FlaskConical className="h-3 w-3" />
+          {showProtocols ? "Hide" : "Show"} clinical review status ({layer.clinicalReviewStatus.length} protocol{layer.clinicalReviewStatus.length !== 1 ? "s" : ""} active)
+        </button>
+        {showProtocols && (
+          <div className="mt-2 space-y-2">
+            {layer.clinicalReviewStatus.map((p, i) => (
+              <div key={i} className="px-3 py-2.5 rounded-lg bg-blue-950/20 border border-blue-400/15 space-y-1">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-mono text-[10px] text-blue-300/70">{p.protocolId}</span>
+                  <span className="text-[10px] text-white/30">{p.version}</span>
+                </div>
+                <p className="text-xs text-blue-200/80">{p.status}</p>
+                <div className="space-y-0.5 pt-0.5">
+                  {p.sources.map((s, j) => (
+                    <p key={j} className="text-[10px] text-white/30 leading-snug">• {s}</p>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Conflict Resolutions */}
+      {layer.conflictResolutions.length > 0 && (
+        <div>
+          <button
+            type="button"
+            onClick={() => setShowConflicts(!showConflicts)}
+            className="flex items-center gap-1.5 text-xs text-amber-400/50 hover:text-amber-300/70 transition-colors"
+          >
+            <AlertTriangle className="h-3 w-3" />
+            {showConflicts ? "Hide" : "Show"} protocol notes ({layer.conflictResolutions.length})
+          </button>
+          {showConflicts && (
+            <div className="mt-2 space-y-2">
+              {layer.conflictResolutions.map((c, i) => (
+                <div key={i} className="px-3 py-2.5 rounded-lg bg-amber-950/20 border border-amber-400/15 space-y-1">
+                  <div className="flex flex-wrap gap-1 text-[10px] font-mono text-amber-300/50">
+                    <span>{c.protocol1}</span>
+                    <span className="text-white/20">+</span>
+                    <span>{c.protocol2}</span>
+                  </div>
+                  <p className="text-xs text-amber-200/80">{c.resolution}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Mandatory Pediatrician Disclaimer ─────────────────────────────────────────
+
+function PediatricianDisclaimer() {
+  return (
+    <div className="flex items-start gap-2.5 p-4 rounded-xl bg-blue-950/30 border border-blue-400/30">
+      <Stethoscope className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />
+      <div className="space-y-1">
+        <p className="text-xs font-semibold text-blue-300">Always Consult Your Pediatrician</p>
+        <p className="text-xs text-white/60 leading-relaxed">
+          My Perfect Beginning generates general nutrition-improvement ideas based on age-stage guidelines
+          and the profile information you've provided. It does not replace individualized advice from your
+          child's pediatrician or registered dietitian. Always consult your child's healthcare provider
+          before introducing new foods, making significant dietary changes, or if you have any concerns
+          about your child's growth or nutrition.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // ── Recipe Display ────────────────────────────────────────────────────────────
 
-function RecipeCard({ recipe, hasEpiPen }: { recipe: ChildRecipeResponse; hasEpiPen: boolean }) {
+function RecipeCard({
+  recipe,
+  hasEpiPen,
+  educationLayer,
+}: {
+  recipe: ChildRecipeResponse;
+  hasEpiPen: boolean;
+  educationLayer: ParentEducationLayerData | null;
+}) {
   const [showLog, setShowLog] = useState(false);
+  const [showTrace, setShowTrace] = useState(false);
 
   return (
     <motion.div
@@ -474,6 +668,60 @@ function RecipeCard({ recipe, hasEpiPen }: { recipe: ChildRecipeResponse; hasEpi
         </Card>
       )}
 
+      {/* Why This Meal Was Chosen */}
+      {recipe.whyThisMealWasChosen && (
+        <Card className="bg-purple-950/20 border-purple-400/20 backdrop-blur-lg">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-2">
+              <Brain className="h-4 w-4 text-purple-400 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-xs font-semibold text-purple-300 mb-1">Why This Meal Was Chosen</p>
+                <p className="text-sm text-white/80 leading-relaxed">{recipe.whyThisMealWasChosen}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Reasoning Trace */}
+      {recipe.reasoningTrace && recipe.reasoningTrace.length > 0 && (
+        <div>
+          <button
+            type="button"
+            onClick={() => setShowTrace(!showTrace)}
+            className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/50 transition-colors"
+          >
+            <FlaskConical className="h-3 w-3" />
+            {showTrace ? "Hide" : "Show"} reasoning trace ({recipe.reasoningTrace.length} rule{recipe.reasoningTrace.length !== 1 ? "s" : ""} applied)
+          </button>
+          {showTrace && (
+            <div className="mt-2 space-y-1.5">
+              {recipe.reasoningTrace.map((rule, i) => (
+                <div key={i} className="flex items-start gap-2 px-2.5 py-1.5 rounded-md bg-black/30 border border-white/5">
+                  <span className="text-purple-400/60 text-xs mt-0.5 flex-shrink-0">{i + 1}.</span>
+                  <p className="text-xs text-white/60">{rule}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Parent Education Layer — confidence + protocols */}
+      {educationLayer && (
+        <Card className="bg-black/40 border-white/10 backdrop-blur-lg">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-purple-400" />
+              About This Recommendation
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            <ParentEducationPanel layer={educationLayer} />
+          </CardContent>
+        </Card>
+      )}
+
       {/* Safety rules fired */}
       {recipe.rulesFireLog && recipe.rulesFireLog.length > 0 && (
         <div>
@@ -500,6 +748,9 @@ function RecipeCard({ recipe, hasEpiPen }: { recipe: ChildRecipeResponse; hasEpi
           )}
         </div>
       )}
+
+      {/* Mandatory pediatrician disclaimer — appears on every generated output */}
+      <PediatricianDisclaimer />
     </motion.div>
   );
 }
@@ -556,6 +807,7 @@ export default function MyPerfectBeginningCreateMealPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [recipe, setRecipe] = useState<ChildRecipeResponse | null>(null);
+  const [educationLayer, setEducationLayer] = useState<ParentEducationLayerData | null>(null);
   const [showEarlyInfantScreen, setShowEarlyInfantScreen] = useState(false);
 
   // Load active child profile on mount and pre-populate form
@@ -606,6 +858,7 @@ export default function MyPerfectBeginningCreateMealPage() {
 
     setIsGenerating(true);
     setRecipe(null);
+    setEducationLayer(null);
 
     try {
       const res = await fetch(apiUrl("/api/my-perfect-beginning/create-dish"), {
@@ -616,6 +869,7 @@ export default function MyPerfectBeginningCreateMealPage() {
           ageStage: selectedStage,
           allergies,
           foodRequest: foodRequest.trim(),
+          childName: activeChild?.name ?? undefined,
         }),
       });
 
@@ -632,6 +886,14 @@ export default function MyPerfectBeginningCreateMealPage() {
 
       setProgress(100);
       setRecipe(data.recipe);
+      if (data.mealConfidence && data.clinicalReviewStatus && data.personalizationLevel) {
+        setEducationLayer({
+          mealConfidence: data.mealConfidence,
+          clinicalReviewStatus: data.clinicalReviewStatus,
+          personalizationLevel: data.personalizationLevel,
+          conflictResolutions: data.conflictResolutions ?? [],
+        });
+      }
       setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 100);
     } catch (err: any) {
       toast({ title: "Something went wrong", description: err.message || "Please try again.", variant: "destructive" });
@@ -694,10 +956,10 @@ export default function MyPerfectBeginningCreateMealPage() {
         {/* Generated Recipe */}
         {!showEarlyInfantScreen && recipe && (
           <div className="space-y-4">
-            <RecipeCard recipe={recipe} hasEpiPen={hasEpiPen} />
+            <RecipeCard recipe={recipe} hasEpiPen={hasEpiPen} educationLayer={educationLayer} />
             <button
               type="button"
-              onClick={() => { setRecipe(null); setFoodRequest(""); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+              onClick={() => { setRecipe(null); setEducationLayer(null); setFoodRequest(""); window.scrollTo({ top: 0, behavior: "smooth" }); }}
               className="w-full py-3 rounded-xl bg-green-500/10 text-green-300 text-sm font-medium border border-green-400/20 hover:bg-green-500/20 transition-all"
             >
               Make Another Recipe
