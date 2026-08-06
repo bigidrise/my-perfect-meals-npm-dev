@@ -29,6 +29,10 @@ import ThinkingDots from "@/components/ThinkingDots";
 import { Progress } from "@/components/ui/progress";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
+import FavoriteButton from "@/components/FavoriteButton";
+import TrashButton from "@/components/ui/TrashButton";
+import TranslateToggle from "@/components/TranslateToggle";
+import { GlassButton } from "@/components/glass";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -479,6 +483,23 @@ function AllergenSelector({
   );
 }
 
+function formatTextureClass(tc: string | undefined): string {
+  if (!tc) return "Age-Safe";
+  const map: Record<string, string> = {
+    smooth_puree:    "Smooth Purée",
+    thin_puree:      "Thin Purée",
+    thick_puree:     "Thick Purée",
+    mashed:          "Mashed",
+    soft_lumpy:      "Soft Lumpy",
+    soft_chopped:    "Soft Chopped",
+    fork_tender:     "Fork Tender",
+    small_soft_bite: "Small Soft Bites",
+    table_foods:     "Table Foods",
+    minced:          "Minced",
+  };
+  return map[tc] ?? tc.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+}
+
 // ── Why the Engine Made These Decisions Panel ─────────────────────────────────
 // Plain-language explanations for parents — no technical IDs, no jargon.
 
@@ -753,20 +774,109 @@ function PediatricianDisclaimer() {
   );
 }
 
-// ── Recipe Display ────────────────────────────────────────────────────────────
+// ── Parent Education Panel — confidence, personalization, clinical review ──────
+
+function ParentEducationPanel({ layer }: { layer: ParentEducationLayerData }) {
+  const starsFilled = layer.mealConfidence.stars ?? 0;
+  const completeness = layer.mealConfidence.profileCompleteness;
+  const dimsUsed = layer.personalizationLevel.dimensionsUsed ?? [];
+  const reviews = layer.clinicalReviewStatus ?? [];
+
+  return (
+    <div className="space-y-3">
+      {/* Confidence */}
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-white/50">Meal Confidence</span>
+        <div className="flex items-center gap-1.5">
+          <div className="flex gap-0.5">
+            {[1,2,3,4,5].map(n => (
+              <Star
+                key={n}
+                className={`h-3 w-3 ${n <= starsFilled ? "text-yellow-400 fill-yellow-400" : "text-white/20"}`}
+              />
+            ))}
+          </div>
+          {completeness != null && (
+            <span className="text-xs text-white/40">{completeness}% profile used</span>
+          )}
+        </div>
+      </div>
+
+      {/* Personalization dimensions */}
+      {dimsUsed.length > 0 && (
+        <div>
+          <p className="text-xs text-white/40 mb-1">Personalized for</p>
+          <div className="flex flex-wrap gap-1">
+            {dimsUsed.map((dim, i) => (
+              <span key={i} className="text-[10px] bg-purple-500/15 text-purple-300/80 border border-purple-400/15 rounded-full px-2 py-0.5">
+                {dim}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Clinical review status */}
+      {reviews.length > 0 && (
+        <div>
+          {reviews.map((r, i) => (
+            <div key={i} className="flex items-center gap-1.5 text-xs text-white/40">
+              <CheckCircle2 className="h-3 w-3 text-green-400/70 flex-shrink-0" />
+              <span className="text-green-300/70 font-medium">{r.status}</span>
+              <span>— {r.protocolId}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Recipe Display (Create a Dish–style card) ─────────────────────────────────
 
 function RecipeCard({
   recipe,
   hasEpiPen,
   educationLayer,
   resolverMeta,
+  stageLabel,
+  textureClass,
+  imageUrl,
+  imageLoading,
+  onDelete,
+  onUpdateRecipe,
+  setLocation,
 }: {
   recipe: ChildRecipeResponse;
   hasEpiPen: boolean;
   educationLayer: ParentEducationLayerData | null;
   resolverMeta: ResolverMetaEnhanced | null;
+  stageLabel: string;
+  textureClass?: string;
+  imageUrl: string | null;
+  imageLoading: boolean;
+  onDelete: () => void;
+  onUpdateRecipe: (updated: Partial<ChildRecipeResponse>) => void;
+  setLocation: (path: string) => void;
 }) {
+  const [showLog, setShowLog] = useState(false);
   const [showTrace, setShowTrace] = useState(false);
+  const [stepsExpanded, setStepsExpanded] = useState(false);
+  const [activeStep, setActiveStep] = useState<number | null>(null);
+  const [ingredientsExpanded, setIngredientsExpanded] = useState(true);
+
+  // Confidence % from education layer
+  const confidencePct = educationLayer?.mealConfidence.profileCompleteness
+    ? `${educationLayer.mealConfidence.profileCompleteness}%`
+    : educationLayer?.mealConfidence.stars
+      ? `${Math.round((educationLayer.mealConfidence.stars / 5) * 100)}%`
+      : "—";
+
+  // Clinical review from education layer
+  const clinicalStatus = educationLayer?.clinicalReviewStatus?.[0]?.status ?? "Reviewed";
+
+  const steps = recipe.instructions;
+  const visibleSteps = stepsExpanded ? steps : steps.slice(0, 3);
 
   return (
     <motion.div
@@ -774,205 +884,382 @@ function RecipeCard({
       animate={{ opacity: 1, y: 0 }}
       className="space-y-4"
     >
-      {/* EpiPen reminder */}
-      {hasEpiPen && (
-        <div className="flex items-start gap-2.5 p-3 rounded-xl bg-red-950/40 border border-red-400/40">
-          <AlertTriangle className="h-4 w-4 text-red-400 mt-0.5 flex-shrink-0" />
-          <p className="text-xs text-red-200 leading-relaxed">
-            <strong>EpiPen reminder:</strong> Your child has an emergency medication prescribed for a severe allergy.
-            Always have it on hand when introducing new foods or eating away from home.
-          </p>
-        </div>
-      )}
+      {/* ── Main card ── */}
+      <Card className="bg-black/40 backdrop-blur-lg border border-green-400/20 shadow-xl rounded-2xl">
+        <CardContent className="p-6">
 
-      {/* Allergen alerts */}
-      {recipe.allergenAlerts?.length > 0 && (
-        <div className="space-y-1.5">
-          {recipe.allergenAlerts.map((alert, i) => (
-            <div key={i} className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-950/30 border border-amber-400/20">
-              <ShieldCheck className="h-3.5 w-3.5 text-amber-400 mt-0.5 flex-shrink-0" />
-              <p className="text-xs text-amber-200">{alert.message}</p>
+          {/* Header row: name + favorite + new recipe */}
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Baby className="h-5 w-5 text-green-400 shrink-0" />
+              <h3 className="text-xl font-bold text-white truncate leading-tight flex-1 min-w-0">
+                {recipe.recipeName}
+              </h3>
             </div>
-          ))}
-        </div>
-      )}
-
-      {/* Recipe header */}
-      <Card className="bg-black/40 border-green-400/20 backdrop-blur-lg">
-        <CardContent className="p-4 space-y-1">
-          <div className="flex items-start gap-2">
-            <Utensils className="h-4 w-4 text-green-400 mt-0.5 flex-shrink-0" />
-            <div>
-              <h2 className="text-base font-bold text-white">{recipe.recipeName}</h2>
-              <p className="text-xs text-green-300 mt-0.5">{recipe.ageStageSuitability}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Ingredients */}
-      <Card className="bg-black/40 border-white/10 backdrop-blur-lg">
-        <CardHeader className="pb-2 pt-4 px-4">
-          <CardTitle className="text-sm font-semibold text-white">Ingredients</CardTitle>
-        </CardHeader>
-        <CardContent className="px-4 pb-4 space-y-2">
-          {recipe.ingredients.map((ing, i) => (
-            <div key={i} className="flex items-start gap-2">
-              <span className="text-white/40 text-xs mt-0.5 w-4 text-right flex-shrink-0">{i + 1}.</span>
-              <div>
-                <span className="text-sm text-white">
-                  {ing.quantity}{ing.unit ? ` ${ing.unit}` : ""} {ing.name}
-                </span>
-                {ing.prepNote && (
-                  <span className="text-xs text-white/50"> — {ing.prepNote}</span>
-                )}
-                {ing.substitutionNote && (
-                  <p className="text-xs text-blue-300/80 mt-0.5">{ing.substitutionNote}</p>
-                )}
-              </div>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      {/* Texture & choking safety */}
-      <Card className="bg-amber-950/20 border-amber-400/20 backdrop-blur-lg">
-        <CardContent className="p-4">
-          <div className="flex items-start gap-2">
-            <AlertTriangle className="h-4 w-4 text-amber-400 mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="text-xs font-semibold text-amber-300 mb-1">Texture & Choking Safety</p>
-              <p className="text-sm text-white/80 leading-relaxed">{recipe.textureAndChokingPreparation}</p>
+            <div className="flex items-center justify-between">
+              <FavoriteButton
+                title={recipe.recipeName}
+                sourceType="pediatric-recipe"
+                mealData={{
+                  id: `ped-${Date.now()}`,
+                  name: recipe.recipeName,
+                  description: recipe.ageStageSuitability,
+                  ingredients: recipe.ingredients.map(i => ({ name: i.name, quantity: i.quantity, unit: i.unit })),
+                  instructions: recipe.instructions.join("\n"),
+                }}
+              />
+              <button
+                onClick={onDelete}
+                className="text-sm text-white/70 bg-white/10 px-3 py-1 rounded-lg transition-colors active:scale-[0.98]"
+              >
+                New Recipe
+              </button>
             </div>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Instructions */}
-      <Card className="bg-black/40 border-white/10 backdrop-blur-lg">
-        <CardHeader className="pb-2 pt-4 px-4">
-          <CardTitle className="text-sm font-semibold text-white">Instructions</CardTitle>
-        </CardHeader>
-        <CardContent className="px-4 pb-4 space-y-3">
-          {recipe.instructions.map((step, i) => (
-            <div key={i} className="flex items-start gap-3">
-              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-green-500/20 text-green-300 text-[10px] font-bold flex items-center justify-center mt-0.5">
-                {i + 1}
-              </span>
-              <p className="text-sm text-white/80 leading-relaxed">{step}</p>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      {/* Serving guidance */}
-      <Card className="bg-black/40 border-white/10 backdrop-blur-lg">
-        <CardContent className="p-4 space-y-3">
-          <div>
-            <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-1">Serving Guidance</p>
-            <p className="text-sm text-white/80">{recipe.servingGuidance}</p>
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-1">Pairs Well With</p>
-            <p className="text-sm text-white/80">{recipe.serveSuggestion}</p>
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-1">🎉 Fun Presentation Idea</p>
-            <p className="text-sm text-white/80">{recipe.funPresentationIdea}</p>
-          </div>
-          {recipe.storageAndLunchboxGuidance && (
-            <div>
-              <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-1">Storage & Lunchbox</p>
-              <p className="text-sm text-white/80">{recipe.storageAndLunchboxGuidance}</p>
+          {/* EpiPen reminder */}
+          {hasEpiPen && (
+            <div className="mb-4 flex items-start gap-2.5 p-3 rounded-xl bg-red-950/40 border border-red-400/40">
+              <AlertTriangle className="h-4 w-4 text-red-400 mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-red-200 leading-relaxed">
+                <strong>EpiPen reminder:</strong> Your child has emergency medication prescribed for a severe allergy.
+                Always have it on hand when introducing new foods or eating away from home.
+              </p>
             </div>
           )}
-        </CardContent>
-      </Card>
 
-      {/* Why this version is better */}
-      <Card className="bg-green-950/20 border-green-400/20 backdrop-blur-lg">
-        <CardContent className="p-4">
-          <div className="flex items-start gap-2">
-            <CheckCircle2 className="h-4 w-4 text-green-400 mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="text-xs font-semibold text-green-300 mb-1">Why This Version Works</p>
-              <p className="text-sm text-white/80 leading-relaxed">{recipe.whyThisVersionIsBetter}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Ask pediatrician note */}
-      {recipe.askPediatricianNote && (
-        <Card className="bg-blue-950/20 border-blue-400/20 backdrop-blur-lg">
-          <CardContent className="p-4">
-            <div className="flex items-start gap-2">
-              <Info className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="text-xs font-semibold text-blue-300 mb-1">Ask Your Pediatrician</p>
-                <p className="text-sm text-white/80 leading-relaxed">{recipe.askPediatricianNote}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Why This Meal Was Chosen */}
-      {recipe.whyThisMealWasChosen && (
-        <Card className="bg-purple-950/20 border-purple-400/20 backdrop-blur-lg">
-          <CardContent className="p-4">
-            <div className="flex items-start gap-2">
-              <Brain className="h-4 w-4 text-purple-400 mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="text-xs font-semibold text-purple-300 mb-1">Why This Meal Was Chosen</p>
-                <p className="text-sm text-white/80 leading-relaxed">{recipe.whyThisMealWasChosen}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Reasoning Trace */}
-      {recipe.reasoningTrace && recipe.reasoningTrace.length > 0 && (
-        <div>
-          <button
-            type="button"
-            onClick={() => setShowTrace(!showTrace)}
-            className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/50 transition-colors"
-          >
-            <FlaskConical className="h-3 w-3" />
-            {showTrace ? "Hide" : "Show"} reasoning trace ({recipe.reasoningTrace.length} rule{recipe.reasoningTrace.length !== 1 ? "s" : ""} applied)
-          </button>
-          {showTrace && (
-            <div className="mt-2 space-y-1.5">
-              {recipe.reasoningTrace.map((rule, i) => (
-                <div key={i} className="flex items-start gap-2 px-2.5 py-1.5 rounded-md bg-black/30 border border-white/5">
-                  <span className="text-purple-400/60 text-xs mt-0.5 flex-shrink-0">{i + 1}.</span>
-                  <p className="text-xs text-white/60">{rule}</p>
+          {/* Allergen safety badges */}
+          {recipe.allergenAlerts?.length > 0 && (
+            <div className="mb-4 space-y-1.5">
+              {recipe.allergenAlerts.map((alert, i) => (
+                <div key={i} className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-950/30 border border-amber-400/20">
+                  <ShieldCheck className="h-3.5 w-3.5 text-amber-400 mt-0.5 flex-shrink-0" />
+                  <p className="text-xs text-amber-200">{alert.message}</p>
                 </div>
               ))}
             </div>
           )}
-        </div>
-      )}
 
-      {/* Why the Engine Made These Decisions — plain-language panel */}
-      {(resolverMeta || educationLayer) && (
-        <Card className="bg-black/40 border-white/10 backdrop-blur-lg">
-          <CardHeader className="pb-2 pt-4 px-4">
-            <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-              <Brain className="h-4 w-4 text-purple-400" />
-              Why the Engine Made These Decisions
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-4 pb-4">
-            <WhyEngineDecidedPanel
-              resolverMeta={resolverMeta}
-              conflictResolutions={educationLayer?.conflictResolutions}
-            />
-          </CardContent>
-        </Card>
-      )}
+          {/* DALL·E image with shimmer */}
+          {(imageUrl || imageLoading) && (
+            <div className="mb-4">
+              <MealImageSlot
+                imageUrl={imageUrl ?? undefined}
+                mealName={recipe.recipeName}
+                isLoading={imageLoading}
+                sourceType="meal"
+                height="h-56"
+                className="rounded-2xl overflow-hidden"
+              />
+            </div>
+          )}
+
+          {/* Age stage caption */}
+          <p className="text-white/70 text-sm mb-4">{recipe.ageStageSuitability}</p>
+
+          {/* Pediatric info tiles — replaces adult macro tiles */}
+          <div className="grid grid-cols-4 gap-2 mb-4 text-center">
+            <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
+              <div className="text-sm font-bold text-green-300 leading-tight">{stageLabel.split(" ").slice(0, 1).join("")}</div>
+              <div className="text-[10px] text-white/60 mt-0.5">Age Group</div>
+            </div>
+            <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
+              <div className="text-sm font-bold text-amber-300 leading-tight">{formatTextureClass(textureClass).split(" ")[0]}</div>
+              <div className="text-[10px] text-white/60 mt-0.5">Texture</div>
+            </div>
+            <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
+              <div className="text-sm font-bold text-purple-300 leading-tight">{confidencePct}</div>
+              <div className="text-[10px] text-white/60 mt-0.5">Confidence</div>
+            </div>
+            <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
+              <div className="text-sm font-bold text-blue-300 leading-tight truncate">✓</div>
+              <div className="text-[10px] text-white/60 mt-0.5">Reviewed</div>
+            </div>
+          </div>
+
+          {/* Texture & choking safety — prominent safety section */}
+          <div className="mb-4 flex items-start gap-2 p-3 rounded-xl bg-amber-950/25 border border-amber-400/25">
+            <AlertTriangle className="h-4 w-4 text-amber-400 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-xs font-semibold text-amber-300 mb-0.5">Texture & Choking Safety</p>
+              <p className="text-xs text-white/75 leading-relaxed">{recipe.textureAndChokingPreparation}</p>
+            </div>
+          </div>
+
+          {/* Ingredients */}
+          {recipe.ingredients.length > 0 && (
+            <div className="mb-4">
+              <button
+                type="button"
+                onClick={() => setIngredientsExpanded(v => !v)}
+                className="flex items-center gap-2 font-semibold mb-2 text-white w-full text-left"
+              >
+                <span>Ingredients</span>
+                {ingredientsExpanded
+                  ? <ChevronUp className="h-4 w-4 text-white/50" />
+                  : <ChevronDown className="h-4 w-4 text-white/50" />}
+              </button>
+              {ingredientsExpanded && (
+                <ul className="text-sm text-white/80 space-y-1.5">
+                  {recipe.ingredients.map((ing, i) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <span className="text-green-400 mt-0.5 flex-shrink-0">•</span>
+                      <span>
+                        {ing.quantity}{ing.unit ? ` ${ing.unit}` : ""} <strong>{ing.name}</strong>
+                        {ing.prepNote && <span className="text-white/50"> — {ing.prepNote}</span>}
+                        {ing.substitutionNote && (
+                          <span className="block text-xs text-blue-300/80 mt-0.5">{ing.substitutionNote}</span>
+                        )}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
+          {/* Instructions with tap-to-highlight */}
+          {steps.length > 0 && (
+            <div className="mb-4">
+              <h4 className="font-semibold mb-2 text-white">Instructions:</h4>
+              <div className="space-y-2">
+                {visibleSteps.map((step, index) => (
+                  <div
+                    key={index}
+                    className={`flex items-start gap-3 p-2 rounded-lg cursor-pointer transition-colors select-none ${
+                      activeStep === index
+                        ? "bg-green-500/20 border border-green-500/40"
+                        : "hover:bg-white/5"
+                    }`}
+                    onClick={() => setActiveStep(prev => prev === index ? null : index)}
+                  >
+                    <div className="min-w-[26px] h-[26px] w-[26px] rounded-full bg-green-600 text-white flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
+                      {index + 1}
+                    </div>
+                    <p className="text-sm leading-relaxed text-white/85">{step}</p>
+                  </div>
+                ))}
+              </div>
+              {steps.length > 3 && (
+                <button
+                  className="mt-2 text-xs text-green-400 font-medium cursor-pointer active:text-green-300 select-none"
+                  onClick={() => {
+                    setStepsExpanded(v => !v);
+                    if (stepsExpanded) setActiveStep(null);
+                  }}
+                >
+                  {stepsExpanded ? "Show less" : `Show all ${steps.length} steps`}
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Serving guidance, fun presentation, storage */}
+          <div className="mb-4 space-y-3">
+            <div>
+              <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-1">Serving Guidance</p>
+              <p className="text-sm text-white/80">{recipe.servingGuidance}</p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-1">Pairs Well With</p>
+              <p className="text-sm text-white/80">{recipe.serveSuggestion}</p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-1">🎉 Fun Presentation Idea</p>
+              <p className="text-sm text-white/80">{recipe.funPresentationIdea}</p>
+            </div>
+            {recipe.storageAndLunchboxGuidance && (
+              <div>
+                <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-1">Storage & Lunchbox</p>
+                <p className="text-sm text-white/80">{recipe.storageAndLunchboxGuidance}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Why this version works */}
+          {recipe.whyThisVersionIsBetter && (
+            <div className="mb-4">
+              <h4 className="font-semibold mb-2 flex items-center gap-2 text-white">
+                <CheckCircle2 className="h-4 w-4 text-green-400" />
+                Why This Version Works for Your Child:
+              </h4>
+              <p className="text-sm text-white/80">{recipe.whyThisVersionIsBetter}</p>
+            </div>
+          )}
+
+          {/* Why this meal was chosen */}
+          {recipe.whyThisMealWasChosen && (
+            <div className="mb-4">
+              <h4 className="font-semibold mb-2 flex items-center gap-2 text-white">
+                <Brain className="h-4 w-4 text-purple-400" />
+                Why This Meal Was Chosen:
+              </h4>
+              <p className="text-sm text-white/80">{recipe.whyThisMealWasChosen}</p>
+            </div>
+          )}
+
+          {/* Ask pediatrician note */}
+          {recipe.askPediatricianNote && (
+            <div className="mb-4 flex items-start gap-2 p-3 rounded-xl bg-blue-950/25 border border-blue-400/20">
+              <Info className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-xs font-semibold text-blue-300 mb-0.5">Ask Your Pediatrician</p>
+                <p className="text-xs text-white/75 leading-relaxed">{recipe.askPediatricianNote}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Action buttons */}
+          <div className="space-y-2 mt-2">
+            {/* Walk Through the Kitchen */}
+            <div className="grid grid-cols-2 gap-2">
+              <GlassButton
+                onClick={() => {
+                  const mealData = {
+                    id: `ped-${Date.now()}`,
+                    name: recipe.recipeName,
+                    description: recipe.ageStageSuitability,
+                    ingredients: recipe.ingredients.map(i => ({
+                      name: i.name,
+                      amount: i.quantity,
+                      unit: i.unit ?? "",
+                    })),
+                    instructions: recipe.instructions.join("\n"),
+                    imageUrl: imageUrl ?? undefined,
+                  };
+                  localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(mealData));
+                  localStorage.setItem("mpm_chefs_kitchen_external_prepare", "true");
+                  localStorage.setItem("mpm_chefs_kitchen_origin", window.location.pathname);
+                  setLocation("/lifestyle/chefs-kitchen");
+                }}
+                className="flex-1 bg-gradient-to-r from-green-700 via-emerald-600 to-teal-600 hover:from-green-600 hover:via-emerald-500 hover:to-teal-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5"
+              >
+                Walk Through Kitchen
+              </GlassButton>
+              <TranslateToggle
+                content={{
+                  name: recipe.recipeName,
+                  description: recipe.ageStageSuitability,
+                  instructions: recipe.instructions.join("\n"),
+                  ingredients: recipe.ingredients.map(i => ({
+                    name: i.name,
+                    amount: i.quantity,
+                    unit: i.unit,
+                  })),
+                }}
+                onTranslate={(translated) => {
+                  onUpdateRecipe({
+                    recipeName: translated.name ?? recipe.recipeName,
+                    ageStageSuitability: translated.description ?? recipe.ageStageSuitability,
+                    instructions: typeof translated.instructions === "string"
+                      ? translated.instructions.split("\n").filter(Boolean)
+                      : recipe.instructions,
+                  });
+                }}
+              />
+            </div>
+
+            {/* Delete button */}
+            <div className="flex justify-end pt-1">
+              <TrashButton
+                size="sm"
+                ariaLabel="Delete recipe"
+                title="Delete recipe"
+                confirm={true}
+                confirmMessage="Remove this recipe?"
+                onClick={onDelete}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Debug / transparency panels — collapsed by default */}
+      <div className="space-y-2">
+        {/* About this recommendation (education layer) */}
+        {educationLayer && (
+          <Card className="bg-black/30 border-white/8 backdrop-blur-lg">
+            <CardHeader className="pb-2 pt-4 px-4">
+              <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-purple-400" />
+                About This Recommendation
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 pb-4">
+              <ParentEducationPanel layer={educationLayer} />
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Reasoning trace */}
+        {recipe.reasoningTrace && recipe.reasoningTrace.length > 0 && (
+          <div>
+            <button
+              type="button"
+              onClick={() => setShowTrace(!showTrace)}
+              className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/50 transition-colors"
+            >
+              <FlaskConical className="h-3 w-3" />
+              {showTrace ? "Hide" : "Show"} reasoning trace ({recipe.reasoningTrace.length} rule{recipe.reasoningTrace.length !== 1 ? "s" : ""} applied)
+            </button>
+            {showTrace && (
+              <div className="mt-2 space-y-1.5">
+                {recipe.reasoningTrace.map((rule, i) => (
+                  <div key={i} className="flex items-start gap-2 px-2.5 py-1.5 rounded-md bg-black/30 border border-white/5">
+                    <span className="text-purple-400/60 text-xs mt-0.5 flex-shrink-0">{i + 1}.</span>
+                    <p className="text-xs text-white/60">{rule}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Safety rules applied */}
+        {recipe.rulesFireLog && recipe.rulesFireLog.length > 0 && (
+          <div>
+            <button
+              type="button"
+              onClick={() => setShowLog(!showLog)}
+              className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/50 transition-colors"
+            >
+              <ShieldCheck className="h-3 w-3" />
+              {showLog ? "Hide" : "Show"} safety rules applied ({recipe.rulesFireLog.length})
+            </button>
+            {showLog && (
+              <div className="mt-2 space-y-1.5">
+                {recipe.rulesFireLog.map((rule, i) => (
+                  <div key={i} className="px-2.5 py-1.5 rounded-md bg-black/30 border border-white/5">
+                    <p className="text-xs text-white/60">
+                      <span className="font-mono text-green-400/70">[{rule.ruleId}]</span>{" "}
+                      {rule.description}
+                      <span className="text-white/30"> — {rule.action}</span>
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Why the Engine Made These Decisions — plain-language panel */}
+        {(resolverMeta || educationLayer) && (
+          <Card className="bg-black/30 border-white/8 backdrop-blur-lg">
+            <CardHeader className="pb-2 pt-4 px-4">
+              <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
+                <Brain className="h-4 w-4 text-purple-400" />
+                Why the Engine Made These Decisions
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 pb-4">
+              <WhyEngineDecidedPanel
+                resolverMeta={resolverMeta}
+                conflictResolutions={educationLayer?.conflictResolutions}
+              />
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
       {/* Mandatory pediatrician disclaimer — appears on every generated output */}
       <PediatricianDisclaimer />
@@ -1167,13 +1454,16 @@ export default function MyPerfectBeginningCreateMealPage() {
   const [progress, setProgress] = useState(0);
   const [recipe, setRecipe] = useState<ChildRecipeResponse | null>(null);
   const [educationLayer, setEducationLayer] = useState<ParentEducationLayerData | null>(null);
-  const [resolverMeta, setResolverMeta] = useState<ResolverMetaEnhanced | null>(null);
   const [showEarlyInfantScreen, setShowEarlyInfantScreen] = useState(false);
   const [hardStopState, setHardStopState] = useState<{ blockReason: string; educationMessage: string } | null>(null);
 
   // Image state — fires once per recipe, independent of main generation
   const [recipeImageUrl, setRecipeImageUrl] = useState<string | null>(null);
   const [imageLoading, setImageLoading] = useState(false);
+
+  // Resolver meta — texture class for pediatric info tile + full resolver context for WhyEngineDecidedPanel
+  const [resolverTextureClass, setResolverTextureClass] = useState<string | undefined>(undefined);
+  const [resolverMeta, setResolverMeta] = useState<ResolverMetaEnhanced | null>(null);
 
   // Apply a child selection from the picker
   const applyChild = (child: ChildListItem) => {
@@ -1333,18 +1623,6 @@ export default function MyPerfectBeginningCreateMealPage() {
           conflictResolutions: data.conflictResolutions ?? [],
         });
       }
-      // Extract enhanced resolver meta for the parent-education panel
-      if (data.resolverMeta) {
-        setResolverMeta({
-          firedRules: data.resolverMeta.firedRules ?? [],
-          activeProtocolBlocks: data.resolverMeta.activeProtocolBlocks ?? [],
-          allergenRemovals: data.resolverMeta.allergenRemovals ?? [],
-          foodAcceptanceDirectives: data.resolverMeta.foodAcceptanceDirectives ?? [],
-          preferencesUsed: data.resolverMeta.preferencesUsed ?? { culturalCuisine: null, dietaryPattern: null, goals: [] },
-          conflictResolutions: data.resolverMeta.conflictResolutions ?? [],
-          stageDRIBaseline: data.resolverMeta.stageDRIBaseline,
-        });
-      }
       setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 100);
 
       // Fire image generation in the background — single fetch, no hook needed
@@ -1359,6 +1637,20 @@ export default function MyPerfectBeginningCreateMealPage() {
       // Also pull the raw textureClass key and active condition IDs for the
       // structured prompt builder (TEXTURE_CLASS_VISUAL + CONDITION_VISUAL_NOTES).
       const resolvedTextureClass: string | undefined = data.resolverMeta?.textureClass;
+      // Save texture class for the pediatric info tile in the recipe card
+      setResolverTextureClass(resolvedTextureClass);
+      // Save full resolver meta for the WhyEngineDecidedPanel
+      if (data.resolverMeta) {
+        setResolverMeta({
+          firedRules: data.resolverMeta.firedRules ?? [],
+          activeProtocolBlocks: data.resolverMeta.activeProtocolBlocks ?? [],
+          allergenRemovals: data.resolverMeta.allergenRemovals ?? [],
+          foodAcceptanceDirectives: data.resolverMeta.foodAcceptanceDirectives ?? [],
+          preferencesUsed: data.resolverMeta.preferencesUsed ?? { culturalCuisine: null, dietaryPattern: null, goals: [] },
+          conflictResolutions: data.resolverMeta.conflictResolutions ?? [],
+          stageDRIBaseline: data.resolverMeta.stageDRIBaseline,
+        });
+      }
       const activeConditionIds: string[] = data.resolverMeta?.activeConditionIds ?? [];
       // Fallback: first sentence of the AI-generated texture note (legacy path)
       const textureHintFallback = data.recipe.textureAndChokingPreparation
@@ -1476,21 +1768,42 @@ export default function MyPerfectBeginningCreateMealPage() {
         {/* Generated Recipe */}
         {!showEarlyInfantScreen && !hardStopState && recipe && (
           <div className="space-y-4">
-            {/* Recipe image — fires in background after recipe lands */}
-            {(recipeImageUrl || imageLoading) && (
-              <MealImageSlot
-                imageUrl={recipeImageUrl ?? undefined}
-                mealName={recipe.recipeName}
-                isLoading={imageLoading}
-                sourceType="meal"
-                height="h-56"
-                className="rounded-2xl overflow-hidden"
-              />
-            )}
-            <RecipeCard recipe={recipe} hasEpiPen={hasEpiPen} educationLayer={educationLayer} resolverMeta={resolverMeta} />
+            <RecipeCard
+              recipe={recipe}
+              hasEpiPen={hasEpiPen}
+              educationLayer={educationLayer}
+              resolverMeta={resolverMeta}
+              stageLabel={stageMeta?.label ?? selectedStage}
+              textureClass={resolverTextureClass}
+              imageUrl={recipeImageUrl}
+              imageLoading={imageLoading}
+              onDelete={() => {
+                setRecipe(null);
+                setEducationLayer(null);
+                setResolverMeta(null);
+                setHardStopState(null);
+                setFoodRequest("");
+                setRecipeImageUrl(null);
+                setImageLoading(false);
+                setResolverTextureClass(undefined);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              onUpdateRecipe={(updated) => setRecipe(prev => prev ? { ...prev, ...updated } : prev)}
+              setLocation={setLocation}
+            />
             <button
               type="button"
-              onClick={() => { setRecipe(null); setEducationLayer(null); setResolverMeta(null); setHardStopState(null); setFoodRequest(""); setRecipeImageUrl(null); setImageLoading(false); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+              onClick={() => {
+                setRecipe(null);
+                setEducationLayer(null);
+                setResolverMeta(null);
+                setHardStopState(null);
+                setFoodRequest("");
+                setRecipeImageUrl(null);
+                setImageLoading(false);
+                setResolverTextureClass(undefined);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
               className="w-full py-3 rounded-xl bg-green-500/10 text-green-300 text-sm font-medium border border-green-400/20 hover:bg-green-500/20 transition-all"
             >
               Make Another Recipe
