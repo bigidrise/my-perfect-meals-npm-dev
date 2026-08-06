@@ -405,6 +405,7 @@ import MyPerfectGetaway from "@/pages/lifestyle/MyPerfectGetaway";
 import MyPerfectBeginningPage from "@/pages/lifestyle/MyPerfectBeginningPage";
 import MyPerfectBeginningStub from "@/pages/lifestyle/MyPerfectBeginningStub";
 import MyPerfectBeginningCreateMealPage from "@/pages/lifestyle/MyPerfectBeginningCreateMealPage";
+import MyPerfectBeginningProfilePage from "@/pages/lifestyle/MyPerfectBeginningProfilePage";
 import MyPerfectPregnancyPage from "@/pages/MyPerfectPregnancyPage";
 import TrainingNutritionHub from "@/pages/TrainingNutritionHub";
 import PerformanceNutritionSetupPage from "@/pages/PerformanceNutritionSetupPage";
@@ -610,6 +611,7 @@ const GuardedRestaurantFinderPage = () => <ProGuard component={RestaurantFinderP
 const GuardedMyPerfectBuffetPage = () => <ProGuard component={MyPerfectBuffetPage} />;
 const GuardedMyPerfectBeginning = () => <ProGuard component={MyPerfectBeginningPage} />;
 const GuardedMyPerfectBeginningStub = () => <ProGuard component={MyPerfectBeginningStub} />;
+const GuardedMyPerfectBeginningProfile = () => <ProGuard component={MyPerfectBeginningProfilePage} />;
 
 // Stable module-level wrappers for Business Suite gated routes.
 // These MUST stay at module scope — never defined inline inside JSX.
@@ -887,7 +889,7 @@ export default function Router() {
         <Route path="/lifestyle/my-perfect-beginning/create-meal" component={lazy(() => import("@/pages/lifestyle/MyPerfectBeginningCreateMealPage"))} />
         <Route path="/lifestyle/my-perfect-beginning/parents-corner" component={lazy(() => import("@/pages/MyPerfectBeginningParentsCorner"))} />
         <Route path="/my-perfect-beginning/parents-corner" component={lazy(() => import("@/pages/MyPerfectBeginningParentsCorner"))} />
-        <Route path="/lifestyle/my-perfect-beginning/profile" component={GuardedMyPerfectBeginningStub} />
+        <Route path="/lifestyle/my-perfect-beginning/profile" component={GuardedMyPerfectBeginningProfile} />
         <Route path="/lifestyle/my-perfect-beginning/journey" component={GuardedMyPerfectBeginningStub} />
         <Route path="/lifestyle/my-perfect-beginning/better-favorites" component={GuardedMyPerfectBeginningStub} />
         <Route path="/lifestyle/my-perfect-beginning/lunchbox" component={GuardedMyPerfectBeginningStub} />

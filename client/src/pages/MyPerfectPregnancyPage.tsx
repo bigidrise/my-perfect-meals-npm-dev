@@ -200,12 +200,41 @@ export default function MyPerfectPregnancyPage() {
           conversationHistory: newHistory.slice(-10).map(m => ({ role: m.role, content: m.content })),
         }),
       });
-      const data = await res.json();
-      if (data.reply) {
-        setMessages(prev => [...prev, { role: "assistant", content: data.reply }]);
+
+      // Handle HTTP-level errors before attempting to parse the body
+      if (!res.ok) {
+        let errorMsg = "I had trouble responding. Please try again.";
+        if (res.status === 401) {
+          errorMsg = "You need to be signed in to use the Pregnancy Coach.";
+        } else if (res.status === 403) {
+          errorMsg = "Pregnancy Coach requires a pregnancy-enabled plan. Check your subscription settings.";
+        } else if (res.status === 500) {
+          errorMsg = "The Pregnancy Coach had a server error. Please try again in a moment.";
+        } else {
+          errorMsg = `Something went wrong (${res.status}). Please try again.`;
+        }
+        console.error("[PregnancyCoach] HTTP error:", res.status, res.url);
+        setMessages(prev => [...prev, { role: "assistant", content: errorMsg }]);
+        return;
       }
-    } catch {
-      setMessages(prev => [...prev, { role: "assistant", content: "I had trouble responding. Please try again." }]);
+
+      const data = await res.json();
+
+      if (typeof data.reply === "string" && data.reply) {
+        setMessages(prev => [...prev, { role: "assistant", content: data.reply }]);
+      } else if (data.error === "requires_upgrade") {
+        setMessages(prev => [...prev, { role: "assistant", content: "Pregnancy Coach requires a pregnancy-enabled plan." }]);
+      } else if (data.error) {
+        console.error("[PregnancyCoach] API error:", data.error);
+        setMessages(prev => [...prev, { role: "assistant", content: "I couldn't generate a response. Please try again." }]);
+      } else {
+        // Response parsed but no reply field — unexpected shape
+        console.error("[PregnancyCoach] Unexpected response shape:", data);
+        setMessages(prev => [...prev, { role: "assistant", content: "I couldn't generate a response. Please try again." }]);
+      }
+    } catch (err) {
+      console.error("[PregnancyCoach] Network error:", err);
+      setMessages(prev => [...prev, { role: "assistant", content: "I had trouble connecting. Please check your internet and try again." }]);
     } finally {
       setLoading(false);
     }

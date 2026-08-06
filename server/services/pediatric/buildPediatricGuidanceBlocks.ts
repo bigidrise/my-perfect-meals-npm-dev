@@ -23,6 +23,14 @@ import { EVIDENCE_BY_CONDITION_ID, getStaleProtocolIds } from "./clinicalEvidenc
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
+export interface AllergyDetailEntry {
+  allergen: string;
+  severity?: string;       // "mild" | "moderate" | "severe" | "anaphylactic"
+  epiPen?: boolean;
+  crossContact?: boolean;
+  clinicianInstructions?: string;
+}
+
 export interface ChildProfileInput {
   /** Developmental stage — must match DevelopmentalStage union */
   developmentalStage: DevelopmentalStage;
@@ -43,6 +51,40 @@ export interface ChildProfileInput {
     hasFeedingTube?: boolean;
     historyOfChokingOrGagging?: boolean;
   };
+
+  // ── Group 1: Growth and Nutrition Context ──────────────────────────────────
+  /** Biological sex — context only, never used to diagnose or prescribe */
+  sex?: string;
+  /** Height in cm — reference context only, no weight-status labeling */
+  heightCm?: number;
+  /** Weight in kg — reference context only, no weight-status labeling */
+  weightKg?: number;
+  /** Parent-reported: medication affects appetite or weight */
+  medicationAffectsAppetite?: boolean;
+  /** Birth history JSONB — developmental context */
+  birthHistory?: Record<string, any>;
+  /** Family nutrition goals (parent-stated, not clinical directives) */
+  familyGoals?: string[];
+
+  // ── Group 2: Allergy Detail and Feeding Safety ────────────────────────────
+  /** Structured allergy details: severity, EpiPen, cross-contact, clinician notes */
+  allergyDetails?: AllergyDetailEntry[];
+  /** Feeding development history JSONB */
+  feedingDevelopment?: Record<string, any>;
+
+  // ── Group 3: School and Kitchen Context ────────────────────────────────────
+  /** School-safe required: all allergens must be hard-blocked, packable format */
+  schoolSafeRequired?: boolean;
+  /** Kitchen equipment available (e.g. ["instant_pot", "blender"]) */
+  kitchenEquipment?: string[];
+  /** Kitchen budget level: "budget" | "moderate" | "flexible" */
+  kitchenBudget?: string;
+  /** Max cook time in minutes */
+  kitchenTimeMinutes?: number;
+  /** Cook skill level: "beginner" | "intermediate" | "advanced" */
+  kitchenSkill?: string;
+  /** Cultural cuisine preferences */
+  culturalPreferences?: string;
 }
 
 export interface ProtocolConflict {
@@ -409,8 +451,102 @@ export function buildPediatricGuidanceBlocks(profile: ChildProfileInput): Pediat
   // 4. Detect conflicts
   const conflictLog = detectConflicts(activeProtocols);
 
-  // 5. Assemble guidance blocks
+  // 5. Assemble guidance blocks from active protocols
   const conditionGuidanceBlocks = activeProtocols.map(p => p.guidance).filter(Boolean);
+
+  // 5a. Extended profile guidance blocks — wired from child_profiles Phase 2
+  // These are additive context blocks; they never override medical hard stops or allergen rules.
+
+  // Allergy details: severity, EpiPen, cross-contact, clinician instructions
+  if (profile.allergyDetails && profile.allergyDetails.length > 0) {
+    const lines: string[] = ["🌾 EXTENDED ALLERGY DETAIL (from child profile):"];
+    for (const a of profile.allergyDetails) {
+      if (!a.allergen) continue;
+      const parts: string[] = [`• ${a.allergen}`];
+      if (a.severity)       parts.push(`Severity: ${a.severity}`);
+      if (a.epiPen)         parts.push("EpiPen prescribed: YES — complete exclusion required");
+      if (a.crossContact)   parts.push("Cross-contact concern: YES — use dedicated utensils and surfaces");
+      if (a.clinicianInstructions) parts.push(`Clinician notes: ${a.clinicianInstructions}`);
+      lines.push(parts.join(" | "));
+    }
+    conditionGuidanceBlocks.push(lines.join("\n"));
+  }
+
+  // School-safe: hard constraint, not a preference
+  if (profile.schoolSafeRequired) {
+    conditionGuidanceBlocks.push(
+      "🏫 SCHOOL-SAFE REQUIRED: This meal will be consumed at school. " +
+      "All recipes MUST fully exclude the child's listed allergens and any cross-contact risk — this is a hard constraint. " +
+      "Format must be packable (lunchbox-safe). No refrigeration dependency unless explicitly noted as school-safe. " +
+      "Include packable serving guidance in storageAndLunchboxGuidance."
+    );
+  }
+
+  // Medication affects appetite
+  if (profile.medicationAffectsAppetite) {
+    conditionGuidanceBlocks.push(
+      "💊 MEDICATION-APPETITE NOTE: Parent has reported this child's medication affects appetite or weight. " +
+      "Prioritize nutrient density over volume. Keep portions small and nutritionally concentrated. " +
+      "Avoid overwhelming servings. Do not comment on or reference the medication itself."
+    );
+  }
+
+  // Growth context — reference only, no diagnosis
+  const hasGrowthNumbers = (profile.heightCm && profile.heightCm > 0) || (profile.weightKg && profile.weightKg > 0);
+  if (hasGrowthNumbers || profile.sex) {
+    const parts: string[] = ["📏 GROWTH REFERENCE (context only — never label or diagnose weight status):"];
+    if (profile.sex)       parts.push(`Sex: ${profile.sex}`);
+    if (profile.heightCm)  parts.push(`Height: ${profile.heightCm} cm`);
+    if (profile.weightKg)  parts.push(`Weight: ${profile.weightKg} kg`);
+    parts.push(
+      "Use as reference for portion sizing only. " +
+      "Never reference weight, body size, or growth status in recipe output or serving guidance."
+    );
+    conditionGuidanceBlocks.push(parts.join(" | "));
+  }
+
+  // Kitchen reality: equipment, budget, time, skill
+  const hasKitchenContext =
+    profile.kitchenBudget || profile.kitchenTimeMinutes || profile.kitchenSkill ||
+    (profile.kitchenEquipment && profile.kitchenEquipment.length > 0);
+  if (hasKitchenContext) {
+    const lines: string[] = ["🍳 KITCHEN REALITY CONSTRAINTS:"];
+    if (profile.kitchenBudget) {
+      const budgetLabel =
+        profile.kitchenBudget === "budget" ? "Budget-conscious — use affordable staple ingredients"
+        : profile.kitchenBudget === "flexible" ? "Flexible budget — specialty ingredients acceptable"
+        : "Moderate budget — everyday ingredients preferred";
+      lines.push(`• Budget: ${budgetLabel}`);
+    }
+    if (profile.kitchenTimeMinutes) {
+      lines.push(`• Max cook time: ${profile.kitchenTimeMinutes} minutes — keep recipe within this limit`);
+    }
+    if (profile.kitchenSkill) {
+      const skillNote =
+        profile.kitchenSkill === "beginner" ? "Beginner — simple steps, minimal technique"
+        : profile.kitchenSkill === "advanced" ? "Advanced — complex techniques acceptable"
+        : "Intermediate — standard home-cook techniques";
+      lines.push(`• Cook skill: ${skillNote}`);
+    }
+    if (profile.kitchenEquipment && profile.kitchenEquipment.length > 0) {
+      lines.push(`• Available equipment: ${profile.kitchenEquipment.join(", ")}`);
+    }
+    conditionGuidanceBlocks.push(lines.join("\n"));
+  }
+
+  // Family goals (parent-stated, not clinical directives)
+  if (profile.familyGoals && profile.familyGoals.length > 0) {
+    conditionGuidanceBlocks.push(
+      `🎯 FAMILY NUTRITION GOALS (parent-stated preferences, not medical orders): ${profile.familyGoals.join("; ")}`
+    );
+  }
+
+  // Cultural preferences (if not already passed via request parentPrefs.culturalCuisine)
+  if (profile.culturalPreferences) {
+    conditionGuidanceBlocks.push(
+      `🌍 CULTURAL CUISINE PREFERENCE (from child profile): ${profile.culturalPreferences}`
+    );
+  }
 
   // 6. Add conflict resolution block
   if (conflictLog.length > 0) {

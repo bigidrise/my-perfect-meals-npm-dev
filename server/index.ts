@@ -115,6 +115,7 @@ import aceProfilesRouter from "./routes/aceProfiles";
 import aceInterventionsRouter from "./routes/aceInterventions";
 import coachCornerRouter from "./routes/coachCorner";
 import myPerfectBeginningRouter from "./routes/myPerfectBeginning";
+import pregnancyCoachRouter from "./routes/pregnancyCoach";
 
 const app = express();
 
@@ -1150,8 +1151,18 @@ setTimeout(async () => {
       ON parents_corner_conversations (user_id)
     `);
     console.log('✅ Parent\'s Corner boot migration complete (parents_corner_conversations)');
+
+    // Pregnancy Coach conversation persistence
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS pregnancy_conversations (
+        user_id text PRIMARY KEY,
+        messages jsonb NOT NULL DEFAULT '[]',
+        updated_at timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+    console.log('✅ Pregnancy Coach boot migration complete (pregnancy_conversations)');
   } catch (err: any) {
-    console.error('❌ Parent\'s Corner boot migration failed:', err.message);
+    console.error('❌ Parent\'s Corner / Pregnancy boot migration failed:', err.message);
   }
 }, 4000);
 
@@ -1202,6 +1213,8 @@ setTimeout(async () => {
       `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS pediatrician_oversight boolean DEFAULT false`,
       `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS medication_affects_appetite boolean DEFAULT false`,
       `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS g_tube boolean DEFAULT false`,
+      `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS feeding_ability jsonb DEFAULT '{}'`,
+      `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS allergy_details jsonb DEFAULT '[]'`,
     ];
     for (const col of phase2Columns) {
       await db.execute(sql.raw(col));
@@ -1380,6 +1393,7 @@ async function start() {
   app.use("/api/ace/profile", aceProfilesRouter);
   app.use("/api/ace/interventions", aceInterventionsRouter);
   app.use("/api/coach-corner", coachCornerRouter);
+  app.use("/api/pregnancy", requireAuth, pregnancyCoachRouter);
   app.use("/api/my-perfect-beginning", myPerfectBeginningRouter);
 
   // 🎯 CRITICAL: API routes FIRST to prevent Vite middleware interference

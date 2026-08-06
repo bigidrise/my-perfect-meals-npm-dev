@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { apiRequest } from "@/lib/apiRequest";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ArrowLeft,
@@ -28,6 +29,7 @@ import { useToast } from "@/hooks/use-toast";
 import ThinkingDots from "@/components/ThinkingDots";
 import { Progress } from "@/components/ui/progress";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { usePageTitle } from "@/contexts/PageTitleContext";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import FavoriteButton from "@/components/FavoriteButton";
 import TrashButton from "@/components/ui/TrashButton";
@@ -249,11 +251,11 @@ function EarlyInfantScreen({ onBack }: { onBack: () => void }) {
             </div>
             <div>
               <h2 className="text-base font-semibold text-white">Breast Milk & Formula Stage</h2>
-              <p className="text-xs text-white/60 mt-0.5">Birth to ~5 months</p>
+              <p className="text-xs text-white mt-0.5">Birth to ~5 months</p>
             </div>
           </div>
 
-          <p className="text-sm text-white/80 leading-relaxed">
+          <p className="text-sm text-white leading-relaxed">
             At this stage, babies receive <strong className="text-white">all their nutrition</strong> from
             breast milk or formula. Solid foods are not safe or necessary yet — the digestive system
             and swallowing reflex are still developing.
@@ -268,7 +270,7 @@ function EarlyInfantScreen({ onBack }: { onBack: () => void }) {
                 "Has lost the tongue-thrust reflex (doesn't push food out automatically)",
                 "Can hold their head steady",
               ].map(sign => (
-                <li key={sign} className="flex items-start gap-2 text-sm text-white/70">
+                <li key={sign} className="flex items-start gap-2 text-sm text-white">
                   <CheckCircle2 className="h-3.5 w-3.5 text-blue-400 mt-0.5 flex-shrink-0" />
                   {sign}
                 </li>
@@ -278,7 +280,7 @@ function EarlyInfantScreen({ onBack }: { onBack: () => void }) {
 
           <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-400/20">
             <p className="text-xs text-blue-200 font-medium mb-1">Questions to ask your pediatrician</p>
-            <ul className="space-y-1 text-xs text-white/60">
+            <ul className="space-y-1 text-xs text-white">
               <li>• When is my baby ready to start solid foods?</li>
               <li>• Should I start with purées or baby-led weaning?</li>
               <li>• Which foods should I introduce first?</li>
@@ -297,7 +299,7 @@ function EarlyInfantScreen({ onBack }: { onBack: () => void }) {
         </CardContent>
       </Card>
 
-      <p className="text-center text-xs text-white/40">
+      <p className="text-center text-xs text-white">
         Return when your baby reaches the Beginning Foods stage (~6 months) and your pediatrician
         gives the green light.
       </p>
@@ -343,15 +345,15 @@ function HardStopScreen({
             </div>
             <div>
               <h2 className="text-base font-semibold text-white">{title}</h2>
-              <p className="text-xs text-white/60 mt-0.5">Requires specialist guidance</p>
+              <p className="text-xs text-white mt-0.5">Requires specialist guidance</p>
             </div>
           </div>
 
-          <p className="text-sm text-white/80 leading-relaxed">{educationMessage}</p>
+          <p className="text-sm text-white leading-relaxed">{educationMessage}</p>
 
           <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-400/20">
             <p className="text-xs text-amber-200 font-medium mb-1">Next steps</p>
-            <ul className="space-y-1 text-xs text-white/60">
+            <ul className="space-y-1 text-xs text-white">
               <li>• Speak with your child's pediatrician or registered dietitian</li>
               <li>• Bring this profile to your next clinical appointment</li>
               <li>• Ask your care team for a safe food list specific to your child</li>
@@ -410,7 +412,7 @@ function AllergenSelector({
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
                 selected
                   ? "bg-red-500/20 border-red-400/50 text-red-200"
-                  : "bg-black/30 border-white/15 text-white/60 hover:border-white/30 hover:text-white/80"
+                  : "bg-black/30 border-white/15 text-white hover:border-white/30 hover:text-white"
               }`}
             >
               <span>{emoji}</span>
@@ -438,7 +440,7 @@ function AllergenSelector({
                 <button
                   type="button"
                   onClick={() => setExpandedId(isOpen ? null : entry.allergenId)}
-                  className="w-full flex items-center justify-between px-3 py-2 text-sm text-white/80"
+                  className="w-full flex items-center justify-between px-3 py-2 text-sm text-white"
                 >
                   <span className="font-medium">
                     {meta.emoji} {meta.label} — {SEVERITY_LABELS[entry.severity]}
@@ -449,7 +451,7 @@ function AllergenSelector({
                 {isOpen && (
                   <div className="px-3 pb-3 space-y-2">
                     <div>
-                      <label className="block text-xs text-white/50 mb-1">Severity</label>
+                      <label className="block text-xs text-white mb-1">Severity</label>
                       <select
                         value={entry.severity}
                         onChange={e => updateEntry(entry.allergenId, { severity: e.target.value as AllergySeverity })}
@@ -470,7 +472,7 @@ function AllergenSelector({
                         onChange={e => updateEntry(entry.allergenId, { emergencyMedication: e.target.checked })}
                         className="rounded border-white/20"
                       />
-                      <span className="text-xs text-white/70">EpiPen / emergency medication prescribed</span>
+                      <span className="text-xs text-white">EpiPen / emergency medication prescribed</span>
                     </label>
                   </div>
                 )}
@@ -601,17 +603,17 @@ function WhyEngineDecidedPanel({ resolverMeta, conflictResolutions }: WhyEngineD
             <div key={`a-${i}`} className="flex items-start gap-2">
               <span className="text-red-400 mt-0.5 flex-shrink-0 text-base leading-none">🚫</span>
               <div>
-                <p className="text-xs text-white/80 font-medium capitalize">
+                <p className="text-xs text-white font-medium capitalize">
                   {a.displayName.replace(/_/g, " ")} removed
                 </p>
-                <p className="text-xs text-white/45 mt-0.5">{allergenActionLabel(a.action, a.severity)}</p>
+                <p className="text-xs text-white mt-0.5">{allergenActionLabel(a.action, a.severity)}</p>
               </div>
             </div>
           ))}
           {safetyRules.map((r, i) => (
             <div key={`r-${i}`} className="flex items-start gap-2">
               <CheckCircle2 className="h-3.5 w-3.5 text-red-400/70 mt-0.5 flex-shrink-0" />
-              <p className="text-xs text-white/70 leading-relaxed">{r.description}</p>
+              <p className="text-xs text-white leading-relaxed">{r.description}</p>
             </div>
           ))}
         </div>
@@ -638,16 +640,16 @@ function WhyEngineDecidedPanel({ resolverMeta, conflictResolutions }: WhyEngineD
             <div className="px-2.5 py-2 rounded-lg bg-green-950/30 border border-green-400/15 mb-1">
               <p className="text-xs text-green-300/80 font-medium mb-1">{dri.stageLabel}</p>
               <div className="flex flex-wrap gap-x-3 gap-y-0.5">
-                {dri.ironMg > 0 && <span className="text-[11px] text-white/50">Iron target: {dri.ironMg}mg</span>}
-                {dri.calciumMg > 0 && <span className="text-[11px] text-white/50">Calcium: {dri.calciumMg}mg</span>}
-                {dri.vitaminDIU > 0 && <span className="text-[11px] text-white/50">Vitamin D: {dri.vitaminDIU}IU</span>}
+                {dri.ironMg > 0 && <span className="text-[11px] text-white">Iron target: {dri.ironMg}mg</span>}
+                {dri.calciumMg > 0 && <span className="text-[11px] text-white">Calcium: {dri.calciumMg}mg</span>}
+                {dri.vitaminDIU > 0 && <span className="text-[11px] text-white">Vitamin D: {dri.vitaminDIU}IU</span>}
               </div>
             </div>
           )}
           {nutritionItems.map((item, i) => (
             <div key={i} className="flex items-start gap-2">
               <CheckCircle2 className="h-3.5 w-3.5 text-green-400/70 mt-0.5 flex-shrink-0" />
-              <p className="text-xs text-white/70 leading-relaxed">{item}</p>
+              <p className="text-xs text-white leading-relaxed">{item}</p>
             </div>
           ))}
         </div>
@@ -668,7 +670,7 @@ function WhyEngineDecidedPanel({ resolverMeta, conflictResolutions }: WhyEngineD
           {preferenceItems.map((item, i) => (
             <div key={i} className="flex items-start gap-2">
               <CheckCircle2 className="h-3.5 w-3.5 text-yellow-400/70 mt-0.5 flex-shrink-0" />
-              <p className="text-xs text-white/70 leading-relaxed capitalize-first">{item}</p>
+              <p className="text-xs text-white leading-relaxed capitalize-first">{item}</p>
             </div>
           ))}
         </div>
@@ -709,9 +711,9 @@ function WhyEngineDecidedPanel({ resolverMeta, conflictResolutions }: WhyEngineD
         <div className="space-y-3">
           {allConflicts.map((c, i) => (
             <div key={i} className="rounded-lg bg-amber-950/25 border border-amber-400/15 p-3 space-y-1.5">
-              <div className="flex flex-wrap items-center gap-1.5 text-xs text-white/50">
+              <div className="flex flex-wrap items-center gap-1.5 text-xs text-white">
                 <span className="bg-amber-500/15 text-amber-200/80 px-1.5 py-0.5 rounded text-[10px] font-medium">{c.labelA}</span>
-                <span className="text-white/25">vs.</span>
+                <span className="text-white">vs.</span>
                 <span className="bg-amber-500/15 text-amber-200/80 px-1.5 py-0.5 rounded text-[10px] font-medium">{c.labelB}</span>
               </div>
               <p className="text-xs text-amber-100/80 leading-relaxed">✓ {c.resolution}</p>
@@ -734,13 +736,13 @@ function WhyEngineDecidedPanel({ resolverMeta, conflictResolutions }: WhyEngineD
             <div className="flex items-center gap-2">
               {section.icon}
               <span className={`text-xs font-semibold ${section.color}`}>{section.title}</span>
-              <span className="text-[10px] text-white/30 bg-white/5 px-1.5 py-0.5 rounded-full">
+              <span className="text-[10px] text-white bg-white/5 px-1.5 py-0.5 rounded-full">
                 {section.count}
               </span>
             </div>
             {openSection === section.id
-              ? <ChevronUp className="h-3.5 w-3.5 text-white/30" />
-              : <ChevronDown className="h-3.5 w-3.5 text-white/30" />
+              ? <ChevronUp className="h-3.5 w-3.5 text-white" />
+              : <ChevronDown className="h-3.5 w-3.5 text-white" />
             }
           </button>
           {openSection === section.id && (
@@ -762,7 +764,7 @@ function PediatricianDisclaimer() {
       <Stethoscope className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />
       <div className="space-y-1">
         <p className="text-xs font-semibold text-blue-300">Always Consult Your Pediatrician</p>
-        <p className="text-xs text-white/60 leading-relaxed">
+        <p className="text-xs text-white leading-relaxed">
           My Perfect Beginning generates general nutrition-improvement ideas based on age-stage guidelines
           and the profile information you've provided. It does not replace individualized advice from your
           child's pediatrician or registered dietitian. Always consult your child's healthcare provider
@@ -786,18 +788,18 @@ function ParentEducationPanel({ layer }: { layer: ParentEducationLayerData }) {
     <div className="space-y-3">
       {/* Confidence */}
       <div className="flex items-center justify-between">
-        <span className="text-xs text-white/50">Meal Confidence</span>
+        <span className="text-xs text-white">Meal Confidence</span>
         <div className="flex items-center gap-1.5">
           <div className="flex gap-0.5">
             {[1,2,3,4,5].map(n => (
               <Star
                 key={n}
-                className={`h-3 w-3 ${n <= starsFilled ? "text-yellow-400 fill-yellow-400" : "text-white/20"}`}
+                className={`h-3 w-3 ${n <= starsFilled ? "text-yellow-400 fill-yellow-400" : "text-white"}`}
               />
             ))}
           </div>
           {completeness != null && (
-            <span className="text-xs text-white/40">{completeness}% profile used</span>
+            <span className="text-xs text-white">{completeness}% profile used</span>
           )}
         </div>
       </div>
@@ -805,7 +807,7 @@ function ParentEducationPanel({ layer }: { layer: ParentEducationLayerData }) {
       {/* Personalization dimensions */}
       {dimsUsed.length > 0 && (
         <div>
-          <p className="text-xs text-white/40 mb-1">Personalized for</p>
+          <p className="text-xs text-white mb-1">Personalized for</p>
           <div className="flex flex-wrap gap-1">
             {dimsUsed.map((dim, i) => (
               <span key={i} className="text-[10px] bg-purple-500/15 text-purple-300/80 border border-purple-400/15 rounded-full px-2 py-0.5">
@@ -820,7 +822,7 @@ function ParentEducationPanel({ layer }: { layer: ParentEducationLayerData }) {
       {reviews.length > 0 && (
         <div>
           {reviews.map((r, i) => (
-            <div key={i} className="flex items-center gap-1.5 text-xs text-white/40">
+            <div key={i} className="flex items-center gap-1.5 text-xs text-white">
               <CheckCircle2 className="h-3 w-3 text-green-400/70 flex-shrink-0" />
               <span className="text-green-300/70 font-medium">{r.status}</span>
               <span>— {r.protocolId}</span>
@@ -910,7 +912,7 @@ function RecipeCard({
               />
               <button
                 onClick={onDelete}
-                className="text-sm text-white/70 bg-white/10 px-3 py-1 rounded-lg transition-colors active:scale-[0.98]"
+                className="text-sm text-white bg-white/10 px-3 py-1 rounded-lg transition-colors active:scale-[0.98]"
               >
                 New Recipe
               </button>
@@ -955,25 +957,25 @@ function RecipeCard({
           )}
 
           {/* Age stage caption */}
-          <p className="text-white/70 text-sm mb-4">{recipe.ageStageSuitability}</p>
+          <p className="text-white text-sm mb-4">{recipe.ageStageSuitability}</p>
 
           {/* Pediatric info tiles — replaces adult macro tiles */}
           <div className="grid grid-cols-4 gap-2 mb-4 text-center">
             <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
               <div className="text-sm font-bold text-green-300 leading-tight">{stageLabel.split(" ").slice(0, 1).join("")}</div>
-              <div className="text-[10px] text-white/60 mt-0.5">Age Group</div>
+              <div className="text-[10px] text-white mt-0.5">Age Group</div>
             </div>
             <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
               <div className="text-sm font-bold text-amber-300 leading-tight">{formatTextureClass(textureClass).split(" ")[0]}</div>
-              <div className="text-[10px] text-white/60 mt-0.5">Texture</div>
+              <div className="text-[10px] text-white mt-0.5">Texture</div>
             </div>
             <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
               <div className="text-sm font-bold text-purple-300 leading-tight">{confidencePct}</div>
-              <div className="text-[10px] text-white/60 mt-0.5">Confidence</div>
+              <div className="text-[10px] text-white mt-0.5">Confidence</div>
             </div>
             <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
               <div className="text-sm font-bold text-blue-300 leading-tight truncate">✓</div>
-              <div className="text-[10px] text-white/60 mt-0.5">Reviewed</div>
+              <div className="text-[10px] text-white mt-0.5">Reviewed</div>
             </div>
           </div>
 
@@ -982,7 +984,7 @@ function RecipeCard({
             <AlertTriangle className="h-4 w-4 text-amber-400 mt-0.5 flex-shrink-0" />
             <div>
               <p className="text-xs font-semibold text-amber-300 mb-0.5">Texture & Choking Safety</p>
-              <p className="text-xs text-white/75 leading-relaxed">{recipe.textureAndChokingPreparation}</p>
+              <p className="text-xs text-white leading-relaxed">{recipe.textureAndChokingPreparation}</p>
             </div>
           </div>
 
@@ -996,17 +998,17 @@ function RecipeCard({
               >
                 <span>Ingredients</span>
                 {ingredientsExpanded
-                  ? <ChevronUp className="h-4 w-4 text-white/50" />
-                  : <ChevronDown className="h-4 w-4 text-white/50" />}
+                  ? <ChevronUp className="h-4 w-4 text-white" />
+                  : <ChevronDown className="h-4 w-4 text-white" />}
               </button>
               {ingredientsExpanded && (
-                <ul className="text-sm text-white/80 space-y-1.5">
+                <ul className="text-sm text-white space-y-1.5">
                   {recipe.ingredients.map((ing, i) => (
                     <li key={i} className="flex items-start gap-2">
                       <span className="text-green-400 mt-0.5 flex-shrink-0">•</span>
                       <span>
                         {ing.quantity}{ing.unit ? ` ${ing.unit}` : ""} <strong>{ing.name}</strong>
-                        {ing.prepNote && <span className="text-white/50"> — {ing.prepNote}</span>}
+                        {ing.prepNote && <span className="text-white"> — {ing.prepNote}</span>}
                         {ing.substitutionNote && (
                           <span className="block text-xs text-blue-300/80 mt-0.5">{ing.substitutionNote}</span>
                         )}
@@ -1036,7 +1038,7 @@ function RecipeCard({
                     <div className="min-w-[26px] h-[26px] w-[26px] rounded-full bg-green-600 text-white flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
                       {index + 1}
                     </div>
-                    <p className="text-sm leading-relaxed text-white/85">{step}</p>
+                    <p className="text-sm leading-relaxed text-white">{step}</p>
                   </div>
                 ))}
               </div>
@@ -1057,21 +1059,21 @@ function RecipeCard({
           {/* Serving guidance, fun presentation, storage */}
           <div className="mb-4 space-y-3">
             <div>
-              <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-1">Serving Guidance</p>
-              <p className="text-sm text-white/80">{recipe.servingGuidance}</p>
+              <p className="text-xs font-semibold text-white uppercase tracking-wider mb-1">Serving Guidance</p>
+              <p className="text-sm text-white">{recipe.servingGuidance}</p>
             </div>
             <div>
-              <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-1">Pairs Well With</p>
-              <p className="text-sm text-white/80">{recipe.serveSuggestion}</p>
+              <p className="text-xs font-semibold text-white uppercase tracking-wider mb-1">Pairs Well With</p>
+              <p className="text-sm text-white">{recipe.serveSuggestion}</p>
             </div>
             <div>
-              <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-1">🎉 Fun Presentation Idea</p>
-              <p className="text-sm text-white/80">{recipe.funPresentationIdea}</p>
+              <p className="text-xs font-semibold text-white uppercase tracking-wider mb-1">🎉 Fun Presentation Idea</p>
+              <p className="text-sm text-white">{recipe.funPresentationIdea}</p>
             </div>
             {recipe.storageAndLunchboxGuidance && (
               <div>
-                <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-1">Storage & Lunchbox</p>
-                <p className="text-sm text-white/80">{recipe.storageAndLunchboxGuidance}</p>
+                <p className="text-xs font-semibold text-white uppercase tracking-wider mb-1">Storage & Lunchbox</p>
+                <p className="text-sm text-white">{recipe.storageAndLunchboxGuidance}</p>
               </div>
             )}
           </div>
@@ -1083,7 +1085,7 @@ function RecipeCard({
                 <CheckCircle2 className="h-4 w-4 text-green-400" />
                 Why This Version Works for Your Child:
               </h4>
-              <p className="text-sm text-white/80">{recipe.whyThisVersionIsBetter}</p>
+              <p className="text-sm text-white">{recipe.whyThisVersionIsBetter}</p>
             </div>
           )}
 
@@ -1094,7 +1096,7 @@ function RecipeCard({
                 <Brain className="h-4 w-4 text-purple-400" />
                 Why This Meal Was Chosen:
               </h4>
-              <p className="text-sm text-white/80">{recipe.whyThisMealWasChosen}</p>
+              <p className="text-sm text-white">{recipe.whyThisMealWasChosen}</p>
             </div>
           )}
 
@@ -1104,7 +1106,7 @@ function RecipeCard({
               <Info className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />
               <div>
                 <p className="text-xs font-semibold text-blue-300 mb-0.5">Ask Your Pediatrician</p>
-                <p className="text-xs text-white/75 leading-relaxed">{recipe.askPediatricianNote}</p>
+                <p className="text-xs text-white leading-relaxed">{recipe.askPediatricianNote}</p>
               </div>
             </div>
           )}
@@ -1197,7 +1199,7 @@ function RecipeCard({
             <button
               type="button"
               onClick={() => setShowTrace(!showTrace)}
-              className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/50 transition-colors"
+              className="flex items-center gap-1.5 text-xs text-white hover:text-white transition-colors"
             >
               <FlaskConical className="h-3 w-3" />
               {showTrace ? "Hide" : "Show"} reasoning trace ({recipe.reasoningTrace.length} rule{recipe.reasoningTrace.length !== 1 ? "s" : ""} applied)
@@ -1207,7 +1209,7 @@ function RecipeCard({
                 {recipe.reasoningTrace.map((rule, i) => (
                   <div key={i} className="flex items-start gap-2 px-2.5 py-1.5 rounded-md bg-black/30 border border-white/5">
                     <span className="text-purple-400/60 text-xs mt-0.5 flex-shrink-0">{i + 1}.</span>
-                    <p className="text-xs text-white/60">{rule}</p>
+                    <p className="text-xs text-white">{rule}</p>
                   </div>
                 ))}
               </div>
@@ -1221,7 +1223,7 @@ function RecipeCard({
             <button
               type="button"
               onClick={() => setShowLog(!showLog)}
-              className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/50 transition-colors"
+              className="flex items-center gap-1.5 text-xs text-white hover:text-white transition-colors"
             >
               <ShieldCheck className="h-3 w-3" />
               {showLog ? "Hide" : "Show"} safety rules applied ({recipe.rulesFireLog.length})
@@ -1230,10 +1232,10 @@ function RecipeCard({
               <div className="mt-2 space-y-1.5">
                 {recipe.rulesFireLog.map((rule, i) => (
                   <div key={i} className="px-2.5 py-1.5 rounded-md bg-black/30 border border-white/5">
-                    <p className="text-xs text-white/60">
+                    <p className="text-xs text-white">
                       <span className="font-mono text-green-400/70">[{rule.ruleId}]</span>{" "}
                       {rule.description}
-                      <span className="text-white/30"> — {rule.action}</span>
+                      <span className="text-white"> — {rule.action}</span>
                     </p>
                   </div>
                 ))}
@@ -1326,9 +1328,7 @@ function toActiveSummary(child: ChildListItem): ActiveChildSummary {
 
 async function fetchAllChildren(): Promise<ChildListItem[]> {
   try {
-    const res = await fetch(apiUrl("/api/my-perfect-beginning/children"), { credentials: "include" });
-    if (!res.ok) return [];
-    const data = await res.json();
+    const data = await apiRequest(apiUrl("/api/my-perfect-beginning/children"));
     return data.children ?? [];
   } catch {
     return [];
@@ -1367,7 +1367,7 @@ function ChildPickerSheet({
           {/* Title */}
           <div className="space-y-0.5 pt-1">
             <h2 className="text-base font-bold text-white">Who are you cooking for?</h2>
-            <p className="text-xs text-white/40">Choose a child or cook a general meal.</p>
+            <p className="text-xs text-white">Choose a child or cook a general meal.</p>
           </div>
 
           {/* Child options */}
@@ -1384,7 +1384,7 @@ function ChildPickerSheet({
                 </span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-white truncate">{child.name}</p>
-                  <p className="text-xs text-white/40">
+                  <p className="text-xs text-white">
                     {STAGES.find(s => s.id === child.age_stage)?.label ?? child.age_stage}
                     {" · "}
                     {stageAgeLabel(child)}
@@ -1412,7 +1412,7 @@ function ChildPickerSheet({
               <span className="text-2xl flex-shrink-0" aria-hidden="true">🍽️</span>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-white">General children's meal</p>
-                <p className="text-xs text-white/40">No specific child — choose an age range</p>
+                <p className="text-xs text-white">No specific child — choose an age range</p>
               </div>
             </button>
           </div>
@@ -1424,6 +1424,7 @@ function ChildPickerSheet({
 
 export default function MyPerfectBeginningCreateMealPage() {
   const [, setLocation] = useLocation();
+  usePageTitle("Create a Meal");
   const { toast } = useToast();
 
   // Form state
@@ -1530,7 +1531,7 @@ export default function MyPerfectBeginningCreateMealPage() {
   }, []);
 
   useEffect(() => {
-    document.title = "Create a Meal | My Perfect Beginning";
+    // document.title is managed by usePageTitle("Create a Meal")
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
@@ -1581,10 +1582,8 @@ export default function MyPerfectBeginningCreateMealPage() {
     if (culturalCuisine.trim()) parentPrefs.culturalCuisine = culturalCuisine.trim();
 
     try {
-      const res = await fetch(apiUrl("/api/my-perfect-beginning/create-dish"), {
+      const data = await apiRequest(apiUrl("/api/my-perfect-beginning/create-dish"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({
           ageStage: selectedStage,
           allergies,
@@ -1594,12 +1593,6 @@ export default function MyPerfectBeginningCreateMealPage() {
           parentPrefs: Object.keys(parentPrefs).length > 0 ? parentPrefs : undefined,
         }),
       });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to generate recipe");
-      }
 
       if (data.blocked) {
         if (data.blockReason === "early_infant") {
@@ -1705,7 +1698,12 @@ export default function MyPerfectBeginningCreateMealPage() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="min-h-screen bg-gradient-to-br from-black/70 via-green-900/30 to-black/80 pb-safe-nav"
+      className="min-h-screen pb-safe-nav"
+      style={{
+        backgroundImage: "linear-gradient(rgba(2,14,8,0.78), rgba(1,10,5,0.74)), url('/images/mpb-hero-bg.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
     >
       {/* Child picker sheet — shown when multiple children and no active selection */}
       {showChildPicker && allChildren.length >= 2 && (
@@ -1729,13 +1727,13 @@ export default function MyPerfectBeginningCreateMealPage() {
       </MobileHeaderGuard>
 
       <div className="max-w-2xl mx-auto px-4 pt-24 pb-12 space-y-5">
-        {/* Back to Lifestyle Hub */}
+        {/* Back to My Perfect Beginnings */}
         <button
-          onClick={() => setLocation("/lifestyle")}
-          className="flex items-center gap-1.5 text-white/50 hover:text-white/80 text-sm transition-colors"
+          onClick={() => setLocation("/lifestyle/my-perfect-beginning")}
+          className="flex items-center gap-1.5 text-emerald-400 text-sm"
         >
           <ArrowLeft className="h-4 w-4" />
-          <span>Lifestyle Hub</span>
+          <span>Back to My Perfect Beginnings</span>
         </button>
 
         {/* Tagline */}
@@ -1745,7 +1743,7 @@ export default function MyPerfectBeginningCreateMealPage() {
             animate={{ opacity: 1 }}
             className="text-center pb-2"
           >
-            <p className="text-white/50 text-sm leading-relaxed">
+            <p className="text-white text-sm leading-relaxed">
               Age-safe, kid-friendly recipes built for how your child eats — not how you do.
             </p>
           </motion.div>
@@ -1828,7 +1826,7 @@ export default function MyPerfectBeginningCreateMealPage() {
                   <p className="text-xs text-emerald-300 font-medium">
                     Using <span className="font-semibold">{activeChild.name}</span>'s profile
                   </p>
-                  <p className="text-[11px] text-white/40 leading-tight">
+                  <p className="text-[11px] text-white leading-tight">
                     Stage and allergies pre-loaded — just type what you'd like to make.
                   </p>
                 </div>
@@ -1848,8 +1846,8 @@ export default function MyPerfectBeginningCreateMealPage() {
             )}
             {profileLoaded && !activeChild && (
               <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/10">
-                <Baby className="h-4 w-4 text-white/30 flex-shrink-0" />
-                <p className="text-xs text-white/40 flex-1">
+                <Baby className="h-4 w-4 text-white flex-shrink-0" />
+                <p className="text-xs text-white flex-1">
                   No child profile selected.{" "}
                   <button
                     onClick={() => setLocation("/lifestyle/my-perfect-beginning")}
@@ -1883,13 +1881,13 @@ export default function MyPerfectBeginningCreateMealPage() {
                       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all text-left ${
                         selectedStage === stage.id
                           ? "bg-green-500/15 border-green-400/40 text-white"
-                          : "bg-black/20 border-white/10 text-white/60 hover:border-white/25 hover:text-white/80"
+                          : "bg-black/20 border-white/10 text-white hover:border-white/25 hover:text-white"
                       }`}
                     >
                       <span className="text-base flex-shrink-0">{stage.emoji}</span>
                       <div className="flex-1 min-w-0">
                         <span className="text-sm font-medium block">{stage.label}</span>
-                        <span className="text-xs text-white/40">{stage.ageRange}</span>
+                        <span className="text-xs text-white">{stage.ageRange}</span>
                       </div>
                       {stage.id === "early_infant" && (
                         <span className="text-[10px] text-blue-300/70 flex-shrink-0">Education only</span>
@@ -1907,7 +1905,7 @@ export default function MyPerfectBeginningCreateMealPage() {
                     <p className="text-xs text-green-300">
                       ✓ Stage confirmed: <strong>{stageMeta.label}</strong> ({stageMeta.ageRange})
                     </p>
-                    <p className="text-xs text-white/40 mt-0.5">
+                    <p className="text-xs text-white mt-0.5">
                       Age ranges are approximate — developmental readiness is what matters most.
                     </p>
                   </motion.div>
@@ -1921,13 +1919,13 @@ export default function MyPerfectBeginningCreateMealPage() {
                 <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
                   <ShieldCheck className="h-4 w-4 text-red-400" />
                   Allergies & intolerances
-                  <span className="text-xs font-normal text-white/40 ml-1">(optional)</span>
+                  <span className="text-xs font-normal text-white ml-1">(optional)</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="px-4 pb-4">
                 <AllergenSelector allergies={allergies} onChange={setAllergies} />
                 {allergies.length === 0 && (
-                  <p className="text-xs text-white/30 mt-2">Tap an allergen above to add it. You can set severity and EpiPen status for each.</p>
+                  <p className="text-xs text-white mt-2">Tap an allergen above to add it. You can set severity and EpiPen status for each.</p>
                 )}
               </CardContent>
             </Card>
@@ -1962,7 +1960,7 @@ export default function MyPerfectBeginningCreateMealPage() {
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all active:scale-95 ${
                         mealOccasion === occ.id
                           ? "bg-amber-500/20 border-amber-400/50 text-amber-200"
-                          : "bg-white/5 border-white/10 text-white/50 hover:border-white/25 hover:text-white/70"
+                          : "bg-white/5 border-white/10 text-white hover:border-white/25 hover:text-white"
                       }`}
                     >
                       <span>{occ.emoji}</span>
@@ -1986,10 +1984,10 @@ export default function MyPerfectBeginningCreateMealPage() {
                   value={foodRequest}
                   onChange={e => setFoodRequest(e.target.value)}
                   placeholder="e.g. Mac and cheese, chicken nuggets, banana pancakes, spaghetti…"
-                  className="w-full px-3 py-2 bg-black text-white placeholder:text-white/30 border border-white/10 rounded-lg h-20 resize-none text-sm focus:outline-none focus:border-green-400/40"
+                  className="w-full px-3 py-2 bg-black text-white placeholder:text-white border border-white/10 rounded-lg h-20 resize-none text-sm focus:outline-none focus:border-green-400/40"
                   maxLength={200}
                 />
-                <p className="text-xs text-white/30 text-right">{foodRequest.length}/200</p>
+                <p className="text-xs text-white text-right">{foodRequest.length}/200</p>
               </CardContent>
             </Card>
 
@@ -2013,7 +2011,7 @@ export default function MyPerfectBeginningCreateMealPage() {
                         className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
                           servings === s
                             ? "bg-blue-500/20 border-blue-400/50 text-blue-200"
-                            : "bg-white/5 border-white/10 text-white/50 hover:border-white/25"
+                            : "bg-white/5 border-white/10 text-white hover:border-white/25"
                         }`}
                       >
                         {s === 1 ? "1" : `${s}`}
@@ -2048,7 +2046,7 @@ export default function MyPerfectBeginningCreateMealPage() {
                         className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
                           cookingMethod === m.id
                             ? "bg-orange-500/20 border-orange-400/50 text-orange-200"
-                            : "bg-white/5 border-white/10 text-white/50 hover:border-white/25"
+                            : "bg-white/5 border-white/10 text-white hover:border-white/25"
                         }`}
                       >
                         <span>{m.emoji}</span>{m.label}
@@ -2065,7 +2063,7 @@ export default function MyPerfectBeginningCreateMealPage() {
                 <CardTitle className="text-xs font-semibold text-white flex items-center gap-2">
                   <Clock className="h-3.5 w-3.5 text-purple-400" />
                   Prep time
-                  <span className="text-xs font-normal text-white/40 ml-1">optional</span>
+                  <span className="text-xs font-normal text-white ml-1">optional</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="px-4 pb-4">
@@ -2084,7 +2082,7 @@ export default function MyPerfectBeginningCreateMealPage() {
                       className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                         prepTime === opt.value
                           ? "bg-purple-500/20 border-purple-400/50 text-purple-200"
-                          : "bg-white/5 border-white/10 text-white/50 hover:border-white/25"
+                          : "bg-white/5 border-white/10 text-white hover:border-white/25"
                       }`}
                     >
                       {opt.label}
@@ -2098,9 +2096,9 @@ export default function MyPerfectBeginningCreateMealPage() {
             <Card className="bg-black/40 border-white/10 backdrop-blur-lg">
               <CardHeader className="pb-2 pt-4 px-4">
                 <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-                  <Info className="h-4 w-4 text-white/40" />
+                  <Info className="h-4 w-4 text-white" />
                   Tell us anything helpful
-                  <span className="text-xs font-normal text-white/40 ml-1">optional</span>
+                  <span className="text-xs font-normal text-white ml-1">optional</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="px-4 pb-4 space-y-2">
@@ -2108,10 +2106,10 @@ export default function MyPerfectBeginningCreateMealPage() {
                   value={notes}
                   onChange={e => setNotes(e.target.value)}
                   placeholder="e.g. Birthday party · After-school snack · Picky eater today · Grandma is visiting · Needs to travel"
-                  className="w-full px-3 py-2 bg-black text-white placeholder:text-white/30 border border-white/10 rounded-lg h-16 resize-none text-sm focus:outline-none focus:border-white/25"
+                  className="w-full px-3 py-2 bg-black text-white placeholder:text-white border border-white/10 rounded-lg h-16 resize-none text-sm focus:outline-none focus:border-white/25"
                   maxLength={200}
                 />
-                <p className="text-xs text-white/30 text-right">{notes.length}/200</p>
+                <p className="text-xs text-white text-right">{notes.length}/200</p>
               </CardContent>
             </Card>
 
@@ -2120,7 +2118,7 @@ export default function MyPerfectBeginningCreateMealPage() {
               <button
                 type="button"
                 onClick={() => setShowMoreOptions(v => !v)}
-                className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-sm text-white/50 hover:text-white/70 hover:border-white/20 transition-all"
+                className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-sm text-white hover:text-white hover:border-white/20 transition-all"
               >
                 <span className="flex items-center gap-2">
                   <Globe className="h-3.5 w-3.5" />
@@ -2148,7 +2146,7 @@ export default function MyPerfectBeginningCreateMealPage() {
                       className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-medium transition-all ${
                         schoolSafe
                           ? "bg-emerald-500/20 border-emerald-400/40 text-emerald-200"
-                          : "bg-white/5 border-white/10 text-white/50 hover:border-white/25"
+                          : "bg-white/5 border-white/10 text-white hover:border-white/25"
                       }`}
                     >
                       <span>🏫</span>
@@ -2161,7 +2159,7 @@ export default function MyPerfectBeginningCreateMealPage() {
                       className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-medium transition-all ${
                         packable
                           ? "bg-emerald-500/20 border-emerald-400/40 text-emerald-200"
-                          : "bg-white/5 border-white/10 text-white/50 hover:border-white/25"
+                          : "bg-white/5 border-white/10 text-white hover:border-white/25"
                       }`}
                     >
                       <span>🎒</span>
@@ -2172,7 +2170,7 @@ export default function MyPerfectBeginningCreateMealPage() {
 
                   {/* Budget */}
                   <div className="space-y-1.5">
-                    <p className="text-xs text-white/40 px-1">Budget</p>
+                    <p className="text-xs text-white px-1">Budget</p>
                     <div className="flex gap-2">
                       {[
                         { id: "", label: "Any" },
@@ -2187,7 +2185,7 @@ export default function MyPerfectBeginningCreateMealPage() {
                           className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                             budget === opt.id
                               ? "bg-emerald-500/20 border-emerald-400/40 text-emerald-200"
-                              : "bg-white/5 border-white/10 text-white/50 hover:border-white/25"
+                              : "bg-white/5 border-white/10 text-white hover:border-white/25"
                           }`}
                         >
                           {opt.label}
@@ -2198,14 +2196,14 @@ export default function MyPerfectBeginningCreateMealPage() {
 
                   {/* Cultural cuisine */}
                   <div className="space-y-1.5">
-                    <p className="text-xs text-white/40 px-1">Cultural cuisine <span className="text-white/25">(optional)</span></p>
+                    <p className="text-xs text-white px-1">Cultural cuisine <span className="text-white">(optional)</span></p>
                     <input
                       type="text"
                       value={culturalCuisine}
                       onChange={e => setCulturalCuisine(e.target.value)}
                       placeholder="e.g. Mexican, Japanese, West African…"
                       maxLength={80}
-                      className="w-full px-3 py-2 bg-black text-white placeholder:text-white/30 border border-white/10 rounded-lg text-sm focus:outline-none focus:border-white/25"
+                      className="w-full px-3 py-2 bg-black text-white placeholder:text-white border border-white/10 rounded-lg text-sm focus:outline-none focus:border-white/25"
                     />
                   </div>
                 </motion.div>
@@ -2216,7 +2214,7 @@ export default function MyPerfectBeginningCreateMealPage() {
             {isGenerating && (
               <div className="space-y-2">
                 <Progress value={progress} className="h-1.5 bg-white/10" />
-                <p className="text-center text-xs text-white/50 flex items-center justify-center gap-1">
+                <p className="text-center text-xs text-white flex items-center justify-center gap-1">
                   Building your kid-friendly recipe <ThinkingDots />
                 </p>
               </div>
@@ -2233,7 +2231,7 @@ export default function MyPerfectBeginningCreateMealPage() {
             </button>
 
             {/* Disclaimer */}
-            <p className="text-center text-xs text-white/25 leading-relaxed px-4">
+            <p className="text-center text-xs text-white leading-relaxed px-4">
               My Perfect Beginning generates general nutrition-improvement ideas for healthy children.
               It does not replace advice from your child's pediatrician or registered dietitian.
               Always consult your child's healthcare provider before introducing new foods or making dietary changes.

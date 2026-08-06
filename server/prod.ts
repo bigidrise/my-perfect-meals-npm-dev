@@ -1302,6 +1302,8 @@ async function initializeApp() {
             `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS pediatrician_oversight boolean DEFAULT false`,
             `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS medication_affects_appetite boolean DEFAULT false`,
             `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS g_tube boolean DEFAULT false`,
+            `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS feeding_ability jsonb DEFAULT '{}'`,
+            `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS allergy_details jsonb DEFAULT '[]'`,
           ];
           for (const col of phase2Columns) {
             await database.execute(sql.raw(col));

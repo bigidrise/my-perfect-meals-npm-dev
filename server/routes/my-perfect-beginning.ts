@@ -9,6 +9,7 @@ import { enforceBeforeGenerate, scanGeneratedOutput } from "../services/pediatri
 import {
   buildPediatricGuidanceBlocks,
   type ChildProfileInput,
+  type AllergyDetailEntry,
   type ProtocolConflict,
 } from "../services/pediatric/buildPediatricGuidanceBlocks";
 import {
@@ -435,6 +436,8 @@ function buildUserMessage(
   allergies: AllergyEntry[],
   rawCulturalCuisine: string | undefined,
   rawGoals: string[] | undefined,
+  allergyDetails?: AllergyDetailEntry[],
+  medicationAffectsAppetite?: boolean,
 ): string {
   const stageLabel = STAGE_LABELS[stage];
 
@@ -453,6 +456,28 @@ function buildUserMessage(
   }
   if (epiPenAllergens.length > 0) {
     msg += `\n\nSEVERE ALLERGY — EpiPen prescribed for: ${epiPenAllergens.join(", ")}. Ensure complete exclusion and include a preparation reminder in allergenAlerts.`;
+  }
+
+  // Extended allergy details from child profile
+  if (allergyDetails && allergyDetails.length > 0) {
+    const detailLines = allergyDetails
+      .filter(d => d.allergen)
+      .map(d => {
+        const parts = [d.allergen];
+        if (d.severity)              parts.push(`severity: ${d.severity}`);
+        if (d.epiPen)                parts.push("EpiPen prescribed");
+        if (d.crossContact)          parts.push("cross-contact concern");
+        if (d.clinicianInstructions) parts.push(`clinician note: ${d.clinicianInstructions}`);
+        return parts.join(", ");
+      });
+    if (detailLines.length > 0) {
+      msg += `\n\nAllergy detail from child profile: ${detailLines.join("; ")}`;
+    }
+  }
+
+  // Medication affects appetite
+  if (medicationAffectsAppetite) {
+    msg += "\n\nParent note: This child's medication affects appetite. Keep portions small and nutritionally dense.";
   }
 
   if (rawCulturalCuisine) {
@@ -489,7 +514,22 @@ async function fetchChildProfileInput(
         feeding_concerns,
         feeding_ability,
         growth_context,
-        g_tube
+        g_tube,
+        pediatrician_oversight,
+        sex,
+        height_cm,
+        weight_kg,
+        allergy_details,
+        feeding_development,
+        family_goals,
+        kitchen_equipment,
+        kitchen_budget,
+        kitchen_time_minutes,
+        kitchen_skill,
+        cultural_preferences,
+        school_safe_required,
+        medication_affects_appetite,
+        birth_history
       FROM child_profiles
       WHERE id = ${childProfileId}
         AND user_id = ${userId}
@@ -517,24 +557,52 @@ async function fetchChildProfileInput(
     };
 
     const feedingAbilityRaw = parseJsonbObject(row.feeding_ability);
-    const growthRaw = parseJsonbObject(row.growth_context);
 
-    // G-tube status may be stored in the dedicated boolean column OR in
-    // feeding_ability.hasFeedingTube (set by the child profile form's feeding
-    // section). Normalize both sources into medicalConditions so that the
-    // downstream gate (loadedMedConditions.includes("g_tube")) always fires.
-    const hasFeedingTubeFromAbility = !!feedingAbilityRaw.hasFeedingTube;
-    const hasFeedingTubeFromBoolCol = !!row.g_tube;
+    // Canonical G-tube source: feeding_ability.hasFeedingTube.
+    // The g_tube boolean column is a backward-compat mirror; we read it here
+    // as a fallback only. feeding_ability.hasFeedingTube is the single source
+    // of truth going forward (the UI no longer presents a separate g_tube toggle).
+    const hasFeedingTube =
+      !!feedingAbilityRaw.hasFeedingTube || !!row.g_tube;
     const baseConditions = parseJsonbArray(row.medical_conditions);
     const normalizedConditions =
-      (hasFeedingTubeFromAbility || hasFeedingTubeFromBoolCol) &&
+      hasFeedingTube &&
       !baseConditions.some(
         (c: string) => c.toLowerCase().replace(/[\s\-]/g, "_") === "g_tube",
       )
         ? [...baseConditions, "g_tube"]
         : baseConditions;
 
+    // pediatricianConcern comes from the dedicated boolean column.
+    // growth_context is a plain TEXT status string ("typical", "concern_underweight",
+    // etc.) — NOT a JSON object — so parseJsonbObject must never be called on it.
+    // ── Parse all extended JSONB columns ─────────────────────────────────────
+    const allergyDetailsRaw = parseJsonbArray(row.allergy_details);
+    // allergy_details is an array of objects stored as JSONB; each element is
+    // an object, not a string — re-parse if pg returns them as serialized strings.
+    const allergyDetails = allergyDetailsRaw
+      .map((item: any) => {
+        if (typeof item === "string") {
+          try { return JSON.parse(item); } catch { return null; }
+        }
+        return item;
+      })
+      .filter(Boolean);
+
+    const feedingDevelopmentRaw = parseJsonbObject(row.feeding_development);
+    const birthHistoryRaw       = parseJsonbObject(row.birth_history);
+    const familyGoalsRaw        = parseJsonbArray(row.family_goals);
+    const kitchenEquipmentRaw   = parseJsonbArray(row.kitchen_equipment);
+
+    // Budget mapping: DB stores "budget" but resolver expects "budget_conscious"
+    const kitchenBudgetRaw = typeof row.kitchen_budget === "string" ? row.kitchen_budget : "moderate";
+    const resolverBudgetLevel =
+      kitchenBudgetRaw === "budget"   ? "budget_conscious" as const :
+      kitchenBudgetRaw === "flexible" ? "flexible" as const :
+                                        "moderate" as const;
+
     const profileInput: ChildProfileInput = {
+      // ── Core fields (original) ──────────────────────────────────────────────
       developmentalStage: (row.age_stage as DevelopmentalStage) || "toddler",
       medicalConditions: normalizedConditions,
       sensoryIssues: parseJsonbArray(row.sensory_issues),
@@ -542,13 +610,42 @@ async function fetchChildProfileInput(
       feedingAbility: {
         textureLevel: feedingAbilityRaw.textureLevel,
         swallowingDifficulty: !!feedingAbilityRaw.swallowingDifficulty,
-        hasFeedingTube: hasFeedingTubeFromAbility || hasFeedingTubeFromBoolCol,
+        hasFeedingTube,
         historyOfChokingOrGagging: !!feedingAbilityRaw.historyOfChokingOrGagging,
       },
       growth: {
-        pediatricianConcern: growthRaw.pediatricianConcern,
+        // growth_context is plain TEXT (e.g. "typical", "concern_underweight").
+        // Map to the typed string the resolver expects; fall back to
+        // pediatrician_oversight boolean for a generic "has concern" signal.
+        pediatricianConcern: (() => {
+          const gc = typeof row.growth_context === "string" ? row.growth_context : "typical";
+          if (gc === "concern_underweight") return "underweight";
+          if (gc === "concern_overweight") return "overweight";
+          if (gc === "failure_to_thrive") return "failure_to_thrive";
+          return row.pediatrician_oversight ? "concern" : undefined;
+        })(),
       },
-    };
+      // ── Group 1: Growth and Nutrition Context ───────────────────────────────
+      sex:                       typeof row.sex === "string" ? row.sex : undefined,
+      heightCm:                  row.height_cm ? Number(row.height_cm) : undefined,
+      weightKg:                  row.weight_kg ? Number(row.weight_kg) : undefined,
+      medicationAffectsAppetite: !!row.medication_affects_appetite,
+      birthHistory:              Object.keys(birthHistoryRaw).length > 0 ? birthHistoryRaw : undefined,
+      familyGoals:               familyGoalsRaw.length > 0 ? familyGoalsRaw : undefined,
+      // ── Group 2: Allergy Detail and Feeding Safety ──────────────────────────
+      allergyDetails:            allergyDetails.length > 0 ? allergyDetails : undefined,
+      feedingDevelopment:        Object.keys(feedingDevelopmentRaw).length > 0 ? feedingDevelopmentRaw : undefined,
+      // ── Group 3: School and Kitchen Context ─────────────────────────────────
+      schoolSafeRequired:  !!row.school_safe_required,
+      kitchenEquipment:    kitchenEquipmentRaw.length > 0 ? kitchenEquipmentRaw : undefined,
+      kitchenBudget:       kitchenBudgetRaw,
+      kitchenTimeMinutes:  row.kitchen_time_minutes ? Number(row.kitchen_time_minutes) : undefined,
+      kitchenSkill:        typeof row.kitchen_skill === "string" ? row.kitchen_skill : undefined,
+      culturalPreferences: typeof row.cultural_preferences === "string" && row.cultural_preferences
+                           ? row.cultural_preferences : undefined,
+      // Expose the resolver-ready budget level so /create-dish can pass it directly
+      _resolverBudgetLevel: resolverBudgetLevel,
+    } as ChildProfileInput & { _resolverBudgetLevel: "budget_conscious" | "moderate" | "flexible" };
 
     return profileInput;
   } catch (err: any) {
@@ -750,13 +847,27 @@ router.post("/create-dish", requireAuth, async (req, res) => {
           customAllergenName: a.customAllergenName,
         })),
         parentPrefs: {
-          budgetLevel: parentPrefs.budgetLevel as any,
-          maxCookTimeMinutes: parentPrefs.maxCookTimeMinutes,
-          requiresSchoolSafe: parentPrefs.requiresSchoolSafe,
+          // Child profile values serve as defaults; request-supplied values override.
+          // Budget: request wins if set, else child profile kitchen_budget
+          budgetLevel: (parentPrefs.budgetLevel as any)
+            ?? (childProfileInput as any)?._resolverBudgetLevel,
+          // Cook time: request wins if set, else child profile kitchen_time_minutes
+          maxCookTimeMinutes: parentPrefs.maxCookTimeMinutes
+            ?? childProfileInput?.kitchenTimeMinutes,
+          // School-safe: either source can set this — child profile is authoritative,
+          // but a request-level flag (e.g. from UI toggle) also activates it.
+          requiresSchoolSafe: parentPrefs.requiresSchoolSafe
+            || childProfileInput?.schoolSafeRequired
+            || false,
           requiresPackable: parentPrefs.requiresPackable,
-          culturalCuisine: rawCulturalCuisine,
+          // Cultural cuisine: request (parent note on this meal) wins;
+          // fall back to child profile cultural_preferences.
+          culturalCuisine: rawCulturalCuisine
+            ?? childProfileInput?.culturalPreferences,
           dietaryPattern: parentPrefs.dietaryPattern,
-          goals: rawGoals,
+          // Goals: request wins if supplied; fall back to child profile family_goals.
+          goals: rawGoals
+            ?? childProfileInput?.familyGoals,
         },
         mealType: "any",
         servings: 1,
@@ -772,7 +883,15 @@ router.post("/create-dish", requireAuth, async (req, res) => {
       ? buildSystemPromptWithResolver(ageStage, resolverCtx)
       : buildSystemPrompt(ageStage, allergies, parentPrefs, conditionGuidanceBlocks, stageDRIBlock);
 
-    const userMessage = buildUserMessage(foodRequest, ageStage, allergies, rawCulturalCuisine, rawGoals);
+    const userMessage = buildUserMessage(
+      foodRequest,
+      ageStage,
+      allergies,
+      rawCulturalCuisine,
+      rawGoals,
+      childProfileInput?.allergyDetails,
+      childProfileInput?.medicationAffectsAppetite,
+    );
 
     // ── Inject resolver mealType into user message ────────────────────────────
     // When the resolver derives a specific meal type from the profile or request,
