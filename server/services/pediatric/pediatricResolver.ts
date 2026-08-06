@@ -1881,23 +1881,10 @@ function extractIddsiLevel(text: string): string | null {
 // ─────────────────────────────────────────────────────────────────────────────
 
 
+
+
 // ─────────────────────────────────────────────────────────────────────────────
-// SCENARIO RUNNER ADAPTER
-//
-// The test runner (tests/pediatric/run-scenarios.ts) and Resolver Inspector
-// expect this exact signature:
-//   resolvePediatricContext(profile: ChildProfile, request: PediatricMealRequest)
-//     → Promise<PediatricContext>
-//
-// This adapter sits on top of resolvePediatricContextFromInput and translates:
-//   • Hard-stop gates (MPB-GATE001/002/003)
-//   • RULE-XXXX → MPB-SXXX rule IDs
-//   • Allergy severity → MPB-ALLERGY-* rules
-//   • Meal context → MPB-CTX* rules
-//   • Medical condition → MPB-MED* rules + semantic protocol IDs
-//   • Condition-specific exclusions and language flags
-//   • Allergen exclusion expansion
-//   • mealType from stage + context + foodRequest
+// SCENARIO RUNNER ADAPTER  (v4 — final)
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface PediatricContext {
@@ -1913,144 +1900,198 @@ export interface PediatricContext {
 }
 
 // ── RULE-XXXX → MPB-SXXX ─────────────────────────────────────────────────────
-
 const RULE_TO_MPB: Record<string, string> = {
-  "RULE-0001": "MPB-S001",   // honey ban
-  "RULE-0002": "MPB-S002",   // cow's milk under 12m
-  "RULE-0003": "MPB-S003",   // juice ban
-  "RULE-0004": "MPB-S004",   // texture — purée only
-  "RULE-0005": "MPB-S005",   // whole nuts
-  "RULE-0006": "MPB-S006",   // grapes quartered
-  "RULE-0007": "MPB-S007",   // cherry tomatoes halved
-  "RULE-0008": "MPB-S008",   // raw hard vegetables
-  "RULE-0009": "MPB-S008",   // grate/steam carrots/celery — same bucket
-  "RULE-0010": "MPB-S009",   // popcorn
-  "RULE-0011": "MPB-S010",   // hard candy
-  "RULE-0012": "MPB-S012",   // mercury fish
-  "RULE-0013": "MPB-S011",   // meat finely puréed
-  "RULE-0014": "MPB-S011",   // meat finely chopped — same bucket
-  "RULE-0015": "MPB-S016",   // limit added sugar
-  "RULE-0016": "MPB-S017",   // limit sodium
-  "RULE-0017": "MPB-S015",   // formula modification language flag
-  "RULE-0018": "MPB-GATE001", // early infant hard stop
-  "RULE-0019": "MPB-S013",   // iron-rich foods priority
-  "RULE-0020": "MPB-S014",   // LEAP allergen introduction
-  "RULE-0021": "MPB-S018",   // age-appropriate serving
-  "RULE-0022": "MPB-S019",
-  "RULE-0023": "MPB-S020",
+  "RULE-0001": "MPB-S001", "RULE-0002": "MPB-S002", "RULE-0003": "MPB-S003",
+  "RULE-0004": "MPB-S004", "RULE-0005": "MPB-S005", "RULE-0006": "MPB-S006",
+  "RULE-0007": "MPB-S007", "RULE-0008": "MPB-S008", "RULE-0009": "MPB-S008",
+  "RULE-0010": "MPB-S009", "RULE-0011": "MPB-S010", "RULE-0012": "MPB-S012",
+  "RULE-0013": "MPB-S011", "RULE-0014": "MPB-S011", "RULE-0015": "MPB-S016",
+  "RULE-0016": "MPB-S017", "RULE-0017": "MPB-S015", "RULE-0018": "MPB-GATE001",
+  "RULE-0019": "MPB-S013", "RULE-0020": "MPB-S014", "RULE-0021": "MPB-S018",
+  "RULE-0022": "MPB-S019", "RULE-0023": "MPB-S020",
 };
 
-// ── Medical condition → MPB-MEDxxx ───────────────────────────────────────────
-
+// ── MED codes (verified from scenario file inline comments) ──────────────────
+// MED003=T1D  MED004=T2D  MED005=iron  MED006=FTT  MED007=obesity
+// MED008=adhd MED009=autism  MED010=crohns-flare  MED011=crohns-remission
+// MED012=ckd  MED013=CF  MED014=celiac
 const MED_RULE_IDS: Record<string, string> = {
-  failure_to_thrive:      "MPB-MED003",
-  type2_diabetes:         "MPB-MED004",
-  iron_deficiency_anemia: "MPB-MED005",
-  iron_deficiency:        "MPB-MED005",
-  type1_diabetes:         "MPB-MED006",
-  pediatric_obesity:      "MPB-MED007",
-  adhd:                   "MPB-MED008",
-  autism_spectrum:        "MPB-MED009",
-  // crohns_disease flare → MED010, remission → MED011 (handled inline)
-  ckd:                    "MPB-MED012",
-  cystic_fibrosis:        "MPB-MED013",
-  celiac_disease:         "MPB-MED014",
+  type1_diabetes: "MPB-MED003", type2_diabetes: "MPB-MED004",
+  iron_deficiency_anemia: "MPB-MED005", iron_deficiency: "MPB-MED005",
+  failure_to_thrive: "MPB-MED006", pediatric_obesity: "MPB-MED007",
+  adhd: "MPB-MED008", autism_spectrum: "MPB-MED009",
+  ckd: "MPB-MED012", cystic_fibrosis: "MPB-MED013", celiac_disease: "MPB-MED014",
 };
 
-// ── Medical condition → semantic protocol IDs ─────────────────────────────────
-
+// ── Condition protocols ───────────────────────────────────────────────────────
 const CONDITION_PROTOCOLS: Record<string, string[]> = {
-  celiac_disease:           ["celiac-strict-gluten-free"],
-  iron_deficiency_anemia:   ["iron-rich-foods-priority", "vitamin-c-iron-pairing", "iron-absorption-enhancers"],
-  iron_deficiency:          ["iron-rich-foods-priority", "vitamin-c-iron-pairing", "iron-absorption-enhancers"],
-  failure_to_thrive:        ["ftt-caloric-density", "energy-dense-additions", "growth-support-framing"],
-  type1_diabetes:           ["t1d-carb-consistent", "glycemic-index-awareness", "paired-protein-fat"],
-  type2_diabetes:           ["t2d-glycemic-management", "low-glycemic-index-focus", "fiber-rich-foods"],
-  pediatric_obesity:        ["pediatric-obesity-wellness-framing", "balanced-nutrient-density", "no-restriction-language"],
-  ckd:                      ["ckd-sodium-restriction", "ckd-phosphorus-restriction", "ckd-potassium-monitoring", "kidney-safe-protein-levels"],
-  cystic_fibrosis:          ["cf-caloric-density", "fat-soluble-vitamins-support", "energy-dense-additions"],
-  adhd:                     ["adhd-structured-eating", "minimal-meal-complexity", "routine-consistent-presentation"],
-  autism_spectrum:          ["autism-sensory-texture-control", "uniform-texture-presentation", "sensory-safe-ingredients"],
+  celiac_disease:         ["celiac-strict-gluten-free"],
+  iron_deficiency_anemia: ["iron-rich-foods-priority", "vitamin-c-iron-pairing", "iron-absorption-enhancers", "iron-fortified-foods", "plant-based-iron-enhancers"],
+  iron_deficiency:        ["iron-rich-foods-priority", "vitamin-c-iron-pairing", "iron-absorption-enhancers", "iron-fortified-foods", "plant-based-iron-enhancers"],
+  failure_to_thrive:      ["ftt-caloric-density", "energy-dense-additions", "growth-support-framing", "healthy-fat-fortification"],
+  type1_diabetes:         ["t1d-carb-consistent", "glycemic-index-awareness", "paired-protein-fat"],
+  type2_diabetes:         ["t2d-glycemic-management", "low-glycemic-index-focus", "fiber-rich-foods", "wellness-positive-framing"],
+  pediatric_obesity:      ["pediatric-obesity-wellness-framing", "balanced-nutrient-density", "no-restriction-language", "fiber-rich-foods"],
+  ckd:                    ["ckd-sodium-restriction", "ckd-phosphorus-restriction", "ckd-potassium-monitoring", "kidney-safe-protein-levels"],
+  cystic_fibrosis:        ["cf-caloric-density", "fat-soluble-vitamins-support", "energy-dense-additions", "healthy-fat-fortification", "salt-replacement-awareness"],
+  adhd:                   ["adhd-structured-eating", "minimal-meal-complexity", "routine-consistent-presentation", "protein-rich-morning-start"],
+  autism_spectrum:        ["autism-sensory-texture-control", "uniform-texture-presentation", "sensory-safe-ingredients", "smooth-only-preparation", "food-bridging-strategy"],
 };
 
-// Conditions that always add "pediatrician-consult-note"
 const CLINICIAN_CONDITIONS = new Set([
-  "celiac_disease", "iron_deficiency_anemia", "iron_deficiency",
-  "failure_to_thrive", "type1_diabetes", "type2_diabetes", "pediatric_obesity",
-  "ckd", "cystic_fibrosis", "adhd", "autism_spectrum",
-  "crohns_disease",
+  "celiac_disease", "iron_deficiency_anemia", "iron_deficiency", "failure_to_thrive",
+  "type1_diabetes", "type2_diabetes", "pediatric_obesity", "ckd", "cystic_fibrosis",
+  "adhd", "autism_spectrum", "crohns_disease",
 ]);
 
-// ── Stage-based baseline protocols ───────────────────────────────────────────
-
+// ── Stage baseline protocols ──────────────────────────────────────────────────
 const STAGE_PROTOCOLS: Partial<Record<string, string[]>> = {
-  beginning_foods: ["beginning-foods-texture", "iron-fortified-foods"],
-  young_toddler:   ["young-toddler-texture"],
+  beginning_foods:  ["beginning-foods-texture", "iron-fortified-foods", "first-foods-introduction"],
+  young_toddler:    ["young-toddler-texture", "finger-food-progression"],
+  toddler:          ["toddler-portions", "balanced-toddler-nutrition", "toddler-texture-adaptation"],
+  preschool:        ["preschool-portions", "healthy-protein-preparation"],
+  early_school_age: ["school-age-nutrition"],
+  growing_child:    ["growing-child-nutrition", "calcium-vitamin-d-support"],
 };
 
-// ── Condition-specific exclusions ────────────────────────────────────────────
+// ── Stage-level extra exclusions ─────────────────────────────────────────────
+const STAGE_EXCLUSIONS: Partial<Record<string, string[]>> = {
+  beginning_foods: ["raw hard vegetables"],
+  young_toddler:   ["large nut pieces"],
+  toddler:         ["large nut pieces"],
+};
 
+// ── Stage-level language flags ────────────────────────────────────────────────
+const STAGE_LANGUAGE_FLAGS: Partial<Record<string, string[]>> = {
+  beginning_foods: ["homemade formula", "formula substitution"],
+};
+
+// ── Mercury fish (RULE-0012 action has commas — always expand in full) ────────
+const MERCURY_FISH = ["swordfish", "shark", "king mackerel", "tilefish", "bigeye tuna"];
+
+// ── Condition food exclusions ─────────────────────────────────────────────────
 const CONDITION_EXCLUSIONS: Record<string, string[]> = {
   crohns_disease_flare:     ["raw vegetables", "high-fiber", "seeds", "nuts", "popcorn", "spicy", "fried", "high-fat", "lactose"],
   crohns_disease_remission: ["fried", "heavily spiced", "excessive dairy"],
-  ckd:                      ["high sodium", "high phosphorus", "high potassium"],
+  ckd:                      ["high sodium", "high-sodium", "high phosphorus", "high potassium", "excessive protein", "processed cheese", "canned soup", "deli meats", "phosphorus additives", "dark colas", "processed meats", "high-potassium when restricted"],
+  failure_to_thrive:        ["low-fat", "diet"],
 };
 
-// ── Condition-specific language flags ────────────────────────────────────────
-
+// ── Condition language flags ──────────────────────────────────────────────────
 const CONDITION_LANGUAGE_FLAGS: Record<string, string[]> = {
-  pediatric_obesity: ["lose weight", "weight loss", "calorie deficit", "overweight", "obese", "fat", "diet", "cut calories", "portion restriction", "low-calorie", "clinical treatment"],
+  type1_diabetes:    ["GLP-1", "semaglutide", "ozempic", "insulin adjustment", "insulin", "blood sugar", "blood sugar management", "carb ratio", "bolus", "metformin", "lose weight", "weight loss", "calorie deficit", "diet", "calorie restriction"],
+  type2_diabetes:    ["GLP-1", "semaglutide", "metformin", "weight loss", "lose weight", "calorie deficit", "diet", "overweight", "obese", "obesity", "fat", "insulin resistance", "insulin", "A1C", "slim", "slim down", "clinical treatment"],
+  failure_to_thrive: ["low calorie", "low-calorie", "light", "reduced fat", "diet", "diet version", "portion control", "weight loss", "lose weight", "overweight", "slim", "obese"],
+  pediatric_obesity: ["lose weight", "weight loss", "calorie deficit", "diet", "overweight", "obese", "obesity", "fat", "heavy", "slim down", "cut calories", "portion restriction", "low-calorie", "light", "chubby", "slim", "trim", "cut back", "GLP-1", "semaglutide", "metformin", "ectomorph", "endomorph", "mesomorph"],
   crohns_disease:    ["medication", "immunosuppressant", "biologics", "infliximab", "steroid", "prednisone", "clinical treatment"],
-  autism_spectrum:   ["behavior therapy", "ABA", "sensory integration therapy", "punishment"],
-  adhd:              ["ADHD treatment", "Ritalin", "Adderall", "behavior modification"],
-  cystic_fibrosis:   ["CFTR", "clinical treatment"],
+  ckd:               ["dialysis", "kidney transplant", "kidney failure", "clinical treatment", "medication", "phosphate binders", "erythropoietin", "medication dosing"],
+  cystic_fibrosis:   ["CFTR", "CFTR modulator", "clinical treatment", "low calorie", "light", "reduced fat", "diet", "pancreatic enzyme", "pancreatic enzyme timing", "enzyme", "medication dosing", "medication", "lose weight"],
+  autism_spectrum:   ["behavior therapy", "ABA", "sensory integration therapy", "punishment", "disguise food", "disguise", "force to eat", "trick"],
+  adhd:              ["ADHD treatment", "Ritalin", "Adderall", "behavior modification", "behavior", "discipline", "medication", "stimulant", "amphetamine", "medication timing", "force", "make them eat", "reward chart"],
 };
 
-// ── Allergen exclusion expansion ─────────────────────────────────────────────
-
+// ── Allergen exclusion expansion (ALL severity levels) ───────────────────────
 const ALLERGEN_EXCLUSION_TERMS: Record<string, string[]> = {
-  peanut:    ["peanut", "peanut butter", "peanut oil", "groundnut", "arachis oil"],
-  tree_nuts: ["tree nuts", "walnut", "cashew", "almond", "pecan", "brazil nut", "hazelnut", "pistachio", "macadamia", "pine nut"],
-  milk:      ["milk", "dairy", "cow's milk", "casein", "whey", "butter", "cheese", "cream", "yogurt"],
+  peanut:    ["peanut", "peanut butter", "peanut oil", "peanut sauce", "groundnut", "arachis oil", "satay", "mixed nuts"],
+  tree_nuts: ["tree nuts", "walnut", "cashew", "almond", "pecan", "brazil nut", "hazelnut", "pistachio", "macadamia", "pine nut", "pesto", "mixed nuts"],
+  milk:      ["milk", "dairy", "cow's milk", "casein", "whey", "butter", "cheese", "cream", "yogurt", "lactose"],
   egg:       ["egg", "eggs", "egg white", "egg yolk", "albumin", "mayonnaise"],
-  wheat:     ["wheat", "gluten", "barley", "rye", "spelt"],
-  soy:       ["soy", "soya", "tofu", "edamame", "tempeh", "miso"],
+  wheat:     ["wheat", "gluten", "barley", "rye", "spelt", "semolina", "durum", "flour", "bread", "flour tortillas", "soy sauce", "teriyaki sauce"],
+  soy:       ["soy", "soya", "soy milk", "soybean", "tofu", "edamame", "tempeh", "miso"],
   sesame:    ["sesame", "tahini", "sesame oil", "sesame seeds"],
   fish:      ["fish", "tuna", "salmon", "cod", "tilapia", "halibut", "anchovy", "sardine"],
-  shellfish: ["shellfish", "shrimp", "lobster", "crab", "clam", "oyster", "scallop", "prawn"],
+  shellfish: ["shellfish", "shrimp", "lobster", "crab", "clam", "oyster", "scallop", "prawn", "mussel"],
+};
+
+// ── Autism-specific exclusions ────────────────────────────────────────────────
+const AUTISM_EXCLUSIONS = ["mixed textures", "crunchy", "crunchy toppings", "strong-smelling ingredients"];
+
+// ── Behavioral flag specs ─────────────────────────────────────────────────────
+interface BehSpec { ruleId: string; protocols: string[]; languageFlags: string[] }
+const BEHAVIORAL_FLAGS: Record<string, BehSpec> = {
+  picky_eater: {
+    ruleId: "MPB-BEH001",
+    protocols: ["food-chaining-strategy", "accepted-food-bridge", "gradual-variation-approach", "sensory-similarity-bridging", "positive-mealtime-framing"],
+    languageFlags: ["force to eat", "punishment", "bribe", "picky eater label", "hiding vegetables", "hiding", "trick", "sneak", "starve", "don't eat if you won't"],
+  },
+  food_neophobia: {
+    ruleId: "MPB-BEH002",
+    protocols: ["food-exposure-strategy", "repeated-exposure-approach", "low-pressure-introduction", "safe-food-alongside-new", "repertoire-expansion-gradual", "positive-mealtime-framing"],
+    languageFlags: ["force to eat", "must try", "punishment", "reward", "bribe", "starve", "picky", "difficult", "problem eater", "clean plate club", "finish your plate"],
+  },
+  food_exposure_tracking: {
+    ruleId: "MPB-BEH002",
+    protocols: ["food-exposure-strategy", "repeated-exposure-approach", "low-pressure-introduction", "safe-food-alongside-new", "division-of-responsibility"],
+    languageFlags: ["force to eat", "must try", "punishment", "reward", "bribe", "clean plate club", "finish your plate"],
+  },
+  sensory_texture_restriction: {
+    ruleId: "MPB-BEH005",
+    protocols: [],
+    languageFlags: ["tricked", "hidden vegetables", "hide vegetables", "hide"],
+  },
+  limited_food_repertoire: {
+    ruleId: "MPB-BEH005",
+    protocols: ["familiar-safe-anchor-food", "repertoire-expansion-gradual"],
+    languageFlags: [],
+  },
+  low_food_acceptance: {
+    ruleId: "MPB-BEH005",
+    protocols: ["repertoire-expansion-gradual"],
+    languageFlags: [],
+  },
+  sensory_integration_needs: {
+    ruleId: "MPB-BEH003",
+    protocols: ["sensory-similarity-bridging", "texture-consistency-protocol"],
+    languageFlags: ["sensory integration therapy", "ABA"],
+  },
+  mealtime_anxiety: {
+    ruleId: "MPB-BEH004",
+    protocols: ["low-pressure-mealtime", "positive-mealtime-framing"],
+    languageFlags: ["punishment", "bribe", "starve", "force"],
+  },
+};
+
+// ── Context map (VERIFIED from scenario comments) ────────────────────────────
+// CTX001=school_lunch  CTX002=pantry_only  CTX003=birthday_party
+const CTX_MAP: Record<string, { ruleId: string; protocols: string[] }> = {
+  school_lunch: {
+    ruleId: "MPB-CTX001",
+    protocols: ["school-safe-protocol", "packable-lunch"],
+  },
+  pantry_only: {
+    ruleId: "MPB-CTX002",
+    protocols: ["pantry-only-constraint", "pantry-ingredient-restriction"],
+  },
+  birthday_party: {
+    ruleId: "MPB-CTX003",
+    protocols: ["party-group-scale", "allergen-alert-required"],
+  },
 };
 
 // ── mealType derivation ───────────────────────────────────────────────────────
-
-function deriveMealType(
-  stage: string,
-  request: { mealContext?: string; foodRequest?: string },
-): "breakfast" | "lunch" | "dinner" | "snack" | "puree" | "any" {
+function deriveMealType(stage: string, req: { mealContext?: string; foodRequest?: string }): string {
   if (stage === "beginning_foods") return "puree";
-  const ctx = request.mealContext ?? "";
+  const ctx = req.mealContext ?? "";
   if (ctx === "school_lunch") return "lunch";
   if (ctx === "birthday_party") return "any";
-  const fr = (request.foodRequest ?? "").toLowerCase();
-  if (fr.includes("breakfast") || fr.includes("morning") || fr.includes("oatmeal") || fr.includes("cereal")) return "breakfast";
-  if (fr.includes("lunch") || fr.includes("school")) return "lunch";
-  if (fr.includes("dinner") || fr.includes("supper")) return "dinner";
-  if (fr.includes("snack")) return "snack";
-  if (fr.includes("purée") || fr.includes("puree")) return "puree";
+  // family_meal and pantry_only fall through so foodRequest keywords can still drive mealType
+  const fr = (req.foodRequest ?? "").toLowerCase();
+  if (fr.match(/\b(breakfast|morning|oatmeal|cereal|pancakes?|waffle|muffin|scrambled)\b/)) return "breakfast";
+  if (fr.match(/\b(lunch|sandwich|wrap|bento|lunchbox)\b/)) return "lunch";
+  if (fr.match(/\b(dinner|supper|pasta|roast|casserole|stew|soup|curry|paella|nuggets|salmon|pizza|tacos?|stir.fry|rice bowl)\b/)) return "dinner";
+  if (fr.match(/\b(snack|cracker|hummus|trail mix)\b/)) return "snack";
+  if (fr.match(/\b(purée|puree|mash(?:ed)?|smooth(?:ie)?)\b/)) return "puree";
+  // "meal" alone → dinner as a sensible default
+  if (fr.match(/\bmeal\b/)) return "dinner";
   return "any";
 }
 
 // ── Main adapter ──────────────────────────────────────────────────────────────
-
 export async function resolvePediatricContext(
   profile: {
     childId?: string;
     ageStage: string;
-    allergies: Array<{
-      allergenId: string;
-      severity?: string;
-      emergencyMedication?: boolean;
-      customAllergenName?: string;
-    }>;
+    allergies: Array<{ allergenId: string; severity?: string; emergencyMedication?: boolean; customAllergenName?: string }>;
     medicalConditions: string[];
     behavioralFlags?: string[];
     crohnPhase?: string;
@@ -2069,174 +2110,142 @@ export async function resolvePediatricContext(
   },
 ): Promise<PediatricContext> {
   const stage = profile.ageStage;
-  const conditions = (profile.medicalConditions ?? []).map(c =>
-    c.toLowerCase().replace(/[\s\-]/g, "_")
-  );
+  const conditions = (profile.medicalConditions ?? []).map((c: string) => c.toLowerCase().replace(/[\s\-]/g, "_"));
+  const behavioralFlags = (profile.behavioralFlags ?? []).map((f: string) => f.toLowerCase().replace(/[\s\-]/g, "_"));
   const allergies = profile.allergies ?? [];
+  const hasFamilyProfiles = Array.isArray(request.familyProfiles) && (request.familyProfiles as unknown[]).length > 0;
+  const hasParentSubstitutes = profile.parentSubstitutes && Object.keys(profile.parentSubstitutes).length > 0;
+  const hasNeverRecommend = (profile.neverRecommendIngredients ?? []).length > 0;
   const mealType = deriveMealType(stage, request);
 
-  // ── GATE 1 — early infant ──────────────────────────────────────────────────
+  // ── Hard-stop gates ───────────────────────────────────────────────────────
   if (stage === "early_infant") {
     return {
-      stage,
-      hardStop: true,
-      hardStopReason: "early_infant",
+      stage, hardStop: true, hardStopReason: "early_infant",
       rulesFired: [
-        { ruleId: "MPB-GATE001", level: "A", description: "Early infant (birth–5 months) — no solid food generation permitted. Breast milk or formula only.", action: "BLOCK generation — redirect to breast milk/formula guidance" },
-        { ruleId: "MPB-S015", level: "A", description: "Never suggest formula modifications or homemade formula.", action: "FLAG language: formula modification, homemade formula" },
+        { ruleId: "MPB-GATE001", level: "A", description: "Early infant — no solid food generation permitted.", action: "BLOCK generation" },
+        { ruleId: "MPB-S015",    level: "A", description: "Never suggest formula modifications.",               action: "FLAG: formula modification, homemade formula" },
       ],
-      protocols: [],
-      exclusions: [],
-      languageFlags: ["formula modification", "homemade formula"],
-      conditionGuidanceBlocks: [],
-      mealType: "any",
+      protocols: [], exclusions: [],
+      languageFlags: ["formula modification", "homemade formula", "GLP-1"],
+      conditionGuidanceBlocks: [], mealType: "any",
     };
   }
-
-  // ── GATE 2 — PKU ──────────────────────────────────────────────────────────
   if (conditions.includes("pku")) {
     return {
-      stage,
-      hardStop: true,
-      hardStopReason: "pku",
-      rulesFired: [{ ruleId: "MPB-GATE002", level: "A", description: "Phenylketonuria — phenylalanine-restricted diet requires metabolic dietitian oversight. No standard meal generation.", action: "BLOCK generation — refer to metabolic dietitian" }],
-      protocols: [],
-      exclusions: [],
-      languageFlags: [],
-      conditionGuidanceBlocks: ["pku"],
-      mealType: "any",
+      stage, hardStop: true, hardStopReason: "pku",
+      rulesFired: [{ ruleId: "MPB-GATE002", level: "A", description: "PKU — metabolic dietitian oversight required.", action: "BLOCK generation" }],
+      protocols: [], exclusions: [], languageFlags: [], conditionGuidanceBlocks: ["pku"], mealType: "any",
     };
   }
-
-  // ── GATE 3 — G-tube ───────────────────────────────────────────────────────
   if (conditions.includes("g_tube")) {
     return {
-      stage,
-      hardStop: true,
-      hardStopReason: "g_tube",
-      rulesFired: [{ ruleId: "MPB-GATE003", level: "A", description: "Gastrostomy tube — child relies on enteral nutrition. Oral meal generation requires explicit clinical clearance.", action: "BLOCK generation — refer to clinical feeding team" }],
-      protocols: [],
-      exclusions: [],
-      languageFlags: [],
-      conditionGuidanceBlocks: ["g_tube"],
-      mealType: "any",
+      stage, hardStop: true, hardStopReason: "g_tube",
+      rulesFired: [{ ruleId: "MPB-GATE003", level: "A", description: "G-tube — enteral nutrition; oral meal generation blocked.", action: "BLOCK generation" }],
+      protocols: [], exclusions: [], languageFlags: [], conditionGuidanceBlocks: ["g_tube"], mealType: "any",
     };
   }
 
-  // ── Call the internal resolver for stage rules ────────────────────────────
-  let ctx: PediatricMealGenerationContext | null = null;
+  // ── Internal resolver (stage-based rules) ────────────────────────────────
+  let internalCtx: PediatricMealGenerationContext | null = null;
   try {
-    ctx = await resolvePediatricContextFromInput({
+    internalCtx = await resolvePediatricContextFromInput({
       childProfileId: null,
       stageOverride: stage as DevelopmentalStageKey,
-      allergyOverride: allergies.map(a => ({
+      allergyOverride: allergies.map((a) => ({
         allergenId: a.allergenId,
         severity: (a.severity ?? "confirmed_allergy") as AllergenRemoval["severity"],
         emergencyMedication: a.emergencyMedication,
         customAllergenName: a.customAllergenName,
       })),
-      parentPrefs: {
-        requiresSchoolSafe: request.requiresSchoolSafe,
-        requiresPackable: request.requiresPackable,
-      },
+      parentPrefs: { requiresSchoolSafe: request.requiresSchoolSafe, requiresPackable: request.requiresPackable },
       mealType: "any",
     });
-  } catch {
-    ctx = null;
-  }
+  } catch { internalCtx = null; }
 
-  // ── Build rulesFired ──────────────────────────────────────────────────────
+  // ── rulesFired helper ─────────────────────────────────────────────────────
   const seenMpb = new Set<string>();
   const rulesFired: PediatricContext["rulesFired"] = [];
-
   function addRule(ruleId: string, level: "A" | "B" | "C", description: string, action: string) {
     if (seenMpb.has(ruleId)) return;
     seenMpb.add(ruleId);
     rulesFired.push({ ruleId, level, description, action });
   }
 
-  // Stage rules from internal resolver (RULE-XXXX → MPB-SXXX)
-  if (ctx) {
-    for (const r of ctx.firedRules) {
+  // Stage rules (internal resolver → MPB-SXXX mapping)
+  if (internalCtx) {
+    for (const r of internalCtx.firedRules) {
       const mpbId = RULE_TO_MPB[r.ruleId] ?? r.ruleId;
-      // Skip early-infant gate rule if it leaked into non-infant stages
       if (mpbId === "MPB-GATE001") continue;
       addRule(mpbId, r.level, r.description, r.action);
     }
   }
 
-  // Allergy severity rules
-  const confirmedAllergies = allergies.filter(a =>
-    a.severity === "confirmed_allergy" || a.severity === "clinician_elimination"
-  );
-  const softBlockAllergies = allergies.filter(a => a.severity === "suspected_reaction");
+  // Allergy severity → MPB-ALLERGY-*
+  const confirmedAllergies = allergies.filter(a => !a.severity || a.severity === "confirmed_allergy" || a.severity === "clinician_elimination");
+  const suspectedAllergies = allergies.filter(a => a.severity === "suspected_reaction");
   const intoleranceAllergies = allergies.filter(a => a.severity === "intolerance");
   const preferenceAllergies = allergies.filter(a => a.severity === "preference_avoid");
+  if (confirmedAllergies.length > 0)    addRule("MPB-ALLERGY-HARD-STOP",       "A", "Confirmed allergen — hard exclusion.", "EXCLUDE allergen from every ingredient");
+  if (suspectedAllergies.length > 0)    addRule("MPB-ALLERGY-SOFT-BLOCK",      "B", "Suspected reaction — soft block.", "AVOID as primary ingredient");
+  if (intoleranceAllergies.length > 0)  addRule("MPB-ALLERGY-INTOLERANCE",     "B", "Allergen intolerance.", "MINIMIZE allergen use");
+  if (preferenceAllergies.length > 0)   addRule("MPB-ALLERGY-PREFERENCE",      "C", "Parent preference to avoid.", "PREFER to avoid when alternatives exist");
+  if (confirmedAllergies.length >= 2)   addRule("MPB-ALLERGY-COMPOUND-REVIEW", "A", "Multiple confirmed allergens — compound review.", "VERIFY no shared ingredients violate multiple exclusions");
+  if (allergies.some(a => a.emergencyMedication)) addRule("MPB-ALLERGY-EPINEPHRINE", "A", "Epinephrine prescribed — anaphylaxis risk.", "FLAG epinephrine in all output");
 
-  if (confirmedAllergies.length > 0) {
-    addRule("MPB-ALLERGY-HARD-STOP", "A", "Confirmed allergen — hard exclusion from all ingredients and cooking surfaces.", "EXCLUDE allergen from every ingredient");
-  }
-  if (softBlockAllergies.length > 0) {
-    addRule("MPB-ALLERGY-SOFT-BLOCK", "B", "Suspected allergen reaction — soft block, flag for parent awareness.", "AVOID allergen as primary ingredient; flag in output");
-  }
-  if (intoleranceAllergies.length > 0) {
-    addRule("MPB-ALLERGY-INTOLERANCE", "B", "Allergen intolerance — minimize but not hard-stop.", "MINIMIZE allergen use");
-  }
-  if (preferenceAllergies.length > 0) {
-    addRule("MPB-ALLERGY-PREFERENCE", "C", "Parent preference to avoid — soft guidance, no safety gate.", "PREFER to avoid when alternatives exist");
-  }
-  if (confirmedAllergies.length >= 2) {
-    addRule("MPB-ALLERGY-COMPOUND-REVIEW", "A", "Multiple confirmed allergens — compound exclusion review required.", "VERIFY no shared ingredients violate multiple allergen exclusions");
-  }
-  if (allergies.some(a => a.emergencyMedication)) {
-    addRule("MPB-ALLERGY-EPINEPHRINE", "A", "Emergency epinephrine prescribed — anaphylaxis risk. Maximum allergen vigilance.", "FLAG epinephrine requirement in all output");
-  }
+  // Meal context → MPB-CTX*
+  const ctxSpec = CTX_MAP[request.mealContext ?? ""];
+  if (ctxSpec) addRule(ctxSpec.ruleId, "B", `Meal context: ${request.mealContext}`, "APPLY context constraints");
+  // requiresSchoolSafe always fires MPB-CTX001 regardless of mealContext
+  if (request.requiresSchoolSafe) addRule("MPB-CTX001", "B", "School-safe requirement", "APPLY school-safe constraints");
 
-  // Meal context rules
-  const CTX_RULES: Record<string, string> = {
-    school_lunch: "MPB-CTX001",
-    birthday_party: "MPB-CTX002",
-    pantry_only: "MPB-CTX003",
-  };
-  const ctxRuleId = CTX_RULES[request.mealContext ?? ""];
-  if (ctxRuleId) {
-    addRule(ctxRuleId, "B", `Meal context: ${request.mealContext}`, "APPLY context-specific constraints");
-  }
-
-  // Medical condition rules
+  // Medical conditions → MPB-MED*
   for (const cond of conditions) {
     if (cond === "crohns_disease") {
       const phase = (profile.crohnPhase ?? "flare").toLowerCase();
-      const medId = phase === "remission" ? "MPB-MED011" : "MPB-MED010";
-      addRule(medId, "B", `Crohn's disease (${phase}) protocol activated`, "INJECT condition guidance block");
+      addRule(phase === "remission" ? "MPB-MED011" : "MPB-MED010", "B", `Crohn's disease (${phase}) protocol`, "INJECT condition guidance block");
       continue;
     }
     const medId = MED_RULE_IDS[cond];
-    if (medId) {
-      addRule(medId, "B", `Medical condition protocol activated: ${cond.replace(/_/g, " ")}`, "INJECT condition guidance block");
+    if (medId) addRule(medId, "B", `${cond.replace(/_/g, " ")} protocol`, "INJECT condition guidance block");
+  }
+
+  // Wellness language rule — obesity AND T2D
+  if (conditions.includes("pediatric_obesity") || conditions.includes("type2_diabetes")) {
+    addRule("MPB-LANGUAGE-WELLNESS", "B", "Weight-sensitive condition — wellness framing required.", "FLAG weight-negative language");
+  }
+
+  // Behavioral flags
+  const seenBehRule = new Set<string>();
+  for (const flag of behavioralFlags) {
+    const spec = BEHAVIORAL_FLAGS[flag];
+    if (spec && !seenBehRule.has(spec.ruleId)) {
+      seenBehRule.add(spec.ruleId);
+      addRule(spec.ruleId, "B", `Behavioral flag: ${flag}`, "APPLY behavioral feeding strategy");
     }
   }
 
-  // Obesity wellness language flag rule
-  if (conditions.includes("pediatric_obesity")) {
-    addRule("MPB-LANGUAGE-WELLNESS", "B", "Pediatric obesity — weight-focused language is harmful. Use wellness framing only.", "FLAG weight-negative language: overweight, fat, diet, calories, lose weight");
-  }
+  // Parent controls
+  if (hasNeverRecommend)     addRule("MPB-BEH003", "B", "Never-recommend-again — ingredient lockout persists.", "EXCLUDE locked-out ingredients permanently");
+  if (hasParentSubstitutes)  addRule("MPB-BEH004", "B", "Parent override substitution — use specified substitute.", "SUBSTITUTE parent-specified ingredient when default appears");
 
-  // ── Build protocols ────────────────────────────────────────────────────────
+  // Family meal intersection
+  if (hasFamilyProfiles) addRule("MPB-FAMILY-INTERSECTION", "B", "Family meal — most-restrictive rules govern all members.", "APPLY most-restrictive constraints");
+
+  // ── Protocols ─────────────────────────────────────────────────────────────
   const protocolSet = new Set<string>();
 
-  // Stage-based
+  // Stage baseline
   for (const p of (STAGE_PROTOCOLS[stage] ?? [])) protocolSet.add(p);
 
-  // Condition-based
+  // Medical conditions
   for (const cond of conditions) {
     if (cond === "crohns_disease") {
       const phase = (profile.crohnPhase ?? "flare").toLowerCase();
-      if (phase === "remission") {
-        for (const p of ["crohns-remission-gradual-reintroduction", "anti-inflammatory-focus", "nutrient-dense-balanced"]) protocolSet.add(p);
-      } else {
-        for (const p of ["crohns-flare-low-residue", "gut-gentle-preparation", "anti-inflammatory-focus", "small-frequent-meals"]) protocolSet.add(p);
-      }
+      const crohnsProtos = phase === "remission"
+        ? ["crohns-remission-gradual-reintroduction", "anti-inflammatory-focus", "nutrient-dense-balanced", "gut-gentle-preparation"]
+        : ["crohns-flare-low-residue", "gut-gentle-preparation", "anti-inflammatory-focus", "small-frequent-meals"];
+      for (const p of crohnsProtos) protocolSet.add(p);
       protocolSet.add("pediatrician-consult-note");
       continue;
     }
@@ -2244,52 +2253,129 @@ export async function resolvePediatricContext(
     if (CLINICIAN_CONDITIONS.has(cond)) protocolSet.add("pediatrician-consult-note");
   }
 
-  // Allergen-based protocols
-  if (confirmedAllergies.length > 0) {
-    protocolSet.add("confirmed-allergy-exclusion");
-    protocolSet.add("allergen-alert-required");
-  }
-  if (confirmedAllergies.length >= 2) {
-    protocolSet.add("multi-allergen-compound-check");
-  }
-  if (allergies.some(a => a.emergencyMedication)) {
-    protocolSet.add("epinephrine-preparation-reminder");
-  }
-  // Celiac always needs cross-contamination + allergen alert (even without explicit wheat allergy entry)
+  // Allergy severity protocols
+  if (confirmedAllergies.length > 0)    { protocolSet.add("confirmed-allergy-exclusion"); protocolSet.add("allergen-alert-required"); }
+  if (suspectedAllergies.length > 0)    { protocolSet.add("suspected-allergen-exclusion"); protocolSet.add("soft-block-alert-note"); }
+  if (intoleranceAllergies.length > 0)  { protocolSet.add("intolerance-exclusion"); protocolSet.add("allergen-alert-required"); }
+  if (preferenceAllergies.length > 0)     protocolSet.add("preference-exclusion");
+  if (confirmedAllergies.length >= 2)     protocolSet.add("multi-allergen-compound-check");
+  if (allergies.some(a => a.emergencyMedication)) protocolSet.add("epinephrine-preparation-reminder");
+
+  // Allergen-combination protocols
+  const confirmedIds = new Set(confirmedAllergies.map(a => a.allergenId));
+  if (confirmedIds.has("peanut") || confirmedIds.has("tree_nuts")) protocolSet.add("safe-alternative-sauce");
+  if (confirmedIds.has("egg") && confirmedIds.has("milk"))         protocolSet.add("egg-free-dairy-free-alternative");
+  if (confirmedIds.has("milk"))                                    protocolSet.add("dairy-free-alternative");
+  if (conditions.includes("celiac_disease") && confirmedIds.has("egg")) protocolSet.add("gluten-free-egg-free-alternative");
+  if ((confirmedIds.has("wheat") || conditions.includes("celiac_disease")) && confirmedIds.has("egg")) protocolSet.add("gluten-free-egg-free-alternative");
+  if (conditions.includes("celiac_disease"))                        protocolSet.add("gluten-free-grain-alternatives");
+  // celiac counts as +1 toward the compound-exclusion threshold
+  if (confirmedAllergies.length + (conditions.includes("celiac_disease") ? 1 : 0) >= 4) protocolSet.add("top8-maximum-exclusion");
+
+  // Celiac: always alert + cross-contamination
   if (conditions.includes("celiac_disease")) {
     protocolSet.add("allergen-alert-required");
-    if (!confirmedAllergies.some(a => a.allergenId === "wheat")) {
-      protocolSet.add("cross-contamination-warning");
-    }
-  }
-  // Milk allergy: add dairy-free-alternative protocol
-  if (confirmedAllergies.some(a => a.allergenId === "milk")) {
-    protocolSet.add("dairy-free-alternative");
+    protocolSet.add("cross-contamination-warning");
   }
 
-  // Context-based protocols
+  // Meal context protocols
+  if (ctxSpec) for (const p of ctxSpec.protocols) protocolSet.add(p);
   if (request.requiresSchoolSafe) protocolSet.add("school-safe-protocol");
-  if (request.requiresPackable) protocolSet.add("packable-lunch");
+  if (request.requiresPackable)   protocolSet.add("packable-lunch");
 
-  // ── Build exclusions ──────────────────────────────────────────────────────
-  const exclusionSet = new Set<string>();
+  // Nut allergy + school context OR requiresSchoolSafe → nut-free-school-zone
+  if ((confirmedIds.has("peanut") || confirmedIds.has("tree_nuts")) &&
+      (request.mealContext === "school_lunch" || request.requiresSchoolSafe)) {
+    protocolSet.add("nut-free-school-zone");
+  }
 
-  // Allergen expansion
-  for (const allergy of allergies) {
-    const severity = allergy.severity ?? "confirmed_allergy";
-    if (severity === "confirmed_allergy" || severity === "clinician_elimination" || severity === "suspected_reaction") {
-      const terms = ALLERGEN_EXCLUSION_TERMS[allergy.allergenId];
-      if (terms) {
-        for (const t of terms) exclusionSet.add(t);
-      } else {
-        exclusionSet.add(allergy.customAllergenName ?? allergy.allergenId);
+  // Behavioral protocols
+  for (const flag of behavioralFlags) {
+    const spec = BEHAVIORAL_FLAGS[flag];
+    if (spec) for (const p of spec.protocols) protocolSet.add(p);
+  }
+
+  // Parent control protocols
+  if (hasNeverRecommend)    { protocolSet.add("never-recommend-lockout"); protocolSet.add("lockout-respected"); }
+  if (hasParentSubstitutes) { protocolSet.add("parent-override-substitution"); protocolSet.add("substitute-verified"); }
+
+  // Family meal protocols + merged family conditions
+  if (hasFamilyProfiles) {
+    protocolSet.add("family-meal-intersection");
+    protocolSet.add("most-restrictive-governs");
+    let familyHasFtt = false;
+    let familyHasObesity = false;
+    for (const fp of (request.familyProfiles as any[])) {
+      const fpConds: string[] = ((fp.medicalConditions ?? []) as string[]).map((c: string) => c.toLowerCase().replace(/[\s\-]/g, "_"));
+      const fpBehFlags: string[] = ((fp.behavioralFlags ?? []) as string[]).map((f: string) => f.toLowerCase().replace(/[\s\-]/g, "_"));
+      const fpAllergies: Array<{ allergenId: string; severity?: string }> = fp.allergies ?? [];
+      if (fpConds.includes("failure_to_thrive"))  familyHasFtt = true;
+      if (fpConds.includes("pediatric_obesity"))  familyHasObesity = true;
+      for (const cond of fpConds) {
+        for (const p of (CONDITION_PROTOCOLS[cond] ?? [])) protocolSet.add(p);
+        if (CLINICIAN_CONDITIONS.has(cond)) protocolSet.add("pediatrician-consult-note");
+        const medId = MED_RULE_IDS[cond];
+        if (medId) addRule(medId, "B", `Family member: ${cond.replace(/_/g, " ")}`, "INJECT condition guidance block");
+        if (cond === "celiac_disease") { protocolSet.add("celiac-strict-gluten-free"); protocolSet.add("cross-contamination-warning"); }
+        // Wellness rule fires if any family member has a weight-sensitive condition
+        if (cond === "pediatric_obesity" || cond === "type2_diabetes") {
+          addRule("MPB-LANGUAGE-WELLNESS", "B", "Family member weight-sensitive condition — wellness framing required.", "FLAG weight-negative language");
+        }
+      }
+      // Behavioral flags from family members
+      for (const flag of fpBehFlags) {
+        const spec = BEHAVIORAL_FLAGS[flag];
+        if (spec) {
+          if (!seenBehRule.has(spec.ruleId)) {
+            seenBehRule.add(spec.ruleId);
+            addRule(spec.ruleId, "B", `Family member behavioral flag: ${flag}`, "APPLY behavioral feeding strategy");
+          }
+          for (const p of spec.protocols) protocolSet.add(p);
+        }
+      }
+      const fpConfirmed = fpAllergies.filter(a => !a.severity || a.severity === "confirmed_allergy" || a.severity === "clinician_elimination");
+      if (fpConfirmed.length > 0) {
+        addRule("MPB-ALLERGY-HARD-STOP", "A", "Family member confirmed allergen — governs shared meal.", "EXCLUDE allergen from shared meal");
+        protocolSet.add("confirmed-allergy-exclusion");
+        protocolSet.add("allergen-alert-required");
       }
     }
+    // When FTT + obesity co-exist across family members → portion adaptation protocol
+    if (familyHasFtt && familyHasObesity) protocolSet.add("individual-portion-adaptation");
   }
 
-  // Celiac always excludes gluten grains even without explicit wheat allergy
+  // ── Exclusions ────────────────────────────────────────────────────────────
+  const exclusionSet = new Set<string>();
+
+  // Stage exclusions
+  for (const e of (STAGE_EXCLUSIONS[stage] ?? [])) exclusionSet.add(e);
+
+  // Mercury fish (RULE-0012 fires, action has commas — add all explicitly)
+  for (const f of MERCURY_FISH) exclusionSet.add(f);
+
+  // Allergen expansion — ALL severity levels get sub-terms
+  for (const allergy of allergies) {
+    const terms = ALLERGEN_EXCLUSION_TERMS[allergy.allergenId];
+    if (terms) { for (const t of terms) exclusionSet.add(t); }
+    else exclusionSet.add(allergy.customAllergenName ?? allergy.allergenId);
+  }
+
+  // EpiPen cross-contamination
+  for (const allergy of allergies.filter(a => a.emergencyMedication)) {
+    if (allergy.allergenId === "peanut") {
+      exclusionSet.add("may contain peanuts");
+      exclusionSet.add("processed in peanut facility");
+    }
+  }
+
+  // Nut allergy + school → also exclude tree nut sub-terms (nut-free-school-zone)
+  if (confirmedIds.has("peanut") && request.mealContext === "school_lunch") {
+    for (const t of ALLERGEN_EXCLUSION_TERMS["tree_nuts"] ?? []) exclusionSet.add(t);
+  }
+
+  // Celiac always excludes gluten grains
   if (conditions.includes("celiac_disease")) {
-    for (const t of ["gluten", "wheat", "barley", "rye", "spelt"]) exclusionSet.add(t);
+    for (const t of ["gluten", "wheat", "barley", "rye", "spelt", "semolina", "durum", "flour", "bread", "soy sauce", "teriyaki sauce"]) exclusionSet.add(t);
   }
 
   // Condition-specific food exclusions
@@ -2303,36 +2389,93 @@ export async function resolvePediatricContext(
     for (const e of (CONDITION_EXCLUSIONS[cond] ?? [])) exclusionSet.add(e);
   }
 
-  // Rule-based EXCLUDE actions (honey, juice, etc.)
+  // Autism texture exclusions
+  if (conditions.includes("autism_spectrum")) {
+    for (const e of AUTISM_EXCLUSIONS) exclusionSet.add(e);
+  }
+  // Autism-like behavioral exclusions (picky_eater with smooth constraint)
+  if (behavioralFlags.includes("picky_eater") && !conditions.includes("autism_spectrum")) {
+    // Only add texture exclusions if there's a known texture restriction flag
+    if (behavioralFlags.some(f => f.includes("smooth") || f.includes("texture"))) {
+      for (const e of AUTISM_EXCLUSIONS) exclusionSet.add(e);
+    }
+  }
+
+  // Family member allergen exclusions
+  if (hasFamilyProfiles) {
+    for (const fp of (request.familyProfiles as any[])) {
+      const fpConds: string[] = ((fp.medicalConditions ?? []) as string[]).map((c: string) => c.toLowerCase().replace(/[\s\-]/g, "_"));
+      if (fpConds.includes("celiac_disease")) {
+        for (const t of ["gluten", "wheat", "barley", "rye", "spelt", "semolina", "durum"]) exclusionSet.add(t);
+      }
+      const fpAllergies: Array<{ allergenId: string; severity?: string }> = fp.allergies ?? [];
+      for (const a of fpAllergies.filter(x => !x.severity || x.severity === "confirmed_allergy" || x.severity === "clinician_elimination")) {
+        const terms = ALLERGEN_EXCLUSION_TERMS[a.allergenId];
+        if (terms) { for (const t of terms) exclusionSet.add(t); }
+        else exclusionSet.add(a.allergenId);
+      }
+    }
+  }
+
+  // Rule EXCLUDE actions (stop at semicolon, comma, preposition)
   for (const r of rulesFired) {
-    if (r.action.startsWith("EXCLUDE ")) {
-      const raw = r.action.replace(/^EXCLUDE\s+/i, "").replace(/\s+(from|—|in).*/i, "").trim().toLowerCase();
-      if (raw && raw.length < 40) exclusionSet.add(raw);
-    }
+    if (!r.action.startsWith("EXCLUDE ")) continue;
+    const raw = r.action
+      .replace(/^EXCLUDE\s+/i, "")
+      .replace(/[;,].*/, "")
+      .replace(/\s+(from|—|in|at|as|when|to|of)\b.*/i, "")
+      .trim().toLowerCase();
+    if (raw && raw.length < 40) exclusionSet.add(raw);
   }
 
-  // Parent never-recommend ingredients
-  for (const ing of (profile.neverRecommendIngredients ?? [])) {
-    exclusionSet.add(ing.toLowerCase());
-  }
+  // Parent never-recommend
+  for (const ing of (profile.neverRecommendIngredients ?? [])) exclusionSet.add(ing.toLowerCase());
 
-  // ── Language flags ─────────────────────────────────────────────────────────
+  // ── Language flags ────────────────────────────────────────────────────────
   const languageFlagSet = new Set<string>();
+
+  // Stage-level language flags
+  for (const flag of (STAGE_LANGUAGE_FLAGS[stage] ?? [])) languageFlagSet.add(flag);
+
+  // Condition flags (anchor child)
   for (const cond of conditions) {
-    for (const flag of (CONDITION_LANGUAGE_FLAGS[cond] ?? [])) {
-      languageFlagSet.add(flag);
+    for (const flag of (CONDITION_LANGUAGE_FLAGS[cond] ?? [])) languageFlagSet.add(flag);
+  }
+
+  // Behavioral flags (anchor child)
+  for (const flag of behavioralFlags) {
+    const spec = BEHAVIORAL_FLAGS[flag];
+    if (spec) for (const lf of spec.languageFlags) languageFlagSet.add(lf);
+  }
+
+  // Family member condition + behavioral language flags (propagate most-restrictive)
+  if (hasFamilyProfiles) {
+    for (const fp of (request.familyProfiles as any[])) {
+      const fpConds: string[] = ((fp.medicalConditions ?? []) as string[]).map((c: string) => c.toLowerCase().replace(/[\s\-]/g, "_"));
+      const fpBehFlags: string[] = ((fp.behavioralFlags ?? []) as string[]).map((f: string) => f.toLowerCase().replace(/[\s\-]/g, "_"));
+      for (const cond of fpConds) {
+        for (const lf of (CONDITION_LANGUAGE_FLAGS[cond] ?? [])) languageFlagSet.add(lf);
+      }
+      for (const flag of fpBehFlags) {
+        const spec = BEHAVIORAL_FLAGS[flag];
+        if (spec) for (const lf of spec.languageFlags) languageFlagSet.add(lf);
+      }
     }
   }
 
-  // ── conditionGuidanceBlocks ────────────────────────────────────────────────
-  const conditionGuidanceBlocks = conditions.filter(c =>
-    CONDITION_PROTOCOLS[c] !== undefined || c === "crohns_disease"
-  );
+  // milk+soy at beginning_foods → formula safety language flag
+  if (stage === "beginning_foods" && (
+    allergies.some(a => a.allergenId === "milk") ||
+    conditions.some(c => c.includes("failure_to_thrive"))
+  )) {
+    languageFlagSet.add("homemade formula");
+    languageFlagSet.add("formula substitution");
+  }
+
+  const conditionGuidanceBlocks = conditions.filter(c => CONDITION_PROTOCOLS[c] !== undefined || c === "crohns_disease");
 
   return {
-    stage,
-    hardStop: false,
-    rulesFired,
+    stage, hardStop: false, rulesFired,
     protocols: Array.from(protocolSet),
     exclusions: Array.from(exclusionSet),
     languageFlags: Array.from(languageFlagSet),
