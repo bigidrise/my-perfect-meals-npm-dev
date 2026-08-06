@@ -1,16 +1,21 @@
 import { Router } from "express";
 import OpenAI from "openai";
-import type { AuthenticatedRequest } from "../middleware/requireAuth";
-import { computeParentEducationLayer } from "../services/pediatric/pediatricConfidenceScorer";
 import { requireAuth } from "../middleware/requireAuth";
+import type { AuthenticatedRequest } from "../middleware/requireAuth";
 import { db } from "../db";
 import { sql } from "drizzle-orm";
+import { computeParentEducationLayer } from "../services/pediatric/pediatricConfidenceScorer";
 import { enforceBeforeGenerate, scanGeneratedOutput } from "../services/pediatric/pediatricGuardrails";
 import {
   buildPediatricGuidanceBlocks,
   type ChildProfileInput,
   type ProtocolConflict,
 } from "../services/pediatric/buildPediatricGuidanceBlocks";
+import {
+  resolvePediatricContext,
+  type PediatricMealGenerationContext,
+  type DevelopmentalStageKey,
+} from "../services/pediatric/pediatricResolver";
 
 const router = Router();
 
@@ -92,7 +97,6 @@ interface ParentPrefs {
 
 function sanitizeText(value: unknown, maxLength: number): string {
   if (typeof value !== "string") return "";
-  // Strip control chars (including newlines that could inject prompt sections)
   return value.replace(/[\x00-\x1F\x7F]/g, " ").slice(0, maxLength).trim();
 }
 
@@ -105,7 +109,6 @@ function validateRequest(body: any): {
   parentPrefs?: ParentPrefs;
   childName?: string;
 } {
-  // ── ageStage ──────────────────────────────────────────────────────────────
   if (!body.ageStage || typeof body.ageStage !== "string") {
     return { valid: false, error: "ageStage is required" };
   }
@@ -114,17 +117,13 @@ function validateRequest(body: any): {
   }
   const ageStage = body.ageStage as DevelopmentalStage;
 
-  // ── foodRequest ───────────────────────────────────────────────────────────
-  // Not required for early_infant (gate fires before generation)
   const foodRequest = sanitizeText(body.foodRequest, 300);
 
-  // ── allergies ─────────────────────────────────────────────────────────────
   const rawAllergies = Array.isArray(body.allergies) ? body.allergies : [];
   const allergies: AllergyEntry[] = [];
 
   for (const entry of rawAllergies) {
     if (!entry || typeof entry !== "object") continue;
-
     if (!(VALID_ALLERGENS as readonly string[]).includes(entry.allergenId)) continue;
     if (!(VALID_SEVERITIES as readonly string[]).includes(entry.severity)) continue;
 
@@ -133,15 +132,12 @@ function validateRequest(body: any): {
       severity: entry.severity as AllergySeverity,
       emergencyMedication: !!entry.emergencyMedication,
     };
-
     if (entry.allergenId === "other" && typeof entry.customAllergenName === "string") {
       allergyEntry.customAllergenName = sanitizeText(entry.customAllergenName, 80);
     }
-
     allergies.push(allergyEntry);
   }
 
-  // ── parentPrefs ───────────────────────────────────────────────────────────
   const rawPrefs = body.parentPrefs && typeof body.parentPrefs === "object" ? body.parentPrefs : {};
   const parentPrefs: ParentPrefs = {};
 
@@ -160,10 +156,7 @@ function validateRequest(body: any): {
   if (typeof rawPrefs.requiresPackable === "boolean") {
     parentPrefs.requiresPackable = rawPrefs.requiresPackable;
   }
-  // culturalCuisine and goals are user text — sanitized and kept in user message only
-  // (not injected into the system prompt — see buildUserMessage below)
 
-  // ── childName ─────────────────────────────────────────────────────────────
   const childName = typeof body.childName === "string"
     ? sanitizeText(body.childName, 60)
     : undefined;
@@ -189,7 +182,6 @@ function validateRecipeResponse(raw: any): { valid: boolean; error?: string } {
   if (typeof raw.whyThisMealWasChosen !== "string") raw.whyThisMealWasChosen = "";
   if (!Array.isArray(raw.reasoningTrace)) raw.reasoningTrace = [];
 
-  // Validate ingredient shapes
   for (let i = 0; i < raw.ingredients.length; i++) {
     const ing = raw.ingredients[i];
     if (!ing || typeof ing.name !== "string" || typeof ing.quantity !== "string") {
@@ -215,7 +207,6 @@ const STAGE_LABELS: Record<DevelopmentalStage, string> = {
 function buildSafetyRulesBlock(stage: DevelopmentalStage): string {
   const rules: string[] = [];
 
-  // Universal (all stages)
   rules.push("MPB-S005: No whole nuts or large nut pieces — serious choking hazard at all ages.");
   rules.push("MPB-S012: No high-mercury fish: swordfish, shark, king mackerel, tilefish, bigeye tuna.");
   rules.push("MPB-S016: Limit added sugar; avoid sugary drinks as primary beverage.");
@@ -271,7 +262,73 @@ function buildAllergySystemBlock(allergies: AllergyEntry[]): string {
   return lines.join("\n");
 }
 
-// ── Build system prompt (static, no user text) ────────────────────────────────
+// ── Resolver-backed system prompt (preferred path) ────────────────────────────
+// Injects the pre-assembled resolver context block. The resolver already encoded
+// all safety rules, medical protocols, texture rules, and allergen removals.
+
+function buildSystemPromptWithResolver(
+  stage: DevelopmentalStage,
+  ctx: PediatricMealGenerationContext,
+): string {
+  const stageLabel = STAGE_LABELS[stage];
+
+  return `You are a pediatric nutrition AI assistant that creates age-safe, kid-friendly recipes.
+
+CORE MANDATE:
+Create a version of the requested food that stays recognizable and enjoyable for children while improving nutritional quality where appropriate. Preserve the identity of the food. Never replace it with something unrecognizable. Improve the recipe, do not reinvent it.
+
+PROTOCOL PRIORITY ORDER (apply in this order — lower number wins conflicts):
+1. Life-threatening safety (allergens, choking hazards, early_infant block)
+2. Developmental stage hard stops (texture, food forms)
+3. Medical condition hard limits (see MEDICAL CONDITION PROTOCOLS below)
+4. Growth context (caloric density needs)
+5. Sensory and feeding development
+6. Medical optimization
+7. Family goals and preferences
+8. Kitchen reality (cook time, budget, packability)
+
+CHILD DEVELOPMENTAL STAGE: ${stageLabel}
+
+${ctx.systemContextBlock}
+
+ABSOLUTE PROHIBITIONS:
+- Never generate a recipe for Early Infant stage (birth–5 months)
+- Never inherit adult macros, GLP-1, or diabetes settings from adult users
+- Never diagnose weight status or label a child's body
+- Never suggest formula modifications or homemade formula
+- Never give medication, dosing, or clinical treatment instructions
+- Never use adult body-type labels (ectomorph, endomorph, etc.)
+- Never override medical condition protocol guidance with "kid-friendly" substitutions
+
+RESOLVER RULE: Every decision in the PEDIATRIC RESOLVER CONTEXT above was made before you were called.
+Your only job is to write the recipe. You do not make safety decisions — the resolver already did.
+All fired rules (RULE-XXXX) and condition protocols (COND-XXXX) listed above MUST be reflected in the recipe.
+Include the ruleId of every rule that influenced your recipe in the rulesFireLog.
+
+RESPONSE FORMAT:
+Return valid JSON only. No markdown. No extra text outside JSON.
+Required schema:
+{
+  "recipeName": "string",
+  "ageStageSuitability": "string",
+  "ingredients": [{ "name": "string", "quantity": "string", "unit": "string|omit", "prepNote": "string|omit", "substitutionNote": "string|omit" }],
+  "instructions": ["string"],
+  "servingGuidance": "string",
+  "textureAndChokingPreparation": "string",
+  "allergenAlerts": [{ "allergenId": "string", "message": "string", "severity": "confirmed_removed|suspected_removed|clinician_eliminated|cross_contact_warning" }],
+  "whyThisVersionIsBetter": "string",
+  "serveSuggestion": "string",
+  "funPresentationIdea": "string",
+  "storageAndLunchboxGuidance": "string|omit",
+  "askPediatricianNote": "string|omit",
+  "estimatedCarbsPerServing": "string|omit — include when T1D/T2D protocol is active (e.g. '22–28g')",
+  "rulesFireLog": [{ "ruleId": "string", "level": "A|B|C", "description": "string", "action": "string" }],
+  "whyThisMealWasChosen": "string — plain English explanation for a parent with no nutrition background. Cover which profile elements shaped this output (stage, allergies, medical conditions, dietary pattern, goals). End with: 'Always follow your pediatrician\\'s guidance for your child\\'s specific nutritional needs.'",
+  "reasoningTrace": ["string — one rule or protocol applied, e.g. 'Preschool Stage — calcium and iron DRI baseline applied'"]
+}`;
+}
+
+// ── Legacy system prompt (fallback when resolver is unavailable) ──────────────
 
 function buildSystemPrompt(
   stage: DevelopmentalStage,
@@ -284,8 +341,6 @@ function buildSystemPrompt(
   const safetyRules = buildSafetyRulesBlock(stage);
   const allergyBlock = buildAllergySystemBlock(allergies);
 
-  // Household constraints: these come from validated enum/boolean fields only,
-  // never raw user strings — safe to include in system prompt.
   const constraintLines: string[] = [];
   if (parentPrefs.dietaryPattern && parentPrefs.dietaryPattern !== "omnivore") {
     constraintLines.push(`Household dietary pattern: ${parentPrefs.dietaryPattern}`);
@@ -306,17 +361,13 @@ function buildSystemPrompt(
     ? `\nHOUSEHOLD CONSTRAINTS (validated, enumerated):\n${constraintLines.join("\n")}`
     : "";
 
-  // Medical condition guidance blocks — injected verbatim, server-verified
   const medicalBlock = conditionGuidanceBlocks.length > 0
     ? `\n\nMEDICAL CONDITION PROTOCOLS — MANDATORY (server-verified, clinically sourced):\n` +
       `These override default recipe choices. Apply ALL of the following blocks exactly.\n\n` +
       conditionGuidanceBlocks.join("\n\n---\n\n")
     : "";
 
-  // DRI baselines — always present, never AI-generated
-  const driBlock = stageDRIBlock
-    ? `\n\n${stageDRIBlock}`
-    : "";
+  const driBlock = stageDRIBlock ? `\n\n${stageDRIBlock}` : "";
 
   return `You are a pediatric nutrition AI assistant that creates age-safe, kid-friendly recipes.
 
@@ -404,7 +455,6 @@ function buildUserMessage(
     msg += `\n\nSEVERE ALLERGY — EpiPen prescribed for: ${epiPenAllergens.join(", ")}. Ensure complete exclusion and include a preparation reminder in allergenAlerts.`;
   }
 
-  // Cultural cuisine and goals are free-form user text — placed in user message only
   if (rawCulturalCuisine) {
     msg += `\n\nCultural/cuisine preference (parent note): ${rawCulturalCuisine}`;
   }
@@ -415,22 +465,16 @@ function buildUserMessage(
   return msg;
 }
 
-/**
- * Fetches the active child profile from the database and returns it as a
- * ChildProfileInput for the protocol engine.
- *
- * Returns null if:
- *  - childProfileId is not provided (anonymous / no-profile mode)
- *  - the profile does not exist or is not owned by the requesting user
- *  - the child_profiles table does not yet exist (graceful degradation)
- */
+// ── Child profile DB loader ────────────────────────────────────────────────────
+// Fetches the active child profile and returns it as a ChildProfileInput for
+// the protocol engine. Validates ownership. Returns null on any failure.
+
 async function fetchChildProfileInput(
   userId: string,
-  childProfileId: string | undefined,
+  childProfileId: string | null | undefined,
 ): Promise<ChildProfileInput | null> {
   if (!childProfileId || typeof childProfileId !== "string") return null;
 
-  // Validate UUID format (prevents injection)
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(childProfileId)) {
     return null;
   }
@@ -453,10 +497,8 @@ async function fetchChildProfileInput(
     `);
 
     if (!rows.rows || rows.rows.length === 0) return null;
-
     const row = rows.rows[0] as any;
 
-    // Parse JSONB arrays (DB returns them as objects or strings)
     const parseJsonbArray = (val: any): string[] => {
       if (Array.isArray(val)) return val.filter(Boolean).map(String);
       if (typeof val === "string") {
@@ -494,12 +536,74 @@ async function fetchChildProfileInput(
 
     return profileInput;
   } catch (err: any) {
-    // 42P01 = undefined_table — child_profiles table not yet created
     if (err?.code === "42P01") return null;
     console.error("[MyPerfectBeginning/create-dish] child profile lookup error:", err.message);
     return null;
   }
 }
+
+// ── POST /resolve-context ──────────────────────────────────────────────────────
+// QA / clinical review endpoint — returns the full resolver context without
+// calling OpenAI. Useful for inspecting what the AI will receive before generation.
+
+router.post("/resolve-context", requireAuth, async (req, res) => {
+  try {
+    const {
+      childProfileId = null,
+      childProfileIds,
+      ageStage,
+      allergies: allergyOverride,
+      parentPrefs: rawPrefs = {},
+      mealType,
+      servings,
+    } = req.body;
+
+    const allergyOverrideNorm = Array.isArray(allergyOverride)
+      ? allergyOverride
+          .filter((a: any) => a && typeof a.allergenId === "string")
+          .map((a: any) => ({
+            allergenId: a.allergenId,
+            severity: a.severity ?? "preference_avoid",
+            emergencyMedication: !!a.emergencyMedication,
+            customAllergenName: a.customAllergenName,
+          }))
+      : undefined;
+
+    const stageOverride = (VALID_STAGES as readonly string[]).includes(ageStage)
+      ? (ageStage as DevelopmentalStageKey)
+      : undefined;
+
+    const parentPrefs = {
+      budgetLevel: (["budget_conscious", "moderate", "flexible"] as const).includes(rawPrefs.budgetLevel)
+        ? rawPrefs.budgetLevel : undefined,
+      maxCookTimeMinutes: ([15, 30, 45, 60] as const).includes(Number(rawPrefs.maxCookTimeMinutes) as 15 | 30 | 45 | 60)
+        ? Number(rawPrefs.maxCookTimeMinutes) : undefined,
+      requiresSchoolSafe: typeof rawPrefs.requiresSchoolSafe === "boolean" ? rawPrefs.requiresSchoolSafe : undefined,
+      requiresPackable: typeof rawPrefs.requiresPackable === "boolean" ? rawPrefs.requiresPackable : undefined,
+      culturalCuisine: typeof rawPrefs.culturalCuisine === "string"
+        ? sanitizeText(rawPrefs.culturalCuisine, 80) : undefined,
+      dietaryPattern: typeof rawPrefs.dietaryPattern === "string" ? rawPrefs.dietaryPattern : undefined,
+      goals: Array.isArray(rawPrefs.goals)
+        ? rawPrefs.goals.filter((g: unknown) => typeof g === "string").map((g: string) => sanitizeText(g, 60)).filter(Boolean)
+        : undefined,
+    };
+
+    const context = await resolvePediatricContext({
+      childProfileId: typeof childProfileId === "string" ? childProfileId : null,
+      childProfileIds: Array.isArray(childProfileIds) ? childProfileIds : undefined,
+      stageOverride,
+      allergyOverride: allergyOverrideNorm,
+      parentPrefs,
+      mealType: mealType ?? "any",
+      servings: typeof servings === "number" ? servings : 1,
+    });
+
+    return res.json({ context });
+  } catch (err: any) {
+    console.error("[MyPerfectBeginning] resolve-context error:", err);
+    return res.status(500).json({ error: "Failed to resolve context" });
+  }
+});
 
 // ── POST /create-dish ──────────────────────────────────────────────────────────
 
@@ -511,12 +615,11 @@ router.post("/create-dish", requireAuth, async (req, res) => {
     // ── Fetch child profile from DB (if childProfileId provided) ────────────
     const childProfileId = typeof req.body.childProfileId === "string"
       ? req.body.childProfileId
-      : undefined;
+      : null;
 
     const childProfileInput = await fetchChildProfileInput(userId, childProfileId);
 
-    // ── Build protocol guidance blocks ───────────────────────────────────────
-    // Validate request first so we have ageStage for the fallback profile
+    // ── Validate request ─────────────────────────────────────────────────────
     const validation = validateRequest(req.body);
     if (!validation.valid) {
       return res.status(400).json({ error: validation.error });
@@ -587,21 +690,46 @@ router.post("/create-dish", requireAuth, async (req, res) => {
           .filter(Boolean)
           .slice(0, 10)
       : undefined;
-
-    // ── Compute parent education layer (server-side, deterministic) ──────────
     const educationLayer = computeParentEducationLayer({ ageStage, allergies, parentPrefs, foodRequest });
 
-    // ── Build prompts ────────────────────────────────────────────────────────
-    const systemPrompt = buildSystemPrompt(
-      ageStage,
-      allergies,
-      parentPrefs,
-      conditionGuidanceBlocks,
-      stageDRIBlock,
-    );
+    // ── Phase 1: Run Resolver — all decisions made here, BEFORE AI ───────────
+    let resolverCtx: PediatricMealGenerationContext | null = null;
+    try {
+      resolverCtx = await resolvePediatricContext({
+        childProfileId,
+        stageOverride: ageStage as DevelopmentalStageKey,
+        allergyOverride: allergies.map(a => ({
+          allergenId: a.allergenId,
+          severity: a.severity,
+          emergencyMedication: a.emergencyMedication,
+          customAllergenName: a.customAllergenName,
+        })),
+        parentPrefs: {
+          budgetLevel: parentPrefs.budgetLevel as any,
+          maxCookTimeMinutes: parentPrefs.maxCookTimeMinutes,
+          requiresSchoolSafe: parentPrefs.requiresSchoolSafe,
+          requiresPackable: parentPrefs.requiresPackable,
+          culturalCuisine: rawCulturalCuisine,
+          dietaryPattern: parentPrefs.dietaryPattern,
+          goals: rawGoals,
+        },
+        mealType: "any",
+        servings: 1,
+      });
+    } catch (resolverErr: any) {
+      console.warn("[MyPerfectBeginning] Resolver failed — falling back to legacy prompt:", resolverErr?.message);
+    }
+
+    // ── Phase 2: Build prompts ────────────────────────────────────────────────
+    // Resolver path (preferred): uses pre-assembled context block
+    // Fallback path: uses conditionGuidanceBlocks from buildPediatricGuidanceBlocks
+    const systemPrompt = resolverCtx
+      ? buildSystemPromptWithResolver(ageStage, resolverCtx)
+      : buildSystemPrompt(ageStage, allergies, parentPrefs, conditionGuidanceBlocks, stageDRIBlock);
+
     const userMessage = buildUserMessage(foodRequest, ageStage, allergies, rawCulturalCuisine, rawGoals);
 
-    // ── Call OpenAI ──────────────────────────────────────────────────────────
+    // ── Phase 3: Call OpenAI ─────────────────────────────────────────────────
     const openai = getOpenAI();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
@@ -635,11 +763,11 @@ router.post("/create-dish", requireAuth, async (req, res) => {
       return res.status(500).json({ error: "AI returned an incomplete recipe. Please try again." });
     }
 
-    // ── Post-generation guardrail scan ────────────────────────────────────────
+    // ── Post-generation scan ──────────────────────────────────────────────────
     const postScan = scanGeneratedOutput(recipe, ageStage);
     const finalRecipe = postScan.patchedRecipe ?? recipe;
 
-    // ── Ensure mandatory pediatrician disclaimer in whyThisMealWasChosen ─────
+    // ── Mandatory pediatrician disclaimer ─────────────────────────────────────
     const disclaimerSuffix = childName
       ? `Always follow your pediatrician's guidance for ${childName}'s specific nutritional needs.`
       : "Always follow your pediatrician's guidance for your child's specific nutritional needs.";
@@ -651,6 +779,23 @@ router.post("/create-dish", requireAuth, async (req, res) => {
     } else {
       finalRecipe.whyThisMealWasChosen = disclaimerSuffix;
     }
+
+    // ── Resolver metadata (audit trail) ──────────────────────────────────────
+    const resolverMeta = resolverCtx
+      ? {
+          resolverVersion: resolverCtx.resolverVersion,
+          resolvedAt: resolverCtx.resolvedAt,
+          stageKey: resolverCtx.stageKey,
+          textureClass: resolverCtx.textureClass,
+          firedRuleIds: resolverCtx.firedRules.map(r => r.ruleId),
+          activeConditionIds: resolverCtx.activeProtocolBlocks.map(b => b.conditionId),
+          allergenRemovals: resolverCtx.allergenRemovals.map(a => ({
+            allergenId: a.allergenId,
+            action: a.action,
+          })),
+          splitMealRequired: resolverCtx.splitMealRequired,
+        }
+      : null;
 
     return res.json({
       recipe: finalRecipe,
@@ -667,6 +812,7 @@ router.post("/create-dish", requireAuth, async (req, res) => {
         childProfileId: childProfileId ?? null,
         profileLoaded: childProfileInput !== null,
       },
+      resolverMeta,
     });
   } catch (err: any) {
     console.error("[MyPerfectBeginning] create-dish error:", err);

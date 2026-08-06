@@ -1,3 +1,4 @@
+- [Pediatric Resolver Adapter — v5 complete](pediatric-resolver-v5.md) — 110/110 scenarios pass; key non-obvious rules for family meal propagation, sensory flags, threshold math, requiresSchoolSafe; Resolver Inspector review is next before connecting Create a Dish.
 - [Promotion Engine](promotion-engine.md) — one engine for all partner offers (trial extensions, discounts, invite links); tables partner_promotions + promotion_redemptions; /api/promotions; /business-center/promotions + /join/promo/:token.
 - [GLP-1 Tolerance Phase 1 — Architecture](glp1-tolerance-phase1.md) — governance contract, data model (glp1_daily_tolerance), surface coverage, safetyEscalations vs nutritionAdaptations split.
 - [Clinical Labs Phase 5 — Architecture](clinical-labs-phase5.md) — 7 new lab columns + hormone/thyroid subtype resolver pattern; drizzle-kit not installed, use migration script.

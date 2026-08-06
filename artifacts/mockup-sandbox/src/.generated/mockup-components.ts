@@ -11,7 +11,6 @@ export const modules: ModuleMap = {
   "./components/mockups/labs/ClinicalLabsTestosterone.tsx": () => import("../components/mockups/labs/ClinicalLabsTestosterone.tsx"),
   "./components/mockups/onboarding/OnboardingThyroid.tsx": () => import("../components/mockups/onboarding/OnboardingThyroid.tsx"),
   "./components/mockups/procare/ClinicalProtocolCardDemo.tsx": () => import("../components/mockups/procare/ClinicalProtocolCardDemo.tsx"),
-  "./components/mockups/profile/ProfileThyroid.tsx": () => import("../components/mockups/profile/ProfileThyroid.tsx"),
   "./components/mockups/protocol-options/OptionADesktop.tsx": () => import("../components/mockups/protocol-options/OptionADesktop.tsx"),
   "./components/mockups/protocol-options/OptionAMobile.tsx": () => import("../components/mockups/protocol-options/OptionAMobile.tsx"),
   "./components/mockups/protocol-options/OptionBDesktop.tsx": () => import("../components/mockups/protocol-options/OptionBDesktop.tsx"),
@@ -20,5 +19,6 @@ export const modules: ModuleMap = {
   "./components/mockups/protocol-options/OptionCMobile.tsx": () => import("../components/mockups/protocol-options/OptionCMobile.tsx"),
   "./components/mockups/shopping-scan/ResultSheet.tsx": () => import("../components/mockups/shopping-scan/ResultSheet.tsx"),
   "./components/mockups/shopping-scan/ShoppingPage.tsx": () => import("../components/mockups/shopping-scan/ShoppingPage.tsx"),
+  "./components/mockups/profile/ProfileThyroid.tsx": () => import("../components/mockups/profile/ProfileThyroid.tsx"),
   "./components/mockups/weekly/WeeklyProtocolBar.tsx": () => import("../components/mockups/weekly/WeeklyProtocolBar.tsx")
 };
