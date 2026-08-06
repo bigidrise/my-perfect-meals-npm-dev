@@ -17,7 +17,7 @@ import {
   type PediatricProtocolBlock,
 } from "./pediatricProtocolRegistry";
 import { buildStageDRIBlock, type DevelopmentalStage } from "./pediatricStageConstants";
-import { EVIDENCE_BY_CONDITION_ID } from "./clinicalEvidenceRegistry";
+import { EVIDENCE_BY_CONDITION_ID, getStaleProtocolIds } from "./clinicalEvidenceRegistry";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -102,6 +102,13 @@ export interface PediatricGuidanceOutput {
     sources: string[];
     status: string;
   }>;
+  /**
+   * Active protocol IDs whose reviewDate has passed.
+   * These are still generating but MUST be surfaced in the Resolver Inspector
+   * and Registry Health Dashboard — they must never silently drive generation.
+   * Empty array means all active protocols are within their review window.
+   */
+  staleProtocolIds: string[];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -392,6 +399,7 @@ export function buildPediatricGuidanceBlocks(profile: ChildProfileInput): Pediat
         sources: EVIDENCE_BY_CONDITION_ID.get(hardStop.conditionId)?.sources ?? [],
         status: EVIDENCE_BY_CONDITION_ID.get(hardStop.conditionId)?.status ?? "approved",
       }],
+      staleProtocolIds: [],
     };
   }
 
@@ -428,6 +436,12 @@ export function buildPediatricGuidanceBlocks(profile: ChildProfileInput): Pediat
     };
   });
 
+  // 10. Stale governance — flag active protocols past their review date
+  const staleIds = getStaleProtocolIds();
+  const staleProtocolIds = activeProtocols
+    .map(p => p.conditionId)
+    .filter(id => staleIds.has(id));
+
   return {
     hardBlocked: false,
     requiresClinicianFlag,
@@ -437,5 +451,6 @@ export function buildPediatricGuidanceBlocks(profile: ChildProfileInput): Pediat
     conflictLog,
     activeProtocolIds: activeProtocols.map(p => p.conditionId),
     activeProtocolEvidence,
+    staleProtocolIds,
   };
 }

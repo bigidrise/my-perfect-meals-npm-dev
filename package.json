@@ -27,7 +27,8 @@
     "validate": "bash scripts/validate.sh",
     "drift-check": "bash scripts/prepush-check.sh",
     "release-check": "bash scripts/release-check.sh",
-    "postinstall": "npx patch-package && bash scripts/install-hooks.sh"
+    "postinstall": "npx patch-package && bash scripts/install-hooks.sh",
+    "test:pediatric": "tsx tests/pediatric/run-scenarios.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.879.0",

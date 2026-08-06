@@ -347,11 +347,71 @@ export const CLINICAL_EVIDENCE_REGISTRY: PediatricProtocolEvidence[] = [
 export const EVIDENCE_BY_CONDITION_ID: Map<string, PediatricProtocolEvidence> =
   new Map(CLINICAL_EVIDENCE_REGISTRY.map(e => [e.conditionId, e]));
 
-/** Returns only approved protocols — deprecated/pending ones are excluded from injection */
+/**
+ * Returns only `approved` protocol IDs — `deprecated` and `pending_review`
+ * entries are excluded from generation injection.
+ *
+ * Note: This does NOT filter by review date. Use `getStaleProtocolIds()` to
+ * surface overdue entries in the Resolver Inspector and Health Dashboard.
+ * Generation continues from approved protocols even when overdue, but the
+ * stale flag must be visible in every output that references them.
+ */
 export function getApprovedProtocolIds(): Set<string> {
   return new Set(
     CLINICAL_EVIDENCE_REGISTRY
       .filter(e => e.status === "approved")
       .map(e => e.conditionId)
   );
+}
+
+/**
+ * Returns IDs of `approved` protocols whose reviewDate has passed.
+ * These protocols can still drive generation but MUST be flagged in every
+ * output — in the Resolver Inspector, the Registry Health Dashboard, and
+ * the parent-facing confidence layer.
+ *
+ * Governance rule (from pediatric-engine-standards.md):
+ *   approved + within review date  →  usable, no flag
+ *   approved + past review date    →  usable, STALE flag required in output
+ *   pending_review                 →  must not silently drive generation
+ *   deprecated                     →  blocked completely (excluded by getApprovedProtocolIds)
+ */
+export function getStaleProtocolIds(asOf: Date = new Date()): Set<string> {
+  return new Set(
+    CLINICAL_EVIDENCE_REGISTRY
+      .filter(e => e.status === "approved" && new Date(e.reviewDate) < asOf)
+      .map(e => e.conditionId)
+  );
+}
+
+/**
+ * Returns a governance summary for every protocol — used by the Registry
+ * Health Dashboard (#429) and the Resolver Inspector.
+ *
+ * Each entry includes:
+ *   conditionId, conditionName, status, reviewDate, isStale, daysOverdue
+ */
+export function getProtocolGovernanceSummary(asOf: Date = new Date()): Array<{
+  conditionId: string;
+  conditionName: string;
+  status: EvidenceStatus;
+  reviewDate: string;
+  isStale: boolean;
+  daysOverdue: number;
+}> {
+  return CLINICAL_EVIDENCE_REGISTRY.map(e => {
+    const reviewDateObj = new Date(e.reviewDate);
+    const isStale = e.status === "approved" && reviewDateObj < asOf;
+    const daysOverdue = isStale
+      ? Math.floor((asOf.getTime() - reviewDateObj.getTime()) / 86_400_000)
+      : 0;
+    return {
+      conditionId: e.conditionId,
+      conditionName: e.conditionName,
+      status: e.status,
+      reviewDate: e.reviewDate,
+      isStale,
+      daysOverdue,
+    };
+  });
 }
