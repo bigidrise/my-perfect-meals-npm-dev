@@ -1175,11 +1175,21 @@ export default function MyPerfectBeginningCreateMealPage() {
       setRecipeImageUrl(null);
       setImageLoading(true);
       const stage = STAGES.find(s => s.id === selectedStage);
-      // Prefer structured resolver textureClass over the free-text first sentence
+      // Prefer resolver-derived texture/presentation fields — they match what the
+      // AI actually cooked, giving a purée stage a smooth image and a toddler
+      // plate small soft pieces instead of adult restaurant plating.
+      const textureStrategy: string | undefined = data.resolverContext?.textureStrategy;
+      const presentationStrategy: string | undefined = data.resolverContext?.presentationStrategy;
+      // Also pull the raw textureClass key and active condition IDs for the
+      // structured prompt builder (TEXTURE_CLASS_VISUAL + CONDITION_VISUAL_NOTES).
       const resolvedTextureClass: string | undefined = data.resolverMeta?.textureClass;
-      const textureHint = data.recipe.textureAndChokingPreparation
+      const activeConditionIds: string[] = data.resolverMeta?.activeConditionIds ?? [];
+      // Fallback: first sentence of the AI-generated texture note (legacy path)
+      const textureHintFallback = data.recipe.textureAndChokingPreparation
         ? data.recipe.textureAndChokingPreparation.split('.')[0].trim()
-        : "soft, age-appropriate texture";
+        : "";
+      // Derive source type from meal occasion so snack/dessert/beverage get the
+      // correct macro anchor in the image prompt builder.
       const imageSourceType: string = mealOccasion === "Snack" ? "snack"
         : mealOccasion === "Dessert" ? "dessert"
         : mealOccasion === "Smoothie" ? "beverage"
@@ -1196,11 +1206,15 @@ export default function MyPerfectBeginningCreateMealPage() {
           pediatricContext: {
             stage: stage?.label ?? selectedStage,
             ageRange: stage?.ageRange ?? "",
-            textureHint,
-            portionNote: `small ${(stage?.label ?? "child").toLowerCase()} portion`,
-            // Structured resolver fields — override textureHint in the prompt builder
+            textureStrategy: textureStrategy || undefined,
+            presentationStrategy: presentationStrategy || undefined,
             textureClass: resolvedTextureClass,
-            activeConditionIds: data.resolverMeta?.activeConditionIds ?? [],
+            activeConditionIds,
+            // Legacy fallback if structured resolver fields are absent
+            textureHint: (textureStrategy || resolvedTextureClass)
+              ? undefined
+              : (textureHintFallback || "soft, age-appropriate texture"),
+            portionNote: `small ${(stage?.label ?? "child").toLowerCase()} portion`,
           },
         }),
       })

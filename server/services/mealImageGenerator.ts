@@ -397,12 +397,19 @@ const CONDITION_VISUAL_NOTES: Record<string, string> = {
 };
 
 function buildPediatricContextAddendum(ctx: PediatricImageContext): string {
-  // Use structured textureClass when available (from resolver); fall back to free-text hint.
-  const textureInstruction = ctx.textureClass && TEXTURE_CLASS_VISUAL[ctx.textureClass]
+  // Priority: textureClass lookup (most precise) → textureStrategy (human-readable resolver string)
+  // → textureHint (legacy first-sentence fallback).
+  const textureInstruction = (ctx.textureClass && TEXTURE_CLASS_VISUAL[ctx.textureClass])
     ? TEXTURE_CLASS_VISUAL[ctx.textureClass]
-    : `TEXTURE: ${ctx.textureHint}.`;
+    : ctx.textureStrategy
+      ? `TEXTURE REQUIREMENT: ${ctx.textureStrategy}`
+      : `TEXTURE: ${ctx.textureHint || "soft, age-appropriate texture"}.`;
 
-  // Derive any condition-specific visual notes from active protocol IDs.
+  const presentationLine = ctx.presentationStrategy
+    ? `Plating: ${ctx.presentationStrategy}.`
+    : "";
+
+  // Condition-specific visual notes (e.g. larger portions for failure-to-thrive).
   const conditionNotes = (ctx.activeConditionIds ?? [])
     .map(id => CONDITION_VISUAL_NOTES[id])
     .filter(Boolean)
@@ -411,9 +418,10 @@ function buildPediatricContextAddendum(ctx: PediatricImageContext): string {
   return `
 PEDIATRIC CONTEXT: This meal is for a ${ctx.stage} child (${ctx.ageRange}).
 ${textureInstruction}
-PORTION: ${ctx.portionNote} — this is a child's serving, NOT a full adult restaurant plate. The plate and portion size should look like what a parent would actually put in front of a young child.
-Do NOT show adult-sized portions. Do NOT show elaborate restaurant plating. Keep the presentation simple and realistic.${conditionNotes ? "\n" + conditionNotes : ""}`;
-}
+The rendered food MUST visually match this texture — a purée stage must look smooth with no chunks; a toddler plate must show soft small pieces, not crunchy sticks.
+PORTION: ${ctx.portionNote} — this is a child's serving, NOT a full adult restaurant plate.${presentationLine ? `\n${presentationLine}` : ""}
+The food should look like what a parent would actually put on a small child's plate: appropriately sized, soft-looking if needed, simply presented.
+Do NOT show adult-sized portions. Do NOT show elaborate restaurant plating. Do NOT show raw or hard-textured ingredients if the texture class is purée or mashed.${conditionNotes ? "\n" + conditionNotes : ""}`;
 
 function buildMealImagePrompt(mealName: string, ingredients: string[], sourceType?: ImageSourceType, pediatricContext?: PediatricImageContext): string {
   const topIngredients = ingredients.slice(0, 5).join(", ");
@@ -576,11 +584,17 @@ export type ImageSourceType = 'meal' | 'beverage' | 'snack' | 'dessert';
 export interface PediatricImageContext {
   stage: string;             // e.g. "Preschool"
   ageRange: string;          // e.g. "4–5 years"
-  textureHint: string;       // fallback free-text texture description
   portionNote: string;       // e.g. "small preschool portion"
-  // Structured resolver fields — override textureHint when present
-  textureClass?: string;     // "puree_only" | "mashed_soft" | "soft_chopped" | "family_modified" | "family_table"
-  activeConditionIds?: string[]; // COND-XXXX blocks active for this child
+  /** Legacy free-text fallback: first sentence of textureAndChokingPreparation */
+  textureHint?: string;
+  /** Resolver-derived texture class key, e.g. "puree_only" — maps to TEXTURE_CLASS_VISUAL */
+  textureClass?: string;
+  /** Resolver-derived human-readable texture string, e.g. "purée/smooth — no visible chunks" */
+  textureStrategy?: string;
+  /** Resolver-derived plating note, e.g. "small toddler plate with very soft pieces" */
+  presentationStrategy?: string;
+  /** COND-XXXX protocol IDs active for this child — drives condition-specific visual notes */
+  activeConditionIds?: string[];
 }
 
 export interface MealImageRequest {

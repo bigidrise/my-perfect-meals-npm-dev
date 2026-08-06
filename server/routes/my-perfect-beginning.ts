@@ -850,6 +850,32 @@ router.post("/create-dish", requireAuth, async (req, res) => {
         }
       : null;
 
+    // ── Resolver image context — drives meal photo texture + presentation ──────
+    // Derived from the resolver's textureClass and stageKey so the generated
+    // image matches what the parent will actually plate.
+    const TEXTURE_STRATEGY_MAP: Record<string, string> = {
+      puree_only:       "purée/smooth — no visible chunks, lumps, or whole pieces. The food must look completely smooth.",
+      mashed_soft:      "mashed or very soft — no hard pieces, easily gummed. No crunchy or whole elements visible.",
+      soft_chopped:     "soft and chopped into small pieces — no hard or crunchy elements. Everything must look very soft.",
+      family_modified:  "family-table textures modified for a child — cut into age-appropriate bite-sized pieces.",
+      family_table:     "standard child-sized pieces — normal family table textures, not an adult restaurant portion.",
+    };
+    const PRESENTATION_STRATEGY_MAP: Record<string, string> = {
+      early_infant:     "no solid food — breast milk or formula only, no plate",
+      beginning_foods:  "tiny portion in a small infant bowl — completely smooth purée, no finger foods visible",
+      young_toddler:    "small toddler plate with very soft bite-sized pieces, colorful and simply presented",
+      toddler:          "small toddler plate with soft small pieces, fun and simple — not an adult portion",
+      preschool:        "small child's plate, simply presented and colorful, cut into manageable pieces",
+      early_school_age: "child's plate with age-appropriate portions, familiar and approachable presentation",
+      growing_child:    "standard child's plate with normal portions — not a full adult restaurant serving",
+    };
+    const resolverContext = resolverCtx
+      ? {
+          textureStrategy: TEXTURE_STRATEGY_MAP[resolverCtx.textureClass] ?? "soft, age-appropriate texture",
+          presentationStrategy: PRESENTATION_STRATEGY_MAP[resolverCtx.stageKey] ?? "small child's plate, simply presented",
+        }
+      : null;
+
     return res.json({
       recipe: finalRecipe,
       blocked: false,
@@ -866,6 +892,8 @@ router.post("/create-dish", requireAuth, async (req, res) => {
         profileLoaded: childProfileInput !== null,
       },
       resolverMeta,
+      // Image generation context — resolver-derived, drives photo texture + presentation
+      resolverContext,
     });
   } catch (err: any) {
     console.error("[MyPerfectBeginning] create-dish error:", err);
