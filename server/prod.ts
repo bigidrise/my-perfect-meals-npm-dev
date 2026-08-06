@@ -1255,6 +1255,42 @@ async function initializeApp() {
         }
       }, 5000);
 
+      // child_profiles — My Perfect Beginning persistent child profiles
+      setTimeout(async () => {
+        try {
+          const { db: database } = await import("./db");
+          const { sql } = await import("drizzle-orm");
+          await database.execute(sql`
+            CREATE TABLE IF NOT EXISTS child_profiles (
+              id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+              user_id text NOT NULL,
+              name text NOT NULL,
+              date_of_birth text,
+              age_stage text NOT NULL DEFAULT 'toddler',
+              allergies jsonb NOT NULL DEFAULT '[]',
+              dietary_preferences jsonb NOT NULL DEFAULT '[]',
+              medical_conditions jsonb NOT NULL DEFAULT '[]',
+              feeding_concerns jsonb NOT NULL DEFAULT '[]',
+              sensory_issues jsonb NOT NULL DEFAULT '[]',
+              dislikes jsonb NOT NULL DEFAULT '[]',
+              cultural_preferences text,
+              emoji text NOT NULL DEFAULT '👶',
+              is_archived boolean NOT NULL DEFAULT false,
+              created_at timestamptz NOT NULL DEFAULT now(),
+              updated_at timestamptz NOT NULL DEFAULT now()
+            )
+          `);
+          await database.execute(sql`
+            CREATE INDEX IF NOT EXISTS idx_child_profiles_user
+            ON child_profiles (user_id)
+            WHERE is_archived = false
+          `);
+          console.log("✅ [prod] child_profiles boot migration complete (My Perfect Beginning)");
+        } catch (err: any) {
+          console.error("❌ [prod] child_profiles boot migration failed:", err.message);
+        }
+      }, 5600);
+
       // Promotion Engine — partner_promotions + promotion_redemptions tables
       setTimeout(async () => {
         try {

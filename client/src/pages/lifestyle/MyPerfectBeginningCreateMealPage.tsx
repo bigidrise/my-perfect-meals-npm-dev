@@ -506,6 +506,39 @@ function RecipeCard({ recipe, hasEpiPen }: { recipe: ChildRecipeResponse; hasEpi
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
+// ── Child profile auto-load ────────────────────────────────────────────────────
+
+const LS_ACTIVE_CHILD_KEY = "mpb.activeChildId.v1";
+
+interface ActiveChildSummary {
+  id: string;
+  name: string;
+  age_stage: DevelopmentalStage;
+  allergies: AllergyEntry[];
+}
+
+async function fetchActiveChild(): Promise<ActiveChildSummary | null> {
+  try {
+    const activeId = (() => { try { return localStorage.getItem(LS_ACTIVE_CHILD_KEY); } catch { return null; } })();
+    const res = await fetch(apiUrl("/api/my-perfect-beginning/children"), {
+      credentials: "include",
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const children: any[] = data.children ?? [];
+    const found = activeId ? children.find(c => c.id === activeId) : children[0];
+    if (!found) return null;
+    const allergies: AllergyEntry[] = Array.isArray(found.allergies)
+      ? found.allergies.filter(
+          (a: any) => a && typeof a.allergenId === "string" && typeof a.severity === "string"
+        )
+      : [];
+    return { id: found.id, name: found.name, age_stage: found.age_stage, allergies };
+  } catch {
+    return null;
+  }
+}
+
 export default function MyPerfectBeginningCreateMealPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -515,11 +548,30 @@ export default function MyPerfectBeginningCreateMealPage() {
   const [allergies, setAllergies] = useState<AllergyEntry[]>([]);
   const [foodRequest, setFoodRequest] = useState("");
 
+  // Active child from DB (pre-populate stage + allergies)
+  const [activeChild, setActiveChild] = useState<ActiveChildSummary | null>(null);
+  const [profileLoaded, setProfileLoaded] = useState(false);
+
   // UI state
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [recipe, setRecipe] = useState<ChildRecipeResponse | null>(null);
   const [showEarlyInfantScreen, setShowEarlyInfantScreen] = useState(false);
+
+  // Load active child profile on mount and pre-populate form
+  useEffect(() => {
+    fetchActiveChild().then(child => {
+      if (child) {
+        setActiveChild(child);
+        setSelectedStage(child.age_stage);
+        setAllergies(child.allergies);
+        if (child.age_stage === "early_infant") {
+          setShowEarlyInfantScreen(true);
+        }
+      }
+      setProfileLoaded(true);
+    });
+  }, []);
 
   useEffect(() => {
     document.title = "Create a Meal | My Perfect Beginning";
@@ -656,6 +708,48 @@ export default function MyPerfectBeginningCreateMealPage() {
         {/* Input Form */}
         {!showEarlyInfantScreen && !recipe && (
           <div className="space-y-4">
+            {/* Active child profile indicator */}
+            {profileLoaded && activeChild && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-3 px-4 py-3 rounded-xl bg-emerald-900/30 border border-emerald-500/25"
+              >
+                <div className="flex-shrink-0 w-7 h-7 rounded-full bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-sm">
+                  <Baby className="h-3.5 w-3.5 text-emerald-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-emerald-300 font-medium">
+                    Using <span className="font-semibold">{activeChild.name}</span>'s profile
+                  </p>
+                  <p className="text-[11px] text-white/40 leading-tight">
+                    Stage and allergies pre-loaded — just type what you'd like to make.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setLocation("/lifestyle/my-perfect-beginning")}
+                  className="flex-shrink-0 text-[11px] text-emerald-400/70 hover:text-emerald-300 underline underline-offset-2"
+                >
+                  Switch child
+                </button>
+              </motion.div>
+            )}
+            {profileLoaded && !activeChild && (
+              <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/10">
+                <Baby className="h-4 w-4 text-white/30 flex-shrink-0" />
+                <p className="text-xs text-white/40 flex-1">
+                  No child profile selected.{" "}
+                  <button
+                    onClick={() => setLocation("/lifestyle/my-perfect-beginning")}
+                    className="text-emerald-400/70 hover:text-emerald-300 underline underline-offset-2"
+                  >
+                    Add one
+                  </button>
+                  {" "}to save allergies and stage for next time.
+                </p>
+              </div>
+            )}
+
             {/* Stage selector */}
             <Card className="bg-black/40 border-green-400/20 backdrop-blur-lg">
               <CardHeader className="pb-2 pt-4 px-4">

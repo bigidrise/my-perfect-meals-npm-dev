@@ -309,6 +309,165 @@ async function saveConversation(userId: string, childProfileId: string, messages
   `);
 }
 
+// ─── Valid age stages ────────────────────────────────────────────────────────
+
+const VALID_AGE_STAGES_SET = new Set([
+  "early_infant", "beginning_foods", "young_toddler", "toddler",
+  "preschool", "early_school_age", "growing_child",
+]);
+
+// ─── Child Profile CRUD ───────────────────────────────────────────────────────
+
+function normalizeRows(result: any): any[] {
+  return (result as any).rows ?? (Array.isArray(result) ? result : []);
+}
+
+// GET /children — list authenticated user's non-archived children
+router.get("/children", requireAuth, async (req, res) => {
+  const userId = (req as AuthenticatedRequest).authUser?.id;
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+  try {
+    const result = await db.execute(sql`
+      SELECT id, user_id, name, date_of_birth, age_stage, allergies,
+             dietary_preferences, medical_conditions, feeding_concerns,
+             sensory_issues, dislikes, cultural_preferences, emoji,
+             created_at, updated_at
+      FROM child_profiles
+      WHERE user_id = ${userId} AND is_archived = false
+      ORDER BY created_at ASC
+    `);
+    return res.json({ children: normalizeRows(result) });
+  } catch (err: any) {
+    console.error("[MPB/children] GET error:", err.message);
+    return res.status(500).json({ error: "Failed to load child profiles" });
+  }
+});
+
+// POST /children — create a new child profile
+router.post("/children", requireAuth, async (req, res) => {
+  const userId = (req as AuthenticatedRequest).authUser?.id;
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+  const {
+    name, age_stage, date_of_birth = null, emoji = "👶",
+    allergies = [], dietary_preferences = [], medical_conditions = [],
+    feeding_concerns = [], sensory_issues = [], dislikes = [],
+    cultural_preferences = null,
+  } = req.body;
+
+  if (!name || typeof name !== "string" || !name.trim()) {
+    return res.status(400).json({ error: "name is required" });
+  }
+  if (!age_stage || !VALID_AGE_STAGES_SET.has(age_stage)) {
+    return res.status(400).json({ error: "valid age_stage is required" });
+  }
+
+  const aJson = JSON.stringify(Array.isArray(allergies) ? allergies : []);
+  const dpJson = JSON.stringify(Array.isArray(dietary_preferences) ? dietary_preferences : []);
+  const mcJson = JSON.stringify(Array.isArray(medical_conditions) ? medical_conditions : []);
+  const fcJson = JSON.stringify(Array.isArray(feeding_concerns) ? feeding_concerns : []);
+  const siJson = JSON.stringify(Array.isArray(sensory_issues) ? sensory_issues : []);
+  const dlJson = JSON.stringify(Array.isArray(dislikes) ? dislikes : []);
+
+  try {
+    const result = await db.execute(sql`
+      INSERT INTO child_profiles (
+        user_id, name, date_of_birth, age_stage, emoji,
+        allergies, dietary_preferences, medical_conditions,
+        feeding_concerns, sensory_issues, dislikes, cultural_preferences
+      ) VALUES (
+        ${userId}, ${name.trim()}, ${date_of_birth}, ${age_stage}, ${emoji},
+        ${aJson}::jsonb, ${dpJson}::jsonb, ${mcJson}::jsonb,
+        ${fcJson}::jsonb, ${siJson}::jsonb, ${dlJson}::jsonb, ${cultural_preferences}
+      )
+      RETURNING *
+    `);
+    const child = normalizeRows(result)[0];
+    return res.status(201).json({ child });
+  } catch (err: any) {
+    console.error("[MPB/children] POST error:", err.message);
+    return res.status(500).json({ error: "Failed to create child profile" });
+  }
+});
+
+// PATCH /children/:id — update a child profile (ownership validated)
+router.patch("/children/:id", requireAuth, async (req, res) => {
+  const userId = (req as AuthenticatedRequest).authUser?.id;
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+  const { id } = req.params;
+
+  // Ownership check: fetch current row first
+  const existing = await db.execute(sql`
+    SELECT * FROM child_profiles
+    WHERE id = ${id} AND user_id = ${userId} AND is_archived = false
+  `);
+  const current = normalizeRows(existing)[0];
+  if (!current) return res.status(404).json({ error: "Child profile not found" });
+
+  // Merge: only override what was provided in request body
+  const name = typeof req.body.name === "string" ? req.body.name.trim() : current.name;
+  const age_stage = VALID_AGE_STAGES_SET.has(req.body.age_stage) ? req.body.age_stage : current.age_stage;
+  const date_of_birth = "date_of_birth" in req.body ? (req.body.date_of_birth ?? null) : current.date_of_birth;
+  const emoji = req.body.emoji ?? current.emoji ?? "👶";
+  const cultural_preferences = "cultural_preferences" in req.body
+    ? (req.body.cultural_preferences ?? null)
+    : current.cultural_preferences;
+  const allergies = Array.isArray(req.body.allergies) ? req.body.allergies : (current.allergies ?? []);
+  const dietary_preferences = Array.isArray(req.body.dietary_preferences) ? req.body.dietary_preferences : (current.dietary_preferences ?? []);
+  const medical_conditions = Array.isArray(req.body.medical_conditions) ? req.body.medical_conditions : (current.medical_conditions ?? []);
+  const feeding_concerns = Array.isArray(req.body.feeding_concerns) ? req.body.feeding_concerns : (current.feeding_concerns ?? []);
+  const sensory_issues = Array.isArray(req.body.sensory_issues) ? req.body.sensory_issues : (current.sensory_issues ?? []);
+  const dislikes = Array.isArray(req.body.dislikes) ? req.body.dislikes : (current.dislikes ?? []);
+
+  try {
+    const result = await db.execute(sql`
+      UPDATE child_profiles SET
+        name = ${name},
+        age_stage = ${age_stage},
+        date_of_birth = ${date_of_birth},
+        emoji = ${emoji},
+        cultural_preferences = ${cultural_preferences},
+        allergies = ${JSON.stringify(allergies)}::jsonb,
+        dietary_preferences = ${JSON.stringify(dietary_preferences)}::jsonb,
+        medical_conditions = ${JSON.stringify(medical_conditions)}::jsonb,
+        feeding_concerns = ${JSON.stringify(feeding_concerns)}::jsonb,
+        sensory_issues = ${JSON.stringify(sensory_issues)}::jsonb,
+        dislikes = ${JSON.stringify(dislikes)}::jsonb,
+        updated_at = now()
+      WHERE id = ${id} AND user_id = ${userId}
+      RETURNING *
+    `);
+    const child = normalizeRows(result)[0];
+    return res.json({ child });
+  } catch (err: any) {
+    console.error("[MPB/children] PATCH error:", err.message);
+    return res.status(500).json({ error: "Failed to update child profile" });
+  }
+});
+
+// DELETE /children/:id — archive a child profile (soft delete, ownership validated)
+router.delete("/children/:id", requireAuth, async (req, res) => {
+  const userId = (req as AuthenticatedRequest).authUser?.id;
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+  const { id } = req.params;
+  try {
+    const result = await db.execute(sql`
+      UPDATE child_profiles SET is_archived = true, updated_at = now()
+      WHERE id = ${id} AND user_id = ${userId} AND is_archived = false
+      RETURNING id
+    `);
+    if (normalizeRows(result).length === 0) {
+      return res.status(404).json({ error: "Child profile not found" });
+    }
+    return res.json({ ok: true });
+  } catch (err: any) {
+    console.error("[MPB/children] DELETE error:", err.message);
+    return res.status(500).json({ error: "Failed to archive child profile" });
+  }
+});
+
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
 // GET /tip — returns today's rotating tip for a given developmental stage
