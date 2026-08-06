@@ -140,6 +140,62 @@ interface ParentEducationLayerData {
   conflictResolutions: ConflictResolution[];
 }
 
+// ── Resolver metadata — server-computed, drives "Why the engine decided" panel ──
+
+interface ResolverFiredRule {
+  ruleId: string;
+  level: "A" | "B" | "C";
+  description: string;
+  action: string;
+}
+
+interface ResolverProtocolBlock {
+  conditionId: string;
+  conditionLabel: string;
+  optimizations: string[];
+}
+
+interface ResolverAllergenRemoval {
+  allergenId: string;
+  displayName: string;
+  action: string;
+  severity: string;
+  emergencyMedication: boolean;
+}
+
+interface ResolverFoodAcceptanceDirective {
+  type: string;
+  description: string;
+  items: string[];
+}
+
+interface ResolverConflictResolution {
+  ruleA: string;
+  ruleB: string;
+  resolution: string;
+  winner: string;
+}
+
+interface ResolverMetaEnhanced {
+  firedRules?: ResolverFiredRule[];
+  activeProtocolBlocks?: ResolverProtocolBlock[];
+  allergenRemovals?: ResolverAllergenRemoval[];
+  foodAcceptanceDirectives?: ResolverFoodAcceptanceDirective[];
+  preferencesUsed?: {
+    culturalCuisine: string | null;
+    dietaryPattern: string | null;
+    goals: string[];
+  };
+  conflictResolutions?: ResolverConflictResolution[];
+  stageDRIBaseline?: {
+    stageLabel: string;
+    ironMg: number;
+    calciumMg: number;
+    vitaminDIU: number;
+    honeyAllowed: boolean;
+  };
+}
+
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const STAGES: { id: DevelopmentalStage; label: string; ageRange: string; emoji: string }[] = [
@@ -423,127 +479,256 @@ function AllergenSelector({
   );
 }
 
-// ── Star Rating helper ────────────────────────────────────────────────────────
+// ── Why the Engine Made These Decisions Panel ─────────────────────────────────
+// Plain-language explanations for parents — no technical IDs, no jargon.
 
-function StarRating({ stars, max = 5 }: { stars: number; max?: number }) {
-  return (
-    <span className="flex items-center gap-0.5">
-      {Array.from({ length: max }).map((_, i) => (
-        <Star
-          key={i}
-          className={`h-3.5 w-3.5 ${i < stars ? "text-yellow-400 fill-yellow-400" : "text-white/15 fill-white/10"}`}
-        />
-      ))}
-    </span>
-  );
+function stripTechIds(text: string): string {
+  // Remove leading COND-XXXX and RULE-XXXX references and outer parens
+  return text
+    .replace(/^(COND|RULE)-\d{4}\s*/i, "")
+    .replace(/^Allergen\s+HARD STOP\s+on\s+/i, "")
+    .replace(/^\(/, "").replace(/\)$/, "")
+    .trim();
 }
 
-// ── Parent Education Layer Panel ──────────────────────────────────────────────
+function allergenActionLabel(action: string, severity: string): string {
+  if (action === "HARD_STOP") return "Completely removed — confirmed allergy";
+  if (action === "SOFT_BLOCK") return "Removed — suspected reaction";
+  if (action === "EXCLUDE") return "Excluded — intolerance";
+  return "Avoided — parent preference";
+}
 
-function ParentEducationPanel({ layer }: { layer: ParentEducationLayerData }) {
-  const [showProtocols, setShowProtocols] = useState(false);
-  const [showConflicts, setShowConflicts] = useState(false);
+interface WhyEngineDecidedPanelProps {
+  resolverMeta: ResolverMetaEnhanced | null;
+  conflictResolutions?: ConflictResolution[];
+}
+
+function WhyEngineDecidedPanel({ resolverMeta, conflictResolutions }: WhyEngineDecidedPanelProps) {
+  const [openSection, setOpenSection] = useState<string | null>(null);
+
+  const toggle = (id: string) => setOpenSection(prev => prev === id ? null : id);
+
+  const safetyRules = resolverMeta?.firedRules?.filter(r => r.level === "A") ?? [];
+  const nutritionRules = resolverMeta?.firedRules?.filter(r => r.level === "B") ?? [];
+  const allergenRemovals = resolverMeta?.allergenRemovals ?? [];
+  const medicalConditions = resolverMeta?.activeProtocolBlocks ?? [];
+  const prefs = resolverMeta?.preferencesUsed;
+  const foodDirectives = resolverMeta?.foodAcceptanceDirectives ?? [];
+  const resolverConflicts = resolverMeta?.conflictResolutions ?? [];
+  const legacyConflicts = conflictResolutions ?? [];
+
+  // Build child-preferences list
+  const preferenceItems: string[] = [];
+  if (prefs?.culturalCuisine) preferenceItems.push(`${prefs.culturalCuisine} cuisine preferred`);
+  if (prefs?.dietaryPattern && prefs.dietaryPattern !== "omnivore") {
+    preferenceItems.push(prefs.dietaryPattern.replace(/_/g, " ") + " diet");
+  }
+  for (const g of prefs?.goals ?? []) preferenceItems.push(g);
+  for (const dir of foodDirectives) {
+    if (dir.type === "avoid_dislike" && dir.items.length > 0) {
+      for (const item of dir.items) preferenceItems.push(`Avoids ${item}`);
+    }
+  }
+
+  // Merge conflicts (prefer resolver ones since they're more specific)
+  const allConflicts: Array<{ labelA: string; labelB: string; resolution: string }> = [
+    ...resolverConflicts.map(c => ({
+      labelA: stripTechIds(c.ruleA),
+      labelB: stripTechIds(c.ruleB),
+      resolution: c.resolution,
+    })),
+    // Only add legacy ones that aren't already covered
+    ...(resolverConflicts.length === 0
+      ? legacyConflicts.map(c => ({
+          labelA: c.protocol1,
+          labelB: c.protocol2,
+          resolution: c.resolution,
+        }))
+      : []),
+  ];
+
+  const hasAnyContent =
+    safetyRules.length > 0 ||
+    allergenRemovals.length > 0 ||
+    nutritionRules.length > 0 ||
+    medicalConditions.length > 0 ||
+    preferenceItems.length > 0 ||
+    allConflicts.length > 0;
+
+  if (!hasAnyContent) return null;
+
+  const sections: Array<{
+    id: string;
+    icon: React.ReactNode;
+    title: string;
+    count: number;
+    color: string;
+    content: React.ReactNode;
+  }> = [];
+
+  // 1. Safety Rules Applied
+  if (safetyRules.length > 0 || allergenRemovals.length > 0) {
+    sections.push({
+      id: "safety",
+      icon: <ShieldCheck className="h-3.5 w-3.5 text-red-400" />,
+      title: "Safety Rules Applied",
+      count: safetyRules.length + allergenRemovals.length,
+      color: "text-red-300",
+      content: (
+        <div className="space-y-2">
+          {allergenRemovals.map((a, i) => (
+            <div key={`a-${i}`} className="flex items-start gap-2">
+              <span className="text-red-400 mt-0.5 flex-shrink-0 text-base leading-none">🚫</span>
+              <div>
+                <p className="text-xs text-white/80 font-medium capitalize">
+                  {a.displayName.replace(/_/g, " ")} removed
+                </p>
+                <p className="text-xs text-white/45 mt-0.5">{allergenActionLabel(a.action, a.severity)}</p>
+              </div>
+            </div>
+          ))}
+          {safetyRules.map((r, i) => (
+            <div key={`r-${i}`} className="flex items-start gap-2">
+              <CheckCircle2 className="h-3.5 w-3.5 text-red-400/70 mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-white/70 leading-relaxed">{r.description}</p>
+            </div>
+          ))}
+        </div>
+      ),
+    });
+  }
+
+  // 2. Nutrition Rules Applied
+  const nutritionItems: string[] = [
+    ...nutritionRules.map(r => r.description),
+    ...medicalConditions.flatMap(b => b.optimizations.slice(0, 2)),
+  ];
+  if (nutritionItems.length > 0) {
+    const dri = resolverMeta?.stageDRIBaseline;
+    sections.push({
+      id: "nutrition",
+      icon: <Sparkles className="h-3.5 w-3.5 text-green-400" />,
+      title: "Nutrition Rules Applied",
+      count: nutritionItems.length,
+      color: "text-green-300",
+      content: (
+        <div className="space-y-2">
+          {dri && (
+            <div className="px-2.5 py-2 rounded-lg bg-green-950/30 border border-green-400/15 mb-1">
+              <p className="text-xs text-green-300/80 font-medium mb-1">{dri.stageLabel}</p>
+              <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+                {dri.ironMg > 0 && <span className="text-[11px] text-white/50">Iron target: {dri.ironMg}mg</span>}
+                {dri.calciumMg > 0 && <span className="text-[11px] text-white/50">Calcium: {dri.calciumMg}mg</span>}
+                {dri.vitaminDIU > 0 && <span className="text-[11px] text-white/50">Vitamin D: {dri.vitaminDIU}IU</span>}
+              </div>
+            </div>
+          )}
+          {nutritionItems.map((item, i) => (
+            <div key={i} className="flex items-start gap-2">
+              <CheckCircle2 className="h-3.5 w-3.5 text-green-400/70 mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-white/70 leading-relaxed">{item}</p>
+            </div>
+          ))}
+        </div>
+      ),
+    });
+  }
+
+  // 3. Child Preferences Used
+  if (preferenceItems.length > 0) {
+    sections.push({
+      id: "preferences",
+      icon: <Star className="h-3.5 w-3.5 text-yellow-400" />,
+      title: "Child Preferences Used",
+      count: preferenceItems.length,
+      color: "text-yellow-300",
+      content: (
+        <div className="space-y-1.5">
+          {preferenceItems.map((item, i) => (
+            <div key={i} className="flex items-start gap-2">
+              <CheckCircle2 className="h-3.5 w-3.5 text-yellow-400/70 mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-white/70 leading-relaxed capitalize-first">{item}</p>
+            </div>
+          ))}
+        </div>
+      ),
+    });
+  }
+
+  // 4. Medical Conditions Considered
+  if (medicalConditions.length > 0) {
+    sections.push({
+      id: "conditions",
+      icon: <Stethoscope className="h-3.5 w-3.5 text-purple-400" />,
+      title: "Medical Conditions Considered",
+      count: medicalConditions.length,
+      color: "text-purple-300",
+      content: (
+        <div className="space-y-1.5">
+          {medicalConditions.map((b, i) => (
+            <div key={i} className="flex items-center gap-2 px-2.5 py-2 rounded-lg bg-purple-950/30 border border-purple-400/15">
+              <Brain className="h-3 w-3 text-purple-400 flex-shrink-0" />
+              <p className="text-xs text-purple-200/90 font-medium">{b.conditionLabel}</p>
+            </div>
+          ))}
+        </div>
+      ),
+    });
+  }
+
+  // 5. Rule Conflicts Resolved
+  if (allConflicts.length > 0) {
+    sections.push({
+      id: "conflicts",
+      icon: <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />,
+      title: "Rule Conflicts Resolved",
+      count: allConflicts.length,
+      color: "text-amber-300",
+      content: (
+        <div className="space-y-3">
+          {allConflicts.map((c, i) => (
+            <div key={i} className="rounded-lg bg-amber-950/25 border border-amber-400/15 p-3 space-y-1.5">
+              <div className="flex flex-wrap items-center gap-1.5 text-xs text-white/50">
+                <span className="bg-amber-500/15 text-amber-200/80 px-1.5 py-0.5 rounded text-[10px] font-medium">{c.labelA}</span>
+                <span className="text-white/25">vs.</span>
+                <span className="bg-amber-500/15 text-amber-200/80 px-1.5 py-0.5 rounded text-[10px] font-medium">{c.labelB}</span>
+              </div>
+              <p className="text-xs text-amber-100/80 leading-relaxed">✓ {c.resolution}</p>
+            </div>
+          ))}
+        </div>
+      ),
+    });
+  }
 
   return (
-    <div className="space-y-3">
-      {/* Confidence grid */}
-      <div className="grid grid-cols-2 gap-2">
-        {/* Meal Confidence */}
-        <div className="col-span-2 sm:col-span-1 rounded-xl bg-black/40 border border-white/10 p-3.5 space-y-2">
-          <div className="flex items-center gap-2">
-            <Brain className="h-3.5 w-3.5 text-purple-400 flex-shrink-0" />
-            <p className="text-xs font-semibold text-white/70 uppercase tracking-wider">Meal Confidence</p>
-          </div>
-          <StarRating stars={layer.mealConfidence.stars} />
-          <p className="text-xs text-white/40">
-            Profile completeness: {layer.mealConfidence.profileCompleteness}%
-          </p>
-          <div className="space-y-0.5">
-            {layer.mealConfidence.fieldsUsed.map((f, i) => (
-              <div key={i} className="flex items-center gap-1.5 text-xs text-white/50">
-                <CheckCircle2 className="h-2.5 w-2.5 text-purple-400/70 flex-shrink-0" />
-                {f}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Personalization Level */}
-        <div className="col-span-2 sm:col-span-1 rounded-xl bg-black/40 border border-white/10 p-3.5 space-y-2">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-3.5 w-3.5 text-green-400 flex-shrink-0" />
-            <p className="text-xs font-semibold text-white/70 uppercase tracking-wider">Personalization</p>
-          </div>
-          <StarRating stars={layer.personalizationLevel.stars} />
-          <p className="text-xs text-white/40">Dimensions shaping this meal:</p>
-          <div className="space-y-0.5">
-            {layer.personalizationLevel.dimensionsUsed.map((d, i) => (
-              <div key={i} className="flex items-center gap-1.5 text-xs text-white/50">
-                <CheckCircle2 className="h-2.5 w-2.5 text-green-400/70 flex-shrink-0" />
-                {d}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Clinical Review Status */}
-      <div>
-        <button
-          type="button"
-          onClick={() => setShowProtocols(!showProtocols)}
-          className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/50 transition-colors"
-        >
-          <FlaskConical className="h-3 w-3" />
-          {showProtocols ? "Hide" : "Show"} clinical review status ({layer.clinicalReviewStatus.length} protocol{layer.clinicalReviewStatus.length !== 1 ? "s" : ""} active)
-        </button>
-        {showProtocols && (
-          <div className="mt-2 space-y-2">
-            {layer.clinicalReviewStatus.map((p, i) => (
-              <div key={i} className="px-3 py-2.5 rounded-lg bg-blue-950/20 border border-blue-400/15 space-y-1">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-mono text-[10px] text-blue-300/70">{p.protocolId}</span>
-                  <span className="text-[10px] text-white/30">{p.version}</span>
-                </div>
-                <p className="text-xs text-blue-200/80">{p.status}</p>
-                <div className="space-y-0.5 pt-0.5">
-                  {p.sources.map((s, j) => (
-                    <p key={j} className="text-[10px] text-white/30 leading-snug">• {s}</p>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Conflict Resolutions */}
-      {layer.conflictResolutions.length > 0 && (
-        <div>
+    <div className="space-y-1.5">
+      {sections.map(section => (
+        <div key={section.id} className="rounded-xl border border-white/8 bg-black/20 overflow-hidden">
           <button
             type="button"
-            onClick={() => setShowConflicts(!showConflicts)}
-            className="flex items-center gap-1.5 text-xs text-amber-400/50 hover:text-amber-300/70 transition-colors"
+            onClick={() => toggle(section.id)}
+            className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors"
           >
-            <AlertTriangle className="h-3 w-3" />
-            {showConflicts ? "Hide" : "Show"} protocol notes ({layer.conflictResolutions.length})
+            <div className="flex items-center gap-2">
+              {section.icon}
+              <span className={`text-xs font-semibold ${section.color}`}>{section.title}</span>
+              <span className="text-[10px] text-white/30 bg-white/5 px-1.5 py-0.5 rounded-full">
+                {section.count}
+              </span>
+            </div>
+            {openSection === section.id
+              ? <ChevronUp className="h-3.5 w-3.5 text-white/30" />
+              : <ChevronDown className="h-3.5 w-3.5 text-white/30" />
+            }
           </button>
-          {showConflicts && (
-            <div className="mt-2 space-y-2">
-              {layer.conflictResolutions.map((c, i) => (
-                <div key={i} className="px-3 py-2.5 rounded-lg bg-amber-950/20 border border-amber-400/15 space-y-1">
-                  <div className="flex flex-wrap gap-1 text-[10px] font-mono text-amber-300/50">
-                    <span>{c.protocol1}</span>
-                    <span className="text-white/20">+</span>
-                    <span>{c.protocol2}</span>
-                  </div>
-                  <p className="text-xs text-amber-200/80">{c.resolution}</p>
-                </div>
-              ))}
+          {openSection === section.id && (
+            <div className="px-4 pb-4 pt-1">
+              {section.content}
             </div>
           )}
         </div>
-      )}
+      ))}
     </div>
   );
 }
@@ -574,12 +759,13 @@ function RecipeCard({
   recipe,
   hasEpiPen,
   educationLayer,
+  resolverMeta,
 }: {
   recipe: ChildRecipeResponse;
   hasEpiPen: boolean;
   educationLayer: ParentEducationLayerData | null;
+  resolverMeta: ResolverMetaEnhanced | null;
 }) {
-  const [showLog, setShowLog] = useState(false);
   const [showTrace, setShowTrace] = useState(false);
 
   return (
@@ -770,46 +956,22 @@ function RecipeCard({
         </div>
       )}
 
-      {/* Parent Education Layer — confidence + protocols */}
-      {educationLayer && (
+      {/* Why the Engine Made These Decisions — plain-language panel */}
+      {(resolverMeta || educationLayer) && (
         <Card className="bg-black/40 border-white/10 backdrop-blur-lg">
           <CardHeader className="pb-2 pt-4 px-4">
             <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-purple-400" />
-              About This Recommendation
+              <Brain className="h-4 w-4 text-purple-400" />
+              Why the Engine Made These Decisions
             </CardTitle>
           </CardHeader>
           <CardContent className="px-4 pb-4">
-            <ParentEducationPanel layer={educationLayer} />
+            <WhyEngineDecidedPanel
+              resolverMeta={resolverMeta}
+              conflictResolutions={educationLayer?.conflictResolutions}
+            />
           </CardContent>
         </Card>
-      )}
-
-      {/* Safety rules fired */}
-      {recipe.rulesFireLog && recipe.rulesFireLog.length > 0 && (
-        <div>
-          <button
-            type="button"
-            onClick={() => setShowLog(!showLog)}
-            className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/50 transition-colors"
-          >
-            <ShieldCheck className="h-3 w-3" />
-            {showLog ? "Hide" : "Show"} safety rules applied ({recipe.rulesFireLog.length})
-          </button>
-          {showLog && (
-            <div className="mt-2 space-y-1.5">
-              {recipe.rulesFireLog.map((rule, i) => (
-                <div key={i} className="px-2.5 py-1.5 rounded-md bg-black/30 border border-white/5">
-                  <p className="text-xs text-white/60">
-                    <span className="font-mono text-green-400/70">[{rule.ruleId}]</span>{" "}
-                    {rule.description}
-                    <span className="text-white/30"> — {rule.action}</span>
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       )}
 
       {/* Mandatory pediatrician disclaimer — appears on every generated output */}
@@ -1005,6 +1167,7 @@ export default function MyPerfectBeginningCreateMealPage() {
   const [progress, setProgress] = useState(0);
   const [recipe, setRecipe] = useState<ChildRecipeResponse | null>(null);
   const [educationLayer, setEducationLayer] = useState<ParentEducationLayerData | null>(null);
+  const [resolverMeta, setResolverMeta] = useState<ResolverMetaEnhanced | null>(null);
   const [showEarlyInfantScreen, setShowEarlyInfantScreen] = useState(false);
   const [hardStopState, setHardStopState] = useState<{ blockReason: string; educationMessage: string } | null>(null);
 
@@ -1110,6 +1273,7 @@ export default function MyPerfectBeginningCreateMealPage() {
     setIsGenerating(true);
     setRecipe(null);
     setEducationLayer(null);
+    setResolverMeta(null);
     setHardStopState(null);
 
     // Build the full food request string with context appended
@@ -1167,6 +1331,18 @@ export default function MyPerfectBeginningCreateMealPage() {
           clinicalReviewStatus: data.clinicalReviewStatus,
           personalizationLevel: data.personalizationLevel,
           conflictResolutions: data.conflictResolutions ?? [],
+        });
+      }
+      // Extract enhanced resolver meta for the parent-education panel
+      if (data.resolverMeta) {
+        setResolverMeta({
+          firedRules: data.resolverMeta.firedRules ?? [],
+          activeProtocolBlocks: data.resolverMeta.activeProtocolBlocks ?? [],
+          allergenRemovals: data.resolverMeta.allergenRemovals ?? [],
+          foodAcceptanceDirectives: data.resolverMeta.foodAcceptanceDirectives ?? [],
+          preferencesUsed: data.resolverMeta.preferencesUsed ?? { culturalCuisine: null, dietaryPattern: null, goals: [] },
+          conflictResolutions: data.resolverMeta.conflictResolutions ?? [],
+          stageDRIBaseline: data.resolverMeta.stageDRIBaseline,
         });
       }
       setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 100);
@@ -1311,10 +1487,10 @@ export default function MyPerfectBeginningCreateMealPage() {
                 className="rounded-2xl overflow-hidden"
               />
             )}
-            <RecipeCard recipe={recipe} hasEpiPen={hasEpiPen} educationLayer={educationLayer} />
+            <RecipeCard recipe={recipe} hasEpiPen={hasEpiPen} educationLayer={educationLayer} resolverMeta={resolverMeta} />
             <button
               type="button"
-              onClick={() => { setRecipe(null); setEducationLayer(null); setHardStopState(null); setFoodRequest(""); setRecipeImageUrl(null); setImageLoading(false); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+              onClick={() => { setRecipe(null); setEducationLayer(null); setResolverMeta(null); setHardStopState(null); setFoodRequest(""); setRecipeImageUrl(null); setImageLoading(false); window.scrollTo({ top: 0, behavior: "smooth" }); }}
               className="w-full py-3 rounded-xl bg-green-500/10 text-green-300 text-sm font-medium border border-green-400/20 hover:bg-green-500/20 transition-all"
             >
               Make Another Recipe

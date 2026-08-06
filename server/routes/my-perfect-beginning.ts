@@ -833,19 +833,49 @@ router.post("/create-dish", requireAuth, async (req, res) => {
       finalRecipe.whyThisMealWasChosen = disclaimerSuffix;
     }
 
-    // ── Resolver metadata (audit trail) ──────────────────────────────────────
+    // ── Resolver metadata (audit trail + parent-education layer) ─────────────
     const resolverMeta = resolverCtx
       ? {
           resolverVersion: resolverCtx.resolverVersion,
           resolvedAt: resolverCtx.resolvedAt,
           stageKey: resolverCtx.stageKey,
           textureClass: resolverCtx.textureClass,
+          // Legacy IDs kept for backward compat
           firedRuleIds: resolverCtx.firedRules.map(r => r.ruleId),
           activeConditionIds: resolverCtx.activeProtocolBlocks.map(b => b.conditionId),
+          // Full rule details for parent-education panel
+          firedRules: resolverCtx.firedRules.map(r => ({
+            ruleId: r.ruleId,
+            level: r.level,
+            description: r.description,
+            action: r.action,
+          })),
+          activeProtocolBlocks: resolverCtx.activeProtocolBlocks.map(b => ({
+            conditionId: b.conditionId,
+            conditionLabel: b.conditionLabel,
+            optimizations: b.optimizations,
+          })),
           allergenRemovals: resolverCtx.allergenRemovals.map(a => ({
             allergenId: a.allergenId,
+            displayName: a.displayName,
             action: a.action,
+            severity: a.severity,
+            emergencyMedication: a.emergencyMedication,
           })),
+          foodAcceptanceDirectives: resolverCtx.foodAcceptanceDirectives,
+          preferencesUsed: {
+            culturalCuisine: resolverCtx.parentOverrides.culturalCuisine,
+            dietaryPattern: resolverCtx.parentOverrides.dietaryPattern,
+            goals: resolverCtx.parentOverrides.goals,
+          },
+          stageDRIBaseline: {
+            stageLabel: resolverCtx.stageDRIBaseline.stageLabel,
+            ironMg: resolverCtx.stageDRIBaseline.ironMg,
+            calciumMg: resolverCtx.stageDRIBaseline.calciumMg,
+            vitaminDIU: resolverCtx.stageDRIBaseline.vitaminDIU,
+            honeyAllowed: resolverCtx.stageDRIBaseline.honeyAllowed,
+          },
+          conflictResolutions: resolverCtx.conflictResolutions,
           splitMealRequired: resolverCtx.splitMealRequired,
         }
       : null;
