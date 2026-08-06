@@ -1285,6 +1285,27 @@ async function initializeApp() {
             ON child_profiles (user_id)
             WHERE is_archived = false
           `);
+          // Phase 2 — extended profile fields required by the Pediatric Resolver
+          const phase2Columns = [
+            `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS sex text`,
+            `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS height_cm numeric`,
+            `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS weight_kg numeric`,
+            `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS growth_context text DEFAULT 'typical'`,
+            `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS birth_history jsonb DEFAULT '{}'`,
+            `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS feeding_development jsonb DEFAULT '{}'`,
+            `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS family_goals jsonb DEFAULT '[]'`,
+            `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS kitchen_equipment jsonb DEFAULT '[]'`,
+            `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS kitchen_budget text DEFAULT 'moderate'`,
+            `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS kitchen_time_minutes integer DEFAULT 30`,
+            `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS kitchen_skill text DEFAULT 'intermediate'`,
+            `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS school_safe_required boolean DEFAULT false`,
+            `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS pediatrician_oversight boolean DEFAULT false`,
+            `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS medication_affects_appetite boolean DEFAULT false`,
+            `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS g_tube boolean DEFAULT false`,
+          ];
+          for (const col of phase2Columns) {
+            await database.execute(sql.raw(col));
+          }
           console.log("✅ [prod] child_profiles boot migration complete (My Perfect Beginning)");
         } catch (err: any) {
           console.error("❌ [prod] child_profiles boot migration failed:", err.message);
