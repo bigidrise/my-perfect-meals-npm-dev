@@ -45,6 +45,8 @@ const ROUTE_KEY_MAP: Record<string, string> = {
   "/lifestyle/wine-list-helper": "wineListHelper",
   "/lifestyle/reduce-drinking-plan": "reduceDrinking",
   "/lifestyle/my-perfect-gatherings": "gatherings",
+  "/lifestyle/my-perfect-beginning": "myPerfectBeginning",
+  "/lifestyle/my-perfect-beginning/create-meal": "myPerfectBeginning",
   "/craving-creator-landing": "cravingCreator",
   "/craving-creator": "cravingCreator",
   "/craving-desserts": "dessertCreator",

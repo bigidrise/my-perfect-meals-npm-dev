@@ -19,11 +19,16 @@ import {
   FlaskConical,
   Brain,
   Stethoscope,
+  Clock,
+  Users,
+  Globe,
+  ChevronRight,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import ThinkingDots from "@/components/ThinkingDots";
 import { Progress } from "@/components/ui/progress";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { MealImageSlot } from "@/components/ui/MealImageSlot";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -976,6 +981,16 @@ export default function MyPerfectBeginningCreateMealPage() {
   const [selectedStage, setSelectedStage] = useState<DevelopmentalStage | "">("");
   const [allergies, setAllergies] = useState<AllergyEntry[]>([]);
   const [foodRequest, setFoodRequest] = useState("");
+  const [mealOccasion, setMealOccasion] = useState<string>("general");
+  const [servings, setServings] = useState<number>(2);
+  const [cookingMethod, setCookingMethod] = useState<string>("any");
+  const [prepTime, setPrepTime] = useState<number | null>(null);
+  const [notes, setNotes] = useState<string>("");
+  const [schoolSafe, setSchoolSafe] = useState(false);
+  const [packable, setPackable] = useState(false);
+  const [budget, setBudget] = useState<string>("");
+  const [culturalCuisine, setCulturalCuisine] = useState<string>("");
+  const [showMoreOptions, setShowMoreOptions] = useState(false);
 
   // Active child from DB (pre-populate stage + allergies)
   const [activeChild, setActiveChild] = useState<ActiveChildSummary | null>(null);
@@ -992,6 +1007,10 @@ export default function MyPerfectBeginningCreateMealPage() {
   const [educationLayer, setEducationLayer] = useState<ParentEducationLayerData | null>(null);
   const [showEarlyInfantScreen, setShowEarlyInfantScreen] = useState(false);
   const [hardStopState, setHardStopState] = useState<{ blockReason: string; educationMessage: string } | null>(null);
+
+  // Image state — fires once per recipe, independent of main generation
+  const [recipeImageUrl, setRecipeImageUrl] = useState<string | null>(null);
+  const [imageLoading, setImageLoading] = useState(false);
 
   // Apply a child selection from the picker
   const applyChild = (child: ChildListItem) => {
@@ -1093,6 +1112,20 @@ export default function MyPerfectBeginningCreateMealPage() {
     setEducationLayer(null);
     setHardStopState(null);
 
+    // Build the full food request string with context appended
+    const occasionPrefix = mealOccasion !== "general" ? `${mealOccasion}: ` : "";
+    const methodSuffix = cookingMethod !== "any" ? `. Cooking method: ${cookingMethod}` : "";
+    const servingsSuffix = servings !== 1 ? `. Serves ${servings}` : "";
+    const notesSuffix = notes.trim() ? `. ${notes.trim()}` : "";
+    const fullFoodRequest = `${occasionPrefix}${foodRequest.trim()}${methodSuffix}${servingsSuffix}${notesSuffix}`.slice(0, 400);
+
+    const parentPrefs: Record<string, unknown> = {};
+    if (prepTime) parentPrefs.maxCookTimeMinutes = prepTime;
+    if (schoolSafe) parentPrefs.requiresSchoolSafe = true;
+    if (packable) parentPrefs.requiresPackable = true;
+    if (budget) parentPrefs.budgetLevel = budget;
+    if (culturalCuisine.trim()) parentPrefs.culturalCuisine = culturalCuisine.trim();
+
     try {
       const res = await fetch(apiUrl("/api/my-perfect-beginning/create-dish"), {
         method: "POST",
@@ -1101,9 +1134,10 @@ export default function MyPerfectBeginningCreateMealPage() {
         body: JSON.stringify({
           ageStage: selectedStage,
           allergies,
-          foodRequest: foodRequest.trim(),
+          foodRequest: fullFoodRequest,
           childName: activeChild?.name ?? undefined,
           childProfileId: activeChild?.id ?? undefined,
+          parentPrefs: Object.keys(parentPrefs).length > 0 ? parentPrefs : undefined,
         }),
       });
 
@@ -1136,6 +1170,44 @@ export default function MyPerfectBeginningCreateMealPage() {
         });
       }
       setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 100);
+
+      // Fire image generation in the background — single fetch, no hook needed
+      setRecipeImageUrl(null);
+      setImageLoading(true);
+      const stage = STAGES.find(s => s.id === selectedStage);
+      // Prefer structured resolver textureClass over the free-text first sentence
+      const resolvedTextureClass: string | undefined = data.resolverMeta?.textureClass;
+      const textureHint = data.recipe.textureAndChokingPreparation
+        ? data.recipe.textureAndChokingPreparation.split('.')[0].trim()
+        : "soft, age-appropriate texture";
+      const imageSourceType: string = mealOccasion === "Snack" ? "snack"
+        : mealOccasion === "Dessert" ? "dessert"
+        : mealOccasion === "Smoothie" ? "beverage"
+        : "meal";
+      fetch(apiUrl("/api/meals/generate-image"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          mealName: data.recipe.recipeName,
+          ingredients: (data.recipe.ingredients ?? []).map((i: any) => i.name ?? i),
+          mealType: imageSourceType,
+          sourceType: imageSourceType,
+          pediatricContext: {
+            stage: stage?.label ?? selectedStage,
+            ageRange: stage?.ageRange ?? "",
+            textureHint,
+            portionNote: `small ${(stage?.label ?? "child").toLowerCase()} portion`,
+            // Structured resolver fields — override textureHint in the prompt builder
+            textureClass: resolvedTextureClass,
+            activeConditionIds: data.resolverMeta?.activeConditionIds ?? [],
+          },
+        }),
+      })
+        .then(r => r.json())
+        .then(img => { if (img.imageUrl) setRecipeImageUrl(img.imageUrl); })
+        .catch(() => {})
+        .finally(() => setImageLoading(false));
     } catch (err: any) {
       toast({ title: "Something went wrong", description: err.message || "Please try again.", variant: "destructive" });
     } finally {
@@ -1168,22 +1240,22 @@ export default function MyPerfectBeginningCreateMealPage() {
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
           <div className="px-4 py-3 flex items-center gap-2">
-            <button
-              onClick={() => setLocation("/lifestyle/my-perfect-beginning")}
-              className="flex items-center gap-2 text-white hover:bg-white/10 transition-all p-2 rounded-lg flex-shrink-0"
-            >
-              <ArrowLeft className="h-5 w-5" />
-              <span className="text-sm font-medium">Back</span>
-            </button>
-            <div className="flex items-center gap-2 min-w-0">
-              <Baby className="h-5 w-5 text-green-400 flex-shrink-0" />
-              <h1 className="text-lg font-bold text-white truncate">Create a Meal</h1>
-            </div>
+            <Baby className="h-5 w-5 text-green-400 flex-shrink-0" />
+            <h1 className="text-lg font-bold text-white truncate">Create a Meal</h1>
           </div>
         </div>
       </MobileHeaderGuard>
 
       <div className="max-w-2xl mx-auto px-4 pt-24 pb-12 space-y-5">
+        {/* Back to Lifestyle Hub */}
+        <button
+          onClick={() => setLocation("/lifestyle")}
+          className="flex items-center gap-1.5 text-white/50 hover:text-white/80 text-sm transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span>Lifestyle Hub</span>
+        </button>
+
         {/* Tagline */}
         {!recipe && !showEarlyInfantScreen && !hardStopState && (
           <motion.div
@@ -1214,10 +1286,21 @@ export default function MyPerfectBeginningCreateMealPage() {
         {/* Generated Recipe */}
         {!showEarlyInfantScreen && !hardStopState && recipe && (
           <div className="space-y-4">
+            {/* Recipe image — fires in background after recipe lands */}
+            {(recipeImageUrl || imageLoading) && (
+              <MealImageSlot
+                imageUrl={recipeImageUrl ?? undefined}
+                mealName={recipe.recipeName}
+                isLoading={imageLoading}
+                sourceType="meal"
+                height="h-56"
+                className="rounded-2xl overflow-hidden"
+              />
+            )}
             <RecipeCard recipe={recipe} hasEpiPen={hasEpiPen} educationLayer={educationLayer} />
             <button
               type="button"
-              onClick={() => { setRecipe(null); setEducationLayer(null); setHardStopState(null); setFoodRequest(""); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+              onClick={() => { setRecipe(null); setEducationLayer(null); setHardStopState(null); setFoodRequest(""); setRecipeImageUrl(null); setImageLoading(false); window.scrollTo({ top: 0, behavior: "smooth" }); }}
               className="w-full py-3 rounded-xl bg-green-500/10 text-green-300 text-sm font-medium border border-green-400/20 hover:bg-green-500/20 transition-all"
             >
               Make Another Recipe
@@ -1346,6 +1429,47 @@ export default function MyPerfectBeginningCreateMealPage() {
               </CardContent>
             </Card>
 
+            {/* Meal occasion */}
+            <Card className="bg-black/40 border-white/10 backdrop-blur-lg">
+              <CardHeader className="pb-2 pt-4 px-4">
+                <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
+                  <Utensils className="h-4 w-4 text-amber-400" />
+                  What are you making today?
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 pb-4">
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { id: "general", label: "Any Meal", emoji: "🍽️" },
+                    { id: "Breakfast", label: "Breakfast", emoji: "🥞" },
+                    { id: "Lunch", label: "Lunch", emoji: "🥪" },
+                    { id: "Dinner", label: "Dinner", emoji: "🍝" },
+                    { id: "Snack", label: "Snack", emoji: "🍎" },
+                    { id: "Lunchbox", label: "Lunchbox", emoji: "🎒" },
+                    { id: "Smoothie", label: "Smoothie", emoji: "🥤" },
+                    { id: "Dessert", label: "Dessert", emoji: "🍮" },
+                    { id: "Party Food", label: "Party Food", emoji: "🎉" },
+                    { id: "Sick Day", label: "Sick Day", emoji: "🤒" },
+                    { id: "Quick Meal", label: "Quick Meal", emoji: "⚡" },
+                  ].map(occ => (
+                    <button
+                      key={occ.id}
+                      type="button"
+                      onClick={() => setMealOccasion(occ.id)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all active:scale-95 ${
+                        mealOccasion === occ.id
+                          ? "bg-amber-500/20 border-amber-400/50 text-amber-200"
+                          : "bg-white/5 border-white/10 text-white/50 hover:border-white/25 hover:text-white/70"
+                      }`}
+                    >
+                      <span>{occ.emoji}</span>
+                      {occ.label}
+                    </button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Food request */}
             <Card className="bg-black/40 border-white/10 backdrop-blur-lg">
               <CardHeader className="pb-2 pt-4 px-4">
@@ -1365,6 +1489,225 @@ export default function MyPerfectBeginningCreateMealPage() {
                 <p className="text-xs text-white/30 text-right">{foodRequest.length}/200</p>
               </CardContent>
             </Card>
+
+            {/* Servings + Cooking method + Prep time row */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              {/* Servings */}
+              <Card className="bg-black/40 border-white/10 backdrop-blur-lg">
+                <CardHeader className="pb-2 pt-4 px-4">
+                  <CardTitle className="text-xs font-semibold text-white flex items-center gap-2">
+                    <Users className="h-3.5 w-3.5 text-blue-400" />
+                    Servings
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-4">
+                  <div className="flex flex-wrap gap-1.5">
+                    {[1, 2, 4, 6, 8].map(s => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setServings(s)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
+                          servings === s
+                            ? "bg-blue-500/20 border-blue-400/50 text-blue-200"
+                            : "bg-white/5 border-white/10 text-white/50 hover:border-white/25"
+                        }`}
+                      >
+                        {s === 1 ? "1" : `${s}`}
+                      </button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Cooking method */}
+              <Card className="bg-black/40 border-white/10 backdrop-blur-lg sm:col-span-2">
+                <CardHeader className="pb-2 pt-4 px-4">
+                  <CardTitle className="text-xs font-semibold text-white flex items-center gap-2">
+                    <Utensils className="h-3.5 w-3.5 text-orange-400" />
+                    Cooking method
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-4">
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { id: "any", label: "Any", emoji: "✨" },
+                      { id: "Stovetop", label: "Stovetop", emoji: "🍳" },
+                      { id: "Oven", label: "Oven", emoji: "🫕" },
+                      { id: "Air Fryer", label: "Air Fryer", emoji: "💨" },
+                      { id: "Slow Cooker", label: "Slow Cooker", emoji: "🥘" },
+                      { id: "No-Bake", label: "No-Bake", emoji: "❄️" },
+                    ].map(m => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => setCookingMethod(m.id)}
+                        className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
+                          cookingMethod === m.id
+                            ? "bg-orange-500/20 border-orange-400/50 text-orange-200"
+                            : "bg-white/5 border-white/10 text-white/50 hover:border-white/25"
+                        }`}
+                      >
+                        <span>{m.emoji}</span>{m.label}
+                      </button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Prep time */}
+            <Card className="bg-black/40 border-white/10 backdrop-blur-lg">
+              <CardHeader className="pb-2 pt-4 px-4">
+                <CardTitle className="text-xs font-semibold text-white flex items-center gap-2">
+                  <Clock className="h-3.5 w-3.5 text-purple-400" />
+                  Prep time
+                  <span className="text-xs font-normal text-white/40 ml-1">optional</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 pb-4">
+                <div className="flex gap-2">
+                  {[
+                    { value: null, label: "Any" },
+                    { value: 15, label: "15 min" },
+                    { value: 30, label: "30 min" },
+                    { value: 45, label: "45 min" },
+                    { value: 60, label: "1 hr" },
+                  ].map(opt => (
+                    <button
+                      key={String(opt.value)}
+                      type="button"
+                      onClick={() => setPrepTime(opt.value)}
+                      className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                        prepTime === opt.value
+                          ? "bg-purple-500/20 border-purple-400/50 text-purple-200"
+                          : "bg-white/5 border-white/10 text-white/50 hover:border-white/25"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Tell us anything helpful */}
+            <Card className="bg-black/40 border-white/10 backdrop-blur-lg">
+              <CardHeader className="pb-2 pt-4 px-4">
+                <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
+                  <Info className="h-4 w-4 text-white/40" />
+                  Tell us anything helpful
+                  <span className="text-xs font-normal text-white/40 ml-1">optional</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 pb-4 space-y-2">
+                <textarea
+                  value={notes}
+                  onChange={e => setNotes(e.target.value)}
+                  placeholder="e.g. Birthday party · After-school snack · Picky eater today · Grandma is visiting · Needs to travel"
+                  className="w-full px-3 py-2 bg-black text-white placeholder:text-white/30 border border-white/10 rounded-lg h-16 resize-none text-sm focus:outline-none focus:border-white/25"
+                  maxLength={200}
+                />
+                <p className="text-xs text-white/30 text-right">{notes.length}/200</p>
+              </CardContent>
+            </Card>
+
+            {/* More options (school safe, packable, budget, cultural cuisine) */}
+            <div>
+              <button
+                type="button"
+                onClick={() => setShowMoreOptions(v => !v)}
+                className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-sm text-white/50 hover:text-white/70 hover:border-white/20 transition-all"
+              >
+                <span className="flex items-center gap-2">
+                  <Globe className="h-3.5 w-3.5" />
+                  More options
+                  {(schoolSafe || packable || budget || culturalCuisine.trim()) && (
+                    <span className="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-full px-1.5 py-0.5">
+                      {[schoolSafe, packable, !!budget, !!culturalCuisine.trim()].filter(Boolean).length} set
+                    </span>
+                  )}
+                </span>
+                {showMoreOptions ? <ChevronUp className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              </button>
+
+              {showMoreOptions && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-3 space-y-3"
+                >
+                  {/* Toggles row */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setSchoolSafe(v => !v)}
+                      className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-medium transition-all ${
+                        schoolSafe
+                          ? "bg-emerald-500/20 border-emerald-400/40 text-emerald-200"
+                          : "bg-white/5 border-white/10 text-white/50 hover:border-white/25"
+                      }`}
+                    >
+                      <span>🏫</span>
+                      <span>School Safe</span>
+                      {schoolSafe && <CheckCircle2 className="h-3 w-3 ml-auto text-emerald-400" />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPackable(v => !v)}
+                      className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-medium transition-all ${
+                        packable
+                          ? "bg-emerald-500/20 border-emerald-400/40 text-emerald-200"
+                          : "bg-white/5 border-white/10 text-white/50 hover:border-white/25"
+                      }`}
+                    >
+                      <span>🎒</span>
+                      <span>Packable Lunch</span>
+                      {packable && <CheckCircle2 className="h-3 w-3 ml-auto text-emerald-400" />}
+                    </button>
+                  </div>
+
+                  {/* Budget */}
+                  <div className="space-y-1.5">
+                    <p className="text-xs text-white/40 px-1">Budget</p>
+                    <div className="flex gap-2">
+                      {[
+                        { id: "", label: "Any" },
+                        { id: "budget_conscious", label: "Budget" },
+                        { id: "moderate", label: "Moderate" },
+                        { id: "flexible", label: "Flexible" },
+                      ].map(opt => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => setBudget(opt.id)}
+                          className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                            budget === opt.id
+                              ? "bg-emerald-500/20 border-emerald-400/40 text-emerald-200"
+                              : "bg-white/5 border-white/10 text-white/50 hover:border-white/25"
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Cultural cuisine */}
+                  <div className="space-y-1.5">
+                    <p className="text-xs text-white/40 px-1">Cultural cuisine <span className="text-white/25">(optional)</span></p>
+                    <input
+                      type="text"
+                      value={culturalCuisine}
+                      onChange={e => setCulturalCuisine(e.target.value)}
+                      placeholder="e.g. Mexican, Japanese, West African…"
+                      maxLength={80}
+                      className="w-full px-3 py-2 bg-black text-white placeholder:text-white/30 border border-white/10 rounded-lg text-sm focus:outline-none focus:border-white/25"
+                    />
+                  </div>
+                </motion.div>
+              )}
+            </div>
 
             {/* Progress bar while generating */}
             {isGenerating && (
