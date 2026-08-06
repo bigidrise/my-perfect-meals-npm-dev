@@ -884,7 +884,7 @@ export default function Router() {
         <Route path="/glp1-meals-tracking" component={GLP1MealsTracking} />
         <Route path="/lifestyle/my-perfect-pregnancy" component={GuardedPregnancy} />
         <Route path="/lifestyle/my-perfect-beginning" component={GuardedMyPerfectBeginning} />
-        <Route path="/lifestyle/my-perfect-beginning/create-meal" component={lazy(() => import("@/pages/MyPerfectBeginningCreateMealPage"))} />
+        <Route path="/lifestyle/my-perfect-beginning/create-meal" component={lazy(() => import("@/pages/lifestyle/MyPerfectBeginningCreateMealPage"))} />
         <Route path="/lifestyle/my-perfect-beginning/parents-corner" component={lazy(() => import("@/pages/MyPerfectBeginningParentsCorner"))} />
         <Route path="/my-perfect-beginning/parents-corner" component={lazy(() => import("@/pages/MyPerfectBeginningParentsCorner"))} />
         <Route path="/lifestyle/my-perfect-beginning/profile" component={GuardedMyPerfectBeginningStub} />

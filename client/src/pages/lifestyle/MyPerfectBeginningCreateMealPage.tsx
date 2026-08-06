@@ -247,6 +247,64 @@ function EarlyInfantScreen({ onBack }: { onBack: () => void }) {
   );
 }
 
+// ── Hard-Stop Screen (PKU, G-tube, and any future clinical gate) ──────────────
+
+function HardStopScreen({
+  blockReason,
+  educationMessage,
+  onBack,
+}: {
+  blockReason: string;
+  educationMessage: string;
+  onBack: () => void;
+}) {
+  const reasonLabel: Record<string, string> = {
+    pku:    "Phenylketonuria (PKU)",
+    g_tube: "G-Tube / Enteral Nutrition",
+  };
+  const title = reasonLabel[blockReason] ?? "Specialist Nutrition Required";
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-4"
+    >
+      <Card className="bg-amber-950/40 border-amber-400/30 backdrop-blur-lg">
+        <CardContent className="p-5 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-full bg-amber-500/20 flex-shrink-0">
+              <AlertTriangle className="h-5 w-5 text-amber-400" />
+            </div>
+            <div>
+              <h2 className="text-base font-semibold text-white">{title}</h2>
+              <p className="text-xs text-white/60 mt-0.5">Requires specialist guidance</p>
+            </div>
+          </div>
+
+          <p className="text-sm text-white/80 leading-relaxed">{educationMessage}</p>
+
+          <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-400/20">
+            <p className="text-xs text-amber-200 font-medium mb-1">Next steps</p>
+            <ul className="space-y-1 text-xs text-white/60">
+              <li>• Speak with your child's pediatrician or registered dietitian</li>
+              <li>• Bring this profile to your next clinical appointment</li>
+              <li>• Ask your care team for a safe food list specific to your child</li>
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
+
+      <button
+        onClick={onBack}
+        className="w-full py-2.5 rounded-xl bg-white/10 text-white text-sm font-medium hover:bg-white/15 transition-all"
+      >
+        Back to My Perfect Beginning
+      </button>
+    </motion.div>
+  );
+}
+
 // ── Allergen Selector ─────────────────────────────────────────────────────────
 
 function AllergenSelector({
@@ -809,6 +867,7 @@ export default function MyPerfectBeginningCreateMealPage() {
   const [recipe, setRecipe] = useState<ChildRecipeResponse | null>(null);
   const [educationLayer, setEducationLayer] = useState<ParentEducationLayerData | null>(null);
   const [showEarlyInfantScreen, setShowEarlyInfantScreen] = useState(false);
+  const [hardStopState, setHardStopState] = useState<{ blockReason: string; educationMessage: string } | null>(null);
 
   // Load active child profile on mount and pre-populate form
   useEffect(() => {
@@ -859,6 +918,7 @@ export default function MyPerfectBeginningCreateMealPage() {
     setIsGenerating(true);
     setRecipe(null);
     setEducationLayer(null);
+    setHardStopState(null);
 
     try {
       const res = await fetch(apiUrl("/api/my-perfect-beginning/create-dish"), {
@@ -870,6 +930,7 @@ export default function MyPerfectBeginningCreateMealPage() {
           allergies,
           foodRequest: foodRequest.trim(),
           childName: activeChild?.name ?? undefined,
+          childProfileId: activeChild?.id ?? undefined,
         }),
       });
 
@@ -879,8 +940,15 @@ export default function MyPerfectBeginningCreateMealPage() {
         throw new Error(data.error || "Failed to generate recipe");
       }
 
-      if (data.blocked && data.blockReason === "early_infant") {
-        setShowEarlyInfantScreen(true);
+      if (data.blocked) {
+        if (data.blockReason === "early_infant") {
+          setShowEarlyInfantScreen(true);
+        } else {
+          setHardStopState({
+            blockReason: data.blockReason,
+            educationMessage: data.educationMessage,
+          });
+        }
         return;
       }
 
@@ -936,7 +1004,7 @@ export default function MyPerfectBeginningCreateMealPage() {
 
       <div className="max-w-2xl mx-auto px-4 pt-24 pb-12 space-y-5">
         {/* Tagline */}
-        {!recipe && !showEarlyInfantScreen && (
+        {!recipe && !showEarlyInfantScreen && !hardStopState && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -953,13 +1021,22 @@ export default function MyPerfectBeginningCreateMealPage() {
           <EarlyInfantScreen onBack={() => { setShowEarlyInfantScreen(false); setSelectedStage(""); }} />
         )}
 
+        {/* Hard-Stop Education Screen (PKU, G-tube, etc.) */}
+        {!showEarlyInfantScreen && hardStopState && (
+          <HardStopScreen
+            blockReason={hardStopState.blockReason}
+            educationMessage={hardStopState.educationMessage}
+            onBack={() => setHardStopState(null)}
+          />
+        )}
+
         {/* Generated Recipe */}
-        {!showEarlyInfantScreen && recipe && (
+        {!showEarlyInfantScreen && !hardStopState && recipe && (
           <div className="space-y-4">
             <RecipeCard recipe={recipe} hasEpiPen={hasEpiPen} educationLayer={educationLayer} />
             <button
               type="button"
-              onClick={() => { setRecipe(null); setEducationLayer(null); setFoodRequest(""); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+              onClick={() => { setRecipe(null); setEducationLayer(null); setHardStopState(null); setFoodRequest(""); window.scrollTo({ top: 0, behavior: "smooth" }); }}
               className="w-full py-3 rounded-xl bg-green-500/10 text-green-300 text-sm font-medium border border-green-400/20 hover:bg-green-500/20 transition-all"
             >
               Make Another Recipe
@@ -968,7 +1045,7 @@ export default function MyPerfectBeginningCreateMealPage() {
         )}
 
         {/* Input Form */}
-        {!showEarlyInfantScreen && !recipe && (
+        {!showEarlyInfantScreen && !hardStopState && !recipe && (
           <div className="space-y-4">
             {/* Active child profile indicator */}
             {profileLoaded && activeChild && (
