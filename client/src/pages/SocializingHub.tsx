@@ -75,7 +75,12 @@ export default function SocializingHub() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
-      className="min-h-screen bg-gradient-to-br from-[#0f0f0f] via-[#1a1a1a] to-[#2b2b2b] pb-safe-nav"
+      className="min-h-screen pb-safe-nav"
+      style={{
+        backgroundImage: "linear-gradient(rgba(0,0,0,0.52), rgba(0,0,0,0.48)), url('/images/meals-away-from-home-bg.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center 30%",
+      }}
     >
       {/* Universal Safe-Area Header */}
       <MobileHeaderGuard>
