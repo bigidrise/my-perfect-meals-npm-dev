@@ -454,6 +454,7 @@ import PartnerProgramsHub from "@/pages/PartnerProgramsHub";
 import HowPartnershipsWork from "@/pages/HowPartnershipsWork";
 import PartnerManagement from "@/pages/PartnerManagement";
 import FoundingPartnerProgram from "@/pages/FoundingPartnerProgram";
+import FoundingAffiliatePage from "@/pages/FoundingAffiliatePage";
 import IndustryPartnerships from "@/pages/IndustryPartnerships";
 import WhiteLabelSolutions from "@/pages/WhiteLabelSolutions";
 import PublicPartnersHub from "@/pages/PublicPartnersHub";
@@ -632,6 +633,7 @@ const GatedPartnerProgramsHub = () => <BusinessSuiteGate><PartnerProgramsHub /><
 const GatedPartnerManagement = () => <BusinessSuiteGate><PartnerManagement /></BusinessSuiteGate>;
 const GatedHowPartnershipsWork = () => <BusinessSuiteGate><HowPartnershipsWork /></BusinessSuiteGate>;
 const GatedFoundingPartnerProgram = () => <BusinessSuiteGate><FoundingPartnerProgram /></BusinessSuiteGate>;
+const GatedFoundingAffiliatePage = () => <BusinessSuiteGate><FoundingAffiliatePage /></BusinessSuiteGate>;
 const GatedAcademyLandingPage = () => <BusinessSuiteGate><AcademyLandingPage /></BusinessSuiteGate>;
 const GatedIndustryPartnerships = () => <BusinessSuiteGate><IndustryPartnerships /></BusinessSuiteGate>;
 const GatedPublicHealthcarePartnerships = () => <BusinessSuiteGate><PublicHealthcarePartnerships /></BusinessSuiteGate>;
@@ -1092,6 +1094,7 @@ export default function Router() {
         <Route path="/business-center/partners" component={GatedPartnerProgramsHub} />
         <Route path="/business-center/partners/manage" component={GatedPartnerManagement} />
         <Route path="/business-center/how-partnerships-work" component={GatedHowPartnershipsWork} />
+        <Route path="/business-center/founding-affiliate" component={GatedFoundingAffiliatePage} />
         <Route path="/business-center/founding-partner" component={GatedFoundingPartnerProgram} />
         <Route path="/business-center/academy" component={GatedAcademyLandingPage} />
         <Route path="/academy" component={AcademyHome} />
