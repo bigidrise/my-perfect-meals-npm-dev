@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/select";
 import { useLocation } from "wouter";
 import { ArrowLeft, Sparkles, ChefHat, Wine, ChevronUp } from "lucide-react";
+import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useToast } from "@/hooks/use-toast";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
@@ -41,6 +43,7 @@ interface BourbonRecommendation {
 
 export default function BourbonSpiritsPage() {
   const [, setLocation] = useLocation();
+  const isDesktop = useIsDesktop();
   const { toast } = useToast();
   const quickTour = useQuickTour("bourbon-spirits");
   const [loading, setLoading] = useState(false);
@@ -139,20 +142,12 @@ export default function BourbonSpiritsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-safe-nav">
       {/* Universal Safe-Area Header */}
+      <MobileHeaderGuard>
       <div
         className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-8 py-3 flex items-center gap-3 flex-nowrap">
-          {/* Back Button */}
-          <button
-            onClick={() => setLocation("/lifestyle")}
-            className="flex items-center gap-1 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
-          >
-            <ArrowLeft className="h-5 w-5" />
-            <span className="text-sm font-medium">Back</span>
-          </button>
-
           {/* Title */}
           <h1 className="text-lg font-bold text-white truncate min-w-0">Bourbon & Spirits Pairing</h1>
 
@@ -160,11 +155,21 @@ export default function BourbonSpiritsPage() {
           <QuickTourButton onClick={quickTour.openTour} className="flex-shrink-0" />
         </div>
       </div>
+      </MobileHeaderGuard>
 
       <div
         className="max-w-4xl mx-auto px-4"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
+        {!isDesktop && (
+          <button
+            onClick={() => setLocation("/lifestyle")}
+            className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 mb-4 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span className="text-sm font-medium">Back</span>
+          </button>
+        )}
 
         {/* Pairing Form */}
         <Card className="mb-8 bg-black/50 backdrop-blur-lg border border-orange-400/70 shadow-[0_0_20px_rgba(249,115,22,0.15)]">

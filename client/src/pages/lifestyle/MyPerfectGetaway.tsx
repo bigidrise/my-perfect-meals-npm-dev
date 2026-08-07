@@ -9,6 +9,7 @@ import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { usePageTitle } from "@/contexts/PageTitleContext";
+import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
 interface CatalogZone {
   id: string;
@@ -398,9 +399,21 @@ export default function MyPerfectGetaway() {
         backgroundAttachment: "fixed",
       }}
     >
+      <MobileHeaderGuard>
+        <div
+          className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
+          style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+        >
+          <div className="px-4 py-3 flex items-center gap-3">
+            <Plane className="h-5 w-5 text-orange-400" />
+            <h1 className="text-base font-bold text-white">My Perfect Getaway</h1>
+          </div>
+        </div>
+      </MobileHeaderGuard>
+
       <div
         className="max-w-2xl mx-auto px-4"
-        style={{ paddingTop: isDesktop ? "2rem" : "calc(env(safe-area-inset-top, 0px) + 1rem)" }}
+        style={{ paddingTop: isDesktop ? "2rem" : "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
         {!isDesktop && (
           <button

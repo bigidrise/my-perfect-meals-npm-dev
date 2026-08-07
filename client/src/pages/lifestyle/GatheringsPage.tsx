@@ -54,6 +54,7 @@ import { setQuickView } from "@/lib/macrosQuickView";
 import TrashButton from "@/components/ui/TrashButton";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { PillButton } from "@/components/ui/pill-button";
 import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
 import PhaseGate from "@/components/PhaseGate";
@@ -240,6 +241,7 @@ function getMealNutrition(meal: any) {
 export default function UltimateExperiencesPage() {
   useCopilotPageExplanation();
   const [, setLocation] = useLocation();
+  const isDesktop = useIsDesktop();
   const { toast } = useToast();
 
   // ── Experience state (new) ───────────────────
@@ -635,13 +637,6 @@ export default function UltimateExperiencesPage() {
             style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
           >
             <div className="px-4 py-3 flex items-center gap-2 flex-nowrap overflow-hidden">
-              <button
-                onClick={() => setLocation("/lifestyle")}
-                className="flex items-center gap-2 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
-              >
-                <ArrowLeft className="h-5 w-5" />
-                <span className="text-sm font-medium">Back</span>
-              </button>
               <div className="flex items-center gap-2 min-w-0">
                 <Star className="h-4 w-4 text-amber-400 flex-shrink-0" />
                 <h1 className="text-lg font-bold text-white truncate">
@@ -656,6 +651,15 @@ export default function UltimateExperiencesPage() {
         <div
           className={`max-w-2xl mx-auto px-4 pt-28 ${generatedCourses.length > 0 ? "pb-32" : "pb-8"}`}
         >
+          {!isDesktop && (
+            <button
+              onClick={() => setLocation("/lifestyle")}
+              className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 mb-4 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="text-sm font-medium">Back</span>
+            </button>
+          )}
           <div className="w-full max-w-4xl mx-auto">
             <div>
               <Card className="shadow-2xl bg-black/10 backdrop-blur-lg border border-orange-400/20 w-full max-w-xl mx-auto">
