@@ -265,9 +265,6 @@ export default function MyPerfectBeginningPage() {
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
           <div className="px-4 pb-3 pt-2 flex items-center gap-3">
-            <button onClick={() => setLocation("/lifestyle")} className="p-1.5 rounded-lg bg-white/10 text-white">
-              <ArrowLeft className="h-4 w-4" />
-            </button>
             <div className="flex items-center gap-2">
               <Baby className="h-5 w-5 text-emerald-400" />
               <h1 className="text-base font-bold text-white">My Perfect Beginning</h1>
@@ -280,6 +277,15 @@ export default function MyPerfectBeginningPage() {
         className="max-w-2xl mx-auto px-4"
         style={{ paddingTop: isDesktop ? "2rem" : "calc(env(safe-area-inset-top, 0px) + 5.5rem)" }}
       >
+        {!isDesktop && (
+          <button
+            onClick={() => setLocation("/lifestyle")}
+            className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 mb-4 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span className="text-sm font-medium">Back</span>
+          </button>
+        )}
         {/* Hero banner */}
         <div className="relative rounded-2xl overflow-hidden mb-5 border border-emerald-500/20">
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-950/70 via-teal-950/50 to-black" />

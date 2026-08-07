@@ -46,30 +46,21 @@ export default function PetsHub() {
         backgroundAttachment: "fixed",
       }}
     >
-      {!isDesktop && (
-        <div
-          className="fixed top-0 left-0 right-0 z-40 bg-black/40 backdrop-blur-lg border-b border-white/10"
-          style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
-        >
-          <div className="px-4 pb-3 pt-2 flex items-center gap-3">
-            <button
-              onClick={() => setLocation("/lifestyle")}
-              className="p-1.5 rounded-lg bg-white/10 text-white"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </button>
-            <div className="flex items-center gap-2">
-              <PawPrint className="h-4 w-4 text-orange-400" />
-              <h1 className="text-base font-bold text-white">My Perfect Pets</h1>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div
         className="max-w-2xl mx-auto px-4"
-        style={{ paddingTop: isDesktop ? "2rem" : "calc(env(safe-area-inset-top, 0px) + 5.5rem)" }}
+        style={{ paddingTop: isDesktop ? "2rem" : "calc(env(safe-area-inset-top, 0px) + 1rem)" }}
       >
+        {!isDesktop && (
+          <button
+            onClick={() => setLocation("/lifestyle")}
+            className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 mb-4 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span className="text-sm font-medium">Back</span>
+          </button>
+        )}
+
+        <h1 className="text-2xl font-bold text-white mb-4">My Perfect Pets</h1>
 
         {/* Companion Nutrition Intelligence banner */}
         <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-3 mb-5">
@@ -95,8 +86,8 @@ export default function PetsHub() {
               onClick={() => pet.available && pet.route && setLocation(pet.route)}
               className={`w-full text-left p-4 rounded-2xl border transition-all duration-200 ${
                 pet.available
-                  ? "bg-black/40 backdrop-blur-lg border-orange-500/30 active:scale-[0.98]"
-                  : "bg-black/20 backdrop-blur-lg border-white/10 opacity-70 cursor-default"
+                  ? "bg-black/10 backdrop-blur-lg border-orange-500/30 active:scale-[0.98]"
+                  : "bg-black/10 backdrop-blur-lg border-white/10 opacity-70 cursor-default"
               }`}
             >
               <div className="flex items-center gap-4">

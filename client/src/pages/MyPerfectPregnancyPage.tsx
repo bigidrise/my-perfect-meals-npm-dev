@@ -6,6 +6,7 @@ import { post, ApiError } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { PregnancySupportSetupModal } from "@/components/PregnancySupportSetupModal";
 import { derivePregnancyStatus } from "@/lib/pregnancyUtils";
 
@@ -122,6 +123,7 @@ const MERCURY_AVOID = ["Shark", "Swordfish", "King mackerel", "Tilefish", "Bigey
 
 export default function MyPerfectPregnancyPage() {
   const [, setLocation] = useLocation();
+  const isDesktop = useIsDesktop();
   const { user, refreshUser } = useAuth();
 
   // ── Clinical paywall ─────────────────────────────────────────────────────
@@ -365,9 +367,6 @@ export default function MyPerfectPregnancyPage() {
       <MobileHeaderGuard>
         <div className="sticky top-0 z-30 bg-black/80 backdrop-blur-xl border-b border-pink-500/20" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
           <div className="flex items-center justify-between px-4 py-3">
-            <button onClick={() => setLocation("/lifestyle")} className="p-1">
-              <ArrowLeft className="w-5 h-5 text-white/70" />
-            </button>
             <div className="flex items-center gap-2">
               <span className="text-base">🩷</span>
               <span className="text-white font-semibold text-sm">My Perfect Pregnancy</span>
@@ -378,6 +377,15 @@ export default function MyPerfectPregnancyPage() {
       </MobileHeaderGuard>
 
       <div className="px-4 pt-4 space-y-4 max-w-lg mx-auto">
+        {!isDesktop && (
+          <button
+            onClick={() => setLocation("/lifestyle")}
+            className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span className="text-sm font-medium">Back</span>
+          </button>
+        )}
 
         {/* Hero card */}
         <motion.div

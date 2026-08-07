@@ -6,6 +6,7 @@ import { Wine, Zap, ArrowLeft, Lock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { usePageTitle } from "@/contexts/PageTitleContext";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 
 const ADMIN_ID = "6796ce88-dff8-4336-adcb-e53986830f3f";
 
@@ -44,6 +45,7 @@ export default function BeverageCreatorHub() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const isAdmin = user?.id === ADMIN_ID;
+  const isDesktop = useIsDesktop();
   usePageTitle("Beverage Creator Hub");
 
   useEffect(() => {
@@ -69,12 +71,6 @@ export default function BeverageCreatorHub() {
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
           <div className="px-8 py-3 flex items-center gap-3">
-            <button
-              onClick={() => setLocation("/lifestyle")}
-              className="p-2 rounded-lg bg-white/5 text-white/60 hover:text-white transition-colors"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </button>
             <Wine className="h-6 w-6 text-blue-400" />
             <h1 className="text-lg font-bold text-white">Beverage Hub</h1>
           </div>
@@ -87,26 +83,15 @@ export default function BeverageCreatorHub() {
       >
         <div className="max-w-2xl mx-auto space-y-4">
 
-          {/* Hero Image */}
-          <div className="relative h-40 rounded-xl overflow-hidden">
-            <img
-              src="/images/beverage-hub-hero.png"
-              alt="Beverage Creator"
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                e.currentTarget.src =
-                  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='160'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%2360a5fa;stop-opacity:0.35' /%3E%3Cstop offset='100%25' style='stop-color:%238b5cf6;stop-opacity:0.35' /%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='400' height='160' fill='url(%23g)'/%3E%3C/svg%3E";
-              }}
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-            <div className="absolute bottom-3 left-3 right-3">
-              <div className="bg-black/55 backdrop-blur-sm rounded-xl px-3 py-2.5">
-                <p className="text-white/90 text-sm">
-                  Every drink — from daily wellness to elite performance.
-                </p>
-              </div>
-            </div>
-          </div>
+          {!isDesktop && (
+            <button
+              onClick={() => setLocation("/lifestyle")}
+              className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="text-sm font-medium">Back</span>
+            </button>
+          )}
 
           {/* Cards */}
           <div className="flex flex-col gap-3">

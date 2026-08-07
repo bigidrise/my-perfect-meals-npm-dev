@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Utensils, MapPin, ChefHat } from "lucide-react";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 
 interface SocialFeature {
   title: string;
@@ -17,6 +18,7 @@ interface SocialFeature {
 
 export default function SocializingHub() {
   const [, setLocation] = useLocation();
+  const isDesktop = useIsDesktop();
 
   useEffect(() => {
     document.title = "Meals Away From Home | My Perfect Meals";
@@ -103,26 +105,15 @@ export default function SocializingHub() {
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
         <div className="max-w-2xl mx-auto space-y-4">
-          {/* Hero Image Section */}
-          <div className="relative h-40 rounded-xl overflow-hidden">
-            <img
-              src="/images/social-hero.png"
-              alt="Eating out with friends"
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                e.currentTarget.src =
-                  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='160'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23f97316;stop-opacity:0.3' /%3E%3Cstop offset='100%25' style='stop-color:%23ec4899;stop-opacity:0.3' /%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='400' height='160' fill='url(%23g)'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' fill='white' font-size='18' font-family='sans-serif' dy='.3em'%3EEat out with confidence%3C/text%3E%3C/svg%3E";
-              }}
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-            <div className="absolute bottom-3 left-3 right-3">
-              <div className="bg-black/55 backdrop-blur-sm rounded-xl px-3 py-2.5">
-                <p className="text-white/90 text-sm">
-                  Eating out with friends? Make smart choices without missing the fun.
-                </p>
-              </div>
-            </div>
-          </div>
+          {!isDesktop && (
+            <button
+              onClick={() => setLocation("/lifestyle")}
+              className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="text-sm font-medium">Back</span>
+            </button>
+          )}
           {/* Social Features - Vertical Stack */}
           <div className="flex flex-col gap-3">
             {socialFeatures.map((feature) => {

@@ -766,7 +766,14 @@ const FridgeRescuePage = () => {
           className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
-          <div className="px-8 py-3 flex items-center gap-3 flex-nowrap">
+          <div className="px-4 py-3 flex items-center gap-3 flex-nowrap">
+            <button
+              onClick={() => setLocation("/lifestyle")}
+              className="flex items-center gap-2 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
+            >
+              <ArrowLeft className="h-5 w-5" />
+              <span className="text-sm font-medium">Back</span>
+            </button>
             {/* Title */}
             <h1
               data-wt="fridge-rescue-header"

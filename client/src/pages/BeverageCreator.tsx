@@ -515,15 +515,6 @@ export default function BeverageCreator() {
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
           <div className="px-4 pb-3 flex items-center gap-2 flex-nowrap overflow-hidden">
-            <button
-              onClick={() => setLocation("/lifestyle")}
-              className="flex items-center gap-2 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
-              data-testid="beveragecreator-back"
-            >
-              <ArrowLeft className="h-5 w-5" />
-              <span className="text-sm font-medium">Back</span>
-            </button>
-
             <h1 className="text-lg font-bold text-white truncate min-w-0">
               Beverage Creator
             </h1>
@@ -544,6 +535,15 @@ export default function BeverageCreator() {
             >
               <ArrowLeft className="h-4 w-4" />
               <span className="text-sm font-medium">Beverage Creator Hub</span>
+            </button>
+          )}
+          {!isDesktop && (
+            <button
+              onClick={() => setLocation("/lifestyle/beverage-hub")}
+              className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 mb-4 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="text-sm font-medium">Back</span>
             </button>
           )}
           <Card className="shadow-2xl bg-black/10 backdrop-blur-lg border border-white/20 w-full max-w-xl mx-auto mb-6">

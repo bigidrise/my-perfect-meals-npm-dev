@@ -55,6 +55,7 @@ import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
 import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
 
@@ -160,6 +161,7 @@ const DESSERT_TOUR_STEPS: TourStep[] = [
 
 export default function DessertCreator() {
   const [, setLocation] = useLocation();
+  const isDesktop = useIsDesktop();
   const { toast } = useToast();
   const quickTour = useQuickTour("craving-desserts");
   // Get actual user ID from auth context for medical safety
@@ -539,15 +541,6 @@ export default function DessertCreator() {
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
           <div className="px-4 pb-3 flex items-center gap-2 flex-nowrap overflow-hidden">
-            <button
-              onClick={() => setLocation("/craving-creator-landing")}
-              className="flex items-center gap-2 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
-              data-testid="dessertcreator-back"
-            >
-              <ArrowLeft className="h-5 w-5" />
-              <span className="text-sm font-medium">Back</span>
-            </button>
-
             <h1 className="text-lg font-bold text-white truncate min-w-0">
               Dessert Creator
             </h1>
@@ -561,6 +554,15 @@ export default function DessertCreator() {
           className="max-w-2xl mx-auto px-4 pb-32"
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
         >
+          {!isDesktop && (
+            <button
+              onClick={() => setLocation("/craving-creator-landing")}
+              className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 mb-4 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="text-sm font-medium">Back</span>
+            </button>
+          )}
           {/* Create with Chef Entry Point — Studio hidden */}
           <div className="relative mb-4 hidden">
             <div
