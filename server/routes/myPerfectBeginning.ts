@@ -1022,10 +1022,29 @@ router.get('/generated-meals', requireAuth, async (req: AuthenticatedRequest, re
     const row = result.rows[0] as any;
     if (!row) return res.json({ meal: null });
 
+    // Normalise completePlate so older saves (which predate the field) don't
+    // produce undefined/null on the client — the CompleteThePlateSection
+    // already hides itself when sides.length === 0, so an empty normalised
+    // value is safe for legacy rows.
+    const recipeData = row.recipe_data;
+    if (recipeData && typeof recipeData === 'object') {
+      if (!recipeData.completePlate || !Array.isArray(recipeData.completePlate.sides)) {
+        recipeData.completePlate = { sides: [], plateNote: '' };
+      } else {
+        // Drop any malformed side entries that may have slipped through
+        recipeData.completePlate.sides = recipeData.completePlate.sides.filter(
+          (s: any) => s && typeof s.name === 'string' && s.name.trim(),
+        );
+        if (typeof recipeData.completePlate.plateNote !== 'string') {
+          recipeData.completePlate.plateNote = '';
+        }
+      }
+    }
+
     res.json({
       meal: {
         id: row.id,
-        recipeData: row.recipe_data,
+        recipeData,
         imageUrl: row.image_url ?? null,
         selectedOptionName: row.selected_option_name ?? null,
         createdAt: row.created_at,
