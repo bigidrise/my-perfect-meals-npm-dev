@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import {
   ArrowLeft,
@@ -32,6 +33,7 @@ interface CertProgress {
 
 // Add new professional certifications here — no UI redesign required.
 // Each entry maps to a CertProgress key for the "done" state.
+// i18n: leave for content team
 const PROFESSIONAL_CERTS: {
   label: string;
   sublabel: string;
@@ -58,66 +60,9 @@ const PROFESSIONAL_CERTS: {
   },
 ];
 
-const pillars = [
-  {
-    id: "partners",
-    title: "Partner Programs",
-    description:
-      "Founding Business Partner, Industry & Strategic, Healthcare & Clinical, White Label Solutions, and Partner Program — all in one place.",
-    icon: Handshake,
-    route: "/business-center/partners",
-    accent: "bg-orange-500/20",
-    iconColor: "text-orange-400",
-    border: "border-orange-500/20",
-  },
-  {
-    id: "procare",
-    title: "ProCare",
-    description:
-      "The professional platform for coaches, trainers, physicians, and dietitians managing clients with My Perfect Meals.",
-    icon: Users,
-    route: "/procare-welcome",
-    accent: "bg-blue-500/20",
-    iconColor: "text-blue-400",
-    border: "border-blue-500/20",
-  },
-  {
-    id: "academy",
-    title: "My Perfect Meals Academy",
-    description:
-      "Platform certification and ProCare training for everyone who represents My Perfect Meals professionally.",
-    icon: GraduationCap,
-    route: "/business-center/academy",
-    accent: "bg-orange-500/20",
-    iconColor: "text-orange-400",
-    border: "border-orange-500/20",
-  },
-  {
-    id: "promotions",
-    title: "Promotions",
-    description:
-      "Create trial extensions and discount codes for patients, clients, and campaigns. One engine — trials, discounts, invite links.",
-    icon: Tag,
-    route: "/business-center/promotions",
-    accent: "bg-amber-500/20",
-    iconColor: "text-amber-400",
-    border: "border-amber-500/20",
-  },
-  {
-    id: "creator-brand",
-    title: "Creator & Brand Studio",
-    description:
-      "Build a custom branded experience for chefs, supplement companies, beverage brands, and culinary creators.",
-    icon: ChefHat,
-    route: "/creator-studio",
-    accent: "bg-orange-500/20",
-    iconColor: "text-orange-400",
-    border: "border-orange-500/20",
-  },
-];
-
 export default function BusinessCenter() {
   const [, setLocation] = useLocation();
+  const { t } = useTranslation("businessCenter");
   const { user } = useAuth();
   const isDesktop = useIsDesktop();
   // Business-only accounts are NOT ProCare practitioners — exclude from cert card
@@ -176,6 +121,59 @@ export default function BusinessCenter() {
   const allCertified =
     certProgress.personalDone && certProgress.phase1Done && certProgress.phase2Done;
 
+  const pillars = [
+    {
+      id: "partners",
+      title: t("businessCenter.pillars.partners"),
+      description: t("businessCenter.pillars.partnersDesc"),
+      icon: Handshake,
+      route: "/business-center/partners",
+      accent: "bg-orange-500/20",
+      iconColor: "text-orange-400",
+      border: "border-orange-500/20",
+    },
+    {
+      id: "procare",
+      title: t("businessCenter.pillars.procare"),
+      description: t("businessCenter.pillars.procareDesc"),
+      icon: Users,
+      route: "/procare-welcome",
+      accent: "bg-blue-500/20",
+      iconColor: "text-blue-400",
+      border: "border-blue-500/20",
+    },
+    {
+      id: "academy",
+      title: t("businessCenter.pillars.academy"),
+      description: t("businessCenter.pillars.academyDesc"),
+      icon: GraduationCap,
+      route: "/business-center/academy",
+      accent: "bg-orange-500/20",
+      iconColor: "text-orange-400",
+      border: "border-orange-500/20",
+    },
+    {
+      id: "promotions",
+      title: t("businessCenter.pillars.promotions"),
+      description: t("businessCenter.pillars.promotionsDesc"),
+      icon: Tag,
+      route: "/business-center/promotions",
+      accent: "bg-amber-500/20",
+      iconColor: "text-amber-400",
+      border: "border-amber-500/20",
+    },
+    {
+      id: "creator-brand",
+      title: t("businessCenter.pillars.creatorBrand"),
+      description: t("businessCenter.pillars.creatorBrandDesc"),
+      icon: ChefHat,
+      route: "/creator-studio",
+      accent: "bg-orange-500/20",
+      iconColor: "text-orange-400",
+      border: "border-orange-500/20",
+    },
+  ];
+
   return (
     <motion.div
       className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} pb-28`}
@@ -195,9 +193,9 @@ export default function BusinessCenter() {
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
             >
               <ArrowLeft className="h-4 w-4" />
-              Back
+              {t("businessCenter.back")}
             </button>
-            <h1 className="text-lg font-bold text-white">Business Center</h1>
+            <h1 className="text-lg font-bold text-white">{t("businessCenter.title")}</h1>
             {!hasProAccess && (
               <span className="ml-auto px-2.5 py-0.5 rounded-full bg-orange-600/20 border border-orange-500/30 text-orange-400 text-[10px] font-semibold tracking-wide uppercase">
                 Pro+
@@ -213,7 +211,7 @@ export default function BusinessCenter() {
       >
         <div className="py-3 text-center">
           <p className="text-white/55 text-sm leading-relaxed">
-            Every way to grow with My Perfect Meals — as a partner, a professional, or a creator.
+            {t("businessCenter.tagline")}
           </p>
         </div>
 
@@ -230,16 +228,16 @@ export default function BusinessCenter() {
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="text-sm font-bold text-white leading-snug mb-1">
-                  Complete Your Personal Nutrition Profile
+                  {t("businessCenter.completeProfile")}
                 </h3>
                 <p className="text-xs text-white/55 mb-3 leading-relaxed">
-                  Set up your own nutrition profile whenever you're ready to experience My Perfect Meals personally and see what your clients will experience.
+                  {t("businessCenter.completeProfileDesc")}
                 </p>
                 <button
                   onClick={() => setLocation("/onboarding")}
                   className="text-xs font-semibold text-emerald-400 active:opacity-60 transition-opacity"
                 >
-                  Complete My Nutrition Profile →
+                  {t("businessCenter.completeProfileBtn")}
                 </button>
               </div>
             </div>
@@ -260,16 +258,16 @@ export default function BusinessCenter() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <h3 className="text-sm font-bold text-white leading-snug">
-                    Professional Certifications
+                    {t("businessCenter.certifications")}
                   </h3>
                   {allCertified && (
                     <span className="text-[9px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/20">
-                      Certified
+                      {t("businessCenter.certified")}
                     </span>
                   )}
                 </div>
                 <p className="text-xs text-white/55 mb-3 leading-relaxed">
-                  Your professional learning center. Complete certifications, track progress, and expand your expertise.
+                  {t("businessCenter.certDesc")}
                 </p>
 
                 {certProgress.loading ? (
@@ -289,7 +287,7 @@ export default function BusinessCenter() {
                       <div className="flex items-center gap-2 pt-1">
                         <span className="text-sm">🏆</span>
                         <p className="text-xs font-semibold text-orange-300">
-                          Certified My Perfect Meals Professional
+                          {t("businessCenter.certifiedBadge")}
                         </p>
                       </div>
                     )}
@@ -300,7 +298,7 @@ export default function BusinessCenter() {
                   onClick={() => setLocation(allCertified ? "/certifications/platform" : "/professional-onboarding-bridge")}
                   className="text-xs font-semibold text-orange-400 active:opacity-60 transition-opacity"
                 >
-                  {allCertified ? "View Certifications →" : "Continue Certification →"}
+                  {allCertified ? t("businessCenter.viewCertifications") : t("businessCenter.continueCertification")}
                 </button>
               </div>
             </div>
@@ -337,7 +335,7 @@ export default function BusinessCenter() {
         })}
 
         <p className="text-center text-white/25 text-xs pb-4 pt-1">
-          New opportunities added regularly
+          {t("businessCenter.newOpportunities")}
         </p>
       </div>
     </motion.div>
