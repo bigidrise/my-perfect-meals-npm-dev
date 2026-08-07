@@ -963,7 +963,7 @@ function buildClinicalNutritionSummary(
 router.post("/create-dish", requireAuth, async (req, res) => {
   try {
     const authReq = req as AuthenticatedRequest;
-    const userId = req.authUser!.id;
+    const userId = (req as AuthenticatedRequest).authUser!.id;
 
     const { childProfileId, recipeData, imageUrl, selectedOptionName } = req.body;
     const rawChildProfileIds: unknown = req.body.childProfileIds;
@@ -1193,7 +1193,7 @@ router.post("/create-dish", requireAuth, async (req, res) => {
     }
 
     // ── Post-generation scan ──────────────────────────────────────────────────
-    const postScan = scanGeneratedOutput(recipe, ageStage);
+    const postScan = scanGeneratedOutput(recipe, ageStage, allergies);
     const finalRecipe = postScan.patchedRecipe ?? recipe;
 
     // ── Mandatory pediatrician disclaimer ─────────────────────────────────────
@@ -1328,75 +1328,11 @@ router.post("/create-dish", requireAuth, async (req, res) => {
 });
 
 // ─── Generated Meals Persistence ─────────────────────────────────────────────
-router.post('/generated-meals', requireAuth, async (req, res) => {
-  try {
-    const userId = (req as AuthenticatedRequest).authUser!.id;
-    const { childProfileId, recipeData, imageUrl, selectedOptionName } = req.body;
-    if (!recipeData) return res.status(400).json({ error: 'recipeData is required' });
-
-    const recipeName = (typeof recipeData === 'object' && recipeData?.recipeName)
-      ? String(recipeData.recipeName)
-      : 'meal';
-    const { imageUrl: safeImageUrl } = await processMealImageForSave(imageUrl ?? null, recipeName);
-
-    const result = await db.execute(sql`
-      INSERT INTO mpb_generated_meals (user_id, child_profile_id, recipe_data, image_url, selected_option_name)
-      VALUES (
-        ${userId},
-        ${childProfileId ?? null},
-        ${JSON.stringify(recipeData)},
-        ${safeImageUrl ?? null},
-        ${selectedOptionName ?? null}
-      )
-      RETURNING id
-    `);
-
-    const id = (result.rows[0] as any)?.id ?? null;
-    res.json({ id, imagePersisted: !!safeImageUrl });
-  } catch (err: any) {
-    console.error('[MPB/generated-meals POST] Error:', err.message);
-    res.status(500).json({ error: 'Could not save meal.' });
-  }
-});
-
-router.get('/generated-meals', requireAuth, async (req, res) => {
-  try {
-    const userId = (req as AuthenticatedRequest).authUser!.id;
-    const childProfileId = typeof req.query.childProfileId === 'string' ? req.query.childProfileId : null;
-
-    const result = childProfileId
-      ? await db.execute(sql`
-          SELECT id, recipe_data, image_url, selected_option_name, created_at
-          FROM mpb_generated_meals
-          WHERE user_id = ${userId} AND child_profile_id = ${childProfileId}
-          ORDER BY created_at DESC
-          LIMIT 1
-        `)
-      : await db.execute(sql`
-          SELECT id, recipe_data, image_url, selected_option_name, created_at
-          FROM mpb_generated_meals
-          WHERE user_id = ${userId}
-          ORDER BY created_at DESC
-          LIMIT 1
-        `);
-
-    const row = result.rows[0] as any;
-    if (!row) return res.json({ meal: null });
-
-    res.json({
-      meal: {
-        id: row.id,
-        recipeData: row.recipe_data,
-        imageUrl: row.image_url ?? null,
-        selectedOptionName: row.selected_option_name ?? null,
-        createdAt: row.created_at,
-      },
-    });
-  } catch (err: any) {
-    console.error('[MPB/generated-meals GET] Error:', err.message);
-    res.status(500).json({ error: 'Could not retrieve saved meal.' });
-  }
-});
+// POST /generated-meals and GET /generated-meals are handled exclusively by
+// server/routes/myPerfectBeginning.ts (the canonical CRUD router, mounted first
+// at /api/my-perfect-beginning). The canonical POST handler includes the
+// allergen guardrail scan that strips confirmed-allergen sides before persisting.
+// Do NOT add duplicate handlers here — they would shadow the canonical ones.
 
 export default router;
 

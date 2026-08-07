@@ -25,6 +25,10 @@ import {
 } from "../services/pediatric/buildPediatricGuidanceBlocks";
 import type { DevelopmentalStage } from "../services/pediatric/pediatricStageConstants";
 import { processMealImageForSave } from "../services/imageLifecycle";
+import {
+  applyCompletePlateSideGuardrail,
+  type AllergenEntry,
+} from "../services/pediatric/pediatricGuardrails";
 
 const router = Router();
 
@@ -983,11 +987,120 @@ router.post('/generated-meals', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'recipeData is required' });
     }
 
+    // ── Allergen guardrail scan on completePlate.sides ────────────────────
+    // Loads the authoritative child profile from the DB (never trusts client-
+    // supplied values for safety decisions).
+    //
+    // Column priority:
+    //   1. allergy_details — structured JSONB: [{ allergenId, severity, ... }]
+    //   2. allergies       — legacy string array: ["Milk", "Tree Nuts"]
+    //
+    // Fail-safe: if childProfileId is supplied but the profile row cannot be
+    // loaded, strip completePlate.sides rather than persisting unverified sides.
+    let safeRecipeData = recipeData;
+    if (
+      typeof recipeData === 'object' &&
+      Array.isArray(recipeData?.completePlate?.sides) &&
+      recipeData.completePlate.sides.length > 0 &&
+      childProfileId
+    ) {
+      let profileLoaded = false;
+      try {
+        const profileResult = await db.execute(sql`
+          SELECT age_stage, allergy_details, allergies
+          FROM child_profiles
+          WHERE id = ${childProfileId} AND user_id = ${userId}
+          LIMIT 1
+        `);
+        const profile = (profileResult as any).rows?.[0] ??
+          (Array.isArray(profileResult) ? (profileResult as any[])[0] : null);
+
+        if (profile) {
+          profileLoaded = true;
+
+          // Build AllergenEntry[] — prefer structured allergy_details
+          let allergenEntries: AllergenEntry[] = [];
+
+          const rawDetails: any[] = Array.isArray(profile.allergy_details)
+            ? profile.allergy_details : [];
+          // allergy_details items may arrive as serialized JSON strings from pg
+          const parsedDetails = rawDetails.map((item: any) => {
+            if (typeof item === 'string') {
+              try { return JSON.parse(item); } catch { return null; }
+            }
+            return item;
+          }).filter(Boolean);
+
+          const structuredEntries: AllergenEntry[] = parsedDetails
+            .filter((a: any) =>
+              a &&
+              typeof a.allergenId === 'string' && a.allergenId.trim() &&
+              typeof a.severity === 'string' && a.severity.trim()
+            )
+            .map((a: any): AllergenEntry => ({
+              allergenId: a.allergenId,
+              customAllergenName: typeof a.customAllergenName === 'string'
+                ? a.customAllergenName : undefined,
+              severity: a.severity,
+            }));
+
+          if (structuredEntries.length > 0) {
+            allergenEntries = structuredEntries;
+          } else {
+            // Fallback: legacy string array e.g. ["Milk", "Tree Nuts"]
+            const DISPLAY_TO_ALLERGEN_ID: Record<string, string> = {
+              milk: 'milk', dairy: 'milk',
+              egg: 'egg', eggs: 'egg',
+              wheat: 'wheat', gluten: 'wheat',
+              soy: 'soy', soya: 'soy',
+              peanut: 'peanut', peanuts: 'peanut',
+              'tree nuts': 'tree_nuts', 'tree nut': 'tree_nuts',
+              sesame: 'sesame', fish: 'fish', shellfish: 'shellfish',
+            };
+            const rawStrings: any[] = Array.isArray(profile.allergies)
+              ? profile.allergies : [];
+            allergenEntries = rawStrings
+              .filter((s: any) => typeof s === 'string' && s.trim())
+              .map((s: string): AllergenEntry | null => {
+                const key = s.trim().toLowerCase();
+                const allergenId = DISPLAY_TO_ALLERGEN_ID[key];
+                if (!allergenId) {
+                  return { allergenId: 'other', customAllergenName: s.trim(), severity: 'confirmed_allergy' };
+                }
+                return { allergenId, severity: 'confirmed_allergy' };
+              })
+              .filter((e): e is AllergenEntry => e !== null);
+          }
+
+          if (allergenEntries.length > 0) {
+            const cloned = JSON.parse(JSON.stringify(recipeData));
+            applyCompletePlateSideGuardrail(cloned, allergenEntries);
+            safeRecipeData = cloned;
+          }
+        }
+      } catch (profileErr: any) {
+        console.warn('[MPB/generated-meals] Profile lookup failed:', profileErr.message);
+        // profileLoaded stays false — fail-safe applies below
+      }
+
+      if (!profileLoaded) {
+        // Cannot verify allergen safety — strip sides rather than persist unscanned content
+        const stripped = JSON.parse(JSON.stringify(recipeData));
+        if (stripped.completePlate) {
+          stripped.completePlate.sides = [];
+          stripped.completePlate.plateNote =
+            '[Sides removed — child allergen profile could not be verified at save time.]';
+        }
+        safeRecipeData = stripped;
+        console.warn('[MPB/generated-meals] completePlate.sides stripped — profile not found:', childProfileId);
+      }
+    }
+
     // Attempt to persist ephemeral images (base64 / DALL-E temp URLs) to permanent
     // storage before saving to DB. If S3 + GCS both fail, safeImageUrl is null —
     // the restore path will re-generate the image rather than storing a broken link.
-    const recipeName = (typeof recipeData === 'object' && recipeData?.recipeName)
-      ? String(recipeData.recipeName)
+    const recipeName = (typeof safeRecipeData === 'object' && safeRecipeData?.recipeName)
+      ? String(safeRecipeData.recipeName)
       : 'meal';
     const { imageUrl: safeImageUrl } = await processMealImageForSave(imageUrl ?? null, recipeName);
 
@@ -996,7 +1109,7 @@ router.post('/generated-meals', requireAuth, async (req, res) => {
       VALUES (
         ${userId},
         ${childProfileId ?? null},
-        ${JSON.stringify(recipeData)},
+        ${JSON.stringify(safeRecipeData)},
         ${safeImageUrl ?? null},
         ${selectedOptionName ?? null}
       )

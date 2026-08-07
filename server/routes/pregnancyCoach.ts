@@ -141,6 +141,7 @@ router.post("/ask", async (req, res) => {
     const { planLookupKey } = authUser;
     const planKey = planLookupKey ?? null;
     const tier = getTierForLookupKey(planLookupKey);
+    const tierEntitlements = getEntitlementsForTier(tier);
     // null planLookupKey = internal / admin account → always passes
     if (planKey !== null && !tierEntitlements.includes("pregnancy")) {
       return res.status(403).json({ error: "requires_upgrade", feature: "pregnancy" });
