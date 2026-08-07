@@ -1380,17 +1380,47 @@ async function fetchAllChildren(): Promise<ChildListItem[]> {
   }
 }
 
-// ── Child Picker Sheet ─────────────────────────────────────────────────────────
-
+type CookingMode = "one_child" | "multiple_children" | "entire_family";
 function ChildPickerSheet({
   children,
-  onSelect,
+  onSelectSingle,
+  onSelectMultiple,
   onGeneral,
 }: {
   children: ChildListItem[];
-  onSelect: (child: ChildListItem) => void;
+  onSelectSingle: (child: ChildListItem) => void;
+  onSelectMultiple: (ids: string[], mode: CookingMode) => void;
   onGeneral: () => void;
 }) {
+  const [mode, setMode] = useState<CookingMode>("one_child");
+  const [checked, setChecked] = useState<Set<string>>(new Set());
+
+  const toggleChild = (id: string) => {
+    setChecked(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleConfirmMultiple = () => {
+    const ids = mode === "entire_family"
+      ? children.map(c => c.id)
+      : Array.from(checked);
+    if (ids.length === 1) {
+      // Treat single selection as one_child
+      const found = children.find(c => c.id === ids[0]);
+      if (found) onSelectSingle(found);
+    } else if (ids.length >= 2) {
+      onSelectMultiple(ids, mode);
+    }
+  };
+
+  const allIds = children.map(c => c.id);
+  const confirmIds = mode === "entire_family" ? allIds : Array.from(checked);
+  const canConfirm = confirmIds.length >= 1;
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -1411,44 +1441,100 @@ function ChildPickerSheet({
         <div className="px-5 pb-6 space-y-4">
           {/* Title */}
           <div className="space-y-0.5 pt-1">
-            <h2 className="text-base font-bold text-white">Who are you cooking for?</h2>
-            <p className="text-xs text-white">Choose a child or cook a general meal.</p>
+            <h2 className="text-base font-bold text-white">Who's eating this?</h2>
+            <p className="text-xs text-white/40">Cook one meal safe for all of them at once.</p>
           </div>
 
-          {/* Child options */}
-          <div className="space-y-2">
-            {children.map(child => (
+          {/* Mode selector */}
+          <div className="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-black/40 border border-white/10">
+            {([
+              { id: "one_child",          label: "One child",    emoji: "👶" },
+              { id: "multiple_children",  label: "Select some",  emoji: "👨‍👩‍👧" },
+              { id: "entire_family",      label: "All children", emoji: "👨‍👩‍👧‍👦" },
+            ] as { id: CookingMode; label: string; emoji: string }[]).map(opt => (
               <button
-                key={child.id}
+                key={opt.id}
                 type="button"
-                onClick={() => onSelect(child)}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-emerald-900/30 hover:border-emerald-500/30 transition-all text-left active:scale-[0.98]"
+                onClick={() => { setMode(opt.id); setChecked(new Set()); }}
+                className={`flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg text-center transition-all ${
+                  mode === opt.id
+                    ? "bg-emerald-600/30 border border-emerald-500/40 text-emerald-200"
+                    : "text-white/40 hover:text-white/60"
+                }`}
               >
-                <span className="text-2xl flex-shrink-0" aria-hidden="true">
-                  {child.emoji || "👶"}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-white truncate">{child.name}</p>
-                  <p className="text-xs text-white">
-                    {STAGES.find(s => s.id === child.age_stage)?.label ?? child.age_stage}
-                    {" · "}
-                    {stageAgeLabel(child)}
-                    {child.age_stage !== "early_infant" && !child.date_of_birth
-                      ? ""
-                      : child.date_of_birth
-                        ? " yrs"
-                        : ""}
-                  </p>
-                </div>
-                {child.allergies?.length > 0 && (
-                  <span className="flex-shrink-0 text-[10px] text-red-300/70 bg-red-900/30 border border-red-400/20 rounded-full px-2 py-0.5">
-                    {child.allergies.length} allerg{child.allergies.length === 1 ? "y" : "ies"}
-                  </span>
-                )}
+                <span className="text-base">{opt.emoji}</span>
+                <span className="text-[10px] font-medium leading-tight">{opt.label}</span>
               </button>
             ))}
+          </div>
 
-            {/* General option */}
+          {/* Child list */}
+          <div className="space-y-2 max-h-60 overflow-y-auto">
+            {children.map(child => {
+              const isCheckedChild = mode === "entire_family" || checked.has(child.id);
+              return (
+                <button
+                  key={child.id}
+                  type="button"
+                  onClick={() => {
+                    if (mode === "one_child") {
+                      onSelectSingle(child);
+                    } else if (mode === "multiple_children") {
+                      toggleChild(child.id);
+                    }
+                    // entire_family: all auto-selected, no toggling
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-left active:scale-[0.98] ${
+                    mode === "one_child"
+                      ? "bg-white/5 border-white/10 hover:bg-emerald-900/30 hover:border-emerald-500/30"
+                      : isCheckedChild
+                        ? "bg-emerald-900/30 border-emerald-500/30"
+                        : "bg-white/5 border-white/10 hover:bg-emerald-900/20 hover:border-emerald-500/20"
+                  }`}
+                >
+                  {mode !== "one_child" && (
+                    <div className={`flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center ${
+                      isCheckedChild ? "bg-emerald-500 border-emerald-400" : "border-white/30 bg-transparent"
+                    }`}>
+                      {isCheckedChild && <CheckCircle2 className="h-3 w-3 text-white" />}
+                    </div>
+                  )}
+                  <span className="text-2xl flex-shrink-0" aria-hidden="true">
+                    {child.emoji || "👶"}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-white truncate">{child.name}</p>
+                    <p className="text-xs text-white/40">
+                      {STAGES.find(s => s.id === child.age_stage)?.label ?? child.age_stage}
+                      {" · "}
+                      {stageAgeLabel(child)}
+                    </p>
+                  </div>
+                  {child.allergies?.length > 0 && (
+                    <span className="flex-shrink-0 text-[10px] text-red-300/70 bg-red-900/30 border border-red-400/20 rounded-full px-2 py-0.5">
+                      {child.allergies.length} allerg{child.allergies.length === 1 ? "y" : "ies"}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Confirm button (multi modes) or General option */}
+          {mode !== "one_child" ? (
+            <button
+              type="button"
+              disabled={!canConfirm}
+              onClick={handleConfirmMultiple}
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-green-600 text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95"
+            >
+              {confirmIds.length >= 2
+                ? `Cook for ${confirmIds.length} children`
+                : confirmIds.length === 1
+                  ? "Cook for 1 child"
+                  : "Select at least one child"}
+            </button>
+          ) : (
             <button
               type="button"
               onClick={onGeneral}
@@ -1457,16 +1543,21 @@ function ChildPickerSheet({
               <span className="text-2xl flex-shrink-0" aria-hidden="true">🍽️</span>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-white">General children's meal</p>
-                <p className="text-xs text-white">No specific child — choose an age range</p>
+                <p className="text-xs text-white/40">No specific child — choose an age range</p>
               </div>
             </button>
-          </div>
+          )}
         </div>
       </motion.div>
     </motion.div>
   );
 }
 
+interface MultiChildMeta {
+  childrenIncluded: string[];
+  stageLabels: string[];
+  primaryStage: string;
+}
 export default function MyPerfectBeginningCreateMealPage() {
   const [, setLocation] = useLocation();
   usePageTitle("Create a Meal");
@@ -1526,17 +1617,74 @@ export default function MyPerfectBeginningCreateMealPage() {
   const [nutritionBadges, setNutritionBadges] = useState<string[]>([]);
   const [clinicalNutritionSummary, setClinicalNutritionSummary] = useState<ClinicalNutritionSummary | null>(null);
 
-  // Apply a child selection from the picker
-  const applyChild = (child: ChildListItem) => {
+  // Multi-child mode
+  const [multiChildIds, setMultiChildIds] = useState<string[]>([]);        // IDs of selected children (multi mode)
+  const [multiChildLabels, setMultiChildLabels] = useState<string[]>([]);  // display labels
+  const [multiChildMeta, setMultiChildMeta] = useState<MultiChildMeta | null>(null);
+
+  const isMultiMode = multiChildIds.length >= 2;
+
+  // STAGE_ORDER for computing most-restrictive on client (for label)
+  const STAGE_ORDER: DevelopmentalStage[] = [
+    "early_infant", "beginning_foods", "young_toddler", "toddler",
+    "preschool", "early_school_age", "growing_child",
+  ];
+
+  // Apply a single child selection from the picker
+  const applyChildSingle = (child: ChildListItem) => {
     try { localStorage.setItem(LS_ACTIVE_CHILD_KEY, child.id); } catch {}
     const summary = toActiveSummary(child);
     setActiveChild(summary);
     setSelectedStage(summary.age_stage);
     setAllergies(summary.allergies);
+    setMultiChildIds([]);
+    setMultiChildLabels([]);
     setShowChildPicker(false);
     if (summary.age_stage === "early_infant") {
       setShowEarlyInfantScreen(true);
     }
+  };
+
+  // Apply multiple children from the picker
+  const applyChildMultiple = (ids: string[], _mode: CookingMode) => {
+    try { localStorage.removeItem(LS_ACTIVE_CHILD_KEY); } catch {}
+    const selected = allChildren.filter(c => ids.includes(c.id));
+
+    const stages = selected.map(c => c.age_stage);
+    const primaryStage = stages.reduce((best, s) => {
+      return STAGE_ORDER.indexOf(s) < STAGE_ORDER.indexOf(best) ? s : best;
+    }, stages[0]);
+
+    const severityRank: Record<string, number> = {
+      confirmed_allergy: 5, clinician_elimination: 4,
+      suspected_reaction: 3, intolerance: 2, preference_avoid: 1,
+    };
+    const allergenMap = new Map<string, AllergyEntry>();
+    for (const child of selected) {
+      for (const entry of child.allergies ?? []) {
+        if (!entry || typeof entry.allergenId !== "string") continue;
+        const existing = allergenMap.get(entry.allergenId);
+        const inRank = severityRank[entry.severity] ?? 0;
+        const exRank = existing ? (severityRank[existing.severity] ?? 0) : -1;
+        if (!existing || inRank > exRank) {
+          allergenMap.set(entry.allergenId, { ...entry });
+        } else if (entry.emergencyMedication) {
+          allergenMap.set(entry.allergenId, { ...existing, emergencyMedication: true });
+        }
+      }
+    }
+
+    const labels = selected.map(c => {
+      const sm = STAGES.find(s => s.id === c.age_stage);
+      return `${c.name} (${sm?.label ?? c.age_stage})`;
+    });
+
+    setActiveChild(null);
+    setSelectedStage(primaryStage);
+    setAllergies(Array.from(allergenMap.values()) as AllergyEntry[]);
+    setMultiChildIds(ids);
+    setMultiChildLabels(labels);
+    setShowChildPicker(false);
   };
 
   const applyGeneral = () => {
@@ -1544,6 +1692,8 @@ export default function MyPerfectBeginningCreateMealPage() {
     setActiveChild(null);
     setSelectedStage("");
     setAllergies([]);
+    setMultiChildIds([]);
+    setMultiChildLabels([]);
     setShowChildPicker(false);
   };
 
@@ -1660,6 +1810,7 @@ export default function MyPerfectBeginningCreateMealPage() {
     setRecipe(null);
     setEducationLayer(null);
     setResolverMeta(null);
+    setMultiChildMeta(null);
     setNutritionBadges([]);
     setClinicalNutritionSummary(null);
     setHardStopState(null);
@@ -1680,14 +1831,21 @@ export default function MyPerfectBeginningCreateMealPage() {
     if (culturalCuisine.trim()) parentPrefs.culturalCuisine = culturalCuisine.trim();
 
     try {
-      const data = await post<any>('/api/my-perfect-beginning/create-dish', {
+      const requestBody: Record<string, unknown> = {
         ageStage: selectedStage,
         allergies,
         foodRequest: fullFoodRequest,
-        childName: activeChild?.name ?? undefined,
-        childProfileId: activeChild?.id ?? undefined,
         parentPrefs: Object.keys(parentPrefs).length > 0 ? parentPrefs : undefined,
-      });
+      };
+
+      if (isMultiMode) {
+        requestBody.childProfileIds = multiChildIds;
+      } else {
+        requestBody.childName = activeChild?.name ?? undefined;
+        requestBody.childProfileId = activeChild?.id ?? undefined;
+      }
+
+      const data = await post<any>('/api/my-perfect-beginning/create-dish', requestBody);
 
       if (data.blocked) {
         if (data.blockReason === "early_infant") {
@@ -1710,6 +1868,9 @@ export default function MyPerfectBeginningCreateMealPage() {
           personalizationLevel: data.personalizationLevel,
           conflictResolutions: data.conflictResolutions ?? [],
         });
+      }
+      if (data.multiChild) {
+        setMultiChildMeta(data.multiChild);
       }
       setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 100);
 
@@ -1739,7 +1900,6 @@ export default function MyPerfectBeginningCreateMealPage() {
           stageDRIBaseline: data.resolverMeta.stageDRIBaseline,
         });
       }
-      // Nutrition badges + clinical details — server-computed, shown on recipe card
       if (Array.isArray(data.nutritionBadges)) {
         setNutritionBadges(data.nutritionBadges);
       }
@@ -1862,7 +2022,8 @@ export default function MyPerfectBeginningCreateMealPage() {
       {showChildPicker && allChildren.length >= 2 && (
         <ChildPickerSheet
           children={allChildren}
-          onSelect={applyChild}
+          onSelectSingle={applyChildSingle}
+          onSelectMultiple={applyChildMultiple}
           onGeneral={applyGeneral}
         />
       )}
@@ -1970,6 +2131,31 @@ export default function MyPerfectBeginningCreateMealPage() {
         {/* Generated Recipe */}
         {!showEarlyInfantScreen && !hardStopState && recipe && (
           <div className="space-y-4">
+            {/* Multi-child "designed for" banner */}
+            {multiChildMeta && multiChildMeta.stageLabels.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex flex-col gap-2 p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30"
+              >
+                <div className="flex items-center gap-2">
+                  <Users className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" />
+                  <p className="text-xs font-semibold text-emerald-300">Family meal — designed for all children</p>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {multiChildMeta.stageLabels.map((label, i) => (
+                    <span key={i} className="text-[10px] bg-emerald-500/15 border border-emerald-500/25 text-emerald-200 rounded-full px-2 py-0.5">
+                      {label}
+                    </span>
+                  ))}
+                </div>
+                <p className="text-[11px] text-white/40 leading-snug">
+                  Constraints were merged to the most restrictive safe set across all selected children.
+                  Texture and choking preparations are calibrated to the youngest child's stage.
+                </p>
+              </motion.div>
+            )}
+
             <RecipeCard
               recipe={recipe}
               hasEpiPen={hasEpiPen}
@@ -1979,10 +2165,15 @@ export default function MyPerfectBeginningCreateMealPage() {
               textureClass={resolverTextureClass}
               imageUrl={recipeImageUrl}
               imageLoading={imageLoading}
+              nutritionBadges={nutritionBadges}
+              clinicalNutritionSummary={clinicalNutritionSummary}
               onDelete={() => {
                 setRecipe(null);
                 setEducationLayer(null);
                 setResolverMeta(null);
+                setMultiChildMeta(null);
+                setNutritionBadges([]);
+                setClinicalNutritionSummary(null);
                 setHardStopState(null);
                 setFoodRequest("");
                 setMealOptions([]);
@@ -1991,8 +2182,6 @@ export default function MyPerfectBeginningCreateMealPage() {
                 setResolverTextureClass(undefined);
                 window.scrollTo({ top: 0, behavior: "smooth" });
               }}
-              nutritionBadges={nutritionBadges}
-              clinicalNutritionSummary={clinicalNutritionSummary}
               onUpdateRecipe={(updated) => setRecipe(prev => prev ? { ...prev, ...updated } : prev)}
               setLocation={setLocation}
             />
@@ -2055,14 +2244,15 @@ export default function MyPerfectBeginningCreateMealPage() {
                 setRecipe(null);
                 setEducationLayer(null);
                 setResolverMeta(null);
+                setMultiChildMeta(null);
+                setNutritionBadges([]);
+                setClinicalNutritionSummary(null);
                 setHardStopState(null);
                 setFoodRequest("");
                 setMealOptions([]);
                 setRecipeImageUrl(null);
                 setImageLoading(false);
                 setResolverTextureClass(undefined);
-                setNutritionBadges([]);
-                setClinicalNutritionSummary(null);
                 window.scrollTo({ top: 0, behavior: "smooth" });
               }}
               className="w-full py-3 rounded-xl bg-green-500/10 text-green-300 text-sm font-medium border border-green-400/20 hover:bg-green-500/20 transition-all"
@@ -2076,7 +2266,41 @@ export default function MyPerfectBeginningCreateMealPage() {
         {!showEarlyInfantScreen && !hardStopState && !recipe && mealOptions.length === 0 && (
           <div className="space-y-4">
             {/* Active child profile indicator */}
-            {profileLoaded && activeChild && (
+            {profileLoaded && isMultiMode && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-xl bg-emerald-900/30 border border-emerald-500/25 overflow-hidden"
+              >
+                <div className="flex items-center gap-3 px-4 py-3">
+                  <div className="flex-shrink-0 w-7 h-7 rounded-full bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-sm">
+                    <Users className="h-3.5 w-3.5 text-emerald-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-emerald-300 font-medium">
+                      Family meal — {multiChildIds.length} children
+                    </p>
+                    <p className="text-[11px] text-white/40 leading-tight">
+                      Constraints merged to the most restrictive safe set.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowChildPicker(true)}
+                    className="flex-shrink-0 text-[11px] text-emerald-400/70 hover:text-emerald-300 underline underline-offset-2"
+                  >
+                    Change
+                  </button>
+                </div>
+                <div className="px-4 pb-3 flex flex-wrap gap-1.5">
+                  {multiChildLabels.map((label, i) => (
+                    <span key={i} className="text-[10px] bg-emerald-500/15 border border-emerald-500/25 text-emerald-200 rounded-full px-2 py-0.5">
+                      {label}
+                    </span>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+            {profileLoaded && !isMultiMode && activeChild && (
               <motion.div
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -2107,7 +2331,7 @@ export default function MyPerfectBeginningCreateMealPage() {
                 </button>
               </motion.div>
             )}
-            {profileLoaded && !activeChild && (
+            {profileLoaded && !isMultiMode && !activeChild && (
               <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/10">
                 <Baby className="h-4 w-4 text-white flex-shrink-0" />
                 <p className="text-xs text-white flex-1">

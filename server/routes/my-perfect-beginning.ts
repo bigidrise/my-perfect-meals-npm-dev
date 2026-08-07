@@ -530,6 +530,8 @@ function buildUserMessage(
   return msg;
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 // ── Nutrition Badge Generator ─────────────────────────────────────────────────
 // Derives parent-friendly nutrient badges from recipe ingredients and active
 // condition protocols. Returns string labels (no emoji — client adds those).
@@ -628,7 +630,7 @@ async function fetchChildProfileInput(
 ): Promise<ChildProfileInput | null> {
   if (!childProfileId || typeof childProfileId !== "string") return null;
 
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(childProfileId)) {
+  if (!UUID_RE.test(childProfileId)) {
     return null;
   }
 
@@ -905,12 +907,12 @@ router.post("/create-dish", requireAuth, async (req, res) => {
     const authReq = req as AuthenticatedRequest;
     const userId = authReq.authUser.id;
 
-    // ── Fetch child profile from DB (if childProfileId provided) ────────────
-    const childProfileId = typeof req.body.childProfileId === "string"
+    const rawChildProfileIds: unknown = req.body.childProfileIds;
+    const childProfileId = !isMultiChildMode && typeof req.body.childProfileId === "string"
       ? req.body.childProfileId
       : null;
 
-    const childProfileInput = await fetchChildProfileInput(userId, childProfileId);
+    const childProfileInput = isMultiChildMode ? null : await fetchChildProfileInput(userId, childProfileId);
 
     // ── Validate request ─────────────────────────────────────────────────────
     const validation = validateRequest(req.body);
@@ -932,33 +934,32 @@ router.post("/create-dish", requireAuth, async (req, res) => {
       });
     }
 
-    // ── Gate: PKU ────────────────────────────────────────────────────────────
-    // Phenylketonuria requires metabolic dietitian oversight — block generation.
-    const loadedMedConditions = (childProfileInput?.medicalConditions ?? []).map(
-      (c: string) => c.toLowerCase().replace(/[\s\-]/g, "_"),
-    );
-    if (loadedMedConditions.includes("pku")) {
-      return res.status(200).json({
-        blocked: true,
-        blockReason: "pku",
-        educationMessage:
-          "Phenylketonuria (PKU) requires strict phenylalanine management under the direct supervision of a " +
-          "metabolic dietitian. We can't generate meal suggestions for a child with PKU. " +
-          "Please work with your child's metabolic nutrition team for safe meal planning.",
-      });
-    }
-
-    // ── Gate: G-tube ─────────────────────────────────────────────────────────
-    // Enteral feeding — oral meal generation is not appropriate.
-    if (loadedMedConditions.includes("g_tube")) {
-      return res.status(200).json({
-        blocked: true,
-        blockReason: "g_tube",
-        educationMessage:
-          "Children receiving G-tube (enteral) nutrition have specialized feeding requirements managed by " +
-          "their care team. We can't generate oral meal recipes for this profile. " +
-          "Please follow your child's enteral nutrition plan from their dietitian.",
-      });
+    // ── Gate: PKU / G-tube (single-child path) ───────────────────────────────
+    // Multi-child path already checked above in mergeChildProfiles.
+    if (!isMultiChildMode) {
+      const loadedMedConditions = (childProfileInput?.medicalConditions ?? []).map(
+        (c: string) => c.toLowerCase().replace(/[\s\-]/g, "_"),
+      );
+      if (loadedMedConditions.includes("pku")) {
+        return res.status(200).json({
+          blocked: true,
+          blockReason: "pku",
+          educationMessage:
+            "Phenylketonuria (PKU) requires strict phenylalanine management under the direct supervision of a " +
+            "metabolic dietitian. We can't generate meal suggestions for a child with PKU. " +
+            "Please work with your child's metabolic nutrition team for safe meal planning.",
+        });
+      }
+      if (loadedMedConditions.includes("g_tube")) {
+        return res.status(200).json({
+          blocked: true,
+          blockReason: "g_tube",
+          educationMessage:
+            "Children receiving G-tube (enteral) nutrition have specialized feeding requirements managed by " +
+            "their care team. We can't generate oral meal recipes for this profile. " +
+            "Please follow your child's enteral nutrition plan from their dietitian.",
+        });
+      }
     }
 
     // ── Gate: foodRequest required for generation ────────────────────────────
@@ -977,12 +978,20 @@ router.post("/create-dish", requireAuth, async (req, res) => {
     }
 
     // ── Build protocol guidance blocks from child profile ────────────────────
-    const profileForEngine: ChildProfileInput = childProfileInput ?? {
-      developmentalStage: ageStage as DevelopmentalStage,
-      medicalConditions: [],
-      sensoryIssues: [],
-      feedingConcerns: [],
-    };
+    // For multi-child mode, use the merged medical conditions as the profile
+    const profileForEngine: ChildProfileInput = isMultiChildMode
+      ? {
+          developmentalStage: ageStage as DevelopmentalStage,
+          medicalConditions: mergedProfile!.mergedMedicalConditions,
+          sensoryIssues: [],
+          feedingConcerns: [],
+        }
+      : (childProfileInput ?? {
+          developmentalStage: ageStage as DevelopmentalStage,
+          medicalConditions: [],
+          sensoryIssues: [],
+          feedingConcerns: [],
+        });
 
     const guidanceOutput = buildPediatricGuidanceBlocks(profileForEngine);
     const conditionGuidanceBlocks = guidanceOutput.conditionGuidanceBlocks;
@@ -993,7 +1002,7 @@ router.post("/create-dish", requireAuth, async (req, res) => {
 
     if (activeProtocolIds.length > 0) {
       console.log(
-        `[MyPerfectBeginning/create-dish] Active protocols for user=${userId} child=${childProfileId ?? "no-profile"}:`,
+        `[MyPerfectBeginning/create-dish] Active protocols for user=${userId} ${isMultiChildMode ? `children=[${multiChildNames.join(",")}]` : `child=${childProfileId ?? "no-profile"}`}:`,
         activeProtocolIds.join(", ")
       );
     }
@@ -1039,12 +1048,20 @@ router.post("/create-dish", requireAuth, async (req, res) => {
     );
 
     // ── Inject resolver mealType into user message ────────────────────────────
-    // When the resolver derives a specific meal type from the profile or request,
-    // seed it into the prompt so the AI targets the right meal occasion.
     const resolvedMealType = resolverCtx?.mealType;
-    const finalUserMessage = (resolvedMealType && resolvedMealType !== "any")
+    let finalUserMessage = (resolvedMealType && resolvedMealType !== "any")
       ? userMessage + `\n\nMeal type context (resolver-derived): ${resolvedMealType}`
       : userMessage;
+
+    // ── Inject multi-child context into user message ──────────────────────────
+    if (isMultiChildMode && multiChildStageLabels.length > 0) {
+      finalUserMessage +=
+        `\n\nFAMILY MEAL MODE: This recipe must be safe and appropriate for ALL of the following children simultaneously:\n` +
+        multiChildStageLabels.map(l => `  - ${l}`).join("\n") +
+        `\n\nThe constraints above (stage, allergens, medical protocols) have already been merged to the most restrictive set across all children. ` +
+        `In the ageStageSuitability field, list ALL the age ranges this meal serves, e.g. "Safe for Preschool through Growing Child (ages 4–12)". ` +
+        `In textureAndChokingPreparation, address the youngest child's needs — older children simply eat the same preparation.`;
+    }
 
     // ── Phase 3: Call OpenAI ─────────────────────────────────────────────────
     const openai = getOpenAI();
@@ -1085,9 +1102,11 @@ router.post("/create-dish", requireAuth, async (req, res) => {
     const finalRecipe = postScan.patchedRecipe ?? recipe;
 
     // ── Mandatory pediatrician disclaimer ─────────────────────────────────────
-    const disclaimerSuffix = childName
-      ? `Always follow your pediatrician's guidance for ${childName}'s specific nutritional needs.`
-      : "Always follow your pediatrician's guidance for your child's specific nutritional needs.";
+    const disclaimerSuffix = isMultiChildMode && multiChildNames.length > 0
+      ? `Always follow your pediatrician's guidance for each child's specific nutritional needs.`
+      : childName
+        ? `Always follow your pediatrician's guidance for ${childName}'s specific nutritional needs.`
+        : "Always follow your pediatrician's guidance for your child's specific nutritional needs.";
     if (typeof finalRecipe.whyThisMealWasChosen === "string" && finalRecipe.whyThisMealWasChosen.trim()) {
       const trimmed = finalRecipe.whyThisMealWasChosen.trim();
       if (!trimmed.endsWith(disclaimerSuffix)) {
@@ -1211,3 +1230,243 @@ router.post("/create-dish", requireAuth, async (req, res) => {
 });
 
 export default router;
+
+function mergeAllergyLists(lists: AllergyEntry[][]): AllergyEntry[] {
+  const map = new Map<string, AllergyEntry>();
+  for (const list of lists) {
+    for (const entry of list) {
+      const existing = map.get(entry.allergenId);
+      if (!existing || SEVERITY_RANK[entry.severity] > SEVERITY_RANK[existing.severity]) {
+        map.set(entry.allergenId, { ...entry });
+      } else if (existing && entry.emergencyMedication) {
+        // Propagate EpiPen flag even if severity doesn't change
+        map.set(entry.allergenId, { ...existing, emergencyMedication: true });
+      }
+    }
+  }
+  return Array.from(map.values());
+}
+
+const SEVERITY_RANK: Record<AllergySeverity, number> = {
+  confirmed_allergy: 5,
+  clinician_elimination: 4,
+  suspected_reaction: 3,
+  intolerance: 2,
+  preference_avoid: 1,
+};
+
+async function fetchChildProfileFull(
+  userId: string,
+  childProfileId: string,
+): Promise<ChildProfileFull | null> {
+  if (!UUID_RE.test(childProfileId)) return null;
+
+  try {
+    const rows = await db.execute(sql`
+      SELECT
+        id,
+        name,
+        age_stage,
+        allergies,
+        medical_conditions,
+        sensory_issues,
+        feeding_concerns,
+        feeding_ability,
+        growth_context,
+        g_tube
+      FROM child_profiles
+      WHERE id = ${childProfileId}
+        AND user_id = ${userId}
+        AND is_archived = false
+      LIMIT 1
+    `);
+
+    if (!rows.rows || rows.rows.length === 0) return null;
+    const row = rows.rows[0] as any;
+
+    const parseJsonbArray = (val: any): string[] => {
+      if (Array.isArray(val)) return val.filter(Boolean).map(String);
+      if (typeof val === "string") { try { return JSON.parse(val); } catch { return []; } }
+      return [];
+    };
+    const parseJsonbObject = (val: any): Record<string, any> => {
+      if (val && typeof val === "object" && !Array.isArray(val)) return val;
+      if (typeof val === "string") { try { return JSON.parse(val); } catch { return {}; } }
+      return {};
+    };
+
+    const feedingAbilityRaw = parseJsonbObject(row.feeding_ability);
+    const growthRaw = parseJsonbObject(row.growth_context);
+
+    const hasFeedingTubeFromAbility = !!feedingAbilityRaw.hasFeedingTube;
+    const hasFeedingTubeFromBoolCol = !!row.g_tube;
+    const baseConditions = parseJsonbArray(row.medical_conditions);
+    const normalizedConditions =
+      (hasFeedingTubeFromAbility || hasFeedingTubeFromBoolCol) &&
+      !baseConditions.some((c: string) => c.toLowerCase().replace(/[\s\-]/g, "_") === "g_tube")
+        ? [...baseConditions, "g_tube"]
+        : baseConditions;
+
+    const normalizedConds = normalizedConditions.map((c: string) => c.toLowerCase().replace(/[\s\-]/g, "_"));
+
+    // Raw allergies from DB (for merging)
+    const rawAllergiesArr = parseJsonbArray(row.allergies);
+    let rawAllergies: AllergyEntry[] = [];
+    if (Array.isArray(row.allergies)) {
+      rawAllergies = (row.allergies as any[])
+        .filter((a: any) => a && typeof a.allergenId === "string" && typeof a.severity === "string")
+        .filter((a: any) => (VALID_ALLERGENS as readonly string[]).includes(a.allergenId) && (VALID_SEVERITIES as readonly string[]).includes(a.severity))
+        .map((a: any) => ({
+          allergenId: a.allergenId as AllergenId,
+          severity: a.severity as AllergySeverity,
+          emergencyMedication: !!a.emergencyMedication,
+          customAllergenName: a.customAllergenName,
+        }));
+    }
+
+    // Hard stop check for this child
+    let hardStop: ChildProfileFull["hardStop"] = null;
+    const ageStage = (row.age_stage as DevelopmentalStage) || "toddler";
+    if (ageStage === "early_infant") {
+      hardStop = {
+        reason: "early_infant",
+        message: `${row.name ?? "One of the selected children"} is in the Early Infant stage (birth–5 months). Babies at this stage receive all nutrition from breast milk or formula and cannot yet eat solid foods.`,
+      };
+    } else if (normalizedConds.includes("pku")) {
+      hardStop = {
+        reason: "pku",
+        message: `${row.name ?? "One of the selected children"} has Phenylketonuria (PKU), which requires strict metabolic dietitian oversight. We can't generate meal suggestions for a group that includes a child with PKU. Please work with your child's metabolic nutrition team.`,
+      };
+    } else if (normalizedConds.includes("g_tube")) {
+      hardStop = {
+        reason: "g_tube",
+        message: `${row.name ?? "One of the selected children"} receives G-tube (enteral) nutrition. We can't generate oral meal recipes for a group that includes this profile. Please follow your child's enteral nutrition plan from their dietitian.`,
+      };
+    }
+
+    const profileInput: ChildProfileFull = {
+      childId: row.id,
+      childName: row.name ?? "Child",
+      ageStage,
+      rawAllergies,
+      hardStop,
+      developmentalStage: ageStage,
+      medicalConditions: normalizedConditions,
+      sensoryIssues: parseJsonbArray(row.sensory_issues),
+      feedingConcerns: parseJsonbArray(row.feeding_concerns),
+      feedingAbility: {
+        textureLevel: feedingAbilityRaw.textureLevel,
+        swallowingDifficulty: !!feedingAbilityRaw.swallowingDifficulty,
+        hasFeedingTube: hasFeedingTubeFromAbility || hasFeedingTubeFromBoolCol,
+        historyOfChokingOrGagging: !!feedingAbilityRaw.historyOfChokingOrGagging,
+      },
+      growth: {
+        pediatricianConcern: growthRaw.pediatricianConcern,
+      },
+    };
+
+    return profileInput;
+  } catch (err: any) {
+    if (err?.code === "42P01") return null;
+    console.error("[MyPerfectBeginning] child profile full lookup error:", err.message);
+    return null;
+  }
+}
+
+interface MergedChildProfile {
+  primaryStage: DevelopmentalStage;
+  mergedAllergies: AllergyEntry[];
+  mergedMedicalConditions: string[];
+  childNames: string[];
+  stageLabels: string[];        // label for each child's stage
+  hardStop: { reason: string; message: string } | null;
+}
+
+    let mergedProfile: MergedChildProfile | null = null;
+
+const STAGE_RESTRICTIVENESS_ORDER: DevelopmentalStage[] = [
+  "early_infant",
+  "beginning_foods",
+  "young_toddler",
+  "toddler",
+  "preschool",
+  "early_school_age",
+  "growing_child",
+];
+
+function mostRestrictiveStage(stages: DevelopmentalStage[]): DevelopmentalStage {
+  let best = stages[0];
+  for (const s of stages) {
+    if (STAGE_RESTRICTIVENESS_ORDER.indexOf(s) < STAGE_RESTRICTIVENESS_ORDER.indexOf(best)) {
+      best = s;
+    }
+  }
+  return best;
+}
+
+      const childIds = (rawChildProfileIds as string[]).slice(0, 10); // cap at 10 children
+
+    let multiChildNames: string[] = [];
+
+      const profiles = (await Promise.all(
+        childIds.map(id => fetchChildProfileFull(userId, id))
+      )).filter((p): p is ChildProfileFull => p !== null);
+
+    let multiChildStageLabels: string[] = [];
+
+const STAGE_LABELS_SHORT: Record<DevelopmentalStage, string> = {
+  early_infant:      "Early Infant",
+  beginning_foods:   "Beginning Foods",
+  young_toddler:     "Young Toddler",
+  toddler:           "Toddler",
+  preschool:         "Preschool",
+  early_school_age:  "Early School Age",
+  growing_child:     "Growing Child",
+};
+
+interface ChildProfileFull extends ChildProfileInput {
+  childId: string;
+  childName: string;
+  ageStage: DevelopmentalStage;
+  rawAllergies: AllergyEntry[];
+  hardStop: { reason: string; message: string } | null;
+}
+
+function mergeChildProfiles(profiles: ChildProfileFull[]): MergedChildProfile {
+  // Check for any hard stops first
+  for (const p of profiles) {
+    if (p.hardStop) {
+      return {
+        primaryStage: p.ageStage,
+        mergedAllergies: [],
+        mergedMedicalConditions: [],
+        childNames: profiles.map(x => x.childName),
+        stageLabels: profiles.map(x => `${x.childName} (${STAGE_LABELS_SHORT[x.ageStage]})`),
+        hardStop: p.hardStop,
+      };
+    }
+  }
+
+  const primaryStage = mostRestrictiveStage(profiles.map(p => p.ageStage));
+  const mergedAllergies = mergeAllergyLists(profiles.map(p => p.rawAllergies));
+
+  // Union all medical conditions (deduped)
+  const conditionSet = new Set<string>();
+  for (const p of profiles) {
+    for (const c of p.medicalConditions) conditionSet.add(c);
+  }
+
+  return {
+    primaryStage,
+    mergedAllergies,
+    mergedMedicalConditions: Array.from(conditionSet),
+    childNames: profiles.map(p => p.childName),
+    stageLabels: profiles.map(p => `${p.childName} (${STAGE_LABELS_SHORT[p.ageStage]})`),
+    hardStop: null,
+  };
+}
+
+    const isMultiChildMode =
+      Array.isArray(rawChildProfileIds) &&
+      rawChildProfileIds.length >= 2 &&
+      rawChildProfileIds.every(id => typeof id === "string" && UUID_RE.test(id));
