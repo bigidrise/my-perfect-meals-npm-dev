@@ -976,5 +976,22 @@
     "creatorStudioLabel": "Active",
     "creatorStudioSubtitle": "Your creator studio — tap to enter",
     "myStudio": "My Studio"
-  }
+  },
+  "welcomeBack": "Welcome Back",
+  "whereToTitle": "Where to?",
+  "whereToSubtitle": "Choose how you'd like to start today.",
+  "personalSpaceDesc": "Your meals, your macros, your life.",
+  "checkingAccess": "Checking access...",
+  "manageClientsIn": "Manage clients in {{name}}.",
+  "yourPersonalSpace": "Your personal space",
+  "appVersion": "App version",
+  "upToDate": "Up to date",
+  "updateAvailable": "Update available",
+  "textSize": "Text Size",
+  "narrationSpeed": "Narration Speed",
+  "privacySecurity": "Privacy & Security",
+  "termsOfService": "Terms of Service",
+  "managePrivacy": "Manage your privacy settings",
+  "reviewTerms": "Review our terms and conditions",
+  "restoreDesc": "Restore an active subscription on this device"
 }

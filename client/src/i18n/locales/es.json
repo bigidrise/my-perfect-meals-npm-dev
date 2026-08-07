@@ -953,5 +953,22 @@
     "creatorStudioLabel": "Activo",
     "creatorStudioSubtitle": "Tu estudio creador — toca para entrar",
     "myStudio": "Mi Estudio"
-  }
+  },
+  "welcomeBack": "Bienvenido de nuevo",
+  "whereToTitle": "¿A dónde?",
+  "whereToSubtitle": "Elige cómo quieres empezar hoy.",
+  "personalSpaceDesc": "Tus comidas, tus macros, tu vida.",
+  "checkingAccess": "Verificando acceso...",
+  "manageClientsIn": "Gestiona clientes en {{name}}.",
+  "yourPersonalSpace": "Tu espacio personal",
+  "appVersion": "Versión de la app",
+  "upToDate": "Actualizado",
+  "updateAvailable": "Actualización disponible",
+  "textSize": "Tamaño del texto",
+  "narrationSpeed": "Velocidad de narración",
+  "privacySecurity": "Privacidad y seguridad",
+  "termsOfService": "Términos de servicio",
+  "managePrivacy": "Gestiona tu configuración de privacidad",
+  "reviewTerms": "Revisa nuestros términos y condiciones",
+  "restoreDesc": "Restaurar una suscripción activa en este dispositivo"
 }

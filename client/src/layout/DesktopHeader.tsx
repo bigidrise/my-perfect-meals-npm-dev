@@ -103,19 +103,19 @@ type PlanBadgeVariant = "free" | "paid" | "professional";
 interface PlanBadgeInfo { text: string; variant: PlanBadgeVariant }
 
 function getPlanLabel(user: { planLookupKey?: string | null; accessTier?: string } | null | undefined): PlanBadgeInfo {
-  if (!user) return { text: "Free", variant: "free" };
+  if (!user) return { text: "freeBadge", variant: "free" };
 
   const key = (user.planLookupKey ?? "").toLowerCase();
   if (key.includes("procare") || key.includes("trainer") || key.includes("physician")) {
-    return { text: "Professional", variant: "professional" };
+    return { text: "professionalBadge", variant: "professional" };
   }
 
   const tier = getTierForLookupKey(user.planLookupKey);
   switch (tier) {
-    case "basic":    return { text: "Essential", variant: "paid" };
-    case "premium":  return { text: "Pro",       variant: "paid" };
-    case "ultimate": return { text: "Clinical",  variant: "paid" };
-    default:         return { text: "Free",      variant: "free" };
+    case "basic":    return { text: "essentialBadge", variant: "paid" };
+    case "premium":  return { text: "proBadge",       variant: "paid" };
+    case "ultimate": return { text: "clinicalBadge",  variant: "paid" };
+    default:         return { text: "freeBadge",      variant: "free" };
   }
 }
 
@@ -149,6 +149,8 @@ export default function DesktopHeader() {
     return t("appName");
   }
 
+  const { t: tc } = useTranslation();
+
   const fallbackTitle = getPageTitle(location);
   const title = contextTitle || (fallbackTitle === "Signature Kitchen Experience" ? appName : fallbackTitle);
 
@@ -163,12 +165,12 @@ export default function DesktopHeader() {
       <div className="flex items-center gap-3">
         {user && (
           <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${BADGE_CLASSES[planBadge.variant]}`}>
-            {planBadge.text}
+            {tc(planBadge.text)}
           </span>
         )}
         <ProfileSheet>
           <button className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-white/5 transition-colors">
-            <span className="text-xs font-semibold text-orange-400">Hub</span>
+            <span className="text-xs font-semibold text-orange-400">{tc("hubLabel")}</span>
             <HubControlIcon size="md" />
           </button>
         </ProfileSheet>
