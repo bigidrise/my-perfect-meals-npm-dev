@@ -447,21 +447,25 @@ router.post("/children", requireAuth, async (req, res) => {
   try {
     const result = await db.execute(sql`
       INSERT INTO child_profiles (
-        user_id, name, age_stage, date_of_birth, emoji, cultural_preferences,
+        user_id, name, date_of_birth, age_stage, emoji,
         allergies, allergy_details, dietary_preferences, medical_conditions,
-        feeding_concerns, sensory_issues, dislikes, family_goals, kitchen_equipment,
-        birth_history, feeding_development, feeding_ability,
+        feeding_concerns, sensory_issues, dislikes, cultural_preferences,
         sex, height_cm, weight_kg, growth_context,
-        kitchen_budget, kitchen_time_minutes, kitchen_skill,
-        school_safe_required, pediatrician_oversight, medication_affects_appetite, g_tube
+        birth_history, feeding_development, feeding_ability,
+        family_goals, kitchen_equipment, kitchen_budget,
+        kitchen_time_minutes, kitchen_skill,
+        school_safe_required, pediatrician_oversight,
+        medication_affects_appetite, g_tube
       ) VALUES (
-        ${userId}, ${name.trim()}, ${age_stage}, ${date_of_birth}, ${emoji}, ${cultural_preferences ?? null},
+        ${userId}, ${name.trim()}, ${date_of_birth}, ${age_stage}, ${emoji},
         ${aJson}::jsonb, ${adJson}::jsonb, ${dpJson}::jsonb, ${mcJson}::jsonb,
-        ${fcJson}::jsonb, ${siJson}::jsonb, ${dlJson}::jsonb, ${fgJson}::jsonb, ${keJson}::jsonb,
+        ${fcJson}::jsonb, ${siJson}::jsonb, ${dlJson}::jsonb, ${cultural_preferences},
+        ${sex}, ${height_cm}, ${weight_kg}, ${growth_context},
         ${bhJson}::jsonb, ${fdJson}::jsonb, ${faJson}::jsonb,
-        ${sex ?? null}, ${height_cm ?? null}, ${weight_kg ?? null}, ${growth_context},
-        ${kitchen_budget}, ${kitchen_time_minutes}, ${kitchen_skill},
-        ${!!school_safe_required}, ${!!pediatrician_oversight}, ${!!medication_affects_appetite}, ${g_tube_derived}
+        ${fgJson}::jsonb, ${keJson}::jsonb, ${kitchen_budget},
+        ${kitchen_time_minutes}, ${kitchen_skill},
+        ${!!school_safe_required}, ${!!pediatrician_oversight},
+        ${!!medication_affects_appetite}, ${g_tube_derived}
       )
       RETURNING *
     `);
@@ -902,7 +906,7 @@ router.post("/parents-corner", requireAuth, async (req, res) => {
 
 // ─── Meal Options (Step 1 — three concept choices before full recipe) ──────────
 
-router.post('/meal-options', requireAuth, async (req: AuthenticatedRequest, res) => {
+router.post('/meal-options', requireAuth, async (req, res) => {
   try {
     const { ageStage, foodRequest, childName, childProfileId, allergies } = req.body;
     if (!ageStage || !foodRequest) {
@@ -971,9 +975,9 @@ Names should be short and specific (e.g. "Hidden-Veggie Turkey Cheeseburger", "M
 
 // ─── Generated Meals Persistence ──────────────────────────────────────────────
 
-router.post('/generated-meals', requireAuth, async (req: AuthenticatedRequest, res) => {
+router.post('/generated-meals', requireAuth, async (req, res) => {
   try {
-    const userId = req.authUser!.id;
+    const userId = (req as AuthenticatedRequest).authUser!.id;
     const { childProfileId, recipeData, imageUrl, selectedOptionName } = req.body;
     if (!recipeData) {
       return res.status(400).json({ error: 'recipeData is required' });
@@ -1007,9 +1011,9 @@ router.post('/generated-meals', requireAuth, async (req: AuthenticatedRequest, r
   }
 });
 
-router.get('/generated-meals', requireAuth, async (req: AuthenticatedRequest, res) => {
+router.get('/generated-meals', requireAuth, async (req, res) => {
   try {
-    const userId = req.authUser!.id;
+    const userId = (req as AuthenticatedRequest).authUser!.id;
     const childProfileId = typeof req.query.childProfileId === 'string' ? req.query.childProfileId : null;
 
     const result = childProfileId

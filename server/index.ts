@@ -115,6 +115,7 @@ import aceProfilesRouter from "./routes/aceProfiles";
 import aceInterventionsRouter from "./routes/aceInterventions";
 import coachCornerRouter from "./routes/coachCorner";
 import myPerfectBeginningRouter from "./routes/myPerfectBeginning";
+import myPerfectBeginningGenerationRouter from "./routes/my-perfect-beginning";
 import pregnancyCoachRouter from "./routes/pregnancyCoach";
 
 const app = express();
@@ -1403,6 +1404,10 @@ async function start() {
   app.use("/api/coach-corner", coachCornerRouter);
   app.use("/api/pregnancy", requireAuth, pregnancyCoachRouter);
   app.use("/api/my-perfect-beginning", myPerfectBeginningRouter);
+  // Generation routes (create-dish, resolve-context) live in my-perfect-beginning.ts.
+  // Mounted after the CRUD router so child-profile and saved-meals routes in
+  // myPerfectBeginning.ts take precedence for shared paths (/generated-meals etc.).
+  app.use("/api/my-perfect-beginning", myPerfectBeginningGenerationRouter);
 
   // 🎯 CRITICAL: API routes FIRST to prevent Vite middleware interference
   await registerRoutes(app);

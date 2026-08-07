@@ -49,6 +49,16 @@ type DevelopmentalStage =
   | "early_school_age"
   | "growing_child";
 
+interface ParentPrefs {
+  budgetLevel?: string;
+  maxCookTimeMinutes?: number;
+  requiresSchoolSafe?: boolean;
+  requiresPackable?: boolean;
+  culturalCuisine?: string;
+  dietaryPattern?: string;
+  goals?: string[];
+}
+
 type AllergenId =
   | "peanut"
   | "tree_nuts"

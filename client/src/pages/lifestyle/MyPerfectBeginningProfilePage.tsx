@@ -211,6 +211,9 @@ const EMPTY_PROFILE: ChildProfile = {
   family_goals: [],
 } as any;
 
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+
 function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
   return (
     <label className="flex items-center gap-3 cursor-pointer">

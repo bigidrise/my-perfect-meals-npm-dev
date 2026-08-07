@@ -882,9 +882,12 @@ async function initializeApp() {
     app.use("/api/ace/interventions", aceInterventionsRouter);
     app.use("/api/coach-corner", coachCornerRouter);
 
-    // My Perfect Beginning — Parent's Corner AI
+    // My Perfect Beginning — CRUD + Parent's Corner (child profiles, saved meals)
     const myPerfectBeginningParentRouter = (await import("./routes/myPerfectBeginning")).default;
     app.use("/api/my-perfect-beginning", requireAuth, myPerfectBeginningParentRouter);
+    // Generation routes (create-dish, resolve-context) — requires requireAuth already applied above
+    const myPerfectBeginningGenerationRouter = (await import("./routes/my-perfect-beginning")).default;
+    app.use("/api/my-perfect-beginning", myPerfectBeginningGenerationRouter);
 
     console.log("✅ [INIT] Parity routes mounted");
 

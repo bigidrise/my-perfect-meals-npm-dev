@@ -1,6 +1,6 @@
 # MPB Resolver Coverage Matrix
 
-> **Last updated:** 2026-08-06 — Phase 2 complete
+> **Last updated:** 2026-08-06 — Phase 2 complete (Resolver Sprint 3 ✅)
 > **Purpose:** Single-source-of-truth for which child profile fields actually influence the pediatric resolver.
 Use this before every resolver sprint to confirm targets and before every UI sprint to confirm collected data is being used.
 
@@ -46,7 +46,7 @@ Use this before every resolver sprint to confirm targets and before every UI spr
 | Kitchen budget | ✅ | `kitchen_budget` | ✅ | `parentPrefs.budgetLevel` (mapped budget→budget_conscious; profile default; request overrides) |
 | Kitchen time | ✅ | `kitchen_time_minutes` | ✅ | `parentPrefs.maxCookTimeMinutes` (profile default; request overrides) + guidance block |
 | Kitchen skill | ✅ | `kitchen_skill` | ✅ | `ChildProfileInput.kitchenSkill` → kitchen reality guidance block |
-| School safe required | ✅ | `school_safe_required` | ✅ | `parentPrefs.requiresSchoolSafe` (ORed with request flag) + school-safe guidance block |
+| School safe required | ✅ | `school_safe_required` | ✅ | `ChildProfileInput.schoolSafeRequired` OR-merged with request `parentPrefs.requiresSchoolSafe`; resolver hard-blocks all top-8 allergens the child has listed |
 | Emoji | ✅ | `emoji` | ❌ | Display/identity only; no resolver role |
 | Date of birth | ✅ | `date_of_birth` | ❌ | Age derivation display only; `age_stage` is the resolver input |
 
@@ -63,7 +63,7 @@ Use this before every resolver sprint to confirm targets and before every UI spr
 ### Override policy
 
 For fields that exist on both the child profile and the request body, the rule is:
-- `requiresSchoolSafe`: OR (either source activates it)
+- `requiresSchoolSafe`: OR (either source activates it — `childProfileInput.schoolSafeRequired` or request `parentPrefs.requiresSchoolSafe`)
 - `budgetLevel`, `maxCookTimeMinutes`, `culturalCuisine`, `goals`: request value wins if set, child profile value is the default
 
 ### Fields that flow via guidance blocks only (not into resolver `parentPrefs`)

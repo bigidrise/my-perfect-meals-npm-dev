@@ -822,6 +822,8 @@ async function fetchChildProfileInput(
       allergyDetails:            allergyDetails.length > 0 ? allergyDetails : undefined,
       feedingDevelopment:        Object.keys(feedingDevelopmentRaw).length > 0 ? feedingDevelopmentRaw : undefined,
       // ── Group 3: School and Kitchen Context ─────────────────────────────────
+      // Resolver Sprint 3: OR-merge — school-safe activates from either the stored
+      // child profile flag or the request's parentPrefs.requiresSchoolSafe.
       schoolSafeRequired:  !!row.school_safe_required,
       kitchenEquipment:    kitchenEquipmentRaw.length > 0 ? kitchenEquipmentRaw : undefined,
       kitchenBudget:       kitchenBudgetRaw,
@@ -1103,7 +1105,29 @@ router.post("/create-dish", requireAuth, async (req, res) => {
       ...parentPrefs,
       budgetLevel: parentPrefs.budgetLevel ?? (childProfileInput as any)?._resolverBudgetLevel ?? undefined,
       maxCookTimeMinutes: parentPrefs.maxCookTimeMinutes ?? childProfileInput?.kitchenTimeMinutes ?? undefined,
+      // Resolver Sprint 3: OR-merge — school-safe activates from either the stored
+      // child profile flag (schoolSafeRequired) or the request parentPrefs flag.
+      requiresSchoolSafe: parentPrefs.requiresSchoolSafe || childProfileInput?.schoolSafeRequired || false,
     };
+
+    // ── Invoke resolver (school-safe + kitchen reality + condition hard blocks) ─
+    // resolverCtx drives buildSystemPromptWithResolver which injects per-allergen
+    // HARD BLOCK lines when school-safe mode is active. Falls back to the legacy
+    // guidance-block prompt when the resolver throws (e.g. unknown child ID).
+    try {
+      resolverCtx = await resolvePediatricContextFromInput({
+        childProfileId: typeof childProfileId === "string" && UUID_RE.test(childProfileId) ? childProfileId : null,
+        childProfileIds: isMultiChildMode ? (rawChildProfileIds as string[]).slice(0, 10) : undefined,
+        stageOverride: ageStage as any,
+        parentPrefs: parentPrefsWithKitchen as any,
+        mealType: typeof req.body.mealType === "string" ? req.body.mealType : "any",
+        servings: typeof req.body.servings === "number" ? req.body.servings : 1,
+      });
+    } catch (resolverErr: any) {
+      console.warn("[create-dish] resolver failed, falling back to legacy prompt:", resolverErr?.message);
+      resolverCtx = null;
+    }
+
     const systemPrompt = resolverCtx
       ? buildSystemPromptWithResolver(ageStage, resolverCtx)
       : buildSystemPrompt(ageStage, allergies, parentPrefsWithKitchen, conditionGuidanceBlocks, stageDRIBlock);
@@ -1304,9 +1328,9 @@ router.post("/create-dish", requireAuth, async (req, res) => {
 });
 
 // ─── Generated Meals Persistence ─────────────────────────────────────────────
-router.post('/generated-meals', requireAuth, async (req: AuthenticatedRequest, res) => {
+router.post('/generated-meals', requireAuth, async (req, res) => {
   try {
-    const userId = req.authUser!.id;
+    const userId = (req as AuthenticatedRequest).authUser!.id;
     const { childProfileId, recipeData, imageUrl, selectedOptionName } = req.body;
     if (!recipeData) return res.status(400).json({ error: 'recipeData is required' });
 
@@ -1335,9 +1359,9 @@ router.post('/generated-meals', requireAuth, async (req: AuthenticatedRequest, r
   }
 });
 
-router.get('/generated-meals', requireAuth, async (req: AuthenticatedRequest, res) => {
+router.get('/generated-meals', requireAuth, async (req, res) => {
   try {
-    const userId = req.authUser!.id;
+    const userId = (req as AuthenticatedRequest).authUser!.id;
     const childProfileId = typeof req.query.childProfileId === 'string' ? req.query.childProfileId : null;
 
     const result = childProfileId

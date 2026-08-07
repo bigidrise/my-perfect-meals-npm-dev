@@ -1997,13 +1997,48 @@ export async function resolvePediatricContextFromInput(
     skillLevel: input.parentPrefs?.skillLevel ?? null,
   };
 
-  // School rules
+  // School rules — Resolver Sprint 3
+  // When school_safe_required is active (from child profile OR parent toggle), the resolver
+  // hard-blocks all of the child's listed top-8 allergens, not just a generic nut-free note.
+  // This ensures lunchbox meals are safe for a child's full allergen profile.
+  const TOP_8_ALLERGENS = new Set([
+    "peanut", "tree_nuts", "milk", "egg", "wheat", "soy", "sesame", "fish", "shellfish",
+  ]);
+  const ALLERGEN_DISPLAY: Record<string, string> = {
+    peanut: "peanuts", tree_nuts: "tree nuts", milk: "dairy/milk", egg: "eggs",
+    wheat: "wheat/gluten", soy: "soy", sesame: "sesame", fish: "fish", shellfish: "shellfish",
+  };
+
+  const isSchoolSafe = input.parentPrefs?.requiresSchoolSafe ?? false;
+  const schoolSafeConstraints: string[] = [];
+  if (isSchoolSafe) {
+    // Base nut-free constraints always apply in school-safe mode
+    schoolSafeConstraints.push(
+      "No tree nuts in any form",
+      "No peanuts in any form",
+      "Check all manufactured products for nut traces",
+    );
+    // Hard-block every top-8 allergen the child has on file (including non-nut allergens),
+    // regardless of severity — in a school/lunchbox context cross-contamination risk is
+    // elevated and even "preference avoid" items must be strictly excluded.
+    for (const removal of allergenRemovals) {
+      if (
+        TOP_8_ALLERGENS.has(removal.allergenId) &&
+        removal.allergenId !== "peanut" &&
+        removal.allergenId !== "tree_nuts"
+      ) {
+        const displayName = ALLERGEN_DISPLAY[removal.allergenId] ?? removal.allergenId;
+        schoolSafeConstraints.push(
+          `HARD BLOCK — ${displayName}: child's listed allergen — exclude in all forms in this school/lunchbox meal`,
+        );
+      }
+    }
+  }
+
   const schoolRules: SchoolRules = {
-    requiresSchoolSafe: input.parentPrefs?.requiresSchoolSafe ?? false,
+    requiresSchoolSafe: isSchoolSafe,
     requiresPackable: input.parentPrefs?.requiresPackable ?? false,
-    schoolSafeConstraints: input.parentPrefs?.requiresSchoolSafe
-      ? ["No tree nuts in any form", "No peanuts in any form", "Check all manufactured products for nut traces"]
-      : [],
+    schoolSafeConstraints,
     packableConstraints: input.parentPrefs?.requiresPackable
       ? ["No soups that will spill", "Use sealed containers", "No items requiring immediate refrigeration if no ice pack"]
       : [],
@@ -2137,12 +2172,41 @@ async function resolveFamily(
     notes: [],
   };
 
+  // School rules (family meal path) — Resolver Sprint 3
+  // Hard-block all top-8 allergens from any child in the family group when school-safe is active.
+  const FAMILY_TOP_8 = new Set([
+    "peanut", "tree_nuts", "milk", "egg", "wheat", "soy", "sesame", "fish", "shellfish",
+  ]);
+  const FAMILY_ALLERGEN_DISPLAY: Record<string, string> = {
+    peanut: "peanuts", tree_nuts: "tree nuts", milk: "dairy/milk", egg: "eggs",
+    wheat: "wheat/gluten", soy: "soy", sesame: "sesame", fish: "fish", shellfish: "shellfish",
+  };
+  const isFamilySchoolSafe = input.parentPrefs?.requiresSchoolSafe ?? false;
+  const familySchoolSafeConstraints: string[] = [];
+  if (isFamilySchoolSafe) {
+    familySchoolSafeConstraints.push(
+      "No tree nuts in any form",
+      "No peanuts in any form",
+      "Check all manufactured products for nut traces",
+    );
+    for (const removal of mergedAllergenRemovals) {
+      if (
+        FAMILY_TOP_8.has(removal.allergenId) &&
+        removal.allergenId !== "peanut" &&
+        removal.allergenId !== "tree_nuts"
+      ) {
+        const displayName = FAMILY_ALLERGEN_DISPLAY[removal.allergenId] ?? removal.allergenId;
+        familySchoolSafeConstraints.push(
+          `HARD BLOCK — ${displayName}: child's listed allergen — exclude in all forms in this school/lunchbox meal`,
+        );
+      }
+    }
+  }
+
   const schoolRules: SchoolRules = {
-    requiresSchoolSafe: input.parentPrefs?.requiresSchoolSafe ?? false,
+    requiresSchoolSafe: isFamilySchoolSafe,
     requiresPackable: input.parentPrefs?.requiresPackable ?? false,
-    schoolSafeConstraints: input.parentPrefs?.requiresSchoolSafe
-      ? ["No tree nuts", "No peanuts in any form"]
-      : [],
+    schoolSafeConstraints: familySchoolSafeConstraints,
     packableConstraints: input.parentPrefs?.requiresPackable
       ? ["Suitable for a lunchbox", "Sealed containers", "Cold-safe if no ice pack"]
       : [],
