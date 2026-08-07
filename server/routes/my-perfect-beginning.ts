@@ -908,6 +908,27 @@ router.post("/create-dish", requireAuth, async (req, res) => {
     const userId = authReq.authUser.id;
 
     const rawChildProfileIds: unknown = req.body.childProfileIds;
+
+    const isMultiChildMode =
+      Array.isArray(rawChildProfileIds) &&
+      (rawChildProfileIds as unknown[]).length >= 2 &&
+      (rawChildProfileIds as unknown[]).every(
+        (id) => typeof id === "string" && UUID_RE.test(id as string),
+      );
+
+    let mergedProfile: MergedChildProfile | null = null;
+
+    if (isMultiChildMode) {
+      const childIds = (rawChildProfileIds as string[]).slice(0, 10);
+      const profiles = (
+        await Promise.all(childIds.map((id) => fetchChildProfileFull(userId, id)))
+      ).filter((p): p is ChildProfileFull => p !== null);
+      mergedProfile = profiles.length > 0 ? mergeChildProfiles(profiles) : null;
+    }
+
+    const multiChildNames: string[] = mergedProfile?.childNames ?? [];
+    const multiChildStageLabels: string[] = mergedProfile?.stageLabels ?? [];
+
     const childProfileId = !isMultiChildMode && typeof req.body.childProfileId === "string"
       ? req.body.childProfileId
       : null;
@@ -1382,8 +1403,6 @@ interface MergedChildProfile {
   hardStop: { reason: string; message: string } | null;
 }
 
-    let mergedProfile: MergedChildProfile | null = null;
-
 const STAGE_RESTRICTIVENESS_ORDER: DevelopmentalStage[] = [
   "early_infant",
   "beginning_foods",
@@ -1403,16 +1422,6 @@ function mostRestrictiveStage(stages: DevelopmentalStage[]): DevelopmentalStage 
   }
   return best;
 }
-
-      const childIds = (rawChildProfileIds as string[]).slice(0, 10); // cap at 10 children
-
-    let multiChildNames: string[] = [];
-
-      const profiles = (await Promise.all(
-        childIds.map(id => fetchChildProfileFull(userId, id))
-      )).filter((p): p is ChildProfileFull => p !== null);
-
-    let multiChildStageLabels: string[] = [];
 
 const STAGE_LABELS_SHORT: Record<DevelopmentalStage, string> = {
   early_infant:      "Early Infant",
@@ -1466,7 +1475,3 @@ function mergeChildProfiles(profiles: ChildProfileFull[]): MergedChildProfile {
   };
 }
 
-    const isMultiChildMode =
-      Array.isArray(rawChildProfileIds) &&
-      rawChildProfileIds.length >= 2 &&
-      rawChildProfileIds.every(id => typeof id === "string" && UUID_RE.test(id));

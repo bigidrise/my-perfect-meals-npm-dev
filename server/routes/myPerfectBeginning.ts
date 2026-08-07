@@ -365,9 +365,9 @@ router.get("/children", requireAuth, async (req, res) => {
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
   try {
     const result = await db.execute(sql`
-      UPDATE child_profiles SET is_archived = true, updated_at = now()
-      WHERE id = ${id} AND user_id = ${userId} AND is_archived = false
-      RETURNING id
+      SELECT * FROM child_profiles
+      WHERE user_id = ${userId} AND is_archived = false
+      ORDER BY created_at ASC
     `);
     return res.json({ children: normalizeRows(result) });
   } catch (err: any) {
@@ -435,20 +435,35 @@ router.post("/children", requireAuth, async (req, res) => {
 
   try {
     const result = await db.execute(sql`
-      UPDATE child_profiles SET is_archived = true, updated_at = now()
-      WHERE id = ${id} AND user_id = ${userId} AND is_archived = false
-      RETURNING id
+      INSERT INTO child_profiles (
+        user_id, name, age_stage, date_of_birth, emoji, cultural_preferences,
+        allergies, allergy_details, dietary_preferences, medical_conditions,
+        feeding_concerns, sensory_issues, dislikes, family_goals, kitchen_equipment,
+        birth_history, feeding_development, feeding_ability,
+        sex, height_cm, weight_kg, growth_context,
+        kitchen_budget, kitchen_time_minutes, kitchen_skill,
+        school_safe_required, pediatrician_oversight, medication_affects_appetite, g_tube
+      ) VALUES (
+        ${userId}, ${name.trim()}, ${age_stage}, ${date_of_birth}, ${emoji}, ${cultural_preferences ?? null},
+        ${aJson}::jsonb, ${adJson}::jsonb, ${dpJson}::jsonb, ${mcJson}::jsonb,
+        ${fcJson}::jsonb, ${siJson}::jsonb, ${dlJson}::jsonb, ${fgJson}::jsonb, ${keJson}::jsonb,
+        ${bhJson}::jsonb, ${fdJson}::jsonb, ${faJson}::jsonb,
+        ${sex ?? null}, ${height_cm ?? null}, ${weight_kg ?? null}, ${growth_context},
+        ${kitchen_budget}, ${kitchen_time_minutes}, ${kitchen_skill},
+        ${school_safe_required}, ${pediatrician_oversight}, ${medication_affects_appetite}, ${g_tube_derived}
+      )
+      RETURNING *
     `);
     const child = normalizeRows(result)[0];
     return res.json({ child });
   } catch (err: any) {
-    console.error("[MPB/children] PATCH error:", err.message);
-    return res.status(500).json({ error: "Failed to update child profile" });
+    console.error("[MPB/children] POST error:", err.message);
+    return res.status(500).json({ error: "Failed to create child profile" });
   }
 });
 
-// DELETE /children/:id — archive a child profile (soft delete, ownership validated)
-router.delete("/children/:id", requireAuth, async (req, res) => {
+// PATCH /children/:id — update a child profile (ownership validated, merge-patch)
+router.patch("/children/:id", requireAuth, async (req, res) => {
     const userId = (req as AuthenticatedRequest).authUser?.id;
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
@@ -491,7 +506,7 @@ router.delete("/children/:id", requireAuth, async (req, res) => {
   const medical_conditions   = arr("medical_conditions");
   const feeding_concerns     = arr("feeding_concerns");
   const sensory_issues       = arr("sensory_issues");
-          const dislikes: string[] = Array.isArray(row.dislikes) ? row.dislikes : [];
+  const dislikes             = arr("dislikes");
   const family_goals         = arr("family_goals");
   const kitchen_equipment    = arr("kitchen_equipment");
 
@@ -519,11 +534,41 @@ router.delete("/children/:id", requireAuth, async (req, res) => {
 
   try {
     const result = await db.execute(sql`
-      UPDATE child_profiles SET is_archived = true, updated_at = now()
+      UPDATE child_profiles SET
+        name                      = ${name},
+        age_stage                 = ${age_stage},
+        date_of_birth             = ${date_of_birth},
+        emoji                     = ${emoji},
+        cultural_preferences      = ${cultural_pref ?? null},
+        allergies                 = ${JSON.stringify(allergies)}::jsonb,
+        allergy_details           = ${JSON.stringify(allergy_details)}::jsonb,
+        dietary_preferences       = ${JSON.stringify(dietary_preferences)}::jsonb,
+        medical_conditions        = ${JSON.stringify(medical_conditions)}::jsonb,
+        feeding_concerns          = ${JSON.stringify(feeding_concerns)}::jsonb,
+        sensory_issues            = ${JSON.stringify(sensory_issues)}::jsonb,
+        dislikes                  = ${JSON.stringify(dislikes)}::jsonb,
+        family_goals              = ${JSON.stringify(family_goals)}::jsonb,
+        kitchen_equipment         = ${JSON.stringify(kitchen_equipment)}::jsonb,
+        birth_history             = ${JSON.stringify(birth_history)}::jsonb,
+        feeding_development       = ${JSON.stringify(feeding_development)}::jsonb,
+        feeding_ability           = ${JSON.stringify(feeding_ability)}::jsonb,
+        sex                       = ${sex ?? null},
+        height_cm                 = ${height_cm ?? null},
+        weight_kg                 = ${weight_kg ?? null},
+        growth_context            = ${growth_context},
+        kitchen_budget            = ${kitchen_budget},
+        kitchen_time_minutes      = ${kitchen_time_minutes},
+        kitchen_skill             = ${kitchen_skill},
+        school_safe_required      = ${school_safe_required},
+        pediatrician_oversight    = ${pediatrician_oversight},
+        medication_affects_appetite = ${medication_affects_appetite},
+        g_tube                    = ${g_tube_derived},
+        updated_at                = now()
       WHERE id = ${id} AND user_id = ${userId} AND is_archived = false
-      RETURNING id
+      RETURNING *
     `);
     const child = normalizeRows(result)[0];
+    if (!child) return res.status(404).json({ error: "Child profile not found" });
     return res.json({ child });
   } catch (err: any) {
     console.error("[MPB/children] PATCH error:", err.message);
@@ -577,14 +622,12 @@ router.get("/parents-corner/tip", requireAuth, async (req, res) => {
 // GET /parents-corner/conversation — load saved conversation for a child profile
 router.get("/parents-corner/conversation", requireAuth, async (req, res) => {
     const userId = (req as AuthenticatedRequest).authUser?.id;
-    const childProfileId: string | null = childContext?.id ?? null;
+    const childProfileId: string | null = (req.query.childProfileId as string) || null;
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
-  if (!childProfileId) return res.json({ ok: true });
+  if (!childProfileId) return res.json({ messages: [] });
       const owned = await assertChildOwnership(userId, childProfileId);
   if (!owned) return res.status(403).json({ error: "Forbidden" });
-    const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
-      { role: "system", content: systemPrompt },
-    ];
+  const messages = await getConversation(userId, childProfileId);
   res.json({ messages });
 });
 
@@ -592,7 +635,7 @@ router.get("/parents-corner/conversation", requireAuth, async (req, res) => {
 router.delete("/parents-corner/conversation", requireAuth, async (req, res) => {
     const userId = (req as AuthenticatedRequest).authUser?.id;
   // childProfileId may arrive in body or query string
-    const childProfileId: string | null = childContext?.id ?? null;
+    const childProfileId: string | null = (req.body.childProfileId || req.query.childProfileId as string) || null;
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
   if (!childProfileId) return res.json({ ok: true });
       const owned = await assertChildOwnership(userId, childProfileId);
