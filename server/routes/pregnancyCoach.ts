@@ -130,20 +130,19 @@ router.patch("/conversation", async (req, res) => {
 
 // DELETE /conversation — clear conversation history
 router.delete("/conversation", async (req, res) => {
+  const userId = resolveUserId(req);
+  if (!userId) return res.status(401).json({ error: "Not authenticated" });
+  try {
+    await db.execute(sql`
+      DELETE FROM pregnancy_conversations WHERE user_id = ${userId}
+    `);
+  } catch { /* non-fatal */ }
+  res.json({ ok: true });
+});
+
+router.post("/ask", async (req, res) => {
+  try {
     const userId = resolveUserId(req);
-
-  const history = await getConversation(userId);
-    const userId = resolveUserId(req);
-
-  const history = await getConversation(userId);
-
-  const history = await getConversation(userId);
-
-  const history = await getConversation(userId);
-
-  const history = await getConversation(userId);
-
-  const history = await getConversation(userId);
     if (!userId) return res.status(401).json({ error: "Not authenticated" });
 
     const { message } = req.body;
@@ -413,8 +412,19 @@ You MUST respond with a JSON object:
 
     const raw = completion.choices[0]?.message?.content ?? "{}";
     let reply = "";
-
     let suggestedMealActions: { actionType: string; label: string; mealIdea: string }[] = [];
+    try {
+      const parsed = JSON.parse(raw);
+      if (typeof parsed.reply === "string" && parsed.reply.trim()) reply = parsed.reply;
+      if (Array.isArray(parsed.suggestedMealActions)) {
+        suggestedMealActions = parsed.suggestedMealActions
+          .filter((a: any) => a.actionType === "create_pregnancy_meal" && typeof a.label === "string" && typeof a.mealIdea === "string")
+          .slice(0, 2);
+      }
+    } catch {
+      if (raw && raw !== "{}") reply = raw;
+    }
+    if (userId) {
       const updatedHistory = [
         ...dbHistory,
         { role: "user", content: message },
@@ -549,5 +559,3 @@ router.delete("/setup", async (req, res) => {
 });
 
 export default router;
-
-      const parsed = JSON.parse(raw);
