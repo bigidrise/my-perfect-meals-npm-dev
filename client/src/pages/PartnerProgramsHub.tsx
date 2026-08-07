@@ -12,6 +12,7 @@ import {
   ChevronRight,
   HelpCircle,
   Shield,
+  Package,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
@@ -30,15 +31,29 @@ const programs = [
     border: "border-orange-500/30",
   },
   {
+    id: "founding-affiliate",
+    title: "Founding Affiliate Program",
+    description:
+      "Earn 40% recurring commission sharing My Perfect Meals. Complete the Affiliate Academy and your account activates automatically.",
+    icon: Star,
+    route: "/business-center/founding-affiliate",
+    accent: "bg-orange-500/20",
+    iconColor: "text-orange-400",
+    border: "border-orange-500/30",
+    badge: "Founding",
+  },
+  {
     id: "founding-partner",
     title: "Founding Business Partner Program",
     description:
-      "A limited program for practices, clinics, and organizations building on My Perfect Meals as a foundation for their services.",
-    icon: Star,
+      "Feature your brand's products inside My Perfect Meals. A commercial partnership for companies that want their products infused directly into the platform experience.",
+    icon: Package,
     route: "/business-center/founding-partner",
-    accent: "bg-orange-500/20",
-    iconColor: "text-orange-400",
-    border: "border-orange-500/20",
+    accent: "bg-blue-500/20",
+    iconColor: "text-blue-400",
+    border: "border-blue-500/30",
+    badge: "Product Placement",
+    badgeColor: "bg-blue-500/25 border-blue-500/40 text-blue-400",
   },
   {
     id: "industry",
@@ -73,17 +88,19 @@ const programs = [
     iconColor: "text-orange-400",
     border: "border-white/10",
   },
-  {
-    id: "partner-program",
-    title: "Partner & Revenue Center",
-    description:
-      "Access your promo code, referral link, QR code, commission terms, and partner performance tools.",
-    icon: TrendingUp,
-    route: "/business-center/affiliate",
-    accent: "bg-white/8",
-    iconColor: "text-orange-400",
-    border: "border-white/10",
-  },
+  // Partner & Revenue Center — feature-hidden during Founding Affiliate launch.
+  // Routes and backend are preserved. Un-hide by removing the `hidden` flag.
+  // {
+  //   id: "partner-program",
+  //   title: "Partner & Revenue Center",
+  //   description:
+  //     "Access your promo code, referral link, QR code, commission terms, and partner performance tools.",
+  //   icon: TrendingUp,
+  //   route: "/business-center/affiliate",
+  //   accent: "bg-white/8",
+  //   iconColor: "text-orange-400",
+  //   border: "border-white/10",
+  // },
   {
     id: "academy",
     title: "My Perfect Meals Academy",
@@ -169,9 +186,16 @@ export default function PartnerProgramsHub() {
                   <Icon className={`h-5 w-5 ${program.iconColor}`} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-semibold text-white leading-snug">
-                    {program.title}
-                  </h3>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-sm font-semibold text-white leading-snug">
+                      {program.title}
+                    </h3>
+                    {"badge" in program && program.badge && (
+                      <span className={`px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wide ${"badgeColor" in program && program.badgeColor ? program.badgeColor : "bg-orange-500/25 border-orange-500/40 text-orange-400"}`}>
+                        {program.badge}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-white/50 mt-0.5 leading-relaxed">
                     {program.description}
                   </p>
