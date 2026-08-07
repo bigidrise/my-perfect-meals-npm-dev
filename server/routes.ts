@@ -7438,6 +7438,37 @@ Provide a single exceptional meal recommendation in JSON format with the followi
     }
   });
 
+  // ── Saved-meal translation (content translation layer, not i18n) ───────────
+  // GET  /api/saved-meals/:id/translation?locale=zh
+  //   → Returns cached translation (instant) or generates + caches on first call.
+  //   → 204 when locale is English — no translation needed.
+  //   → 403 if the meal belongs to another user.
+  app.get("/api/saved-meals/:id/translation", requireAuth, async (req, res) => {
+    const locale = ((req.query.locale as string) || "").split("-")[0].toLowerCase();
+    if (!locale || locale === "en") return res.status(204).send();
+
+    try {
+      const userId = (req as AuthenticatedRequest).authUser.id;
+      const { id } = req.params;
+
+      const [meal] = await db
+        .select({ title: savedMealsTable.title, mealData: savedMealsTable.mealData, userId: savedMealsTable.userId })
+        .from(savedMealsTable)
+        .where(eq(savedMealsTable.id, id))
+        .limit(1);
+
+      if (!meal) return res.status(404).json({ error: "Meal not found" });
+      if (meal.userId !== String(userId)) return res.status(403).json({ error: "Forbidden" });
+
+      const { translateMeal } = await import("./services/mealTranslationService");
+      const translation = await translateMeal(id, locale, meal.title, meal.mealData);
+      return res.json(translation);
+    } catch (err: any) {
+      console.error("[meal-translation] GET error:", err.message);
+      return res.status(500).json({ error: "Translation failed" });
+    }
+  });
+
   // ─────────────────────────────────────────────────────────────────────────
   // UNIFIED ROUTE BLOCK — all routes from index.ts that were missing from
   // registerRoutes. Adding them here ensures dev AND prod are always in sync.

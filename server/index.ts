@@ -1474,6 +1474,33 @@ setTimeout(async () => {
   }
 }, 4500);
 
+  // ── meal_translations boot migration ──────────────────────────────────────
+  setTimeout(async () => {
+    try {
+      await db.execute(sql`
+        CREATE TABLE IF NOT EXISTS meal_translations (
+          id              SERIAL PRIMARY KEY,
+          saved_meal_id   UUID NOT NULL,
+          locale          VARCHAR(10) NOT NULL,
+          translated_name TEXT NOT NULL,
+          translated_description TEXT,
+          translated_ingredients  JSONB,
+          translated_instructions JSONB,
+          source_hash     VARCHAR(32) NOT NULL,
+          created_at      TIMESTAMPTZ DEFAULT NOW(),
+          UNIQUE(saved_meal_id, locale)
+        )
+      `);
+      await db.execute(sql`
+        CREATE INDEX IF NOT EXISTS idx_meal_translations_meal_locale
+          ON meal_translations (saved_meal_id, locale)
+      `);
+      console.log("✅ Meal Translations boot migration complete");
+    } catch (err: any) {
+      console.error("❌ Meal Translations boot migration failed:", err.message);
+    }
+  }, 5000);
+
 // Global process error handlers for stability
 process.on('unhandledRejection', (reason, promise) => {
   console.error('🚨 Unhandled Rejection at:', promise, 'reason:', reason);

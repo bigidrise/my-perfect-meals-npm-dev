@@ -1374,6 +1374,34 @@ async function initializeApp() {
           console.error("❌ [prod] Promotion Engine boot migration failed:", err.message);
         }
       }, 5500);
+
+      // ── meal_translations ─────────────────────────────────────────────────
+      setTimeout(async () => {
+        try {
+          await database.execute(sql`
+            CREATE TABLE IF NOT EXISTS meal_translations (
+              id              SERIAL PRIMARY KEY,
+              saved_meal_id   UUID NOT NULL,
+              locale          VARCHAR(10) NOT NULL,
+              translated_name TEXT NOT NULL,
+              translated_description TEXT,
+              translated_ingredients  JSONB,
+              translated_instructions JSONB,
+              source_hash     VARCHAR(32) NOT NULL,
+              created_at      TIMESTAMPTZ DEFAULT NOW(),
+              UNIQUE(saved_meal_id, locale)
+            )
+          `);
+          await database.execute(sql`
+            CREATE INDEX IF NOT EXISTS idx_meal_translations_meal_locale
+              ON meal_translations (saved_meal_id, locale)
+          `);
+          console.log("✅ [prod] Meal Translations boot migration complete");
+        } catch (err: any) {
+          console.error("❌ [prod] Meal Translations boot migration failed:", err.message);
+        }
+      }, 6000);
+
     }, 4000);
   } catch (error) {
     console.error("❌ [INIT] Initialization failed:", error);
