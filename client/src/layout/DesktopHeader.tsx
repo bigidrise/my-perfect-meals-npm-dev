@@ -149,7 +149,7 @@ export default function DesktopHeader() {
     return t("appName");
   }
 
-  const { t: tc } = useTranslation();
+  const { t: tc } = useTranslation("dashboard");
 
   const fallbackTitle = getPageTitle(location);
   const title = contextTitle || (fallbackTitle === "Signature Kitchen Experience" ? appName : fallbackTitle);
