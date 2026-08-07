@@ -211,6 +211,23 @@ const EMPTY_PROFILE: ChildProfile = {
   family_goals: [],
 } as any;
 
+function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
+  return (
+    <label className="flex items-center gap-3 cursor-pointer">
+      <button
+        type="button"
+        onClick={() => onChange(!checked)}
+        className={`relative w-11 h-6 rounded-full border transition-colors flex-shrink-0 ${
+          checked ? "bg-emerald-500 border-emerald-400" : "bg-white/10 border-white/20"
+        }`}
+      >
+        <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${checked ? "translate-x-5" : ""}`} />
+      </button>
+      <span className="text-sm text-white/80">{label}</span>
+    </label>
+  );
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function BoolPill({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {

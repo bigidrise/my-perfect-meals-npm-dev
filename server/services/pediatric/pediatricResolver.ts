@@ -135,6 +135,7 @@ export interface KitchenRealityContext {
   budgetLevel: "budget_conscious" | "moderate" | "flexible" | null;
   maxCookTimeMinutes: number | null;
   equipmentConstraints: string[];   // e.g. "no food processor available"
+  skillLevel: "beginner" | "intermediate" | "advanced" | null;
 }
 
 /** Parent overrides — free-text sanitized prefs that modulate but never override safety */
@@ -1133,6 +1134,10 @@ export interface PediatricResolverInput {
     culturalCuisine?: string;
     dietaryPattern?: string;
     goals?: string[];
+    /** Equipment unavailable in this kitchen — passed through to the AI as hard constraints */
+    equipmentConstraints?: string[];
+    /** Parent's self-reported cooking skill level */
+    skillLevel?: "beginner" | "intermediate" | "advanced";
   };
   mealType?: "breakfast" | "lunch" | "dinner" | "snack" | "any";
   servings?: number;
@@ -1614,10 +1619,26 @@ function buildSystemContextBlock(ctx: Omit<PediatricMealGenerationContext, "syst
 
   // Kitchen reality
   const kr = ctx.kitchenRealityContext;
-  if (kr.maxCookTimeMinutes || kr.budgetLevel) {
-    lines.push("── KITCHEN CONSTRAINTS ──");
-    if (kr.maxCookTimeMinutes) lines.push(`Max cook time: ${kr.maxCookTimeMinutes} minutes`);
-    if (kr.budgetLevel) lines.push(`Budget: ${kr.budgetLevel.replace(/_/g, " ")}`);
+  if (kr.maxCookTimeMinutes || kr.budgetLevel || kr.equipmentConstraints.length > 0 || kr.skillLevel) {
+    lines.push("── KITCHEN CONSTRAINTS (HARD CONSTRAINTS — match the recipe exactly) ──");
+    if (kr.maxCookTimeMinutes) lines.push(`Max cook time: ${kr.maxCookTimeMinutes} minutes — HARD CAP. Every step must finish within this limit. Do not suggest recipes that exceed it.`);
+    if (kr.budgetLevel) {
+      const budgetDesc: Record<string, string> = {
+        budget_conscious: "Budget-conscious — use affordable pantry staples; avoid specialty or premium ingredients.",
+        moderate: "Moderate budget — everyday supermarket ingredients are fine; occasional specialty items acceptable.",
+        flexible: "Flexible budget — premium or specialty ingredients are acceptable.",
+      };
+      lines.push(`Budget tier: ${budgetDesc[kr.budgetLevel] ?? kr.budgetLevel.replace(/_/g, " ")}`);
+    }
+    if (kr.skillLevel) {
+      const skillDesc: Record<string, string> = {
+        beginner: "Beginner cook — use simple steps, minimal chopping, common appliances only (stovetop, microwave, oven). Avoid advanced techniques.",
+        intermediate: "Intermediate cook — multi-step recipes are fine; avoid highly specialized techniques.",
+        advanced: "Experienced cook — comfortable with most culinary techniques.",
+      };
+      lines.push(`Cook skill: ${skillDesc[kr.skillLevel] ?? kr.skillLevel}`);
+    }
+    for (const eq of kr.equipmentConstraints) lines.push(`Equipment constraint: ${eq}`);
     lines.push("");
   }
 
@@ -1857,7 +1878,8 @@ export async function resolvePediatricContextFromInput(
   const kitchenRealityContext: KitchenRealityContext = {
     budgetLevel: input.parentPrefs?.budgetLevel ?? null,
     maxCookTimeMinutes: input.parentPrefs?.maxCookTimeMinutes ?? null,
-    equipmentConstraints: [],
+    equipmentConstraints: input.parentPrefs?.equipmentConstraints ?? [],
+    skillLevel: input.parentPrefs?.skillLevel ?? null,
   };
 
   // School rules
@@ -2005,7 +2027,8 @@ async function resolveFamily(
   const kitchenRealityContext: KitchenRealityContext = {
     budgetLevel: input.parentPrefs?.budgetLevel ?? null,
     maxCookTimeMinutes: input.parentPrefs?.maxCookTimeMinutes ?? null,
-    equipmentConstraints: [],
+    equipmentConstraints: input.parentPrefs?.equipmentConstraints ?? [],
+    skillLevel: input.parentPrefs?.skillLevel ?? null,
   };
 
   const conflictResolutions = detectAndResolveConflicts(

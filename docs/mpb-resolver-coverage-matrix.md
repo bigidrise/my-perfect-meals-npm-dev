@@ -2,6 +2,7 @@
 
 > **Last updated:** 2026-08-06 — Phase 2 complete
 > **Purpose:** Single-source-of-truth for which child profile fields actually influence the pediatric resolver.
+Use this before every resolver sprint to confirm targets and before every UI sprint to confirm collected data is being used.
 
 ---
 

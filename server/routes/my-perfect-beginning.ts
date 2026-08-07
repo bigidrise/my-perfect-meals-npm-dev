@@ -1015,53 +1015,18 @@ router.post("/create-dish", requireAuth, async (req, res) => {
     const educationLayer = computeParentEducationLayer({ ageStage, allergies, parentPrefs, foodRequest });
 
     // ── Phase 1: Run Resolver — all decisions made here, BEFORE AI ───────────
+    // Kitchen context from the child profile serves as the default baseline;
+    // request-supplied parentPrefs override it on a field-by-field basis.
     let resolverCtx: PediatricMealGenerationContext | null = null;
-    try {
-      resolverCtx = await resolvePediatricContextFromInput({
-        childProfileId,
-        stageOverride: ageStage as DevelopmentalStageKey,
-        allergyOverride: allergies.map(a => ({
-          allergenId: a.allergenId,
-          severity: a.severity,
-          emergencyMedication: a.emergencyMedication,
-          customAllergenName: a.customAllergenName,
-        })),
-        parentPrefs: {
-          // Child profile values serve as defaults; request-supplied values override.
-          // Budget: request wins if set, else child profile kitchen_budget
-          budgetLevel: (parentPrefs.budgetLevel as any)
-            ?? (childProfileInput as any)?._resolverBudgetLevel,
-          // Cook time: request wins if set, else child profile kitchen_time_minutes
-          maxCookTimeMinutes: parentPrefs.maxCookTimeMinutes
-            ?? childProfileInput?.kitchenTimeMinutes,
-          // School-safe: either source can set this — child profile is authoritative,
-          // but a request-level flag (e.g. from UI toggle) also activates it.
-          requiresSchoolSafe: parentPrefs.requiresSchoolSafe
-            || childProfileInput?.schoolSafeRequired
-            || false,
-          requiresPackable: parentPrefs.requiresPackable,
-          // Cultural cuisine: request (parent note on this meal) wins;
-          // fall back to child profile cultural_preferences.
-          culturalCuisine: rawCulturalCuisine
-            ?? childProfileInput?.culturalPreferences,
-          dietaryPattern: parentPrefs.dietaryPattern,
-          // Goals: request wins if supplied; fall back to child profile family_goals.
-          goals: rawGoals
-            ?? childProfileInput?.familyGoals,
-        },
-        mealType: "any",
-        servings: 1,
-      });
-    } catch (resolverErr: any) {
-      console.warn("[MyPerfectBeginning] Resolver failed — falling back to legacy prompt:", resolverErr?.message);
-    }
 
-    // ── Phase 2: Build prompts ────────────────────────────────────────────────
-    // Resolver path (preferred): uses pre-assembled context block
-    // Fallback path: uses conditionGuidanceBlocks from buildPediatricGuidanceBlocks
+    const parentPrefsWithKitchen: ParentPrefs = {
+      ...parentPrefs,
+      budgetLevel: parentPrefs.budgetLevel ?? (childProfileInput as any)?._resolverBudgetLevel ?? undefined,
+      maxCookTimeMinutes: parentPrefs.maxCookTimeMinutes ?? childProfileInput?.kitchenTimeMinutes ?? undefined,
+    };
     const systemPrompt = resolverCtx
       ? buildSystemPromptWithResolver(ageStage, resolverCtx)
-      : buildSystemPrompt(ageStage, allergies, parentPrefs, conditionGuidanceBlocks, stageDRIBlock);
+      : buildSystemPrompt(ageStage, allergies, parentPrefsWithKitchen, conditionGuidanceBlocks, stageDRIBlock);
 
     const userMessage = buildUserMessage(
       foodRequest,
