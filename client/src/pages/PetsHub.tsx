@@ -60,6 +60,8 @@ export default function PetsHub() {
           </button>
         )}
 
+        <h1 className="text-2xl font-bold text-white mb-4">My Perfect Pets</h1>
+
         {/* Companion Nutrition Intelligence banner */}
         <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-3 mb-5">
           <p className="text-white font-semibold text-sm">Companion Nutrition Intelligence</p>
@@ -84,8 +86,8 @@ export default function PetsHub() {
               onClick={() => pet.available && pet.route && setLocation(pet.route)}
               className={`w-full text-left p-4 rounded-2xl border transition-all duration-200 ${
                 pet.available
-                  ? "bg-black/40 backdrop-blur-lg border-orange-500/30 active:scale-[0.98]"
-                  : "bg-black/20 backdrop-blur-lg border-white/10 opacity-70 cursor-default"
+                  ? "bg-black/10 backdrop-blur-lg border-orange-500/30 active:scale-[0.98]"
+                  : "bg-black/10 backdrop-blur-lg border-white/10 opacity-70 cursor-default"
               }`}
             >
               <div className="flex items-center gap-4">
