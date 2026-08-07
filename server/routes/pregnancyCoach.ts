@@ -148,7 +148,6 @@ router.post("/ask", async (req, res) => {
   try {
     const userId = resolveUserId(req);
 
-  const { messages } = req.body;
     const { message } = req.body;
 
     if (!message || typeof message !== "string") {
