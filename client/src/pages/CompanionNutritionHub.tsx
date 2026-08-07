@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { usePageTitle } from "@/contexts/PageTitleContext";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -81,6 +83,7 @@ export default function CompanionNutritionHub() {
   const { user } = useAuth();
   const { open, setLastResponse } = useCopilot();
   const { isFree, showLockModal, lockMessage, guardAction, closeLockModal } = useFreeLock();
+  const isDesktop = useIsDesktop();
   const [companionScanModal, setCompanionScanModal] = useState<{ open: boolean; profileId?: string; profileName?: string }>({ open: false });
   const [companionScanSheet, setCompanionScanSheet] = useState<{ open: boolean; result: IngredientScanResult | null }>({ open: false, result: null });
   const [profiles, setProfiles] = useState<DogProfile[]>([]);
@@ -92,8 +95,10 @@ export default function CompanionNutritionHub() {
   const [statusLoading, setStatusLoading] = useState<string | null>(null);
   const [showPrevious, setShowPrevious] = useState(false);
 
+  usePageTitle("My Perfect Dog");
+
   useEffect(() => {
-    document.title = "Companion Nutrition | My Perfect Meals";
+    document.title = "My Perfect Dog | My Perfect Meals";
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
@@ -224,7 +229,20 @@ export default function CompanionNutritionHub() {
         </div>
       </MobileHeaderGuard>
 
-      <div className="max-w-2xl mx-auto px-4" style={{ paddingTop: "calc(5.5rem + env(safe-area-inset-top, 0px))" }}>
+      <div className="max-w-2xl mx-auto px-4" style={{ paddingTop: isDesktop ? "2rem" : "calc(5.5rem + env(safe-area-inset-top, 0px))" }}>
+
+        {/* Desktop inline back button */}
+        {isDesktop && (
+          <div className="mb-4">
+            <button
+              onClick={() => setLocation("/companion")}
+              className="flex items-center gap-1.5 text-orange-400 text-sm hover:text-orange-300 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span>Back to My Perfect Pets</span>
+            </button>
+          </div>
+        )}
 
         {/* Quick Actions */}
         <div className="grid grid-cols-3 gap-3 mb-6">

@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { usePageTitle } from "@/contexts/PageTitleContext";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, ArrowLeft, ShieldCheck, ShieldX, AlertTriangle, RefreshCw, ChevronDown } from "lucide-react";
@@ -37,6 +39,7 @@ const QUICK_CHECKS = [
 
 export default function DogIngredientScanner() {
   const [location, setLocation] = useLocation();
+  const isDesktop = useIsDesktop();
   const { open, setLastResponse } = useCopilot();
   const [ingredient, setIngredient] = useState("");
   const [scanning, setScanning] = useState(false);
@@ -54,8 +57,10 @@ export default function DogIngredientScanner() {
     if (fromUrl) setSelectedProfileId(fromUrl);
   }, []);
 
+  usePageTitle("Ingredient Scanner");
+
   useEffect(() => {
-    document.title = "Ingredient Scanner | My Perfect Pets";
+    document.title = "Ingredient Scanner | My Perfect Meals";
     window.scrollTo({ top: 0, behavior: "instant" });
     fetch(apiUrl("/api/companion/profiles"), { headers: getAuthHeaders() })
       .then((r) => r.json())
@@ -167,7 +172,20 @@ export default function DogIngredientScanner() {
         </div>
       </MobileHeaderGuard>
 
-      <div className="max-w-lg mx-auto px-4" style={{ paddingTop: "calc(5rem + env(safe-area-inset-top, 0px))" }}>
+      <div className="max-w-lg mx-auto px-4" style={{ paddingTop: isDesktop ? "2rem" : "calc(5rem + env(safe-area-inset-top, 0px))" }}>
+
+        {/* Desktop inline back button */}
+        {isDesktop && (
+          <div className="mb-4">
+            <button
+              onClick={() => setLocation("/companion/dogs")}
+              className="flex items-center gap-1.5 text-orange-400 text-sm hover:text-orange-300 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span>Back to My Perfect Dog</span>
+            </button>
+          </div>
+        )}
 
         {/* Profile selector */}
         {profiles.length > 0 && (

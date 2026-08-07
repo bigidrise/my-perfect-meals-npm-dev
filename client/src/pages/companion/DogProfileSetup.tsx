@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { usePageTitle } from "@/contexts/PageTitleContext";
 import { useLocation, useParams, useSearch } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { PawPrint, ArrowLeft, ArrowRight, Check, Camera, Star, X, Upload } from "lucide-react";
@@ -97,6 +99,7 @@ function inputClass() {
 
 export default function DogProfileSetup() {
   const [, setLocation] = useLocation();
+  const isDesktop = useIsDesktop();
   const params = useParams<{ id?: string }>();
   const search = useSearch();
   const skipToPhotos = new URLSearchParams(search).get("photos") === "true";
@@ -115,8 +118,10 @@ export default function DogProfileSetup() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const photosFetched = useRef(false);
 
+  usePageTitle(isEdit ? "Edit Dog Profile" : "Add Your Dog");
+
   useEffect(() => {
-    document.title = isEdit ? "Edit Dog Profile" : "Add Your Dog | My Perfect Pets";
+    document.title = isEdit ? "Edit Dog Profile | My Perfect Meals" : "Add Your Dog | My Perfect Meals";
     window.scrollTo({ top: 0, behavior: "instant" });
   }, [isEdit]);
 
@@ -373,7 +378,20 @@ export default function DogProfileSetup() {
         </div>
       </MobileHeaderGuard>
 
-      <div className="max-w-lg mx-auto px-4" style={{ paddingTop: "calc(5rem + env(safe-area-inset-top, 0px))" }}>
+      <div className="max-w-lg mx-auto px-4" style={{ paddingTop: isDesktop ? "2rem" : "calc(5rem + env(safe-area-inset-top, 0px))" }}>
+
+        {/* Desktop inline back button */}
+        {isDesktop && (
+          <div className="mb-4">
+            <button
+              onClick={() => setLocation("/companion/dogs")}
+              className="flex items-center gap-1.5 text-orange-400 text-sm hover:text-orange-300 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span>Back to My Perfect Dog</span>
+            </button>
+          </div>
+        )}
 
         <AnimatePresence mode="wait">
           {/* STEP 1: Identity */}

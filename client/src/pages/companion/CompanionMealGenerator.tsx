@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { usePageTitle } from "@/contexts/PageTitleContext";
 import { useLocation, useSearch } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -52,6 +54,7 @@ interface GeneratedMeal {
 
 export default function CompanionMealGenerator() {
   const [location, setLocation] = useLocation();
+  const isDesktop = useIsDesktop();
   const search = useSearch();
   const params = new URLSearchParams(search);
   const preselectedProfileId = params.get("profileId") || "";
@@ -76,8 +79,10 @@ export default function CompanionMealGenerator() {
   const [citationsOpen, setCitationsOpen] = useState(false);
   const [protocolOpen, setProtocolOpen] = useState(false);
 
+  usePageTitle("Meal Generator");
+
   useEffect(() => {
-    document.title = "Companion Meal Generator | My Perfect Pets";
+    document.title = "Meal Generator | My Perfect Meals";
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
@@ -185,7 +190,20 @@ export default function CompanionMealGenerator() {
         </div>
       </MobileHeaderGuard>
 
-      <div className="max-w-lg mx-auto px-4" style={{ paddingTop: "calc(5rem + env(safe-area-inset-top, 0px))" }}>
+      <div className="max-w-lg mx-auto px-4" style={{ paddingTop: isDesktop ? "2rem" : "calc(5rem + env(safe-area-inset-top, 0px))" }}>
+
+        {/* Desktop inline back button */}
+        {isDesktop && (
+          <div className="mb-4">
+            <button
+              onClick={() => setLocation(hubRoute)}
+              className="flex items-center gap-1.5 text-orange-400 text-sm hover:text-orange-300 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span>Back to {isCat ? "My Perfect Cat" : "My Perfect Dog"}</span>
+            </button>
+          </div>
+        )}
 
         {/* Hero */}
         <div className="relative h-36 rounded-xl overflow-hidden mb-5">

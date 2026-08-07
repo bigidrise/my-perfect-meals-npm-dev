@@ -848,6 +848,58 @@ router.post("/resolve-context", requireAuth, async (req, res) => {
 
 // ── POST /create-dish ──────────────────────────────────────────────────────────
 
+interface ClinicalNutritionSummary {
+  stageDRI: {
+    kcalRange: string;
+    proteinRange: string;
+    ironMg: number;
+    calciumMg: number;
+    sodiumMgMax: number;
+    addedSugarGMax: number;
+  };
+  estimatedCarbsPerServing?: string;
+  activeConditionLabels: string[];
+  note: string;
+}
+
+interface ProtocolEvidenceEntry {
+  conditionId: string;
+  conditionName: string;
+  version: string;
+  sources: string[];
+  status: string;
+}
+
+function buildClinicalNutritionSummary(
+  resolverCtx: PediatricMealGenerationContext | null,
+  recipe: any,
+  activeProtocolEvidence: ProtocolEvidenceEntry[],
+): ClinicalNutritionSummary {
+  const dri = resolverCtx?.stageDRIBaseline;
+  return {
+    stageDRI: dri
+      ? {
+          kcalRange: `${dri.kcalRangeMin}–${dri.kcalRangeMax} kcal/day`,
+          proteinRange: `${dri.proteinGMin}–${dri.proteinGMax} g/day`,
+          ironMg: dri.ironMg,
+          calciumMg: dri.calciumMg,
+          sodiumMgMax: dri.sodiumMgMax,
+          addedSugarGMax: dri.addedSugarGMax,
+        }
+      : {
+          kcalRange: "Varies by stage",
+          proteinRange: "Varies by stage",
+          ironMg: 0,
+          calciumMg: 0,
+          sodiumMgMax: 0,
+          addedSugarGMax: 0,
+        },
+    estimatedCarbsPerServing: recipe.estimatedCarbsPerServing ?? undefined,
+    activeConditionLabels: activeProtocolEvidence.map((e: ProtocolEvidenceEntry) => e.conditionName).filter(Boolean),
+    note: "DRI reference ranges are per-day totals from USDA / AAP guidelines. This meal contributes to — not covers — those ranges. For exact macro analysis, use clinical nutrition software.",
+  };
+}
+
 router.post("/create-dish", requireAuth, async (req, res) => {
   try {
     const authReq = req as AuthenticatedRequest;
@@ -1162,62 +1214,35 @@ router.post("/create-dish", requireAuth, async (req, res) => {
       mergedProtocolIds,
       allergies,
     );
-export default router;
-
-interface ClinicalNutritionSummary {
-  stageDRI: {
-    kcalRange: string;
-    proteinRange: string;
-    ironMg: number;
-    calciumMg: number;
-    sodiumMgMax: number;
-    addedSugarGMax: number;
-  };
-  estimatedCarbsPerServing?: string;
-  activeConditionLabels: string[];
-  note: string;
-}
-
-interface ProtocolEvidenceEntry {
-  conditionId: string;
-  conditionName: string;
-  version: string;
-  sources: string[];
-  status: string;
-}
-function buildClinicalNutritionSummary(
-  resolverCtx: PediatricMealGenerationContext | null,
-  recipe: any,
-  activeProtocolEvidence: ProtocolEvidenceEntry[],
-): ClinicalNutritionSummary {
-  const dri = resolverCtx?.stageDRIBaseline;
-
-  return {
-    stageDRI: dri
-      ? {
-          kcalRange: `${dri.kcalRangeMin}–${dri.kcalRangeMax} kcal/day`,
-          proteinRange: `${dri.proteinGMin}–${dri.proteinGMax} g/day`,
-          ironMg: dri.ironMg,
-          calciumMg: dri.calciumMg,
-          sodiumMgMax: dri.sodiumMgMax,
-          addedSugarGMax: dri.addedSugarGMax,
-        }
-      : {
-          kcalRange: "Varies by stage",
-          proteinRange: "Varies by stage",
-          ironMg: 0,
-          calciumMg: 0,
-          sodiumMgMax: 0,
-          addedSugarGMax: 0,
-        },
-    estimatedCarbsPerServing: recipe.estimatedCarbsPerServing ?? undefined,
-    activeConditionLabels: activeProtocolEvidence.map(e => e.conditionName).filter(Boolean),
-    note: "DRI reference ranges are per-day totals from USDA / AAP guidelines. This meal contributes to — not covers — those ranges. For exact macro analysis, use clinical nutrition software.",
-  };
-}
-
     const clinicalNutritionSummary = buildClinicalNutritionSummary(
       resolverCtx,
       finalRecipe,
       activeProtocolEvidence,
     );
+
+    return res.json({
+      recipe: finalRecipe,
+      blocked: false,
+      mealConfidence: educationLayer.mealConfidence,
+      clinicalReviewStatus: educationLayer.clinicalReviewStatus,
+      personalizationLevel: educationLayer.personalizationLevel,
+      conflictResolutions: educationLayer.conflictResolutions,
+      protocolEngine: {
+        activeProtocolIds,
+        activeProtocolEvidence,
+        conflictLog,
+        childProfileId: childProfileId ?? null,
+        profileLoaded: childProfileInput !== null,
+      },
+      resolverMeta,
+      resolverContext,
+      nutritionBadges,
+      clinicalNutritionSummary,
+    });
+  } catch (err: any) {
+    console.error("[MyPerfectBeginning] create-dish error:", err);
+    return res.status(500).json({ error: "Failed to generate recipe" });
+  }
+});
+
+export default router;

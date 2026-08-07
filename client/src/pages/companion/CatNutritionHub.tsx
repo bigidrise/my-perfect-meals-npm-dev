@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { usePageTitle } from "@/contexts/PageTitleContext";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -45,6 +47,7 @@ export default function CatNutritionHub() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const { isFree, showLockModal, lockMessage, guardAction, closeLockModal } = useFreeLock();
+  const isDesktop = useIsDesktop();
   const [profiles, setProfiles] = useState<CatProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [savedMeals, setSavedMeals] = useState<SavedMeal[]>([]);
@@ -54,8 +57,10 @@ export default function CatNutritionHub() {
   const [statusLoading, setStatusLoading] = useState<string | null>(null);
   const [showPrevious, setShowPrevious] = useState(false);
 
+  usePageTitle("My Perfect Cat");
+
   useEffect(() => {
-    document.title = "Cat Nutrition | My Perfect Pets";
+    document.title = "My Perfect Cat | My Perfect Meals";
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
@@ -166,7 +171,20 @@ export default function CatNutritionHub() {
         </div>
       </MobileHeaderGuard>
 
-      <div className="max-w-2xl mx-auto px-4" style={{ paddingTop: "calc(5.5rem + env(safe-area-inset-top, 0px))" }}>
+      <div className="max-w-2xl mx-auto px-4" style={{ paddingTop: isDesktop ? "2rem" : "calc(5.5rem + env(safe-area-inset-top, 0px))" }}>
+
+        {/* Desktop inline back button */}
+        {isDesktop && (
+          <div className="mb-4">
+            <button
+              onClick={() => setLocation("/companion")}
+              className="flex items-center gap-1.5 text-orange-400 text-sm hover:text-orange-300 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span>Back to My Perfect Pets</span>
+            </button>
+          </div>
+        )}
 
         {/* Quick Actions */}
         <div className="grid grid-cols-2 gap-3 mb-6">
