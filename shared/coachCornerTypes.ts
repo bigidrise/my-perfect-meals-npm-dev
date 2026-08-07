@@ -149,3 +149,20 @@ export interface TiredFollowUp {
 }
 
 export type TiredResponse = CoachResponse;
+
+// ---- "Make it now" meal action buttons ----
+//
+// Returned by the LLM alongside the coach message when the advice maps to an
+// internal builder. The frontend owns the routing table — the AI only emits a
+// controlled actionType string; it never generates a URL.
+//
+// Controlled actionType values:
+//   create_dessert  → /craving-desserts
+//   create_beverage → /lifestyle/beverage-creator
+//   create_meal     → /lifestyle/create-a-dish
+export type CoachMealActionType = "create_dessert" | "create_beverage" | "create_meal";
+
+export interface CoachMealAction {
+  actionType: CoachMealActionType;
+  label: string;
+}
