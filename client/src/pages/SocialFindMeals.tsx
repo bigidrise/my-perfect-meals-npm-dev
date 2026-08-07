@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import { useChefFlowImages, chefFlowMealId } from "@/hooks/useChefFlowImages";
@@ -90,21 +91,7 @@ const DIET_SKIP = new Set(["no-restriction", "no_restriction", "none", ""]);
 // entry → step1 (craving) → step2 (location) → step3 (budget) → generating → results
 type GuidedStep = "entry" | "step1" | "step2" | "step3" | "generating" | "results";
 
-const FIND_MEALS_TOUR_STEPS: TourStep[] = [
-  {
-    title: "Enter Your Craving",
-    description: "Tell us what you're in the mood for.",
-  },
-  {
-    title: "Add Your ZIP Code",
-    description: "Enter your location so we can find nearby restaurants.",
-  },
-  {
-    title: "Get Recommendations",
-    description:
-      "See nearby restaurants with two healthy meal options from each, along with ordering tips.",
-  },
-];
+// FIND_MEALS_TOUR_STEPS moved inside component as useMemo (i18n)
 
 const CACHE_KEY = "mealFinder.cache.v5";
 
@@ -195,12 +182,7 @@ interface MealResult {
 
 type PriceFilter = 'any' | 'budget' | 'mid' | 'upscale';
 
-const PRICE_FILTER_OPTIONS: { key: PriceFilter; label: string; hint: string; range: number[] }[] = [
-  { key: 'any',    label: 'Any Price',     hint: 'Show all restaurants',       range: [] },
-  { key: 'budget', label: '$ Budget',      hint: 'Fast food & casual (~$15)',  range: [0, 1] },
-  { key: 'mid',    label: '$$ Mid-Range',  hint: 'Sit-down spots (~$15–$40)',  range: [2] },
-  { key: 'upscale',label: '$$$ Upscale',   hint: 'Fine dining ($40+)',         range: [3, 4] },
-];
+// PRICE_FILTER_OPTIONS moved inside component as useMemo (i18n)
 
 function priceLevelBadge(level?: number): string | null {
   if (level === undefined || level === null) return null;
@@ -216,13 +198,27 @@ const MATCH_LABEL_CONFIG: Record<string, { color: string }> = {
 };
 
 export default function MealFinder() {
+  const { t } = useTranslation();
   const [, setLocation] = useLocation();
   const isDesktop = useIsDesktop();
-  usePageTitle("Find Meals Near Me");
+  usePageTitle(t("findMeals.pageTitle"));
   const { toast } = useToast();
   const { user } = useAuth();
   const quickTour = useQuickTour("social-find-meals");
   const { speak, stop } = useChefVoice();
+
+  const FIND_MEALS_TOUR_STEPS = useMemo<TourStep[]>(() => [
+    { title: t("findMeals.tourStep1Title"), description: t("findMeals.tourStep1Desc") },
+    { title: t("findMeals.tourStep2Title"), description: t("findMeals.tourStep2Desc") },
+    { title: t("findMeals.tourStep3Title"), description: t("findMeals.tourStep3Desc") },
+  ], [t]);
+
+  const PRICE_FILTER_OPTIONS = useMemo<{ key: PriceFilter; label: string; hint: string; range: number[] }[]>(() => [
+    { key: 'any',     label: t("findMeals.priceAny"),     hint: t("findMeals.priceAnyHint"),    range: [] },
+    { key: 'budget',  label: t("findMeals.priceBudget"),  hint: t("findMeals.priceBudgetHint"), range: [0, 1] },
+    { key: 'mid',     label: t("findMeals.priceMid"),     hint: t("findMeals.priceMidHint"),    range: [2] },
+    { key: 'upscale', label: t("findMeals.priceUpscale"), hint: t("findMeals.priceUpscaleHint"),range: [3, 4] },
+  ], [t]);
 
   // Map of step to voice script - matches Macro Calculator pattern
   const stepScripts = useMemo<Record<GuidedStep, string>>(
@@ -364,7 +360,7 @@ export default function MealFinder() {
             : `No results matched your ${userDiet} diet. Try a different craving.`
           : (data.message || "Nothing matched that search near your ZIP. Try a different craving or expand your search.");
         toast({
-          title: "No Meals Found",
+          title: t("findMeals.noMealsFound"),
           description: emptyDesc,
           variant: "destructive",
         });
@@ -383,8 +379,8 @@ export default function MealFinder() {
         ).size;
 
         toast({
-          title: "Meals Found!",
-          description: `Found ${uniqueRestaurants} restaurants with ${newResults.length} meals`,
+          title: t("findMeals.mealsFound"),
+          description: t("findMeals.foundCount", { restaurants: uniqueRestaurants, meals: newResults.length }),
         });
       }
 
@@ -401,10 +397,8 @@ export default function MealFinder() {
     onError: (error: any) => {
       console.error("Meal finder error:", error);
       toast({
-        title: "Search Failed",
-        description:
-          error.message ||
-          "Could not find meals. Please try a different search or ZIP code.",
+        title: t("findMeals.searchFailed"),
+        description: error.message || t("findMeals.searchFailedDesc"),
         variant: "destructive",
       });
       setProgress(0);
@@ -414,8 +408,8 @@ export default function MealFinder() {
   const handleSearch = () => {
     if (!mealQuery.trim()) {
       toast({
-        title: "Missing Meal",
-        description: "Please enter what you're craving",
+        title: t("findMeals.errorMissingMeal"),
+        description: t("findMeals.errorMissingMealDesc"),
         variant: "destructive",
       });
       return;
@@ -423,8 +417,8 @@ export default function MealFinder() {
 
     if (!zipCode.trim() || !/^\d{5}$/.test(zipCode)) {
       toast({
-        title: "Invalid ZIP Code",
-        description: "Please enter a valid 5-digit ZIP code",
+        title: t("findMeals.errorInvalidZip"),
+        description: t("findMeals.errorInvalidZipDesc"),
         variant: "destructive",
       });
       return;
@@ -454,13 +448,13 @@ export default function MealFinder() {
       if (response.zipCode) {
         setZipCode(response.zipCode);
         toast({
-          title: "Location Found",
-          description: `ZIP Code: ${response.zipCode}`,
+          title: t("restaurant.locationFound"),
+          description: t("findMeals.locationZip", { zip: response.zipCode }),
         });
       }
     } catch (error) {
       toast({
-        title: "Location Access Denied",
+        title: t("restaurant.errorLocationDenied"),
         description: "Please enable location access or enter ZIP manually.",
         variant: "destructive",
       });
@@ -493,12 +487,12 @@ export default function MealFinder() {
               className="flex items-center gap-1 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
             >
               <ArrowLeft className="h-5 w-5" />
-              <span className="text-sm font-medium">Back</span>
+              <span className="text-sm font-medium">{t("common.back")}</span>
             </button>
 
             {/* Title */}
             <h1 className="text-lg font-bold text-white truncate min-w-0">
-              Meal Finder
+              {t("findMeals.headerTitle")}
             </h1>
 
             <div className="flex-grow" />
@@ -517,7 +511,7 @@ export default function MealFinder() {
               className="flex items-center gap-2 text-orange-400 hover:text-orange-300 mb-6 transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />
-              <span className="text-sm font-medium">Social Hub</span>
+              <span className="text-sm font-medium">{t("findMeals.socialHub")}</span>
             </button>
           )}
           {/* ENTRY SCREEN - Guided Copilot Entry (matches Macro Calculator pattern) */}
@@ -530,17 +524,16 @@ export default function MealFinder() {
                   </div>
                 </div>
                 <h2 className="text-2xl font-bold text-white mb-3">
-                  Find My Meal
+                  {t("findMeals.entryTitle")}
                 </h2>
                 <p className="text-white/70 mb-6">
-                  Tell me what you're craving and I'll find nearby restaurants
-                  with healthy options that fit your goals.
+                  {t("findMeals.entryDesc")}
                 </p>
                 <Button
                   onClick={() => advanceGuided("step1")}
                   className="bg-lime-600 text-white px-8 py-3 text-lg font-semibold"
                 >
-                  Let's Find Meals
+                  {t("findMeals.letsFindMeals")}
                 </Button>
               </CardContent>
             </Card>
@@ -558,14 +551,14 @@ export default function MealFinder() {
                 <CardContent className="p-5 space-y-4">
                   <div className="flex items-center gap-2">
                     <ChefHat className="h-5 w-5 text-orange-500" />
-                    <h3 className="text-lg font-semibold text-white">Step 1</h3>
+                    <h3 className="text-lg font-semibold text-white">{t("findMeals.step1")}</h3>
                   </div>
                   <p className="text-white text-base">
-                    What are you in the mood to eat?
+                    {t("findMeals.step1Question")}
                   </p>
                   <div className="relative">
                     <Input
-                      placeholder="e.g., steak dinner, sushi, pasta, burger"
+                      placeholder={t("findMeals.step1Placeholder")}
                       value={mealQuery}
                       onChange={(e) => setMealQuery(e.target.value)}
                       className="w-full bg-black/40 backdrop-blur-lg border border-white/20 text-white placeholder:text-white/50 focus:bg-black/40 focus:text-white caret-white text-lg py-3"
@@ -603,7 +596,7 @@ export default function MealFinder() {
                     disabled={!mealQuery.trim()}
                     className="w-full bg-orange-600 hover:bg-orange-500 text-white py-3 text-lg font-semibold"
                   >
-                    Next
+                    {t("common.next")}
                   </Button>
                 </CardContent>
               </Card>
@@ -622,15 +615,15 @@ export default function MealFinder() {
                 <CardContent className="p-5 space-y-4">
                   <div className="flex items-center gap-2">
                     <ChefHat className="h-5 w-5 text-orange-500" />
-                    <h3 className="text-lg font-semibold text-white">Step 2</h3>
+                    <h3 className="text-lg font-semibold text-white">{t("findMeals.step2")}</h3>
                   </div>
                   <p className="text-white text-base">
-                    Enter your ZIP code so I can find nearby restaurants.
+                    {t("findMeals.step2Question")}
                   </p>
                   <div className="flex gap-2">
                     <div className="relative flex-1">
                       <Input
-                        placeholder="e.g., 30303, 90210, 10001"
+                        placeholder={t("findMeals.step2Placeholder")}
                         value={zipCode}
                         onChange={(e) =>
                           setZipCode(
@@ -688,14 +681,14 @@ export default function MealFinder() {
                         transition-none
                       "
                     >
-                      Back
+                      {t("common.back")}
                     </Button>
                     <Button
                       onClick={() => advanceGuided("step3")}
                       disabled={zipCode.length !== 5}
                       className="flex-1 bg-lime-600 hover:bg-lime-500 text-white font-semibold"
                     >
-                      Next
+                      {t("common.next")}
                     </Button>
                   </div>
                 </CardContent>
@@ -715,13 +708,13 @@ export default function MealFinder() {
                 <CardContent className="p-6 space-y-5">
                   <div>
                     <p className="text-white/60 text-sm uppercase tracking-wide font-medium mb-1">
-                      Step 3 of 3
+                      {t("findMeals.step3")}
                     </p>
                     <h2 className="text-xl font-bold text-white">
-                      What's your budget?
+                      {t("findMeals.step3Title")}
                     </h2>
                     <p className="text-white/60 text-sm mt-1">
-                      I'll only show restaurants that match your price range.
+                      {t("findMeals.step3Desc")}
                     </p>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
@@ -759,14 +752,14 @@ export default function MealFinder() {
                         transition-none
                       "
                     >
-                      Back
+                      {t("common.back")}
                     </Button>
                     <Button
                       onClick={handleSearch}
                       className="flex-1 bg-lime-600 hover:bg-lime-500 text-white font-semibold"
                       data-testid="button-find-meals"
                     >
-                      Find Meals
+                      {t("findMeals.findMealsBtn")}
                     </Button>
                   </div>
                 </CardContent>
@@ -790,13 +783,13 @@ export default function MealFinder() {
                     </div>
                   </div>
                   <h3 className="text-xl font-semibold text-white text-center">
-                    Finding Nearby Restaurants...
+                    {t("findMeals.generatingTitle")}
                   </h3>
                   <p className="text-white/70 text-center">
-                    Searching for {mealQuery} options near you
+                    {t("findMeals.generatingDesc", { query: mealQuery })}
                   </p>
                   <div className="mt-6 flex justify-center">
-                    <CometBar label="Scanning nearby…" />
+                    <CometBar label={t("findMeals.scanningNearby")} />
                   </div>
                 </CardContent>
               </Card>
@@ -998,7 +991,7 @@ export default function MealFinder() {
                                     <div className="mb-3">
                                       <div className="flex items-center gap-3">
                                         <HealthBadgesPopover badges={badgeStrings} />
-                                        <h3 className="font-semibold text-white">Medical Safety</h3>
+                                        <h3 className="font-semibold text-white">{t("findMeals.medicalSafety")}</h3>
                                       </div>
                                     </div>
                                   );
@@ -1007,33 +1000,33 @@ export default function MealFinder() {
                                 <div className="grid grid-cols-4 gap-2 mb-3">
                                   <div className="text-center bg-white/10 rounded p-2">
                                     <div className="text-lg font-bold text-blue-400">{result.meal.protein}g</div>
-                                    <div className="text-white/60 text-xs">Protein</div>
+                                    <div className="text-white/60 text-xs">{t("findMeals.protein")}</div>
                                   </div>
                                   <div className="text-center bg-white/10 rounded p-2">
                                     <div className="text-lg font-bold text-orange-400">
                                       {result.meal.starchyCarbs != null ? `${result.meal.starchyCarbs}g` : "—"}
                                     </div>
-                                    <div className="text-white/60 text-xs">Starchy</div>
+                                    <div className="text-white/60 text-xs">{t("findMeals.starchy")}</div>
                                   </div>
                                   <div className="text-center bg-white/10 rounded p-2">
                                     <div className="text-lg font-bold text-green-400">
                                       {result.meal.fibrousCarbs != null ? `${result.meal.fibrousCarbs}g` : "—"}
                                     </div>
-                                    <div className="text-white/60 text-xs">Fibrous</div>
+                                    <div className="text-white/60 text-xs">{t("findMeals.fibrous")}</div>
                                   </div>
                                   <div className="text-center bg-white/10 rounded p-2">
                                     <div className="text-lg font-bold text-yellow-400">{result.meal.fat}g</div>
-                                    <div className="text-white/60 text-xs">Fat</div>
+                                    <div className="text-white/60 text-xs">{t("findMeals.fat")}</div>
                                   </div>
                                 </div>
 
                                 <div className="bg-green-500/20 border border-green-500/30 rounded-lg p-3 mb-3 backdrop-blur-sm">
-                                  <h5 className="font-medium text-green-300 text-sm mb-1">Why This is Healthy:</h5>
+                                  <h5 className="font-medium text-green-300 text-sm mb-1">{t("findMeals.whyHealthy")}</h5>
                                   <p className="text-green-200 text-sm">{result.meal.reason}</p>
                                 </div>
 
                                 <div className="bg-orange-500/20 border border-orange-500/30 rounded-lg p-3 backdrop-blur-sm mb-3">
-                                  <h5 className="font-medium text-orange-300 text-sm mb-1">Ask For:</h5>
+                                  <h5 className="font-medium text-orange-300 text-sm mb-1">{t("findMeals.askFor")}</h5>
                                   <p className="text-orange-200 text-sm">{result.meal.modifications}</p>
                                 </div>
 
@@ -1065,7 +1058,7 @@ export default function MealFinder() {
                                 {result.meal.medicalWaiterScript && (
                                   <div className="bg-rose-500/20 border border-rose-500/30 rounded-lg p-3 backdrop-blur-sm mb-3">
                                     <h5 className="font-medium text-rose-300 text-sm mb-1.5 flex items-center gap-1.5">
-                                      🏥 Tell Your Server
+                                      🏥 {t("findMeals.tellYourServer")}
                                     </h5>
                                     <p className="text-rose-200 text-sm italic">"{result.meal.medicalWaiterScript}"</p>
                                   </div>
@@ -1090,7 +1083,7 @@ export default function MealFinder() {
                                     className="w-full bg-black text-white font-medium"
                                   >
                                     <Plus className="h-4 w-4 mr-2" />
-                                    Add Your Macros
+                                    {t("findMeals.addMacros")}
                                   </Button>
 
                                   <AddToMealPlanButton
@@ -1128,7 +1121,7 @@ export default function MealFinder() {
                                           }}
                                           className="ml-auto text-white/40 text-xs"
                                         >
-                                          Clear
+                                          {t("findMeals.clearTranslation")}
                                         </button>
                                       )}
                                     </div>
@@ -1187,13 +1180,13 @@ export default function MealFinder() {
                                         )}
                                         {translation.data.modifications && (
                                           <div>
-                                            <span className="text-orange-300 text-xs font-medium">Ask For: </span>
+                                            <span className="text-orange-300 text-xs font-medium">{t("findMeals.askFor")} </span>
                                             <span className="text-orange-200 text-sm">{translation.data.modifications}</span>
                                           </div>
                                         )}
                                         {translation.data.medicalWaiterScript && (
                                           <div>
-                                            <span className="text-rose-300 text-xs font-medium">Tell Your Server: </span>
+                                            <span className="text-rose-300 text-xs font-medium">{t("findMeals.tellYourServer")}: </span>
                                             <span className="text-rose-200 text-sm italic">"{translation.data.medicalWaiterScript}"</span>
                                           </div>
                                         )}
@@ -1214,10 +1207,10 @@ export default function MealFinder() {
             <div className="text-center py-12">
               <div className="text-6xl mb-4">🍴</div>
               <p className="text-white text-lg mb-2">
-                Enter your craving and ZIP code to get started
+                {t("findMeals.emptyTitle")}
               </p>
               <p className="text-sm text-white/60">
-                We'll find the best restaurant meals near you
+                {t("findMeals.emptyDesc")}
               </p>
             </div>
           )}
@@ -1226,7 +1219,7 @@ export default function MealFinder() {
         <QuickTourModal
           isOpen={quickTour.shouldShow}
           onClose={quickTour.closeTour}
-          title="How to Find Meals Near Me"
+          title={t("findMeals.tourTitle")}
           steps={FIND_MEALS_TOUR_STEPS}
           onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
         />
