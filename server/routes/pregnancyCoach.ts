@@ -21,6 +21,52 @@ import { getTierForLookupKey } from "../../shared/planFeatures";
 
 const router = express.Router();
 
+// ─── Conversation persistence helpers ────────────────────────────────────────
+// Table: pregnancy_conversations (user_id TEXT PRIMARY KEY, messages JSONB, updated_at TIMESTAMPTZ)
+// Keyed by user_id only — a user has one pregnancy conversation at a time.
+
+const MAX_TURNS = 20;
+
+async function getConversation(userId: string): Promise<Array<{ role: string; content: string }>> {
+  try {
+    const result = await db.execute(sql`
+      SELECT messages FROM pregnancy_conversations
+      WHERE user_id = ${userId}
+      LIMIT 1
+    `);
+    const row = (result as any).rows?.[0] ?? (Array.isArray(result) ? result[0] : null);
+    if (!row?.messages) return [];
+    const msgs = Array.isArray(row.messages) ? row.messages : JSON.parse(row.messages as string);
+    return msgs.filter((m: any) => m?.role && m?.content);
+  } catch (err: any) {
+    // 42P01 = table not yet created — non-fatal, fall back to empty
+    if (err?.code !== "42P01") {
+      console.warn("[PregnancyCoach] getConversation error:", err.message);
+    }
+    return [];
+  }
+}
+
+async function saveConversation(
+  userId: string,
+  messages: Array<{ role: string; content: string }>
+): Promise<void> {
+  const trimmed = messages.slice(-MAX_TURNS);
+  try {
+    await db.execute(sql`
+      INSERT INTO pregnancy_conversations (user_id, messages, updated_at)
+      VALUES (${userId}, ${JSON.stringify(trimmed)}::jsonb, now())
+      ON CONFLICT (user_id) DO UPDATE
+        SET messages = ${JSON.stringify(trimmed)}::jsonb,
+            updated_at = now()
+    `);
+  } catch (err: any) {
+    if (err?.code !== "42P01") {
+      console.warn("[PregnancyCoach] saveConversation error:", err.message);
+    }
+  }
+}
+
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
   if (!_openai) _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -53,50 +99,6 @@ function stageLabel(stage: string): string {
     "postpartum": "Postpartum",
   };
   return labels[stage] ?? "Pregnancy";
-}
-
-// ─── Conversation persistence ─────────────────────────────────────────────────
-// Table: pregnancy_conversations (user_id TEXT PRIMARY KEY, messages JSONB, updated_at TIMESTAMPTZ)
-// Keyed by user_id only — a user has one pregnancy conversation at a time.
-
-async function getConversation(userId: string): Promise<Array<{ role: string; content: string }>> {
-  try {
-    const result = await db.execute(sql`
-      SELECT messages FROM pregnancy_conversations
-      WHERE user_id = ${userId}
-      LIMIT 1
-    `);
-    const row = (result as any).rows?.[0] ?? (Array.isArray(result) ? result[0] : null);
-    if (!row?.messages) return [];
-    const msgs = Array.isArray(row.messages) ? row.messages : JSON.parse(row.messages as string);
-    return msgs.filter((m: any) => m?.role && m?.content);
-  } catch (err: any) {
-    // 42P01 = table not yet created — non-fatal, fall back to empty
-    if (err?.code !== "42P01") {
-      console.warn("[PregnancyCoach] getConversation error:", err.message);
-    }
-    return [];
-  }
-}
-
-async function saveConversation(
-  userId: string,
-  messages: Array<{ role: string; content: string }>
-): Promise<void> {
-  const trimmed = messages.slice(-20);
-  try {
-    await db.execute(sql`
-      INSERT INTO pregnancy_conversations (user_id, messages, updated_at)
-      VALUES (${userId}, ${JSON.stringify(trimmed)}::jsonb, now())
-      ON CONFLICT (user_id) DO UPDATE
-        SET messages = ${JSON.stringify(trimmed)}::jsonb,
-            updated_at = now()
-    `);
-  } catch (err: any) {
-    if (err?.code !== "42P01") {
-      console.warn("[PregnancyCoach] saveConversation error:", err.message);
-    }
-  }
 }
 
 // GET /conversation — load persisted conversation history
@@ -340,14 +342,16 @@ Keep responses conversational and appropriately concise. Use line breaks to make
 
     const reply = completion.choices[0]?.message?.content ?? "I couldn't generate a response. Please try again.";
 
-    // ── Persist the new turn ──────────────────────────────────────────────────
+    // ── Persist the new turn (fire-and-forget — never block the response) ───────
     if (userId) {
       const updatedHistory = [
         ...dbHistory,
         { role: "user", content: message },
         { role: "assistant", content: reply },
       ];
-      await saveConversation(userId, updatedHistory);
+      saveConversation(userId, updatedHistory).catch(err =>
+        console.warn("[PregnancyCoach] Failed to persist conversation:", err)
+      );
     }
 
     return res.json({

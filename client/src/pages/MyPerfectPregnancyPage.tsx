@@ -142,6 +142,7 @@ export default function MyPerfectPregnancyPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Seed from the already-loaded auth user immediately — no extra round-trip
@@ -156,6 +157,28 @@ export default function MyPerfectPregnancyPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Load saved conversation history on mount
+  useEffect(() => {
+    async function loadHistory() {
+      try {
+        const res = await fetch(apiUrl("/api/pregnancy/conversation"), {
+          credentials: "include",
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.messages) && data.messages.length > 0) {
+            setMessages(data.messages as Message[]);
+          }
+        }
+      } catch {
+        // Silently ignore — start fresh
+      } finally {
+        setHistoryLoaded(true);
+      }
+    }
+    loadHistory();
+  }, []);
 
   function applyUserToPregnancyData(u: any) {
     const status = derivePregnancyStatus(u);
@@ -179,6 +202,18 @@ export default function MyPerfectPregnancyPage() {
       applyUserToPregnancyData(freshUser);
     } catch {
       // ignore — user not logged in or network error
+    }
+  }
+
+  async function startFresh() {
+    setMessages([]);
+    try {
+      await fetch(apiUrl("/api/pregnancy/conversation"), {
+        method: "DELETE",
+        credentials: "include",
+      });
+    } catch {
+      // Silently ignore — local state is already cleared
     }
   }
 
@@ -467,8 +502,21 @@ export default function MyPerfectPregnancyPage() {
               exit={{ opacity: 0 }}
               className="space-y-3"
             >
+              {/* Start Fresh button — only shown when there is conversation history */}
+              {messages.length > 0 && (
+                <div className="flex justify-end">
+                  <button
+                    onClick={startFresh}
+                    disabled={loading}
+                    className="text-xs text-white/40 hover:text-white/60 transition-colors px-2 py-1 rounded-lg hover:bg-white/5"
+                  >
+                    ↺ Start Fresh
+                  </button>
+                </div>
+              )}
+
               {/* Messages */}
-              {messages.length === 0 && (
+              {messages.length === 0 && historyLoaded && (
                 <div className="rounded-xl bg-gradient-to-br from-pink-950/40 to-black border border-pink-500/20 p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <Baby className="w-5 h-5 text-pink-400" />

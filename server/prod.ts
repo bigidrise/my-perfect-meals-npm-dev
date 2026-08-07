@@ -216,6 +216,14 @@ async function initializeApp() {
           await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS pregnancy_stage text`);
           await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS pregnancy_due_date text`);
           await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS pregnancy_support_context jsonb`);
+          await database.execute(sql`
+            CREATE TABLE IF NOT EXISTS pregnancy_conversations (
+              id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+              user_id text NOT NULL UNIQUE,
+              messages jsonb NOT NULL DEFAULT '[]'::jsonb,
+              updated_at timestamptz NOT NULL DEFAULT now()
+            )
+          `);
           // Performance Nutrition Protocol — boot migrations
           await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS performance_context jsonb`);
           await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS competition_prep_context jsonb`);
