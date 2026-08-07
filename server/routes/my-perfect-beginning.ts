@@ -983,7 +983,6 @@ router.post("/create-dish", requireAuth, async (req, res) => {
 
     const multiChildNames: string[] = mergedProfile?.childNames ?? [];
     const multiChildStageLabels: string[] = mergedProfile?.stageLabels ?? [];
-    const childProfileId = typeof req.query.childProfileId === 'string' ? req.query.childProfileId : null;
     const childProfileInput = isMultiChildMode ? null : await fetchChildProfileInput(userId, childProfileId);
 
     // ── Validate request ─────────────────────────────────────────────────────
