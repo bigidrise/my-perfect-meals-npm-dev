@@ -81,6 +81,7 @@ export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLo
   const data = summaryProp ?? hook.data;
   const isLoading = isLoadingProp ?? hook.isLoading;
   const [expanded, setExpanded] = useState(defaultExpanded);
+  const { t } = useTranslation("nutritionPlan");
 
   if (isLoading) {
     return (
@@ -104,7 +105,6 @@ export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLo
   const hasLiveMetrics       = (nutritionDrivers?.liveMetrics?.length ?? 0) > 0;
   const hasDietaryIdentity   = (data.dietaryIdentity?.length ?? 0) > 0;
   const hasMealBuilder       = !!data.mealBuilderLabel;
-  const { t } = useTranslation("nutritionPlan");
 
   return (
     <div className="rounded-2xl bg-black/50 border border-orange-500/25 overflow-hidden">

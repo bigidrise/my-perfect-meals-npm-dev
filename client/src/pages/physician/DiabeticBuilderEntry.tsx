@@ -52,7 +52,7 @@ export default function DiabeticBuilderEntry() {
 
         {/* Option 1: Continue */}
         <button
-          onClick={() => setLocation("/diabetic-menu-builder")}
+          onClick={() => setLocation("/diabetic-hub")}
           className="w-full flex items-center gap-4 px-5 py-5 rounded-2xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/15 transition-colors text-left mb-4 group"
         >
           <div className="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center flex-shrink-0">
@@ -60,10 +60,10 @@ export default function DiabeticBuilderEntry() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-white font-semibold text-base leading-tight mb-0.5">
-              Continue to Diabetic Menu Builder
+              Continue to Diabetic Hub
             </p>
             <p className="text-white text-sm leading-relaxed">
-              Generate meals using your current diabetic nutrition profile and macro targets.
+              View your diabetic nutrition hub, generate meals, and track your progress.
             </p>
           </div>
           <ChevronRight className="w-5 h-5 text-rose-400/60 group-hover:text-rose-400 transition-colors flex-shrink-0" />
