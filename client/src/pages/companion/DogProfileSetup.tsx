@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { usePageTitle } from "@/contexts/PageTitleContext";
 import { useLocation, useParams, useSearch } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { PawPrint, ArrowLeft, ArrowRight, Check, Camera, Star, X, Upload } from "lucide-react";
@@ -97,6 +99,7 @@ function inputClass() {
 
 export default function DogProfileSetup() {
   const [, setLocation] = useLocation();
+  const isDesktop = useIsDesktop();
   const params = useParams<{ id?: string }>();
   const search = useSearch();
   const skipToPhotos = new URLSearchParams(search).get("photos") === "true";
@@ -115,8 +118,10 @@ export default function DogProfileSetup() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const photosFetched = useRef(false);
 
+  usePageTitle(isEdit ? "Edit Dog Profile" : "Add Your Dog");
+
   useEffect(() => {
-    document.title = isEdit ? "Edit Dog Profile" : "Add Your Dog | My Perfect Pets";
+    document.title = isEdit ? "Edit Dog Profile | My Perfect Meals" : "Add Your Dog | My Perfect Meals";
     window.scrollTo({ top: 0, behavior: "instant" });
   }, [isEdit]);
 
@@ -243,7 +248,11 @@ export default function DogProfileSetup() {
         throw new Error(data.error || "Save failed");
       }
 
-      setLocation("/companion/dogs");
+      const data = await res.json();
+      if (!isEdit && data.profile?.id) {
+        setSavedProfileId(data.profile.id);
+      }
+      setStep(5);
     } catch (e: any) {
       setError(e.message || "Something went wrong. Please try again.");
     } finally {
@@ -345,8 +354,14 @@ export default function DogProfileSetup() {
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
           <div className="px-4 py-3 flex items-center gap-3">
-            <div>
-              <h1 className="text-sm font-bold text-white">
+            <button
+              onClick={() => step > 1 && step < 5 ? setStep((s) => s - 1) : setLocation("/companion/dogs")}
+              className="p-1 flex-shrink-0"
+            >
+              <ArrowLeft className="w-5 h-5 text-white/70" />
+            </button>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-sm font-bold text-white truncate">
                 {step === 5
                   ? isEdit
                     ? `${form.name || "Dog"}'s Photos`
@@ -367,13 +382,20 @@ export default function DogProfileSetup() {
         </div>
       </MobileHeaderGuard>
 
-      <div className="max-w-lg mx-auto px-4" style={{ paddingTop: "calc(5rem + env(safe-area-inset-top, 0px))" }}>
+      <div className="max-w-lg mx-auto px-4" style={{ paddingTop: isDesktop ? "2rem" : "calc(5rem + env(safe-area-inset-top, 0px))" }}>
 
-        <div className="mb-4">
-          <PillButton onClick={() => step > 1 && step < 5 ? setStep((s) => s - 1) : setLocation("/companion/dogs")}>
-            <ArrowLeft className="h-3 w-3" /> {step === 5 ? "Skip" : "Back"}
-          </PillButton>
-        </div>
+        {/* Desktop inline back button */}
+        {isDesktop && (
+          <div className="mb-4">
+            <button
+              onClick={() => setLocation("/companion/dogs")}
+              className="flex items-center gap-1.5 text-orange-400 text-sm hover:text-orange-300 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span>Back to My Perfect Dog</span>
+            </button>
+          </div>
+        )}
 
         <AnimatePresence mode="wait">
           {/* STEP 1: Identity */}
@@ -641,7 +663,7 @@ export default function DogProfileSetup() {
         <div className="flex gap-3 mt-8">
           {step === 5 ? (
             <>
-              <PillButton onClick={() => setLocation("/companion")} className="flex-1">
+              <PillButton onClick={() => setLocation("/companion/dogs")} className="flex-1">
                 {images.length > 0 ? "Done" : "Skip for Now"}
               </PillButton>
             </>

@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { usePageTitle } from "@/contexts/PageTitleContext";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -13,7 +15,6 @@ import { useFreeLock } from "@/hooks/useFreeLock";
 import { UpgradeLockModal } from "@/components/upgrade/UpgradeLockModal";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
-const CAT_HERO = "/images/cat-wellness-hero.png";
 const PREMIUM_MSG = "My Perfect Pets is a premium feature. Upgrade to access personalized cat nutrition.";
 
 interface CatProfile {
@@ -46,6 +47,7 @@ export default function CatNutritionHub() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const { isFree, showLockModal, lockMessage, guardAction, closeLockModal } = useFreeLock();
+  const isDesktop = useIsDesktop();
   const [profiles, setProfiles] = useState<CatProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [savedMeals, setSavedMeals] = useState<SavedMeal[]>([]);
@@ -55,8 +57,10 @@ export default function CatNutritionHub() {
   const [statusLoading, setStatusLoading] = useState<string | null>(null);
   const [showPrevious, setShowPrevious] = useState(false);
 
+  usePageTitle("My Perfect Cat");
+
   useEffect(() => {
-    document.title = "Cat Nutrition | My Perfect Pets";
+    document.title = "My Perfect Cat | My Perfect Meals";
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
@@ -141,7 +145,13 @@ export default function CatNutritionHub() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-24"
+      className="min-h-screen pb-24"
+      style={{
+        backgroundImage: "linear-gradient(rgba(0,0,0,0.52), rgba(0,0,0,0.62)), url('/images/cat-hero-bg.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundAttachment: "fixed",
+      }}
     >
       <MobileHeaderGuard>
         <div
@@ -149,35 +159,32 @@ export default function CatNutritionHub() {
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
           <div className="px-4 py-3 flex items-center justify-between">
+            <button onClick={() => setLocation("/companion")} className="p-1">
+              <ArrowLeft className="w-5 h-5 text-white/70" />
+            </button>
             <div className="flex items-center gap-2">
-              <PawPrint className="h-4 w-4 text-orange-400" />
-              <h1 className="text-base font-bold text-white">My Perfect Pets — Cats</h1>
-              <span className="bg-orange-500/20 border border-orange-400/40 text-orange-300 text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
-                <Crown className="h-2.5 w-2.5" />
-                Premium
-              </span>
+              <span className="text-base">🐈</span>
+              <h1 className="text-base font-bold text-white">My Perfect Cat</h1>
             </div>
+            <div className="w-8" />
           </div>
         </div>
       </MobileHeaderGuard>
 
-      <div className="max-w-2xl mx-auto px-4" style={{ paddingTop: "calc(5rem + env(safe-area-inset-top, 0px))" }}>
+      <div className="max-w-2xl mx-auto px-4" style={{ paddingTop: isDesktop ? "2rem" : "calc(5.5rem + env(safe-area-inset-top, 0px))" }}>
 
-        <div className="mb-4">
-          <PillButton onClick={() => setLocation("/companion")}>
-            <ArrowLeft className="h-3 w-3" /> Back
-          </PillButton>
-        </div>
-
-        {/* Hero */}
-        <div className="relative h-52 rounded-2xl overflow-hidden mb-3">
-          <img
-            src={CAT_HERO}
-            alt="Cat Nutrition"
-            className="w-full h-full object-cover"
-            style={{ objectPosition: "center 55%" }}
-          />
-        </div>
+        {/* Desktop inline back button */}
+        {isDesktop && (
+          <div className="mb-4">
+            <button
+              onClick={() => setLocation("/companion")}
+              className="flex items-center gap-1.5 text-orange-400 text-sm hover:text-orange-300 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span>Back to My Perfect Pets</span>
+            </button>
+          </div>
+        )}
 
         {/* Quick Actions */}
         <div className="grid grid-cols-2 gap-3 mb-6">

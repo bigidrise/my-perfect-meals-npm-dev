@@ -216,6 +216,14 @@ async function initializeApp() {
           await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS pregnancy_stage text`);
           await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS pregnancy_due_date text`);
           await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS pregnancy_support_context jsonb`);
+          await database.execute(sql`
+            CREATE TABLE IF NOT EXISTS pregnancy_conversations (
+              id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+              user_id text NOT NULL UNIQUE,
+              messages jsonb NOT NULL DEFAULT '[]'::jsonb,
+              updated_at timestamptz NOT NULL DEFAULT now()
+            )
+          `);
           // Performance Nutrition Protocol — boot migrations
           await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS performance_context jsonb`);
           await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS competition_prep_context jsonb`);
@@ -1254,6 +1262,65 @@ async function initializeApp() {
           console.error("❌ [prod] Parent's Corner boot migration failed:", err.message);
         }
       }, 5000);
+
+      // child_profiles — My Perfect Beginning persistent child profiles
+      setTimeout(async () => {
+        try {
+          const { db: database } = await import("./db");
+          const { sql } = await import("drizzle-orm");
+          await database.execute(sql`
+            CREATE TABLE IF NOT EXISTS child_profiles (
+              id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+              user_id text NOT NULL,
+              name text NOT NULL,
+              date_of_birth text,
+              age_stage text NOT NULL DEFAULT 'toddler',
+              allergies jsonb NOT NULL DEFAULT '[]',
+              dietary_preferences jsonb NOT NULL DEFAULT '[]',
+              medical_conditions jsonb NOT NULL DEFAULT '[]',
+              feeding_concerns jsonb NOT NULL DEFAULT '[]',
+              sensory_issues jsonb NOT NULL DEFAULT '[]',
+              dislikes jsonb NOT NULL DEFAULT '[]',
+              cultural_preferences text,
+              emoji text NOT NULL DEFAULT '👶',
+              is_archived boolean NOT NULL DEFAULT false,
+              created_at timestamptz NOT NULL DEFAULT now(),
+              updated_at timestamptz NOT NULL DEFAULT now()
+            )
+          `);
+          await database.execute(sql`
+            CREATE INDEX IF NOT EXISTS idx_child_profiles_user
+            ON child_profiles (user_id)
+            WHERE is_archived = false
+          `);
+          // Phase 2 — extended profile fields required by the Pediatric Resolver
+          const phase2Columns = [
+            `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS sex text`,
+            `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS height_cm numeric`,
+            `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS weight_kg numeric`,
+            `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS growth_context text DEFAULT 'typical'`,
+            `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS birth_history jsonb DEFAULT '{}'`,
+            `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS feeding_development jsonb DEFAULT '{}'`,
+            `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS family_goals jsonb DEFAULT '[]'`,
+            `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS kitchen_equipment jsonb DEFAULT '[]'`,
+            `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS kitchen_budget text DEFAULT 'moderate'`,
+            `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS kitchen_time_minutes integer DEFAULT 30`,
+            `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS kitchen_skill text DEFAULT 'intermediate'`,
+            `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS school_safe_required boolean DEFAULT false`,
+            `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS pediatrician_oversight boolean DEFAULT false`,
+            `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS medication_affects_appetite boolean DEFAULT false`,
+            `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS g_tube boolean DEFAULT false`,
+            `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS feeding_ability jsonb DEFAULT '{}'`,
+            `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS allergy_details jsonb DEFAULT '[]'`,
+          ];
+          for (const col of phase2Columns) {
+            await database.execute(sql.raw(col));
+          }
+          console.log("✅ [prod] child_profiles boot migration complete (My Perfect Beginning)");
+        } catch (err: any) {
+          console.error("❌ [prod] child_profiles boot migration failed:", err.message);
+        }
+      }, 5600);
 
       // Promotion Engine — partner_promotions + promotion_redemptions tables
       setTimeout(async () => {

@@ -379,8 +379,54 @@ const SOURCE_TYPE_ANCHORS: Record<string, { base: string; rule: string }> = {
   },
 };
 
-function buildMealImagePrompt(mealName: string, ingredients: string[], sourceType?: ImageSourceType): string {
+// Maps resolver TextureClass values to explicit DALL-E visual instructions.
+// These are the same texture classes defined in PediatricMealGenerationContext.
+const TEXTURE_CLASS_VISUAL: Record<string, string> = {
+  puree_only:       "TEXTURE RULE: completely smooth purée — no visible chunks, pieces, whole foods, or crunchy elements of any kind. The food must look fully blended and smooth.",
+  mashed_soft:      "TEXTURE RULE: mashed or very soft — no hard pieces, no crunchy elements, no whole chunks. Food should look soft enough to squish between fingers.",
+  soft_chopped:     "TEXTURE RULE: small soft pieces — nothing hard, nothing crunchy. All pieces bite-sized and clearly soft-textured.",
+  family_modified:  "TEXTURE RULE: soft bite-sized pieces — modified family food, clearly not adult-sized chunks. Tender-looking, simply prepared.",
+  family_table:     "TEXTURE RULE: regular family-style food, age-appropriate presentation.",
+};
+
+// Maps COND-XXXX protocol IDs to visual presentation adjustments.
+// Only IDs with a meaningful visual impact on the image are listed.
+const CONDITION_VISUAL_NOTES: Record<string, string> = {
+  "COND-0004": "PORTION RULE: show a notably generous portion — this child needs extra calories (failure to thrive protocol). Do NOT show a small or dainty serving.",
+  "COND-0005": "EMPHASIS RULE: visually highlight iron-rich components (dark leafy greens, lean meat, legumes) — make them prominent in the plating.",
+};
+
+function buildPediatricContextAddendum(ctx: PediatricImageContext): string {
+  // Priority: textureClass lookup (most precise) → textureStrategy (human-readable resolver string)
+  // → textureHint (legacy first-sentence fallback).
+  const textureInstruction = (ctx.textureClass && TEXTURE_CLASS_VISUAL[ctx.textureClass])
+    ? TEXTURE_CLASS_VISUAL[ctx.textureClass]
+    : ctx.textureStrategy
+      ? `TEXTURE REQUIREMENT: ${ctx.textureStrategy}`
+      : `TEXTURE: ${ctx.textureHint || "soft, age-appropriate texture"}.`;
+
+  const presentationLine = ctx.presentationStrategy
+    ? `Plating: ${ctx.presentationStrategy}.`
+    : "";
+
+  // Condition-specific visual notes (e.g. larger portions for failure-to-thrive).
+  const conditionNotes = (ctx.activeConditionIds ?? [])
+    .map(id => CONDITION_VISUAL_NOTES[id])
+    .filter(Boolean)
+    .join("\n");
+
+  return `
+PEDIATRIC CONTEXT: This meal is for a ${ctx.stage} child (${ctx.ageRange}).
+${textureInstruction}
+The rendered food MUST visually match this texture — a purée stage must look smooth with no chunks; a toddler plate must show soft small pieces, not crunchy sticks.
+PORTION: ${ctx.portionNote} — this is a child's serving, NOT a full adult restaurant plate.${presentationLine ? `\n${presentationLine}` : ""}
+The food should look like what a parent would actually put on a small child's plate: appropriately sized, soft-looking if needed, simply presented.
+Do NOT show adult-sized portions. Do NOT show elaborate restaurant plating. Do NOT show raw or hard-textured ingredients if the texture class is purée or mashed.${conditionNotes ? "\n" + conditionNotes : ""}`;
+}
+
+function buildMealImagePrompt(mealName: string, ingredients: string[], sourceType?: ImageSourceType, pediatricContext?: PediatricImageContext): string {
   const topIngredients = ingredients.slice(0, 5).join(", ");
+  const pediatricAddendum = pediatricContext ? buildPediatricContextAddendum(pediatricContext) : "";
 
   // When sourceType is explicitly provided by the generator, use it as the
   // hard macro anchor. The name-based classifier refines presentation within
@@ -400,7 +446,7 @@ ABSOLUTE RULE: NO HUMANS. NO PEOPLE. NO PERSONS. NO HANDS. NO ARMS. NO BODIES. N
 
 Style: cinematic, high-detail, natural lighting, realistic food photography.
 Camera: 3/4 angle or overhead depending on dish type.
-Background: clean, minimal, neutral surface, no clutter, no text, no logos, no humans.`;
+Background: clean, minimal, neutral surface, no clutter, no text, no logos, no humans.${pediatricAddendum}`;
   }
 
   // No sourceType — fall back to full name-based classifier (legacy path)
@@ -417,7 +463,7 @@ ABSOLUTE RULE: NO HUMANS. NO PEOPLE. NO PERSONS. NO HANDS. NO ARMS. NO BODIES. N
 Style: cinematic, high-detail, natural lighting, realistic food photography.
 Camera: 3/4 angle or overhead depending on dish type.
 Subject: the food dish alone, centered on a clean surface. No hands holding it, no person serving it, no lifestyle scene.
-Background: clean, minimal, neutral surface, no clutter, no text, no logos, no humans, no people, no hands.`;
+Background: clean, minimal, neutral surface, no clutter, no text, no logos, no humans, no people, no hands.${pediatricAddendum}`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -478,7 +524,7 @@ export function normalizeMealTypeToSourceType(mealType?: string): ImageSourceTyp
   return 'meal';
 }
 
-export function buildStableCacheKey(mealName: string, ingredients: string[], sourceType?: string): string {
+export function buildStableCacheKey(mealName: string, ingredients: string[], sourceType?: string, contextTag?: string): string {
   const normalizedName = mealName.toLowerCase().trim();
   const normalizedIngredients = ingredients
     .slice(0, 5)
@@ -488,10 +534,12 @@ export function buildStableCacheKey(mealName: string, ingredients: string[], sou
   // sourceType is part of the key so food/beverage/snack caches never collide.
   // Default to "meal" so food requests without explicit sourceType stay in the food bucket.
   const typeContext = (sourceType || "meal").toLowerCase();
+  // contextTag (e.g. pediatric stage) ensures pediatric images cache separately from adult ones.
+  const tag = contextTag ? `|${contextTag.toLowerCase().trim()}` : "";
 
   return crypto
     .createHash('sha256')
-    .update(`${normalizedName}|${normalizedIngredients}|${typeContext}|${CACHE_VERSION}`)
+    .update(`${normalizedName}|${normalizedIngredients}|${typeContext}|${CACHE_VERSION}${tag}`)
     .digest('hex')
     .substring(0, 32);
 }
@@ -534,6 +582,22 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 // The classifier still runs for presentation style within that category.
 export type ImageSourceType = 'meal' | 'beverage' | 'snack' | 'dessert';
 
+export interface PediatricImageContext {
+  stage: string;             // e.g. "Preschool"
+  ageRange: string;          // e.g. "4–5 years"
+  portionNote: string;       // e.g. "small preschool portion"
+  /** Legacy free-text fallback: first sentence of textureAndChokingPreparation */
+  textureHint?: string;
+  /** Resolver-derived texture class key, e.g. "puree_only" — maps to TEXTURE_CLASS_VISUAL */
+  textureClass?: string;
+  /** Resolver-derived human-readable texture string, e.g. "purée/smooth — no visible chunks" */
+  textureStrategy?: string;
+  /** Resolver-derived plating note, e.g. "small toddler plate with very soft pieces" */
+  presentationStrategy?: string;
+  /** COND-XXXX protocol IDs active for this child — drives condition-specific visual notes */
+  activeConditionIds?: string[];
+}
+
 export interface MealImageRequest {
   mealName: string;
   ingredients: string[];
@@ -541,6 +605,7 @@ export interface MealImageRequest {
   templateRef?: string;
   mealType?: 'breakfast' | 'lunch' | 'dinner' | 'snack';
   sourceType?: ImageSourceType;
+  pediatricContext?: PediatricImageContext;
 }
 
 export interface GeneratedImage {
@@ -558,10 +623,11 @@ export interface GeneratedImage {
 export async function generateMealImage(request: MealImageRequest): Promise<GeneratedImage> {
   // NORMALIZATION — must happen before cache key derivation and before prompt construction
   const normalizedName = normalizeMealName(request.mealName);
-  const { ingredients, mealType, sourceType } = request;
+  const { ingredients, mealType, sourceType, pediatricContext } = request;
   const mealName = normalizedName;
-  // sourceType is included in the cache key so food/beverage/etc. never share entries.
-  const cacheKey = buildStableCacheKey(mealName, ingredients, sourceType);
+  // sourceType + optional pediatric stage are both in the cache key so pediatric and
+  // adult images for the same dish name never share a cache entry.
+  const cacheKey = buildStableCacheKey(mealName, ingredients, sourceType, pediatricContext?.stage);
 
   const _t0 = Date.now();
   // Unique trace ID per generation attempt — correlates all log lines for one request.
@@ -619,7 +685,7 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
   }
 
   // ── LAYER 1: BUILD STRONG PROMPT ───────────────────────────────────────────
-  const prompt = buildMealImagePrompt(mealName, ingredients, sourceType);
+  const prompt = buildMealImagePrompt(mealName, ingredients, sourceType, pediatricContext);
 
   if (process.env.NODE_ENV === "development") {
     console.log(`📝 IMAGE PROMPT for "${mealName}":\n${prompt}`);
@@ -789,7 +855,8 @@ export function getImageCacheStats(): { size: number; entries: string[] } {
 export async function generateMealImageUnified(
   mealName: string,
   ingredients: Array<string | Record<string, any>> = [],
-  sourceType?: ImageSourceType
+  sourceType?: ImageSourceType,
+  pediatricContext?: PediatricImageContext
 ): Promise<string> {
   if (!mealName || !mealName.trim()) {
     return getSemanticFallback("meal");
@@ -806,7 +873,7 @@ export async function generateMealImageUnified(
   // (e.g. server pre-warm fired by the pipeline + client request arriving
   // moments later), join the existing promise instead of spawning a second
   // DALL-E call.
-  const dedupeKey = buildStableCacheKey(normalizedName, ingredientNames, sourceType);
+  const dedupeKey = buildStableCacheKey(normalizedName, ingredientNames, sourceType, pediatricContext?.stage);
   const existing = inflightRequests.get(dedupeKey);
   if (existing) {
     console.log(`⚡ [img-dedup] joining in-flight request for: ${normalizedName}`);
@@ -817,6 +884,7 @@ export async function generateMealImageUnified(
     mealName: normalizedName,
     ingredients: ingredientNames,
     sourceType,
+    pediatricContext,
   }).then(r => r.url).finally(() => {
     inflightRequests.delete(dedupeKey);
   });

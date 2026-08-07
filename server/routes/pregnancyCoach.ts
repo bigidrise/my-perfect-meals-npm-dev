@@ -14,10 +14,58 @@ import express from "express";
 import OpenAI from "openai";
 import { db } from "../db";
 import { users } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { coachingProfiles } from "../db/schema/ace";
+import { eq, sql } from "drizzle-orm";
 import { loadUserProtocolEnvelope } from "../services/protocolEnvelope";
+import { getTierForLookupKey } from "../../shared/planFeatures";
 
 const router = express.Router();
+
+// ─── Conversation persistence helpers ────────────────────────────────────────
+// Table: pregnancy_conversations (user_id TEXT PRIMARY KEY, messages JSONB, updated_at TIMESTAMPTZ)
+// Keyed by user_id only — a user has one pregnancy conversation at a time.
+
+const MAX_TURNS = 20;
+
+async function getConversation(userId: string): Promise<Array<{ role: string; content: string }>> {
+  try {
+    const result = await db.execute(sql`
+      SELECT messages FROM pregnancy_conversations
+      WHERE user_id = ${userId}
+      LIMIT 1
+    `);
+    const row = (result as any).rows?.[0] ?? (Array.isArray(result) ? result[0] : null);
+    if (!row?.messages) return [];
+    const msgs = Array.isArray(row.messages) ? row.messages : JSON.parse(row.messages as string);
+    return msgs.filter((m: any) => m?.role && m?.content);
+  } catch (err: any) {
+    // 42P01 = table not yet created — non-fatal, fall back to empty
+    if (err?.code !== "42P01") {
+      console.warn("[PregnancyCoach] getConversation error:", err.message);
+    }
+    return [];
+  }
+}
+
+async function saveConversation(
+  userId: string,
+  messages: Array<{ role: string; content: string }>
+): Promise<void> {
+  const trimmed = messages.slice(-MAX_TURNS);
+  try {
+    await db.execute(sql`
+      INSERT INTO pregnancy_conversations (user_id, messages, updated_at)
+      VALUES (${userId}, ${JSON.stringify(trimmed)}::jsonb, now())
+      ON CONFLICT (user_id) DO UPDATE
+        SET messages = ${JSON.stringify(trimmed)}::jsonb,
+            updated_at = now()
+    `);
+  } catch (err: any) {
+    if (err?.code !== "42P01") {
+      console.warn("[PregnancyCoach] saveConversation error:", err.message);
+    }
+  }
+}
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -53,27 +101,58 @@ function stageLabel(stage: string): string {
   return labels[stage] ?? "Pregnancy";
 }
 
+// GET /conversation — load persisted conversation history
+router.get("/conversation", async (req, res) => {
+  const userId = resolveUserId(req);
+  if (!userId) return res.status(401).json({ error: "Not authenticated" });
+  const messages = await getConversation(userId);
+  res.json({ messages });
+});
+
+// PATCH /conversation — persist conversation turns server-side
+router.patch("/conversation", async (req, res) => {
+  const userId = resolveUserId(req);
+  if (!userId) return res.status(401).json({ error: "Not authenticated" });
+  const { messages } = req.body;
+  if (!Array.isArray(messages)) return res.json({ ok: true });
+  await saveConversation(userId, messages);
+  res.json({ ok: true });
+});
+
+// DELETE /conversation — clear history (start fresh)
+router.delete("/conversation", async (req, res) => {
+  const userId = resolveUserId(req);
+  if (!userId) return res.status(401).json({ error: "Not authenticated" });
+  try {
+    await db.execute(sql`
+      DELETE FROM pregnancy_conversations WHERE user_id = ${userId}
+    `);
+  } catch { /* non-fatal */ }
+  res.json({ ok: true });
+});
+
 router.post("/ask", async (req, res) => {
   try {
     const userId = resolveUserId(req);
-    const { message, conversationHistory = [] } = req.body;
+    const { message } = req.body;
 
     if (!message || typeof message !== "string") {
       return res.status(400).json({ error: "Message is required." });
     }
 
-    // ── Clinical paywall guard ──────────────────────────────────────────
-    if (userId && process.env.BILLING_ENFORCED === "true") {
-      const [userRow] = await db
-        .select({ entitlements: users.entitlements })
-        .from(users)
-        .where(eq(users.id, userId));
-      const entitlements: string[] = (userRow?.entitlements as string[]) || [];
-      if (!entitlements.includes("pregnancy") && !entitlements.includes("FULL_ACCESS")) {
+    // ── Paywall guard — computed from planLookupKey, never raw DB entitlements ──
+    // users.entitlements is empty for all Stripe subscribers; source of truth is
+    // planLookupKey → tier. clinical_business_monthly → "ultimate" → includes pregnancy.
+    if (!userId) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    if (process.env.BILLING_ENFORCED === "true") {
+      const planKey = (req as any).authUser?.planLookupKey ?? null;
+      const tier = getTierForLookupKey(planKey);
+      // null planLookupKey = internal / admin account → always passes
+      if (planKey !== null && tier !== "ultimate") {
         return res.status(403).json({ error: "requires_upgrade", feature: "pregnancy" });
       }
-    } else if (!userId) {
-      return res.status(401).json({ error: "Not authenticated" });
     }
 
     // Load protocol envelope for full user context
@@ -146,6 +225,37 @@ router.post("/ask", async (req, res) => {
       }
     }
 
+    // ── Behavioral profile (shared with Coach's Corner) ───────────────────────
+    let behavioralContext = "";
+    if (userId) {
+      try {
+        const [profile] = await db
+          .select()
+          .from(coachingProfiles)
+          .where(eq(coachingProfiles.userId, userId))
+          .limit(1);
+
+        if (profile) {
+          const lines: string[] = [];
+          if (profile.setbackResponse) lines.push(`setback response: ${profile.setbackResponse.replace(/_/g, " ")}`);
+          if (profile.motivationDriver) lines.push(`motivation: ${profile.motivationDriver.replace(/_/g, " ")}`);
+          if (profile.trustStyle) lines.push(`trust style: ${profile.trustStyle.replace(/_/g, " ")}`);
+          if (profile.overwhelmResponse) lines.push(`under pressure: ${profile.overwhelmResponse.replace(/_/g, " ")}`);
+          if (profile.recoveryPreference) lines.push(`prefers: ${profile.recoveryPreference.replace(/_/g, " ")}`);
+          if (profile.progressMindset) lines.push(`mindset: ${profile.progressMindset.replace(/_/g, " ")}`);
+          if (profile.eatingDriver) lines.push(`eating driver: ${profile.eatingDriver.replace(/_/g, " ")}`);
+          if (profile.cravingResponse) lines.push(`craving pattern: ${profile.cravingResponse.replace(/_/g, " ")}`);
+          if (profile.hardestPart) lines.push(`hardest part of the plan: ${profile.hardestPart.replace(/_/g, " ")}`);
+          if (profile.offTrackCauses && Array.isArray(profile.offTrackCauses) && profile.offTrackCauses.length) {
+            lines.push(`common off-track causes: ${(profile.offTrackCauses as string[]).join(", ").replace(/_/g, " ")}`);
+          }
+          if (lines.length) behavioralContext = lines.join("; ");
+        }
+      } catch {
+        // non-fatal — behavioral profile is enrichment, not required
+      }
+    }
+
     const stageDisplay = stageLabel(stage);
     const weekDisplay = weekOfPregnancy ? ` (Week ${weekOfPregnancy})` : "";
 
@@ -186,6 +296,12 @@ SYMPTOM SUPPORT YOU KNOW:
 - Swelling: reduce sodium, potassium-rich foods (banana, avocado, sweet potato), hydration
 - Food aversions: bland, familiar foods; respect what she can eat and work with it
 
+HOW TO COACH THIS PERSON:
+${behavioralContext
+  ? `Her behavioral profile: ${behavioralContext}.
+Use this to shape your communication style — not the content of pregnancy safety rules, which never change.`
+  : `No behavioral profile on file yet — use a warm, encouraging, practical tone as a default.`}
+
 TONE:
 - Warm, encouraging, practical — like a knowledgeable friend who also happens to know nutrition
 - Never alarmist or fear-based
@@ -202,12 +318,15 @@ SAFETY BOUNDARIES — NEVER DO:
 
 Keep responses conversational and appropriately concise. Use line breaks to make the answer easy to read. Always be supportive.`;
 
-    // Build conversation for OpenAI
+    // ── Load conversation history from DB (authoritative) ────────────────────
+    const dbHistory = userId ? await getConversation(userId) : [];
+
+    // Build conversation for OpenAI — use DB history, cap at 12 turns
     const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
       { role: "system", content: systemPrompt },
-      ...conversationHistory
+      ...dbHistory
         .slice(-12)
-        .map((m: { role: string; content: string }) => ({
+        .map((m) => ({
           role: m.role as "user" | "assistant",
           content: m.content,
         })),
@@ -222,6 +341,18 @@ Keep responses conversational and appropriately concise. Use line breaks to make
     });
 
     const reply = completion.choices[0]?.message?.content ?? "I couldn't generate a response. Please try again.";
+
+    // ── Persist the new turn (fire-and-forget — never block the response) ───────
+    if (userId) {
+      const updatedHistory = [
+        ...dbHistory,
+        { role: "user", content: message },
+        { role: "assistant", content: reply },
+      ];
+      saveConversation(userId, updatedHistory).catch(err =>
+        console.warn("[PregnancyCoach] Failed to persist conversation:", err)
+      );
+    }
 
     return res.json({
       reply,

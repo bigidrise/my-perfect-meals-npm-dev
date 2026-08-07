@@ -115,6 +115,7 @@ import aceProfilesRouter from "./routes/aceProfiles";
 import aceInterventionsRouter from "./routes/aceInterventions";
 import coachCornerRouter from "./routes/coachCorner";
 import myPerfectBeginningRouter from "./routes/myPerfectBeginning";
+import pregnancyCoachRouter from "./routes/pregnancyCoach";
 
 const app = express();
 
@@ -628,6 +629,14 @@ setTimeout(async () => {
     await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS pregnancy_stage text`);
     await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS pregnancy_due_date text`);
     await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS pregnancy_support_context jsonb`);
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS pregnancy_conversations (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id text NOT NULL UNIQUE,
+        messages jsonb NOT NULL DEFAULT '[]'::jsonb,
+        updated_at timestamptz NOT NULL DEFAULT now()
+      )
+    `);
     // Performance Nutrition Protocol — boot migrations
     await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS performance_context jsonb`);
     await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS competition_prep_context jsonb`);
@@ -1150,10 +1159,79 @@ setTimeout(async () => {
       ON parents_corner_conversations (user_id)
     `);
     console.log('✅ Parent\'s Corner boot migration complete (parents_corner_conversations)');
+
+    // Pregnancy Coach conversation persistence
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS pregnancy_conversations (
+        user_id text PRIMARY KEY,
+        messages jsonb NOT NULL DEFAULT '[]',
+        updated_at timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+    console.log('✅ Pregnancy Coach boot migration complete (pregnancy_conversations)');
   } catch (err: any) {
-    console.error('❌ Parent\'s Corner boot migration failed:', err.message);
+    console.error('❌ Parent\'s Corner / Pregnancy boot migration failed:', err.message);
   }
 }, 4000);
+
+// child_profiles boot migration — My Perfect Beginning persistent child profiles
+setTimeout(async () => {
+  try {
+    const { db } = await import("./db");
+    const { sql } = await import('drizzle-orm');
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS child_profiles (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id text NOT NULL,
+        name text NOT NULL,
+        date_of_birth text,
+        age_stage text NOT NULL DEFAULT 'toddler',
+        allergies jsonb NOT NULL DEFAULT '[]',
+        dietary_preferences jsonb NOT NULL DEFAULT '[]',
+        medical_conditions jsonb NOT NULL DEFAULT '[]',
+        feeding_concerns jsonb NOT NULL DEFAULT '[]',
+        sensory_issues jsonb NOT NULL DEFAULT '[]',
+        dislikes jsonb NOT NULL DEFAULT '[]',
+        cultural_preferences text,
+        emoji text NOT NULL DEFAULT '👶',
+        is_archived boolean NOT NULL DEFAULT false,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+    await db.execute(sql`
+      CREATE INDEX IF NOT EXISTS idx_child_profiles_user
+      ON child_profiles (user_id)
+      WHERE is_archived = false
+    `);
+    // Phase 2 — extended profile fields required by the Pediatric Resolver
+    const phase2Columns = [
+      `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS sex text`,
+      `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS height_cm numeric`,
+      `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS weight_kg numeric`,
+      `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS growth_context text DEFAULT 'typical'`,
+      `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS birth_history jsonb DEFAULT '{}'`,
+      `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS feeding_development jsonb DEFAULT '{}'`,
+      `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS family_goals jsonb DEFAULT '[]'`,
+      `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS kitchen_equipment jsonb DEFAULT '[]'`,
+      `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS kitchen_budget text DEFAULT 'moderate'`,
+      `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS kitchen_time_minutes integer DEFAULT 30`,
+      `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS kitchen_skill text DEFAULT 'intermediate'`,
+      `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS school_safe_required boolean DEFAULT false`,
+      `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS pediatrician_oversight boolean DEFAULT false`,
+      `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS medication_affects_appetite boolean DEFAULT false`,
+      `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS g_tube boolean DEFAULT false`,
+      `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS feeding_ability jsonb DEFAULT '{}'`,
+      `ALTER TABLE child_profiles ADD COLUMN IF NOT EXISTS allergy_details jsonb DEFAULT '[]'`,
+    ];
+    for (const col of phase2Columns) {
+      await db.execute(sql.raw(col));
+    }
+    console.log('✅ child_profiles boot migration complete (My Perfect Beginning)');
+  } catch (err: any) {
+    console.error('❌ child_profiles boot migration failed:', err.message);
+  }
+}, 4600);
 
 // Backfill: purge stale temp URLs from meal_image_cache
 // Any non-S3 URL is expired or will expire — delete so next request regenerates clean
@@ -1323,6 +1401,7 @@ async function start() {
   app.use("/api/ace/profile", aceProfilesRouter);
   app.use("/api/ace/interventions", aceInterventionsRouter);
   app.use("/api/coach-corner", coachCornerRouter);
+  app.use("/api/pregnancy", requireAuth, pregnancyCoachRouter);
   app.use("/api/my-perfect-beginning", myPerfectBeginningRouter);
 
   // 🎯 CRITICAL: API routes FIRST to prevent Vite middleware interference
@@ -1364,6 +1443,31 @@ async function start() {
 import('./services/reminderScheduler').then(({ startReminderScheduler }) => {
   startReminderScheduler();
 }).catch((err) => console.error('[index] Failed to start reminder scheduler:', err));
+
+// MPB Generated Meals — DB persistence for child meal cards + images
+setTimeout(async () => {
+  try {
+    const { pool } = await import('./db');
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS mpb_generated_meals (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id TEXT NOT NULL,
+        child_profile_id TEXT,
+        recipe_data JSONB NOT NULL,
+        image_url TEXT,
+        selected_option_name TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_mpb_generated_meals_user
+        ON mpb_generated_meals (user_id, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_mpb_generated_meals_child
+        ON mpb_generated_meals (child_profile_id, created_at DESC);
+    `);
+    console.log("✅ MPB Generated Meals boot migration complete");
+  } catch (err: any) {
+    console.error("❌ MPB Generated Meals boot migration failed:", err.message);
+  }
+}, 4500);
 
 // Global process error handlers for stability
 process.on('unhandledRejection', (reason, promise) => {

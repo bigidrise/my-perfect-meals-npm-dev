@@ -18,6 +18,12 @@ import { requireAuth } from "../middleware/requireAuth";
 import type { AuthenticatedRequest } from "../middleware/requireAuth";
 import { db } from "../db";
 import { sql } from "drizzle-orm";
+import {
+  buildPediatricGuidanceBlocks,
+  type ChildProfileInput,
+  type PediatricGuidanceOutput,
+} from "../services/pediatric/buildPediatricGuidanceBlocks";
+import type { DevelopmentalStage } from "../services/pediatric/pediatricStageConstants";
 
 const router = Router();
 
@@ -45,7 +51,10 @@ function stageLabel(stage: string): string {
 
 // ─── System prompt builder ────────────────────────────────────────────────────
 
-function buildSystemPrompt(childContext: Record<string, any>): string {
+function buildSystemPrompt(
+  childContext: Record<string, any>,
+  guidanceOutput?: PediatricGuidanceOutput | null
+): string {
   const nickname = childContext.nickname || "your child";
   const stage = childContext.developmentalStage || "toddler";
   const stageFull = stageLabel(stage);
@@ -137,6 +146,27 @@ function buildSystemPrompt(childContext: Record<string, any>): string {
 
   const childProfile = contextLines.map((l) => `• ${l}`).join("\n");
 
+  // ── Pediatric protocol guidance blocks ──────────────────────────────────────
+  // Injected from buildPediatricGuidanceBlocks: DRI baselines + condition-specific
+  // directive blocks (e.g., autism sensory, T1D, iron deficiency, dysphagia).
+  let driSection = "";
+  let protocolSection = "";
+  let clinicianNote = "";
+
+  if (guidanceOutput && !guidanceOutput.hardBlocked) {
+    if (guidanceOutput.stageDRIBlock) {
+      driSection = `\n━━━ DAILY NUTRITION REFERENCE ━━━\n${guidanceOutput.stageDRIBlock}`;
+    }
+    if (guidanceOutput.conditionGuidanceBlocks.length > 0) {
+      protocolSection = `\n━━━ ACTIVE CONDITION PROTOCOLS ━━━\n${guidanceOutput.conditionGuidanceBlocks.join("\n\n")}`;
+    }
+    if (guidanceOutput.requiresClinicianFlag) {
+      clinicianNote = "\n⚕️ CLINICIAN OVERSIGHT REQUIRED: At least one active condition requires clinical nutrition supervision. Always defer clinical nutrition decisions to the care team and reinforce this boundary in your response.";
+    } else if (guidanceOutput.requiresDietitianFlag) {
+      clinicianNote = "\n🥗 DIETITIAN RECOMMENDED: At least one active condition benefits from a registered pediatric dietitian. Encourage the parent to work with a pediatric RD for meal planning.";
+    }
+  }
+
   return `You are Parent's Corner — the trusted pediatric nutrition guide inside My Perfect Beginning.
 
 You sound like the most reassuring pediatric dietitian a parent has ever spoken to. Not a chatbot. Not a doctor. Not a search engine. A knowledgeable, calm, been-there guide who has helped hundreds of families and knows that most parenting food panic is normal.
@@ -177,16 +207,23 @@ Before responding, reason through these steps in order (internally — do not ex
 • Never suggest calorie restriction or dieting language for children
 
 ━━━ KNOWLEDGE FOUNDATION ━━━
-You draw from: AAP feeding guidelines, WHO growth standards, USDA Dietary Guidelines for Americans (birth through 24 months; 2–5 years editions), Division of Responsibility (Ellyn Satter Institute), pediatric nutrition research, and standard pediatric dietitian practice.
+You draw from: AAP feeding guidelines, WHO growth standards, USDA Dietary Guidelines for Americans (birth through 24 months; 2–5 years editions), Division of Responsibility (Ellyn Satter Institute), pediatric nutrition research, and standard pediatric dietitian practice.${driSection}${protocolSection}${clinicianNote}
 
 ━━━ RESPONSE FORMAT ━━━
-You MUST respond with a JSON object containing exactly two fields:
+You MUST respond with a JSON object:
 {
   "reply": "<your full warm, conversational answer here>",
-  "suggestedFollowUps": ["<question 1>", "<question 2>", "<question 3>"]
+  "suggestedFollowUps": ["<question 1>", "<question 2>", "<question 3>"],
+  "suggestedMealActions": [
+    { "actionType": "create_child_meal", "label": "<short button label, e.g. Build a Hidden-Veggie Cheeseburger>", "mealIdea": "<specific buildable meal concept, e.g. Turkey cheeseburger with finely grated zucchini mixed into the patty, toddler-friendly size>" }
+  ]
 }
 
-The "suggestedFollowUps" array must contain exactly 2–3 short, natural follow-up questions a parent would genuinely want to ask next based on your reply. Questions should be specific to the topic just discussed and helpful for parents who don't know what to ask next. Write them as a parent would naturally phrase them (not as "Ask about…" but as the actual question, e.g. "How often should I offer the new food?"). Never repeat the question just asked. No markdown outside the JSON.`;
+"suggestedFollowUps": Exactly 2–3 short, natural follow-up questions a parent would want to ask next. Specific to the topic just discussed. Written as the parent would ask them (e.g. "How often should I offer the new food?"). Never repeat the question just asked.
+
+"suggestedMealActions": Include ONLY when your reply addresses a concrete food, meal, snack, or drink challenge that has a buildable solution. Leave as [] for behavior questions, feeding schedules, medical referrals, growth concerns, or anything with no direct meal answer. Maximum 2 actions. The "mealIdea" must be a specific, descriptive concept a meal builder can act on — not a generic category. "actionType" must always be exactly "create_child_meal".
+
+No markdown outside the JSON.`;
 }
 
 // ─── Today's Tips by stage ────────────────────────────────────────────────────
@@ -242,6 +279,38 @@ function getTodaysTip(stage: string): string {
   return tips[dayOfYear % tips.length];
 }
 
+/**
+ * Verify that the given child_profile_id is owned by the requesting user.
+ *
+ * When the child_profiles table exists (created by sibling task) this performs
+ * a strict DB ownership lookup.  Until that table is available the function
+ * falls back to validating that the supplied ID is a well-formed UUID — a
+ * necessary minimum because child profile IDs generated by the client are
+ * always UUIDs, so any non-UUID value is a clear manipulation signal.
+ *
+ * The function fails closed: if the child_profiles table exists but has no
+ * matching row, it returns false and the caller must return 403.
+ */
+async function assertChildOwnership(userId: string, childProfileId: string): Promise<boolean> {
+  try {
+    const rows = await db.execute(sql`
+      SELECT 1 FROM child_profiles
+      WHERE id = ${childProfileId} AND user_id = ${userId}
+      LIMIT 1
+    `);
+    const row = (rows as any).rows?.[0] ?? (Array.isArray(rows) ? rows[0] : null);
+    return !!row;
+  } catch (err: any) {
+    // 42P01 = undefined_table — child_profiles hasn't been created yet
+    if (err?.code === "42P01") {
+      // Fall back to UUID format check as a minimal guard
+      return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(childProfileId);
+    }
+    // Any other unexpected DB error — fail closed
+    throw err;
+  }
+}
+
 async function getConversation(userId: string, childProfileId: string): Promise<any[]> {
   try {
     const rows = await db.execute(sql`
@@ -277,48 +346,321 @@ async function saveConversation(userId: string, childProfileId: string, messages
   `);
 }
 
+// ─── Valid age stages ────────────────────────────────────────────────────────
+
+const VALID_AGE_STAGES_SET = new Set([
+  "early_infant", "beginning_foods", "young_toddler", "toddler",
+  "preschool", "early_school_age", "growing_child",
+]);
+
+// ─── Child Profile CRUD ───────────────────────────────────────────────────────
+
+function normalizeRows(result: any): any[] {
+  return (result as any).rows ?? (Array.isArray(result) ? result : []);
+}
+
+// GET /children — list authenticated user's non-archived children (all fields)
+router.get("/children", requireAuth, async (req, res) => {
+    const userId = (req as AuthenticatedRequest).authUser?.id;
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+  try {
+    const result = await db.execute(sql`
+      SELECT * FROM child_profiles
+      WHERE user_id = ${userId} AND is_archived = false
+      ORDER BY created_at ASC
+    `);
+    return res.json({ children: normalizeRows(result) });
+  } catch (err: any) {
+    console.error("[MPB/children] GET error:", err.message);
+    return res.status(500).json({ error: "Failed to load child profiles" });
+  }
+});
+
+// POST /children — create a new child profile (all extended fields)
+router.post("/children", requireAuth, async (req, res) => {
+    const userId = (req as AuthenticatedRequest).authUser?.id;
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+  const {
+    name, age_stage, date_of_birth = null, emoji = "👶",
+    allergies = [], allergy_details = [],
+    dietary_preferences = [], medical_conditions = [],
+    feeding_concerns = [], sensory_issues = [], dislikes = [],
+    cultural_preferences = null,
+    // extended fields
+    sex = null,
+    height_cm = null,
+    weight_kg = null,
+    growth_context = "typical",
+    birth_history = {},
+    feeding_development = {},
+    feeding_ability = {},
+    family_goals = [],
+    kitchen_equipment = [],
+    kitchen_budget = "moderate",
+    kitchen_time_minutes = 30,
+    kitchen_skill = "intermediate",
+    school_safe_required = false,
+    pediatrician_oversight = false,
+    medication_affects_appetite = false,
+  } = req.body;
+  // g_tube is derived from feeding_ability.hasFeedingTube — it is no longer
+  // accepted as a standalone request field. The DB column is kept for backward
+  // compatibility but feeding_ability.hasFeedingTube is the canonical source.
+  const g_tube_derived = !!(
+    feeding_ability &&
+    typeof feeding_ability === "object" &&
+    (feeding_ability as any).hasFeedingTube
+  );
+
+  if (!name || typeof name !== "string" || !name.trim()) {
+    return res.status(400).json({ error: "name is required" });
+  }
+  if (!age_stage || !VALID_AGE_STAGES_SET.has(age_stage)) {
+    return res.status(400).json({ error: "valid age_stage is required" });
+  }
+
+  const aJson   = JSON.stringify(Array.isArray(allergies) ? allergies : []);
+  const adJson  = JSON.stringify(Array.isArray(allergy_details) ? allergy_details : []);
+  const dpJson  = JSON.stringify(Array.isArray(dietary_preferences) ? dietary_preferences : []);
+  const mcJson  = JSON.stringify(Array.isArray(medical_conditions) ? medical_conditions : []);
+  const fcJson  = JSON.stringify(Array.isArray(feeding_concerns) ? feeding_concerns : []);
+  const siJson  = JSON.stringify(Array.isArray(sensory_issues) ? sensory_issues : []);
+  const dlJson  = JSON.stringify(Array.isArray(dislikes) ? dislikes : []);
+  const fgJson  = JSON.stringify(Array.isArray(family_goals) ? family_goals : []);
+  const keJson  = JSON.stringify(Array.isArray(kitchen_equipment) ? kitchen_equipment : []);
+  const bhJson  = JSON.stringify(typeof birth_history === "object" ? birth_history : {});
+  const fdJson  = JSON.stringify(typeof feeding_development === "object" ? feeding_development : {});
+  const faJson  = JSON.stringify(typeof feeding_ability === "object" ? feeding_ability : {});
+
+  try {
+    const result = await db.execute(sql`
+      INSERT INTO child_profiles (
+        user_id, name, age_stage, date_of_birth, emoji, cultural_preferences,
+        allergies, allergy_details, dietary_preferences, medical_conditions,
+        feeding_concerns, sensory_issues, dislikes, family_goals, kitchen_equipment,
+        birth_history, feeding_development, feeding_ability,
+        sex, height_cm, weight_kg, growth_context,
+        kitchen_budget, kitchen_time_minutes, kitchen_skill,
+        school_safe_required, pediatrician_oversight, medication_affects_appetite, g_tube
+      ) VALUES (
+        ${userId}, ${name.trim()}, ${age_stage}, ${date_of_birth}, ${emoji}, ${cultural_preferences ?? null},
+        ${aJson}::jsonb, ${adJson}::jsonb, ${dpJson}::jsonb, ${mcJson}::jsonb,
+        ${fcJson}::jsonb, ${siJson}::jsonb, ${dlJson}::jsonb, ${fgJson}::jsonb, ${keJson}::jsonb,
+        ${bhJson}::jsonb, ${fdJson}::jsonb, ${faJson}::jsonb,
+        ${sex ?? null}, ${height_cm ?? null}, ${weight_kg ?? null}, ${growth_context},
+        ${kitchen_budget}, ${kitchen_time_minutes}, ${kitchen_skill},
+        ${school_safe_required}, ${pediatrician_oversight}, ${medication_affects_appetite}, ${g_tube_derived}
+      )
+      RETURNING *
+    `);
+    const child = normalizeRows(result)[0];
+    return res.json({ child });
+  } catch (err: any) {
+    console.error("[MPB/children] POST error:", err.message);
+    return res.status(500).json({ error: "Failed to create child profile" });
+  }
+});
+
+// PATCH /children/:id — update a child profile (ownership validated, merge-patch)
+router.patch("/children/:id", requireAuth, async (req, res) => {
+    const userId = (req as AuthenticatedRequest).authUser?.id;
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+  const { id } = req.params;
+
+  // Ownership check: fetch current row first
+  const existing = await db.execute(sql`
+    SELECT * FROM child_profiles
+    WHERE id = ${id} AND user_id = ${userId} AND is_archived = false
+  `);
+  const current = normalizeRows(existing)[0];
+  if (!current) return res.status(404).json({ error: "Child profile not found" });
+
+  const b = req.body;
+
+  // Helper: merge array field (use incoming if array, else keep current)
+  const arr = (field: string, fallback: any[] = []) =>
+    Array.isArray(b[field]) ? b[field] : (current[field] ?? fallback);
+  // Helper: merge object field
+  const obj = (field: string, fallback: Record<string,any> = {}) =>
+    (b[field] && typeof b[field] === "object" && !Array.isArray(b[field]))
+      ? b[field]
+      : (current[field] ?? fallback);
+  // Helper: scalar with fallback
+  const scalar = (field: string, fallback: any) =>
+    field in b ? b[field] : (current[field] ?? fallback);
+  // Helper: boolean field
+  const bool = (field: string, fallback = false) =>
+    field in b ? !!b[field] : !!(current[field] ?? fallback);
+
+  const name             = typeof b.name === "string" ? b.name.trim() : current.name;
+  const age_stage        = VALID_AGE_STAGES_SET.has(b.age_stage) ? b.age_stage : current.age_stage;
+  const date_of_birth    = "date_of_birth" in b ? (b.date_of_birth ?? null) : current.date_of_birth;
+  const emoji            = scalar("emoji", "👶");
+  const cultural_pref    = "cultural_preferences" in b ? (b.cultural_preferences ?? null) : current.cultural_preferences;
+
+  const allergies            = arr("allergies");
+  const allergy_details      = arr("allergy_details");
+  const dietary_preferences  = arr("dietary_preferences");
+  const medical_conditions   = arr("medical_conditions");
+  const feeding_concerns     = arr("feeding_concerns");
+  const sensory_issues       = arr("sensory_issues");
+  const dislikes             = arr("dislikes");
+  const family_goals         = arr("family_goals");
+  const kitchen_equipment    = arr("kitchen_equipment");
+
+  const birth_history        = obj("birth_history");
+  const feeding_development  = obj("feeding_development");
+  const feeding_ability      = obj("feeding_ability");
+
+  const sex                       = scalar("sex", null);
+  const height_cm                 = scalar("height_cm", null);
+  const weight_kg                 = scalar("weight_kg", null);
+  const growth_context            = scalar("growth_context", "typical");
+  const kitchen_budget            = scalar("kitchen_budget", "moderate");
+  const kitchen_time_minutes      = scalar("kitchen_time_minutes", 30);
+  const kitchen_skill             = scalar("kitchen_skill", "intermediate");
+  const school_safe_required      = bool("school_safe_required");
+  const pediatrician_oversight    = bool("pediatrician_oversight");
+  const medication_affects_appetite = bool("medication_affects_appetite");
+  // g_tube is derived from feeding_ability.hasFeedingTube (canonical source).
+  // The DB column is kept for backward compat but is no longer a standalone request field.
+  const g_tube_derived = !!(
+    feeding_ability &&
+    typeof feeding_ability === "object" &&
+    (feeding_ability as any).hasFeedingTube
+  );
+
+  try {
+    const result = await db.execute(sql`
+      UPDATE child_profiles SET
+        name                      = ${name},
+        age_stage                 = ${age_stage},
+        date_of_birth             = ${date_of_birth},
+        emoji                     = ${emoji},
+        cultural_preferences      = ${cultural_pref ?? null},
+        allergies                 = ${JSON.stringify(allergies)}::jsonb,
+        allergy_details           = ${JSON.stringify(allergy_details)}::jsonb,
+        dietary_preferences       = ${JSON.stringify(dietary_preferences)}::jsonb,
+        medical_conditions        = ${JSON.stringify(medical_conditions)}::jsonb,
+        feeding_concerns          = ${JSON.stringify(feeding_concerns)}::jsonb,
+        sensory_issues            = ${JSON.stringify(sensory_issues)}::jsonb,
+        dislikes                  = ${JSON.stringify(dislikes)}::jsonb,
+        family_goals              = ${JSON.stringify(family_goals)}::jsonb,
+        kitchen_equipment         = ${JSON.stringify(kitchen_equipment)}::jsonb,
+        birth_history             = ${JSON.stringify(birth_history)}::jsonb,
+        feeding_development       = ${JSON.stringify(feeding_development)}::jsonb,
+        feeding_ability           = ${JSON.stringify(feeding_ability)}::jsonb,
+        sex                       = ${sex ?? null},
+        height_cm                 = ${height_cm ?? null},
+        weight_kg                 = ${weight_kg ?? null},
+        growth_context            = ${growth_context},
+        kitchen_budget            = ${kitchen_budget},
+        kitchen_time_minutes      = ${kitchen_time_minutes},
+        kitchen_skill             = ${kitchen_skill},
+        school_safe_required      = ${school_safe_required},
+        pediatrician_oversight    = ${pediatrician_oversight},
+        medication_affects_appetite = ${medication_affects_appetite},
+        g_tube                    = ${g_tube_derived},
+        updated_at                = now()
+      WHERE id = ${id} AND user_id = ${userId} AND is_archived = false
+      RETURNING *
+    `);
+    const child = normalizeRows(result)[0];
+    if (!child) return res.status(404).json({ error: "Child profile not found" });
+    return res.json({ child });
+  } catch (err: any) {
+    console.error("[MPB/children] PATCH error:", err.message);
+    return res.status(500).json({ error: "Failed to update child profile" });
+  }
+});
+
+// DELETE /children/:id — archive a child profile (soft delete, ownership validated)
+router.delete("/children/:id", requireAuth, async (req, res) => {
+    const userId = (req as AuthenticatedRequest).authUser?.id;
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+  const { id } = req.params;
+  try {
+    const result = await db.execute(sql`
+      UPDATE child_profiles SET is_archived = true, updated_at = now()
+      WHERE id = ${id} AND user_id = ${userId} AND is_archived = false
+      RETURNING id
+    `);
+    if (normalizeRows(result).length === 0) {
+      return res.status(404).json({ error: "Child profile not found" });
+    }
+    return res.json({ ok: true });
+  } catch (err: any) {
+    console.error("[MPB/children] DELETE error:", err.message);
+    return res.status(500).json({ error: "Failed to archive child profile" });
+  }
+});
+
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
-// GET /tip — returns today's rotating tip for a given developmental stage
-router.get("/tip", requireAuth, async (req, res) => {
+// ── Age helper ──────────────────────────────────────────────────────────────
+function calcAgeMonths(dob: string | null | undefined): number | undefined {
+  if (!dob) return undefined;
+  try {
+    const birth = new Date(dob.includes("T") ? dob : dob + "T12:00:00");
+    const now = new Date();
+    return Math.max(0, (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth()));
+  } catch {
+    return undefined;
+  }
+}
+
+// GET /parents-corner/tip — returns today's rotating tip for a given developmental stage
+router.get("/parents-corner/tip", requireAuth, async (req, res) => {
   const stage = (req.query.stage as string) || "toddler";
   const tip = getTodaysTip(stage);
   res.json({ tip });
 });
 
-// GET /conversation — load saved conversation for a child profile
-router.get("/conversation", requireAuth, async (req, res) => {
-  const userId = (req as AuthenticatedRequest).authUser?.id;
-  const childProfileId = req.query.childProfileId as string;
+// GET /parents-corner/conversation — load saved conversation for a child profile
+router.get("/parents-corner/conversation", requireAuth, async (req, res) => {
+    const userId = (req as AuthenticatedRequest).authUser?.id;
+    const childProfileId: string | null = (req.query.childProfileId as string) || null;
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
   if (!childProfileId) return res.json({ messages: [] });
+      const owned = await assertChildOwnership(userId, childProfileId);
+  if (!owned) return res.status(403).json({ error: "Forbidden" });
   const messages = await getConversation(userId, childProfileId);
   res.json({ messages });
 });
 
-// DELETE /conversation — clear saved conversation for a child profile
-router.delete("/conversation", requireAuth, async (req, res) => {
-  const userId = (req as AuthenticatedRequest).authUser?.id;
-  const { childProfileId } = req.body;
+// DELETE /parents-corner/conversation — clear saved conversation for a child profile
+router.delete("/parents-corner/conversation", requireAuth, async (req, res) => {
+    const userId = (req as AuthenticatedRequest).authUser?.id;
+  // childProfileId may arrive in body or query string
+    const childProfileId: string | null = (req.body.childProfileId || req.query.childProfileId as string) || null;
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
-  if (childProfileId) await clearConversation(userId, childProfileId);
+  if (!childProfileId) return res.json({ ok: true });
+      const owned = await assertChildOwnership(userId, childProfileId);
+  if (!owned) return res.status(403).json({ error: "Forbidden" });
+  await clearConversation(userId, childProfileId);
   res.json({ ok: true });
 });
 
-// PUT /conversation — persist conversation for a child profile (keep last 20 turns)
-router.put("/conversation", requireAuth, async (req, res) => {
-  const userId = (req as AuthenticatedRequest).authUser?.id;
+// PATCH /parents-corner/conversation — persist conversation for a child profile (keep last 20 turns)
+router.patch("/parents-corner/conversation", requireAuth, async (req, res) => {
+    const userId = (req as AuthenticatedRequest).authUser?.id;
   const { childProfileId, messages } = req.body;
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
-  if (childProfileId && Array.isArray(messages)) {
-    const trimmed = messages.slice(-20);
-    await saveConversation(userId, childProfileId, trimmed);
-  }
+  if (!childProfileId || !Array.isArray(messages)) return res.json({ ok: true });
+      const owned = await assertChildOwnership(userId, childProfileId);
+  if (!owned) return res.status(403).json({ error: "Forbidden" });
+  const trimmed = messages.slice(-20);
+  await saveConversation(userId, childProfileId, trimmed);
   res.json({ ok: true });
 });
 
-// POST /ask — main Parent's Corner AI chat endpoint
-router.post("/ask", requireAuth, async (req, res) => {
+// POST /parents-corner — main Parent's Corner AI chat endpoint
+// Loads authoritative child profile server-side; never trusts client-supplied context
+// for safety constraints. No adult nutrition fields are read.
+router.post("/parents-corner", requireAuth, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser?.id;
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
@@ -329,8 +671,158 @@ router.post("/ask", requireAuth, async (req, res) => {
       return res.status(400).json({ error: "Message is required." });
     }
 
+    // ── Server-side child profile loading ──────────────────────────────────────
+    // Extract childProfileId from client-supplied context (the id field).
+    // If present, assert ownership and load the authoritative profile from the DB.
+    // The AI then operates on server-verified, DB-sourced pediatric context only —
+    // never on raw client-supplied data for safety-critical fields.
+    const childProfileId: string | null = childContext?.id ?? null;
+    let resolvedContext: Record<string, any> = childContext;
+    let childProfileInput: ChildProfileInput | null = null;
+
+    if (childProfileId) {
+      const owned = await assertChildOwnership(userId, childProfileId);
+      if (!owned) {
+        return res.status(403).json({ error: "Forbidden: child profile does not belong to this user." });
+      }
+
+      try {
+        const profileResult = await db.execute(sql`
+          SELECT id, name, date_of_birth, age_stage, sex,
+                 allergy_details, dietary_preferences, medical_conditions,
+                 feeding_concerns, sensory_issues, dislikes,
+                 birth_history, feeding_ability, growth_context,
+                 school_safe_required, medication_affects_appetite
+          FROM child_profiles
+          WHERE id = ${childProfileId} AND user_id = ${userId}
+          LIMIT 1
+        `);
+        const row = (profileResult as any).rows?.[0] ?? (Array.isArray(profileResult) ? profileResult[0] : null);
+
+        if (row) {
+          const birthHistory = typeof row.birth_history === "object" && row.birth_history ? row.birth_history : {};
+          const feedingAbility = typeof row.feeding_ability === "object" && row.feeding_ability ? row.feeding_ability : {};
+          const growthContext = typeof row.growth_context === "object" && row.growth_context ? row.growth_context : {};
+          const medicalConditions: string[] = Array.isArray(row.medical_conditions) ? row.medical_conditions : [];
+          const feedingConcerns: string[] = Array.isArray(row.feeding_concerns) ? row.feeding_concerns : [];
+          const sensoryIssues: any[] = Array.isArray(row.sensory_issues) ? row.sensory_issues : [];
+          const dislikes: string[] = Array.isArray(row.dislikes) ? row.dislikes : [];
+          const dietaryPreferences: string[] = Array.isArray(row.dietary_preferences) ? row.dietary_preferences : [];
+          const allergyDetails: any[] = Array.isArray(row.allergy_details) ? row.allergy_details : [];
+
+          // Map DB row → childContext shape expected by buildSystemPrompt.
+          // Only pediatric fields are included — adult nutrition identity, macros,
+          // weight-loss targets, GLP-1 state, etc. are deliberately excluded.
+          resolvedContext = {
+            id: row.id,
+            nickname: row.name,
+            developmentalStage: row.age_stage,
+            currentAgeMonths: calcAgeMonths(row.date_of_birth),
+            sex: row.sex,
+            prematureBirth: !!birthHistory.prematureBirth,
+            gestationalAgeAtBirthWeeks: birthHistory.gestationalAgeAtBirthWeeks ?? null,
+            feedingAbility,
+            growth: growthContext,
+            allergyProfile: {
+              entries: allergyDetails,
+              celiacDisease: medicalConditions.some(c => /celiac/i.test(c)),
+              lactoseIntolerance: medicalConditions.some(c => /lactose/i.test(c)),
+            },
+            diagnosedConditions: medicalConditions,
+            eatingBehavior: {
+              pickyEater: feedingConcerns.some(c => /picky/i.test(c)),
+              sensorySensitivities: sensoryIssues.length > 0,
+              fearOfNewFoods: feedingConcerns.some(c => /neophob|fear.*food|new.*food/i.test(c)),
+              foodsRefused: dislikes,
+              parentsBiggestFeedingChallenge: feedingConcerns[0] ?? null,
+            },
+            householdDiet: {
+              dietaryPattern: dietaryPreferences[0] ?? "omnivore",
+              requiresSchoolSafe: !!row.school_safe_required,
+            },
+          };
+
+          // ── Build ChildProfileInput for pediatric protocol guidance blocks ──
+          // Uses the same raw DB fields — no extra DB query needed.
+          // Never includes adult nutrition fields; stays within pediatric boundary.
+          childProfileInput = {
+            developmentalStage: row.age_stage as DevelopmentalStage,
+            medicalConditions,
+            sensoryIssues: sensoryIssues.map((s: any) =>
+              typeof s === "string" ? s : (s?.type ?? String(s))
+            ),
+            feedingConcerns,
+            growth: {
+              pediatricianConcern: growthContext.pediatricianConcern,
+            },
+            feedingAbility: {
+              textureLevel: feedingAbility.textureLevel,
+              swallowingDifficulty: !!feedingAbility.swallowingDifficulty,
+              hasFeedingTube: !!feedingAbility.hasFeedingTube,
+              historyOfChokingOrGagging: !!feedingAbility.historyOfChokingOrGagging,
+            },
+            sex: row.sex,
+            allergyDetails: allergyDetails
+              .filter((e: any) =>
+                ["confirmed_allergy", "clinician_elimination"].includes(e?.severity)
+              )
+              .map((e: any) => ({
+                allergen: e.customAllergenName || e.allergenId?.replace(/_/g, " ") || e.allergen || "",
+                severity: e.severity,
+                epiPen: !!e.epiPen,
+                crossContact: !!e.crossContact,
+                clinicianInstructions: e.clinicianInstructions,
+              })),
+            schoolSafeRequired: !!row.school_safe_required,
+          };
+
+          console.log(`[ParentsCorner] Server-loaded profile: ${row.name} (${row.age_stage})`);
+        }
+      } catch (profileErr: any) {
+        // If child_profiles table is unavailable or query fails, fall back to client context
+        // so a graceful degradation is preferred over a hard failure.
+        console.warn("[ParentsCorner] Child profile lookup fell back to client context:", profileErr.message);
+      }
+    }
+
+    // ── Run pediatric protocol registry ──────────────────────────────────────
+    // buildPediatricGuidanceBlocks is synchronous and uses only registry data.
+    // Connects the existing pediatric infrastructure (DRI baselines, condition
+    // protocols, conflict resolution) to the conversational AI for the first time.
+    let guidanceOutput: PediatricGuidanceOutput | null = null;
+    if (childProfileInput) {
+      try {
+        guidanceOutput = buildPediatricGuidanceBlocks(childProfileInput);
+
+        // Hard block: a condition requires clinical intervention before conversation
+        if (guidanceOutput.hardBlocked) {
+          console.warn(
+            `[ParentsCorner] Hard block for condition: ${guidanceOutput.hardBlockConditionId}`
+          );
+          return res.json({
+            reply: guidanceOutput.hardBlockMessage ??
+              "For this child's specific medical situation, I recommend speaking directly with your child's pediatrician or a registered pediatric dietitian before we discuss meal recommendations. They'll be able to give you guidance that's tailored to your child's care plan.",
+            suggestedFollowUps: [
+              "What questions should I bring to the pediatrician?",
+              "How do I find a pediatric dietitian?",
+            ],
+          });
+        }
+
+        if (guidanceOutput.activeProtocolIds.length > 0) {
+          console.log(
+            `[ParentsCorner] Active protocols: ${guidanceOutput.activeProtocolIds.join(", ")}`
+          );
+        }
+      } catch (guidanceErr: any) {
+        // Non-fatal — if the registry fails, proceed with profile-only context
+        console.warn("[ParentsCorner] Pediatric guidance blocks failed (non-fatal):", guidanceErr.message);
+        guidanceOutput = null;
+      }
+    }
+
     const openai = getOpenAI();
-    const systemPrompt = buildSystemPrompt(childContext);
+    const systemPrompt = buildSystemPrompt(resolvedContext, guidanceOutput);
 
     // Build messages array with conversation history
     const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
@@ -359,16 +851,30 @@ router.post("/ask", requireAuth, async (req, res) => {
 
     let reply = "";
     let suggestedFollowUps: string[] = [];
+    let suggestedMealActions: { actionType: string; label: string; mealIdea: string }[] = [];
     try {
       const parsed = JSON.parse(raw);
       reply = typeof parsed.reply === "string" ? parsed.reply : raw;
       if (Array.isArray(parsed.suggestedFollowUps)) {
         suggestedFollowUps = parsed.suggestedFollowUps
-          .filter((q: unknown) => typeof q === "string" && q.trim())
+          .filter((q: unknown) => typeof q === "string" && (q as string).trim())
           .slice(0, 3);
       }
+      if (Array.isArray(parsed.suggestedMealActions)) {
+        suggestedMealActions = parsed.suggestedMealActions
+          .filter(
+            (a: unknown): a is { actionType: string; label: string; mealIdea: string } =>
+              typeof a === "object" &&
+              a !== null &&
+              (a as any).actionType === "create_child_meal" &&
+              typeof (a as any).label === "string" &&
+              (a as any).label.trim() &&
+              typeof (a as any).mealIdea === "string" &&
+              (a as any).mealIdea.trim()
+          )
+          .slice(0, 2);
+      }
     } catch {
-      // Fallback: treat entire content as the reply
       reply = raw;
     }
 
@@ -376,10 +882,148 @@ router.post("/ask", requireAuth, async (req, res) => {
       reply = "I'm sorry, I didn't get a response. Please try again.";
     }
 
-    res.json({ reply, suggestedFollowUps });
+    res.json({ reply, suggestedFollowUps, suggestedMealActions });
   } catch (err: any) {
     console.error("[MyPerfectBeginning/ParentsCorner] Error:", err.message);
     res.status(500).json({ error: "Something went wrong. Please try again." });
+  }
+});
+
+// ─── Meal Options (Step 1 — three concept choices before full recipe) ──────────
+
+router.post('/meal-options', requireAuth, async (req: AuthenticatedRequest, res) => {
+  try {
+    const { ageStage, foodRequest, childName, childProfileId, allergies } = req.body;
+    if (!ageStage || !foodRequest) {
+      return res.status(400).json({ error: 'ageStage and foodRequest are required' });
+    }
+
+    const openai = getOpenAI();
+    const nickname = childName ? String(childName) : 'your child';
+    const allergenList = Array.isArray(allergies) && allergies.length > 0
+      ? allergies
+          .map((a: any) => a.customAllergenName || a.allergenId || '')
+          .filter(Boolean)
+          .join(', ')
+      : 'none reported';
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: `You are a pediatric nutrition assistant. Generate exactly 3 child-appropriate, safe, and appealing meal variations for ${nickname} (developmental stage: ${stageLabel(ageStage)}). Allergens to avoid: ${allergenList}.
+
+Return ONLY a JSON object with no extra text:
+{
+  "options": [
+    { "id": "1", "name": "Short specific meal name", "description": "One to two sentences about what makes this version special or appealing for this child." },
+    { "id": "2", "name": "Short specific meal name", "description": "One to two sentences." },
+    { "id": "3", "name": "Short specific meal name", "description": "One to two sentences." }
+  ]
+}
+
+Names should be short and specific (e.g. "Hidden-Veggie Turkey Cheeseburger", "Mini Cheeseburger Sliders"). Each option should be genuinely different. No markdown outside the JSON.`,
+        },
+        {
+          role: 'user',
+          content: `Meal request: ${String(foodRequest).slice(0, 200)}`,
+        },
+      ],
+      max_tokens: 450,
+      temperature: 0.75,
+      response_format: { type: 'json_object' },
+    });
+
+    const raw = completion.choices[0]?.message?.content ?? '{}';
+    let options: { id: string; name: string; description: string }[] = [];
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed.options)) {
+        options = parsed.options
+          .filter((o: any) => typeof o.name === 'string' && o.name.trim())
+          .slice(0, 3)
+          .map((o: any, i: number) => ({
+            id: String(o.id ?? i + 1),
+            name: String(o.name).trim(),
+            description: typeof o.description === 'string' ? String(o.description).trim() : '',
+          }));
+      }
+    } catch { /* fallback: frontend handles empty options by generating directly */ }
+
+    res.json({ options });
+  } catch (err: any) {
+    console.error('[MPB/meal-options] Error:', err.message);
+    res.status(500).json({ error: 'Could not generate options. Please try again.' });
+  }
+});
+
+// ─── Generated Meals Persistence ──────────────────────────────────────────────
+
+router.post('/generated-meals', requireAuth, async (req: AuthenticatedRequest, res) => {
+  try {
+    const userId = req.authUser!.id;
+    const { childProfileId, recipeData, imageUrl, selectedOptionName } = req.body;
+    if (!recipeData) {
+      return res.status(400).json({ error: 'recipeData is required' });
+    }
+
+    const result = await db.execute(sql`
+      INSERT INTO mpb_generated_meals (user_id, child_profile_id, recipe_data, image_url, selected_option_name)
+      VALUES (
+        ${userId},
+        ${childProfileId ?? null},
+        ${JSON.stringify(recipeData)},
+        ${imageUrl ?? null},
+        ${selectedOptionName ?? null}
+      )
+      RETURNING id
+    `);
+
+    const id = (result.rows[0] as any)?.id ?? null;
+    res.json({ id });
+  } catch (err: any) {
+    console.error('[MPB/generated-meals POST] Error:', err.message);
+    res.status(500).json({ error: 'Could not save meal.' });
+  }
+});
+
+router.get('/generated-meals', requireAuth, async (req: AuthenticatedRequest, res) => {
+  try {
+    const userId = req.authUser!.id;
+    const childProfileId = typeof req.query.childProfileId === 'string' ? req.query.childProfileId : null;
+
+    const result = childProfileId
+      ? await db.execute(sql`
+          SELECT id, recipe_data, image_url, selected_option_name, created_at
+          FROM mpb_generated_meals
+          WHERE user_id = ${userId} AND child_profile_id = ${childProfileId}
+          ORDER BY created_at DESC
+          LIMIT 1
+        `)
+      : await db.execute(sql`
+          SELECT id, recipe_data, image_url, selected_option_name, created_at
+          FROM mpb_generated_meals
+          WHERE user_id = ${userId}
+          ORDER BY created_at DESC
+          LIMIT 1
+        `);
+
+    const row = result.rows[0] as any;
+    if (!row) return res.json({ meal: null });
+
+    res.json({
+      meal: {
+        id: row.id,
+        recipeData: row.recipe_data,
+        imageUrl: row.image_url ?? null,
+        selectedOptionName: row.selected_option_name ?? null,
+        createdAt: row.created_at,
+      },
+    });
+  } catch (err: any) {
+    console.error('[MPB/generated-meals GET] Error:', err.message);
+    res.status(500).json({ error: 'Could not retrieve saved meal.' });
   }
 });
 

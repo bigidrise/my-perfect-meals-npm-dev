@@ -390,7 +390,13 @@ export default function MyPerfectGetaway() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="min-h-screen bg-gradient-to-br from-black via-orange-950/40 to-black pb-36"
+      className="min-h-screen pb-36"
+      style={{
+        backgroundImage: "linear-gradient(rgba(2,10,8,0.78), rgba(1,6,5,0.74)), url('/images/getaway-hero-bg.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundAttachment: "fixed",
+      }}
     >
       {!isDesktop && (
         <div

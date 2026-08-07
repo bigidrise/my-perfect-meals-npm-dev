@@ -1,45 +1,44 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft,
-  ChevronDown,
-  ChevronRight,
-  Plus,
-  Utensils,
-  MessageCircle,
-  User,
-  Map,
-  Heart,
-  ShoppingBag,
-  Shield,
-  BookOpen,
-  Sprout,
-  Baby,
+  ArrowLeft, ChevronDown, ChevronRight, Plus, Utensils,
+  MessageCircle, User, Sprout, Baby, Loader2, Trash2, Pencil,
+  Users, Scan,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { usePageTitle } from "@/contexts/PageTitleContext";
+import { apiUrl } from "@/lib/resolveApiBase";
+import { apiRequest } from "@/lib/apiRequest";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type DevelopmentalStage =
-  | "early_infant"
-  | "beginning_foods"
-  | "young_toddler"
-  | "toddler"
-  | "preschool"
-  | "early_school_age"
-  | "growing_child";
+  | "early_infant" | "beginning_foods" | "young_toddler"
+  | "toddler" | "preschool" | "early_school_age" | "growing_child";
 
-interface MockChild {
+interface DbChild {
   id: string;
-  nickname: string;
-  age: number; // years, approximate
-  stage: DevelopmentalStage;
+  name: string;
+  age_stage: DevelopmentalStage;
   emoji: string;
+  date_of_birth?: string | null;
+  allergies: any[];
+  allergy_details?: any[];
+  dietary_preferences: string[];
+  medical_conditions: string[];
+  feeding_concerns: string[];
+  sensory_issues: string[];
+  dislikes: any;
+  cultural_preferences?: string | null;
+  school_safe_required?: boolean;
+  pediatrician_oversight?: boolean;
+  medication_affects_appetite?: boolean;
+  g_tube?: boolean;
+  created_at?: string;
 }
 
-// ── Stage Labels ──────────────────────────────────────────────────────────────
+// ── Constants ──────────────────────────────────────────────────────────────────
 
 const STAGE_LABELS: Record<DevelopmentalStage, string> = {
   early_infant: "Early Infant",
@@ -50,17 +49,6 @@ const STAGE_LABELS: Record<DevelopmentalStage, string> = {
   early_school_age: "Early School Age",
   growing_child: "Growing Child",
 };
-
-// ── Mock Data ─────────────────────────────────────────────────────────────────
-
-const INITIAL_CHILDREN: MockChild[] = [
-  { id: "mock-1", nickname: "Emma", age: 4, stage: "preschool", emoji: "👧" },
-];
-
-const SESSION_KEY = "mpb.activeChild.v1";
-const SESSION_CHILDREN_KEY = "mpb.children.v1";
-
-// ── Today's Tips (static placeholder — rotates by stage in Phase 2) ───────────
 
 const STAGE_TIPS: Record<DevelopmentalStage, string> = {
   early_infant:
@@ -79,7 +67,11 @@ const STAGE_TIPS: Record<DevelopmentalStage, string> = {
     "Protein needs increase meaningfully during growth spurts. If your child is suddenly always hungry, their body is working hard.",
 };
 
-// ── Section Cards ─────────────────────────────────────────────────────────────
+const GENERAL_TIP =
+  "General Children's Mode uses baseline healthy pediatric guidance. Confirm allergies and medical needs for every child being served.";
+
+const LS_ACTIVE_CHILD_KEY = "mpb.activeChildId.v1";
+const GENERAL_SENTINEL = "GENERAL";
 
 interface SectionCard {
   id: string;
@@ -94,6 +86,17 @@ interface SectionCard {
 }
 
 const SECTION_CARDS: SectionCard[] = [
+  {
+    id: "profile",
+    emoji: "👶",
+    icon: User,
+    title: "Child Nutrition Profile",
+    subtitle: "Build and update your child's full profile",
+    route: "/lifestyle/my-perfect-beginning/profile",
+    accentColor: "text-sky-400",
+    borderColor: "border-sky-500/30 hover:border-sky-400/50",
+    glowColor: "rgba(56,189,248,0.5)",
+  },
   {
     id: "create-meal",
     emoji: "🍽",
@@ -116,97 +119,7 @@ const SECTION_CARDS: SectionCard[] = [
     borderColor: "border-amber-500/30 hover:border-amber-400/50",
     glowColor: "rgba(251,191,36,0.5)",
   },
-  {
-    id: "profile",
-    emoji: "👶",
-    icon: User,
-    title: "Child Nutrition Profile",
-    subtitle: "Build and update your child's full profile",
-    route: "/lifestyle/my-perfect-beginning/profile",
-    accentColor: "text-sky-400",
-    borderColor: "border-sky-500/30 hover:border-sky-400/50",
-    glowColor: "rgba(56,189,248,0.5)",
-  },
-  {
-    id: "journey",
-    emoji: "🌱",
-    icon: Map,
-    title: "The Journey",
-    subtitle: "Where you are right now — and what's ahead",
-    route: "/lifestyle/my-perfect-beginning/journey",
-    accentColor: "text-teal-400",
-    borderColor: "border-teal-500/30 hover:border-teal-400/50",
-    glowColor: "rgba(45,212,191,0.5)",
-  },
-  {
-    id: "better-favorites",
-    emoji: "🎂",
-    icon: Heart,
-    title: "Better Favorites",
-    subtitle: "Healthier versions of foods they already love",
-    route: "/lifestyle/my-perfect-beginning/better-favorites",
-    accentColor: "text-rose-400",
-    borderColor: "border-rose-500/30 hover:border-rose-400/50",
-    glowColor: "rgba(251,113,133,0.5)",
-  },
-  {
-    id: "lunchbox",
-    emoji: "🎒",
-    icon: ShoppingBag,
-    title: "Lunchbox Builder",
-    subtitle: "Pack the perfect lunch for school, sports, or travel",
-    route: "/lifestyle/my-perfect-beginning/lunchbox",
-    accentColor: "text-orange-400",
-    borderColor: "border-orange-500/30 hover:border-orange-400/50",
-    glowColor: "rgba(251,146,60,0.5)",
-  },
-  {
-    id: "nutrition-support",
-    emoji: "❤️",
-    icon: Shield,
-    title: "Nutrition Support",
-    subtitle: "Allergies, celiac, T1D, and specialized protocols",
-    route: "/lifestyle/my-perfect-beginning/nutrition-support",
-    accentColor: "text-violet-400",
-    borderColor: "border-violet-500/30 hover:border-violet-400/50",
-    glowColor: "rgba(167,139,250,0.5)",
-  },
-  {
-    id: "growth",
-    emoji: "📚",
-    icon: BookOpen,
-    title: "Growth & Development",
-    subtitle: "Learn about this stage and what's coming next",
-    route: "/lifestyle/my-perfect-beginning/growth",
-    accentColor: "text-cyan-400",
-    borderColor: "border-cyan-500/30 hover:border-cyan-400/50",
-    glowColor: "rgba(34,211,238,0.5)",
-  },
 ];
-
-// ── Helper ────────────────────────────────────────────────────────────────────
-
-function loadChildren(): MockChild[] {
-  try {
-    const raw = sessionStorage.getItem(SESSION_CHILDREN_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {}
-  return INITIAL_CHILDREN;
-}
-
-function saveChildren(children: MockChild[]) {
-  try {
-    sessionStorage.setItem(SESSION_CHILDREN_KEY, JSON.stringify(children));
-  } catch {}
-}
-
-function loadActiveId(children: MockChild[]): string {
-  try {
-    const saved = sessionStorage.getItem(SESSION_KEY);
-    if (saved && children.find(c => c.id === saved)) return saved;
-  } catch {}
-  return children[0]?.id ?? "";
-}
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -215,31 +128,56 @@ export default function MyPerfectBeginningPage() {
   const isDesktop = useIsDesktop();
   usePageTitle("My Perfect Beginning");
 
-  // Session-only child list (Phase 1 — no DB)
-  const [children, setChildren] = useState<MockChild[]>(() => loadChildren());
-  const [activeId, setActiveId] = useState<string>(() =>
-    loadActiveId(loadChildren())
-  );
+  const [children, setChildren] = useState<DbChild[]>([]);
+  const [activeId, setActiveId] = useState<string>(() => {
+    try { return localStorage.getItem(LS_ACTIVE_CHILD_KEY) ?? ""; } catch { return ""; }
+  });
+  const [isLoading, setIsLoading] = useState(true);
   const [switcherOpen, setSwitcherOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const switcherRef = useRef<HTMLDivElement>(null);
 
-  const activeChild = children.find(c => c.id === activeId) ?? children[0];
+  const isGeneral = activeId === GENERAL_SENTINEL;
+  const activeChild = isGeneral
+    ? null
+    : (children.find(c => c.id === activeId) ?? (children.length > 0 ? children[0] : null));
 
-  // Persist across same session
-  useEffect(() => {
-    saveChildren(children);
-  }, [children]);
-
-  useEffect(() => {
+  // Load children
+  const loadChildren = useCallback(async () => {
     try {
-      sessionStorage.setItem(SESSION_KEY, activeId);
-    } catch {}
-  }, [activeId]);
+      const data = await apiRequest(apiUrl("/api/my-perfect-beginning/children"));
+      const list: DbChild[] = data.children ?? [];
+      setChildren(list);
+
+      const savedId = (() => { try { return localStorage.getItem(LS_ACTIVE_CHILD_KEY); } catch { return null; } })();
+      if (savedId === GENERAL_SENTINEL) {
+        setActiveId(GENERAL_SENTINEL);
+      } else if (savedId && list.find(c => c.id === savedId)) {
+        setActiveId(savedId);
+      } else if (list.length > 0) {
+        setActiveId(list[0].id);
+        try { localStorage.setItem(LS_ACTIVE_CHILD_KEY, list[0].id); } catch {}
+      }
+    } catch (err) {
+      console.error("[MPB hub] Failed to load children:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadChildren(); }, [loadChildren]);
 
   useEffect(() => {
     document.title = "My Perfect Beginning | My Perfect Meals";
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
+
+  useEffect(() => {
+    if (activeId) {
+      try { localStorage.setItem(LS_ACTIVE_CHILD_KEY, activeId); } catch {}
+    }
+  }, [activeId]);
 
   // Close switcher on outside tap
   useEffect(() => {
@@ -247,6 +185,7 @@ export default function MyPerfectBeginningPage() {
     const handler = (e: MouseEvent) => {
       if (switcherRef.current && !switcherRef.current.contains(e.target as Node)) {
         setSwitcherOpen(false);
+        setDeleteConfirm(null);
       }
     };
     document.addEventListener("mousedown", handler);
@@ -256,33 +195,77 @@ export default function MyPerfectBeginningPage() {
   const handleSwitch = (id: string) => {
     setActiveId(id);
     setSwitcherOpen(false);
+    setDeleteConfirm(null);
+    try { localStorage.setItem(LS_ACTIVE_CHILD_KEY, id); } catch {}
   };
 
-  const handleAddChild = () => {
+  const handleEditChild = (child: DbChild) => {
+    // Set as active then navigate to profile page
+    setActiveId(child.id);
+    try { localStorage.setItem(LS_ACTIVE_CHILD_KEY, child.id); } catch {}
     setSwitcherOpen(false);
-    setLocation("/lifestyle/my-perfect-beginning/profile?new=1");
+    setLocation("/lifestyle/my-perfect-beginning/profile");
   };
 
-  const tip = activeChild ? STAGE_TIPS[activeChild.stage] : STAGE_TIPS["preschool"];
+  const handleDeleteChild = async (id: string) => {
+    setDeleting(true);
+    try {
+      await apiRequest(apiUrl(`/api/my-perfect-beginning/children/${id}`), {
+        method: "DELETE",
+      });
+      const remaining = children.filter(c => c.id !== id);
+      setChildren(remaining);
+      if (activeId === id) {
+        const next = remaining[0]?.id ?? "";
+        setActiveId(next);
+        try { localStorage.setItem(LS_ACTIVE_CHILD_KEY, next || GENERAL_SENTINEL); } catch {}
+      }
+      setDeleteConfirm(null);
+    } catch (err) {
+      console.error("[MPB hub] Delete error:", err);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  // Profile completion status
+  const profileStatus = (() => {
+    if (isGeneral || !activeChild) return null;
+    const hasCore = activeChild.name && activeChild.age_stage;
+    const hasDetail =
+      (activeChild.allergies?.length ?? 0) > 0 ||
+      (activeChild.dietary_preferences?.length ?? 0) > 0 ||
+      (activeChild.medical_conditions?.length ?? 0) > 0 ||
+      activeChild.cultural_preferences;
+    if (hasCore && hasDetail) return "Complete";
+    if (hasCore) return "In progress";
+    return "Not started";
+  })();
+
+  const tip = isGeneral
+    ? GENERAL_TIP
+    : (activeChild ? (STAGE_TIPS[activeChild.age_stage] ?? STAGE_TIPS["toddler"]) : STAGE_TIPS["toddler"]);
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45 }}
-      className="min-h-screen bg-gradient-to-br from-[#0d1a12] via-[#0f1f18] to-[#0a1510] pb-36"
+      className="min-h-screen pb-36"
+      style={{
+        backgroundImage: "linear-gradient(rgba(2,14,8,0.78), rgba(1,10,5,0.74)), url('/images/mpb-hero-bg.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
     >
-      {/* ── Mobile sticky header ── */}
+      {/* Mobile sticky header */}
       {!isDesktop && (
         <div
           className="fixed top-0 left-0 right-0 z-40 bg-black/50 backdrop-blur-lg border-b border-emerald-500/20"
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
           <div className="px-4 pb-3 pt-2 flex items-center gap-3">
-            <button
-              onClick={() => setLocation("/lifestyle")}
-              className="p-1.5 rounded-lg bg-white/10 text-white"
-            >
+            <button onClick={() => setLocation("/lifestyle")} className="p-1.5 rounded-lg bg-white/10 text-white">
               <ArrowLeft className="h-4 w-4" />
             </button>
             <div className="flex items-center gap-2">
@@ -295,17 +278,11 @@ export default function MyPerfectBeginningPage() {
 
       <div
         className="max-w-2xl mx-auto px-4"
-        style={{
-          paddingTop: isDesktop
-            ? "2rem"
-            : "calc(env(safe-area-inset-top, 0px) + 5.5rem)",
-        }}
+        style={{ paddingTop: isDesktop ? "2rem" : "calc(env(safe-area-inset-top, 0px) + 5.5rem)" }}
       >
-
-        {/* ── Hero banner ── */}
+        {/* Hero banner */}
         <div className="relative rounded-2xl overflow-hidden mb-5 border border-emerald-500/20">
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-950/70 via-teal-950/50 to-black" />
-          {/* Soft organic shapes */}
           <div className="absolute inset-0 opacity-15 pointer-events-none">
             <svg viewBox="0 0 400 140" className="w-full h-full" preserveAspectRatio="xMidYMid slice">
               <circle cx="340" cy="30" r="55" fill="rgba(52,211,153,0.4)" />
@@ -324,7 +301,7 @@ export default function MyPerfectBeginningPage() {
             <h2 className="text-xl font-bold text-white mb-1.5">
               Healthy beginnings, one meal at a time.
             </h2>
-            <p className="text-sm text-white/70 leading-relaxed">
+            <p className="text-sm text-white leading-relaxed">
               Nutrition built around your child's stage, tastes, and needs —
               without stealing childhood from the child.
             </p>
@@ -334,36 +311,44 @@ export default function MyPerfectBeginningPage() {
         {/* ── Active child display + switcher ── */}
         <div className="mb-5" ref={switcherRef}>
           <div className="rounded-2xl bg-black/40 border border-emerald-500/25 overflow-hidden">
+
             {/* Child strip */}
             <div className="px-4 py-3 flex items-center gap-3">
               <div className="flex-shrink-0 w-9 h-9 rounded-full bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-lg">
-                {activeChild?.emoji ?? "👶"}
+                {isLoading
+                  ? <Loader2 className="h-4 w-4 text-emerald-400 animate-spin" />
+                  : isGeneral
+                  ? <Users className="h-4 w-4 text-emerald-400" />
+                  : (activeChild?.emoji ?? "👶")}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] text-emerald-400/80 font-semibold tracking-wide uppercase mb-0.5">
-                  Currently Helping
+                  Preparing meals for
                 </p>
-                {activeChild ? (
+                {isLoading ? (
+                  <p className="text-white text-sm">Loading profiles…</p>
+                ) : isGeneral ? (
+                  <p className="text-white font-semibold text-sm">
+                    General Children's Meal
+                    <span className="text-white font-normal text-xs ml-1">· No specific child</span>
+                  </p>
+                ) : activeChild ? (
                   <p className="text-white font-semibold text-sm truncate">
-                    {activeChild.nickname}
-                    <span className="text-white/50 font-normal">
-                      {" · "}Age {activeChild.age}
-                      {" · "}
-                      {STAGE_LABELS[activeChild.stage]}
+                    {activeChild.name}
+                    <span className="text-white font-normal">
+                      {" / "}{STAGE_LABELS[activeChild.age_stage]}
                     </span>
                   </p>
                 ) : (
-                  <p className="text-white/50 text-sm">No child profile yet</p>
+                  <p className="text-white text-sm">No child profile yet</p>
                 )}
               </div>
               <button
-                onClick={() => setSwitcherOpen(o => !o)}
+                onClick={() => { setSwitcherOpen(o => !o); setDeleteConfirm(null); }}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600/25 border border-emerald-500/30 text-emerald-200 text-xs font-semibold transition-all active:scale-95"
               >
-                Switch Child
-                <ChevronDown
-                  className={`h-3.5 w-3.5 transition-transform ${switcherOpen ? "rotate-180" : ""}`}
-                />
+                {children.length > 0 || isGeneral ? "Switch" : "Add"}
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${switcherOpen ? "rotate-180" : ""}`} />
               </button>
             </div>
 
@@ -378,40 +363,97 @@ export default function MyPerfectBeginningPage() {
                   className="overflow-hidden"
                 >
                   <div className="border-t border-emerald-500/15 px-3 py-2 space-y-1">
+
+                    {/* Child rows */}
                     {children.map(child => (
-                      <button
-                        key={child.id}
-                        onClick={() => handleSwitch(child.id)}
-                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left ${
-                          child.id === activeId
-                            ? "bg-emerald-500/20 border border-emerald-400/30"
-                            : "hover:bg-white/5 border border-transparent"
-                        }`}
-                      >
-                        <span className="text-xl flex-shrink-0">{child.emoji}</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-white text-sm font-semibold truncate">
-                            {child.nickname}
-                          </p>
-                          <p className="text-white/50 text-xs">
-                            Age {child.age} · {STAGE_LABELS[child.stage]}
-                          </p>
-                        </div>
-                        {child.id === activeId && (
-                          <div className="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0" />
+                      <div key={child.id}>
+                        {deleteConfirm === child.id ? (
+                          <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-red-900/20 border border-red-500/30">
+                            <p className="flex-1 text-xs text-red-300">Remove {child.name}?</p>
+                            <button
+                              onClick={() => handleDeleteChild(child.id)}
+                              disabled={deleting}
+                              className="px-2.5 py-1 rounded-lg bg-red-500/30 border border-red-400/40 text-red-200 text-xs font-semibold"
+                            >
+                              {deleting ? "…" : "Remove"}
+                            </button>
+                            <button
+                              onClick={() => setDeleteConfirm(null)}
+                              className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-white text-xs"
+                            >
+                              Keep
+                            </button>
+                          </div>
+                        ) : (
+                          <div className={`flex items-center gap-2 px-3 py-2.5 rounded-xl transition-all ${
+                            child.id === activeId && !isGeneral
+                              ? "bg-emerald-500/20 border border-emerald-400/30"
+                              : "border border-transparent hover:bg-white/5"
+                          }`}>
+                            <button
+                              onClick={() => handleSwitch(child.id)}
+                              className="flex items-center gap-3 flex-1 text-left min-w-0"
+                            >
+                              <span className="text-xl flex-shrink-0">{child.emoji}</span>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-white text-sm font-semibold truncate">{child.name}</p>
+                                <p className="text-white text-xs">{STAGE_LABELS[child.age_stage]}</p>
+                              </div>
+                              {child.id === activeId && !isGeneral && (
+                                <div className="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0" />
+                              )}
+                            </button>
+                            {/* Edit / Delete */}
+                            <button
+                              onClick={() => handleEditChild(child)}
+                              className="p-1.5 rounded-lg bg-white/5 border border-white/10 text-white hover:text-sky-300 hover:bg-sky-500/10 transition-all"
+                              title={`Edit ${child.name}'s profile`}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              onClick={() => setDeleteConfirm(child.id)}
+                              className="p-1.5 rounded-lg bg-white/5 border border-white/10 text-white hover:text-red-300 hover:bg-red-500/10 transition-all"
+                              title={`Remove ${child.name}`}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
                         )}
-                      </button>
+                      </div>
                     ))}
 
-                    {/* Add child */}
+                    {/* General Children's Mode */}
                     <button
-                      onClick={handleAddChild}
+                      onClick={() => handleSwitch(GENERAL_SENTINEL)}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all text-left ${
+                        isGeneral
+                          ? "bg-sky-500/15 border border-sky-400/30"
+                          : "border-transparent hover:bg-white/5"
+                      }`}
+                    >
+                      <div className="w-8 h-8 rounded-full bg-sky-500/15 border border-sky-400/20 flex items-center justify-center flex-shrink-0">
+                        <Users className="h-3.5 w-3.5 text-sky-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white text-sm font-semibold">General Children's Meal</p>
+                        <p className="text-white text-xs">Birthday party, classroom, sleepover…</p>
+                      </div>
+                      {isGeneral && <div className="w-2 h-2 rounded-full bg-sky-400 flex-shrink-0" />}
+                    </button>
+
+                    {/* Add Child Profile */}
+                    <button
+                      onClick={() => {
+                        setSwitcherOpen(false);
+                        setLocation("/lifestyle/my-perfect-beginning/profile");
+                      }}
                       className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-dashed border-emerald-500/25 hover:border-emerald-400/40 transition-all text-left hover:bg-emerald-500/5"
                     >
                       <div className="w-8 h-8 rounded-full bg-white/5 border border-white/15 flex items-center justify-center flex-shrink-0">
-                        <Plus className="h-3.5 w-3.5 text-white/50" />
+                        <Plus className="h-3.5 w-3.5 text-white" />
                       </div>
-                      <p className="text-white/50 text-sm">Add Child Nutrition Profile</p>
+                      <p className="text-white text-sm">Add Child Nutrition Profile</p>
                     </button>
                   </div>
                 </motion.div>
@@ -420,49 +462,50 @@ export default function MyPerfectBeginningPage() {
           </div>
         </div>
 
-        {/* ── Today's Tip ── */}
-        <div className="mb-5">
-          <div className="rounded-2xl bg-gradient-to-r from-emerald-950/60 via-teal-950/40 to-black border border-emerald-400/20 px-4 py-4">
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 p-2 rounded-xl bg-emerald-500/15 border border-emerald-400/20 mt-0.5">
-                <Sprout className="h-4 w-4 text-emerald-400" />
-              </div>
-              <div>
-                <p className="text-[10px] text-emerald-400/80 font-semibold tracking-wide uppercase mb-1">
-                  Today's Tip
-                  {activeChild && (
-                    <span className="text-emerald-400/50 normal-case font-normal">
-                      {" · "}{STAGE_LABELS[activeChild.stage]}
-                    </span>
-                  )}
-                </p>
-                <p className="text-sm text-white/85 leading-relaxed">{tip}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ── Parent's Corner header ── */}
-        {activeChild && (
-          <div className="mb-3 px-1">
-            <p className="text-xs text-white/40 leading-relaxed">
-              Helping <span className="text-emerald-300 font-semibold">{activeChild.nickname}</span> build healthy habits
+        {/* General mode notice */}
+        {isGeneral && (
+          <div className="mb-5 rounded-xl bg-sky-900/20 border border-sky-500/25 px-4 py-3">
+            <p className="text-xs text-sky-200/80 leading-relaxed">
+              <span className="font-semibold text-sky-300">General Children's Mode</span> — Meals use baseline healthy
+              child nutrition and preparation guidance. Confirm allergies and medical needs for every child being served.
             </p>
           </div>
         )}
 
-        {/* ── Section cards ── */}
-        <div className="space-y-3 mb-6">
+        {/* No child prompt */}
+        {!isLoading && children.length === 0 && !isGeneral && (
+          <div className="mb-5 rounded-2xl bg-emerald-900/20 border border-emerald-500/20 px-5 py-6 text-center">
+            <div className="text-3xl mb-3">👶</div>
+            <p className="text-sm text-white leading-relaxed mb-4">
+              Add your first child's profile to get personalized meal ideas and nutrition guidance.
+            </p>
+            <button
+              onClick={() => setLocation("/lifestyle/my-perfect-beginning/profile")}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600/40 border border-emerald-500/40 text-emerald-200 text-sm font-semibold"
+            >
+              <Plus className="h-4 w-4" />
+              Create Child Profile
+            </button>
+          </div>
+        )}
+
+        {/* Section cards */}
+        <div className="space-y-3 mb-5">
           {SECTION_CARDS.map(card => {
             const Icon = card.icon;
+            const isProfile = card.id === "profile";
+            const statusLabel = isProfile ? profileStatus : null;
+            const statusColor =
+              profileStatus === "Complete"
+                ? "bg-emerald-500/15 border-emerald-400/30 text-emerald-300"
+                : profileStatus === "In progress"
+                ? "bg-amber-500/15 border-amber-400/30 text-amber-300"
+                : "bg-white/8 border-white/12 text-white";
             return (
               <div key={card.id} className="relative">
-                {/* Subtle glow */}
                 <div
                   className="pointer-events-none absolute -inset-0.5 rounded-2xl blur-sm opacity-40"
-                  style={{
-                    background: `radial-gradient(100% 100% at 0% 0%, ${card.glowColor}, transparent)`,
-                  }}
+                  style={{ background: `radial-gradient(100% 100% at 0% 0%, ${card.glowColor}, transparent)` }}
                 />
                 <button
                   onClick={() => setLocation(card.route)}
@@ -472,25 +515,44 @@ export default function MyPerfectBeginningPage() {
                     <span className="text-xl leading-none">{card.emoji}</span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className={`text-sm font-semibold ${card.accentColor} mb-0.5`}>
-                      {card.title}
-                    </p>
-                    <p className="text-xs text-white/55 leading-relaxed truncate">
-                      {card.subtitle}
-                    </p>
+                    <p className={`text-sm font-semibold ${card.accentColor} mb-0.5`}>{card.title}</p>
+                    <p className="text-xs text-white leading-relaxed truncate">{card.subtitle}</p>
+                    {statusLabel && (
+                      <span className={`inline-block mt-1 px-2 py-0.5 rounded-full border text-[10px] font-medium ${statusColor}`}>
+                        {statusLabel}
+                      </span>
+                    )}
                   </div>
-                  <ChevronRight className="h-4 w-4 text-white/25 flex-shrink-0" />
+                  <ChevronRight className="h-4 w-4 text-white flex-shrink-0" />
                 </button>
               </div>
             );
           })}
         </div>
 
-        {/* ── Phase note ── */}
-        <div className="rounded-xl bg-black/20 border border-white/6 px-4 py-3 mb-4">
-          <p className="text-xs text-white/30 leading-relaxed text-center">
-            Child profiles are saved in this session. Full cloud sync coming in the next update.
-          </p>
+        {/* Today's Tip */}
+        <div className="mb-5">
+          <div className="rounded-2xl bg-gradient-to-r from-emerald-950/60 via-teal-950/40 to-black border border-emerald-400/20 px-4 py-4">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 p-2 rounded-xl bg-emerald-500/15 border border-emerald-400/20 mt-0.5">
+                <Sprout className="h-4 w-4 text-emerald-400" />
+              </div>
+              <div>
+                <p className="text-[10px] text-emerald-400/80 font-semibold tracking-wide uppercase mb-1">
+                  Today's Tip
+                  {!isGeneral && activeChild && (
+                    <span className="text-emerald-400/50 normal-case font-normal">
+                      {" · "}{STAGE_LABELS[activeChild.age_stage]}
+                    </span>
+                  )}
+                  {isGeneral && (
+                    <span className="text-sky-400/50 normal-case font-normal"> · General Mode</span>
+                  )}
+                </p>
+                <p className="text-sm text-white leading-relaxed">{tip}</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </motion.div>
