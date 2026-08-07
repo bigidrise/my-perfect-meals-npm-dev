@@ -109,14 +109,21 @@ interface ChildRecipeResponse {
   funPresentationIdea: string;
   storageAndLunchboxGuidance?: string;
   askPediatricianNote?: string;
+  estimatedCarbsPerServing?: string;
   rulesFireLog?: RuleFiredEntry[];
   // Parent Education Layer — AI-generated
   whyThisMealWasChosen?: string;
   reasoningTrace?: string[];
 }
 
-// ── Parent Education Layer — server-computed ──────────────────────────────────
-
+interface ClinicalDRI {
+  kcalRange: string;
+  proteinRange: string;
+  ironMg: number;
+  calciumMg: number;
+  sodiumMgMax: number;
+  addedSugarGMax: number;
+}
 interface MealConfidence {
   stars: number;
   profileCompleteness: number;
@@ -781,8 +788,28 @@ function PediatricianDisclaimer() {
   );
 }
 
-// ── Parent Education Panel — confidence, personalization, clinical review ──────
-
+function NutritionBadgeRow({ badges }: { badges: string[] }) {
+  if (!badges || badges.length === 0) return null;
+  return (
+    <div className="space-y-2">
+      <p className="text-[11px] font-semibold text-white/40 uppercase tracking-wider">What this meal provides</p>
+      <div className="flex flex-wrap gap-2">
+        {badges.map(badge => {
+          const cfg = BADGE_CONFIG[badge] ?? { emoji: "✅", pill: "bg-white/5 border-white/15 text-white/60" };
+          return (
+            <span
+              key={badge}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${cfg.pill}`}
+            >
+              <span aria-hidden="true">{cfg.emoji}</span>
+              {badge}
+            </span>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 function ParentEducationPanel({ layer }: { layer: ParentEducationLayerData }) {
   const starsFilled = layer.mealConfidence.stars ?? 0;
   const completeness = layer.mealConfidence.profileCompleteness;
@@ -835,6 +862,8 @@ function RecipeCard({
   onDelete,
   onUpdateRecipe,
   setLocation,
+  nutritionBadges,
+  clinicalNutritionSummary,
 }: {
   recipe: ChildRecipeResponse;
   hasEpiPen: boolean;
@@ -844,6 +873,8 @@ function RecipeCard({
   textureClass?: string;
   imageUrl: string | null;
   imageLoading: boolean;
+  nutritionBadges: string[];
+  clinicalNutritionSummary: ClinicalNutritionSummary | null;
   onDelete: () => void;
   onUpdateRecipe: (updated: Partial<ChildRecipeResponse>) => void;
   setLocation: (path: string) => void;
@@ -961,6 +992,20 @@ function RecipeCard({
               <div className="text-[10px] text-white mt-0.5">Safety Applied</div>
             </div>
           </div>
+
+          {/* Nutrient badge row — parent-friendly, no grams */}
+          {nutritionBadges.length > 0 && (
+            <div className="mb-4">
+              <NutritionBadgeRow badges={nutritionBadges} />
+            </div>
+          )}
+
+          {/* Clinical Details — collapsed by default, for physicians */}
+          {clinicalNutritionSummary && (
+            <div className="mb-4">
+              <ClinicalDetailsPanel summary={clinicalNutritionSummary} />
+            </div>
+          )}
 
           {/* Texture & choking safety — prominent safety section */}
           <div className="mb-4 flex items-start gap-2 p-3 rounded-xl bg-amber-950/25 border border-amber-400/25">
@@ -1253,7 +1298,6 @@ function RecipeCard({
     </motion.div>
   );
 }
-
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 // ── Child profile auto-load ────────────────────────────────────────────────────
@@ -1478,6 +1522,10 @@ export default function MyPerfectBeginningCreateMealPage() {
   const [resolverTextureClass, setResolverTextureClass] = useState<string | undefined>(undefined);
   const [resolverMeta, setResolverMeta] = useState<ResolverMetaEnhanced | null>(null);
 
+  // Nutrition badges + clinical details — server-computed, parent-friendly
+  const [nutritionBadges, setNutritionBadges] = useState<string[]>([]);
+  const [clinicalNutritionSummary, setClinicalNutritionSummary] = useState<ClinicalNutritionSummary | null>(null);
+
   // Apply a child selection from the picker
   const applyChild = (child: ChildListItem) => {
     try { localStorage.setItem(LS_ACTIVE_CHILD_KEY, child.id); } catch {}
@@ -1612,6 +1660,8 @@ export default function MyPerfectBeginningCreateMealPage() {
     setRecipe(null);
     setEducationLayer(null);
     setResolverMeta(null);
+    setNutritionBadges([]);
+    setClinicalNutritionSummary(null);
     setHardStopState(null);
 
     // Build the full food request string with context appended
@@ -1688,6 +1738,13 @@ export default function MyPerfectBeginningCreateMealPage() {
           conflictResolutions: data.resolverMeta.conflictResolutions ?? [],
           stageDRIBaseline: data.resolverMeta.stageDRIBaseline,
         });
+      }
+      // Nutrition badges + clinical details — server-computed, shown on recipe card
+      if (Array.isArray(data.nutritionBadges)) {
+        setNutritionBadges(data.nutritionBadges);
+      }
+      if (data.clinicalNutritionSummary) {
+        setClinicalNutritionSummary(data.clinicalNutritionSummary);
       }
       const activeConditionIds: string[] = data.resolverMeta?.activeConditionIds ?? [];
       // Fallback: first sentence of the AI-generated texture note (legacy path)
@@ -1934,6 +1991,8 @@ export default function MyPerfectBeginningCreateMealPage() {
                 setResolverTextureClass(undefined);
                 window.scrollTo({ top: 0, behavior: "smooth" });
               }}
+              nutritionBadges={nutritionBadges}
+              clinicalNutritionSummary={clinicalNutritionSummary}
               onUpdateRecipe={(updated) => setRecipe(prev => prev ? { ...prev, ...updated } : prev)}
               setLocation={setLocation}
             />
@@ -2002,6 +2061,8 @@ export default function MyPerfectBeginningCreateMealPage() {
                 setRecipeImageUrl(null);
                 setImageLoading(false);
                 setResolverTextureClass(undefined);
+                setNutritionBadges([]);
+                setClinicalNutritionSummary(null);
                 window.scrollTo({ top: 0, behavior: "smooth" });
               }}
               className="w-full py-3 rounded-xl bg-green-500/10 text-green-300 text-sm font-medium border border-green-400/20 hover:bg-green-500/20 transition-all"
@@ -2450,5 +2511,97 @@ export default function MyPerfectBeginningCreateMealPage() {
         )}
       </div>
     </motion.div>
+  );
+}
+
+const BADGE_CONFIG: Record<string, { emoji: string; pill: string }> = {
+  "Iron Rich":              { emoji: "🥩", pill: "bg-red-900/30 border-red-500/30 text-red-200" },
+  "Good Source of Calcium": { emoji: "🥛", pill: "bg-teal-900/30 border-teal-500/30 text-teal-200" },
+  "High Fiber":             { emoji: "🌿", pill: "bg-green-900/30 border-green-500/30 text-green-200" },
+  "Healthy Fats":           { emoji: "🫒", pill: "bg-blue-900/30 border-blue-500/30 text-blue-200" },
+  "Vitamin C Included":     { emoji: "🍊", pill: "bg-orange-900/30 border-orange-500/30 text-orange-200" },
+  "Protein-Packed":         { emoji: "💪", pill: "bg-purple-900/30 border-purple-500/30 text-purple-200" },
+  "Calorie Dense":          { emoji: "⚡", pill: "bg-yellow-900/30 border-yellow-500/30 text-yellow-200" },
+  "Dairy-Free":             { emoji: "🌱", pill: "bg-cyan-900/30 border-cyan-500/30 text-cyan-200" },
+  "Gluten-Free":            { emoji: "✳️", pill: "bg-amber-900/30 border-amber-500/30 text-amber-200" },
+};
+
+interface ClinicalNutritionSummary {
+  stageDRI: ClinicalDRI;
+  estimatedCarbsPerServing?: string;
+  activeConditionLabels: string[];
+  note: string;
+}
+
+function ClinicalDetailsPanel({ summary }: { summary: ClinicalNutritionSummary }) {
+  const [open, setOpen] = useState(false);
+  const dri = summary.stageDRI;
+
+  return (
+    <div className="rounded-xl border border-white/10 bg-black/30 overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-between px-4 py-3 text-left"
+      >
+        <div className="flex items-center gap-2">
+          <FlaskConical className="h-3.5 w-3.5 text-white/30 flex-shrink-0" />
+          <span className="text-xs font-medium text-white/40">Clinical Details</span>
+        </div>
+        {open ? <ChevronUp className="h-3.5 w-3.5 text-white/30" /> : <ChevronDown className="h-3.5 w-3.5 text-white/30" />}
+      </button>
+
+      {open && (
+        <div className="px-4 pb-4 space-y-3 border-t border-white/5">
+          {/* Estimated carbs — shown when T1D/T2D protocol is active */}
+          {summary.estimatedCarbsPerServing && (
+            <div className="pt-3">
+              <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Estimated Carbs / Serving</p>
+              <p className="text-sm font-semibold text-white">{summary.estimatedCarbsPerServing}</p>
+              <p className="text-[10px] text-white/30 mt-0.5">AI estimate based on ingredients — verify with carb-counting tools</p>
+            </div>
+          )}
+
+          {/* Stage DRI reference */}
+          {dri.kcalRange !== "Varies by stage" && (
+            <div className="space-y-1.5">
+              <p className="text-[10px] text-white/40 uppercase tracking-wider">Daily Reference Ranges (USDA / AAP)</p>
+              <div className="grid grid-cols-2 gap-1.5">
+                {[
+                  { label: "Energy", value: dri.kcalRange },
+                  { label: "Protein", value: dri.proteinRange },
+                  { label: "Iron", value: dri.ironMg > 0 ? `${dri.ironMg} mg/day` : "—" },
+                  { label: "Calcium", value: dri.calciumMg > 0 ? `${dri.calciumMg} mg/day` : "—" },
+                  { label: "Sodium max", value: dri.sodiumMgMax > 0 ? `${dri.sodiumMgMax} mg/day` : "—" },
+                  { label: "Added sugar max", value: dri.addedSugarGMax > 0 ? `${dri.addedSugarGMax} g/day` : "—" },
+                ].map(row => (
+                  <div key={row.label} className="rounded-md bg-black/30 px-2.5 py-1.5">
+                    <p className="text-[10px] text-white/30">{row.label}</p>
+                    <p className="text-xs text-white/70 font-medium">{row.value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Active conditions */}
+          {summary.activeConditionLabels.length > 0 && (
+            <div className="space-y-1">
+              <p className="text-[10px] text-white/40 uppercase tracking-wider">Active Condition Protocols</p>
+              <div className="space-y-0.5">
+                {summary.activeConditionLabels.map((label, i) => (
+                  <div key={i} className="flex items-center gap-1.5 text-xs text-white/50">
+                    <ShieldCheck className="h-2.5 w-2.5 text-blue-400/70 flex-shrink-0" />
+                    {label}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <p className="text-[10px] text-white/25 leading-snug">{summary.note}</p>
+        </div>
+      )}
+    </div>
   );
 }

@@ -530,10 +530,98 @@ function buildUserMessage(
   return msg;
 }
 
-// ── Child profile DB loader ────────────────────────────────────────────────────
-// Fetches the active child profile and returns it as a ChildProfileInput for
-// the protocol engine. Validates ownership. Returns null on any failure.
+// ── Nutrition Badge Generator ─────────────────────────────────────────────────
+// Derives parent-friendly nutrient badges from recipe ingredients and active
+// condition protocols. Returns string labels (no emoji — client adds those).
+//
+// Protocol IDs come in two formats depending on which path ran:
+//   - buildPediatricGuidanceBlocks: semantic strings ("iron_deficiency", "celiac", etc.)
+//   - pediatricResolver PROTOCOL_REGISTRY: COND-XXXX ("COND-0005", etc.)
+// Both are checked so badges fire regardless of which path generated the recipe.
+function generateNutritionBadges(
+  ingredients: Array<{ name: string }>,
+  activeProtocolIds: string[],
+  allergies: AllergyEntry[],
+): string[] {
+  const badges: string[] = [];
+  const ing = ingredients.map(i => (i.name || "").toLowerCase()).join(" | ");
+  const has = (keywords: string[]) => keywords.some(k => ing.includes(k));
+  const hasProtocol = (...ids: string[]) =>
+    ids.some(id => activeProtocolIds.includes(id));
 
+  // Iron Rich
+  // Protocol: "iron_deficiency" (semantic) or "COND-0005" (resolver PROTOCOL_REGISTRY)
+  if (
+    hasProtocol("iron_deficiency", "COND-0005") ||
+    has(["beef", "liver", "lamb", "lentil", "spinach", "tofu", "edamame",
+         "fortified", "chickpea", "kidney bean", "pumpkin seed", "quinoa",
+         "dark leafy", "molasses", "tempeh", "black bean"])
+  ) {
+    badges.push("Iron Rich");
+  }
+
+  // Good Source of Calcium
+  if (has(["milk", "cheese", "yogurt", "kale", "bok choy", "broccoli", "tofu",
+           "almond", "sardine", "fortified", "sesame", "tahini", "collard",
+           "edamame", "calcium-set"])) {
+    badges.push("Good Source of Calcium");
+  }
+
+  // High Fiber
+  if (has(["bean", "lentil", "chickpea", "pea", "oat", "whole wheat", "whole grain",
+           "quinoa", "brown rice", "broccoli", "carrot", "pear", "apple", "berry",
+           "pumpkin", "sweet potato", "spinach", "barley", "farro", "chia", "flaxseed"])) {
+    badges.push("High Fiber");
+  }
+
+  // Healthy Fats
+  if (has(["avocado", "olive oil", "salmon", "flax", "chia", "walnut", "sunflower",
+           "tahini", "almond butter", "nut butter", "peanut butter", "hemp",
+           "trout", "mackerel", "herring", "flaxseed", "sesame oil"])) {
+    badges.push("Healthy Fats");
+  }
+
+  // Vitamin C Included
+  if (has(["orange", "lemon", "lime", "bell pepper", "tomato", "strawberry", "kiwi",
+           "broccoli", "pineapple", "mango", "grapefruit", "papaya", "cauliflower",
+           "raspberry", "blueberry", "peach", "red pepper", "green pepper"])) {
+    badges.push("Vitamin C Included");
+  }
+
+  // Protein-Packed
+  if (has(["chicken", "beef", "turkey", "pork", "egg", "lentil", "bean", "tofu",
+           "yogurt", "cottage cheese", "fish", "salmon", "tuna", "shrimp", "tempeh",
+           "edamame", "quinoa", "greek yogurt", "ricotta", "paneer", "seitan"])) {
+    badges.push("Protein-Packed");
+  }
+
+  // Calorie Dense — failure to thrive
+  // Protocol: "failure_to_thrive" (semantic) or "COND-0004" (resolver)
+  if (hasProtocol("failure_to_thrive", "COND-0004")) {
+    badges.push("Calorie Dense");
+  }
+
+  // Dairy-Free — derives from allergen list (milk confirmed/clinician allergy or
+  // intolerance), or from dietary pattern (dairy_free), or from protocol context.
+  // "lactose_intolerance" / "milk_allergy" are not in the protocol registry; they
+  // are handled via the allergen array instead.
+  const hasDairyAllergen = allergies.some(
+    a => a.allergenId === "milk" &&
+         (a.severity === "confirmed_allergy" || a.severity === "clinician_elimination" ||
+          a.severity === "intolerance" || a.severity === "suspected_reaction"),
+  );
+  if (hasDairyAllergen) {
+    badges.push("Dairy-Free");
+  }
+
+  // Gluten-Free — celiac or non-celiac gluten sensitivity
+  // Protocol: "celiac" / "ncgs" (semantic) or "COND-0001" (resolver)
+  if (hasProtocol("celiac", "ncgs", "COND-0001")) {
+    badges.push("Gluten-Free");
+  }
+
+  return badges;
+}
 async function fetchChildProfileInput(
   userId: string,
   childProfileId: string | null | undefined,
@@ -1065,29 +1153,71 @@ router.post("/create-dish", requireAuth, async (req, res) => {
         }
       : null;
 
-    return res.json({
-      recipe: finalRecipe,
-      blocked: false,
-      mealConfidence: educationLayer.mealConfidence,
-      clinicalReviewStatus: educationLayer.clinicalReviewStatus,
-      personalizationLevel: educationLayer.personalizationLevel,
-      conflictResolutions: educationLayer.conflictResolutions,
-      // Protocol engine metadata — for client transparency and debugging
-      protocolEngine: {
-        activeProtocolIds,
-        activeProtocolEvidence,
-        conflictLog,
-        childProfileId: childProfileId ?? null,
-        profileLoaded: childProfileInput !== null,
-      },
-      resolverMeta,
-      // Image generation context — resolver-derived, drives photo texture + presentation
-      resolverContext,
-    });
-  } catch (err: any) {
-    console.error("[MyPerfectBeginning] create-dish error:", err);
-    return res.status(500).json({ error: "Failed to generate recipe" });
-  }
-});
-
+    const mergedProtocolIds = [
+      ...(resolverCtx?.activeProtocolBlocks.map(b => b.conditionId) ?? []),
+      ...activeProtocolIds,
+    ];
+    const nutritionBadges = generateNutritionBadges(
+      finalRecipe.ingredients ?? [],
+      mergedProtocolIds,
+      allergies,
+    );
 export default router;
+
+interface ClinicalNutritionSummary {
+  stageDRI: {
+    kcalRange: string;
+    proteinRange: string;
+    ironMg: number;
+    calciumMg: number;
+    sodiumMgMax: number;
+    addedSugarGMax: number;
+  };
+  estimatedCarbsPerServing?: string;
+  activeConditionLabels: string[];
+  note: string;
+}
+
+interface ProtocolEvidenceEntry {
+  conditionId: string;
+  conditionName: string;
+  version: string;
+  sources: string[];
+  status: string;
+}
+function buildClinicalNutritionSummary(
+  resolverCtx: PediatricMealGenerationContext | null,
+  recipe: any,
+  activeProtocolEvidence: ProtocolEvidenceEntry[],
+): ClinicalNutritionSummary {
+  const dri = resolverCtx?.stageDRIBaseline;
+
+  return {
+    stageDRI: dri
+      ? {
+          kcalRange: `${dri.kcalRangeMin}–${dri.kcalRangeMax} kcal/day`,
+          proteinRange: `${dri.proteinGMin}–${dri.proteinGMax} g/day`,
+          ironMg: dri.ironMg,
+          calciumMg: dri.calciumMg,
+          sodiumMgMax: dri.sodiumMgMax,
+          addedSugarGMax: dri.addedSugarGMax,
+        }
+      : {
+          kcalRange: "Varies by stage",
+          proteinRange: "Varies by stage",
+          ironMg: 0,
+          calciumMg: 0,
+          sodiumMgMax: 0,
+          addedSugarGMax: 0,
+        },
+    estimatedCarbsPerServing: recipe.estimatedCarbsPerServing ?? undefined,
+    activeConditionLabels: activeProtocolEvidence.map(e => e.conditionName).filter(Boolean),
+    note: "DRI reference ranges are per-day totals from USDA / AAP guidelines. This meal contributes to — not covers — those ranges. For exact macro analysis, use clinical nutrition software.",
+  };
+}
+
+    const clinicalNutritionSummary = buildClinicalNutritionSummary(
+      resolverCtx,
+      finalRecipe,
+      activeProtocolEvidence,
+    );
