@@ -24,6 +24,7 @@ import {
   type PediatricGuidanceOutput,
 } from "../services/pediatric/buildPediatricGuidanceBlocks";
 import type { DevelopmentalStage } from "../services/pediatric/pediatricStageConstants";
+import { processMealImageForSave } from "../services/imageLifecycle";
 
 const router = Router();
 
@@ -978,20 +979,28 @@ router.post('/generated-meals', requireAuth, async (req: AuthenticatedRequest, r
       return res.status(400).json({ error: 'recipeData is required' });
     }
 
+    // Attempt to persist ephemeral images (base64 / DALL-E temp URLs) to permanent
+    // storage before saving to DB. If S3 + GCS both fail, safeImageUrl is null —
+    // the restore path will re-generate the image rather than storing a broken link.
+    const recipeName = (typeof recipeData === 'object' && recipeData?.recipeName)
+      ? String(recipeData.recipeName)
+      : 'meal';
+    const { imageUrl: safeImageUrl } = await processMealImageForSave(imageUrl ?? null, recipeName);
+
     const result = await db.execute(sql`
       INSERT INTO mpb_generated_meals (user_id, child_profile_id, recipe_data, image_url, selected_option_name)
       VALUES (
         ${userId},
         ${childProfileId ?? null},
         ${JSON.stringify(recipeData)},
-        ${imageUrl ?? null},
+        ${safeImageUrl ?? null},
         ${selectedOptionName ?? null}
       )
       RETURNING id
     `);
 
     const id = (result.rows[0] as any)?.id ?? null;
-    res.json({ id });
+    res.json({ id, imagePersisted: !!safeImageUrl });
   } catch (err: any) {
     console.error('[MPB/generated-meals POST] Error:', err.message);
     res.status(500).json({ error: 'Could not save meal.' });

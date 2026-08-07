@@ -1765,16 +1765,51 @@ export default function MyPerfectBeginningCreateMealPage() {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
-  // Restore last saved meal for the active child from DB on mount / child-switch
+  // Restore last saved meal for the active child from DB on mount / child-switch.
+  // If imageUrl is null (storage failed during original save), re-generate the
+  // image in the background and write the persistent URL back to DB.
   useEffect(() => {
     if (!activeChild?.id) return;
-    get<{ meal: { id: string; recipeData: any; imageUrl: string | null } | null }>(
-      `/api/my-perfect-beginning/generated-meals?childProfileId=${encodeURIComponent(activeChild.id)}`
+    const childProfileId = activeChild.id;
+    get<{ meal: { id: string; recipeData: any; imageUrl: string | null; selectedOptionName: string | null } | null }>(
+      `/api/my-perfect-beginning/generated-meals?childProfileId=${encodeURIComponent(childProfileId)}`
     )
       .then(data => {
         if (data.meal && !recipe) {
           setRecipe(data.meal.recipeData);
-          setRecipeImageUrl(data.meal.imageUrl);
+          const restoredImageUrl = data.meal.imageUrl;
+          setRecipeImageUrl(restoredImageUrl);
+
+          // If no persisted image, silently regenerate from the recipe data so
+          // the card shows an image without the user having to re-generate the recipe.
+          if (!restoredImageUrl && data.meal.recipeData?.recipeName) {
+            const recipeName: string = data.meal.recipeData.recipeName;
+            const ingredients: string[] = (data.meal.recipeData.ingredients ?? []).map((i: any) => i.name ?? i);
+            const selectedOptionName = data.meal.selectedOptionName ?? null;
+            const savedRecipeData = data.meal.recipeData;
+            setImageLoading(true);
+            post<{ imageUrl?: string }>('/api/meals/generate-image', {
+              mealName: recipeName,
+              ingredients,
+              mealType: 'meal',
+              sourceType: 'meal',
+            })
+              .then(img => {
+                const imgUrl = img.imageUrl ?? null;
+                if (imgUrl) {
+                  setRecipeImageUrl(imgUrl);
+                  // Write the permanent URL back so future reloads skip re-generation.
+                  post('/api/my-perfect-beginning/generated-meals', {
+                    childProfileId,
+                    recipeData: savedRecipeData,
+                    imageUrl: imgUrl,
+                    selectedOptionName,
+                  }).catch(() => {});
+                }
+              })
+              .catch(() => {})
+              .finally(() => setImageLoading(false));
+          }
         }
       })
       .catch(() => {});

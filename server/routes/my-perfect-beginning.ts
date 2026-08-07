@@ -4,6 +4,7 @@ import { requireAuth } from "../middleware/requireAuth";
 import type { AuthenticatedRequest } from "../middleware/requireAuth";
 import { db } from "../db";
 import { sql } from "drizzle-orm";
+import { processMealImageForSave } from "../services/imageLifecycle";
 import { computeParentEducationLayer } from "../services/pediatric/pediatricConfidenceScorer";
 import { enforceBeforeGenerate, scanGeneratedOutput } from "../services/pediatric/pediatricGuardrails";
 import {
@@ -960,16 +961,15 @@ function buildClinicalNutritionSummary(
 router.post("/create-dish", requireAuth, async (req, res) => {
   try {
     const authReq = req as AuthenticatedRequest;
-    const userId = authReq.authUser.id;
+    const userId = req.authUser!.id;
 
+    const { childProfileId, recipeData, imageUrl, selectedOptionName } = req.body;
     const rawChildProfileIds: unknown = req.body.childProfileIds;
 
     const isMultiChildMode =
       Array.isArray(rawChildProfileIds) &&
       (rawChildProfileIds as unknown[]).length >= 2 &&
-      (rawChildProfileIds as unknown[]).every(
-        (id) => typeof id === "string" && UUID_RE.test(id as string),
-      );
+      (rawChildProfileIds as unknown[]).every(id => typeof id === "string" && UUID_RE.test(id as string));
 
     let mergedProfile: MergedChildProfile | null = null;
 
@@ -983,11 +983,7 @@ router.post("/create-dish", requireAuth, async (req, res) => {
 
     const multiChildNames: string[] = mergedProfile?.childNames ?? [];
     const multiChildStageLabels: string[] = mergedProfile?.stageLabels ?? [];
-
-    const childProfileId = !isMultiChildMode && typeof req.body.childProfileId === "string"
-      ? req.body.childProfileId
-      : null;
-
+    const childProfileId = typeof req.query.childProfileId === 'string' ? req.query.childProfileId : null;
     const childProfileInput = isMultiChildMode ? null : await fetchChildProfileInput(userId, childProfileId);
 
     // ── Validate request ─────────────────────────────────────────────────────
@@ -1298,12 +1294,87 @@ router.post("/create-dish", requireAuth, async (req, res) => {
       resolverContext,
       nutritionBadges,
       clinicalNutritionSummary,
+      multiChild: isMultiChildMode && mergedProfile
+        ? { childNames: multiChildNames, stageLabels: multiChildStageLabels }
+        : null,
     });
   } catch (err: any) {
     console.error("[MyPerfectBeginning] create-dish error:", err);
     return res.status(500).json({ error: "Failed to generate recipe" });
   }
 });
+
+// ─── Generated Meals Persistence ─────────────────────────────────────────────
+router.post('/generated-meals', requireAuth, async (req: AuthenticatedRequest, res) => {
+  try {
+    const userId = req.authUser!.id;
+    const { childProfileId, recipeData, imageUrl, selectedOptionName } = req.body;
+    if (!recipeData) return res.status(400).json({ error: 'recipeData is required' });
+
+    const recipeName = (typeof recipeData === 'object' && recipeData?.recipeName)
+      ? String(recipeData.recipeName)
+      : 'meal';
+    const { imageUrl: safeImageUrl } = await processMealImageForSave(imageUrl ?? null, recipeName);
+
+    const result = await db.execute(sql`
+      INSERT INTO mpb_generated_meals (user_id, child_profile_id, recipe_data, image_url, selected_option_name)
+      VALUES (
+        ${userId},
+        ${childProfileId ?? null},
+        ${JSON.stringify(recipeData)},
+        ${safeImageUrl ?? null},
+        ${selectedOptionName ?? null}
+      )
+      RETURNING id
+    `);
+
+    const id = (result.rows[0] as any)?.id ?? null;
+    res.json({ id, imagePersisted: !!safeImageUrl });
+  } catch (err: any) {
+    console.error('[MPB/generated-meals POST] Error:', err.message);
+    res.status(500).json({ error: 'Could not save meal.' });
+  }
+});
+
+router.get('/generated-meals', requireAuth, async (req: AuthenticatedRequest, res) => {
+  try {
+    const userId = req.authUser!.id;
+    const childProfileId = typeof req.query.childProfileId === 'string' ? req.query.childProfileId : null;
+
+    const result = childProfileId
+      ? await db.execute(sql`
+          SELECT id, recipe_data, image_url, selected_option_name, created_at
+          FROM mpb_generated_meals
+          WHERE user_id = ${userId} AND child_profile_id = ${childProfileId}
+          ORDER BY created_at DESC
+          LIMIT 1
+        `)
+      : await db.execute(sql`
+          SELECT id, recipe_data, image_url, selected_option_name, created_at
+          FROM mpb_generated_meals
+          WHERE user_id = ${userId}
+          ORDER BY created_at DESC
+          LIMIT 1
+        `);
+
+    const row = result.rows[0] as any;
+    if (!row) return res.json({ meal: null });
+
+    res.json({
+      meal: {
+        id: row.id,
+        recipeData: row.recipe_data,
+        imageUrl: row.image_url ?? null,
+        selectedOptionName: row.selected_option_name ?? null,
+        createdAt: row.created_at,
+      },
+    });
+  } catch (err: any) {
+    console.error('[MPB/generated-meals GET] Error:', err.message);
+    res.status(500).json({ error: 'Could not retrieve saved meal.' });
+  }
+});
+
 export default router;
 
 function mergeAllergyLists(lists: AllergyEntry[][]): AllergyEntry[] {
