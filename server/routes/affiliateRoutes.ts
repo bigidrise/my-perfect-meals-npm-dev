@@ -174,6 +174,7 @@ router.get("/account", requireAuth, requireProAccess, async (req, res) => {
         rewardfulState: account.rewardfulState,
         rewardfulReferralUrl: referralUrl,
         rewardfulReferralToken: referralToken,
+        rewardfulCampaignId: account.rewardfulCampaignId,
         activatedAt: account.activatedAt,
         isActive: account.rewardfulState === "active",
       },
@@ -256,6 +257,7 @@ router.get("/dashboard", requireAuth, requireProAccess, async (req, res) => {
       rewardfulState: account.rewardfulState,
       rewardfulReferralUrl: referralUrl,
       rewardfulReferralToken: referralToken,
+      rewardfulCampaignId: account.rewardfulCampaignId,
       activatedAt: account.activatedAt,
       isActive: account.rewardfulState === "active",
     });

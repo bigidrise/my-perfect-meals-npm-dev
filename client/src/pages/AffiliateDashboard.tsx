@@ -25,6 +25,7 @@ interface AffiliateAccount {
   rewardfulState: string;
   rewardfulReferralUrl: string | null;
   rewardfulReferralToken: string | null;
+  rewardfulCampaignId: string | null;
   activatedAt: string | null;
   isActive: boolean;
 }
@@ -234,6 +235,13 @@ export default function AffiliateDashboard() {
   const trackLabel = account?.affiliateTrack === "business_affiliate"
     ? "Business & Coaching Affiliate"
     : "Social & Referral Affiliate";
+
+  // Derive program identity from the Rewardful campaign that was assigned at activation.
+  // Founding affiliates are enrolled in the founding campaign (stored as rewardfulCampaignId).
+  // Future strategic campaigns will resolve to a different label here without touching existing records.
+  const programLabel = account?.rewardfulCampaignId
+    ? "Founding Affiliate Program"
+    : null;
 
   const needsRewardfulSetup = rewardfulStatus && (!rewardfulStatus.emailConfirmed || !rewardfulStatus.signedIn);
 
@@ -483,8 +491,13 @@ export default function AffiliateDashboard() {
               </div>
               <div className="flex-1 min-w-0">
                 <CardLabel>Account Status</CardLabel>
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center gap-2 mb-2 flex-wrap">
                   <span className="text-sm font-bold text-white">{trackLabel}</span>
+                  {programLabel && (
+                    <span className="px-2 py-0.5 rounded-full bg-orange-500/20 border border-orange-500/30 text-[10px] font-bold text-orange-400 uppercase tracking-wide">
+                      {programLabel}
+                    </span>
+                  )}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {account.isActive ? (
@@ -495,6 +508,11 @@ export default function AffiliateDashboard() {
                       <span className="px-2.5 py-1 rounded-full bg-white/10 border border-white/10 text-xs text-gray-400">
                         Since {formatDate(account.activatedAt)}
                       </span>
+                      {account.phase1CompletedAt && (
+                        <span className="px-2.5 py-1 rounded-full bg-white/10 border border-white/10 text-xs text-gray-400">
+                          Certified {formatDate(account.phase1CompletedAt)}
+                        </span>
+                      )}
                     </>
                   ) : (
                     <>

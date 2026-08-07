@@ -3,6 +3,7 @@ import { useLocation, useParams } from "wouter";
 import { Award, CheckCircle2, ChevronRight, Copy, Download, ExternalLink, FileText, Link2, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface AffiliateAccount {
   isActive: boolean;
@@ -25,9 +26,16 @@ interface CertData {
 
 export default function CertificationComplete() {
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
   const params = useParams<{ pathId: string }>();
   const pathId = params.pathId ?? "social";
   const certType = `affiliate_${pathId}`;
+
+  // Practitioner roles require professional certification beyond the affiliate track.
+  // business role and no role = affiliate-only path.
+  const isPractitioner =
+    !!user?.professionalRole &&
+    user.professionalRole !== "business";
 
   const [cert, setCert] = useState<CertData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -195,20 +203,27 @@ export default function CertificationComplete() {
         <div className="p-4 rounded-2xl bg-green-900/30 border border-green-500/30 space-y-3">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 text-green-400 flex-shrink-0" />
-            <span className="text-sm font-bold text-green-400">Affiliate Account Activated!</span>
+            <span className="text-sm font-bold text-green-400">
+              Your Founding Affiliate account has been created.
+            </span>
           </div>
+          <p className="text-xs text-gray-400 leading-relaxed">
+            {isPractitioner
+              ? "Your affiliate account is active. Continue to professional training to unlock Studio."
+              : "Your referral link is ready. Head to your Affiliate Dashboard to share it and start earning commissions."}
+          </p>
           {affiliate.rewardfulReferralUrl && (
-            <>
-              <p className="text-xs text-gray-400 leading-relaxed">
-                Your referral link is ready. Share it to start earning commissions.
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10">
+              <Link2 className="h-3.5 w-3.5 text-orange-400 flex-shrink-0" />
+              <p className="text-xs font-mono text-orange-400 truncate flex-1">
+                {affiliate.rewardfulReferralUrl}
               </p>
-              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10">
-                <Link2 className="h-3.5 w-3.5 text-orange-400 flex-shrink-0" />
-                <p className="text-xs font-mono text-orange-400 truncate flex-1">
-                  {affiliate.rewardfulReferralUrl}
-                </p>
-              </div>
-            </>
+            </div>
+          )}
+          {!affiliate.rewardfulReferralUrl && (
+            <p className="text-[11px] text-gray-500 leading-relaxed">
+              Check your email — Rewardful will send you an invitation to confirm your payout account.
+            </p>
           )}
         </div>
       );
@@ -220,7 +235,7 @@ export default function CertificationComplete() {
           <div className="p-4 rounded-2xl bg-orange-500/20 border border-orange-500/30 flex items-center gap-3">
             <Loader2 className="h-4 w-4 text-orange-400 animate-spin flex-shrink-0" />
             <p className="text-xs text-orange-300 leading-relaxed">
-              <span className="font-bold">Activating your affiliate account…</span>
+              <span className="font-bold">Creating your Founding Affiliate account…</span>
             </p>
           </div>
         );
@@ -228,8 +243,9 @@ export default function CertificationComplete() {
       return (
         <div className="p-4 rounded-2xl bg-orange-500/20 border border-orange-500/30">
           <p className="text-xs text-orange-300 leading-relaxed text-center">
-            <span className="font-bold">Your account is being set up.</span> You'll receive an email
-            when your affiliate account is fully activated and your referral link is ready.
+            <span className="font-bold">Your affiliate account is being set up.</span> You'll receive
+            an email from Rewardful to confirm your payout account. Your referral link will be ready
+            shortly.
           </p>
         </div>
       );
@@ -270,6 +286,30 @@ export default function CertificationComplete() {
 
     if (isSocialTrack) {
       if (activating) return null;
+
+      // Practitioner: affiliate certified, now continue to professional training
+      if (isPractitioner) {
+        return (
+          <>
+            <button
+              onClick={() => setLocation("/procare-training")}
+              className="w-full p-4 rounded-2xl bg-orange-600 text-white font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+            >
+              <ChevronRight className="h-5 w-5" />
+              Continue Professional Training
+            </button>
+            <button
+              onClick={() => setLocation("/business-center/affiliate/dashboard")}
+              className="w-full p-4 rounded-2xl bg-white/10 text-white font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+            >
+              <ExternalLink className="h-4 w-4" />
+              View My Affiliate Dashboard
+            </button>
+          </>
+        );
+      }
+
+      // Affiliate-only: go straight to dashboard
       return (
         <>
           <button
@@ -277,7 +317,7 @@ export default function CertificationComplete() {
             className="w-full p-4 rounded-2xl bg-orange-600 text-white font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
           >
             <ExternalLink className="h-4 w-4" />
-            Continue to Partner Dashboard
+            View My Affiliate Dashboard
           </button>
 
           {affiliate?.rewardfulReferralUrl && (
