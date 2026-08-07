@@ -43,6 +43,12 @@ export interface ChildProfileInput {
   /** Growth context from child_profiles — optional */
   growth?: {
     pediatricianConcern?: string; // "none" | "underweight" | "overweight" | "failure_to_thrive"
+    /** Height in centimetres from child_profiles.height_cm */
+    heightCm?: number;
+    /** Weight in kilograms from child_profiles.weight_kg */
+    weightKg?: number;
+    /** Biological sex from child_profiles.sex ("male" | "female" | "other") */
+    sex?: string;
   };
   /** Feeding ability from child_profiles */
   feedingAbility?: {

@@ -365,7 +365,17 @@ router.get("/children", requireAuth, async (req, res) => {
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
   try {
     const result = await db.execute(sql`
-      SELECT * FROM child_profiles
+      SELECT id, user_id, name, date_of_birth, age_stage, allergies, allergy_details,
+             dietary_preferences, medical_conditions, feeding_concerns,
+             sensory_issues, dislikes, cultural_preferences, emoji,
+             sex, height_cm, weight_kg, growth_context,
+             birth_history, feeding_development, feeding_ability,
+             family_goals, kitchen_equipment, kitchen_budget,
+             kitchen_time_minutes, kitchen_skill,
+             school_safe_required, pediatrician_oversight,
+             medication_affects_appetite, g_tube,
+             created_at, updated_at
+      FROM child_profiles
       WHERE user_id = ${userId} AND is_archived = false
       ORDER BY created_at ASC
     `);
@@ -408,8 +418,8 @@ router.post("/children", requireAuth, async (req, res) => {
   // accepted as a standalone request field. The DB column is kept for backward
   // compatibility but feeding_ability.hasFeedingTube is the canonical source.
   const g_tube_derived = !!(
-    feeding_ability &&
     typeof feeding_ability === "object" &&
+    feeding_ability !== null &&
     (feeding_ability as any).hasFeedingTube
   );
 
@@ -450,7 +460,7 @@ router.post("/children", requireAuth, async (req, res) => {
         ${bhJson}::jsonb, ${fdJson}::jsonb, ${faJson}::jsonb,
         ${sex ?? null}, ${height_cm ?? null}, ${weight_kg ?? null}, ${growth_context},
         ${kitchen_budget}, ${kitchen_time_minutes}, ${kitchen_skill},
-        ${school_safe_required}, ${pediatrician_oversight}, ${medication_affects_appetite}, ${g_tube_derived}
+        ${!!school_safe_required}, ${!!pediatrician_oversight}, ${!!medication_affects_appetite}, ${g_tube_derived}
       )
       RETURNING *
     `);
@@ -462,7 +472,7 @@ router.post("/children", requireAuth, async (req, res) => {
   }
 });
 
-// PATCH /children/:id — update a child profile (ownership validated, merge-patch)
+// PATCH /children/:id — update a child profile (ownership validated, all extended fields)
 router.patch("/children/:id", requireAuth, async (req, res) => {
     const userId = (req as AuthenticatedRequest).authUser?.id;
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
@@ -535,35 +545,35 @@ router.patch("/children/:id", requireAuth, async (req, res) => {
   try {
     const result = await db.execute(sql`
       UPDATE child_profiles SET
-        name                      = ${name},
-        age_stage                 = ${age_stage},
-        date_of_birth             = ${date_of_birth},
-        emoji                     = ${emoji},
-        cultural_preferences      = ${cultural_pref ?? null},
-        allergies                 = ${JSON.stringify(allergies)}::jsonb,
-        allergy_details           = ${JSON.stringify(allergy_details)}::jsonb,
-        dietary_preferences       = ${JSON.stringify(dietary_preferences)}::jsonb,
-        medical_conditions        = ${JSON.stringify(medical_conditions)}::jsonb,
-        feeding_concerns          = ${JSON.stringify(feeding_concerns)}::jsonb,
-        sensory_issues            = ${JSON.stringify(sensory_issues)}::jsonb,
-        dislikes                  = ${JSON.stringify(dislikes)}::jsonb,
-        family_goals              = ${JSON.stringify(family_goals)}::jsonb,
-        kitchen_equipment         = ${JSON.stringify(kitchen_equipment)}::jsonb,
-        birth_history             = ${JSON.stringify(birth_history)}::jsonb,
-        feeding_development       = ${JSON.stringify(feeding_development)}::jsonb,
-        feeding_ability           = ${JSON.stringify(feeding_ability)}::jsonb,
-        sex                       = ${sex ?? null},
-        height_cm                 = ${height_cm ?? null},
-        weight_kg                 = ${weight_kg ?? null},
-        growth_context            = ${growth_context},
-        kitchen_budget            = ${kitchen_budget},
-        kitchen_time_minutes      = ${kitchen_time_minutes},
-        kitchen_skill             = ${kitchen_skill},
-        school_safe_required      = ${school_safe_required},
-        pediatrician_oversight    = ${pediatrician_oversight},
+        name                        = ${name},
+        age_stage                   = ${age_stage},
+        date_of_birth               = ${date_of_birth},
+        emoji                       = ${emoji},
+        cultural_preferences        = ${cultural_pref ?? null},
+        allergies                   = ${JSON.stringify(allergies)}::jsonb,
+        allergy_details             = ${JSON.stringify(allergy_details)}::jsonb,
+        dietary_preferences         = ${JSON.stringify(dietary_preferences)}::jsonb,
+        medical_conditions          = ${JSON.stringify(medical_conditions)}::jsonb,
+        feeding_concerns            = ${JSON.stringify(feeding_concerns)}::jsonb,
+        sensory_issues              = ${JSON.stringify(sensory_issues)}::jsonb,
+        dislikes                    = ${JSON.stringify(dislikes)}::jsonb,
+        family_goals                = ${JSON.stringify(family_goals)}::jsonb,
+        kitchen_equipment           = ${JSON.stringify(kitchen_equipment)}::jsonb,
+        birth_history               = ${JSON.stringify(birth_history)}::jsonb,
+        feeding_development         = ${JSON.stringify(feeding_development)}::jsonb,
+        feeding_ability             = ${JSON.stringify(feeding_ability)}::jsonb,
+        sex                         = ${sex ?? null},
+        height_cm                   = ${height_cm ?? null},
+        weight_kg                   = ${weight_kg ?? null},
+        growth_context              = ${growth_context},
+        kitchen_budget              = ${kitchen_budget},
+        kitchen_time_minutes        = ${kitchen_time_minutes},
+        kitchen_skill               = ${kitchen_skill},
+        school_safe_required        = ${school_safe_required},
+        pediatrician_oversight      = ${pediatrician_oversight},
         medication_affects_appetite = ${medication_affects_appetite},
-        g_tube                    = ${g_tube_derived},
-        updated_at                = now()
+        g_tube                      = ${g_tube_derived},
+        updated_at                  = now()
       WHERE id = ${id} AND user_id = ${userId} AND is_archived = false
       RETURNING *
     `);

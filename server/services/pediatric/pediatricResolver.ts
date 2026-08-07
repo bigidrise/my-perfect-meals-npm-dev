@@ -204,6 +204,19 @@ export interface PediatricMealGenerationContext {
   // ── Conflict log ──────────────────────────────────────────────────────────
   conflictResolutions: ConflictResolution[];
 
+  // ── Growth context (Sprint 1) ─────────────────────────────────────────────
+  /**
+   * Child biometric and growth status — used to set caloric density directives
+   * and portion guidance in the system context block.
+   * Populated from height_cm, weight_kg, sex, and growth_context DB columns.
+   */
+  growthContext: {
+    growthStatus: string | null;   // raw growth_context value from DB
+    heightCm: number | null;
+    weightKg: number | null;
+    sex: string | null;
+  } | null;
+
   // ── AI Prompt injection ───────────────────────────────────────────────────
   /** Pre-built system block ready to inject verbatim into the AI system prompt */
   systemContextBlock: string;
@@ -473,6 +486,28 @@ const PROTOCOL_REGISTRY: Record<string, ProtocolBlock> = {
       "Favor whole milk dairy (if tolerated) over reduced-fat versions.",
     ],
     escalationTriggers: ["Continued weight loss or failure to gain → refer to pediatric dietitian and pediatrician"],
+  },
+
+  concern_underweight: {
+    conditionId: "COND-0004B",
+    conditionLabel: "Underweight Concern",
+    guidance: [
+      "Increase caloric density using whole, nutrient-rich ingredients — not by adding empty calories.",
+      "Include healthy fats at every meal: olive oil, avocado, nut butter (age-appropriate form), full-fat dairy if tolerated.",
+      "Prioritize protein-rich foods: eggs, Greek yogurt, cheese, legumes, poultry, fish.",
+      "Choose energy-dense grains: whole grain bread, oatmeal, quinoa.",
+      "Do NOT use reduced-fat, light, or diet-oriented ingredient substitutions.",
+    ],
+    hardLimits: [
+      "Do not reduce portion size or caloric density. Every ingredient should contribute nutritional value.",
+      "No restriction-framing, dieting language, or weight commentary in the recipe text.",
+    ],
+    optimizations: [
+      "A drizzle of olive oil or a spoonful of nut butter (age-appropriate) can add ~50–100 kcal without extra volume.",
+      "Full-fat yogurt and whole milk preferred over reduced-fat versions.",
+      "Avocado as spread, topping, or mix-in is an excellent energy-density booster.",
+    ],
+    escalationTriggers: ["Persistent underweight despite dietary changes → refer to pediatric dietitian and pediatrician for growth monitoring"],
   },
   iron_deficiency: {
     conditionId: "COND-0005",
@@ -1084,6 +1119,14 @@ interface ChildProfileRow {
   sensory_issues: any[];
   dislikes: any[];
   cultural_preferences: string | null;
+  /** Plain TEXT column — e.g. "typical", "concern_underweight", "concern_overweight", "failure_to_thrive" */
+  growth_context: string | null;
+  /** Height in centimetres */
+  height_cm: number | null;
+  /** Weight in kilograms */
+  weight_kg: number | null;
+  /** Biological sex — "male" | "female" | "other" | null */
+  sex: string | null;
 }
 
 async function fetchChildProfile(childProfileId: string): Promise<ChildProfileRow | null> {
@@ -1091,7 +1134,8 @@ async function fetchChildProfile(childProfileId: string): Promise<ChildProfileRo
     const result = await db.execute(sql`
       SELECT id, user_id, name, age_stage, date_of_birth,
              allergies, dietary_preferences, medical_conditions,
-             feeding_concerns, sensory_issues, dislikes, cultural_preferences
+             feeding_concerns, sensory_issues, dislikes, cultural_preferences,
+             growth_context, height_cm, weight_kg, sex
       FROM child_profiles
       WHERE id = ${childProfileId} AND is_archived = false
       LIMIT 1
@@ -1527,6 +1571,42 @@ function buildSystemContextBlock(ctx: Omit<PediatricMealGenerationContext, "syst
   if (!dri.juiceAllowed) lines.push("Juice: NOT ALLOWED");
   lines.push("");
 
+  // Growth context (Sprint 1) — caloric density and portion guidance
+  if (ctx.growthContext) {
+    const gc = ctx.growthContext;
+    const statusLabel: Record<string, string> = {
+      concern_underweight:   "Underweight Concern",
+      concern_overweight:    "Overweight Concern",
+      failure_to_thrive:     "Failure to Thrive (Medical)",
+      typical_with_monitoring: "Typical — Active Monitoring",
+      typical:               "Typical",
+    };
+    const label = gc.growthStatus ? (statusLabel[gc.growthStatus] ?? gc.growthStatus) : "Not recorded";
+
+    lines.push("── GROWTH CONTEXT ──");
+    lines.push(`Growth status: ${label}`);
+    if (gc.sex) lines.push(`Sex: ${gc.sex}`);
+    if (gc.heightCm != null) lines.push(`Height: ${gc.heightCm} cm`);
+    if (gc.weightKg != null) lines.push(`Weight: ${gc.weightKg} kg`);
+
+    // Caloric density / portion directives derived from growth status
+    if (gc.growthStatus === "failure_to_thrive") {
+      lines.push("→ CALORIC DENSITY DIRECTIVE (FTT): Maximize energy density at every step.");
+      lines.push("  Add olive oil, avocado, or nut butter (age-appropriate). Full-fat dairy only.");
+      lines.push("  HARD STOP: Do NOT reduce calories, use low-fat versions, or restrict portions.");
+    } else if (gc.growthStatus === "concern_underweight") {
+      lines.push("→ CALORIC DENSITY DIRECTIVE (Underweight): Boost caloric density with healthy fats.");
+      lines.push("  Prefer olive oil, avocado, full-fat dairy, nut butter (age-appropriate), eggs.");
+      lines.push("  Do NOT use light, low-fat, or diet-oriented substitutions.");
+    } else if (gc.growthStatus === "concern_overweight") {
+      lines.push("→ PORTION AWARENESS DIRECTIVE (Overweight): Focus on nutrient density, not restriction.");
+      lines.push("  Non-starchy vegetables as the base. Lean protein. Whole grains over refined.");
+      lines.push("  Water or plain milk as beverage. No added sugar, no fried foods, no ultra-processed.");
+      lines.push("  HARD STOP: Do NOT mention weight, body size, dieting, or calorie restriction.");
+    }
+    lines.push("");
+  }
+
   // Level A rules
   const levelARules = ctx.firedRules.filter(r => r.level === "A");
   if (levelARules.length > 0) {
@@ -1825,14 +1905,49 @@ export async function resolvePediatricContextFromInput(
   const sensoryIssues: any[] = profile?.sensory_issues ?? [];
   const dislikes: any[] = profile?.dislikes ?? [];
 
+  // ── Growth biometrics (Sprint 1) ─────────────────────────────────────────
+  // growth_context is a plain TEXT column — never parse as JSON.
+  // Derive additional protocol conditions from it so the protocol engine
+  // fires the correct caloric-density and portion-guidance blocks.
+  const rawGrowthContext = typeof profile?.growth_context === "string"
+    ? profile.growth_context
+    : null;
+
+  const growthDerivedConditions: string[] = [];
+  if (rawGrowthContext === "concern_underweight") {
+    growthDerivedConditions.push("concern_underweight");
+  }
+  if (rawGrowthContext === "concern_overweight") {
+    growthDerivedConditions.push("pediatric_obesity");
+  }
+  if (rawGrowthContext === "failure_to_thrive") {
+    // failure_to_thrive is the most severe growth condition — fires COND-0004
+    growthDerivedConditions.push("failure_to_thrive");
+  }
+
+  // Build growthContext object for context output and system block rendering
+  const growthContext: PediatricMealGenerationContext["growthContext"] = (
+    profile && (rawGrowthContext || profile.height_cm != null || profile.weight_kg != null || profile.sex)
+  )
+    ? {
+        growthStatus: rawGrowthContext,
+        heightCm: typeof profile.height_cm === "number" ? profile.height_cm : null,
+        weightKg: typeof profile.weight_kg === "number" ? profile.weight_kg : null,
+        sex: typeof profile.sex === "string" && profile.sex ? profile.sex : null,
+      }
+    : null;
+
+  // Merge growth-derived conditions into the medical condition list for protocol resolution
+  const allMedicalConditions = [...medicalConditions, ...growthDerivedConditions];
+
   // Parse feeding ability from feeding_concerns if structured
   const feedingAbilityFromConcerns = extractFeedingAbility(feedingConcerns);
 
   // 1. Rule Registry
   const { fired: rulesFired, withheld: rulesWithheld } = fireRulesForStage(stageKey);
 
-  // 2. Protocol Registry
-  const activeProtocolBlocks = resolveProtocolBlocks(medicalConditions);
+  // 2. Protocol Registry — now includes growth-derived conditions
+  const activeProtocolBlocks = resolveProtocolBlocks(allMedicalConditions);
 
   // 3 + 4. Food Behavior Registry + Ingredient Intelligence
   const allergenRemovals = resolveAllergenRemovals(allergies);
@@ -1920,6 +2035,7 @@ export async function resolvePediatricContextFromInput(
     isFamilyMealMode: false,
     splitMealRequired: false,
     splitMealReason: null,
+    growthContext,
     stageKey,
     stageDRIBaseline,
     firedRules: dedupedFiredRules,
@@ -1972,12 +2088,20 @@ async function resolveFamily(
       feedingAbility.historyOfChokingOrGagging,
       feedingAbility.clinicianTextureLevel,
     );
+
+    // Derive growth conditions for this child (mirrors single-child logic)
+    const gc = typeof profile.growth_context === "string" ? profile.growth_context : null;
+    const growthDerived: string[] = [];
+    if (gc === "concern_underweight") growthDerived.push("concern_underweight");
+    if (gc === "concern_overweight")  growthDerived.push("pediatric_obesity");
+    if (gc === "failure_to_thrive")   growthDerived.push("failure_to_thrive");
+
     return {
       profile,
       stageKey: profile.age_stage,
       allergenRemovals: resolveAllergenRemovals(profile.allergies),
       textureClass,
-      protocolBlocks: resolveProtocolBlocks(profile.medical_conditions),
+      protocolBlocks: resolveProtocolBlocks([...profile.medical_conditions, ...growthDerived]),
     };
   });
 
@@ -2070,6 +2194,8 @@ async function resolveFamily(
     kitchenRealityContext,
     parentOverrides,
     conflictResolutions,
+    // Family mode: growth context is per-child; use null for the shared context
+    growthContext: null,
   };
 
   return {
@@ -2117,8 +2243,6 @@ function extractIddsiLevel(text: string): string | null {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-
-
 
 
 // ─────────────────────────────────────────────────────────────────────────────
