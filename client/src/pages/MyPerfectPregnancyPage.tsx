@@ -13,9 +13,15 @@ import { derivePregnancyStatus } from "@/lib/pregnancyUtils";
 
 type Stage = "trying-to-conceive" | "trimester-1" | "trimester-2" | "trimester-3" | "breastfeeding" | "postpartum";
 
+interface MealAction {
+  actionType: "create_pregnancy_meal";
+  label: string;
+  mealIdea: string;
+}
 interface Message {
   role: "user" | "assistant";
   content: string;
+  suggestedMealActions?: MealAction[];
 }
 
 // ─── Static educational content by stage ────────────────────────────────────
@@ -227,7 +233,12 @@ export default function MyPerfectPregnancyPage() {
 
     try {
       // post() uses apiJSON() which calls getAuthHeaders() — sends x-auth-token from localStorage
-      const data = await post<{ reply: string; stage: string; weekOfPregnancy: number | null }>(
+      const data = await post<{
+        reply: string;
+        stage: string;
+        weekOfPregnancy: number | null;
+        suggestedMealActions?: { actionType: string; label: string; mealIdea: string }[];
+      }>(
         "/api/pregnancy/ask",
         {
           message: userMsg.content,
@@ -236,7 +247,19 @@ export default function MyPerfectPregnancyPage() {
       );
 
       if (typeof data.reply === "string" && data.reply) {
-        setMessages(prev => [...prev, { role: "assistant", content: data.reply }]);
+        const mealActions: MealAction[] = Array.isArray(data.suggestedMealActions)
+          ? (data.suggestedMealActions.filter(
+              (a) => a.actionType === "create_pregnancy_meal" && typeof a.label === "string" && typeof a.mealIdea === "string"
+            ) as MealAction[]).slice(0, 2)
+          : [];
+        setMessages(prev => [
+          ...prev,
+          {
+            role: "assistant",
+            content: data.reply,
+            suggestedMealActions: mealActions.length > 0 ? mealActions : undefined,
+          },
+        ]);
       } else {
         console.error("[PregnancyCoach] Unexpected response shape:", data);
         setMessages(prev => [...prev, { role: "assistant", content: "I couldn't generate a response. Please try again." }]);
@@ -262,6 +285,10 @@ export default function MyPerfectPregnancyPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleBuildMeal(mealIdea: string) {
+    setLocation(`/lifestyle/create-a-dish?idea=${encodeURIComponent(mealIdea)}`);
   }
 
   const stageInfo = pregnancyData ? STAGE_DATA[pregnancyData.stage] : null;
@@ -541,19 +568,35 @@ export default function MyPerfectPregnancyPage() {
               )}
 
               {messages.map((msg, i) => (
-                <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                  {msg.role === "assistant" && (
-                    <span className="mr-2 mt-1 text-base flex-shrink-0">🩷</span>
-                  )}
-                  <div
-                    className={`max-w-[85%] rounded-2xl px-3 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
-                      msg.role === "user"
-                        ? "bg-orange-600/80 text-white rounded-br-sm"
-                        : "bg-white/10 text-white/90 rounded-bl-sm"
-                    }`}
-                  >
-                    {msg.content}
+                <div key={i} className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}>
+                  <div className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} w-full`}>
+                    {msg.role === "assistant" && (
+                      <span className="mr-2 mt-1 text-base flex-shrink-0">🩷</span>
+                    )}
+                    <div
+                      className={`max-w-[85%] rounded-2xl px-3 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
+                        msg.role === "user"
+                          ? "bg-orange-600/80 text-white rounded-br-sm"
+                          : "bg-white/10 text-white/90 rounded-bl-sm"
+                      }`}
+                    >
+                      {msg.content}
+                    </div>
                   </div>
+                  {msg.role === "assistant" && msg.suggestedMealActions && msg.suggestedMealActions.length > 0 && (
+                    <div className="flex flex-col gap-2 mt-2 ml-8 w-full max-w-[85%]">
+                      {msg.suggestedMealActions.map((action, ai) => (
+                        <button
+                          key={ai}
+                          onClick={() => handleBuildMeal(action.mealIdea)}
+                          className="flex items-center gap-2 px-3 py-2 rounded-xl bg-orange-600/80 border border-orange-400/50 text-white text-xs font-semibold active:scale-95 transition-all text-left"
+                        >
+                          <span className="text-sm">🍳</span>
+                          <span>{action.label} →</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
 

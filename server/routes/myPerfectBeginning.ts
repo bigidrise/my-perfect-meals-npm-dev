@@ -24,6 +24,11 @@ import {
   type PediatricGuidanceOutput,
 } from "../services/pediatric/buildPediatricGuidanceBlocks";
 import type { DevelopmentalStage } from "../services/pediatric/pediatricStageConstants";
+import { processMealImageForSave } from "../services/imageLifecycle";
+import {
+  applyCompletePlateSideGuardrail,
+  type AllergenEntry,
+} from "../services/pediatric/pediatricGuardrails";
 
 const router = Router();
 
@@ -365,7 +370,17 @@ router.get("/children", requireAuth, async (req, res) => {
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
   try {
     const result = await db.execute(sql`
-      SELECT * FROM child_profiles
+      SELECT id, user_id, name, date_of_birth, age_stage, allergies, allergy_details,
+             dietary_preferences, medical_conditions, feeding_concerns,
+             sensory_issues, dislikes, cultural_preferences, emoji,
+             sex, height_cm, weight_kg, growth_context,
+             birth_history, feeding_development, feeding_ability,
+             family_goals, kitchen_equipment, kitchen_budget,
+             kitchen_time_minutes, kitchen_skill,
+             school_safe_required, pediatrician_oversight,
+             medication_affects_appetite, g_tube,
+             created_at, updated_at
+      FROM child_profiles
       WHERE user_id = ${userId} AND is_archived = false
       ORDER BY created_at ASC
     `);
@@ -408,8 +423,8 @@ router.post("/children", requireAuth, async (req, res) => {
   // accepted as a standalone request field. The DB column is kept for backward
   // compatibility but feeding_ability.hasFeedingTube is the canonical source.
   const g_tube_derived = !!(
-    feeding_ability &&
     typeof feeding_ability === "object" &&
+    feeding_ability !== null &&
     (feeding_ability as any).hasFeedingTube
   );
 
@@ -436,21 +451,25 @@ router.post("/children", requireAuth, async (req, res) => {
   try {
     const result = await db.execute(sql`
       INSERT INTO child_profiles (
-        user_id, name, age_stage, date_of_birth, emoji, cultural_preferences,
+        user_id, name, date_of_birth, age_stage, emoji,
         allergies, allergy_details, dietary_preferences, medical_conditions,
-        feeding_concerns, sensory_issues, dislikes, family_goals, kitchen_equipment,
-        birth_history, feeding_development, feeding_ability,
+        feeding_concerns, sensory_issues, dislikes, cultural_preferences,
         sex, height_cm, weight_kg, growth_context,
-        kitchen_budget, kitchen_time_minutes, kitchen_skill,
-        school_safe_required, pediatrician_oversight, medication_affects_appetite, g_tube
+        birth_history, feeding_development, feeding_ability,
+        family_goals, kitchen_equipment, kitchen_budget,
+        kitchen_time_minutes, kitchen_skill,
+        school_safe_required, pediatrician_oversight,
+        medication_affects_appetite, g_tube
       ) VALUES (
-        ${userId}, ${name.trim()}, ${age_stage}, ${date_of_birth}, ${emoji}, ${cultural_preferences ?? null},
+        ${userId}, ${name.trim()}, ${date_of_birth}, ${age_stage}, ${emoji},
         ${aJson}::jsonb, ${adJson}::jsonb, ${dpJson}::jsonb, ${mcJson}::jsonb,
-        ${fcJson}::jsonb, ${siJson}::jsonb, ${dlJson}::jsonb, ${fgJson}::jsonb, ${keJson}::jsonb,
+        ${fcJson}::jsonb, ${siJson}::jsonb, ${dlJson}::jsonb, ${cultural_preferences},
+        ${sex}, ${height_cm}, ${weight_kg}, ${growth_context},
         ${bhJson}::jsonb, ${fdJson}::jsonb, ${faJson}::jsonb,
-        ${sex ?? null}, ${height_cm ?? null}, ${weight_kg ?? null}, ${growth_context},
-        ${kitchen_budget}, ${kitchen_time_minutes}, ${kitchen_skill},
-        ${school_safe_required}, ${pediatrician_oversight}, ${medication_affects_appetite}, ${g_tube_derived}
+        ${fgJson}::jsonb, ${keJson}::jsonb, ${kitchen_budget},
+        ${kitchen_time_minutes}, ${kitchen_skill},
+        ${!!school_safe_required}, ${!!pediatrician_oversight},
+        ${!!medication_affects_appetite}, ${g_tube_derived}
       )
       RETURNING *
     `);
@@ -462,7 +481,7 @@ router.post("/children", requireAuth, async (req, res) => {
   }
 });
 
-// PATCH /children/:id — update a child profile (ownership validated, merge-patch)
+// PATCH /children/:id — update a child profile (ownership validated, all extended fields)
 router.patch("/children/:id", requireAuth, async (req, res) => {
     const userId = (req as AuthenticatedRequest).authUser?.id;
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
@@ -535,35 +554,35 @@ router.patch("/children/:id", requireAuth, async (req, res) => {
   try {
     const result = await db.execute(sql`
       UPDATE child_profiles SET
-        name                      = ${name},
-        age_stage                 = ${age_stage},
-        date_of_birth             = ${date_of_birth},
-        emoji                     = ${emoji},
-        cultural_preferences      = ${cultural_pref ?? null},
-        allergies                 = ${JSON.stringify(allergies)}::jsonb,
-        allergy_details           = ${JSON.stringify(allergy_details)}::jsonb,
-        dietary_preferences       = ${JSON.stringify(dietary_preferences)}::jsonb,
-        medical_conditions        = ${JSON.stringify(medical_conditions)}::jsonb,
-        feeding_concerns          = ${JSON.stringify(feeding_concerns)}::jsonb,
-        sensory_issues            = ${JSON.stringify(sensory_issues)}::jsonb,
-        dislikes                  = ${JSON.stringify(dislikes)}::jsonb,
-        family_goals              = ${JSON.stringify(family_goals)}::jsonb,
-        kitchen_equipment         = ${JSON.stringify(kitchen_equipment)}::jsonb,
-        birth_history             = ${JSON.stringify(birth_history)}::jsonb,
-        feeding_development       = ${JSON.stringify(feeding_development)}::jsonb,
-        feeding_ability           = ${JSON.stringify(feeding_ability)}::jsonb,
-        sex                       = ${sex ?? null},
-        height_cm                 = ${height_cm ?? null},
-        weight_kg                 = ${weight_kg ?? null},
-        growth_context            = ${growth_context},
-        kitchen_budget            = ${kitchen_budget},
-        kitchen_time_minutes      = ${kitchen_time_minutes},
-        kitchen_skill             = ${kitchen_skill},
-        school_safe_required      = ${school_safe_required},
-        pediatrician_oversight    = ${pediatrician_oversight},
+        name                        = ${name},
+        age_stage                   = ${age_stage},
+        date_of_birth               = ${date_of_birth},
+        emoji                       = ${emoji},
+        cultural_preferences        = ${cultural_pref ?? null},
+        allergies                   = ${JSON.stringify(allergies)}::jsonb,
+        allergy_details             = ${JSON.stringify(allergy_details)}::jsonb,
+        dietary_preferences         = ${JSON.stringify(dietary_preferences)}::jsonb,
+        medical_conditions          = ${JSON.stringify(medical_conditions)}::jsonb,
+        feeding_concerns            = ${JSON.stringify(feeding_concerns)}::jsonb,
+        sensory_issues              = ${JSON.stringify(sensory_issues)}::jsonb,
+        dislikes                    = ${JSON.stringify(dislikes)}::jsonb,
+        family_goals                = ${JSON.stringify(family_goals)}::jsonb,
+        kitchen_equipment           = ${JSON.stringify(kitchen_equipment)}::jsonb,
+        birth_history               = ${JSON.stringify(birth_history)}::jsonb,
+        feeding_development         = ${JSON.stringify(feeding_development)}::jsonb,
+        feeding_ability             = ${JSON.stringify(feeding_ability)}::jsonb,
+        sex                         = ${sex ?? null},
+        height_cm                   = ${height_cm ?? null},
+        weight_kg                   = ${weight_kg ?? null},
+        growth_context              = ${growth_context},
+        kitchen_budget              = ${kitchen_budget},
+        kitchen_time_minutes        = ${kitchen_time_minutes},
+        kitchen_skill               = ${kitchen_skill},
+        school_safe_required        = ${school_safe_required},
+        pediatrician_oversight      = ${pediatrician_oversight},
         medication_affects_appetite = ${medication_affects_appetite},
-        g_tube                    = ${g_tube_derived},
-        updated_at                = now()
+        g_tube                      = ${g_tube_derived},
+        updated_at                  = now()
       WHERE id = ${id} AND user_id = ${userId} AND is_archived = false
       RETURNING *
     `);
@@ -891,7 +910,7 @@ router.post("/parents-corner", requireAuth, async (req, res) => {
 
 // ─── Meal Options (Step 1 — three concept choices before full recipe) ──────────
 
-router.post('/meal-options', requireAuth, async (req: AuthenticatedRequest, res) => {
+router.post('/meal-options', requireAuth, async (req, res) => {
   try {
     const { ageStage, foodRequest, childName, childProfileId, allergies } = req.body;
     if (!ageStage || !foodRequest) {
@@ -960,37 +979,154 @@ Names should be short and specific (e.g. "Hidden-Veggie Turkey Cheeseburger", "M
 
 // ─── Generated Meals Persistence ──────────────────────────────────────────────
 
-router.post('/generated-meals', requireAuth, async (req: AuthenticatedRequest, res) => {
+router.post('/generated-meals', requireAuth, async (req, res) => {
   try {
-    const userId = req.authUser!.id;
+    const userId = (req as AuthenticatedRequest).authUser!.id;
     const { childProfileId, recipeData, imageUrl, selectedOptionName } = req.body;
     if (!recipeData) {
       return res.status(400).json({ error: 'recipeData is required' });
     }
+
+    // ── Allergen guardrail scan on completePlate.sides ────────────────────
+    // Loads the authoritative child profile from the DB (never trusts client-
+    // supplied values for safety decisions).
+    //
+    // Column priority:
+    //   1. allergy_details — structured JSONB: [{ allergenId, severity, ... }]
+    //   2. allergies       — legacy string array: ["Milk", "Tree Nuts"]
+    //
+    // Fail-safe: if childProfileId is supplied but the profile row cannot be
+    // loaded, strip completePlate.sides rather than persisting unverified sides.
+    let safeRecipeData = recipeData;
+    if (
+      typeof recipeData === 'object' &&
+      Array.isArray(recipeData?.completePlate?.sides) &&
+      recipeData.completePlate.sides.length > 0 &&
+      childProfileId
+    ) {
+      let profileLoaded = false;
+      try {
+        const profileResult = await db.execute(sql`
+          SELECT age_stage, allergy_details, allergies
+          FROM child_profiles
+          WHERE id = ${childProfileId} AND user_id = ${userId}
+          LIMIT 1
+        `);
+        const profile = (profileResult as any).rows?.[0] ??
+          (Array.isArray(profileResult) ? (profileResult as any[])[0] : null);
+
+        if (profile) {
+          profileLoaded = true;
+
+          // Build AllergenEntry[] — prefer structured allergy_details
+          let allergenEntries: AllergenEntry[] = [];
+
+          const rawDetails: any[] = Array.isArray(profile.allergy_details)
+            ? profile.allergy_details : [];
+          // allergy_details items may arrive as serialized JSON strings from pg
+          const parsedDetails = rawDetails.map((item: any) => {
+            if (typeof item === 'string') {
+              try { return JSON.parse(item); } catch { return null; }
+            }
+            return item;
+          }).filter(Boolean);
+
+          const structuredEntries: AllergenEntry[] = parsedDetails
+            .filter((a: any) =>
+              a &&
+              typeof a.allergenId === 'string' && a.allergenId.trim() &&
+              typeof a.severity === 'string' && a.severity.trim()
+            )
+            .map((a: any): AllergenEntry => ({
+              allergenId: a.allergenId,
+              customAllergenName: typeof a.customAllergenName === 'string'
+                ? a.customAllergenName : undefined,
+              severity: a.severity,
+            }));
+
+          if (structuredEntries.length > 0) {
+            allergenEntries = structuredEntries;
+          } else {
+            // Fallback: legacy string array e.g. ["Milk", "Tree Nuts"]
+            const DISPLAY_TO_ALLERGEN_ID: Record<string, string> = {
+              milk: 'milk', dairy: 'milk',
+              egg: 'egg', eggs: 'egg',
+              wheat: 'wheat', gluten: 'wheat',
+              soy: 'soy', soya: 'soy',
+              peanut: 'peanut', peanuts: 'peanut',
+              'tree nuts': 'tree_nuts', 'tree nut': 'tree_nuts',
+              sesame: 'sesame', fish: 'fish', shellfish: 'shellfish',
+            };
+            const rawStrings: any[] = Array.isArray(profile.allergies)
+              ? profile.allergies : [];
+            allergenEntries = rawStrings
+              .filter((s: any) => typeof s === 'string' && s.trim())
+              .map((s: string): AllergenEntry | null => {
+                const key = s.trim().toLowerCase();
+                const allergenId = DISPLAY_TO_ALLERGEN_ID[key];
+                if (!allergenId) {
+                  return { allergenId: 'other', customAllergenName: s.trim(), severity: 'confirmed_allergy' };
+                }
+                return { allergenId, severity: 'confirmed_allergy' };
+              })
+              .filter((e): e is AllergenEntry => e !== null);
+          }
+
+          if (allergenEntries.length > 0) {
+            const cloned = JSON.parse(JSON.stringify(recipeData));
+            applyCompletePlateSideGuardrail(cloned, allergenEntries);
+            safeRecipeData = cloned;
+          }
+        }
+      } catch (profileErr: any) {
+        console.warn('[MPB/generated-meals] Profile lookup failed:', profileErr.message);
+        // profileLoaded stays false — fail-safe applies below
+      }
+
+      if (!profileLoaded) {
+        // Cannot verify allergen safety — strip sides rather than persist unscanned content
+        const stripped = JSON.parse(JSON.stringify(recipeData));
+        if (stripped.completePlate) {
+          stripped.completePlate.sides = [];
+          stripped.completePlate.plateNote =
+            '[Sides removed — child allergen profile could not be verified at save time.]';
+        }
+        safeRecipeData = stripped;
+        console.warn('[MPB/generated-meals] completePlate.sides stripped — profile not found:', childProfileId);
+      }
+    }
+
+    // Attempt to persist ephemeral images (base64 / DALL-E temp URLs) to permanent
+    // storage before saving to DB. If S3 + GCS both fail, safeImageUrl is null —
+    // the restore path will re-generate the image rather than storing a broken link.
+    const recipeName = (typeof safeRecipeData === 'object' && safeRecipeData?.recipeName)
+      ? String(safeRecipeData.recipeName)
+      : 'meal';
+    const { imageUrl: safeImageUrl } = await processMealImageForSave(imageUrl ?? null, recipeName);
 
     const result = await db.execute(sql`
       INSERT INTO mpb_generated_meals (user_id, child_profile_id, recipe_data, image_url, selected_option_name)
       VALUES (
         ${userId},
         ${childProfileId ?? null},
-        ${JSON.stringify(recipeData)},
-        ${imageUrl ?? null},
+        ${JSON.stringify(safeRecipeData)},
+        ${safeImageUrl ?? null},
         ${selectedOptionName ?? null}
       )
       RETURNING id
     `);
 
     const id = (result.rows[0] as any)?.id ?? null;
-    res.json({ id });
+    res.json({ id, imagePersisted: !!safeImageUrl });
   } catch (err: any) {
     console.error('[MPB/generated-meals POST] Error:', err.message);
     res.status(500).json({ error: 'Could not save meal.' });
   }
 });
 
-router.get('/generated-meals', requireAuth, async (req: AuthenticatedRequest, res) => {
+router.get('/generated-meals', requireAuth, async (req, res) => {
   try {
-    const userId = req.authUser!.id;
+    const userId = (req as AuthenticatedRequest).authUser!.id;
     const childProfileId = typeof req.query.childProfileId === 'string' ? req.query.childProfileId : null;
 
     const result = childProfileId
@@ -1012,10 +1148,29 @@ router.get('/generated-meals', requireAuth, async (req: AuthenticatedRequest, re
     const row = result.rows[0] as any;
     if (!row) return res.json({ meal: null });
 
+    // Normalise completePlate so older saves (which predate the field) don't
+    // produce undefined/null on the client — the CompleteThePlateSection
+    // already hides itself when sides.length === 0, so an empty normalised
+    // value is safe for legacy rows.
+    const recipeData = row.recipe_data;
+    if (recipeData && typeof recipeData === 'object') {
+      if (!recipeData.completePlate || !Array.isArray(recipeData.completePlate.sides)) {
+        recipeData.completePlate = { sides: [], plateNote: '' };
+      } else {
+        // Drop any malformed side entries that may have slipped through
+        recipeData.completePlate.sides = recipeData.completePlate.sides.filter(
+          (s: any) => s && typeof s.name === 'string' && s.name.trim(),
+        );
+        if (typeof recipeData.completePlate.plateNote !== 'string') {
+          recipeData.completePlate.plateNote = '';
+        }
+      }
+    }
+
     res.json({
       meal: {
         id: row.id,
-        recipeData: row.recipe_data,
+        recipeData,
         imageUrl: row.image_url ?? null,
         selectedOptionName: row.selected_option_name ?? null,
         createdAt: row.created_at,

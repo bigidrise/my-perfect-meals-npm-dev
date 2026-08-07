@@ -247,17 +247,84 @@ export function enforceBeforeGenerate(req: GuardrailRequest): GuardrailResult {
   return { blocked: false, ruleFireLog: fireLog };
 }
 
+// ─── Allergen → food token map ────────────────────────────────────────────────
+
+/**
+ * Maps each allergenId to a list of ingredient tokens that contain that allergen.
+ * Used to enforce allergen exclusions on completePlate.sides after AI generation.
+ */
+const ALLERGEN_FOOD_TOKENS: Record<string, string[]> = {
+  milk: [
+    "milk", "cheese", "yogurt", "yoghurt", "butter", "cream", "dairy",
+    "kefir", "ghee", "whey", "casein", "custard", "pudding", "ice cream",
+    "cottage cheese", "ricotta", "mozzarella", "cheddar", "parmesan",
+    "brie", "feta", "gouda", "quark", "crème fraîche", "sour cream",
+    "half-and-half",
+  ],
+  egg: [
+    "egg", "eggs", "mayonnaise", "mayo", "meringue", "hollandaise",
+    "quiche", "frittata", "custard",
+  ],
+  peanut: [
+    "peanut", "peanuts", "peanut butter", "peanut sauce",
+  ],
+  tree_nuts: [
+    "almond", "cashew", "walnut", "pecan", "pistachio", "macadamia",
+    "hazelnut", "pine nut", "brazil nut", "chestnut", "nut butter",
+    "almond butter", "cashew butter", "mixed nuts",
+  ],
+  wheat: [
+    "wheat", "bread", "pasta", "noodle", "cracker", "couscous", "bulgur",
+    "semolina", "spelt", "barley", "flour tortilla", "pita", "breadstick",
+    "pretzel", "biscuit",
+  ],
+  soy: [
+    "soy", "tofu", "edamame", "tempeh", "miso", "soya", "soybean",
+  ],
+  sesame: [
+    "sesame", "tahini", "hummus",
+  ],
+  fish: [
+    "fish", "salmon", "cod", "tilapia", "tuna", "halibut", "sardine",
+    "anchovy", "trout", "bass", "catfish", "flounder", "snapper",
+  ],
+  shellfish: [
+    "shrimp", "crab", "lobster", "oyster", "clam", "scallop", "mussel",
+    "prawn", "crawfish", "crayfish",
+  ],
+};
+
+/** Allergen severities that require hard removal from sides. */
+const HARD_BLOCK_SEVERITIES = new Set([
+  "confirmed_allergy",
+  "clinician_elimination",
+]);
+
+/** Allergen severities that should flag the side (soft block). */
+const SOFT_BLOCK_SEVERITIES = new Set([
+  "suspected_reaction",
+  "intolerance",
+]);
+
+export interface AllergenEntry {
+  allergenId: string;
+  customAllergenName?: string;
+  severity: string;
+}
+
 // ─── 2. Post-generation scan ──────────────────────────────────────────────────
 
 /**
  * Run after the AI response is parsed and schema-validated.
  * Scans all text fields of the recipe for safety violations.
+ * Also scans completePlate.sides for allergen violations.
  * Returns patchedRecipe with any Level A violations corrected,
  * and a complete ruleFireLog of everything that fired.
  */
 export function scanGeneratedOutput(
   recipe: any,
   ageStage: DevelopmentalStage,
+  allergies?: AllergenEntry[],
 ): GuardrailResult {
   const fireLog: RuleFireLog[] = [];
 
@@ -584,11 +651,141 @@ export function scanGeneratedOutput(
     }
   }
 
+  // ── Scan: completePlate.sides allergen enforcement ────────────────────────
+  if (allergies && allergies.length > 0) {
+    applyCompletePlateSideGuardrail(patched, allergies, fireLog);
+  }
+
   return {
     blocked: false,
     patchedRecipe: patched,
     ruleFireLog: fireLog,
   };
+}
+
+// ─── completePlate.sides allergen guardrail ───────────────────────────────────
+
+/**
+ * Mutates `recipe` in-place: strips any side in `recipe.completePlate.sides`
+ * that contains a confirmed allergen (Level A removal) and flags sides with
+ * suspected allergens (Level B, allergenFree=false).
+ *
+ * Exported for direct testing and reuse without going through the full
+ * scanGeneratedOutput pipeline.
+ *
+ * @param recipe       — the parsed AI recipe object (mutated in place)
+ * @param allergies    — the child's active allergen entries (from child profile)
+ * @param fireLogOut   — optional array to append RuleFireLog entries into
+ */
+export function applyCompletePlateSideGuardrail(
+  recipe: any,
+  allergies: AllergenEntry[],
+  fireLogOut?: RuleFireLog[],
+): void {
+  if (!Array.isArray(recipe?.completePlate?.sides)) return;
+  if (!allergies || allergies.length === 0) return;
+
+  if (!Array.isArray(recipe.rulesFireLog)) recipe.rulesFireLog = [];
+
+  const survivingSides: any[] = [];
+
+  for (const side of recipe.completePlate.sides) {
+    const sideText = [
+      side.name || "",
+      side.prepNote || "",
+      side.nutritionalRole || "",
+      side.category || "",
+    ].join(" ").toLowerCase();
+
+    let hardBlocked = false;
+    let softFlagged = false;
+    let blockedAllergenId = "";
+    let blockedToken = "";
+
+    for (const allergy of allergies) {
+      let matchedToken: string | undefined;
+
+      if (allergy.allergenId === "other") {
+        // Custom allergen — match the customAllergenName directly against the
+        // side text.  Both singular and plural forms are checked, plus the raw
+        // name as-is.  If no customAllergenName is provided, skip this entry
+        // (we have nothing safe to match on).
+        if (!allergy.customAllergenName?.trim()) continue;
+        const customLower = allergy.customAllergenName.trim().toLowerCase();
+        // Build a small set of surface forms: the name itself, a naive plural,
+        // and a naive singular (strip trailing 's').
+        const customForms = Array.from(new Set([
+          customLower,
+          customLower.endsWith("s") ? customLower.slice(0, -1) : customLower + "s",
+        ]));
+        matchedToken = customForms.find(f => sideText.includes(f));
+      } else {
+        // Standard allergen — look up the known food-token map.
+        const tokens = ALLERGEN_FOOD_TOKENS[allergy.allergenId];
+        if (tokens) {
+          matchedToken = tokens.find(t => sideText.includes(t.toLowerCase()));
+        } else {
+          // Unrecognised allergenId: conservatively match the ID string itself
+          // (e.g. a future allergenId added to the schema before the token map
+          // is updated — failing open would be a safety regression).
+          const idLower = allergy.allergenId.toLowerCase().replace(/_/g, " ");
+          matchedToken = sideText.includes(idLower) ? idLower : undefined;
+        }
+      }
+
+      if (!matchedToken) continue;
+
+      if (HARD_BLOCK_SEVERITIES.has(allergy.severity)) {
+        hardBlocked = true;
+        blockedAllergenId = allergy.allergenId;
+        blockedToken = matchedToken;
+        break;
+      }
+      if (SOFT_BLOCK_SEVERITIES.has(allergy.severity)) {
+        softFlagged = true;
+        blockedAllergenId = allergy.allergenId;
+        blockedToken = matchedToken;
+      }
+    }
+
+    if (hardBlocked) {
+      const log: RuleFireLog = {
+        ruleId: `allergen-side-removal:${blockedAllergenId}`,
+        level: "A",
+        description: `completePlate side "${side.name}" contains confirmed allergen "${blockedAllergenId}" (matched: "${blockedToken}"). Side removed.`,
+        action: `Removed side "${side.name}" — it contains a blocked allergen (${blockedAllergenId}).`,
+        firedFor: blockedToken,
+      };
+      recipe.rulesFireLog.push(log);
+      if (fireLogOut) fireLogOut.push(log);
+      recipe.allergenAlerts = [
+        ...(recipe.allergenAlerts || []),
+        {
+          allergenId: blockedAllergenId,
+          message: `Side suggestion "${side.name}" was removed because it contains ${blockedAllergenId}, which is a confirmed allergen for this child.`,
+          severity: "confirmed_removed",
+        },
+      ];
+      // Side is dropped — do NOT push to survivingSides
+    } else {
+      if (softFlagged) {
+        const log: RuleFireLog = {
+          ruleId: `allergen-side-flag:${blockedAllergenId}`,
+          level: "B",
+          description: `completePlate side "${side.name}" may contain suspected allergen "${blockedAllergenId}" (matched: "${blockedToken}"). Side flagged.`,
+          action: `Flagged side "${side.name}" — suspected allergen present (${blockedAllergenId}).`,
+          firedFor: blockedToken,
+        };
+        recipe.rulesFireLog.push(log);
+        if (fireLogOut) fireLogOut.push(log);
+        survivingSides.push({ ...side, allergenFree: false });
+      } else {
+        survivingSides.push(side);
+      }
+    }
+  }
+
+  recipe.completePlate = { ...recipe.completePlate, sides: survivingSides };
 }
 
 // ─── Food registry scanner ────────────────────────────────────────────────────

@@ -5,6 +5,8 @@ import { apiRequest } from "@/lib/queryClient";
 import { PillButton } from "@/components/ui/pill-button";
 import { ChevronLeft } from "lucide-react";
 import type {
+  CoachMealAction,
+  CoachMealActionType,
   PerceivedTiredDuration,
   SleepQuality,
   TiredContext,
@@ -12,13 +14,23 @@ import type {
   TiredTiming,
 } from "@shared/coachCornerTypes";
 
+// Frontend-owned routing table — AI only emits controlled actionType strings
+const MEAL_ACTION_ROUTES: Record<CoachMealActionType, string> = {
+  create_dessert: "/craving-desserts",
+  create_beverage: "/lifestyle/beverage-creator",
+  create_meal: "/lifestyle/create-a-dish",
+};
+
 interface ContextResponse {
   context: TiredContext;
 }
 
 interface ResolveResponse {
   context: TiredContext;
-  response: TiredResponse;
+  response: TiredResponse & {
+    coachMessage?: string;
+    suggestedMealActions?: CoachMealAction[];
+  };
 }
 
 const DURATION_OPTIONS: { value: PerceivedTiredDuration; label: string }[] = [
@@ -50,13 +62,18 @@ export default function CoachCornerTired() {
     queryKey: ["/api/coach-corner/situations/tired/context"],
   });
 
+  const [mealActions, setMealActions] = useState<CoachMealAction[]>([]);
+
   const resolveMutation = useMutation({
     mutationFn: () =>
       apiRequest("/api/coach-corner/situations/tired/resolve", {
         method: "POST",
         body: JSON.stringify({ duration, timing, sleepQuality }),
       }),
-    onSuccess: (data: ResolveResponse) => setResult(data.response),
+    onSuccess: (data: ResolveResponse) => {
+      setResult(data.response);
+      setMealActions(data.response.suggestedMealActions ?? []);
+    },
   });
 
   const canSubmit = !!duration && !!timing && !!sleepQuality;
@@ -97,6 +114,34 @@ export default function CoachCornerTired() {
             <p>{result.message.whatToWatchFor}</p>
             <p>{result.message.action}</p>
           </div>
+
+          {mealActions.length > 0 && (
+            <div className="mb-4">
+              <p className="text-[10.5px] text-orange-300/80 uppercase tracking-widest font-medium mb-2">
+                Make it now
+              </p>
+              <div className="flex flex-col gap-2">
+                {mealActions.map((action, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setLocation(MEAL_ACTION_ROUTES[action.actionType])}
+                    className="
+                      text-left text-[13px] font-medium text-orange-200
+                      px-4 py-3 rounded-xl
+                      bg-orange-900/40 border border-orange-500/40
+                      hover:bg-orange-800/50 hover:border-orange-400/60
+                      active:scale-[0.97] transition-all duration-150
+                      flex items-center justify-between gap-2
+                      w-full
+                    "
+                  >
+                    <span>🍽 {action.label}</span>
+                    <span className="text-orange-400/80 shrink-0">→</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="flex flex-col gap-3 items-center pb-6">
             {result.routeTo && (

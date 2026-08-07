@@ -49,6 +49,16 @@ type DevelopmentalStage =
   | "early_school_age"
   | "growing_child";
 
+interface ParentPrefs {
+  budgetLevel?: string;
+  maxCookTimeMinutes?: number;
+  requiresSchoolSafe?: boolean;
+  requiresPackable?: boolean;
+  culturalCuisine?: string;
+  dietaryPattern?: string;
+  goals?: string[];
+}
+
 type AllergenId =
   | "peanut"
   | "tree_nuts"
@@ -96,6 +106,14 @@ interface RuleFiredEntry {
   action: string;
 }
 
+interface CompletePlateSide {
+  name: string;
+  category: "fruit" | "vegetable" | "grain" | "dairy" | "protein";
+  servingSize: string;
+  prepNote: string;
+  nutritionalRole: string;
+  allergenFree?: boolean;
+}
 interface ChildRecipeResponse {
   recipeName: string;
   ageStageSuitability: string;
@@ -114,6 +132,8 @@ interface ChildRecipeResponse {
   // Parent Education Layer — AI-generated
   whyThisMealWasChosen?: string;
   reasoningTrace?: string[];
+  // Complete the Plate — AI-generated sides
+  completePlate?: CompletePlate;
 }
 
 interface ClinicalDRI {
@@ -848,8 +868,13 @@ function ParentEducationPanel({ layer }: { layer: ParentEducationLayerData }) {
   );
 }
 
-// ── Recipe Display (Create a Dish–style card) ─────────────────────────────────
-
+const CATEGORY_CONFIG: Record<string, { emoji: string; label: string; color: string }> = {
+  fruit:     { emoji: "🍎", label: "Fruit",     color: "text-red-300 bg-red-950/30 border-red-400/20" },
+  vegetable: { emoji: "🥦", label: "Vegetable", color: "text-green-300 bg-green-950/30 border-green-400/20" },
+  grain:     { emoji: "🌾", label: "Grain",     color: "text-amber-300 bg-amber-950/30 border-amber-400/20" },
+  dairy:     { emoji: "🥛", label: "Dairy",     color: "text-blue-300 bg-blue-950/30 border-blue-400/20" },
+  protein:   { emoji: "🥚", label: "Protein",   color: "text-purple-300 bg-purple-950/30 border-purple-400/20" },
+};
 function RecipeCard({
   recipe,
   hasEpiPen,
@@ -864,6 +889,9 @@ function RecipeCard({
   setLocation,
   nutritionBadges,
   clinicalNutritionSummary,
+  ageStage,
+  allergies,
+  parentPrefs,
 }: {
   recipe: ChildRecipeResponse;
   hasEpiPen: boolean;
@@ -878,6 +906,9 @@ function RecipeCard({
   onDelete: () => void;
   onUpdateRecipe: (updated: Partial<ChildRecipeResponse>) => void;
   setLocation: (path: string) => void;
+  ageStage: DevelopmentalStage | "";
+  allergies: AllergyEntry[];
+  parentPrefs?: ParentPrefs;
 }) {
   const [showLog, setShowLog] = useState(false);
   const [showTrace, setShowTrace] = useState(false);
@@ -1205,6 +1236,16 @@ function RecipeCard({
           </div>
         </CardContent>
       </Card>
+
+      {/* Complete the Plate — sides section */}
+      {recipe.completePlate && recipe.completePlate.sides && recipe.completePlate.sides.length > 0 && (
+        <CompleteThePlateSection
+          completePlate={recipe.completePlate}
+          ageStage={ageStage}
+          allergies={allergies}
+          parentPrefs={parentPrefs}
+        />
+      )}
 
       {/* Debug / transparency panels — collapsed by default */}
       <div className="space-y-2">
@@ -1745,16 +1786,51 @@ export default function MyPerfectBeginningCreateMealPage() {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
-  // Restore last saved meal for the active child from DB on mount / child-switch
+  // Restore last saved meal for the active child from DB on mount / child-switch.
+  // If imageUrl is null (storage failed during original save), re-generate the
+  // image in the background and write the persistent URL back to DB.
   useEffect(() => {
     if (!activeChild?.id) return;
-    get<{ meal: { id: string; recipeData: any; imageUrl: string | null } | null }>(
-      `/api/my-perfect-beginning/generated-meals?childProfileId=${encodeURIComponent(activeChild.id)}`
+    const childProfileId = activeChild.id;
+    get<{ meal: { id: string; recipeData: any; imageUrl: string | null; selectedOptionName: string | null } | null }>(
+      `/api/my-perfect-beginning/generated-meals?childProfileId=${encodeURIComponent(childProfileId)}`
     )
       .then(data => {
         if (data.meal && !recipe) {
           setRecipe(data.meal.recipeData);
-          setRecipeImageUrl(data.meal.imageUrl);
+          const restoredImageUrl = data.meal.imageUrl;
+          setRecipeImageUrl(restoredImageUrl);
+
+          // If no persisted image, silently regenerate from the recipe data so
+          // the card shows an image without the user having to re-generate the recipe.
+          if (!restoredImageUrl && data.meal.recipeData?.recipeName) {
+            const recipeName: string = data.meal.recipeData.recipeName;
+            const ingredients: string[] = (data.meal.recipeData.ingredients ?? []).map((i: any) => i.name ?? i);
+            const selectedOptionName = data.meal.selectedOptionName ?? null;
+            const savedRecipeData = data.meal.recipeData;
+            setImageLoading(true);
+            post<{ imageUrl?: string }>('/api/meals/generate-image', {
+              mealName: recipeName,
+              ingredients,
+              mealType: 'meal',
+              sourceType: 'meal',
+            })
+              .then(img => {
+                const imgUrl = img.imageUrl ?? null;
+                if (imgUrl) {
+                  setRecipeImageUrl(imgUrl);
+                  // Write the permanent URL back so future reloads skip re-generation.
+                  post('/api/my-perfect-beginning/generated-meals', {
+                    childProfileId,
+                    recipeData: savedRecipeData,
+                    imageUrl: imgUrl,
+                    selectedOptionName,
+                  }).catch(() => {});
+                }
+              })
+              .catch(() => {})
+              .finally(() => setImageLoading(false));
+          }
         }
       })
       .catch(() => {});
@@ -2167,6 +2243,15 @@ export default function MyPerfectBeginningCreateMealPage() {
               imageLoading={imageLoading}
               nutritionBadges={nutritionBadges}
               clinicalNutritionSummary={clinicalNutritionSummary}
+              ageStage={selectedStage}
+              allergies={allergies}
+              parentPrefs={{
+                ...(prepTime ? { maxCookTimeMinutes: prepTime } : {}),
+                ...(schoolSafe ? { requiresSchoolSafe: true } : {}),
+                ...(packable ? { requiresPackable: true } : {}),
+                ...(budget ? { budgetLevel: budget } : {}),
+                ...(culturalCuisine.trim() ? { culturalCuisine: culturalCuisine.trim() } : {}),
+              }}
               onDelete={() => {
                 setRecipe(null);
                 setEducationLayer(null);
@@ -2828,4 +2913,356 @@ function ClinicalDetailsPanel({ summary }: { summary: ClinicalNutritionSummary }
       )}
     </div>
   );
+}
+
+// ── Side Recipe Bottom Sheet ──────────────────────────────────────────────────
+
+function SideRecipeSheet({
+  side,
+  recipe,
+  loading,
+  error,
+  onClose,
+}: {
+  side: CompletePlateSide;
+  recipe: ChildRecipeResponse | null;
+  loading: boolean;
+  error: string | null;
+  onClose: () => void;
+}) {
+  const [stepsExpanded, setStepsExpanded] = useState(false);
+  const steps = recipe?.instructions ?? [];
+  const visibleSteps = stepsExpanded ? steps : steps.slice(0, 3);
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        key="side-recipe-overlay"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm px-3 pb-safe-nav"
+        onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      >
+        <motion.div
+          initial={{ opacity: 0, y: 48 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 48 }}
+          transition={{ type: "spring", damping: 26, stiffness: 280 }}
+          className="w-full max-w-md bg-[#0b1a10] border border-emerald-400/25 rounded-2xl shadow-2xl overflow-hidden max-h-[90dvh] flex flex-col"
+        >
+          {/* Handle + header */}
+          <div className="flex-shrink-0 px-5 pt-4 pb-3 border-b border-white/8">
+            <div className="flex justify-center mb-3">
+              <div className="w-10 h-1 rounded-full bg-white/15" />
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-1.5 rounded-lg bg-white/8 hover:bg-white/15 transition-colors flex-shrink-0"
+                aria-label="Close"
+              >
+                <ArrowLeft className="h-4 w-4 text-white" />
+              </button>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-emerald-400/80 font-medium uppercase tracking-wider mb-0.5">Side Recipe</p>
+                <h2 className="text-base font-bold text-white leading-tight truncate">{side.name}</h2>
+              </div>
+            </div>
+          </div>
+
+          {/* Scrollable body */}
+          <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+            {loading && (
+              <div className="flex flex-col items-center gap-3 py-10">
+                <ThinkingDots />
+                <p className="text-sm text-white/60">Building a recipe for {side.name}…</p>
+              </div>
+            )}
+
+            {error && !loading && (
+              <div className="flex items-start gap-2 p-3 rounded-xl bg-red-950/40 border border-red-400/30">
+                <AlertTriangle className="h-4 w-4 text-red-400 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-red-200">{error}</p>
+              </div>
+            )}
+
+            {recipe && !loading && (
+              <>
+                {/* Recipe name */}
+                <div className="flex items-center gap-2">
+                  <ChefHat className="h-4 w-4 text-emerald-400 flex-shrink-0" />
+                  <h3 className="text-sm font-bold text-white">{recipe.recipeName}</h3>
+                </div>
+
+                {/* Age suitability */}
+                <p className="text-xs text-white/60">{recipe.ageStageSuitability}</p>
+
+                {/* Allergen alerts */}
+                {recipe.allergenAlerts?.length > 0 && (
+                  <div className="space-y-1.5">
+                    {recipe.allergenAlerts.map((alert, i) => (
+                      <div key={i} className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-950/30 border border-amber-400/20">
+                        <ShieldCheck className="h-3.5 w-3.5 text-amber-400 mt-0.5 flex-shrink-0" />
+                        <p className="text-xs text-amber-200">{alert.message}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Texture & choking safety */}
+                {recipe.textureAndChokingPreparation && (
+                  <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-950/25 border border-amber-400/25">
+                    <AlertTriangle className="h-4 w-4 text-amber-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-xs font-semibold text-amber-300 mb-0.5">Texture & Choking Safety</p>
+                      <p className="text-xs text-white leading-relaxed">{recipe.textureAndChokingPreparation}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Ingredients */}
+                {recipe.ingredients.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-semibold text-white uppercase tracking-wider mb-2">Ingredients</h4>
+                    <ul className="space-y-1.5">
+                      {recipe.ingredients.map((ing, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-white">
+                          <span className="text-emerald-400 mt-0.5 flex-shrink-0">•</span>
+                          <span>
+                            {ing.quantity}{ing.unit ? ` ${ing.unit}` : ""} <strong>{ing.name}</strong>
+                            {ing.prepNote && (
+                              <span className="block text-xs text-white/60 mt-0.5">{ing.prepNote}</span>
+                            )}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Instructions */}
+                {steps.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-semibold text-white uppercase tracking-wider mb-2">Instructions</h4>
+                    <div className="space-y-2">
+                      {visibleSteps.map((step, index) => (
+                        <div key={index} className="flex items-start gap-3">
+                          <div className="min-w-[22px] h-[22px] w-[22px] rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5">
+                            {index + 1}
+                          </div>
+                          <p className="text-sm leading-relaxed text-white">{step}</p>
+                        </div>
+                      ))}
+                    </div>
+                    {steps.length > 3 && (
+                      <button
+                        className="mt-2 text-xs text-emerald-400 font-medium"
+                        onClick={() => setStepsExpanded(v => !v)}
+                      >
+                        {stepsExpanded ? "Show less" : `Show all ${steps.length} steps`}
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Serving guidance */}
+                {recipe.servingGuidance && (
+                  <div>
+                    <h4 className="text-xs font-semibold text-white uppercase tracking-wider mb-1">Serving Guidance</h4>
+                    <p className="text-sm text-white">{recipe.servingGuidance}</p>
+                  </div>
+                )}
+
+                {/* Why this version */}
+                {recipe.whyThisVersionIsBetter && (
+                  <div className="p-3 rounded-xl bg-emerald-950/30 border border-emerald-400/20">
+                    <p className="text-xs text-emerald-300/90 leading-relaxed">{recipe.whyThisVersionIsBetter}</p>
+                  </div>
+                )}
+
+                {/* Pediatrician note */}
+                {recipe.askPediatricianNote && (
+                  <div className="flex items-start gap-2 p-3 rounded-xl bg-blue-950/25 border border-blue-400/20">
+                    <Info className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-xs font-semibold text-blue-300 mb-0.5">Ask Your Pediatrician</p>
+                      <p className="text-xs text-white leading-relaxed">{recipe.askPediatricianNote}</p>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Footer close button */}
+          <div className="flex-shrink-0 px-5 py-4 border-t border-white/8">
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full py-2.5 rounded-xl bg-white/10 text-white text-sm font-medium hover:bg-white/15 transition-all active:scale-[0.98]"
+            >
+              Back to Complete the Plate
+            </button>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
+// ── Complete the Plate Section ────────────────────────────────────────────────
+
+function CompleteThePlateSection({
+  completePlate,
+  ageStage,
+  allergies,
+  parentPrefs,
+}: {
+  completePlate: CompletePlate;
+  ageStage: DevelopmentalStage | "";
+  allergies: AllergyEntry[];
+  parentPrefs?: ParentPrefs;
+}) {
+  const { toast } = useToast();
+  const [activeSide, setActiveSide] = useState<CompletePlateSide | null>(null);
+  const [sideRecipe, setSideRecipe] = useState<ChildRecipeResponse | null>(null);
+  const [sideLoading, setSideLoading] = useState(false);
+  const [sideError, setSideError] = useState<string | null>(null);
+
+  if (!completePlate || !completePlate.sides || completePlate.sides.length === 0) return null;
+
+  const handleGetRecipe = async (side: CompletePlateSide) => {
+    if (!ageStage) {
+      toast({ title: "Age stage required", description: "Please select an age stage first.", variant: "destructive" });
+      return;
+    }
+    setActiveSide(side);
+    setSideRecipe(null);
+    setSideError(null);
+    setSideLoading(true);
+
+    try {
+      const body: Record<string, unknown> = {
+        ageStage,
+        allergies,
+        foodRequest: side.name,
+      };
+      if (parentPrefs && Object.keys(parentPrefs).length > 0) {
+        body.parentPrefs = parentPrefs;
+      }
+      const data = await post<any>('/api/my-perfect-beginning/create-dish', body);
+      if (data.blocked) {
+        setSideError(data.educationMessage ?? "This side couldn't be generated for the selected age stage.");
+      } else {
+        setSideRecipe(data as ChildRecipeResponse);
+      }
+    } catch (err: any) {
+      setSideError(err?.message ?? "Something went wrong generating the recipe.");
+    } finally {
+      setSideLoading(false);
+    }
+  };
+
+  return (
+    <>
+      {activeSide && (
+        <SideRecipeSheet
+          side={activeSide}
+          recipe={sideRecipe}
+          loading={sideLoading}
+          error={sideError}
+          onClose={() => { setActiveSide(null); setSideRecipe(null); setSideError(null); }}
+        />
+      )}
+
+      <Card className="bg-black/40 backdrop-blur-lg border border-emerald-400/25 shadow-xl rounded-2xl overflow-hidden">
+        <CardContent className="p-5 space-y-4">
+          {/* Header */}
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-full bg-emerald-500/15 flex-shrink-0">
+              <Utensils className="h-4 w-4 text-emerald-400" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-white leading-tight">Complete the Plate</h3>
+              <p className="text-xs text-white/60 mt-0.5">Stage-appropriate sides to round out this meal</p>
+            </div>
+          </div>
+
+          {/* Sides */}
+          <div className="space-y-3">
+            {completePlate.sides.map((side, i) => {
+              const cfg = CATEGORY_CONFIG[side.category] ?? { emoji: "🍽️", label: "Side", color: "text-white bg-white/5 border-white/10" };
+              return (
+                <div
+                  key={i}
+                  className="rounded-xl border border-white/10 bg-white/5 overflow-hidden"
+                >
+                  <div className="p-3.5 space-y-2">
+                    {/* Side name + category badge */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <span className="text-xl flex-shrink-0" aria-hidden="true">{cfg.emoji}</span>
+                        <p className="text-sm font-semibold text-white leading-tight">{side.name}</p>
+                      </div>
+                      <span className={`flex-shrink-0 text-[10px] font-medium px-2 py-0.5 rounded-full border ${cfg.color}`}>
+                        {cfg.label}
+                      </span>
+                    </div>
+
+                    {/* Serving size + prep */}
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-white/70">
+                      {side.servingSize && (
+                        <span>
+                          <span className="text-white/40">Portion: </span>
+                          {side.servingSize}
+                        </span>
+                      )}
+                      {side.prepNote && (
+                        <span>
+                          <span className="text-white/40">Prep: </span>
+                          {side.prepNote}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Why this side was chosen */}
+                    {side.nutritionalRole && (
+                      <p className="text-xs text-emerald-300/80 leading-relaxed">
+                        ✓ {side.nutritionalRole}
+                      </p>
+                    )}
+
+                    {/* Get recipe button */}
+                    <button
+                      type="button"
+                      onClick={() => handleGetRecipe(side)}
+                      className="mt-1 flex items-center gap-1.5 text-xs font-medium text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-400/25 px-3 py-1.5 rounded-lg transition-all active:scale-[0.97]"
+                    >
+                      <ChefHat className="h-3 w-3" />
+                      Get recipe
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Plate note */}
+          {completePlate.plateNote && (
+            <div className="flex items-start gap-2 pt-1">
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-white/70 leading-relaxed italic">{completePlate.plateNote}</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </>
+  );
+}
+
+interface CompletePlate {
+  sides: CompletePlateSide[];
+  plateNote: string;
 }

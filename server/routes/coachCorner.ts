@@ -14,6 +14,7 @@ import {
 import { resolveProgressSlowed } from "../services/ace/progressSlowedEngine";
 import { resolveTired } from "../services/ace/tiredEngine";
 import type {
+  CoachMealAction,
   CoachResponse,
   PerceivedDuration,
   PerceivedTiredDuration,
@@ -143,11 +144,16 @@ async function buildCoachContextBlock(
 // a natural coaching response. ACE's clinical decisions are authoritative —
 // the LLM must never override the intent or clinical direction.
 
+interface GenerateCoachResult {
+  coachMessage: string;
+  suggestedMealActions?: CoachMealAction[];
+}
+
 async function generateCoachMessage(
   aceResponse: CoachResponse,
   contextBlock: string,
   situationLabel: string
-): Promise<string> {
+): Promise<GenerateCoachResult> {
   const intentExplanations: Record<string, string> = {
     reassure: "The user needs reassurance — stay the course, don't add pressure or introduce doubt.",
     educate: "The user needs education — explain what's happening and what to do, with supportive tone.",
@@ -157,7 +163,7 @@ async function generateCoachMessage(
 
   const systemPrompt = `You are a nutrition and wellness coach inside My Perfect Meals — Coach's Corner.
 
-The coaching engine has already analyzed this user's situation and determined a coaching strategy. Your job is to deliver that strategy as a natural, human coaching message.
+The coaching engine has already analyzed this user's situation and determined a coaching strategy. Your job is to deliver that strategy as a natural, human coaching message AND optionally suggest an immediate meal action button.
 
 ━━━ COACHING ENGINE OUTPUT ━━━
 Situation: ${situationLabel}
@@ -172,9 +178,15 @@ What to watch for: ${aceResponse.message.whatToWatchFor}
 Next action: ${aceResponse.message.action}
 
 ━━━ ${contextBlock ? contextBlock + "\n\n━━━ " : ""}YOUR TASK ━━━
-Write ONE natural coaching response based on the analysis above.
+Respond with a JSON object with these fields:
+{
+  "message": "<coaching message text>",
+  "suggestedMealActions": [
+    { "actionType": "<one of: create_dessert | create_beverage | create_meal>", "label": "<short button label, max 8 words>" }
+  ]
+}
 
-Rules:
+Rules for the message:
 • Honor the coaching intent exactly — do NOT change the direction or add unsupported clinical statements
 • Sound like a real coach, not a chatbot or a health app
 • Weave the acknowledgment, guidance, and perspective together naturally — no labeled sections
@@ -184,16 +196,56 @@ Rules:
 • End with the specific action step — make it concrete and immediate
 • Never mention "ACE", "the algorithm", "the engine", or any internal system names — you ARE the coach
 
-Write just the coaching message. No preamble, no sign-off.`;
+Rules for suggestedMealActions:
+• Only include when the coaching advice maps directly to a meal builder (craving a specific food → create_dessert; hydration / drinks → create_beverage; meal timing / energy / general eating plan → create_meal)
+• Use ONLY the three controlled actionType values above — never invent others
+• 0 to 2 actions maximum; omit the field entirely if none apply
+• Labels must be short and action-oriented, e.g. "Create a dessert that fits today →" or "Build a hydration drink →"
+• For situations about fatigue, meal timing, or general eating — create_meal is appropriate when the recommendation is to change what or when they eat
+• For situations about cravings — create_dessert is appropriate
+• For situations about hydration, drinking more water, beverages — create_beverage is appropriate
+• For progress-slowed situations, only suggest if the recommendation explicitly mentions eating differently
+
+Respond ONLY with valid JSON. No preamble, no markdown fences.`;
 
   const completion = await getOpenAI().chat.completions.create({
     model: "gpt-4o",
     messages: [{ role: "user", content: systemPrompt }],
     temperature: 0.65,
-    max_tokens: 380,
+    max_tokens: 480,
+    response_format: { type: "json_object" },
   });
 
-  return completion.choices[0]?.message?.content?.trim() ?? "";
+  const raw = completion.choices[0]?.message?.content?.trim() ?? "{}";
+  let parsed: { message?: string; suggestedMealActions?: unknown[] } = {};
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    // Fallback: treat raw as the message text
+    return { coachMessage: raw };
+  }
+
+  const coachMessage = typeof parsed.message === "string" ? parsed.message.trim() : "";
+
+  const VALID_ACTION_TYPES = new Set(["create_dessert", "create_beverage", "create_meal"]);
+  const suggestedMealActions: CoachMealAction[] = Array.isArray(parsed.suggestedMealActions)
+    ? (parsed.suggestedMealActions as any[])
+        .filter(
+          (a) =>
+            a &&
+            typeof a.actionType === "string" &&
+            VALID_ACTION_TYPES.has(a.actionType) &&
+            typeof a.label === "string" &&
+            a.label.trim().length > 0
+        )
+        .slice(0, 2)
+        .map((a) => ({ actionType: a.actionType as CoachMealAction["actionType"], label: a.label.trim() }))
+    : [];
+
+  return {
+    coachMessage,
+    ...(suggestedMealActions.length > 0 ? { suggestedMealActions } : {}),
+  };
 }
 
 const router = Router();
@@ -424,14 +476,17 @@ router.post("/situations/progress-slowed/resolve", requireAuth, async (req, res)
 
     // ── LLM conversational generation (additive — ACE decision is authoritative) ──
     let coachMessage: string | undefined;
+    let suggestedMealActions: CoachMealAction[] | undefined;
     try {
       const contextBlock = await buildCoachContextBlock(userId, profile ?? null);
-      coachMessage = await generateCoachMessage(response, contextBlock, "My progress has slowed");
+      const llmResult = await generateCoachMessage(response, contextBlock, "My progress has slowed");
+      coachMessage = llmResult.coachMessage;
+      suggestedMealActions = llmResult.suggestedMealActions;
     } catch (llmErr: any) {
       console.warn("[CoachCorner] LLM generation failed (non-fatal):", llmErr.message);
     }
 
-    res.json({ context, response: { ...response, coachMessage } });
+    res.json({ context, response: { ...response, coachMessage, suggestedMealActions } });
   } catch (err: any) {
     console.error("[CoachCorner] POST /situations/progress-slowed/resolve error:", err.message);
     res.status(500).json({ error: "Failed to resolve progress-slowed situation" });
@@ -517,14 +572,17 @@ router.post("/situations/tired/resolve", requireAuth, async (req, res) => {
 
     // ── LLM conversational generation (additive — ACE decision is authoritative) ──
     let coachMessage: string | undefined;
+    let suggestedMealActions: CoachMealAction[] | undefined;
     try {
       const contextBlock = await buildCoachContextBlock(userId, profile ?? null);
-      coachMessage = await generateCoachMessage(response, contextBlock, "I'm feeling tired");
+      const llmResult = await generateCoachMessage(response, contextBlock, "I'm feeling tired");
+      coachMessage = llmResult.coachMessage;
+      suggestedMealActions = llmResult.suggestedMealActions;
     } catch (llmErr: any) {
       console.warn("[CoachCorner] LLM generation failed (non-fatal):", llmErr.message);
     }
 
-    res.json({ context, response: { ...response, coachMessage } });
+    res.json({ context, response: { ...response, coachMessage, suggestedMealActions } });
   } catch (err: any) {
     console.error("[CoachCorner] POST /situations/tired/resolve error:", err.message);
     res.status(500).json({ error: "Failed to resolve tired situation" });

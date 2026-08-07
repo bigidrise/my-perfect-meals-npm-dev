@@ -862,7 +862,7 @@ export default function MealFinder() {
                   const mealImage = chefFlowImages[mealImageKey] || result.meal.imageUrl;
 
                   return (
-                    <div key={cardKey} className="bg-black/40 backdrop-blur-lg border border-white/20 rounded-xl overflow-hidden shadow-lg" data-testid={`card-result-${index}`}>
+                    <div key={cardKey} className="bg-black/10 backdrop-blur-lg border border-white/20 rounded-xl overflow-hidden shadow-lg" data-testid={`card-result-${index}`}>
                       {/* Restaurant info */}
                       <div className="px-4 pt-3 pb-2 border-b border-white/10 flex items-center justify-between gap-3">
                         <div className="flex-1 min-w-0">
