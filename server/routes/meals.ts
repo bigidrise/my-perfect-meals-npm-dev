@@ -20,26 +20,33 @@ const router = express.Router();
 // Cache hits are instant; new images are persisted so they never regenerate.
 // ─────────────────────────────────────────────
 router.post("/generate-image", requireAuth, imageRateLimit, async (req: any, res) => {
-  const { mealName, mealType = "dinner", ingredients } = req.body || {};
+  const { mealName, mealType = "dinner", ingredients, sourceType: callerSourceType } = req.body || {};
 
   if (!mealName || mealName.trim().length < 3) {
     return res.status(400).json({ imageUrl: null });
   }
 
-  // Resolve sourceType from mealType so the 4-layer prompt builder
-  // uses the correct visual directive (beverage, snack, dessert, meal).
-  const mealTypeLower = (mealType || "").toLowerCase();
-  const nameLower = mealName.toLowerCase();
-
+  // If the caller explicitly supplied sourceType, trust it — they know what they're
+  // asking for (e.g. Find Meals Near Me sends "meal" for restaurant menu items, even
+  // when the item name contains words like "tea" or "lemonade").
+  // Only fall back to the name/type classifier when sourceType is absent.
   let sourceType: ImageSourceType = "meal";
-  if (mealTypeLower === "beverages" || mealTypeLower === "beverage" || mealTypeLower === "drink" ||
-      /smoothie|shake|juice|latte|coffee|tea|cocktail|mocktail|drink|beverage|lemonade/.test(nameLower)) {
-    sourceType = "beverage";
-  } else if (mealTypeLower === "snack" || mealTypeLower === "snacks") {
-    sourceType = "snack";
-  } else if (mealTypeLower === "dessert" || mealTypeLower === "desserts" ||
-      /cake|pie|cookie|brownie|pudding|ice cream|cheesecake|tart|mousse|cupcake/.test(nameLower)) {
-    sourceType = "dessert";
+  if (callerSourceType === "beverage" || callerSourceType === "snack" ||
+      callerSourceType === "dessert" || callerSourceType === "meal") {
+    sourceType = callerSourceType as ImageSourceType;
+  } else {
+    // Fallback classifier — used by callers that don't send sourceType.
+    const mealTypeLower = (mealType || "").toLowerCase();
+    const nameLower = mealName.toLowerCase();
+    if (mealTypeLower === "beverages" || mealTypeLower === "beverage" || mealTypeLower === "drink" ||
+        /smoothie|shake|juice|latte|coffee|tea|cocktail|mocktail|drink|beverage|lemonade/.test(nameLower)) {
+      sourceType = "beverage";
+    } else if (mealTypeLower === "snack" || mealTypeLower === "snacks") {
+      sourceType = "snack";
+    } else if (mealTypeLower === "dessert" || mealTypeLower === "desserts" ||
+        /cake|pie|cookie|brownie|pudding|ice cream|cheesecake|tart|mousse|cupcake/.test(nameLower)) {
+      sourceType = "dessert";
+    }
   }
 
   try {
