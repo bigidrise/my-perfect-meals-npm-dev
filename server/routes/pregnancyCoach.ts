@@ -14,6 +14,7 @@ import express from "express";
 import OpenAI from "openai";
 import { db } from "../db";
 import { users } from "@shared/schema";
+import { coachingProfiles } from "../db/schema/ace";
 import { eq, sql } from "drizzle-orm";
 import { loadUserProtocolEnvelope } from "../services/protocolEnvelope";
 import { getTierForLookupKey, getEntitlementsForTier } from "@shared/planFeatures";
@@ -101,44 +102,25 @@ function stageLabel(stage: string): string {
 
 // GET /conversation — load persisted conversation history
 router.get("/conversation", async (req, res) => {
-    const userId = resolveUserId(req);
-
-  const { messages } = req.body;
+  const userId = resolveUserId(req);
   if (!userId) return res.status(401).json({ error: "Not authenticated" });
-    const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
-      { role: "system", content: systemPrompt },
-      ...dbHistory
-        .slice(-12)
-        .map((m) => ({
-          role: m.role as "user" | "assistant",
-          content: m.content,
-        })),
-      { role: "user", content: message },
-    ];
+  const messages = await getConversation(userId);
   res.json({ messages });
 });
 
 // PATCH /conversation — persist conversation turns server-side
 router.patch("/conversation", async (req, res) => {
-    const userId = resolveUserId(req);
-
-  const { messages } = req.body;
+  const userId = resolveUserId(req);
   if (!userId) return res.status(401).json({ error: "Not authenticated" });
   const { messages } = req.body;
-  if (!userId) return res.status(401).json({ error: "Not authenticated" });
-  try {
-    await db.execute(sql`
-      DELETE FROM pregnancy_conversations WHERE user_id = ${userId}
-    `);
-  } catch { /* non-fatal */ }
+  if (!Array.isArray(messages)) return res.status(400).json({ error: "messages array required" });
+  await saveConversation(userId, messages);
   res.json({ ok: true });
 });
 
-router.post("/ask", async (req, res) => {
-  try {
-    const userId = resolveUserId(req);
-
-  const { messages } = req.body;
+// DELETE /conversation — clear conversation history
+router.delete("/conversation", async (req, res) => {
+  const userId = resolveUserId(req);
   if (!userId) return res.status(401).json({ error: "Not authenticated" });
   try {
     await db.execute(sql`
@@ -154,15 +136,19 @@ router.post("/ask", async (req, res) => {
 
     const { message } = req.body;
 
-      const authUser = (req as any).authUser ?? {};
-        const tier = getTierForLookupKey(planLookupKey);
-
-      const tierEntitlements = getEntitlementsForTier(tier);
-      // null planLookupKey = internal / admin account → always passes
-      if (planKey !== null && tier !== "ultimate") {
-        return res.status(403).json({ error: "requires_upgrade", feature: "pregnancy" });
-      }
+    const authUser = (req as any).authUser ?? {};
+    const { planLookupKey } = authUser;
+    const planKey = planLookupKey ?? null;
+    const tier = getTierForLookupKey(planLookupKey);
+    const tierEntitlements = getEntitlementsForTier(tier);
+    // null planLookupKey = internal / admin account → always passes
+    if (planKey !== null && !tierEntitlements.includes("pregnancy")) {
+      return res.status(403).json({ error: "requires_upgrade", feature: "pregnancy" });
     }
+
+    let envelopeContext = "";
+    let pregnancyContext = "";
+    let macroContext = "";
 
     // Load protocol envelope for full user context
     let stage = "trimester-2";
@@ -412,7 +398,6 @@ router.post("/setup", async (req, res) => {
   try {
     const userId = resolveUserId(req);
 
-  const { messages } = req.body;
     if (!userId) return res.status(401).json({ error: "Not authenticated" });
 
     const {
@@ -473,7 +458,6 @@ router.delete("/setup", async (req, res) => {
   try {
     const userId = resolveUserId(req);
 
-  const { messages } = req.body;
     if (!userId) return res.status(401).json({ error: "Not authenticated" });
 
     const [currentUser] = await db
@@ -504,9 +488,3 @@ router.delete("/setup", async (req, res) => {
 });
 
 export default router;
-
-      const { accessTier, planLookupKey } = authUser;
-
-      const allEntitlements = Array.from(new Set([...tierEntitlements, ...dbEntitlements]));
-
-      const dbEntitlements: string[] = (userRow?.entitlements as string[]) || [];
