@@ -87,6 +87,16 @@ export default function SavedMeals() {
     }
   }, [returnPath, deepLinkMealId]);
 
+  // Expand and scroll to the deep-linked meal once the list has loaded
+  useEffect(() => {
+    if (!deepLinkMealId || !meals?.length) return;
+    setTimeout(() => {
+      document
+        .getElementById(`meal-card-${deepLinkMealId}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 120);
+  }, [deepLinkMealId, meals]);
+
   const handleAddToPlanSuccess = returnPath
     ? () => setLocation(decodeURIComponent(returnPath))
     : undefined;
@@ -199,6 +209,7 @@ export default function SavedMeals() {
                           onRemove={handleRemove}
                           onAddToMacros={handleAddToMacros}
                           onAddToPlanSuccess={handleAddToPlanSuccess}
+                          isInitiallyExpanded={deepLinkMealId === row.id}
                         />
                       ))}
                     </div>
@@ -231,6 +242,7 @@ export default function SavedMeals() {
                       onRemove={handleRemove}
                       onAddToMacros={handleAddToMacros}
                       onAddToPlanSuccess={handleAddToPlanSuccess}
+                      isInitiallyExpanded={deepLinkMealId === row.id}
                     />
                   ))}
                 </div>

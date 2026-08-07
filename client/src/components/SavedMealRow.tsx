@@ -35,6 +35,8 @@ interface Props {
   onRemove: (row: any) => void;
   onAddToMacros: (row: any) => void;
   onAddToPlanSuccess?: () => void;
+  /** When true the row starts in the expanded state (used for deep-link scrolling) */
+  isInitiallyExpanded?: boolean;
 }
 
 export default function SavedMealRow({
@@ -43,9 +45,10 @@ export default function SavedMealRow({
   onRemove,
   onAddToMacros,
   onAddToPlanSuccess,
+  isInitiallyExpanded = false,
 }: Props) {
   const { t } = useTranslation();
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(isInitiallyExpanded);
 
   // ── Translation layer — fires on first expand for non-English locales ──
   const { data: translation, isLoading: isTranslating } = useTranslatedMeal(

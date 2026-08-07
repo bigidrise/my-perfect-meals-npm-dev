@@ -4902,7 +4902,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
-
   app.post("/api/meals/potluck", async (req, res) => {
     try {
       const { userId, servingsNeeded, eventType, selectedDishName } = req.body;
@@ -7204,7 +7203,16 @@ Provide a single exceptional meal recommendation in JSON format with the followi
       ).limit(1);
 
       if (existing.length > 0) {
-        await db.delete(savedMealsTable).where(eq(savedMealsTable.id, existing[0].id));
+        const removedId = existing[0].id;
+        // Best-effort: remove translations (non-fatal if table not yet created)
+        try {
+          await db.execute(sql`
+            DELETE FROM meal_translations WHERE saved_meal_id = ${removedId}::uuid
+          `);
+        } catch (txErr: any) {
+          console.warn("[savedMeals/toggle] Translation cleanup skipped:", txErr.message);
+        }
+        await db.delete(savedMealsTable).where(eq(savedMealsTable.id, removedId));
         return res.json({ saved: false, id: null });
       }
 
@@ -7426,10 +7434,31 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   app.delete("/api/saved-meals/:id", requireAuth, requireEssentialAccess, async (req, res) => {
     try {
       const userId = (req as AuthenticatedRequest).authUser.id;
+      const mealId = req.params.id;
 
-      await db.delete(savedMealsTable).where(
-        and(eq(savedMealsTable.id, req.params.id), eq(savedMealsTable.userId, String(userId)))
-      );
+      // Verify the meal belongs to this user before deleting
+      const [existing] = await db
+        .select({ id: savedMealsTable.id })
+        .from(savedMealsTable)
+        .where(and(eq(savedMealsTable.id, mealId), eq(savedMealsTable.userId, String(userId))))
+        .limit(1);
+
+      if (!existing) {
+        // Nothing to delete (or not owned by user) — still return success
+        return res.json({ success: true });
+      }
+
+      // Best-effort: remove translations (non-fatal if table not yet created)
+      try {
+        await db.execute(sql`
+          DELETE FROM meal_translations WHERE saved_meal_id = ${mealId}::uuid
+        `);
+      } catch (txErr: any) {
+        console.warn("[savedMeals/delete] Translation cleanup skipped:", txErr.message);
+      }
+
+      // Delete the meal itself
+      await db.delete(savedMealsTable).where(eq(savedMealsTable.id, mealId));
 
       res.json({ success: true });
     } catch (error) {

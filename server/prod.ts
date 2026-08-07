@@ -1375,10 +1375,14 @@ async function initializeApp() {
         }
       }, 5500);
 
-      // ── meal_translations ─────────────────────────────────────────────────
+      // ── meal_translations: table + orphan sweep + FK CASCADE (dynamic imports) ─
       setTimeout(async () => {
         try {
-          await database.execute(sql`
+          const { db: dbMt } = await import("./db");
+          const { sql: sqlMt } = await import("drizzle-orm");
+
+          // 1. Create table
+          await dbMt.execute(sqlMt`
             CREATE TABLE IF NOT EXISTS meal_translations (
               id              SERIAL PRIMARY KEY,
               saved_meal_id   UUID NOT NULL,
@@ -1392,11 +1396,35 @@ async function initializeApp() {
               UNIQUE(saved_meal_id, locale)
             )
           `);
-          await database.execute(sql`
+          await dbMt.execute(sqlMt`
             CREATE INDEX IF NOT EXISTS idx_meal_translations_meal_locale
               ON meal_translations (saved_meal_id, locale)
           `);
-          console.log("✅ [prod] Meal Translations boot migration complete");
+
+          // 2. Purge orphaned rows before adding the FK (avoids constraint-violation on old data)
+          await dbMt.execute(sqlMt`
+            DELETE FROM meal_translations
+            WHERE NOT EXISTS (
+              SELECT 1 FROM saved_meals sm WHERE sm.id = meal_translations.saved_meal_id
+            )
+          `);
+
+          // 3. Add FK ON DELETE CASCADE (idempotent)
+          await dbMt.execute(sqlMt`
+            DO $do$ BEGIN
+              IF NOT EXISTS (
+                SELECT 1 FROM information_schema.table_constraints
+                WHERE constraint_name = 'fk_mt_saved_meal'
+                  AND table_name      = 'meal_translations'
+              ) THEN
+                ALTER TABLE meal_translations
+                  ADD CONSTRAINT fk_mt_saved_meal
+                  FOREIGN KEY (saved_meal_id) REFERENCES saved_meals(id) ON DELETE CASCADE;
+              END IF;
+            END $do$
+          `);
+
+          console.log("✅ [prod] Meal Translations boot migration + FK complete");
         } catch (err: any) {
           console.error("❌ [prod] Meal Translations boot migration failed:", err.message);
         }
