@@ -286,7 +286,30 @@
     "inRangeBGL": "正常血糖食事",
     "inRangeBGLDesc": "正常血糖範囲内で生成（70–140 mg/dL）",
     "elevatedBGL": "高血糖食事",
-    "elevatedBGLDesc": "高血糖条件で生成（> 140 mg/dL）"
+    "elevatedBGLDesc": "高血糖条件で生成（> 140 mg/dL）",
+    "relevantRange": "関連範囲：",
+    "sourceMealBuilder": "ミールビルダー",
+    "sourceGeneralNutrition": "一般栄養",
+    "sourcePerformance": "パフォーマンス",
+    "sourceDiabetic": "糖尿病",
+    "sourceMetabolic": "代謝医学",
+    "sourceAntiInflam": "抗炎症",
+    "sourceCravingCreator": "クレービングクリエーター",
+    "sourceDessertCreator": "デザートクリエーター",
+    "sourceFridgeRescue": "冷蔵庫レスキュー",
+    "sourceChefsKitchen": "料理を作る",
+    "sourceWeeklyBoard": "週次ボード",
+    "sourcePairings": "ドリンクペアリング",
+    "sourceWineList": "ワインリストヘルパー",
+    "sourceRecipeScan": "レシピスキャン",
+    "sourceGroceryCoach": "グロサリーコーチ",
+    "sourceMeal": "食事",
+    "builtFor": "あなたの現在のプランと目標に基づいて作成されました。",
+    "serving": "人前",
+    "servings": "人前",
+    "ingredientsServes": "材料（{{count}}人前）",
+    "noIngredients": "食材が提供されていません",
+    "noInstructions": "手順が提供されていません"
   },
   "shopping": {
     "pageTitle": "スマート買い物リスト",
@@ -827,5 +850,29 @@
   "termsOfService": "利用規約",
   "managePrivacy": "プライバシー設定を管理する",
   "reviewTerms": "利用規約を確認する",
-  "restoreDesc": "このデバイスでアクティブなサブスクリプションを復元する"
+  "restoreDesc": "このデバイスでアクティブなサブスクリプションを復元する",
+  "coachCorner": {
+    "title": "コーチのコーナー",
+    "learningDesc": "シェフはあなたに合ったものを学んでいます。",
+    "startDesc": "シェフとのAIコーチング関係を始めましょう。",
+    "openBtn": "コーチのコーナーを開く"
+  },
+  "nutritionPlan": {
+    "title": "あなたの栄養生活プラン",
+    "baseline": "ベースライン",
+    "showLess": "少なく表示",
+    "showMore": "食事がどのように構成されているか見る",
+    "baselineDesc": "あなたの食事は、食事の好みとマクロ目標に基づいてパーソナライズされています。健康状態、パフォーマンス目標、または医療プロトコルをプロフィールに追加して、栄養にどう影響するか確認しましょう。",
+    "activeProtocols": "アクティブプロトコル",
+    "carbCyclingActive": "炭水化物サイクリング中",
+    "carbCyclingDetail": "でんぷん反応プロトコル実行中 · パフォーマンスハブを参照",
+    "therapeuticSupport": "治療サポート",
+    "dietaryIdentity": "食事のアイデンティティ",
+    "cuisine": "料理スタイル",
+    "goal": "目標",
+    "mealBuilder": "ミールビルダー",
+    "liveContext": "ライブコンテキスト",
+    "nutritionPriorities": "あなたの栄養優先事項",
+    "currentStrategy": "現在の戦略"
+  }
 }

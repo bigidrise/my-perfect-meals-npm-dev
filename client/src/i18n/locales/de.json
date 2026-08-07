@@ -286,7 +286,30 @@
     "inRangeBGL": "Normale BGL-Mahlzeiten",
     "inRangeBGLDesc": "Generiert im normalen Blutzuckerbereich (70–140 mg/dL)",
     "elevatedBGL": "Erhöhte BGL-Mahlzeiten",
-    "elevatedBGLDesc": "Generiert bei erhöhtem Blutzucker (> 140 mg/dL)"
+    "elevatedBGLDesc": "Generiert bei erhöhtem Blutzucker (> 140 mg/dL)",
+    "relevantRange": "Relevanter Bereich:",
+    "sourceMealBuilder": "Mahlzeiten-Builder",
+    "sourceGeneralNutrition": "Allgemeine Ernährung",
+    "sourcePerformance": "Leistung",
+    "sourceDiabetic": "Diabetisch",
+    "sourceMetabolic": "Metabolische Med",
+    "sourceAntiInflam": "Entzündungshemmend",
+    "sourceCravingCreator": "Cravings-Creator",
+    "sourceDessertCreator": "Dessert-Creator",
+    "sourceFridgeRescue": "Kühlschrank-Rettung",
+    "sourceChefsKitchen": "Ein Gericht erstellen",
+    "sourceWeeklyBoard": "Wochentafel",
+    "sourcePairings": "Getränkepaarungen",
+    "sourceWineList": "Weinlisten-Helfer",
+    "sourceRecipeScan": "Rezept-Scan",
+    "sourceGroceryCoach": "Einkaufs-Coach",
+    "sourceMeal": "Mahlzeit",
+    "builtFor": "Für Ihren aktuellen Plan und Ihre Ziele erstellt.",
+    "serving": "Portion",
+    "servings": "Portionen",
+    "ingredientsServes": "Zutaten (für {{count}})",
+    "noIngredients": "Keine Zutaten angegeben",
+    "noInstructions": "Keine Anweisungen angegeben"
   },
   "shopping": {
     "pageTitle": "Intelligente Einkaufsliste",
@@ -827,5 +850,29 @@
   "termsOfService": "Nutzungsbedingungen",
   "managePrivacy": "Verwalten Sie Ihre Datenschutzeinstellungen",
   "reviewTerms": "Prüfen Sie unsere Allgemeinen Geschäftsbedingungen",
-  "restoreDesc": "Aktives Abonnement auf diesem Gerät wiederherstellen"
+  "restoreDesc": "Aktives Abonnement auf diesem Gerät wiederherstellen",
+  "coachCorner": {
+    "title": "Coaches Ecke",
+    "learningDesc": "Der Koch lernt, was für Sie funktioniert.",
+    "startDesc": "Beginnen Sie Ihre KI-Coaching-Beziehung mit dem Koch.",
+    "openBtn": "Coaches Ecke öffnen"
+  },
+  "nutritionPlan": {
+    "title": "Ihr Ernährungs-Lebensplan",
+    "baseline": "Basis",
+    "showLess": "Weniger anzeigen",
+    "showMore": "Sehen Sie, wie Ihre Mahlzeiten aufgebaut werden",
+    "baselineDesc": "Ihre Mahlzeiten werden anhand Ihrer Ernährungsvorlieben und Makro-Ziele personalisiert. Fügen Sie Gesundheitszustände, Leistungsziele oder medizinische Protokolle in Ihrem Profil hinzu.",
+    "activeProtocols": "Aktive Protokolle",
+    "carbCyclingActive": "Carb-Cycling Aktiv",
+    "carbCyclingDetail": "Stärkeantwort-Protokoll läuft · siehe Performance Hub",
+    "therapeuticSupport": "Therapeutische Unterstützung",
+    "dietaryIdentity": "Ernährungsidentität",
+    "cuisine": "Küche",
+    "goal": "Ziel",
+    "mealBuilder": "Mahlzeiten-Builder",
+    "liveContext": "Live-Kontext",
+    "nutritionPriorities": "Ihre Ernährungsprioritäten",
+    "currentStrategy": "Aktuelle Strategie"
+  }
 }

@@ -400,7 +400,13 @@
     "sourceWineList": "Asistente de Vinos",
     "sourceRecipeScan": "Escaneo de Recetas",
     "sourceGroceryCoach": "Coach de Compras",
-    "sourceMeal": "Comida"
+    "sourceMeal": "Comida",
+    "builtFor": "Construido para tu plan y objetivos actuales.",
+    "serving": "porción",
+    "servings": "porciones",
+    "ingredientsServes": "Ingredientes (para {{count}})",
+    "noIngredients": "No se proporcionaron ingredientes",
+    "noInstructions": "No se proporcionaron instrucciones"
   },
   "shopping": {
     "pageTitle": "Lista de Compras Inteligente",
@@ -970,5 +976,29 @@
   "termsOfService": "Términos de servicio",
   "managePrivacy": "Gestiona tu configuración de privacidad",
   "reviewTerms": "Revisa nuestros términos y condiciones",
-  "restoreDesc": "Restaurar una suscripción activa en este dispositivo"
+  "restoreDesc": "Restaurar una suscripción activa en este dispositivo",
+  "coachCorner": {
+    "title": "Rincón del Coach",
+    "learningDesc": "El chef está aprendiendo lo que funciona para ti.",
+    "startDesc": "Comienza tu relación de coaching con IA con el Chef.",
+    "openBtn": "Abrir Rincón del Coach"
+  },
+  "nutritionPlan": {
+    "title": "Tu Plan de Vida Nutricional",
+    "baseline": "Base",
+    "showLess": "Mostrar menos",
+    "showMore": "Ver cómo se construyen tus comidas",
+    "baselineDesc": "Tus comidas se personalizan usando tus preferencias dietéticas y objetivos de macros. Agrega condiciones de salud, objetivos de rendimiento o protocolos médicos en tu perfil para ver cómo moldean tu nutrición.",
+    "activeProtocols": "Protocolos Activos",
+    "carbCyclingActive": "Ciclo de Carbohidratos Activo",
+    "carbCyclingDetail": "Protocolo de respuesta al almidón en ejecución · ver Hub de Rendimiento",
+    "therapeuticSupport": "Apoyo Terapéutico",
+    "dietaryIdentity": "Identidad Dietética",
+    "cuisine": "Cocina",
+    "goal": "Objetivo",
+    "mealBuilder": "Constructor de Comidas",
+    "liveContext": "Contexto en Vivo",
+    "nutritionPriorities": "Tus Prioridades Nutricionales",
+    "currentStrategy": "Estrategia Actual"
+  }
 }

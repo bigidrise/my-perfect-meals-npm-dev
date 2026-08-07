@@ -286,7 +286,30 @@
     "inRangeBGL": "Блюда с нормальным BGL",
     "inRangeBGLDesc": "Создано в нормальном диапазоне глюкозы (70–140 mg/dL)",
     "elevatedBGL": "Блюда с высоким BGL",
-    "elevatedBGLDesc": "Создано при повышенном уровне глюкозы (> 140 mg/dL)"
+    "elevatedBGLDesc": "Создано при повышенном уровне глюкозы (> 140 mg/dL)",
+    "relevantRange": "Соответствующий диапазон:",
+    "sourceMealBuilder": "Конструктор блюд",
+    "sourceGeneralNutrition": "Общее питание",
+    "sourcePerformance": "Производительность",
+    "sourceDiabetic": "Диабетический",
+    "sourceMetabolic": "Метаболическая медицина",
+    "sourceAntiInflam": "Противовоспалительный",
+    "sourceCravingCreator": "Создатель желаний",
+    "sourceDessertCreator": "Создатель десертов",
+    "sourceFridgeRescue": "Спасение холодильника",
+    "sourceChefsKitchen": "Создать блюдо",
+    "sourceWeeklyBoard": "Еженедельная доска",
+    "sourcePairings": "Сочетания напитков",
+    "sourceWineList": "Помощник по винной карте",
+    "sourceRecipeScan": "Сканирование рецептов",
+    "sourceGroceryCoach": "Тренер по покупкам",
+    "sourceMeal": "Блюдо",
+    "builtFor": "Создано для вашего текущего плана и целей.",
+    "serving": "порция",
+    "servings": "порции",
+    "ingredientsServes": "Ингредиенты (на {{count}} порции)",
+    "noIngredients": "Ингредиенты не указаны",
+    "noInstructions": "Инструкции не указаны"
   },
   "shopping": {
     "pageTitle": "Умный список покупок",
@@ -827,5 +850,29 @@
   "termsOfService": "Условия использования",
   "managePrivacy": "Управляйте настройками конфиденциальности",
   "reviewTerms": "Ознакомьтесь с нашими условиями",
-  "restoreDesc": "Восстановить активную подписку на этом устройстве"
+  "restoreDesc": "Восстановить активную подписку на этом устройстве",
+  "coachCorner": {
+    "title": "Уголок тренера",
+    "learningDesc": "Шеф узнаёт, что работает для вас.",
+    "startDesc": "Начните отношения с ИИ-тренером Шефом.",
+    "openBtn": "Открыть уголок тренера"
+  },
+  "nutritionPlan": {
+    "title": "Ваш план питания на жизнь",
+    "baseline": "Базовый",
+    "showLess": "Показать меньше",
+    "showMore": "Посмотрите, как формируются ваши блюда",
+    "baselineDesc": "Ваши блюда персонализируются на основе ваших пищевых предпочтений и целей по макросам. Добавьте состояния здоровья, цели производительности или медицинские протоколы в профиль.",
+    "activeProtocols": "Активные протоколы",
+    "carbCyclingActive": "Углеводный цикл активен",
+    "carbCyclingDetail": "Протокол реакции на крахмал запущен · см. Performance Hub",
+    "therapeuticSupport": "Терапевтическая поддержка",
+    "dietaryIdentity": "Диетическая идентичность",
+    "cuisine": "Кухня",
+    "goal": "Цель",
+    "mealBuilder": "Конструктор блюд",
+    "liveContext": "Живой контекст",
+    "nutritionPriorities": "Ваши приоритеты в питании",
+    "currentStrategy": "Текущая стратегия"
+  }
 }

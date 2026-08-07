@@ -286,7 +286,30 @@
     "inRangeBGL": "정상 혈당 식사",
     "inRangeBGLDesc": "정상 혈당 범위에서 생성 (70–140 mg/dL)",
     "elevatedBGL": "고혈당 식사",
-    "elevatedBGLDesc": "고혈당 조건에서 생성 (> 140 mg/dL)"
+    "elevatedBGLDesc": "고혈당 조건에서 생성 (> 140 mg/dL)",
+    "relevantRange": "관련 범위:",
+    "sourceMealBuilder": "식사 빌더",
+    "sourceGeneralNutrition": "일반 영양",
+    "sourcePerformance": "퍼포먼스",
+    "sourceDiabetic": "당뇨",
+    "sourceMetabolic": "대사 의학",
+    "sourceAntiInflam": "항염증",
+    "sourceCravingCreator": "크레이빙 크리에이터",
+    "sourceDessertCreator": "디저트 크리에이터",
+    "sourceFridgeRescue": "냉장고 구조",
+    "sourceChefsKitchen": "요리 만들기",
+    "sourceWeeklyBoard": "주간 보드",
+    "sourcePairings": "음료 페어링",
+    "sourceWineList": "와인 목록 도우미",
+    "sourceRecipeScan": "레시피 스캔",
+    "sourceGroceryCoach": "식료품 코치",
+    "sourceMeal": "식사",
+    "builtFor": "현재 플랜과 목표에 맞게 구성되었습니다.",
+    "serving": "인분",
+    "servings": "인분",
+    "ingredientsServes": "재료 ({{count}}인분)",
+    "noIngredients": "재료가 제공되지 않았습니다",
+    "noInstructions": "지침이 제공되지 않았습니다"
   },
   "shopping": {
     "pageTitle": "스마트 쇼핑 목록",
@@ -827,5 +850,29 @@
   "termsOfService": "서비스 약관",
   "managePrivacy": "개인 정보 설정 관리",
   "reviewTerms": "이용 약관 검토",
-  "restoreDesc": "이 기기에서 활성 구독 복원"
+  "restoreDesc": "이 기기에서 활성 구독 복원",
+  "coachCorner": {
+    "title": "코치 코너",
+    "learningDesc": "셰프가 당신에게 맞는 것을 배우고 있습니다.",
+    "startDesc": "셰프와의 AI 코칭 관계를 시작하세요.",
+    "openBtn": "코치 코너 열기"
+  },
+  "nutritionPlan": {
+    "title": "나의 영양 생활 계획",
+    "baseline": "기준",
+    "showLess": "덜 보기",
+    "showMore": "식사가 어떻게 구성되는지 보기",
+    "baselineDesc": "식사는 식이 선호도와 매크로 목표에 따라 개인화됩니다. 프로필에 건강 상태, 성과 목표 또는 의료 프로토콜을 추가하여 영양에 어떤 영향을 미치는지 확인하세요.",
+    "activeProtocols": "활성 프로토콜",
+    "carbCyclingActive": "탄수화물 사이클링 활성",
+    "carbCyclingDetail": "전분 반응 프로토콜 실행 중 · 퍼포먼스 허브 참조",
+    "therapeuticSupport": "치료 지원",
+    "dietaryIdentity": "식이 정체성",
+    "cuisine": "요리 스타일",
+    "goal": "목표",
+    "mealBuilder": "식사 빌더",
+    "liveContext": "실시간 컨텍스트",
+    "nutritionPriorities": "나의 영양 우선순위",
+    "currentStrategy": "현재 전략"
+  }
 }

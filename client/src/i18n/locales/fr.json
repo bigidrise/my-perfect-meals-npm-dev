@@ -286,7 +286,30 @@
     "inRangeBGL": "Repas BGL normal",
     "inRangeBGLDesc": "Générés dans la plage normale de glycémie (70–140 mg/dL)",
     "elevatedBGL": "Repas BGL élevé",
-    "elevatedBGLDesc": "Générés avec une glycémie élevée (> 140 mg/dL)"
+    "elevatedBGLDesc": "Générés avec une glycémie élevée (> 140 mg/dL)",
+    "relevantRange": "Plage pertinente :",
+    "sourceMealBuilder": "Créateur de Repas",
+    "sourceGeneralNutrition": "Nutrition Générale",
+    "sourcePerformance": "Performance",
+    "sourceDiabetic": "Diabétique",
+    "sourceMetabolic": "Méd Métabolique",
+    "sourceAntiInflam": "Anti-Inflammatoire",
+    "sourceCravingCreator": "Créateur d'Envies",
+    "sourceDessertCreator": "Créateur de Desserts",
+    "sourceFridgeRescue": "Sauvetage du Frigo",
+    "sourceChefsKitchen": "Créer un Plat",
+    "sourceWeeklyBoard": "Tableau Hebdomadaire",
+    "sourcePairings": "Accords Boissons",
+    "sourceWineList": "Assistant Liste des Vins",
+    "sourceRecipeScan": "Scan de Recettes",
+    "sourceGroceryCoach": "Coach Épicerie",
+    "sourceMeal": "Repas",
+    "builtFor": "Conçu pour votre plan et vos objectifs actuels.",
+    "serving": "portion",
+    "servings": "portions",
+    "ingredientsServes": "Ingrédients (pour {{count}})",
+    "noIngredients": "Aucun ingrédient fourni",
+    "noInstructions": "Aucune instruction fournie"
   },
   "shopping": {
     "pageTitle": "Liste de Courses Intelligente",
@@ -827,5 +850,29 @@
   "termsOfService": "Conditions d'utilisation",
   "managePrivacy": "Gérez vos paramètres de confidentialité",
   "reviewTerms": "Consultez nos termes et conditions",
-  "restoreDesc": "Restaurer un abonnement actif sur cet appareil"
+  "restoreDesc": "Restaurer un abonnement actif sur cet appareil",
+  "coachCorner": {
+    "title": "Coin du Coach",
+    "learningDesc": "Le chef apprend ce qui fonctionne pour vous.",
+    "startDesc": "Démarrez votre relation de coaching IA avec le Chef.",
+    "openBtn": "Ouvrir le Coin du Coach"
+  },
+  "nutritionPlan": {
+    "title": "Votre Plan de Vie Nutritionnel",
+    "baseline": "Base",
+    "showLess": "Afficher moins",
+    "showMore": "Voir comment vos repas sont construits",
+    "baselineDesc": "Vos repas sont personnalisés selon vos préférences alimentaires et vos objectifs en macros. Ajoutez des conditions de santé, des objectifs de performance ou des protocoles médicaux dans votre profil pour voir comment ils façonnent votre nutrition.",
+    "activeProtocols": "Protocoles Actifs",
+    "carbCyclingActive": "Cyclisme en Glucides Actif",
+    "carbCyclingDetail": "Protocole de réponse à l'amidon en cours · voir Hub Performance",
+    "therapeuticSupport": "Soutien Thérapeutique",
+    "dietaryIdentity": "Identité Alimentaire",
+    "cuisine": "Cuisine",
+    "goal": "Objectif",
+    "mealBuilder": "Créateur de Repas",
+    "liveContext": "Contexte en Direct",
+    "nutritionPriorities": "Vos Priorités Nutritionnelles",
+    "currentStrategy": "Stratégie Actuelle"
+  }
 }

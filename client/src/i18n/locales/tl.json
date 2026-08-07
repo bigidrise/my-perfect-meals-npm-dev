@@ -286,7 +286,30 @@
     "inRangeBGL": "Mga Pagkain na Normal ang BGL",
     "inRangeBGLDesc": "Ginawa sa normal na hanay ng glucose (70–140 mg/dL)",
     "elevatedBGL": "Mga Pagkain na Mataas ang BGL",
-    "elevatedBGLDesc": "Ginawa sa mataas na kondisyon ng glucose (> 140 mg/dL)"
+    "elevatedBGLDesc": "Ginawa sa mataas na kondisyon ng glucose (> 140 mg/dL)",
+    "relevantRange": "Kaugnay na hanay:",
+    "sourceMealBuilder": "Tagabuo ng Pagkain",
+    "sourceGeneralNutrition": "Pangkalahatang Nutrisyon",
+    "sourcePerformance": "Pagganap",
+    "sourceDiabetic": "Diabetiko",
+    "sourceMetabolic": "Metabolic Med",
+    "sourceAntiInflam": "Anti-Inflammatory",
+    "sourceCravingCreator": "Craving Creator",
+    "sourceDessertCreator": "Dessert Creator",
+    "sourceFridgeRescue": "Fridge Rescue",
+    "sourceChefsKitchen": "Gumawa ng Putahe",
+    "sourceWeeklyBoard": "Weekly Board",
+    "sourcePairings": "Drink Pairings",
+    "sourceWineList": "Wine List Helper",
+    "sourceRecipeScan": "Recipe Scan",
+    "sourceGroceryCoach": "Grocery Coach",
+    "sourceMeal": "Pagkain",
+    "builtFor": "Ginawa para sa iyong kasalukuyang plano at mga layunin.",
+    "serving": "serving",
+    "servings": "servings",
+    "ingredientsServes": "Mga Sangkap (para sa {{count}})",
+    "noIngredients": "Walang ibinigay na mga sangkap",
+    "noInstructions": "Walang ibinigay na mga tagubilin"
   },
   "shopping": {
     "pageTitle": "Matalinong Listahan ng Pamimili",
@@ -827,5 +850,29 @@
   "termsOfService": "Mga Tuntunin ng Serbisyo",
   "managePrivacy": "Pamahalaan ang iyong mga setting ng privacy",
   "reviewTerms": "Suriin ang aming mga tuntunin at kondisyon",
-  "restoreDesc": "I-restore ang isang aktibong subscription sa device na ito"
+  "restoreDesc": "I-restore ang isang aktibong subscription sa device na ito",
+  "coachCorner": {
+    "title": "Sulok ng Coach",
+    "learningDesc": "Natututo ang Chef kung ano ang epektibo para sa iyo.",
+    "startDesc": "Simulan ang iyong AI coaching na relasyon sa Chef.",
+    "openBtn": "Buksan ang Sulok ng Coach"
+  },
+  "nutritionPlan": {
+    "title": "Ang Iyong Plano sa Nutrisyon sa Buhay",
+    "baseline": "Batayan",
+    "showLess": "Ipakita ang mas kaunti",
+    "showMore": "Tingnan kung paano binubuo ang iyong mga pagkain",
+    "baselineDesc": "Ang iyong mga pagkain ay personalisado batay sa iyong mga kagustuhan sa pagkain at mga layunin sa macro. Magdagdag ng mga kondisyon sa kalusugan, mga layunin sa pagganap, o mga medikal na protokol sa iyong profile.",
+    "activeProtocols": "Mga Aktibong Protokol",
+    "carbCyclingActive": "Carb Cycling Aktibo",
+    "carbCyclingDetail": "Protokol ng pagtugon sa almirol ay tumatakbo · tingnan ang Performance Hub",
+    "therapeuticSupport": "Suporta sa Paggamot",
+    "dietaryIdentity": "Pagkakakilanlan sa Pagkain",
+    "cuisine": "Lutuin",
+    "goal": "Layunin",
+    "mealBuilder": "Tagabuo ng Pagkain",
+    "liveContext": "Live na Konteksto",
+    "nutritionPriorities": "Ang Iyong Mga Priyoridad sa Nutrisyon",
+    "currentStrategy": "Kasalukuyang Estratehiya"
+  }
 }

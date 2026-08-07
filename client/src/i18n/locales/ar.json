@@ -286,7 +286,30 @@
     "inRangeBGL": "وجبات سكر الدم الطبيعي",
     "inRangeBGLDesc": "تولّدت ضمن النطاق الطبيعي (70–140 mg/dL)",
     "elevatedBGL": "وجبات سكر الدم المرتفع",
-    "elevatedBGLDesc": "تولّدت في ظروف سكر دم مرتفع (> 140 mg/dL)"
+    "elevatedBGLDesc": "تولّدت في ظروف سكر دم مرتفع (> 140 mg/dL)",
+    "relevantRange": "النطاق ذو الصلة:",
+    "sourceMealBuilder": "منشئ الوجبات",
+    "sourceGeneralNutrition": "التغذية العامة",
+    "sourcePerformance": "الأداء",
+    "sourceDiabetic": "مرض السكري",
+    "sourceMetabolic": "الطب الأيضي",
+    "sourceAntiInflam": "مضاد للالتهابات",
+    "sourceCravingCreator": "منشئ الرغبات",
+    "sourceDessertCreator": "منشئ الحلويات",
+    "sourceFridgeRescue": "إنقاذ الثلاجة",
+    "sourceChefsKitchen": "إنشاء طبق",
+    "sourceWeeklyBoard": "اللوحة الأسبوعية",
+    "sourcePairings": "تقاقات المشروبات",
+    "sourceWineList": "مساعد قائمة النبيذ",
+    "sourceRecipeScan": "مسح الوصفات",
+    "sourceGroceryCoach": "مدرب التسوق",
+    "sourceMeal": "وجبة",
+    "builtFor": "مبني لخطتك وأهدافك الحالية.",
+    "serving": "حصة",
+    "servings": "حصص",
+    "ingredientsServes": "المكونات (تكفي {{count}})",
+    "noIngredients": "لم يتم توفير المكونات",
+    "noInstructions": "لم تتوفر تعليمات"
   },
   "shopping": {
     "pageTitle": "قائمة التسوق الذكية",
@@ -827,5 +850,29 @@
   "termsOfService": "شروط الخدمة",
   "managePrivacy": "إدارة إعدادات الخصوصية",
   "reviewTerms": "راجع الشروط والأحكام",
-  "restoreDesc": "استعادة اشتراك نشط على هذا الجهاز"
+  "restoreDesc": "استعادة اشتراك نشط على هذا الجهاز",
+  "coachCorner": {
+    "title": "ركن المدرب",
+    "learningDesc": "يتعلم الشيف ما يناسبك.",
+    "startDesc": "ابدأ علاقة التدريب بالذكاء الاصطناعي مع الشيف.",
+    "openBtn": "فتح ركن المدرب"
+  },
+  "nutritionPlan": {
+    "title": "خطة حياتك الغذائية",
+    "baseline": "الخط الأساسي",
+    "showLess": "عرض أقل",
+    "showMore": "انظر كيف يتم بناء وجباتك",
+    "baselineDesc": "يتم تخصيص وجباتك بناءً على تفضيلاتك الغذائية وأهداف المغذيات الكبرى. أضف الحالات الصحية وأهداف الأداء أو البروتوكولات الطبية في ملفك الشخصي.",
+    "activeProtocols": "البروتوكولات النشطة",
+    "carbCyclingActive": "دورة الكربوهيدرات نشطة",
+    "carbCyclingDetail": "بروتوكول استجابة النشا قيد التشغيل · انظر مركز الأداء",
+    "therapeuticSupport": "الدعم العلاجي",
+    "dietaryIdentity": "الهوية الغذائية",
+    "cuisine": "المطبخ",
+    "goal": "الهدف",
+    "mealBuilder": "منشئ الوجبات",
+    "liveContext": "السياق المباشر",
+    "nutritionPriorities": "أولوياتك الغذائية",
+    "currentStrategy": "الاستراتيجية الحالية"
+  }
 }

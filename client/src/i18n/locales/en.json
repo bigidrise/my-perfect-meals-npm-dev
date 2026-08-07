@@ -423,7 +423,13 @@
     "sourceWineList": "Wine List Helper",
     "sourceRecipeScan": "Recipe Scan",
     "sourceGroceryCoach": "Grocery Coach",
-    "sourceMeal": "Meal"
+    "sourceMeal": "Meal",
+    "builtFor": "Built for your current plan and targets.",
+    "serving": "serving",
+    "servings": "servings",
+    "ingredientsServes": "Ingredients (serves {{count}})",
+    "noIngredients": "No ingredients provided",
+    "noInstructions": "No instructions provided"
   },
   "shopping": {
     "pageTitle": "Smart Grocery List",
@@ -993,5 +999,29 @@
   "termsOfService": "Terms of Service",
   "managePrivacy": "Manage your privacy settings",
   "reviewTerms": "Review our terms and conditions",
-  "restoreDesc": "Restore an active subscription on this device"
+  "restoreDesc": "Restore an active subscription on this device",
+  "coachCorner": {
+    "title": "Coach's Corner",
+    "learningDesc": "Chef is learning what works for you.",
+    "startDesc": "Start your AI coaching relationship with Chef.",
+    "openBtn": "Open Coach's Corner"
+  },
+  "nutritionPlan": {
+    "title": "Your Nutrition Life Plan",
+    "baseline": "Baseline",
+    "showLess": "Show less",
+    "showMore": "See how your meals are being built",
+    "baselineDesc": "Your meals are personalized using your dietary preferences and macro targets. Add health conditions, performance goals, or medical protocols in your profile to see how they shape your nutrition.",
+    "activeProtocols": "Active Protocols",
+    "carbCyclingActive": "Carb Cycling Active",
+    "carbCyclingDetail": "Starch response protocol running · see Performance Hub",
+    "therapeuticSupport": "Therapeutic Support",
+    "dietaryIdentity": "Dietary Identity",
+    "cuisine": "Cuisine",
+    "goal": "Goal",
+    "mealBuilder": "Meal Builder",
+    "liveContext": "Live Context",
+    "nutritionPriorities": "Your Nutrition Priorities",
+    "currentStrategy": "Current Strategy"
+  }
 }

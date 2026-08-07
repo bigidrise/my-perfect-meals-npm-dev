@@ -286,7 +286,30 @@
     "inRangeBGL": "सामान्य BGL भोजन",
     "inRangeBGLDesc": "सामान्य रक्त शर्करा सीमा में बनाया गया (70–140 mg/dL)",
     "elevatedBGL": "उच्च BGL भोजन",
-    "elevatedBGLDesc": "उच्च रक्त शर्करा स्थितियों में बनाया गया (> 140 mg/dL)"
+    "elevatedBGLDesc": "उच्च रक्त शर्करा स्थितियों में बनाया गया (> 140 mg/dL)",
+    "relevantRange": "संबंधित सीमा:",
+    "sourceMealBuilder": "भोजन निर्माता",
+    "sourceGeneralNutrition": "सामान्य पोषण",
+    "sourcePerformance": "प्रदर्शन",
+    "sourceDiabetic": "मधुमेह",
+    "sourceMetabolic": "मेटाबोलिक मेड",
+    "sourceAntiInflam": "एंटी-इंफ्लेमेटरी",
+    "sourceCravingCreator": "क्रेविंग क्रिएटर",
+    "sourceDessertCreator": "डेज़र्ट क्रिएटर",
+    "sourceFridgeRescue": "फ्रिज रेस्क्यू",
+    "sourceChefsKitchen": "एक व्यंजन बनाएं",
+    "sourceWeeklyBoard": "साप्ताहिक बोर्ड",
+    "sourcePairings": "ड्रिंक पेयरिंग",
+    "sourceWineList": "वाइन लिस्ट हेल्पर",
+    "sourceRecipeScan": "रेसिपी स्कैन",
+    "sourceGroceryCoach": "ग्रोसरी कोच",
+    "sourceMeal": "भोजन",
+    "builtFor": "आपकी वर्तमान योजना और लक्ष्यों के लिए बनाया गया।",
+    "serving": "सर्विंग",
+    "servings": "सर्विंग",
+    "ingredientsServes": "सामग्री ({{count}} के लिए)",
+    "noIngredients": "कोई सामग्री प्रदान नहीं की गई",
+    "noInstructions": "कोई निर्देश नहीं दिया गया"
   },
   "shopping": {
     "pageTitle": "स्मार्ट किराना सूची",
@@ -827,5 +850,29 @@
   "termsOfService": "सेवा की शर्तें",
   "managePrivacy": "अपनी गोपनीयता सेटिंग प्रबंधित करें",
   "reviewTerms": "हमारी शर्तें और नियम देखें",
-  "restoreDesc": "इस डिवाइस पर सक्रिय सदस्यता पुनर्स्थापित करें"
+  "restoreDesc": "इस डिवाइस पर सक्रिय सदस्यता पुनर्स्थापित करें",
+  "coachCorner": {
+    "title": "कोच का कोना",
+    "learningDesc": "शेफ सीख रहे हैं कि आपके लिए क्या काम करता है।",
+    "startDesc": "शेफ के साथ अपना AI कोचिंग संबंध शुरू करें।",
+    "openBtn": "कोच का कोना खोलें"
+  },
+  "nutritionPlan": {
+    "title": "आपका पोषण जीवन योजना",
+    "baseline": "आधार रेखा",
+    "showLess": "कम दिखाएं",
+    "showMore": "देखें कि आपका भोजन कैसे बनाया जाता है",
+    "baselineDesc": "आपका भोजन आपकी आहार प्राथमिकताओं और मैक्रो लक्ष्यों के आधार पर व्यक्तिगत बनाया जाता है। अपने प्रोफ़ाइल में स्वास्थ्य स्थितियाँ, प्रदर्शन लक्ष्य या चिकित्सा प्रोटोकॉल जोड़ें।",
+    "activeProtocols": "सक्रिय प्रोटोकॉल",
+    "carbCyclingActive": "कार्ब साइकिलिंग सक्रिय",
+    "carbCyclingDetail": "स्टार्च प्रतिक्रिया प्रोटोकॉल चल रहा है · प्रदर्शन हब देखें",
+    "therapeuticSupport": "चिकित्सीय सहायता",
+    "dietaryIdentity": "आहार पहचान",
+    "cuisine": "व्यंजन शैली",
+    "goal": "लक्ष्य",
+    "mealBuilder": "भोजन निर्माता",
+    "liveContext": "लाइव संदर्भ",
+    "nutritionPriorities": "आपकी पोषण प्राथमिकताएं",
+    "currentStrategy": "वर्तमान रणनीति"
+  }
 }

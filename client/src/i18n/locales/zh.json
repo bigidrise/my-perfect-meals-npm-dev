@@ -286,7 +286,30 @@
     "inRangeBGL": "正常血糖餐食",
     "inRangeBGLDesc": "在正常血糖范围内生成（70–140 mg/dL）",
     "elevatedBGL": "高血糖餐食",
-    "elevatedBGLDesc": "在高血糖条件下生成（> 140 mg/dL）"
+    "elevatedBGLDesc": "在高血糖条件下生成（> 140 mg/dL）",
+    "relevantRange": "相关范围：",
+    "sourceMealBuilder": "餐食构建器",
+    "sourceGeneralNutrition": "一般营养",
+    "sourcePerformance": "表现",
+    "sourceDiabetic": "糖尿病",
+    "sourceMetabolic": "代谢医学",
+    "sourceAntiInflam": "抗炎",
+    "sourceCravingCreator": "渴望创造者",
+    "sourceDessertCreator": "甜点创造者",
+    "sourceFridgeRescue": "冰箱救援",
+    "sourceChefsKitchen": "创建菜肴",
+    "sourceWeeklyBoard": "每周计划板",
+    "sourcePairings": "饮品搭配",
+    "sourceWineList": "葡萄酒单助手",
+    "sourceRecipeScan": "食谱扫描",
+    "sourceGroceryCoach": "购物教练",
+    "sourceMeal": "餐食",
+    "builtFor": "根据您当前的计划和目标构建。",
+    "serving": "份",
+    "servings": "份",
+    "ingredientsServes": "食材（供{{count}}人份）",
+    "noIngredients": "未提供食材",
+    "noInstructions": "未提供说明"
   },
   "shopping": {
     "pageTitle": "智能购物清单",
@@ -827,5 +850,29 @@
   "termsOfService": "服务条款",
   "managePrivacy": "管理您的隐私设置",
   "reviewTerms": "查看我们的条款和条件",
-  "restoreDesc": "在此设备上恢复有效订阅"
+  "restoreDesc": "在此设备上恢复有效订阅",
+  "coachCorner": {
+    "title": "教练专区",
+    "learningDesc": "厨师正在学习什么对您最有效。",
+    "startDesc": "开始您与厨师的AI教练关系。",
+    "openBtn": "打开教练专区"
+  },
+  "nutritionPlan": {
+    "title": "您的营养生活计划",
+    "baseline": "基准",
+    "showLess": "显示更少",
+    "showMore": "查看您的餐食如何构建",
+    "baselineDesc": "您的餐食根据您的饮食偏好和宏量目标进行个性化。在您的个人资料中添加健康状况、表现目标或医疗方案，查看它们如何影响您的营养。",
+    "activeProtocols": "活跃方案",
+    "carbCyclingActive": "碳水循环已激活",
+    "carbCyclingDetail": "淀粉响应方案运行中 · 查看表现中心",
+    "therapeuticSupport": "治疗支持",
+    "dietaryIdentity": "饮食身份",
+    "cuisine": "烹饪风格",
+    "goal": "目标",
+    "mealBuilder": "餐食构建器",
+    "liveContext": "实时背景",
+    "nutritionPriorities": "您的营养优先事项",
+    "currentStrategy": "当前策略"
+  }
 }

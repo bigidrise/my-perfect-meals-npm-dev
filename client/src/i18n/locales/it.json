@@ -286,7 +286,30 @@
     "inRangeBGL": "Pasti BGL normale",
     "inRangeBGLDesc": "Generati nel range normale di glicemia (70–140 mg/dL)",
     "elevatedBGL": "Pasti BGL elevato",
-    "elevatedBGLDesc": "Generati con glicemia elevata (> 140 mg/dL)"
+    "elevatedBGLDesc": "Generati con glicemia elevata (> 140 mg/dL)",
+    "relevantRange": "Intervallo rilevante:",
+    "sourceMealBuilder": "Creatore di Pasti",
+    "sourceGeneralNutrition": "Nutrizione Generale",
+    "sourcePerformance": "Performance",
+    "sourceDiabetic": "Diabetico",
+    "sourceMetabolic": "Med Metabolico",
+    "sourceAntiInflam": "Antinfiammatorio",
+    "sourceCravingCreator": "Creatore di Voglie",
+    "sourceDessertCreator": "Creatore di Dolci",
+    "sourceFridgeRescue": "Salvataggio del Frigo",
+    "sourceChefsKitchen": "Crea un Piatto",
+    "sourceWeeklyBoard": "Tavola Settimanale",
+    "sourcePairings": "Abbinamenti Bevande",
+    "sourceWineList": "Assistente Carta dei Vini",
+    "sourceRecipeScan": "Scansione Ricette",
+    "sourceGroceryCoach": "Coach della Spesa",
+    "sourceMeal": "Pasto",
+    "builtFor": "Costruito per il tuo piano e obiettivi attuali.",
+    "serving": "porzione",
+    "servings": "porzioni",
+    "ingredientsServes": "Ingredienti (per {{count}})",
+    "noIngredients": "Nessun ingrediente fornito",
+    "noInstructions": "Nessuna istruzione fornita"
   },
   "shopping": {
     "pageTitle": "Lista della Spesa Intelligente",
@@ -827,5 +850,29 @@
   "termsOfService": "Termini di servizio",
   "managePrivacy": "Gestisci le impostazioni sulla privacy",
   "reviewTerms": "Rivedi i nostri termini e condizioni",
-  "restoreDesc": "Ripristina un abbonamento attivo su questo dispositivo"
+  "restoreDesc": "Ripristina un abbonamento attivo su questo dispositivo",
+  "coachCorner": {
+    "title": "Angolo del Coach",
+    "learningDesc": "Lo chef sta imparando cosa funziona per te.",
+    "startDesc": "Inizia la tua relazione di coaching AI con lo Chef.",
+    "openBtn": "Apri Angolo del Coach"
+  },
+  "nutritionPlan": {
+    "title": "Il Tuo Piano di Vita Nutrizionale",
+    "baseline": "Base",
+    "showLess": "Mostra meno",
+    "showMore": "Vedi come vengono costruiti i tuoi pasti",
+    "baselineDesc": "I tuoi pasti vengono personalizzati in base alle tue preferenze alimentari e agli obiettivi macro. Aggiungi condizioni di salute, obiettivi di performance o protocolli medici nel tuo profilo.",
+    "activeProtocols": "Protocolli Attivi",
+    "carbCyclingActive": "Ciclismo dei Carboidrati Attivo",
+    "carbCyclingDetail": "Protocollo di risposta all'amido in esecuzione · vedi Performance Hub",
+    "therapeuticSupport": "Supporto Terapeutico",
+    "dietaryIdentity": "Identità Dietetica",
+    "cuisine": "Cucina",
+    "goal": "Obiettivo",
+    "mealBuilder": "Creatore di Pasti",
+    "liveContext": "Contesto Live",
+    "nutritionPriorities": "Le Tue Priorità Nutrizionali",
+    "currentStrategy": "Strategia Attuale"
+  }
 }

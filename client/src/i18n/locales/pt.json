@@ -286,7 +286,30 @@
     "inRangeBGL": "Refeições BGL normal",
     "inRangeBGLDesc": "Geradas na faixa normal de glicose (70–140 mg/dL)",
     "elevatedBGL": "Refeições BGL elevado",
-    "elevatedBGLDesc": "Geradas com glicose elevada (> 140 mg/dL)"
+    "elevatedBGLDesc": "Geradas com glicose elevada (> 140 mg/dL)",
+    "relevantRange": "Intervalo relevante:",
+    "sourceMealBuilder": "Criador de Refeições",
+    "sourceGeneralNutrition": "Nutrição Geral",
+    "sourcePerformance": "Desempenho",
+    "sourceDiabetic": "Diabético",
+    "sourceMetabolic": "Med Metabólico",
+    "sourceAntiInflam": "Anti-inflamatório",
+    "sourceCravingCreator": "Criador de Desejos",
+    "sourceDessertCreator": "Criador de Sobremesas",
+    "sourceFridgeRescue": "Resgate da Geladeira",
+    "sourceChefsKitchen": "Criar um Prato",
+    "sourceWeeklyBoard": "Quadro Semanal",
+    "sourcePairings": "Combinações de Bebidas",
+    "sourceWineList": "Assistente de Carta de Vinhos",
+    "sourceRecipeScan": "Scan de Receitas",
+    "sourceGroceryCoach": "Coach de Compras",
+    "sourceMeal": "Refeição",
+    "builtFor": "Construído para seu plano e metas atuais.",
+    "serving": "porção",
+    "servings": "porções",
+    "ingredientsServes": "Ingredientes (rende {{count}})",
+    "noIngredients": "Nenhum ingrediente fornecido",
+    "noInstructions": "Nenhuma instrução fornecida"
   },
   "shopping": {
     "pageTitle": "Lista de Compras Inteligente",
@@ -827,5 +850,29 @@
   "termsOfService": "Termos de serviço",
   "managePrivacy": "Gerencie suas configurações de privacidade",
   "reviewTerms": "Revise nossos termos e condições",
-  "restoreDesc": "Restaurar uma assinatura ativa neste dispositivo"
+  "restoreDesc": "Restaurar uma assinatura ativa neste dispositivo",
+  "coachCorner": {
+    "title": "Canto do Coach",
+    "learningDesc": "O chef está aprendendo o que funciona para você.",
+    "startDesc": "Comece sua relação de coaching com IA com o Chef.",
+    "openBtn": "Abrir Canto do Coach"
+  },
+  "nutritionPlan": {
+    "title": "Seu Plano de Vida Nutricional",
+    "baseline": "Base",
+    "showLess": "Mostrar menos",
+    "showMore": "Veja como suas refeições estão sendo construídas",
+    "baselineDesc": "Suas refeições são personalizadas usando suas preferências alimentares e metas de macros. Adicione condições de saúde, metas de desempenho ou protocolos médicos no seu perfil.",
+    "activeProtocols": "Protocolos Ativos",
+    "carbCyclingActive": "Ciclagem de Carboidratos Ativa",
+    "carbCyclingDetail": "Protocolo de resposta ao amido em execução · ver Hub de Desempenho",
+    "therapeuticSupport": "Suporte Terapêutico",
+    "dietaryIdentity": "Identidade Dietética",
+    "cuisine": "Culinária",
+    "goal": "Objetivo",
+    "mealBuilder": "Criador de Refeições",
+    "liveContext": "Contexto ao Vivo",
+    "nutritionPriorities": "Suas Prioridades Nutricionais",
+    "currentStrategy": "Estratégia Atual"
+  }
 }

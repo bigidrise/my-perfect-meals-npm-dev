@@ -286,7 +286,30 @@
     "inRangeBGL": "Bữa ăn BGL bình thường",
     "inRangeBGLDesc": "Tạo trong phạm vi đường huyết bình thường (70–140 mg/dL)",
     "elevatedBGL": "Bữa ăn BGL cao",
-    "elevatedBGLDesc": "Tạo trong điều kiện đường huyết cao (> 140 mg/dL)"
+    "elevatedBGLDesc": "Tạo trong điều kiện đường huyết cao (> 140 mg/dL)",
+    "relevantRange": "Phạm vi liên quan:",
+    "sourceMealBuilder": "Xây Dựng Bữa Ăn",
+    "sourceGeneralNutrition": "Dinh Dưỡng Chung",
+    "sourcePerformance": "Hiệu Suất",
+    "sourceDiabetic": "Tiểu Đường",
+    "sourceMetabolic": "Y Tế Chuyển Hóa",
+    "sourceAntiInflam": "Chống Viêm",
+    "sourceCravingCreator": "Người Tạo Thèm Muốn",
+    "sourceDessertCreator": "Người Tạo Món Tráng Miệng",
+    "sourceFridgeRescue": "Giải Cứu Tủ Lạnh",
+    "sourceChefsKitchen": "Tạo Món Ăn",
+    "sourceWeeklyBoard": "Bảng Tuần",
+    "sourcePairings": "Kết Hợp Đồ Uống",
+    "sourceWineList": "Trợ Lý Danh Sách Rượu Vang",
+    "sourceRecipeScan": "Quét Công Thức",
+    "sourceGroceryCoach": "Coach Mua Sắm",
+    "sourceMeal": "Bữa Ăn",
+    "builtFor": "Được xây dựng cho kế hoạch và mục tiêu hiện tại của bạn.",
+    "serving": "khẩu phần",
+    "servings": "khẩu phần",
+    "ingredientsServes": "Nguyên liệu (phục vụ {{count}})",
+    "noIngredients": "Không có nguyên liệu được cung cấp",
+    "noInstructions": "Không có hướng dẫn được cung cấp"
   },
   "shopping": {
     "pageTitle": "Danh sách mua sắm thông minh",
@@ -827,5 +850,29 @@
   "termsOfService": "Điều khoản dịch vụ",
   "managePrivacy": "Quản lý cài đặt quyền riêng tư",
   "reviewTerms": "Xem các điều khoản và điều kiện",
-  "restoreDesc": "Khôi phục đăng ký đang hoạt động trên thiết bị này"
+  "restoreDesc": "Khôi phục đăng ký đang hoạt động trên thiết bị này",
+  "coachCorner": {
+    "title": "Góc Huấn Luyện Viên",
+    "learningDesc": "Đầu bếp đang học những gì phù hợp với bạn.",
+    "startDesc": "Bắt đầu mối quan hệ huấn luyện AI với Đầu Bếp.",
+    "openBtn": "Mở Góc Huấn Luyện Viên"
+  },
+  "nutritionPlan": {
+    "title": "Kế Hoạch Dinh Dưỡng Cuộc Đời Của Bạn",
+    "baseline": "Cơ bản",
+    "showLess": "Hiển thị ít hơn",
+    "showMore": "Xem cách các bữa ăn của bạn được xây dựng",
+    "baselineDesc": "Các bữa ăn của bạn được cá nhân hóa dựa trên sở thích ăn uống và mục tiêu macro. Thêm tình trạng sức khỏe, mục tiêu hiệu suất hoặc giao thức y tế vào hồ sơ của bạn.",
+    "activeProtocols": "Giao Thức Đang Hoạt Động",
+    "carbCyclingActive": "Chu Kỳ Carb Đang Hoạt Động",
+    "carbCyclingDetail": "Giao thức phản ứng tinh bột đang chạy · xem Performance Hub",
+    "therapeuticSupport": "Hỗ Trợ Điều Trị",
+    "dietaryIdentity": "Nhận Diện Chế Độ Ăn",
+    "cuisine": "Ẩm Thực",
+    "goal": "Mục Tiêu",
+    "mealBuilder": "Xây Dựng Bữa Ăn",
+    "liveContext": "Bối Cảnh Trực Tiếp",
+    "nutritionPriorities": "Ưu Tiên Dinh Dưỡng Của Bạn",
+    "currentStrategy": "Chiến Lược Hiện Tại"
+  }
 }
