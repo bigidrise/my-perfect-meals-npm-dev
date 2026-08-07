@@ -968,7 +968,7 @@
     "shoppingTitle": "Danh Sách Mua Sắm Sẵn Sàng",
     "shoppingDesc": "Bạn CÓ THỂ gửi cả tuần vào danh sách mua sắm để tổng hợp tất cả nguyên liệu.",
     "nextStepsFooter": "Tiếp theo: Xem danh sách mua sắm để học cách sử dụng hiệu quả!"
-  }
+  },
   "coachCorner": {
     "title": "Góc Huấn Luyện Viên",
     "learningDesc": "Đầu bếp đang học những gì phù hợp với bạn.",
@@ -992,9 +992,8 @@
     "liveContext": "Bối Cảnh Trực Tiếp",
     "nutritionPriorities": "Ưu Tiên Dinh Dưỡng Của Bạn",
     "currentStrategy": "Chiến Lược Hiện Tại"
-  }
-}
-
+  },
   "metabolicBuilder": {
-    "pageTitle": "Trình Tạo Thuốc Chuyển Hóa",
+    "pageTitle": "Trình Tạo Thuốc Chuyển Hóa"
+  }
 }

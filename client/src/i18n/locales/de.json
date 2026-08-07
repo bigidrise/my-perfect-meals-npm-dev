@@ -981,7 +981,7 @@
     "shoppingTitle": "Einkaufsliste bereit",
     "shoppingDesc": "Sie KÖNNEN die gesamte Woche an die Einkaufsliste senden, um alle Zutaten zu konsolidieren.",
     "nextStepsFooter": "Als nächstes: Schauen Sie sich die Einkaufsliste an, um zu erfahren, wie man sie effektiv nutzt!"
-  }
+  },
   "coachCorner": {
     "title": "Coaches Ecke",
     "learningDesc": "Der Koch lernt, was für Sie funktioniert.",
@@ -1005,9 +1005,8 @@
     "liveContext": "Live-Kontext",
     "nutritionPriorities": "Ihre Ernährungsprioritäten",
     "currentStrategy": "Aktuelle Strategie"
-  }
-}
-
+  },
   "metabolicBuilder": {
-    "pageTitle": "Metabolischer Medikamenten-Builder",
+    "pageTitle": "Metabolischer Medikamenten-Builder"
+  }
 }

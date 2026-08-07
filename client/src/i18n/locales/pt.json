@@ -968,7 +968,7 @@
     "shoppingTitle": "Lista de Compras Pronta",
     "shoppingDesc": "VOCÊ PODE enviar toda a semana para a lista de compras para consolidar todos os ingredientes.",
     "nextStepsFooter": "Próximo: Confira a Lista de Compras para aprender a usá-la efetivamente!"
-  }
+  },
   "coachCorner": {
     "title": "Canto do Coach",
     "learningDesc": "O chef está aprendendo o que funciona para você.",
@@ -992,9 +992,8 @@
     "liveContext": "Contexto ao Vivo",
     "nutritionPriorities": "Suas Prioridades Nutricionais",
     "currentStrategy": "Estratégia Atual"
-  }
-}
-
+  },
   "metabolicBuilder": {
-    "pageTitle": "Construtor de Medicação Metabólica",
+    "pageTitle": "Construtor de Medicação Metabólica"
+  }
 }

@@ -968,7 +968,7 @@
     "shoppingTitle": "购物清单准备好了",
     "shoppingDesc": "你可以将整周发送到购物清单，整合所有食材便于购物。",
     "nextStepsFooter": "下一步：查看购物清单了解如何有效使用它！"
-  }
+  },
   "coachCorner": {
     "title": "教练专区",
     "learningDesc": "厨师正在学习什么对您最有效。",
@@ -992,9 +992,8 @@
     "liveContext": "实时背景",
     "nutritionPriorities": "您的营养优先事项",
     "currentStrategy": "当前策略"
-  }
-}
-
+  },
   "metabolicBuilder": {
-    "pageTitle": "代谢药物构建器",
+    "pageTitle": "代谢药物构建器"
+  }
 }

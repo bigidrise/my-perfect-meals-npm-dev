@@ -981,7 +981,7 @@
     "shoppingTitle": "Liste de Courses Prête",
     "shoppingDesc": "Vous POUVEZ envoyer toute la semaine à la liste de courses pour consolider tous les ingrédients.",
     "nextStepsFooter": "Ensuite : Consultez la Liste de Courses pour apprendre à l'utiliser efficacement !"
-  }
+  },
   "coachCorner": {
     "title": "Coin du Coach",
     "learningDesc": "Le chef apprend ce qui fonctionne pour vous.",
@@ -1005,9 +1005,8 @@
     "liveContext": "Contexte en Direct",
     "nutritionPriorities": "Vos Priorités Nutritionnelles",
     "currentStrategy": "Stratégie Actuelle"
-  }
-}
-
+  },
   "metabolicBuilder": {
-    "pageTitle": "Constructeur de Médicaments Métaboliques",
+    "pageTitle": "Constructeur de Médicaments Métaboliques"
+  }
 }

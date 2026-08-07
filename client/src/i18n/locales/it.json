@@ -968,7 +968,7 @@
     "shoppingTitle": "Lista della Spesa Pronta",
     "shoppingDesc": "PUOI inviare l'intera settimana alla lista della spesa per consolidare tutti gli ingredienti.",
     "nextStepsFooter": "Prossimo: Consulta la Lista della Spesa per imparare a usarla efficacemente!"
-  }
+  },
   "coachCorner": {
     "title": "Angolo del Coach",
     "learningDesc": "Lo chef sta imparando cosa funziona per te.",
@@ -992,9 +992,8 @@
     "liveContext": "Contesto Live",
     "nutritionPriorities": "Le Tue Priorità Nutrizionali",
     "currentStrategy": "Strategia Attuale"
-  }
-}
-
+  },
   "metabolicBuilder": {
-    "pageTitle": "Costruttore di Farmaci Metabolici",
+    "pageTitle": "Costruttore di Farmaci Metabolici"
+  }
 }

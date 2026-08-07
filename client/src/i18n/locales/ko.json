@@ -968,7 +968,7 @@
     "shoppingTitle": "쇼핑 목록 준비 완료",
     "shoppingDesc": "전체 주를 쇼핑 목록에 보내 모든 재료를 통합할 수 있습니다.",
     "nextStepsFooter": "다음: 쇼핑 목록을 확인하여 효과적인 사용법을 배우세요!"
-  }
+  },
   "coachCorner": {
     "title": "코치 코너",
     "learningDesc": "셰프가 당신에게 맞는 것을 배우고 있습니다.",
@@ -992,9 +992,8 @@
     "liveContext": "실시간 컨텍스트",
     "nutritionPriorities": "나의 영양 우선순위",
     "currentStrategy": "현재 전략"
-  }
-}
-
+  },
   "metabolicBuilder": {
-    "pageTitle": "대사 약물 빌더",
+    "pageTitle": "대사 약물 빌더"
+  }
 }

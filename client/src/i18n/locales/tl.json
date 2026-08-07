@@ -968,7 +968,7 @@
     "shoppingTitle": "Handa na ang Listahan ng Pamimili",
     "shoppingDesc": "Maaari kang magpadala ng buong linggo sa listahan ng pamimili para tipunin ang lahat ng sangkap.",
     "nextStepsFooter": "Susunod: Tingnan ang Listahan ng Pamimili para matutunan kung paano ito gamitin nang epektibo!"
-  }
+  },
   "coachCorner": {
     "title": "Sulok ng Coach",
     "learningDesc": "Natututo ang Chef kung ano ang epektibo para sa iyo.",
@@ -992,9 +992,8 @@
     "liveContext": "Live na Konteksto",
     "nutritionPriorities": "Ang Iyong Mga Priyoridad sa Nutrisyon",
     "currentStrategy": "Kasalukuyang Estratehiya"
-  }
-}
-
+  },
   "metabolicBuilder": {
-    "pageTitle": "Tagagawa ng Metabolic na Gamot",
+    "pageTitle": "Tagagawa ng Metabolic na Gamot"
+  }
 }

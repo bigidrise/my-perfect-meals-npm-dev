@@ -1130,7 +1130,7 @@
     "shoppingTitle": "Shopping List Ready",
     "shoppingDesc": "You CAN send your entire week to the shopping list! This consolidates all ingredients for easy grocery shopping. Click \"Send Entire Week\" at the bottom.",
     "nextStepsFooter": "Next: Check out the Shopping List to learn how to use it effectively!"
-  }
+  },
   "coachCorner": {
     "title": "Coach's Corner",
     "learningDesc": "Chef is learning what works for you.",
@@ -1154,9 +1154,8 @@
     "liveContext": "Live Context",
     "nutritionPriorities": "Your Nutrition Priorities",
     "currentStrategy": "Current Strategy"
-  }
-}
-
+  },
   "metabolicBuilder": {
-    "pageTitle": "Metabolic Medication Builder",
+    "pageTitle": "Metabolic Medication Builder"
+  }
 }

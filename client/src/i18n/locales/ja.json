@@ -968,7 +968,7 @@
     "shoppingTitle": "ショッピングリスト準備完了",
     "shoppingDesc": "週全体をショッピングリストに送ってすべての食材を統合できます。",
     "nextStepsFooter": "次：ショッピングリストを確認して効果的な使い方を学びましょう！"
-  }
+  },
   "coachCorner": {
     "title": "コーチのコーナー",
     "learningDesc": "シェフはあなたに合ったものを学んでいます。",
@@ -992,9 +992,8 @@
     "liveContext": "ライブコンテキスト",
     "nutritionPriorities": "あなたの栄養優先事項",
     "currentStrategy": "現在の戦略"
-  }
-}
-
+  },
   "metabolicBuilder": {
-    "pageTitle": "代謝薬ビルダー",
+    "pageTitle": "代謝薬ビルダー"
+  }
 }
