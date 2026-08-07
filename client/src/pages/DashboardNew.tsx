@@ -69,18 +69,18 @@ import { COACHES_CORNER_ENABLED } from "@/features/coachCornerFlag";
 
 type DashBadgeVariant = "free" | "paid" | "professional";
 
-function getMobilePlanBadge(user: any): { text: string; variant: DashBadgeVariant } | null {
+function getMobilePlanBadge(user: any): { textKey: string; variant: DashBadgeVariant } | null {
   if (!user) return null;
   const key = (user.planLookupKey ?? "").toLowerCase();
   if (key.includes("procare") || key.includes("trainer") || key.includes("physician")) {
-    return { text: "Professional", variant: "professional" };
+    return { textKey: "professionalBadge", variant: "professional" };
   }
   const tier = getTierForLookupKey(user.planLookupKey);
   switch (tier) {
-    case "basic":    return { text: "Essential", variant: "paid" };
-    case "premium":  return { text: "Pro",       variant: "paid" };
-    case "ultimate": return { text: "Clinical",  variant: "paid" };
-    default:         return { text: "Free",       variant: "free" };
+    case "basic":    return { textKey: "essentialBadge", variant: "paid" };
+    case "premium":  return { textKey: "proBadge",       variant: "paid" };
+    case "ultimate": return { textKey: "clinicalBadge",  variant: "paid" };
+    default:         return { textKey: "freeBadge",      variant: "free" };
   }
 }
 
@@ -783,12 +783,12 @@ export default function DashboardNew() {
                   className={`text-[10px] font-semibold rounded-full px-2 py-0.5 ${DASH_BADGE_CLASSES[mobilePlanBadge.variant]}`}
                   style={{ lineHeight: "1.4" }}
                 >
-                  {mobilePlanBadge.text}
+                  {t(mobilePlanBadge.textKey)}
                 </span>
               )}
             </div>
             {/* CENTER: MPM — always mathematically centered */}
-            <h1 className="justify-self-center text-md font-bold text-white">MPM</h1>
+            <h1 className="justify-self-center text-md font-bold text-white">{t("mpmLabel")}</h1>
             {/* RIGHT: Hub button */}
             <div className="justify-self-end">
               <ProfileSheet>
@@ -796,7 +796,7 @@ export default function DashboardNew() {
                   className="flex items-center gap-1.5 px-3 py-2 bg-black/50 backdrop-blur-sm border border-white/10 rounded-lg hover:bg-black/70 hover:border-orange-500/30 transition-all"
                   data-testid="button-my-hub"
                 >
-                  <span className="text-xs font-semibold text-orange-400">Hub</span>
+                  <span className="text-xs font-semibold text-orange-400">{t("hubLabel")}</span>
                   <HubControlIcon size="md" />
                 </button>
               </ProfileSheet>
@@ -827,21 +827,21 @@ export default function DashboardNew() {
           <div className="relative h-48 rounded-xl overflow-hidden">
             <img
               src="/images/home-hero.png"
-              alt="My Perfect Meals Dashboard"
+              alt={t("heroAlt")}
               className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
             <div className="absolute bottom-4 left-4 right-4">
               <div className="w-fit bg-black/60 backdrop-blur-sm rounded-xl px-3 py-2.5 mb-3">
                 <h2 className="text-base font-bold text-white mb-1">
-                  Welcome back, {firstName}!
+                  {t("greeting", { name: firstName })}
                 </h2>
                 <p className="text-white text-sm mb-2">
-                  Your coach is learning what works for you.
+                  {t("coachLearning")}
                 </p>
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-orange-500/30 border border-orange-400/60 text-orange-200 text-xs font-medium">
                   <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />
-                  Behavior AI · Emotion-aware coaching
+                  {t("behaviorBadge")}
                 </span>
               </div>
             </div>
@@ -875,11 +875,11 @@ export default function DashboardNew() {
                       <MessageSquare className={`h-5 w-5 ${proUnreadCount > 0 ? "text-orange-400" : "text-teal-400"}`} />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-sm font-semibold text-white">Client Messages</h3>
+                      <h3 className="text-sm font-semibold text-white">{t("clientMessages")}</h3>
                       <p className={`text-xs ${proUnreadCount > 0 ? "text-orange-400 font-medium" : "text-white"}`}>
                         {proUnreadCount > 0
-                          ? `${proUnreadCount} client${proUnreadCount > 1 ? "s" : ""} messaged you — tap to respond`
-                          : "No new messages from clients"}
+                          ? t("newClientMsg", { n: proUnreadCount })
+                          : t("noClientMsg")}
                       </p>
                     </div>
                     {proUnreadCount > 0 && (
@@ -907,13 +907,13 @@ export default function DashboardNew() {
                         <MessageSquare className={`h-5 w-5 ${providerHasUnread ? "text-orange-400" : "text-blue-400"}`} />
                       </div>
                       <div className="flex-1">
-                        <h3 className="text-sm font-semibold text-white">Provider Messages</h3>
+                        <h3 className="text-sm font-semibold text-white">{t("providerMessages")}</h3>
                         <p className={`text-xs ${providerHasUnread ? "text-orange-400 font-medium" : "text-white"}`}>
-                          {providerHasUnread ? "New message from your provider" : "Messages from your provider"}
+                          {providerHasUnread ? t("newProviderMsg") : t("providerMsg")}
                         </p>
                       </div>
                       {providerHasUnread && (
-                        <span className="text-[10px] font-bold text-white bg-orange-500 rounded-full px-2 py-0.5 uppercase tracking-wide">New</span>
+                        <span className="text-[10px] font-bold text-white bg-orange-500 rounded-full px-2 py-0.5 uppercase tracking-wide">{t("newBadge")}</span>
                       )}
                       {providerOpen ? (
                         <ChevronUp className="h-4 w-4 text-white/40" />
@@ -940,14 +940,14 @@ export default function DashboardNew() {
                   </div>
                   <div className="flex-1">
                     <h3 className="text-sm font-semibold text-white">
-                      Messages
+                      {t("myMessages")}
                     </h3>
                     <p className={`text-xs ${tabletHasUnread ? "text-orange-400 font-medium" : "text-white/70"}`}>
-                      {tabletHasUnread ? "New message from your coach" : "View and reply to your coach"}
+                      {tabletHasUnread ? t("newCoachMsg") : t("viewCoach")}
                     </p>
                   </div>
                   {tabletHasUnread && (
-                    <span className="text-[10px] font-bold text-white bg-orange-500 rounded-full px-2 py-0.5 uppercase tracking-wide">New</span>
+                    <span className="text-[10px] font-bold text-white bg-orange-500 rounded-full px-2 py-0.5 uppercase tracking-wide">{t("newBadge")}</span>
                   )}
                   {tabletOpen ? (
                     <ChevronUp className="h-4 w-4 text-white/40" />
@@ -972,12 +972,11 @@ export default function DashboardNew() {
                   </div>
                   <div className="flex-1">
                     <h3 className="text-sm font-semibold text-white/70 flex items-center gap-1.5">
-                      ProCare Messages
+                      {t("procareMessages")}
                       <Lock className="h-3.5 w-3.5 text-orange-400" />
                     </h3>
                     <p className="text-xs text-white/50">
-                      Chat directly with your coach for guidance and
-                      accountability
+                      {t("chatDirectDesc")}
                     </p>
                   </div>
                   <ChevronDown className="h-4 w-4 text-white/20" />
@@ -1005,7 +1004,7 @@ export default function DashboardNew() {
                   >
                     {tabletMessages.length === 0 && (
                       <p className="text-xs text-white/30 py-2">
-                        No messages yet
+                        {t("noMessages")}
                       </p>
                     )}
                     {tabletMessages.map((entry: any) => (
@@ -1019,7 +1018,7 @@ export default function DashboardNew() {
                       >
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-[10px] text-white/40">
-                            {entry.sender === "client" ? "You" : "Coach"}{" "}
+                            {entry.sender === "client" ? t("you") : t("coach")}{" "}
                             &middot;{" "}
                             {new Date(entry.createdAt).toLocaleDateString(
                               undefined,
@@ -1038,7 +1037,7 @@ export default function DashboardNew() {
                               }}
                               disabled={tabletTranslatingId === entry.id}
                               className="text-blue-400 p-0.5"
-                              title="Translate"
+                              title={t("translate")}
                             >
                               {tabletTranslatingId === entry.id ? (
                                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -1052,7 +1051,7 @@ export default function DashboardNew() {
                                 handleTabletDelete(entry);
                               }}
                               className="text-red-500 p-0.5"
-                              title="Delete"
+                              title={t("delete")}
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -1080,7 +1079,7 @@ export default function DashboardNew() {
                               <div className="flex items-center gap-1.5">
                                 <Mic className="w-3 h-3 text-orange-400" />
                                 <span className="text-[11px] text-orange-300 font-medium">
-                                  Voice Note
+                                  {t("voiceNote")}
                                   {entry.audioDurationSec
                                     ? ` · ${Math.floor(entry.audioDurationSec / 60)}:${String(entry.audioDurationSec % 60).padStart(2, "0")}`
                                     : ""}
@@ -1093,9 +1092,9 @@ export default function DashboardNew() {
                                 {entry.translatedBody || entry.transcript}
                               </p>
                             ) : entry.transcriptStatus === "failed" ? (
-                              <p className="text-[10px] text-white/35 italic">Transcript unavailable</p>
+                              <p className="text-[10px] text-white/35 italic">{t("transcriptUnavailable")}</p>
                             ) : (
-                              <p className="text-[10px] text-white/35 italic">Transcribing…</p>
+                              <p className="text-[10px] text-white/35 italic">{t("transcribing")}</p>
                             )}
                           </div>
                         ) : (
@@ -1105,7 +1104,7 @@ export default function DashboardNew() {
                             </p>
                             {entry.translatedBody && (
                               <p className="text-[10px] text-white/30 mt-1 italic">
-                                Original: {entry.body}
+                                {t("original", { text: entry.body })}
                               </p>
                             )}
                           </>
@@ -1117,12 +1116,12 @@ export default function DashboardNew() {
                     <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-md px-3 py-2">
                       <Mic className="w-4 h-4 text-red-400 animate-pulse shrink-0" />
                       <span className="text-sm text-red-300 flex-1">
-                        Recording… {Math.floor(tabletRecordingSec / 60)}:{String(tabletRecordingSec % 60).padStart(2, "0")}
+                        {t("recording")} {Math.floor(tabletRecordingSec / 60)}:{String(tabletRecordingSec % 60).padStart(2, "0")}
                       </span>
                       <button
                         onClick={stopTabletRecording}
                         className="flex items-center justify-center w-8 h-8 rounded-full bg-red-500 text-white shrink-0"
-                        title="Stop recording"
+                        title={t("stopRecording")}
                       >
                         <Square className="w-3.5 h-3.5 fill-white" />
                       </button>
@@ -1131,12 +1130,12 @@ export default function DashboardNew() {
                     <div className="flex items-center gap-2 bg-orange-500/10 border border-orange-500/30 rounded-md px-3 py-2">
                       <Mic className="w-4 h-4 text-orange-400 shrink-0" />
                       <span className="text-sm text-orange-300 flex-1">
-                        Voice message ready · {Math.floor(tabletRecordingSec / 60)}:{String(tabletRecordingSec % 60).padStart(2, "0")}
+                        {t("voiceReady")} · {Math.floor(tabletRecordingSec / 60)}:{String(tabletRecordingSec % 60).padStart(2, "0")}
                       </span>
                       <button
                         onClick={discardTabletVoice}
                         className="text-white/40 px-1 text-xs shrink-0"
-                        title="Discard"
+                        title={t("discard")}
                       >
                         ✕
                       </button>
@@ -1158,7 +1157,7 @@ export default function DashboardNew() {
                       <textarea
                         value={tabletInput}
                         onChange={(e) => setTabletInput(e.target.value)}
-                        placeholder="Reply to your coach..."
+                        placeholder={t("replyCoach")}
                         className="flex-1 bg-white/5 border border-white/10 rounded-md px-3 py-2 text-sm text-white placeholder:text-white/30 resize-none focus:outline-none focus:border-orange-500/50"
                         rows={2}
                         onKeyDown={(e) => {
@@ -1172,7 +1171,7 @@ export default function DashboardNew() {
                         <button
                           onClick={startTabletRecording}
                           className="flex items-center justify-center w-8 h-8 rounded-full bg-white/10 text-white/60"
-                          title="Send a voice message"
+                          title={t("sendVoice")}
                         >
                           <Mic className="w-4 h-4" />
                         </button>
@@ -1211,7 +1210,7 @@ export default function DashboardNew() {
                 <>
                   <div ref={providerScrollRef} className="max-h-64 overflow-y-auto space-y-2">
                     {providerMessages.length === 0 && (
-                      <p className="text-xs text-white/30 py-2">No messages yet</p>
+                      <p className="text-xs text-white/30 py-2">{t("noMessages")}</p>
                     )}
                     {providerMessages.map((entry: any) => (
                       <div
@@ -1224,7 +1223,7 @@ export default function DashboardNew() {
                       >
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-[10px] text-white/40">
-                            {entry.sender === "client" ? "You" : "Provider"}{" "}
+                            {entry.sender === "client" ? t("you") : t("provider")}{" "}
                             &middot;{" "}
                             {new Date(entry.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}{" "}
                             {new Date(entry.createdAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
@@ -1234,7 +1233,7 @@ export default function DashboardNew() {
                               onClick={(e) => { e.stopPropagation(); handleProviderTranslate(entry); }}
                               disabled={providerTranslatingId === entry.id}
                               className="text-blue-400 p-0.5"
-                              title="Translate"
+                              title={t("translate")}
                             >
                               {providerTranslatingId === entry.id ? (
                                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -1245,7 +1244,7 @@ export default function DashboardNew() {
                             <button
                               onClick={(e) => { e.stopPropagation(); handleProviderDelete(entry); }}
                               className="text-red-500 p-0.5"
-                              title="Delete"
+                              title={t("delete")}
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -1255,7 +1254,7 @@ export default function DashboardNew() {
                           {entry.translatedBody || entry.body}
                         </p>
                         {entry.translatedBody && (
-                          <p className="text-[10px] text-white/30 mt-1 italic">Original: {entry.body}</p>
+                          <p className="text-[10px] text-white/30 mt-1 italic">{t("original", { text: entry.body })}</p>
                         )}
                       </div>
                     ))}
@@ -1264,7 +1263,7 @@ export default function DashboardNew() {
                     <textarea
                       value={providerInput}
                       onChange={(e) => setProviderInput(e.target.value)}
-                      placeholder="Reply to your provider..."
+                      placeholder={t("replyProvider")}
                       className="flex-1 bg-white/5 border border-white/10 rounded-md px-3 py-2 text-sm text-white placeholder:text-white/30 resize-none focus:outline-none focus:border-blue-500/50"
                       rows={2}
                       onKeyDown={(e) => {
@@ -1324,10 +1323,10 @@ export default function DashboardNew() {
                       </div>
                       <div className="flex-1">
                         <CardTitle className="text-white text-base">
-                          Sources & Medical Information
+                          {t("sourcesTitle")}
                         </CardTitle>
                         <CardDescription className="text-white/70 text-xs mt-1">
-                          NIH · USDA · WHO · ADA · AHA · NCI · ACOG · ATA · AND · FDA · NKF · AAP
+                          {t("sourcesOrgs")}
                         </CardDescription>
                       </div>
                     </div>
@@ -1360,10 +1359,10 @@ export default function DashboardNew() {
                   <div className="flex-1">
                     <CardTitle className="text-white text-base">
                       {" "}
-                      Smart Grocery List
+                      {t("shoppingCard")}
                     </CardTitle>
                     <CardDescription className="text-white/70 text-xs mt-1">
-                      Smart grocery list manager
+                      {t("shoppingDesc")}
                     </CardDescription>
                   </div>
                 </div>
@@ -1393,10 +1392,10 @@ export default function DashboardNew() {
                     </div>
                     <div className="flex-1">
                       <CardTitle className="text-white text-lg">
-                        MacroScan
+                        {t("macroScanCard")}
                       </CardTitle>
                       <CardDescription className="text-white/70 text-sm mt-1">
-                        Scan nutrition. Log macros instantly
+                        {t("macroScanDesc")}
                       </CardDescription>
                     </div>
                   </div>
@@ -1432,8 +1431,8 @@ export default function DashboardNew() {
                     <Camera className="h-6 w-6 text-rose-400" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-base font-semibold text-white">Recipe Scan</h3>
-                    <p className="text-xs text-white/60">Screenshot, photo, voice, or text — personalized for you.</p>
+                    <h3 className="text-base font-semibold text-white">{t("recipeScanCard")}</h3>
+                    <p className="text-xs text-white/60">{t("recipeScanDesc")}</p>
                   </div>
                 </div>
               </CardContent>
@@ -1456,14 +1455,14 @@ export default function DashboardNew() {
                     <Camera className="h-4 w-4 text-orange-400" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs text-orange-400 font-medium uppercase tracking-wide mb-0.5">Last Recipe Scan</p>
+                    <p className="text-xs text-orange-400 font-medium uppercase tracking-wide mb-0.5">{t("lastRecipeScan")}</p>
                     <p className="text-white font-semibold text-sm truncate">
-                      {lastRecipeScan.mealData?.title || lastRecipeScan.mealData?.name || "Scanned Recipe"}
+                      {lastRecipeScan.mealData?.title || lastRecipeScan.mealData?.name || t("scannedRecipe")}
                     </p>
                     {(lastRecipeScan.mealData?.nutrition?.calories != null) && (
                       <p className="text-white/50 text-xs mt-0.5">
-                        {lastRecipeScan.mealData.nutrition.calories} cal
-                        {lastRecipeScan.mealData.nutrition?.protein != null && ` · ${lastRecipeScan.mealData.nutrition.protein}g protein`}
+                        {lastRecipeScan.mealData.nutrition.calories} {t("calUnit")}
+                        {lastRecipeScan.mealData.nutrition?.protein != null && ` · ${t("proteinUnit", { g: lastRecipeScan.mealData.nutrition.protein })}`}
                       </p>
                     )}
                   </div>
@@ -1479,7 +1478,7 @@ export default function DashboardNew() {
                     }}
                     className="px-3 py-1.5 rounded-lg bg-orange-600 text-white text-xs font-semibold active:scale-95 transition-all"
                   >
-                    View
+                    {t("view")}
                   </button>
                   <button
                     onClick={() => {
@@ -1488,7 +1487,7 @@ export default function DashboardNew() {
                     }}
                     className="px-3 py-1.5 rounded-lg bg-white/8 border border-white/10 text-white/60 text-xs font-semibold active:scale-95 transition-all"
                   >
-                    Clear
+                    {t("clear")}
                   </button>
                 </div>
               </div>
@@ -1587,12 +1586,12 @@ export default function DashboardNew() {
         }}
       />
 
-      <InformationModal open={showSubscriptionModal} onOpenChange={setShowSubscriptionModal} className="sm:max-w-md bg-black/90 text-white border-orange-500/40 backdrop-blur-lg" title={<span className="font-bold text-center block">Upgrade Your Experience</span>} description="Explore the next level of My Perfect Meals and discover additional tools, guidance, and features available beyond your current plan.">
+      <InformationModal open={showSubscriptionModal} onOpenChange={setShowSubscriptionModal} className="sm:max-w-md bg-black/90 text-white border-orange-500/40 backdrop-blur-lg" title={<span className="font-bold text-center block">{t("upgradeTitle")}</span>} description={t("upgradeDesc")}>
           <div className="mt-4 space-y-2 text-sm text-white/80">
-            <div>• More advanced nutrition tools</div>
-            <div>• Expanded meal-planning capabilities</div>
-            <div>• Additional guidance and personalization</div>
-            <div>• Access to higher-tier features</div>
+            <div>• {t("upgradeItem1")}</div>
+            <div>• {t("upgradeItem2")}</div>
+            <div>• {t("upgradeItem3")}</div>
+            <div>• {t("upgradeItem4")}</div>
           </div>
           <div className="mt-6 space-y-3">
             <Button
