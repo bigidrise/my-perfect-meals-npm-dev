@@ -135,12 +135,12 @@ router.post("/ask", async (req, res) => {
     const userId = resolveUserId(req);
 
     const { message } = req.body;
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
 
     const authUser = (req as any).authUser ?? {};
     const { planLookupKey } = authUser;
     const planKey = planLookupKey ?? null;
     const tier = getTierForLookupKey(planLookupKey);
-    const tierEntitlements = getEntitlementsForTier(tier);
     // null planLookupKey = internal / admin account → always passes
     if (planKey !== null && !tierEntitlements.includes("pregnancy")) {
       return res.status(403).json({ error: "requires_upgrade", feature: "pregnancy" });
@@ -397,9 +397,7 @@ No markdown outside the JSON.`;
 router.post("/setup", async (req, res) => {
   try {
     const userId = resolveUserId(req);
-
     if (!userId) return res.status(401).json({ error: "Not authenticated" });
-
     const {
       stage,
       dueDate,
@@ -457,9 +455,7 @@ router.post("/setup", async (req, res) => {
 router.delete("/setup", async (req, res) => {
   try {
     const userId = resolveUserId(req);
-
     if (!userId) return res.status(401).json({ error: "Not authenticated" });
-
     const [currentUser] = await db
       .select({ specialtyConditions: users.specialtyConditions })
       .from(users)
