@@ -14,10 +14,12 @@
 import React from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { ChevronRight, Dumbbell, CalendarDays, Utensils } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function GeneralNutritionBuilderEntry() {
+  const { t } = useTranslation("pro");
   const [, setLocation] = useLocation();
   const { user } = useAuth();
 
@@ -30,13 +32,13 @@ export default function GeneralNutritionBuilderEntry() {
   const todaySession = schedule?.[todayKey];
 
   const SESSION_LABELS: Record<string, string> = {
-    strength: "Strength Day",
-    power: "Power Day",
-    endurance: "Endurance Day",
-    sport_practice: "Sport Practice Day",
-    competition: "Competition Day",
-    recovery: "Recovery Day",
-    off: "Rest Day",
+    strength: t("gnbEntry.sessions.strength"),
+    power: t("gnbEntry.sessions.power"),
+    endurance: t("gnbEntry.sessions.endurance"),
+    sport_practice: t("gnbEntry.sessions.sport_practice"),
+    competition: t("gnbEntry.sessions.competition"),
+    recovery: t("gnbEntry.sessions.recovery"),
+    off: t("gnbEntry.sessions.off"),
   };
   const todayLabel = todaySession ? (SESSION_LABELS[todaySession] ?? todaySession) : null;
 
@@ -54,13 +56,13 @@ export default function GeneralNutritionBuilderEntry() {
         {/* Header */}
         <div className="mb-8">
           <p className="text-white text-xs font-semibold uppercase tracking-wider mb-2">
-            Meal Builder
+            {t("gnbEntry.headerLabel")}
           </p>
           <h1 className="text-white font-bold text-2xl leading-tight mb-2">
-            General Nutrition Builder
+            {t("gnbEntry.title")}
           </h1>
           <p className="text-white text-sm leading-relaxed">
-            Build meals using your Nutrition Profile.
+            {t("gnbEntry.subtitle")}
           </p>
         </div>
 
@@ -74,10 +76,10 @@ export default function GeneralNutritionBuilderEntry() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-white font-semibold text-base leading-tight mb-0.5">
-              Continue to General Nutrition Builder
+              {t("gnbEntry.continueTo")}
             </p>
             <p className="text-white text-sm leading-relaxed">
-              Generate meals using your current Nutrition Profile and macro targets.
+              {t("gnbEntry.continueDesc")}
             </p>
           </div>
           <ChevronRight className="w-5 h-5 text-blue-400/60 group-hover:text-blue-400 transition-colors flex-shrink-0" />
@@ -86,9 +88,9 @@ export default function GeneralNutritionBuilderEntry() {
         {/* Section Header */}
         <div className="mt-6 mb-4">
           <div className="h-px bg-white/10 mb-4" />
-          <p className="text-white font-semibold text-base mb-1">Train or work out regularly?</p>
+          <p className="text-white font-semibold text-base mb-1">{t("gnbEntry.trainTitle")}</p>
           <p className="text-white text-sm leading-relaxed">
-            Set up your Training Nutrition Schedule so your meals automatically adapt to your workout schedule while continuing to honor your nutrition goals and active nutrition protocols.
+            {t("gnbEntry.trainDesc")}
           </p>
         </div>
 
@@ -103,16 +105,16 @@ export default function GeneralNutritionBuilderEntry() {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-0.5">
               <p className="text-white font-semibold text-base leading-tight">
-                Training Nutrition Schedule
+                {t("gnbEntry.scheduleTitle")}
               </p>
               {hasSchedule && (
                 <span className="text-xs font-semibold text-orange-400 bg-orange-600/20 border border-orange-500/20 px-2 py-0.5 rounded-full flex-shrink-0">
-                  Active
+                  {t("gnbEntry.activeLabel")}
                 </span>
               )}
             </div>
             <p className="text-white text-sm leading-relaxed mb-2">
-              Automatically adjust your daily macro targets based on your weekly workout schedule.
+              {t("gnbEntry.scheduleDesc")}
             </p>
 
             {/* Active schedule status */}
@@ -120,16 +122,16 @@ export default function GeneralNutritionBuilderEntry() {
               <div className="flex items-center gap-2 mt-2">
                 <CalendarDays className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />
                 <span className="text-orange-300 text-xs font-semibold">
-                  Today: {todayLabel}
+                  {t("gnbEntry.today", { label: todayLabel })}
                 </span>
                 <span className="text-white/60 text-xs">·</span>
-                <span className="text-white text-xs">Training adjustments active</span>
+                <span className="text-white text-xs">{t("gnbEntry.adjustmentsActive")}</span>
               </div>
             )}
 
             {/* CTA label */}
             <p className="text-orange-400 text-sm font-semibold mt-2">
-              {hasSchedule ? "Edit Training Nutrition Schedule →" : "Set Up Training Nutrition Schedule →"}
+              {hasSchedule ? `${t("gnbEntry.editSchedule")} →` : `${t("gnbEntry.setupSchedule")} →`}
             </p>
           </div>
         </button>
@@ -138,7 +140,7 @@ export default function GeneralNutritionBuilderEntry() {
         {!hasSchedule && (
           <div className="mt-4 px-4 py-3 rounded-xl bg-white/5 border border-white/10">
             <p className="text-white text-xs leading-relaxed">
-              When configured, your macro targets automatically shift each day based on your training — more carbohydrates on power days, reduced targets on rest days. Your macro baseline always stays under your Macro Calculator.
+              {t("gnbEntry.explainer")}
             </p>
           </div>
         )}

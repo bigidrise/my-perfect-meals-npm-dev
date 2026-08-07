@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -111,24 +112,27 @@ import { PillButton } from "@/components/ui/pill-button";
 import { BuilderHeader } from "@/components/pro/BuilderHeader";
 
 
-const GLP1_BUILDER_TOUR_STEPS: TourStep[] = [
-  { icon: "1", title: "Small Portions", description: "All meals are designed for reduced appetite with maximum nutrition density." },
-  { icon: "2", title: "Add Your Meals", description: "Tap + on any meal card to add medication-optimized recipes." },
-  { icon: "3", title: "Duplicate Days", description: "Copy meals to other days when you find what works for you." },
-  { icon: "4", title: "Track Macros", description: "Send meals to the Macro Calculator to ensure adequate protein." },
-  { icon: "5", title: "Shopping List", description: "Export ingredients for easy meal prep shopping." },
-  { icon: "6", title: "Track Progress at Bottom", description: "The bottom bar shows color-coded progress: green = on track, yellow = close, red = over. Tap 'Save Day' to lock your day to Biometrics." },
-  { icon: "🥔", title: "Watch Your Starch Slots", description: "The starch indicator shows your daily starch meal status. Green = slots available, Orange = all used, Red = over limit. Fibrous carbs are unlimited!" },
-  { icon: "*", title: "What the Asterisks Mean", description: "Protein and carbs are marked with asterisks (*) because they're the most important numbers to focus on when building your meals. Get those right first." },
-  { icon: "+", title: "Clinical Conditions Stack Here Too", description: "If you have cardiac, renal, thyroid, oncology, or other conditions set in your profile, those clinical protocols are active on top of this builder right now — automatically. Every meal generated here follows all your active clinical rules at once. Update your conditions anytime in Edit Profile." }
-];
+// GLP1_BUILDER_TOUR_STEPS moved inside component as useMemo (i18n)
 
 // CHICAGO CALENDAR FIX v1.0: All date utilities now imported from midnight.ts
 // Using noon UTC anchor pattern to prevent day-shift bugs
 
 export default function GLP1MealBuilder() {
-  usePageTitle("Metabolic Medication Builder");
+  const { t } = useTranslation();
+  usePageTitle(t("metabolicBuilder.pageTitle"));
   const quickTour = useQuickTour("glp1-meal-builder");
+
+  const GLP1_BUILDER_TOUR_STEPS = useMemo<TourStep[]>(() => [
+    { icon: "1", title: t("metabolicBuilder.tour1Title"), description: t("metabolicBuilder.tour1Desc") },
+    { icon: "2", title: t("metabolicBuilder.tour2Title"), description: t("metabolicBuilder.tour2Desc") },
+    { icon: "3", title: t("metabolicBuilder.tour3Title"), description: t("metabolicBuilder.tour3Desc") },
+    { icon: "4", title: t("metabolicBuilder.tour4Title"), description: t("metabolicBuilder.tour4Desc") },
+    { icon: "5", title: t("metabolicBuilder.tour5Title"), description: t("metabolicBuilder.tour5Desc") },
+    { icon: "6", title: t("metabolicBuilder.tour6Title"), description: t("metabolicBuilder.tour6Desc") },
+    { icon: "🥔", title: t("metabolicBuilder.tour7Title"), description: t("metabolicBuilder.tour7Desc") },
+    { icon: "*", title: t("metabolicBuilder.tour8Title"), description: t("metabolicBuilder.tour8Desc") },
+    { icon: "+", title: t("metabolicBuilder.tour9Title"), description: t("metabolicBuilder.tour9Desc") },
+  ], [t]);
   const [, setLocation] = useLocation();
   
   // ProCare route detection for Client Dashboard button
@@ -733,8 +737,8 @@ export default function GLP1MealBuilder() {
       }
 
       toast({
-        title: "AI Meal Created!",
-        description: `${generatedMeal.name} saved to your ${slot}`,
+        title: t("metabolicBuilder.aiMealCreated"),
+        description: t("metabolicBuilder.aiMealCreatedDesc", { name: generatedMeal.name, slot }),
       });
     },
     [board, activeDayISO, toast, saveBoard, weekStartISO],
@@ -959,14 +963,14 @@ export default function GLP1MealBuilder() {
     setPickerOpen(true);
   }
 
-  const lists: Array<["breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6", string]> = [
-    ["breakfast", "Meal 1"],
-    ["lunch", "Meal 2"],
-    ["dinner", "Meal 3"],
-    ["meal4", "Meal 4"],
-    ["meal5", "Meal 5"],
-    ["meal6", "Meal 6"],
-  ];
+  const lists = useMemo<Array<["breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6", string]>>(() => [
+    ["breakfast", t("metabolicBuilder.meal1")],
+    ["lunch", t("metabolicBuilder.meal2")],
+    ["dinner", t("metabolicBuilder.meal3")],
+    ["meal4", t("metabolicBuilder.meal4")],
+    ["meal5", t("metabolicBuilder.meal5")],
+    ["meal6", t("metabolicBuilder.meal6")],
+  ], [t]);
 
   const handleLogAllMacros = useCallback(async () => {
     if (!board) return;
@@ -1016,13 +1020,13 @@ export default function GLP1MealBuilder() {
       window.dispatchEvent(new Event("macros:updated"));
 
       toast({
-        title: "All Meals Logged!",
-        description: `Successfully logged ${successCount} meal(s) to your macros.`,
+        title: t("metabolicBuilder.allMealsLoggedTitle"),
+        description: t("metabolicBuilder.allMealsLoggedDesc", { count: successCount }),
       });
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to log meals. Please try again.",
+        description: t("metabolicBuilder.errorLogMeals"),
         variant: "destructive",
       });
     }
@@ -1032,7 +1036,7 @@ export default function GLP1MealBuilder() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pt-16">
         <div className="text-white/80 p-6 text-center">
-          Loading meal board...
+          {t("metabolicBuilder.loadingBoard")}
         </div>
       </div>
     );
@@ -1044,7 +1048,7 @@ export default function GLP1MealBuilder() {
       transition={{ duration: 0.6 }}
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-24 overflow-x-hidden"
     >
-      <BuilderHeader title="Metabolic Medication Builder" onOpenTour={quickTour.openTour} clientId={proClientId} backTo="/glp1-hub" backLabel="Metabolic Hub" />
+      <BuilderHeader title={t("metabolicBuilder.pageTitle")} onOpenTour={quickTour.openTour} clientId={proClientId} backTo="/glp1-hub" backLabel="Metabolic Hub" />
 
 
       {/* Main Content */}
@@ -1058,7 +1062,7 @@ export default function GLP1MealBuilder() {
             className="flex items-center gap-2 text-orange-400 hover:text-orange-300 transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span className="text-sm font-medium">GLP-1 Hub</span>
+            <span className="text-sm font-medium">{t("metabolicBuilder.glp1Hub")}</span>
           </button>
         )}
         {/* NutritionBudgetBanner hidden — low value vs Remaining Today footer; restore when reactivity is fixed */}
@@ -1124,17 +1128,17 @@ export default function GLP1MealBuilder() {
           {/* ROW 4.5: Active Clinical Supports */}
           <div className="flex justify-center">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 rounded-lg bg-zinc-800/50 text-xs">
-              <span className="font-medium text-white/70">Active Clinical Supports:</span>
+              <span className="font-medium text-white/70">{t("metabolicBuilder.activeClinical")}</span>
               {(() => {
                 const flags = nutritionTargets.flags;
                 return [
-                  { key: "anti-inflammatory", label: "Anti-Inflammatory", isActive: !!flags?.antiInflammatory || antiInflammatoryFromUserPrefs,                                            activeColor: "text-green-400",   dotColor: "bg-green-400",   dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"   },
-                  { key: "cardiac",            label: "Cardiac Health",    isActive: !!flags?.cardiac           || labDerivedConditions.includes('heart-failure'),    activeColor: "text-red-400",     dotColor: "bg-red-400",     dotGlow: "shadow-[0_0_4px_rgba(248,113,113,0.8)]"  },
-                  { key: "kidney-disease",     label: "Kidney Disease",    isActive: !!flags?.renal             || labDerivedConditions.includes('kidney-disease'),   activeColor: "text-sky-400",     dotColor: "bg-sky-400",     dotGlow: "shadow-[0_0_4px_rgba(56,189,248,0.8)]"   },
-                  { key: "liver-support",      label: "Liver Support",     isActive: !!flags?.liverSupport      || labDerivedConditions.includes('liver-support'),    activeColor: "text-emerald-400", dotColor: "bg-emerald-400", dotGlow: "shadow-[0_0_4px_rgba(52,211,153,0.8)]"   },
-                  { key: "liver-disease",      label: "Liver Disease",     isActive: !!flags?.liverDisease      || labDerivedConditions.includes('liver-disease'),    activeColor: "text-amber-400",   dotColor: "bg-amber-400",   dotGlow: "shadow-[0_0_4px_rgba(251,191,36,0.8)]"   },
-                  { key: "oncology-support",   label: "Oncology Support",  isActive: !!flags?.oncologySupport   || labDerivedConditions.includes('oncology-support'), activeColor: "text-pink-400",   dotColor: "bg-pink-400",   dotGlow: "shadow-[0_0_4px_rgba(244,114,182,0.9)]" },
-                  { key: "thyroid-support",    label: "Thyroid Support",   isActive: !!flags?.thyroidSupport    || thyroidFromSpecialtyCondition,                     activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
+                  { key: "anti-inflammatory", label: t("metabolicBuilder.clinicalAntiInflam"), isActive: !!flags?.antiInflammatory || antiInflammatoryFromUserPrefs,                                            activeColor: "text-green-400",   dotColor: "bg-green-400",   dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"   },
+                  { key: "cardiac",            label: t("metabolicBuilder.clinicalCardiac"),    isActive: !!flags?.cardiac           || labDerivedConditions.includes('heart-failure'),    activeColor: "text-red-400",     dotColor: "bg-red-400",     dotGlow: "shadow-[0_0_4px_rgba(248,113,113,0.8)]"  },
+                  { key: "kidney-disease",     label: t("metabolicBuilder.clinicalKidney"),     isActive: !!flags?.renal             || labDerivedConditions.includes('kidney-disease'),   activeColor: "text-sky-400",     dotColor: "bg-sky-400",     dotGlow: "shadow-[0_0_4px_rgba(56,189,248,0.8)]"   },
+                  { key: "liver-support",      label: t("metabolicBuilder.clinicalLiverSupport"),isActive: !!flags?.liverSupport      || labDerivedConditions.includes('liver-support'),    activeColor: "text-emerald-400", dotColor: "bg-emerald-400", dotGlow: "shadow-[0_0_4px_rgba(52,211,153,0.8)]"   },
+                  { key: "liver-disease",      label: t("metabolicBuilder.clinicalLiverDisease"),isActive: !!flags?.liverDisease      || labDerivedConditions.includes('liver-disease'),    activeColor: "text-amber-400",   dotColor: "bg-amber-400",   dotGlow: "shadow-[0_0_4px_rgba(251,191,36,0.8)]"   },
+                  { key: "oncology-support",   label: t("metabolicBuilder.clinicalOncology"),   isActive: !!flags?.oncologySupport   || labDerivedConditions.includes('oncology-support'), activeColor: "text-pink-400",   dotColor: "bg-pink-400",   dotGlow: "shadow-[0_0_4px_rgba(244,114,182,0.9)]" },
+                  { key: "thyroid-support",    label: t("metabolicBuilder.clinicalThyroid"),    isActive: !!flags?.thyroidSupport    || thyroidFromSpecialtyCondition,                     activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
                 ].map(({ key, label, isActive, activeColor, dotColor, dotGlow }) => (
                   <span key={key} className={`flex items-center gap-1 ${isActive ? `${activeColor} font-semibold` : "text-white/25"}`}>
                     <span className={`inline-block w-1.5 h-1.5 rounded-full ${isActive ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
@@ -1148,14 +1152,14 @@ export default function GLP1MealBuilder() {
           {/* ROW 4.6: Hormonal & Metabolic Protocols */}
           <div className="flex justify-center">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 rounded-lg bg-zinc-800/50 text-xs">
-              <span className="font-medium text-white/70">Hormonal & Metabolic:</span>
+              <span className="font-medium text-white/70">{t("metabolicBuilder.hormonalMetabolic")}</span>
               {[
-                { key: "hashimotos",         label: "Hashimoto's",       activeColor: "text-teal-300",   dotColor: "bg-teal-300",   dotGlow: "shadow-[0_0_4px_rgba(94,234,212,0.9)]"  },
-                { key: "hypothyroid",        label: "Hypothyroid",       activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
-                { key: "hyperthyroid",       label: "Hyperthyroid",      activeColor: "text-cyan-400",   dotColor: "bg-cyan-400",   dotGlow: "shadow-[0_0_4px_rgba(34,211,238,0.9)]"  },
-                { key: "menopause",          label: "Menopause",         activeColor: "text-violet-400", dotColor: "bg-violet-400", dotGlow: "shadow-[0_0_4px_rgba(167,139,250,0.9)]" },
-                { key: "perimenopause",      label: "Perimenopause",     activeColor: "text-purple-400", dotColor: "bg-purple-400", dotGlow: "shadow-[0_0_4px_rgba(192,132,252,0.9)]" },
-                { key: "metabolic-recovery", label: "Metabolic Recovery", activeColor: "text-amber-400", dotColor: "bg-amber-400",  dotGlow: "shadow-[0_0_4px_rgba(251,191,36,0.8)]"  },
+                { key: "hashimotos",         label: t("metabolicBuilder.hormonalHashimotos"),        activeColor: "text-teal-300",   dotColor: "bg-teal-300",   dotGlow: "shadow-[0_0_4px_rgba(94,234,212,0.9)]"  },
+                { key: "hypothyroid",        label: t("metabolicBuilder.hormonalHypothyroid"),       activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
+                { key: "hyperthyroid",       label: t("metabolicBuilder.hormonalHyperthyroid"),      activeColor: "text-cyan-400",   dotColor: "bg-cyan-400",   dotGlow: "shadow-[0_0_4px_rgba(34,211,238,0.9)]"  },
+                { key: "menopause",          label: t("metabolicBuilder.hormonalMenopause"),         activeColor: "text-violet-400", dotColor: "bg-violet-400", dotGlow: "shadow-[0_0_4px_rgba(167,139,250,0.9)]" },
+                { key: "perimenopause",      label: t("metabolicBuilder.hormonalPerimenopause"),     activeColor: "text-purple-400", dotColor: "bg-purple-400", dotGlow: "shadow-[0_0_4px_rgba(192,132,252,0.9)]" },
+                { key: "metabolic-recovery", label: t("metabolicBuilder.hormonalMetabolicRecovery"), activeColor: "text-amber-400", dotColor: "bg-amber-400",  dotGlow: "shadow-[0_0_4px_rgba(251,191,36,0.8)]"  },
               ].map(({ key, label, activeColor, dotColor, dotGlow }) => (
                 <span key={key} className={`flex items-center gap-1 ${scConditions.includes(key) ? `${activeColor} font-semibold` : "text-white/25"}`}>
                   <span className={`inline-block w-1.5 h-1.5 rounded-full ${scConditions.includes(key) ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
@@ -1197,7 +1201,7 @@ export default function GLP1MealBuilder() {
               >
                 <Calendar className="h-3 w-3" />
               </PillButton>
-              <span className="text-xs font-semibold text-white/70 tracking-wide">Duplicate</span>
+              <span className="text-xs font-semibold text-white/70 tracking-wide">{t("weeklyBoard.duplicate")}</span>
             </div>
 
           </div>
@@ -1248,7 +1252,7 @@ export default function GLP1MealBuilder() {
                             meal={meal}
                             showStarchBadge={true}
                             builderType="glp1"
-                                coachingLine="Built for your metabolic medication phase — small portion, protein-first, easy to digest."
+                                coachingLine={t("metabolicBuilder.coachingLine")}
                             data-wt="wmb-meal-card"
                             onUpdated={(m) => {
                               if (m === null) {
@@ -1265,7 +1269,7 @@ export default function GLP1MealBuilder() {
                                   .then(({ week }) => { if (week) setBoard(week); })
                                   .catch((err) => {
                                     console.error("❌ Delete sync failed (Day mode):", err);
-                                    toast({ title: "Sync pending", description: "Changes will sync automatically." });
+                                    toast({ title: t("weeklyBoard.saving"), description: t("metabolicBuilder.syncPendingDesc") });
                                   });
                               } else {
                                 const updatedDayLists = {
@@ -1282,8 +1286,8 @@ export default function GLP1MealBuilder() {
                         ))}
                         {dayLists[key as keyof typeof dayLists].length === 0 && (
                           <div className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm">
-                            <p className="mb-2">No {label.toLowerCase()} yet</p>
-                            <p className="text-xs text-white/40">Use "Create with Chef" or "+" to add meals</p>
+                            <p className="mb-2">{t("metabolicBuilder.noSnacksYet").replace("snacks", label.toLowerCase())}</p>
+                            <p className="text-xs text-white/40">{t("metabolicBuilder.noSnacksHint")}</p>
                           </div>
                         )}
                       </div>
@@ -1293,7 +1297,7 @@ export default function GLP1MealBuilder() {
                   {/* Snack Creator Section */}
                   <section className="rounded-2xl border border-zinc-800 bg-zinc-900/40 backdrop-blur p-4 col-span-full">
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-white/90 text-lg font-medium">Snacks</h2>
+                      <h2 className="text-white/90 text-lg font-medium">{t("weeklyBoard.snacks")}</h2>
                       <GlobalMealActionBar
                         slot="snacks"
                         onCreateWithAI={() => {}}
@@ -1314,7 +1318,7 @@ export default function GLP1MealBuilder() {
                             meal={meal}
                             showStarchBadge={true}
                             builderType="glp1"
-                                coachingLine="Built for your metabolic medication phase — small portion, protein-first, easy to digest."
+                                coachingLine={t("metabolicBuilder.coachingLine")}
                             onUpdated={(m) => {
                               if (m === null) {
                                 const updatedDayLists = { ...dayLists, snacks: dayLists.snacks.filter((e) => e.id !== meal.id) };
@@ -1322,7 +1326,7 @@ export default function GLP1MealBuilder() {
                                 setBoard(updatedBoard);
                                 saveBoard(updatedBoard).catch((err) => {
                                   console.error("❌ Delete sync failed:", err);
-                                  toast({ title: "Sync pending", description: "Changes will sync automatically." });
+                                  toast({ title: t("weeklyBoard.saving"), description: t("metabolicBuilder.syncPendingDesc") });
                                 });
                               } else {
                                 const updatedDayLists = { ...dayLists, snacks: dayLists.snacks.map((e) => e.id === meal.id ? m : e) };
@@ -1334,8 +1338,8 @@ export default function GLP1MealBuilder() {
                         ))}
                       {dayLists.snacks.length === 0 && (
                         <div className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm">
-                          <p className="mb-2">No snacks yet</p>
-                          <p className="text-xs text-white/40">Use "Create with Chef" to create snacks</p>
+                          <p className="mb-2">{t("metabolicBuilder.noSnacksYet")}</p>
+                          <p className="text-xs text-white/40">{t("metabolicBuilder.noSnacksHint")}</p>
                         </div>
                       )}
                     </div>
@@ -1365,7 +1369,7 @@ export default function GLP1MealBuilder() {
                       meal={meal}
                       showStarchBadge={true}
                       builderType="glp1"
-                                coachingLine="Built for your metabolic medication phase — small portion, protein-first, easy to digest."
+                                coachingLine={t("metabolicBuilder.coachingLine")}
                       onUpdated={(m) => {
                         if (m === null) {
                           if (!board) return;
@@ -1381,7 +1385,7 @@ export default function GLP1MealBuilder() {
                           setBoard(updatedBoard);
                           saveBoard(updatedBoard).catch((err) => {
                             console.error("❌ Delete sync failed (Board mode):", err);
-                            toast({ title: "Sync pending", description: "Changes will sync automatically." });
+                            toast({ title: t("weeklyBoard.saving"), description: t("metabolicBuilder.syncPendingDesc") });
                           });
                         } else {
                           onItemUpdated(key, idx, m);
@@ -1391,8 +1395,8 @@ export default function GLP1MealBuilder() {
                   ))}
                   {board.lists[key].length === 0 && (
                     <div className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm">
-                      <p className="mb-2">No {label.toLowerCase()} yet</p>
-                      <p className="text-xs text-white/40">Use "Create with Chef" or "+" to add meals</p>
+                      <p className="mb-2">{t("metabolicBuilder.noSnacksYet").replace("snacks", label.toLowerCase())}</p>
+                      <p className="text-xs text-white/40">{t("metabolicBuilder.noSnacksHint")}</p>
                     </div>
                   )}
                 </div>
@@ -1483,7 +1487,7 @@ export default function GLP1MealBuilder() {
                     
                     if (result.alreadyLocked) {
                       toast({
-                        title: "Already Locked",
+                        title: t("metabolicBuilder.alreadyLocked"),
                         description: result.message,
                         variant: "destructive",
                       });
@@ -1518,7 +1522,7 @@ export default function GLP1MealBuilder() {
                         dateISO: activeDayISO,
                       });
                       toast({
-                        title: "Day Saved to Biometrics",
+                        title: t("metabolicBuilder.daySaved"),
                         description: `${formatDateDisplay(activeDayISO, { weekday: 'long', month: 'short', day: 'numeric' })} has been locked.`,
                       });
                       setLocation('/my-biometrics');
@@ -1710,7 +1714,7 @@ export default function GLP1MealBuilder() {
       <QuickTourModal
         isOpen={quickTour.shouldShow}
         onClose={quickTour.closeTour}
-        title="Metabolic Medication Builder Guide"
+        title={t("metabolicBuilder.tourTitle")}
         steps={GLP1_BUILDER_TOUR_STEPS}
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />

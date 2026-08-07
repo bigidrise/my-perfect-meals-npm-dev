@@ -11,6 +11,7 @@ import {
   ChevronDown,
   Check,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 type ProfessionalRole = "trainer" | "physician" | "dietitian" | "nurse_practitioner" | null;
 type ProfessionalCategory = "certified" | "experienced" | "non_certified";
@@ -31,6 +32,7 @@ const TRAINER_CERT_BODIES = [
   "Other",
 ];
 
+// i18n: leave for content team (role labels are identity)
 const ROLE_OPTIONS: { id: ProfessionalRole; label: string; sub: string }[] = [
   { id: "trainer",           label: "Trainer / Coach",                 sub: "Personal trainer, fitness coach, nutrition coach, lifestyle coach" },
   { id: "physician",         label: "Physician (MD / DO)",             sub: "Licensed physician, medical doctor, doctor of osteopathy" },
@@ -47,6 +49,7 @@ interface IdentityOption {
   borderColor: string;
 }
 
+// i18n: leave for content team
 const OPTIONS: IdentityOption[] = [
   {
     id: "certified",
@@ -76,6 +79,7 @@ const OPTIONS: IdentityOption[] = [
 
 export default function ProCareIdentity() {
   const [, setLocation] = useLocation();
+  const { t } = useTranslation("procare");
   const [role, setRole] = useState<ProfessionalRole>(
     (localStorage.getItem("procare_role") as ProfessionalRole) || null
   );
@@ -381,7 +385,7 @@ export default function ProCareIdentity() {
           disabled={!canContinue}
           className="w-full h-14 text-md font-semibold rounded-2xl bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-40"
         >
-          Continue
+          {t("procare.identity.continueButton")}
           <ArrowRight className="w-5 h-5" />
         </Button>
       </div>

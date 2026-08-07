@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,31 +42,6 @@ import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { ProRole } from "@/lib/proData";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
-const CARE_TEAM_TOUR_STEPS: TourStep[] = [
-  {
-    icon: "1",
-    title: "Invite Your Team",
-    description:
-      "Add trainers, doctors, or nutritionists by entering their email.",
-  },
-  {
-    icon: "2",
-    title: "Set Permissions",
-    description: "Control what each team member can see and modify.",
-  },
-  {
-    icon: "3",
-    title: "Access Codes",
-    description:
-      "Share your unique access code so professionals can connect with you.",
-  },
-  {
-    icon: "4",
-    title: "Manage Members",
-    description: "Review and revoke access to your nutrition data at any time.",
-  },
-];
-
 // Types
 type Permissions = {
   canViewMacros: boolean;
@@ -94,8 +70,63 @@ const DEFAULT_PERMS: Record<ProRole, Permissions> = {
 };
 
 export default function CareTeamPage() {
+  const { t } = useTranslation("careTeam");
   const [, setLocation] = useLocation();
   const quickTour = useQuickTour("care-team");
+
+  const CARE_TEAM_TOUR_STEPS: TourStep[] = [
+    {
+      icon: "1",
+      title: t("careTeam.tour.inviteYourTeam"),
+      description: t("careTeam.tour.inviteYourTeamDesc"),
+    },
+    {
+      icon: "2",
+      title: t("careTeam.tour.setPermissions"),
+      description: t("careTeam.tour.setPermissionsDesc"),
+    },
+    {
+      icon: "3",
+      title: t("careTeam.tour.accessCodes"),
+      description: t("careTeam.tour.accessCodesDesc"),
+    },
+    {
+      icon: "4",
+      title: t("careTeam.tour.manageMembers"),
+      description: t("careTeam.tour.manageMembersDesc"),
+    },
+  ];
+
+  const roleBadgeMap: Record<ProRole, { text: string; className: string }> = {
+    trainer: {
+      text: t("careTeam.roles.trainer"),
+      className: "bg-orange-600/20 text-orange-300 border-orange-400/40",
+    },
+    doctor: {
+      text: t("careTeam.roles.doctor"),
+      className: "bg-sky-600/20 text-sky-300 border-sky-400/40",
+    },
+    np: {
+      text: t("careTeam.roles.np"),
+      className: "bg-indigo-600/20 text-indigo-300 border-indigo-400/40",
+    },
+    rn: {
+      text: t("careTeam.roles.rn"),
+      className: "bg-purple-600/20 text-purple-300 border-purple-400/40",
+    },
+    pa: {
+      text: t("careTeam.roles.pa"),
+      className: "bg-teal-600/20 text-teal-300 border-teal-400/40",
+    },
+    nutritionist: {
+      text: t("careTeam.roles.nutritionist"),
+      className: "bg-amber-600/20 text-amber-300 border-amber-400/40",
+    },
+    dietitian: {
+      text: t("careTeam.roles.dietitian"),
+      className: "bg-lime-600/20 text-lime-300 border-lime-400/40",
+    },
+  };
 
   // UI state
   const [members, setMembers] = useState<CareMember[]>([]);
@@ -127,17 +158,15 @@ export default function CareTeamPage() {
               body: JSON.stringify({ code: codeFromUrl }),
             });
             setMembers((prev) => [response.member, ...prev]);
-            alert(
-              `✅ Successfully accepted invitation! Welcome to the Care Team.`,
-            );
+            alert(t("careTeam.toast.invitationAccepted"));
             // Clear the code from URL
             window.history.replaceState({}, "", "/care-team");
           } catch (e: any) {
-            setError(e?.message ?? "Invalid or expired invitation code.");
+            setError(e?.message ?? t("careTeam.errors.invalidInvitationCode"));
           }
         }
       } catch (e: any) {
-        if (mounted) setError(e?.message ?? "Failed to load care team.");
+        if (mounted) setError(e?.message ?? t("careTeam.errors.loadFailed"));
       } finally {
         if (mounted) setLoading(false);
       }
@@ -164,7 +193,7 @@ export default function CareTeamPage() {
   async function inviteByEmail() {
     setError(null);
     if (!invEmail.trim()) {
-      setError("Enter an email to invite.");
+      setError(t("careTeam.errors.emailRequired"));
       return;
     }
     try {
@@ -176,11 +205,9 @@ export default function CareTeamPage() {
       setMembers((prev) => [response.member, ...prev]);
       setInvEmail("");
       setError(null);
-      alert(
-        `✅ Invitation sent to ${invEmail}! They'll receive an email from support@myperfectmeals.ai`,
-      );
+      alert(`${t("careTeam.toast.invitationSent", { email: invEmail })}`);
     } catch (e: any) {
-      setError(e?.message ?? "Failed to send invite.");
+      setError(e?.message ?? t("careTeam.errors.sendInviteFailed"));
     } finally {
       setLoading(false);
     }
@@ -189,7 +216,7 @@ export default function CareTeamPage() {
   async function connectWithCode() {
     setError(null);
     if (!accessCode.trim()) {
-      setError("Enter your provider code.");
+      setError(t("careTeam.errors.providerCodeRequired"));
       return;
     }
     try {
@@ -200,9 +227,9 @@ export default function CareTeamPage() {
       });
       setMembers((prev) => [response.member, ...prev]);
       setAccessCode("");
-      alert(`✅ Successfully connected to your provider!`);
+      alert(t("careTeam.toast.providerConnected"));
     } catch (e: any) {
-      setError(e?.message ?? "Invalid or expired provider code.");
+      setError(e?.message ?? t("careTeam.errors.invalidProviderCode"));
     } finally {
       setLoading(false);
     }
@@ -220,9 +247,9 @@ export default function CareTeamPage() {
           m.id === id ? { ...m, status: "active" as const } : m,
         ),
       );
-      alert("✅ Member approved successfully!");
+      alert(t("careTeam.toast.memberApproved"));
     } catch {
-      setError("Failed to approve member.");
+      setError(t("careTeam.errors.approveFailed"));
     }
   }
 
@@ -237,9 +264,9 @@ export default function CareTeamPage() {
         ),
       );
       setRevokeConfirmId(null);
-      alert("✅ Access revoked successfully!");
+      alert(t("careTeam.toast.accessRevoked"));
     } catch {
-      setError("Failed to revoke access.");
+      setError(t("careTeam.errors.revokeFailed"));
     }
   }
 
@@ -278,38 +305,38 @@ export default function CareTeamPage() {
               <div className="flex items-center gap-2">
                 <Mail className="h-5 w-5 text-orange-600" />
                 <h2 className="text-xl font-bold text-white">
-                  Invite by Email
+                  {t("careTeam.invite.title")}
                 </h2>
               </div>
 
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-white/80">Professional Role</Label>
+                  <Label className="text-white/80">{t("careTeam.invite.roleLabel")}</Label>
                   <Select
                     value={role}
                     onValueChange={(v) => setRole(v as ProRole)}
                   >
                     <SelectTrigger className="bg-black/40 border-white/20 text-white">
-                      <SelectValue placeholder="Choose role" />
+                      <SelectValue placeholder={t("careTeam.invite.rolePlaceholder")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="trainer">Trainer</SelectItem>
-                      <SelectItem value="doctor">Doctor</SelectItem>
-                      <SelectItem value="np">Nurse Practitioner</SelectItem>
-                      <SelectItem value="rn">RN</SelectItem>
-                      <SelectItem value="pa">PA</SelectItem>
-                      <SelectItem value="nutritionist">Nutritionist</SelectItem>
-                      <SelectItem value="dietitian">Dietitian</SelectItem>
+                      <SelectItem value="trainer">{t("careTeam.roles.trainer")}</SelectItem>
+                      <SelectItem value="doctor">{t("careTeam.roles.doctor")}</SelectItem>
+                      <SelectItem value="np">{t("careTeam.roles.np")}</SelectItem>
+                      <SelectItem value="rn">{t("careTeam.roles.rn")}</SelectItem>
+                      <SelectItem value="pa">{t("careTeam.roles.pa")}</SelectItem>
+                      <SelectItem value="nutritionist">{t("careTeam.roles.nutritionist")}</SelectItem>
+                      <SelectItem value="dietitian">{t("careTeam.roles.dietitian")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Label className="text-white/80">Email</Label>
+                  <Label className="text-white/80">{t("careTeam.invite.emailLabel")}</Label>
                   <Input
                     type="email"
                     value={invEmail}
                     onChange={(e) => setInvEmail(e.target.value)}
-                    placeholder="pro@domain.com"
+                    placeholder={t("careTeam.invite.emailPlaceholder")}
                     autoComplete="off"
                     className="bg-black/40 text-white border-white/20 placeholder:text-white/40"
                     data-testid="input-invite-email"
@@ -321,27 +348,27 @@ export default function CareTeamPage() {
               <div className="rounded-xl bg-white/5 border border-white/10 p-4 space-y-3">
                 <div className="flex items-center gap-2 text-white/80">
                   <ShieldCheck className="h-4 w-4" />
-                  <span className="font-semibold">Permissions</span>
+                  <span className="font-semibold">{t("careTeam.invite.permissionsTitle")}</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <PermToggle
-                    label="View Macros"
+                    label={t("careTeam.invite.viewMacros")}
                     checked={perms.canViewMacros}
                     onChange={() => togglePerm("canViewMacros")}
                   />
                   <PermToggle
-                    label="Add Meals"
+                    label={t("careTeam.invite.addMeals")}
                     checked={perms.canAddMeals}
                     onChange={() => togglePerm("canAddMeals")}
                   />
                   <PermToggle
-                    label="Edit Plan"
+                    label={t("careTeam.invite.editPlan")}
                     checked={perms.canEditPlan}
                     onChange={() => togglePerm("canEditPlan")}
                   />
                 </div>
                 <div className="text-xs text-white/60">
-                  💡 You can change these anytime per person.
+                  {t("careTeam.invite.permissionsHint")}
                 </div>
               </div>
 
@@ -352,7 +379,7 @@ export default function CareTeamPage() {
                 data-testid="button-send-invite"
               >
                 <UserPlus2 className="h-4 w-4 mr-2" />
-                Send Invite
+                {t("careTeam.invite.sendInvite")}
               </Button>
             </GlassCardContent>
           </GlassCard>
@@ -363,19 +390,18 @@ export default function CareTeamPage() {
               <div className="flex items-center gap-2">
                 <KeyRound className="h-5 w-5 text-orange-500" />
                 <h2 className="text-xl font-bold text-white">
-                  Connect With Your Provider
+                  {t("careTeam.connect.title")}
                 </h2>
               </div>
               <p className="text-sm text-white/70">
-                Use your provider's access code to link your account with your
-                coach, trainer, or physician through the ProCare system.
+                {t("careTeam.connect.description")}
               </p>
               <div>
-                <Label className="text-white/80">Provider Access Code</Label>
+                <Label className="text-white/80">{t("careTeam.connect.codeLabel")}</Label>
                 <Input
                   value={accessCode}
                   onChange={(e) => setAccessCode(e.target.value)}
-                  placeholder="Provider code (given by your coach or physician)"
+                  placeholder={t("careTeam.connect.codePlaceholder")}
                   className="bg-black/40 text-white border-white/20 placeholder:text-white/40"
                   data-testid="input-careteam-code"
                 />
@@ -387,10 +413,10 @@ export default function CareTeamPage() {
                 data-testid="button-submit-code"
               >
                 <ClipboardEdit className="h-4 w-4 mr-2" />
-                Connect to Provider
+                {t("careTeam.connect.button")}
               </Button>
               <p className="text-xs text-white/40 text-center">
-                Access codes connect users with professionals. Subscriptions are purchased through the App Store.
+                {t("careTeam.connect.disclaimer")}
               </p>
             </GlassCardContent>
           </GlassCard>
@@ -398,20 +424,15 @@ export default function CareTeamPage() {
           {/* How it Works */}
           <GlassCard className="border-2 border-orange-500/40">
             <GlassCardContent className="p-6 space-y-3">
-              <h2 className="text-xl font-bold text-white">How it Works</h2>
+              <h2 className="text-xl font-bold text-white">{t("careTeam.howItWorks.title")}</h2>
               <ul className="list-disc pl-5 text-white/80 text-sm space-y-2">
-                <li>You invite your provider or connect using their ProCare code.</li>
-                <li>
-                  They get limited access based on the permissions you set.
-                </li>
-                <li>Trainers can add meals; doctors can review macros.</li>
-                <li>
-                  You can revoke access anytime. You're always in control.
-                </li>
+                <li>{t("careTeam.howItWorks.step1")}</li>
+                <li>{t("careTeam.howItWorks.step2")}</li>
+                <li>{t("careTeam.howItWorks.step3")}</li>
+                <li>{t("careTeam.howItWorks.step4")}</li>
               </ul>
               <div className="text-xs text-white/60">
-                Note: This is not medical advice. Always follow your licensed
-                provider's instructions.
+                {t("careTeam.howItWorks.disclaimer")}
               </div>
             </GlassCardContent>
           </GlassCard>
@@ -426,12 +447,12 @@ export default function CareTeamPage() {
 
         {/* Active Connections */}
         <SectionHeader
-          title="Active Care Team"
-          subtitle="Connected professionals"
+          title={t("careTeam.members.title")}
+          subtitle={t("careTeam.members.subtitle")}
         />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {active.length === 0 && (
-            <EmptyCard label="No active connections yet." />
+            <EmptyCard label={t("careTeam.members.empty")} />
           )}
           {active.map((m) => (
             <MemberCard
@@ -440,6 +461,8 @@ export default function CareTeamPage() {
               onApprove={undefined}
               onRevoke={() => setRevokeConfirmId(m.id)}
               setLocation={setLocation}
+              roleBadgeMap={roleBadgeMap}
+              t={t}
             />
           ))}
         </div>
@@ -452,7 +475,7 @@ export default function CareTeamPage() {
       <QuickTourModal
         isOpen={quickTour.shouldShow}
         onClose={quickTour.closeTour}
-        title="Care Team Guide"
+        title={t("careTeam.tourTitle")}
         steps={CARE_TEAM_TOUR_STEPS}
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />
@@ -460,7 +483,7 @@ export default function CareTeamPage() {
       {revokeConfirmId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
           <div className="bg-zinc-900 border border-white/10 rounded-xl p-6 max-w-sm w-full space-y-4">
-            <h3 className="text-lg font-bold text-white">Revoke Access?</h3>
+            <h3 className="text-lg font-bold text-white">{t("careTeam.members.revokeTitle")}</h3>
             <p className="text-sm text-white/70">
               This will remove this professional's access to your nutrition data. You can re-add them later with a new invite code.
             </p>
@@ -469,14 +492,14 @@ export default function CareTeamPage() {
                 onClick={() => setRevokeConfirmId(null)}
                 className="flex-1 bg-white/10 hover:bg-white/20 text-white border border-white/20"
               >
-                Cancel
+                {t("careTeam.members.cancel")}
               </Button>
               <Button
                 onClick={() => revokeMember(revokeConfirmId)}
                 variant="destructive"
                 className="flex-1 bg-red-600 hover:bg-red-700"
               >
-                Revoke Access
+                {t("careTeam.members.revokeConfirm")}
               </Button>
             </div>
           </div>
@@ -533,37 +556,7 @@ function PermToggle({
   );
 }
 
-function roleBadge(role: ProRole) {
-  const map: Record<ProRole, { text: string; className: string }> = {
-    trainer: {
-      text: "Trainer",
-      className: "bg-orange-600/20 text-orange-300 border-orange-400/40",
-    },
-    doctor: {
-      text: "Doctor",
-      className: "bg-sky-600/20 text-sky-300 border-sky-400/40",
-    },
-    np: {
-      text: "Nurse Practitioner",
-      className: "bg-indigo-600/20 text-indigo-300 border-indigo-400/40",
-    },
-    rn: {
-      text: "RN",
-      className: "bg-purple-600/20 text-purple-300 border-purple-400/40",
-    },
-    pa: {
-      text: "PA",
-      className: "bg-teal-600/20 text-teal-300 border-teal-400/40",
-    },
-    nutritionist: {
-      text: "Nutritionist",
-      className: "bg-amber-600/20 text-amber-300 border-amber-400/40",
-    },
-    dietitian: {
-      text: "Dietitian",
-      className: "bg-lime-600/20 text-lime-300 border-lime-400/40",
-    },
-  };
+function roleBadge(role: ProRole, map: Record<ProRole, { text: string; className: string }>) {
   const r = map[role];
   return <Badge className={`${r.className} border`}>{r.text}</Badge>;
 }
@@ -593,18 +586,22 @@ function MemberCard({
   onApprove,
   onRevoke,
   setLocation,
+  roleBadgeMap,
+  t,
 }: {
   member: CareMember;
   onApprove?: () => void;
   onRevoke?: () => void;
   setLocation: (path: string) => void;
+  roleBadgeMap: Record<ProRole, { text: string; className: string }>;
+  t: ReturnType<typeof useTranslation>["t"];
 }) {
   return (
     <GlassCard className="overflow-hidden">
       <CardHeader className="p-4 pb-0">
         <div className="flex items-center justify-between">
           <CardTitle className="text-white">
-            {member.name ?? "Unnamed Pro"}
+            {member.name ?? t("careTeam.members.unnamedPro")}
           </CardTitle>
           <div className="flex items-center gap-2">
             {statusBadge(member.status)}
@@ -626,7 +623,7 @@ function MemberCard({
               data-testid="button-open-pro-portal"
             >
               <ClipboardEdit className="h-4 w-4 mr-2" />
-              Open Pro Portal
+              {t("careTeam.members.openProPortal")}
             </Button>
           )}
           {member.status === "pending" && onApprove && (
@@ -636,7 +633,7 @@ function MemberCard({
               data-testid="button-approve-member"
             >
               <CheckCircle2 className="h-4 w-4 mr-2" />
-              Approve
+              {t("careTeam.members.approve")}
             </Button>
           )}
           {onRevoke && (
@@ -647,7 +644,7 @@ function MemberCard({
               data-testid="button-revoke-member"
             >
               <XCircle className="h-4 w-4 mr-2" />
-              Revoke
+              {t("careTeam.members.revoke")}
             </Button>
           )}
         </div>

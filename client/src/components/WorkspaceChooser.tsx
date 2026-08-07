@@ -4,6 +4,7 @@ import { Home, Briefcase, Crown, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
+import { useTranslation } from "react-i18next";
 
 interface WorkspaceChooserProps {
   onChoose: (choice: "personal" | "workspace") => void;
@@ -13,6 +14,8 @@ export function WorkspaceChooser({ onChoose }: WorkspaceChooserProps) {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const [checking, setChecking] = useState(false);
+  const { t } = useTranslation();
+  const { t: td } = useTranslation("desktopNav");
 
   localStorage.removeItem("mpm_workspace_preference");
 
@@ -75,10 +78,10 @@ export function WorkspaceChooser({ onChoose }: WorkspaceChooserProps) {
           <div className="text-center mb-6">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500/20 rounded-full border border-orange-500/30 mb-4">
               <Crown className="h-4 w-4 text-orange-400" />
-              <span className="text-sm font-medium text-orange-300">Welcome Back</span>
+              <span className="text-sm font-medium text-orange-300">{t("welcomeBack")}</span>
             </div>
-            <h1 className="text-2xl font-bold text-white mb-2">Where to?</h1>
-            <p className="text-white/60 text-sm">Choose how you'd like to start today.</p>
+            <h1 className="text-2xl font-bold text-white mb-2">{t("whereToTitle")}</h1>
+            <p className="text-white/60 text-sm">{t("whereToSubtitle")}</p>
           </div>
 
           <button
@@ -91,8 +94,8 @@ export function WorkspaceChooser({ onChoose }: WorkspaceChooserProps) {
                 <Home className="h-5 w-5 text-emerald-400" />
               </div>
               <div className="flex-1">
-                <h3 className="text-white font-semibold text-base">Personal Space</h3>
-                <p className="text-white/50 text-sm mt-0.5">Your meals, your macros, your life.</p>
+                <h3 className="text-white font-semibold text-base">{td("personalSpace")}</h3>
+                <p className="text-white/50 text-sm mt-0.5">{t("personalSpaceDesc")}</p>
               </div>
             </div>
           </button>
@@ -111,9 +114,9 @@ export function WorkspaceChooser({ onChoose }: WorkspaceChooserProps) {
                 )}
               </div>
               <div className="flex-1">
-                <h3 className="text-white font-semibold text-base">Workspace</h3>
+                <h3 className="text-white font-semibold text-base">{td("workspaces")}</h3>
                 <p className="text-white/50 text-sm mt-0.5">
-                  {checking ? "Checking access..." : `Manage clients in ${workspaceName}.`}
+                  {checking ? t("checkingAccess") : t("manageClientsIn", { name: workspaceName })}
                 </p>
               </div>
             </div>

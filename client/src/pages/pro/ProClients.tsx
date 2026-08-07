@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
+import { useTranslation } from "react-i18next";
 import { getAuthHeaders } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { apiRequest } from "@/lib/apiRequest";
@@ -60,6 +61,7 @@ interface ProClientsProps {
 }
 
 export default function ProClients({ workspace }: ProClientsProps = {}) {
+  const { t } = useTranslation("pro");
   const resolvedWorkspace = workspace || "trainer";
   const isPhysician = resolvedWorkspace === "clinician";
 
@@ -414,18 +416,18 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
   const PRO_CLIENTS_TOUR_STEPS: TourStep[] = [
     {
       icon: "1",
-      title: `Pending Activation`,
-      description: `${isPhysician ? "Patients" : "Clients"} who have completed payment appear here. Tap Activate to move them to your active roster.`,
+      title: t("clients.tour.step1Title"),
+      description: t("clients.tour.step1Desc"),
     },
     {
       icon: "2",
-      title: `Open ${isPhysician ? "Patient" : "Client"}`,
-      description: `Click Open to access the ${entityLabel} workspace and begin setting macros or plans.`,
+      title: t("clients.tour.step2Title"),
+      description: t("clients.tour.step2Desc"),
     },
     {
       icon: "3",
-      title: `Archived ${isPhysician ? "Patients" : "Clients"}`,
-      description: `Archived ${entityLabel}s are hidden from your active list but can be restored anytime.`,
+      title: t("clients.tour.step3Title"),
+      description: t("clients.tour.step3Desc"),
     },
   ];
 
@@ -448,7 +450,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
             data-testid="button-back"
           >
             <ArrowLeft className="h-5 w-5" />
-            <span className="text-sm font-medium">Back</span>
+            <span className="text-sm font-medium">{t("clients.back")}</span>
           </button>
           <h1 className="text-lg font-bold text-white flex-1 truncate min-w-0">{portalTitle}</h1>
           <div className="flex-shrink-0 flex items-center gap-2">
@@ -482,7 +484,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
               <p className="text-sm font-semibold text-orange-300">
                 {totalUnread} unread client message{totalUnread > 1 ? "s" : ""}
               </p>
-              <p className="text-xs text-white/50">Tap to view ProCare inbox</p>
+              <p className="text-xs text-white/50">{t("clients.tapInbox")}</p>
             </div>
             {showInbox ? (
               <ChevronUp className="h-4 w-4 text-white/40" />
@@ -503,14 +505,14 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
               <div className="bg-black/40 backdrop-blur-lg border border-white/10 rounded-xl overflow-hidden">
                 <div className="px-4 py-3 border-b border-white/10 flex items-center gap-2">
                   <MessageSquare className="h-4 w-4 text-purple-400" />
-                  <h2 className="text-sm font-bold text-white">ProCare Messages Inbox</h2>
-                  <span className="ml-auto text-xs text-white/40">All client messages</span>
+                  <h2 className="text-sm font-bold text-white">{t("clients.inboxTitle")}</h2>
+                  <span className="ml-auto text-xs text-white/40">{t("clients.inboxSubtitle")}</span>
                 </div>
 
                 {inboxLoading ? (
-                  <div className="px-4 py-6 text-center text-white/40 text-sm">Loading messages…</div>
+                  <div className="px-4 py-6 text-center text-white/40 text-sm">{t("clients.inboxLoading")}</div>
                 ) : inboxMessages.length === 0 ? (
-                  <div className="px-4 py-6 text-center text-white/40 text-sm">No client messages yet.</div>
+                  <div className="px-4 py-6 text-center text-white/40 text-sm">{t("clients.inboxEmpty")}</div>
                 ) : (
                   <div className="divide-y divide-white/5 max-h-80 overflow-y-auto">
                     {inboxMessages.map((msg) => {
@@ -561,9 +563,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
             size="sm"
             className="bg-white/5 border-white/20 text-white"
           >
-            {showArchived
-              ? `Show Active ${isPhysician ? "Patients" : "Clients"}`
-              : `Show Archived ${isPhysician ? "Patients" : "Clients"}`}
+            {showArchived ? t("clients.hideArchived") : t("clients.showArchived")}
           </Button>
         </div>
 
@@ -612,7 +612,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
                               data-testid={`button-restore-client-${c.id}`}
                             >
                               <RotateCcw className="h-4 w-4 mr-1" />
-                              Restore
+                              {t("clients.restore")}
                             </Button>
                             <TrashButton
                               onClick={() => deleteClient(c.id, c.name)}
@@ -712,14 +712,14 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
       <InformationModal
         open={mobileGateOpen}
         onOpenChange={setMobileGateOpen}
-        title="Desktop or Tablet Required"
+        title={t("clients.desktopRequired")}
         description="Client folders are designed for desktop or tablet view. Please use a wider screen, switch to desktop view, or rotate your device to landscape to open this folder."
       />
 
       <QuickTourModal
         isOpen={quickTour.shouldShow}
         onClose={quickTour.closeTour}
-        title={`${portalTitle} Guide`}
+        title={t("clients.tourTitle")}
         steps={PRO_CLIENTS_TOUR_STEPS}
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />
@@ -745,19 +745,19 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
                 <Link2Off className="h-5 w-5 text-orange-400" />
               </div>
               <div>
-                <div className="text-white font-bold text-base">Archive {archivePendingClient.name}?</div>
-                <div className="text-white/50 text-xs mt-0.5">This will disconnect their ProCare access</div>
+                <div className="text-white font-bold text-base">{t("clients.archiveTitle", { name: archivePendingClient.name })}</div>
+                <div className="text-white/50 text-xs mt-0.5">{t("clients.archiveSubtitle")}</div>
               </div>
             </div>
             <p className="text-white/70 text-sm leading-relaxed">
-              Archiving <span className="text-white font-medium">{archivePendingClient.name}</span> will immediately end their ProCare connection. Their history is preserved and they can reconnect with a new access code.
+              {t("clients.archiveBody", { name: archivePendingClient.name })}
             </p>
             <div className="flex gap-3">
               <Button
                 className="flex-1 bg-white/10 border border-white/20 text-white hover:bg-white/20"
                 onClick={() => setArchivePendingClient(null)}
               >
-                Cancel
+                {t("clients.cancel")}
               </Button>
               <Button
                 className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
@@ -766,7 +766,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
                   setArchivePendingClient(null);
                 }}
               >
-                Yes, Archive
+                {t("clients.archiveConfirm")}
               </Button>
             </div>
           </div>

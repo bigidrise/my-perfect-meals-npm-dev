@@ -5,6 +5,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { PillButton } from "@/components/ui/pill-button";
 import { motion } from "framer-motion";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { useTranslation } from "react-i18next";
 import {
   Loader2, Trophy, Users, ClipboardList, GraduationCap,
   Briefcase, ArrowLeft, ArrowRight, TrendingUp, Star,
@@ -26,6 +27,7 @@ export default function ProfessionalDashboard() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const isDesktop = useIsDesktop();
+  const { t } = useTranslation("procare");
   const [state, setState] = useState<DashboardState>({
     phase1: { status: "not_started" },
     phase2: { status: "not_started" },
@@ -149,6 +151,7 @@ function ResumeCertification({
   onBack: () => void;
   onContinue: () => void;
 }) {
+  const { t } = useTranslation("procare");
   const totalSteps = 3;
   const completedSteps =
     (personalDone ? 1 : 0) +
@@ -170,7 +173,7 @@ function ResumeCertification({
       onClick={onContinue}
       className="w-full h-14 font-bold rounded-2xl bg-orange-600 text-white flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
     >
-      Continue Certification
+      {t("procare.launchpad.resumeCertification")}
       <ArrowRight className="w-5 h-5" />
     </button>
   );
@@ -189,7 +192,7 @@ function ResumeCertification({
         )}
         <motion.div className="text-center mb-8" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
           <p className="text-white/50 text-sm mb-1">Welcome back{firstName ? `, ${firstName}` : ""}.</p>
-          <h1 className="text-2xl font-black mb-2">Professional Certification</h1>
+          <h1 className="text-2xl font-black mb-2">{t("procare.launchpad.certProgress")}</h1>
 
           {/* Progress bar */}
           <div className="mx-auto max-w-xs mb-2">
@@ -260,6 +263,7 @@ function StepRow({
   inProgress?: boolean;
   locked?: boolean;
 }) {
+  const { t } = useTranslation("procare");
   return (
     <div className={`flex items-center gap-4 p-4 rounded-2xl border transition-all ${
       done ? "bg-emerald-900/10 border-emerald-500/30" :
@@ -280,7 +284,7 @@ function StepRow({
       </div>
       {inProgress && (
         <span className="text-[10px] font-semibold uppercase tracking-wide text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded-full border border-orange-500/20">
-          In Progress
+          {t("procare.launchpad.resumePhase2")}
         </span>
       )}
     </div>
@@ -289,6 +293,7 @@ function StepRow({
 
 function CertifiedDashboard({ user, isDesktop, onBack, onEnterStudio }: { user: any; isDesktop: boolean; onBack: () => void; onEnterStudio: () => void }) {
   const [, setLocation] = useLocation();
+  const { t } = useTranslation("procare");
   const firstName = (user?.name || user?.email || "").split(" ")[0] || "Professional";
 
   const enterStudioBtn = (
@@ -296,7 +301,7 @@ function CertifiedDashboard({ user, isDesktop, onBack, onEnterStudio }: { user: 
       onClick={onEnterStudio}
       className="w-full h-14 font-bold rounded-2xl bg-orange-600 text-white flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
     >
-      Enter Client Studio
+      {t("procare.launchpad.enterStudio")}
       <ArrowRight className="w-5 h-5" />
     </button>
   );
@@ -324,10 +329,10 @@ function CertifiedDashboard({ user, isDesktop, onBack, onEnterStudio }: { user: 
           <div>
             <p className="text-white/50 text-xs">Welcome back, {firstName}</p>
             <div className="flex items-center gap-1.5">
-              <h1 className="text-lg font-black">Professional Dashboard</h1>
+              <h1 className="text-lg font-black">{t("procare.launchpad.dashboard")}</h1>
               <Star className="w-3.5 h-3.5 text-orange-400 fill-orange-400" />
             </div>
-            <p className="text-[10px] text-emerald-400 font-semibold">Certified My Perfect Meals Professional</p>
+            <p className="text-[10px] text-emerald-400 font-semibold">{t("procare.launchpad.certifiedBadge")}</p>
           </div>
         </motion.div>
 
@@ -364,7 +369,7 @@ function CertifiedDashboard({ user, isDesktop, onBack, onEnterStudio }: { user: 
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4 }}
         >
-          <p className="text-xs font-semibold text-orange-400 mb-2">Quick Links</p>
+          <p className="text-xs font-semibold text-orange-400 mb-2">{t("procare.launchpad.quickLinks")}</p>
           <div className="space-y-2">
             {[
               { label: "📋 Questionnaires", route: user?.professionalRole === "physician" ? "/pro/physician-clients" : "/pro/clients" },

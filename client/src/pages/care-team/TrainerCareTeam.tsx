@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,26 +31,6 @@ import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { PillButton } from "@/components/ui/pill-button";
 import { Wifi, WifiOff } from "lucide-react";
 
-const CARE_TEAM_TOUR_STEPS: TourStep[] = [
-  {
-    icon: "1",
-    title: "Invite Your Clients",
-    description:
-      "Add clients by entering their email — they'll receive an invite to join your Studio.",
-  },
-  {
-    icon: "2",
-    title: "Set Availability",
-    description: "Let your clients know when you're available or away.",
-  },
-  {
-    icon: "3",
-    title: "Pro Portal",
-    description:
-      "View and manage all active clients from your Pro Portal.",
-  },
-];
-
 type Permissions = {
   canViewMacros: boolean;
   canAddMeals: boolean;
@@ -76,9 +57,28 @@ const DEFAULT_PERMS: Record<ProRole, Permissions> = {
 };
 
 export default function CareTeamPage() {
+  const { t } = useTranslation("trainerCareTeam");
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const quickTour = useQuickTour("care-team");
+
+  const CARE_TEAM_TOUR_STEPS: TourStep[] = [
+    {
+      icon: "1",
+      title: t("trainerCareTeam.tour.inviteClients"),
+      description: t("trainerCareTeam.tour.inviteClientsDesc"),
+    },
+    {
+      icon: "2",
+      title: t("trainerCareTeam.tour.setAvailability"),
+      description: t("trainerCareTeam.tour.setAvailabilityDesc"),
+    },
+    {
+      icon: "3",
+      title: t("trainerCareTeam.tour.proPortal"),
+      description: t("trainerCareTeam.tour.proPortalDesc"),
+    },
+  ];
 
   useEffect(() => {
     if (!user) return;
@@ -119,11 +119,11 @@ export default function CareTeamPage() {
             alert(`✅ Successfully accepted invitation! Welcome to the Studio.`);
             window.history.replaceState({}, "", "/care-team");
           } catch (e: any) {
-            setError(e?.message ?? "Invalid or expired invitation code.");
+            setError(e?.message ?? t("trainerCareTeam.errors.loadFailed"));
           }
         }
       } catch (e: any) {
-        if (mounted) setError(e?.message ?? "Failed to load studio.");
+        if (mounted) setError(e?.message ?? t("trainerCareTeam.errors.loadFailed"));
       } finally {
         if (mounted) setLoading(false);
       }
@@ -141,7 +141,7 @@ export default function CareTeamPage() {
     setError(null);
     setSuccessMsg(null);
     if (!invEmail.trim()) {
-      setError("Enter an email to invite.");
+      setError(t("trainerCareTeam.errors.emailRequired"));
       return;
     }
     try {
@@ -154,10 +154,10 @@ export default function CareTeamPage() {
       const sentTo = invEmail;
       setInvEmail("");
       setError(null);
-      setSuccessMsg(`✅ Invitation sent to ${sentTo}! They'll receive an email from support@myperfectmeals.ai`);
+      setSuccessMsg(t("trainerCareTeam.toast.invitationSent", { email: sentTo }));
       setTimeout(() => setSuccessMsg(null), 6000);
     } catch (e: any) {
-      setError(e?.message ?? "Failed to send invite.");
+      setError(e?.message ?? t("trainerCareTeam.errors.sendInviteFailed"));
     } finally {
       setLoading(false);
     }
@@ -194,7 +194,7 @@ export default function CareTeamPage() {
       setAvailSaved(true);
       setTimeout(() => setAvailSaved(false), 3000);
     } catch {
-      setError("Failed to update availability.");
+      setError(t("trainerCareTeam.errors.availabilityFailed"));
     } finally {
       setAvailSaving(false);
     }
@@ -211,7 +211,7 @@ export default function CareTeamPage() {
       setAvailSaved(true);
       setTimeout(() => setAvailSaved(false), 3000);
     } catch {
-      setError("Failed to save dates.");
+      setError(t("trainerCareTeam.errors.saveDatesFailed"));
     } finally {
       setAvailSaving(false);
     }
@@ -234,7 +234,7 @@ export default function CareTeamPage() {
         <div className="px-4 py-3 flex items-center gap-2">
           <Users className="h-5 w-5 text-orange-500 flex-shrink-0" />
           <h1 className="text-base font-bold text-white flex-1 min-w-0 truncate">
-            Trainer Studio
+            {t("trainerCareTeam.title")}
           </h1>
           <QuickTourButton onClick={quickTour.openTour} />
         </div>
@@ -250,11 +250,11 @@ export default function CareTeamPage() {
           <GlassCardContent className="p-4">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-white">Explore Platform Features</p>
-                <p className="text-xs text-white/50 mt-0.5 leading-snug">How My Perfect Meals works — AI systems, meal builders, clinical protocols, and more.</p>
+                <p className="text-sm font-semibold text-white">{t("trainerCareTeam.platform.explore")}</p>
+                <p className="text-xs text-white/50 mt-0.5 leading-snug">{t("trainerCareTeam.platform.description")}</p>
               </div>
               <PillButton onClick={() => setLocation('/learn')} className="shrink-0">
-                Explore
+                {t("trainerCareTeam.platform.button")}
               </PillButton>
             </div>
           </GlassCardContent>
@@ -269,9 +269,9 @@ export default function CareTeamPage() {
               ) : (
                 <Wifi className="h-4 w-4 text-orange-400" />
               )}
-              <h2 className="text-base font-bold text-white">Your Availability</h2>
-              {availSaving && <span className="text-xs text-white/40 ml-auto">Saving…</span>}
-              {!availSaving && availSaved && <span className="text-xs text-green-400 ml-auto">✓ Saved</span>}
+              <h2 className="text-base font-bold text-white">{t("trainerCareTeam.availability.title")}</h2>
+              {availSaving && <span className="text-xs text-white/40 ml-auto">{t("trainerCareTeam.availability.saving")}</span>}
+              {!availSaving && availSaved && <span className="text-xs text-green-400 ml-auto">{t("trainerCareTeam.availability.saved")}</span>}
             </div>
             <div className="flex flex-wrap gap-2">
               {(["available", "away", "offline"] as const).map((s) => (
@@ -281,14 +281,18 @@ export default function CareTeamPage() {
                   variant={s === "available" ? "emerald" : "amber"}
                   onClick={() => updateAvailability(s)}
                 >
-                  {s === "available" ? "Available" : s === "away" ? "Away / Vacation" : "Offline"}
+                  {s === "available"
+                    ? t("trainerCareTeam.availability.available")
+                    : s === "away"
+                    ? t("trainerCareTeam.availability.away")
+                    : t("trainerCareTeam.availability.offline")}
                 </PillButton>
               ))}
             </div>
             {availStatus === "away" && (
               <div className="flex flex-col gap-2 pt-1">
                 <div className="flex items-center gap-2">
-                  <label className="text-xs text-white/60 w-12 shrink-0">From:</label>
+                  <label className="text-xs text-white/60 w-12 shrink-0">{t("trainerCareTeam.availability.from")}</label>
                   <Input
                     type="date"
                     value={awayFromInput}
@@ -298,7 +302,7 @@ export default function CareTeamPage() {
                   />
                 </div>
                 <div className="flex items-center gap-2">
-                  <label className="text-xs text-white/60 w-12 shrink-0">Until:</label>
+                  <label className="text-xs text-white/60 w-12 shrink-0">{t("trainerCareTeam.availability.until")}</label>
                   <Input
                     type="date"
                     value={backAtInput}
@@ -316,15 +320,15 @@ export default function CareTeamPage() {
         <GlassCard className="border border-orange-400/30 bg-orange-900/10">
           <GlassCardContent className="p-4 flex items-center justify-between gap-4">
             <div>
-              <p className="text-white font-semibold text-sm">Active clients</p>
-              <p className="text-white/60 text-xs mt-0.5">View and manage all connected clients from your Pro Portal</p>
+              <p className="text-white font-semibold text-sm">{t("trainerCareTeam.studio.activeClients")}</p>
+              <p className="text-white/60 text-xs mt-0.5">{t("trainerCareTeam.studio.viewAndManage")}</p>
             </div>
             <Button
               onClick={() => setLocation("/pro/clients")}
               className="shrink-0 bg-orange-600 hover:bg-orange-700 text-white"
             >
               <ExternalLink className="h-4 w-4 mr-2" />
-              Pro Portal
+              {t("trainerCareTeam.studio.portalButton")}
             </Button>
           </GlassCardContent>
         </GlassCard>
@@ -336,13 +340,13 @@ export default function CareTeamPage() {
               <div className="flex items-center gap-2">
                 <Mail className="h-5 w-5 text-orange-600" />
                 <h2 className="text-xl font-bold text-white">
-                  Invite Client to Your Studio
+                  {t("trainerCareTeam.invite.title")}
                 </h2>
               </div>
 
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-white/80">Role</Label>
+                  <Label className="text-white/80">{t("trainerCareTeam.invite.roleLabel")}</Label>
                   <Select
                     value={role}
                     onValueChange={(v) => setRole(v as ProRole)}
@@ -362,12 +366,12 @@ export default function CareTeamPage() {
                   </Select>
                 </div>
                 <div>
-                  <Label className="text-white/80">Email</Label>
+                  <Label className="text-white/80">{t("trainerCareTeam.invite.emailLabel")}</Label>
                   <Input
                     type="email"
                     value={invEmail}
                     onChange={(e) => setInvEmail(e.target.value)}
-                    placeholder="client@email.com"
+                    placeholder={t("trainerCareTeam.invite.emailPlaceholder")}
                     autoComplete="off"
                     className="bg-black/40 text-white border-white/20 placeholder:text-white/40"
                     data-testid="input-invite-email"
@@ -382,7 +386,7 @@ export default function CareTeamPage() {
                 data-testid="button-send-invite"
               >
                 <UserPlus2 className="h-4 w-4 mr-2" />
-                Send Invite
+                {t("trainerCareTeam.invite.sendInvite")}
               </Button>
             </GlassCardContent>
           </GlassCard>
@@ -406,7 +410,7 @@ export default function CareTeamPage() {
       <QuickTourModal
         isOpen={quickTour.shouldShow}
         onClose={quickTour.closeTour}
-        title="Trainer Studio Guide"
+        title={t("trainerCareTeam.tourTitle")}
         steps={CARE_TEAM_TOUR_STEPS}
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />

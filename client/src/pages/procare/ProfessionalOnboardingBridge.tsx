@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiRequest } from "@/lib/queryClient";
 import { ArrowRight, CheckCircle2, User, GraduationCap, Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface CertStatus {
   phase1Complete: boolean;
@@ -88,6 +89,7 @@ export default function ProfessionalOnboardingBridge() {
 }
 
 function PersonalOnboardingStep({ onStart }: { onStart: () => void }) {
+  const { t } = useTranslation("procare");
   return (
     <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white flex flex-col">
       <div className="flex-1 px-4 pt-16 pb-32 max-w-lg mx-auto w-full">
@@ -96,18 +98,18 @@ function PersonalOnboardingStep({ onStart }: { onStart: () => void }) {
             <User className="w-8 h-8 text-orange-400" />
           </div>
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-orange-500/20 rounded-full border border-orange-500/30 mb-4">
-            <span className="text-xs font-semibold text-orange-300">Step 1 of 3</span>
+            <span className="text-xs font-semibold text-orange-300">{t("procare.bridge.step1Badge")}</span>
           </div>
           <h1 className="text-2xl font-black leading-tight mb-3">
-            Experience My Perfect Meals as a User
+            {t("procare.bridge.step1Title")}
           </h1>
           <p className="text-white/60 text-sm leading-relaxed max-w-xs">
-            Before guiding your clients, you'll complete your own personal My Perfect Meals profile.
-            This ensures you understand exactly what your clients experience.
+            {t("procare.bridge.step1Desc")}
           </p>
         </div>
 
         <div className="space-y-3 mb-8">
+          {/* i18n: leave for content team */}
           {[
             "Set up your personal nutrition profile",
             "Define your goals and dietary preferences",
@@ -134,7 +136,7 @@ function PersonalOnboardingStep({ onStart }: { onStart: () => void }) {
           onClick={onStart}
           className="w-full h-14 font-bold rounded-2xl bg-orange-600 text-white flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
         >
-          Set Up My Personal Profile
+          {t("procare.bridge.step1Button")}
           <ArrowRight className="w-5 h-5" />
         </button>
       </div>
@@ -143,6 +145,7 @@ function PersonalOnboardingStep({ onStart }: { onStart: () => void }) {
 }
 
 function CertPhase1Step({ onStart }: { onStart: () => void }) {
+  const { t } = useTranslation("procare");
   return (
     <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white flex flex-col">
       <div className="flex-1 px-4 pt-16 pb-32 max-w-lg mx-auto w-full">
@@ -153,10 +156,10 @@ function CertPhase1Step({ onStart }: { onStart: () => void }) {
           <div className="flex items-center gap-2 mb-4">
             <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500/20 rounded-full border border-emerald-500/30">
               <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-              <span className="text-xs font-semibold text-emerald-300">Personal Profile Complete</span>
+              <span className="text-xs font-semibold text-emerald-300">{t("procare.bridge.step2Title")}</span>
             </div>
           </div>
-          <p className="text-orange-300 text-sm font-semibold mb-2">Excellent.</p>
+          <p className="text-orange-300 text-sm font-semibold mb-2">{t("procare.bridge.step2Excellent")}</p>
           <h1 className="text-2xl font-black leading-tight mb-3">
             You've Experienced My Perfect Meals as a User
           </h1>
@@ -169,15 +172,15 @@ function CertPhase1Step({ onStart }: { onStart: () => void }) {
         <div className="p-4 rounded-2xl bg-black/30 border border-orange-500/20 mb-6">
           <div className="flex items-center gap-2 mb-3">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-orange-500/20 rounded-full border border-orange-500/30">
-              <span className="text-xs font-semibold text-orange-300">Step 2 of 3</span>
+              <span className="text-xs font-semibold text-orange-300">{t("procare.bridge.step2Badge")}</span>
             </div>
           </div>
-          <p className="text-sm font-bold text-white mb-2">Phase 1 — Platform Fundamentals</p>
+          <p className="text-sm font-bold text-white mb-2">{t("procare.bridge.step2Phase1Title")}</p>
           <p className="text-xs text-white/60 leading-relaxed mb-3">
-            Learn how to use every feature of the platform — client onboarding, meal builders,
-            AI personalization, nutrition protocols, and more.
+            {t("procare.bridge.step2Phase1Desc")}
           </p>
           <div className="space-y-2">
+            {/* i18n: leave for content team */}
             {[
               "Every major feature of the platform",
               "How to personalize nutrition for each client",
@@ -199,7 +202,7 @@ function CertPhase1Step({ onStart }: { onStart: () => void }) {
           onClick={onStart}
           className="w-full h-14 font-bold rounded-2xl bg-orange-600 text-white flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
         >
-          Begin Professional Certification
+          {t("procare.bridge.step2Button")}
           <ArrowRight className="w-5 h-5" />
         </button>
       </div>
@@ -208,6 +211,7 @@ function CertPhase1Step({ onStart }: { onStart: () => void }) {
 }
 
 function CertPhase2Step({ onStart }: { onStart: () => void }) {
+  const { t } = useTranslation("procare");
   return (
     <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white flex flex-col">
       <div className="flex-1 px-4 pt-16 pb-32 max-w-lg mx-auto w-full">
@@ -223,25 +227,25 @@ function CertPhase2Step({ onStart }: { onStart: () => void }) {
             </div>
           </div>
           <h1 className="text-2xl font-black leading-tight mb-3">
-            Congratulations! You've Mastered the Platform.
+            {t("procare.bridge.step3Title")}
           </h1>
           <p className="text-white/60 text-sm leading-relaxed max-w-xs">
-            Now let's learn how to build and grow your professional business using ProCare.
+            {t("procare.bridge.step3Desc")}
           </p>
         </div>
 
         <div className="p-4 rounded-2xl bg-black/30 border border-orange-500/20 mb-6">
           <div className="flex items-center gap-2 mb-3">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-orange-500/20 rounded-full border border-orange-500/30">
-              <span className="text-xs font-semibold text-orange-300">Step 3 of 3 — Final Step</span>
+              <span className="text-xs font-semibold text-orange-300">{t("procare.bridge.step3Badge")}</span>
             </div>
           </div>
-          <p className="text-sm font-bold text-white mb-2">Phase 2 — Business & ProCare Success</p>
+          <p className="text-sm font-bold text-white mb-2">{t("procare.bridge.step3Phase2Title")}</p>
           <p className="text-xs text-white/60 leading-relaxed mb-3">
-            Learn how to manage clients, grow your practice, and get the most from every professional
-            tool in the platform.
+            {t("procare.bridge.step3Phase2Desc")}
           </p>
           <div className="space-y-2">
+            {/* i18n: leave for content team */}
             {[
               "Managing clients and care plans",
               "Professional questionnaires",
@@ -264,7 +268,7 @@ function CertPhase2Step({ onStart }: { onStart: () => void }) {
           onClick={onStart}
           className="w-full h-14 font-bold rounded-2xl bg-orange-600 text-white flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
         >
-          Begin Phase 2 — Business & ProCare Success
+          {t("procare.bridge.step3Button")}
           <ArrowRight className="w-5 h-5" />
         </button>
       </div>

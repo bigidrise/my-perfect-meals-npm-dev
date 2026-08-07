@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { useLocation, useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -47,46 +48,9 @@ import ClinicalProtocolCard from "@/components/protocol/ClinicalProtocolCard";
 import { NutritionPersonalizationSummaryCard } from "@/components/protocol/NutritionPersonalizationSummaryCard";
 import ClinicalInterventionPanel from "@/components/pro/ClinicalInterventionPanel";
 
-const CLINICIAN_DASHBOARD_TOUR_STEPS: TourStep[] = [
-  {
-    icon: "1",
-    title: "Physician Clinical Workspace",
-    description:
-      "This is your clinical authority layer. You set medical flags, clinical context, and protocol assignments. The AI assembles your active protocols into a Protocol Envelope and enforces all of them on every meal this patient generates. Your assigned trainer coaches within the boundaries you establish here.",
-  },
-  {
-    icon: "2",
-    title: "Macro Targets",
-    description:
-      "Set protein, carbs, and fats for your patient. These targets frame the AI's meal generation. Clinical protocols shape ingredient selection and meal composition inside these numbers — they do not override your targets, but they ensure every meal is clinically safe within your prescribed framework.",
-  },
-  {
-    icon: "3",
-    title: "Medical Directives — Protocol Stack",
-    description:
-      "Each flag you activate adds a guidance block to the AI's Protocol Envelope for this patient. Cardiac adds sodium caps and saturated fat limits. Renal moderates protein. Metabolic Med reduces portions and boosts protein density. Multiple flags stack simultaneously — the AI enforces all of them together on every meal generated.",
-  },
-  {
-    icon: "4",
-    title: "Clinical Context",
-    description:
-      "Document diagnosis, clinical tags, and patient notes for comprehensive medical nutrition therapy. This context informs the AI and is visible to assigned trainers as read-only coaching guidance — giving them the coaching implications without exposing full clinical detail.",
-  },
-  {
-    icon: "5",
-    title: "Patient Meal Board",
-    description:
-      "View and edit your patient's weekly meal plan directly. All meals generated here respect every active clinical protocol in the Protocol Envelope. Add meals, remove items, or repeat a day across the week.",
-  },
-  {
-    icon: "6",
-    title: "Clinical Meal Builders",
-    description:
-      "Access protocol-specific builders — Diabetic, Metabolic Medication, and Anti-Inflammatory — for direct clinical meal generation. These builders apply the full Protocol Envelope: all active medical flags enforce simultaneously, including any secondary conditions like Cardiac, Thyroid, or Renal stacked on top of the primary builder.",
-  },
-];
 
 export default function ClinicianClientDashboard() {
+  const { t } = useTranslation("pro");
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [, params] = useRoute("/pro/clients/:id/clinician");
@@ -94,11 +58,39 @@ export default function ClinicianClientDashboard() {
 
   const quickTour = useQuickTour("clinician-client-dashboard");
 
+  const CLINICIAN_DASHBOARD_TOUR_STEPS: TourStep[] = [
+    {
+      icon: "1",
+      title: t("pro.clinicianDashboard.tour.step1Title"),
+      description: t("pro.clinicianDashboard.tour.step1Desc"),
+    },
+    {
+      icon: "2",
+      title: t("pro.clinicianDashboard.tour.step2Title"),
+      description: t("pro.clinicianDashboard.tour.step2Desc"),
+    },
+    {
+      icon: "3",
+      title: t("pro.clinicianDashboard.tour.step3Title"),
+      description: t("pro.clinicianDashboard.tour.step3Desc"),
+    },
+    {
+      icon: "4",
+      title: t("pro.clinicianDashboard.tour.step4Title"),
+      description: t("pro.clinicianDashboard.tour.step4Desc"),
+    },
+    {
+      icon: "5",
+      title: t("pro.clinicianDashboard.tour.step5Title"),
+      description: t("pro.clinicianDashboard.tour.step5Desc"),
+    },
+  ];
+
   const [client, setClient] = useState(() => proStore.getClient(clientId));
-  const [t, setT] = useState<Targets>(() => proStore.getTargets(clientId));
+  const [macros, setMacros] = useState<Targets>(() => proStore.getTargets(clientId));
   const [ctx, setCtx] = useState<ClinicalContext>(() => proStore.getContext(clientId));
   const [isDirty, setIsDirty] = useState(false);
-  const updateT = (next: Targets) => { setT(next); setIsDirty(true); };
+  const updateMacros = (next: Targets) => { setMacros(next); setIsDirty(true); };
   const updateCtx = (next: ClinicalContext) => { setCtx(next); setIsDirty(true); };
   const PHYSICIAN_BUILDER_KEYS = getBuilderKeys("physician");
   const [assignedBuilder, setAssignedBuilder] = useState<ProfessionalBuilderKey | undefined>(
@@ -112,10 +104,10 @@ export default function ClinicianClientDashboard() {
   const activeProtocolLabel = useMemo(() => {
     if (!assignedBuilder || !PROFESSIONAL_BUILDER_MAP[assignedBuilder]) return null;
     if (assignedBuilder === 'anti_inflammatory') {
-      return resolveClinicalProtocolLabel(t.flags);
+      return resolveClinicalProtocolLabel(macros.flags);
     }
     return PROFESSIONAL_BUILDER_MAP[assignedBuilder].label;
-  }, [assignedBuilder, t.flags]);
+  }, [assignedBuilder, macros.flags]);
 
   interface LabsSummary {
     a1c: number | null;
@@ -146,7 +138,7 @@ export default function ClinicianClientDashboard() {
   const resolvedClientUserId = client?.clientUserId || client?.userId || clientId;
 
   useEffect(() => {
-    setT(proStore.getTargets(clientId));
+    setMacros(proStore.getTargets(clientId));
     setCtx(proStore.getContext(clientId));
     const c = proStore.getClient(clientId);
     if (c) {
@@ -181,7 +173,7 @@ export default function ClinicianClientDashboard() {
     apiRequest(`/api/users/${uid}/macro-targets`)
       .then((data) => {
         if (!data || !data.hasTargets) return;
-        setT((prev) => ({
+        setMacros((prev) => ({
           ...prev,
           protein: data.protein_g || prev.protein,
           fat: data.fat_g || prev.fat,
@@ -231,7 +223,7 @@ export default function ClinicianClientDashboard() {
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
         if (data?.oncologySupportContext?.enabled) {
-          setT((prev) => ({ ...prev, flags: { ...prev.flags, oncologySupport: true } }));
+          setMacros((prev) => ({ ...prev, flags: { ...prev.flags, oncologySupport: true } }));
         }
       })
       .catch(() => {});
@@ -243,7 +235,7 @@ export default function ClinicianClientDashboard() {
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
         if (data?.glp1Active) {
-          setT((prev) => ({ ...prev, flags: { ...prev.flags, glp1: true } }));
+          setMacros((prev) => ({ ...prev, flags: { ...prev.flags, glp1: true } }));
         }
       })
       .catch(() => {});
@@ -253,12 +245,12 @@ export default function ClinicianClientDashboard() {
   }, [clientId]);
 
   const saveTargets = async () => {
-    proStore.setTargets(clientId, t);
+    proStore.setTargets(clientId, macros);
     const _uid = client?.clientUserId || client?.userId || clientId;
     ensureClientMapping(_uid, clientId);
 
-    const totalCarbs = (t.starchyCarbs || 0) + (t.fibrousCarbs || 0);
-    const totalCal = (t.protein * 4) + (totalCarbs * 4) + (t.fat * 9);
+    const totalCarbs = (macros.starchyCarbs || 0) + (macros.fibrousCarbs || 0);
+    const totalCal = (macros.protein * 4) + (totalCarbs * 4) + (macros.fat * 9);
     const dbUserId = client?.clientUserId || client?.userId;
 
     if (dbUserId) {
@@ -267,11 +259,11 @@ export default function ClinicianClientDashboard() {
           method: "POST",
           body: JSON.stringify({
             calories: totalCal,
-            protein_g: t.protein,
+            protein_g: macros.protein,
             carbs_g: totalCarbs,
-            fat_g: t.fat,
-            starchyCarbs_g: t.starchyCarbs,
-            fibrousCarbs_g: t.fibrousCarbs,
+            fat_g: macros.fat,
+            starchyCarbs_g: macros.starchyCarbs,
+            fibrousCarbs_g: macros.fibrousCarbs,
           }),
         }).catch((e: unknown) => {
           console.error("Failed to sync macro targets to database:", e);
@@ -287,11 +279,11 @@ export default function ClinicianClientDashboard() {
         await setMacroTargets(
           {
             calories: totalCal,
-            protein_g: t.protein,
+            protein_g: macros.protein,
             carbs_g: totalCarbs,
-            fat_g: t.fat,
-            starchyCarbs_g: t.starchyCarbs,
-            fibrousCarbs_g: t.fibrousCarbs,
+            fat_g: macros.fat,
+            starchyCarbs_g: macros.starchyCarbs,
+            fibrousCarbs_g: macros.fibrousCarbs,
           },
           dbUserId,
         );
@@ -308,10 +300,10 @@ export default function ClinicianClientDashboard() {
           headers: { "Content-Type": "application/json", ...getAuthHeaders() },
           credentials: "include",
           body: JSON.stringify({
-            enabled: !!(t.flags as Record<string, boolean> | undefined)?.oncologySupport,
+            enabled: !!(macros.flags as Record<string, boolean> | undefined)?.oncologySupport,
             symptoms: [],
             emphasis: {
-              highProteinNutrientDensity: !!(t.flags as Record<string, boolean> | undefined)?.oncologySupport,
+              highProteinNutrientDensity: !!(macros.flags as Record<string, boolean> | undefined)?.oncologySupport,
             },
           }),
         });
@@ -329,7 +321,7 @@ export default function ClinicianClientDashboard() {
           headers: { "Content-Type": "application/json", ...getAuthHeaders() },
           credentials: "include",
           body: JSON.stringify({
-            enabled: !!(t.flags as Record<string, boolean> | undefined)?.glp1,
+            enabled: !!(macros.flags as Record<string, boolean> | undefined)?.glp1,
           }),
         });
       } catch (e) {
@@ -342,7 +334,7 @@ export default function ClinicianClientDashboard() {
     }
     setIsDirty(false);
     toast({
-      title: "Targets saved",
+      title: t("pro.clinicianDashboard.saved"),
       description: "Macro targets updated successfully.",
     });
   };
@@ -399,11 +391,11 @@ export default function ClinicianClientDashboard() {
       }
       proStore.setContext(clientId, { ...ctx, followupDate: undefined, patientNote: undefined });
       fetchUpcomingCheckIns();
-      toast({ title: "Follow-up scheduled", description: `Follow-up set for ${label}. Patient has been notified.` });
+      toast({ title: t("pro.clinicianDashboard.followUpScheduled"), description: `Follow-up set for ${label}. Patient has been notified.` });
       setCtx({ ...ctx, followupDate: undefined, patientNote: undefined });
     } catch (err) {
       toast({
-        title: "Scheduling failed",
+        title: t("pro.clinicianDashboard.schedulingFailed"),
         description: err instanceof Error ? err.message : "Could not schedule follow-up. Please try again.",
         variant: "destructive",
       });
@@ -462,9 +454,9 @@ export default function ClinicianClientDashboard() {
       });
       if (!res.ok) throw new Error("Failed to cancel");
       setUpcomingCheckIns((prev) => prev.filter((ci) => ci.id !== id));
-      toast({ title: "Check-in cancelled", description: "The scheduled check-in has been removed." });
+      toast({ title: t("pro.clinicianDashboard.checkInCancelled"), description: "The scheduled check-in has been removed." });
     } catch {
-      toast({ title: "Error", description: "Could not cancel check-in.", variant: "destructive" });
+      toast({ title: "Error", description: t("pro.clinicianDashboard.checkInCancelFailed"), variant: "destructive" });
     }
   };
 
@@ -547,12 +539,12 @@ export default function ClinicianClientDashboard() {
             <span className="font-medium text-white/70">Active Clinical Supports:</span>
             {[
               { key: "anti-inflammatory", label: "Anti-Inflammatory", isActive: true,                        activeColor: "text-green-400",   dotColor: "bg-green-400",   dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"   },
-              { key: "cardiac",            label: "Cardiac Health",    isActive: !!t?.flags?.cardiac          || labDerivedConditions.includes('heart-failure'),    activeColor: "text-red-400",     dotColor: "bg-red-400",     dotGlow: "shadow-[0_0_4px_rgba(248,113,113,0.8)]"  },
-              { key: "kidney-disease",     label: "Kidney Disease",    isActive: !!t?.flags?.renal            || labDerivedConditions.includes('kidney-disease'),   activeColor: "text-sky-400",     dotColor: "bg-sky-400",     dotGlow: "shadow-[0_0_4px_rgba(56,189,248,0.8)]"   },
-              { key: "liver-support",      label: "Liver Support",     isActive: !!t?.flags?.liverSupport     || labDerivedConditions.includes('liver-support'),    activeColor: "text-emerald-400", dotColor: "bg-emerald-400", dotGlow: "shadow-[0_0_4px_rgba(52,211,153,0.8)]"   },
-              { key: "liver-disease",      label: "Liver Disease",     isActive: !!t?.flags?.liverDisease     || labDerivedConditions.includes('liver-disease'),    activeColor: "text-amber-400",   dotColor: "bg-amber-400",   dotGlow: "shadow-[0_0_4px_rgba(251,191,36,0.8)]"   },
-              { key: "oncology-support",   label: "Oncology Support",  isActive: !!t?.flags?.oncologySupport  || labDerivedConditions.includes('oncology-support'), activeColor: "text-pink-400",   dotColor: "bg-pink-400",   dotGlow: "shadow-[0_0_4px_rgba(244,114,182,0.9)]" },
-              { key: "thyroid-support",    label: "Thyroid Support",   isActive: !!t?.flags?.thyroidSupport,                                                                                                                                    activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
+              { key: "cardiac",            label: "Cardiac Health",    isActive: !!macros?.flags?.cardiac          || labDerivedConditions.includes('heart-failure'),    activeColor: "text-red-400",     dotColor: "bg-red-400",     dotGlow: "shadow-[0_0_4px_rgba(248,113,113,0.8)]"  },
+              { key: "kidney-disease",     label: "Kidney Disease",    isActive: !!macros?.flags?.renal            || labDerivedConditions.includes('kidney-disease'),   activeColor: "text-sky-400",     dotColor: "bg-sky-400",     dotGlow: "shadow-[0_0_4px_rgba(56,189,248,0.8)]"   },
+              { key: "liver-support",      label: "Liver Support",     isActive: !!macros?.flags?.liverSupport     || labDerivedConditions.includes('liver-support'),    activeColor: "text-emerald-400", dotColor: "bg-emerald-400", dotGlow: "shadow-[0_0_4px_rgba(52,211,153,0.8)]"   },
+              { key: "liver-disease",      label: "Liver Disease",     isActive: !!macros?.flags?.liverDisease     || labDerivedConditions.includes('liver-disease'),    activeColor: "text-amber-400",   dotColor: "bg-amber-400",   dotGlow: "shadow-[0_0_4px_rgba(251,191,36,0.8)]"   },
+              { key: "oncology-support",   label: "Oncology Support",  isActive: !!macros?.flags?.oncologySupport  || labDerivedConditions.includes('oncology-support'), activeColor: "text-pink-400",   dotColor: "bg-pink-400",   dotGlow: "shadow-[0_0_4px_rgba(244,114,182,0.9)]" },
+              { key: "thyroid-support",    label: "Thyroid Support",   isActive: !!macros?.flags?.thyroidSupport,                                                                                                                                    activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
               { key: "hormone-optimization", label: "Hormone Opt.",  isActive: !!((client as any)?.specialtyConditions as string[] | undefined)?.includes("hormone-optimization"), activeColor: "text-orange-400", dotColor: "bg-orange-400", dotGlow: "shadow-[0_0_4px_rgba(251,146,60,0.9)]" },
             ].map(({ key, label, isActive, activeColor, dotColor, dotGlow }) => (
               <span key={key} className={`flex items-center gap-1 ${isActive ? `${activeColor} font-semibold` : "text-white/25"}`}>
@@ -658,27 +650,27 @@ export default function ClinicianClientDashboard() {
         <Card className="bg-white/5 border border-white/20">
           <CardHeader>
             <CardTitle className="text-white/90 flex items-center gap-2 text-lg font-semibold">
-              <Settings className="h-5 w-5" /> Macro Targets
+              <Settings className="h-5 w-5" /> {t("pro.clinicianDashboard.macroTargets")}
             </CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div>
-              <label className="text-sm text-white/70 mb-1 block">Protein (g)</label>
+              <label className="text-sm text-white/70 mb-1 block">{t("pro.clinicianDashboard.protein")} (g)</label>
               <Input
                 inputMode="numeric"
                 className="bg-black/30 border-white/30 text-white"
-                value={t.protein || ""}
-                onChange={(e) => updateT({ ...t, protein: e.target.value === "" ? 0 : Number(e.target.value) })}
+                value={macros.protein || ""}
+                onChange={(e) => updateMacros({ ...macros, protein: e.target.value === "" ? 0 : Number(e.target.value) })}
                 placeholder="protein"
               />
             </div>
             <div>
-              <label className="text-sm text-white/70 mb-1 block">Starchy Carbs (g)</label>
+              <label className="text-sm text-white/70 mb-1 block">{t("pro.clinicianDashboard.carbs")} (g)</label>
               <Input
                 inputMode="numeric"
                 className="bg-black/30 border-white/30 text-white"
-                value={t.starchyCarbs || ""}
-                onChange={(e) => updateT({ ...t, starchyCarbs: e.target.value === "" ? 0 : Number(e.target.value) })}
+                value={macros.starchyCarbs || ""}
+                onChange={(e) => updateMacros({ ...macros, starchyCarbs: e.target.value === "" ? 0 : Number(e.target.value) })}
                 placeholder="starchy carbs"
               />
             </div>
@@ -687,18 +679,18 @@ export default function ClinicianClientDashboard() {
               <Input
                 inputMode="numeric"
                 className="bg-black/30 border-white/30 text-white"
-                value={t.fibrousCarbs || ""}
-                onChange={(e) => updateT({ ...t, fibrousCarbs: e.target.value === "" ? 0 : Number(e.target.value) })}
+                value={macros.fibrousCarbs || ""}
+                onChange={(e) => updateMacros({ ...macros, fibrousCarbs: e.target.value === "" ? 0 : Number(e.target.value) })}
                 placeholder="fibrous carbs"
               />
             </div>
             <div>
-              <label className="text-sm text-white/70 mb-1 block">Fat (g)</label>
+              <label className="text-sm text-white/70 mb-1 block">{t("pro.clinicianDashboard.fat")} (g)</label>
               <Input
                 inputMode="numeric"
                 className="bg-black/30 border-white/30 text-white"
-                value={t.fat || ""}
-                onChange={(e) => updateT({ ...t, fat: e.target.value === "" ? 0 : Number(e.target.value) })}
+                value={macros.fat || ""}
+                onChange={(e) => updateMacros({ ...macros, fat: e.target.value === "" ? 0 : Number(e.target.value) })}
                 placeholder="fat"
               />
             </div>
@@ -716,12 +708,12 @@ export default function ClinicianClientDashboard() {
                   { key: "lowSodium",      label: "Low-Sodium"       },
                   { key: "postBariatric",  label: "Post-Bariatric"   },
                 ] as const).map(({ key, label }) => {
-                  const isOn = !!(t.flags as Record<string, boolean> | undefined)?.[key];
+                  const isOn = !!(macros.flags as Record<string, boolean> | undefined)?.[key];
                   return (
                     <button
                       key={key}
                       type="button"
-                      onClick={() => updateT({ ...t, flags: { ...t.flags, [key]: !isOn } })}
+                      onClick={() => updateMacros({ ...macros, flags: { ...macros.flags, [key]: !isOn } })}
                       className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 active:scale-[0.97] border ${
                         isOn
                           ? "bg-teal-600 border-teal-400 text-white"
@@ -739,11 +731,11 @@ export default function ClinicianClientDashboard() {
                 <p className="text-xs text-white/50 mb-2">Physician-Initiated Protocol</p>
                 <div className="flex flex-wrap items-center gap-3">
                   {(() => {
-                    const isOn = !!(t.flags as Record<string, boolean> | undefined)?.oncologySupport;
+                    const isOn = !!(macros.flags as Record<string, boolean> | undefined)?.oncologySupport;
                     return (
                       <button
                         type="button"
-                        onClick={() => updateT({ ...t, flags: { ...t.flags, oncologySupport: !isOn } })}
+                        onClick={() => updateMacros({ ...macros, flags: { ...macros.flags, oncologySupport: !isOn } })}
                         className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 active:scale-[0.97] border ${
                           isOn
                             ? "bg-rose-600 border-rose-400 text-white"
@@ -756,11 +748,11 @@ export default function ClinicianClientDashboard() {
                     );
                   })()}
                   {(() => {
-                    const isOn = !!(t.flags as Record<string, boolean> | undefined)?.glp1;
+                    const isOn = !!(macros.flags as Record<string, boolean> | undefined)?.glp1;
                     return (
                       <button
                         type="button"
-                        onClick={() => updateT({ ...t, flags: { ...t.flags, glp1: !isOn } })}
+                        onClick={() => updateMacros({ ...macros, flags: { ...macros.flags, glp1: !isOn } })}
                         className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 active:scale-[0.97] border ${
                           isOn
                             ? "bg-orange-600 border-orange-400 text-white"
@@ -774,10 +766,10 @@ export default function ClinicianClientDashboard() {
                   })()}
                 </div>
                 <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1.5">
-                  {!!(t.flags as Record<string, boolean> | undefined)?.oncologySupport && (
+                  {!!(macros.flags as Record<string, boolean> | undefined)?.oncologySupport && (
                     <span className="text-xs text-rose-300/80">Oncology overlay active — save to persist</span>
                   )}
-                  {!!(t.flags as Record<string, boolean> | undefined)?.glp1 && (
+                  {!!(macros.flags as Record<string, boolean> | undefined)?.glp1 && (
                     <span className="text-xs text-orange-300/80">Metabolic Med protocol active — stacks with diabetic builder on save</span>
                   )}
                 </div>
@@ -794,9 +786,9 @@ export default function ClinicianClientDashboard() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
                   type="button"
-                  onClick={() => updateT({ ...t, starchStrategy: 'one' })}
+                  onClick={() => updateMacros({ ...macros, starchStrategy: 'one' })}
                   className={`p-4 rounded-xl border text-left transition-all ${
-                    (t.starchStrategy || 'one') === 'one'
+                    (macros.starchStrategy || 'one') === 'one'
                       ? 'bg-orange-600/30 border-orange-400'
                       : 'bg-black/30 border-white/20'
                   }`}
@@ -804,15 +796,15 @@ export default function ClinicianClientDashboard() {
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-lg">🥔</span>
                     <span className="font-medium text-md text-white">One Starch Meal</span>
-                    {(t.starchStrategy || 'one') === 'one' && <Check className="h-4 w-4 text-orange-400 ml-auto" />}
+                    {(macros.starchStrategy || 'one') === 'one' && <Check className="h-4 w-4 text-orange-400 ml-auto" />}
                   </div>
                   <p className="text-xs text-white/70">All starch in one meal. Best for appetite control and fat loss.</p>
                 </button>
                 <button
                   type="button"
-                  onClick={() => updateT({ ...t, starchStrategy: 'flex' })}
+                  onClick={() => updateMacros({ ...macros, starchStrategy: 'flex' })}
                   className={`p-4 rounded-xl border text-left transition-all ${
-                    t.starchStrategy === 'flex'
+                    macros.starchStrategy === 'flex'
                       ? 'bg-yellow-600/30 border-yellow-400'
                       : 'bg-black/30 border-white/20'
                   }`}
@@ -820,7 +812,7 @@ export default function ClinicianClientDashboard() {
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-lg">🥗</span>
                     <span className="font-medium text-md text-white">Flex Split</span>
-                    {t.starchStrategy === 'flex' && <Check className="h-4 w-4 text-yellow-400 ml-auto" />}
+                    {macros.starchStrategy === 'flex' && <Check className="h-4 w-4 text-yellow-400 ml-auto" />}
                   </div>
                   <p className="text-xs text-white/70">Divide starch across two meals for flexibility.</p>
                 </button>
@@ -830,21 +822,21 @@ export default function ClinicianClientDashboard() {
             <div className="col-span-full mt-4">
               <ClinicalAdvisoryDrawer
                 advisory={ctx.advisory}
-                targets={t}
+                targets={macros}
                 onAdvisoryChange={(advisory: ClinicalAdvisory) => {
                   updateCtx({ ...ctx, advisory });
                   proStore.setContext(clientId, { ...ctx, advisory });
                 }}
                 onApplySuggestions={(deltas) => {
-                  const totalCarbs = (t.starchyCarbs || 0) + (t.fibrousCarbs || 0);
+                  const totalCarbs = (macros.starchyCarbs || 0) + (macros.fibrousCarbs || 0);
                   const newTotalCarbs = Math.max(0, totalCarbs + deltas.carbs);
-                  const starchyRatio = totalCarbs > 0 ? (t.starchyCarbs || 0) / totalCarbs : 0.5;
-                  updateT({
-                    ...t,
-                    protein: Math.max(0, (t.protein || 0) + deltas.protein),
+                  const starchyRatio = totalCarbs > 0 ? (macros.starchyCarbs || 0) / totalCarbs : 0.5;
+                  updateMacros({
+                    ...macros,
+                    protein: Math.max(0, (macros.protein || 0) + deltas.protein),
                     starchyCarbs: Math.round(newTotalCarbs * starchyRatio),
                     fibrousCarbs: Math.round(newTotalCarbs * (1 - starchyRatio)),
-                    fat: Math.max(0, (t.fat || 0) + deltas.fat),
+                    fat: Math.max(0, (macros.fat || 0) + deltas.fat),
                   });
                   toast({ title: "Advisory Applied", description: "Macro targets adjusted. Review and save when ready." });
                 }}
@@ -859,19 +851,19 @@ export default function ClinicianClientDashboard() {
             )}
             <div className="col-span-full flex gap-2">
               <Button onClick={saveTargets} className={`border border-white/20 text-white font-medium px-8 py-3 shadow-2xl transition-all duration-300 active:scale-[0.98] flex-1 ${isDirty ? "bg-lime-600 ring-2 ring-orange-400 shadow-[0_0_16px_rgba(251,146,60,0.55)] animate-pulse" : "bg-lime-600"}`}>
-                Save Targets &amp; Directives
+                {t("pro.clinicianDashboard.save")}
               </Button>
               <Button
                 onClick={async () => {
-                  const totalCarbs = (t.starchyCarbs || 0) + (t.fibrousCarbs || 0);
-                  const calcKcal = (t.protein || 0) * 4 + totalCarbs * 4 + (t.fat || 0) * 9;
+                  const totalCarbs = (macros.starchyCarbs || 0) + (macros.fibrousCarbs || 0);
+                  const calcKcal = (macros.protein || 0) * 4 + totalCarbs * 4 + (macros.fat || 0) * 9;
                   if (calcKcal < 100) {
                     toast({ title: "Cannot Set Empty Macros", description: "Please set macro targets first", variant: "destructive" });
                     return;
                   }
                   try {
                     const { setMacroTargets } = await import("@/lib/dailyLimits");
-                    await setMacroTargets({ calories: calcKcal, protein_g: t.protein, carbs_g: totalCarbs, fat_g: t.fat }, clientId);
+                    await setMacroTargets({ calories: calcKcal, protein_g: macros.protein, carbs_g: totalCarbs, fat_g: macros.fat }, clientId);
                     const { linkUserToClient } = await import("@/lib/macroResolver");
                     linkUserToClient(clientId, clientId);
                     toast({ title: "Macros Set to Biometrics!", description: `${calcKcal} kcal physician-set targets saved for ${client?.name}` });
@@ -1180,7 +1172,7 @@ export default function ClinicianClientDashboard() {
               className="bg-blue-600 border border-blue-400/30 text-white active:scale-[0.98]"
             >
               <CalendarCheck className="h-4 w-4 mr-2" />
-              Schedule Follow-Up
+              {t("pro.clinicianDashboard.scheduleFollowUpBtn")}
             </Button>
           </CardContent>
         </Card>
@@ -1189,7 +1181,7 @@ export default function ClinicianClientDashboard() {
       <QuickTourModal
         isOpen={quickTour.shouldShow}
         onClose={quickTour.closeTour}
-        title="Physicians Clinic Guide"
+        title={t("pro.clinicianDashboard.tourTitle")}
         steps={CLINICIAN_DASHBOARD_TOUR_STEPS}
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />

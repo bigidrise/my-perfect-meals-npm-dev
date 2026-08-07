@@ -413,7 +413,7 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
 
     {
       title: t("menu.restorePurchases"),
-      description: "Restore an active subscription on this device",
+      description: t("restoreDesc"),
       icon: RefreshCcw,
       action: "restorePurchases",
       testId: "menu-restore-purchases",
@@ -421,16 +421,16 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
 
     // Legal
     {
-      title: "Privacy & Security",
-      description: "Manage your privacy settings",
+      title: t("privacySecurity"),
+      description: t("managePrivacy"),
       icon: Shield,
       route: "/privacy",
       testId: "menu-privacy",
     },
 
     {
-      title: "Terms of Service",
-      description: "Review our terms and conditions",
+      title: t("termsOfService"),
+      description: t("reviewTerms"),
       icon: FileText,
       route: "/terms",
       testId: "menu-terms",
@@ -444,7 +444,7 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
         <SheetHeader>
           <SheetTitle className="text-white">{t("shell.myHub")}</SheetTitle>
           <SheetDescription className="text-white/70">
-            Your personal space
+            {t("yourPersonalSpace")}
           </SheetDescription>
         </SheetHeader>
 
@@ -457,21 +457,21 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
 
           {/* App Version — web shows update awareness, native shows quiet date only */}
           <div className="mt-3 flex items-center justify-between gap-2">
-            <span className="text-[11px] text-green-400 font-semibold">App version</span>
+            <span className="text-[11px] text-green-400 font-semibold">{t("appVersion")}</span>
             {isNative ? (
               <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-lime-500/20 border border-lime-500/50 text-lime-300">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-lime-400" />
-                Up to date
+                {t("upToDate")}
               </span>
             ) : hasUpdate ? (
               <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-amber-500/20 border border-amber-500/40 text-amber-300">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                Update available
+                {t("updateAvailable")}
               </span>
             ) : (
               <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-lime-500/15 border border-lime-500/30 text-lime-400">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-lime-400" />
-                Up to date
+                {t("upToDate")}
               </span>
             )}
           </div>
@@ -508,7 +508,7 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
 
         {/* Font Size Selector */}
         <div className="mt-4 p-4 bg-black/30 backdrop-blur-sm border border-white/10 rounded-xl">
-          <p className="text-sm text-white/70 mb-3">Text Size</p>
+          <p className="text-sm text-white/70 mb-3">{t("textSize")}</p>
           <div className="flex gap-2">
             {(["standard", "large", "xl"] as const).map((size) => (
               <button
@@ -528,7 +528,7 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
 
         {/* Narration Speed Selector */}
         <div className="mt-3 p-4 bg-black/30 backdrop-blur-sm border border-white/10 rounded-xl">
-          <p className="text-sm text-white/70 mb-3">Narration Speed</p>
+          <p className="text-sm text-white/70 mb-3">{t("narrationSpeed")}</p>
           <div className="flex gap-2">
             {(["0.75", "1.0", "1.25", "1.5"] as const).map((speed) => (
               <button

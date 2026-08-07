@@ -4902,7 +4902,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
-
   app.post("/api/meals/potluck", async (req, res) => {
     try {
       const { userId, servingsNeeded, eventType, selectedDishName } = req.body;
@@ -7204,7 +7203,16 @@ Provide a single exceptional meal recommendation in JSON format with the followi
       ).limit(1);
 
       if (existing.length > 0) {
-        await db.delete(savedMealsTable).where(eq(savedMealsTable.id, existing[0].id));
+        const removedId = existing[0].id;
+        // Best-effort: remove translations (non-fatal if table not yet created)
+        try {
+          await db.execute(sql`
+            DELETE FROM meal_translations WHERE saved_meal_id = ${removedId}::uuid
+          `);
+        } catch (txErr: any) {
+          console.warn("[savedMeals/toggle] Translation cleanup skipped:", txErr.message);
+        }
+        await db.delete(savedMealsTable).where(eq(savedMealsTable.id, removedId));
         return res.json({ saved: false, id: null });
       }
 
@@ -7426,15 +7434,67 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   app.delete("/api/saved-meals/:id", requireAuth, requireEssentialAccess, async (req, res) => {
     try {
       const userId = (req as AuthenticatedRequest).authUser.id;
+      const mealId = req.params.id;
 
-      await db.delete(savedMealsTable).where(
-        and(eq(savedMealsTable.id, req.params.id), eq(savedMealsTable.userId, String(userId)))
-      );
+      // Verify the meal belongs to this user before deleting
+      const [existing] = await db
+        .select({ id: savedMealsTable.id })
+        .from(savedMealsTable)
+        .where(and(eq(savedMealsTable.id, mealId), eq(savedMealsTable.userId, String(userId))))
+        .limit(1);
+
+      if (!existing) {
+        // Nothing to delete (or not owned by user) — still return success
+        return res.json({ success: true });
+      }
+
+      // Best-effort: remove translations (non-fatal if table not yet created)
+      try {
+        await db.execute(sql`
+          DELETE FROM meal_translations WHERE saved_meal_id = ${mealId}::uuid
+        `);
+      } catch (txErr: any) {
+        console.warn("[savedMeals/delete] Translation cleanup skipped:", txErr.message);
+      }
+
+      // Delete the meal itself
+      await db.delete(savedMealsTable).where(eq(savedMealsTable.id, mealId));
 
       res.json({ success: true });
     } catch (error) {
       console.error("Error deleting saved meal:", error);
       res.status(500).json({ error: "Failed to delete saved meal" });
+    }
+  });
+
+  // ── Saved-meal translation (content translation layer, not i18n) ───────────
+  // GET  /api/saved-meals/:id/translation?locale=zh
+  //   → Returns cached translation (instant) or generates + caches on first call.
+  //   → 204 when locale is English — no translation needed.
+  //   → 403 if the meal belongs to another user.
+  app.get("/api/saved-meals/:id/translation", requireAuth, async (req, res) => {
+    const locale = ((req.query.locale as string) || "").split("-")[0].toLowerCase();
+    if (!locale || locale === "en") return res.status(204).send();
+
+    try {
+      const userId = (req as AuthenticatedRequest).authUser.id;
+      const { id } = req.params;
+
+      const [meal] = await db
+        .select({ title: savedMealsTable.title, mealData: savedMealsTable.mealData, userId: savedMealsTable.userId })
+        .from(savedMealsTable)
+        .where(eq(savedMealsTable.id, id))
+        .limit(1);
+
+      if (!meal) return res.status(404).json({ error: "Meal not found" });
+      if (meal.userId !== String(userId)) return res.status(403).json({ error: "Forbidden" });
+
+      const { translateMeal } = await import("./services/mealTranslationService");
+      const translation = await translateMeal(id, locale, meal.title, meal.mealData);
+      return res.json(translation);
+    } catch (err: any) {
+      console.error("[meal-translation] GET error:", err.message);
+      return res.status(500).json({ error: "Translation failed" });
     }
   });
 

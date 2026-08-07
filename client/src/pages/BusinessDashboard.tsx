@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
@@ -42,31 +43,6 @@ import {
   HelpCircle,
 } from "lucide-react";
 import { FeatureUpgradeModal } from "@/components/modals/FeatureUpgradeModal";
-
-const ROLE_OPTIONS = [
-  { value: "coach", label: "Coach" },
-  { value: "trainer", label: "Trainer" },
-  { value: "physician", label: "Physician" },
-  { value: "staff", label: "Staff" },
-];
-
-const POLICY_OPTIONS = [
-  {
-    value: "org_only",
-    label: "Organization Clients Only",
-    description: "Members may not take personal clients outside this organization.",
-  },
-  {
-    value: "allowed_with_disclosure",
-    label: "Personal Clients Allowed — With Disclosure",
-    description: "Members may have personal clients but must disclose the relationship to you.",
-  },
-  {
-    value: "allowed",
-    label: "Personal Clients Allowed",
-    description: "Members may freely maintain personal clients without restriction.",
-  },
-];
 
 interface BusinessData {
   business: {
@@ -127,6 +103,32 @@ export default function BusinessDashboard() {
   const { user, refreshUser } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { t } = useTranslation("businessDashboard");
+
+  const ROLE_OPTIONS = [
+    { value: "coach", label: t("businessDashboard.roles.coach") },
+    { value: "trainer", label: t("businessDashboard.roles.trainer") },
+    { value: "physician", label: t("businessDashboard.roles.physician") },
+    { value: "staff", label: t("businessDashboard.roles.staff") },
+  ];
+
+  const POLICY_OPTIONS = [
+    {
+      value: "org_only",
+      label: t("businessDashboard.policies.orgOnly"),
+      description: t("businessDashboard.policies.orgOnlyDesc"),
+    },
+    {
+      value: "allowed_with_disclosure",
+      label: t("businessDashboard.policies.withDisclosure"),
+      description: t("businessDashboard.policies.withDisclosureDesc"),
+    },
+    {
+      value: "allowed",
+      label: t("businessDashboard.policies.free"),
+      description: t("businessDashboard.policies.freeDesc"),
+    },
+  ];
 
   const params = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
   const fromCheckout = params.get("checkout") === "success";
@@ -246,13 +248,13 @@ export default function BusinessDashboard() {
       const data = await res.json();
       if (!res.ok) {
         setOrgPolicies(orgPolicies); // revert on error
-        toast({ title: "Could not save policy", description: data.error, variant: "destructive" });
+        toast({ title: t("businessDashboard.errors.couldNotSavePolicy"), description: data.error, variant: "destructive" });
         return;
       }
-      toast({ title: "Policy saved", description: `Organization policy updated successfully.` });
+      toast({ title: t("businessDashboard.success.policySaved"), description: t("businessDashboard.success.policyUpdated") });
     } catch {
       setOrgPolicies(orgPolicies);
-      toast({ title: "Error", description: "Could not save policy.", variant: "destructive" });
+      toast({ title: "Error", description: t("businessDashboard.errors.policyError"), variant: "destructive" });
     } finally {
       setSavingOrgPolicies(false);
     }
@@ -269,13 +271,13 @@ export default function BusinessDashboard() {
       });
       const data = await res.json();
       if (!res.ok) {
-        toast({ title: "Could not save policy", description: data.error, variant: "destructive" });
+        toast({ title: t("businessDashboard.errors.couldNotSavePolicy"), description: data.error, variant: "destructive" });
         return;
       }
-      toast({ title: "Policy updated", description: "Your client ownership policy has been saved." });
+      toast({ title: "Policy updated", description: t("businessDashboard.success.policyUpdatedClient") });
       fetchData();
     } catch {
-      toast({ title: "Error", description: "Could not save policy.", variant: "destructive" });
+      toast({ title: "Error", description: t("businessDashboard.errors.policyError"), variant: "destructive" });
     } finally {
       setSavingPolicy(false);
     }
@@ -374,7 +376,7 @@ export default function BusinessDashboard() {
 
   const handleSaveSetup = async () => {
     if (setupName.trim().length < 2) {
-      toast({ title: "Name too short", description: "Enter at least 2 characters.", variant: "destructive" });
+      toast({ title: t("businessDashboard.errors.nameTooShort"), description: t("businessDashboard.errors.enterTwoChars"), variant: "destructive" });
       return;
     }
     setSavingSetup(true);
@@ -392,7 +394,7 @@ export default function BusinessDashboard() {
         window.history.replaceState({}, "", "/business-dashboard");
       }
     } catch {
-      toast({ title: "Error", description: "Could not save. Please try again.", variant: "destructive" });
+      toast({ title: "Error", description: t("businessDashboard.errors.couldNotSave"), variant: "destructive" });
     } finally {
       setSavingSetup(false);
     }
@@ -400,7 +402,7 @@ export default function BusinessDashboard() {
 
   const handleInvite = async () => {
     if (!inviteEmail.includes("@")) {
-      toast({ title: "Invalid email", description: "Please enter a valid email address.", variant: "destructive" });
+      toast({ title: t("businessDashboard.errors.invalidEmail"), description: t("businessDashboard.errors.enterValidEmail"), variant: "destructive" });
       return;
     }
     setInviteLoading(true);
@@ -413,10 +415,10 @@ export default function BusinessDashboard() {
       });
       const json = await res.json();
       if (!res.ok) {
-        toast({ title: "Invite failed", description: json.error, variant: "destructive" });
+        toast({ title: t("businessDashboard.errors.inviteFailed"), description: json.error, variant: "destructive" });
         return;
       }
-      toast({ title: "Invitation sent!", description: `${inviteEmail} will receive an email with a link to join.` });
+      toast({ title: t("businessDashboard.success.invitationSent"), description: `${inviteEmail} will receive an email with a link to join.` });
       setInviteOpen(false);
       setInviteEmail("");
       setInviteRole("staff");
@@ -471,14 +473,14 @@ export default function BusinessDashboard() {
       });
       const json = await res.json();
       if (!res.ok) {
-        toast({ title: "Invite failed", description: json.error, variant: "destructive" });
+        toast({ title: t("businessDashboard.errors.inviteFailed"), description: json.error, variant: "destructive" });
         return;
       }
       const link: string = json.inviteLink;
       const programLabel = clientProgramName.trim() || "My Perfect Meals Complimentary Access";
 
       if (deliveryMethod === "email") {
-        toast({ title: "Invitation sent!", description: `${clientEmail} will receive an email.` });
+        toast({ title: t("businessDashboard.success.invitationSent"), description: `${clientEmail} will receive an email.` });
       } else if (deliveryMethod === "link") {
         await navigator.clipboard.writeText(link);
         toast({ title: "Link copied!", description: "Share this link with your client." });
@@ -597,11 +599,11 @@ export default function BusinessDashboard() {
         <Loader2 className="w-10 h-10 text-orange-400 animate-spin mb-4" />
         {polling && fromCheckout ? (
           <>
-            <h2 className="text-white text-lg font-bold mb-1">Setting up your business account…</h2>
-            <p className="text-white/50 text-sm">Confirming payment and creating your team. This takes just a moment.</p>
+            <h2 className="text-white text-lg font-bold mb-1">{t("businessDashboard.settingUp")}</h2>
+            <p className="text-white/50 text-sm">{t("businessDashboard.confirmingPayment")}</p>
           </>
         ) : (
-          <p className="text-white/50 text-sm">Loading…</p>
+          <p className="text-white/50 text-sm">{t("businessDashboard.loading")}</p>
         )}
       </div>
     );
@@ -612,7 +614,7 @@ export default function BusinessDashboard() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-black/80 via-orange-900/60 to-black/80 flex flex-col items-center justify-center px-4 text-center">
         <Building2 className="w-14 h-14 text-orange-400 mb-4" />
-        <h2 className="text-white text-xl font-bold mb-2">No Business Account Found</h2>
+        <h2 className="text-white text-xl font-bold mb-2">{t("businessDashboard.noBusinessFound")}</h2>
         <p className="text-white/60 text-sm mb-6 max-w-xs">
           A business account is created automatically when you purchase an Organization plan.
         </p>
@@ -641,8 +643,8 @@ export default function BusinessDashboard() {
                 <ChevronLeft className="w-5 h-5" />
               </button>
               <div>
-                <h1 className="text-white font-bold text-base leading-tight">My Business Team</h1>
-                <p className="text-white/50 text-xs">Organization Member</p>
+                <h1 className="text-white font-bold text-base leading-tight">{t("businessDashboard.title")}</h1>
+                <p className="text-white/50 text-xs">{t("businessDashboard.orgMember")}</p>
               </div>
             </div>
           </div>
@@ -659,24 +661,24 @@ export default function BusinessDashboard() {
             </p>
             <div className="flex items-center justify-center gap-2 mt-3">
               <CheckCircle className="w-4 h-4 text-green-400" />
-              <span className="text-green-300 text-sm font-medium">Organization Access Active</span>
+              <span className="text-green-300 text-sm font-medium">{t("businessDashboard.orgAccessActive")}</span>
             </div>
           </div>
 
           {/* Membership details */}
           <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-white/50 text-sm">Role</span>
+              <span className="text-white/50 text-sm">{t("businessDashboard.role")}</span>
               <Badge className="bg-orange-600/80 text-white border-0 text-xs">{roleLabel}</Badge>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-white/50 text-sm">Access</span>
+              <span className="text-white/50 text-sm">{t("businessDashboard.access")}</span>
               <span className="text-green-400 text-sm font-medium flex items-center gap-1">
                 <CheckCircle className="w-3.5 h-3.5" /> Organization Access
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-white/50 text-sm">Joined</span>
+              <span className="text-white/50 text-sm">{t("businessDashboard.joined")}</span>
               <span className="text-white/70 text-sm">
                 {new Date(membership.joinedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
               </span>
@@ -690,7 +692,7 @@ export default function BusinessDashboard() {
             </h3>
             <p className="text-white/70 text-sm leading-relaxed">
               Now that you're officially part of the team, your first step is to complete the{" "}
-              <span className="text-white font-semibold">My Perfect Meals Academy</span>. The Academy walks you through the entire platform — meal builders, dietary protocols, clinical nutrition tools, client management, marketing, and how to get the most out of every feature for the people you coach.
+              <span className="text-white font-semibold">{t("businessDashboard.academy")}</span>. The Academy walks you through the entire platform — meal builders, dietary protocols, clinical nutrition tools, client management, marketing, and how to get the most out of every feature for the people you coach.
             </p>
             <p className="text-white/70 text-sm leading-relaxed">
               Once you finish all the lessons, you'll earn your certification. At that point,{" "}
@@ -706,7 +708,7 @@ export default function BusinessDashboard() {
           <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-3">
             <div className="flex items-center gap-2 mb-1">
               <FileText className="w-4 h-4 text-orange-400 flex-shrink-0" />
-              <h3 className="text-white font-bold text-base">Organization Policies</h3>
+              <h3 className="text-white font-bold text-base">{t("businessDashboard.orgPolicies")}</h3>
             </div>
             <p className="text-white/70 text-sm leading-relaxed">
               Your organization has set a policy that governs how coaches and trainers may work with clients outside of{" "}
@@ -744,7 +746,7 @@ export default function BusinessDashboard() {
           <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-3">
             <div className="flex items-center gap-2 mb-1">
               <Users className="w-4 h-4 text-orange-400 flex-shrink-0" />
-              <h3 className="text-white font-bold text-base">Client Ownership</h3>
+              <h3 className="text-white font-bold text-base">{t("businessDashboard.clientOwnership")}</h3>
             </div>
             <p className="text-white/70 text-sm leading-relaxed">
               Understanding who owns a client relationship is important. Here's how it works inside{" "}
@@ -983,7 +985,7 @@ export default function BusinessDashboard() {
                   onClick={dismissLaunchGuide}
                   className="mt-4 w-full py-2 rounded-xl bg-orange-600/30 border border-orange-500/30 text-orange-300 text-sm font-semibold active:opacity-80 transition-opacity"
                 >
-                  I'm all set — show my dashboard
+                  {t("businessDashboard.allSet")}
                 </button>
               )}
             </div>
@@ -1031,7 +1033,7 @@ export default function BusinessDashboard() {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Users className="w-5 h-5 text-orange-400" />
-              <span className="font-semibold text-sm">Team Seats</span>
+              <span className="font-semibold text-sm">{t("businessDashboard.teamSeats")}</span>
             </div>
             <span className={`text-lg font-bold ${seatsFull ? "text-red-400" : "text-orange-300"}`}>
               {usedSeats} / {business.seatLimit}
@@ -1071,7 +1073,7 @@ export default function BusinessDashboard() {
             disabled={seatsFull || business.status !== "active"}
           >
             <UserPlus className="w-4 h-4" />
-            {seatsFull ? "No Seats" : "Invite Team Member"}
+            {seatsFull ? "No Seats" : t("businessDashboard.inviteTeamMember")}
           </button>
           <button
             className="flex-1 py-3 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2"
@@ -1084,7 +1086,7 @@ export default function BusinessDashboard() {
             }}
           >
             <UserPlus className="w-4 h-4" />
-            Invite Client
+            {t("businessDashboard.inviteClient")}
           </button>
         </div>
 
@@ -1188,7 +1190,7 @@ export default function BusinessDashboard() {
         <Card className="bg-white/5 border border-orange-500/20 text-white p-4 space-y-4">
           <div className="flex items-center gap-2">
             <Shield className="w-4 h-4 text-orange-400 flex-shrink-0" />
-            <span className="font-semibold text-sm">Organization Policies</span>
+            <span className="font-semibold text-sm">{t("businessDashboard.orgPolicies")}</span>
           </div>
           <p className="text-white/50 text-xs leading-relaxed">
             These policies apply to every team member in your organization. Changes take effect immediately for new logins.
@@ -1573,7 +1575,7 @@ export default function BusinessDashboard() {
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
         <DialogContent className="bg-gray-900 border border-orange-500/20 text-white max-w-sm mx-auto">
           <DialogHeader>
-            <DialogTitle className="text-white">Invite Team Member</DialogTitle>
+            <DialogTitle className="text-white">{t("businessDashboard.inviteTeamMember")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-2">
             <div>
@@ -1626,7 +1628,7 @@ export default function BusinessDashboard() {
       <Dialog open={clientInviteOpen} onOpenChange={(open) => { setClientInviteOpen(open); if (!open) resetClientForm(); }}>
         <DialogContent className="bg-gray-900 border border-orange-500/20 text-white max-w-sm mx-auto">
           <DialogHeader>
-            <DialogTitle className="text-white">Invite Client</DialogTitle>
+            <DialogTitle className="text-white">{t("businessDashboard.inviteClient")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-2">
             <div>
@@ -1716,7 +1718,7 @@ export default function BusinessDashboard() {
                 disabled={clientInviteLoading}
               >
                 {clientInviteLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
-                Send from My Perfect Meals
+                {t("businessDashboard.sendEmail")}
               </button>
               <button
                 className="w-full py-2.5 rounded-lg bg-white/10 hover:bg-white/15 text-white font-medium text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
@@ -1724,7 +1726,7 @@ export default function BusinessDashboard() {
                 disabled={clientInviteLoading}
               >
                 <Copy className="w-4 h-4" />
-                Copy Link
+                {t("businessDashboard.copyLink")}
               </button>
             </div>
           </div>

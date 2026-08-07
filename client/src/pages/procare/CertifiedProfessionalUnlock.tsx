@@ -5,7 +5,9 @@ import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { motion } from "framer-motion";
 import { Trophy, Star, Users, ClipboardList, Briefcase, TrendingUp, ArrowRight, Loader2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { useTranslation } from "react-i18next";
 
+// i18n: leave for content team
 const UNLOCKED_ITEMS = [
   { icon: "🏢", label: "Professional Studio" },
   { icon: "👥", label: "Client Management" },
@@ -17,6 +19,7 @@ const UNLOCKED_ITEMS = [
   { icon: "🎓", label: "Continuing Education" },
 ];
 
+// i18n: leave for content team
 const NEXT_STEPS = [
   "Complete your professional profile",
   "Create your first client",
@@ -30,6 +33,7 @@ export default function CertifiedProfessionalUnlock() {
   const [, setLocation] = useLocation();
   const { user, refreshUser } = useAuth();
   const isDesktop = useIsDesktop();
+  const { t } = useTranslation("procare");
   const [refreshing, setRefreshing] = useState(true);
 
   useEffect(() => {
@@ -87,16 +91,15 @@ export default function CertifiedProfessionalUnlock() {
             transition={{ delay: 0.3 }}
           >
             <Star className="w-3.5 h-3.5 text-orange-400" />
-            <span className="text-xs font-semibold text-orange-300">Certified My Perfect Meals Professional</span>
+            <span className="text-xs font-semibold text-orange-300">{t("procare.certifiedUnlock.badge")}</span>
             <Star className="w-3.5 h-3.5 text-orange-400" />
           </motion.div>
 
           <h1 className="text-3xl font-black leading-tight mb-3">
-            Congratulations!
+            {t("procare.certifiedUnlock.title")}
           </h1>
           <p className="text-white/70 text-sm leading-relaxed max-w-xs">
-            You are now a Certified My Perfect Meals Professional.
-            You're now ready to begin working with clients.
+            {t("procare.certifiedUnlock.subtitle")}
           </p>
         </motion.div>
 
@@ -108,7 +111,7 @@ export default function CertifiedProfessionalUnlock() {
           transition={{ delay: 0.35 }}
         >
           <p className="text-xs font-semibold uppercase tracking-widest text-orange-400 mb-3">
-            You've Unlocked
+            {t("procare.certifiedUnlock.unlockedTitle")}
           </p>
           <div className="grid grid-cols-2 gap-2">
             {UNLOCKED_ITEMS.map((item, i) => (
@@ -133,7 +136,7 @@ export default function CertifiedProfessionalUnlock() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8 }}
         >
-          <p className="text-sm font-bold text-white mb-3">Your Next Steps</p>
+          <p className="text-sm font-bold text-white mb-3">{t("procare.certifiedUnlock.nextStepsTitle")}</p>
           <div className="space-y-2">
             {NEXT_STEPS.map((step, i) => (
               <div key={i} className="flex items-start gap-2">
@@ -167,7 +170,7 @@ export default function CertifiedProfessionalUnlock() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.1 }}
         >
-          Enter Your Studio
+          {t("procare.certifiedUnlock.enterStudio")}
           <ArrowRight className="w-5 h-5" />
         </motion.button>
       </div>

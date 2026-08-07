@@ -2,6 +2,7 @@ import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { PillButton } from "@/components/ui/pill-button";
 import { ChefHat } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface CoachCornerStatus {
   completed: boolean;
@@ -9,6 +10,7 @@ interface CoachCornerStatus {
 
 export default function CoachCornerCard() {
   const [, setLocation] = useLocation();
+  const { t } = useTranslation("coachCorner");
 
   const { data } = useQuery<CoachCornerStatus>({
     queryKey: ["/api/coach-corner/status"],
@@ -26,11 +28,11 @@ export default function CoachCornerCard() {
           <ChefHat className="w-5 h-5 text-orange-300" />
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-bold text-white">Coach's Corner</h3>
+          <h3 className="text-sm font-bold text-white">{t("title")}</h3>
           <p className="text-xs text-white/60">
             {completed
-              ? "Chef is learning what works for you."
-              : "Start your AI coaching relationship with Chef."}
+              ? t("learningDesc")
+              : t("startDesc")}
           </p>
         </div>
       </div>
@@ -43,7 +45,7 @@ export default function CoachCornerCard() {
         }
         className="w-full !text-[11px] !py-2.5 !rounded-xl"
       >
-        {completed ? "Open Coach's Corner" : "Open Coach's Corner"}
+        {t("openBtn")}
       </PillButton>
     </div>
     </div>
