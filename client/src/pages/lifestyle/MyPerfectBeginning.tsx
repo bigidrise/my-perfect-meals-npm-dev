@@ -29,30 +29,20 @@ export default function MyPerfectBeginning() {
       transition={{ duration: 0.5 }}
       className="min-h-screen bg-gradient-to-br from-green-950 via-emerald-900 to-black/90 pb-safe-nav"
     >
-      {/* Header — mobile only */}
-      {!isDesktop && (
-        <div
-          className="fixed top-0 left-0 right-0 z-50 bg-black/20 backdrop-blur-md border-b border-white/10"
-          style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
-        >
-          <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-3">
-            <Button
-              onClick={() => setLocation("/lifestyle")}
-              className="bg-black/20 hover:bg-black/40 text-white rounded-xl border border-white/10 flex items-center gap-1.5 px-2.5 h-9 flex-shrink-0"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              <span className="text-xs font-medium">Back</span>
-            </Button>
-            <h1 className="text-lg font-bold text-white">My Perfect Beginning</h1>
-          </div>
-        </div>
-      )}
-
       {/* Content */}
       <div
         className="max-w-4xl mx-auto px-4 text-white"
-        style={{ paddingTop: isDesktop ? "1rem" : "calc(env(safe-area-inset-top, 0px) + 5rem)" }}
+        style={{ paddingTop: isDesktop ? "1rem" : "calc(env(safe-area-inset-top, 0px) + 1rem)" }}
       >
+        {!isDesktop && (
+          <button
+            onClick={() => setLocation("/lifestyle")}
+            className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 mb-4 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span className="text-sm font-medium">Back</span>
+          </button>
+        )}
         {/* Hero */}
         <div className="text-center mb-10">
           <div className="w-16 h-16 mx-auto bg-green-500/20 rounded-full flex items-center justify-center mb-4 border border-green-400/30">
