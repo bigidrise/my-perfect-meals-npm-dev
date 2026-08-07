@@ -40,7 +40,7 @@ export default function PetsHub() {
       animate={{ opacity: 1 }}
       className="min-h-screen pb-24"
       style={{
-        backgroundImage: "linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.45)), url('/images/pets-hero-bg.jpg')",
+        backgroundImage: "linear-gradient(rgba(0,0,0,0.52), rgba(0,0,0,0.62)), url('/images/pets-hero-bg.jpg')",
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundAttachment: "fixed",

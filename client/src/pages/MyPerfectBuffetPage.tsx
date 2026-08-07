@@ -153,9 +153,14 @@ export default function MyPerfectBuffetPage() {
 
   return (
     <motion.div
-      className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} pb-28`}
+      className="min-h-screen pb-28"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
+      style={{
+        backgroundImage: "linear-gradient(rgba(0,0,0,0.44), rgba(0,0,0,0.40)), url('/images/buffet-bg.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center 30%",
+      }}
     >
       {/* ── Header ───────────────────────────────────────────────────────── */}
       <div

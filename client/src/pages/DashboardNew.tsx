@@ -60,6 +60,7 @@ import { PatternAlertBanner } from "@/components/PatternAlertBanner";
 import { TipsBanner } from "@/components/TipsBanner";
 import { useTranslation } from "react-i18next";
 import InspirationCaptureModal from "@/components/InspirationCaptureModal";
+import MacroScanModal from "@/components/MacroScanModal";
 import { NutritionPersonalizationSummaryCard } from "@/components/protocol/NutritionPersonalizationSummaryCard";
 import { TodaysPrescriptionCard } from "@/components/dashboard/TodaysPrescriptionCard";
 import { WhatsNewCard } from "@/components/WhatsNewCard";
@@ -116,9 +117,8 @@ export default function DashboardNew() {
   });
   const { open: openCopilot } = useCopilot();
   const isDesktop = useIsDesktop();
-  const handlePhotoLog = () => {
-    setLocation("/my-biometrics?capture=1");
-  };
+  const [showMacroModal, setShowMacroModal] = useState(false);
+  const handlePhotoLog = () => setShowMacroModal(true);
 
   const mobilePlanBadge = getMobilePlanBadge(user);
   const isCoach = !!(user?.professionalRole);
@@ -1565,6 +1565,17 @@ export default function DashboardNew() {
           </Card>
         </motion.div>
       </div>
+
+      <MacroScanModal
+        open={showMacroModal}
+        onOpenChange={setShowMacroModal}
+        onSuccess={(result) => {
+          setShowMacroModal(false);
+          setLocation(
+            `/my-biometrics?from=photo&p=${result.protein}&c=${result.carbs}&f=${result.fat}&k=${result.calories}`
+          );
+        }}
+      />
 
       <InspirationCaptureModal
         open={showInspirationModal}

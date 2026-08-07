@@ -248,7 +248,11 @@ export default function DogProfileSetup() {
         throw new Error(data.error || "Save failed");
       }
 
-      setLocation("/companion/dogs");
+      const data = await res.json();
+      if (!isEdit && data.profile?.id) {
+        setSavedProfileId(data.profile.id);
+      }
+      setStep(5);
     } catch (e: any) {
       setError(e.message || "Something went wrong. Please try again.");
     } finally {
@@ -659,7 +663,7 @@ export default function DogProfileSetup() {
         <div className="flex gap-3 mt-8">
           {step === 5 ? (
             <>
-              <PillButton onClick={() => setLocation("/companion")} className="flex-1">
+              <PillButton onClick={() => setLocation("/companion/dogs")} className="flex-1">
                 {images.length > 0 ? "Done" : "Skip for Now"}
               </PillButton>
             </>
