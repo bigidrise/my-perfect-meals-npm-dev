@@ -6,6 +6,7 @@ Use this before every resolver sprint to confirm targets and before every UI spr
 
 ---
 
+
 ## How to read this
 
 - **Collected** — UI form has a control for this field

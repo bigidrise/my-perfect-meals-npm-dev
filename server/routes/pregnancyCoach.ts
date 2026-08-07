@@ -14,11 +14,9 @@ import express from "express";
 import OpenAI from "openai";
 import { db } from "../db";
 import { users } from "@shared/schema";
-import { coachingProfiles } from "../db/schema/ace";
 import { eq, sql } from "drizzle-orm";
 import { loadUserProtocolEnvelope } from "../services/protocolEnvelope";
-import { getTierForLookupKey } from "../../shared/planFeatures";
-
+import { getTierForLookupKey, getEntitlementsForTier } from "@shared/planFeatures";
 const router = express.Router();
 
 // ─── Conversation persistence helpers ────────────────────────────────────────
@@ -103,15 +101,28 @@ function stageLabel(stage: string): string {
 
 // GET /conversation — load persisted conversation history
 router.get("/conversation", async (req, res) => {
-  const userId = resolveUserId(req);
+    const userId = resolveUserId(req);
+
+  const { messages } = req.body;
   if (!userId) return res.status(401).json({ error: "Not authenticated" });
-  const messages = await getConversation(userId);
+    const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+      { role: "system", content: systemPrompt },
+      ...dbHistory
+        .slice(-12)
+        .map((m) => ({
+          role: m.role as "user" | "assistant",
+          content: m.content,
+        })),
+      { role: "user", content: message },
+    ];
   res.json({ messages });
 });
 
 // PATCH /conversation — persist conversation turns server-side
 router.patch("/conversation", async (req, res) => {
-  const userId = resolveUserId(req);
+    const userId = resolveUserId(req);
+
+  const { messages } = req.body;
   if (!userId) return res.status(401).json({ error: "Not authenticated" });
   const { messages } = req.body;
   if (!Array.isArray(messages)) return res.json({ ok: true });
@@ -121,7 +132,9 @@ router.patch("/conversation", async (req, res) => {
 
 // DELETE /conversation — clear history (start fresh)
 router.delete("/conversation", async (req, res) => {
-  const userId = resolveUserId(req);
+    const userId = resolveUserId(req);
+
+  const { messages } = req.body;
   if (!userId) return res.status(401).json({ error: "Not authenticated" });
   try {
     await db.execute(sql`
@@ -134,6 +147,8 @@ router.delete("/conversation", async (req, res) => {
 router.post("/ask", async (req, res) => {
   try {
     const userId = resolveUserId(req);
+
+  const { messages } = req.body;
     const { message } = req.body;
 
     if (!message || typeof message !== "string") {
@@ -149,6 +164,8 @@ router.post("/ask", async (req, res) => {
     if (process.env.BILLING_ENFORCED === "true") {
       const planKey = (req as any).authUser?.planLookupKey ?? null;
       const tier = getTierForLookupKey(planKey);
+
+      const tierEntitlements = getEntitlementsForTier(tier);
       // null planLookupKey = internal / admin account → always passes
       if (planKey !== null && tier !== "ultimate") {
         return res.status(403).json({ error: "requires_upgrade", feature: "pregnancy" });
@@ -369,6 +386,8 @@ Keep responses conversational and appropriately concise. Use line breaks to make
 router.post("/setup", async (req, res) => {
   try {
     const userId = resolveUserId(req);
+
+  const { messages } = req.body;
     if (!userId) return res.status(401).json({ error: "Not authenticated" });
 
     const {
@@ -396,9 +415,7 @@ router.post("/setup", async (req, res) => {
       .limit(1);
 
     const currentConditions: string[] = (currentUser?.specialtyConditions as string[] | null) ?? [];
-    const updatedConditions: string[] = currentConditions.includes("pregnancy-support")
-      ? currentConditions
-      : [...currentConditions, "pregnancy-support"];
+    const updatedConditions = currentConditions.filter(c => c !== "pregnancy-support");
 
     await db
       .update(users)
@@ -430,6 +447,8 @@ router.post("/setup", async (req, res) => {
 router.delete("/setup", async (req, res) => {
   try {
     const userId = resolveUserId(req);
+
+  const { messages } = req.body;
     if (!userId) return res.status(401).json({ error: "Not authenticated" });
 
     const [currentUser] = await db
@@ -460,3 +479,7 @@ router.delete("/setup", async (req, res) => {
 });
 
 export default router;
+
+      const allEntitlements = Array.from(new Set([...tierEntitlements, ...dbEntitlements]));
+
+      const dbEntitlements: string[] = (userRow?.entitlements as string[]) || [];
