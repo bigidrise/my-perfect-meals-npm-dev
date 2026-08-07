@@ -125,13 +125,17 @@ router.patch("/conversation", async (req, res) => {
   const { messages } = req.body;
   if (!userId) return res.status(401).json({ error: "Not authenticated" });
   const { messages } = req.body;
-  if (!Array.isArray(messages)) return res.json({ ok: true });
-  await saveConversation(userId, messages);
+  if (!userId) return res.status(401).json({ error: "Not authenticated" });
+  try {
+    await db.execute(sql`
+      DELETE FROM pregnancy_conversations WHERE user_id = ${userId}
+    `);
+  } catch { /* non-fatal */ }
   res.json({ ok: true });
 });
 
-// DELETE /conversation — clear history (start fresh)
-router.delete("/conversation", async (req, res) => {
+router.post("/ask", async (req, res) => {
+  try {
     const userId = resolveUserId(req);
 
   const { messages } = req.body;
@@ -150,19 +154,8 @@ router.post("/ask", async (req, res) => {
 
     const { message } = req.body;
 
-    if (!message || typeof message !== "string") {
-      return res.status(400).json({ error: "Message is required." });
-    }
-
-    // ── Paywall guard — computed from planLookupKey, never raw DB entitlements ──
-    // users.entitlements is empty for all Stripe subscribers; source of truth is
-    // planLookupKey → tier. clinical_business_monthly → "ultimate" → includes pregnancy.
-    if (!userId) {
-      return res.status(401).json({ error: "Not authenticated" });
-    }
-    if (process.env.BILLING_ENFORCED === "true") {
-      const planKey = (req as any).authUser?.planLookupKey ?? null;
-      const tier = getTierForLookupKey(planKey);
+      const authUser = (req as any).authUser ?? {};
+        const tier = getTierForLookupKey(planLookupKey);
 
       const tierEntitlements = getEntitlementsForTier(tier);
       // null planLookupKey = internal / admin account → always passes
@@ -172,9 +165,6 @@ router.post("/ask", async (req, res) => {
     }
 
     // Load protocol envelope for full user context
-    let envelopeContext = "";
-    let pregnancyContext = "";
-    let macroContext = "";
     let stage = "trimester-2";
     let weekOfPregnancy: number | null = null;
     let symptoms: string[] = [];
@@ -478,6 +468,8 @@ router.delete("/setup", async (req, res) => {
 });
 
 export default router;
+
+      const { accessTier, planLookupKey } = authUser;
 
       const allEntitlements = Array.from(new Set([...tierEntitlements, ...dbEntitlements]));
 
