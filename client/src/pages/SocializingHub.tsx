@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Utensils, MapPin, ChefHat } from "lucide-react";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 
 interface SocialFeature {
   title: string;
@@ -17,6 +18,7 @@ interface SocialFeature {
 
 export default function SocializingHub() {
   const [, setLocation] = useLocation();
+  const isDesktop = useIsDesktop();
 
   useEffect(() => {
     document.title = "Meals Away From Home | My Perfect Meals";
@@ -103,6 +105,15 @@ export default function SocializingHub() {
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
         <div className="max-w-2xl mx-auto space-y-4">
+          {!isDesktop && (
+            <button
+              onClick={() => setLocation("/lifestyle")}
+              className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="text-sm font-medium">Back</span>
+            </button>
+          )}
           {/* Hero Image Section */}
           <div className="relative h-40 rounded-xl overflow-hidden">
             <img

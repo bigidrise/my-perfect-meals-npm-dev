@@ -120,6 +120,7 @@ import TrashButton from "@/components/ui/TrashButton";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
 import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
@@ -194,6 +195,7 @@ const CRAVING_TOUR_STEPS: TourStep[] = [
 
 export default function SushiCreator() {
   const [, setLocation] = useLocation();
+  const isDesktop = useIsDesktop();
   usePageTitle("Sushi Creator");
   const { toast } = useToast();
   const { startWalkthrough } = useCopilot();
@@ -757,16 +759,6 @@ export default function SushiCreator() {
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
           <div className="px-4 py-3 flex items-center gap-2 flex-nowrap overflow-hidden">
-            {/* Back Button */}
-            <button
-              onClick={() => setLocation("/lifestyle")}
-              className="flex items-center gap-2 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
-              data-testid="sushicreator-back"
-            >
-              <ArrowLeft className="h-5 w-5" />
-              <span className="text-sm font-medium">Back</span>
-            </button>
-
             {/* Title */}
             <h1 className="text-lg font-bold text-white truncate min-w-0">
               Sushi Creator
@@ -782,6 +774,15 @@ export default function SushiCreator() {
           className={`max-w-2xl mx-auto px-4 ${generatedMeals.length > 0 ? "pb-32" : "pb-8"}`}
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
         >
+          {!isDesktop && (
+            <button
+              onClick={() => setLocation("/lifestyle")}
+              className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 mb-4 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="text-sm font-medium">Back</span>
+            </button>
+          )}
           <div className="flex items-center justify-between mb-6">
             {/* Spacer for layout */}
 

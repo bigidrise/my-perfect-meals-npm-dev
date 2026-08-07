@@ -6,6 +6,7 @@ import { Wine, Zap, ArrowLeft, Lock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { usePageTitle } from "@/contexts/PageTitleContext";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 
 const ADMIN_ID = "6796ce88-dff8-4336-adcb-e53986830f3f";
 
@@ -44,6 +45,7 @@ export default function BeverageCreatorHub() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const isAdmin = user?.id === ADMIN_ID;
+  const isDesktop = useIsDesktop();
   usePageTitle("Beverage Creator Hub");
 
   useEffect(() => {
@@ -69,12 +71,6 @@ export default function BeverageCreatorHub() {
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
           <div className="px-8 py-3 flex items-center gap-3">
-            <button
-              onClick={() => setLocation("/lifestyle")}
-              className="p-2 rounded-lg bg-white/5 text-white/60 hover:text-white transition-colors"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </button>
             <Wine className="h-6 w-6 text-blue-400" />
             <h1 className="text-lg font-bold text-white">Beverage Hub</h1>
           </div>
@@ -86,6 +82,16 @@ export default function BeverageCreatorHub() {
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
         <div className="max-w-2xl mx-auto space-y-4">
+
+          {!isDesktop && (
+            <button
+              onClick={() => setLocation("/lifestyle")}
+              className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="text-sm font-medium">Back</span>
+            </button>
+          )}
 
           {/* Hero Image */}
           <div className="relative h-40 rounded-xl overflow-hidden">

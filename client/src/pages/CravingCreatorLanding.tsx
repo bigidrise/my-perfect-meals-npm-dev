@@ -2,8 +2,9 @@ import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
-import { Brain, Sparkles, Fish } from "lucide-react";
+import { Brain, Sparkles, Fish, ArrowLeft } from "lucide-react";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 interface CravingFeature {
   title: string;
@@ -15,6 +16,7 @@ interface CravingFeature {
 
 export default function CravingCreatorLanding() {
   const [, setLocation] = useLocation();
+  const isDesktop = useIsDesktop();
   usePageTitle("Craving Hub");
 
   useEffect(() => {
@@ -101,6 +103,15 @@ export default function CravingCreatorLanding() {
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
         <div className="max-w-2xl mx-auto space-y-4">
+          {!isDesktop && (
+            <button
+              onClick={() => setLocation("/lifestyle")}
+              className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="text-sm font-medium">Back</span>
+            </button>
+          )}
           {/* Hero Image Section */}
           <div className="relative h-40 rounded-xl overflow-hidden">
             <img

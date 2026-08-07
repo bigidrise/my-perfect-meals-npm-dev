@@ -54,6 +54,7 @@ import { setQuickView } from "@/lib/macrosQuickView";
 import TrashButton from "@/components/ui/TrashButton";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import CultureBadge from "@/components/CultureBadge";
 import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
@@ -203,6 +204,7 @@ export default function CreateDishPage() {
   useCopilotPageExplanation();
   const { t } = useTranslation();
   const [, setLocation] = useLocation();
+  const isDesktop = useIsDesktop();
   const { toast } = useToast();
   const [dishInput, setDishInput] = useState("");
   const [servings, setServings] = useState<number>(2);
@@ -648,14 +650,6 @@ export default function CreateDishPage() {
             style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
           >
             <div className="px-4 py-3 flex items-center gap-2 flex-nowrap overflow-hidden">
-              <button
-                onClick={() => setLocation("/lifestyle")}
-                className="flex items-center gap-2 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
-              >
-                <ArrowLeft className="h-5 w-5" />
-                <span className="text-sm font-medium">{t("common.back")}</span>
-              </button>
-
               <h1 className="text-lg font-bold text-white truncate min-w-0">
                 {activeKitchenName ? `${activeKitchenName}` : t("createDish.pageTitle")}
               </h1>
@@ -668,6 +662,15 @@ export default function CreateDishPage() {
         <div
           className={`max-w-2xl mx-auto px-4 pt-28 ${generatedMeals.length > 0 ? "pb-32" : "pb-8"}`}
         >
+          {!isDesktop && (
+            <button
+              onClick={() => setLocation("/lifestyle")}
+              className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 mb-4 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="text-sm font-medium">Back</span>
+            </button>
+          )}
           {/* Kitchen context banner */}
           {activeKitchenSlug && (
             <div className="max-w-xl mx-auto mb-3 flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-orange-500/10 border border-orange-500/20">
