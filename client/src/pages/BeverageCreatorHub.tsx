@@ -56,7 +56,12 @@ export default function BeverageCreatorHub() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
-      className="min-h-screen bg-gradient-to-br from-[#0f0f0f] via-[#1a1a1a] to-[#2b2b2b] pb-safe-nav"
+      className="min-h-screen pb-safe-nav"
+      style={{
+        backgroundImage: "linear-gradient(rgba(0,0,0,0.44), rgba(0,0,0,0.40)), url('/images/beverage-hub-bg.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center 30%",
+      }}
     >
       <MobileHeaderGuard>
         <div
@@ -123,7 +128,7 @@ export default function BeverageCreatorHub() {
                   )}
 
                   <Card
-                    className={`relative cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-95 bg-black/30 backdrop-blur-lg border rounded-xl shadow-md overflow-hidden ${
+                    className={`relative cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-95 bg-black/10 backdrop-blur-lg border rounded-xl shadow-md overflow-hidden ${
                       card.featured
                         ? "border-blue-400/30 hover:shadow-[0_0_30px_rgba(96,165,250,0.4)] hover:border-blue-500/50"
                         : "border-white/10 hover:shadow-[0_0_30px_rgba(167,139,250,0.35)] hover:border-violet-500/50"

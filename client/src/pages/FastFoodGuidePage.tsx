@@ -642,8 +642,11 @@ export default function FastFoodGuidePage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80"
+        className="min-h-screen"
         style={{
+          backgroundImage: "linear-gradient(rgba(0,0,0,0.58), rgba(0,0,0,0.52)), url('/images/fast-food-bg.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center 40%",
           paddingTop: "env(safe-area-inset-top, 0px)",
           paddingBottom: "env(safe-area-inset-bottom, 0px)",
         }}

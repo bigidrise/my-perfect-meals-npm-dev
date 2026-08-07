@@ -17,29 +17,32 @@ import { users } from "@shared/schema";
 import { coachingProfiles } from "../db/schema/ace";
 import { eq, sql } from "drizzle-orm";
 import { loadUserProtocolEnvelope } from "../services/protocolEnvelope";
-import { getTierForLookupKey } from "../../shared/planFeatures";
+import { getTierForLookupKey } from "@shared/planFeatures";
 
 const router = express.Router();
 
 // ─── Conversation persistence helpers ────────────────────────────────────────
 // Table: pregnancy_conversations (user_id TEXT PRIMARY KEY, messages JSONB, updated_at TIMESTAMPTZ)
-// Keyed by user_id only — a user has one pregnancy conversation at a time.
 
 const MAX_TURNS = 20;
 
-async function getConversation(userId: string): Promise<Array<{ role: string; content: string }>> {
+async function getConversation(
+  userId: string
+): Promise<Array<{ role: string; content: string }>> {
   try {
     const result = await db.execute(sql`
       SELECT messages FROM pregnancy_conversations
       WHERE user_id = ${userId}
       LIMIT 1
     `);
-    const row = (result as any).rows?.[0] ?? (Array.isArray(result) ? result[0] : null);
+    const row =
+      (result as any).rows?.[0] ?? (Array.isArray(result) ? result[0] : null);
     if (!row?.messages) return [];
-    const msgs = Array.isArray(row.messages) ? row.messages : JSON.parse(row.messages as string);
+    const msgs = Array.isArray(row.messages)
+      ? row.messages
+      : JSON.parse(row.messages as string);
     return msgs.filter((m: any) => m?.role && m?.content);
   } catch (err: any) {
-    // 42P01 = table not yet created — non-fatal, fall back to empty
     if (err?.code !== "42P01") {
       console.warn("[PregnancyCoach] getConversation error:", err.message);
     }
@@ -83,8 +86,8 @@ function stageLabelFull(stage: string): string {
     "trimester-1": "first trimester (weeks 1–13)",
     "trimester-2": "second trimester (weeks 14–27)",
     "trimester-3": "third trimester (weeks 28–40)",
-    "breastfeeding": "breastfeeding",
-    "postpartum": "postpartum recovery",
+    breastfeeding: "breastfeeding",
+    postpartum: "postpartum recovery",
   };
   return labels[stage] ?? stage;
 }
@@ -95,31 +98,37 @@ function stageLabel(stage: string): string {
     "trimester-1": "First Trimester",
     "trimester-2": "Second Trimester",
     "trimester-3": "Third Trimester",
-    "breastfeeding": "Breastfeeding",
-    "postpartum": "Postpartum",
+    breastfeeding: "Breastfeeding",
+    postpartum: "Postpartum",
   };
   return labels[stage] ?? "Pregnancy";
 }
 
 // GET /conversation — load persisted conversation history
 router.get("/conversation", async (req, res) => {
-  const userId = resolveUserId(req);
+    const userId = resolveUserId(req);
   if (!userId) return res.status(401).json({ error: "Not authenticated" });
-  const messages = await getConversation(userId);
-  res.json({ messages });
+  const msgs = await getConversation(userId);
+  return res.json({ messages: msgs });
 });
 
 // PATCH /conversation — persist conversation turns server-side
 router.patch("/conversation", async (req, res) => {
-  const userId = resolveUserId(req);
+    const userId = resolveUserId(req);
   if (!userId) return res.status(401).json({ error: "Not authenticated" });
   const { messages } = req.body;
-  if (!Array.isArray(messages)) return res.json({ ok: true });
-  await saveConversation(userId, messages);
-  res.json({ ok: true });
+  if (!Array.isArray(messages)) {
+    return res.status(400).json({ error: "messages array required" });
+  }
+  try {
+    await saveConversation(userId, messages);
+  } catch {
+    // non-fatal
+  }
+  return res.json({ ok: true });
 });
 
-// DELETE /conversation — clear history (start fresh)
+// DELETE /conversation — clear conversation history
 router.delete("/conversation", async (req, res) => {
   const userId = resolveUserId(req);
   if (!userId) return res.status(401).json({ error: "Not authenticated" });
@@ -134,28 +143,42 @@ router.delete("/conversation", async (req, res) => {
 router.post("/ask", async (req, res) => {
   try {
     const userId = resolveUserId(req);
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
     const { message } = req.body;
+    if (!message) return res.status(400).json({ error: "Message required" });
 
-    if (!message || typeof message !== "string") {
-      return res.status(400).json({ error: "Message is required." });
-    }
-
-    // ── Paywall guard — computed from planLookupKey, never raw DB entitlements ──
-    // users.entitlements is empty for all Stripe subscribers; source of truth is
-    // planLookupKey → tier. clinical_business_monthly → "ultimate" → includes pregnancy.
-    if (!userId) {
-      return res.status(401).json({ error: "Not authenticated" });
-    }
-    if (process.env.BILLING_ENFORCED === "true") {
-      const planKey = (req as any).authUser?.planLookupKey ?? null;
-      const tier = getTierForLookupKey(planKey);
-      // null planLookupKey = internal / admin account → always passes
-      if (planKey !== null && tier !== "ultimate") {
-        return res.status(403).json({ error: "requires_upgrade", feature: "pregnancy" });
+    // ── Paywall: pregnancy coach requires Clinical (ultimate) tier ───────────
+    // Mirrors requireClinicalAccess middleware — same contract, same error shape.
+    // BILLING_ENFORCED=true activates gating; false bypasses (dev/test).
+    const BILLING_ENFORCED = process.env.BILLING_ENFORCED === "true";
+    if (BILLING_ENFORCED) {
+      const authUser = (req as any).authUser ?? {};
+      const { planLookupKey, accessTier } = authUser;
+      // accessTier !== "PAID_FULL" → free/expired/trial — reject immediately
+      if (accessTier !== "PAID_FULL") {
+        return res.status(403).json({
+          error: "This feature requires a Clinical subscription",
+          code: "CLINICAL_REQUIRED",
+          requiredTier: "clinical",
+          accessTier,
+        });
+      }
+      // null planLookupKey with PAID_FULL = internal/founder account — grant access
+      if (planLookupKey !== null && planLookupKey !== undefined) {
+        const tier = getTierForLookupKey(planLookupKey);
+        if (tier !== "ultimate") {
+          return res.status(403).json({
+            error: "This feature requires a Clinical subscription",
+            code: "CLINICAL_REQUIRED",
+            requiredTier: "clinical",
+            accessTier,
+            currentTier: tier,
+          });
+        }
       }
     }
 
-    // Load protocol envelope for full user context
     let envelopeContext = "";
     let pregnancyContext = "";
     let macroContext = "";
@@ -169,29 +192,26 @@ router.post("/ask", async (req, res) => {
       if (envelope) {
         const parts: string[] = [];
 
-        // Dietary identity
         if (envelope.dietaryIdentity?.length) {
-          parts.push(`Dietary restrictions/identity: ${envelope.dietaryIdentity.join(", ")}`);
+          parts.push(
+            `Dietary restrictions/identity: ${envelope.dietaryIdentity.join(", ")}`
+          );
         }
-
-        // Allergies
         if (envelope.allergies?.length) {
-          parts.push(`Allergies (hard stops — never suggest these): ${envelope.allergies.join(", ")}`);
+          parts.push(
+            `Allergies (hard stops — never suggest these): ${envelope.allergies.join(", ")}`
+          );
         }
-
-        // Other active conditions
         if (envelope.conditionGuidanceBlocks?.length) {
-          parts.push("This user also has active medical protocols (cardiac, renal, etc.) — all apply in parallel with pregnancy guidance.");
+          parts.push(
+            "This user also has active medical protocols (cardiac, renal, etc.) — all apply in parallel with pregnancy guidance."
+          );
         }
-
-        // Cuisine preferences
         if (envelope.cuisinePreference) {
           parts.push(`Preferred cuisine: ${envelope.cuisinePreference}`);
         }
-
         envelopeContext = parts.join(". ");
 
-        // Pregnancy-specific context
         if (envelope.pregnancySupportContext) {
           stage = envelope.pregnancySupportContext.stage;
           weekOfPregnancy = envelope.pregnancySupportContext.weekOfPregnancy;
@@ -200,15 +220,17 @@ router.post("/ask", async (req, res) => {
 
           const pregnancyParts: string[] = [];
           pregnancyParts.push(`Current stage: ${stageLabelFull(stage)}`);
-          if (weekOfPregnancy) pregnancyParts.push(`Week: ${weekOfPregnancy}`);
+          if (weekOfPregnancy)
+            pregnancyParts.push(`Week: ${weekOfPregnancy}`);
           if (symptoms.length) {
-            pregnancyParts.push(`Active symptoms: ${symptoms.map(s => s.replace(/_/g, " ")).join(", ")}`);
+            pregnancyParts.push(
+              `Active symptoms: ${symptoms.map(s => s.replace(/_/g, " ")).join(", ")}`
+            );
           }
           if (isBreastfeeding) pregnancyParts.push("Currently breastfeeding.");
           pregnancyContext = pregnancyParts.join(". ");
         }
 
-        // Macro targets
         const [userRow] = await db
           .select({
             dailyCalorieTarget: users.dailyCalorieTarget,
@@ -220,12 +242,13 @@ router.post("/ask", async (req, res) => {
 
         if (userRow?.dailyCalorieTarget) {
           macroContext = `Daily calorie target: ${userRow.dailyCalorieTarget} cal`;
-          if (userRow.dailyProteinTarget) macroContext += `, ${userRow.dailyProteinTarget}g protein`;
+          if (userRow.dailyProteinTarget)
+            macroContext += `, ${userRow.dailyProteinTarget}g protein`;
         }
       }
     }
 
-    // ── Behavioral profile (shared with Coach's Corner) ───────────────────────
+    // ── Behavioral profile ────────────────────────────────────────────────────
     let behavioralContext = "";
     if (userId) {
       try {
@@ -237,17 +260,52 @@ router.post("/ask", async (req, res) => {
 
         if (profile) {
           const lines: string[] = [];
-          if (profile.setbackResponse) lines.push(`setback response: ${profile.setbackResponse.replace(/_/g, " ")}`);
-          if (profile.motivationDriver) lines.push(`motivation: ${profile.motivationDriver.replace(/_/g, " ")}`);
-          if (profile.trustStyle) lines.push(`trust style: ${profile.trustStyle.replace(/_/g, " ")}`);
-          if (profile.overwhelmResponse) lines.push(`under pressure: ${profile.overwhelmResponse.replace(/_/g, " ")}`);
-          if (profile.recoveryPreference) lines.push(`prefers: ${profile.recoveryPreference.replace(/_/g, " ")}`);
-          if (profile.progressMindset) lines.push(`mindset: ${profile.progressMindset.replace(/_/g, " ")}`);
-          if (profile.eatingDriver) lines.push(`eating driver: ${profile.eatingDriver.replace(/_/g, " ")}`);
-          if (profile.cravingResponse) lines.push(`craving pattern: ${profile.cravingResponse.replace(/_/g, " ")}`);
-          if (profile.hardestPart) lines.push(`hardest part of the plan: ${profile.hardestPart.replace(/_/g, " ")}`);
-          if (profile.offTrackCauses && Array.isArray(profile.offTrackCauses) && profile.offTrackCauses.length) {
-            lines.push(`common off-track causes: ${(profile.offTrackCauses as string[]).join(", ").replace(/_/g, " ")}`);
+          if (profile.setbackResponse)
+            lines.push(
+              `setback response: ${profile.setbackResponse.replace(/_/g, " ")}`
+            );
+          if (profile.motivationDriver)
+            lines.push(
+              `motivation: ${profile.motivationDriver.replace(/_/g, " ")}`
+            );
+          if (profile.trustStyle)
+            lines.push(
+              `trust style: ${profile.trustStyle.replace(/_/g, " ")}`
+            );
+          if (profile.overwhelmResponse)
+            lines.push(
+              `under pressure: ${profile.overwhelmResponse.replace(/_/g, " ")}`
+            );
+          if (profile.recoveryPreference)
+            lines.push(
+              `prefers: ${profile.recoveryPreference.replace(/_/g, " ")}`
+            );
+          if (profile.progressMindset)
+            lines.push(
+              `mindset: ${profile.progressMindset.replace(/_/g, " ")}`
+            );
+          if (profile.eatingDriver)
+            lines.push(
+              `eating driver: ${profile.eatingDriver.replace(/_/g, " ")}`
+            );
+          if (profile.cravingResponse)
+            lines.push(
+              `craving pattern: ${profile.cravingResponse.replace(/_/g, " ")}`
+            );
+          if (profile.hardestPart)
+            lines.push(
+              `hardest part of the plan: ${profile.hardestPart.replace(/_/g, " ")}`
+            );
+          if (
+            profile.offTrackCauses &&
+            Array.isArray(profile.offTrackCauses) &&
+            profile.offTrackCauses.length
+          ) {
+            lines.push(
+              `common off-track causes: ${(profile.offTrackCauses as string[])
+                .join(", ")
+                .replace(/_/g, " ")}`
+            );
           }
           if (lines.length) behavioralContext = lines.join("; ");
         }
@@ -297,10 +355,12 @@ SYMPTOM SUPPORT YOU KNOW:
 - Food aversions: bland, familiar foods; respect what she can eat and work with it
 
 HOW TO COACH THIS PERSON:
-${behavioralContext
-  ? `Her behavioral profile: ${behavioralContext}.
+${
+  behavioralContext
+    ? `Her behavioral profile: ${behavioralContext}.
 Use this to shape your communication style — not the content of pregnancy safety rules, which never change.`
-  : `No behavioral profile on file yet — use a warm, encouraging, practical tone as a default.`}
+    : `No behavioral profile on file yet — use a warm, encouraging, practical tone as a default.`
+}
 
 TONE:
 - Warm, encouraging, practical — like a knowledgeable friend who also happens to know nutrition
@@ -316,20 +376,29 @@ SAFETY BOUNDARIES — NEVER DO:
 - Never reference miscarriage, birth defects, or fetal health outcomes in alarming ways
 - If asked about symptoms that sound medical (severe pain, bleeding, vision changes, severe swelling), always advise contacting her healthcare provider immediately — do not try to diagnose
 
-Keep responses conversational and appropriately concise. Use line breaks to make the answer easy to read. Always be supportive.`;
+Keep responses conversational and appropriately concise. Use line breaks to make the answer easy to read. Always be supportive.
 
-    // ── Load conversation history from DB (authoritative) ────────────────────
-    const dbHistory = userId ? await getConversation(userId) : [];
+RESPONSE FORMAT:
+You MUST respond with a JSON object:
+{
+  "reply": "<your full warm, conversational answer here>",
+  "suggestedMealActions": [
+    { "actionType": "create_pregnancy_meal", "label": "<short button label, e.g. Build a Nausea-Friendly Ginger Bowl>", "mealIdea": "<specific buildable meal concept>" }
+  ]
+}
 
-    // Build conversation for OpenAI — use DB history, cap at 12 turns
+"suggestedMealActions": Include ONLY when your reply addresses a concrete food, meal, snack, or drink question that has a buildable solution. Leave as [] for symptom questions without a direct meal answer, medical referrals, supplement questions, or general safety warnings. Maximum 2 actions. "actionType" must always be exactly "create_pregnancy_meal".`;
+
+    // ── Load conversation history from DB (authoritative) ─────────────────────
+    const dbHistory = await getConversation(userId);
+
+    // Build OpenAI message array — DB history capped at 12 turns
     const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
       { role: "system", content: systemPrompt },
-      ...dbHistory
-        .slice(-12)
-        .map((m) => ({
-          role: m.role as "user" | "assistant",
-          content: m.content,
-        })),
+      ...dbHistory.slice(-12).map(m => ({
+        role: m.role as "user" | "assistant",
+        content: m.content,
+      })),
       { role: "user", content: message },
     ];
 
@@ -337,12 +406,24 @@ Keep responses conversational and appropriately concise. Use line breaks to make
       model: "gpt-4o",
       messages,
       temperature: 0.7,
-      max_tokens: 800,
+      max_tokens: 900,
+      response_format: { type: "json_object" },
     });
 
-    const reply = completion.choices[0]?.message?.content ?? "I couldn't generate a response. Please try again.";
-
-    // ── Persist the new turn (fire-and-forget — never block the response) ───────
+    const raw = completion.choices[0]?.message?.content ?? "{}";
+    let reply = "";
+    let suggestedMealActions: { actionType: string; label: string; mealIdea: string }[] = [];
+    try {
+      const parsed = JSON.parse(raw);
+      if (typeof parsed.reply === "string" && parsed.reply.trim()) reply = parsed.reply;
+      if (Array.isArray(parsed.suggestedMealActions)) {
+        suggestedMealActions = parsed.suggestedMealActions
+          .filter((a: any) => a.actionType === "create_pregnancy_meal" && typeof a.label === "string" && typeof a.mealIdea === "string")
+          .slice(0, 2);
+      }
+    } catch {
+      if (raw && raw !== "{}") reply = raw;
+    }
     if (userId) {
       const updatedHistory = [
         ...dbHistory,
@@ -358,19 +439,21 @@ Keep responses conversational and appropriately concise. Use line breaks to make
       reply,
       stage: stageLabel(stage),
       weekOfPregnancy,
+      ...(suggestedMealActions.length > 0 ? { suggestedMealActions } : {}),
     });
   } catch (error: any) {
     console.error("[PregnancyCoach] Error:", error);
-    return res.status(500).json({ error: "Pregnancy Coach is temporarily unavailable." });
+    return res
+      .status(500)
+      .json({ error: "Pregnancy Coach is temporarily unavailable." });
   }
 });
 
-// Save pregnancy setup (stage, due date, symptoms, tracking mode)
+// POST /setup — save pregnancy stage, due date, symptoms, tracking mode
 router.post("/setup", async (req, res) => {
   try {
     const userId = resolveUserId(req);
     if (!userId) return res.status(401).json({ error: "Not authenticated" });
-
     const {
       stage,
       dueDate,
@@ -379,36 +462,43 @@ router.post("/setup", async (req, res) => {
       isBreastfeeding = false,
     } = req.body;
 
-    // Validate stage
-    const validStages = ["trying-to-conceive", "trimester-1", "trimester-2", "trimester-3", "breastfeeding", "postpartum"];
+    const validStages = [
+      "trying-to-conceive",
+      "trimester-1",
+      "trimester-2",
+      "trimester-3",
+      "breastfeeding",
+      "postpartum",
+    ];
     if (stage && !validStages.includes(stage)) {
       return res.status(400).json({ error: "Invalid stage" });
     }
 
     const now = new Date().toISOString();
 
-    // Read current specialty conditions so we can upsert "pregnancy-support"
-    // without clobbering other active conditions (thyroid, cardiac, etc.).
     const [currentUser] = await db
       .select({ specialtyConditions: users.specialtyConditions })
       .from(users)
       .where(eq(users.id, userId))
       .limit(1);
 
-    const currentConditions: string[] = (currentUser?.specialtyConditions as string[] | null) ?? [];
-    const updatedConditions: string[] = currentConditions.includes("pregnancy-support")
-      ? currentConditions
-      : [...currentConditions, "pregnancy-support"];
+    const currentConditions: string[] =
+      (currentUser?.specialtyConditions as string[] | null) ?? [];
+    const updatedConditions = currentConditions.filter(
+      c => c !== "pregnancy-support"
+    );
 
     await db
       .update(users)
       .set({
         ...(stage ? { pregnancyStage: stage } : {}),
-        ...(dueDate !== undefined ? { pregnancyDueDate: dueDate || null } : {}),
+        ...(dueDate !== undefined
+          ? { pregnancyDueDate: dueDate || null }
+          : {}),
         pregnancySupportContext: {
-          symptoms: symptoms,
-          trackingMode: trackingMode,
-          isBreastfeeding: isBreastfeeding,
+          symptoms,
+          trackingMode,
+          isBreastfeeding,
           activatedAt: now,
           updatedAt: now,
         } as any,
@@ -416,30 +506,35 @@ router.post("/setup", async (req, res) => {
       })
       .where(eq(users.id, userId));
 
-    console.log(`[PregnancyCoach] Setup saved for user ${userId}: stage=${stage}, trackingMode=${trackingMode}, symptoms=${symptoms.join(",")}`);
+    console.log(
+      `[PregnancyCoach] Setup saved for user ${userId}: stage=${stage}, trackingMode=${trackingMode}, symptoms=${symptoms.join(",")}`
+    );
 
     return res.json({ success: true });
   } catch (error: any) {
     console.error("[PregnancyCoach] Setup error:", error);
-    return res.status(500).json({ error: "Failed to save pregnancy setup" });
+    return res
+      .status(500)
+      .json({ error: "Failed to save pregnancy setup" });
   }
 });
 
-// Deactivate pregnancy support — clears all pregnancy fields and removes
-// "pregnancy-support" from specialtyConditions without touching other protocols.
+// DELETE /setup — deactivate pregnancy support without touching other protocols
 router.delete("/setup", async (req, res) => {
   try {
     const userId = resolveUserId(req);
     if (!userId) return res.status(401).json({ error: "Not authenticated" });
-
     const [currentUser] = await db
       .select({ specialtyConditions: users.specialtyConditions })
       .from(users)
       .where(eq(users.id, userId))
       .limit(1);
 
-    const currentConditions: string[] = (currentUser?.specialtyConditions as string[] | null) ?? [];
-    const updatedConditions = currentConditions.filter(c => c !== "pregnancy-support");
+    const currentConditions: string[] =
+      (currentUser?.specialtyConditions as string[] | null) ?? [];
+    const updatedConditions = currentConditions.filter(
+      c => c !== "pregnancy-support"
+    );
 
     await db
       .update(users)
@@ -451,11 +546,15 @@ router.delete("/setup", async (req, res) => {
       })
       .where(eq(users.id, userId));
 
-    console.log(`[PregnancyCoach] Pregnancy support deactivated for user ${userId}`);
+    console.log(
+      `[PregnancyCoach] Pregnancy support deactivated for user ${userId}`
+    );
     return res.json({ success: true });
   } catch (error: any) {
     console.error("[PregnancyCoach] Deactivate error:", error);
-    return res.status(500).json({ error: "Failed to deactivate pregnancy support" });
+    return res
+      .status(500)
+      .json({ error: "Failed to deactivate pregnancy support" });
   }
 });
 
