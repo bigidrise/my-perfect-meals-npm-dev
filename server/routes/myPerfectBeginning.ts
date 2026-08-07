@@ -210,13 +210,20 @@ Before responding, reason through these steps in order (internally — do not ex
 You draw from: AAP feeding guidelines, WHO growth standards, USDA Dietary Guidelines for Americans (birth through 24 months; 2–5 years editions), Division of Responsibility (Ellyn Satter Institute), pediatric nutrition research, and standard pediatric dietitian practice.${driSection}${protocolSection}${clinicianNote}
 
 ━━━ RESPONSE FORMAT ━━━
-You MUST respond with a JSON object containing exactly two fields:
+You MUST respond with a JSON object:
 {
   "reply": "<your full warm, conversational answer here>",
-  "suggestedFollowUps": ["<question 1>", "<question 2>", "<question 3>"]
+  "suggestedFollowUps": ["<question 1>", "<question 2>", "<question 3>"],
+  "suggestedMealActions": [
+    { "actionType": "create_child_meal", "label": "<short button label, e.g. Build a Hidden-Veggie Cheeseburger>", "mealIdea": "<specific buildable meal concept, e.g. Turkey cheeseburger with finely grated zucchini mixed into the patty, toddler-friendly size>" }
+  ]
 }
 
-The "suggestedFollowUps" array must contain exactly 2–3 short, natural follow-up questions a parent would genuinely want to ask next based on your reply. Questions should be specific to the topic just discussed and helpful for parents who don't know what to ask next. Write them as a parent would naturally phrase them (not as "Ask about…" but as the actual question, e.g. "How often should I offer the new food?"). Never repeat the question just asked. No markdown outside the JSON.`;
+"suggestedFollowUps": Exactly 2–3 short, natural follow-up questions a parent would want to ask next. Specific to the topic just discussed. Written as the parent would ask them (e.g. "How often should I offer the new food?"). Never repeat the question just asked.
+
+"suggestedMealActions": Include ONLY when your reply addresses a concrete food, meal, snack, or drink challenge that has a buildable solution. Leave as [] for behavior questions, feeding schedules, medical referrals, growth concerns, or anything with no direct meal answer. Maximum 2 actions. The "mealIdea" must be a specific, descriptive concept a meal builder can act on — not a generic category. "actionType" must always be exactly "create_child_meal".
+
+No markdown outside the JSON.`;
 }
 
 // ─── Today's Tips by stage ────────────────────────────────────────────────────
@@ -857,13 +864,28 @@ router.post("/parents-corner", requireAuth, async (req, res) => {
 
     let reply = "";
     let suggestedFollowUps: string[] = [];
+    let suggestedMealActions: { actionType: string; label: string; mealIdea: string }[] = [];
     try {
       const parsed = JSON.parse(raw);
       reply = typeof parsed.reply === "string" ? parsed.reply : raw;
       if (Array.isArray(parsed.suggestedFollowUps)) {
         suggestedFollowUps = parsed.suggestedFollowUps
-          .filter((q: unknown) => typeof q === "string" && q.trim())
+          .filter((q: unknown) => typeof q === "string" && (q as string).trim())
           .slice(0, 3);
+      }
+      if (Array.isArray(parsed.suggestedMealActions)) {
+        suggestedMealActions = parsed.suggestedMealActions
+          .filter(
+            (a: unknown): a is { actionType: string; label: string; mealIdea: string } =>
+              typeof a === "object" &&
+              a !== null &&
+              (a as any).actionType === "create_child_meal" &&
+              typeof (a as any).label === "string" &&
+              (a as any).label.trim() &&
+              typeof (a as any).mealIdea === "string" &&
+              (a as any).mealIdea.trim()
+          )
+          .slice(0, 2);
       }
     } catch {
       reply = raw;
@@ -873,10 +895,148 @@ router.post("/parents-corner", requireAuth, async (req, res) => {
       reply = "I'm sorry, I didn't get a response. Please try again.";
     }
 
-    res.json({ reply, suggestedFollowUps });
+    res.json({ reply, suggestedFollowUps, suggestedMealActions });
   } catch (err: any) {
     console.error("[MyPerfectBeginning/ParentsCorner] Error:", err.message);
     res.status(500).json({ error: "Something went wrong. Please try again." });
+  }
+});
+
+// ─── Meal Options (Step 1 — three concept choices before full recipe) ──────────
+
+router.post('/meal-options', requireAuth, async (req: AuthenticatedRequest, res) => {
+  try {
+    const { ageStage, foodRequest, childName, childProfileId, allergies } = req.body;
+    if (!ageStage || !foodRequest) {
+      return res.status(400).json({ error: 'ageStage and foodRequest are required' });
+    }
+
+    const openai = getOpenAI();
+    const nickname = childName ? String(childName) : 'your child';
+    const allergenList = Array.isArray(allergies) && allergies.length > 0
+      ? allergies
+          .map((a: any) => a.customAllergenName || a.allergenId || '')
+          .filter(Boolean)
+          .join(', ')
+      : 'none reported';
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: `You are a pediatric nutrition assistant. Generate exactly 3 child-appropriate, safe, and appealing meal variations for ${nickname} (developmental stage: ${stageLabel(ageStage)}). Allergens to avoid: ${allergenList}.
+
+Return ONLY a JSON object with no extra text:
+{
+  "options": [
+    { "id": "1", "name": "Short specific meal name", "description": "One to two sentences about what makes this version special or appealing for this child." },
+    { "id": "2", "name": "Short specific meal name", "description": "One to two sentences." },
+    { "id": "3", "name": "Short specific meal name", "description": "One to two sentences." }
+  ]
+}
+
+Names should be short and specific (e.g. "Hidden-Veggie Turkey Cheeseburger", "Mini Cheeseburger Sliders"). Each option should be genuinely different. No markdown outside the JSON.`,
+        },
+        {
+          role: 'user',
+          content: `Meal request: ${String(foodRequest).slice(0, 200)}`,
+        },
+      ],
+      max_tokens: 450,
+      temperature: 0.75,
+      response_format: { type: 'json_object' },
+    });
+
+    const raw = completion.choices[0]?.message?.content ?? '{}';
+    let options: { id: string; name: string; description: string }[] = [];
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed.options)) {
+        options = parsed.options
+          .filter((o: any) => typeof o.name === 'string' && o.name.trim())
+          .slice(0, 3)
+          .map((o: any, i: number) => ({
+            id: String(o.id ?? i + 1),
+            name: String(o.name).trim(),
+            description: typeof o.description === 'string' ? String(o.description).trim() : '',
+          }));
+      }
+    } catch { /* fallback: frontend handles empty options by generating directly */ }
+
+    res.json({ options });
+  } catch (err: any) {
+    console.error('[MPB/meal-options] Error:', err.message);
+    res.status(500).json({ error: 'Could not generate options. Please try again.' });
+  }
+});
+
+// ─── Generated Meals Persistence ──────────────────────────────────────────────
+
+router.post('/generated-meals', requireAuth, async (req: AuthenticatedRequest, res) => {
+  try {
+    const userId = req.authUser!.id;
+    const { childProfileId, recipeData, imageUrl, selectedOptionName } = req.body;
+    if (!recipeData) {
+      return res.status(400).json({ error: 'recipeData is required' });
+    }
+
+    const result = await db.execute(sql`
+      INSERT INTO mpb_generated_meals (user_id, child_profile_id, recipe_data, image_url, selected_option_name)
+      VALUES (
+        ${userId},
+        ${childProfileId ?? null},
+        ${JSON.stringify(recipeData)},
+        ${imageUrl ?? null},
+        ${selectedOptionName ?? null}
+      )
+      RETURNING id
+    `);
+
+    const id = (result.rows[0] as any)?.id ?? null;
+    res.json({ id });
+  } catch (err: any) {
+    console.error('[MPB/generated-meals POST] Error:', err.message);
+    res.status(500).json({ error: 'Could not save meal.' });
+  }
+});
+
+router.get('/generated-meals', requireAuth, async (req: AuthenticatedRequest, res) => {
+  try {
+    const userId = req.authUser!.id;
+    const childProfileId = typeof req.query.childProfileId === 'string' ? req.query.childProfileId : null;
+
+    const result = childProfileId
+      ? await db.execute(sql`
+          SELECT id, recipe_data, image_url, selected_option_name, created_at
+          FROM mpb_generated_meals
+          WHERE user_id = ${userId} AND child_profile_id = ${childProfileId}
+          ORDER BY created_at DESC
+          LIMIT 1
+        `)
+      : await db.execute(sql`
+          SELECT id, recipe_data, image_url, selected_option_name, created_at
+          FROM mpb_generated_meals
+          WHERE user_id = ${userId}
+          ORDER BY created_at DESC
+          LIMIT 1
+        `);
+
+    const row = result.rows[0] as any;
+    if (!row) return res.json({ meal: null });
+
+    res.json({
+      meal: {
+        id: row.id,
+        recipeData: row.recipe_data,
+        imageUrl: row.image_url ?? null,
+        selectedOptionName: row.selected_option_name ?? null,
+        createdAt: row.created_at,
+      },
+    });
+  } catch (err: any) {
+    console.error('[MPB/generated-meals GET] Error:', err.message);
+    res.status(500).json({ error: 'Could not retrieve saved meal.' });
   }
 });
 

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { apiRequest } from "@/lib/apiRequest";
+import { post, get } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ArrowLeft,
@@ -11,6 +12,7 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  ChefHat,
   Sparkles,
   ShieldCheck,
   BookOpen,
@@ -497,6 +499,9 @@ function formatTextureClass(tc: string | undefined): string {
     fork_tender:     "Fork Tender",
     small_soft_bite: "Small Soft Bites",
     table_foods:     "Table Foods",
+    family_foods:    "Regular Table Foods",
+    family_table:    "Regular Table Foods",
+    family:          "Regular Table Foods",
     minced:          "Minced",
   };
   return map[tc] ?? tc.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
@@ -786,24 +791,6 @@ function ParentEducationPanel({ layer }: { layer: ParentEducationLayerData }) {
 
   return (
     <div className="space-y-3">
-      {/* Confidence */}
-      <div className="flex items-center justify-between">
-        <span className="text-xs text-white">Meal Confidence</span>
-        <div className="flex items-center gap-1.5">
-          <div className="flex gap-0.5">
-            {[1,2,3,4,5].map(n => (
-              <Star
-                key={n}
-                className={`h-3 w-3 ${n <= starsFilled ? "text-yellow-400 fill-yellow-400" : "text-white"}`}
-              />
-            ))}
-          </div>
-          {completeness != null && (
-            <span className="text-xs text-white">{completeness}% profile used</span>
-          )}
-        </div>
-      </div>
-
       {/* Personalization dimensions */}
       {dimsUsed.length > 0 && (
         <div>
@@ -959,23 +946,19 @@ function RecipeCard({
           {/* Age stage caption */}
           <p className="text-white text-sm mb-4">{recipe.ageStageSuitability}</p>
 
-          {/* Pediatric info tiles — replaces adult macro tiles */}
-          <div className="grid grid-cols-4 gap-2 mb-4 text-center">
+          {/* Pediatric info tiles */}
+          <div className="grid grid-cols-3 gap-2 mb-4 text-center">
             <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
               <div className="text-sm font-bold text-green-300 leading-tight">{stageLabel.split(" ").slice(0, 1).join("")}</div>
               <div className="text-[10px] text-white mt-0.5">Age Group</div>
             </div>
             <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
-              <div className="text-sm font-bold text-amber-300 leading-tight">{formatTextureClass(textureClass).split(" ")[0]}</div>
+              <div className="text-sm font-bold text-amber-300 leading-tight truncate">{formatTextureClass(textureClass).split(" ").slice(0, 2).join(" ")}</div>
               <div className="text-[10px] text-white mt-0.5">Texture</div>
             </div>
             <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
-              <div className="text-sm font-bold text-purple-300 leading-tight">{confidencePct}</div>
-              <div className="text-[10px] text-white mt-0.5">Confidence</div>
-            </div>
-            <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
               <div className="text-sm font-bold text-blue-300 leading-tight truncate">✓</div>
-              <div className="text-[10px] text-white mt-0.5">Reviewed</div>
+              <div className="text-[10px] text-white mt-0.5">Safety Applied</div>
             </div>
           </div>
 
@@ -1008,7 +991,9 @@ function RecipeCard({
                       <span className="text-green-400 mt-0.5 flex-shrink-0">•</span>
                       <span>
                         {ing.quantity}{ing.unit ? ` ${ing.unit}` : ""} <strong>{ing.name}</strong>
-                        {ing.prepNote && <span className="text-white"> — {ing.prepNote}</span>}
+                        {ing.prepNote && (
+                          <span className="block text-xs text-white/70 mt-0.5">{ing.prepNote}</span>
+                        )}
                         {ing.substitutionNote && (
                           <span className="block text-xs text-blue-300/80 mt-0.5">{ing.substitutionNote}</span>
                         )}
@@ -1263,8 +1248,8 @@ function RecipeCard({
         )}
       </div>
 
-      {/* Mandatory pediatrician disclaimer — appears on every generated output */}
-      <PediatricianDisclaimer />
+      {/* Pediatrician disclaimer — show generic version only when no personalized note from the AI */}
+      {!recipe.askPediatricianNote && <PediatricianDisclaimer />}
     </motion.div>
   );
 }
@@ -1274,6 +1259,22 @@ function RecipeCard({
 // ── Child profile auto-load ────────────────────────────────────────────────────
 
 const LS_ACTIVE_CHILD_KEY = "mpb.activeChildId.v1";
+const LS_MEAL_OPTIONS_KEY  = "mpb.mealOptions.v1";
+
+function saveMealOptionsCache(options: any[]) {
+  try { localStorage.setItem(LS_MEAL_OPTIONS_KEY, JSON.stringify(options)); } catch {}
+}
+function loadMealOptionsCache(): any[] {
+  try {
+    const raw = localStorage.getItem(LS_MEAL_OPTIONS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch { return []; }
+}
+function clearMealOptionsCache() {
+  try { localStorage.removeItem(LS_MEAL_OPTIONS_KEY); } catch {}
+}
 
 interface ActiveChildSummary {
   id: string;
@@ -1442,6 +1443,13 @@ export default function MyPerfectBeginningCreateMealPage() {
   const [culturalCuisine, setCulturalCuisine] = useState<string>("");
   const [showMoreOptions, setShowMoreOptions] = useState(false);
 
+  // Pre-fill meal idea from URL ?idea= param (set by Parent's Corner action buttons)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const idea = params.get("idea");
+    if (idea) setFoodRequest(idea);
+  }, []);
+
   // Active child from DB (pre-populate stage + allergies)
   const [activeChild, setActiveChild] = useState<ActiveChildSummary | null>(null);
   const [profileLoaded, setProfileLoaded] = useState(false);
@@ -1457,6 +1465,10 @@ export default function MyPerfectBeginningCreateMealPage() {
   const [educationLayer, setEducationLayer] = useState<ParentEducationLayerData | null>(null);
   const [showEarlyInfantScreen, setShowEarlyInfantScreen] = useState(false);
   const [hardStopState, setHardStopState] = useState<{ blockReason: string; educationMessage: string } | null>(null);
+
+  // Options step state — Step 1 shows 3 concept cards before full recipe generation
+  const [mealOptions, setMealOptions] = useState<{ id: string; name: string; description: string }[]>([]);
+  const [isGeneratingOptions, setIsGeneratingOptions] = useState(false);
 
   // Image state — fires once per recipe, independent of main generation
   const [recipeImageUrl, setRecipeImageUrl] = useState<string | null>(null);
@@ -1535,6 +1547,37 @@ export default function MyPerfectBeginningCreateMealPage() {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
+  // Restore last saved meal for the active child from DB on mount / child-switch
+  useEffect(() => {
+    if (!activeChild?.id) return;
+    get<{ meal: { id: string; recipeData: any; imageUrl: string | null } | null }>(
+      `/api/my-perfect-beginning/generated-meals?childProfileId=${encodeURIComponent(activeChild.id)}`
+    )
+      .then(data => {
+        if (data.meal && !recipe) {
+          setRecipe(data.meal.recipeData);
+          setRecipeImageUrl(data.meal.imageUrl);
+        }
+      })
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeChild?.id]);
+
+  // Restore pending options from localStorage so they survive navigation and selection
+  useEffect(() => {
+    const saved = loadMealOptionsCache();
+    if (saved.length > 0) setMealOptions(saved);
+  }, []);
+
+  // Persist options to localStorage whenever they change (non-empty → save; empty → clear)
+  useEffect(() => {
+    if (mealOptions.length > 0) {
+      saveMealOptionsCache(mealOptions);
+    } else {
+      clearMealOptionsCache();
+    }
+  }, [mealOptions]);
+
   // Progress ticker
   useEffect(() => {
     if (!isGenerating) { setProgress(0); return; }
@@ -1544,23 +1587,27 @@ export default function MyPerfectBeginningCreateMealPage() {
     return () => clearInterval(interval);
   }, [isGenerating]);
 
-  const handleGenerate = async () => {
-    if (!selectedStage) {
-      toast({ title: "Select your child's stage", description: "Choose a developmental stage to continue.", variant: "destructive" });
-      return;
+  const handleGenerate = async (conceptName?: string) => {
+    // Validation: skip when called from option selection (already validated)
+    if (!conceptName) {
+      if (!selectedStage) {
+        toast({ title: "Select your child's stage", description: "Choose a developmental stage to continue.", variant: "destructive" });
+        return;
+      }
+      // Early Infant gate (client-side, immediately)
+      if (selectedStage === "early_infant") {
+        setShowEarlyInfantScreen(true);
+        return;
+      }
+      if (!foodRequest.trim()) {
+        toast({ title: "What would you like to make?", description: "Enter a food or dish to get started.", variant: "destructive" });
+        return;
+      }
     }
 
-    // Early Infant gate (client-side, immediately)
-    if (selectedStage === "early_infant") {
-      setShowEarlyInfantScreen(true);
-      return;
-    }
-
-    if (!foodRequest.trim()) {
-      toast({ title: "What would you like to make?", description: "Enter a food or dish to get started.", variant: "destructive" });
-      return;
-    }
-
+    // Only clear options when starting fresh (no conceptName = new top-level generate,
+    // not picking from an existing options list — keep the alternatives visible)
+    if (!conceptName) setMealOptions([]);
     setIsGenerating(true);
     setRecipe(null);
     setEducationLayer(null);
@@ -1572,7 +1619,8 @@ export default function MyPerfectBeginningCreateMealPage() {
     const methodSuffix = cookingMethod !== "any" ? `. Cooking method: ${cookingMethod}` : "";
     const servingsSuffix = servings !== 1 ? `. Serves ${servings}` : "";
     const notesSuffix = notes.trim() ? `. ${notes.trim()}` : "";
-    const fullFoodRequest = `${occasionPrefix}${foodRequest.trim()}${methodSuffix}${servingsSuffix}${notesSuffix}`.slice(0, 400);
+    const primaryRequest = conceptName ?? foodRequest.trim();
+    const fullFoodRequest = `${occasionPrefix}${primaryRequest}${methodSuffix}${servingsSuffix}${notesSuffix}`.slice(0, 400);
 
     const parentPrefs: Record<string, unknown> = {};
     if (prepTime) parentPrefs.maxCookTimeMinutes = prepTime;
@@ -1582,16 +1630,13 @@ export default function MyPerfectBeginningCreateMealPage() {
     if (culturalCuisine.trim()) parentPrefs.culturalCuisine = culturalCuisine.trim();
 
     try {
-      const data = await apiRequest(apiUrl("/api/my-perfect-beginning/create-dish"), {
-        method: "POST",
-        body: JSON.stringify({
-          ageStage: selectedStage,
-          allergies,
-          foodRequest: fullFoodRequest,
-          childName: activeChild?.name ?? undefined,
-          childProfileId: activeChild?.id ?? undefined,
-          parentPrefs: Object.keys(parentPrefs).length > 0 ? parentPrefs : undefined,
-        }),
+      const data = await post<any>('/api/my-perfect-beginning/create-dish', {
+        ageStage: selectedStage,
+        allergies,
+        foodRequest: fullFoodRequest,
+        childName: activeChild?.name ?? undefined,
+        childProfileId: activeChild?.id ?? undefined,
+        parentPrefs: Object.keys(parentPrefs).length > 0 ? parentPrefs : undefined,
       });
 
       if (data.blocked) {
@@ -1655,38 +1700,89 @@ export default function MyPerfectBeginningCreateMealPage() {
         : mealOccasion === "Dessert" ? "dessert"
         : mealOccasion === "Smoothie" ? "beverage"
         : "meal";
-      fetch(apiUrl("/api/meals/generate-image"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          mealName: data.recipe.recipeName,
-          ingredients: (data.recipe.ingredients ?? []).map((i: any) => i.name ?? i),
-          mealType: imageSourceType,
-          sourceType: imageSourceType,
-          pediatricContext: {
-            stage: stage?.label ?? selectedStage,
-            ageRange: stage?.ageRange ?? "",
-            textureStrategy: textureStrategy || undefined,
-            presentationStrategy: presentationStrategy || undefined,
-            textureClass: resolvedTextureClass,
-            activeConditionIds,
-            // Legacy fallback if structured resolver fields are absent
-            textureHint: (textureStrategy || resolvedTextureClass)
-              ? undefined
-              : (textureHintFallback || "soft, age-appropriate texture"),
-            portionNote: `small ${(stage?.label ?? "child").toLowerCase()} portion`,
-          },
-        }),
+      const saveRecipeToDb = (imgUrl: string | null) => {
+        post('/api/my-perfect-beginning/generated-meals', {
+          childProfileId: activeChild?.id ?? null,
+          recipeData: data.recipe,
+          imageUrl: imgUrl,
+          selectedOptionName: conceptName ?? null,
+        }).catch(() => {});
+      };
+
+      post<{ imageUrl?: string }>('/api/meals/generate-image', {
+        mealName: data.recipe.recipeName,
+        ingredients: (data.recipe.ingredients ?? []).map((i: any) => i.name ?? i),
+        mealType: imageSourceType,
+        sourceType: imageSourceType,
+        pediatricContext: {
+          stage: stage?.label ?? selectedStage,
+          ageRange: stage?.ageRange ?? "",
+          textureStrategy: textureStrategy || undefined,
+          presentationStrategy: presentationStrategy || undefined,
+          textureClass: resolvedTextureClass,
+          activeConditionIds,
+          // Legacy fallback if structured resolver fields are absent
+          textureHint: (textureStrategy || resolvedTextureClass)
+            ? undefined
+            : (textureHintFallback || "soft, age-appropriate texture"),
+          portionNote: `small ${(stage?.label ?? "child").toLowerCase()} portion`,
+        },
       })
-        .then(r => r.json())
-        .then(img => { if (img.imageUrl) setRecipeImageUrl(img.imageUrl); })
-        .catch(() => {})
+        .then(img => {
+          const imgUrl = img.imageUrl ?? null;
+          if (imgUrl) setRecipeImageUrl(imgUrl);
+          saveRecipeToDb(imgUrl);
+        })
+        .catch(() => { saveRecipeToDb(null); })
         .finally(() => setImageLoading(false));
     } catch (err: any) {
       toast({ title: "Something went wrong", description: err.message || "Please try again.", variant: "destructive" });
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  // ── Generate 3 concept options (Step 1) ──────────────────────────────────────
+  const handleGenerateOptions = async () => {
+    if (!selectedStage) {
+      toast({ title: "Select your child's stage", description: "Choose a developmental stage to continue.", variant: "destructive" });
+      return;
+    }
+    if (selectedStage === "early_infant") {
+      setShowEarlyInfantScreen(true);
+      return;
+    }
+    if (!foodRequest.trim()) {
+      toast({ title: "What would you like to make?", description: "Enter a food or dish to get started.", variant: "destructive" });
+      return;
+    }
+
+    setIsGeneratingOptions(true);
+    setMealOptions([]);
+
+    try {
+      const data = await post<{ options: { id: string; name: string; description: string }[] }>(
+        '/api/my-perfect-beginning/meal-options',
+        {
+          ageStage: selectedStage,
+          foodRequest: foodRequest.trim(),
+          childName: activeChild?.name ?? undefined,
+          childProfileId: activeChild?.id ?? undefined,
+          allergies: allergies.length > 0 ? allergies : undefined,
+        }
+      );
+      if (Array.isArray(data.options) && data.options.length > 0) {
+        setMealOptions(data.options);
+        setTimeout(() => window.scrollTo({ top: 200, behavior: "smooth" }), 150);
+      } else {
+        // No options returned — generate recipe directly as fallback
+        handleGenerate();
+      }
+    } catch {
+      // On error — generate recipe directly as fallback
+      handleGenerate();
+    } finally {
+      setIsGeneratingOptions(false);
     }
   };
 
@@ -1763,6 +1859,57 @@ export default function MyPerfectBeginningCreateMealPage() {
           />
         )}
 
+        {/* Meal Option Picker — Step 1: three concepts before full recipe generation */}
+        {!showEarlyInfantScreen && !hardStopState && !recipe && mealOptions.length > 0 && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <ChefHat className="h-5 w-5 text-orange-400" />
+              <h3 className="text-lg font-bold text-white">Pick your favorite</h3>
+            </div>
+            <p className="text-sm text-white/60">
+              {mealOptions.length} options crafted for {activeChild?.name ?? "your child"}
+            </p>
+            {mealOptions.map((option, idx) => (
+              <Card
+                key={idx}
+                className="bg-black/40 backdrop-blur-lg border border-orange-400/20 shadow-xl rounded-2xl"
+              >
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-white font-bold text-base mb-1">{option.name}</h4>
+                      {option.description && (
+                        <p className="text-white/70 text-sm leading-snug">{option.description}</p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleGenerate(option.name)}
+                      disabled={isGenerating}
+                      className="shrink-0 bg-lime-600 hover:bg-lime-500 active:scale-95 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Pick This
+                    </button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+            {isGenerating && (
+              <div className="py-4 text-center">
+                <p className="text-white/90 text-sm font-medium">
+                  Building your kid-friendly recipe <ThinkingDots />
+                </p>
+              </div>
+            )}
+            <button
+              onClick={() => setMealOptions([])}
+              disabled={isGenerating}
+              className="w-full text-sm text-white/40 hover:text-white/70 py-2 transition-colors disabled:opacity-50"
+            >
+              ← Start over with a different request
+            </button>
+          </div>
+        )}
+
         {/* Generated Recipe */}
         {!showEarlyInfantScreen && !hardStopState && recipe && (
           <div className="space-y-4">
@@ -1781,6 +1928,7 @@ export default function MyPerfectBeginningCreateMealPage() {
                 setResolverMeta(null);
                 setHardStopState(null);
                 setFoodRequest("");
+                setMealOptions([]);
                 setRecipeImageUrl(null);
                 setImageLoading(false);
                 setResolverTextureClass(undefined);
@@ -1789,6 +1937,59 @@ export default function MyPerfectBeginningCreateMealPage() {
               onUpdateRecipe={(updated) => setRecipe(prev => prev ? { ...prev, ...updated } : prev)}
               setLocation={setLocation}
             />
+
+            {/* Generated Alternatives — unchosen options stay visible until a new request */}
+            {mealOptions.filter((o) => o.name !== recipe.recipeName).length > 0 && (
+              <div className="mt-2 space-y-3">
+                <div className="flex items-center gap-2 pt-4 border-t border-white/10">
+                  <Sparkles className="h-4 w-4 text-orange-400/60" />
+                  <h3 className="text-sm font-semibold text-white/60 uppercase tracking-wide">
+                    Other Options
+                  </h3>
+                </div>
+                {mealOptions
+                  .filter((o) => o.name !== recipe.recipeName)
+                  .map((option, idx) => (
+                    <Card
+                      key={idx}
+                      className="bg-black/25 backdrop-blur-lg border border-orange-400/10 shadow-md rounded-2xl"
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-white font-semibold text-sm mb-1 break-words">
+                              {option.name}
+                            </h4>
+                            {option.description && (
+                              <p className="text-white/60 text-xs line-clamp-2">{option.description}</p>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => handleGenerate(option.name)}
+                            disabled={isGenerating}
+                            className="shrink-0 bg-lime-700 active:scale-95 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition-all disabled:opacity-50"
+                          >
+                            Pick This
+                          </button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                <button
+                  onClick={() => {
+                    setMealOptions([]);
+                    setFoodRequest("");
+                    setRecipe(null);
+                    setRecipeImageUrl(null);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  className="w-full text-xs text-white/40 hover:text-white/70 py-2 transition-colors"
+                >
+                  Start over with a different request
+                </button>
+              </div>
+            )}
+
             <button
               type="button"
               onClick={() => {
@@ -1797,6 +1998,7 @@ export default function MyPerfectBeginningCreateMealPage() {
                 setResolverMeta(null);
                 setHardStopState(null);
                 setFoodRequest("");
+                setMealOptions([]);
                 setRecipeImageUrl(null);
                 setImageLoading(false);
                 setResolverTextureClass(undefined);
@@ -1809,8 +2011,8 @@ export default function MyPerfectBeginningCreateMealPage() {
           </div>
         )}
 
-        {/* Input Form */}
-        {!showEarlyInfantScreen && !hardStopState && !recipe && (
+        {/* Input Form — only shown when there are no pending option cards */}
+        {!showEarlyInfantScreen && !hardStopState && !recipe && mealOptions.length === 0 && (
           <div className="space-y-4">
             {/* Active child profile indicator */}
             {profileLoaded && activeChild && (
@@ -2210,7 +2412,15 @@ export default function MyPerfectBeginningCreateMealPage() {
               )}
             </div>
 
-            {/* Progress bar while generating */}
+            {/* Progress / loading states */}
+            {isGeneratingOptions && (
+              <div className="py-2 text-center">
+                <p className="text-white/90 text-sm font-medium flex items-center justify-center gap-1">
+                  Finding the best options for {activeChild?.name ?? "your child"} <ThinkingDots />
+                </p>
+              </div>
+            )}
+
             {isGenerating && (
               <div className="space-y-2">
                 <Progress value={progress} className="h-1.5 bg-white/10" />
@@ -2220,14 +2430,14 @@ export default function MyPerfectBeginningCreateMealPage() {
               </div>
             )}
 
-            {/* Generate button */}
+            {/* Generate button — Step 1: get 3 options to choose from */}
             <button
               type="button"
-              onClick={handleGenerate}
-              disabled={isGenerating || !selectedStage}
+              onClick={handleGenerateOptions}
+              disabled={isGeneratingOptions || isGenerating || !selectedStage}
               className="w-full py-3.5 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold text-sm shadow-lg hover:from-green-500 hover:to-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
             >
-              {isGenerating ? "Creating Recipe…" : "Create Kid-Friendly Recipe"}
+              {isGeneratingOptions ? "Finding options…" : isGenerating ? "Creating Recipe…" : "See Meal Options"}
             </button>
 
             {/* Disclaimer */}

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Send, Baby, ShieldCheck, Leaf, BookOpen, ChevronDown, ChevronUp, Heart } from "lucide-react";
-import { apiUrl } from "@/lib/resolveApiBase";
+import { post, ApiError } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
@@ -191,50 +191,39 @@ export default function MyPerfectPregnancyPage() {
     setLoading(true);
 
     try {
-      const res = await fetch(apiUrl("/api/pregnancy/ask"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
+      // post() uses apiJSON() which calls getAuthHeaders() — sends x-auth-token from localStorage
+      const data = await post<{ reply: string; stage: string; weekOfPregnancy: number | null }>(
+        "/api/pregnancy/ask",
+        {
           message: userMsg.content,
           conversationHistory: newHistory.slice(-10).map(m => ({ role: m.role, content: m.content })),
-        }),
-      });
-
-      // Handle HTTP-level errors before attempting to parse the body
-      if (!res.ok) {
-        let errorMsg = "I had trouble responding. Please try again.";
-        if (res.status === 401) {
-          errorMsg = "You need to be signed in to use the Pregnancy Coach.";
-        } else if (res.status === 403) {
-          errorMsg = "Pregnancy Coach requires a pregnancy-enabled plan. Check your subscription settings.";
-        } else if (res.status === 500) {
-          errorMsg = "The Pregnancy Coach had a server error. Please try again in a moment.";
-        } else {
-          errorMsg = `Something went wrong (${res.status}). Please try again.`;
         }
-        console.error("[PregnancyCoach] HTTP error:", res.status, res.url);
-        setMessages(prev => [...prev, { role: "assistant", content: errorMsg }]);
-        return;
-      }
-
-      const data = await res.json();
+      );
 
       if (typeof data.reply === "string" && data.reply) {
         setMessages(prev => [...prev, { role: "assistant", content: data.reply }]);
-      } else if (data.error === "requires_upgrade") {
-        setMessages(prev => [...prev, { role: "assistant", content: "Pregnancy Coach requires a pregnancy-enabled plan." }]);
-      } else if (data.error) {
-        console.error("[PregnancyCoach] API error:", data.error);
-        setMessages(prev => [...prev, { role: "assistant", content: "I couldn't generate a response. Please try again." }]);
       } else {
-        // Response parsed but no reply field — unexpected shape
         console.error("[PregnancyCoach] Unexpected response shape:", data);
         setMessages(prev => [...prev, { role: "assistant", content: "I couldn't generate a response. Please try again." }]);
       }
     } catch (err) {
-      console.error("[PregnancyCoach] Network error:", err);
-      setMessages(prev => [...prev, { role: "assistant", content: "I had trouble connecting. Please check your internet and try again." }]);
+      if (err instanceof ApiError) {
+        let errorMsg = "I had trouble responding. Please try again.";
+        if (err.status === 401) {
+          errorMsg = "You need to be signed in to use the Pregnancy Coach.";
+        } else if (err.status === 403) {
+          errorMsg = "Pregnancy Coach requires a pregnancy-enabled plan. Check your subscription settings.";
+        } else if (err.status === 500) {
+          errorMsg = "The Pregnancy Coach had a server error. Please try again in a moment.";
+        } else {
+          errorMsg = `Something went wrong (${err.status}). Please try again.`;
+        }
+        console.error("[PregnancyCoach] HTTP error:", err.status);
+        setMessages(prev => [...prev, { role: "assistant", content: errorMsg }]);
+      } else {
+        console.error("[PregnancyCoach] Network error:", err);
+        setMessages(prev => [...prev, { role: "assistant", content: "I had trouble connecting. Please check your internet and try again." }]);
+      }
     } finally {
       setLoading(false);
     }
@@ -300,7 +289,15 @@ export default function MyPerfectPregnancyPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-black via-pink-950/20 to-black text-white pb-36">
+    <div
+      className="min-h-screen text-white pb-36"
+      style={{
+        backgroundImage: "linear-gradient(rgba(2,8,14,0.80), rgba(1,5,12,0.76)), url('/images/pregnancy-hero-bg.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundAttachment: "fixed",
+      }}
+    >
 
       {/* Header — mobile only; DesktopHeader handles title on desktop */}
       <MobileHeaderGuard>
@@ -351,9 +348,9 @@ export default function MyPerfectPregnancyPage() {
 
               {/* Due date */}
               {pregnancyData?.dueDate && (
-                <p className="text-white/50 text-xs mt-1.5">
+                <p className="text-white/70 text-xs mt-1.5">
                   Due Date:{" "}
-                  <span className="text-white/70">
+                  <span className="text-white/90">
                     {new Date(pregnancyData.dueDate + "T12:00:00").toLocaleDateString("en-US", {
                       year: "numeric", month: "long", day: "numeric",
                     })}
@@ -366,7 +363,7 @@ export default function MyPerfectPregnancyPage() {
                 const ps = derivePregnancyStatus(user);
                 if (!ps?.nextMilestone) return null;
                 return (
-                  <p className="text-pink-300/70 text-xs mt-1 font-medium">
+                  <p className="text-pink-300 text-xs mt-1 font-medium">
                     Next: {ps.nextMilestone}
                   </p>
                 );
@@ -375,7 +372,7 @@ export default function MyPerfectPregnancyPage() {
               {/* Active symptoms */}
               {pregnancyData?.symptoms && pregnancyData.symptoms.length > 0 && (
                 <div className="mt-3 pt-3 border-t border-white/10">
-                  <p className="text-white/50 text-xs mb-1.5">Symptoms being tracked:</p>
+                  <p className="text-white/70 text-xs mb-1.5">Symptoms being tracked:</p>
                   <div className="flex flex-wrap gap-1.5">
                     {pregnancyData.symptoms.map(s => (
                       <span key={s} className="text-xs px-2 py-0.5 rounded-full bg-pink-900/40 border border-pink-500/30 text-pink-200">
@@ -434,7 +431,7 @@ export default function MyPerfectPregnancyPage() {
             </div>
             <ul className="space-y-1">
               {stageInfo.nutrients.map((n, i) => (
-                <li key={i} className="text-white/70 text-xs flex items-start gap-1.5">
+                <li key={i} className="text-white/90 text-xs flex items-start gap-1.5">
                   <span className="text-green-400 mt-0.5">•</span> {n}
                 </li>
               ))}
@@ -442,39 +439,6 @@ export default function MyPerfectPregnancyPage() {
           </motion.div>
         )}
 
-        {/* Protocol Active Banner — shows when setup is complete */}
-        {pregnancyData && (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
-            className="rounded-xl bg-green-950/40 border border-green-500/25 p-3"
-          >
-            <div className="flex items-center gap-2 mb-2">
-              <ShieldCheck className="w-4 h-4 text-green-400 flex-shrink-0" />
-              <p className="text-green-300 text-sm font-semibold">Pregnancy Nutrition Protocol Active</p>
-            </div>
-            <p className="text-white/40 text-xs mb-2 leading-relaxed">
-              Your stage, symptoms, and food safety rules are being enforced across the platform.
-            </p>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
-              {[
-                "Meal Builders",
-                "Weekly Meal Board",
-                "Fridge Rescue",
-                "Grocery Coach",
-                "Restaurant Guide",
-                "Snack & Beverage Creator",
-                "Smart Scan",
-                "Meal Planner",
-              ].map(feature => (
-                <p key={feature} className="text-xs text-white/50 flex items-center gap-1">
-                  <span className="text-green-400 text-[10px]">✓</span> {feature}
-                </p>
-              ))}
-            </div>
-          </motion.div>
-        )}
 
         {/* Tab nav */}
         <div className="flex gap-2">
@@ -510,10 +474,10 @@ export default function MyPerfectPregnancyPage() {
                     <Baby className="w-5 h-5 text-pink-400" />
                     <p className="text-pink-300 font-semibold text-sm">Pregnancy Coach</p>
                   </div>
-                  <p className="text-white/70 text-sm leading-relaxed mb-3">
+                  <p className="text-white/90 text-sm leading-relaxed mb-3">
                     Hi! I&apos;m your pregnancy nutrition companion. Ask me anything about food safety, nutrients, symptoms, grocery shopping, or meal ideas.
                   </p>
-                  <p className="text-white/40 text-xs mb-2">Try asking:</p>
+                  <p className="text-white/60 text-xs mb-2">Try asking:</p>
                   <div className="space-y-1.5">
                     {suggestions.map((q, i) => (
                       <button
@@ -579,7 +543,7 @@ export default function MyPerfectPregnancyPage() {
                 </button>
               </div>
 
-              <p className="text-white/30 text-xs text-center leading-relaxed">
+              <p className="text-white/55 text-xs text-center leading-relaxed">
                 Pregnancy Coach provides nutrition education only — not medical advice. Always follow your OB/GYN or midwife&apos;s guidance.
               </p>
             </motion.div>
@@ -600,30 +564,30 @@ export default function MyPerfectPregnancyPage() {
                   <BookOpen className="w-4 h-4 text-pink-300 flex-shrink-0" />
                   <p className="text-pink-200 text-sm font-semibold">How the System Adapts to You</p>
                 </div>
-                <p className="text-white/60 text-xs leading-relaxed">
+                <p className="text-white/80 text-xs leading-relaxed">
                   My Perfect Pregnancy is not just a reference guide. When you activate it and set your stage, these rules run automatically across every meal generator — you don't set them per builder.
                 </p>
                 <div className="space-y-2.5">
                   <div>
-                    <p className="text-white/70 text-xs font-semibold mb-1">🛡️ Food safety — enforced everywhere</p>
-                    <p className="text-white/50 text-xs leading-relaxed">Raw fish, mercury-heavy fish, deli meats, unpasteurized cheeses, and alcohol are blocked in every builder simultaneously — Create a Dish, Grocery Coach, Restaurant Guide, Fridge Rescue, Meal Board, and more.</p>
+                    <p className="text-white/90 text-xs font-semibold mb-1">🛡️ Food safety — enforced everywhere</p>
+                    <p className="text-white/70 text-xs leading-relaxed">Raw fish, mercury-heavy fish, deli meats, unpasteurized cheeses, and alcohol are blocked in every builder simultaneously — Create a Dish, Grocery Coach, Restaurant Guide, Fridge Rescue, Meal Board, and more.</p>
                   </div>
                   <div>
-                    <p className="text-white/70 text-xs font-semibold mb-1">🌿 Nutrients — shift with your stage</p>
-                    <p className="text-white/50 text-xs leading-relaxed">The app prioritizes what your body needs right now. First trimester: folate and iron. Second: protein and calcium. Third: DHA and choline. Postpartum and breastfeeding have their own separate protocols.</p>
+                    <p className="text-white/90 text-xs font-semibold mb-1">🌿 Nutrients — shift with your stage</p>
+                    <p className="text-white/70 text-xs leading-relaxed">The app prioritizes what your body needs right now. First trimester: folate and iron. Second: protein and calcium. Third: DHA and choline. Postpartum and breastfeeding have their own separate protocols.</p>
                   </div>
                   <div>
-                    <p className="text-white/70 text-xs font-semibold mb-1">💛 Symptoms — adapt in real time</p>
-                    <p className="text-white/50 text-xs leading-relaxed">The symptoms you set above change what the AI builds for you. Nausea: ginger, B6, bland foods, cool options. Heartburn: no acidic or fried ingredients. Swelling: low sodium, more potassium. Fatigue: iron-rich, complex carbs.</p>
+                    <p className="text-white/90 text-xs font-semibold mb-1">💛 Symptoms — adapt in real time</p>
+                    <p className="text-white/70 text-xs leading-relaxed">The symptoms you set above change what the AI builds for you. Nausea: ginger, B6, bland foods, cool options. Heartburn: no acidic or fried ingredients. Swelling: low sodium, more potassium. Fatigue: iron-rich, complex carbs.</p>
                   </div>
                   <div>
-                    <p className="text-white/70 text-xs font-semibold mb-1">📋 Stacks with your other protocols</p>
-                    <p className="text-white/50 text-xs leading-relaxed">If you also have Thyroid Support, Cardiac Support, or any other condition active, both protocols run at once. The strictest rule from either always wins.</p>
+                    <p className="text-white/90 text-xs font-semibold mb-1">📋 Stacks with your other protocols</p>
+                    <p className="text-white/70 text-xs leading-relaxed">If you also have Thyroid Support, Cardiac Support, or any other condition active, both protocols run at once. The strictest rule from either always wins.</p>
                   </div>
                 </div>
               </div>
 
-              <p className="text-white/30 text-xs px-1 pt-1">Nutrition reference by stage</p>
+              <p className="text-white/60 text-xs px-1 pt-1">Nutrition reference by stage</p>
 
               {Object.entries(STAGE_DATA).map(([stageKey, data]) => {
                 const isExpanded = expandedSection === stageKey;
@@ -719,12 +683,12 @@ export default function MyPerfectPregnancyPage() {
                     "Raw sprouts (listeria risk)",
                     "High-mercury fish: shark, swordfish, king mackerel, tilefish, bigeye tuna",
                   ].map((item, i) => (
-                    <li key={i} className="text-white/70 text-xs flex items-start gap-2">
+                    <li key={i} className="text-white/85 text-xs flex items-start gap-2">
                       <span className="text-red-400 flex-shrink-0 mt-0.5">✗</span> {item}
                     </li>
                   ))}
                 </ul>
-                <p className="text-white/40 text-xs mt-2">Source: FDA, CDC, EPA, ACOG</p>
+                <p className="text-white/60 text-xs mt-2">Source: FDA, CDC, EPA, ACOG</p>
               </div>
 
               {/* Mercury tiers */}
@@ -736,18 +700,18 @@ export default function MyPerfectPregnancyPage() {
                 <div className="space-y-3">
                   <div>
                     <p className="text-green-300 text-xs font-semibold mb-1">✓ Preferred (2–3 servings/week safe)</p>
-                    <p className="text-white/60 text-xs">{MERCURY_PREFERRED.join(" · ")}</p>
+                    <p className="text-white/80 text-xs">{MERCURY_PREFERRED.join(" · ")}</p>
                   </div>
                   <div>
                     <p className="text-yellow-300 text-xs font-semibold mb-1">⚠ Limit (max 6 oz/week)</p>
-                    <p className="text-white/60 text-xs">{MERCURY_LIMIT.join(" · ")}</p>
+                    <p className="text-white/80 text-xs">{MERCURY_LIMIT.join(" · ")}</p>
                   </div>
                   <div>
                     <p className="text-red-300 text-xs font-semibold mb-1">✗ Avoid entirely</p>
-                    <p className="text-white/60 text-xs">{MERCURY_AVOID.join(" · ")}</p>
+                    <p className="text-white/80 text-xs">{MERCURY_AVOID.join(" · ")}</p>
                   </div>
                 </div>
-                <p className="text-white/40 text-xs mt-2">Source: FDA/EPA</p>
+                <p className="text-white/60 text-xs mt-2">Source: FDA/EPA</p>
               </div>
 
               {/* Listeria guide */}
@@ -765,24 +729,24 @@ export default function MyPerfectPregnancyPage() {
                     "Raw sprouts (alfalfa, bean, clover, radish)",
                     "Unpasteurized milk and juice",
                   ].map((item, i) => (
-                    <li key={i} className="text-white/70 text-xs flex items-start gap-2">
+                    <li key={i} className="text-white/85 text-xs flex items-start gap-2">
                       <span className="text-amber-400 flex-shrink-0 mt-0.5">⚠</span> {item}
                     </li>
                   ))}
                 </ul>
-                <p className="text-white/40 text-xs mt-2">Source: CDC, FDA</p>
+                <p className="text-white/60 text-xs mt-2">Source: CDC, FDA</p>
               </div>
 
               {/* Safe cheeses */}
               <div className="rounded-xl bg-white/5 border border-white/10 p-3">
                 <p className="text-green-300 text-xs font-semibold mb-1.5">✓ Safe Cheeses (Pasteurized)</p>
-                <p className="text-white/60 text-xs">
+                <p className="text-white/80 text-xs">
                   Cheddar, mozzarella, Swiss, Parmesan, Colby, American, pasteurized ricotta, pasteurized cottage cheese, cream cheese, hard cheeses in general.
                 </p>
               </div>
 
               <div className="bg-white/5 border border-white/10 rounded-xl p-3">
-                <p className="text-white/60 text-xs leading-relaxed">
+                <p className="text-white/75 text-xs leading-relaxed">
                   Food safety guidance is based on FDA, CDC, EPA, and ACOG guidelines. When in doubt about a specific food, consult your OB/GYN or midwife.
                 </p>
               </div>

@@ -14,8 +14,10 @@ import express from "express";
 import OpenAI from "openai";
 import { db } from "../db";
 import { users } from "@shared/schema";
+import { coachingProfiles } from "../db/schema/ace";
 import { eq, sql } from "drizzle-orm";
 import { loadUserProtocolEnvelope } from "../services/protocolEnvelope";
+import { getTierForLookupKey } from "../../shared/planFeatures";
 
 const router = express.Router();
 
@@ -136,18 +138,19 @@ router.post("/ask", async (req, res) => {
       return res.status(400).json({ error: "Message is required." });
     }
 
-    // ── Clinical paywall guard ──────────────────────────────────────────
-    if (userId && process.env.BILLING_ENFORCED === "true") {
-      const [userRow] = await db
-        .select({ entitlements: users.entitlements })
-        .from(users)
-        .where(eq(users.id, userId));
-      const entitlements: string[] = (userRow?.entitlements as string[]) || [];
-      if (!entitlements.includes("pregnancy") && !entitlements.includes("FULL_ACCESS")) {
+    // ── Paywall guard — computed from planLookupKey, never raw DB entitlements ──
+    // users.entitlements is empty for all Stripe subscribers; source of truth is
+    // planLookupKey → tier. clinical_business_monthly → "ultimate" → includes pregnancy.
+    if (!userId) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    if (process.env.BILLING_ENFORCED === "true") {
+      const planKey = (req as any).authUser?.planLookupKey ?? null;
+      const tier = getTierForLookupKey(planKey);
+      // null planLookupKey = internal / admin account → always passes
+      if (planKey !== null && tier !== "ultimate") {
         return res.status(403).json({ error: "requires_upgrade", feature: "pregnancy" });
       }
-    } else if (!userId) {
-      return res.status(401).json({ error: "Not authenticated" });
     }
 
     // Load protocol envelope for full user context
@@ -220,6 +223,37 @@ router.post("/ask", async (req, res) => {
       }
     }
 
+    // ── Behavioral profile (shared with Coach's Corner) ───────────────────────
+    let behavioralContext = "";
+    if (userId) {
+      try {
+        const [profile] = await db
+          .select()
+          .from(coachingProfiles)
+          .where(eq(coachingProfiles.userId, userId))
+          .limit(1);
+
+        if (profile) {
+          const lines: string[] = [];
+          if (profile.setbackResponse) lines.push(`setback response: ${profile.setbackResponse.replace(/_/g, " ")}`);
+          if (profile.motivationDriver) lines.push(`motivation: ${profile.motivationDriver.replace(/_/g, " ")}`);
+          if (profile.trustStyle) lines.push(`trust style: ${profile.trustStyle.replace(/_/g, " ")}`);
+          if (profile.overwhelmResponse) lines.push(`under pressure: ${profile.overwhelmResponse.replace(/_/g, " ")}`);
+          if (profile.recoveryPreference) lines.push(`prefers: ${profile.recoveryPreference.replace(/_/g, " ")}`);
+          if (profile.progressMindset) lines.push(`mindset: ${profile.progressMindset.replace(/_/g, " ")}`);
+          if (profile.eatingDriver) lines.push(`eating driver: ${profile.eatingDriver.replace(/_/g, " ")}`);
+          if (profile.cravingResponse) lines.push(`craving pattern: ${profile.cravingResponse.replace(/_/g, " ")}`);
+          if (profile.hardestPart) lines.push(`hardest part of the plan: ${profile.hardestPart.replace(/_/g, " ")}`);
+          if (profile.offTrackCauses && Array.isArray(profile.offTrackCauses) && profile.offTrackCauses.length) {
+            lines.push(`common off-track causes: ${(profile.offTrackCauses as string[]).join(", ").replace(/_/g, " ")}`);
+          }
+          if (lines.length) behavioralContext = lines.join("; ");
+        }
+      } catch {
+        // non-fatal — behavioral profile is enrichment, not required
+      }
+    }
+
     const stageDisplay = stageLabel(stage);
     const weekDisplay = weekOfPregnancy ? ` (Week ${weekOfPregnancy})` : "";
 
@@ -259,6 +293,12 @@ SYMPTOM SUPPORT YOU KNOW:
 - Fatigue: iron-rich foods + vitamin C for absorption, complex carbs, B vitamins
 - Swelling: reduce sodium, potassium-rich foods (banana, avocado, sweet potato), hydration
 - Food aversions: bland, familiar foods; respect what she can eat and work with it
+
+HOW TO COACH THIS PERSON:
+${behavioralContext
+  ? `Her behavioral profile: ${behavioralContext}.
+Use this to shape your communication style — not the content of pregnancy safety rules, which never change.`
+  : `No behavioral profile on file yet — use a warm, encouraging, practical tone as a default.`}
 
 TONE:
 - Warm, encouraging, practical — like a knowledgeable friend who also happens to know nutrition

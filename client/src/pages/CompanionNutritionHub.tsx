@@ -19,7 +19,6 @@ import { saveProductScan } from "@/lib/shoppingScanStorage";
 import { sendToShoppingList } from "@/lib/shoppingListApi";
 import type { IngredientScanResult } from "@/lib/photoIngredientCapture";
 
-const COMPANION_HERO = "/images/dog-wellness-hero.png";
 const PREMIUM_MSG = "My Perfect Pets is a premium feature. Upgrade to access personalized dog nutrition.";
 
 export const DOG_MEAL_IMAGES = [
@@ -199,7 +198,13 @@ export default function CompanionNutritionHub() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-24"
+      className="min-h-screen pb-24"
+      style={{
+        backgroundImage: "linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.45)), url('/images/dog-hero-bg.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundAttachment: "fixed",
+      }}
     >
       <MobileHeaderGuard>
         <div
@@ -207,31 +212,19 @@ export default function CompanionNutritionHub() {
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
           <div className="px-4 py-3 flex items-center justify-between">
+            <button onClick={() => setLocation("/companion")} className="p-1">
+              <ArrowLeft className="w-5 h-5 text-white/70" />
+            </button>
             <div className="flex items-center gap-2">
-              <PawPrint className="h-4 w-4 text-orange-400" />
-              <h1 className="text-base font-bold text-white">My Perfect Pets</h1>
-              <span className="bg-orange-500/20 border border-orange-400/40 text-orange-300 text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
-                <Crown className="h-2.5 w-2.5" />
-                Premium
-              </span>
+              <span className="text-base">🐕</span>
+              <h1 className="text-base font-bold text-white">My Perfect Dog</h1>
             </div>
             <PillButton onClick={handleCopilotOpen}>Guide me</PillButton>
           </div>
         </div>
       </MobileHeaderGuard>
 
-      <div className="max-w-2xl mx-auto px-4" style={{ paddingTop: "calc(5rem + env(safe-area-inset-top, 0px))" }}>
-
-        <div className="mb-4">
-          <PillButton onClick={() => setLocation("/companion")}>
-            <ArrowLeft className="h-3 w-3" /> Back
-          </PillButton>
-        </div>
-
-        {/* Hero */}
-        <div className="relative h-52 rounded-2xl overflow-hidden mb-3">
-          <img src={COMPANION_HERO} alt="My Perfect Pets" className="w-full h-full object-cover" style={{ objectPosition: "center 72%" }} />
-        </div>
+      <div className="max-w-2xl mx-auto px-4" style={{ paddingTop: "calc(5.5rem + env(safe-area-inset-top, 0px))" }}>
 
         {/* Quick Actions */}
         <div className="grid grid-cols-3 gap-3 mb-6">

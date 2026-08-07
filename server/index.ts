@@ -1436,6 +1436,31 @@ import('./services/reminderScheduler').then(({ startReminderScheduler }) => {
   startReminderScheduler();
 }).catch((err) => console.error('[index] Failed to start reminder scheduler:', err));
 
+// MPB Generated Meals — DB persistence for child meal cards + images
+setTimeout(async () => {
+  try {
+    const { pool } = await import('./db');
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS mpb_generated_meals (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id TEXT NOT NULL,
+        child_profile_id TEXT,
+        recipe_data JSONB NOT NULL,
+        image_url TEXT,
+        selected_option_name TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_mpb_generated_meals_user
+        ON mpb_generated_meals (user_id, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_mpb_generated_meals_child
+        ON mpb_generated_meals (child_profile_id, created_at DESC);
+    `);
+    console.log("✅ MPB Generated Meals boot migration complete");
+  } catch (err: any) {
+    console.error("❌ MPB Generated Meals boot migration failed:", err.message);
+  }
+}, 4500);
+
 // Global process error handlers for stability
 process.on('unhandledRejection', (reason, promise) => {
   console.error('🚨 Unhandled Rejection at:', promise, 'reason:', reason);

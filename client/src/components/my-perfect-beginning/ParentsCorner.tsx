@@ -32,14 +32,21 @@ import {
   X,
   RotateCcw,
 } from "lucide-react";
-import { apiUrl } from "@/lib/resolveApiBase";
+import { get, post, patch, del } from "@/lib/api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+interface MealAction {
+  actionType: "create_child_meal";
+  label: string;
+  mealIdea: string;
+}
 
 interface Message {
   role: "user" | "assistant";
   content: string;
   suggestedFollowUps?: string[];
+  suggestedMealActions?: MealAction[];
 }
 
 interface ChildContextProps {
@@ -186,10 +193,7 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
 
   // ── Load tip ──────────────────────────────────────────────────────────────
   useEffect(() => {
-    fetch(apiUrl(`/api/my-perfect-beginning/parents-corner/tip?stage=${stage}`), {
-      credentials: "include",
-    })
-      .then((r) => r.json())
+    get<{ tip?: string }>(`/api/my-perfect-beginning/parents-corner/tip?stage=${stage}`)
       .then((data) => {
         if (data.tip) setTip(data.tip);
       })
@@ -214,11 +218,7 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
     if (!childProfileId) return;
 
     setHydrating(true);
-    fetch(
-      apiUrl(`/api/my-perfect-beginning/parents-corner/conversation?childProfileId=${encodeURIComponent(childProfileId)}`),
-      { credentials: "include" }
-    )
-      .then((r) => r.json())
+    get<{ messages?: Message[] }>(`/api/my-perfect-beginning/parents-corner/conversation?childProfileId=${encodeURIComponent(childProfileId)}`)
       .then((data) => {
         if (Array.isArray(data.messages) && data.messages.length > 0) {
           setMessages(data.messages);
@@ -232,12 +232,8 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
   // ── Persist conversation after each assistant reply ───────────────────────
   function persistConversation(updatedMessages: Message[]) {
     if (!childProfileId) return;
-    fetch(apiUrl("/api/my-perfect-beginning/parents-corner/conversation"), {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ childProfileId, messages: updatedMessages }),
-    }).catch(() => {});
+    patch("/api/my-perfect-beginning/parents-corner/conversation", { childProfileId, messages: updatedMessages })
+      .catch(() => {});
   }
 
   // ── Auto-scroll ───────────────────────────────────────────────────────────
@@ -260,32 +256,31 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
     setCardsVisible(false);
 
     try {
-      const response = await fetch(
-        apiUrl("/api/my-perfect-beginning/parents-corner"),
+      const data = await post<{
+        reply?: string;
+        suggestedFollowUps?: string[];
+        suggestedMealActions?: { actionType: string; label: string; mealIdea: string }[];
+      }>(
+        "/api/my-perfect-beginning/parents-corner",
         {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            message: trimmed,
-            childContext,
-            conversationHistory: updatedMessages.slice(0, -1),
-          }),
+          message: trimmed,
+          childContext,
+          conversationHistory: updatedMessages.slice(0, -1),
         }
       );
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      const data = await response.json();
       const followUps: string[] = Array.isArray(data.suggestedFollowUps)
-        ? data.suggestedFollowUps.filter((q: unknown) => typeof q === "string" && q.trim()).slice(0, 3)
+        ? data.suggestedFollowUps.filter((q: unknown) => typeof q === "string" && (q as string).trim()).slice(0, 3)
+        : [];
+      const mealActions: MealAction[] = Array.isArray(data.suggestedMealActions)
+        ? (data.suggestedMealActions.filter(
+            (a) => a.actionType === "create_child_meal" && typeof a.label === "string" && typeof a.mealIdea === "string"
+          ) as MealAction[]).slice(0, 2)
         : [];
       const assistantMsg: Message = {
         role: "assistant",
         content: data.reply || "I'm sorry, I didn't get a response. Please try again.",
         suggestedFollowUps: followUps.length > 0 ? followUps : undefined,
+        suggestedMealActions: mealActions.length > 0 ? mealActions : undefined,
       };
       const finalMessages = [...updatedMessages, assistantMsg];
       setMessages(finalMessages);
@@ -311,10 +306,8 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
     setCardsVisible(true);
 
     if (!childProfileId) return;
-    fetch(
-      apiUrl(`/api/my-perfect-beginning/parents-corner/conversation?childProfileId=${encodeURIComponent(childProfileId)}`),
-      { method: "DELETE", credentials: "include" }
-    ).catch(() => {});
+    del(`/api/my-perfect-beginning/parents-corner/conversation?childProfileId=${encodeURIComponent(childProfileId)}`)
+      .catch(() => {});
   }
 
   function handleCardTap(question: string) {
@@ -332,6 +325,14 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
       e.preventDefault();
       sendMessage(input);
     }
+  }
+
+  function handleBuildMeal(mealIdea: string) {
+    // Lock the active child in localStorage so the builder reads the right profile
+    if (childProfileId) {
+      try { localStorage.setItem("mpb.activeChildId.v1", childProfileId); } catch {}
+    }
+    setLocation(`/lifestyle/my-perfect-beginning/create-meal?idea=${encodeURIComponent(mealIdea)}`);
   }
 
   function handleBack() {
@@ -557,6 +558,36 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
                             "
                           >
                             {q}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                {/* ── Meal action buttons ───────────────────────────────────── */}
+                {msg.role === "assistant" &&
+                  msg.suggestedMealActions &&
+                  msg.suggestedMealActions.length > 0 && (
+                    <div className="pl-9 flex flex-col gap-1.5 mt-0.5">
+                      <p className="text-[10.5px] text-orange-300/80 uppercase tracking-widest font-medium">
+                        Make it now
+                      </p>
+                      <div className="flex flex-col gap-2">
+                        {msg.suggestedMealActions.map((action, ai) => (
+                          <button
+                            key={ai}
+                            onClick={() => handleBuildMeal(action.mealIdea)}
+                            className="
+                              text-left text-[12.5px] font-medium text-orange-200
+                              px-4 py-2.5 rounded-xl
+                              bg-orange-900/40 border border-orange-500/40
+                              hover:bg-orange-800/50 hover:border-orange-400/60
+                              active:scale-[0.97] transition-all duration-150
+                              flex items-center justify-between gap-2
+                            "
+                          >
+                            <span>🍽 {action.label}</span>
+                            <span className="text-orange-400/80 shrink-0">→</span>
                           </button>
                         ))}
                       </div>

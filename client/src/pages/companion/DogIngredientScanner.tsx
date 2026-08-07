@@ -158,6 +158,9 @@ export default function DogIngredientScanner() {
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
           <div className="px-4 py-3 flex items-center justify-between">
+            <button onClick={() => setLocation("/companion/dogs")} className="p-1">
+              <ArrowLeft className="w-5 h-5 text-white/70" />
+            </button>
             <h1 className="text-sm font-bold text-white">Ingredient Scanner</h1>
             <PillButton onClick={handleCopilotOpen}>How it works</PillButton>
           </div>
@@ -166,11 +169,6 @@ export default function DogIngredientScanner() {
 
       <div className="max-w-lg mx-auto px-4" style={{ paddingTop: "calc(5rem + env(safe-area-inset-top, 0px))" }}>
 
-        <div className="mb-4">
-          <PillButton onClick={() => setLocation("/companion/dogs")}>
-            <ArrowLeft className="h-3 w-3" /> Back
-          </PillButton>
-        </div>
         {/* Profile selector */}
         {profiles.length > 0 && (
           <div className="mb-5 relative" onClick={(e) => e.stopPropagation()}>

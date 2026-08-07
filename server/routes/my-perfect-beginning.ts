@@ -292,6 +292,26 @@ CHILD DEVELOPMENTAL STAGE: ${stageLabel}
 
 ${ctx.systemContextBlock}
 
+INGREDIENT FIELD RULES (mandatory separation):
+- "name": simple ingredient name only (e.g., "Whole-wheat tortilla", "Cheddar cheese"). No preparation instructions in this field.
+- "prepNote": preparation method only (e.g., "Warm briefly to soften", "Finely chopped"). One short phrase. If the AI would write "Shredded mozzarella", split it: name="Mozzarella", prepNote="Shredded".
+- "substitutionNote": optional swap suggestion only (e.g., "Dairy-free cream cheese works here"). Not required.
+- Never combine name + preparation into the name field.
+
+INSTRUCTIONS REQUIREMENT:
+- The "instructions" array MUST contain at least 4 clear preparation steps. Each entry is one complete sentence describing a single action (e.g., "Spread a thin layer of cream cheese evenly over the tortilla.").
+- NEVER return an empty instructions array. Instructions are required output.
+
+SERVING GUIDANCE RULE:
+- "servingGuidance" must be stage-specific. State the child's developmental stage and describe a realistic portion size for that stage.
+- Example (preschool): "Preschoolers (4–5 years) have small stomachs. Offer 2–3 pinwheels to start and let your child ask for more — following hunger cues supports healthy appetite regulation."
+- Do not write a generic count ("4–5 pieces per child") without stage context explaining why.
+
+FAT AND CALORIE RULE (healthy children):
+- For a healthy child with no documented clinical condition requiring it (obesity, hyperlipidemia, or a clinician-noted concern in the profile): do NOT suggest "reduced-fat," "low-fat," "fat-free," or calorie-reduction ingredient substitutions.
+- Young children need adequate dietary fat for brain development, hormone production, and growth. Whole-milk dairy, regular cheese, and full-fat ingredients are appropriate defaults for healthy children.
+- Only recommend lower-fat ingredients when the child's profile explicitly documents a medical reason.
+
 ABSOLUTE PROHIBITIONS:
 - Never generate a recipe for Early Infant stage (birth–5 months)
 - Never inherit adult macros, GLP-1, or diabetes settings from adult users
@@ -395,6 +415,26 @@ ${allergyBlock}
 ${constraintsBlock}
 ${medicalBlock}
 ${driBlock}
+
+INGREDIENT FIELD RULES (mandatory separation):
+- "name": simple ingredient name only (e.g., "Whole-wheat tortilla", "Cheddar cheese"). No preparation instructions in this field.
+- "prepNote": preparation method only (e.g., "Warm briefly to soften", "Finely chopped"). One short phrase. If the AI would write "Shredded mozzarella", split it: name="Mozzarella", prepNote="Shredded".
+- "substitutionNote": optional swap suggestion only (e.g., "Dairy-free cream cheese works here"). Not required.
+- Never combine name + preparation into the name field.
+
+INSTRUCTIONS REQUIREMENT:
+- The "instructions" array MUST contain at least 4 clear preparation steps. Each entry is one complete sentence describing a single action (e.g., "Spread a thin layer of cream cheese evenly over the tortilla.").
+- NEVER return an empty instructions array. Instructions are required output.
+
+SERVING GUIDANCE RULE:
+- "servingGuidance" must be stage-specific. State the child's developmental stage and describe a realistic portion size for that stage.
+- Example (preschool): "Preschoolers (4–5 years) have small stomachs. Offer 2–3 pinwheels to start and let your child ask for more — following hunger cues supports healthy appetite regulation."
+- Do not write a generic count ("4–5 pieces per child") without stage context explaining why.
+
+FAT AND CALORIE RULE (healthy children):
+- For a healthy child with no documented clinical condition requiring it (obesity, hyperlipidemia, or a clinician-noted concern in the profile): do NOT suggest "reduced-fat," "low-fat," "fat-free," or calorie-reduction ingredient substitutions.
+- Young children need adequate dietary fat for brain development, hormone production, and growth. Whole-milk dairy, regular cheese, and full-fat ingredients are appropriate defaults for healthy children.
+- Only recommend lower-fat ingredients when the child's profile explicitly documents a medical reason.
 
 ABSOLUTE PROHIBITIONS:
 - Never generate a recipe for Early Infant stage (birth–5 months)

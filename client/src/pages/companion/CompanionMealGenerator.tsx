@@ -176,6 +176,9 @@ export default function CompanionMealGenerator() {
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
           <div className="px-4 py-3 flex items-center justify-between">
+            <button onClick={() => setLocation(hubRoute)} className="p-1">
+              <ArrowLeft className="w-5 h-5 text-white/70" />
+            </button>
             <h1 className="text-sm font-bold text-white">Meal Generator</h1>
             <PillButton onClick={handleCopilotOpen}>How it works</PillButton>
           </div>
@@ -184,11 +187,6 @@ export default function CompanionMealGenerator() {
 
       <div className="max-w-lg mx-auto px-4" style={{ paddingTop: "calc(5rem + env(safe-area-inset-top, 0px))" }}>
 
-        <div className="mb-4">
-          <PillButton onClick={() => setLocation(hubRoute)}>
-            <ArrowLeft className="h-3 w-3" /> Back
-          </PillButton>
-        </div>
         {/* Hero */}
         <div className="relative h-36 rounded-xl overflow-hidden mb-5">
           <img src={heroImage} alt={selectedProfile?.name || `${speciesLabel} meal`} className="w-full h-full object-cover" />

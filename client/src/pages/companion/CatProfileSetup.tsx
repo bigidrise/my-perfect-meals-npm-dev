@@ -328,12 +328,15 @@ export default function CatProfileSetup() {
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
           <div className="px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <PawPrint className="h-4 w-4 text-orange-400" />
-              <h1 className="text-sm font-bold text-white">
-                {isEdit ? `Edit ${form.name || "Profile"}` : "Add Your Cat"}
-              </h1>
-            </div>
+            <button
+              onClick={() => step > 1 ? setStep(step - 1) : setLocation("/companion/cats")}
+              className="p-1 flex-shrink-0"
+            >
+              <ArrowLeft className="w-5 h-5 text-white/70" />
+            </button>
+            <h1 className="text-sm font-bold text-white">
+              {isEdit ? `Edit ${form.name || "Profile"}` : "Add Your Cat"}
+            </h1>
             <span className="text-white/40 text-xs">{step} / {TOTAL_STEPS}</span>
           </div>
           <div className="h-0.5 bg-white/10">
@@ -346,12 +349,6 @@ export default function CatProfileSetup() {
       </MobileHeaderGuard>
 
       <div className="max-w-lg mx-auto px-4" style={{ paddingTop: "calc(5rem + env(safe-area-inset-top, 0px))" }}>
-        <div className="mb-4">
-          <PillButton onClick={() => step > 1 ? setStep(step - 1) : setLocation("/companion/cats")}>
-            <ArrowLeft className="h-3 w-3" /> {step > 1 ? "Back" : "My Cats"}
-          </PillButton>
-        </div>
-
         <AnimatePresence mode="wait">
           {/* STEP 1: Identity */}
           {step === 1 && (

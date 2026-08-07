@@ -345,8 +345,14 @@ export default function DogProfileSetup() {
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
           <div className="px-4 py-3 flex items-center gap-3">
-            <div>
-              <h1 className="text-sm font-bold text-white">
+            <button
+              onClick={() => step > 1 && step < 5 ? setStep((s) => s - 1) : setLocation("/companion/dogs")}
+              className="p-1 flex-shrink-0"
+            >
+              <ArrowLeft className="w-5 h-5 text-white/70" />
+            </button>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-sm font-bold text-white truncate">
                 {step === 5
                   ? isEdit
                     ? `${form.name || "Dog"}'s Photos`
@@ -368,12 +374,6 @@ export default function DogProfileSetup() {
       </MobileHeaderGuard>
 
       <div className="max-w-lg mx-auto px-4" style={{ paddingTop: "calc(5rem + env(safe-area-inset-top, 0px))" }}>
-
-        <div className="mb-4">
-          <PillButton onClick={() => step > 1 && step < 5 ? setStep((s) => s - 1) : setLocation("/companion/dogs")}>
-            <ArrowLeft className="h-3 w-3" /> {step === 5 ? "Skip" : "Back"}
-          </PillButton>
-        </div>
 
         <AnimatePresence mode="wait">
           {/* STEP 1: Identity */}
