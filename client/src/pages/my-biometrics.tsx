@@ -64,7 +64,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { MACRO_SOURCES, getMacroSourceBySlug } from "@/lib/macroSourcesConfig";
 import ReadOnlyNote from "@/components/ReadOnlyNote";
-import { launchMacroPhotoCapture } from "@/lib/photoMacroCapture";
+import MacroScanModal from "@/components/MacroScanModal";
 import { launchIngredientPhotoCapture, type IngredientScanResult } from "@/lib/photoIngredientCapture";
 import { IngredientIntelligenceSheet } from "@/components/biometrics/IngredientIntelligenceSheet";
 import { useTranslation } from "react-i18next";
@@ -940,34 +940,7 @@ export default function MyBiometrics() {
     });
   };
 
-  const handlePhotoUpload = async () => {
-    await launchMacroPhotoCapture({
-      onAnalyzing: () => {
-        toast({
-          title: "Analyzing photo...",
-          description: "Please wait while AI estimates the nutrition values.",
-        });
-      },
-      onSuccess: (result) => {
-        setP(String(result.protein));
-        setC(String(result.carbs));
-        setF(String(result.fat));
-        setK(String(result.calories));
-
-        toast({
-          title: "AI Estimate Added",
-          description: `Detected ${Math.round(result.calories)} kcal — Protein ${result.protein}g, Carbs ${result.carbs}g, Fat ${result.fat}g.`,
-        });
-      },
-      onError: (error) => {
-        toast({
-          title: "Error",
-          description: error,
-          variant: "destructive",
-        });
-      },
-    });
-  };
+  const handlePhotoUpload = () => setShowMacroModal(true);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -1102,6 +1075,7 @@ export default function MyBiometrics() {
   // Paste support (works with labels or just numbers: "30 40 10 370")
   const [openPaste, setOpenPaste] = useState(false);
   const [openDescribe, setOpenDescribe] = useState(false);
+  const [showMacroModal, setShowMacroModal] = useState(false);
   const [pasteText, setPasteText] = useState("");
   const [showBiometricsInfoModal, setShowBiometricsInfoModal] = useState(false);
   const [showTodaysMacrosInfoModal, setShowTodaysMacrosInfoModal] =
@@ -2694,6 +2668,22 @@ export default function MyBiometrics() {
             </PillButton>
           </div>
         }
+      />
+
+      <MacroScanModal
+        open={showMacroModal}
+        onOpenChange={setShowMacroModal}
+        onSuccess={(result) => {
+          setShowMacroModal(false);
+          setP(String(result.protein));
+          setC(String(result.carbs));
+          setF(String(result.fat));
+          setK(String(result.calories));
+          toast({
+            title: "Macros Detected",
+            description: `${Math.round(result.calories)} kcal — Protein ${result.protein}g, Carbs ${result.carbs}g, Fat ${result.fat}g.`,
+          });
+        }}
       />
 
       <JustDescribeItModal

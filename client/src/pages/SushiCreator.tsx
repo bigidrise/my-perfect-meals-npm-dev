@@ -743,7 +743,12 @@ export default function SushiCreator() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-safe-nav"
+        className="min-h-screen pb-safe-nav"
+        style={{
+          backgroundImage: "linear-gradient(rgba(0,0,0,0.44), rgba(0,0,0,0.40)), url('/images/sushi-creator-bg.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center 30%",
+        }}
       >
         {/* Universal Safe-Area Header */}
         <MobileHeaderGuard>
@@ -856,7 +861,7 @@ export default function SushiCreator() {
           {/* Create Craving Form */}
           <div className="w-full max-w-4xl mx-auto">
             <div>
-              <Card className="shadow-2xl bg-black/30 backdrop-blur-lg border border-white/20 w-full max-w-xl mx-auto">
+              <Card className="shadow-2xl bg-black/10 backdrop-blur-lg border border-white/20 w-full max-w-xl mx-auto">
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-xl text-white">
                     Create Your Sushi

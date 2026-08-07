@@ -11,8 +11,12 @@
 
 import { Suspense, useState, useEffect } from "react";
 import { useLocation } from "wouter";
+import { ArrowLeft } from "lucide-react";
 import ParentsCorner from "@/components/my-perfect-beginning/ParentsCorner";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { apiRequest } from "@/lib/apiRequest";
+import { usePageTitle } from "@/contexts/PageTitleContext";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 
 // ── Key must match MyPerfectBeginningPage.tsx ─────────────────────────────────
 
@@ -104,6 +108,8 @@ function buildChildContext(child: DbChild | null) {
 
 export default function MyPerfectBeginningParentsCornerPage() {
   const [, setLocation] = useLocation();
+  const isDesktop = useIsDesktop();
+  usePageTitle("Parent's Corner");
   const [activeChild, setActiveChild] = useState<DbChild | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -114,11 +120,7 @@ export default function MyPerfectBeginningParentsCornerPage() {
           try { return localStorage.getItem(LS_ACTIVE_CHILD_KEY); } catch { return null; }
         })();
 
-        const res = await fetch(apiUrl("/api/my-perfect-beginning/children"), {
-          credentials: "include",
-        });
-        if (!res.ok) return;
-        const data = await res.json();
+        const data = await apiRequest(apiUrl("/api/my-perfect-beginning/children"));
         const children: DbChild[] = data.children ?? [];
 
         const found = activeId ? children.find(c => c.id === activeId) : null;

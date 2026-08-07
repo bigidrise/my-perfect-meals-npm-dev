@@ -473,7 +473,12 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-safe-nav"
+        className="min-h-screen pb-safe-nav"
+        style={{
+          backgroundImage: "linear-gradient(rgba(0,0,0,0.44), rgba(0,0,0,0.40)), url('/images/athlete-beverage-bg.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center 30%",
+        }}
       >
         <MobileHeaderGuard>
         <div
@@ -512,7 +517,7 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
               <span className="text-sm font-medium">Beverage Creator Hub</span>
             </button>
           )}
-          <Card className="shadow-2xl bg-black/30 backdrop-blur-lg border border-white/20 w-full max-w-xl mx-auto mb-6">
+          <Card className="shadow-2xl bg-black/10 backdrop-blur-lg border border-white/20 w-full max-w-xl mx-auto mb-6">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-lg text-white">
                 <Wine className="h-5 w-5 text-blue-400" />

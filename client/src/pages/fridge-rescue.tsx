@@ -753,7 +753,12 @@ const FridgeRescuePage = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-safe-nav"
+        className="min-h-screen pb-safe-nav"
+        style={{
+          backgroundImage: "linear-gradient(rgba(0,0,0,0.44), rgba(0,0,0,0.40)), url('/images/fridge-rescue-bg_2.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center 20%",
+        }}
       >
         {/* Universal Safe-Area Header */}
         <MobileHeaderGuard>
@@ -1064,7 +1069,7 @@ const FridgeRescuePage = () => {
           </div>
 
           {starchAlert.show && pendingFridgeMeal && (
-            <div className="bg-black/30 backdrop-blur-lg border border-white/20 rounded-2xl p-6 max-w-6xl mx-auto mt-8">
+            <div className="bg-black/10 backdrop-blur-lg border border-white/20 rounded-2xl p-6 max-w-6xl mx-auto mt-8">
               <StarchGuardIntercept
                 alert={starchAlert}
                 onDecision={async (decision) => {
@@ -1085,7 +1090,7 @@ const FridgeRescuePage = () => {
             <div
               ref={resultsRef}
               data-testid="fridge-results"
-              className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-xl rounded-2xl p-8 max-w-6xl mx-auto mt-8"
+              className="bg-black/10 backdrop-blur-lg border border-white/20 shadow-xl rounded-2xl p-8 max-w-6xl mx-auto mt-8"
             >
               <div className="flex items-center justify-between mb-8">
                 <h2 className="text-xl font-bold text-white">

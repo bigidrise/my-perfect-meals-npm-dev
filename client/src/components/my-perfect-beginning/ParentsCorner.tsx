@@ -32,14 +32,21 @@ import {
   X,
   RotateCcw,
 } from "lucide-react";
-import { apiUrl } from "@/lib/resolveApiBase";
+import { get, post, patch, del } from "@/lib/api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+interface MealAction {
+  actionType: "create_child_meal";
+  label: string;
+  mealIdea: string;
+}
 
 interface Message {
   role: "user" | "assistant";
   content: string;
   suggestedFollowUps?: string[];
+  suggestedMealActions?: MealAction[];
 }
 
 interface ChildContextProps {
@@ -186,10 +193,7 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
 
   // ── Load tip ──────────────────────────────────────────────────────────────
   useEffect(() => {
-    fetch(apiUrl(`/api/my-perfect-beginning/parents-corner/tip?stage=${stage}`), {
-      credentials: "include",
-    })
-      .then((r) => r.json())
+    get<{ tip?: string }>(`/api/my-perfect-beginning/parents-corner/tip?stage=${stage}`)
       .then((data) => {
         if (data.tip) setTip(data.tip);
       })
@@ -214,11 +218,7 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
     if (!childProfileId) return;
 
     setHydrating(true);
-    fetch(
-      apiUrl(`/api/my-perfect-beginning/parents-corner/conversation?childProfileId=${encodeURIComponent(childProfileId)}`),
-      { credentials: "include" }
-    )
-      .then((r) => r.json())
+    get<{ messages?: Message[] }>(`/api/my-perfect-beginning/parents-corner/conversation?childProfileId=${encodeURIComponent(childProfileId)}`)
       .then((data) => {
         if (Array.isArray(data.messages) && data.messages.length > 0) {
           setMessages(data.messages);
@@ -232,12 +232,8 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
   // ── Persist conversation after each assistant reply ───────────────────────
   function persistConversation(updatedMessages: Message[]) {
     if (!childProfileId) return;
-    fetch(apiUrl("/api/my-perfect-beginning/parents-corner/conversation"), {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ childProfileId, messages: updatedMessages }),
-    }).catch(() => {});
+    patch("/api/my-perfect-beginning/parents-corner/conversation", { childProfileId, messages: updatedMessages })
+      .catch(() => {});
   }
 
   // ── Auto-scroll ───────────────────────────────────────────────────────────
@@ -260,32 +256,31 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
     setCardsVisible(false);
 
     try {
-      const response = await fetch(
-        apiUrl("/api/my-perfect-beginning/parents-corner"),
+      const data = await post<{
+        reply?: string;
+        suggestedFollowUps?: string[];
+        suggestedMealActions?: { actionType: string; label: string; mealIdea: string }[];
+      }>(
+        "/api/my-perfect-beginning/parents-corner",
         {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            message: trimmed,
-            childContext,
-            conversationHistory: updatedMessages.slice(0, -1),
-          }),
+          message: trimmed,
+          childContext,
+          conversationHistory: updatedMessages.slice(0, -1),
         }
       );
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      const data = await response.json();
       const followUps: string[] = Array.isArray(data.suggestedFollowUps)
-        ? data.suggestedFollowUps.filter((q: unknown) => typeof q === "string" && q.trim()).slice(0, 3)
+        ? data.suggestedFollowUps.filter((q: unknown) => typeof q === "string" && (q as string).trim()).slice(0, 3)
+        : [];
+      const mealActions: MealAction[] = Array.isArray(data.suggestedMealActions)
+        ? (data.suggestedMealActions.filter(
+            (a) => a.actionType === "create_child_meal" && typeof a.label === "string" && typeof a.mealIdea === "string"
+          ) as MealAction[]).slice(0, 2)
         : [];
       const assistantMsg: Message = {
         role: "assistant",
         content: data.reply || "I'm sorry, I didn't get a response. Please try again.",
         suggestedFollowUps: followUps.length > 0 ? followUps : undefined,
+        suggestedMealActions: mealActions.length > 0 ? mealActions : undefined,
       };
       const finalMessages = [...updatedMessages, assistantMsg];
       setMessages(finalMessages);
@@ -311,10 +306,8 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
     setCardsVisible(true);
 
     if (!childProfileId) return;
-    fetch(
-      apiUrl(`/api/my-perfect-beginning/parents-corner/conversation?childProfileId=${encodeURIComponent(childProfileId)}`),
-      { method: "DELETE", credentials: "include" }
-    ).catch(() => {});
+    del(`/api/my-perfect-beginning/parents-corner/conversation?childProfileId=${encodeURIComponent(childProfileId)}`)
+      .catch(() => {});
   }
 
   function handleCardTap(question: string) {
@@ -334,6 +327,14 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
     }
   }
 
+  function handleBuildMeal(mealIdea: string) {
+    // Lock the active child in localStorage so the builder reads the right profile
+    if (childProfileId) {
+      try { localStorage.setItem("mpb.activeChildId.v1", childProfileId); } catch {}
+    }
+    setLocation(`/lifestyle/my-perfect-beginning/create-meal?idea=${encodeURIComponent(mealIdea)}`);
+  }
+
   function handleBack() {
     if (onBack) {
       onBack();
@@ -348,50 +349,58 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
     <div
       className="min-h-screen flex flex-col"
       style={{
-        background: "linear-gradient(160deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%)",
+        backgroundImage: "linear-gradient(rgba(2,14,8,0.78), rgba(1,10,5,0.74)), url('/images/mpb-hero-bg.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
         paddingTop: "env(safe-area-inset-top, 0px)",
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
       }}
     >
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="flex items-start gap-3 px-4 pt-4 pb-3 border-b border-white/10">
+      {/* ── Back button ─────────────────────────────────────────────────────── */}
+      <div className="px-4 pt-4 pb-2 max-w-2xl mx-auto w-full">
         <button
           onClick={handleBack}
-          className="mt-0.5 w-9 h-9 shrink-0 rounded-full bg-white/10 border border-white/15 flex items-center justify-center"
-          aria-label="Back"
+          className="flex items-center gap-1.5 text-emerald-400 text-sm"
+          aria-label="Back to My Perfect Beginnings"
         >
-          <ArrowLeft className="w-4 h-4 text-white/80" />
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back to My Perfect Beginnings</span>
         </button>
-        <div className="flex-1 min-w-0">
-          <h1 className="text-[15px] font-semibold text-white leading-tight">
-            Parent's Corner
-          </h1>
-          <p className="text-[12px] text-white/60 mt-0.5 leading-tight">
-            Helping {childName} build healthy habits
-            {stageLabel ? (
-              <span className="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] bg-teal-500/20 text-teal-300 border border-teal-500/30">
-                {stageLabel}
-              </span>
-            ) : null}
-          </p>
+      </div>
+
+      {/* ── Header toolbar (title + child context + reset) ─────────────────── */}
+      <div className="px-4 pt-2 pb-3 border-b border-white/10">
+        <div className="max-w-2xl mx-auto flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-lg font-bold text-white leading-tight">
+              Parent's Corner
+            </h1>
+            <p className="text-[12px] text-white mt-0.5 leading-tight">
+              Helping {childName} build healthy habits
+              {stageLabel ? (
+                <span className="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] bg-teal-500/20 text-teal-300 border border-teal-500/30">
+                  {stageLabel}
+                </span>
+              ) : null}
+            </p>
+          </div>
+          {messages.length > 0 && childProfileId && (
+            <button
+              onClick={() => setShowStartFreshConfirm(true)}
+              className="w-9 h-9 shrink-0 rounded-full bg-white/10 border border-white/15 flex items-center justify-center"
+              aria-label="Start fresh"
+              title="Start a new conversation"
+            >
+              <RotateCcw className="w-4 h-4 text-white" />
+            </button>
+          )}
         </div>
-        {/* Start fresh button — only shown when there's a conversation to clear */}
-        {messages.length > 0 && childProfileId && (
-          <button
-            onClick={() => setShowStartFreshConfirm(true)}
-            className="mt-0.5 w-9 h-9 shrink-0 rounded-full bg-white/10 border border-white/15 flex items-center justify-center"
-            aria-label="Start fresh"
-            title="Start a new conversation"
-          >
-            <RotateCcw className="w-4 h-4 text-white/60" />
-          </button>
-        )}
       </div>
 
       {/* ── Start fresh confirmation ────────────────────────────────────────── */}
       {showStartFreshConfirm && (
         <div className="mx-4 mt-3 rounded-2xl bg-white/10 border border-white/15 px-4 py-3 flex items-center gap-3">
-          <p className="flex-1 text-[12.5px] text-white/80 leading-snug">
+          <p className="flex-1 text-[12.5px] text-white leading-snug">
             Clear this conversation and start fresh?
           </p>
           <button
@@ -402,7 +411,7 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
           </button>
           <button
             onClick={() => setShowStartFreshConfirm(false)}
-            className="text-white/40 hover:text-white/70"
+            className="text-white hover:text-white"
             aria-label="Cancel"
           >
             <X className="w-4 h-4" />
@@ -412,6 +421,7 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
 
       {/* ── Scrollable content ─────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto">
+        <div className="max-w-2xl mx-auto w-full">
 
         {/* ── Boundary language (first open) ──────────────────────────────── */}
         {showBoundary && (
@@ -424,7 +434,7 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
             </div>
             <button
               onClick={dismissBoundary}
-              className="shrink-0 mt-0.5 text-white/40 hover:text-white/70"
+              className="shrink-0 mt-0.5 text-white hover:text-white"
               aria-label="Dismiss"
             >
               <X className="w-4 h-4" />
@@ -447,7 +457,7 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
 
         {/* ── Loading prior conversation ───────────────────────────────────── */}
         {hydrating && (
-          <div className="px-4 mt-5 flex items-center gap-2 text-white/40">
+          <div className="px-4 mt-5 flex items-center gap-2 text-white">
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
             <span className="text-[12px]">Loading your conversation…</span>
           </div>
@@ -456,10 +466,10 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
         {/* ── Curated question cards ───────────────────────────────────────── */}
         {cardsVisible && !hydrating && (
           <div className="px-4 mt-5">
-            <p className="text-[11px] text-white/50 uppercase tracking-widest font-medium mb-3">
+            <p className="text-[11px] text-white uppercase tracking-widest font-medium mb-3">
               Common questions
             </p>
-            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+            <div className="grid grid-cols-2 gap-2.5">
               {QUESTION_CARDS.map((card) => {
                 const Icon = card.icon;
                 return (
@@ -476,7 +486,7 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
                     `}
                   >
                     <span className="text-xl leading-none">{card.emoji}</span>
-                    <span className="text-[12px] font-medium text-white/90 leading-snug">
+                    <span className="text-[12px] font-medium text-white leading-snug">
                       {card.label}
                     </span>
                   </button>
@@ -491,7 +501,7 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
           <div className="px-4 mt-3">
             <button
               onClick={() => setCardsVisible(true)}
-              className="text-[11.5px] text-white/40 hover:text-white/70 underline underline-offset-2"
+              className="text-[11.5px] text-white hover:text-white underline underline-offset-2"
             >
               Browse common questions
             </button>
@@ -515,7 +525,7 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
                       ${
                         msg.role === "user"
                           ? "bg-teal-600/60 text-white rounded-br-md"
-                          : "bg-white/10 text-white/90 rounded-bl-md border border-white/10"
+                          : "bg-white/10 text-white rounded-bl-md border border-white/10"
                       }
                     `}
                   >
@@ -528,7 +538,7 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
                   msg.suggestedFollowUps &&
                   msg.suggestedFollowUps.length > 0 && (
                     <div className="pl-9 flex flex-col gap-1.5">
-                      <p className="text-[10.5px] text-white/35 uppercase tracking-widest font-medium">
+                      <p className="text-[10.5px] text-white uppercase tracking-widest font-medium">
                         Follow-up
                       </p>
                       <div className="flex flex-wrap gap-2">
@@ -553,6 +563,36 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
                       </div>
                     </div>
                   )}
+
+                {/* ── Meal action buttons ───────────────────────────────────── */}
+                {msg.role === "assistant" &&
+                  msg.suggestedMealActions &&
+                  msg.suggestedMealActions.length > 0 && (
+                    <div className="pl-9 flex flex-col gap-1.5 mt-0.5">
+                      <p className="text-[10.5px] text-orange-300/80 uppercase tracking-widest font-medium">
+                        Make it now
+                      </p>
+                      <div className="flex flex-col gap-2">
+                        {msg.suggestedMealActions.map((action, ai) => (
+                          <button
+                            key={ai}
+                            onClick={() => handleBuildMeal(action.mealIdea)}
+                            className="
+                              text-left text-[12.5px] font-medium text-orange-200
+                              px-4 py-2.5 rounded-xl
+                              bg-orange-900/40 border border-orange-500/40
+                              hover:bg-orange-800/50 hover:border-orange-400/60
+                              active:scale-[0.97] transition-all duration-150
+                              flex items-center justify-between gap-2
+                            "
+                          >
+                            <span>🍽 {action.label}</span>
+                            <span className="text-orange-400/80 shrink-0">→</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
               </div>
             ))}
 
@@ -564,7 +604,7 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
                 </div>
                 <div className="rounded-2xl rounded-bl-md bg-white/10 border border-white/10 px-4 py-3 flex items-center gap-2">
                   <Loader2 className="w-3.5 h-3.5 text-teal-400 animate-spin" />
-                  <span className="text-[12px] text-white/50">Thinking…</span>
+                  <span className="text-[12px] text-white">Thinking…</span>
                 </div>
               </div>
             )}
@@ -576,7 +616,7 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
         {/* ── Empty state prompt ───────────────────────────────────────────── */}
         {messages.length === 0 && !cardsVisible && !hydrating && (
           <div className="px-4 mt-6 text-center">
-            <p className="text-[13px] text-white/40">
+            <p className="text-[13px] text-white">
               Tap a card above or ask anything below.
             </p>
           </div>
@@ -584,14 +624,16 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
 
         {/* Bottom padding for the fixed input */}
         <div className="h-28" />
+        </div>{/* end max-w-2xl */}
       </div>
 
       {/* ── Ask Anything input (fixed bottom) ─────────────────────────────── */}
       <div
-        className="border-t border-white/10 bg-[#0f1729]/90 backdrop-blur-md px-4 py-3"
+        className="border-t border-white/10 bg-[#0f1729]/90 backdrop-blur-md py-3"
         style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}
       >
-        <p className="text-[10.5px] text-white/35 uppercase tracking-widest font-medium mb-2">
+        <div className="max-w-2xl mx-auto w-full px-4">
+        <p className="text-[10.5px] text-white uppercase tracking-widest font-medium mb-2">
           Ask anything
         </p>
         <form onSubmit={handleSubmit} className="flex items-end gap-2">
@@ -629,6 +671,7 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
             )}
           </button>
         </form>
+        </div>{/* end max-w-2xl input wrapper */}
       </div>
     </div>
   );

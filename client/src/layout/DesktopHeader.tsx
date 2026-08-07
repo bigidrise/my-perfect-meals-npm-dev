@@ -45,6 +45,8 @@ const ROUTE_KEY_MAP: Record<string, string> = {
   "/lifestyle/wine-list-helper": "wineListHelper",
   "/lifestyle/reduce-drinking-plan": "reduceDrinking",
   "/lifestyle/my-perfect-gatherings": "gatherings",
+  "/lifestyle/my-perfect-beginning": "myPerfectBeginning",
+  "/lifestyle/my-perfect-beginning/create-meal": "myPerfectBeginning",
   "/craving-creator-landing": "cravingCreator",
   "/craving-creator": "cravingCreator",
   "/craving-desserts": "dessertCreator",
@@ -96,8 +98,6 @@ const ROUTE_KEY_MAP: Record<string, string> = {
   "/procare-certified": "procareCertified",
 };
 
-/** Maps hub-back routes to their hub's routeTitles key */
-const HUB_BACK_KEY_MAP: Record<string, { hub: string; key: string }> = {};
 
 type PlanBadgeVariant = "free" | "paid" | "professional";
 interface PlanBadgeInfo { text: string; variant: PlanBadgeVariant }
@@ -153,20 +153,10 @@ export default function DesktopHeader() {
   const title = contextTitle || (fallbackTitle === "Signature Kitchen Experience" ? appName : fallbackTitle);
 
   const planBadge = getPlanLabel(user);
-  const hubBackEntry = HUB_BACK_KEY_MAP[location] ?? null;
 
   return (
     <header className="h-14 shrink-0 bg-black/40 backdrop-blur-md border-b border-white/10 flex items-center justify-between px-6">
       <div className="flex items-center gap-3">
-        {hubBackEntry && (
-          <button
-            onClick={() => window.history.back()}
-            className="flex items-center gap-1 text-orange-400 hover:text-orange-300 transition-colors"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            <span className="text-sm font-medium">{t(hubBackEntry.key)}</span>
-          </button>
-        )}
         <h1 className="text-lg font-semibold text-white">{title}</h1>
       </div>
 

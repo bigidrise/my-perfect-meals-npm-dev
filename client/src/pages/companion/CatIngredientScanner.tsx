@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { usePageTitle } from "@/contexts/PageTitleContext";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, ArrowLeft, ShieldCheck, ShieldX, AlertTriangle, RefreshCw, ChevronDown } from "lucide-react";
@@ -37,6 +39,7 @@ const QUICK_CHECKS = [
 
 export default function CatIngredientScanner() {
   const [, setLocation] = useLocation();
+  const isDesktop = useIsDesktop();
   const { open, setLastResponse } = useCopilot();
   const [ingredient, setIngredient] = useState("");
   const [scanning, setScanning] = useState(false);
@@ -54,8 +57,10 @@ export default function CatIngredientScanner() {
     if (fromUrl) setSelectedProfileId(fromUrl);
   }, []);
 
+  usePageTitle("Cat Ingredient Scanner");
+
   useEffect(() => {
-    document.title = "Cat Ingredient Scanner | My Perfect Pets";
+    document.title = "Cat Ingredient Scanner | My Perfect Meals";
     window.scrollTo({ top: 0, behavior: "instant" });
     fetch(apiUrl("/api/companion/profiles?type=cat"), { headers: getAuthHeaders() })
       .then((r) => r.json())
@@ -161,19 +166,29 @@ export default function CatIngredientScanner() {
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
           <div className="px-4 py-3 flex items-center justify-between">
+            <button onClick={() => setLocation("/companion/cats")} className="p-1">
+              <ArrowLeft className="w-5 h-5 text-white/70" />
+            </button>
             <h1 className="text-sm font-bold text-white">Cat Ingredient Scanner</h1>
             <PillButton onClick={handleCopilotOpen}>How it works</PillButton>
           </div>
         </div>
       </MobileHeaderGuard>
 
-      <div className="max-w-lg mx-auto px-4" style={{ paddingTop: "calc(5rem + env(safe-area-inset-top, 0px))" }}>
+      <div className="max-w-lg mx-auto px-4" style={{ paddingTop: isDesktop ? "2rem" : "calc(5rem + env(safe-area-inset-top, 0px))" }}>
 
-        <div className="mb-4">
-          <PillButton onClick={() => setLocation("/companion/cats")}>
-            <ArrowLeft className="h-3 w-3" /> Back
-          </PillButton>
-        </div>
+        {/* Desktop inline back button */}
+        {isDesktop && (
+          <div className="mb-4">
+            <button
+              onClick={() => setLocation("/companion/cats")}
+              className="flex items-center gap-1.5 text-orange-400 text-sm hover:text-orange-300 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span>Back to My Perfect Cat</span>
+            </button>
+          </div>
+        )}
 
         {/* Profile selector */}
         {profiles.length > 0 && (

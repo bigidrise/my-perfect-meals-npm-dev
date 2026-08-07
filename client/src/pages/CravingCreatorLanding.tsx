@@ -71,7 +71,12 @@ export default function CravingCreatorLanding() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.6 }}
-      className="min-h-screen bg-gradient-to-br from-[#0f0f0f] via-[#1a1a1a] to-[#2b2b2b] pb-safe-nav"
+      className="min-h-screen pb-safe-nav"
+      style={{
+        backgroundImage: "linear-gradient(rgba(0,0,0,0.62), rgba(0,0,0,0.58)), url('/images/craving-creator-bg.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center 30%",
+      }}
     >
       {/* Universal Safe-Area Header */}
       <MobileHeaderGuard>

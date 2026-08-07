@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, Baby, Sprout } from "lucide-react";
 import { useLocation, useRoute } from "wouter";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { usePageTitle } from "@/contexts/PageTitleContext";
 
 const SECTION_META: Record<string, { title: string; emoji: string; desc: string }> = {
   "create-meal": {
@@ -60,12 +61,19 @@ export default function MyPerfectBeginningStub() {
     desc: "This section is being built.",
   };
 
+  usePageTitle(meta.title);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="min-h-screen bg-gradient-to-br from-[#0d1a12] via-[#0f1f18] to-[#0a1510] pb-36"
+      className="min-h-screen pb-36"
+      style={{
+        backgroundImage: "linear-gradient(rgba(2,14,8,0.78), rgba(1,10,5,0.74)), url('/images/mpb-hero-bg.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
     >
       {!isDesktop && (
         <div
@@ -75,12 +83,11 @@ export default function MyPerfectBeginningStub() {
           <div className="px-4 pb-3 pt-2 flex items-center gap-3">
             <button
               onClick={() => setLocation("/lifestyle/my-perfect-beginning")}
-              className="p-1.5 rounded-lg bg-white/10 text-white"
+              className="flex items-center gap-1.5 text-emerald-400 text-sm"
             >
               <ArrowLeft className="h-4 w-4" />
+              <span>My Perfect Beginnings</span>
             </button>
-            <span className="text-base">{meta.emoji}</span>
-            <h1 className="text-base font-bold text-white">{meta.title}</h1>
           </div>
         </div>
       )}
@@ -90,19 +97,18 @@ export default function MyPerfectBeginningStub() {
         style={{
           paddingTop: isDesktop
             ? "2rem"
-            : "calc(env(safe-area-inset-top, 0px) + 5.5rem)",
+            : "calc(env(safe-area-inset-top, 0px) + 4rem)",
         }}
       >
         {isDesktop && (
-          <div className="flex items-center gap-3 mb-6">
+          <div className="mb-6">
             <button
               onClick={() => setLocation("/lifestyle/my-perfect-beginning")}
-              className="p-1.5 rounded-lg bg-white/10 text-white"
+              className="flex items-center gap-1.5 text-emerald-400 text-sm"
             >
               <ArrowLeft className="h-4 w-4" />
+              <span>Back to My Perfect Beginnings</span>
             </button>
-            <span className="text-xl">{meta.emoji}</span>
-            <h1 className="text-xl font-bold text-white">{meta.title}</h1>
           </div>
         )}
 
@@ -111,7 +117,7 @@ export default function MyPerfectBeginningStub() {
             {meta.emoji}
           </div>
           <h2 className="text-2xl font-bold text-white mb-3">{meta.title}</h2>
-          <p className="text-white/55 text-sm leading-relaxed max-w-sm mb-8">
+          <p className="text-white text-sm leading-relaxed max-w-sm mb-8">
             {meta.desc}
           </p>
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/15 border border-emerald-400/25">
@@ -120,7 +126,7 @@ export default function MyPerfectBeginningStub() {
           </div>
           <button
             onClick={() => setLocation("/lifestyle/my-perfect-beginning")}
-            className="mt-8 flex items-center gap-2 text-white/50 text-sm hover:text-white/70 transition-colors"
+            className="mt-8 flex items-center gap-2 text-emerald-400 text-sm"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to My Perfect Beginning

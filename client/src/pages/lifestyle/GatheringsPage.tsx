@@ -621,7 +621,13 @@ export default function UltimateExperiencesPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-safe-nav"
+        className="min-h-screen pb-safe-nav"
+        style={{
+          backgroundImage: "linear-gradient(rgba(2,8,4,0.80), rgba(1,5,2,0.76)), url('/images/gatherings-hero-bg.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundAttachment: "fixed",
+        }}
       >
         <MobileHeaderGuard>
           <div
@@ -652,7 +658,7 @@ export default function UltimateExperiencesPage() {
         >
           <div className="w-full max-w-4xl mx-auto">
             <div>
-              <Card className="shadow-2xl bg-black/40 backdrop-blur-lg border border-orange-400/20 w-full max-w-xl mx-auto">
+              <Card className="shadow-2xl bg-black/10 backdrop-blur-lg border border-orange-400/20 w-full max-w-xl mx-auto">
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-xl text-white">
                     <Star className="h-5 w-5 text-amber-400" />
@@ -787,7 +793,7 @@ export default function UltimateExperiencesPage() {
                         value={familyRecipes}
                         onChange={(e) => setFamilyRecipes(e.target.value)}
                         placeholder={`Paste or describe a recipe:\n"Grandma's mac and cheese — sharp cheddar, evaporated milk, baked crust"\n"Aunt Carol's collard greens with smoked turkey neck"`}
-                        className="w-full px-3 py-2.5 bg-black text-white placeholder:text-white/30 border border-orange-400/20 rounded-lg h-28 resize-none text-sm leading-relaxed focus:outline-none focus:border-orange-400/50"
+                        className="w-full px-3 py-2.5 bg-white/5 backdrop-blur-sm text-white placeholder:text-white/30 border border-orange-400/20 rounded-lg h-28 resize-none text-sm leading-relaxed focus:outline-none focus:border-orange-400/50"
                         maxLength={1000}
                         disabled={isGenerating}
                       />
@@ -829,7 +835,7 @@ export default function UltimateExperiencesPage() {
                         {/* Accordion toggle */}
                         <button
                           onClick={() => setDishAccordionOpen((o) => !o)}
-                          className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-black/40 border border-white/10 hover:border-orange-400/30 transition-all"
+                          className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-black/40 backdrop-blur-sm border border-white/10 hover:border-orange-400/30 transition-all"
                           disabled={isGenerating}
                         >
                           <div className="flex flex-col items-start">
@@ -942,7 +948,7 @@ export default function UltimateExperiencesPage() {
                                           if (e.key === "Escape") setCustomDishOpen((prev) => ({ ...prev, [section.label]: false }));
                                         }}
                                         placeholder={`Your ${section.label.toLowerCase().replace(/s$/, "")}…`}
-                                        className="flex-1 px-3 py-1.5 bg-black text-white placeholder:text-white/30 border border-orange-400/40 rounded-full text-xs focus:outline-none focus:border-orange-400"
+                                        className="flex-1 px-3 py-1.5 bg-white/5 backdrop-blur-sm text-white placeholder:text-white/30 border border-orange-400/40 rounded-full text-xs focus:outline-none focus:border-orange-400"
                                         maxLength={100}
                                       />
                                       <button onClick={confirmCustom} disabled={!inputVal.trim()} className="w-7 h-7 rounded-full bg-orange-500 text-white flex items-center justify-center disabled:opacity-40 transition-all active:scale-95">
@@ -999,7 +1005,7 @@ export default function UltimateExperiencesPage() {
                           value={proteinSource}
                           onChange={(e) => setProteinSource(e.target.value)}
                           placeholder="e.g., Trout, Wild Mushrooms, Blackberries, Venison, Zucchini..."
-                          className="w-full px-3 py-2 bg-black text-white placeholder:text-white/40 border border-orange-400/20 rounded-lg text-sm"
+                          className="w-full px-3 py-2 bg-white/5 backdrop-blur-sm text-white placeholder:text-white/40 border border-orange-400/20 rounded-lg text-sm"
                           maxLength={200}
                           disabled={isGenerating}
                         />
@@ -1064,7 +1070,7 @@ export default function UltimateExperiencesPage() {
                               ? "e.g., opening weekend turkey hunt, cooking for 8, want leftovers, need anti-inflammatory sides..."
                               : "e.g., tailgate before a football game, need finger foods for 20 people..."
                         }
-                        className="w-full px-3 py-2 bg-black text-white placeholder:text-white/40 border border-orange-400/20 rounded-lg h-16 resize-none text-sm"
+                        className="w-full px-3 py-2 bg-white/5 backdrop-blur-sm text-white placeholder:text-white/40 border border-orange-400/20 rounded-lg h-16 resize-none text-sm"
                         maxLength={300}
                       />
                     </div>
@@ -1145,7 +1151,7 @@ export default function UltimateExperiencesPage() {
                         value={chefNotes}
                         onChange={(e) => setChefNotes(e.target.value)}
                         placeholder="e.g., no nuts, extra spicy, low sodium, someone is lactose intolerant..."
-                        className="w-full px-3 py-2 bg-black text-white placeholder:text-white/40 border border-orange-400/20 rounded-lg h-16 resize-none text-sm"
+                        className="w-full px-3 py-2 bg-white/5 backdrop-blur-sm text-white placeholder:text-white/40 border border-orange-400/20 rounded-lg h-16 resize-none text-sm"
                         maxLength={300}
                       />
                       <p className="text-xs text-white/50 mt-1 text-right">
@@ -1208,7 +1214,7 @@ export default function UltimateExperiencesPage() {
                         className="mt-3"
                       />
 
-                      <div className="mt-4 py-2 px-3 bg-black/30 rounded-lg border border-white/10 space-y-2">
+                      <div className="mt-4 py-2 px-3 bg-black/30 backdrop-blur-sm rounded-lg border border-white/10 space-y-2">
                         <span className="text-xs text-white/60 block mb-2">
                           Meal Safety
                         </span>
@@ -1299,7 +1305,7 @@ export default function UltimateExperiencesPage() {
                 ? "mt-3"
                 : "mt-8"
             }>
-              <div className="bg-black/60 border border-orange-400/30 rounded-xl overflow-hidden">
+              <div className="bg-black/40 backdrop-blur-md border border-orange-400/30 rounded-xl overflow-hidden">
                 <button
                   onClick={() => setHarvestGuideCollapsed((c) => !c)}
                   className="w-full flex items-center justify-between px-4 py-3 text-left active:bg-white/5"

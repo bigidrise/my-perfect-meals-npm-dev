@@ -393,18 +393,37 @@ router.get('/weight', requireAuth, async (req, res) => {
 
 router.post('/analyze-photo', requireAuth, requireActiveAccess, async (req, res) => {
   try {
-    const { image } = req.body;
-    
-    if (!image || typeof image !== 'string') {
-      return res.status(400).json({ error: 'Base64 image data required' });
+    const { image, text } = req.body;
+
+    if (!image && !text) {
+      return res.status(400).json({ error: 'Either base64 image data or a text description is required' });
     }
 
-    const imageUrl = image.startsWith('data:') ? image : `data:image/jpeg;base64,${image}`;
-
     try {
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4o',
-        messages: [
+      let messages: any[];
+
+      if (text && typeof text === 'string') {
+        // Text-based macro estimation (from Type or Speak mode)
+        messages = [
+          {
+            role: 'system',
+            content: `You are a nutrition analysis expert. The user will describe a food or meal in plain text. Estimate its macronutrients based on typical portion sizes.
+Return ONLY valid JSON in this exact format:
+{
+  "calories": <number>,
+  "protein": <number in grams>,
+  "carbs": <number in grams>,
+  "fat": <number in grams>,
+  "description": "<brief description of the food>"
+}
+Be realistic with portion sizes. If you cannot estimate macros, return zeros with a description explaining why.`,
+          },
+          { role: 'user', content: `Estimate the macros for: ${text}` },
+        ];
+      } else {
+        // Image-based macro estimation
+        const imageUrl = image.startsWith('data:') ? image : `data:image/jpeg;base64,${image}`;
+        messages = [
           {
             role: 'system',
             content: `You are a nutrition analysis expert. Analyze the food in the image and estimate its macronutrients.
@@ -416,16 +435,21 @@ Return ONLY valid JSON in this exact format:
   "fat": <number in grams>,
   "description": "<brief description of the food>"
 }
-Be realistic with portion sizes shown. If you cannot identify food, return zeros with description explaining why.`
+Be realistic with portion sizes shown. If you cannot identify food, return zeros with description explaining why.`,
           },
           {
             role: 'user',
             content: [
               { type: 'text', text: 'Analyze this food image and estimate the macros:' },
-              { type: 'image_url', image_url: { url: imageUrl, detail: 'low' } }
-            ]
-          }
-        ],
+              { type: 'image_url', image_url: { url: imageUrl, detail: 'low' } },
+            ],
+          },
+        ];
+      }
+
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages,
         max_tokens: 300,
         temperature: 0.3,
       });

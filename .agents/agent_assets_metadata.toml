@@ -231,3 +231,10 @@ id = "kwnLilPbPAX4KRaGlzAeY"
 uri = "file://public/images/dog-wellness-hero.png"
 type = "image"
 title = "Dog Hero — Tighter Composition"
+
+[[outputs]]
+id = "KuZT3hvWcCDBofXLjz8lz"
+uri = "file://client/public/images/mpb-hero-bg.jpg"
+type = "image"
+title = "My Perfect Beginnings — Background Concept"
+description = "Kids silhouettes walking toward a warm golden sunset. This would sit behind all MPB pages (hub, profile, create a meal, parent's corner) with a dark overlay to keep the glass cards and text readable."

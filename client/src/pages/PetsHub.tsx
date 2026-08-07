@@ -4,8 +4,6 @@ import { PawPrint, ArrowLeft, ChevronRight, Clock } from "lucide-react";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 
-const DOG_HERO = "/images/companion-hero.png";
-
 const pets = [
   {
     id: "dog",
@@ -40,7 +38,13 @@ export default function PetsHub() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-24"
+      className="min-h-screen pb-24"
+      style={{
+        backgroundImage: "linear-gradient(rgba(0,0,0,0.52), rgba(0,0,0,0.62)), url('/images/pets-hero-bg.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundAttachment: "fixed",
+      }}
     >
       {!isDesktop && (
         <div
@@ -67,26 +71,16 @@ export default function PetsHub() {
         style={{ paddingTop: isDesktop ? "2rem" : "calc(env(safe-area-inset-top, 0px) + 5.5rem)" }}
       >
 
-        {/* Hero */}
-        <div className="relative h-48 rounded-2xl overflow-hidden mb-4">
-          <img
-            src={DOG_HERO}
-            alt="My Perfect Pets"
-            className="w-full h-full object-cover object-top"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent" />
-        </div>
-
         {/* Companion Nutrition Intelligence banner */}
         <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-3 mb-5">
           <p className="text-white font-semibold text-sm">Companion Nutrition Intelligence</p>
-          <p className="text-white/65 text-xs mt-1 leading-relaxed">
+          <p className="text-white/80 text-xs mt-1 leading-relaxed">
             The same adaptive protocol engine that powers your meals — now for your pets.
           </p>
         </div>
 
         {/* Choose Your Pet */}
-        <p className="text-white/50 text-xs font-semibold uppercase tracking-widest mb-3 px-1">
+        <p className="text-white/70 text-xs font-semibold uppercase tracking-widest mb-3 px-1">
           Choose Your Pet
         </p>
 
@@ -119,8 +113,8 @@ export default function PetsHub() {
                       </span>
                     )}
                   </div>
-                  <p className="text-[11px] font-medium text-orange-300/80 mb-1">{pet.subtitle}</p>
-                  <p className="text-xs text-white/55 leading-relaxed">{pet.description}</p>
+                  <p className="text-[11px] font-medium text-orange-300 mb-1">{pet.subtitle}</p>
+                  <p className="text-xs text-white/80 leading-relaxed">{pet.description}</p>
                 </div>
                 {pet.available && (
                   <ChevronRight className="h-4 w-4 text-white/30 flex-shrink-0" />
@@ -130,7 +124,7 @@ export default function PetsHub() {
           ))}
         </div>
 
-        <p className="text-center text-white/25 text-xs mt-6">
+        <p className="text-center text-white/55 text-xs mt-6">
           More species coming as the platform grows
         </p>
       </div>

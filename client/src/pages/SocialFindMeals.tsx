@@ -475,7 +475,11 @@ export default function MealFinder() {
 
   return (
     <>
-      <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-safe-nav">
+      <div className="min-h-screen pb-safe-nav" style={{
+          backgroundImage: "linear-gradient(rgba(0,0,0,0.44), rgba(0,0,0,0.40)), url('/images/find-meals-near-me-bg_2.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center 30%",
+        }}>
         {/* Universal Safe-Area Header */}
         <MobileHeaderGuard>
         <div
@@ -518,7 +522,7 @@ export default function MealFinder() {
           )}
           {/* ENTRY SCREEN - Guided Copilot Entry (matches Macro Calculator pattern) */}
           {guidedStep === "entry" && (
-            <Card className="bg-black/40 backdrop-blur-lg border border-white/20 shadow-xl rounded-2xl mb-6">
+            <Card className="bg-black/10 backdrop-blur-lg border border-white/20 shadow-xl rounded-2xl mb-6">
               <CardContent className="p-8 text-center">
                 <div className="flex justify-center mb-6">
                   <div className="bg-orange-500/20 p-4 rounded-full">

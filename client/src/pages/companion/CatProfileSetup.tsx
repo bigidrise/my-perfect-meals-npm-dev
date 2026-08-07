@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { usePageTitle } from "@/contexts/PageTitleContext";
 import { useLocation, useParams, useSearch } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { PawPrint, ArrowLeft, Check, Camera, Star, X, Upload } from "lucide-react";
@@ -100,6 +102,7 @@ function inputClass() {
 
 export default function CatProfileSetup() {
   const [, setLocation] = useLocation();
+  const isDesktop = useIsDesktop();
   const params = useParams<{ id?: string }>();
   const search = useSearch();
   const skipToPhotos = new URLSearchParams(search).get("photos") === "true";
@@ -119,8 +122,10 @@ export default function CatProfileSetup() {
 
   const profileName = form.name || "your cat";
 
+  usePageTitle(isEdit ? "Edit Cat Profile" : "Add Your Cat");
+
   useEffect(() => {
-    document.title = isEdit ? "Edit Cat Profile" : "Add Your Cat | My Perfect Pets";
+    document.title = isEdit ? "Edit Cat Profile | My Perfect Meals" : "Add Your Cat | My Perfect Meals";
     window.scrollTo({ top: 0, behavior: "instant" });
   }, [isEdit]);
 
@@ -328,12 +333,15 @@ export default function CatProfileSetup() {
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
           <div className="px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <PawPrint className="h-4 w-4 text-orange-400" />
-              <h1 className="text-sm font-bold text-white">
-                {isEdit ? `Edit ${form.name || "Profile"}` : "Add Your Cat"}
-              </h1>
-            </div>
+            <button
+              onClick={() => step > 1 ? setStep(step - 1) : setLocation("/companion/cats")}
+              className="p-1 flex-shrink-0"
+            >
+              <ArrowLeft className="w-5 h-5 text-white/70" />
+            </button>
+            <h1 className="text-sm font-bold text-white">
+              {isEdit ? `Edit ${form.name || "Profile"}` : "Add Your Cat"}
+            </h1>
             <span className="text-white/40 text-xs">{step} / {TOTAL_STEPS}</span>
           </div>
           <div className="h-0.5 bg-white/10">
@@ -345,13 +353,20 @@ export default function CatProfileSetup() {
         </div>
       </MobileHeaderGuard>
 
-      <div className="max-w-lg mx-auto px-4" style={{ paddingTop: "calc(5rem + env(safe-area-inset-top, 0px))" }}>
-        <div className="mb-4">
-          <PillButton onClick={() => step > 1 ? setStep(step - 1) : setLocation("/companion/cats")}>
-            <ArrowLeft className="h-3 w-3" /> {step > 1 ? "Back" : "My Cats"}
-          </PillButton>
-        </div>
+      <div className="max-w-lg mx-auto px-4" style={{ paddingTop: isDesktop ? "2rem" : "calc(5rem + env(safe-area-inset-top, 0px))" }}>
 
+        {/* Desktop inline back button */}
+        {isDesktop && (
+          <div className="mb-4">
+            <button
+              onClick={() => setLocation("/companion/cats")}
+              className="flex items-center gap-1.5 text-orange-400 text-sm hover:text-orange-300 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span>Back to My Perfect Cat</span>
+            </button>
+          </div>
+        )}
         <AnimatePresence mode="wait">
           {/* STEP 1: Identity */}
           {step === 1 && (
