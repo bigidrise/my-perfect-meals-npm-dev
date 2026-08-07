@@ -1304,7 +1304,6 @@ router.post("/create-dish", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "Failed to generate recipe" });
   }
 });
-
 export default router;
 
 function mergeAllergyLists(lists: AllergyEntry[][]): AllergyEntry[] {
@@ -1529,4 +1528,3 @@ function mergeChildProfiles(profiles: ChildProfileFull[]): MergedChildProfile {
     hardStop: null,
   };
 }
-

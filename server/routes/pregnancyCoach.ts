@@ -322,7 +322,18 @@ SAFETY BOUNDARIES — NEVER DO:
 - Never reference miscarriage, birth defects, or fetal health outcomes in alarming ways
 - If asked about symptoms that sound medical (severe pain, bleeding, vision changes, severe swelling), always advise contacting her healthcare provider immediately — do not try to diagnose
 
-Keep responses conversational and appropriately concise. Use line breaks to make the answer easy to read. Always be supportive.`;
+RESPONSE FORMAT:
+You MUST respond with a valid JSON object:
+{
+  "reply": "<your full warm, conversational answer here — use \\n for line breaks>",
+  "suggestedMealActions": [
+    { "actionType": "create_pregnancy_meal", "label": "<short button label, e.g. Build an iron-rich spinach bowl>", "mealIdea": "<specific buildable meal concept safe for pregnancy, e.g. Sautéed spinach and lentil bowl with lemon dressing, high in iron and folate, pregnancy-safe>" }
+  ]
+}
+
+"suggestedMealActions": Include ONLY when your reply addresses a concrete food or meal idea that has a buildable solution (e.g. recommending iron-rich foods, high-folate meals, anti-nausea snacks, calcium-rich dishes). Leave as [] for general safety questions, medical referrals, behavior questions, or anything with no direct meal answer. Maximum 2 actions. The "mealIdea" must be a specific, descriptive concept safe for her pregnancy stage — not a generic category. "actionType" must always be exactly "create_pregnancy_meal".
+
+No markdown outside the JSON.`;
 
     // ── Load conversation history from DB (authoritative) ────────────────────
     const dbHistory = userId ? await getConversation(userId) : [];
@@ -343,10 +354,34 @@ Keep responses conversational and appropriately concise. Use line breaks to make
       model: "gpt-4o",
       messages,
       temperature: 0.7,
-      max_tokens: 800,
+      max_tokens: 900,
+      response_format: { type: "json_object" },
     });
 
-    const reply = completion.choices[0]?.message?.content ?? "I couldn't generate a response. Please try again.";
+    const rawContent = completion.choices[0]?.message?.content ?? "{}";
+
+    let reply = "I couldn't generate a response. Please try again.";
+    let suggestedMealActions: { actionType: string; label: string; mealIdea: string }[] = [];
+
+    try {
+      const parsed = JSON.parse(rawContent);
+      if (typeof parsed.reply === "string" && parsed.reply.trim()) {
+        reply = parsed.reply;
+      }
+      if (Array.isArray(parsed.suggestedMealActions)) {
+        suggestedMealActions = parsed.suggestedMealActions
+          .filter(
+            (a: any) =>
+              a.actionType === "create_pregnancy_meal" &&
+              typeof a.label === "string" &&
+              typeof a.mealIdea === "string"
+          )
+          .slice(0, 2);
+      }
+    } catch {
+      // If JSON parse fails, use raw content as reply
+      if (rawContent && rawContent !== "{}") reply = rawContent;
+    }
 
     // ── Persist the new turn (fire-and-forget — never block the response) ───────
     if (userId) {
@@ -364,6 +399,7 @@ Keep responses conversational and appropriately concise. Use line breaks to make
       reply,
       stage: stageLabel(stage),
       weekOfPregnancy,
+      suggestedMealActions,
     });
   } catch (error: any) {
     console.error("[PregnancyCoach] Error:", error);

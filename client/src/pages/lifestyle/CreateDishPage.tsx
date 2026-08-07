@@ -228,9 +228,16 @@ export default function CreateDishPage() {
   const [activeKitchenSlug, setActiveKitchenSlug] = useState<string | null>(null);
   const [activeKitchenName, setActiveKitchenName] = useState<string | null>(null);
 
-  // Read ?kitchen=slug from URL on mount and fetch the kitchen's display name
+  // Read ?kitchen=slug and ?idea=<pre-filled meal idea> from URL on mount
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+
+    // Pre-fill dish input from ?idea= (set by coach "Make it now" buttons)
+    const ideaParam = params.get("idea");
+    if (ideaParam) {
+      setDishInput(ideaParam);
+    }
+
     const slug = params.get("kitchen");
     if (!slug) return;
     setActiveKitchenSlug(slug);
