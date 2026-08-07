@@ -190,6 +190,19 @@ function validateRecipeResponse(raw: any): { valid: boolean; error?: string } {
     }
   }
 
+  // completePlate is optional — normalise it so downstream code can rely on shape
+  if (!raw.completePlate || !Array.isArray(raw.completePlate.sides)) {
+    raw.completePlate = { sides: [], plateNote: "" };
+  } else {
+    // Remove any malformed side entries
+    raw.completePlate.sides = raw.completePlate.sides.filter(
+      (s: any) => s && typeof s.name === "string" && s.name.trim(),
+    );
+    if (typeof raw.completePlate.plateNote !== "string") {
+      raw.completePlate.plateNote = "";
+    }
+  }
+
   return { valid: true };
 }
 
@@ -326,6 +339,14 @@ Your only job is to write the recipe. You do not make safety decisions — the r
 All fired rules (RULE-XXXX) and condition protocols (COND-XXXX) listed above MUST be reflected in the recipe.
 Include the ruleId of every rule that influenced your recipe in the rulesFireLog.
 
+COMPLETE THE PLATE:
+After the entrée recipe, select 1–3 stage-appropriate sides that, together with the entrée, build a complete, balanced meal for this child.
+- Base side selection on the resolver context above: remaining macro/micronutrient needs for the stage (iron, calcium, protein, fibre), active medical protocols, allergen removals, school-safe flag, and cultural preferences.
+- Each side must satisfy the same texture and choking safety rules as the entrée.
+- Choose sides from: fruit, vegetable, whole grain, dairy (or dairy-free alternative), or a complementary protein — whichever gaps the entrée leaves.
+- Do NOT repeat ingredients already in the entrée as standalone sides.
+- If requiresSchoolSafe is true in the context, all sides must be school-safe (nut-free, no top-8 allergens already excluded).
+
 RESPONSE FORMAT:
 Return valid JSON only. No markdown. No extra text outside JSON.
 Required schema:
@@ -345,7 +366,20 @@ Required schema:
   "estimatedCarbsPerServing": "string|omit — include when T1D/T2D protocol is active (e.g. '22–28g')",
   "rulesFireLog": [{ "ruleId": "string", "level": "A|B|C", "description": "string", "action": "string" }],
   "whyThisMealWasChosen": "string — plain English explanation for a parent with no nutrition background. Cover which profile elements shaped this output (stage, allergies, medical conditions, dietary pattern, goals). End with: 'Always follow your pediatrician\\'s guidance for your child\\'s specific nutritional needs.'",
-  "reasoningTrace": ["string — one rule or protocol applied, e.g. 'Preschool Stage — calcium and iron DRI baseline applied'"]
+  "reasoningTrace": ["string — one rule or protocol applied, e.g. 'Preschool Stage — calcium and iron DRI baseline applied'"],
+  "completePlate": {
+    "sides": [
+      {
+        "name": "string — specific food name (e.g. 'Steamed broccoli florets', 'Sliced ripe banana')",
+        "category": "fruit|vegetable|grain|dairy|protein",
+        "servingSize": "string — age-appropriate portion (e.g. '2–3 small florets', '½ small banana')",
+        "prepNote": "string — how to prepare for this stage (e.g. 'Steam until very soft, cut into tiny pieces')",
+        "nutritionalRole": "string — why this side was chosen in plain parent language (e.g. 'Adds iron and fibre to complete the plate')",
+        "allergenFree": "boolean — true if this side avoids all allergens in the child profile"
+      }
+    ],
+    "plateNote": "string — one sentence tying the whole plate together (e.g. 'Together, these sides bring calcium, fibre, and vitamin C alongside the entrée to build a complete, stage-appropriate meal.')"
+  }
 }`;
 }
 
@@ -445,6 +479,14 @@ ABSOLUTE PROHIBITIONS:
 - Never use adult body-type labels (ectomorph, endomorph, etc.)
 - Never override medical condition protocol guidance with "kid-friendly" substitutions
 
+COMPLETE THE PLATE:
+After the entrée recipe, select 1–3 stage-appropriate sides that, together with the entrée, build a complete, balanced meal for this child.
+- Base side selection on the context above: remaining macro/micronutrient needs for the stage (iron, calcium, protein, fibre), active medical protocols, allergen removals, school-safe flag, and cultural preferences.
+- Each side must satisfy the same texture and choking safety rules as the entrée.
+- Choose sides from: fruit, vegetable, whole grain, dairy (or dairy-free alternative), or a complementary protein — whichever gaps the entrée leaves.
+- Do NOT repeat ingredients already in the entrée as standalone sides.
+- If requiresSchoolSafe is true, all sides must be school-safe.
+
 RESPONSE FORMAT:
 Return valid JSON only. No markdown. No extra text outside JSON.
 Required schema:
@@ -464,7 +506,20 @@ Required schema:
   "estimatedCarbsPerServing": "string|omit — include when T1D/T2D protocol is active (e.g. '22–28g')",
   "rulesFireLog": [{ "ruleId": "string", "level": "A|B|C", "description": "string", "action": "string" }],
   "whyThisMealWasChosen": "string — plain English explanation for a parent with no nutrition background. Cover which profile elements shaped this output (stage, allergies, medical conditions, dietary pattern, goals). End with: 'Always follow your pediatrician\\'s guidance for your child\\'s specific nutritional needs.'",
-  "reasoningTrace": ["string — one rule or protocol applied, e.g. 'Preschool Stage — calcium and iron DRI baseline applied', 'Confirmed peanut allergy — peanuts excluded in all forms', 'T1D protocol active — carb count estimated'"]
+  "reasoningTrace": ["string — one rule or protocol applied, e.g. 'Preschool Stage — calcium and iron DRI baseline applied', 'Confirmed peanut allergy — peanuts excluded in all forms', 'T1D protocol active — carb count estimated'"],
+  "completePlate": {
+    "sides": [
+      {
+        "name": "string — specific food name (e.g. 'Steamed broccoli florets', 'Sliced ripe banana')",
+        "category": "fruit|vegetable|grain|dairy|protein",
+        "servingSize": "string — age-appropriate portion (e.g. '2–3 small florets', '½ small banana')",
+        "prepNote": "string — how to prepare for this stage (e.g. 'Steam until very soft, cut into tiny pieces')",
+        "nutritionalRole": "string — why this side was chosen in plain parent language (e.g. 'Adds iron and fibre to complete the plate')",
+        "allergenFree": "boolean — true if this side avoids all allergens in the child profile"
+      }
+    ],
+    "plateNote": "string — one sentence tying the whole plate together (e.g. 'Together, these sides bring calcium, fibre, and vitamin C alongside the entrée to build a complete, stage-appropriate meal.')"
+  }
 }`;
 }
 

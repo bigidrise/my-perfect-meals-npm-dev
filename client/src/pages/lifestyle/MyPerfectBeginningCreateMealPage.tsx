@@ -96,6 +96,14 @@ interface RuleFiredEntry {
   action: string;
 }
 
+interface CompletePlateSide {
+  name: string;
+  category: "fruit" | "vegetable" | "grain" | "dairy" | "protein";
+  servingSize: string;
+  prepNote: string;
+  nutritionalRole: string;
+  allergenFree?: boolean;
+}
 interface ChildRecipeResponse {
   recipeName: string;
   ageStageSuitability: string;
@@ -114,6 +122,8 @@ interface ChildRecipeResponse {
   // Parent Education Layer — AI-generated
   whyThisMealWasChosen?: string;
   reasoningTrace?: string[];
+  // Complete the Plate — AI-generated sides
+  completePlate?: CompletePlate;
 }
 
 interface ClinicalDRI {
@@ -848,8 +858,13 @@ function ParentEducationPanel({ layer }: { layer: ParentEducationLayerData }) {
   );
 }
 
-// ── Recipe Display (Create a Dish–style card) ─────────────────────────────────
-
+const CATEGORY_CONFIG: Record<string, { emoji: string; label: string; color: string }> = {
+  fruit:     { emoji: "🍎", label: "Fruit",     color: "text-red-300 bg-red-950/30 border-red-400/20" },
+  vegetable: { emoji: "🥦", label: "Vegetable", color: "text-green-300 bg-green-950/30 border-green-400/20" },
+  grain:     { emoji: "🌾", label: "Grain",     color: "text-amber-300 bg-amber-950/30 border-amber-400/20" },
+  dairy:     { emoji: "🥛", label: "Dairy",     color: "text-blue-300 bg-blue-950/30 border-blue-400/20" },
+  protein:   { emoji: "🥚", label: "Protein",   color: "text-purple-300 bg-purple-950/30 border-purple-400/20" },
+};
 function RecipeCard({
   recipe,
   hasEpiPen,
@@ -1205,6 +1220,11 @@ function RecipeCard({
           </div>
         </CardContent>
       </Card>
+
+      {/* Complete the Plate — sides section */}
+      {recipe.completePlate && recipe.completePlate.sides && recipe.completePlate.sides.length > 0 && (
+        <CompleteThePlateSection completePlate={recipe.completePlate} />
+      )}
 
       {/* Debug / transparency panels — collapsed by default */}
       <div className="space-y-2">
@@ -2828,4 +2848,87 @@ function ClinicalDetailsPanel({ summary }: { summary: ClinicalNutritionSummary }
       )}
     </div>
   );
+}
+
+function CompleteThePlateSection({ completePlate }: { completePlate: CompletePlate }) {
+  if (!completePlate || !completePlate.sides || completePlate.sides.length === 0) return null;
+
+  return (
+    <Card className="bg-black/40 backdrop-blur-lg border border-emerald-400/25 shadow-xl rounded-2xl overflow-hidden">
+      <CardContent className="p-5 space-y-4">
+        {/* Header */}
+        <div className="flex items-center gap-2.5">
+          <div className="p-2 rounded-full bg-emerald-500/15 flex-shrink-0">
+            <Utensils className="h-4 w-4 text-emerald-400" />
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-white leading-tight">Complete the Plate</h3>
+            <p className="text-xs text-white/60 mt-0.5">Stage-appropriate sides to round out this meal</p>
+          </div>
+        </div>
+
+        {/* Sides */}
+        <div className="space-y-3">
+          {completePlate.sides.map((side, i) => {
+            const cfg = CATEGORY_CONFIG[side.category] ?? { emoji: "🍽️", label: "Side", color: "text-white bg-white/5 border-white/10" };
+            return (
+              <div
+                key={i}
+                className="rounded-xl border border-white/10 bg-white/5 overflow-hidden"
+              >
+                <div className="p-3.5 space-y-2">
+                  {/* Side name + category badge */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <span className="text-xl flex-shrink-0" aria-hidden="true">{cfg.emoji}</span>
+                      <p className="text-sm font-semibold text-white leading-tight">{side.name}</p>
+                    </div>
+                    <span className={`flex-shrink-0 text-[10px] font-medium px-2 py-0.5 rounded-full border ${cfg.color}`}>
+                      {cfg.label}
+                    </span>
+                  </div>
+
+                  {/* Serving size + prep */}
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-white/70">
+                    {side.servingSize && (
+                      <span>
+                        <span className="text-white/40">Portion: </span>
+                        {side.servingSize}
+                      </span>
+                    )}
+                    {side.prepNote && (
+                      <span>
+                        <span className="text-white/40">Prep: </span>
+                        {side.prepNote}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Why this side was chosen */}
+                  {side.nutritionalRole && (
+                    <p className="text-xs text-emerald-300/80 leading-relaxed">
+                      ✓ {side.nutritionalRole}
+                    </p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Plate note */}
+        {completePlate.plateNote && (
+          <div className="flex items-start gap-2 pt-1">
+            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-white/70 leading-relaxed italic">{completePlate.plateNote}</p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+interface CompletePlate {
+  sides: CompletePlateSide[];
+  plateNote: string;
 }
