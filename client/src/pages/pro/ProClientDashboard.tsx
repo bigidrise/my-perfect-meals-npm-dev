@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useLocation, useRoute } from "wouter";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,32 +32,6 @@ import ProNutritionStrategyCard from "@/components/pro/ProNutritionStrategyCard"
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { Percent } from "lucide-react";
 
-const CLIENT_DASHBOARD_TOUR_STEPS: TourStep[] = [
-  {
-    icon: "1",
-    title: "Set Macro Targets",
-    description:
-      "Configure calories, protein, carbs, and fat goals for your client.",
-  },
-  {
-    icon: "2",
-    title: "Add Clinical Notes",
-    description: "Document coaching notes or medical context for reference.",
-  },
-  {
-    icon: "3",
-    title: "Build Meal Plans",
-    description:
-      "Navigate to meal builders to create customized nutrition plans.",
-  },
-  {
-    icon: "4",
-    title: "Track Progress",
-    description:
-      "Monitor your client's adherence and adjust targets as needed.",
-  },
-];
-
 type ProRole =
   | "doctor"
   | "nurse"
@@ -85,6 +60,7 @@ function getRoleLabel(role: ProRole): string {
 }
 
 export default function ProClientDashboard() {
+  const { t } = useTranslation("pro");
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const quickTour = useQuickTour("pro-client-dashboard");
@@ -95,12 +71,35 @@ export default function ProClientDashboard() {
     () => proStore.listClients().find((c) => c.id === clientId),
     [clientId],
   );
-  const [t, setT] = useState<Targets>(() => proStore.getTargets(clientId));
+  const [targets, setTargets] = useState<Targets>(() => proStore.getTargets(clientId));
   const [ctx, setCtx] = useState<ClinicalContext>(() =>
     proStore.getContext(clientId),
   );
   const [showWorkspaceModal, setShowWorkspaceModal] = useState(false);
   const [clientBodyComp, setClientBodyComp] = useState<{ currentBodyFatPct?: string; goalBodyFatPct?: string } | null>(null);
+
+  const CLIENT_DASHBOARD_TOUR_STEPS: TourStep[] = [
+    {
+      icon: "1",
+      title: t("clientDashboard.tour.step1Title"),
+      description: t("clientDashboard.tour.step1Desc"),
+    },
+    {
+      icon: "2",
+      title: t("clientDashboard.tour.step2Title"),
+      description: t("clientDashboard.tour.step2Desc"),
+    },
+    {
+      icon: "3",
+      title: t("clientDashboard.tour.step3Title"),
+      description: t("clientDashboard.tour.step3Desc"),
+    },
+    {
+      icon: "4",
+      title: t("clientDashboard.tour.step4Title"),
+      description: t("clientDashboard.tour.step4Desc"),
+    },
+  ];
 
   useEffect(() => {
     const effectiveId = client?.clientUserId || client?.userId || clientId;
@@ -115,7 +114,7 @@ export default function ProClientDashboard() {
   }, [clientId, client]);
 
   useEffect(() => {
-    setT(proStore.getTargets(clientId));
+    setTargets(proStore.getTargets(clientId));
     setCtx(proStore.getContext(clientId));
     
     // Check if workspace is set - if so, redirect immediately
@@ -157,10 +156,10 @@ export default function ProClientDashboard() {
   const roleLabel = getRoleLabel(role);
 
   const saveTargets = async () => {
-    proStore.setTargets(clientId, t);
+    proStore.setTargets(clientId, targets);
 
-    const totalCarbs = (t.starchyCarbs || 0) + (t.fibrousCarbs || 0);
-    const totalCal = (t.protein * 4) + (totalCarbs * 4) + (t.fat * 9);
+    const totalCarbs = (targets.starchyCarbs || 0) + (targets.fibrousCarbs || 0);
+    const totalCal = (targets.protein * 4) + (totalCarbs * 4) + (targets.fat * 9);
     const dbUserId = client?.clientUserId || client?.userId;
 
     if (dbUserId) {
@@ -169,9 +168,9 @@ export default function ProClientDashboard() {
           method: "POST",
           body: JSON.stringify({
             calories: totalCal,
-            protein_g: t.protein,
+            protein_g: targets.protein,
             carbs_g: totalCarbs,
-            fat_g: t.fat,
+            fat_g: targets.fat,
           }),
         }).catch((e: unknown) => {
           console.error("Failed to sync macro targets to database:", e);
@@ -375,10 +374,10 @@ export default function ProClientDashboard() {
               <Input
                 inputMode="numeric"
                 className="bg-black/30 border-white/30 text-white"
-                value={t.protein || ""}
+                value={targets.protein || ""}
                 onChange={(e) =>
-                  setT({
-                    ...t,
+                  setTargets({
+                    ...targets,
                     protein: e.target.value === "" ? 0 : Number(e.target.value),
                   })
                 }
@@ -392,10 +391,10 @@ export default function ProClientDashboard() {
               <Input
                 inputMode="numeric"
                 className="bg-black/30 border-white/30 text-white"
-                value={t.starchyCarbs || ""}
+                value={targets.starchyCarbs || ""}
                 onChange={(e) =>
-                  setT({
-                    ...t,
+                  setTargets({
+                    ...targets,
                     starchyCarbs:
                       e.target.value === "" ? 0 : Number(e.target.value),
                   })
@@ -410,10 +409,10 @@ export default function ProClientDashboard() {
               <Input
                 inputMode="numeric"
                 className="bg-black/30 border-white/30 text-white"
-                value={t.fibrousCarbs || ""}
+                value={targets.fibrousCarbs || ""}
                 onChange={(e) =>
-                  setT({
-                    ...t,
+                  setTargets({
+                    ...targets,
                     fibrousCarbs:
                       e.target.value === "" ? 0 : Number(e.target.value),
                   })
@@ -428,10 +427,10 @@ export default function ProClientDashboard() {
               <Input
                 inputMode="numeric"
                 className="bg-black/30 border-white/30 text-white"
-                value={t.fat || ""}
+                value={targets.fat || ""}
                 onChange={(e) =>
-                  setT({
-                    ...t,
+                  setTargets({
+                    ...targets,
                     fat: e.target.value === "" ? 0 : Number(e.target.value),
                   })
                 }
@@ -452,12 +451,12 @@ export default function ProClientDashboard() {
                   <label className="flex items-center gap-2 text-sm text-white/80">
                     <input
                       type="checkbox"
-                      checked={!!t.flags?.diabetesFriendly}
+                      checked={!!targets.flags?.diabetesFriendly}
                       onChange={(e) =>
-                        setT({
-                          ...t,
+                        setTargets({
+                          ...targets,
                           flags: {
-                            ...t.flags,
+                            ...targets.flags,
                             diabetesFriendly: e.target.checked,
                           },
                         })
@@ -468,12 +467,12 @@ export default function ProClientDashboard() {
                   <label className="flex items-center gap-2 text-sm text-white/80">
                     <input
                       type="checkbox"
-                      checked={!!t.flags?.lowSodium}
+                      checked={!!targets.flags?.lowSodium}
                       onChange={(e) =>
-                        setT({
-                          ...t,
+                        setTargets({
+                          ...targets,
                           flags: {
-                            ...t.flags,
+                            ...targets.flags,
                             lowSodium: e.target.checked,
                           },
                         })
@@ -484,11 +483,11 @@ export default function ProClientDashboard() {
                   <label className="flex items-center gap-2 text-sm text-white/80">
                     <input
                       type="checkbox"
-                      checked={!!t.flags?.glp1}
+                      checked={!!targets.flags?.glp1}
                       onChange={(e) =>
-                        setT({
-                          ...t,
-                          flags: { ...t.flags, glp1: e.target.checked },
+                        setTargets({
+                          ...targets,
+                          flags: { ...targets.flags, glp1: e.target.checked },
                         })
                       }
                     />
@@ -497,11 +496,11 @@ export default function ProClientDashboard() {
                   <label className="flex items-center gap-2 text-sm text-white/80">
                     <input
                       type="checkbox"
-                      checked={!!t.flags?.cardiac}
+                      checked={!!targets.flags?.cardiac}
                       onChange={(e) =>
-                        setT({
-                          ...t,
-                          flags: { ...t.flags, cardiac: e.target.checked },
+                        setTargets({
+                          ...targets,
+                          flags: { ...targets.flags, cardiac: e.target.checked },
                         })
                       }
                     />
@@ -510,11 +509,11 @@ export default function ProClientDashboard() {
                   <label className="flex items-center gap-2 text-sm text-white/80">
                     <input
                       type="checkbox"
-                      checked={!!t.flags?.renal}
+                      checked={!!targets.flags?.renal}
                       onChange={(e) =>
-                        setT({
-                          ...t,
-                          flags: { ...t.flags, renal: e.target.checked },
+                        setTargets({
+                          ...targets,
+                          flags: { ...targets.flags, renal: e.target.checked },
                         })
                       }
                     />
@@ -523,12 +522,12 @@ export default function ProClientDashboard() {
                   <label className="flex items-center gap-2 text-sm text-white/80">
                     <input
                       type="checkbox"
-                      checked={!!t.flags?.postBariatric}
+                      checked={!!targets.flags?.postBariatric}
                       onChange={(e) =>
-                        setT({
-                          ...t,
+                        setTargets({
+                          ...targets,
                           flags: {
-                            ...t.flags,
+                            ...targets.flags,
                             postBariatric: e.target.checked,
                           },
                         })
@@ -544,11 +543,11 @@ export default function ProClientDashboard() {
                   <label className="flex items-center gap-2 text-sm text-white/80">
                     <input
                       type="checkbox"
-                      checked={!!t.flags?.highProtein}
+                      checked={!!targets.flags?.highProtein}
                       onChange={(e) =>
-                        setT({
-                          ...t,
-                          flags: { ...t.flags, highProtein: e.target.checked },
+                        setTargets({
+                          ...targets,
+                          flags: { ...targets.flags, highProtein: e.target.checked },
                         })
                       }
                     />
@@ -558,11 +557,11 @@ export default function ProClientDashboard() {
                   <label className="flex items-center gap-2 text-sm text-white/80">
                     <input
                       type="checkbox"
-                      checked={!!t.flags?.carbCycling}
+                      checked={!!targets.flags?.carbCycling}
                       onChange={(e) =>
-                        setT({
-                          ...t,
-                          flags: { ...t.flags, carbCycling: e.target.checked },
+                        setTargets({
+                          ...targets,
+                          flags: { ...targets.flags, carbCycling: e.target.checked },
                         })
                       }
                     />
@@ -577,22 +576,22 @@ export default function ProClientDashboard() {
               <div className="col-span-full mt-4">
                 <ClinicalAdvisoryDrawer
                   advisory={ctx.advisory}
-                  targets={t}
+                  targets={targets}
                   onAdvisoryChange={(advisory: ClinicalAdvisory) => {
                     setCtx({ ...ctx, advisory });
                     proStore.setContext(clientId, { ...ctx, advisory });
                   }}
                   onApplySuggestions={(deltas) => {
-                    const totalCarbs = (t.starchyCarbs || 0) + (t.fibrousCarbs || 0);
+                    const totalCarbs = (targets.starchyCarbs || 0) + (targets.fibrousCarbs || 0);
                     const newTotalCarbs = Math.max(0, totalCarbs + deltas.carbs);
-                    const starchyRatio = totalCarbs > 0 ? (t.starchyCarbs || 0) / totalCarbs : 0.5;
+                    const starchyRatio = totalCarbs > 0 ? (targets.starchyCarbs || 0) / totalCarbs : 0.5;
                     
-                    setT({
-                      ...t,
-                      protein: Math.max(0, (t.protein || 0) + deltas.protein),
+                    setTargets({
+                      ...targets,
+                      protein: Math.max(0, (targets.protein || 0) + deltas.protein),
                       starchyCarbs: Math.round(newTotalCarbs * starchyRatio),
                       fibrousCarbs: Math.round(newTotalCarbs * (1 - starchyRatio)),
-                      fat: Math.max(0, (t.fat || 0) + deltas.fat),
+                      fat: Math.max(0, (targets.fat || 0) + deltas.fat),
                     });
                     toast({
                       title: "✅ Advisory Applied",
@@ -613,8 +612,8 @@ export default function ProClientDashboard() {
               </Button>
               <Button
                 onClick={async () => {
-                  const totalCarbs = (t.starchyCarbs || 0) + (t.fibrousCarbs || 0);
-                  const calcKcal = (t.protein || 0) * 4 + totalCarbs * 4 + (t.fat || 0) * 9;
+                  const totalCarbs = (targets.starchyCarbs || 0) + (targets.fibrousCarbs || 0);
+                  const calcKcal = (targets.protein || 0) * 4 + totalCarbs * 4 + (targets.fat || 0) * 9;
                   
                   if (calcKcal < 100) {
                     toast({
@@ -633,9 +632,9 @@ export default function ProClientDashboard() {
                     await setMacroTargets(
                       {
                         calories: calcKcal,
-                        protein_g: t.protein,
+                        protein_g: targets.protein,
                         carbs_g: totalCarbs,
-                        fat_g: t.fat,
+                        fat_g: targets.fat,
                       },
                       clientId,
                     );
@@ -987,7 +986,7 @@ export default function ProClientDashboard() {
       <QuickTourModal
         isOpen={quickTour.shouldShow}
         onClose={quickTour.closeTour}
-        title="Client Dashboard Guide"
+        title={t("clientDashboard.tourTitle")}
         steps={CLIENT_DASHBOARD_TOUR_STEPS}
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />

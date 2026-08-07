@@ -15,6 +15,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
 import { PillButton } from "@/components/ui/pill-button";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { useTranslation } from "react-i18next";
 
 interface TrainingSection {
   id: string;
@@ -25,6 +26,7 @@ interface TrainingSection {
   highlight?: string;
 }
 
+// i18n: leave for content team
 const SECTIONS: TrainingSection[] = [
   {
     id: "overview",
@@ -99,6 +101,7 @@ export default function ProCareTraining() {
   const [, setLocation] = useLocation();
   const { refreshUser } = useAuth();
   const isDesktop = useIsDesktop();
+  const { t } = useTranslation("procare");
   const [step, setStep] = useState(0);
   const [completing, setCompleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -150,7 +153,7 @@ export default function ProCareTraining() {
         </>
       ) : (
         <>
-          Complete Training & Unlock Studio
+          {t("procare.training.completeUnlock")}
           <CheckCircle2 className="w-5 h-5" />
         </>
       )}
@@ -160,7 +163,7 @@ export default function ProCareTraining() {
       onClick={handleNext}
       className="w-full h-14 text-md font-semibold rounded-2xl bg-orange-600 text-white shadow-lg transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98]"
     >
-      Continue
+      {t("procare.training.continueButton")}
       <ArrowRight className="w-5 h-5" />
     </button>
   );
@@ -174,13 +177,13 @@ export default function ProCareTraining() {
           className="flex items-center gap-1 text-white/60 text-sm mb-6 active:scale-[0.98]"
         >
           <ArrowLeft className="w-4 h-4" />
-          {isFirst ? "Back to Launchpad" : "Back"}
+          {isFirst ? t("procare.training.backToLaunchpad") : t("procare.training.back")}
         </button>
 
         <div className="text-center mb-6">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500/20 rounded-full border border-orange-500/30 mb-4">
             <BookOpen className="h-4 w-4 text-orange-400" />
-            <span className="text-sm font-medium text-orange-300">ProCare Training — Phase 2</span>
+            <span className="text-sm font-medium text-orange-300">{t("procare.training.phase2Label")}</span>
           </div>
           <h1 className="text-2xl font-bold mb-1">{current.title}</h1>
           <p className="text-white/50 text-sm">{current.subtitle}</p>
@@ -188,9 +191,9 @@ export default function ProCareTraining() {
 
         <div className="mb-6">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] text-white/40 uppercase tracking-wide">Progress</span>
+            <span className="text-[10px] text-white/40 uppercase tracking-wide">{t("procare.training.progress")}</span>
             <span className="text-[10px] text-white/40">
-              {step + 1} of {SECTIONS.length}
+              {t("procare.training.stepOf", { current: step + 1, total: SECTIONS.length })}
             </span>
           </div>
           <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">

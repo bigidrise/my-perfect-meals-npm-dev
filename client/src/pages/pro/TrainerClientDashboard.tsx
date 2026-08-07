@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { useLocation, useRoute } from "wouter";
 import { getAuthHeaders } from "@/lib/auth";
@@ -44,44 +45,6 @@ import { resolveClinicalProtocolLabel } from "@shared/clinical/clinicalModeResol
 import AddToCalendarButtons from "@/components/AddToCalendarButtons";
 import { NutritionPersonalizationSummaryCard } from "@/components/protocol/NutritionPersonalizationSummaryCard";
 
-const TRAINER_DASHBOARD_TOUR_STEPS: TourStep[] = [
-  {
-    icon: "1",
-    title: "Trainer Studio",
-    description:
-      "Welcome to your coaching studio. Set macros, select a Meal Mode, and guide your client's nutrition strategy here. Clinical protocols are managed by the physician layer and shown as read-only context.",
-  },
-  {
-    icon: "2",
-    title: "Macro Targets",
-    description:
-      "Set protein, carbs, and fats for your client. These targets drive every meal they see in the app.",
-  },
-  {
-    icon: "3",
-    title: "Starch Game Plan",
-    description:
-      "Choose how starchy carbs are distributed. One Starch Meal concentrates all starch into one meal for appetite control. Flex Split divides across two meals. Fibrous carbs are always unlimited!",
-  },
-  {
-    icon: "4",
-    title: "Meal Mode",
-    description:
-      "Select the coaching style for your client's meal plan — General Nutrition, Performance Nutrition, or Performance & Competition. This determines the performance and lifestyle focus of their meals. Clinical protocols are set separately by the physician.",
-  },
-  {
-    icon: "5",
-    title: "Training View",
-    description:
-      "Open your client's meal builder directly to build meals within the active Meal Mode. The button updates automatically when you change the Meal Mode above.",
-  },
-  {
-    icon: "6",
-    title: "System Protocols",
-    description:
-      "This section shows any active clinical protocols shaping your client's meals — like Metabolic Medication, Cardiac Health, or Oncology Support. These are read-only and managed by the physician. Use them to understand why certain meals look the way they do.",
-  },
-];
 
 const SECTION_EXPLAINERS: Record<string, TourStep[]> = {
   macros: [
@@ -111,8 +74,42 @@ const SECTION_EXPLAINERS: Record<string, TourStep[]> = {
 };
 
 export default function TrainerClientDashboard() {
+  const { t } = useTranslation("pro");
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+
+  const TRAINER_DASHBOARD_TOUR_STEPS: TourStep[] = [
+    {
+      icon: "1",
+      title: t("pro.trainerDashboard.tour.step1Title"),
+      description: t("pro.trainerDashboard.tour.step1Desc"),
+    },
+    {
+      icon: "2",
+      title: t("pro.trainerDashboard.tour.step2Title"),
+      description: t("pro.trainerDashboard.tour.step2Desc"),
+    },
+    {
+      icon: "3",
+      title: t("pro.trainerDashboard.tour.step3Title"),
+      description: t("pro.trainerDashboard.tour.step3Desc"),
+    },
+    {
+      icon: "4",
+      title: t("pro.trainerDashboard.tour.step4Title"),
+      description: t("pro.trainerDashboard.tour.step4Desc"),
+    },
+    {
+      icon: "5",
+      title: t("pro.trainerDashboard.tour.step5Title"),
+      description: t("pro.trainerDashboard.tour.step5Desc"),
+    },
+    {
+      icon: "6",
+      title: t("pro.trainerDashboard.tour.step6Title"),
+      description: t("pro.trainerDashboard.tour.step6Desc"),
+    },
+  ];
   const [, params] = useRoute("/pro/clients/:id/trainer");
   const clientId = params?.id as string;
 
@@ -121,9 +118,9 @@ export default function TrainerClientDashboard() {
 
   const [client, setClient] = useState(() => proStore.getClient(clientId));
   const resolvedClientUserId = client?.clientUserId || client?.userId || clientId;
-  const [t, setT] = useState<Targets>(() => proStore.getTargets(clientId));
+  const [macros, setMacros] = useState<Targets>(() => proStore.getTargets(clientId));
   const [isDirty, setIsDirty] = useState(false);
-  const updateT = (next: Targets) => { setT(next); setIsDirty(true); };
+  const updateMacros = (next: Targets) => { setMacros(next); setIsDirty(true); };
 
   interface CheckInSchedule {
     id: string;
@@ -199,13 +196,13 @@ export default function TrainerClientDashboard() {
   const activeProtocolLabel = useMemo(() => {
     if (!assignedBuilder || !PROFESSIONAL_BUILDER_MAP[assignedBuilder as ProfessionalBuilderKey]) return null;
     if (assignedBuilder === "anti_inflammatory") {
-      return resolveClinicalProtocolLabel(t.flags);
+      return resolveClinicalProtocolLabel(macros.flags);
     }
     return PROFESSIONAL_BUILDER_MAP[assignedBuilder as ProfessionalBuilderKey].label;
-  }, [assignedBuilder, t.flags]);
+  }, [assignedBuilder, macros.flags]);
 
   useEffect(() => {
-    setT(proStore.getTargets(clientId));
+    setMacros(proStore.getTargets(clientId));
     setCtx(proStore.getContext(clientId));
     const c = proStore.getClient(clientId);
     if (c) {
@@ -222,7 +219,7 @@ export default function TrainerClientDashboard() {
     apiRequest(`/api/users/${resolvedClientUserId}/macro-targets`)
       .then((data) => {
         if (!data || !data.hasTargets) return;
-        setT((prev) => ({
+        setMacros((prev) => ({
           ...prev,
           protein: data.protein_g || prev.protein,
           fat: data.fat_g || prev.fat,
@@ -307,7 +304,7 @@ export default function TrainerClientDashboard() {
       if (c) {
         setClient(c);
         setAssignedBuilder(c.assignedBuilder);
-        setT(proStore.getTargets(clientId));
+        setMacros(proStore.getTargets(clientId));
         setCtx(proStore.getContext(clientId));
       }
       fetchBodyComp();
@@ -318,10 +315,10 @@ export default function TrainerClientDashboard() {
   }, [clientId, fetchBodyComp]);
 
   const saveTargets = async () => {
-    proStore.setTargets(clientId, t);
+    proStore.setTargets(clientId, macros);
 
-    const totalCarbs = (t.starchyCarbs || 0) + (t.fibrousCarbs || 0);
-    const totalCal = (t.protein * 4) + (totalCarbs * 4) + (t.fat * 9);
+    const totalCarbs = (macros.starchyCarbs || 0) + (macros.fibrousCarbs || 0);
+    const totalCal = (macros.protein * 4) + (totalCarbs * 4) + (macros.fat * 9);
     const dbUserId = client?.clientUserId || client?.userId;
 
     // If the client hasn't linked their account yet, dbUserId will be the
@@ -334,7 +331,7 @@ export default function TrainerClientDashboard() {
       }
       setIsDirty(false);
       toast({
-        title: "Targets saved locally",
+        title: t("pro.trainerDashboard.save"),
         description: "This client hasn't linked their account yet. Targets are saved on your device — they'll sync to the client once they enter their access code.",
         variant: "destructive",
       });
@@ -347,11 +344,11 @@ export default function TrainerClientDashboard() {
         method: "POST",
         body: JSON.stringify({
           calories: totalCal,
-          protein_g: t.protein,
+          protein_g: macros.protein,
           carbs_g: totalCarbs,
-          fat_g: t.fat,
-          starchyCarbs_g: t.starchyCarbs,
-          fibrousCarbs_g: t.fibrousCarbs,
+          fat_g: macros.fat,
+          starchyCarbs_g: macros.starchyCarbs,
+          fibrousCarbs_g: macros.fibrousCarbs,
         }),
       });
     } catch (e) {
@@ -370,11 +367,11 @@ export default function TrainerClientDashboard() {
       await setMacroTargets(
         {
           calories: totalCal,
-          protein_g: t.protein,
+          protein_g: macros.protein,
           carbs_g: totalCarbs,
-          fat_g: t.fat,
-          starchyCarbs_g: t.starchyCarbs,
-          fibrousCarbs_g: t.fibrousCarbs,
+          fat_g: macros.fat,
+          starchyCarbs_g: macros.starchyCarbs,
+          fibrousCarbs_g: macros.fibrousCarbs,
         },
         dbUserId,
       );
@@ -395,7 +392,7 @@ export default function TrainerClientDashboard() {
     }
     setIsDirty(false);
     toast({
-      title: "Targets saved",
+      title: t("pro.trainerDashboard.saved"),
       description: "Macro targets synced to client's account.",
     });
   };
@@ -615,12 +612,12 @@ export default function TrainerClientDashboard() {
                 <div className="flex flex-wrap gap-x-3 gap-y-1">
                   {[
                     { key: "anti-inflammatory", label: "Anti-Inflammatory", isActive: true,                        activeColor: "text-green-400",   dotColor: "bg-green-400",   dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"   },
-                    { key: "cardiac",            label: "Cardiac Health",    isActive: !!t?.flags?.cardiac          || labDerivedConditions.includes('heart-failure'),    activeColor: "text-red-400",     dotColor: "bg-red-400",     dotGlow: "shadow-[0_0_4px_rgba(248,113,113,0.8)]"  },
-                    { key: "kidney-disease",     label: "Kidney Disease",    isActive: !!t?.flags?.renal            || labDerivedConditions.includes('kidney-disease'),   activeColor: "text-sky-400",     dotColor: "bg-sky-400",     dotGlow: "shadow-[0_0_4px_rgba(56,189,248,0.8)]"   },
-                    { key: "liver-support",      label: "Liver Support",     isActive: !!t?.flags?.liverSupport     || labDerivedConditions.includes('liver-support'),    activeColor: "text-emerald-400", dotColor: "bg-emerald-400", dotGlow: "shadow-[0_0_4px_rgba(52,211,153,0.8)]"   },
-                    { key: "liver-disease",      label: "Liver Disease",     isActive: !!t?.flags?.liverDisease     || labDerivedConditions.includes('liver-disease'),    activeColor: "text-amber-400",   dotColor: "bg-amber-400",   dotGlow: "shadow-[0_0_4px_rgba(251,191,36,0.8)]"   },
-                    { key: "oncology-support",   label: "Oncology Support",  isActive: !!t?.flags?.oncologySupport  || labDerivedConditions.includes('oncology-support'), activeColor: "text-pink-400",   dotColor: "bg-pink-400",   dotGlow: "shadow-[0_0_4px_rgba(244,114,182,0.9)]" },
-                    { key: "thyroid-support",    label: "Thyroid Support",   isActive: !!t?.flags?.thyroidSupport,                                                        activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
+                    { key: "cardiac",            label: "Cardiac Health",    isActive: !!macros?.flags?.cardiac          || labDerivedConditions.includes('heart-failure'),    activeColor: "text-red-400",     dotColor: "bg-red-400",     dotGlow: "shadow-[0_0_4px_rgba(248,113,113,0.8)]"  },
+                    { key: "kidney-disease",     label: "Kidney Disease",    isActive: !!macros?.flags?.renal            || labDerivedConditions.includes('kidney-disease'),   activeColor: "text-sky-400",     dotColor: "bg-sky-400",     dotGlow: "shadow-[0_0_4px_rgba(56,189,248,0.8)]"   },
+                    { key: "liver-support",      label: "Liver Support",     isActive: !!macros?.flags?.liverSupport     || labDerivedConditions.includes('liver-support'),    activeColor: "text-emerald-400", dotColor: "bg-emerald-400", dotGlow: "shadow-[0_0_4px_rgba(52,211,153,0.8)]"   },
+                    { key: "liver-disease",      label: "Liver Disease",     isActive: !!macros?.flags?.liverDisease     || labDerivedConditions.includes('liver-disease'),    activeColor: "text-amber-400",   dotColor: "bg-amber-400",   dotGlow: "shadow-[0_0_4px_rgba(251,191,36,0.8)]"   },
+                    { key: "oncology-support",   label: "Oncology Support",  isActive: !!macros?.flags?.oncologySupport  || labDerivedConditions.includes('oncology-support'), activeColor: "text-pink-400",   dotColor: "bg-pink-400",   dotGlow: "shadow-[0_0_4px_rgba(244,114,182,0.9)]" },
+                    { key: "thyroid-support",    label: "Thyroid Support",   isActive: !!macros?.flags?.thyroidSupport,                                                        activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
                   ].map(({ key, label, isActive, activeColor, dotColor, dotGlow }) => (
                     <span key={key} className={`flex items-center gap-1 text-xs ${isActive ? `${activeColor} font-semibold` : "text-white/25"}`}>
                       <span className={`inline-block w-1.5 h-1.5 rounded-full ${isActive ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
@@ -673,33 +670,33 @@ export default function TrainerClientDashboard() {
 
         {recommendedDirectiveKey && recommendedProtocol && (
           <Card className={`border ${
-            (t.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey]
+            (macros.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey]
               ? "bg-teal-900/20 border-teal-500/40"
               : "bg-amber-900/20 border-amber-500/40"
           }`}>
             <CardContent className="pt-4 pb-4">
               <div className="flex items-start gap-3">
                 <Sparkles className={`h-5 w-5 mt-0.5 shrink-0 ${
-                  (t.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey]
+                  (macros.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey]
                     ? "text-teal-400"
                     : "text-amber-400"
                 }`} />
                 <div className="flex-1 min-w-0">
                   <p className={`text-sm font-semibold mb-1 ${
-                    (t.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey]
+                    (macros.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey]
                       ? "text-teal-300"
                       : "text-amber-300"
                   }`}>
-                    {(t.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey]
+                    {(macros.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey]
                       ? `${recommendedProtocol} Directive Applied`
                       : "Clinical Protocol Recommended by System"}
                   </p>
                   <p className="text-xs text-white/60 leading-relaxed mb-3">
-                    {(t.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey]
+                    {(macros.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey]
                       ? `This client's meal plan is following the ${recommendedProtocol} directive derived from their lab values. Macros and meals will reflect this protocol.`
                       : `This client's lab results support the ${recommendedProtocol} directive. Clinical directives must be applied by a physician or qualified clinical professional — contact the assigned physician to activate this protocol.`}
                   </p>
-                  {(t.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey] ? (
+                  {(macros.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey] ? (
                     <span className="inline-flex items-center gap-1.5 text-xs text-teal-400 font-medium">
                       <Check className="h-3.5 w-3.5" /> Active on this client
                     </span>
@@ -761,7 +758,7 @@ export default function TrainerClientDashboard() {
         <Card className="bg-white/5 border border-white/20">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2 text-lg font-semibold">
-              <Settings className="h-5 w-5" /> Macro Targets
+              <Settings className="h-5 w-5" /> {t("pro.trainerDashboard.macroTargets")}
               <button
                 type="button"
                 onClick={() => setExplainerStep(SECTION_EXPLAINERS.macros)}
@@ -775,15 +772,15 @@ export default function TrainerClientDashboard() {
           <CardContent className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div>
               <label className="text-sm text-white/70 mb-1 block">
-                Protein (g)
+                {t("pro.trainerDashboard.protein")} (g)
               </label>
               <Input
                 inputMode="numeric"
                 className="bg-black/30 border-white/30 text-white"
-                value={t.protein || ""}
+                value={macros.protein || ""}
                 onChange={(e) =>
-                  updateT({
-                    ...t,
+                  updateMacros({
+                    ...macros,
                     protein: e.target.value === "" ? 0 : Number(e.target.value),
                   })
                 }
@@ -792,15 +789,15 @@ export default function TrainerClientDashboard() {
             </div>
             <div>
               <label className="text-sm text-white/70 mb-1 block">
-                Starchy Carbs (g)
+                {t("pro.trainerDashboard.carbs")} (g)
               </label>
               <Input
                 inputMode="numeric"
                 className="bg-black/30 border-white/30 text-white"
-                value={t.starchyCarbs || ""}
+                value={macros.starchyCarbs || ""}
                 onChange={(e) =>
-                  updateT({
-                    ...t,
+                  updateMacros({
+                    ...macros,
                     starchyCarbs:
                       e.target.value === "" ? 0 : Number(e.target.value),
                   })
@@ -815,10 +812,10 @@ export default function TrainerClientDashboard() {
               <Input
                 inputMode="numeric"
                 className="bg-black/30 border-white/30 text-white"
-                value={t.fibrousCarbs || ""}
+                value={macros.fibrousCarbs || ""}
                 onChange={(e) =>
-                  updateT({
-                    ...t,
+                  updateMacros({
+                    ...macros,
                     fibrousCarbs:
                       e.target.value === "" ? 0 : Number(e.target.value),
                   })
@@ -828,15 +825,15 @@ export default function TrainerClientDashboard() {
             </div>
             <div>
               <label className="text-sm text-white/70 mb-1 block">
-                Fat (g)
+                {t("pro.trainerDashboard.fat")} (g)
               </label>
               <Input
                 inputMode="numeric"
                 className="bg-black/30 border-white/30 text-white"
-                value={t.fat || ""}
+                value={macros.fat || ""}
                 onChange={(e) =>
-                  updateT({
-                    ...t,
+                  updateMacros({
+                    ...macros,
                     fat: e.target.value === "" ? 0 : Number(e.target.value),
                   })
                 }
@@ -856,9 +853,9 @@ export default function TrainerClientDashboard() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
                   type="button"
-                  onClick={() => updateT({ ...t, starchStrategy: 'one' })}
+                  onClick={() => updateMacros({ ...macros, starchStrategy: 'one' })}
                   className={`p-4 rounded-xl border text-left transition-all ${
-                    (t.starchStrategy || 'one') === 'one'
+                    (macros.starchStrategy || 'one') === 'one'
                       ? 'bg-orange-600/30 border-orange-400'
                       : 'bg-black/30 border-white/20 hover:bg-black/40'
                   }`}
@@ -866,7 +863,7 @@ export default function TrainerClientDashboard() {
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-sm">🥔</span>
                     <span className="font-semibold text-medium text-white">One Starch Meal</span>
-                    {(t.starchStrategy || 'one') === 'one' && (
+                    {(macros.starchStrategy || 'one') === 'one' && (
                       <Check className="h-4 w-4 text-orange-400 ml-auto" />
                     )}
                   </div>
@@ -876,9 +873,9 @@ export default function TrainerClientDashboard() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => updateT({ ...t, starchStrategy: 'flex' })}
+                  onClick={() => updateMacros({ ...macros, starchStrategy: 'flex' })}
                   className={`p-4 rounded-xl border text-left transition-all ${
-                    t.starchStrategy === 'flex'
+                    macros.starchStrategy === 'flex'
                       ? 'bg-yellow-600/30 border-yellow-400'
                       : 'bg-black/30 border-white/20 hover:bg-black/40'
                   }`}
@@ -886,7 +883,7 @@ export default function TrainerClientDashboard() {
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-md">🥗</span>
                     <span className="font-semibold text-md text-white">Flex Split</span>
-                    {t.starchStrategy === 'flex' && (
+                    {macros.starchStrategy === 'flex' && (
                       <Check className="h-4 w-4 text-yellow-400 ml-auto" />
                     )}
                   </div>
@@ -908,14 +905,14 @@ export default function TrainerClientDashboard() {
                 onClick={saveTargets}
                 className={`border border-white/20 text-white active:bg-white/30 transition-all duration-300 ${isDirty ? "bg-lime-600 ring-2 ring-orange-400 shadow-[0_0_16px_rgba(251,146,60,0.55)] animate-pulse" : "bg-lime-600"}`}
               >
-                Save Targets
+                {t("pro.trainerDashboard.save")}
               </Button>
               <Button
                 onClick={async () => {
                   const totalCarbs =
-                    (t.starchyCarbs || 0) + (t.fibrousCarbs || 0);
+                    (macros.starchyCarbs || 0) + (macros.fibrousCarbs || 0);
                   const calcKcal =
-                    (t.protein || 0) * 4 + totalCarbs * 4 + (t.fat || 0) * 9;
+                    (macros.protein || 0) * 4 + totalCarbs * 4 + (macros.fat || 0) * 9;
 
                   if (calcKcal < 100) {
                     toast({
@@ -933,9 +930,9 @@ export default function TrainerClientDashboard() {
                     await setMacroTargets(
                       {
                         calories: calcKcal,
-                        protein_g: t.protein,
+                        protein_g: macros.protein,
                         carbs_g: totalCarbs,
-                        fat_g: t.fat,
+                        fat_g: macros.fat,
                       },
                       clientId,
                     );
@@ -1164,12 +1161,12 @@ export default function TrainerClientDashboard() {
 
           const activeProtocols: string[] = [];
           if (labDerivedConditions.includes("anti-inflammatory") || assignedBuilder === "anti_inflammatory") activeProtocols.push("anti_inflammatory");
-          if (labDerivedConditions.includes("heart-failure") || !!(t?.flags as any)?.cardiac) activeProtocols.push("cardiac");
-          if (labDerivedConditions.includes("kidney-disease") || !!(t?.flags as any)?.renal) activeProtocols.push("renal");
-          if (labDerivedConditions.includes("liver-support") || labDerivedConditions.includes("liver-disease") || !!(t?.flags as any)?.liverSupport || !!(t?.flags as any)?.liverDisease) activeProtocols.push("liver");
+          if (labDerivedConditions.includes("heart-failure") || !!(macros?.flags as any)?.cardiac) activeProtocols.push("cardiac");
+          if (labDerivedConditions.includes("kidney-disease") || !!(macros?.flags as any)?.renal) activeProtocols.push("renal");
+          if (labDerivedConditions.includes("liver-support") || labDerivedConditions.includes("liver-disease") || !!(macros?.flags as any)?.liverSupport || !!(macros?.flags as any)?.liverDisease) activeProtocols.push("liver");
           if (labDerivedConditions.includes("thyroid")) activeProtocols.push("thyroid");
-          if (labDerivedConditions.includes("oncology-support") || !!(t?.flags as any)?.oncologySupport) activeProtocols.push("oncology");
-          if (!!(t?.flags as any)?.glp1Protocol || assignedBuilder === "glp1") activeProtocols.push("glp1");
+          if (labDerivedConditions.includes("oncology-support") || !!(macros?.flags as any)?.oncologySupport) activeProtocols.push("oncology");
+          if (!!(macros?.flags as any)?.glp1Protocol || assignedBuilder === "glp1") activeProtocols.push("glp1");
 
           return (
             <Card className="bg-white/5 border border-white/10">
@@ -1328,7 +1325,7 @@ export default function TrainerClientDashboard() {
       <QuickTourModal
         isOpen={quickTour.shouldShow}
         onClose={quickTour.closeTour}
-        title="Trainer Studio Guide"
+        title={t("pro.trainerDashboard.tourTitle")}
         steps={TRAINER_DASHBOARD_TOUR_STEPS}
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />

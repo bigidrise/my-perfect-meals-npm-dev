@@ -7,15 +7,18 @@ import { getProCareSignupData, upgradeToProCare, clearProCareSignupData, getAuth
 import { apiUrl } from "@/lib/resolveApiBase";
 import { LEGAL_DOCUMENTS } from "../../../../shared/legalDocuments";
 import ProfessionalLegalModal from "@/components/pro/ProfessionalLegalModal";
+import { useTranslation } from "react-i18next";
 
 type ProfessionalCategory = "certified" | "experienced" | "non_certified";
 
+// CLINICAL — do not translate without legal review
 const ATTESTATION_V1 = {
   certified: "By continuing, you attest that the credential information you provided is accurate and current. All professional credentials submitted through My Perfect Meals are subject to manual verification by our team. Your account will be marked as Pending until your credentials are confirmed. Verified providers are marked accordingly and any misrepresentation of credentials will result in immediate removal.",
   experienced: "By continuing, you acknowledge that you are responsible for the guidance you provide to clients. You acknowledge that you are not currently maintaining an active professional certification and that My Perfect Meals does not verify experience-based credentials. You are responsible for the accuracy of any professional background you represent.",
   non_certified: "By continuing, you acknowledge that you are not currently a licensed or certified healthcare or fitness professional and that you will not represent yourself as one within the platform. You are responsible for the guidance you provide to clients.",
 };
 
+// i18n: leave for content team
 const CATEGORY_LABELS: Record<ProfessionalCategory, string> = {
   certified: "Certified / Licensed Professional",
   experienced: "Professional Experience — No Current Certification",
@@ -25,6 +28,7 @@ const CATEGORY_LABELS: Record<ProfessionalCategory, string> = {
 export default function ProCareAttestation() {
   const [, setLocation] = useLocation();
   const { user, refreshUser } = useAuth();
+  const { t } = useTranslation("procare");
   const [accepted, setAccepted] = useState(false);
   const [category, setCategory] = useState<ProfessionalCategory | null>(null);
   const [upgrading, setUpgrading] = useState(false);
@@ -174,7 +178,7 @@ export default function ProCareAttestation() {
         <div className="mb-6 p-4 rounded-xl border border-white/10 bg-white/5">
           <div className="flex items-center gap-2 mb-1">
             <FileCheck className="w-4 h-4 text-blue-400" />
-            <span className="text-xs text-white/50">Your selected role</span>
+            <span className="text-xs text-white/50">{t("procare.attestation.categoryLabel")}</span>
           </div>
           <p className="text-sm font-semibold">{CATEGORY_LABELS[category]}</p>
         </div>
@@ -203,7 +207,7 @@ export default function ProCareAttestation() {
             )}
           </div>
           <p className="text-sm text-white/70 text-left">
-            I have read and understand the above acknowledgment. I accept responsibility for the professional guidance I provide through My Perfect Meals.
+            {t("procare.attestation.checkboxLabel")}
           </p>
         </button>
 
@@ -218,7 +222,7 @@ export default function ProCareAttestation() {
             <div className="flex items-start gap-2">
               <div className="w-2 h-2 rounded-full bg-amber-400 mt-1.5 shrink-0 animate-pulse" />
               <div>
-                <p className="text-xs font-semibold text-amber-300 mb-1">Account Status: Pending Verification</p>
+                <p className="text-xs font-semibold text-amber-300 mb-1">{t("procare.attestation.pendingVerification")}</p>
                 <p className="text-xs text-amber-200/70 leading-relaxed">
                   Your account will be active immediately, but will show as <strong>Pending</strong> until our team manually confirms your credentials. Physicians and licensed providers are prioritized for verification. You will not be endorsed as a Verified Provider until this is complete.
                 </p>
@@ -229,7 +233,7 @@ export default function ProCareAttestation() {
 
         <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-blue-900/20 to-indigo-900/20 border border-blue-400/10">
           <p className="text-xs text-white/50 text-center">
-            This acknowledgment is recorded for platform safety and clarity. My Perfect Meals values your professional expertise and is designed to support — not replace — your judgment.
+            {t("procare.attestation.platformSafety")}
           </p>
         </div>
       </div>
@@ -243,16 +247,16 @@ export default function ProCareAttestation() {
           {upgrading ? (
             <>
               <Loader2 className="w-5 h-5 animate-spin" />
-              Upgrading Account...
+              {t("procare.attestation.upgrading")}
             </>
           ) : isLoggedIn ? (
             <>
-              Upgrade to ProCare
+              {t("procare.attestation.upgradeToPro")}
               <ArrowRight className="w-5 h-5" />
             </>
           ) : (
             <>
-              Create Professional Account
+              {t("procare.attestation.createAccount")}
               <ArrowRight className="w-5 h-5" />
             </>
           )}

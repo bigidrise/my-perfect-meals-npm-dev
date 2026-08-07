@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { RotateCcw, Clock, Users, Shield, AlertTriangle, CheckCircle, X, Plus, Eye } from "lucide-react";
 import { useState } from "react";
 import { formatIngredientWithGrams } from "@/utils/unitConversions";
+import { useTranslation } from "react-i18next";
 // Shopping list functionality removed - import eliminated
 
 export interface Ingredient {
@@ -146,6 +147,7 @@ export default function MealCardFull({
 }: MealCardFullProps) {
   const [adding, setAdding] = useState(false);
   const [addMessage, setAddMessage] = useState("");
+  const { t } = useTranslation("savedMeals");
   
   // Generate dynamic medical badges based on user's onboarding profile
   const medicalBadges = generateDynamicMedicalBadges(meal);
@@ -274,7 +276,7 @@ export default function MealCardFull({
       {/* Coaching line */}
       <div className="px-1 pt-2 pb-0">
         <p className="text-xs text-slate-500 dark:text-white/55 leading-relaxed border-l-2 border-slate-200 dark:border-white/20 pl-2.5">
-          Built for your current plan and targets.
+          {t("builtFor")}
         </p>
       </div>
 
@@ -285,7 +287,7 @@ export default function MealCardFull({
             <div className="text-lg font-bold text-slate-900 dark:text-white">
               {meal.nutrition.calories}
             </div>
-            <div className="text-xs text-slate-500 dark:text-slate-400">calories</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400">{t("cal")}</div>
           </div>
           <div className="grid grid-cols-3 gap-1 text-center text-xs">
             <div>
@@ -312,7 +314,7 @@ export default function MealCardFull({
         <div className="space-y-2">
           <div className="flex items-center gap-1 text-sm text-slate-600 dark:text-slate-400">
             <Users className="h-3 w-3" />
-            {meal.servings} serving{meal.servings !== 1 ? 's' : ''}
+            {meal.servings} {meal.servings !== 1 ? t("servings") : t("serving")}
           </div>
           {meal.cookingTime && (
             <div className="flex items-center gap-1 text-sm text-slate-600 dark:text-slate-400">
@@ -335,7 +337,7 @@ export default function MealCardFull({
       {/* Ingredients */}
       <div>
         <h5 className="font-semibold text-sm text-slate-900 dark:text-white mb-2">
-          Ingredients (serves {meal.servings})
+          {t("ingredientsServes", { count: meal.servings })}
         </h5>
         {meal.ingredients?.length ? (
           <ul className="space-y-1 text-sm text-slate-700 dark:text-slate-300">
@@ -355,7 +357,7 @@ export default function MealCardFull({
           </ul>
         ) : (
           <p className="text-sm text-slate-500 dark:text-slate-400 italic">
-            No ingredients provided
+            {t("noIngredients")}
           </p>
         )}
       </div>
@@ -363,7 +365,7 @@ export default function MealCardFull({
       {/* Instructions */}
       <div>
         <h5 className="font-semibold text-sm text-slate-900 dark:text-white mb-2">
-          Instructions
+          {t("instructions")}
         </h5>
         {meal.instructions?.length ? (
           <ol className="space-y-2 text-sm text-slate-700 dark:text-slate-300">
@@ -378,7 +380,7 @@ export default function MealCardFull({
           </ol>
         ) : (
           <p className="text-sm text-slate-500 dark:text-slate-400 italic">
-            No instructions provided
+            {t("noInstructions")}
           </p>
         )}
       </div>

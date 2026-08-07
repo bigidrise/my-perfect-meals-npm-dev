@@ -16,6 +16,17 @@ import ru from "./locales/ru.json";
 import vi from "./locales/vi.json";
 import tl from "./locales/tl.json";
 
+/** Languages that read right-to-left. */
+const RTL_LANGS = new Set(["ar", "he", "fa", "ur"]);
+
+/** Apply dir + lang attributes to <html> whenever the active language changes. */
+function applyDocumentDir(lng: string) {
+  const base = lng.split("-")[0].toLowerCase();
+  const dir = RTL_LANGS.has(base) ? "rtl" : "ltr";
+  document.documentElement.dir = dir;
+  document.documentElement.lang = base;
+}
+
 i18n.use(initReactI18next).init({
   resources: {
     en: { ...en, translation: en },
@@ -37,6 +48,10 @@ i18n.use(initReactI18next).init({
   fallbackLng: "en",
   interpolation: { escapeValue: false },
 });
+
+// Apply direction immediately for the initial language, then track all changes.
+applyDocumentDir(i18n.language);
+i18n.on("languageChanged", applyDocumentDir);
 
 export default i18n;
 

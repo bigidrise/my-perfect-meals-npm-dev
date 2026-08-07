@@ -14,6 +14,7 @@ import { useState } from "react";
 import { ChevronDown, ChevronUp, ShieldCheck, Layers, FlaskConical, Activity } from "lucide-react";
 import { useNutritionSummary } from "@/hooks/useNutritionSummary";
 import type { NutritionPersonalizationSummary, NutritionSummaryHealthItem } from "@/types/nutritionSummary";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   summary?: NutritionPersonalizationSummary;
@@ -80,6 +81,7 @@ export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLo
   const data = summaryProp ?? hook.data;
   const isLoading = isLoadingProp ?? hook.isLoading;
   const [expanded, setExpanded] = useState(defaultExpanded);
+  const { t } = useTranslation("nutritionPlan");
 
   if (isLoading) {
     return (
@@ -111,11 +113,11 @@ export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLo
       <div className="px-4 pt-4 pb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <ShieldCheck className="w-4 h-4 text-orange-400 flex-shrink-0" />
-          <p className="text-sm font-bold text-white">Your Nutrition Life Plan</p>
+          <p className="text-sm font-bold text-white">{t("title")}</p>
         </div>
         {!hasAnyActiveProtocol && (
           <span className="text-[10px] text-white/30 font-medium bg-white/5 rounded-full px-2 py-0.5 border border-white/10">
-            Baseline
+            {t("baseline")}
           </span>
         )}
       </div>
@@ -158,7 +160,7 @@ export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLo
         className="w-full flex items-center justify-between px-4 py-2.5 border-t border-white/8 active:bg-white/5 transition-colors select-none"
       >
         <span className="text-[11px] font-semibold text-orange-400">
-          {expanded ? "Show less" : "See how your meals are being built"}
+          {expanded ? t("showLess") : t("showMore")}
         </span>
         {expanded
           ? <ChevronUp className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />
@@ -173,7 +175,7 @@ export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLo
           {/* ── No-protocol baseline message ── */}
           {!hasAnyActiveProtocol && !hasDietaryIdentity && !hasMealBuilder && (
             <p className="text-[11px] text-white/35 leading-relaxed pt-4">
-              Your meals are personalized using your dietary preferences and macro targets. Add health conditions, performance goals, or medical protocols in your profile to see how they shape your nutrition.
+              {t("baselineDesc")}
             </p>
           )}
 
@@ -181,7 +183,7 @@ export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLo
           {allHealthItems.length > 0 && (
             <div className="pt-3 space-y-2">
               <p className="text-[10px] text-white/35 uppercase tracking-widest font-semibold">
-                Active Protocols
+                {t("activeProtocols")}
               </p>
               {allHealthItems.map((h: NutritionSummaryHealthItem) => {
                 const c = PROTOCOL_COLORS[h.key] ?? DEFAULT_COLOR;
@@ -201,7 +203,7 @@ export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLo
             <div className={allHealthItems.length === 0 ? "pt-3" : ""}>
               {allHealthItems.length === 0 && (
                 <p className="text-[10px] text-white/35 uppercase tracking-widest font-semibold mb-2">
-                  Active Protocols
+                  {t("activeProtocols")}
                 </p>
               )}
               <div className="bg-blue-500/10 border border-blue-500/25 rounded-xl px-3 py-2.5">
@@ -231,9 +233,9 @@ export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLo
           {carbCycleActive && (
             <div className="bg-orange-500/10 border border-orange-500/25 rounded-xl px-3 py-2.5">
               <p className="text-[11px] font-black uppercase tracking-widest text-orange-400">
-                Carb Cycling Active
+{t("carbCyclingActive")}
               </p>
-              <p className="text-[11px] text-orange-300/70 mt-0.5">Starch response protocol running · see Performance Hub</p>
+              <p className="text-[11px] text-orange-300/70 mt-0.5">{t("carbCyclingDetail")}</p>
             </div>
           )}
 
@@ -243,7 +245,7 @@ export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLo
               <div className="flex items-center gap-1.5 mb-2.5">
                 <FlaskConical className="w-3 h-3 text-violet-400 flex-shrink-0" />
                 <p className="text-[11px] font-black uppercase tracking-widest text-violet-400">
-                  Therapeutic Support
+                  {t("therapeuticSupport")}
                 </p>
               </div>
               <div className="space-y-2">
@@ -263,7 +265,7 @@ export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLo
           {hasDietaryIdentity && (
             <div className="bg-emerald-500/10 border border-emerald-500/25 rounded-xl px-3 py-2.5">
               <p className="text-[11px] font-black uppercase tracking-widest text-emerald-400 mb-2.5">
-                Dietary Identity
+                {t("dietaryIdentity")}
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {data.dietaryIdentity!.map((d, i) => (
@@ -279,7 +281,7 @@ export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLo
           {activeInputs?.cuisine && (
             <div className="bg-amber-500/10 border border-amber-500/25 rounded-xl px-3 py-2.5">
               <p className="text-[11px] font-black uppercase tracking-widest text-amber-400 mb-1.5">
-                Cuisine
+                {t("cuisine")}
               </p>
               <p className="text-[12px] font-bold uppercase tracking-wide text-amber-300">
                 {activeInputs.cuisine}
@@ -291,7 +293,7 @@ export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLo
           {activeInputs?.goal && (
             <div className="bg-orange-500/10 border border-orange-500/25 rounded-xl px-3 py-2.5">
               <p className="text-[11px] font-black uppercase tracking-widest text-orange-400 mb-1.5">
-                Goal
+                {t("goal")}
               </p>
               <p className="text-[12px] font-bold uppercase tracking-wide text-orange-300">
                 {activeInputs.goal}
@@ -303,7 +305,7 @@ export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLo
           {hasMealBuilder && (
             <div className="bg-amber-500/10 border border-amber-500/25 rounded-xl px-3 py-2.5">
               <p className="text-[11px] font-black uppercase tracking-widest text-amber-400 mb-1.5">
-                Meal Builder
+                {t("mealBuilder")}
               </p>
               <p className="text-[12px] font-bold uppercase tracking-wide text-amber-300">
                 {data.mealBuilderLabel}
@@ -317,7 +319,7 @@ export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLo
               <div className="flex items-center gap-1.5 mb-2.5">
                 <Activity className="w-3 h-3 text-orange-400 flex-shrink-0" />
                 <p className="text-[11px] font-black uppercase tracking-widest text-orange-400">
-                  Live Context
+                  {t("liveContext")}
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-2">
@@ -335,7 +337,7 @@ export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLo
           {nutritionPriorities.length > 0 && (
             <div className="pt-1">
               <p className="text-[10px] text-white/35 uppercase tracking-widest font-semibold mb-2">
-                Your Nutrition Priorities
+                {t("nutritionPriorities")}
               </p>
               <div className="space-y-1.5">
                 {nutritionPriorities.map((p, i) => (
@@ -351,7 +353,7 @@ export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLo
           {/* ── Current Strategy ── */}
           <div className="bg-white/5 border border-white/8 rounded-xl p-3">
             <p className="text-[10px] text-orange-400/60 uppercase tracking-widest font-semibold mb-1.5">
-              Current Strategy
+              {t("currentStrategy")}
             </p>
             <p className="text-xs text-white/65 leading-relaxed">{compositeExplanation}</p>
           </div>

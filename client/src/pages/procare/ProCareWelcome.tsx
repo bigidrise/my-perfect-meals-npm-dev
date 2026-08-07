@@ -4,7 +4,9 @@ import { ArrowRight, ArrowLeft, GraduationCap, User, Rocket, CheckCircle2 } from
 import { useAuth } from "@/contexts/AuthContext";
 import { NarrationBar } from "@/components/NarrationBar";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { useTranslation } from "react-i18next";
 
+// i18n: leave for content team
 const COPILOT_SECTIONS = [
   {
     heading: "Welcome to My Perfect Meals Professional",
@@ -12,6 +14,7 @@ const COPILOT_SECTIONS = [
   },
 ];
 
+// i18n: leave for content team
 const JOURNEY_STEPS = [
   {
     number: "1",
@@ -36,6 +39,7 @@ const JOURNEY_STEPS = [
   },
 ];
 
+// i18n: leave for content team
 const CERT_BENEFITS = [
   "Learn every feature of the platform",
   "Learn how to personalize nutrition for each client",
@@ -51,6 +55,7 @@ export default function ProCareWelcome() {
   const [location, setLocation] = useLocation();
   const { user } = useAuth();
   const isDesktop = useIsDesktop();
+  const { t } = useTranslation("procare");
 
   const isTrainerWelcome = location === "/trainer-welcome";
   const isPhysicianWelcome = location === "/physician-welcome";
@@ -94,7 +99,7 @@ export default function ProCareWelcome() {
         onClick={handleBegin}
         className="w-full h-14 text-md font-bold rounded-2xl bg-orange-600 text-white shadow-lg transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98]"
       >
-        Begin Your Professional Journey
+        {t("procare.welcome.beginJourney")}
         <ArrowRight className="w-5 h-5" />
       </button>
     </>
@@ -112,7 +117,7 @@ export default function ProCareWelcome() {
           className="flex items-center gap-1.5 text-orange-400 text-sm font-medium mb-4"
         >
           <ArrowLeft className="h-4 w-4" />
-          Business Suite
+          {t("procare.welcome.back")}
         </button>
 
         {/* Hero */}

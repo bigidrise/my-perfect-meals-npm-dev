@@ -2,7 +2,9 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight, Trophy, TrendingUp, Star, Users, Flame, ChevronDown, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
+// i18n: leave for content team
 const TIERS = [
   {
     name: "Bronze Coach",
@@ -49,6 +51,7 @@ type Founder = {
   credentials: string[];
 };
 
+// i18n: leave for content team
 const FOUNDERS: Founder[] = [
   {
     name: "Coach Idrise",
@@ -82,6 +85,7 @@ const FOUNDERS: Founder[] = [
 
 export default function ProCareRewards() {
   const [, setLocation] = useLocation();
+  const { t } = useTranslation("procare");
   const [selectedFounder, setSelectedFounder] = useState<Founder | null>(null);
   const [systemExpanded, setSystemExpanded] = useState(false);
 
@@ -94,7 +98,7 @@ export default function ProCareRewards() {
             className="flex items-center gap-1 text-white/60 text-sm mb-4 active:scale-[0.98]"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back
+            {t("procare.rewards.back")}
           </button>
 
           <div className="text-center mb-6">
@@ -187,7 +191,7 @@ export default function ProCareRewards() {
             className="w-full flex items-center gap-3 px-4 py-4 active:scale-[0.98] transition-transform text-left"
           >
             <div className="flex-1">
-              <h3 className="text-sm font-semibold text-white">Coaching System</h3>
+              <h3 className="text-sm font-semibold text-white">{t("procare.rewards.background")}</h3>
               <p className="text-xs text-white/40 mt-0.5">Tap to learn how we coach</p>
             </div>
             <ChevronDown
