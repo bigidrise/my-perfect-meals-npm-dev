@@ -47,6 +47,7 @@ router.get("/", requireAuth, async (req, res) => {
         selectedMealBuilder:    users.selectedMealBuilder,
         activeBoard:            users.activeBoard,
         carbCycleState:         (users as any).carbCycleState,
+        alphaGalProfile:        (users as any).alphaGalProfile,
       })
       .from(users)
       .where(eq(users.id, userId))
@@ -76,6 +77,7 @@ router.get("/", requireAuth, async (req, res) => {
       selectedMealBuilder:    userRow?.selectedMealBuilder ?? null,
       activeBoard:            userRow?.activeBoard ?? null,
       carbCycleState:         userRow?.carbCycleState ?? null,
+      alphaGalProfile:        (userRow?.alphaGalProfile as any) ?? null,
     };
 
     const summary = buildNutritionSummary(envelope, extras);

@@ -8,6 +8,7 @@ import { pushToCoachOfClient } from '../services/pushNotify';
 import { db } from '../db';
 import { clientLinks } from '../db/schema/procare';
 import { eq, and } from 'drizzle-orm';
+import { enforceCarbs } from '../utils/carbClassifier';
 
 // Type definition for WeekBoard
 type WeekBoard = {
@@ -734,13 +735,16 @@ export default function weekBoardRoutes(app: Express) {
         title: meal.name || meal.title || "Untitled Meal",
         name: meal.name || meal.title || "Untitled Meal",
         // Normalize nutrition
+        // Use ?? (not ||) for starchy/fibrous so an explicit 0 from a
+        // no-starch or all-fibrous meal is preserved — || would lose it
+        // by falling through to the sibling field, then to undefined.
         nutrition: {
           calories: meal.nutrition?.calories || meal.calories || 0,
           protein: meal.nutrition?.protein || meal.protein || 0,
           carbs: meal.nutrition?.carbs || meal.carbs || 0,
           fat: meal.nutrition?.fat || meal.fat || 0,
-          starchyCarbs: meal.nutrition?.starchyCarbs || meal.starchyCarbs,
-          fibrousCarbs: meal.nutrition?.fibrousCarbs || meal.fibrousCarbs,
+          starchyCarbs: meal.nutrition?.starchyCarbs ?? meal.starchyCarbs,
+          fibrousCarbs: meal.nutrition?.fibrousCarbs ?? meal.fibrousCarbs,
         },
         // Preserve extended fields
         imageUrl: meal.imageUrl,
@@ -751,6 +755,21 @@ export default function weekBoardRoutes(app: Express) {
         ingredients: meal.ingredients || [],
         instructions: meal.instructions || [],
       };
+
+      // Derive starchyCarbs/fibrousCarbs from ingredients when the meal arrives
+      // without them. This runs the density-weighted classifier server-side so
+      // board-saved meals always carry accurate starch attribution regardless of
+      // which builder or transfer path added them.
+      const mealWithCarbs = enforceCarbs(mealToAdd);
+      // Sync the derived values back into the flat nutrition object so both the
+      // top-level fields and the nested nutrition block agree.
+      if (mealWithCarbs.starchyCarbs !== undefined) {
+        (mealWithCarbs as any).nutrition.starchyCarbs = mealWithCarbs.starchyCarbs;
+      }
+      if (mealWithCarbs.fibrousCarbs !== undefined) {
+        (mealWithCarbs as any).nutrition.fibrousCarbs = mealWithCarbs.fibrousCarbs;
+      }
+      Object.assign(mealToAdd, mealWithCarbs);
 
       // Check occupancy before replacing
       type MealSlot = "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6" | "snacks";

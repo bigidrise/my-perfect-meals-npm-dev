@@ -47,6 +47,7 @@ import {
   applyDietarySubstitutions,
   RESTRICTION_EXPANSION,
   AVOIDANCE_EXPANSION,
+  getSafeSubstitute,
 } from './allergyGuardrails';
 import { validateDietaryRestriction, type DietaryMode } from './guardrails/validators/dietaryRestrictionValidator';
 import { db } from '../db';
@@ -1088,12 +1089,26 @@ Respond with ONLY valid JSON in this exact format:
 
 /** Determine if the craving is dessert-like */
 function isCravingDessert(input: string): boolean {
-  const dessertTerms = /cheesecake|cake|cookie|brownie|tart|pie|pudding|mousse|parfait|custard|ice.?cream|gelato|sorbet|frozen.?yogurt|froyo|fudge|truffle|macaron|crepe|waffle|muffin|donut|sundae|tiramisu|cannoli|panna.?cotta|cobbler|crisp|bread.?pudding|eclair|profiterole|dessert|sweet|chocolate|vanilla|caramel|strawberry.*cake|lemon.*bar|banana.*bread/i;
+  // Note: "sweet" and broad flavor words are intentionally excluded — they match savory dishes
+  // (e.g. "sweet and savory Huli Huli Chicken"). Only actual dessert dish names trigger this.
+  const dessertTerms = /cheesecake|cake|cookie|brownie|tart|pie|pudding|mousse|parfait|custard|ice.?cream|gelato|sorbet|frozen.?yogurt|froyo|fudge|truffle|macaron|crepe|waffle|muffin|donut|sundae|tiramisu|cannoli|panna.?cotta|cobbler|crisp|bread.?pudding|eclair|profiterole|\bdessert\b|chocolate.*(cake|cookie|mousse|brownie)|vanilla.*(cake|pudding|custard)|caramel.*(cake|flan|tart)|strawberry.*cake|lemon.*bar|banana.*bread/i;
   return dessertTerms.test(input);
+}
+
+/**
+ * Detect explicit savory protein or cooking markers.
+ * These override flavor-language dessert detection — a dish described as "sweet, sticky,
+ * tropical" containing "chicken" is savory, not dessert.
+ */
+function isClearlySavory(input: string): boolean {
+  return /\b(chicken|beef|pork|fish|salmon|shrimp|steak|lamb|turkey|duck|venison|bison|tuna|cod|tilapia|halibut|crab|lobster|clam|mussel|scallop|grilled|bbq|barbecue|roasted|braised|saut[eé]ed|stir.?fry|poached|broiled|smoked|carnitas|pulled pork|short rib|chicken breast|chicken thigh|chicken wing|bone.?in|boneless)\b/i.test(input);
 }
 
 /** Infer dominant category from craving text */
 function inferCravingCategory(input: string, mealType: string): string {
+  // Savory protein/cooking markers take priority — prevents "sweet", "pineapple", or "tropical"
+  // flavor language from misclassifying a savory dish (e.g. Huli Huli Chicken) as dessert
+  if (isClearlySavory(input)) return "meal";
   if (isCravingDessert(input)) return "dessert";
   if (/smoothie|juice|shake|latte|coffee|tea|drink|beverage|cocktail|mocktail/i.test(input)) return "beverage";
   if (/soup|salad|sandwich|wrap|bowl|pasta|rice|steak|chicken|fish|shrimp|burger|taco|burrito|pizza/i.test(input)) return "meal";
@@ -1277,6 +1292,92 @@ function buildKosherViolationHint(
   ].join('\n');
 }
 
+/**
+ * Detect ingredient-level conflicts in generated options and build a targeted
+ * substitution correction for the retry prompt. Covers avoidances, allergies,
+ * and dietary identity (e.g. vegan user receiving a meat dish).
+ *
+ * Returns undefined when no actionable conflicts are found.
+ * This mirrors the kosher hint pattern — specific violation → targeted fix → dish identity locked.
+ */
+function buildIngredientConflictHint(
+  rawOptions: any[],
+  avoidances: string[],
+  allergies: string[],
+  dietRestrictions: string[],
+  dishFamily: string,
+): string | undefined {
+  const conflicts: Array<{ ingredient: string; reason: string }> = [];
+
+  // Build blocked terms: avoidances + allergies, min 3 chars to avoid false positives
+  const blockedTerms = [
+    ...avoidances.map(a => ({ term: a.toLowerCase().trim(), reason: 'avoidance list' })),
+    ...allergies.map(a => ({ term: a.toLowerCase().trim(), reason: 'allergy' })),
+  ].filter(b => b.term.length >= 3);
+
+  // Dietary identity conflicts — vegan user receiving meat/dairy
+  const primaryDiet = getPrimaryDiet(dietRestrictions);
+  const dietConflictTerms: Array<{ term: string; reason: string }> = [];
+  if (primaryDiet === 'vegan') {
+    ['chicken', 'beef', 'pork', 'lamb', 'turkey', 'fish', 'salmon', 'shrimp', 'tuna',
+     'milk', 'butter', 'cream', 'cheese', 'yogurt', 'egg'].forEach(t =>
+      dietConflictTerms.push({ term: t, reason: 'vegan dietary identity' })
+    );
+  } else if (primaryDiet === 'vegetarian') {
+    ['chicken', 'beef', 'pork', 'lamb', 'turkey', 'fish', 'salmon', 'shrimp', 'tuna'].forEach(t =>
+      dietConflictTerms.push({ term: t, reason: 'vegetarian dietary identity' })
+    );
+  }
+
+  const allBlocked = [...blockedTerms, ...dietConflictTerms];
+  if (allBlocked.length === 0) return undefined;
+
+  // Scan all raw options for blocked terms in name, description, and ingredient lists
+  for (const opt of rawOptions) {
+    const ingredientNames: string[] = (opt.ingredients || []).map((i: any) =>
+      (i.name || i.item || '').toLowerCase()
+    );
+    const fullText = [opt.name || '', opt.description || '', ...ingredientNames]
+      .join(' ')
+      .toLowerCase();
+
+    for (const { term, reason } of allBlocked) {
+      if (fullText.includes(term) && !conflicts.some(c => c.ingredient === term)) {
+        conflicts.push({ ingredient: term, reason });
+      }
+    }
+  }
+
+  if (conflicts.length === 0) return undefined;
+
+  const conflictLines = conflicts.map(c => {
+    const sub = getSafeSubstitute(c.ingredient);
+    const subNote = sub !== 'a suitable alternative'
+      ? `substitute with ${sub}`
+      : `find the closest appropriate alternative that preserves the dish`;
+    return `• "${c.ingredient}" (${c.reason}) → ${subNote}`;
+  });
+
+  const blockedList = conflicts.map(c => `"${c.ingredient}"`).join(', ');
+
+  return [
+    `INGREDIENT CONFLICT RESOLUTION — TARGETED SUBSTITUTION REQUIRED:`,
+    `The previous response included ingredients that conflict with this user's dietary profile.`,
+    ``,
+    `Conflicts detected:`,
+    ...conflictLines,
+    ``,
+    `MANDATORY FOR THIS RETRY:`,
+    `❌ Do NOT include any of these ingredients in ANY form: ${blockedList}`,
+    `✅ Substitute ONLY the conflicting ingredients — keep everything else unchanged`,
+    `✅ PRESERVE DISH IDENTITY: All 3 options must remain recognizable as "${dishFamily}"`,
+    `✅ Do NOT change the dish category, cuisine, or format — only swap the blocked ingredient(s)`,
+    `✅ If an avoidance is a specific cut (e.g. "chicken thighs"), substitute with another cut of the same protein (e.g. chicken breast, chicken tenderloin)`,
+    ``,
+    `Generate 3 options that are clearly "${dishFamily}" with the conflicting ingredients substituted.`,
+  ].join('\n');
+}
+
 /** Build the hierarchy-enforcing prompt for the variety engine */
 function buildCuisineGroundingBlock(cuisine: string): string {
   return `\n🌍 CULTURAL GROUNDING — CUISINE OVERRIDE ACTIVE:
@@ -1338,10 +1439,32 @@ function buildVarietyPrompt(
     ? `USER DIET: ${primaryDiet.toUpperCase()} — ALL 3 options must comply fully. Zero exceptions.`
     : `USER DIET: None set — generate standard (non-vegan, non-restricted) food.`;
 
+  // Dish-format words that need the same hard-lock treatment as "dessert".
+  // When a user asks for "soup", they must get soup — not a balanced plate of chicken + rice + veg.
+  const FORMAT_LOCK_DISHES: Record<string, string> = {
+    soup:       'ALL 3 options MUST be soups. Every option must have a broth, stock, bisque, chowder, or purée as its primary base. Do NOT generate rice plates, salads, grilled proteins, stir-fries, or any non-soup format.',
+    salad:      'ALL 3 options MUST be salads. Every option must be built on a leafy green or grain base with tossed toppings and dressing. Do NOT generate soups, wraps, grilled plates, or non-salad formats.',
+    sandwich:   'ALL 3 options MUST be sandwiches. Every option must be served between two slices of bread, in a roll, hoagie, sub, or bun. Do NOT generate salads, bowls, soups, or non-sandwich formats.',
+    wrap:       'ALL 3 options MUST be wraps. Every option must be enclosed in a tortilla, flatbread, lavash, or collard leaf. Do NOT generate sandwiches, bowls, plates, or non-wrap formats.',
+    bowl:       'ALL 3 options MUST be bowls. Every option must be a grain bowl, noodle bowl, or protein bowl with a base, toppings, and sauce. Do NOT generate soups, sandwiches, or non-bowl formats.',
+    pasta:      'ALL 3 options MUST be pasta dishes. Every option must feature pasta as the main component. Do NOT generate rice dishes, grain bowls, soups, or non-pasta formats.',
+    'stir-fry': 'ALL 3 options MUST be stir-fries. Every option must be wok-cooked or pan-tossed at high heat with a sauce. Do NOT generate soups, baked dishes, salads, or non-stir-fry formats.',
+    curry:      'ALL 3 options MUST be curries. Every option must have a spiced sauce or gravy as the base. Do NOT generate stir-fries, dry-rub plates, soups, or non-curry formats.',
+    risotto:    'ALL 3 options MUST be risottos. Every option must use Arborio or similar short-grain rice cooked into a creamy texture. Do NOT generate pasta, pilaf, or non-risotto formats.',
+    taco:       'ALL 3 options MUST be tacos. Every option must be served in tortillas (corn or flour). Do NOT generate burritos, bowls, wraps without tortillas, or non-taco formats.',
+    burrito:    'ALL 3 options MUST be burritos. Every option must be a large stuffed flour tortilla, fully wrapped. Do NOT generate tacos, bowls, or non-burrito formats.',
+    pizza:      'ALL 3 options MUST be pizzas. Every option must feature a dough base with sauce and toppings. Do NOT generate flatbreads without sauce, grain bowls, or non-pizza formats.',
+    burger:     'ALL 3 options MUST be burgers. Every option must be a patty served in a bun. Do NOT generate sandwiches without patties, wraps, salads, or non-burger formats.',
+    omelette:   'ALL 3 options MUST be omelettes. Every option must be egg-based, folded or rolled around a filling. Do NOT generate scrambles, frittatas, or non-omelette formats.',
+  };
+
+  const formatLockText = FORMAT_LOCK_DISHES[dishFamily];
   const dessertNote = category === "dessert"
     ? `\nCATEGORY LOCK: This is a DESSERT request. ALL 3 options must be desserts. Never generate savory meals, wraps, salads, or non-dessert items.`
     : category === "beverage"
     ? `\nCATEGORY LOCK: This is a BEVERAGE request. ALL 3 options must be drinks. Never generate solid food.`
+    : formatLockText
+    ? `\nCATEGORY LOCK — DISH FORMAT ENFORCED: ${formatLockText}`
     : `\nCATEGORY LOCK: This is a ${category.toUpperCase()} request. Stay within this food category.`;
 
   return `You are a precision chef AI. Your ONLY job is to generate 3 distinct variations of the same dish type.
@@ -1358,9 +1481,10 @@ HIERARCHY (follow in this EXACT order):
 3. DISH FAMILY LOCK (non-negotiable)
    The user asked for: "${cravingInput}"
    Core dish to stay within: "${dishFamily}"
-   ALL 3 options must be variations of "${dishFamily}" — different preparations, textures, or styles.
+   ALL 3 options must be variations of "${dishFamily}" — different preparations, textures, flavors, or proteins.
+   Example: "soup" → Chicken Noodle Soup, Lentil Tomato Soup, Creamy Broccoli Soup.
    Example: "cheesecake" → Classic Baked Cheesecake, No-Bake Cheesecake, Cheesecake Parfait.
-   NEVER drift to a completely different dish type.
+   NEVER drift to a completely different dish type. A rice plate is not a soup. A grilled protein is not a salad.
 
 4. VARIATION (apply last, within constraints above)
    Each option must differ meaningfully:
@@ -1564,6 +1688,9 @@ export async function generateCravingMealOptions(
   let _varietySpecialtyConditions: string[] = [];
   let _varietyOncologyCtx: { enabled?: boolean } | null = null;
   let varietyMeasurementSystem: MeasurementSystem = "imperial";
+  // Stored at outer scope so buildIngredientConflictHint() can access them in the retry block
+  let _varietyAllergies: string[] = [];
+  let _varietyAvoidances: string[] = [];
 
   if (userId) {
     try {
@@ -1588,6 +1715,7 @@ export async function generateCravingMealOptions(
       _varietyOncologyCtx = (u?.oncologySupportContext as { enabled?: boolean } | null) ?? null;
 
       const allergies: string[] = (u?.allergies as string[]) || [];
+      _varietyAllergies = allergies;
       if (allergies.length > 0) {
         allergyBlock = `\n🚨 ALLERGEN BLOCK — ABSOLUTE MEDICAL SAFETY REQUIREMENT:\nThis user has confirmed allergies to: ${allergies.join(', ')}.\nDo NOT include these ingredients or any derivative/hidden form in ANY of the 3 options. This overrides all other instructions.`;
         console.log(`[VARIETY ENGINE] Allergy block active for user ${userId}: ${allergies.length} items`);
@@ -1603,6 +1731,7 @@ export async function generateCravingMealOptions(
         ...((u?.dislikedFoods as string[]) || []),
         ...((u?.avoidedFoods as string[]) || []),
       ];
+      _varietyAvoidances = rawAvoidances;
       if (rawAvoidances.length > 0) {
         avoidanceBlock = buildVarietyAvoidanceBlock(rawAvoidances);
         console.log(`[VARIETY ENGINE] Avoidance block active for user ${userId}: ${rawAvoidances.length} items`);
@@ -1774,14 +1903,27 @@ export async function generateCravingMealOptions(
     validateVarietyOption(opt, category, dishFamily, dietRestrictions)
   );
 
-  // If majority fail validation, regenerate once with stricter prompt
+  // If majority fail validation, regenerate once with stricter, targeted prompt
   if (valid.length < 2) {
     console.warn(`[VARIETY ENGINE] Only ${valid.length}/3 options passed validation — regenerating with strict prompt`);
-    // Detect WHY options failed and build a targeted correction for the retry
-    const violationHint = buildKosherViolationHint(rawOptions, dietRestrictions, varietyKosherIntent);
-    if (violationHint) {
-      console.warn(`[VARIETY ENGINE] Kosher dairy violation detected — injecting targeted dietary correction into retry`);
+
+    // Build targeted hints for known violation types — each covers a distinct failure mode
+    const kosherHint = buildKosherViolationHint(rawOptions, dietRestrictions, varietyKosherIntent);
+    const conflictHint = buildIngredientConflictHint(
+      rawOptions, _varietyAvoidances, _varietyAllergies, dietRestrictions, dishFamily
+    );
+
+    if (kosherHint) {
+      console.warn(`[VARIETY ENGINE] Kosher dairy violation detected — injecting targeted correction into retry`);
     }
+    if (conflictHint) {
+      console.warn(`[VARIETY ENGINE] Ingredient conflict detected — injecting targeted substitution hint into retry`);
+    }
+
+    // Merge all hints; undefined if none apply (falls back to generic strict mode)
+    const hints = [kosherHint, conflictHint].filter(Boolean);
+    const violationHint = hints.length > 0 ? hints.join('\n\n') : undefined;
+
     try {
       rawOptions = await attempt(true, violationHint);
       const strictValid = rawOptions.slice(0, 3).filter(opt =>

@@ -28,6 +28,7 @@ import {
   updateMealImageInBoard,
   getMealImageUrl,
 } from "@/lib/boardApi";
+import { shouldProtectExistingImage } from "@/lib/imageUrlUtils";
 import { useChefMealImage } from "@/hooks/useChefMealImage";
 import { duplicateAcrossWeeks } from "@/utils/crossWeekDuplicate";
 import { MealPickerDrawer } from "@/components/pickers/MealPickerDrawer";
@@ -112,6 +113,7 @@ import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import { PillButton } from "@/components/ui/pill-button";
 import { BuilderHeader } from "@/components/pro/BuilderHeader";
+import { getBuilderProtocolBadges } from "@/lib/nutritionPersonalization";
 
 import { useGlucoseLogs } from "@/hooks/useDiabetes";
 import { buildDiabeticMemory } from "@/lib/diabeticMemory";
@@ -224,7 +226,11 @@ export default function DiabeticMenuBuilder() {
           'liver-disease': 'liver-disease', 'liver-support': 'liver-support',
           'oncology-support': 'oncology-support',
         };
-        const scArr: string[] = data?.specialtyConditions ?? (data?.specialtyCondition ? [data.specialtyCondition] : []);
+        // Use .length check (not ??) so an empty specialtyConditions array
+        // still falls through to the singular specialtyCondition field.
+        const scArr: string[] = data?.specialtyConditions?.length
+          ? data.specialtyConditions
+          : data?.specialtyCondition ? [data.specialtyCondition] : [];
         for (const sc of scArr) {
           const mapped = scMap[sc];
           if (mapped && !derived.includes(mapped)) derived.push(mapped);
@@ -482,7 +488,7 @@ export default function DiabeticMenuBuilder() {
           fetchImageForMeal({ id: snack.id, name: snack.name }, 'snacks', (mealId, imageUrl) => {
             setBoard(prev => {
               if (!prev) return prev;
-              const cur = getMealImageUrl(prev, mealId); if (cur === imageUrl) return prev; if (cur && (cur.startsWith('/public-objects/') || cur.includes('amazonaws.com'))) return prev;
+              const cur = getMealImageUrl(prev, mealId); if (shouldProtectExistingImage(cur, imageUrl)) return prev;
               const updated = updateMealImageInBoard(prev, mealId, imageUrl);
               saveBoard(updated).catch(() => {});
               return updated;
@@ -850,7 +856,7 @@ export default function DiabeticMenuBuilder() {
           fetchImageForMeal(transformedMeal, slot, (mealId, imageUrl) => {
             setBoard(prev => {
               if (!prev) return prev;
-              const cur = getMealImageUrl(prev, mealId); if (cur === imageUrl) return prev; if (cur && (cur.startsWith('/public-objects/') || cur.includes('amazonaws.com'))) return prev;
+              const cur = getMealImageUrl(prev, mealId); if (shouldProtectExistingImage(cur, imageUrl)) return prev;
               const updated = updateMealImageInBoard(prev, mealId, imageUrl);
               saveBoard(updated).catch(() => {});
               return updated;
@@ -1183,7 +1189,7 @@ export default function DiabeticMenuBuilder() {
       transition={{ duration: 0.6 }}
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-36"
     >
-      <BuilderHeader title="Diabetic Meal Builder" onOpenTour={quickTour.openTour} clientId={proClientId} backTo="/diabetic-hub" backLabel="Diabetes Hub" />
+      <BuilderHeader title="Diabetic Meal Builder" onOpenTour={quickTour.openTour} clientId={proClientId} backTo="/diabetic-hub" backLabel="Diabetes Hub" protocols={getBuilderProtocolBadges(user)} />
 
 
       {/* Main Content */}
@@ -1276,7 +1282,8 @@ export default function DiabeticMenuBuilder() {
                     { key: "liver-support",      label: "Liver Support",     isActive: !!flags?.liverSupport      || labDerivedConditions.includes('liver-support'),    activeColor: "text-emerald-400", dotColor: "bg-emerald-400", dotGlow: "shadow-[0_0_4px_rgba(52,211,153,0.8)]"   },
                     { key: "liver-disease",      label: "Liver Disease",     isActive: !!flags?.liverDisease      || labDerivedConditions.includes('liver-disease'),    activeColor: "text-amber-400",   dotColor: "bg-amber-400",   dotGlow: "shadow-[0_0_4px_rgba(251,191,36,0.8)]"   },
                     { key: "oncology-support",   label: "Oncology Support",  isActive: !!flags?.oncologySupport   || labDerivedConditions.includes('oncology-support'), activeColor: "text-pink-400",   dotColor: "bg-pink-400",   dotGlow: "shadow-[0_0_4px_rgba(244,114,182,0.9)]" },
-                    { key: "thyroid-support",    label: "Thyroid Support",   isActive: !!flags?.thyroidSupport    || thyroidFromSpecialtyCondition,                     activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
+                    { key: "thyroid-support",    label: "Thyroid Support",   isActive: !!flags?.thyroidSupport    || thyroidFromSpecialtyCondition,                                                                          activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
+                    { key: "alpha-gal-syndrome", label: "Alpha-gal Syndrome", isActive: scConditions.includes('alpha-gal-syndrome') || scConditions.includes('alpha-gal') || scConditions.includes('alpha-gal syndrome'), activeColor: "text-orange-400", dotColor: "bg-orange-400", dotGlow: "shadow-[0_0_4px_rgba(251,146,60,0.8)]"   },
                   ].map(({ key, label, isActive, activeColor, dotColor, dotGlow }) => (
                     <span key={key} className={`flex items-center gap-1 ${isActive ? `${activeColor} font-semibold` : "text-white/25"}`}>
                       <span className={`inline-block w-1.5 h-1.5 rounded-full ${isActive ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
@@ -1381,7 +1388,7 @@ export default function DiabeticMenuBuilder() {
                           }}
                           onSnackCreator={() => setSnackCreatorOpen(true)}
                           onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6", meal)}
-                          onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; const cur = getMealImageUrl(prev, mealId); if (cur === imageUrl) return prev; if (cur && (cur.startsWith('/public-objects/') || cur.includes('amazonaws.com'))) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }}
+                          onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; const cur = getMealImageUrl(prev, mealId); if (shouldProtectExistingImage(cur, imageUrl)) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }}
                           onFavorites={goToFavorites}
                           onLogSnack={() => {}}
                           showLogSnack={false}
@@ -1445,7 +1452,7 @@ export default function DiabeticMenuBuilder() {
                         onCreateWithChef={() => {}}
                         onSnackCreator={() => setSnackCreatorOpen(true)}
                         onSave={(meal) => quickAdd("snacks", meal)}
-                        onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; const cur = getMealImageUrl(prev, mealId); if (cur === imageUrl) return prev; if (cur && (cur.startsWith('/public-objects/') || cur.includes('amazonaws.com'))) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }}
+                        onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; const cur = getMealImageUrl(prev, mealId); if (shouldProtectExistingImage(cur, imageUrl)) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }}
                         onFavorites={goToFavorites}
                       />
                     </div>
@@ -1492,7 +1499,7 @@ export default function DiabeticMenuBuilder() {
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-white/90 text-lg font-medium">{label}</h2>
                   <div className="flex gap-2">
-                    <AddOwnMealButton slot={key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6"} onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6", meal)} onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; const cur = getMealImageUrl(prev, mealId); if (cur === imageUrl) return prev; if (cur && (cur.startsWith('/public-objects/') || cur.includes('amazonaws.com'))) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }} variant="icon" />
+                    <AddOwnMealButton slot={key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6"} onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6", meal)} onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; const cur = getMealImageUrl(prev, mealId); if (shouldProtectExistingImage(cur, imageUrl)) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }} variant="icon" />
                   </div>
                 </div>
                 <div className="space-y-3">

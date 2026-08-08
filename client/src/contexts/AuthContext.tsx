@@ -134,6 +134,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           physicianLocked: userData.physicianLocked ?? false,
           thyroidMedication: userData.thyroidMedication ?? null,
           oncologySupportContext: userData.oncologySupportContext ?? null,
+          alphaGalProfile: (userData as any).alphaGalProfile ?? null,
           activeSystem: userData.activeSystem || null,
           isCreator: userData.isCreator || false,
           creatorDisplayName: userData.creatorDisplayName || null,

@@ -14,7 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { LOW_GI, MID_GI, HIGH_GI } from "@/types/glycemic";
 import { Progress } from "@/components/ui/progress";
-import { ArrowRight, ArrowLeft, X, Check, Shield, Eye, EyeOff, Utensils, Heart, Pill, Flame, Dumbbell, UserCheck } from "lucide-react";
+import { ArrowRight, ArrowLeft, X, Check, Shield, Eye, EyeOff, Utensils, Heart, Pill, Flame, Dumbbell, UserCheck, AlertTriangle } from "lucide-react";
 import { PillButton } from "@/components/ui/pill-button";
 import HeightInput from "@/components/inputs/HeightInput";
 import { getDeviceId } from "@/utils/deviceId";
@@ -101,6 +101,8 @@ interface OnboardingData {
 
 const TOTAL_STEPS = 4;
 
+import { AlphaGalProfileModal, type AlphaGalProfileData, type AlphaGalDraft, DEFAULT_ALPHA_GAL_DRAFT } from "@/components/AlphaGalProfileModal";
+
 const medicalConditionsList = [
   { id: "diabetes-type1", label: "Type 1 Diabetes", category: "metabolic" },
   { id: "diabetes-type2", label: "Type 2 Diabetes", category: "metabolic" },
@@ -117,6 +119,7 @@ const medicalConditionsList = [
   { id: "crohns", label: "Crohn's Disease", category: "digestive" },
   { id: "gerd", label: "GERD", category: "digestive" },
   { id: "kidney-disease", label: "Kidney Disease", category: "renal" },
+  { id: "alpha-gal-syndrome", label: "Alpha-gal Syndrome (Mammalian Meat Allergy)", category: "allergy-clinical", requiresSubModal: true },
 ];
 
 const allergyOptions = [
@@ -146,6 +149,11 @@ export default function OnboardingStandalone() {
   const [disclaimerChecked, setDisclaimerChecked] = useState(false);
   const [disclaimerError, setDisclaimerError] = useState(false);
   
+  // Alpha-gal Syndrome modal state
+  const [showAlphaGalModal, setShowAlphaGalModal] = useState(false);
+  const [alphaGalProfile, setAlphaGalProfile] = useState<AlphaGalProfileData | null>(null);
+  const [alphaGalDraft, setAlphaGalDraft] = useState<AlphaGalDraft>(DEFAULT_ALPHA_GAL_DRAFT);
+
   // Page 4: Builder Selection + Safety PIN
   const [selectedBuilder, setSelectedBuilder] = useState("weekly");
   const [safetyPin, setSafetyPin] = useState("");
@@ -348,6 +356,11 @@ export default function OnboardingStandalone() {
               primaryGoal: data.primaryGoal,
               customGoal: data.customGoal,
               medicalConditions: [...data.medicalConditions, ...data.customMedicalConditions],
+              alphaGalProfile: alphaGalProfile
+                ? { ...alphaGalProfile, profileComplete: true, updatedAt: new Date().toISOString() }
+                : data.medicalConditions.includes("alpha-gal-syndrome")
+                ? { diagnosisStatus: "diagnosed", dairyTolerance: "unsure", gelatinRestriction: "unsure", severeReactionHistory: "unsure", profileComplete: false, activatedAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+                : undefined,
               foodAllergies: [...data.foodAllergies, ...data.customAllergies],
               dietaryRestrictions: [...data.dietaryRestrictions, ...data.customDietaryRestrictions],
               preferredLowGICarbs: data.preferredLowGICarbs,
@@ -654,17 +667,60 @@ export default function OnboardingStandalone() {
         <div className="space-y-4">
           <h3 className="text-lg font-semibold">Medical Conditions</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {medicalConditionsList.map((condition) => (
-              <label key={condition.id} className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={data.medicalConditions.includes(condition.id)}
-                  onChange={() => handleArrayToggle("medicalConditions", condition.id)}
-                  className="h-4 w-4 rounded border-white/30"
-                />
-                <span className="text-sm">{condition.label}</span>
-              </label>
-            ))}
+            {medicalConditionsList.map((condition) => {
+              const isAlphaGal = (condition as any).requiresSubModal;
+              const isChecked = data.medicalConditions.includes(condition.id);
+              const alphaGalComplete = isAlphaGal && isChecked && !!alphaGalProfile;
+              const alphaGalIncomplete = isAlphaGal && isChecked && !alphaGalProfile;
+              return (
+                <div key={condition.id} className={isAlphaGal ? "col-span-2 md:col-span-3" : ""}>
+                  <label className="flex items-start gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => {
+                        if (isAlphaGal) {
+                          if (!isChecked) {
+                            // Checking alpha-gal → add to conditions + open modal
+                            updateData({ medicalConditions: [...data.medicalConditions, condition.id] });
+                            setShowAlphaGalModal(true);
+                          } else {
+                            // Unchecking → remove from conditions + clear profile
+                            updateData({ medicalConditions: data.medicalConditions.filter(c => c !== condition.id) });
+                            setAlphaGalProfile(null);
+                          }
+                        } else {
+                          handleArrayToggle("medicalConditions", condition.id);
+                        }
+                      }}
+                      className="h-4 w-4 rounded border-white/30 mt-0.5 shrink-0"
+                    />
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-sm">{condition.label}</span>
+                      {alphaGalComplete && (
+                        <span className="text-xs text-green-400 flex items-center gap-1">
+                          <Check className="w-3 h-3" /> Details saved
+                          <button
+                            type="button"
+                            onClick={(e) => { e.preventDefault(); setShowAlphaGalModal(true); }}
+                            className="underline ml-1 text-white/60 hover:text-white"
+                          >Edit</button>
+                        </span>
+                      )}
+                      {alphaGalIncomplete && (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.preventDefault(); setShowAlphaGalModal(true); }}
+                          className="text-xs text-amber-400 flex items-center gap-1 hover:text-amber-300"
+                        >
+                          <AlertTriangle className="w-3 h-3" /> Details incomplete — tap to complete
+                        </button>
+                      )}
+                    </div>
+                  </label>
+                </div>
+              );
+            })}
           </div>
           
           <div className="mt-3 flex gap-2">
@@ -1257,6 +1313,16 @@ export default function OnboardingStandalone() {
           </Button>
         </div>
       </div>
+
+      {/* ── Alpha-gal Syndrome sub-profile modal ─────────────────────────────── */}
+      <AlphaGalProfileModal
+        open={showAlphaGalModal}
+        draft={alphaGalDraft}
+        onChange={setAlphaGalDraft}
+        onSave={(profile) => setAlphaGalProfile(profile)}
+        onClose={() => setShowAlphaGalModal(false)}
+        isUpdate={!!alphaGalProfile?.profileComplete}
+      />
     </div>
   );
 }

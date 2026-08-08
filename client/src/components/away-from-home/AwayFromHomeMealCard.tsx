@@ -87,14 +87,26 @@ function MacroCell({
 }
 
 function BadgePill({ badge }: { badge: MedicalBadge }) {
+  // Three states:
+  //   compatible = true              → green ✓  (safe)
+  //   compatible = false, color=yellow → amber ⚠ (verify with restaurant — source uncertain)
+  //   compatible = false, other       → red ✕   (hard conflict)
+  const isVerify = !badge.compatible && (badge as any).color === "yellow";
+  const colorClass = badge.compatible
+    ? "bg-emerald-600/30 text-emerald-300"
+    : isVerify
+    ? "bg-amber-600/30 text-amber-300"
+    : "bg-red-600/30 text-red-300";
+  const icon = badge.compatible ? "✓" : isVerify ? "⚠" : "✕";
+
   return (
     <span
       className={cn(
         "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold",
-        badge.compatible ? "bg-emerald-600/30 text-emerald-300" : "bg-red-600/30 text-red-300"
+        colorClass
       )}
     >
-      <span>{badge.compatible ? "✓" : "✕"}</span>
+      <span>{icon}</span>
       {badge.condition}
     </span>
   );

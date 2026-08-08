@@ -66,7 +66,18 @@ export function useStarchGuardPrecheck(): UseStarchGuardPrecheckResult {
         return true;
       }
 
-      if (starchStatus !== 'exhausted' && starchStatus !== 'over') {
+      // ── #515 reconciliation ─────────────────────────────────────────────────
+      // The categorical starch system (getDayStarchStatus / StarchCoachingNudge)
+      // warns as soon as any starch meal is planned on the board. The gram-based
+      // guard previously only blocked at 'exhausted'/'over', so the two systems
+      // could contradict each other: categorical = "starch used", guard = "room
+      // available." Now the guard ALSO warns at 'low' (≥ 80% consumed), providing
+      // a soft caution that aligns with the categorical nudge before the budget
+      // is fully exhausted. At 'good' (< 80%) the guard still allows freely.
+      const isAtOrOverLimit = starchStatus === 'exhausted' || starchStatus === 'over';
+      const isLow = starchStatus === 'low';
+
+      if (!isAtOrOverLimit && !isLow) {
         console.log('🥔 [StarchGuard] ALLOW: Starchy status is', starchStatus, '(still have room)');
         setAlert(EMPTY_STARCH_ALERT);
         return true;
@@ -82,7 +93,9 @@ export function useStarchGuardPrecheck(): UseStarchGuardPrecheckResult {
       }
 
       const termsList = detection.matchedTerms.slice(0, 3).join(', ');
-      const message = `You've reached your daily starchy carb limit (${Math.round(starchyConsumed)}g of ${starchyTarget}g). You requested "${termsList}" which contains starchy carbs.`;
+      const message = isLow
+        ? `You're approaching your daily starchy carb limit (${Math.round(starchyConsumed)}g of ${starchyTarget}g used). You requested "${termsList}" which contains starchy carbs.`
+        : `You've reached your daily starchy carb limit (${Math.round(starchyConsumed)}g of ${starchyTarget}g). You requested "${termsList}" which contains starchy carbs.`;
       
       console.log('🥔 [StarchGuard] BLOCK: Starchy carbs at limit and starchy food requested');
       

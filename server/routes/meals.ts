@@ -410,4 +410,54 @@ router.post('/replace/custom', requireAuth, async (req: any, res) => {
   }
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 3 — Generic meal image finalization (Unified Meal Image Pipeline)
+//
+// Adds a permanent imageUrl to any already-generated meal data.
+// The client shows a single "Creating your meal…" state while this resolves.
+//
+// CONTRACT
+//   • Does NOT generate nutrition. Each builder still owns its clinical rules.
+//   • Does NOT persist. Callers own their persistence strategy.
+//   • Returns permanent /public-objects/ or S3 URL, or null on failure.
+//   • One call = one image-generation operation (no client-side retries needed).
+// ─────────────────────────────────────────────────────────────────────────────
+router.post("/finalize", requireAuth, imageRateLimit, async (req: any, res) => {
+  const { meal, sourceType: callerSourceType, mealType } = req.body || {};
+
+  if (!meal?.name || String(meal.name).trim().length < 2) {
+    return res.status(400).json({ error: "meal.name is required (min 2 chars)" });
+  }
+
+  // Resolve sourceType — same logic as /generate-image for consistency.
+  let sourceType: ImageSourceType = "meal";
+  if (callerSourceType && ["meal","snack","beverage","dessert"].includes(callerSourceType)) {
+    sourceType = callerSourceType as ImageSourceType;
+  } else if (mealType) {
+    const mt = String(mealType).toLowerCase();
+    const nameLow = String(meal.name).toLowerCase();
+    if (mt === "snack" || mt === "snacks") sourceType = "snack";
+    else if (mt === "beverage" || mt === "drink" || mt === "beverages") sourceType = "beverage";
+    else if (mt === "dessert" || mt === "desserts") sourceType = "dessert";
+    else if (/smoothie|shake|juice|latte|coffee|tea|cocktail|mocktail|lemonade/.test(nameLow))
+      sourceType = "beverage";
+    else if (/cake|pie|cookie|brownie|pudding|ice cream|cheesecake|tart|mousse|cupcake/.test(nameLow))
+      sourceType = "dessert";
+  }
+
+  try {
+    const { finalizeMealImage } = await import("../services/mealFinalizer");
+    const result = await finalizeMealImage({ meal, sourceType });
+    return res.json({
+      meal: result.meal,
+      imageUrl: result.imageUrl,
+      permanent: result.permanent,
+    });
+  } catch (err: any) {
+    console.error("[/api/meals/finalize]", err.message);
+    // Always return a usable payload — caller never has to handle a 500.
+    return res.json({ meal: { ...meal, imageUrl: null }, imageUrl: null, permanent: false });
+  }
+});
+
 export default router;

@@ -63,13 +63,28 @@ export async function writeMacroLog(input: MacroLogServiceInput) {
   } = input;
 
   const fiber = input.fiber ?? null;
-  const starchyCarbs = input.starchyCarbs ?? null;
 
   // Explicit fibrousCarbs (manual entry) takes priority; fall back to fiber derivation
   // when only fiber is supplied (AI/builder paths that don't split the carb types).
   const fibrousCarbs = input.fibrousCarbs != null
     ? input.fibrousCarbs
     : deriveFibrousCarbs(fiber);
+
+  // Resolve starchyCarbs. Callers should always derive and send this using the
+  // density-weighted classifier (deriveSplitCarbs / deriveCarbs). When it is
+  // absent but fibrousCarbs is known we can infer: anything that is not fibrous
+  // and not a zero-carb meal is treated as starchy. This prevents a genuine
+  // non-zero starch contribution from being silently recorded as 0.
+  //
+  // NOTE: the DB column is NOT NULL, so we must always write a number. "0"
+  // here means the caller provided no carbohydrates data at all (not that the
+  // system confirmed zero starchy carbs); callers that have ingredient data
+  // are expected to pass a derived value so this fallback is never needed.
+  const starchyCarbs: number | null = input.starchyCarbs != null
+    ? input.starchyCarbs
+    : (fibrousCarbs != null && input.carbohydrates > 0
+        ? Math.max(0, input.carbohydrates - fibrousCarbs)
+        : null);
 
   const resolvedCalories =
     input.calories > 0

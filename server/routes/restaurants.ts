@@ -188,10 +188,39 @@ router.post("/guide", async (req, res) => {
     const generationTime = Date.now() - generationStart;
     console.log(`✅ [Guide] ${recommendations.length} recommendations in ${generationTime}ms`);
 
-    // ── Respond immediately — do not block on DB save ──────────────────────────
+    // ── Unified Image Pipeline: attach permanent imageUrls before responding ────
+    // Generate images for all recommendations in parallel so the client receives
+    // complete cards — no shimmer, no indefinite loading state.
+    // Restaurant guide text generation already takes 5-10 s; parallel DALL-E
+    // calls add ~12 s total (not serial) — acceptable for this surface.
+    let recommendationsWithImages: typeof recommendations = recommendations;
+    if (recommendations.length > 0) {
+      try {
+        const { generateMealImageUnified } = await import('../services/mealImageGenerator');
+        recommendationsWithImages = await Promise.all(
+          recommendations.map(async (rec: any) => {
+            if (!rec.name || rec.imageUrl) return rec;
+            try {
+              const ingredients = (rec.ingredients ?? [])
+                .map((i: any) => i.name || i.item || '')
+                .filter(Boolean);
+              const imageUrl = await generateMealImageUnified(rec.name, ingredients, 'meal');
+              return imageUrl ? { ...rec, imageUrl } : rec;
+            } catch {
+              return rec; // image failure non-fatal
+            }
+          })
+        );
+        console.log(`🖼️ [Guide] Images attached to ${recommendationsWithImages.length} recommendations`);
+      } catch {
+        // Image pipeline failure — respond without images rather than failing the whole guide
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────────────
+
     res.json({
       status: "ok",
-      recommendations,
+      recommendations: recommendationsWithImages,
       restaurantInfo,
       restaurantName: restaurantInfo.name,
       craving,
@@ -202,8 +231,8 @@ router.post("/guide", async (req, res) => {
       generationTime,
     });
 
-    // ── Fire-and-forget: persist session ───────────────────────────────────────
-    if (recommendations.length > 0) {
+    // ── Fire-and-forget: persist session (with images so future loads restore them) ─
+    if (recommendationsWithImages.length > 0) {
       (async () => {
         try {
           await db.insert(restaurantGuideSessions).values({
@@ -213,9 +242,9 @@ router.post("/guide", async (req, res) => {
             craving: craving || null,
             cuisine: detectedCuisine,
             zipCode: zipCode || null,
-            meals: recommendations as any,
+            meals: recommendationsWithImages as any,
           });
-          console.log(`💾 [Guide] Session saved (${recommendations.length} recs, source=${source})`);
+          console.log(`💾 [Guide] Session saved (${recommendationsWithImages.length} recs, source=${source})`);
         } catch (saveErr) {
           console.error(`⚠️ [Guide] Failed to persist session:`, saveErr);
         }

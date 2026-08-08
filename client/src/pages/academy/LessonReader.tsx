@@ -10,7 +10,9 @@ import {
   RotateCcw,
   Loader2,
   Lock,
+  Circle,
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { BC_GRADIENT } from "@/components/BusinessCenterShell";
 import { apiRequest } from "@/lib/queryClient";
@@ -513,6 +515,8 @@ export default function LessonReader() {
 
   const lesson = getLessonById(lessonId);
 
+  const { toast } = useToast();
+
   const [status, setStatus] = useState<{
     enrolled: boolean;
     isCertificationTrack: boolean;
@@ -556,7 +560,13 @@ export default function LessonReader() {
           const priorId = LESSONS_ORDER[idx - 1];
           const priorDone = prog[priorId]?.status === "completed";
           if (!priorDone) {
-            setLocation("/academy");
+            const priorLesson = getLessonById(priorId);
+            toast({
+              title: "Lesson locked",
+              description: `Finish Lesson ${priorLesson?.lessonNumber ?? idx} first — complete the exercise and pass the quiz to unlock this lesson.`,
+            });
+            // Send her back to the lesson she still needs to complete, not just the Academy home
+            setLocation(`/academy/platform-mastery/lesson/${priorId}`);
             return;
           }
         }
@@ -648,6 +658,24 @@ export default function LessonReader() {
             <ArrowLeft className="h-4 w-4" />
             Academy
           </button>
+          {/* Previous lesson button — lets users navigate backwards between lessons */}
+          {(() => {
+            const curIdx = LESSONS_ORDER.indexOf(lessonId);
+            if (curIdx <= 0) return null;
+            const prevId = LESSONS_ORDER[curIdx - 1];
+            const prevLesson = getLessonById(prevId);
+            if (!prevLesson) return null;
+            return (
+              <button
+                onClick={() => setLocation(`/academy/platform-mastery/lesson/${prevId}`)}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white/6 text-white/50 text-xs font-medium active:scale-[0.95] transition-transform hover:text-white/70 flex-shrink-0"
+                title={`Back to Lesson ${prevLesson.lessonNumber}: ${prevLesson.title}`}
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                <span>L{prevLesson.lessonNumber}</span>
+              </button>
+            );
+          })()}
           <div className="flex-1 min-w-0">
             <p className="text-xs text-white/40 font-medium">
               Lesson {lesson.lessonNumber}
@@ -964,12 +992,33 @@ export default function LessonReader() {
               : true;
 
             if (!canAdvance && isCertTrack) {
+              const quizDone = quizPassed || quizProg?.status === "completed";
               return (
-                <div className="flex items-center gap-2 p-3.5 rounded-xl bg-white/5 border border-white/10">
-                  <Lock className="h-4 w-4 text-white/25 flex-shrink-0" />
-                  <p className="text-xs text-white/40 leading-relaxed">
-                    Complete the exercise and pass the quiz to unlock Lesson {nextLesson.lessonNumber}.
-                  </p>
+                <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Lock className="h-4 w-4 text-white/25 flex-shrink-0" />
+                    <p className="text-xs font-semibold text-white/50">
+                      Complete to unlock Lesson {nextLesson.lessonNumber}
+                    </p>
+                  </div>
+                  <div className="space-y-2 ml-6">
+                    <div className="flex items-center gap-2">
+                      {exerciseDone
+                        ? <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
+                        : <Circle className="h-4 w-4 text-white/20 flex-shrink-0" />}
+                      <span className={`text-xs leading-relaxed ${exerciseDone ? "text-emerald-400" : "text-white/40"}`}>
+                        Exercise — go into the app and tap "I'm Back" when done
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {quizDone
+                        ? <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
+                        : <Circle className="h-4 w-4 text-white/20 flex-shrink-0" />}
+                      <span className={`text-xs leading-relaxed ${quizDone ? "text-emerald-400" : "text-white/40"}`}>
+                        Quiz — scroll down and score 80% or above to pass
+                      </span>
+                    </div>
+                  </div>
                 </div>
               );
             }

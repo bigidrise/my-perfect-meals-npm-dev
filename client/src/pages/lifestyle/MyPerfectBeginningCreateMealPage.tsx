@@ -957,6 +957,7 @@ function RecipeCard({
                   description: recipe.ageStageSuitability,
                   ingredients: recipe.ingredients.map(i => ({ name: i.name, quantity: i.quantity, unit: i.unit })),
                   instructions: recipe.instructions.join("\n"),
+                  imageUrl: imageUrl ?? undefined,
                 }}
               />
               <button
@@ -1949,6 +1950,25 @@ export default function MyPerfectBeginningCreateMealPage() {
         setMultiChildMeta(data.multiChild);
       }
       setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 100);
+
+      // ── Unified Image Pipeline ─────────────────────────────────────────────
+      // /create-dish now returns imageUrl when server-side generation succeeded.
+      // Use it directly so the recipe card renders complete — no shimmer.
+      if (data.imageUrl) {
+        setRecipeImageUrl(data.imageUrl);
+        setImageLoading(false);
+        // Persist the permanent URL so future reloads restore without re-fetching.
+        post('/api/my-perfect-beginning/generated-meals', {
+          childProfileId: activeChild?.id ?? null,
+          recipeData: data.recipe,
+          imageUrl: data.imageUrl,
+          selectedOptionName: conceptName ?? null,
+        }).catch(() => {});
+        return; // outer finally calls setIsGenerating(false); card renders with image
+      }
+      // Server didn't return imageUrl (generation failed) — fall through to the
+      // client-side background fetch below for graceful degradation.
+      // ──────────────────────────────────────────────────────────────────────
 
       // Fire image generation in the background — single fetch, no hook needed
       setRecipeImageUrl(null);

@@ -986,6 +986,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } catch { }
       }
 
+      // ── Unified Image Pipeline: attach permanent imageUrl before responding ──────
+      // All five meal builders (General Nutrition, Diabetic, GLP-1, Anti-Inflammatory,
+      // Performance) share this endpoint. Returning imageUrl here means the client
+      // renders a complete card in one round-trip — the `if (!transformedMeal.imageUrl)`
+      // guard in each builder skips the secondary useChefMealImage fetch automatically.
+      if (result.success && skipImage !== true) {
+        try {
+          const { generateMealImageUnified, normalizeMealTypeToSourceType } = await import('./services/mealImageGenerator');
+          const sourceType = normalizeMealTypeToSourceType(mealType || 'meal');
+
+          // Single-meal path — builders always use count=1; result.meal and result.meals[0] are the same object
+          if (result.meal && !(result.meal as any).imageUrl) {
+            const ingNames = (((result.meal as any).ingredients as any[]) || [])
+              .map((i: any) => (typeof i === 'string' ? i : i?.name || i?.item || ''))
+              .filter(Boolean);
+            try {
+              const imageUrl = await generateMealImageUnified((result.meal as any).name, ingNames, sourceType);
+              if (imageUrl) {
+                result.meal = { ...(result.meal as any), imageUrl } as any;
+                // Sync into meals array — useCreateWithChefRequest reads data.meals[0]
+                if ((result.meals as any)?.length) {
+                  result.meals = ((result.meals as any[]) || []).map((m: any, i: number) =>
+                    i === 0 ? { ...m, imageUrl } : m
+                  );
+                }
+              }
+            } catch { /* image failure non-fatal — meal still usable */ }
+          }
+
+          // Batch path (count > 1) — future-proof, not currently used by builders
+          if ((result.meals as any)?.length > 1) {
+            await Promise.all(
+              ((result.meals as any[]) || []).map(async (m: any, idx: number) => {
+                if (m.imageUrl) return;
+                const ingNames = (m.ingredients || [])
+                  .map((i: any) => (typeof i === 'string' ? i : i?.name || i?.item || ''))
+                  .filter(Boolean);
+                try {
+                  const imageUrl = await generateMealImageUnified(m.name, ingNames, sourceType);
+                  if (imageUrl) (result.meals as any)[idx] = { ...m, imageUrl };
+                } catch { /* image failure non-fatal */ }
+              })
+            );
+          }
+        } catch { /* image pipeline failure non-fatal — meal is still usable without image */ }
+      }
+      // ─────────────────────────────────────────────────────────────────────────────
+
       res.json(result);
 
     } catch (error: any) {
@@ -1248,8 +1296,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         );
         return { ...meal, complianceSection, dietClassification };
       });
+
+      // ── Unified Image Pipeline ──────────────────────────────────────────────
+      // Attach permanent imageUrls to every meal before responding so the client
+      // renders complete cards — no shimmer, no second round-trip.
+      // Promise.all generates all 3 images in parallel.
+      const { generateMealImageUnified: _fridgeGenImg } = await import('./services/mealImageGenerator');
+      const mealsForResponse = await Promise.all(
+        fridgeMealsWithCompliance.map(async (meal: any) => {
+          try {
+            const ingredients = (meal.ingredients ?? [])
+              .map((i: any) => i.name || i.item || '')
+              .filter(Boolean);
+            const imageUrl = await _fridgeGenImg(meal.name, ingredients, 'meal');
+            return { ...meal, imageUrl };
+          } catch {
+            return meal; // image failure is non-fatal — card still usable
+          }
+        })
+      );
+      // ───────────────────────────────────────────────────────────────────────
+
       res.json({
-        meals: fridgeMealsWithCompliance,
+        meals: mealsForResponse,
         quota: {
           remaining: quotaCheck.remaining,
           limit: quotaCheck.limit,
@@ -2410,6 +2479,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         activeProtocolTrack: (user as any).activeProtocolTrack ?? null,
         weeklyTrainingSchedule: (user as any).weeklyTrainingSchedule ?? null,
         performanceProtocolConfig: (user as any).performanceProtocolConfig ?? null,
+        alphaGalProfile: (user as any).alphaGalProfile ?? null,
         // Trial period — expose to client so it can show a countdown banner
         trialEndsAt: user.trialEndsAt?.toISOString() ?? null,
         // Business sponsorship — from effective access (computed per-request, not cached)
@@ -2696,6 +2766,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("[thyroid-medication PATCH]", error);
       res.status(500).json({ error: "Failed to save thyroid medication" });
+    }
+  });
+
+  // PATCH /api/user/alpha-gal-profile
+  // Persists the user's Alpha-gal Syndrome clinical sub-profile (dairyTolerance,
+  // gelatinRestriction, severeReactionHistory, diagnosisStatus) to the alphaGalProfile JSONB column.
+  // Does NOT touch healthConditions — activation/deactivation is controlled via specialtyConditions.
+  // Profile data is preserved even when the condition is deactivated so the user doesn't lose
+  // their clinical answers if they accidentally uncheck Alpha-gal.
+  app.patch("/api/user/alpha-gal-profile", requireAuth, async (req: any, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.authUser.id;
+      const { profile } = req.body;
+
+      if (!profile || typeof profile !== "object") {
+        return res.status(400).json({ error: "profile object is required" });
+      }
+
+      const VALID_DIAGNOSIS = ["diagnosed", "being_evaluated", "no"];
+      const VALID_TOLERANCE = ["yes", "no", "unsure"];
+
+      const validProfile = {
+        diagnosisStatus: VALID_DIAGNOSIS.includes(profile.diagnosisStatus) ? profile.diagnosisStatus : "no",
+        dairyTolerance: VALID_TOLERANCE.includes(profile.dairyTolerance) ? profile.dairyTolerance : "unsure",
+        gelatinRestriction: VALID_TOLERANCE.includes(profile.gelatinRestriction) ? profile.gelatinRestriction : "unsure",
+        severeReactionHistory: VALID_TOLERANCE.includes(profile.severeReactionHistory) ? profile.severeReactionHistory : "unsure",
+        profileComplete: true,
+        activatedAt: typeof profile.activatedAt === "string" ? profile.activatedAt : new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      await db.update(users)
+        .set({ alphaGalProfile: validProfile } as any)
+        .where(eq(users.id, userId));
+
+      console.log(`[alpha-gal-profile] User ${userId} profile saved (diagnosis=${validProfile.diagnosisStatus})`);
+      res.json({ ok: true, alphaGalProfile: validProfile });
+    } catch (error: any) {
+      console.error("[alpha-gal-profile PATCH]", error);
+      res.status(500).json({ error: "Failed to save Alpha-gal profile" });
     }
   });
 
