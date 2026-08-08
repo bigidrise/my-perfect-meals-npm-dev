@@ -185,7 +185,7 @@ export const AFFILIATE_MODULES: CertificationModule[] = [
           "Snack Creator — generates on-target snacks based on remaining macros",
           "Beverage Creator — creates drinks and smoothies within their nutrition targets",
           "Craving Creator — helps satisfy a craving while staying close to their goals",
-          "Recipe Scan — the user photographs or enters a recipe and the platform adapts it",
+          "Recipe Maker — the user photographs or enters a recipe and the platform adapts it",
           "Meal Planner — plans multiple meals across a week or specific time window",
         ],
       },
@@ -202,8 +202,8 @@ export const AFFILIATE_MODULES: CertificationModule[] = [
         text: "The Restaurant Guide helps users make better choices when eating out — one of the most common reasons people fall off track.\n\nUsers enter a restaurant or cuisine type, and the platform provides guidance on menu options that align with their macro targets and dietary preferences. This makes real-world eating a supported part of the plan, not a failure.",
       },
       {
-        heading: "Step 7: Favorites and Recipe Scan",
-        text: "When users find meals they love, they can save them as Favorites. Saved meals can be added back to the board quickly without regenerating.\n\nRecipe Scan allows users to take any recipe — from a website, a cookbook, or a family tradition — and have the platform adapt it to better fit their nutrition targets and restrictions.",
+        heading: "Step 7: Favorites and Recipe Maker",
+        text: "When users find meals they love, they can save them as Favorites. Saved meals can be added back to the board quickly without regenerating.\n\nRecipe Maker allows users to take any recipe — from a website, a cookbook, or a family tradition — and have the platform adapt it to better fit their nutrition targets and restrictions.",
       },
       {
         heading: "Key Takeaway",
@@ -229,7 +229,7 @@ export const AFFILIATE_MODULES: CertificationModule[] = [
           id: "m2q2",
           question: "A client opens their fridge and sees leftover chicken, bell peppers, and black beans. They want to make something for dinner without going to the store. Which platform feature is designed for this exact situation?",
           options: [
-            "Recipe Scan — to photograph the ingredients and find a match online",
+            "Recipe Maker — to photograph the ingredients and find a match online",
             "Chef's Kitchen — to walk through a guided meal experience",
             "Fridge Rescue — to generate a meal using ingredients already on hand",
             "Craving Creator — to identify what the client is in the mood for",
@@ -254,7 +254,7 @@ export const AFFILIATE_MODULES: CertificationModule[] = [
           question: "A user is going out to dinner at an Italian restaurant and is worried about staying on track. Which feature is designed to help them navigate this situation?",
           options: [
             "Meal Planner — to pre-log the restaurant meal in advance",
-            "Recipe Scan — to scan the restaurant's menu items",
+            "Recipe Maker — to scan the restaurant's menu items",
             "Restaurant Guide — to get guidance on menu options aligned with their macro targets and preferences",
             "Snack Creator — to eat a snack before going so they eat less at the restaurant",
           ],
@@ -267,11 +267,11 @@ export const AFFILIATE_MODULES: CertificationModule[] = [
           options: [
             "Fridge Rescue — to rebuild the recipe from available ingredients",
             "Create a Dish — to generate a new lasagna from scratch",
-            "Recipe Scan — to enter or photograph the recipe and have the platform adapt it to their nutrition targets",
+            "Recipe Maker — to enter or photograph the recipe and have the platform adapt it to their nutrition targets",
             "Favorites — to save the existing recipe without any changes",
           ],
           correctIndex: 2,
-          explanation: "Recipe Scan allows users to take any existing recipe — from a website, a cookbook, or a family tradition — and have the platform adapt it to better fit their macro targets and dietary restrictions. The user keeps eating what they love, just in a version that supports their goals.",
+          explanation: "Recipe Maker allows users to take any existing recipe — from a website, a cookbook, or a family tradition — and have the platform adapt it to better fit their macro targets and dietary restrictions. The user keeps eating what they love, just in a version that supports their goals.",
         },
       ],
     },

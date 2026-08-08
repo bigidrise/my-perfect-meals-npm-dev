@@ -1404,7 +1404,7 @@ export default function DashboardNew() {
             </div>
           </motion.div>
 
-        {/* Recipe Scan */}
+        {/* Recipe Maker */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -1416,7 +1416,7 @@ export default function DashboardNew() {
             <Card
               onClick={() => {
                 if (!hasActivePaidSubscription(user)) {
-                  requestUpgrade({ requiredTier: "essential", featureName: "Recipe Scan" });
+                  requestUpgrade({ requiredTier: "essential", featureName: "Recipe Maker" });
                   return;
                 }
                 setShowInspirationModal(true);
@@ -1440,7 +1440,7 @@ export default function DashboardNew() {
           </div>
         </motion.div>
 
-        {/* Last Recipe Scan card */}
+        {/* Last Recipe Maker card */}
         {lastRecipeScan && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -1471,7 +1471,7 @@ export default function DashboardNew() {
                   <button
                     onClick={() => {
                       if (!hasActivePaidSubscription(user)) {
-                        requestUpgrade({ requiredTier: "essential", featureName: "Recipe Scan" });
+                        requestUpgrade({ requiredTier: "essential", featureName: "Recipe Maker" });
                         return;
                       }
                       setShowInspirationModal(true);

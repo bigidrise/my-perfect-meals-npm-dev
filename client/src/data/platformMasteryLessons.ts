@@ -209,7 +209,7 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
       "Name every meal creation tool on the platform and correctly categorize it as a builder, lifestyle creator, specialty creator, or kitchen tool",
       "Use the scenario matrix to select the correct tool for any given meal situation",
       "Explain the difference between the Meal Planner and the lifestyle creators, and when each is the right choice",
-      "Describe what Recipe Scan does and how it differs from Create a Dish and Fridge Rescue",
+      "Describe what Recipe Maker does and how it differs from Create a Dish and Fridge Rescue",
     ],
     opening:
       "My Perfect Meals includes more than a dozen ways to generate meals and evaluate food. Some are builders — the environments assigned based on your profile. Others are lifestyle creators, scanning tools, or planning aids. This lesson gives you the complete map: every tool, what it does, and when to reach for it.",
@@ -228,7 +228,7 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
       },
       {
         heading: "Kitchen and Ingredient Tools",
-        body: "**Fridge Rescue** — Enter the ingredients you already have. The platform generates a complete profile-compliant meal from only those items. No grocery run needed. Best when your kitchen has food but no clear plan.\n\n**Recipe Scan** — Paste a URL or enter a recipe's ingredients. The platform rebuilds the recipe around your dietary identity and macro targets. Best when you have a recipe you love but it doesn't fit your current plan.\n\n**MacroScan** — Photograph a nutrition label or packaged food. The platform evaluates the product against your profile. Best for checking whether a packaged item fits your plan before buying or eating it.",
+        body: "**Fridge Rescue** — Enter the ingredients you already have. The platform generates a complete profile-compliant meal from only those items. No grocery run needed. Best when your kitchen has food but no clear plan.\n\n**Recipe Maker** — Paste a URL or enter a recipe's ingredients. The platform rebuilds the recipe around your dietary identity and macro targets. Best when you have a recipe you love but it doesn't fit your current plan.\n\n**MacroScan** — Photograph a nutrition label or packaged food. The platform evaluates the product against your profile. Best for checking whether a packaged item fits your plan before buying or eating it.",
       },
       {
         heading: "Meal Planner",
@@ -236,7 +236,7 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
       },
       {
         heading: "Scenario Matrix — Which Tool to Reach For",
-        body: "Match the situation to the tool:\n\n| Situation | Tool |\n|-----------|------|\n| Building my week of meals | Meal Planner (in your builder) |\n| I know what I want to eat tonight | Create a Dish |\n| I have ingredients but no plan | Fridge Rescue |\n| I have a recipe I love — adapt it | Recipe Scan |\n| I need a quick snack | Snack Creator |\n| I want a protein shake or smoothie | Beverage Creator |\n| I want what I'm craving, on plan | Craving Creator |\n| I want sushi tonight | Sushi Creator |\n| Special occasion or celebration | Holiday Feast |\n| Is this packaged food ok? | MacroScan |\n| I'm going out to eat | Restaurant Guide or Fast Food Guide |\n\nAll tools apply your full profile. The difference is what they're optimized to create.",
+        body: "Match the situation to the tool:\n\n| Situation | Tool |\n|-----------|------|\n| Building my week of meals | Meal Planner (in your builder) |\n| I know what I want to eat tonight | Create a Dish |\n| I have ingredients but no plan | Fridge Rescue |\n| I have a recipe I love — adapt it | Recipe Maker |\n| I need a quick snack | Snack Creator |\n| I want a protein shake or smoothie | Beverage Creator |\n| I want what I'm craving, on plan | Craving Creator |\n| I want sushi tonight | Sushi Creator |\n| Special occasion or celebration | Holiday Feast |\n| Is this packaged food ok? | MacroScan |\n| I'm going out to eat | Restaurant Guide or Fast Food Guide |\n\nAll tools apply your full profile. The difference is what they're optimized to create.",
       },
     ],
     exercise: {
@@ -244,7 +244,7 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
         "Open the **Lifestyle** page. Identify every creator tool available to you.",
         "Open **Create a Dish**. Describe something you actually want to eat — be specific. Generate the meal. Read the full Meal Card.",
         "Open **Craving Creator**. Enter a real craving. Generate and read the result.",
-        "Open **Recipe Scan**. Find a recipe online — paste the URL or enter the ingredients. Review the adapted output.",
+        "Open **Recipe Maker**. Find a recipe online — paste the URL or enter the ingredients. Review the adapted output.",
         "Open **Snack Creator**. Generate a snack and note how it compares in macro balance to the meals from your builder.",
         "Return to your builder and open the **Meal Planner**. Note the difference in how you use it versus the lifestyle creators.",
       ],
@@ -259,7 +259,7 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
         options: [
           "Fridge Rescue — she enters the recipe ingredients and it builds a meal from them.",
           "Create a Dish — she describes the recipe and it generates a new version.",
-          "Recipe Scan — she pastes the URL or enters ingredients and the platform rebuilds the recipe around her profile.",
+          "Recipe Maker — she pastes the URL or enters ingredients and the platform rebuilds the recipe around her profile.",
           "MacroScan — she photographs the nutrition label to evaluate it.",
         ],
         correctIndex: 2,
@@ -271,7 +271,7 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
         options: [
           "Create a Dish — she describes what she wants using those ingredients.",
           "Fridge Rescue — she enters the ingredients she has and the platform generates a meal from only those items.",
-          "Recipe Scan — she enters the ingredients to see if they match a known recipe.",
+          "Recipe Maker — she enters the ingredients to see if they match a known recipe.",
           "Craving Creator — she types the craving and the platform finds a match.",
         ],
         correctIndex: 1,
@@ -293,7 +293,7 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
         question:
           "A user is at the grocery store and picks up a packaged protein bar. She wants to know if it fits her plan before buying it. Which tool handles this?",
         options: [
-          "Recipe Scan — she enters the ingredients from the label.",
+          "Recipe Maker — she enters the ingredients from the label.",
           "Smart Scan — she scans the barcode for a shopping evaluation.",
           "MacroScan — she photographs the nutrition label and the platform evaluates it against her profile.",
           "Snack Creator — it generates snack options with similar macro profiles.",
@@ -329,9 +329,9 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
         question:
           "A dietitian wants to show a client all the meal creation tools available in My Perfect Meals. Which best describes the correct grouping?",
         options: [
-          "Assigned builder (weekly planning), lifestyle creators (Create a Dish, Snack, Beverage, Craving), specialty creators (Sushi, Dessert, Holiday Feast), and kitchen tools (Fridge Rescue, Recipe Scan, MacroScan).",
+          "Assigned builder (weekly planning), lifestyle creators (Create a Dish, Snack, Beverage, Craving), specialty creators (Sushi, Dessert, Holiday Feast), and kitchen tools (Fridge Rescue, Recipe Maker, MacroScan).",
           "Free tools (Create a Dish, Fridge Rescue) and paid tools (all builders and specialty creators).",
-          "AI tools (all generators) and manual tools (MacroScan and Recipe Scan).",
+          "AI tools (all generators) and manual tools (MacroScan and Recipe Maker).",
           "Medical tools (builders) and lifestyle tools (everything else in Lifestyle).",
         ],
         correctIndex: 0,
@@ -344,7 +344,7 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
           "Create a Dish — she generates each course individually.",
           "Meal Planner — she fills Thursday's slots with each course.",
           "Holiday Feast — it plans full multi-course meals for celebrations and gatherings.",
-          "Recipe Scan — she scans each traditional recipe and adapts it.",
+          "Recipe Maker — she scans each traditional recipe and adapts it.",
         ],
         correctIndex: 2,
       },
@@ -366,7 +366,7 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
           "A client says: 'I knew what I wanted — grilled salmon with a citrus glaze and roasted asparagus — I just needed the recipe built around my macros.' Which tool did she use?",
         options: [
           "Fridge Rescue — she entered salmon and asparagus.",
-          "Recipe Scan — she found a salmon recipe online and adapted it.",
+          "Recipe Maker — she found a salmon recipe online and adapted it.",
           "Create a Dish — she described exactly what she wanted and the platform built the recipe around her targets.",
           "Craving Creator — she typed her craving and got a match.",
         ],
@@ -561,11 +561,11 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
     learningObjectives: [
       "Explain what triggers the Smart Grocery List to populate and what causes it to appear empty",
       "Describe how Grocery Coach provides protocol-aware buying guidance aligned to your active health programs",
-      "Use Recipe Scan to adapt a recipe found outside My Perfect Meals to a specific dietary identity and macro target",
+      "Use Recipe Maker to adapt a recipe found outside My Perfect Meals to a specific dietary identity and macro target",
       "Distinguish when to use Smart Scan versus Fridge Rescue for a food decision in or around the home",
     ],
     opening:
-      "A saved meal plan answers what you should eat. The shopping tools answer how to get that food into your kitchen — and how to evaluate what you already have. This lesson covers the full grocery scope of My Perfect Meals: your Smart Grocery List, Grocery Coach, Smart Scan, Recipe Scan, and Fridge Rescue.",
+      "A saved meal plan answers what you should eat. The shopping tools answer how to get that food into your kitchen — and how to evaluate what you already have. This lesson covers the full grocery scope of My Perfect Meals: your Smart Grocery List, Grocery Coach, Smart Scan, Recipe Maker, and Fridge Rescue.",
     sections: [
       {
         heading: "Smart Grocery List — Your Plan Becomes a List",
@@ -580,8 +580,8 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
         body: "Smart Scan brings profile-aware evaluation to the store shelf. Point your camera at any product barcode and the platform evaluates the nutrition label against your active profile.\n\nWhat Smart Scan checks:\n- Does this product fit your dietary identity?\n- Does it conflict with any medical guardrails?\n- How does it compare to your remaining macro targets?\n\nThe result: compatible, use with caution, or avoid — with the specific reason. Most useful when comparing similar products or evaluating packaged foods you haven't used before.",
       },
       {
-        heading: "Recipe Scan — Adapting Recipes You Already Love",
-        body: "Recipe Scan adapts recipes you find outside My Perfect Meals — so you don't have to choose between eating what you love and staying on your plan.\n\nHow to use it:\n1. Find a recipe online or in a cookbook\n2. Paste the URL into Recipe Scan, or enter the ingredients manually\n3. The platform rebuilds the recipe around your dietary identity and macro targets\n4. A full Meal Card appears — with your adjusted ingredients, macros, and instructions\n\nRecipe Scan is the bridge between the food world outside My Perfect Meals and your profile inside it. A pasta recipe you love becomes a high-protein, low-glycemic version of itself. A family dish becomes halal-compliant. The dish stays recognizable. The nutrition fits your plan.",
+        heading: "Recipe Maker — Adapting Recipes You Already Love",
+        body: "Recipe Maker adapts recipes you find outside My Perfect Meals — so you don't have to choose between eating what you love and staying on your plan.\n\nHow to use it:\n1. Find a recipe online or in a cookbook\n2. Paste the URL into Recipe Maker, or enter the ingredients manually\n3. The platform rebuilds the recipe around your dietary identity and macro targets\n4. A full Meal Card appears — with your adjusted ingredients, macros, and instructions\n\nRecipe Maker is the bridge between the food world outside My Perfect Meals and your profile inside it. A pasta recipe you love becomes a high-protein, low-glycemic version of itself. A family dish becomes halal-compliant. The dish stays recognizable. The nutrition fits your plan.",
       },
       {
         heading: "Fridge Rescue — Cooking What You Already Have",
@@ -589,7 +589,7 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
       },
       {
         heading: "A Sustainable Shopping Routine",
-        body: "The friction that breaks most nutrition plans isn't the food itself — it's running out of the right ingredients.\n\nBefore each shop:\n1. Save your weekly plan in the builder\n2. Open your Smart Grocery List\n3. Review through Grocery Coach — note flags and quantity guidance\n4. Use Smart Scan in the store for unfamiliar products\n\nWhen you find a recipe you love outside the app: Recipe Scan.\nWhen you have ingredients but no plan: Fridge Rescue.",
+        body: "The friction that breaks most nutrition plans isn't the food itself — it's running out of the right ingredients.\n\nBefore each shop:\n1. Save your weekly plan in the builder\n2. Open your Smart Grocery List\n3. Review through Grocery Coach — note flags and quantity guidance\n4. Use Smart Scan in the store for unfamiliar products\n\nWhen you find a recipe you love outside the app: Recipe Maker.\nWhen you have ingredients but no plan: Fridge Rescue.",
       },
     ],
     exercise: {
@@ -597,12 +597,12 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
         "Save a weekly plan in your builder — tap **Save Plan**.",
         "Open your **Smart Grocery List**. Review what populated.",
         "Open **Grocery Coach**. Review the organized sections and note any flagged items.",
-        "Find a recipe online. Open **Recipe Scan**, paste the URL or enter the ingredients, and generate the adapted version. Read the full Meal Card.",
+        "Find a recipe online. Open **Recipe Maker**, paste the URL or enter the ingredients, and generate the adapted version. Read the full Meal Card.",
         "Open **Fridge Rescue**. Enter three ingredients you currently have. Generate and read the Meal Card.",
       ],
     },
     remember:
-      "Save your plan → review Grocery Coach → use Smart Scan in-store. When you find a recipe to adapt: Recipe Scan. When you have food but no plan: Fridge Rescue.",
+      "Save your plan → review Grocery Coach → use Smart Scan in-store. When you find a recipe to adapt: Recipe Maker. When you have food but no plan: Fridge Rescue.",
     closing:
       "You now have the tools to plan and shop. The next lesson covers what happens when you're eating away from home.",
     quiz: [
@@ -637,7 +637,7 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
         options: [
           "Create a Dish — she describes the pasta dish and the platform builds a new version.",
           "Fridge Rescue — she enters the pasta ingredients she has on hand.",
-          "Recipe Scan — she pastes the URL and the platform rebuilds the recipe around her profile.",
+          "Recipe Maker — she pastes the URL and the platform rebuilds the recipe around her profile.",
           "MacroScan — she photographs the recipe's nutrition panel.",
         ],
         correctIndex: 2,
@@ -681,7 +681,7 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
       {
         id: "l4-q7",
         question:
-          "A user has a traditional family recipe that uses dairy and gluten. She keeps kosher and has celiac disease. What does Recipe Scan do with this recipe?",
+          "A user has a traditional family recipe that uses dairy and gluten. She keeps kosher and has celiac disease. What does Recipe Maker do with this recipe?",
         options: [
           "Returns an error — it cannot adapt recipes with allergen conflicts.",
           "Rebuilds the recipe around her kosher dietary identity and celiac medical context — swapping incompatible ingredients for compliant alternatives.",
@@ -697,7 +697,7 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
         options: [
           "Grocery Coach — it has a product comparison database.",
           "Fridge Rescue — she enters the serving size to see how it fits a meal.",
-          "Recipe Scan — she enters the supplement facts as ingredients.",
+          "Recipe Maker — she enters the supplement facts as ingredients.",
           "Smart Scan — she scans both barcodes in-store to compare them against her profile.",
         ],
         correctIndex: 3,
@@ -720,7 +720,7 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
           "A user finds a recipe from a health influencer online and wants to try it, but it has three ingredients she can't eat due to allergies. What is the right tool and what will it do?",
         options: [
           "Fridge Rescue — she enters only the compatible ingredients and it builds a meal from those.",
-          "Recipe Scan — she pastes the recipe and the platform adapts it, substituting or removing ingredients that conflict with her allergy profile.",
+          "Recipe Maker — she pastes the recipe and the platform adapts it, substituting or removing ingredients that conflict with her allergy profile.",
           "Create a Dish — she describes the recipe concept and gets a new version.",
           "MacroScan — she photographs the influencer's macros to see if the meal fits.",
         ],
