@@ -106,9 +106,7 @@ function stageLabel(stage: string): string {
 
 // GET /conversation — load persisted conversation history
 router.get("/conversation", async (req, res) => {
-    const userId = resolveUserId(req);
-
-    const history = await getConversation(userId);
+  const userId = resolveUserId(req);
   if (!userId) return res.status(401).json({ error: "Not authenticated" });
   const msgs = await getConversation(userId);
   return res.json({ messages: msgs });
@@ -155,9 +153,6 @@ router.post("/ask", async (req, res) => {
     if (BILLING_ENFORCED) {
       const authUser = (req as any).authUser ?? {};
 
-      const { planLookupKey, accessTier } = authUser;
-
-      const { planLookupKey, accessTier } = authUser;
       const { planLookupKey, accessTier } = authUser;
       // accessTier !== "PAID_FULL" → free/expired/trial — reject immediately
       if (accessTier !== "PAID_FULL") {
@@ -413,10 +408,6 @@ You MUST respond with a JSON object:
       max_tokens: 900,
       response_format: { type: "json_object" },
     });
-
-    const raw = completion.choices[0]?.message?.content ?? "{}";
-
-    const raw = completion.choices[0]?.message?.content ?? "{}";
 
     const raw = completion.choices[0]?.message?.content ?? "{}";
     let reply = "";
