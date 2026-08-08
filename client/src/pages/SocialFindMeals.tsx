@@ -103,15 +103,30 @@ type CachedMealFinderState = {
 };
 
 function saveMealFinderCache(state: CachedMealFinderState) {
-  // Strip imageUrl from every meal before saving — base64 images are 1–2 MB each
-  // and silently blow the 5 MB localStorage quota, wiping the entire cache.
-  // Images are re-fetched on mount via useChefFlowImages (hits server memCache fast).
+  // Strip ONLY temporary/base64 imageUrls before saving to localStorage.
+  // base64 data: URLs are ~1–2 MB each and blow the 5 MB localStorage quota.
+  //
+  // Permanent MPM-controlled URLs (/public-objects/, /images/, S3) are short
+  // strings (~40–80 chars) and MUST be preserved so that Favorites can display
+  // the image when the meal is saved after a page reload.
+  //
+  // Historical note: this function previously stripped ALL imageUrls because
+  // the generator could return base64 data URLs. generateMealImageUnified()
+  // now always ingests to permanent storage before returning, so the URL handed
+  // to the client is always a short permanent path, never a base64 blob.
   const stripped: CachedMealFinderState = {
     ...state,
-    results: state.results.map((r) => ({
-      ...r,
-      meal: { ...r.meal, imageUrl: undefined },
-    })),
+    results: state.results.map((r) => {
+      const imageUrl = r.meal.imageUrl;
+      // Keep permanent MPM URLs; drop base64 and temporary CDN URLs.
+      const isTemporary = !imageUrl
+        || imageUrl.startsWith('data:')
+        || ['oaidalleapiprodscus', 'blob.core.windows.net', 'openai.com'].some(p => imageUrl.includes(p));
+      return {
+        ...r,
+        meal: { ...r.meal, imageUrl: isTemporary ? undefined : imageUrl },
+      };
+    }),
   };
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify(stripped));
@@ -916,6 +931,7 @@ export default function MealFinder() {
                                         restaurantName: result.restaurantName,
                                         address: result.address,
                                         modifications: result.meal.modifications,
+                                        imageUrl: result.meal.imageUrl,
                                       }}
                                       size={22}
                                     />

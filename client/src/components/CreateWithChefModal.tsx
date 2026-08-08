@@ -32,6 +32,8 @@ import { DietGuardIntercept } from "@/components/DietGuardIntercept";
 import { detectStarchyIngredients, hasExplicitStarchRequest } from "@/utils/ingredientClassifier";
 import type { DiversityContext } from "@/lib/diversityContext";
 import { isAllergyRelatedError } from "@/utils/allergyAlert";
+import { apiUrl } from "@/lib/resolveApiBase";
+import { getAuthHeaders } from "@/lib/auth";
 
 interface CreateWithChefModalProps {
   open: boolean;
@@ -68,6 +70,9 @@ export function CreateWithChefModal({
   const [pendingGeneration, setPendingGeneration] = useState(false);
   const [starchOverride, setStarchOverride] = useState(false);
   const [strictMode, setStrictMode] = useState(false);
+  // Phase 4: tracks the server-side image finalization step that runs after
+  // generateMeal() returns text — keeps the loading orb visible throughout.
+  const [finalizing, setFinalizing] = useState(false);
 
   // Starch Guard state
   const [starchBlocked, setStarchBlocked] = useState(false);
@@ -145,6 +150,7 @@ export function CreateWithChefModal({
       setSafetyEnabled(true);
       setStarchOverride(false);
       setStrictMode(false);
+      setFinalizing(false);
       clearSafetyAlert();
       clearDietAlert();
       dietAdaptModeRef.current = false;
@@ -189,11 +195,40 @@ export function CreateWithChefModal({
         trackGuestGenerationUsage();
       }
       setStarchOverride(false);
+
+      // ── Phase 4: Unified Image Pipeline ────────────────────────────────────
+      // Finalize the meal server-side before handing it to the board. The loading
+      // orb (isProcessing) stays visible during this step — users see one smooth
+      // "generating" animation rather than a meal card with a shimmering image.
+      //
+      // On any failure the unmodified meal is passed through and the caller's
+      // existing `if (!meal.imageUrl)` guard provides graceful fallback to the
+      // legacy client-side fetch pattern.
+      let finalMeal = meal;
+      setFinalizing(true);
+      try {
+        const finalizeRes = await fetch(apiUrl("/api/meals/finalize"), {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+          body: JSON.stringify({ meal, mealType }),
+        });
+        if (finalizeRes.ok) {
+          const fd = await finalizeRes.json();
+          if (fd.meal?.imageUrl) finalMeal = fd.meal;
+        }
+      } catch {
+        // Network or DALL-E failure — proceed without imageUrl.
+      } finally {
+        setFinalizing(false);
+      }
+      // ───────────────────────────────────────────────────────────────────────
+
       toast({
         title: "Meal Created!",
-        description: `${meal.name} is ready for you`,
+        description: `${finalMeal.name} is ready for you`,
       });
-      onMealGenerated(meal, mealType);
+      onMealGenerated(finalMeal, mealType);
       onOpenChange(false);
     } else if (error) {
       if (isAllergyRelatedError(error)) {
@@ -406,7 +441,7 @@ export function CreateWithChefModal({
     }
   };
 
-  const isProcessing = generating || safetyChecking;
+  const isProcessing = generating || safetyChecking || finalizing;
 
   return (
     <UniversalDialog rawLayout open={open} onOpenChange={onOpenChange} className="bg-zinc-900/95 backdrop-blur-xl border-white/10 text-white max-w-md">
@@ -563,7 +598,7 @@ export function CreateWithChefModal({
 
               {isProcessing && (
                 <div className="flex justify-center">
-                  <BreathingOrb label={safetyChecking ? "Checking safety profile…" : "Chef is preparing your meal…"} />
+                  <BreathingOrb label={safetyChecking ? "Checking safety profile…" : finalizing ? "Adding finishing touches…" : "Chef is preparing your meal…"} />
                 </div>
               )}
 

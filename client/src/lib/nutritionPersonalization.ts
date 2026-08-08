@@ -63,6 +63,10 @@ export const PROTOCOL_MAP: Record<string, ProtocolEntry> = {
   "pregnancy-support":     { outcomeLabel: "Prenatal Nutrition",    displayLabel: "Pregnancy Nutrition",    level: "high" },
   "performance-nutrition": { outcomeLabel: "Athletic Performance",  displayLabel: "Performance Nutrition",  level: "moderate" },
   "competition-prep":      { outcomeLabel: "Competition Prep",      displayLabel: "Competition Prep",       level: "moderate" },
+  // Alpha-gal Syndrome — clinical allergy; joins the same system as Cardiac/Renal/Diabetes
+  "alpha-gal-syndrome":    { outcomeLabel: "Allergy-Safe Meals",    displayLabel: "Alpha-gal Protocol",     level: "high" },
+  "alpha-gal syndrome":    { outcomeLabel: "Allergy-Safe Meals",    displayLabel: "Alpha-gal Protocol",     level: "high" },
+  "alpha-gal":             { outcomeLabel: "Allergy-Safe Meals",    displayLabel: "Alpha-gal Protocol",     level: "high" },
 };
 
 export const DIET_MAP: Record<string, string> = {
@@ -105,6 +109,29 @@ export function getActiveProtocols(user: any): ProtocolEntry[] {
   }
 
   return results;
+}
+
+/**
+ * Convert the user's active protocols into ProtocolBadge objects for BuilderHeader.
+ *
+ * This is the SINGLE shared converter used by every meal builder so future protocols
+ * added to PROTOCOL_MAP automatically appear in every builder's Active Protocol row
+ * without touching each builder individually.
+ *
+ * Color scheme mirrors the builder gradient theme:
+ *   "high"     → orange  (clinical hard limits: diabetes, cardiac, renal, alpha-gal, etc.)
+ *   "moderate" → amber   (supportive: thyroid, menopause, performance, metabolic, etc.)
+ */
+export function getBuilderProtocolBadges(
+  user: any
+): Array<{ label: string; cls: string }> {
+  return getActiveProtocols(user).map((entry) => ({
+    label: entry.displayLabel,
+    cls:
+      entry.level === "high"
+        ? "bg-orange-600 text-white"
+        : "bg-amber-500 text-white",
+  }));
 }
 
 export function getActiveDiets(user: any): string[] {

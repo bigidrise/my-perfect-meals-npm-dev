@@ -136,6 +136,53 @@ function getMedicalBadges(meal: any, userConditions: string[] = []): Array<{
     });
   }
 
+  // Alpha-gal Syndrome — Mammalian Meat Allergy
+  const alphaGalActive = userConditions.some(c =>
+    ["alpha-gal-syndrome", "alpha-gal syndrome", "alpha gal syndrome", "alpha-gal", "alpha gal"].includes(
+      c.trim().toLowerCase()
+    )
+  );
+  if (alphaGalActive) {
+    const ingredients = Array.isArray(meal.ingredients)
+      ? meal.ingredients.join(" ").toLowerCase()
+      : "";
+    const all = `${mealName} ${description} ${modifications} ${ingredients}`;
+
+    // Hard-blocked mammalian meat/fat terms
+    const BLOCKED = [
+      "beef", "steak", "pork", "bacon", "ham", "lamb", "veal", "venison", "bison",
+      "hamburger", "burger", "meatball", "meat ball", "short rib", "ribeye", "sirloin",
+      "tenderloin", "prime rib", "t-bone", "ground beef", "lard", "tallow", "suet",
+      "carnitas", "chorizo", "salami", "pepperoni", "prosciutto", "pancetta",
+    ];
+
+    // Ambiguous — may contain mammalian broth, stock, demi-glace, or hidden fats
+    const VERIFY = [
+      "broth", "stock", "gravy", "au jus", "demi-glace", "consommé", "bisque",
+      "sauce", "worcestershire", "gelatin", "risotto", "stew", "soup",
+    ];
+
+    const isBlocked = BLOCKED.some(t => all.includes(t));
+    const needsVerify = !isBlocked && VERIFY.some(t => all.includes(t));
+
+    if (isBlocked) {
+      badges.push({
+        condition: "Alpha-gal",
+        compatible: false,
+        reason: "Contains mammalian meat or fat — not safe for Alpha-gal Syndrome",
+        color: "red",
+      });
+    } else if (needsVerify) {
+      badges.push({
+        condition: "Alpha-gal",
+        compatible: false,
+        reason: "⚠ May contain mammalian-sourced broth, stock, or sauce — verify with the restaurant before ordering",
+        color: "yellow",
+      });
+    }
+    // else: no badge (dish appears safe)
+  }
+
   return badges;
 }
 

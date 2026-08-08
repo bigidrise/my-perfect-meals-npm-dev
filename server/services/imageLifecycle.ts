@@ -202,22 +202,43 @@ export async function processMealImageForSave(
     const ingestionResult = await ingestImageToPermanentStorage(imageUrl, mealName);
 
     if (ingestionResult.success && ingestionResult.permanentUrl) {
-      // Successfully ingested - use permanent URL
+      // Successfully ingested — use permanent URL.
       return {
         imageUrl: ingestionResult.permanentUrl,
         imagePending: false,
         ingestionAttempted: true
       };
     } else {
-      // Ingestion failed — do NOT store the ephemeral URL (it expires in ~1 hour and
-      // will appear as a broken image on next load). Store null so the client triggers
-      // a fresh generation on next view instead of showing a permanently broken image.
-      console.warn(`⚠️ Image ingestion failed for ${mealName} — storing null to prevent stale URL`);
-      return {
-        imageUrl: null,
-        imagePending: true,
-        ingestionAttempted: true
-      };
+      // Ingestion failed. Policy depends on URL type:
+      //
+      // • base64 data URIs (data:image/...) — self-contained; never expire.
+      //   Storing null would erase a perfectly valid image. Preserve the base64
+      //   so users see their image on reload. Next save will retry upload.
+      //   This matches exactly what mealCardFinalizer (Grocery Coach) does.
+      //
+      // • External CDN URLs (openai.com, oaidalleapiprodscus, etc.) — expire in
+      //   ~1 hour. Storing them would produce a broken image on next load.
+      //   Store null so the client re-generates instead.
+      if (imageUrl.startsWith('data:')) {
+        console.warn(
+          `⚠️ Image ingestion failed for "${mealName}" — preserving base64 directly ` +
+          `(self-contained, no expiry; upload will be retried on next save)`
+        );
+        return {
+          imageUrl,
+          imagePending: true,  // still pending permanent storage; retry on next save
+          ingestionAttempted: true
+        };
+      } else {
+        console.warn(
+          `⚠️ Image ingestion failed for "${mealName}" — storing null to prevent stale CDN URL`
+        );
+        return {
+          imageUrl: null,
+          imagePending: true,
+          ingestionAttempted: true
+        };
+      }
     }
   }
 

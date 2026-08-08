@@ -229,14 +229,30 @@ export function deriveSplitCarbs(
     }
   }
 
-  const totalScore = starchyScore + fibrousScore;
+  // ── Density-weighted attribution ───────────────────────────────────────────
+  // Starchy ingredients (rice, potato, pasta) carry ~6× the carb density of
+  // fibrous vegetables (broccoli, spinach, kale). A flat 1:1 count ratio
+  // incorrectly splits a "rice + broccoli" meal 50/50 even though virtually
+  // all the carbs come from the rice. Density weighting produces a calibrated
+  // estimate that reflects actual carb contribution:
+  //   1 starch + 1 fibrous → 85.7% starchy  (was 50%)
+  //   1 starch + 3 fibrous → 66.7% starchy  (was 25%)
+  //   0 starch + N fibrous → 0% starchy     (unchanged)
+  // Must stay in sync with server/utils/carbClassifier.ts deriveCarbs().
+  const STARCHY_DENSITY = 6;
+  const FIBROUS_DENSITY = 1;
 
-  if (totalScore === 0) {
+  const weightedStarchy = starchyScore * STARCHY_DENSITY;
+  const weightedFibrous = fibrousScore * FIBROUS_DENSITY;
+  const totalWeight = weightedStarchy + weightedFibrous;
+
+  if (totalWeight === 0) {
+    // No classifiable ingredients — treat all carbs as fibrous (conservative).
     return { starchyCarbs: 0, fibrousCarbs: totalCarbs };
   }
 
-  return {
-    starchyCarbs: Math.round(totalCarbs * (starchyScore / totalScore)),
-    fibrousCarbs: Math.round(totalCarbs * (fibrousScore / totalScore)),
-  };
+  const starchyCarbs = Math.round(totalCarbs * (weightedStarchy / totalWeight));
+  const fibrousCarbs = Math.max(0, totalCarbs - starchyCarbs);
+
+  return { starchyCarbs, fibrousCarbs };
 }

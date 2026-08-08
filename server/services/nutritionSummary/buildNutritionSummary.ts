@@ -53,6 +53,12 @@ export interface NutritionPersonalizationSummary {
   conflictPolicy: string;
   hasAnyActiveProtocol: boolean;
   carbCycleActive: boolean;
+  /** Alpha-gal protocol detail — null if not active */
+  alphaGal: {
+    dairyTolerance: "yes" | "no" | "unsure";
+    gelatinRestriction: "yes" | "no" | "unsure";
+    profileComplete: boolean;
+  } | null;
   meta: { generatedAt: string };
 }
 
@@ -73,6 +79,12 @@ export interface UserExtrasForSummary {
   selectedMealBuilder?: string | null;
   activeBoard?: string | null;
   carbCycleState?: any | null;
+  /** Alpha-gal profile JSONB — passed to populate detail card in summary */
+  alphaGalProfile?: {
+    dairyTolerance: "yes" | "no" | "unsure";
+    gelatinRestriction: "yes" | "no" | "unsure";
+    profileComplete: boolean;
+  } | null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -130,6 +142,10 @@ const CONDITION_MAP: Record<string, ConditionEntry> = {
   "pregnancy-support":{ label: "Pregnancy Nutrition",    priority: "high",     priorities: ["Prenatal nutrient priority", "Food safety focus", "Folate and iron support"] },
   // Therapeutic support (fallback — detail filled from entries below)
   "therapeutic-support": { label: "Therapeutic Support", priority: "moderate", priorities: ["Therapeutic nutrition support"] },
+  // Alpha-gal Syndrome — clinical allergy; mammalian meat/fat hard blocks
+  "alpha-gal-syndrome": { label: "Alpha-gal Syndrome",   priority: "high",     priorities: ["Mammalian meat excluded", "Mammalian fat excluded", "Allergy-safe meal generation"] },
+  "alpha-gal syndrome":  { label: "Alpha-gal Syndrome",   priority: "high",     priorities: ["Mammalian meat excluded", "Mammalian fat excluded", "Allergy-safe meal generation"] },
+  "alpha-gal":           { label: "Alpha-gal Syndrome",   priority: "high",     priorities: ["Mammalian meat excluded", "Allergy-safe meal generation"] },
 };
 
 const DIET_LABEL_MAP: Record<string, string> = {
@@ -565,6 +581,18 @@ export function buildNutritionSummary(
       }
     : null;
 
+  // ── 8b. Alpha-gal protocol detail ────────────────────────────────────────
+  const hasAlphaGalInHealthItems = healthItems.some(h =>
+    h.key === "alpha-gal-syndrome" || h.key === "alpha-gal syndrome" || h.key === "alpha-gal"
+  );
+  const alphaGalDetail = hasAlphaGalInHealthItems && extras.alphaGalProfile
+    ? {
+        dairyTolerance: extras.alphaGalProfile.dairyTolerance,
+        gelatinRestriction: extras.alphaGalProfile.gelatinRestriction,
+        profileComplete: extras.alphaGalProfile.profileComplete,
+      }
+    : null;
+
   // ── 9. hasAnyActiveProtocol ───────────────────────────────────────────────
   const hasAnyActiveProtocol =
     healthItems.length > 0 ||
@@ -665,6 +693,7 @@ export function buildNutritionSummary(
     conflictPolicy: CONFLICT_POLICY,
     hasAnyActiveProtocol,
     carbCycleActive,
+    alphaGal: alphaGalDetail,
     meta: { generatedAt },
   };
 }

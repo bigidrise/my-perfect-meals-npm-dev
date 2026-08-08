@@ -8,6 +8,7 @@ import crypto from "crypto";
 import OpenAI from "openai";
 import { loadUserProtocolEnvelope } from "../services/protocolEnvelope";
 import { processMealImageForSave } from "../services/imageLifecycle";
+import { generateMealImageUnified } from "../services/mealImageGenerator";
 
 const router = Router();
 
@@ -170,36 +171,52 @@ router.post(
       }
 
       const cravingData: any = await cravingRes.json();
-      const firstMeal =
-        cravingData.meals?.[0] ||
-        cravingData.meal ||
-        cravingData.options?.[0];
+      const rawMeals: any[] = cravingData.meals ||
+        (cravingData.meal ? [cravingData.meal] : cravingData.options || []);
+      const allMeals = rawMeals.slice(0, 3);
 
-      if (!firstMeal) {
+      if (allMeals.length === 0) {
         throw new Error("No meal returned from generator");
       }
 
-      const title = (firstMeal.name || "My Personalized Meal").trim();
+      // Step 4 — Generate meal images server-side in parallel for all options.
+      // All options get a real imageUrl before returning — no shimmer on first load.
+      const imageResults = await Promise.allSettled(
+        allMeals.map(async (meal: any) => {
+          const mealTitle = (meal.name || "My Personalized Meal").trim();
+          const ingredientNames: string[] = ((meal.ingredients ?? []) as any[])
+            .map((i: any) => i.name || i.item || "")
+            .filter(Boolean);
+          try {
+            return await generateMealImageUnified(mealTitle, ingredientNames, "meal");
+          } catch {
+            return null;
+          }
+        })
+      );
 
-      // Step 4 — Generate meal image (non-blocking)
-      let imageUrl: string | null = null;
-      try {
-        const imgResult = await processMealImageForSave(null, title);
-        imageUrl = imgResult.imageUrl ?? null;
-      } catch (e) {
-        console.warn("[inspiration] Image generation skipped:", e);
-      }
+      // Build options array — each option gets its imageUrl and inspiration metadata
+      const mealOptions: any[] = allMeals.map((meal: any, i: number) => {
+        const mealTitle = (meal.name || "My Personalized Meal").trim();
+        const imageUrl =
+          imageResults[i].status === "fulfilled"
+            ? (imageResults[i] as PromiseFulfilledResult<string | null>).value
+            : null;
+        return {
+          ...meal,
+          title: mealTitle,
+          imageUrl,
+          _inspiration: {
+            inputType,
+            originalDescription: mealDescription,
+            capturedAt: new Date().toISOString(),
+          },
+        };
+      });
 
-      const mealData: any = {
-        ...firstMeal,
-        title,
-        imageUrl,
-        _inspiration: {
-          inputType,
-          originalDescription: mealDescription,
-          capturedAt: new Date().toISOString(),
-        },
-      };
+      // First option is the primary mealData (backward compat for clients that read result.mealData)
+      const mealData = mealOptions[0];
+      const title = mealData.title;
 
       // ── Nutrition Decision Engine (NDE) summary ──────────────────────────
       // Surface which daily nutrition strategy influenced this generation
@@ -239,7 +256,8 @@ router.post(
       return res.json({
         success: true,
         title,
-        mealData,
+        mealData,            // first option — backward compat for clients reading result.mealData
+        options: mealOptions, // all personalized options for the 3-card selector
         extractedDescription: mealDescription,
         ...(ndeSummary && { ndeSummary }),
       });

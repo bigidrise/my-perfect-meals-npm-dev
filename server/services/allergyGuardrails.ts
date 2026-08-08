@@ -356,7 +356,40 @@ export const ALLERGEN_EXPANSION: Record<string, string[]> = {
     "pepper", "peppers", "bell pepper", "chili", "chili pepper",
     "jalapeño", "cayenne", "paprika", "eggplant", "aubergine",
     "goji berry", "goji berries", "tobacco"
-  ]
+  ],
+
+  // Alpha-gal Syndrome (Mammalian Meat Allergy) — IgE-mediated clinical allergy
+  // HARD BLOCK: all mammalian meats, organ meats, mammalian fats, and mammalian stocks.
+  // NOTE: Dairy is intentionally NOT included here — dairy tolerance is individualized.
+  //       Dairy/gelatin conditional guidance is injected via universalMedicalGuidance.ts.
+  "alpha-gal": [
+    "beef", "ground beef", "hamburger", "steak", "ribeye", "sirloin", "brisket", "chuck roast",
+    "veal", "pork", "ham", "bacon", "prosciutto", "pancetta", "salami", "pepperoni", "chorizo",
+    "sausage", "hot dog", "bratwurst", "kielbasa", "lamb", "mutton", "goat", "venison", "deer",
+    "rabbit", "bison", "buffalo", "elk", "moose", "boar", "wild boar",
+    "liver", "beef liver", "pork liver", "kidney", "sweetbreads", "tripe", "intestines", "oxtail", "tongue",
+    "lard", "tallow", "suet", "beef fat", "pork fat", "drippings",
+    "beef broth", "beef stock", "pork broth", "bone broth", "meat gravy", "beef bouillon", "pork bouillon", "meat stock",
+  ],
+  "alpha-gal syndrome": [
+    "beef", "ground beef", "hamburger", "steak", "ribeye", "sirloin", "brisket", "chuck roast",
+    "veal", "pork", "ham", "bacon", "prosciutto", "pancetta", "salami", "pepperoni", "chorizo",
+    "sausage", "hot dog", "bratwurst", "kielbasa", "lamb", "mutton", "goat", "venison", "deer",
+    "rabbit", "bison", "buffalo", "elk", "moose", "boar", "wild boar",
+    "liver", "beef liver", "pork liver", "kidney", "sweetbreads", "tripe", "intestines", "oxtail", "tongue",
+    "lard", "tallow", "suet", "beef fat", "pork fat", "drippings",
+    "beef broth", "beef stock", "pork broth", "bone broth", "meat gravy", "beef bouillon", "pork bouillon", "meat stock",
+  ],
+  "alpha gal": [
+    "beef", "ground beef", "steak", "veal", "pork", "ham", "bacon", "lamb", "venison", "rabbit",
+    "bison", "elk", "moose", "liver", "kidney", "sweetbreads", "tripe", "lard", "tallow", "suet",
+    "beef broth", "beef stock", "pork broth", "bone broth", "meat gravy",
+  ],
+  "alpha gal syndrome": [
+    "beef", "ground beef", "steak", "veal", "pork", "ham", "bacon", "lamb", "venison", "rabbit",
+    "bison", "elk", "moose", "liver", "kidney", "sweetbreads", "tripe", "lard", "tallow", "suet",
+    "beef broth", "beef stock", "pork broth", "bone broth", "meat gravy",
+  ],
 };
 
 /**

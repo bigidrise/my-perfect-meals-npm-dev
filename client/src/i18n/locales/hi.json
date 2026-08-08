@@ -939,5 +939,32 @@
     "liveContext": "लाइव संदर्भ",
     "nutritionPriorities": "आपकी पोषण प्राथमिकताएं",
     "currentStrategy": "वर्तमान रणनीति"
+  },
+  "businessCenter": {
+    "title": "Business Center",
+    "back": "Back",
+    "tagline": "Every way to grow with My Perfect Meals — as a partner, a professional, or a creator.",
+    "pillars": {
+      "partners": "Partner Programs",
+      "partnersDesc": "Founding Business Partner, Industry & Strategic, Healthcare & Clinical, White Label Solutions, and Partner Program — all in one place.",
+      "procare": "ProCare",
+      "procareDesc": "The professional platform for coaches, trainers, physicians, and dietitians managing clients with My Perfect Meals.",
+      "academy": "My Perfect Meals Academy",
+      "academyDesc": "Platform certification and ProCare training for everyone who represents My Perfect Meals professionally.",
+      "promotions": "Promotions",
+      "promotionsDesc": "Create trial extensions and discount codes for patients, clients, and campaigns. One engine — trials, discounts, invite links.",
+      "creatorBrand": "Creator & Brand Studio",
+      "creatorBrandDesc": "Build a custom branded experience for chefs, supplement companies, beverage brands, and culinary creators."
+    },
+    "completeProfile": "Complete Your Personal Nutrition Profile",
+    "completeProfileDesc": "Set up your own nutrition profile whenever you're ready to experience My Perfect Meals personally and see what your clients will experience.",
+    "completeProfileBtn": "Complete My Nutrition Profile →",
+    "certifications": "Professional Certifications",
+    "certified": "Certified",
+    "certDesc": "Your professional learning center. Complete certifications, track progress, and expand your expertise.",
+    "certifiedBadge": "Certified My Perfect Meals Professional",
+    "viewCertifications": "View Certifications →",
+    "continueCertification": "Continue Certification →",
+    "newOpportunities": "New opportunities added regularly"
   }
 }

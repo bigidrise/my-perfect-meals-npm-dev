@@ -13,6 +13,7 @@ import {
   ImagePlus,
   ChevronLeft,
   Sparkles,
+  Trash2,
 } from "lucide-react";
 import { PillButton } from "@/components/ui/pill-button";
 import { CuisineOverrideControl } from "@/components/ui/CuisineOverrideControl";
@@ -145,9 +146,11 @@ export default function InspirationCaptureModal({
 
   // ── Result state ──
   const [result, setResult] = useState<any>(null);
+  const [selectedOptionIndex, setSelectedOptionIndex] = useState<number>(0);
   const [errorMsg, setErrorMsg] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  const [savedId, setSavedId] = useState<string | null>(null);
+  // Tracks which option indices have been saved — multiple saves from the same scan are allowed
+  const [savedIndices, setSavedIndices] = useState<number[]>([]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
@@ -168,9 +171,10 @@ export default function InspirationCaptureModal({
     setCuisineOverrideEnabled(false);
     setCuisineOverrideValue("");
     setResult(null);
+    setSelectedOptionIndex(0);
     setErrorMsg("");
     setIsSaving(false);
-    setSavedId(null);
+    setSavedIndices([]);
     if (speechRef.current) {
       try {
         speechRef.current.stop();
@@ -363,7 +367,21 @@ export default function InspirationCaptureModal({
       setResult(data);
       setPhase("preview");
       if (destination === "recipe") {
-        try { localStorage.setItem("mpm.recipe.lastScan", JSON.stringify(data)); } catch {}
+        // Strip base64 imageUrls before persisting — they're ephemeral and often blow past
+        // the 5 MB localStorage limit when S3/GCS is unavailable (3 × ~750 KB images).
+        // Real https:// URLs are kept; the card just won't show an image on restore when
+        // the server fell back to base64-ephemeral mode.
+        const stripBase64 = (meal: any) => {
+          if (!meal) return meal;
+          const url = meal.imageUrl ?? "";
+          return url.startsWith("data:") ? { ...meal, imageUrl: null } : meal;
+        };
+        const persistable = {
+          ...data,
+          mealData: stripBase64(data.mealData),
+          options: Array.isArray(data.options) ? data.options.map(stripBase64) : data.options,
+        };
+        try { localStorage.setItem("mpm.recipe.lastScan", JSON.stringify(persistable)); } catch {}
       }
     } catch (err: any) {
       setErrorMsg(err.message || "Failed to create your personalized meal.");
@@ -382,7 +400,8 @@ export default function InspirationCaptureModal({
   ]);
 
   const handleSave = useCallback(async () => {
-    if (!result?.mealData) return;
+    const mealToSave = result?.options?.[selectedOptionIndex] ?? result?.mealData;
+    if (!mealToSave) return;
     setIsSaving(true);
     try {
       const res = await fetch(apiUrl("/api/inspiration/save"), {
@@ -391,11 +410,12 @@ export default function InspirationCaptureModal({
           "Content-Type": "application/json",
           ...getAuthHeaders(),
         },
-        body: JSON.stringify({ mealData: result.mealData }),
+        body: JSON.stringify({ mealData: mealToSave }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to save");
-      setSavedId(data.id);
+      // Mark this option as saved — stays on the 3-card view so the user can save others too
+      setSavedIndices(prev => [...new Set([...prev, selectedOptionIndex])]);
       toast({
         title: "Saved!",
         description: "Added to your Recipe Scan saves in Favorites.",
@@ -409,9 +429,25 @@ export default function InspirationCaptureModal({
     } finally {
       setIsSaving(false);
     }
-  }, [result, toast]);
+  }, [result, selectedOptionIndex, toast]);
 
-  const mealData = result?.mealData;
+  // Regenerate 3 new options locked to the same captured input (same dish, new variations)
+  const handleTryMore = useCallback(() => {
+    setResult(null);
+    setSelectedOptionIndex(0);
+    setSavedIndices([]);
+    generate();
+  }, [generate]);
+
+  // Explicitly clear the saved scan — only the user can do this, never automatic
+  const clearScan = useCallback(() => {
+    try { localStorage.removeItem("mpm.recipe.lastScan"); } catch {}
+    reset();
+  }, [reset]);
+
+  // Derive active mealData from selected option (multi-option) or single result (backward compat)
+  const options = result?.options as any[] | undefined;
+  const mealData = options?.[selectedOptionIndex] ?? result?.mealData;
 
   const healthModeHint = {
     authentic:
@@ -780,165 +816,287 @@ export default function InspirationCaptureModal({
           )}
 
           {/* ── PREVIEW ── */}
-          {phase === "preview" && mealData && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 justify-center">
-                <CheckCircle className="h-5 w-5 text-green-400" />
-                <p className="text-green-400 font-semibold text-sm">
-                  Your personalized version is ready.
-                </p>
-              </div>
-
-              {result?.ndeSummary?.wasAdapted && result.ndeSummary.adaptedNote && (
-                <div className="rounded-xl bg-orange-950/50 border border-orange-600/30 px-3 py-2.5 flex gap-2.5 items-start">
-                  <Sparkles className="h-4 w-4 text-orange-400 shrink-0 mt-0.5" />
-                  <div className="space-y-0.5">
-                    <div className="text-orange-400 font-semibold tracking-wide uppercase text-[10px]">
-                      Adapted for Today's Nutrition Strategy
-                    </div>
-                    <div className="text-white/80 text-xs leading-relaxed">
-                      {result.ndeSummary.adaptedNote}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {mealData.imageUrl && (
-                <div className="rounded-xl overflow-hidden h-44">
-                  <MealImageSlot
-                    imageUrl={mealData.imageUrl}
-                    alt={mealData.title || mealData.name}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              )}
-
-              <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
-                <h3 className="font-bold text-white text-lg leading-tight">
-                  {mealData.title || mealData.name}
-                </h3>
-                {mealData.description && (
-                  <p className="text-white/70 text-sm leading-relaxed">
-                    {mealData.description}
-                  </p>
-                )}
-
-                {mealData.nutrition && (
-                  <div className="grid grid-cols-4 gap-2">
-                    {[
-                      { label: "Cal", value: mealData.nutrition.calories },
-                      {
-                        label: "Protein",
-                        value: `${mealData.nutrition.protein}g`,
-                      },
-                      { label: "Carbs", value: `${mealData.nutrition.carbs}g` },
-                      { label: "Fat", value: `${mealData.nutrition.fat}g` },
-                    ].map((m) => (
-                      <div
-                        key={m.label}
-                        className="bg-black/40 rounded-lg p-2 text-center border border-white/5"
-                      >
-                        <p className="text-orange-400 font-bold text-sm">
-                          {m.value}
-                        </p>
-                        <p className="text-white/50 text-xs">{m.label}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {mealData.protocolTags?.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {mealData.protocolTags.map((tag: string) => (
-                      <span
-                        key={tag}
-                        className="px-2 py-0.5 rounded-full bg-orange-500/15 border border-orange-500/20 text-orange-300 text-xs"
-                      >
-                        {tag}
+          {phase === "preview" && (options?.length || result?.mealData) ? (
+            options && options.length > 1 ? (
+              /* ── 3-OPTION SELECTOR ── */
+              <div className="space-y-4">
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                  <p className="text-green-400 font-semibold text-sm flex items-center gap-1.5">
+                    <CheckCircle className="h-4 w-4 shrink-0" />
+                    {options.length} versions ready
+                    {savedIndices.length > 0 && (
+                      <span className="text-white/40 font-normal">
+                        · {savedIndices.length} saved
                       </span>
-                    ))}
-                  </div>
-                )}
-
-                {(mealData.complianceSection?.badges || mealData.medicalBadges)
-                  ?.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {(
-                      mealData.complianceSection?.badges ||
-                      mealData.medicalBadges ||
-                      []
-                    ).map((badge: any) => (
-                      <span
-                        key={badge?.label || badge}
-                        className="px-2 py-0.5 rounded-full bg-green-500/15 border border-green-500/20 text-green-300 text-xs"
-                      >
-                        {badge?.label || badge}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {!savedId ? (
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleSave}
-                    disabled={isSaving}
-                    className="flex-1 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white font-semibold text-sm transition-all active:scale-95 flex items-center justify-center gap-2"
-                  >
-                    {isSaving ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Saving…
-                      </>
-                    ) : (
-                      <>
-                        <Heart className="h-4 w-4" />
-                        Save to Favorites
-                      </>
                     )}
-                  </button>
+                  </p>
                   <button
-                    onClick={() => {
-                      try { localStorage.removeItem("mpm.recipe.lastScan"); } catch {}
-                      setResult(null);
-                      setPhase("options");
-                    }}
-                    className="px-4 py-2.5 rounded-xl bg-white/8 hover:bg-white/12 border border-white/10 text-white font-semibold text-sm transition-all active:scale-95"
+                    onClick={clearScan}
+                    title="Delete this scan"
+                    className="p-1.5 rounded-lg text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-all active:scale-95"
                   >
-                    Regenerate
+                    <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
-              ) : (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-1.5 text-xs text-green-400/70 justify-center">
-                    <Heart className="h-3.5 w-3.5 fill-green-400 text-green-400" />
-                    <span>Saved to Favorites</span>
+                <p className="text-white/40 text-xs -mt-2">
+                  {savedIndices.length > 0
+                    ? "Tap another to save it too, or close and come back later."
+                    : "Tap one to select, then save. Come back anytime — these stay here until you delete them."}
+                </p>
+
+                {/* NDE adapted note */}
+                {result?.ndeSummary?.wasAdapted && result.ndeSummary.adaptedNote && (
+                  <div className="rounded-xl bg-orange-950/50 border border-orange-600/30 px-3 py-2.5 flex gap-2.5 items-start">
+                    <Sparkles className="h-4 w-4 text-orange-400 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5">
+                      <div className="text-orange-400 font-semibold tracking-wide uppercase text-[10px]">
+                        Adapted for Today's Nutrition Strategy
+                      </div>
+                      <div className="text-white/80 text-xs leading-relaxed">
+                        {result.ndeSummary.adaptedNote}
+                      </div>
+                    </div>
                   </div>
+                )}
+
+                {/* Option cards */}
+                <div className="space-y-2">
+                  {options.map((opt: any, i: number) => (
+                    <button
+                      key={i}
+                      onClick={() => setSelectedOptionIndex(i)}
+                      className={`w-full text-left rounded-xl border transition-all overflow-hidden ${
+                        selectedOptionIndex === i
+                          ? "border-orange-500 bg-orange-500/10"
+                          : "border-white/10 bg-white/5 hover:bg-white/8 active:bg-white/10"
+                      }`}
+                    >
+                      {/* Image banner */}
+                      {opt.imageUrl && (
+                        <div className="h-28 overflow-hidden relative">
+                          <img
+                            src={opt.imageUrl}
+                            alt={opt.title || opt.name || ""}
+                            className="w-full h-full object-cover"
+                          />
+                          {savedIndices.includes(i) && (
+                            <div className="absolute top-2 right-2 bg-green-500 rounded-full p-0.5">
+                              <CheckCircle className="h-3.5 w-3.5 text-white" />
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      <div className="p-3 flex items-start gap-2.5">
+                        {/* Selection / saved indicator */}
+                        <div
+                          className={`w-4 h-4 rounded-full border-2 shrink-0 mt-0.5 flex items-center justify-center transition-colors ${
+                            savedIndices.includes(i)
+                              ? "border-green-500 bg-green-500"
+                              : selectedOptionIndex === i
+                              ? "border-orange-500 bg-orange-500"
+                              : "border-white/30"
+                          }`}
+                        >
+                          {savedIndices.includes(i) ? (
+                            <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                          ) : selectedOptionIndex === i ? (
+                            <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                          ) : null}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-white text-sm leading-tight">
+                            {opt.title || opt.name}
+                          </p>
+                          {opt.description && (
+                            <p className="text-white/60 text-xs leading-snug mt-0.5 line-clamp-2">
+                              {opt.description}
+                            </p>
+                          )}
+                          {opt.nutrition && (
+                            <div className="flex gap-3 mt-2">
+                              <span className="text-orange-400 text-xs font-bold">
+                                {opt.nutrition.calories} cal
+                              </span>
+                              <span className="text-white/50 text-xs">
+                                {opt.nutrition.protein}g protein
+                              </span>
+                              <span className="text-white/50 text-xs">
+                                {opt.nutrition.carbs}g carbs
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Action buttons — always visible; cards stay up until user explicitly clears them */}
+                <div className="space-y-2">
                   <div className="flex gap-2">
                     <button
-                      onClick={() => {
-                        handleClose();
-                        setLocation("/saved-meals");
-                      }}
-                      className="flex-1 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-semibold text-sm transition-all active:scale-95"
+                      onClick={handleSave}
+                      disabled={isSaving}
+                      className="flex-1 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white font-semibold text-sm transition-all active:scale-95 flex items-center justify-center gap-2"
                     >
-                      View in Favorites
+                      {isSaving ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Saving…
+                        </>
+                      ) : savedIndices.includes(selectedOptionIndex) ? (
+                        <>
+                          <CheckCircle className="h-4 w-4" />
+                          Save Again
+                        </>
+                      ) : (
+                        <>
+                          <Heart className="h-4 w-4" />
+                          Save This Version
+                        </>
+                      )}
                     </button>
                     <button
-                      onClick={() => {
-                        try { localStorage.removeItem("mpm.recipe.lastScan"); } catch {}
-                        reset();
-                      }}
-                      className="flex-1 py-2.5 rounded-xl bg-white/8 hover:bg-white/12 border border-white/10 text-white font-semibold text-sm transition-all active:scale-95"
+                      onClick={handleTryMore}
+                      className="px-4 py-2.5 rounded-xl bg-white/8 hover:bg-white/12 border border-white/10 text-white font-semibold text-sm transition-all active:scale-95"
                     >
-                      Scan Another
+                      Try 3 More
                     </button>
                   </div>
+                  {savedIndices.length > 0 && (
+                    <button
+                      onClick={() => { onOpenChange(false); setLocation("/saved-meals"); }}
+                      className="w-full py-2 text-center text-xs text-green-400/70 hover:text-green-300 transition-colors"
+                    >
+                      View saved meals in Favorites →
+                    </button>
+                  )}
                 </div>
-              )}
-            </div>
-          )}
+              </div>
+            ) : (
+              /* ── SINGLE-OPTION FALLBACK (backward compat / edge case) ── */
+              mealData ? (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 justify-center">
+                    <CheckCircle className="h-5 w-5 text-green-400" />
+                    <p className="text-green-400 font-semibold text-sm">
+                      Your personalized version is ready.
+                    </p>
+                  </div>
+
+                  {result?.ndeSummary?.wasAdapted && result.ndeSummary.adaptedNote && (
+                    <div className="rounded-xl bg-orange-950/50 border border-orange-600/30 px-3 py-2.5 flex gap-2.5 items-start">
+                      <Sparkles className="h-4 w-4 text-orange-400 shrink-0 mt-0.5" />
+                      <div className="space-y-0.5">
+                        <div className="text-orange-400 font-semibold tracking-wide uppercase text-[10px]">
+                          Adapted for Today's Nutrition Strategy
+                        </div>
+                        <div className="text-white/80 text-xs leading-relaxed">
+                          {result.ndeSummary.adaptedNote}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {mealData.imageUrl && (
+                    <div className="rounded-xl overflow-hidden h-44">
+                      <MealImageSlot
+                        imageUrl={mealData.imageUrl}
+                        mealName={mealData.title || mealData.name || "Recipe Scan"}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+
+                  <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
+                    <h3 className="font-bold text-white text-lg leading-tight">
+                      {mealData.title || mealData.name}
+                    </h3>
+                    {mealData.description && (
+                      <p className="text-white/70 text-sm leading-relaxed">
+                        {mealData.description}
+                      </p>
+                    )}
+                    {mealData.nutrition && (
+                      <div className="grid grid-cols-4 gap-2">
+                        {[
+                          { label: "Cal", value: mealData.nutrition.calories },
+                          { label: "Protein", value: `${mealData.nutrition.protein}g` },
+                          { label: "Carbs", value: `${mealData.nutrition.carbs}g` },
+                          { label: "Fat", value: `${mealData.nutrition.fat}g` },
+                        ].map((m) => (
+                          <div
+                            key={m.label}
+                            className="bg-black/40 rounded-lg p-2 text-center border border-white/5"
+                          >
+                            <p className="text-orange-400 font-bold text-sm">{m.value}</p>
+                            <p className="text-white/50 text-xs">{m.label}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {mealData.protocolTags?.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {mealData.protocolTags.map((tag: string) => (
+                          <span
+                            key={tag}
+                            className="px-2 py-0.5 rounded-full bg-orange-500/15 border border-orange-500/20 text-orange-300 text-xs"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {(mealData.complianceSection?.badges || mealData.medicalBadges)?.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {(mealData.complianceSection?.badges || mealData.medicalBadges || []).map((badge: any) => (
+                          <span
+                            key={badge?.label || badge}
+                            className="px-2 py-0.5 rounded-full bg-green-500/15 border border-green-500/20 text-green-300 text-xs"
+                          >
+                            {badge?.label || badge}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleSave}
+                        disabled={isSaving}
+                        className="flex-1 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white font-semibold text-sm transition-all active:scale-95 flex items-center justify-center gap-2"
+                      >
+                        {isSaving ? (
+                          <><Loader2 className="h-4 w-4 animate-spin" />Saving…</>
+                        ) : savedIndices.includes(0) ? (
+                          <><CheckCircle className="h-4 w-4" />Saved ✓</>
+                        ) : (
+                          <><Heart className="h-4 w-4" />Save to Favorites</>
+                        )}
+                      </button>
+                      <button
+                        onClick={clearScan}
+                        className="px-4 py-2.5 rounded-xl bg-white/8 hover:bg-white/12 border border-white/10 text-white font-semibold text-sm transition-all active:scale-95"
+                      >
+                        Scan Another
+                      </button>
+                    </div>
+                    {savedIndices.includes(0) && (
+                      <button
+                        onClick={() => { onOpenChange(false); setLocation("/saved-meals"); }}
+                        className="w-full py-2 text-center text-xs text-green-400/70 hover:text-green-300 transition-colors"
+                      >
+                        View in Favorites →
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : null
+            )
+          ) : null}
 
         </div>
     </UniversalDialog>

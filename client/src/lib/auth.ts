@@ -124,6 +124,16 @@ export interface User {
 
   avoidedFoods?: string[];
 
+  alphaGalProfile?: {
+    diagnosisStatus: "diagnosed" | "being_evaluated" | "no";
+    dairyTolerance: "yes" | "no" | "unsure";
+    gelatinRestriction: "yes" | "no" | "unsure";
+    severeReactionHistory: "yes" | "no" | "unsure";
+    profileComplete: boolean;
+    activatedAt: string | null;
+    updatedAt: string | null;
+  } | null;
+
   hasAllergyPin?: boolean;
   // Macro targets (from DB — survive reinstall)
 

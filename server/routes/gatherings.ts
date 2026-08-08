@@ -667,7 +667,8 @@ router.post("/generate", async (req: Request, res: Response) => {
             medicalFlags: gatheringsEnvelope.medicalHardLimits,
             skipPalate: !flavorPersonal,
             strictMode: keepItSimple,
-            skipImage: true, // Images fetched in parallel by client after text is returned
+            // skipImage removed — images are now generated server-side in batch
+            // after all courses are ready, before the response is returned.
           } as any,
         );
 
@@ -742,6 +743,26 @@ router.post("/generate", async (req: Request, res: Response) => {
 
     generatedCourses.push(courseMeal);
   }
+
+  // ── Unified Image Pipeline: attach permanent imageUrls before responding ──
+  // Generate images for all non-fallback courses in parallel. This keeps the
+  // client loading state simple (no separate per-card image fetch) and ensures
+  // every course card renders complete — no shimmer, no second round-trip.
+  await Promise.all(
+    generatedCourses
+      .filter((c: any) => !c._fallback && c.name)
+      .map(async (course: any) => {
+        try {
+          const ingredients = (course.ingredients ?? [])
+            .map((i: any) => i.name || i.item || "")
+            .filter(Boolean);
+          course.imageUrl = await generateMealImageUnified(course.name, ingredients, "meal");
+        } catch {
+          // Image failure is non-fatal — course is still usable without image.
+        }
+      })
+  );
+  // ─────────────────────────────────────────────────────────────────────────
 
   // Aggregate all ingredients across courses for shopping list
   const allIngredients = generatedCourses.flatMap((c) =>

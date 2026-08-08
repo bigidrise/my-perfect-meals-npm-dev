@@ -796,6 +796,8 @@ const MEDICAL_HARD_LIMIT_CONDITIONS = new Set([
   "phenylketonuria", "pku",
   "crohn's disease", "crohns", "colitis", "ibd", "ibs",
   "gerd", "acid reflux",
+  // Alpha-gal Syndrome — clinical allergy; mammalian meat/fat hard blocks
+  "alpha-gal-syndrome", "alpha-gal syndrome", "alpha gal syndrome", "alpha-gal", "alpha gal",
 ]);
 
 const MEDICAL_OPTIMIZATION_CONDITIONS = new Set([
@@ -887,6 +889,7 @@ export async function loadUserProtocolEnvelope(
         dailyFibrousCarbsTarget: (users as any).dailyFibrousCarbsTarget,
         timezone: (users as any).timezone,
         therapeuticSupportContext: (users as any).therapeuticSupportContext,
+        alphaGalProfile: (users as any).alphaGalProfile,
         pregnancySupportContext: (users as any).pregnancySupportContext,
         flavorPreference: users.flavorPreference,
         heatPreference: users.heatPreference,
@@ -1132,6 +1135,46 @@ export async function loadUserProtocolEnvelope(
       }
     }
 
+    // ── ALPHA-GAL SYNDROME — clinical allergy protocol ────────────────────────
+    // Fires when "alpha-gal-syndrome" is found in healthConditions or specialtyConditions.
+    // Fails closed: if profile is absent or incomplete, conservative defaults apply.
+    const ALPHA_GAL_CONDITION_KEYS = new Set([
+      "alpha-gal-syndrome", "alpha-gal syndrome", "alpha gal syndrome", "alpha-gal", "alpha gal",
+    ]);
+    const alphaGalActive =
+      specialtyConditionsArr.some(c => ALPHA_GAL_CONDITION_KEYS.has(c.trim().toLowerCase())) ||
+      mergedHealthConditions.some(c => ALPHA_GAL_CONDITION_KEYS.has(c.trim().toLowerCase()));
+
+    let alphaGalCtx: {
+      active: boolean;
+      dairyTolerance: "yes" | "no" | "unsure";
+      gelatinRestriction: "yes" | "no" | "unsure";
+      severeReactionHistory: "yes" | "no" | "unsure";
+      profileComplete: boolean;
+    } | null = null;
+
+    if (alphaGalActive) {
+      const rawAlphaGal = (user as any).alphaGalProfile as any;
+      if (rawAlphaGal && typeof rawAlphaGal === "object" && rawAlphaGal.profileComplete) {
+        alphaGalCtx = {
+          active: true,
+          dairyTolerance: rawAlphaGal.dairyTolerance ?? "unsure",
+          gelatinRestriction: rawAlphaGal.gelatinRestriction ?? "unsure",
+          severeReactionHistory: rawAlphaGal.severeReactionHistory ?? "unsure",
+          profileComplete: true,
+        };
+      } else {
+        // ALPHAGAL-EMERGENCY-001: No profile or incomplete — conservative fail-closed defaults
+        alphaGalCtx = {
+          active: true,
+          dairyTolerance: "unsure",
+          gelatinRestriction: "unsure",
+          severeReactionHistory: "unsure",
+          profileComplete: false,
+        };
+      }
+    }
+
     // ── PERFORMANCE NUTRITION — additive modifier ─────────────────────────────
     const performanceNutrition: boolean = specialtyConditionsArr.includes("performance-nutrition");
     let performanceNutritionCtx: {
@@ -1274,6 +1317,7 @@ export async function loadUserProtocolEnvelope(
       performanceDemandProfile,
       competitionPrepContext: competitionPrepCtx,
       therapeuticSupportContext: therapeuticSupportCtx,
+      alphaGalContext: alphaGalCtx,
     });
 
     // ── GLP-1 DAILY BEHAVIORAL TOLERANCE ────────────────────────────────────

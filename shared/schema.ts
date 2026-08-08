@@ -501,6 +501,20 @@ export const users = pgTable("users", {
     therapies: string[];
     recoveryGoals: string[];
   }>(),
+  // Alpha-gal Syndrome (Mammalian Meat Allergy) — clinical allergy protocol (JSONB).
+  // Active when "alpha-gal-syndrome" is in healthConditions or specialtyConditions.
+  // Null = not selected during onboarding. profileComplete = false triggers conservative defaults.
+  // NEVER universally blocks dairy — dairy tolerance is individualized per dairyTolerance field.
+  alphaGalProfile: jsonb("alpha_gal_profile").$type<{
+    diagnosisStatus: "diagnosed" | "being_evaluated" | "no";
+    avoidances: Array<"beef" | "pork" | "lamb" | "venison" | "organ_meats" | "mammalian_fats" | "other">;
+    dairyTolerance: "yes" | "no" | "unsure";
+    gelatinRestriction: "yes" | "no" | "unsure";
+    severeReactionHistory: "yes" | "no" | "unsure";
+    profileComplete: boolean;
+    activatedAt: string | null;
+    updatedAt: string | null;
+  }>(),
   // Competition Prep Protocol — date-driven prep context (JSONB).
   // Active when "competition-prep" is in specialtyConditions.
   // Event date is the safeguard — protocol ends automatically at event date.

@@ -95,6 +95,59 @@ export interface UniversalGuidanceInput {
   } | null;
   /** Therapeutic Nutrition Intelligence context — active when "therapeutic-support" is in specialtyConditions. */
   therapeuticSupportContext?: TherapeuticSupportCtx | null;
+  /** Alpha-gal Syndrome (Mammalian Meat Allergy) — active when "alpha-gal-syndrome" is in health/specialty conditions. */
+  alphaGalContext?: {
+    active: boolean;
+    dairyTolerance: "yes" | "no" | "unsure";
+    gelatinRestriction: "yes" | "no" | "unsure";
+    severeReactionHistory: "yes" | "no" | "unsure";
+    profileComplete: boolean;
+  } | null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ALPHA-GAL SYNDROME (Mammalian Meat Allergy)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function buildAlphaGalGuidance(
+  ctx: NonNullable<UniversalGuidanceInput["alphaGalContext"]>
+): string {
+  // ALPHAGAL-COND-001/002: Dairy directive
+  const dairyDirective = ctx.dairyTolerance === "no"
+    ? "DAIRY: BLOCKED — this user reports that dairy triggers reactions. Do not include any mammalian dairy products (milk, cheese, butter, cream, yogurt, ghee, whey)."
+    : ctx.dairyTolerance === "unsure"
+    ? "DAIRY: UNCERTAIN — dairy tolerance is unconfirmed for this user. Minimize mammalian dairy as primary ingredients; flag it where used. If the user has not verified their dairy tolerance with their allergist, caution is warranted."
+    : "DAIRY: TOLERATED — this user has confirmed they can tolerate dairy per clinician or self-report.";
+
+  // ALPHAGAL-COND-003: Gelatin directive
+  const gelatinDirective = ctx.gelatinRestriction !== "no"
+    ? "\nGELATIN: AVOID — user avoids gelatin and mammalian-derived thickeners. Do not use gelatin in desserts, confections, or savory sauces."
+    : "";
+
+  const incompleteWarning = !ctx.profileComplete
+    ? "\n⚠ Alpha-gal profile not fully completed — applying conservative defaults (core mammalian blocks active; dairy/gelatin flagged)."
+    : "";
+
+  return `🚨 ALPHA-GAL SYNDROME (MAMMALIAN MEAT ALLERGY) — CRITICAL SAFETY PROTOCOL:
+This user has Alpha-gal Syndrome, an IgE-mediated allergy to a carbohydrate (galactose-alpha-1,3-galactose) found in mammalian meat and related products. Reactions can be severe, delayed (2–6 hours after ingestion), and potentially anaphylactic. This is a clinical allergy — not a dietary preference.${incompleteWarning}
+
+HARD BLOCKS — NEVER GENERATE ANY OF THESE:
+- ALL mammalian meats: beef, pork, lamb, mutton, veal, goat, venison, rabbit, bison, buffalo, elk, moose, wild boar
+- ALL mammalian organ meats: liver, kidney, sweetbreads, tripe, tongue, oxtail, intestines
+- Mammalian fats: lard, tallow, suet, beef fat, pork fat, meat drippings
+- Mammalian stocks/broths/gravies: beef broth, beef stock, pork broth, bone broth, meat gravy — use vegetable broth or chicken/turkey broth instead
+
+SAFE PROTEIN ALTERNATIVES — ALWAYS PREFER:
+- Poultry: chicken, turkey, duck, quail, cornish hen (poultry is NOT affected by Alpha-gal)
+- All fish and seafood (unless a separate fish/shellfish allergy is active)
+- Eggs (safe for Alpha-gal)
+- Plant proteins: tofu, tempeh, edamame, lentils, chickpeas, beans
+
+${dairyDirective}${gelatinDirective}
+
+COACH NOTE (informational only): Some medications, vaccines, and gelatin capsules contain mammalian-derived ingredients. Recommend the user review any new prescriptions or vaccines with their allergist.
+
+DO NOT suggest mammalian meat "for variety" or as a substitute. Every protein anchor must be poultry, seafood, or plant-based unless the user explicitly requests otherwise.`.trim();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -622,6 +675,11 @@ TONE: Frame meals as "fueling," "recovery," "pre-training," or "post-training" w
   if (input.therapeuticSupportContext) {
     const therapeuticBlocks = buildTherapeuticGuidanceBlocks(input.therapeuticSupportContext);
     blocks.push(...therapeuticBlocks);
+  }
+
+  // Alpha-gal Syndrome — fires when alpha-gal-syndrome is detected in health/specialty conditions
+  if (input.alphaGalContext?.active) {
+    blocks.push(buildAlphaGalGuidance(input.alphaGalContext));
   }
 
   if (input.metabolicRecovery) {

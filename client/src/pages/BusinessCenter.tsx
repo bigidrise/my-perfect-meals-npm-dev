@@ -62,7 +62,7 @@ const PROFESSIONAL_CERTS: {
 
 export default function BusinessCenter() {
   const [, setLocation] = useLocation();
-  const { t } = useTranslation("businessCenter");
+  const { t } = useTranslation();
   const { user } = useAuth();
   const isDesktop = useIsDesktop();
   // Business-only accounts are NOT ProCare practitioners — exclude from cert card

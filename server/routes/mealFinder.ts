@@ -115,11 +115,38 @@ router.post('/meal-finder', async (req, res) => {
     });
     console.log(`✅ [ROUTE CAP] ${rawResults.length} raw → ${results.length} capped (${seenRestaurants.size} restaurants)`);
 
+    // ── Unified Image Pipeline: attach permanent imageUrls to all meals ──────
+    // Meals from findMealsNearby don't carry imageUrls — generate them server-side
+    // so clients receive complete cards immediately (no shimmer, no second fetch).
+    let resultsWithImages = results;
+    if (results.length > 0) {
+      try {
+        const { generateMealImageUnified: _mfGenImg } = await import('../services/mealImageGenerator');
+        resultsWithImages = await Promise.all(
+          results.map(async (r: any) => {
+            if (!r.meal?.name || r.meal.imageUrl) return r; // skip if already has image
+            try {
+              const ingredients = (r.meal.ingredients || [])
+                .map((i: any) => i.name || i.item || '')
+                .filter(Boolean);
+              const imageUrl = await _mfGenImg(r.meal.name, ingredients, 'meal');
+              return { ...r, meal: { ...r.meal, imageUrl } };
+            } catch {
+              return r; // image failure is non-fatal
+            }
+          })
+        );
+      } catch {
+        // entire image generation pass failed — return without images
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     return res.status(200).json({
       success: true,
       query: mealQuery,
       zipCode,
-      results,
+      results: resultsWithImages,
       count: results.length,
       ...(results.length === 0 && {
         message: `No restaurants found serving "${mealQuery}" near ZIP ${zipCode}. Try a different search or ZIP code.`

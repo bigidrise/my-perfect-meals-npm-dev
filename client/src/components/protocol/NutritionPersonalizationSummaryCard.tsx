@@ -72,6 +72,10 @@ const PROTOCOL_COLORS: Record<string, ProtocolColor> = {
   "therapeutic-support":    { bg: "bg-violet-500/10",  border: "border-violet-500/25",  text: "text-violet-400"  },
   // Performance
   "performance-nutrition":  { bg: "bg-blue-500/10",    border: "border-blue-500/25",    text: "text-blue-400"    },
+  // Alpha-gal Syndrome — clinical allergy
+  "alpha-gal-syndrome":     { bg: "bg-red-500/10",     border: "border-red-500/25",     text: "text-red-400"     },
+  "alpha-gal syndrome":     { bg: "bg-red-500/10",     border: "border-red-500/25",     text: "text-red-400"     },
+  "alpha-gal":              { bg: "bg-red-500/10",     border: "border-red-500/25",     text: "text-red-400"     },
 };
 
 const DEFAULT_COLOR: ProtocolColor = { bg: "bg-orange-500/10", border: "border-orange-500/25", text: "text-orange-400" };
@@ -236,6 +240,44 @@ export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLo
 {t("carbCyclingActive")}
               </p>
               <p className="text-[11px] text-orange-300/70 mt-0.5">{t("carbCyclingDetail")}</p>
+            </div>
+          )}
+
+          {/* ── Alpha-gal Syndrome detail block ── */}
+          {data.alphaGal && (
+            <div className="bg-red-500/10 border border-red-500/25 rounded-xl px-3 py-2.5">
+              <p className="text-[11px] font-black uppercase tracking-widest text-red-400 mb-2">
+                Alpha-gal Protocol Active
+              </p>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-white/50 w-16 flex-shrink-0">Dairy</span>
+                  <span className={`text-[11px] font-semibold rounded-full px-2 py-0.5 ${
+                    data.alphaGal.dairyTolerance === "yes"
+                      ? "text-green-300 bg-green-500/15 border border-green-500/25"
+                      : data.alphaGal.dairyTolerance === "no"
+                      ? "text-red-300 bg-red-500/15 border border-red-500/25"
+                      : "text-amber-300 bg-amber-500/15 border border-amber-500/25"
+                  }`}>
+                    {data.alphaGal.dairyTolerance === "yes" ? "Tolerated" : data.alphaGal.dairyTolerance === "no" ? "Avoided" : "Verify"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-white/50 w-16 flex-shrink-0">Gelatin</span>
+                  <span className={`text-[11px] font-semibold rounded-full px-2 py-0.5 ${
+                    data.alphaGal.gelatinRestriction === "yes"
+                      ? "text-red-300 bg-red-500/15 border border-red-500/25"
+                      : data.alphaGal.gelatinRestriction === "no"
+                      ? "text-green-300 bg-green-500/15 border border-green-500/25"
+                      : "text-amber-300 bg-amber-500/15 border border-amber-500/25"
+                  }`}>
+                    {data.alphaGal.gelatinRestriction === "yes" ? "Avoided" : data.alphaGal.gelatinRestriction === "no" ? "No restriction" : "Verify"}
+                  </span>
+                </div>
+                {!data.alphaGal.profileComplete && (
+                  <p className="text-[10px] text-amber-400/80 mt-1">⚠ Profile incomplete — update in Edit Profile for full protection</p>
+                )}
+              </div>
             </div>
           )}
 

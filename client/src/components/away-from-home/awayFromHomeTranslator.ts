@@ -47,6 +47,17 @@ export interface LegacyMeal {
     modify: string[];
     swap: string[];
   };
+  /**
+   * Server-computed medical compatibility badges from getMedicalBadges().
+   * Present on AI-generated restaurant meals; absent on catalog-based meals.
+   * Mapped directly into protocol.badges so AwayFromHomeMealCard can render them.
+   */
+  medicalBadges?: Array<{
+    condition: string;
+    compatible: boolean;
+    reason: string;
+    color: string;
+  }>;
 }
 
 export interface LegacyRestaurantInfo {
@@ -141,8 +152,13 @@ export function fromLegacyRecommendation(
     },
 
     // ── Protocol alignment ───────────────────────────────────────────────────
+    // medicalBadges from the AI generator (getMedicalBadges) flow directly into
+    // protocol.badges so AwayFromHomeMealCard renders them as BadgePill entries.
+    // Alpha-gal generates red (hard conflict) and yellow (verify with restaurant)
+    // badges server-side; these are the authoritative safety assessment.
     protocol: {
       alignmentSummary: reason,
+      badges: meal.medicalBadges ?? [],
     },
   };
 }
