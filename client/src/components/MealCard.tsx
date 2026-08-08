@@ -1,7 +1,8 @@
 // client/src/components/MealCard.tsx
 import * as React from "react";
 import { getMealFallbackImage } from "@/lib/mealFallbackImage";
-import { BarChart3 } from "lucide-react";
+import { BarChart3, Loader2 } from "lucide-react";
+import { useTranslatedMeal } from "@/hooks/useTranslatedMeal";
 import { getClinicalCoachingLine } from "@/utils/clinicalCoachingLine";
 import { generateMedicalBadges, getUserMedicalProfile, type MedicalBadge } from "@/utils/medicalBadges";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
@@ -23,9 +24,14 @@ import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import ProtocolVisibilityPanel from "@/components/ProtocolVisibilityPanel";
 import { useAuth } from "@/contexts/AuthContext";
 
+// UUID v4 guard — used to validate savedMealId before hitting the translation endpoint
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 // Keep your Meal type colocated here (WeeklyMealBoard imports from this file)
 export type Meal = {
   id: string;
+  /** Saved-meal UUID — present when the meal was added to the board from Favorites */
+  savedMealId?: string;
   title?: string;
   name?: string;
   description?: string;
@@ -152,6 +158,35 @@ export function MealCard({
     setInstructionsExpanded(false);
     setActiveStep(null);
   }, [meal.id]);
+
+  // Translation — fires when savedMealId is a valid UUID; falls back to meal.id for
+  // saved meals that were added to the board before savedMealId was introduced.
+  const _validSavedMealId =
+    (meal.savedMealId && UUID_RE.test(meal.savedMealId)) ? meal.savedMealId :
+    (meal.id && UUID_RE.test(meal.id)) ? meal.id :
+    "";
+  const { data: translation, isFetching: isTranslating } = useTranslatedMeal(
+    _validSavedMealId,
+    Boolean(_validSavedMealId)
+  );
+
+  // Sync translation into the existing translatedContent state; amounts/units/nutrition stay canonical
+  React.useEffect(() => {
+    if (!translation) return;
+    setTranslatedContent({
+      name: translation.translatedName,
+      description: translation.translatedDescription ?? undefined,
+      ingredients: translation.translatedIngredients
+        ? (meal.ingredients ?? []).map((orig: any, i: number) => {
+            const tx = translation.translatedIngredients![i];
+            if (!tx) return orig;
+            if (typeof orig === "string") return tx.item;
+            return { ...orig, item: tx.item ?? orig.item, notes: tx.notes ?? orig.notes };
+          })
+        : undefined,
+      instructions: translation.translatedInstructions ?? undefined,
+    });
+  }, [translation]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const title = meal.title || meal.name || "Meal";
   const displayTitle = translatedContent.name ?? title;
@@ -397,7 +432,10 @@ export function MealCard({
         {/* Ingredients - Expandable */}
         {Array.isArray(displayIngredients) && displayIngredients.length > 0 && (
           <div className="mt-3 space-y-2">
-            <h4 className="text-sm font-semibold text-white">Ingredients:</h4>
+            <h4 className="text-sm font-semibold text-white flex items-center gap-1.5">
+              Ingredients:
+              {isTranslating && <Loader2 className="h-3 w-3 animate-spin text-white/40" />}
+            </h4>
             <ul className="text-xs text-white/80 space-y-1">
               {(ingredientsExpanded ? displayIngredients : displayIngredients.slice(0, 4)).map((ing: any, i: number) => {
                 if (typeof ing === "string") {

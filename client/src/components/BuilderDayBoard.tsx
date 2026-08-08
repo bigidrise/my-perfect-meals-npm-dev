@@ -2,11 +2,13 @@
 import React, { useEffect, useMemo, useState, useImperativeHandle, forwardRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Plus, BarChart3, ShoppingCart, ChevronLeft, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { MacroBridgeFooter } from "@/components/biometrics/MacroBridgeFooter";
 import { get, post, patch } from "@/lib/api";
 import TrashButton from "@/components/ui/TrashButton";
+import MealCardFull, { type Meal as McfMeal } from "@/components/MealCardFull";
 
 /** ---------- Types ---------- */
 type Meal = {
@@ -131,6 +133,30 @@ async function sendDayToShopping(day: PlanDay) {
   return items.length;
 }
 
+// ─── Adapter: BuilderDayBoard Meal → MealCardFull Meal ───────────────────────
+function toMcfMeal(m: Meal): McfMeal {
+  return {
+    id: m.id,
+    name: m.name,
+    ingredients: (m.ingredients ?? []).map((ing) => {
+      if (typeof ing === "string") return { item: ing, amount: 1, unit: "" };
+      return {
+        item: ing.item || ing.name || "",
+        amount: Number(ing.amount ?? ing.quantity ?? 1),
+        unit: ing.unit ?? "",
+      };
+    }),
+    instructions: m.instructions ?? [],
+    nutrition: {
+      calories: m.nutrition?.calories ?? 0,
+      protein_g: m.nutrition?.protein ?? 0,
+      carbs_g: m.nutrition?.carbs ?? 0,
+      fat_g: m.nutrition?.fat ?? 0,
+    },
+    servings: m.servings ?? 1,
+  };
+}
+
 /** ---------- Small meal chip ---------- */
 function MealChip({
   meal,
@@ -139,29 +165,49 @@ function MealChip({
   meal: Meal;
   onDelete?: () => void;
 }) {
+  const [sheetOpen, setSheetOpen] = useState(false);
+
   return (
-    <div className="flex items-center justify-between rounded-lg border border-white/15 bg-white/5 px-3 py-2">
-      <div className="min-w-0">
-        <div className="text-sm text-white/90 truncate">{meal.name || "Meal"}</div>
-        {meal.nutrition && (
-          <div className="text-[11px] text-white/60">
-            {meal.nutrition.calories ?? 0} kcal • {meal.nutrition.protein ?? 0}g P •{" "}
-            {meal.nutrition.carbs ?? 0}g C • {meal.nutrition.fat ?? 0}g F
-          </div>
+    <>
+      <div className="flex items-center justify-between rounded-lg border border-white/15 bg-white/5 px-3 py-2">
+        <button
+          className="min-w-0 flex-1 text-left"
+          onClick={() => setSheetOpen(true)}
+        >
+          <div className="text-sm text-white/90 truncate">{meal.name || "Meal"}</div>
+          {meal.nutrition && (
+            <div className="text-[11px] text-white/60">
+              {meal.nutrition.calories ?? 0} kcal • {meal.nutrition.protein ?? 0}g P •{" "}
+              {meal.nutrition.carbs ?? 0}g C • {meal.nutrition.fat ?? 0}g F
+            </div>
+          )}
+        </button>
+        {onDelete && (
+          <TrashButton
+            size="sm"
+            onClick={onDelete}
+            ariaLabel="Remove meal"
+            title="Remove meal"
+            confirm
+            confirmMessage="Remove this meal from the plan?"
+            className="ml-2"
+          />
         )}
       </div>
-      {onDelete && (
-        <TrashButton
-          size="sm"
-          onClick={onDelete}
-          ariaLabel="Remove meal"
-          title="Remove meal"
-          confirm
-          confirmMessage="Remove this meal from the plan?"
-          className="ml-2"
-        />
-      )}
-    </div>
+
+      {/* Full meal detail sheet — translation activates when mealId is a valid UUID */}
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto">
+          <SheetHeader className="mb-4">
+            <SheetTitle className="text-left">{meal.name || "Meal Details"}</SheetTitle>
+          </SheetHeader>
+          <MealCardFull
+            meal={toMcfMeal(meal)}
+            mealId={meal.id}
+          />
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }
 

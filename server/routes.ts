@@ -7583,7 +7583,7 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   //   → Returns cached translation (instant) or generates + caches on first call.
   //   → 204 when locale is English — no translation needed.
   //   → 403 if the meal belongs to another user.
-  app.get("/api/saved-meals/:id/translation", requireAuth, async (req, res) => {
+  app.get("/api/saved-meals/:id/translation", requireAuth, requireEssentialAccess, async (req, res) => {
     const locale = ((req.query.locale as string) || "").split("-")[0].toLowerCase();
     if (!locale || locale === "en") return res.status(204).send();
 

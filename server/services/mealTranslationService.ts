@@ -126,11 +126,16 @@ STRICT RULES — follow all of these without exception:
 • Return ONLY valid JSON with the same top-level keys as the input. No extra keys. No explanation.
 • Translate to: ${languageName}`;
 
+  // ── Output-length bound: 4× the source token estimate, capped at 2048 ────
+  const sourceTokenEstimate = Math.ceil(JSON.stringify(payload).length / 4);
+  const maxTokens = Math.min(sourceTokenEstimate * 4, 2048);
+
   let translated: Record<string, any> = {};
   try {
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       temperature: 0.1,
+      max_tokens: maxTokens,
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: systemPrompt },
@@ -151,13 +156,26 @@ STRICT RULES — follow all of these without exception:
     };
   }
 
+  // ── Response-shape validation: reject arrays that grew or shrank ─────────
+  const rawIngredients = Array.isArray(translated.ingredients) ? translated.ingredients : null;
+  const validatedIngredients = rawIngredients && rawIngredients.length === ingredients.length
+    ? rawIngredients
+    : ingredients.length
+      ? ingredients   // fall back to originals if count drifted
+      : null;
+
+  const rawInstructions = Array.isArray(translated.instructions) ? translated.instructions : null;
+  const validatedInstructions = rawInstructions && rawInstructions.length === instructions.length
+    ? rawInstructions
+    : instructions.length
+      ? instructions  // fall back to originals if count drifted
+      : null;
+
   const result: MealTranslation = {
     translatedName: translated.name || translated.title || title,
     translatedDescription: translated.description ?? null,
-    translatedIngredients: Array.isArray(translated.ingredients) ? translated.ingredients : null,
-    translatedInstructions: Array.isArray(translated.instructions)
-      ? translated.instructions
-      : null,
+    translatedIngredients: validatedIngredients,
+    translatedInstructions: validatedInstructions,
     locale,
     fromCache: false,
   };
