@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
+import { isPermanentImageUrl } from "@/lib/imageUrlUtils";
 
 export interface HasMealImage {
   id: string;
@@ -12,12 +13,23 @@ export interface HasMealImage {
 const IMAGE_CACHE_PREFIX = "mpm.imgcache.";
 
 /**
- * Persist an imageUrl to localStorage.  Only writes stable https:// URLs —
- * base64 data: URLs are ~1–2 MB each and would exhaust the 5 MB localStorage
- * quota within 3–5 images, silently breaking every other cache in the app.
+ * Persist an imageUrl to localStorage.
+ *
+ * Writes permanent URLs — both relative MPM paths (/public-objects/, /images/)
+ * and absolute S3/CDN https:// URLs.  Skips base64 data: URIs (~1–2 MB each,
+ * exhaust the 5 MB quota) and temporary OpenAI CDN URLs (expire in ~1 hour).
+ *
+ * Previous behaviour only saved https:// URLs, silently dropping permanent
+ * /public-objects/ paths and causing a fresh image request on every mount.
  */
 function persistImageUrl(mealId: string, imageUrl: string) {
-  if (!imageUrl.startsWith("https://")) return;
+  const isPermanentRelative =
+    imageUrl.startsWith('/public-objects/') ||
+    imageUrl.startsWith('/images/') ||
+    imageUrl.startsWith('/assets/');
+  const isPermanentAbsolute =
+    imageUrl.startsWith('https://') && !imageUrl.startsWith('data:');
+  if (!isPermanentRelative && !isPermanentAbsolute) return;
   try { localStorage.setItem(IMAGE_CACHE_PREFIX + mealId, imageUrl); } catch {}
 }
 
@@ -73,7 +85,15 @@ export function useMealImages<T extends HasMealImage>(
                 // so the reactive cache-save useEffect doesn't race with navigation.
                 persistImageUrl(meal.id, data.imageUrl);
                 setMeals((prev) =>
-                  prev.map((m) => m.id === meal.id ? { ...m, imageUrl: data.imageUrl } : m)
+                  prev.map((m) => {
+                    if (m.id !== meal.id) return m;
+                    // Phase 2 guard: don't overwrite an already-permanent image with a
+                    // new fetch result. If the meal already has a /public-objects/ URL
+                    // (e.g. from a prior session), keep it — the new fetch would just
+                    // produce the same image again and cause an unnecessary re-render.
+                    if (isPermanentImageUrl(m.imageUrl)) return m;
+                    return { ...m, imageUrl: data.imageUrl };
+                  })
                 );
               }
             } catch {

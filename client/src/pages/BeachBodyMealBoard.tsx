@@ -27,6 +27,7 @@ import {
   getMealImageUrl,
   mergeImageUrlsOnly,
 } from "@/lib/boardApi";
+import { shouldProtectExistingImage } from "@/lib/imageUrlUtils";
 import { useChefMealImage } from "@/hooks/useChefMealImage";
 import { duplicateAcrossWeeks } from "@/utils/crossWeekDuplicate";
 import { AddOwnMealButton } from "@/components/pickers/AddOwnMealButton";
@@ -482,6 +483,24 @@ export default function BeachBodyMealBoard() {
     meal: any | null;
   }>({ isOpen: false, meal: null });
 
+  // Clinical protocol indicator state — populated from labs API for dot grid
+  const [scConditions, setScConditions] = useState<string[]>([]);
+  const [thyroidFromSpecialtyCondition, setThyroidFromSpecialtyCondition] = useState(false);
+  useEffect(() => {
+    if (!effectiveUserId) return;
+    apiRequest(`/api/biometrics/labs/${effectiveUserId}`)
+      .then((data: any) => {
+        const scArr: string[] = data?.specialtyConditions?.length
+          ? data.specialtyConditions
+          : data?.specialtyCondition ? [data.specialtyCondition] : [];
+        setScConditions(scArr);
+        if (scArr.includes('thyroid-support') || data?.specialtyCondition === 'thyroid-support') {
+          setThyroidFromSpecialtyCondition(true);
+        }
+      })
+      .catch(() => {});
+  }, [effectiveUserId]);
+
   // Track current dynamic slot for meal additions (legacy, kept for premade picker compat)
   const [currentDynamicSlot, setCurrentDynamicSlot] = useState<number | null>(
     null,
@@ -802,7 +821,7 @@ export default function BeachBodyMealBoard() {
         fetchImageForMeal(transformedMeal, slot, (mealId, imageUrl) => {
           setBoard(prev => {
             if (!prev) return prev;
-            const cur = getMealImageUrl(prev, mealId); if (cur === imageUrl) return prev; if (cur && (cur.startsWith('/public-objects/') || cur.includes('amazonaws.com'))) return prev;
+            const cur = getMealImageUrl(prev, mealId); if (shouldProtectExistingImage(cur, imageUrl)) return prev;
             const updated = updateMealImageInBoard(prev, mealId, imageUrl);
             saveBoard(updated).catch(() => {});
             return updated;
@@ -875,7 +894,7 @@ export default function BeachBodyMealBoard() {
         fetchImageForMeal({ id: snack.id, name: snack.name }, 'snacks', (mealId, imageUrl) => {
           setBoard(prev => {
             if (!prev) return prev;
-            const cur = getMealImageUrl(prev, mealId); if (cur === imageUrl) return prev; if (cur && (cur.startsWith('/public-objects/') || cur.includes('amazonaws.com'))) return prev;
+            const cur = getMealImageUrl(prev, mealId); if (shouldProtectExistingImage(cur, imageUrl)) return prev;
             return updateMealImageInBoard(prev, mealId, imageUrl);
           });
         });
@@ -1314,6 +1333,52 @@ export default function BeachBodyMealBoard() {
                 </div>
               )}
 
+            {/* ROW 4.5: Active Clinical Supports */}
+            {scConditions.length > 0 && (
+              <div className="flex justify-center">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 rounded-lg bg-zinc-800/50 text-xs">
+                  <span className="font-medium text-white/70">Active Clinical Supports:</span>
+                  {[
+                    { key: "anti-inflammatory", label: "Anti-Inflammatory", isActive: scConditions.includes('anti-inflammatory') || scConditions.includes('anti_inflammatory'),                                                                         activeColor: "text-green-400",   dotColor: "bg-green-400",   dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"   },
+                    { key: "cardiac",           label: "Cardiac Health",    isActive: scConditions.includes('cardiac') || scConditions.includes('heart-disease') || scConditions.includes('hypertension') || scConditions.includes('heart-failure'),    activeColor: "text-red-400",     dotColor: "bg-red-400",     dotGlow: "shadow-[0_0_4px_rgba(248,113,113,0.8)]"  },
+                    { key: "kidney-disease",    label: "Kidney Disease",    isActive: scConditions.includes('kidney-disease') || scConditions.includes('renal') || scConditions.includes('ckd'),                                                        activeColor: "text-sky-400",     dotColor: "bg-sky-400",     dotGlow: "shadow-[0_0_4px_rgba(56,189,248,0.8)]"   },
+                    { key: "liver-support",     label: "Liver Support",     isActive: scConditions.includes('liver-support'),                                                                                                                            activeColor: "text-emerald-400", dotColor: "bg-emerald-400", dotGlow: "shadow-[0_0_4px_rgba(52,211,153,0.8)]"   },
+                    { key: "liver-disease",     label: "Liver Disease",     isActive: scConditions.includes('liver-disease') || scConditions.includes('nafld'),                                                                                          activeColor: "text-amber-400",   dotColor: "bg-amber-400",   dotGlow: "shadow-[0_0_4px_rgba(251,191,36,0.8)]"   },
+                    { key: "oncology-support",  label: "Oncology Support",  isActive: scConditions.includes('oncology-support') || scConditions.includes('oncology') || scConditions.includes('cancer'),                                                activeColor: "text-pink-400",    dotColor: "bg-pink-400",    dotGlow: "shadow-[0_0_4px_rgba(244,114,182,0.9)]"  },
+                    { key: "thyroid-support",   label: "Thyroid Support",   isActive: thyroidFromSpecialtyCondition,                                                                                                                                     activeColor: "text-teal-400",    dotColor: "bg-teal-400",    dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"   },
+                    { key: "alpha-gal-syndrome",label: "Alpha-gal Syndrome",isActive: scConditions.includes('alpha-gal-syndrome') || scConditions.includes('alpha-gal') || scConditions.includes('alpha-gal syndrome'),                                activeColor: "text-orange-400",  dotColor: "bg-orange-400",  dotGlow: "shadow-[0_0_4px_rgba(251,146,60,0.8)]"   },
+                  ].map(({ key, label, isActive, activeColor, dotColor, dotGlow }) => (
+                    <span key={key} className={`flex items-center gap-1 ${isActive ? `${activeColor} font-semibold` : "text-white/25"}`}>
+                      <span className={`inline-block w-1.5 h-1.5 rounded-full ${isActive ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
+                      {label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ROW 4.6: Hormonal & Metabolic */}
+            {scConditions.length > 0 && (
+              <div className="flex justify-center">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 rounded-lg bg-zinc-800/50 text-xs">
+                  <span className="font-medium text-white/70">Hormonal & Metabolic:</span>
+                  {[
+                    { key: "hashimotos",         label: "Hashimoto's",        activeColor: "text-teal-300",   dotColor: "bg-teal-300",   dotGlow: "shadow-[0_0_4px_rgba(94,234,212,0.9)]"  },
+                    { key: "hypothyroid",        label: "Hypothyroid",        activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
+                    { key: "hyperthyroid",       label: "Hyperthyroid",       activeColor: "text-cyan-400",   dotColor: "bg-cyan-400",   dotGlow: "shadow-[0_0_4px_rgba(34,211,238,0.9)]"  },
+                    { key: "menopause",          label: "Menopause",          activeColor: "text-violet-400", dotColor: "bg-violet-400", dotGlow: "shadow-[0_0_4px_rgba(167,139,250,0.9)]" },
+                    { key: "perimenopause",      label: "Perimenopause",      activeColor: "text-purple-400", dotColor: "bg-purple-400", dotGlow: "shadow-[0_0_4px_rgba(192,132,252,0.9)]" },
+                    { key: "metabolic-recovery", label: "Metabolic Recovery", activeColor: "text-amber-400",  dotColor: "bg-amber-400",  dotGlow: "shadow-[0_0_4px_rgba(251,191,36,0.8)]"  },
+                  ].map(({ key, label, activeColor, dotColor, dotGlow }) => (
+                    <span key={key} className={`flex items-center gap-1 ${scConditions.includes(key) ? `${activeColor} font-semibold` : "text-white/25"}`}>
+                      <span className={`inline-block w-1.5 h-1.5 rounded-full ${scConditions.includes(key) ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
+                      {label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* ROW 5: Daily Macro Totals vs Targets */}
             {FEATURES.dayPlanning === "alpha" && activeDayISO && (() => {
               const resolved = nutritionTargets;
@@ -1442,7 +1507,7 @@ export default function BeachBodyMealBoard() {
                               setSnackCreatorOpen(true);
                             }}
                             onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6", meal)}
-                            onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; const cur = getMealImageUrl(prev, mealId); if (cur === imageUrl) return prev; if (cur && (cur.startsWith('/public-objects/') || cur.includes('amazonaws.com'))) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }}
+                            onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; const cur = getMealImageUrl(prev, mealId); if (shouldProtectExistingImage(cur, imageUrl)) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }}
                             onFavorites={goToFavorites}
                           />
                         </div>
@@ -1569,7 +1634,7 @@ export default function BeachBodyMealBoard() {
                         />
                       )}
 
-                      <AddOwnMealButton slot={key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6"} onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6", meal)} onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; const cur = getMealImageUrl(prev, mealId); if (cur === imageUrl) return prev; if (cur && (cur.startsWith('/public-objects/') || cur.includes('amazonaws.com'))) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }} variant="icon" />
+                      <AddOwnMealButton slot={key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6"} onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6", meal)} onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; const cur = getMealImageUrl(prev, mealId); if (shouldProtectExistingImage(cur, imageUrl)) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }} variant="icon" />
                     </div>
                   </div>
 
@@ -1649,7 +1714,7 @@ export default function BeachBodyMealBoard() {
                 onCreateWithChef={() => {}}
                 onSnackCreator={() => setSnackCreatorOpen(true)}
                 onSave={(meal) => quickAdd("snacks", meal)}
-                onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; const cur = getMealImageUrl(prev, mealId); if (cur === imageUrl) return prev; if (cur && (cur.startsWith('/public-objects/') || cur.includes('amazonaws.com'))) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }}
+                onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; const cur = getMealImageUrl(prev, mealId); if (shouldProtectExistingImage(cur, imageUrl)) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }}
                 onFavorites={goToFavorites}
               />
             </div>

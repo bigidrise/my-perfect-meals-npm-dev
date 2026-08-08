@@ -1248,8 +1248,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         );
         return { ...meal, complianceSection, dietClassification };
       });
+
+      // ── Unified Image Pipeline ──────────────────────────────────────────────
+      // Attach permanent imageUrls to every meal before responding so the client
+      // renders complete cards — no shimmer, no second round-trip.
+      // Promise.all generates all 3 images in parallel.
+      const { generateMealImageUnified: _fridgeGenImg } = await import('./services/mealImageGenerator');
+      const mealsForResponse = await Promise.all(
+        fridgeMealsWithCompliance.map(async (meal: any) => {
+          try {
+            const ingredients = (meal.ingredients ?? [])
+              .map((i: any) => i.name || i.item || '')
+              .filter(Boolean);
+            const imageUrl = await _fridgeGenImg(meal.name, ingredients, 'meal');
+            return { ...meal, imageUrl };
+          } catch {
+            return meal; // image failure is non-fatal — card still usable
+          }
+        })
+      );
+      // ───────────────────────────────────────────────────────────────────────
+
       res.json({
-        meals: fridgeMealsWithCompliance,
+        meals: mealsForResponse,
         quota: {
           remaining: quotaCheck.remaining,
           limit: quotaCheck.limit,

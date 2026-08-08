@@ -28,6 +28,7 @@ import {
   updateMealImageInBoard,
   getMealImageUrl,
 } from "@/lib/boardApi";
+import { shouldProtectExistingImage } from "@/lib/imageUrlUtils";
 import { useChefMealImage } from "@/hooks/useChefMealImage";
 import { duplicateAcrossWeeks } from "@/utils/crossWeekDuplicate";
 import { MealPickerDrawer } from "@/components/pickers/MealPickerDrawer";
@@ -113,6 +114,7 @@ import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import { PillButton } from "@/components/ui/pill-button";
 import { BuilderHeader } from "@/components/pro/BuilderHeader";
+import { getBuilderProtocolBadges } from "@/lib/nutritionPersonalization";
 
 import type { ClinicalMode } from "../../../../shared/schema/weeklyBoard";
 import { resolveClinicalModeFromFlags } from "@shared/clinical/clinicalModeResolver";
@@ -267,9 +269,11 @@ export default function AntiInflammatoryMenuBuilder() {
         // User self-selected specialty condition — higher priority than lab-derived signal.
         // Check BOTH specialtyCondition (singular) and specialtyConditions (array) so that
         // lab-based thyroid writes (which populate both fields) always light the indicator.
-        const scArr: string[] =
-          (data?.specialtyConditions as string[]) ??
-          (data?.specialtyCondition ? [data.specialtyCondition] : []);
+        // Use .length check (not ??) so an empty specialtyConditions array
+        // still falls through to the singular specialtyCondition field.
+        const scArr: string[] = (data?.specialtyConditions as string[])?.length
+          ? (data.specialtyConditions as string[])
+          : data?.specialtyCondition ? [data.specialtyCondition] : [];
         // Bridge: set thyroid modifier regardless of which field carried the value.
         if (
           data?.specialtyCondition === 'thyroid-support' ||
@@ -349,7 +353,22 @@ export default function AntiInflammatoryMenuBuilder() {
     .map((k) => DERIVED_BADGE_MAP[k])
     .filter((b): b is ProtocolBadge => !!b && b.label !== activePrimaryBadge?.label);
 
-  const hasClinicalBadges = !!(activePrimaryBadge || resolvedProtocol.modifierBadges.length > 0 || labDerivedConditions.length > 0);
+  // Supplemental shared badges: conditions in the user's profile that are NOT already
+  // represented by the bespoke Anti-Inflammatory badge system above.
+  // This adds alpha-gal, thyroid, GLP-1, pregnancy, menopause, etc. automatically
+  // from the central PROTOCOL_MAP without touching each condition individually.
+  const BESPOKE_COVERED_KEYS = new Set([
+    'cardiac', 'heart disease', 'heart-disease', 'hypertension', 'high blood pressure',
+    'renal', 'kidney disease', 'kidney-disease', 'ckd',
+    'liver-disease', 'liver-support', 'nafld',
+    'oncology', 'cancer', 'oncology-support',
+    'anti-inflammatory', 'anti_inflammatory', 'arthritis', 'rheumatoid arthritis', 'autoimmune',
+  ]);
+  const supplementalBadges = getBuilderProtocolBadges({
+    specialtyConditions: scConditions.filter(sc => !BESPOKE_COVERED_KEYS.has(sc.toLowerCase())),
+  });
+
+  const hasClinicalBadges = !!(activePrimaryBadge || resolvedProtocol.modifierBadges.length > 0 || labDerivedConditions.length > 0 || supplementalBadges.length > 0);
   const contentPaddingTop = `calc(env(safe-area-inset-top, 0px) + ${
     proClientId
       ? (hasClinicalBadges ? '12rem' : '9rem')
@@ -581,7 +600,7 @@ export default function AntiInflammatoryMenuBuilder() {
           fetchImageForMeal({ id: snack.id, name: snack.name }, 'snacks', (mealId, imageUrl) => {
             setBoard(prev => {
               if (!prev) return prev;
-              const cur = getMealImageUrl(prev, mealId); if (cur === imageUrl) return prev; if (cur && (cur.startsWith('/public-objects/') || cur.includes('amazonaws.com'))) return prev;
+              const cur = getMealImageUrl(prev, mealId); if (shouldProtectExistingImage(cur, imageUrl)) return prev;
               const updated = updateMealImageInBoard(prev, mealId, imageUrl);
               saveBoard(updated).catch(() => {});
               return updated;
@@ -936,7 +955,7 @@ export default function AntiInflammatoryMenuBuilder() {
           fetchImageForMeal(transformedMeal, slot, (mealId, imageUrl) => {
             setBoard(prev => {
               if (!prev) return prev;
-              const cur = getMealImageUrl(prev, mealId); if (cur === imageUrl) return prev; if (cur && (cur.startsWith('/public-objects/') || cur.includes('amazonaws.com'))) return prev;
+              const cur = getMealImageUrl(prev, mealId); if (shouldProtectExistingImage(cur, imageUrl)) return prev;
               const updated = updateMealImageInBoard(prev, mealId, imageUrl);
               saveBoard(updated).catch(() => {});
               return updated;
@@ -1273,7 +1292,9 @@ export default function AntiInflammatoryMenuBuilder() {
         activePrimaryBadge,
         ...resolvedProtocol.modifierBadges,
         ...extraDerivedBadges,
-      ].filter((b): b is { label: string; cls: string } => !!b)}
+        ...supplementalBadges,
+      ].filter((b): b is { label: string; cls: string } => !!b)
+       .filter((b, i, arr) => arr.findIndex(x => x.label === b.label) === i)}
     />
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -1374,12 +1395,16 @@ export default function AntiInflammatoryMenuBuilder() {
                   { key: "liver-support",    label: "Liver Support",    activeColor: "text-emerald-400", dotColor: "bg-emerald-400", dotGlow: "shadow-[0_0_4px_rgba(52,211,153,0.8)]"  },
                   { key: "liver-disease",    label: "Liver Disease",    activeColor: "text-amber-400",   dotColor: "bg-amber-400",   dotGlow: "shadow-[0_0_4px_rgba(251,191,36,0.8)]"  },
                   { key: "oncology-support", label: "Oncology Support", activeColor: "text-pink-400",   dotColor: "bg-pink-400",   dotGlow: "shadow-[0_0_4px_rgba(244,114,182,0.9)]" },
-                  { key: "thyroid-support", label: "Thyroid Support",  activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
+                  { key: "thyroid-support",    label: "Thyroid Support",    activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
+                  { key: "alpha-gal-syndrome", label: "Alpha-gal Syndrome", activeColor: "text-orange-400", dotColor: "bg-orange-400", dotGlow: "shadow-[0_0_4px_rgba(251,146,60,0.8)]"   },
                 ].map(({ key, label, activeColor, dotColor, dotGlow }) => {
-                  // For thyroid-support: active when specialtyCondition is thyroid-support
-                  // (clinicalModeState stays 'anti-inflammatory' since thyroid is additive)
+                  // Special isActive rules for additive conditions:
+                  //   thyroid-support — active via modifierBadges (additive to anti-inflammatory primary)
+                  //   alpha-gal-syndrome — active via specialtyConditions (always additive, never a primary mode)
                   const isActive = key === "thyroid-support"
                     ? (resolvedProtocol.modifierBadges ?? []).some((b: { label: string }) => b.label === "Thyroid Support")
+                    : key === "alpha-gal-syndrome"
+                    ? scConditions.includes('alpha-gal-syndrome') || scConditions.includes('alpha-gal') || scConditions.includes('alpha-gal syndrome')
                     : clinicalModeState === key || labDerivedConditions.includes(key);
                   return (
                     <span
@@ -1485,7 +1510,7 @@ export default function AntiInflammatoryMenuBuilder() {
                             }}
                             onSnackCreator={() => setSnackCreatorOpen(true)}
                             onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6", meal)}
-                            onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; const cur = getMealImageUrl(prev, mealId); if (cur === imageUrl) return prev; if (cur && (cur.startsWith('/public-objects/') || cur.includes('amazonaws.com'))) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }}
+                            onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; const cur = getMealImageUrl(prev, mealId); if (shouldProtectExistingImage(cur, imageUrl)) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }}
                             onFavorites={goToFavorites}
                             onLogSnack={() => {}}
                             showLogSnack={false}
@@ -1534,7 +1559,7 @@ export default function AntiInflammatoryMenuBuilder() {
                           onCreateWithChef={() => {}}
                           onSnackCreator={() => setSnackCreatorOpen(true)}
                           onSave={(meal) => quickAdd("snacks", meal)}
-                          onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; const cur = getMealImageUrl(prev, mealId); if (cur === imageUrl) return prev; if (cur && (cur.startsWith('/public-objects/') || cur.includes('amazonaws.com'))) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }}
+                          onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; const cur = getMealImageUrl(prev, mealId); if (shouldProtectExistingImage(cur, imageUrl)) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }}
                           onFavorites={goToFavorites}
                         />
                       </div>
@@ -1575,7 +1600,7 @@ export default function AntiInflammatoryMenuBuilder() {
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-white/90 text-lg font-medium">{label}</h2>
                     <div className="flex gap-2">
-                      <AddOwnMealButton slot={key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6"} onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6", meal)} onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; const cur = getMealImageUrl(prev, mealId); if (cur === imageUrl) return prev; if (cur && (cur.startsWith('/public-objects/') || cur.includes('amazonaws.com'))) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }} variant="icon" />
+                      <AddOwnMealButton slot={key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6"} onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6", meal)} onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; const cur = getMealImageUrl(prev, mealId); if (shouldProtectExistingImage(cur, imageUrl)) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }} variant="icon" />
                     </div>
                   </div>
                   <div className="space-y-3">
