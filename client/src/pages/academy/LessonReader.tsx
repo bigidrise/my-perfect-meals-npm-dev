@@ -658,6 +658,24 @@ export default function LessonReader() {
             <ArrowLeft className="h-4 w-4" />
             Academy
           </button>
+          {/* Previous lesson button — lets users navigate backwards between lessons */}
+          {(() => {
+            const curIdx = LESSONS_ORDER.indexOf(lessonId);
+            if (curIdx <= 0) return null;
+            const prevId = LESSONS_ORDER[curIdx - 1];
+            const prevLesson = getLessonById(prevId);
+            if (!prevLesson) return null;
+            return (
+              <button
+                onClick={() => setLocation(`/academy/platform-mastery/lesson/${prevId}`)}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white/6 text-white/50 text-xs font-medium active:scale-[0.95] transition-transform hover:text-white/70 flex-shrink-0"
+                title={`Back to Lesson ${prevLesson.lessonNumber}: ${prevLesson.title}`}
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                <span>L{prevLesson.lessonNumber}</span>
+              </button>
+            );
+          })()}
           <div className="flex-1 min-w-0">
             <p className="text-xs text-white/40 font-medium">
               Lesson {lesson.lessonNumber}
