@@ -415,7 +415,7 @@ export default function InspirationCaptureModal({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to save");
       // Mark this option as saved — stays on the 3-card view so the user can save others too
-      setSavedIndices(prev => [...new Set([...prev, selectedOptionIndex])]);
+      setSavedIndices(prev => Array.from(new Set([...prev, selectedOptionIndex])));
       toast({
         title: "Saved!",
         description: "Added to your Recipe Scan saves in Favorites.",

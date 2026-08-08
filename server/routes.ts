@@ -986,6 +986,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } catch { }
       }
 
+      // ── Unified Image Pipeline: attach permanent imageUrl before responding ──────
+      // All five meal builders (General Nutrition, Diabetic, GLP-1, Anti-Inflammatory,
+      // Performance) share this endpoint. Returning imageUrl here means the client
+      // renders a complete card in one round-trip — the `if (!transformedMeal.imageUrl)`
+      // guard in each builder skips the secondary useChefMealImage fetch automatically.
+      if (result.success && skipImage !== true) {
+        try {
+          const { generateMealImageUnified, normalizeMealTypeToSourceType } = await import('./services/mealImageGenerator');
+          const sourceType = normalizeMealTypeToSourceType(mealType || 'meal');
+
+          // Single-meal path — builders always use count=1; result.meal and result.meals[0] are the same object
+          if (result.meal && !(result.meal as any).imageUrl) {
+            const ingNames = (((result.meal as any).ingredients as any[]) || [])
+              .map((i: any) => (typeof i === 'string' ? i : i?.name || i?.item || ''))
+              .filter(Boolean);
+            try {
+              const imageUrl = await generateMealImageUnified((result.meal as any).name, ingNames, sourceType);
+              if (imageUrl) {
+                result.meal = { ...(result.meal as any), imageUrl } as any;
+                // Sync into meals array — useCreateWithChefRequest reads data.meals[0]
+                if ((result.meals as any)?.length) {
+                  result.meals = ((result.meals as any[]) || []).map((m: any, i: number) =>
+                    i === 0 ? { ...m, imageUrl } : m
+                  );
+                }
+              }
+            } catch { /* image failure non-fatal — meal still usable */ }
+          }
+
+          // Batch path (count > 1) — future-proof, not currently used by builders
+          if ((result.meals as any)?.length > 1) {
+            await Promise.all(
+              ((result.meals as any[]) || []).map(async (m: any, idx: number) => {
+                if (m.imageUrl) return;
+                const ingNames = (m.ingredients || [])
+                  .map((i: any) => (typeof i === 'string' ? i : i?.name || i?.item || ''))
+                  .filter(Boolean);
+                try {
+                  const imageUrl = await generateMealImageUnified(m.name, ingNames, sourceType);
+                  if (imageUrl) (result.meals as any)[idx] = { ...m, imageUrl };
+                } catch { /* image failure non-fatal */ }
+              })
+            );
+          }
+        } catch { /* image pipeline failure non-fatal — meal is still usable without image */ }
+      }
+      // ─────────────────────────────────────────────────────────────────────────────
+
       res.json(result);
 
     } catch (error: any) {
