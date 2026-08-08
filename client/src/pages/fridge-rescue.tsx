@@ -755,7 +755,7 @@ const FridgeRescuePage = () => {
         transition={{ duration: 0.6 }}
         className="min-h-screen pb-safe-nav"
         style={{
-          backgroundImage: "linear-gradient(rgba(0,0,0,0.44), rgba(0,0,0,0.40)), url('/images/fridge-rescue-bg_2.jpg')",
+          backgroundImage: "linear-gradient(rgba(0,0,0,0.50), rgba(0,0,0,0.44)), url('/images/fridge-rescue-bg.jpg')",
           backgroundSize: "cover",
           backgroundPosition: "center 20%",
         }}

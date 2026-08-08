@@ -107,6 +107,8 @@ function stageLabel(stage: string): string {
 // GET /conversation — load persisted conversation history
 router.get("/conversation", async (req, res) => {
     const userId = resolveUserId(req);
+
+    const history = await getConversation(userId);
   if (!userId) return res.status(401).json({ error: "Not authenticated" });
   const msgs = await getConversation(userId);
   return res.json({ messages: msgs });
@@ -117,32 +119,30 @@ router.patch("/conversation", async (req, res) => {
     const userId = resolveUserId(req);
   if (!userId) return res.status(401).json({ error: "Not authenticated" });
   const { messages } = req.body;
-  if (!Array.isArray(messages)) {
-    return res.status(400).json({ error: "messages array required" });
-  }
+  if (!Array.isArray(messages)) return res.status(400).json({ error: "messages array required" });
   try {
     await saveConversation(userId, messages);
-  } catch {
-    // non-fatal
-  }
-  return res.json({ ok: true });
+  } catch { /* non-fatal */ }
+  res.json({ ok: true });
 });
 
-// DELETE /conversation — clear conversation history
+// DELETE /conversation — clear conversation history ("Start Fresh")
 router.delete("/conversation", async (req, res) => {
-  const userId = resolveUserId(req);
+    const userId = resolveUserId(req);
   if (!userId) return res.status(401).json({ error: "Not authenticated" });
   try {
     await db.execute(sql`
       DELETE FROM pregnancy_conversations WHERE user_id = ${userId}
     `);
-  } catch { /* non-fatal */ }
+  } catch { /* non-fatal — table may not exist yet */ }
   res.json({ ok: true });
 });
 
 router.post("/ask", async (req, res) => {
   try {
     const userId = resolveUserId(req);
+
+    const history = await getConversation(userId);
     if (!userId) return res.status(401).json({ error: "Not authenticated" });
 
     const { message } = req.body;
@@ -154,6 +154,10 @@ router.post("/ask", async (req, res) => {
     const BILLING_ENFORCED = process.env.BILLING_ENFORCED === "true";
     if (BILLING_ENFORCED) {
       const authUser = (req as any).authUser ?? {};
+
+      const { planLookupKey, accessTier } = authUser;
+
+      const { planLookupKey, accessTier } = authUser;
       const { planLookupKey, accessTier } = authUser;
       // accessTier !== "PAID_FULL" → free/expired/trial — reject immediately
       if (accessTier !== "PAID_FULL") {
@@ -411,6 +415,10 @@ You MUST respond with a JSON object:
     });
 
     const raw = completion.choices[0]?.message?.content ?? "{}";
+
+    const raw = completion.choices[0]?.message?.content ?? "{}";
+
+    const raw = completion.choices[0]?.message?.content ?? "{}";
     let reply = "";
     let suggestedMealActions: { actionType: string; label: string; mealIdea: string }[] = [];
     try {
@@ -453,6 +461,8 @@ You MUST respond with a JSON object:
 router.post("/setup", async (req, res) => {
   try {
     const userId = resolveUserId(req);
+
+    const history = await getConversation(userId);
     if (!userId) return res.status(401).json({ error: "Not authenticated" });
     const {
       stage,
@@ -523,6 +533,8 @@ router.post("/setup", async (req, res) => {
 router.delete("/setup", async (req, res) => {
   try {
     const userId = resolveUserId(req);
+
+    const history = await getConversation(userId);
     if (!userId) return res.status(401).json({ error: "Not authenticated" });
     const [currentUser] = await db
       .select({ specialtyConditions: users.specialtyConditions })

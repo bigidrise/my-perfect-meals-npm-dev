@@ -60,9 +60,9 @@ export default function BeverageCreatorHub() {
       transition={{ duration: 0.6 }}
       className="min-h-screen pb-safe-nav"
       style={{
-        backgroundImage: "linear-gradient(rgba(0,0,0,0.44), rgba(0,0,0,0.40)), url('/images/beverage-hub-bg.jpg')",
+        backgroundImage: "linear-gradient(rgba(0,0,0,0.62), rgba(0,0,0,0.55)), url('/images/beverage-creator-bg.jpg')",
         backgroundSize: "cover",
-        backgroundPosition: "center 30%",
+        backgroundPosition: "center 40%",
       }}
     >
       <MobileHeaderGuard>
@@ -71,6 +71,12 @@ export default function BeverageCreatorHub() {
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
           <div className="px-8 py-3 flex items-center gap-3">
+            <button
+              onClick={() => setLocation("/lifestyle")}
+              className="p-2 rounded-lg bg-white/5 text-white/60 hover:text-white transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </button>
             <Wine className="h-6 w-6 text-blue-400" />
             <h1 className="text-lg font-bold text-white">Beverage Hub</h1>
           </div>
@@ -83,15 +89,26 @@ export default function BeverageCreatorHub() {
       >
         <div className="max-w-2xl mx-auto space-y-4">
 
-          {!isDesktop && (
-            <button
-              onClick={() => setLocation("/lifestyle")}
-              className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 transition-colors"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              <span className="text-sm font-medium">Back</span>
-            </button>
-          )}
+          {/* Hero Image */}
+          <div className="relative h-40 rounded-xl overflow-hidden">
+            <img
+              src="/images/beverage-hub-hero.png"
+              alt="Beverage Creator"
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.currentTarget.src =
+                  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='160'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%2360a5fa;stop-opacity:0.35' /%3E%3Cstop offset='100%25' style='stop-color:%238b5cf6;stop-opacity:0.35' /%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='400' height='160' fill='url(%23g)'/%3E%3C/svg%3E";
+              }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+            <div className="absolute bottom-3 left-3 right-3">
+              <div className="bg-black/55 backdrop-blur-sm rounded-xl px-3 py-2.5">
+                <p className="text-white/90 text-sm">
+                  Every drink — from daily wellness to elite performance.
+                </p>
+              </div>
+            </div>
+          </div>
 
           {/* Cards */}
           <div className="flex flex-col gap-3">
@@ -113,7 +130,7 @@ export default function BeverageCreatorHub() {
                   )}
 
                   <Card
-                    className={`relative cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-95 bg-black/10 backdrop-blur-lg border rounded-xl shadow-md overflow-hidden ${
+                    className={`relative cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-95 bg-black/30 backdrop-blur-lg border rounded-xl shadow-md overflow-hidden ${
                       card.featured
                         ? "border-blue-400/30 hover:shadow-[0_0_30px_rgba(96,165,250,0.4)] hover:border-blue-500/50"
                         : "border-white/10 hover:shadow-[0_0_30px_rgba(167,139,250,0.35)] hover:border-violet-500/50"
