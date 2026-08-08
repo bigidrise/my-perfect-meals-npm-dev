@@ -34,5 +34,11 @@ export interface NutritionPersonalizationSummary {
   conflictPolicy: string;
   hasAnyActiveProtocol: boolean;
   carbCycleActive: boolean;
+  /** Alpha-gal protocol detail — null if not active */
+  alphaGal: {
+    dairyTolerance: "yes" | "no" | "unsure";
+    gelatinRestriction: "yes" | "no" | "unsure";
+    profileComplete: boolean;
+  } | null;
   meta: { generatedAt: string };
 }

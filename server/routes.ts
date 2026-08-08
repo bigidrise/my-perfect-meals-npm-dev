@@ -2410,6 +2410,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         activeProtocolTrack: (user as any).activeProtocolTrack ?? null,
         weeklyTrainingSchedule: (user as any).weeklyTrainingSchedule ?? null,
         performanceProtocolConfig: (user as any).performanceProtocolConfig ?? null,
+        alphaGalProfile: (user as any).alphaGalProfile ?? null,
         // Trial period — expose to client so it can show a countdown banner
         trialEndsAt: user.trialEndsAt?.toISOString() ?? null,
         // Business sponsorship — from effective access (computed per-request, not cached)
@@ -2696,6 +2697,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("[thyroid-medication PATCH]", error);
       res.status(500).json({ error: "Failed to save thyroid medication" });
+    }
+  });
+
+  // PATCH /api/user/alpha-gal-profile
+  // Persists the user's Alpha-gal Syndrome clinical sub-profile (dairyTolerance,
+  // gelatinRestriction, severeReactionHistory, diagnosisStatus) to the alphaGalProfile JSONB column.
+  // Does NOT touch healthConditions — activation/deactivation is controlled via specialtyConditions.
+  // Profile data is preserved even when the condition is deactivated so the user doesn't lose
+  // their clinical answers if they accidentally uncheck Alpha-gal.
+  app.patch("/api/user/alpha-gal-profile", requireAuth, async (req: any, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.authUser.id;
+      const { profile } = req.body;
+
+      if (!profile || typeof profile !== "object") {
+        return res.status(400).json({ error: "profile object is required" });
+      }
+
+      const VALID_DIAGNOSIS = ["diagnosed", "being_evaluated", "no"];
+      const VALID_TOLERANCE = ["yes", "no", "unsure"];
+
+      const validProfile = {
+        diagnosisStatus: VALID_DIAGNOSIS.includes(profile.diagnosisStatus) ? profile.diagnosisStatus : "no",
+        dairyTolerance: VALID_TOLERANCE.includes(profile.dairyTolerance) ? profile.dairyTolerance : "unsure",
+        gelatinRestriction: VALID_TOLERANCE.includes(profile.gelatinRestriction) ? profile.gelatinRestriction : "unsure",
+        severeReactionHistory: VALID_TOLERANCE.includes(profile.severeReactionHistory) ? profile.severeReactionHistory : "unsure",
+        profileComplete: true,
+        activatedAt: typeof profile.activatedAt === "string" ? profile.activatedAt : new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      await db.update(users)
+        .set({ alphaGalProfile: validProfile } as any)
+        .where(eq(users.id, userId));
+
+      console.log(`[alpha-gal-profile] User ${userId} profile saved (diagnosis=${validProfile.diagnosisStatus})`);
+      res.json({ ok: true, alphaGalProfile: validProfile });
+    } catch (error: any) {
+      console.error("[alpha-gal-profile PATCH]", error);
+      res.status(500).json({ error: "Failed to save Alpha-gal profile" });
     }
   });
 

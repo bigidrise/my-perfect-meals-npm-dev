@@ -3,7 +3,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, CheckCircle2, User, Utensils, Shield, Lock, Unlock } from "lucide-react";
+import { ArrowLeft, CheckCircle2, User, Utensils, Shield, Lock, Unlock, AlertTriangle } from "lucide-react";
+import { AlphaGalProfileModal, type AlphaGalProfileData, type AlphaGalDraft, DEFAULT_ALPHA_GAL_DRAFT } from "@/components/AlphaGalProfileModal";
 import { SafetyPinSettings } from "@/components/SafetyPinSettings";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -288,6 +289,23 @@ export default function EditProfilePage() {
   const [thyroidType, setThyroidType] = useState<"hypothyroid" | "hyperthyroid" | "hashimotos" | null>(
     ((user as any)?.thyroidType as "hypothyroid" | "hyperthyroid" | "hashimotos" | null) ?? null
   );
+
+  // Alpha-gal Syndrome state
+  const [showAlphaGalModal, setShowAlphaGalModal] = useState(false);
+  const [alphaGalProfile, setAlphaGalProfile] = useState<AlphaGalProfileData | null>(
+    (user as any)?.alphaGalProfile ?? null
+  );
+  const [alphaGalDraft, setAlphaGalDraft] = useState<AlphaGalDraft>(
+    (user as any)?.alphaGalProfile
+      ? {
+          diagnosisStatus: (user as any).alphaGalProfile.diagnosisStatus ?? DEFAULT_ALPHA_GAL_DRAFT.diagnosisStatus,
+          dairyTolerance: (user as any).alphaGalProfile.dairyTolerance ?? DEFAULT_ALPHA_GAL_DRAFT.dairyTolerance,
+          gelatinRestriction: (user as any).alphaGalProfile.gelatinRestriction ?? DEFAULT_ALPHA_GAL_DRAFT.gelatinRestriction,
+          severeReactionHistory: (user as any).alphaGalProfile.severeReactionHistory ?? DEFAULT_ALPHA_GAL_DRAFT.severeReactionHistory,
+        }
+      : DEFAULT_ALPHA_GAL_DRAFT
+  );
+
   const [antiInflammatorySupport, setAntiInflammatorySupport] = useState(false);
 
   // Protocol Ownership Model — physician-set oncology context (read from server)
@@ -355,6 +373,20 @@ export default function EditProfilePage() {
     const mc = (user as any)?.medicalConditions as string[] | undefined;
     setGlp1Active(!!(mc?.includes("glp1")));
   }, [(user as any)?.medicalConditions]);
+
+  // Sync alphaGalProfile from user object — handles async load after refreshUser()
+  useEffect(() => {
+    const profile = (user as any)?.alphaGalProfile;
+    if (profile) {
+      setAlphaGalProfile(profile);
+      setAlphaGalDraft({
+        diagnosisStatus: profile.diagnosisStatus ?? DEFAULT_ALPHA_GAL_DRAFT.diagnosisStatus,
+        dairyTolerance: profile.dairyTolerance ?? DEFAULT_ALPHA_GAL_DRAFT.dairyTolerance,
+        gelatinRestriction: profile.gelatinRestriction ?? DEFAULT_ALPHA_GAL_DRAFT.gelatinRestriction,
+        severeReactionHistory: profile.severeReactionHistory ?? DEFAULT_ALPHA_GAL_DRAFT.severeReactionHistory,
+      });
+    }
+  }, [(user as any)?.alphaGalProfile]);
 
   // Load anti-inflammatory support preference from server (stored in app-preferences)
   useEffect(() => {
@@ -539,6 +571,19 @@ export default function EditProfilePage() {
           },
           credentials: "include",
           body: JSON.stringify({ thyroidType }),
+        }).catch(() => {});
+      }
+
+      // Save Alpha-gal profile if condition is active and profile data exists
+      if (specialtyConditions.includes("alpha-gal-syndrome") && alphaGalProfile) {
+        await fetch(apiUrl("/api/user/alpha-gal-profile"), {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            ...(authToken ? { "x-auth-token": authToken } : {}),
+          },
+          credentials: "include",
+          body: JSON.stringify({ profile: alphaGalProfile }),
         }).catch(() => {});
       }
 
@@ -1169,6 +1214,26 @@ export default function EditProfilePage() {
                   >
                     Metabolic Med Active
                   </PillButton>
+                  {/* Alpha-gal Syndrome — clinical allergy, handled separately from specialty conditions */}
+                  <PillButton
+                    active={specialtyConditions.includes("alpha-gal-syndrome")}
+                    onClick={() => {
+                      if (physicianLocked) return;
+                      if (specialtyConditions.includes("alpha-gal-syndrome")) {
+                        // Deactivate: remove from conditions.
+                        // Profile data is intentionally preserved in local state + DB
+                        // so it survives accidental unchecks and re-checks.
+                        setSpecialtyConditions(prev => prev.filter(c => c !== "alpha-gal-syndrome"));
+                      } else {
+                        setSpecialtyConditions(prev => [...prev, "alpha-gal-syndrome"]);
+                        // Always open modal when activating so user can verify/update details
+                        setShowAlphaGalModal(true);
+                      }
+                    }}
+                    className={physicianLocked ? "opacity-80 cursor-not-allowed" : ""}
+                  >
+                    🩸 Alpha-gal Syndrome
+                  </PillButton>
                   {(specialtyConditions.filter(c => !labDrivenConditions.includes(c)).length > 0 || glp1Active) && !physicianOncologyLocked && !physicianLocked && (
                     <PillButton
                       active={false}
@@ -1277,6 +1342,54 @@ export default function EditProfilePage() {
                         </p>
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {/* Alpha-gal Syndrome sub-panel */}
+                {specialtyConditions.includes("alpha-gal-syndrome") && (
+                  <div className="mt-3 rounded-xl border border-red-900/40 bg-red-950/20 p-3">
+                    <div className="flex items-start gap-2">
+                      <span className="text-red-400 text-base mt-0.5">🩸</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-red-300 text-xs font-semibold mb-1">Alpha-gal Syndrome — Clinical Allergy Protocol</p>
+                        <p className="text-white/70 text-xs leading-relaxed">
+                          Activates allergy-safe meal generation with mammalian meats (beef, pork, lamb), organ meats, and mammalian fats hard-blocked.
+                          Dairy and gelatin restrictions depend on your profile below. This is <span className="text-white font-medium">a clinical food allergy</span>, not a dietary preference.
+                        </p>
+                      </div>
+                    </div>
+                    {alphaGalProfile?.profileComplete ? (
+                      <div className="mt-3 flex items-center justify-between gap-2">
+                        <div className="flex items-center flex-wrap gap-x-1.5 gap-y-0.5">
+                          <span className="text-green-400 text-xs">✓</span>
+                          <span className="text-green-300 text-xs font-medium">Details saved</span>
+                          <span className="text-white/30 text-xs">·</span>
+                          <span className="text-white/50 text-xs">
+                            Dairy: {alphaGalProfile.dairyTolerance === "yes" ? "tolerated" : alphaGalProfile.dairyTolerance === "no" ? "avoided" : "verify"}
+                          </span>
+                          <span className="text-white/30 text-xs">·</span>
+                          <span className="text-white/50 text-xs">
+                            Gelatin: {alphaGalProfile.gelatinRestriction === "yes" ? "avoided" : alphaGalProfile.gelatinRestriction === "no" ? "no restriction" : "verify"}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setShowAlphaGalModal(true)}
+                          className="text-red-400 text-xs font-medium hover:text-red-300 flex-shrink-0"
+                        >
+                          Edit
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setShowAlphaGalModal(true)}
+                        className="mt-3 flex items-center gap-1.5 text-amber-400 text-xs font-medium hover:text-amber-300"
+                      >
+                        <AlertTriangle className="w-3 h-3" />
+                        Details incomplete — tap to complete
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -1894,6 +2007,16 @@ export default function EditProfilePage() {
           </div>
         </div>
       )}
+
+      {/* Alpha-gal Profile Modal — shared with onboarding */}
+      <AlphaGalProfileModal
+        open={showAlphaGalModal}
+        draft={alphaGalDraft}
+        onChange={setAlphaGalDraft}
+        onSave={(profile) => setAlphaGalProfile(profile)}
+        onClose={() => setShowAlphaGalModal(false)}
+        isUpdate={!!alphaGalProfile?.profileComplete}
+      />
     </div>
   );
 }
