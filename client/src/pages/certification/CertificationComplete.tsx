@@ -222,7 +222,7 @@ export default function CertificationComplete() {
           )}
           {!affiliate.rewardfulReferralUrl && (
             <p className="text-[11px] text-gray-500 leading-relaxed">
-              Check your email — Rewardful will send you an invitation to confirm your payout account.
+              Your referral link is being generated. Use the Affiliate Dashboard button below to open your portal directly — no email or verification code needed.
             </p>
           )}
         </div>
