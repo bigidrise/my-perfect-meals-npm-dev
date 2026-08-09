@@ -10,6 +10,7 @@ import {
   Loader2,
   X,
   GraduationCap,
+  RefreshCw,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
@@ -73,9 +74,31 @@ export default function PlatformMasteryDashboard() {
   const prog = status?.progress ?? {};
   const completedCount = LESSONS.filter((l) => getLessonStatus(prog, l.id) === "completed").length;
   const allDone = completedCount === LESSONS.length;
+  const allQuizzesPassed = LESSONS.every(
+    (l) => prog[`${l.id}-quiz`]?.status === "completed"
+  );
   const isCertified = status?.certStatus === "completed";
   const isCertTrack = status?.isCertificationTrack ?? false;
   const progressPct = Math.round((completedCount / LESSONS.length) * 100);
+
+  const [switchingToCert, setSwitchingToCert] = useState(false);
+
+  const handleSwitchToCertMode = async () => {
+    setSwitchingToCert(true);
+    try {
+      await apiRequest("/api/academy/platform-mastery/enroll", {
+        method: "POST",
+        body: JSON.stringify({ isCertificationTrack: true }),
+        headers: { "Content-Type": "application/json" },
+      });
+      await load();
+      setShowNameModal(true);
+    } catch {
+      // silently fail — user can try again
+    } finally {
+      setSwitchingToCert(false);
+    }
+  };
 
   const handleCompleteWithName = async () => {
     const fullName = `${certFirstName.trim()} ${certLastName.trim()}`.trim();
@@ -275,19 +298,42 @@ export default function PlatformMasteryDashboard() {
           </motion.button>
         )}
 
-        {/* Learning Mode completion message — no cert */}
+        {/* Learning Mode completion — all lessons done */}
         {!loading && !isCertTrack && allDone && !isCertified && (
           <motion.div
-            className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-center space-y-2"
+            className="rounded-2xl bg-emerald-500/10 border border-emerald-500/30 overflow-hidden"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
           >
-            <p className="text-sm font-semibold text-emerald-300">
-              All Lessons Complete!
-            </p>
-            <p className="text-xs text-white/50 leading-relaxed">
-              You've finished Platform Mastery in Learning Mode. To earn a certificate, re-enroll in Certification Mode.
-            </p>
+            <div className="p-4 text-center space-y-1">
+              <p className="text-sm font-semibold text-emerald-300">
+                All Lessons Complete!
+              </p>
+              <p className="text-xs text-white/50 leading-relaxed">
+                You finished Platform Mastery in Learning Mode.
+                {allQuizzesPassed
+                  ? " You've also passed all 9 quizzes — you're ready to claim your certificate."
+                  : " Learning Mode does not issue a certificate. To earn one, switch to Certification Mode and pass each quiz at 80%."}
+              </p>
+            </div>
+            {allQuizzesPassed && (
+              <div className="px-4 pb-4">
+                <button
+                  onClick={handleSwitchToCertMode}
+                  disabled={switchingToCert}
+                  className="w-full flex items-center justify-center gap-2 p-3.5 rounded-2xl bg-orange-600 text-white font-bold text-sm active:scale-[0.98] transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {switchingToCert ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                  {switchingToCert
+                    ? "Switching…"
+                    : "Switch to Certification Mode & Claim Certificate"}
+                </button>
+              </div>
+            )}
           </motion.div>
         )}
 
