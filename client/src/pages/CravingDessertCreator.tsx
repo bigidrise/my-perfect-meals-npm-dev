@@ -31,6 +31,7 @@ import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import PhaseGate from "@/components/PhaseGate";
 import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
+import AlphaGalBadge from "@/components/AlphaGalBadge";
 import TrashButton from "@/components/ui/TrashButton";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import ShareRecipeButton from "@/components/ShareRecipeButton";
@@ -1089,6 +1090,9 @@ export default function DessertCreator() {
                           Medical Safety
                         </h3>
                       </div>
+                      {generatedDessert.alphaGalBadge && (
+                        <AlphaGalBadge badge={generatedDessert.alphaGalBadge} />
+                      )}
                       <TrashButton
                         size="sm"
                         ariaLabel="Remove dessert"

@@ -7,6 +7,7 @@ import { eq, and } from "drizzle-orm";
 import crypto from "crypto";
 import OpenAI from "openai";
 import { loadUserProtocolEnvelope } from "../services/protocolEnvelope";
+import { computeAlphaGalBadge } from "../services/medicalBadges";
 import { processMealImageForSave } from "../services/imageLifecycle";
 import { generateMealImageUnified } from "../services/mealImageGenerator";
 
@@ -248,6 +249,19 @@ router.post(
                   : "Starchy carbohydrate choices were reduced to fit today's remaining budget."}`
               : null,
           };
+        }
+
+        // Alpha-gal badge — server-evaluated per option so the client never
+        // independently decides what is or isn't safe for this condition.
+        const agCtx = (envelope as any).alphaGalContext;
+        if (agCtx?.active) {
+          for (const option of mealOptions) {
+            const ingText = ((option.ingredients ?? []) as any[])
+              .map((i: any) => (i.name || i.item || "").toLowerCase())
+              .join(" ");
+            const fullText = `${option.name || option.title || ""} ${option.description || ""} ${ingText}`;
+            option.alphaGalBadge = computeAlphaGalBadge(fullText, ingText.split(/\s+/), true);
+          }
         }
       } catch {
         // Non-blocking — ndeSummary stays null

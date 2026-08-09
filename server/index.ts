@@ -306,8 +306,11 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
 });
 
 // ---------- Static Files ----------
-// Serve static files from public directory BEFORE API routes
-app.use(express.static(path.join(import.meta.dirname, "../public")));
+// Serve static files from client/public — the same directory Vite copies into
+// client/dist/ at build time. This ensures dev and prod resolve images from
+// the same canonical location. Root public/ is intentionally NOT served here;
+// add new images to client/public/images/ so they reach production.
+app.use(express.static(path.join(import.meta.dirname, "../client/public")));
 
 // Object Storage route is now in routes.ts with proper 503 handling
 

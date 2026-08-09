@@ -16,6 +16,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { PillButton } from "@/components/ui/pill-button";
+import AlphaGalBadge from "@/components/AlphaGalBadge";
 import { CuisineOverrideControl } from "@/components/ui/CuisineOverrideControl";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
@@ -109,11 +110,11 @@ export default function InspirationCaptureModal({
       openCopilot();
       setTimeout(() => {
         setLastResponse({
-          title: "Recipe Scan",
+          title: "Recipe Maker",
           description:
-            "Scan any meal idea — camera, voice, or text — and we'll personalize it for you.",
+            "See it. Say it. Send it. We'll make it yours.",
           spokenText:
-            "Recipe Scan is one of the most powerful tools in the app, and it works in a way that feels almost automatic. Here is the idea: you see food somewhere — on your phone screen, in a cookbook, on a restaurant menu, or even in your imagination — and instead of bookmarking it and forgetting it, you bring it directly into My Perfect Meals and let the system make it yours. You have four ways to do this. Choose Photo is probably how most people will use this feature — you pick a screenshot, a saved photo, or any food image from your camera roll or gallery. That covers TikTok screenshots, Instagram saves, Pinterest boards, Facebook recipes, anything you have already captured on your device. Camera opens your device camera live, so you can point it at a cookbook, a restaurant menu, a food package, or another screen and take the photo right there. Speak lets you describe a meal out loud in plain language, exactly the way you would tell a friend about something you saw. Type lets you paste a description or write out a meal idea in your own words. Once you submit, the system automatically applies your entire nutritional profile — your macro targets, allergies, medical conditions, dietary identity, every protocol from your onboarding — and generates a completely personalized version of that meal.",
+            "Recipe Maker is one of the most powerful tools in the app. The idea is simple: you see food somewhere — a TikTok, an Instagram save, a cookbook, a menu, or even just something in your imagination — and instead of letting that moment pass, you bring it here and we build it for you. You have four ways to bring in your idea. Choose Photo lets you pick any screenshot or saved food image from your gallery — that covers TikTok screenshots, Instagram saves, Pinterest boards, Facebook recipes, anything already on your device. Camera opens your device live so you can point it at a cookbook, a menu, or a screen. Speak lets you describe the meal out loud, exactly the way you would tell a friend about it. Type lets you paste a description or write out what you have in mind. Here is what makes Recipe Maker different: you do not need the recipe. If you can show it or describe it, we can create it. Once you submit your idea, Recipe Maker does not give you one result. It builds three completely personalized versions of your idea at the same time — same dish, three different interpretations — each one fully built around your macro targets, allergies, dietary identity, and every active health protocol on your account. You see all three, you can save any or all of them, and your choices stay on the dashboard until you decide to clear them. The app never removes them automatically.",
           autoClose: true,
         });
       }, 300);
@@ -418,7 +419,7 @@ export default function InspirationCaptureModal({
       setSavedIndices(prev => Array.from(new Set([...prev, selectedOptionIndex])));
       toast({
         title: "Saved!",
-        description: "Added to your Recipe Scan saves in Favorites.",
+        description: "Added to your Recipe Maker saves in Favorites.",
       });
     } catch (err: any) {
       toast({
@@ -481,7 +482,7 @@ export default function InspirationCaptureModal({
               <DialogTitle className="text-xl font-bold text-white">
                 {isSmartScan
                   ? (isCompanionScan ? `Scan Food For ${profileName}` : "Smart Scan")
-                  : (phase === "options" ? "Customize Your Meal" : "Recipe Scan")}
+                  : (phase === "options" ? "Customize Your Meal" : "Recipe Maker")}
               </DialogTitle>
             </div>
             <p className="text-white/60 text-sm text-center mt-1">
@@ -1003,7 +1004,7 @@ export default function InspirationCaptureModal({
                     <div className="rounded-xl overflow-hidden h-44">
                       <MealImageSlot
                         imageUrl={mealData.imageUrl}
-                        mealName={mealData.title || mealData.name || "Recipe Scan"}
+                        mealName={mealData.title || mealData.name || "Recipe Maker"}
                         className="w-full h-full object-cover"
                       />
                     </div>
@@ -1059,6 +1060,9 @@ export default function InspirationCaptureModal({
                           </span>
                         ))}
                       </div>
+                    )}
+                    {mealData.alphaGalBadge && (
+                      <AlphaGalBadge badge={mealData.alphaGalBadge} />
                     )}
                   </div>
 

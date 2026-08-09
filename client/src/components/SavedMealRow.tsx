@@ -7,7 +7,7 @@
  * All nutrition values, allergen identifiers, and structured safety data
  * always come from the canonical mealData — never from the translation payload.
  */
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Heart, ChevronDown, ChevronRight, Activity, Loader2 } from "lucide-react";
 import { AlertTriangle } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -18,6 +18,7 @@ import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import { setQuickView } from "@/lib/macrosQuickView";
 import { buildBiometricsUrl } from "@/lib/biometricsNavigation";
 import { useTranslatedMeal } from "@/hooks/useTranslatedMeal";
+import AlphaGalBadge from "@/components/AlphaGalBadge";
 
 function bglRangeLabel(bucket: string): string {
   switch (bucket) {
@@ -31,12 +32,17 @@ function bglRangeLabel(bucket: string): string {
 
 interface Props {
   row: any;
+
   sourceLabel: (s: string) => string;
+
   onRemove: (row: any) => void;
+
   onAddToMacros: (row: any) => void;
+
   onAddToPlanSuccess?: () => void;
-  /** When true the row starts in the expanded state (used for deep-link scrolling) */
+  /** When true, the row auto-expands and scrolls into view (deep-link support) */
   isInitiallyExpanded?: boolean;
+  initialExpanded?: boolean;
 }
 
 export default function SavedMealRow({
@@ -46,9 +52,20 @@ export default function SavedMealRow({
   onAddToMacros,
   onAddToPlanSuccess,
   isInitiallyExpanded = false,
+  initialExpanded = false,
 }: Props) {
   const { t } = useTranslation();
-  const [isExpanded, setIsExpanded] = useState(isInitiallyExpanded);
+  // Support both prop names for backward compatibility
+  const startExpanded = isInitiallyExpanded || initialExpanded;
+  const rowRef = useRef<HTMLDivElement>(null);
+  const [isExpanded, setIsExpanded] = useState(startExpanded);
+
+  // Scroll the auto-expanded row into view after the first render
+  useEffect(() => {
+    if (startExpanded && rowRef.current) {
+      rowRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Translation layer — fires on first expand for non-English locales ──
   const { data: translation, isLoading: isTranslating } = useTranslatedMeal(
@@ -103,7 +120,7 @@ export default function SavedMealRow({
       : { text: "text-amber-400", border: "border-amber-700/40", bg: "bg-amber-950/60" };
 
   return (
-    <div id={`meal-card-${row.id}`} className="rounded-xl border border-white/15 bg-white/5 overflow-hidden">
+    <div id={`meal-card-${row.id}`} ref={rowRef} className="rounded-xl border border-white/15 bg-white/5 overflow-hidden">
       {/* ── Collapsed header ────────────────────────────────────────────── */}
       <button
         onClick={() => setIsExpanded((e) => !e)}
@@ -146,6 +163,11 @@ export default function SavedMealRow({
             mealName={row.title}
             height="h-52"
           />
+
+          {/* Alpha-gal protection badge — server-computed at generation time */}
+          {d?.alphaGalBadge && (
+            <AlphaGalBadge badge={d.alphaGalBadge} />
+          )}
 
           {/* Diabetic BGL banner */}
           {row.dayMismatchNote && (
