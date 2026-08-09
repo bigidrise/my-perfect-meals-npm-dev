@@ -18,6 +18,7 @@ import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import { setQuickView } from "@/lib/macrosQuickView";
 import { buildBiometricsUrl } from "@/lib/biometricsNavigation";
 import { useTranslatedMeal } from "@/hooks/useTranslatedMeal";
+import AlphaGalBadge from "@/components/AlphaGalBadge";
 
 function bglRangeLabel(bucket: string): string {
   switch (bucket) {
@@ -162,6 +163,11 @@ export default function SavedMealRow({
             mealName={row.title}
             height="h-52"
           />
+
+          {/* Alpha-gal protection badge — server-computed at generation time */}
+          {d?.alphaGalBadge && (
+            <AlphaGalBadge badge={d.alphaGalBadge} />
+          )}
 
           {/* Diabetic BGL banner */}
           {row.dayMismatchNote && (

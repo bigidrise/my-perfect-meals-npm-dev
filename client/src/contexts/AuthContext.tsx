@@ -99,6 +99,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
           attestedAt: userData.attestedAt || null,
           procareTrainingCompleted: userData.procareTrainingCompleted || false,
           phase2GateEnabled: userData.phase2GateEnabled || false,
+          proCareEligible: userData.proCareEligible ?? false,
+          monetizationEligible: userData.monetizationEligible ?? false,
           age: userData.age || null,
           height: userData.height || null,
           weight: userData.weight || null,

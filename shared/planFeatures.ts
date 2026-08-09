@@ -303,6 +303,33 @@ export function getMinTierForEntitlement(entitlement: Entitlement): PlanTier {
 
 export const PROCARE_ENTITLEMENTS: Entitlement[] = ["procare", "care_team", "lab_metrics"];
 
+/**
+ * All planLookupKey values that represent an active ProCare subscription.
+ * Used by requireProCareAccess and the profile endpoint to compute proCareEligible.
+ * Rule: certification completion is NOT a substitute for subscription entitlement.
+ */
+export const PROCARE_PLAN_KEYS: ReadonlySet<string> = new Set([
+  // Full canonical keys
+  "mpm_procare_monthly",
+  "mpm_procare_trainer_5",
+  "mpm_procare_trainer_10",
+  "mpm_procare_trainer_25",
+  "mpm_procare_trainer_50",
+  "mpm_procare_trainer_150",
+  // Short keys written by Stripe webhook via metadata.sku
+  "mpm_trainer_5",
+  "mpm_trainer_10",
+  "mpm_trainer_25",
+  "mpm_trainer_50",
+  "mpm_physician_50",
+  "mpm_physician_150",
+]);
+
+export function isProCarePlanKey(lookupKey: string | null | undefined): boolean {
+  if (!lookupKey) return false;
+  return PROCARE_PLAN_KEYS.has(lookupKey);
+}
+
 // ── Household / Family Plan Helpers ──────────────────────────────────────────
 
 const HOUSEHOLD_PLAN_KEYS = new Set([

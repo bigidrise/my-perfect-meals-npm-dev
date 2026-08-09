@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useParams } from "wouter";
-import { Award, CheckCircle2, ChevronRight, Copy, Download, ExternalLink, FileText, Link2, Loader2 } from "lucide-react";
+import { ArrowLeft, Award, CheckCircle2, ChevronRight, Copy, Download, ExternalLink, FileText, Link2, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
@@ -342,9 +342,25 @@ export default function CertificationComplete() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
+      {/* Back button */}
+      <div
+        className="sticky top-0 z-10 bg-black/55 backdrop-blur-md border-b border-white/10"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+      >
+        <div className="px-4 py-3 flex items-center max-w-2xl mx-auto">
+          <button
+            onClick={() => setLocation(`/business-center/affiliate/${pathId}/certification`)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </button>
+        </div>
+      </div>
+
       <div
         className="flex-1 flex flex-col items-center justify-center px-4 max-w-2xl mx-auto w-full text-center space-y-6"
-        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+        style={{ paddingTop: "1rem" }}
       >
         {loading ? (
           <div className="w-8 h-8 border-2 border-orange-400/40 border-t-orange-400 rounded-full animate-spin" />

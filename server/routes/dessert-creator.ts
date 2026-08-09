@@ -5,7 +5,7 @@
 import { Router } from "express";
 import { getMeasurementPromptBlock, MeasurementSystem } from "../../shared/units";
 import OpenAI from "openai";
-import { computeMedicalBadges } from "../services/medicalBadges";
+import { computeMedicalBadges, computeAlphaGalBadge } from "../services/medicalBadges";
 import { normalizeIngredients } from "../services/ingredientNormalizer";
 import { db } from "../db";
 import { users } from "@shared/schema";
@@ -431,6 +431,11 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
     };
 
     const medicalBadges = computeMedicalBadges(constraints, ingredientNames);
+    const alphaGalBadge = computeAlphaGalBadge(
+      `${(meal as any).name || ""} ${(meal as any).description || ""}`,
+      ingredientNames,
+      userConditions
+    );
 
     // Generate image server-inline via canonical pipeline (caching + fallback handled internally)
     let imageUrl: string | null = null;
@@ -453,6 +458,7 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
       ...meal,
       imageUrl,
       medicalBadges,
+      ...(alphaGalBadge && { alphaGalBadge }),
       ...(dietAdapted && { dietAdapted: true, dietNotice }),
       complianceSection: dessertCompliance,
       dietClassification: dessertDietClass,

@@ -1,4 +1,5 @@
 import { validateProfilePayload } from "./guards/profileFieldGuard";
+import { computeAlphaGalBadge } from "./services/medicalBadges";
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { sendEmail } from "./emailService";
@@ -20,9 +21,11 @@ import { requireProAccess } from "./middleware/requireProAccess";
 import { requireClinicalAccess, requireStrictClinicalAccess } from "./middleware/requireClinicalAccess";
 import { requirePhase1Cert } from "./middleware/requirePhase1Cert";
 import { requirePhase2Training } from "./middleware/requirePhase2Training";
+import { requireProCareAccess } from "./middleware/requireProCareAccess";
+import { requireMonetizationAccess } from "./middleware/requireMonetizationAccess";
 import { requireMacroProfile } from "./middleware/requireMacroProfile";
 import { insertUserSchema, insertMealPlanSchema, insertMealLogSchema, insertMealReminderSchema, insertUserGlycemicSettingsSchema, aiMealPlanArchive, barcodes, mealLogsEnhanced, mealLog, userMealPrefs, insertUserMealPrefsSchema, meals, users, mealPlans, shoppingListItems, savedMeals as savedMealsTable, creators } from "@shared/schema";
-import { getTierForLookupKey, getEntitlementsForTier } from "@shared/planFeatures";
+import { getTierForLookupKey, getEntitlementsForTier, isProCarePlanKey } from "@shared/planFeatures";
 import { studioMemberships, studios } from "./db/schema/studio";
 import { mealImageCache } from "./db/schema/mealImageCache";
 import { companionProfileImages } from "./db/schema/companionProfiles";
@@ -1309,7 +1312,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               .map((i: any) => i.name || i.item || '')
               .filter(Boolean);
             const imageUrl = await _fridgeGenImg(meal.name, ingredients, 'meal');
-            return { ...meal, imageUrl };
+            const mealText = `${meal.name || ""} ${meal.description || ""} ${ingredients.join(" ")}`;
+            const alphaGalBadge = computeAlphaGalBadge(mealText, ingredients, userHealthConditions);
+            return { ...meal, imageUrl, ...(alphaGalBadge && { alphaGalBadge }) };
           } catch {
             return meal; // image failure is non-fatal — card still usable
           }
@@ -2403,6 +2408,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
             merged.push("FULL_ACCESS");
           }
           return merged;
+        })(),
+        // ── Explicit server-side entitlement flags ─────────────────────────
+        // These are the three independent checks described in the Academy arch:
+        //   academyEligible  → always true (Academy is open to all)
+        //   monetizationEligible → Pro or higher subscription required
+        //   proCareEligible  → actual ProCare plan required; never inferred from cert
+        proCareEligible: (() => {
+          if (process.env.BILLING_ENFORCED !== "true") return true;
+          if (authReq.authUser.accessTier !== "PAID_FULL") return false;
+          if (!user.planLookupKey) return true; // internal/founder account
+          // ProCare plan key OR DB-granted "procare" entitlement (clinical business)
+          const dbEntitlements: string[] = (user.entitlements as string[]) || [];
+          return isProCarePlanKey(user.planLookupKey) || dbEntitlements.includes("procare");
+        })(),
+        monetizationEligible: (() => {
+          if (process.env.BILLING_ENFORCED !== "true") return true;
+          if (authReq.authUser.accessTier !== "PAID_FULL") return false;
+          if (!user.planLookupKey) return true; // internal/founder account
+          const tier = getTierForLookupKey(user.planLookupKey);
+          return tier === "premium" || tier === "ultimate";
         })(),
         planLookupKey: user.planLookupKey,
         selectedMealBuilder: user.selectedMealBuilder,
@@ -4415,6 +4440,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           servingSize: validatedServings > 1 ? `${validatedServings} servings` : "1 serving",
           complianceSection,
           dietClassification,
+          ...(() => {
+            const ingNames = (meal.ingredients || []).map((i: any) => i.name || i.item || "").filter(Boolean);
+            const mealText = `${meal.name || ""} ${meal.description || ""} ${ingNames.join(" ")}`;
+            const badge = computeAlphaGalBadge(mealText, ingNames, (user as any)?.healthConditions || []);
+            return badge ? { alphaGalBadge: badge } : {};
+          })(),
         };
         if (validatedServings > 1) {
           formatted.nutrition.calories *= validatedServings;
@@ -7232,31 +7263,34 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   // requirePhase2Training: passes non-professionals (clients accessing their own boards)
   // through unaffected; blocks untrained professionals from reading client data.
   const proBoardRoutes = (await import("./routes/proBoardRoutes")).default;
-  app.use("/api/pro/board", requireAuth, requirePremiumAccess, requirePhase1Cert, requirePhase2Training, proBoardRoutes);
+  // requireProCareAccess gates all professional-facing routes on actual ProCare subscription.
+  // Cert completion (requirePhase1Cert / requirePhase2Training) is a separate, layered gate.
+  // Neither gate substitutes for the other — both must pass independently.
+  app.use("/api/pro/board", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, proBoardRoutes);
 
   const proWeekBoardRoutes = (await import("./routes/proWeekBoard")).default;
-  app.use("/api/pro", requireAuth, requirePhase1Cert, requirePhase2Training, proWeekBoardRoutes);
+  app.use("/api/pro", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, proWeekBoardRoutes);
 
   const proBiometricsRoutes = (await import("./routes/proBiometricsRoutes")).default;
-  app.use("/api/pro", requireAuth, requirePhase1Cert, requirePhase2Training, proBiometricsRoutes);
+  app.use("/api/pro", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, proBiometricsRoutes);
 
   const proProgramHistoryRoutes = (await import("./routes/proProgramHistory")).default;
-  app.use("/api/pro", requireAuth, requirePhase1Cert, requirePhase2Training, proProgramHistoryRoutes);
+  app.use("/api/pro", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, proProgramHistoryRoutes);
 
   const workspaceRoutes = (await import("./routes/workspaceRoutes")).default;
-  app.use("/api/pro/workspace", requireAuth, requirePhase1Cert, requirePhase2Training, workspaceRoutes);
+  app.use("/api/pro/workspace", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, workspaceRoutes);
 
   const proTabletRoutes = (await import("./routes/proTabletRoutes")).default;
-  app.use("/api/pro/tablet", requireAuth, requirePhase1Cert, requirePhase2Training, requireMfa, proTabletRoutes);
+  app.use("/api/pro/tablet", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, requireMfa, proTabletRoutes);
 
   const clientTabletRoutes = (await import("./routes/clientTabletRoutes")).default;
   app.use("/api/client/tablet", requireAuth, clientTabletRoutes);
 
   app.use("/api/care-team", requireAuth, requirePremiumAccess, careTeamRoutes);
-  app.use("/api/pro", requireAuth, requirePremiumAccess, requireMfa, procareRoutes);
+  app.use("/api/pro", requireAuth, requireProCareAccess, requireMfa, procareRoutes);
   app.use("/api/pro/training", requireAuth, procareTrainingRouter);
   app.use("/api", requireAuth, clinicalInterventionsRouter);
-  app.use("/api/studios", requireAuth, requirePremiumAccess, requirePhase1Cert, requirePhase2Training, requireMfa, studioRoutes);
+  app.use("/api/studios", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, requireMfa, studioRoutes);
   const cycleProtocolRoutes = (await import("./routes/cycleProtocolRoutes")).default;
   app.use("/api", requireAuth, cycleProtocolRoutes);
   const legalRoutes = (await import("./routes/legalRoutes")).default;

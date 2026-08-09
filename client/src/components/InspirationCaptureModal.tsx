@@ -16,6 +16,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { PillButton } from "@/components/ui/pill-button";
+import AlphaGalBadge from "@/components/AlphaGalBadge";
 import { CuisineOverrideControl } from "@/components/ui/CuisineOverrideControl";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
@@ -1059,6 +1060,9 @@ export default function InspirationCaptureModal({
                           </span>
                         ))}
                       </div>
+                    )}
+                    {mealData.alphaGalBadge && (
+                      <AlphaGalBadge badge={mealData.alphaGalBadge} />
                     )}
                   </div>
 
