@@ -2699,20 +2699,45 @@ export default function MacroCounter() {
               >
                 <Card data-wt="mc-starch-game-plan" className="bg-zinc-900/80 border border-white/30 text-white">
                   <CardContent className="p-6 space-y-6">
+
+                    {/* Header */}
                     <div className="flex items-center gap-2">
-                      <span className="text-amber-400 text-xl">🌾</span>
+                      <span className="text-amber-400 text-xl">🍠</span>
                       <h3 className="text-lg font-semibold text-white">
                         Your Starch Game Plan
                       </h3>
                     </div>
 
-                    {/* How many starch meals per day? */}
+                    {/* Why we're asking */}
+                    <p className="text-sm text-white/70">
+                      My Perfect Meals separates starchy and fibrous carbohydrates because they
+                      affect the body differently. Your starch distribution helps the AI determine
+                      where to place energy-rich carbohydrates throughout your day while keeping
+                      your meals aligned with your nutrition goals.
+                    </p>
+
+                    {/* Daily starch target — shows the computed value */}
+                    {(() => {
+                      const starchyTarget = results?.macros?.carbs?.starchy ?? 0;
+                      if (starchyTarget <= 0) return null;
+                      return (
+                        <div className="bg-white/5 rounded-xl p-4 border border-white/10 space-y-1">
+                          <p className="text-xs text-white/50 uppercase tracking-wide font-medium">Your daily starch target</p>
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-3xl font-bold text-amber-400">{starchyTarget}g</span>
+                            <span className="text-sm text-white/60">of starchy carbohydrates per day</span>
+                          </div>
+                          <p className="text-xs text-white/40 pt-1">
+                            Starchy carbs = rice, pasta, bread, potatoes, oats. Fibrous vegetables are unlimited.
+                          </p>
+                        </div>
+                      );
+                    })()}
+
+                    {/* How many starch meals? */}
                     <div className="space-y-3">
                       <p className="text-white text-sm font-medium">
                         How many meals a day will include starchy carbs?
-                      </p>
-                      <p className="text-white/60 text-xs">
-                        Starchy carbs = rice, pasta, bread, potatoes, oats. Fibrous veggies are unlimited.
                       </p>
                       <div className="flex gap-2 flex-wrap">
                         {([1, 2, 3, 4, 5, 6] as const).map((n) => (
@@ -2729,22 +2754,9 @@ export default function MacroCounter() {
                           </PillButton>
                         ))}
                       </div>
-                      <p className="text-white/50 text-xs min-h-[1.25rem]">
-                        {defaultStarchMealsPerDay === 1
-                          ? "All starches in one meal — best for appetite control and fat loss."
-                          : defaultStarchMealsPerDay === 2
-                          ? "Split starches across two meals — good for training days."
-                          : defaultStarchMealsPerDay === 3
-                          ? "Three starch meals — suitable for athletes with higher carb needs."
-                          : defaultStarchMealsPerDay === 4
-                          ? "Four starch meals — high-volume training protocol."
-                          : defaultStarchMealsPerDay === 5
-                          ? "Five starch meals — competitive athlete fueling schedule."
-                          : "Six starch meals — maximum carbohydrate distribution for elite performance."}
-                      </p>
                     </div>
 
-                    {/* Distribution strategy */}
+                    {/* Timing preference */}
                     <div className="space-y-3">
                       <p className="text-white text-sm font-medium">
                         When do you prefer to eat your starchy carbs?
@@ -2752,16 +2764,18 @@ export default function MacroCounter() {
                       <div className="flex gap-2 flex-wrap">
                         {(
                           [
-                            { value: "even", label: "Spread evenly" },
+                            { value: "even",    label: "Spread evenly" },
                             { value: "morning", label: "Earlier in day" },
-                            { value: "workout", label: "Around workouts" },
+                            ...(user?.performanceModeEnabled && user?.weeklyTrainingSchedule
+                              ? [{ value: "workout", label: "Around workouts" }]
+                              : []),
                             { value: "evening", label: "Evening" },
-                            { value: "ai", label: "AI decides" },
+                            { value: "ai",      label: "AI decides" },
                           ] as const
                         ).map(({ value, label }) => (
                           <PillButton
                             key={value}
-                            onClick={() => { setStarchDistributionStrategy(value); setIsDirty(true); }}
+                            onClick={() => { setStarchDistributionStrategy(value as typeof starchDistributionStrategy); setIsDirty(true); }}
                             active={starchDistributionStrategy === value}
                           >
                             {label}
@@ -2770,16 +2784,105 @@ export default function MacroCounter() {
                       </div>
                       <p className="text-white/50 text-xs min-h-[1.25rem]">
                         {starchDistributionStrategy === "even"
-                          ? "Starch is split equally across your starch meals."
+                          ? "Starch is distributed evenly across your selected meal slots."
                           : starchDistributionStrategy === "morning"
-                          ? "Front-load your carbs — easier sleep, less late-day glucose spike."
+                          ? "Starch is assigned to your earliest meal slots — may support glucose control and daily targets."
                           : starchDistributionStrategy === "workout"
-                          ? "Timed around training for fuel and recovery."
+                          ? "Starch is timed around your training sessions for fuel and recovery."
                           : starchDistributionStrategy === "evening"
-                          ? "Saves starch for your evening meal."
-                          : "AI places starch intelligently based on your meal plan context."}
+                          ? "Starch is assigned to your latest meal slots."
+                          : "The AI selects which meal slots receive starch based on your meal plan context."}
                       </p>
                     </div>
+
+                    {/* Today's Starch Prescription — live preview */}
+                    {(() => {
+                      const starchyTarget = results?.macros?.carbs?.starchy ?? 0;
+                      if (starchyTarget <= 0) return null;
+                      const n = defaultStarchMealsPerDay;
+                      const base = Math.floor(starchyTarget / n);
+                      const remainder = starchyTarget - base * n;
+                      // Distribute remainder to last meal so the first meals show the round number
+                      const mealGrams = Array.from({ length: n }, (_, i) =>
+                        i === n - 1 ? base + remainder : base
+                      );
+                      const timingLabel =
+                        starchDistributionStrategy === "even"    ? "Spread Evenly" :
+                        starchDistributionStrategy === "morning"  ? "Earlier in the Day" :
+                        starchDistributionStrategy === "workout"  ? "Around Workouts" :
+                        starchDistributionStrategy === "evening"  ? "Evening" :
+                        "AI Decides";
+
+                      return (
+                        <div className="bg-black/40 rounded-xl p-4 border border-amber-500/20 space-y-3">
+                          <p className="text-xs text-amber-400/80 uppercase tracking-wide font-medium">
+                            Today's Starch Prescription
+                          </p>
+
+                          {/* Math flow */}
+                          <div className="space-y-1 text-sm">
+                            <div className="flex items-center gap-2 text-white/70">
+                              <span>{starchyTarget}g daily starch</span>
+                            </div>
+                            <div className="text-white/30 text-xs pl-1">÷ {n} {n === 1 ? "starch meal" : "starch meals"}</div>
+                          </div>
+
+                          {/* Meal rows */}
+                          <div className="space-y-1 border-t border-white/10 pt-3">
+                            {mealGrams.map((g, i) => (
+                              <div key={i} className="flex items-center justify-between text-sm">
+                                <span className="text-white/70">Meal {i + 1}</span>
+                                <span className="text-amber-400 font-semibold">≈ {g}g</span>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Timing */}
+                          <div className="flex items-center justify-between text-sm border-t border-white/10 pt-3">
+                            <span className="text-white/50">Timing</span>
+                            <span className="text-white/80 font-medium">{timingLabel}</span>
+                          </div>
+
+                          <p className="text-xs text-white/40 pt-1">
+                            My Perfect Meals will use this prescription when generating meals.
+                            You don't have to calculate anything yourself.
+                          </p>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Educational collapsible */}
+                    <Collapsible>
+                      <CollapsibleTrigger className="flex items-center justify-between w-full text-left py-1">
+                        <span className="text-sm text-white/60 font-medium">Why Does Starch Timing Matter?</span>
+                        <ChevronDown className="h-4 w-4 text-white/30 flex-shrink-0" />
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="mt-3 space-y-3">
+                        <p className="text-sm text-white/70">
+                          Your body doesn't just care <em>how many</em> starchy carbohydrates you eat — it also
+                          responds to <em>when</em> you eat them.
+                        </p>
+                        <p className="text-sm text-white/70">
+                          For many people, especially those working on blood sugar management, insulin sensitivity,
+                          or weight loss, eating larger amounts of starchy carbohydrates earlier in the day may
+                          help support better glucose control and make it easier to stay within daily nutrition targets.
+                        </p>
+                        <p className="text-sm text-white/70">
+                          If your goal is athletic performance, muscle gain, or fueling workouts, your starch
+                          distribution may be different. That's why Performance Nutrition uses its own timing
+                          strategies based on your training schedule.
+                        </p>
+                        <div className="bg-white/5 rounded-lg p-3 border border-white/10">
+                          <p className="text-xs text-white/40 font-medium mb-1">Educational Note</p>
+                          <p className="text-xs text-white/50">
+                            Carbohydrate timing is one part of a healthy nutrition plan. Individual responses
+                            vary depending on activity level, medical conditions, medications, and overall meal
+                            composition. If you have diabetes or another medical condition, always follow the
+                            guidance provided by your healthcare team.
+                          </p>
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
 
                     <button
                       onClick={() => advanceGuided("clinicalContext")}
