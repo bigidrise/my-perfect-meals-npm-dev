@@ -99,6 +99,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
           attestedAt: userData.attestedAt || null,
           procareTrainingCompleted: userData.procareTrainingCompleted || false,
           phase2GateEnabled: userData.phase2GateEnabled || false,
+          proCareEligible: userData.proCareEligible ?? false,
+          monetizationEligible: userData.monetizationEligible ?? false,
           age: userData.age || null,
           height: userData.height || null,
           weight: userData.weight || null,
@@ -158,6 +160,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           activeProtocolTrack: userData.activeProtocolTrack ?? null,
           weeklyTrainingSchedule: userData.weeklyTrainingSchedule ?? null,
           performanceProtocolConfig: userData.performanceProtocolConfig ?? null,
+          performanceModeEnabled: (userData as any).performanceModeEnabled ?? false,
           trialEndsAt: userData.trialEndsAt ?? null,
           sponsoredByBusinessId: userData.sponsoredByBusinessId ?? null,
           sponsoredByBusinessName: userData.sponsoredByBusinessName ?? null,
@@ -169,6 +172,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           localStorage.setItem(`mpm.perfProtocol.${uid}`, JSON.stringify({
             schedule: userData.weeklyTrainingSchedule,
             config: userData.performanceProtocolConfig,
+            enabled: (userData as any).performanceModeEnabled ?? false,
           }));
         }
         if (userData.oncologySupportIntent) {

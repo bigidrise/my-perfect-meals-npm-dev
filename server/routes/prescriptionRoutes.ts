@@ -37,7 +37,7 @@ const router = Router();
 
 router.get("/:dateISO", requireAuth, async (req, res) => {
   try {
-    const userId = (req as any).user?.id;
+    const userId = (req as any).authUser?.id || (req.session as any)?.userId;
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
     const { dateISO } = req.params;
@@ -66,7 +66,7 @@ router.get("/:dateISO", requireAuth, async (req, res) => {
 
 router.patch("/starch-preferences", requireAuth, async (req, res) => {
   try {
-    const userId = (req as any).user?.id;
+    const userId = (req as any).authUser?.id || (req.session as any)?.userId;
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
     const { defaultStarchMealsPerDay, starchDistributionStrategy } = req.body;
@@ -126,7 +126,7 @@ router.patch("/starch-preferences", requireAuth, async (req, res) => {
 
 router.get("/clinical-status", requireAuth, async (req, res) => {
   try {
-    const userId = (req as any).user?.id;
+    const userId = (req as any).authUser?.id || (req.session as any)?.userId;
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
     const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
@@ -183,7 +183,7 @@ const VALID_CLINICAL_CATEGORIES = [
 
 router.patch("/clinical-context", requireAuth, async (req, res) => {
   try {
-    const userId = (req as any).user?.id;
+    const userId = (req as any).authUser?.id || (req.session as any)?.userId;
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
     const { clinicalContextResponse, selectedClinicalCategories } = req.body;

@@ -1417,7 +1417,7 @@ export default function MacroCounter() {
       // These are the authoritative source — not localStorage, not inferred from ratios.
       if (user?.id && !user.id.startsWith("guest-")) {
         try {
-          await apiRequest(apiUrl("/api/prescription/starch-preferences"), {
+          await apiRequest("/api/prescription/starch-preferences", {
             method: "PATCH",
             body: JSON.stringify({ defaultStarchMealsPerDay, starchDistributionStrategy }),
             headers: { "Content-Type": "application/json", ...getAuthHeaders() },
@@ -2721,6 +2721,7 @@ export default function MacroCounter() {
                             onClick={() => {
                               setDefaultStarchMealsPerDay(n);
                               setStarchStrategy(n === 1 ? "one" : "flex");
+                              setIsDirty(true);
                             }}
                             active={defaultStarchMealsPerDay === n}
                           >
@@ -2760,7 +2761,7 @@ export default function MacroCounter() {
                         ).map(({ value, label }) => (
                           <PillButton
                             key={value}
-                            onClick={() => setStarchDistributionStrategy(value)}
+                            onClick={() => { setStarchDistributionStrategy(value); setIsDirty(true); }}
                             active={starchDistributionStrategy === value}
                           >
                             {label}
@@ -4111,6 +4112,7 @@ export default function MacroCounter() {
                               onClick={() => {
                                 setDefaultStarchMealsPerDay(n);
                                 setStarchStrategy(n === 1 ? "one" : "flex");
+                                setIsDirty(true);
                               }}
                               active={defaultStarchMealsPerDay === n}
                             >
@@ -4150,7 +4152,7 @@ export default function MacroCounter() {
                           ).map(({ value, label }) => (
                             <PillButton
                               key={value}
-                              onClick={() => setStarchDistributionStrategy(value)}
+                              onClick={() => { setStarchDistributionStrategy(value); setIsDirty(true); }}
                               active={starchDistributionStrategy === value}
                             >
                               {label}

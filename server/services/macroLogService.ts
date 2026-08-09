@@ -31,6 +31,15 @@ export interface MacroLogServiceInput {
   fibrousCarbs?: number | null;
   /** Starchy carbohydrates (rice, potato, bread fraction) */
   starchyCarbs?: number | null;
+  /**
+   * How the starchy/fibrous split was determined. When omitted, derived automatically
+   * from which resolution path ran in writeMacroLog:
+   *   'ingredient'           — split came from enforceCarbs / ingredient keyword analysis
+   *   'user_input'           — caller explicitly provides a known-good split (manual entry)
+   *   'conservative_fallback' — no split info available; all carbs treated as starchy
+   *   'unclassified'         — legacy / unknown
+   */
+  classificationSource?: "ingredient" | "user_input" | "conservative_fallback" | "unclassified";
   source: string;
   mealType?: string;
   /** ISO date string YYYY-MM-DD or full ISO timestamp */
@@ -70,21 +79,36 @@ export async function writeMacroLog(input: MacroLogServiceInput) {
     ? input.fibrousCarbs
     : deriveFibrousCarbs(fiber);
 
-  // Resolve starchyCarbs. Callers should always derive and send this using the
-  // density-weighted classifier (deriveSplitCarbs / deriveCarbs). When it is
-  // absent but fibrousCarbs is known we can infer: anything that is not fibrous
-  // and not a zero-carb meal is treated as starchy. This prevents a genuine
-  // non-zero starch contribution from being silently recorded as 0.
+  // Resolve starchyCarbs and classificationSource together.
   //
-  // NOTE: the DB column is NOT NULL, so we must always write a number. "0"
-  // here means the caller provided no carbohydrates data at all (not that the
-  // system confirmed zero starchy carbs); callers that have ingredient data
-  // are expected to pass a derived value so this fallback is never needed.
-  const starchyCarbs: number | null = input.starchyCarbs != null
-    ? input.starchyCarbs
-    : (fibrousCarbs != null && input.carbohydrates > 0
-        ? Math.max(0, input.carbohydrates - fibrousCarbs)
-        : null);
+  // Priority order:
+  //   1. Explicit value from caller (including 0 — means genuinely zero starchy carbs).
+  //   2. Inferred from fibrousCarbs: starchy = total - fibrous.
+  //   3. No split info at all but carbs > 0 → conservative fallback: treat ALL carbs as
+  //      starchy. This is the correct product behaviour — we never silently zero-out
+  //      starchy carbs just because the caller didn't supply a split.
+  //   4. Zero carb meal → starchyCarbs = 0.
+  //
+  // Callers that have no genuine split should pass null (not 0) so this fallback runs.
+  let starchyCarbs: number;
+  let derivedClassificationSource: string;
+
+  if (input.starchyCarbs != null) {
+    starchyCarbs = input.starchyCarbs;
+    derivedClassificationSource = "ingredient"; // caller provided a real split (from enforceCarbs or user entry)
+  } else if (fibrousCarbs != null && input.carbohydrates > 0) {
+    starchyCarbs = Math.max(0, input.carbohydrates - fibrousCarbs);
+    derivedClassificationSource = "ingredient"; // inferred from a known fibrous value
+  } else if (input.carbohydrates > 0) {
+    starchyCarbs = input.carbohydrates; // no split known — conservative: all carbs are starchy
+    derivedClassificationSource = "conservative_fallback";
+  } else {
+    starchyCarbs = 0;
+    derivedClassificationSource = "ingredient";
+  }
+
+  // Caller may override the derived source (e.g. manual-entry routes pass 'user_input').
+  const classificationSource: string = input.classificationSource ?? derivedClassificationSource;
 
   const resolvedCalories =
     input.calories > 0
@@ -106,6 +130,7 @@ export async function writeMacroLog(input: MacroLogServiceInput) {
     alcohol: "0",
     starchyCarbs: starchyCarbs != null ? starchyCarbs.toString() : "0",
     fibrousCarbs: fibrousCarbs != null ? fibrousCarbs.toString() : "0",
+    classificationSource,
     ...(mealId ? { mealId } : {}),
   };
 

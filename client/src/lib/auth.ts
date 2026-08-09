@@ -173,6 +173,12 @@ export interface User {
 
   phase2GateEnabled?: boolean;
 
+  /** Server-computed: user holds an active ProCare subscription (not inferred from cert). */
+  proCareEligible?: boolean;
+
+  /** Server-computed: user holds Pro or higher subscription (affiliate/monetization gate). */
+  monetizationEligible?: boolean;
+
   studioMembership?: {
     studioId: string;
     studioName: string | null;
@@ -265,6 +271,7 @@ export interface User {
   activeProtocolTrack?: "athletic" | "competition" | null;
 
   weeklyTrainingSchedule?: any | null;
+  performanceModeEnabled?: boolean;
 
   performanceProtocolConfig?: any | null;
   // Multi-factor authentication

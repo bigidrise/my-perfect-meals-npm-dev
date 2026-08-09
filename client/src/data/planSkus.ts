@@ -39,11 +39,11 @@ export const PLAN_SKUS: PlanSku[] = [
     label: "Essential",
     price: 19.99,
     group: "consumer",
-    blurb: "Daily adaptive nutrition — AI meal generation, Recipe Scan, unlimited Ingredient Intelligence, and grocery organization",
+    blurb: "Daily adaptive nutrition — AI meal generation, Recipe Maker, unlimited Ingredient Intelligence, and grocery organization",
     features: [
       "Create a Dish — AI meals built around your full profile",
       "Snack Creator (built into every Meal Builder)",
-      "Recipe Scan — photo or text import, rebuilt for your macros and protocols",
+      "Recipe Maker — photo or text import, rebuilt for your macros and protocols",
       "Ingredient Intelligence (unlimited — protocol-aware personalization)",
       "Unlimited AI Fridge Rescue",
       "Master Shopping List & Grocery Organization",
@@ -62,7 +62,7 @@ export const PLAN_SKUS: PlanSku[] = [
     blurb: "The full creator suite — every tool, every scan, every cuisine, every lifestyle",
     features: [
       "Everything in Essential",
-      "Full Recipe Scan — camera, voice, and photo with 5-control customization and preview before saving",
+      "Full Recipe Maker — camera, voice, and photo with 5-control customization and preview before saving",
       "Craving Creator & Dessert Creator",
       "Beverage Creator & Sushi Creator",
       "Restaurant Guide with protocol-aware ordering",
@@ -118,7 +118,7 @@ export const PLAN_SKUS: PlanSku[] = [
     supportingText: "Pro features for up to 4 household profiles",
     features: [
       "Everything in Family Essential",
-      "Full Recipe Scan for all profiles",
+      "Full Recipe Maker for all profiles",
       "Advanced household meal customization",
       "Specialty diet support per member",
       "Restaurant and beverage recommendations",

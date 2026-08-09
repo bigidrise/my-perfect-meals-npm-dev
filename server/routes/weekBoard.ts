@@ -728,10 +728,16 @@ export default function weekBoardRoutes(app: Express) {
         board.days[dateISO] = { breakfast: [], lunch: [], dinner: [], snacks: [], meal4: [], meal5: [], meal6: [] };
       }
 
-      // Generate a unique ID for the meal if not provided
+      // Detect saved-meal UUID: preserve it as savedMealId for content translation,
+      // then assign a board-specific id so the two namespaces stay independent.
+      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const incomingSavedMealId =
+        typeof meal.id === "string" && UUID_RE.test(meal.id) ? meal.id : null;
+
       const mealToAdd = {
         ...meal,
-        id: meal.id || `meal-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        id: `meal-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        ...(incomingSavedMealId ? { savedMealId: incomingSavedMealId } : {}),
         title: meal.name || meal.title || "Untitled Meal",
         name: meal.name || meal.title || "Untitled Meal",
         // Normalize nutrition

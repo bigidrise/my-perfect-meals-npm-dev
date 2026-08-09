@@ -103,6 +103,10 @@ export function getActiveProtocols(user: any): ProtocolEntry[] {
   if (Array.isArray(user?.medicalConditions)) user.medicalConditions.forEach(checkSlug);
   if (Array.isArray(user?.healthConditions)) user.healthConditions.forEach(checkSlug);
   if (user?.thyroidType) checkSlug(user.thyroidType);
+  // Alpha-gal is stored as a dedicated alphaGalProfile object (not in specialtyConditions),
+  // so it must be detected here to appear in the "Built using → Alpha-gal Protocol" row
+  // on generated meals. Any non-null profile means the condition is active.
+  if (user?.alphaGalProfile) checkSlug("alpha-gal-syndrome");
   if (user?.oncologySupportContext && !seenLabel.has("Oncology Protocol")) {
     seenLabel.add("Oncology Protocol");
     results.push({ outcomeLabel: "Oncology Protocol", displayLabel: "Oncology Protocol", level: "high" });

@@ -11,6 +11,7 @@ import { PregnancySupportSetupModal } from "@/components/PregnancySupportSetupMo
 import { derivePregnancyStatus } from "@/lib/pregnancyUtils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+import { apiUrl } from "@/lib/resolveApiBase";
 
 type Stage = "trying-to-conceive" | "trimester-1" | "trimester-2" | "trimester-3" | "breastfeeding" | "postpartum";
 

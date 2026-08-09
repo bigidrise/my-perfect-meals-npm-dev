@@ -157,7 +157,7 @@ export async function resolveDailyNutritionPrescription(
   const weeklySchedule = user.weeklyTrainingSchedule as WeeklyTrainingSchedule | null;
   const perfConfig     = user.performanceProtocolConfig as PerformanceProtocolConfig | null;
 
-  if (weeklySchedule && perfConfig) {
+  if (weeklySchedule && perfConfig && user.performanceModeEnabled) {
     try {
       const baseline: MacroBaseline = {
         calories:      caloriesBase,

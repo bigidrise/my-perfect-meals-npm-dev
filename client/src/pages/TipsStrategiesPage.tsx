@@ -94,12 +94,12 @@ Build a personal restaurant shortlist: 8–10 restaurants in your area where you
 After eating out, log the meal immediately while it's fresh. Estimation accuracy drops significantly if you wait hours. Good enough logging is better than perfect logging you never do.`,
   },
   {
-    title: "Recipe Scan Best Practices",
+    title: "Recipe Maker Best Practices",
     content: `For the best scan results, use natural daylight or good overhead lighting — avoid harsh shadows across the page. If scanning from a phone screen, turn brightness to maximum and reduce glare by holding the camera at a slight angle.
 
 Scan the complete recipe including the ingredient list, quantities, and cooking instructions. Partial scans produce incomplete nutritional data.
 
-Recipe Scan is most powerful for converting family recipes and old cookbooks into your current macro targets. Instead of abandoning recipes you love, use the scan to understand their nutritional profile, then adjust portion sizes or ingredient swaps to fit your goals.
+Recipe Maker is most powerful for converting family recipes and old cookbooks into your current macro targets. Instead of abandoning recipes you love, bring them into Recipe Maker — it rebuilds them around your nutrition profile and gives you three personalized versions to choose from.
 
 After scanning, verify the serving size matches how you actually eat the dish. A recipe that serves 6 but you split with 3 people needs a portion adjustment before the macros are meaningful.`,
   },

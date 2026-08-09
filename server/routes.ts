@@ -1,4 +1,5 @@
 import { validateProfilePayload } from "./guards/profileFieldGuard";
+import { computeAlphaGalBadge } from "./services/medicalBadges";
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { sendEmail } from "./emailService";
@@ -20,9 +21,11 @@ import { requireProAccess } from "./middleware/requireProAccess";
 import { requireClinicalAccess, requireStrictClinicalAccess } from "./middleware/requireClinicalAccess";
 import { requirePhase1Cert } from "./middleware/requirePhase1Cert";
 import { requirePhase2Training } from "./middleware/requirePhase2Training";
+import { requireProCareAccess } from "./middleware/requireProCareAccess";
+import { requireMonetizationAccess } from "./middleware/requireMonetizationAccess";
 import { requireMacroProfile } from "./middleware/requireMacroProfile";
 import { insertUserSchema, insertMealPlanSchema, insertMealLogSchema, insertMealReminderSchema, insertUserGlycemicSettingsSchema, aiMealPlanArchive, barcodes, mealLogsEnhanced, mealLog, userMealPrefs, insertUserMealPrefsSchema, meals, users, mealPlans, shoppingListItems, savedMeals as savedMealsTable, creators } from "@shared/schema";
-import { getTierForLookupKey, getEntitlementsForTier } from "@shared/planFeatures";
+import { getTierForLookupKey, getEntitlementsForTier, isProCarePlanKey } from "@shared/planFeatures";
 import { studioMemberships, studios } from "./db/schema/studio";
 import { mealImageCache } from "./db/schema/mealImageCache";
 import { companionProfileImages } from "./db/schema/companionProfiles";
@@ -986,6 +989,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } catch { }
       }
 
+      // ── Unified Image Pipeline: attach permanent imageUrl before responding ──────
+      // All five meal builders (General Nutrition, Diabetic, GLP-1, Anti-Inflammatory,
+      // Performance) share this endpoint. Returning imageUrl here means the client
+      // renders a complete card in one round-trip — the `if (!transformedMeal.imageUrl)`
+      // guard in each builder skips the secondary useChefMealImage fetch automatically.
+      if (result.success && skipImage !== true) {
+        try {
+          const { generateMealImageUnified, normalizeMealTypeToSourceType } = await import('./services/mealImageGenerator');
+          const sourceType = normalizeMealTypeToSourceType(mealType || 'meal');
+
+          // Single-meal path — builders always use count=1; result.meal and result.meals[0] are the same object
+          if (result.meal && !(result.meal as any).imageUrl) {
+            const ingNames = (((result.meal as any).ingredients as any[]) || [])
+              .map((i: any) => (typeof i === 'string' ? i : i?.name || i?.item || ''))
+              .filter(Boolean);
+            try {
+              const imageUrl = await generateMealImageUnified((result.meal as any).name, ingNames, sourceType);
+              if (imageUrl) {
+                result.meal = { ...(result.meal as any), imageUrl } as any;
+                // Sync into meals array — useCreateWithChefRequest reads data.meals[0]
+                if ((result.meals as any)?.length) {
+                  result.meals = ((result.meals as any[]) || []).map((m: any, i: number) =>
+                    i === 0 ? { ...m, imageUrl } : m
+                  );
+                }
+              }
+            } catch { /* image failure non-fatal — meal still usable */ }
+          }
+
+          // Batch path (count > 1) — future-proof, not currently used by builders
+          if ((result.meals as any)?.length > 1) {
+            await Promise.all(
+              ((result.meals as any[]) || []).map(async (m: any, idx: number) => {
+                if (m.imageUrl) return;
+                const ingNames = (m.ingredients || [])
+                  .map((i: any) => (typeof i === 'string' ? i : i?.name || i?.item || ''))
+                  .filter(Boolean);
+                try {
+                  const imageUrl = await generateMealImageUnified(m.name, ingNames, sourceType);
+                  if (imageUrl) (result.meals as any)[idx] = { ...m, imageUrl };
+                } catch { /* image failure non-fatal */ }
+              })
+            );
+          }
+        } catch { /* image pipeline failure non-fatal — meal is still usable without image */ }
+      }
+      // ─────────────────────────────────────────────────────────────────────────────
+
       res.json(result);
 
     } catch (error: any) {
@@ -1261,7 +1312,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               .map((i: any) => i.name || i.item || '')
               .filter(Boolean);
             const imageUrl = await _fridgeGenImg(meal.name, ingredients, 'meal');
-            return { ...meal, imageUrl };
+            const mealText = `${meal.name || ""} ${meal.description || ""} ${ingredients.join(" ")}`;
+            const alphaGalBadge = computeAlphaGalBadge(mealText, ingredients, userHealthConditions);
+            return { ...meal, imageUrl, ...(alphaGalBadge && { alphaGalBadge }) };
           } catch {
             return meal; // image failure is non-fatal — card still usable
           }
@@ -2356,6 +2409,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           return merged;
         })(),
+        // ── Explicit server-side entitlement flags ─────────────────────────
+        // These are the three independent checks described in the Academy arch:
+        //   academyEligible  → always true (Academy is open to all)
+        //   monetizationEligible → Pro or higher subscription required
+        //   proCareEligible  → actual ProCare plan required; never inferred from cert
+        proCareEligible: (() => {
+          if (process.env.BILLING_ENFORCED !== "true") return true;
+          if (authReq.authUser.accessTier !== "PAID_FULL") return false;
+          if (!user.planLookupKey) return true; // internal/founder account
+          // ProCare plan key OR DB-granted "procare" entitlement (clinical business)
+          const dbEntitlements: string[] = (user.entitlements as string[]) || [];
+          return isProCarePlanKey(user.planLookupKey) || dbEntitlements.includes("procare");
+        })(),
+        monetizationEligible: (() => {
+          if (process.env.BILLING_ENFORCED !== "true") return true;
+          if (authReq.authUser.accessTier !== "PAID_FULL") return false;
+          if (!user.planLookupKey) return true; // internal/founder account
+          const tier = getTierForLookupKey(user.planLookupKey);
+          return tier === "premium" || tier === "ultimate";
+        })(),
         planLookupKey: user.planLookupKey,
         selectedMealBuilder: user.selectedMealBuilder,
         isTester: user.isTester || false,
@@ -2431,6 +2504,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         activeProtocolTrack: (user as any).activeProtocolTrack ?? null,
         weeklyTrainingSchedule: (user as any).weeklyTrainingSchedule ?? null,
         performanceProtocolConfig: (user as any).performanceProtocolConfig ?? null,
+        performanceModeEnabled: (user as any).performanceModeEnabled ?? false,
         alphaGalProfile: (user as any).alphaGalProfile ?? null,
         // Trial period — expose to client so it can show a countdown banner
         trialEndsAt: user.trialEndsAt?.toISOString() ?? null,
@@ -4367,6 +4441,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           servingSize: validatedServings > 1 ? `${validatedServings} servings` : "1 serving",
           complianceSection,
           dietClassification,
+          ...(() => {
+            const ingNames = (meal.ingredients || []).map((i: any) => i.name || i.item || "").filter(Boolean);
+            const mealText = `${meal.name || ""} ${meal.description || ""} ${ingNames.join(" ")}`;
+            const badge = computeAlphaGalBadge(mealText, ingNames, (user as any)?.healthConditions || []);
+            return badge ? { alphaGalBadge: badge } : {};
+          })(),
         };
         if (validatedServings > 1) {
           formatted.nutrition.calories *= validatedServings;
@@ -7184,31 +7264,34 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   // requirePhase2Training: passes non-professionals (clients accessing their own boards)
   // through unaffected; blocks untrained professionals from reading client data.
   const proBoardRoutes = (await import("./routes/proBoardRoutes")).default;
-  app.use("/api/pro/board", requireAuth, requirePremiumAccess, requirePhase1Cert, requirePhase2Training, proBoardRoutes);
+  // requireProCareAccess gates all professional-facing routes on actual ProCare subscription.
+  // Cert completion (requirePhase1Cert / requirePhase2Training) is a separate, layered gate.
+  // Neither gate substitutes for the other — both must pass independently.
+  app.use("/api/pro/board", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, proBoardRoutes);
 
   const proWeekBoardRoutes = (await import("./routes/proWeekBoard")).default;
-  app.use("/api/pro", requireAuth, requirePhase1Cert, requirePhase2Training, proWeekBoardRoutes);
+  app.use("/api/pro", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, proWeekBoardRoutes);
 
   const proBiometricsRoutes = (await import("./routes/proBiometricsRoutes")).default;
-  app.use("/api/pro", requireAuth, requirePhase1Cert, requirePhase2Training, proBiometricsRoutes);
+  app.use("/api/pro", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, proBiometricsRoutes);
 
   const proProgramHistoryRoutes = (await import("./routes/proProgramHistory")).default;
-  app.use("/api/pro", requireAuth, requirePhase1Cert, requirePhase2Training, proProgramHistoryRoutes);
+  app.use("/api/pro", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, proProgramHistoryRoutes);
 
   const workspaceRoutes = (await import("./routes/workspaceRoutes")).default;
-  app.use("/api/pro/workspace", requireAuth, requirePhase1Cert, requirePhase2Training, workspaceRoutes);
+  app.use("/api/pro/workspace", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, workspaceRoutes);
 
   const proTabletRoutes = (await import("./routes/proTabletRoutes")).default;
-  app.use("/api/pro/tablet", requireAuth, requirePhase1Cert, requirePhase2Training, requireMfa, proTabletRoutes);
+  app.use("/api/pro/tablet", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, requireMfa, proTabletRoutes);
 
   const clientTabletRoutes = (await import("./routes/clientTabletRoutes")).default;
   app.use("/api/client/tablet", requireAuth, clientTabletRoutes);
 
   app.use("/api/care-team", requireAuth, requirePremiumAccess, careTeamRoutes);
-  app.use("/api/pro", requireAuth, requirePremiumAccess, requireMfa, procareRoutes);
+  app.use("/api/pro", requireAuth, requireProCareAccess, requireMfa, procareRoutes);
   app.use("/api/pro/training", requireAuth, procareTrainingRouter);
   app.use("/api", requireAuth, clinicalInterventionsRouter);
-  app.use("/api/studios", requireAuth, requirePremiumAccess, requirePhase1Cert, requirePhase2Training, requireMfa, studioRoutes);
+  app.use("/api/studios", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, requireMfa, studioRoutes);
   const cycleProtocolRoutes = (await import("./routes/cycleProtocolRoutes")).default;
   app.use("/api", requireAuth, cycleProtocolRoutes);
   const legalRoutes = (await import("./routes/legalRoutes")).default;
@@ -7535,7 +7618,7 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   //   → Returns cached translation (instant) or generates + caches on first call.
   //   → 204 when locale is English — no translation needed.
   //   → 403 if the meal belongs to another user.
-  app.get("/api/saved-meals/:id/translation", requireAuth, async (req, res) => {
+  app.get("/api/saved-meals/:id/translation", requireAuth, requireEssentialAccess, async (req, res) => {
     const locale = ((req.query.locale as string) || "").split("-")[0].toLowerCase();
     if (!locale || locale === "en") return res.status(204).send();
 

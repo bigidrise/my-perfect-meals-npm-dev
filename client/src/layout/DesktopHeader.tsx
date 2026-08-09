@@ -96,6 +96,15 @@ const ROUTE_KEY_MAP: Record<string, string> = {
   "/pro-launchpad": "proLaunchpad",
   "/procare-training": "procareTraining",
   "/procare-certified": "procareCertified",
+  "/companion": "myPerfectPets",
+  "/companion/dogs": "myPerfectPets",
+  "/companion/cats": "myPerfectPets",
+  "/companion/setup": "myPerfectPets",
+  "/companion/generator": "myPerfectPets",
+  "/companion/scanner": "myPerfectPets",
+  "/companion/cat-setup": "myPerfectPets",
+  "/companion/cat-generator": "myPerfectPets",
+  "/companion/cat-scanner": "myPerfectPets",
 };
 
 

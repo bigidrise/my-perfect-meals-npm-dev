@@ -140,7 +140,14 @@ export default function BourbonSpiritsPage() {
     "text-white data-[highlighted]:bg-white/10 data-[highlighted]:text-white data-[state=checked]:bg-white/10";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-safe-nav">
+    <div
+      className="min-h-screen pb-safe-nav"
+      style={{
+        backgroundImage: "linear-gradient(rgba(0,0,0,0.60), rgba(0,0,0,0.52)), url('/images/spirits-wine-bg.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center 30%",
+      }}
+    >
       {/* Universal Safe-Area Header */}
       <MobileHeaderGuard>
       <div

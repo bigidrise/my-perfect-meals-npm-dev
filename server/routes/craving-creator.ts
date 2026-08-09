@@ -18,6 +18,7 @@ import { resolveActiveSystem } from "../services/creatorSystems/resolver";
 import { applyCreatorTransformation } from "../services/creatorSystems/applyCreatorTransformation";
 import { resolveKitchenSystem } from "../services/creatorSystems/resolveKitchenSystem";
 import { generateMealImageUnified } from "../services/mealImageGenerator";
+import { enforceCarbs } from "../utils/carbClassifier";
 
 const router = express.Router();
 
@@ -201,10 +202,15 @@ router.post('/generate', requireAuth, async (req, res) => {
       console.warn("[CRAVING] Image generation failed:", imgErr);
     }
 
+    // Enforce starchyCarbs/fibrousCarbs split before sending to client.
+    // stableMealGenerator doesn't call the carb classifier, so we run it here
+    // to guarantee every craving-creator meal carries accurate starch attribution.
+    const mealWithCarbsEnforced = enforceCarbs(generatedMeal as any);
+
     // Add servings info to the meal response
     const mealWithServings = {
-      ...generatedMeal,
-      imageUrl: cravingImageUrl || (generatedMeal as any).imageUrl || null,
+      ...mealWithCarbsEnforced,
+      imageUrl: cravingImageUrl || (mealWithCarbsEnforced as any).imageUrl || null,
       servingSize: `${servings} ${servings === 1 ? 'serving' : 'servings'}`,
       servings: servings
     };

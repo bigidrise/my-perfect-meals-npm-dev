@@ -66,7 +66,7 @@ import { setActiveBuilderNs } from "@/lib/activeBuilderNs";
 // CHICAGO CALENDAR FIX v1.0: getMondayISO replaced with getWeekStartISOInTZ from midnight.ts
 import { v4 as uuidv4 } from "uuid";
 import { CreateWithChefModal } from "@/components/CreateWithChefModal";
-import { useBaselineNutrition, usePerformanceNutrition } from "@/hooks/useBaselineNutrition";
+import { useBaselineNutrition } from "@/hooks/useBaselineNutrition";
 import { classifyMeal } from "@/utils/starchMealClassifier";
 import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
 import { InformationModal } from "@/components/ui/universal-modal";
@@ -78,6 +78,7 @@ import { useNavigateToFavorites } from "@/hooks/useNavigateToFavorites";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
+import { useDailyPrescription } from "@/hooks/useDailyPrescription";
 import { BuilderHeader } from "@/components/pro/BuilderHeader";
 import { getBuilderProtocolBadges } from "@/lib/nutritionPersonalization";
 
@@ -118,8 +119,7 @@ export default function WeeklyMealBoard() {
   // Resolve nutrition ONCE. Use performance-aware resolver so Training Nutrition
   // Schedule adjustments are reflected when the user has saved a schedule.
   // Falls through to baseline (MacroCalc / Pro) when no schedule is active —
-  // identical behavior to useBaselineNutrition for users without a schedule.
-  const nutritionTargets = usePerformanceNutrition(effectiveUserId);
+  const nutritionTargets = useBaselineNutrition(effectiveUserId);
 
   // 🎯 BULLETPROOF BOARD LOADING: Cache-first, guaranteed to render
   // CHICAGO CALENDAR FIX v1.0: Using noon UTC anchor pattern
@@ -239,11 +239,33 @@ export default function WeeklyMealBoard() {
   const [createWithChefOpen, setCreateWithChefOpen] = useState(false);
   const [createWithChefSlot, setCreateWithChefSlot] = useState<"breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6">("breakfast");
 
+  // Consumed starch totals for the active day — fed into the prescription hook
+  const activeDayConsumed = useMemo(() => {
+    if (!board || !activeDayISO) return { starchyCarbs: 0, starchMealsUsed: 0 };
+    const dayLists = getDayLists(board, activeDayISO);
+    const allMeals = [...dayLists.breakfast, ...dayLists.lunch, ...dayLists.dinner, ...dayLists.snacks];
+    let starchyCarbs = 0;
+    let starchMealsUsed = 0;
+    for (const m of allMeals) {
+      const stored = (m as any).starchyCarbs ?? m.nutrition?.starchyCarbs;
+      if (typeof stored === 'number' && stored > 0) starchyCarbs += stored;
+      if (classifyMeal(m).isStarchMeal) starchMealsUsed++;
+    }
+    return { starchyCarbs, starchMealsUsed };
+  }, [board, activeDayISO]);
+
+  // DailyNutritionPrescription — server-resolved, date-aware, performance-aware.
+  const { prescription } = useDailyPrescription({
+    dateISO: activeDayISO,
+    starchyConsumed: activeDayConsumed.starchyCarbs,
+    starchMealsUsed: activeDayConsumed.starchMealsUsed,
+    disabled: !activeDayISO || !!proClientId,
+  });
+
   // Build StarchContext for Create With Chef modal
   const starchContext: StarchContext | undefined = useMemo(() => {
     if (!board || !activeDayISO) return undefined;
-    const resolved = nutritionTargets;
-    const strategy = resolved.starchStrategy || 'one';
+    const legacyStrategy = (nutritionTargets.starchStrategy as 'one' | 'flex') || 'one';
     const dayLists = getDayLists(board, activeDayISO);
     const existingMeals: StarchContext['existingMeals'] = [];
     for (const slot of ['breakfast', 'lunch', 'dinner'] as const) {
@@ -252,8 +274,20 @@ export default function WeeklyMealBoard() {
         existingMeals.push({ slot, hasStarch: classifyMeal(meal).isStarchMeal });
       }
     }
-    return { strategy, existingMeals };
-  }, [board, activeDayISO, effectiveUserId]);
+    if (prescription && prescription.source !== 'fallback') {
+      return {
+        strategy: legacyStrategy,
+        starchMealsAllowed: prescription.starchMealsAllowed,
+        starchyCarbsRemaining: prescription.starchyCarbsRemaining,
+        gramsPerRemainingStarchMeal: prescription.gramsPerRemainingStarchMeal,
+        distributionStrategy: prescription.starchDistributionStrategy,
+        isZeroStarchDay: prescription.isZeroStarchDay,
+        dateISO: activeDayISO,
+        existingMeals,
+      };
+    }
+    return { strategy: legacyStrategy, existingMeals };
+  }, [board, activeDayISO, prescription, nutritionTargets, effectiveUserId]);
 
   // Handler for Create With Chef meal selection
   // NOTE: slot is passed from the modal to avoid stale state issues
@@ -868,6 +902,7 @@ export default function WeeklyMealBoard() {
                       ...dayLists.snacks,
                     ];
                   })()}
+                  prescription={prescription}
                 />
               </div>
             )}

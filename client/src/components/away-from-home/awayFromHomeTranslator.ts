@@ -54,7 +54,12 @@ export interface LegacyMeal {
    */
   medicalBadges?: Array<{
     condition: string;
-    compatible: boolean;
+    /** Three-state signal from computeAlphaGalBadge — prefer over compatible. */
+    status?: "protected" | "verify" | "incompatible";
+    /** Human-readable label (e.g. "⚠ Verify Source") produced by the server. */
+    label?: string;
+    /** Legacy binary field — absent when server uses status instead. */
+    compatible?: boolean;
     reason: string;
     color: string;
   }>;

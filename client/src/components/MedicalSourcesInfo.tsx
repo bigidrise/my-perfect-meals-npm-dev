@@ -68,6 +68,61 @@ export function MedicalSourcesInfo({
         <div className="py-6 space-y-6">
           <section>
             <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+              🛡 Alpha-gal Syndrome — Mammalian Meat Allergy Protocol
+            </h3>
+            <p className="text-white/60 text-xs mb-3">
+              Alpha-gal Syndrome (AGS) is a tick-bite–triggered allergy to alpha-galactose
+              (alpha-gal), a carbohydrate found in mammalian meat and fat. My Perfect Meals
+              treats AGS as a clinical allergy protocol: all mammalian meats, organs, and fats
+              are hard-blocked; dairy and gelatin are handled per the user's individual tolerance;
+              and any ingredient that may contain hidden mammalian broth, stock, or demi-glace
+              triggers a Verify Source flag. The protection level (🛡 Protected / ⚠ Verify /
+              🚫 Not Compatible) is evaluated server-side from the resolved protocol and
+              attached to every generated meal — the client never independently determines
+              safety for this condition.
+            </p>
+            <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">Clinical Background</p>
+            <ul className="space-y-3 mb-5">
+              <SourceItem
+                title="Commins, S.P. & Platts-Mills, T.A.E. — Tick Bites and Red Meat Allergy (PMID 22466475)"
+                description="Peer-reviewed paper establishing the causal link between Lone Star tick bites and delayed IgE-mediated anaphylaxis to alpha-gal in mammalian meat. The clinical basis for treating AGS as an anaphylaxis-risk allergy, not a food preference. Current Allergy and Asthma Reports, 2013."
+                url="https://pubmed.ncbi.nlm.nih.gov/22466475/"
+              />
+              <SourceItem
+                title="Platts-Mills, T.A.E. et al. — Alpha-gal and Delayed Anaphylaxis (PMID 25956016)"
+                description="Characterizes the unique delayed onset (3–6 hours post-ingestion) of AGS reactions and the spectrum of mammalian products that trigger reactions, including the conditional status of dairy and gelatin. The basis for MPM's verify-vs-block split on ambiguous ingredients."
+                url="https://pubmed.ncbi.nlm.nih.gov/25956016/"
+              />
+            </ul>
+            <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">Authoritative Guidance</p>
+            <ul className="space-y-3 mb-5">
+              <SourceItem
+                title="NIH / NIAID — Alpha-gal Syndrome"
+                description="National Institute of Allergy and Infectious Diseases overview of AGS diagnosis, management, and dietary avoidance. The primary institutional source for the blocked-ingredient taxonomy used by the platform."
+                url="https://www.niaid.nih.gov/diseases-conditions/alpha-gal-syndrome"
+              />
+              <SourceItem
+                title="CDC — Alpha-gal Syndrome"
+                description="Centers for Disease Control and Prevention guidance on AGS risk, tick exposure, and dietary management. Supports the inclusion of lard, tallow, and suet as hard-blocked fats alongside muscle meat."
+                url="https://www.cdc.gov/ticks/alpha-gal/index.html"
+              />
+              <SourceItem
+                title="American Academy of Allergy, Asthma & Immunology (AAAAI) — Alpha-gal Allergy"
+                description="AAAAI clinical resource covering ingredient avoidance, hidden sources (gelatin capsules, certain vaccines), and management strategies for patients with confirmed AGS."
+                url="https://www.aaaai.org/tools-for-the-public/conditions-library/allergies/alpha-gal-allergy"
+              />
+            </ul>
+            <p className="text-white/60 text-xs leading-relaxed">
+              MPM's Alpha-gal protocol is conservative by design. When ingredient provenance
+              cannot be confirmed from available data (e.g., stock, broth, or sauce with no
+              declared source), the platform returns a ⚠ Verify Source flag rather than clearing
+              the meal. Users with documented severe-reaction history should always confirm
+              ambiguous ingredients with their food provider before eating.
+            </p>
+          </section>
+
+          <section>
+            <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
               💊 Metabolic Medication &amp; GLP-1 Nutrition Support
             </h3>
             <p className="text-white/60 text-xs mb-3">

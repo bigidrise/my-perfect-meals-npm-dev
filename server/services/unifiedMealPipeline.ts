@@ -586,9 +586,29 @@ export async function generateCravingMealUnified(
   mealType: string,
   userId?: string,
   dietaryRestrictionsOverride?: string[],
-  strictMode: boolean = false
+  strictMode: boolean = false,
+  starchContext?: StarchContext
 ): Promise<MealGenerationResponse> {
   const validMealType = normalizeMealType(mealType);
+
+  // ── Starch distribution — resolve placement & prompt guidance ──────────────
+  // Mirror the auto-detect logic from generateFromDescriptionUnified:
+  // if the user's craving explicitly names a starchy food, treat it as forceStarch
+  // so the prescription never blocks an explicit request.
+  let effectiveStarchContext = starchContext;
+  if (effectiveStarchContext && !effectiveStarchContext.forceStarch && !effectiveStarchContext.forceFiberBased) {
+    const inputLower = cravingInput.toLowerCase();
+    const userRequestedStarch = STARCHY_KEYWORDS.some(kw => inputLower.includes(kw));
+    if (userRequestedStarch) {
+      effectiveStarchContext = { ...effectiveStarchContext, forceStarch: true };
+      console.log(`🥔 [CRAVING/StarchOverride] User craving explicitly contains starchy food — forcing starch inclusion`);
+    }
+  }
+  const starchPlacement = determineStarchPlacement(validMealType, effectiveStarchContext);
+  const starchGuidance  = buildStarchGuidance(validMealType, effectiveStarchContext);
+  const starchCacheKey  = effectiveStarchContext
+    ? (starchPlacement.shouldIncludeStarch ? 'starch' : 'fiber')
+    : 'any';
 
   // Step 0: Fetch dietary restrictions FIRST — before cache or template checks
   // This ensures the cache key is diet-aware and templates are validated against the user's diet
@@ -623,22 +643,31 @@ export async function generateCravingMealUnified(
   // Resolve primary diet for cache key segregation
   const cravingPrimaryDiet = getPrimaryDiet(cravingDietRestrictions) || "none";
   
-  // Step 1: Check diet-aware cache (includes primaryDiet in key — no cross-diet contamination)
+  // Step 1: Check diet-aware cache (includes primaryDiet + starch direction in key)
+  // starchCacheKey ('starch' | 'fiber' | 'any') prevents a fiber-prescribed call from
+  // hitting a cached starchy result (and vice-versa).
   const signature = createIngredientSignature({
-    ingredients: [cravingInput],
+    ingredients: [cravingInput, starchCacheKey],
     mealType: validMealType,
     primaryDiet: cravingPrimaryDiet
   });
   
   const cached = await getCachedMeals(signature);
   if (cached && cached.meals.length > 0) {
-    macroAuditCache(cached.meals[0]?.name ?? cravingInput, "hit", signature, { carbs: cached.meals[0]?.carbs });
-    console.log(`🚀 Cache hit for craving: "${cravingInput}" diet:${cravingPrimaryDiet} (source: ${cached.source})`);
-    return {
-      success: true,
-      meal: cached.meals[0],
-      source: cached.meals[0].source === 'ai' ? 'ai' : 'catalog'
-    };
+    // Fiber-prescribed calls must never serve a starchy cached meal
+    const cachedMeal = cached.meals[0];
+    const cachedIsStarchy = (cachedMeal.starchyCarbs ?? 0) > 5;
+    if (!starchPlacement.shouldIncludeStarch && cachedIsStarchy) {
+      console.log(`🥦 [CRAVING/Cache] Skipping starchy cached meal ("${cachedMeal.name}") — prescription says fiber-based (${starchPlacement.reason})`);
+    } else {
+      macroAuditCache(cachedMeal.name ?? cravingInput, "hit", signature, { carbs: cachedMeal.carbs });
+      console.log(`🚀 Cache hit for craving: "${cravingInput}" diet:${cravingPrimaryDiet} starch:${starchCacheKey} (source: ${cached.source})`);
+      return {
+        success: true,
+        meal: cachedMeal,
+        source: cachedMeal.source === 'ai' ? 'ai' : 'catalog'
+      };
+    }
   }
 
   // Step 2: Check for template match BEFORE trying AI
@@ -738,7 +767,7 @@ REQUIRED STRUCTURE FOR EVERY MEAL:
         : '';
       
       const prompt = `You are a creative chef helping someone satisfy their food craving.
-${cravingDietBlock ? `\n${cravingDietBlock}\n` : ""}${oncologyCravingBlock}${strictMode ? `\n${buildStrictModeBlock(cravingInput)}\n` : ""}
+${cravingDietBlock ? `\n${cravingDietBlock}\n` : ""}${oncologyCravingBlock}${strictMode ? `\n${buildStrictModeBlock(cravingInput)}\n` : ""}${starchGuidance ? `\n${starchGuidance}\n` : ""}
 CRAVING: "${cravingInput}"
 MEAL TYPE: ${validMealType}
 
@@ -1439,10 +1468,32 @@ function buildVarietyPrompt(
     ? `USER DIET: ${primaryDiet.toUpperCase()} — ALL 3 options must comply fully. Zero exceptions.`
     : `USER DIET: None set — generate standard (non-vegan, non-restricted) food.`;
 
+  // Dish-format words that need the same hard-lock treatment as "dessert".
+  // When a user asks for "soup", they must get soup — not a balanced plate of chicken + rice + veg.
+  const FORMAT_LOCK_DISHES: Record<string, string> = {
+    soup:       'ALL 3 options MUST be soups. Every option must have a broth, stock, bisque, chowder, or purée as its primary base. Do NOT generate rice plates, salads, grilled proteins, stir-fries, or any non-soup format.',
+    salad:      'ALL 3 options MUST be salads. Every option must be built on a leafy green or grain base with tossed toppings and dressing. Do NOT generate soups, wraps, grilled plates, or non-salad formats.',
+    sandwich:   'ALL 3 options MUST be sandwiches. Every option must be served between two slices of bread, in a roll, hoagie, sub, or bun. Do NOT generate salads, bowls, soups, or non-sandwich formats.',
+    wrap:       'ALL 3 options MUST be wraps. Every option must be enclosed in a tortilla, flatbread, lavash, or collard leaf. Do NOT generate sandwiches, bowls, plates, or non-wrap formats.',
+    bowl:       'ALL 3 options MUST be bowls. Every option must be a grain bowl, noodle bowl, or protein bowl with a base, toppings, and sauce. Do NOT generate soups, sandwiches, or non-bowl formats.',
+    pasta:      'ALL 3 options MUST be pasta dishes. Every option must feature pasta as the main component. Do NOT generate rice dishes, grain bowls, soups, or non-pasta formats.',
+    'stir-fry': 'ALL 3 options MUST be stir-fries. Every option must be wok-cooked or pan-tossed at high heat with a sauce. Do NOT generate soups, baked dishes, salads, or non-stir-fry formats.',
+    curry:      'ALL 3 options MUST be curries. Every option must have a spiced sauce or gravy as the base. Do NOT generate stir-fries, dry-rub plates, soups, or non-curry formats.',
+    risotto:    'ALL 3 options MUST be risottos. Every option must use Arborio or similar short-grain rice cooked into a creamy texture. Do NOT generate pasta, pilaf, or non-risotto formats.',
+    taco:       'ALL 3 options MUST be tacos. Every option must be served in tortillas (corn or flour). Do NOT generate burritos, bowls, wraps without tortillas, or non-taco formats.',
+    burrito:    'ALL 3 options MUST be burritos. Every option must be a large stuffed flour tortilla, fully wrapped. Do NOT generate tacos, bowls, or non-burrito formats.',
+    pizza:      'ALL 3 options MUST be pizzas. Every option must feature a dough base with sauce and toppings. Do NOT generate flatbreads without sauce, grain bowls, or non-pizza formats.',
+    burger:     'ALL 3 options MUST be burgers. Every option must be a patty served in a bun. Do NOT generate sandwiches without patties, wraps, salads, or non-burger formats.',
+    omelette:   'ALL 3 options MUST be omelettes. Every option must be egg-based, folded or rolled around a filling. Do NOT generate scrambles, frittatas, or non-omelette formats.',
+  };
+
+  const formatLockText = FORMAT_LOCK_DISHES[dishFamily];
   const dessertNote = category === "dessert"
     ? `\nCATEGORY LOCK: This is a DESSERT request. ALL 3 options must be desserts. Never generate savory meals, wraps, salads, or non-dessert items.`
     : category === "beverage"
     ? `\nCATEGORY LOCK: This is a BEVERAGE request. ALL 3 options must be drinks. Never generate solid food.`
+    : formatLockText
+    ? `\nCATEGORY LOCK — DISH FORMAT ENFORCED: ${formatLockText}`
     : `\nCATEGORY LOCK: This is a ${category.toUpperCase()} request. Stay within this food category.`;
 
   return `You are a precision chef AI. Your ONLY job is to generate 3 distinct variations of the same dish type.
@@ -1459,9 +1510,10 @@ HIERARCHY (follow in this EXACT order):
 3. DISH FAMILY LOCK (non-negotiable)
    The user asked for: "${cravingInput}"
    Core dish to stay within: "${dishFamily}"
-   ALL 3 options must be variations of "${dishFamily}" — different preparations, textures, or styles.
+   ALL 3 options must be variations of "${dishFamily}" — different preparations, textures, flavors, or proteins.
+   Example: "soup" → Chicken Noodle Soup, Lentil Tomato Soup, Creamy Broccoli Soup.
    Example: "cheesecake" → Classic Baked Cheesecake, No-Bake Cheesecake, Cheesecake Parfait.
-   NEVER drift to a completely different dish type.
+   NEVER drift to a completely different dish type. A rice plate is not a soup. A grilled protein is not a salad.
 
 4. VARIATION (apply last, within constraints above)
    Each option must differ meaningfully:
@@ -3649,7 +3701,7 @@ export async function generateMealUnified(
       const cravingInput = Array.isArray(request.input) 
         ? request.input.join(', ') 
         : request.input;
-      result = await generateCravingMealUnified(cravingInput, request.mealType, request.userId, undefined, request.strictMode === true);
+      result = await generateCravingMealUnified(cravingInput, request.mealType, request.userId, undefined, request.strictMode === true, request.starchContext);
       break;
 
     case 'create-with-chef':

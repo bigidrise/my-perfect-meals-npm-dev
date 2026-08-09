@@ -149,8 +149,14 @@ function getPerformanceProtocolTargets(userId?: string): ResolvedTargets | null 
         // ignored even if present in localStorage. The protocol only owns adjustments.
         sessionModifiers: Record<string, { carbsAdjustG: number; caloriesAdjustKcal: number; proteinAdjustG: number }>;
       };
+      // explicit activation flag — false = schedule stored but performance mode OFF
+      enabled?: boolean;
     };
     if (!state?.config || !state?.schedule) return null;
+    // Gate: schedule existence ≠ performance active.
+    // The user must explicitly activate Performance Mode via the builder entry page.
+    // Default false so existing users with stored schedules are unaffected until they activate.
+    if (!state.enabled) return null;
 
     // ── Baseline: always read from Macro Calculator, never from a stored snapshot ──
     // If the user has no Macro Calculator targets set, performance targets cannot

@@ -10,6 +10,7 @@ import {
   Circle,
   Loader2,
   Lock,
+  Sparkles,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
@@ -55,12 +56,19 @@ export default function AcademyHome() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const [status, setStatus] = useState<AcademyStatus | null>(null);
+  const [marketingCertStatus, setMarketingCertStatus] = useState<string>("not_started");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
-    apiRequest("/api/academy/platform-mastery/status")
-      .then((d) => setStatus(d as AcademyStatus))
+    Promise.all([
+      apiRequest("/api/academy/platform-mastery/status"),
+      apiRequest("/api/certifications/marketing_coaching/progress").catch(() => null),
+    ])
+      .then(([acad, mkt]) => {
+        setStatus(acad as AcademyStatus);
+        setMarketingCertStatus((mkt as any)?.status ?? "not_started");
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [user]);
@@ -71,7 +79,17 @@ export default function AcademyHome() {
   }).length;
 
   const allDone = completedLessons === PLATFORM_MASTERY_LESSONS.length;
-  const isCertified = status?.certStatus === "completed";
+  const isPlatformCertified = status?.certStatus === "completed";
+  // Keep legacy alias for backward compat within this file
+  const isCertified = isPlatformCertified;
+  const isMarketingCertified = marketingCertStatus === "completed";
+  // Core certified = Platform Mastery + Marketing & Coaching complete
+  const isCoreCertified = isPlatformCertified && isMarketingCertified;
+  // ProCare workspace: they already have a professional account set up
+  const hasProCareWorkspace =
+    user?.professionalRole === "trainer" || user?.professionalRole === "physician";
+  // ProCare eligible: server-confirmed active ProCare subscription (not inferred from cert)
+  const proCareEligible = user?.proCareEligible ?? false;
 
   const nextLesson = PLATFORM_MASTERY_LESSONS.find((l) => {
     const id = `lesson-0${l.num}`;
@@ -92,6 +110,74 @@ export default function AcademyHome() {
     return status?.progress?.[priorId]?.status !== "completed";
   }
 
+  // ── State-aware CTA for the Become Certified section ──────────────────────
+  function renderCertificationCTA() {
+    if (loading) return null;
+
+    // State 5: Both done + ProCare workspace already exists
+    if (isCoreCertified && hasProCareWorkspace) {
+      return (
+        <button
+          onClick={() => setLocation("/procare-welcome")}
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-orange-600 text-white font-semibold text-sm active:scale-[0.98] transition-transform"
+        >
+          <GraduationCap className="h-4 w-4" />
+          Open ProCare
+          <ChevronRight className="h-4 w-4 opacity-70" />
+        </button>
+      );
+    }
+
+    // State 4: Both done, no ProCare workspace — offer ProCare as optional advanced path
+    if (isCoreCertified) {
+      return (
+        <div className="space-y-3">
+          <div className="flex items-center gap-3 p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25">
+            <Sparkles className="h-5 w-5 text-emerald-400 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-emerald-300">My Perfect Meals Certified</p>
+              <p className="text-xs text-emerald-300/60 mt-0.5">Core certification complete — you're all set.</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setLocation("/procare-welcome")}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-white/10 border border-white/15 text-white font-semibold text-sm active:scale-[0.98] transition-transform"
+          >
+            <GraduationCap className="h-4 w-4 text-orange-400" />
+            Continue to ProCare Certification
+            <ChevronRight className="h-4 w-4 opacity-50" />
+          </button>
+        </div>
+      );
+    }
+
+    // State 3: Platform done, marketing not done → Continue Certification
+    if (isPlatformCertified && !isMarketingCertified) {
+      return (
+        <button
+          onClick={() => setLocation("/business-center/affiliate/coaching/certification")}
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-orange-600 text-white font-semibold text-sm active:scale-[0.98] transition-transform"
+        >
+          <GraduationCap className="h-4 w-4" />
+          Continue Certification
+          <ChevronRight className="h-4 w-4 opacity-70" />
+        </button>
+      );
+    }
+
+    // State 1 & 2: Nothing done or in progress → Start Certification Path
+    return (
+      <button
+        onClick={() => setLocation("/academy/platform-mastery/lesson/lesson-01")}
+        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-white/10 border border-white/15 text-white font-semibold text-sm active:scale-[0.98] transition-transform"
+      >
+        <GraduationCap className="h-4 w-4 text-orange-400" />
+        {isPlatformCertified ? "Continue Certification" : "Start Certification Path"}
+        <ChevronRight className="h-4 w-4 opacity-50" />
+      </button>
+    );
+  }
+
   return (
     <motion.div
       className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} pb-28`}
@@ -106,7 +192,7 @@ export default function AcademyHome() {
         <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
           <button
             onClick={() => setLocation("/more")}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-600 text-white text-xs font-semibold active:scale-[0.95] transition-transform"
           >
             <ArrowLeft className="h-4 w-4" />
             Back
@@ -276,10 +362,17 @@ export default function AcademyHome() {
 
           <div className="px-5 py-4 space-y-3">
             {BECOME_CERTIFIED.map((item, i) => {
-              const isFirst = i === 0;
-              const locked = !isFirst && !isCertified;
+              // Per-item completion & lock state
+              const itemDone =
+                i === 0 ? isPlatformCertified :
+                i === 1 ? isMarketingCertified :
+                false; // ProCare cert tracked separately; show as optional
+              const locked =
+                i === 1 ? !isPlatformCertified :
+                i === 2 ? !isMarketingCertified :
+                false;
               const noRoute = item.route === null;
-              const isClickable = !locked && !noRoute;
+              const isClickable = !loading && !locked && !noRoute;
 
               const inner = (
                 <>
@@ -287,15 +380,22 @@ export default function AcademyHome() {
                     {item.icon}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-white">
+                    <p className={`text-sm font-semibold ${locked ? "text-white/40" : "text-white"}`}>
                       {item.label}
+                      {i === 2 && (
+                        <span className="ml-2 text-[10px] font-normal text-white/30 uppercase tracking-wider">
+                          optional
+                        </span>
+                      )}
                     </p>
                     <p className="text-xs text-white/45 mt-0.5">{item.desc}</p>
                   </div>
-                  {locked || noRoute ? (
-                    <Lock className="h-4 w-4 text-white/20 flex-shrink-0 mt-0.5" />
-                  ) : isCertified && isFirst ? (
+                  {itemDone ? (
                     <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                  ) : locked ? (
+                    <Lock className="h-4 w-4 text-white/20 flex-shrink-0 mt-0.5" />
+                  ) : noRoute ? (
+                    <Lock className="h-4 w-4 text-white/20 flex-shrink-0 mt-0.5" />
                   ) : (
                     <ChevronRight className="h-4 w-4 text-orange-400/60 flex-shrink-0 mt-0.5" />
                   )}
@@ -303,10 +403,18 @@ export default function AcademyHome() {
               );
 
               const sharedClass = `flex items-start gap-3 p-3.5 rounded-xl border ${
-                isFirst
-                  ? "bg-orange-500/10 border-orange-500/25"
-                  : "bg-white/[0.03] border-white/8"
-              } ${locked || noRoute ? "opacity-50" : ""}`;
+                i === 0
+                  ? isPlatformCertified
+                    ? "bg-emerald-500/10 border-emerald-500/20"
+                    : "bg-orange-500/10 border-orange-500/25"
+                  : i === 1
+                  ? isMarketingCertified
+                    ? "bg-emerald-500/10 border-emerald-500/20"
+                    : locked
+                    ? "bg-white/[0.02] border-white/6 opacity-45"
+                    : "bg-orange-500/10 border-orange-500/25"
+                  : "bg-white/[0.03] border-white/8 opacity-50"
+              }`;
 
               return isClickable ? (
                 <motion.button
@@ -324,7 +432,7 @@ export default function AcademyHome() {
                   key={i}
                   className={sharedClass}
                   initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: locked || noRoute ? 0.5 : 1, y: 0 }}
+                  animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.22 + i * 0.05 }}
                 >
                   {inner}
@@ -333,26 +441,26 @@ export default function AcademyHome() {
             })}
           </div>
 
+          {/* Two-tier note */}
           <div className="px-5 pb-4 pt-1">
             <div className="p-3.5 rounded-xl bg-orange-500/8 border border-orange-500/15">
-              <p className="text-xs text-orange-200/70 leading-relaxed text-center">
-                Complete all three to earn:{" "}
-                <span className="font-semibold text-orange-300">
-                  Certified My Perfect Meals Professional
-                </span>
-              </p>
+              {isCoreCertified ? (
+                <p className="text-xs text-emerald-200/70 leading-relaxed text-center">
+                  <span className="font-semibold text-emerald-300">My Perfect Meals Certified ✓</span>
+                  {"  "}—{"  "}
+                  ProCare is an advanced optional path for professionals who manage clients.
+                </p>
+              ) : (
+                <p className="text-xs text-orange-200/70 leading-relaxed text-center">
+                  <span className="font-semibold text-orange-300">Platform Mastery + Marketing & Coaching</span>
+                  {" "}earns your core certification. ProCare is optional, for client-facing professionals.
+                </p>
+              )}
             </div>
           </div>
 
           <div className="px-5 pb-4">
-            <button
-              onClick={() => setLocation("/academy/platform-mastery/lesson/lesson-01")}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-white/10 border border-white/15 text-white font-semibold text-sm active:scale-[0.98] transition-transform"
-            >
-              <GraduationCap className="h-4 w-4 text-orange-400" />
-              Start Certification Path
-              <ChevronRight className="h-4 w-4 opacity-50" />
-            </button>
+            {renderCertificationCTA()}
           </div>
         </motion.div>
 

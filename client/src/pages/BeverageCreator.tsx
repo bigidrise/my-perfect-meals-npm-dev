@@ -29,6 +29,7 @@ import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import PhaseGate from "@/components/PhaseGate";
 import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
+import AlphaGalBadge from "@/components/AlphaGalBadge";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import ShareRecipeButton from "@/components/ShareRecipeButton";
 import TranslateToggle from "@/components/TranslateToggle";
@@ -913,6 +914,9 @@ export default function BeverageCreator() {
                           Medical Safety
                         </h3>
                       </div>
+                      {generatedBeverage.alphaGalBadge && (
+                        <AlphaGalBadge badge={generatedBeverage.alphaGalBadge} />
+                      )}
                       <TrashButton
                         size="sm"
                         ariaLabel="Remove beverage"

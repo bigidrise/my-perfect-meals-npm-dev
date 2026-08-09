@@ -292,7 +292,12 @@ UNIVERSAL RULE FOR ALL MEDICAL CONDITIONS:
  */
 export async function generateRestaurantMealsAI(request: RestaurantMealRequest): Promise<RestaurantMeal[]> {
   const { restaurantName, cuisine, user, cravingContext, skipImages, protocolBlock, protocolEnvelope, builderBlock } = request;
-  const userConditions = user?.healthConditions || [];
+  const userConditions: string[] = [
+    ...(user?.healthConditions || []),
+    // Alpha-gal is stored as a dedicated profile object, not in healthConditions.
+    // Inject the canonical key so getMedicalBadges() detects it correctly.
+    ...(user?.alphaGalProfile ? ["alpha-gal-syndrome"] : []),
+  ];
 
   console.log(`🤖 AI Generator: Creating restaurant-specific meals for ${restaurantName} (${cuisine} cuisine)${cravingContext ? ` featuring ${cravingContext}` : ''}`);
 

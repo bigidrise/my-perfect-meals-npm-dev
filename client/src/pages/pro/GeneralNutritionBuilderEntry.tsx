@@ -3,29 +3,27 @@
  *
  * Builder Entry screen for the General Nutrition Builder.
  * Users land here first and choose one of two paths:
- *   1. Continue → opens the General Nutrition Builder directly
- *   2. Training Nutrition Schedule → opens the scheduling modal (reuses
- *      the exact same scheduling system as the Performance Nutrition Hub)
- *
- * Scope: General Nutrition only (pilot). Do not add this pattern to
- * Diabetic, GLP-1, or Anti-Inflammatory builders until this is approved.
+ *   1. Continue → sets Performance Mode OFF, enters the General Nutrition Builder
+ *   2. Training Nutrition Schedule → sets Performance Mode ON, enters the builder
+ *      with today's performance-adjusted macro targets active
  */
 
-import React from "react";
+import React, { useCallback } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { ChevronRight, Dumbbell, CalendarDays, Utensils } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { apiRequest } from "@/lib/apiRequest";
 
 export default function GeneralNutritionBuilderEntry() {
   const { t } = useTranslation("pro");
   const [, setLocation] = useLocation();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
 
   const hasSchedule = !!(user?.weeklyTrainingSchedule);
+  const performanceModeEnabled = user?.performanceModeEnabled ?? false;
 
-  // Derive today's session label from the stored schedule
   const DOW = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
   const todayKey = DOW[new Date().getDay()];
   const schedule = user?.weeklyTrainingSchedule as Record<string, string> | null | undefined;
@@ -41,6 +39,23 @@ export default function GeneralNutritionBuilderEntry() {
     off: t("gnbEntry.sessions.off"),
   };
   const todayLabel = todaySession ? (SESSION_LABELS[todaySession] ?? todaySession) : null;
+
+  const setMode = useCallback(async (enabled: boolean) => {
+    try {
+      await apiRequest("/api/performance/mode", { method: "PATCH", body: JSON.stringify({ enabled }) });
+      await refreshUser();
+    } catch { /* silent — navigation proceeds regardless */ }
+  }, [refreshUser]);
+
+  const handleContinue = useCallback(async () => {
+    await setMode(false);
+    setLocation("/general-nutrition-builder/build");
+  }, [setMode, setLocation]);
+
+  const handlePerformance = useCallback(async () => {
+    await setMode(true);
+    setLocation(hasSchedule ? "/general-nutrition-builder/build" : "/general-nutrition/training");
+  }, [setMode, setLocation, hasSchedule]);
 
   return (
     <motion.div
@@ -66,9 +81,9 @@ export default function GeneralNutritionBuilderEntry() {
           </p>
         </div>
 
-        {/* Option 1: Continue */}
+        {/* Option 1: Continue — sets Performance Mode OFF */}
         <button
-          onClick={() => setLocation("/general-nutrition-builder/build")}
+          onClick={handleContinue}
           className="w-full flex items-center gap-4 px-5 py-5 rounded-2xl border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/15 transition-colors text-left mb-4 group"
         >
           <div className="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center flex-shrink-0">
@@ -94,9 +109,9 @@ export default function GeneralNutritionBuilderEntry() {
           </p>
         </div>
 
-        {/* Option 2: Training Nutrition Schedule */}
+        {/* Option 2: Performance Mode — sets Performance Mode ON */}
         <button
-          onClick={() => setLocation("/general-nutrition/training")}
+          onClick={handlePerformance}
           className="w-full flex items-start gap-4 px-5 py-5 rounded-2xl border border-white/10 bg-white/5 hover:bg-orange-600/10 hover:border-orange-500/30 transition-colors text-left group"
         >
           <div className="w-10 h-10 rounded-xl bg-orange-600/20 border border-orange-500/30 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -107,7 +122,7 @@ export default function GeneralNutritionBuilderEntry() {
               <p className="text-white font-semibold text-base leading-tight">
                 {t("gnbEntry.scheduleTitle")}
               </p>
-              {hasSchedule && (
+              {performanceModeEnabled && hasSchedule && (
                 <span className="text-xs font-semibold text-orange-400 bg-orange-600/20 border border-orange-500/20 px-2 py-0.5 rounded-full flex-shrink-0">
                   {t("gnbEntry.activeLabel")}
                 </span>
@@ -117,8 +132,8 @@ export default function GeneralNutritionBuilderEntry() {
               {t("gnbEntry.scheduleDesc")}
             </p>
 
-            {/* Active schedule status */}
-            {hasSchedule && todayLabel && (
+            {/* Active schedule status — only shown when performance mode is on */}
+            {performanceModeEnabled && hasSchedule && todayLabel && (
               <div className="flex items-center gap-2 mt-2">
                 <CalendarDays className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />
                 <span className="text-orange-300 text-xs font-semibold">
@@ -129,7 +144,6 @@ export default function GeneralNutritionBuilderEntry() {
               </div>
             )}
 
-            {/* CTA label */}
             <p className="text-orange-400 text-sm font-semibold mt-2">
               {hasSchedule ? `${t("gnbEntry.editSchedule")} →` : `${t("gnbEntry.setupSchedule")} →`}
             </p>

@@ -1,14 +1,16 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { ChevronRight, Dumbbell, CalendarDays, Activity } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { apiRequest } from "@/lib/apiRequest";
 
 export default function DiabeticBuilderEntry() {
   const [, setLocation] = useLocation();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
 
   const hasSchedule = !!(user?.weeklyTrainingSchedule);
+  const performanceModeEnabled = user?.performanceModeEnabled ?? false;
 
   const DOW = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
   const todayKey = DOW[new Date().getDay()];
@@ -25,6 +27,23 @@ export default function DiabeticBuilderEntry() {
     off: "Rest Day",
   };
   const todayLabel = todaySession ? (SESSION_LABELS[todaySession] ?? todaySession) : null;
+
+  const setMode = useCallback(async (enabled: boolean) => {
+    try {
+      await apiRequest("/api/performance/mode", { method: "PATCH", body: JSON.stringify({ enabled }) });
+      await refreshUser();
+    } catch { /* silent — navigation proceeds regardless */ }
+  }, [refreshUser]);
+
+  const handleContinue = useCallback(async () => {
+    await setMode(false);
+    setLocation("/diabetic-hub");
+  }, [setMode, setLocation]);
+
+  const handlePerformance = useCallback(async () => {
+    await setMode(true);
+    setLocation(hasSchedule ? "/diabetic-hub" : "/diabetic/training");
+  }, [setMode, setLocation, hasSchedule]);
 
   return (
     <motion.div
@@ -50,9 +69,9 @@ export default function DiabeticBuilderEntry() {
           </p>
         </div>
 
-        {/* Option 1: Continue */}
+        {/* Option 1: Continue — disables Performance Mode */}
         <button
-          onClick={() => setLocation("/diabetic-hub")}
+          onClick={handleContinue}
           className="w-full flex items-center gap-4 px-5 py-5 rounded-2xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/15 transition-colors text-left mb-4 group"
         >
           <div className="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center flex-shrink-0">
@@ -63,7 +82,7 @@ export default function DiabeticBuilderEntry() {
               Continue to Diabetic Hub
             </p>
             <p className="text-white text-sm leading-relaxed">
-              View your diabetic nutrition hub, generate meals, and track your progress.
+              View your diabetic nutrition hub, generate meals using your baseline macro targets.
             </p>
           </div>
           <ChevronRight className="w-5 h-5 text-rose-400/60 group-hover:text-rose-400 transition-colors flex-shrink-0" />
@@ -74,13 +93,13 @@ export default function DiabeticBuilderEntry() {
           <div className="h-px bg-white/10 mb-4" />
           <p className="text-white font-semibold text-base mb-1">Train or work out regularly?</p>
           <p className="text-white text-sm leading-relaxed">
-            Set up your Training Nutrition Schedule so your meals automatically adapt to your workout schedule while continuing to honor your nutrition goals and active nutrition protocols.
+            Set up your Training Nutrition Schedule so your meals automatically adapt to your workout schedule while continuing to honor your diabetic nutrition protocol.
           </p>
         </div>
 
-        {/* Option 2: Training Nutrition Schedule */}
+        {/* Option 2: Performance Mode — enables Performance Mode */}
         <button
-          onClick={() => setLocation("/diabetic/training")}
+          onClick={handlePerformance}
           className="w-full flex items-start gap-4 px-5 py-5 rounded-2xl border border-white/10 bg-white/5 hover:bg-orange-600/10 hover:border-orange-500/30 transition-colors text-left group"
         >
           <div className="w-10 h-10 rounded-xl bg-orange-600/20 border border-orange-500/30 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -91,7 +110,7 @@ export default function DiabeticBuilderEntry() {
               <p className="text-white font-semibold text-base leading-tight">
                 Training Nutrition Schedule
               </p>
-              {hasSchedule && (
+              {performanceModeEnabled && hasSchedule && (
                 <span className="text-xs font-semibold text-orange-400 bg-orange-600/20 border border-orange-500/20 px-2 py-0.5 rounded-full flex-shrink-0">
                   Active
                 </span>
@@ -100,7 +119,7 @@ export default function DiabeticBuilderEntry() {
             <p className="text-white text-sm leading-relaxed mb-2">
               Automatically adjust your daily macro targets based on your weekly workout schedule.
             </p>
-            {hasSchedule && todayLabel && (
+            {performanceModeEnabled && hasSchedule && todayLabel && (
               <div className="flex items-center gap-2 mt-2">
                 <CalendarDays className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />
                 <span className="text-orange-300 text-xs font-semibold">Today: {todayLabel}</span>

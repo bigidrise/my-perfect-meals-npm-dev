@@ -70,9 +70,22 @@ export function useDailyPrescription({
       })
       .catch((err: unknown) => {
         if (thisCount === fetchCount.current) {
-          console.warn("[useDailyPrescription] Server unreachable, using fallback:", err);
+          // Distinguish auth failures from genuine network/server errors.
+          // A 401/403 means the prescription endpoint has an auth bug — surface it
+          // loudly so it doesn't silently mask the entire starch distribution system.
+          const msg = err instanceof Error ? err.message : String(err);
+          const statusCode = parseInt(msg.split(":")[0], 10);
+          if (statusCode === 401 || statusCode === 403) {
+            console.error(
+              `[useDailyPrescription] Auth failure (${statusCode}) — prescription endpoint rejected the request. ` +
+              `Check that the route handler reads req.authUser, not req.user. Falling back to defaults.`,
+              err,
+            );
+          } else {
+            console.warn("[useDailyPrescription] Server unreachable, using fallback:", err);
+          }
           setPrescription(buildFallbackPrescription(dateISO));
-          setError("Using offline targets");
+          setError(statusCode === 401 || statusCode === 403 ? `Auth error (${statusCode})` : "Using offline targets");
           setIsLoading(false);
         }
       });

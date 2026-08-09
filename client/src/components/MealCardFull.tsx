@@ -1,10 +1,14 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { RotateCcw, Clock, Users, Shield, AlertTriangle, CheckCircle, X, Plus, Eye } from "lucide-react";
+import { RotateCcw, Clock, Users, Shield, AlertTriangle, CheckCircle, X, Plus, Eye, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { formatIngredientWithGrams } from "@/utils/unitConversions";
 import { useTranslation } from "react-i18next";
+import { useTranslatedMeal } from "@/hooks/useTranslatedMeal";
 // Shopping list functionality removed - import eliminated
+
+// Simple UUID v4 format check
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export interface Ingredient {
   item: string;
@@ -126,6 +130,8 @@ function generateDynamicMedicalBadges(meal: Meal) {
 
 interface MealCardFullProps {
   meal: Meal;
+  /** Saved-meal UUID — enables translation for non-English locales */
+  mealId?: string;
   appliedDietLabel?: string;
   onReplace?: () => void;
   replacing?: boolean;
@@ -137,6 +143,7 @@ interface MealCardFullProps {
 
 export default function MealCardFull({
   meal,
+  mealId,
   appliedDietLabel,
   onReplace,
   replacing = false,
@@ -148,7 +155,25 @@ export default function MealCardFull({
   const [adding, setAdding] = useState(false);
   const [addMessage, setAddMessage] = useState("");
   const { t } = useTranslation("savedMeals");
-  
+
+  // Translation — only active for non-English locales and when a saved-meal UUID is provided
+  const validMealId = mealId && UUID_RE.test(mealId) ? mealId : "";
+  const { data: translation, isFetching: translating } = useTranslatedMeal(
+    validMealId,
+    /* enabled= */ Boolean(validMealId)
+  );
+
+  // Merge translated text over canonical data; amounts/units/nutrition stay untouched
+  const displayName = translation?.translatedName ?? meal.name;
+  const displayDescription = translation?.translatedDescription ?? meal.description;
+  const displayIngredients = meal.ingredients?.map((ing, i) => ({
+    ...ing,
+    item: translation?.translatedIngredients?.[i]?.item ?? ing.item,
+    notes: translation?.translatedIngredients?.[i]?.notes ?? ing.notes,
+  }));
+  const displayInstructions =
+    translation?.translatedInstructions ?? meal.instructions;
+
   // Generate dynamic medical badges based on user's onboarding profile
   const medicalBadges = generateDynamicMedicalBadges(meal);
   
@@ -166,11 +191,11 @@ export default function MealCardFull({
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1">
           <h4 className="font-semibold text-lg text-slate-900 dark:text-white line-clamp-2">
-            {meal.name}
+            {displayName}
           </h4>
-          {meal.description && (
+          {displayDescription && (
             <p className="text-sm text-slate-600 dark:text-slate-400 mt-1 line-clamp-2">
-              {meal.description}
+              {displayDescription}
             </p>
           )}
           {appliedDietLabel && (
@@ -336,12 +361,15 @@ export default function MealCardFull({
 
       {/* Ingredients */}
       <div>
-        <h5 className="font-semibold text-sm text-slate-900 dark:text-white mb-2">
+        <h5 className="font-semibold text-sm text-slate-900 dark:text-white mb-2 flex items-center gap-2">
           {t("ingredientsServes", { count: meal.servings })}
+          {translating && (
+            <Loader2 className="h-3 w-3 animate-spin text-slate-400 dark:text-slate-500" />
+          )}
         </h5>
-        {meal.ingredients?.length ? (
+        {displayIngredients?.length ? (
           <ul className="space-y-1 text-sm text-slate-700 dark:text-slate-300">
-            {meal.ingredients.map((ingredient, i) => (
+            {displayIngredients.map((ingredient, i) => (
               <li key={i} className="flex items-start gap-2">
                 <span className="w-2 h-2 bg-slate-400 rounded-full shrink-0 mt-2"></span>
                 <span>
@@ -367,9 +395,9 @@ export default function MealCardFull({
         <h5 className="font-semibold text-sm text-slate-900 dark:text-white mb-2">
           {t("instructions")}
         </h5>
-        {meal.instructions?.length ? (
+        {displayInstructions?.length ? (
           <ol className="space-y-2 text-sm text-slate-700 dark:text-slate-300">
-            {meal.instructions.map((instruction, i) => (
+            {displayInstructions.map((instruction, i) => (
               <li key={i} className="flex items-start gap-3">
                 <span className="bg-slate-200 dark:bg-slate-600 text-slate-800 dark:text-slate-200 w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium shrink-0 mt-0.5">
                   {i + 1}

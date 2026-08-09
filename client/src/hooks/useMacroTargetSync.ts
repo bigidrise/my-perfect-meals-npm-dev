@@ -1,13 +1,15 @@
 // client/src/hooks/useMacroTargetSync.ts
-// Background sync: detects when a pro has updated a client's macro targets in the
-// DB (from their Studio) and pushes the change into proStore so every client-side
-// surface (RemainingMacrosFooter, DailyTargetsCard, Biometrics) reflects it
-// immediately — without a page refresh.
+// Background sync: keeps every client-side surface in sync with the server/DB.
 //
-// Also handles cross-device hydration for self-managed users: on mount, if
-// localStorage has no macro targets (e.g. fresh desktop browser), it fetches
-// from the server and writes to localStorage so NutritionBudgetBanner and all
-// other target-dependent surfaces appear correctly.
+// Authority model:
+//   1. Active ProCare target override (trainer/physician set in Studio)
+//   2. Server/DB macro targets (Macro Calculator saves go here)
+//   3. localStorage — a cache/fallback ONLY, never the permanent authority
+//
+// The rule: the server ALWAYS wins for self-managed users. localStorage is
+// written FROM the server, not FROM localStorage. This means:
+//   - Stale values written weeks ago are overwritten on every sync
+//   - Cross-device changes (saved on phone, opened on desktop) propagate correctly
 //
 // Trigger points:
 //   1. On mount (catches targets set while the app was closed / tab was inactive)
@@ -33,17 +35,6 @@ function getClientId(userId: string): string | null {
     return map[userId] || null;
   } catch {
     return null;
-  }
-}
-
-function hasSelfTargetsInLocalStorage(userId: string): boolean {
-  try {
-    const stored = localStorage.getItem(TARGETS_LS_KEY(userId));
-    if (!stored) return false;
-    const parsed = JSON.parse(stored);
-    return !!(parsed?.protein_g > 0 || parsed?.carbs_g > 0 || parsed?.fat_g > 0);
-  } catch {
-    return false;
   }
 }
 
@@ -80,18 +71,17 @@ export function useMacroTargetSync() {
       const clientId = getClientId(userId);
 
       if (!clientId) {
-        // Self-managed user: hydrate localStorage from the server only when it is
-        // empty (e.g. fresh browser / new device). If localStorage already has
-        // targets the user set them locally — those are authoritative and we leave
-        // them alone.
-        if (hasSelfTargetsInLocalStorage(userId)) return;
-
+        // Self-managed user: server/DB is always the authority.
+        // localStorage is a fast cache — we always refresh it from the server so
+        // stale values (set weeks ago, on another device, or by an old build) never
+        // persist. We previously bailed out early when localStorage had any value,
+        // which made stale cache permanent. That guard is gone.
         try {
           const data = await apiRequest(`/api/users/${userId}/macro-targets`, { cache: "no-store" });
-          if (!data.hasTargets) return;
+          if (!data.hasTargets) return; // Server has no targets; nothing to sync.
 
-          // Write server targets into localStorage so the resolver finds them.
-          const targets = {
+          // Build the authoritative target object from server data.
+          const freshTargets = {
             calories: data.calories ?? 0,
             protein_g: data.protein_g ?? 0,
             carbs_g: data.carbs_g ?? 0,
@@ -105,13 +95,34 @@ export function useMacroTargetSync() {
             ...(data.mealsPerDay && { mealsPerDay: data.mealsPerDay }),
           };
 
-          localStorage.setItem(TARGETS_LS_KEY(userId), JSON.stringify(targets));
+          // Compare against the current localStorage cache. Only write + emit when
+          // values have actually changed — avoids thrashing the resolver and
+          // re-rendering every surface on every 45-second poll tick.
+          let changed = true;
+          try {
+            const stored = localStorage.getItem(TARGETS_LS_KEY(userId));
+            if (stored) {
+              const cached = JSON.parse(stored);
+              changed = (
+                Math.round(cached.calories      ?? 0) !== Math.round(freshTargets.calories)      ||
+                Math.round(cached.protein_g     ?? 0) !== Math.round(freshTargets.protein_g)     ||
+                Math.round(cached.fat_g         ?? 0) !== Math.round(freshTargets.fat_g)         ||
+                Math.round(cached.starchyCarbs_g ?? 0) !== Math.round(freshTargets.starchyCarbs_g) ||
+                Math.round(cached.fibrousCarbs_g ?? 0) !== Math.round(freshTargets.fibrousCarbs_g)
+              );
+            }
+          } catch { /* treat as changed */ }
+
+          if (!changed) return;
+
+          localStorage.setItem(TARGETS_LS_KEY(userId), JSON.stringify(freshTargets));
           clearResolvedTargetsCache();
           window.dispatchEvent(new CustomEvent("mpm:targetsUpdated"));
 
           console.log(
-            "[MacroTargetSync] Self-managed targets hydrated from server →",
-            `protein=${data.protein_g} carbs=${data.carbs_g} fat=${data.fat_g}`
+            "[MacroTargetSync] Self-managed targets refreshed from server →",
+            `protein=${freshTargets.protein_g} carbs=${freshTargets.carbs_g} fat=${freshTargets.fat_g}`,
+            `starchy=${freshTargets.starchyCarbs_g} fibrous=${freshTargets.fibrousCarbs_g}`
           );
         } catch {
           // Silent — network failures should not surface to the user

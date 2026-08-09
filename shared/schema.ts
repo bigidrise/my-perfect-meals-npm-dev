@@ -43,6 +43,12 @@ export const macroLogs = pgTable("macro_logs", {
   // Starchy/Fibrous carb breakdown
   starchyCarbs: numeric("starchy_carbs").notNull().default("0"),
   fibrousCarbs: numeric("fibrous_carbs").notNull().default("0"),
+  // Audit trail: how the starchy/fibrous split was determined for this row.
+  // 'ingredient'          — split derived from ingredient keyword analysis (reliable)
+  // 'user_input'          — user manually supplied the split (authoritative)
+  // 'conservative_fallback' — no split info available; all carbs treated as starchy
+  // 'unclassified'        — legacy rows written before this column existed
+  classificationSource: varchar("classification_source", { length: 25 }).notNull().default("unclassified"),
 });
 
 // Re-export biometrics schema (unchanged)
@@ -573,6 +579,18 @@ export const users = pgTable("users", {
     sessionModifiers: Record<string, { carbsAdjustG: number; caloriesAdjustKcal: number; proteinAdjustG: number; }>;
     generatedAt: string;
   }>(),
+  /**
+   * Explicit Performance Mode activation flag.
+   *
+   * Separates "has a performance schedule stored" from "performance mode is ON".
+   * false (default) = schedule may exist but performance modifiers are NOT applied.
+   * true            = today's training-day modifiers are applied to macro targets
+   *                   and prescription starch slot counts across all builders.
+   *
+   * Set via the builder entry pages (button click), NOT automatically when a schedule is saved.
+   * Schedule and protocol data are never deleted when this is set to false.
+   */
+  performanceModeEnabled: boolean("performance_mode_enabled").notNull().default(false),
   // Flags 'request_support' intent for future professional follow-up surfacing
   needsProfessionalFollowup: boolean("needs_professional_followup").default(false),
   // Client Goals — set during onboarding, displayed on dashboard + coach folder

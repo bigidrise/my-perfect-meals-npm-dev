@@ -49,7 +49,7 @@ const PLATFORM_MASTERY_LESSONS = [
   {
     number: "02",
     title: "Meal Builders — Choosing the Right Tool",
-    description: "Every meal creation tool on the platform — Create a Dish, Chef's Kitchen, Snack Creator, Beverage Creator, Craving Creator, Recipe Scan, Fridge Rescue, and more — with a scenario matrix for choosing the right tool.",
+    description: "Every meal creation tool on the platform — Create a Dish, Chef's Kitchen, Snack Creator, Beverage Creator, Craving Creator, Recipe Maker, Fridge Rescue, and more — with a scenario matrix for choosing the right tool.",
     icon: LayoutDashboard,
   },
   {
