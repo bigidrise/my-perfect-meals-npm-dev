@@ -70,21 +70,25 @@ export async function writeMacroLog(input: MacroLogServiceInput) {
     ? input.fibrousCarbs
     : deriveFibrousCarbs(fiber);
 
-  // Resolve starchyCarbs. Callers should always derive and send this using the
-  // density-weighted classifier (deriveSplitCarbs / deriveCarbs). When it is
-  // absent but fibrousCarbs is known we can infer: anything that is not fibrous
-  // and not a zero-carb meal is treated as starchy. This prevents a genuine
-  // non-zero starch contribution from being silently recorded as 0.
+  // Resolve starchyCarbs.
   //
-  // NOTE: the DB column is NOT NULL, so we must always write a number. "0"
-  // here means the caller provided no carbohydrates data at all (not that the
-  // system confirmed zero starchy carbs); callers that have ingredient data
-  // are expected to pass a derived value so this fallback is never needed.
-  const starchyCarbs: number | null = input.starchyCarbs != null
-    ? input.starchyCarbs
-    : (fibrousCarbs != null && input.carbohydrates > 0
+  // Priority order:
+  //   1. Explicit value from caller (including 0 — means genuinely zero starchy carbs).
+  //   2. Inferred from fibrousCarbs: starchy = total - fibrous.
+  //   3. No split info at all but carbs > 0 → conservative fallback: treat ALL carbs as
+  //      starchy. This is the correct product behaviour — we never silently zero-out
+  //      starchy carbs just because the caller didn't supply a split.
+  //   4. Zero carb meal → starchyCarbs = 0.
+  //
+  // Callers that have no genuine split should pass null (not 0) so this fallback runs.
+  const starchyCarbs: number =
+    input.starchyCarbs != null
+      ? input.starchyCarbs
+      : fibrousCarbs != null && input.carbohydrates > 0
         ? Math.max(0, input.carbohydrates - fibrousCarbs)
-        : null);
+        : input.carbohydrates > 0
+          ? input.carbohydrates   // no split known — conservative: all carbs are starchy
+          : 0;
 
   const resolvedCalories =
     input.calories > 0
