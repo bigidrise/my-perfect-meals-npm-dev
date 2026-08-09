@@ -136,6 +136,7 @@ router.delete("/conversation", async (req, res) => {
   res.json({ ok: true });
 });
 
+// POST /ask — send a message to the Pregnancy Coach
 router.post("/ask", async (req, res) => {
   try {
     const userId = resolveUserId(req);
@@ -423,16 +424,15 @@ You MUST respond with a JSON object:
     } catch {
       if (raw && raw !== "{}") reply = raw;
     }
-    if (userId) {
-      const updatedHistory = [
-        ...dbHistory,
-        { role: "user", content: message },
-        { role: "assistant", content: reply },
-      ];
-      saveConversation(userId, updatedHistory).catch(err =>
-        console.warn("[PregnancyCoach] Failed to persist conversation:", err)
-      );
-    }
+
+    const updatedHistory = [
+      ...dbHistory,
+      { role: "user", content: message },
+      { role: "assistant", content: reply },
+    ];
+    saveConversation(userId, updatedHistory).catch(err =>
+      console.warn("[PregnancyCoach] Failed to persist conversation:", err)
+    );
 
     return res.json({
       reply,
