@@ -853,4 +853,36 @@ router.get("/today", async (req, res) => {
   }
 });
 
+/**
+ * PATCH /api/performance/mode
+ * Explicitly sets performanceModeEnabled for the authenticated user.
+ * Body: { enabled: boolean }
+ *
+ * This is the ONLY way to activate or deactivate Performance Mode.
+ * Saving a schedule does NOT activate it. The user must choose via the
+ * builder entry page, which calls this endpoint on every click.
+ *
+ * When enabled=false: schedule data is preserved; modifiers are not applied.
+ * When enabled=true:  today's training-day modifiers apply to all builders.
+ */
+router.patch("/mode", async (req, res) => {
+  try {
+    const userId = req.authUser?.id || (req.session as any)?.userId || (req as any).user?.id;
+    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+    const { enabled } = req.body;
+    if (typeof enabled !== "boolean") {
+      return res.status(400).json({ error: "enabled must be a boolean" });
+    }
+
+    await db.update(users).set({ performanceModeEnabled: enabled } as any).where(eq(users.id, userId));
+
+    console.log(`[performanceNutrition] performanceModeEnabled=${enabled} for user ${userId}`);
+    return res.json({ ok: true, performanceModeEnabled: enabled });
+  } catch (err) {
+    console.error("[performanceNutrition] /mode error:", err);
+    return res.status(500).json({ error: "Failed to update performance mode" });
+  }
+});
+
 export default router;

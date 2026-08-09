@@ -271,6 +271,7 @@ export interface User {
   activeProtocolTrack?: "athletic" | "competition" | null;
 
   weeklyTrainingSchedule?: any | null;
+  performanceModeEnabled?: boolean;
 
   performanceProtocolConfig?: any | null;
   // Multi-factor authentication

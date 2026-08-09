@@ -160,6 +160,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           activeProtocolTrack: userData.activeProtocolTrack ?? null,
           weeklyTrainingSchedule: userData.weeklyTrainingSchedule ?? null,
           performanceProtocolConfig: userData.performanceProtocolConfig ?? null,
+          performanceModeEnabled: (userData as any).performanceModeEnabled ?? false,
           trialEndsAt: userData.trialEndsAt ?? null,
           sponsoredByBusinessId: userData.sponsoredByBusinessId ?? null,
           sponsoredByBusinessName: userData.sponsoredByBusinessName ?? null,
@@ -171,6 +172,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           localStorage.setItem(`mpm.perfProtocol.${uid}`, JSON.stringify({
             schedule: userData.weeklyTrainingSchedule,
             config: userData.performanceProtocolConfig,
+            enabled: (userData as any).performanceModeEnabled ?? false,
           }));
         }
         if (userData.oncologySupportIntent) {

@@ -87,17 +87,28 @@ function MacroCell({
 }
 
 function BadgePill({ badge }: { badge: MedicalBadge }) {
-  // Three states:
-  //   compatible = true              → green ✓  (safe)
-  //   compatible = false, color=yellow → amber ⚠ (verify with restaurant — source uncertain)
-  //   compatible = false, other       → red ✕   (hard conflict)
-  const isVerify = !badge.compatible && (badge as any).color === "yellow";
-  const colorClass = badge.compatible
-    ? "bg-emerald-600/30 text-emerald-300"
-    : isVerify
-    ? "bg-amber-600/30 text-amber-300"
-    : "bg-red-600/30 text-red-300";
-  const icon = badge.compatible ? "✓" : isVerify ? "⚠" : "✕";
+  // Resolve the three-state signal. Prefer `status` (server's authoritative field)
+  // over the legacy `compatible: boolean` so alpha-gal protected meals render green
+  // instead of red when the server omits the old `compatible` field.
+  //
+  //   protected   → green ✓  (no mammalian content detected)
+  //   verify      → amber ⚠  (source uncertain — confirm with restaurant)
+  //   incompatible → red ✕   (hard conflict — contains mammalian meat/fat)
+  const state: "protected" | "verify" | "incompatible" = badge.status
+    ? badge.status
+    : badge.compatible
+    ? "protected"
+    : badge.color === "yellow"
+    ? "verify"
+    : "incompatible";
+
+  const colorClass =
+    state === "protected"
+      ? "bg-emerald-600/30 text-emerald-300"
+      : state === "verify"
+      ? "bg-amber-600/30 text-amber-300"
+      : "bg-red-600/30 text-red-300";
+  const icon = state === "protected" ? "✓" : state === "verify" ? "⚠" : "✕";
 
   return (
     <span
@@ -107,7 +118,7 @@ function BadgePill({ badge }: { badge: MedicalBadge }) {
       )}
     >
       <span>{icon}</span>
-      {badge.condition}
+      {badge.label || badge.condition}
     </span>
   );
 }

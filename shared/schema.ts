@@ -579,6 +579,18 @@ export const users = pgTable("users", {
     sessionModifiers: Record<string, { carbsAdjustG: number; caloriesAdjustKcal: number; proteinAdjustG: number; }>;
     generatedAt: string;
   }>(),
+  /**
+   * Explicit Performance Mode activation flag.
+   *
+   * Separates "has a performance schedule stored" from "performance mode is ON".
+   * false (default) = schedule may exist but performance modifiers are NOT applied.
+   * true            = today's training-day modifiers are applied to macro targets
+   *                   and prescription starch slot counts across all builders.
+   *
+   * Set via the builder entry pages (button click), NOT automatically when a schedule is saved.
+   * Schedule and protocol data are never deleted when this is set to false.
+   */
+  performanceModeEnabled: boolean("performance_mode_enabled").notNull().default(false),
   // Flags 'request_support' intent for future professional follow-up surfacing
   needsProfessionalFollowup: boolean("needs_professional_followup").default(false),
   // Client Goals — set during onboarding, displayed on dashboard + coach folder

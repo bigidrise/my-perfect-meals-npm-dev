@@ -107,6 +107,7 @@ import { getBuilderProtocolBadges } from "@/lib/nutritionPersonalization";
 
 import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
 import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
+import { useDailyPrescription } from "@/hooks/useDailyPrescription";
 
 const PERFORMANCE_TOUR_STEPS: TourStep[] = [
   {
@@ -344,11 +345,33 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   const [planningMode, setPlanningMode] = React.useState<"day" | "week">("day");
   const [activeDayISO, setActiveDayISO] = React.useState<string>("");
 
+  // Consumed starch totals for the active day — fed into the prescription hook
+  const activeDayConsumed = useMemo(() => {
+    if (!board || !activeDayISO) return { starchyCarbs: 0, starchMealsUsed: 0 };
+    const dayLists = getDayLists(board, activeDayISO);
+    const allMeals = [...dayLists.breakfast, ...dayLists.lunch, ...dayLists.dinner, ...dayLists.snacks];
+    let starchyCarbs = 0;
+    let starchMealsUsed = 0;
+    for (const m of allMeals) {
+      const stored = (m as any).starchyCarbs ?? m.nutrition?.starchyCarbs;
+      if (typeof stored === 'number' && stored > 0) starchyCarbs += stored;
+      if (classifyMeal(m).isStarchMeal) starchMealsUsed++;
+    }
+    return { starchyCarbs, starchMealsUsed };
+  }, [board, activeDayISO]);
+
+  // DailyNutritionPrescription — server-resolved, date-aware, performance-aware.
+  const { prescription } = useDailyPrescription({
+    dateISO: activeDayISO,
+    starchyConsumed: activeDayConsumed.starchyCarbs,
+    starchMealsUsed: activeDayConsumed.starchMealsUsed,
+    disabled: !activeDayISO || !!proClientId,
+  });
+
   // Build StarchContext for Create With Chef modal
   const starchContext: StarchContext | undefined = useMemo(() => {
     if (!board || !activeDayISO) return undefined;
-    const resolved = resolvedTargets;
-    const strategy = resolved?.starchStrategy || 'one';
+    const legacyStrategy = (resolvedTargets?.starchStrategy as 'one' | 'flex') || 'one';
     const dayLists = getDayLists(board, activeDayISO);
     const existingMeals: StarchContext['existingMeals'] = [];
     for (const slot of ['breakfast', 'lunch', 'dinner'] as const) {
@@ -357,8 +380,20 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
         existingMeals.push({ slot, hasStarch: classifyMeal(meal).isStarchMeal });
       }
     }
-    return { strategy, existingMeals };
-  }, [board, activeDayISO, resolvedTargets]);
+    if (prescription && prescription.source !== 'fallback') {
+      return {
+        strategy: legacyStrategy,
+        starchMealsAllowed: prescription.starchMealsAllowed,
+        starchyCarbsRemaining: prescription.starchyCarbsRemaining,
+        gramsPerRemainingStarchMeal: prescription.gramsPerRemainingStarchMeal,
+        distributionStrategy: prescription.starchDistributionStrategy,
+        isZeroStarchDay: prescription.isZeroStarchDay,
+        dateISO: activeDayISO,
+        existingMeals,
+      };
+    }
+    return { strategy: legacyStrategy, existingMeals };
+  }, [board, activeDayISO, prescription, resolvedTargets]);
 
   // Snack Creator modal state (Phase 2)
   const [snackCreatorOpen, setSnackCreatorOpen] = useState(false);
@@ -969,6 +1004,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                         ...dayLists.snacks,
                       ];
                     })()}
+                    prescription={prescription}
                     bodyFatSlotDelta={bodyFatAdjustment.slotDelta}
                   />
                 </div>

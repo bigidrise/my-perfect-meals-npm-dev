@@ -99,7 +99,7 @@ import { CreateWithChefModal } from "@/components/CreateWithChefModal";
 import { SnackCreatorModal } from "@/components/SnackCreatorModal";
 import { GlobalMealActionBar } from "@/components/GlobalMealActionBar";
 import { useNavigateToFavorites } from "@/hooks/useNavigateToFavorites";
-import { usePerformanceNutrition } from "@/hooks/useBaselineNutrition";
+import { useBaselineNutrition } from "@/hooks/useBaselineNutrition";
 import { classifyMeal } from "@/utils/starchMealClassifier";
 import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
 import DailyMealProgressBar from "@/components/guided/DailyMealProgressBar";
@@ -107,6 +107,7 @@ import { InformationModal } from "@/components/ui/universal-modal";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
+import { useDailyPrescription } from "@/hooks/useDailyPrescription";
 import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import { PillButton } from "@/components/ui/pill-button";
@@ -149,7 +150,7 @@ export default function GLP1MealBuilder() {
   const effectiveUserId = proClientId || user?.id;
 
   // Resolve nutrition ONCE. Presentation components receive it as props.
-  const nutritionTargets = usePerformanceNutrition(effectiveUserId);
+  const nutritionTargets = useBaselineNutrition(effectiveUserId);
 
   // Thyroid modifier bridge + lab/specialty condition indicator state.
   // Single labs fetch populates both thyroid bridge and all active protocol indicators.
@@ -320,11 +321,33 @@ export default function GLP1MealBuilder() {
   const [createWithChefOpen, setCreateWithChefOpen] = useState(false);
   const [createWithChefSlot, setCreateWithChefSlot] = useState<"breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6">("breakfast");
 
+  // Consumed starch totals for the active day — fed into the prescription hook
+  const activeDayConsumed = useMemo(() => {
+    if (!board || !activeDayISO) return { starchyCarbs: 0, starchMealsUsed: 0 };
+    const dayLists = getDayLists(board, activeDayISO);
+    const allMeals = [...dayLists.breakfast, ...dayLists.lunch, ...dayLists.dinner, ...dayLists.snacks];
+    let starchyCarbs = 0;
+    let starchMealsUsed = 0;
+    for (const m of allMeals) {
+      const stored = (m as any).starchyCarbs ?? m.nutrition?.starchyCarbs;
+      if (typeof stored === 'number' && stored > 0) starchyCarbs += stored;
+      if (classifyMeal(m).isStarchMeal) starchMealsUsed++;
+    }
+    return { starchyCarbs, starchMealsUsed };
+  }, [board, activeDayISO]);
+
+  // DailyNutritionPrescription — server-resolved, date-aware, performance-aware.
+  const { prescription } = useDailyPrescription({
+    dateISO: activeDayISO,
+    starchyConsumed: activeDayConsumed.starchyCarbs,
+    starchMealsUsed: activeDayConsumed.starchMealsUsed,
+    disabled: !activeDayISO || !!proClientId,
+  });
+
   // Build StarchContext for Create With Chef modal
   const starchContext: StarchContext | undefined = useMemo(() => {
     if (!board || !activeDayISO) return undefined;
-    const resolved = nutritionTargets;
-    const strategy = resolved.starchStrategy || 'one';
+    const legacyStrategy = (nutritionTargets.starchStrategy as 'one' | 'flex') || 'one';
     const dayLists = getDayLists(board, activeDayISO);
     const existingMeals: StarchContext['existingMeals'] = [];
     for (const slot of ['breakfast', 'lunch', 'dinner'] as const) {
@@ -333,8 +356,20 @@ export default function GLP1MealBuilder() {
         existingMeals.push({ slot, hasStarch: classifyMeal(meal).isStarchMeal });
       }
     }
-    return { strategy, existingMeals };
-  }, [board, activeDayISO, effectiveUserId]);
+    if (prescription && prescription.source !== 'fallback') {
+      return {
+        strategy: legacyStrategy,
+        starchMealsAllowed: prescription.starchMealsAllowed,
+        starchyCarbsRemaining: prescription.starchyCarbsRemaining,
+        gramsPerRemainingStarchMeal: prescription.gramsPerRemainingStarchMeal,
+        distributionStrategy: prescription.starchDistributionStrategy,
+        isZeroStarchDay: prescription.isZeroStarchDay,
+        dateISO: activeDayISO,
+        existingMeals,
+      };
+    }
+    return { strategy: legacyStrategy, existingMeals };
+  }, [board, activeDayISO, prescription, nutritionTargets, effectiveUserId]);
 
   // Snack Creator modal state
   const [snackCreatorOpen, setSnackCreatorOpen] = useState(false);
@@ -1126,7 +1161,7 @@ export default function GLP1MealBuilder() {
                       ...dayLists.snacks,
                     ];
                   })()}
-                  strategyOverride={nutritionTargets.starchStrategy || 'one'}
+                  prescription={prescription}
                 />
               </div>
             )}

@@ -657,6 +657,7 @@ setTimeout(async () => {
     // DailyNutritionPrescription — persistent starch preferences
     await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS default_starch_meals_per_day integer`);
     await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS starch_distribution_strategy text`);
+    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS performance_mode_enabled boolean NOT NULL DEFAULT false`);
     // Client Invitation Engine — extend business_invitations to support client type
     await db.execute(sql`ALTER TABLE business_invitations ADD COLUMN IF NOT EXISTS invitation_type text NOT NULL DEFAULT 'team_member'`);
     await db.execute(sql`ALTER TABLE business_invitations ADD COLUMN IF NOT EXISTS trial_days integer`);
