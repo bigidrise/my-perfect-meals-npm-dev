@@ -31,6 +31,15 @@ export interface MacroLogServiceInput {
   fibrousCarbs?: number | null;
   /** Starchy carbohydrates (rice, potato, bread fraction) */
   starchyCarbs?: number | null;
+  /**
+   * How the starchy/fibrous split was determined. When omitted, derived automatically
+   * from which resolution path ran in writeMacroLog:
+   *   'ingredient'           — split came from enforceCarbs / ingredient keyword analysis
+   *   'user_input'           — caller explicitly provides a known-good split (manual entry)
+   *   'conservative_fallback' — no split info available; all carbs treated as starchy
+   *   'unclassified'         — legacy / unknown
+   */
+  classificationSource?: "ingredient" | "user_input" | "conservative_fallback" | "unclassified";
   source: string;
   mealType?: string;
   /** ISO date string YYYY-MM-DD or full ISO timestamp */
@@ -70,7 +79,7 @@ export async function writeMacroLog(input: MacroLogServiceInput) {
     ? input.fibrousCarbs
     : deriveFibrousCarbs(fiber);
 
-  // Resolve starchyCarbs.
+  // Resolve starchyCarbs and classificationSource together.
   //
   // Priority order:
   //   1. Explicit value from caller (including 0 — means genuinely zero starchy carbs).
@@ -81,14 +90,25 @@ export async function writeMacroLog(input: MacroLogServiceInput) {
   //   4. Zero carb meal → starchyCarbs = 0.
   //
   // Callers that have no genuine split should pass null (not 0) so this fallback runs.
-  const starchyCarbs: number =
-    input.starchyCarbs != null
-      ? input.starchyCarbs
-      : fibrousCarbs != null && input.carbohydrates > 0
-        ? Math.max(0, input.carbohydrates - fibrousCarbs)
-        : input.carbohydrates > 0
-          ? input.carbohydrates   // no split known — conservative: all carbs are starchy
-          : 0;
+  let starchyCarbs: number;
+  let derivedClassificationSource: string;
+
+  if (input.starchyCarbs != null) {
+    starchyCarbs = input.starchyCarbs;
+    derivedClassificationSource = "ingredient"; // caller provided a real split (from enforceCarbs or user entry)
+  } else if (fibrousCarbs != null && input.carbohydrates > 0) {
+    starchyCarbs = Math.max(0, input.carbohydrates - fibrousCarbs);
+    derivedClassificationSource = "ingredient"; // inferred from a known fibrous value
+  } else if (input.carbohydrates > 0) {
+    starchyCarbs = input.carbohydrates; // no split known — conservative: all carbs are starchy
+    derivedClassificationSource = "conservative_fallback";
+  } else {
+    starchyCarbs = 0;
+    derivedClassificationSource = "ingredient";
+  }
+
+  // Caller may override the derived source (e.g. manual-entry routes pass 'user_input').
+  const classificationSource: string = input.classificationSource ?? derivedClassificationSource;
 
   const resolvedCalories =
     input.calories > 0
@@ -110,6 +130,7 @@ export async function writeMacroLog(input: MacroLogServiceInput) {
     alcohol: "0",
     starchyCarbs: starchyCarbs != null ? starchyCarbs.toString() : "0",
     fibrousCarbs: fibrousCarbs != null ? fibrousCarbs.toString() : "0",
+    classificationSource,
     ...(mealId ? { mealId } : {}),
   };
 

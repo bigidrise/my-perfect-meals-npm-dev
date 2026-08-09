@@ -43,6 +43,12 @@ export const macroLogs = pgTable("macro_logs", {
   // Starchy/Fibrous carb breakdown
   starchyCarbs: numeric("starchy_carbs").notNull().default("0"),
   fibrousCarbs: numeric("fibrous_carbs").notNull().default("0"),
+  // Audit trail: how the starchy/fibrous split was determined for this row.
+  // 'ingredient'          — split derived from ingredient keyword analysis (reliable)
+  // 'user_input'          — user manually supplied the split (authoritative)
+  // 'conservative_fallback' — no split info available; all carbs treated as starchy
+  // 'unclassified'        — legacy rows written before this column existed
+  classificationSource: varchar("classification_source", { length: 25 }).notNull().default("unclassified"),
 });
 
 // Re-export biometrics schema (unchanged)
