@@ -317,15 +317,21 @@ router.get("/dashboard-link", requireAuth, requireProAccess, async (req, res) =>
       return res.status(404).json({ error: "No Rewardful affiliate account linked" });
     }
 
-    // Try SSO magic link first; fall back to direct dashboard URL
+    // Generate SSO magic link — this bypasses Rewardful's 2FA entirely.
+    // NEVER fall back to the direct dashboard URL: that route requires Rewardful's
+    // own login + 2FA, which breaks when their email delivery fails (exactly the
+    // "Couldn't send code" error users see). If SSO fails, surface an error so
+    // the user retries; do not silently redirect them to a 2FA wall.
     let url: string | null = null;
     try {
       url = await getRewardfulMagicLink(account.rewardfulAffiliateId);
-    } catch {
-      // SSO failed — fall through to direct URL fallback
+    } catch (ssoErr) {
+      console.error("[Affiliate] dashboard-link: SSO magic link failed:", ssoErr);
     }
     if (!url) {
-      url = `https://app.getrewardful.com/affiliates/${account.rewardfulAffiliateId}`;
+      return res.status(502).json({
+        error: "Could not generate your portal link right now. Please try again in a moment.",
+      });
     }
 
     return res.json({ url });
