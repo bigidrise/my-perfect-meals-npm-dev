@@ -586,9 +586,29 @@ export async function generateCravingMealUnified(
   mealType: string,
   userId?: string,
   dietaryRestrictionsOverride?: string[],
-  strictMode: boolean = false
+  strictMode: boolean = false,
+  starchContext?: StarchContext
 ): Promise<MealGenerationResponse> {
   const validMealType = normalizeMealType(mealType);
+
+  // ── Starch distribution — resolve placement & prompt guidance ──────────────
+  // Mirror the auto-detect logic from generateFromDescriptionUnified:
+  // if the user's craving explicitly names a starchy food, treat it as forceStarch
+  // so the prescription never blocks an explicit request.
+  let effectiveStarchContext = starchContext;
+  if (effectiveStarchContext && !effectiveStarchContext.forceStarch && !effectiveStarchContext.forceFiberBased) {
+    const inputLower = cravingInput.toLowerCase();
+    const userRequestedStarch = STARCHY_KEYWORDS.some(kw => inputLower.includes(kw));
+    if (userRequestedStarch) {
+      effectiveStarchContext = { ...effectiveStarchContext, forceStarch: true };
+      console.log(`🥔 [CRAVING/StarchOverride] User craving explicitly contains starchy food — forcing starch inclusion`);
+    }
+  }
+  const starchPlacement = determineStarchPlacement(validMealType, effectiveStarchContext);
+  const starchGuidance  = buildStarchGuidance(validMealType, effectiveStarchContext);
+  const starchCacheKey  = effectiveStarchContext
+    ? (starchPlacement.shouldIncludeStarch ? 'starch' : 'fiber')
+    : 'any';
 
   // Step 0: Fetch dietary restrictions FIRST — before cache or template checks
   // This ensures the cache key is diet-aware and templates are validated against the user's diet
@@ -623,22 +643,31 @@ export async function generateCravingMealUnified(
   // Resolve primary diet for cache key segregation
   const cravingPrimaryDiet = getPrimaryDiet(cravingDietRestrictions) || "none";
   
-  // Step 1: Check diet-aware cache (includes primaryDiet in key — no cross-diet contamination)
+  // Step 1: Check diet-aware cache (includes primaryDiet + starch direction in key)
+  // starchCacheKey ('starch' | 'fiber' | 'any') prevents a fiber-prescribed call from
+  // hitting a cached starchy result (and vice-versa).
   const signature = createIngredientSignature({
-    ingredients: [cravingInput],
+    ingredients: [cravingInput, starchCacheKey],
     mealType: validMealType,
     primaryDiet: cravingPrimaryDiet
   });
   
   const cached = await getCachedMeals(signature);
   if (cached && cached.meals.length > 0) {
-    macroAuditCache(cached.meals[0]?.name ?? cravingInput, "hit", signature, { carbs: cached.meals[0]?.carbs });
-    console.log(`🚀 Cache hit for craving: "${cravingInput}" diet:${cravingPrimaryDiet} (source: ${cached.source})`);
-    return {
-      success: true,
-      meal: cached.meals[0],
-      source: cached.meals[0].source === 'ai' ? 'ai' : 'catalog'
-    };
+    // Fiber-prescribed calls must never serve a starchy cached meal
+    const cachedMeal = cached.meals[0];
+    const cachedIsStarchy = (cachedMeal.starchyCarbs ?? 0) > 5;
+    if (!starchPlacement.shouldIncludeStarch && cachedIsStarchy) {
+      console.log(`🥦 [CRAVING/Cache] Skipping starchy cached meal ("${cachedMeal.name}") — prescription says fiber-based (${starchPlacement.reason})`);
+    } else {
+      macroAuditCache(cachedMeal.name ?? cravingInput, "hit", signature, { carbs: cachedMeal.carbs });
+      console.log(`🚀 Cache hit for craving: "${cravingInput}" diet:${cravingPrimaryDiet} starch:${starchCacheKey} (source: ${cached.source})`);
+      return {
+        success: true,
+        meal: cachedMeal,
+        source: cachedMeal.source === 'ai' ? 'ai' : 'catalog'
+      };
+    }
   }
 
   // Step 2: Check for template match BEFORE trying AI
@@ -738,7 +767,7 @@ REQUIRED STRUCTURE FOR EVERY MEAL:
         : '';
       
       const prompt = `You are a creative chef helping someone satisfy their food craving.
-${cravingDietBlock ? `\n${cravingDietBlock}\n` : ""}${oncologyCravingBlock}${strictMode ? `\n${buildStrictModeBlock(cravingInput)}\n` : ""}
+${cravingDietBlock ? `\n${cravingDietBlock}\n` : ""}${oncologyCravingBlock}${strictMode ? `\n${buildStrictModeBlock(cravingInput)}\n` : ""}${starchGuidance ? `\n${starchGuidance}\n` : ""}
 CRAVING: "${cravingInput}"
 MEAL TYPE: ${validMealType}
 
@@ -3672,7 +3701,7 @@ export async function generateMealUnified(
       const cravingInput = Array.isArray(request.input) 
         ? request.input.join(', ') 
         : request.input;
-      result = await generateCravingMealUnified(cravingInput, request.mealType, request.userId, undefined, request.strictMode === true);
+      result = await generateCravingMealUnified(cravingInput, request.mealType, request.userId, undefined, request.strictMode === true, request.starchContext);
       break;
 
     case 'create-with-chef':

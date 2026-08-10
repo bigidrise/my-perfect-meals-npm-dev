@@ -18,6 +18,57 @@ import { restaurantEngine, officialJsonProvider } from "../services/away-from-ho
 import { findBrandBySlug, getAllBrands } from "../services/away-from-home/BrandRegistry";
 import { generateMenuItemRecommendations } from "../services/away-from-home/generateMenuItemRecommendations";
 import { generateRestaurantMealsAI } from "../services/restaurantMealGeneratorAI";
+import { computeAlphaGalBadge } from "../services/medicalBadges";
+
+// ── Alpha-gal condition detection keys (mirrors medicalBadges.ts) ─────────────
+const ALPHA_GAL_KEYS = [
+  "alpha-gal-syndrome", "alpha-gal syndrome", "alpha gal syndrome", "alpha-gal", "alpha gal",
+];
+
+/**
+ * Returns true when the user profile has an active alpha-gal condition.
+ * Checks specialtyConditions, medicalConditions, AND alphaGalProfile so the
+ * detection works regardless of how the profile was built.
+ */
+function isAlphaGalActive(user: any): boolean {
+  if (!user) return false;
+  if (user.alphaGalProfile) return true;
+  const conditions: string[] = [
+    ...(Array.isArray(user.specialtyConditions) ? user.specialtyConditions : []),
+    ...(Array.isArray(user.medicalConditions) ? user.medicalConditions : []),
+    user.specialtyCondition,
+  ].filter(Boolean);
+  return conditions.some(c => ALPHA_GAL_KEYS.includes(String(c).toLowerCase().trim()));
+}
+
+/**
+ * Attach an alpha-gal medical badge to every meal in the list when the user
+ * has alpha-gal active. The badge is authoritative — computed server-side from
+ * the meal name + ingredients so the client never has to guess safety.
+ */
+function attachAlphaGalBadges(meals: any[], alphaGalActive: boolean): any[] {
+  if (!alphaGalActive) return meals;
+  return meals.map((meal: any) => {
+    const ingredients: string[] = Array.isArray(meal.ingredients)
+      ? meal.ingredients.map((i: any) =>
+          typeof i === "string" ? i : (i?.name || i?.item || "")
+        ).filter(Boolean)
+      : [];
+    const badge = computeAlphaGalBadge(
+      meal.name || meal.meal || "",
+      ingredients,
+      true, // isActive = true (already confirmed above)
+    );
+    if (!badge) return meal;
+    return {
+      ...meal,
+      medicalBadges: [
+        ...(Array.isArray(meal.medicalBadges) ? meal.medicalBadges : []),
+        badge,
+      ],
+    };
+  });
+}
 
 const router = Router();
 
@@ -121,8 +172,11 @@ router.post("/guide", async (req, res) => {
       const generationTime = Date.now() - generationStart;
       console.log(`✅ [Guide/AI] ${aiRecs.length} recs in ${generationTime}ms`);
 
+      // Attach alpha-gal safety badges when user has the condition active.
+      const aiRecsWithBadges = attachAlphaGalBadges(aiRecs, isAlphaGalActive(user));
+
       res.json({
-        recommendations: aiRecs,
+        recommendations: aiRecsWithBadges,
         restaurantInfo,
         restaurantName: restaurantInfo.name,
         craving,
@@ -131,8 +185,8 @@ router.post("/guide", async (req, res) => {
         generationTime,
       });
 
-      // Fire-and-forget: persist session
-      if (aiRecs.length > 0) {
+      // Fire-and-forget: persist session (with badges so future loads restore them)
+      if (aiRecsWithBadges.length > 0) {
         (async () => {
           try {
             await db.insert(restaurantGuideSessions).values({
@@ -142,7 +196,7 @@ router.post("/guide", async (req, res) => {
               craving: craving || null,
               cuisine: detectedCuisine,
               zipCode: zipCode || null,
-              meals: aiRecs as any,
+              meals: aiRecsWithBadges as any,
             });
           } catch (saveErr) {
             console.error(`⚠️ [Guide/AI] Failed to persist session:`, saveErr);
@@ -218,9 +272,15 @@ router.post("/guide", async (req, res) => {
     }
     // ─────────────────────────────────────────────────────────────────────────────
 
+    // Attach alpha-gal safety badges when user has the condition active.
+    const finalRecommendations = attachAlphaGalBadges(
+      recommendationsWithImages,
+      isAlphaGalActive(user)
+    );
+
     res.json({
       status: "ok",
-      recommendations: recommendationsWithImages,
+      recommendations: finalRecommendations,
       restaurantInfo,
       restaurantName: restaurantInfo.name,
       craving,
@@ -231,8 +291,8 @@ router.post("/guide", async (req, res) => {
       generationTime,
     });
 
-    // ── Fire-and-forget: persist session (with images so future loads restore them) ─
-    if (recommendationsWithImages.length > 0) {
+    // ── Fire-and-forget: persist session (with images + badges so future loads restore them) ─
+    if (finalRecommendations.length > 0) {
       (async () => {
         try {
           await db.insert(restaurantGuideSessions).values({
@@ -242,9 +302,9 @@ router.post("/guide", async (req, res) => {
             craving: craving || null,
             cuisine: detectedCuisine,
             zipCode: zipCode || null,
-            meals: recommendationsWithImages as any,
+            meals: finalRecommendations as any,
           });
-          console.log(`💾 [Guide] Session saved (${recommendationsWithImages.length} recs, source=${source})`);
+          console.log(`💾 [Guide] Session saved (${finalRecommendations.length} recs, source=${source})`);
         } catch (saveErr) {
           console.error(`⚠️ [Guide] Failed to persist session:`, saveErr);
         }

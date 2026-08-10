@@ -89,11 +89,11 @@ export function deriveCarbs(
   const totalWeight = weightedStarchy + weightedFibrous;
 
   if (totalWeight === 0) {
-    // No classifiable ingredients — treat all carbs as fibrous (conservative;
-    // avoids inflating the starch budget when ingredient data is absent).
+    // No classifiable ingredients — treat all carbs as starchy (conservative for
+    // the starch budget: never silently zero-out starchy carbs when the split is unknown).
     return {
-      starchyCarbs: 0,
-      fibrousCarbs: totalCarbs,
+      starchyCarbs: totalCarbs,
+      fibrousCarbs: 0,
       totalCarbs,
       derived: true,
     };

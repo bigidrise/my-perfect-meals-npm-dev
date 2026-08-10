@@ -2504,6 +2504,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         activeProtocolTrack: (user as any).activeProtocolTrack ?? null,
         weeklyTrainingSchedule: (user as any).weeklyTrainingSchedule ?? null,
         performanceProtocolConfig: (user as any).performanceProtocolConfig ?? null,
+        performanceModeEnabled: (user as any).performanceModeEnabled ?? false,
         alphaGalProfile: (user as any).alphaGalProfile ?? null,
         // Trial period — expose to client so it can show a countdown banner
         trialEndsAt: user.trialEndsAt?.toISOString() ?? null,

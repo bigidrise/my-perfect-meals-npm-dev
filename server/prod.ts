@@ -240,6 +240,7 @@ async function initializeApp() {
           // DailyNutritionPrescription — persistent starch preferences
           await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS default_starch_meals_per_day integer`);
           await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS starch_distribution_strategy text`);
+          await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS performance_mode_enabled boolean NOT NULL DEFAULT false`);
           // Clinical Context Screening — self-reported medication/hormone gate
           await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS clinical_context_response text`);
           await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS clinical_context_categories jsonb`);
@@ -1431,6 +1432,39 @@ async function initializeApp() {
           console.error("❌ [prod] Meal Translations boot migration failed:", err.message);
         }
       }, 6000);
+
+      // classification_source boot migration — expand CHECK constraint to include
+      // 'conservative_fallback' and widen column to VARCHAR(25).
+      // Idempotent: safe to run on every boot.
+      setTimeout(async () => {
+        try {
+          const { db: dbCs } = await import("./db");
+          const { sql: sqlCs } = await import("drizzle-orm");
+          await dbCs.execute(sqlCs`
+            ALTER TABLE macro_logs
+              ADD COLUMN IF NOT EXISTS classification_source VARCHAR(25)
+                NOT NULL DEFAULT 'unclassified'
+          `);
+          await dbCs.execute(sqlCs`
+            ALTER TABLE macro_logs
+              ALTER COLUMN classification_source TYPE VARCHAR(25)
+          `);
+          await dbCs.execute(sqlCs`
+            ALTER TABLE macro_logs
+              DROP CONSTRAINT IF EXISTS macro_logs_classification_source_check
+          `);
+          await dbCs.execute(sqlCs`
+            ALTER TABLE macro_logs
+              ADD CONSTRAINT macro_logs_classification_source_check
+              CHECK (classification_source IN (
+                'ingredient', 'user_input', 'unclassified', 'conservative_fallback'
+              ))
+          `);
+          console.log("✅ [prod] classification_source boot migration complete (macro_logs)");
+        } catch (err: any) {
+          console.error("❌ [prod] classification_source boot migration failed:", err.message);
+        }
+      }, 7000);
 
     }, 4000);
   } catch (error) {

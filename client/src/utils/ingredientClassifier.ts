@@ -247,8 +247,9 @@ export function deriveSplitCarbs(
   const totalWeight = weightedStarchy + weightedFibrous;
 
   if (totalWeight === 0) {
-    // No classifiable ingredients — treat all carbs as fibrous (conservative).
-    return { starchyCarbs: 0, fibrousCarbs: totalCarbs };
+    // No classifiable ingredients — treat all carbs as starchy (conservative for
+    // the starch budget: never silently zero-out starchy carbs when the split is unknown).
+    return { starchyCarbs: totalCarbs, fibrousCarbs: 0 };
   }
 
   const starchyCarbs = Math.round(totalCarbs * (weightedStarchy / totalWeight));

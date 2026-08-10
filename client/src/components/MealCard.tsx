@@ -210,14 +210,18 @@ export function MealCard({
   const handleLogMacros = async () => {
     try {
       const { post } = await import("@/lib/api");
+      // Only send the split when we have a genuine value (hasSplit = stored from AI,
+      // or deriveSplitCarbs produced a non-zero result). Sending 0/0 with carbs > 0
+      // blocks the server's fallback that treats unknown carbs as starchy.
+      const hasGenuineSplit = hasSplit || starchyCarbs > 0 || fibrousCarbs > 0;
       const logEntry = {
         mealName: title,
         calories: kcal,
         protein,
         carbs,
         fat,
-        starchyCarbs: starchyCarbs || 0,
-        fibrousCarbs: fibrousCarbs || 0,
+        starchyCarbs: hasGenuineSplit ? starchyCarbs : null,
+        fibrousCarbs: hasGenuineSplit ? fibrousCarbs : null,
         servings: meal.servings || 1,
         source: "weekly-meal-board"
       };

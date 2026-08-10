@@ -228,9 +228,20 @@ export type MenuResolutionResult =
 
 export interface MedicalBadge {
   condition: string;
-  compatible: boolean;
+  /**
+   * Three-state safety signal from the server's AlphaGalBadge / computeAlphaGalBadge.
+   * Prefer this over `compatible` when present.
+   *   protected   → green  ✓  (no mammalian content detected)
+   *   verify      → amber  ⚠  (source uncertain — confirm with restaurant)
+   *   incompatible → red  ✕  (hard conflict — contains mammalian meat/fat)
+   */
+  status?: "protected" | "verify" | "incompatible";
+  /** Human-readable label from the server (e.g. "⚠ Verify Source"). */
+  label?: string;
+  /** Legacy binary compatible flag — undefined when server uses status instead. */
+  compatible?: boolean;
   reason: string;
-  /** Tailwind color token for the badge background. */
+  /** Color hint: "green" | "yellow" | "red" (from server) or a Tailwind token. */
   color: string;
 }
 

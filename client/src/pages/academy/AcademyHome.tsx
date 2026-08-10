@@ -328,7 +328,7 @@ export default function AcademyHome() {
                 <Award className="h-4 w-4" />
                 View Your Certificate
               </button>
-            ) : allDone ? (
+            ) : allDone && status?.isCertificationTrack ? (
               <button
                 onClick={() => setLocation("/academy/platform-mastery")}
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-orange-600 text-white font-semibold text-sm active:scale-[0.98] transition-transform"
@@ -336,6 +336,15 @@ export default function AcademyHome() {
                 <Award className="h-4 w-4" />
                 Claim Your Certificate
                 <ChevronRight className="h-4 w-4 opacity-70" />
+              </button>
+            ) : allDone && !status?.isCertificationTrack ? (
+              <button
+                onClick={() => setLocation("/academy/platform-mastery")}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-white/10 border border-white/15 text-white font-semibold text-sm active:scale-[0.98] transition-transform"
+              >
+                <Award className="h-4 w-4 text-orange-400" />
+                All Lessons Complete — View Options
+                <ChevronRight className="h-4 w-4 opacity-50" />
               </button>
             ) : null}
           </div>

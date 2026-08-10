@@ -657,6 +657,7 @@ setTimeout(async () => {
     // DailyNutritionPrescription — persistent starch preferences
     await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS default_starch_meals_per_day integer`);
     await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS starch_distribution_strategy text`);
+    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS performance_mode_enabled boolean NOT NULL DEFAULT false`);
     // Client Invitation Engine — extend business_invitations to support client type
     await db.execute(sql`ALTER TABLE business_invitations ADD COLUMN IF NOT EXISTS invitation_type text NOT NULL DEFAULT 'team_member'`);
     await db.execute(sql`ALTER TABLE business_invitations ADD COLUMN IF NOT EXISTS trial_days integer`);
@@ -1533,6 +1534,41 @@ setTimeout(async () => {
     console.error("❌ Meal Translations boot migration failed:", err.message);
   }
 }, 5000);
+
+// classification_source boot migration — expand CHECK constraint to include
+// 'conservative_fallback' and widen column to VARCHAR(25).
+// Idempotent: safe to run on every boot.
+setTimeout(async () => {
+  try {
+    const { db } = await import("./db");
+    const { sql } = await import("drizzle-orm");
+    // Ensure column exists (new envs) and is wide enough for 'conservative_fallback' (21 chars)
+    await db.execute(sql`
+      ALTER TABLE macro_logs
+        ADD COLUMN IF NOT EXISTS classification_source VARCHAR(25)
+          NOT NULL DEFAULT 'unclassified'
+    `);
+    await db.execute(sql`
+      ALTER TABLE macro_logs
+        ALTER COLUMN classification_source TYPE VARCHAR(25)
+    `);
+    // Drop old 3-value constraint (if any), then re-add with the 4th value
+    await db.execute(sql`
+      ALTER TABLE macro_logs
+        DROP CONSTRAINT IF EXISTS macro_logs_classification_source_check
+    `);
+    await db.execute(sql`
+      ALTER TABLE macro_logs
+        ADD CONSTRAINT macro_logs_classification_source_check
+        CHECK (classification_source IN (
+          'ingredient', 'user_input', 'unclassified', 'conservative_fallback'
+        ))
+    `);
+    console.log("✅ classification_source boot migration complete (macro_logs)");
+  } catch (err: any) {
+    console.error("❌ classification_source boot migration failed:", err.message);
+  }
+}, 5500);
 
 // Global process error handlers for stability
 process.on('unhandledRejection', (reason, promise) => {

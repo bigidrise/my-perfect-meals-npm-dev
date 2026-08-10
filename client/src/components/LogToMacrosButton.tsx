@@ -71,8 +71,10 @@ export default function LogToMacrosButton(p: Props) {
         protein: meal.nutrition.protein,
         carbs: meal.nutrition.carbs,
         fat: meal.nutrition.fat,
-        starchyCarbs: (p.starchyCarbsPerServing ?? 0) * servings,
-        fibrousCarbs: (p.fibrousCarbsPerServing ?? 0) * servings,
+        // Send null when props weren't provided so the server fallback runs
+        // (treats all carbs as starchy when no genuine split is known).
+        starchyCarbs: p.starchyCarbsPerServing != null ? p.starchyCarbsPerServing * servings : null,
+        fibrousCarbs: p.fibrousCarbsPerServing != null ? p.fibrousCarbsPerServing * servings : null,
       });
 
       // Trigger instant macro refresh in Biometrics dashboard  

@@ -357,44 +357,25 @@ export default function AffiliateDashboard() {
                   <AlertTriangle className="h-4 w-4 text-orange-400" />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-white">Finish setting up your Rewardful account</p>
+                  <p className="text-sm font-bold text-white">Add your payout account</p>
                   <p className="text-xs text-gray-300 mt-0.5 leading-relaxed">
-                    You need to complete Rewardful account setup before you can add your bank account and receive payouts.
+                    One step left before you can receive commissions. Click the button below — My Perfect Meals logs you in automatically. No email confirmation or verification code needed.
                   </p>
                 </div>
               </div>
 
               <div className="space-y-2.5 mb-4">
-                {[
-                  {
-                    step: "1",
-                    done: rewardfulStatus?.emailConfirmed,
-                    label: "Confirm your Rewardful email",
-                    detail: "Check your email — including your spam folder — for an invitation from Rewardful (getrewardful.com).",
-                  },
-                  {
-                    step: "2",
-                    done: rewardfulStatus?.signedIn,
-                    label: "Sign into your Rewardful account",
-                    detail: "Click the link in that email to set your password and access your payout dashboard.",
-                  },
-                  {
-                    step: "3",
-                    done: false,
-                    label: "Add your bank account inside Rewardful",
-                    detail: "Once signed in, go to Payout Settings in Rewardful to connect your bank account or PayPal.",
-                  },
-                ].map(({ step, done, label, detail }) => (
-                  <div key={step} className={`flex items-start gap-3 p-3 rounded-xl border ${done ? "bg-green-900/30 border-green-500/30" : "bg-white/5 border-white/10"}`}>
-                    <div className={`h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0 text-[11px] font-black ${done ? "bg-green-500/20 text-green-400 border border-green-500/30" : "bg-white/10 text-gray-400 border border-white/10"}`}>
-                      {done ? "✓" : step}
-                    </div>
-                    <div>
-                      <p className={`text-xs font-semibold ${done ? "text-green-400 line-through" : "text-white"}`}>{label}</p>
-                      <p className="text-[11px] text-gray-400 mt-0.5 leading-relaxed">{detail}</p>
-                    </div>
+                <div className="flex items-start gap-3 p-3 rounded-xl border bg-white/5 border-white/10">
+                  <div className="h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0 text-[11px] font-black bg-white/10 text-gray-400 border border-white/10">
+                    1
                   </div>
-                ))}
+                  <div>
+                    <p className="text-xs font-semibold text-white">Add your bank account inside Rewardful</p>
+                    <p className="text-[11px] text-gray-400 mt-0.5 leading-relaxed">
+                      Go to Payout Settings in your Rewardful portal to connect your bank account or PayPal.
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {isDesktop ? (
@@ -408,10 +389,10 @@ export default function AffiliateDashboard() {
                       ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                       : <ExternalLink className="h-4 w-4" />
                     }
-                    {portalLoading ? "Opening..." : "Open Rewardful Setup →"}
+                    {portalLoading ? "Opening..." : "Open Rewardful Portal →"}
                   </button>
                   <p className="text-[10px] text-gray-500 text-center mt-2">
-                    Can't find the email? Open the portal anyway — Rewardful will walk you through setup.
+                    My Perfect Meals signs you in directly — no password or verification code required.
                   </p>
                 </>
               ) : (
