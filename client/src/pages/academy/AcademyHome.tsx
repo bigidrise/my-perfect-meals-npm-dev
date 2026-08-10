@@ -248,7 +248,7 @@ export default function AcademyHome() {
                   Platform Mastery
                 </h3>
                 <p className="text-xs text-white/50 mt-1">
-                  Open to everyone · No certification required
+                  Open to everyone · Learning Mode does not issue a certificate
                 </p>
               </div>
               {loading ? (

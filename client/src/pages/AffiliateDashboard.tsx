@@ -976,9 +976,31 @@ export default function AffiliateDashboard() {
               </div>
               <CardLabel>Affiliate Portal</CardLabel>
             </div>
-            <p className="text-xs text-gray-300 mb-2 leading-relaxed">
+            <p className="text-xs text-gray-300 mb-3 leading-relaxed">
               Your Rewardful portal has real-time referral tracking, payout history, commission reports, and bank account setup.
             </p>
+
+            {/* Portal tips — shown to all users so nobody gets surprised inside Rewardful */}
+            <div className="rounded-xl bg-white/5 border border-white/10 p-3 mb-3 space-y-2.5">
+              <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">When the portal opens</p>
+              <div className="flex items-start gap-2.5">
+                <div className="h-5 w-5 rounded-full bg-orange-500/20 border border-orange-500/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-[9px] font-black text-orange-400">1</span>
+                </div>
+                <p className="text-xs text-gray-300 leading-relaxed">
+                  Click the <span className="text-white font-semibold">Payout information</span> tab to add your bank account or PayPal — that's where commissions get sent.
+                </p>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <div className="h-5 w-5 rounded-full bg-white/10 border border-white/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-[9px] font-black text-gray-400">2</span>
+                </div>
+                <p className="text-xs text-gray-300 leading-relaxed">
+                  If you see <span className="text-white font-semibold">"Current password is invalid"</span> on the Account settings page, click <span className="text-white font-semibold">Forgot password</span> inside Rewardful to set one. You only need to do this once.
+                </p>
+              </div>
+            </div>
+
             {needsRewardfulSetup && (
               <p className="text-[11px] text-orange-400 mb-3 leading-relaxed font-medium">
                 ↑ Complete the account setup above first so you can add your bank account once the portal opens.

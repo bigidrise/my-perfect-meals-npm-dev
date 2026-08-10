@@ -339,9 +339,11 @@ export default function PlatformMasteryDashboard() {
 
         {/* Enrollment prompt for non-enrolled */}
         {!loading && !status?.enrolled && (
-          <div className="p-4 rounded-2xl bg-orange-500/8 border border-orange-500/20">
+          <div className="p-4 rounded-2xl bg-orange-500/8 border border-orange-500/20 space-y-2">
             <p className="text-xs text-orange-200/70 leading-relaxed text-center">
-              <span className="font-semibold text-orange-300">Learning Mode</span> — open access, optional quizzes, progress shown as Read / Completed.{" "}
+              <span className="font-semibold text-orange-300">Learning Mode</span> — open access, optional quizzes, progress shown as Read / Completed. <span className="text-white/50">No certificate is issued.</span>
+            </p>
+            <p className="text-xs text-orange-200/70 leading-relaxed text-center">
               <span className="font-semibold text-orange-300">Certification Mode</span> — same lessons, quiz gate at 80%, certificate issued on completion.
             </p>
           </div>
