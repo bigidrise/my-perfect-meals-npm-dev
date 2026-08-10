@@ -976,73 +976,117 @@ export default function AffiliateDashboard() {
               </div>
               <CardLabel>Affiliate Portal</CardLabel>
             </div>
-            <p className="text-xs text-gray-300 mb-3 leading-relaxed">
-              Your Rewardful portal has real-time referral tracking, payout history, commission reports, and bank account setup.
-            </p>
 
-            {/* Portal tips — shown to all users so nobody gets surprised inside Rewardful */}
-            <div className="rounded-xl bg-white/5 border border-white/10 p-3 mb-3 space-y-2.5">
-              <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">When the portal opens</p>
-              <div className="flex items-start gap-2.5">
-                <div className="h-5 w-5 rounded-full bg-orange-500/20 border border-orange-500/30 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-[9px] font-black text-orange-400">1</span>
-                </div>
-                <p className="text-xs text-gray-300 leading-relaxed">
-                  Click the <span className="text-white font-semibold">Payout information</span> tab to add your bank account or PayPal — that's where commissions get sent.
-                </p>
-              </div>
-              <div className="flex items-start gap-2.5">
-                <div className="h-5 w-5 rounded-full bg-white/10 border border-white/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-[9px] font-black text-gray-400">2</span>
-                </div>
-                <p className="text-xs text-gray-300 leading-relaxed">
-                  If you see <span className="text-white font-semibold">"Current password is invalid"</span> on the Account settings page, click <span className="text-white font-semibold">Forgot password</span> inside Rewardful to set one. You only need to do this once.
-                </p>
-              </div>
-            </div>
-
-            {needsRewardfulSetup && (
-              <p className="text-[11px] text-orange-400 mb-3 leading-relaxed font-medium">
-                ↑ Complete the account setup above first so you can add your bank account once the portal opens.
-              </p>
-            )}
-            {isDesktop ? (
-              <button
-                onClick={openPortal}
-                disabled={portalLoading}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-orange-600 text-white font-bold text-sm active:scale-[0.98] transition-all disabled:opacity-60"
-              >
-                {portalLoading ? (
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <ExternalLink className="h-4 w-4" />
-                )}
-                {portalLoading ? "Opening..." : "Open Rewardful Portal"}
-              </button>
-            ) : (
-              <div className="rounded-xl bg-white/5 border border-white/10 p-4">
-                <div className="flex items-start gap-3">
-                  <div className="h-8 w-8 rounded-lg bg-white/10 border border-white/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <Monitor className="h-4 w-4 text-gray-400" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-white">Open on your desktop</p>
-                    <p className="text-xs text-gray-400 mt-1 leading-relaxed">
-                      The Rewardful portal works best on a full desktop browser. Copy this page link and open it on your computer.
+            {rewardfulStatus?.signedIn ? (
+              /* ── COMPLETE STATE: they've already visited the portal ── */
+              <>
+                <div className="flex items-center gap-2.5 p-3 rounded-xl bg-green-900/20 border border-green-500/20 mb-3">
+                  <CheckCircle className="h-4 w-4 text-green-400 flex-shrink-0" />
+                  <div>
+                    <p className="text-xs font-semibold text-green-400">Payout portal accessed</p>
+                    <p className="text-[11px] text-gray-400 mt-0.5 leading-relaxed">
+                      Your portal is set up. Open it anytime to check commissions, update payment info, or view payout history.
                     </p>
-                    <button
-                      onClick={copyDesktopUrl}
-                      className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-white/10 text-white text-xs font-semibold active:scale-[0.98] transition-all"
-                    >
-                      {copiedDesktopUrl
-                        ? <Check className="h-3.5 w-3.5 text-green-400" />
-                        : <Copy className="h-3.5 w-3.5" />
-                      }
-                      {copiedDesktopUrl ? "Link Copied!" : "Copy Page Link"}
-                    </button>
                   </div>
                 </div>
-              </div>
+                {isDesktop ? (
+                  <button
+                    onClick={openPortal}
+                    disabled={portalLoading}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-orange-600 text-white font-bold text-sm active:scale-[0.98] transition-all disabled:opacity-60"
+                  >
+                    {portalLoading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <ExternalLink className="h-4 w-4" />}
+                    {portalLoading ? "Opening..." : "Open Rewardful Portal"}
+                  </button>
+                ) : (
+                  <div className="rounded-xl bg-white/5 border border-white/10 p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="h-8 w-8 rounded-lg bg-white/10 border border-white/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Monitor className="h-4 w-4 text-gray-400" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-white">Open on your desktop</p>
+                        <p className="text-xs text-gray-400 mt-1 leading-relaxed">The Rewardful portal works best on a full desktop browser.</p>
+                        <button onClick={copyDesktopUrl} className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-white/10 text-white text-xs font-semibold active:scale-[0.98] transition-all">
+                          {copiedDesktopUrl ? <Check className="h-3.5 w-3.5 text-green-400" /> : <Copy className="h-3.5 w-3.5" />}
+                          {copiedDesktopUrl ? "Link Copied!" : "Copy Page Link"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              /* ── SETUP STATE: first-timer, teach before they click ── */
+              <>
+                <p className="text-xs text-gray-300 mb-4 leading-relaxed">
+                  Your Rewardful account has already been created through your My Perfect Meals account. There are only two things you need to do to start earning commissions.
+                </p>
+
+                <div className="space-y-3 mb-4">
+                  {/* Step 1 */}
+                  <div className="flex items-start gap-3 p-3 rounded-xl bg-orange-500/10 border border-orange-500/20">
+                    <div className="h-6 w-6 rounded-full bg-orange-500/30 border border-orange-500/40 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-[10px] font-black text-orange-300">1</span>
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-white">Set up your payouts</p>
+                      <p className="text-[11px] text-gray-300 mt-1 leading-relaxed">
+                        When Rewardful opens, click the <span className="font-semibold text-white">Payout Information</span> tab and add your bank account or PayPal. That's where your commissions get deposited.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Step 2 */}
+                  <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5 border border-white/10">
+                    <div className="h-6 w-6 rounded-full bg-white/10 border border-white/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-[10px] font-black text-gray-400">2</span>
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-white">
+                        Create a Rewardful password{" "}
+                        <span className="text-gray-400 font-normal">(optional)</span>
+                      </p>
+                      <p className="text-[11px] text-gray-400 mt-1 leading-relaxed">
+                        If you ever need to update your account info inside Rewardful, click <span className="text-white font-semibold">Forgot Password</span> on the Rewardful login page to create one. Since you signed in through My Perfect Meals, a password isn't created automatically. You only need to do this once.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {isDesktop ? (
+                  <button
+                    onClick={openPortal}
+                    disabled={portalLoading}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-orange-600 text-white font-bold text-sm active:scale-[0.98] transition-all disabled:opacity-60"
+                  >
+                    {portalLoading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <ExternalLink className="h-4 w-4" />}
+                    {portalLoading ? "Opening..." : "Open Rewardful Portal (Set Up Payouts)"}
+                  </button>
+                ) : (
+                  <div className="rounded-xl bg-white/5 border border-white/10 p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="h-8 w-8 rounded-lg bg-white/10 border border-white/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Monitor className="h-4 w-4 text-gray-400" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-white">Complete this on your desktop</p>
+                        <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+                          Rewardful payout setup is designed for a full browser. Copy this page link and open it on your computer to continue.
+                        </p>
+                        <button onClick={copyDesktopUrl} className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-white/10 text-white text-xs font-semibold active:scale-[0.98] transition-all">
+                          {copiedDesktopUrl ? <Check className="h-3.5 w-3.5 text-green-400" /> : <Copy className="h-3.5 w-3.5" />}
+                          {copiedDesktopUrl ? "Link Copied!" : "Copy Page Link"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <p className="text-[10px] text-gray-500 text-center mt-2.5 leading-relaxed">
+                  My Perfect Meals signs you in automatically — no password or verification code required.
+                </p>
+              </>
             )}
           </Card>
 
