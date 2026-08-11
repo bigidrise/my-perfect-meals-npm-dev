@@ -74,6 +74,33 @@ app.get("/api/health", (_req, res) => {
   });
 });
 
+// Lightweight health probe for the Coach Knowledge Library.
+// Returns the live knowledge_patterns row count so uptime monitors can alert
+// on a zero-row table (indicating the seed failed all boot retries).
+app.get("/api/health/coaching-patterns", async (_req, res) => {
+  try {
+    const { db: dbHealth } = await import("./db");
+    const { sql: sqlHealth } = await import("drizzle-orm");
+    const result = await dbHealth.execute(
+      sqlHealth`SELECT COUNT(*)::int AS row_count FROM knowledge_patterns`
+    );
+    const rowCount = (result as any).rows?.[0]?.row_count ?? (result as any)[0]?.row_count ?? 0;
+    const healthy = Number(rowCount) > 0;
+    res.status(healthy ? 200 : 503).json({
+      ok: healthy,
+      knowledge_patterns_count: Number(rowCount),
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err: any) {
+    res.status(503).json({
+      ok: false,
+      knowledge_patterns_count: null,
+      error: err.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
 // START SERVER IMMEDIATELY - health checks respond before any heavy init
 const port = Number(process.env.PORT || 5000);
 const server = app.listen(port, "0.0.0.0", () => {
@@ -132,6 +159,10 @@ async function initializeApp() {
   console.log("📋 [INIT] Starting background initialization...");
 
   try {
+    // Initialize Sentry as early as possible so captureException works throughout boot
+    const { initSentry } = await import("./lib/sentry");
+    initSentry();
+
     // Import bootstrap modules
     console.log("📋 [INIT] Loading bootstrap modules...");
     await import("./bootstrap-fetch");
@@ -1495,6 +1526,28 @@ async function initializeApp() {
               await new Promise((r) => setTimeout(r, 5000));
             } else {
               console.error(`❌ [prod] Coach Knowledge Library seed failed after ${MAX_ATTEMPTS} attempts:`, err.message);
+              // Always emit a structured log so the team can grep/alert on this key —
+              // a silent, permanent seed failure means Chef's Corner degrades with no visibility.
+              console.error("[ALERT] coach_knowledge_library_seed_exhausted", JSON.stringify({
+                event: "coach_knowledge_library_seed_exhausted",
+                attempts: MAX_ATTEMPTS,
+                error: err.message,
+                impact: "Chef's Corner coaching patterns missing — knowledge_patterns table may be empty",
+                timestamp: new Date().toISOString(),
+              }));
+              // Also forward to Sentry when initialized (DSN configured in env).
+              // captureException is a no-op when Sentry is not initialized, so the
+              // structured log above is the unconditional fallback signal.
+              try {
+                const { captureException } = await import("./lib/sentry");
+                captureException(err, {
+                  context: "coach_knowledge_library_seed",
+                  attempts: MAX_ATTEMPTS,
+                  impact: "Chef's Corner coaching patterns missing — knowledge_patterns table may be empty",
+                });
+              } catch (_sentryErr) {
+                // import or capture failed — structured log above is sufficient
+              }
             }
           }
         }
