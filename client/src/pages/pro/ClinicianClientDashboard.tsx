@@ -50,7 +50,7 @@ import ClinicalInterventionPanel from "@/components/pro/ClinicalInterventionPane
 
 
 export default function ClinicianClientDashboard() {
-  const { t } = useTranslation("pro");
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [, params] = useRoute("/pro/clients/:id/clinician");

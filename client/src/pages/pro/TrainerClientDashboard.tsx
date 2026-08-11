@@ -74,7 +74,7 @@ const SECTION_EXPLAINERS: Record<string, TourStep[]> = {
 };
 
 export default function TrainerClientDashboard() {
-  const { t } = useTranslation("pro");
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
