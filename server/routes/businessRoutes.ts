@@ -1140,28 +1140,63 @@ router.post("/create-org", requireAuth, async (req, res) => {
       if (existing.name !== orgName) {
         await db.update(businesses).set({ name: orgName, updatedAt: new Date() }).where(eq(businesses.id, existing.id));
       }
+      // Repair: ensure owner membership exists (may be absent if a previous attempt failed mid-write)
+      const [ownerMember] = await db
+        .select({ id: businessMembers.id })
+        .from(businessMembers)
+        .where(and(eq(businessMembers.businessId, existing.id), eq(businessMembers.userId, userId)))
+        .limit(1);
+      if (!ownerMember) {
+        await db.insert(businessMembers).values({ businessId: existing.id, userId, role: "owner", status: "active" });
+        console.warn(`[business/create-org] repaired missing owner membership | biz=${existing.id} | owner=${userId}`);
+      }
+      // Repair: ensure professionalRole is set
+      await db.update(users).set({ professionalRole: "business" } as any).where(eq(users.id as any, userId));
       return res.json({ businessId: existing.id, created: false });
     }
 
-    // Create business row with pending_billing — webhook sets it to active after Stripe payment
-    const [newBiz] = await db.insert(businesses).values({
-      name: orgName,
-      ownerUserId: userId,
-      plan: "clinical_business_monthly",
-      seatLimit: 1, // will be updated by webhook to the purchased seat count
-      status: "pending_billing",
-    }).returning();
+    // Wrap all three writes in a transaction so partial failures can be retried cleanly.
+    // ownerUserId has a UNIQUE constraint — concurrent requests will hit a conflict error;
+    // we catch it and re-read the record that the concurrent write produced.
+    let newBiz: typeof businesses.$inferSelect;
+    try {
+      newBiz = await db.transaction(async (tx) => {
+        const [biz] = await tx.insert(businesses).values({
+          name: orgName,
+          ownerUserId: userId,
+          plan: "clinical_business_monthly",
+          seatLimit: 1, // will be updated by webhook to the purchased seat count
+          status: "pending_billing",
+        }).returning();
 
-    // Add owner as seat 1 immediately
-    await db.insert(businessMembers).values({
-      businessId: newBiz.id,
-      userId,
-      role: "owner",
-      status: "active",
-    });
+        // Add owner as seat 1 immediately
+        await tx.insert(businessMembers).values({
+          businessId: biz.id,
+          userId,
+          role: "owner",
+          status: "active",
+        });
 
-    // Ensure professionalRole is "business" on the user record (no-op if already set at signup)
-    await db.update(users).set({ professionalRole: "business" } as any).where(eq(users.id as any, userId));
+        // Ensure professionalRole is "business" on the user record
+        await tx.update(users).set({ professionalRole: "business" } as any).where(eq(users.id as any, userId));
+
+        return biz;
+      });
+    } catch (conflictErr: any) {
+      // Unique constraint on ownerUserId means a concurrent request already created the org.
+      // Re-read and return it rather than surfacing a 500.
+      const isUniqueViolation =
+        conflictErr?.code === "23505" || // PostgreSQL unique violation
+        String(conflictErr?.message).includes("unique");
+      if (isUniqueViolation) {
+        const [race] = await db.select().from(businesses).where(eq(businesses.ownerUserId, userId)).limit(1);
+        if (race) {
+          console.warn(`[business/create-org] race resolved | biz=${race.id} | owner=${userId}`);
+          return res.json({ businessId: race.id, created: false });
+        }
+      }
+      throw conflictErr;
+    }
 
     console.log(`✅ [business/create-org] org created | id=${newBiz.id} | owner=${userId} | name="${orgName}"`);
     return res.json({ businessId: newBiz.id, created: true });
@@ -1170,7 +1205,6 @@ router.post("/create-org", requireAuth, async (req, res) => {
     return res.status(500).json({ error: err?.message || "Could not create organization." });
   }
 });
-
 // ── POST /api/business/dev-seed — DEV ONLY: instantly create a test business for the current user
 router.post("/dev-seed", requireAuth, async (req, res) => {
   if (process.env.NODE_ENV === "production") {
