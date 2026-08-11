@@ -599,9 +599,57 @@ async function runReasoningPass(params: {
   return validated;
 }
 
+// ─── completionSignal normalizer ──────────────────────────────────────────────
+// The LLM often produces creative strings ("eaten", "food_logged", "completed")
+// that are not in the CompletionSignalSchema enum. Since completionSignal is
+// bookkeeping metadata, we normalize rather than discard the whole response.
+
+const VALID_COMPLETION_SIGNALS = new Set([
+  "weight_logged", "water_logged", "meal_logged", "macro_logged",
+  "restaurant_logged", "exercise_logged", "beverage_logged",
+  "self_reported", "unknown",
+]);
+
+function normalizeCompletionSignal(raw: string | undefined): string | undefined {
+  if (raw === undefined || raw === null) return undefined;
+  if (VALID_COMPLETION_SIGNALS.has(raw)) return raw;
+  const s = raw.toLowerCase();
+  if (s.includes("meal") || s.includes("food") || s.includes("eat") ||
+      s.includes("lunch") || s.includes("dinner") || s.includes("breakfast") ||
+      s.includes("snack")) return "meal_logged";
+  if (s.includes("water") || s.includes("hydrat")) return "water_logged";
+  if (s.includes("beverage") || s.includes("drink") || s.includes("coffee") ||
+      s.includes("juice") || s.includes("shake") || s.includes("protein")) return "beverage_logged";
+  if (s.includes("weight") || s.includes("scale")) return "weight_logged";
+  if (s.includes("exercise") || s.includes("workout") || s.includes("gym") ||
+      s.includes("train") || s.includes("run") || s.includes("walk")) return "exercise_logged";
+  if (s.includes("macro") || s.includes("calor") || s.includes("carb")) return "macro_logged";
+  if (s.includes("restaurant") || s.includes("dining") || s.includes("takeout")) return "restaurant_logged";
+  if (s.includes("self") || s.includes("report") || s.includes("check") ||
+      s.includes("noted") || s.includes("done") || s.includes("complet")) return "self_reported";
+  return "unknown";
+}
+
+/** Strip invalid completionSignal values before hitting Zod — prevents a
+ *  single metadata field from invalidating an otherwise valid coaching response. */
+function sanitizeRenderingResponse(raw: any): any {
+  if (!raw?.todayPlan?.items || !Array.isArray(raw.todayPlan.items)) return raw;
+  return {
+    ...raw,
+    todayPlan: {
+      ...raw.todayPlan,
+      items: raw.todayPlan.items.map((item: any) => ({
+        ...item,
+        completionSignal: normalizeCompletionSignal(item.completionSignal),
+      })),
+    },
+  };
+}
+
 // ─── Rendering Pass ───────────────────────────────────────────────────────────
 
 async function runRenderingPass(params: {
+  userMessage: string;
   reasoning: any;
   styleResolution: { mode: StyleMode; instructions: string };
   confidence: ConfidenceAssessment;
@@ -698,7 +746,7 @@ async function runRenderingPass(params: {
       whatItCouldMean: "What the pattern suggests. Reasoning from evidence. Do not assert causation. Hedge appropriately per confidence level.",
       todayPlan: {
         why: "Why this plan — grounded in the evidence (1–2 sentences)",
-        items: [{ horizon: "today|tomorrow|next_check_in", kind: "drink|eat|avoid|log|activity|weigh|contact_care|use_feature|other", text: "Action text", completionSignal: "optional", featureTarget: "optional — only for use_feature" }],
+        items: [{ horizon: "today|tomorrow|next_check_in", kind: "drink|eat|avoid|log|activity|weigh|contact_care|use_feature|other", text: "Action text", completionSignal: "OPTIONAL — if provided, must be exactly one of: weight_logged | water_logged | meal_logged | macro_logged | restaurant_logged | exercise_logged | beverage_logged | self_reported | unknown — omit the field entirely when none of these fits cleanly", featureTarget: "optional — only for use_feature" }],
         successMetric: "How we'll know the plan worked",
         nextCheckIn: "When to check in (human-readable)",
         followUpAt: "ISO date string (optional)",
@@ -781,8 +829,11 @@ async function runRenderingPass(params: {
       const raw = completion.choices[0]?.message?.content ?? "{}";
       const parsed = JSON.parse(raw);
 
-      // Validate the response
-      const validated = CoachResponseSchema.parse(parsed);
+      // Normalize completionSignal before Zod — the LLM often returns creative
+      // strings that aren't in the enum. This metadata field must never discard
+      // an otherwise valid coaching response.
+      const sanitized = sanitizeRenderingResponse(parsed);
+      const validated = CoachResponseSchema.parse(sanitized);
 
       // Enforce confidence restrictions programmatically
       // LOW: max 2 items — the doctrine calls for "safe actions" (plural); 1 was too restrictive
@@ -839,53 +890,100 @@ async function runRenderingPass(params: {
       retries++;
       if (retries > MAX_RETRIES) {
         console.error("[Engine] Rendering pass failed after retries:", err.message);
-        return buildFallbackResponse(params.confidence.level, params.styleResolution.mode, params.specialization);
+        return await buildFallbackResponse(params.confidence.level, params.styleResolution.mode, params.specialization, params.userMessage);
       }
       console.warn(`[Engine] Rendering pass attempt ${retries} failed, retrying...`);
     }
   }
 
-  return buildFallbackResponse(params.confidence.level, params.styleResolution.mode, params.specialization);
+  return await buildFallbackResponse(params.confidence.level, params.styleResolution.mode, params.specialization, params.userMessage);
 }
 
-function buildFallbackResponse(
+async function buildFallbackResponse(
   confidence: any,
   style: any,
-  specialization: any
-): CoachResponse {
+  specialization: any,
+  userMessage: string
+): Promise<CoachResponse> {
   // The fallback fires when the rendering pass fails after retries.
-  // Per the three-level evidence doctrine, insufficient data is a limitation on
-  // personalization — not a reason to withhold useful coaching. Even a fallback
-  // response should give general guidance, not just ask the user to log something.
-  return {
-    whatIFound:
-      "I ran into a technical issue on my end while processing your message — this is temporary and not related to your data.",
-    whatItCouldMean:
-      "In the meantime, here's what I can offer as general guidance: eating consistently throughout the day, " +
-      "hitting your carbohydrate and protein targets, and staying well hydrated are the foundations that " +
-      "support most nutrition goals — energy, weight management, and performance alike. " +
-      "If something specific is going on (fatigue, hunger, cravings, stalled progress), logging your " +
-      "meals and today's check-in gives me the data I need to move from general guidance to specific answers.",
-    todayPlan: {
-      why: "These are safe, general actions that support any nutrition goal while I sort out the technical issue.",
-      items: [
-        { horizon: "today", kind: "eat", text: "Eat consistently today — don't skip meals while waiting for a personalized response.", completionSignal: "meal_logged" },
-        { horizon: "today", kind: "log", text: "Log your meals so I have data for a personalized answer next time.", completionSignal: "meal_logged" },
+  // We still need to give a useful, topic-aware response — not generic boilerplate
+  // and never "I ran into a technical issue." Per the three-level evidence doctrine:
+  // insufficient data limits personalization, it does not eliminate coaching value.
+  try {
+    const openai = getOpenAI();
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "system",
+          content: [
+            "You are a nutrition coach with no access to this user's personal logged data.",
+            "The user asked a question. Respond under LOW evidence rules:",
+            "1. Acknowledge in ONE brief sentence that you don't have their personal platform data to personalize this.",
+            "2. Give genuinely useful, topic-specific general coaching about exactly what they asked.",
+            "   Name 2-4 realistic possibilities or factors relevant to their question.",
+            "3. Suggest 1-2 safe, specific actions relevant to their actual question (not generic 'eat consistently').",
+            "4. Explain in one sentence what logging would help you personalize the answer next time.",
+            "NEVER say 'technical issue', 'error', 'system failure', or expose internal state.",
+            "NEVER give generic nutrition foundations unrelated to what they asked.",
+            "Respond ONLY with valid JSON:",
+            JSON.stringify({
+              whatIFound: "One sentence: what you can and cannot see from the platform right now",
+              whatItCouldMean: "General education about the topic they asked — specific possibilities, not generic advice",
+              planWhy: "Why these specific actions make sense for their question",
+              action1: "First specific action relevant to their actual question",
+              action2: "Second specific action or logging step",
+              learningOpportunity: "What specific logging would let you personalize this next time"
+            })
+          ].join("\n"),
+        },
+        { role: "user", content: userMessage },
       ],
-      successMetric: "Meals eaten consistently and at least one logged today.",
-      nextCheckIn: "Try sending your message again in a moment",
-    },
-    learningOpportunity:
-      "Once your meals are logged, I can give you a specific answer instead of general guidance.",
-    meta: {
-      specialization,
-      confidence,
-      styleMode: style,
-      patternKeys: [],
-      observersRun: [],
-      redFlag: false,
-    },
-  };
+      temperature: 0.4,
+      max_tokens: 600,
+    });
+
+    const raw = completion.choices[0]?.message?.content ?? "{}";
+    const r = JSON.parse(raw);
+
+    return {
+      whatIFound: r.whatIFound ?? "I don't have your logged data available right now to personalize this.",
+      whatItCouldMean: r.whatItCouldMean ?? "Without your logs I can only offer general guidance on this topic.",
+      todayPlan: {
+        why: r.planWhy ?? "Safe actions based on your question.",
+        items: [
+          { horizon: "today" as const, kind: "other" as const, text: r.action1 ?? "Start with something light and manageable.", completionSignal: "self_reported" as const },
+          { horizon: "today" as const, kind: "log" as const, text: r.action2 ?? "Log what you eat today so I can give you a personalized answer next time.", completionSignal: "meal_logged" as const },
+        ],
+        successMetric: "You took one action and logged something today.",
+        nextCheckIn: "Next time you check in",
+      },
+      learningOpportunity: r.learningOpportunity ?? "Logging your meals and today's check-in will let me give you a personalized answer.",
+      meta: { specialization, confidence, styleMode: style, patternKeys: [], observersRun: [], redFlag: false },
+    };
+  } catch {
+    // Last-resort static fallback — still topic-aware at minimum, never "technical issue"
+    return {
+      whatIFound: "I don't have your logged data available right now to personalize this answer.",
+      whatItCouldMean:
+        "Without your platform data I can only offer general guidance. " +
+        "For most nutrition questions — hunger, appetite changes, energy, meal timing — " +
+        "the answer depends on your targets, what you've eaten, and your recent patterns. " +
+        "Start with something small and manageable, and log it so I can give you a real answer next time.",
+      todayPlan: {
+        why: "General guidance until your data is available.",
+        items: [
+          { horizon: "today" as const, kind: "other" as const, text: "Start small — even a light option is better than nothing if you're hungry.", completionSignal: "self_reported" as const },
+          { horizon: "today" as const, kind: "log" as const, text: "Log what you eat today so I can personalize my next answer for you.", completionSignal: "meal_logged" as const },
+        ],
+        successMetric: "You ate something and logged it.",
+        nextCheckIn: "Next time you check in",
+      },
+      learningOpportunity: "Log your meals and check-in so I can move from general guidance to specific answers for you.",
+      meta: { specialization, confidence, styleMode: style, patternKeys: [], observersRun: [], redFlag: false },
+    };
+  }
 }
 
 // ─── Engine ───────────────────────────────────────────────────────────────────
@@ -1050,6 +1148,7 @@ export class CoachingEngine {
 
     // 15. Rendering pass (LLM call 2 — user-facing CoachResponse)
     const response = await runRenderingPass({
+      userMessage,
       reasoning: validatedReasoning,
       styleResolution,
       confidence,
