@@ -1,9 +1,24 @@
+import { useEffect } from "react";
 import { useLocation, useSearch } from "wouter";
 import { Building2, Users, CreditCard, Zap, CheckCircle2, ArrowRight } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function BusinessStart() {
   const [, setLocation] = useLocation();
   const search = useSearch();
+  const { user, loading } = useAuth();
+
+  // Redirect already-signed-in business owners straight to their dashboard
+  useEffect(() => {
+    if (!loading && user?.professionalRole === "business") {
+      setLocation("/business-dashboard");
+    }
+  }, [user, loading, setLocation]);
+
+  // Suppress the landing page content while redirecting to avoid a flash
+  if (!loading && user?.professionalRole === "business") {
+    return null;
+  }
 
   // Pass through any source/referral params so analytics can track which link was shared
   const params = new URLSearchParams(search);
