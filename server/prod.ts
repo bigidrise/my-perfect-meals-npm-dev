@@ -721,7 +721,7 @@ async function initializeApp() {
     app.use("/api/meals/dessert-creator", dessertCreatorRouter);
     app.use("/api/meals/beverage-creator", beverageCreatorRouter);
     app.use("/api/meals", mealsRouter);
-    app.use("/api/restaurants", resolveCuisineMiddleware, restaurantRoutes);
+    app.use("/api/restaurants", requireAuth, resolveCuisineMiddleware, restaurantRoutes);
     app.use("/api", manualMacrosRouter);
     app.use("/api", macroCalculatorRouter);
     app.use("/api/biometrics/labs", requireAuth, requireClinicalLabsAccess, clinicalLabsRouter);
