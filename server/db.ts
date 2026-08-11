@@ -6,6 +6,17 @@ import { glp1Shots } from "./db/schema/glp1Shots";
 import { mealBoards, mealBoardItems } from "./db/schema/mealBoards";
 import { builderPlans } from "./db/schema/builderPlans";
 import { organizations } from "./db/schema/organizations";
+import {
+  coachConversations,
+  coachMessages,
+  coachInvestigations,
+  coachActionPlans,
+  coachActionItems,
+  coachFollowups,
+  coachingMemories,
+  nutritionMemories,
+  knowledgePatterns,
+} from "./db/schema/coaching";
 
 // Construct database connection URL, preferring Neon credentials over Railway
 function getDatabaseUrl(): string {
@@ -61,6 +72,15 @@ export const db = drizzle(pool, {
     mealBoardItems, 
     builderPlans,
     organizations,
+    coachConversations,
+    coachMessages,
+    coachInvestigations,
+    coachActionPlans,
+    coachActionItems,
+    coachFollowups,
+    coachingMemories,
+    nutritionMemories,
+    knowledgePatterns,
   } 
 });
 

@@ -996,6 +996,16 @@ export default function BeverageCreator() {
                   <div className="space-y-2">
                     <GlassButton
                       onClick={() => {
+                        // Phase 4A: confirmed consumption event
+                        import("@/lib/coachEvents").then(({ emitCoachEvent }) =>
+                          emitCoachEvent({
+                            eventType: "beverage_added_to_macros",
+                            eventClass: "consumption",
+                            sourceFeature: "beverage_creator",
+                            entityType: "beverage",
+                            metadata: { beverageName: generatedBeverage?.name ?? "" },
+                          })
+                        );
                         setLocation(
                           "/biometrics?from=beverage-creator&view=macros",
                         );

@@ -21,7 +21,6 @@ export function BuilderHeader({ title, onOpenTour, clientId, protocols, backTo, 
   const [, setLocation] = useLocation();
 
   const isInStudioClientContext = isProCareMode && !!client && !!clientId;
-  const hasProtocols = protocols && protocols.length > 0;
 
   return (
     <div
@@ -63,19 +62,7 @@ export function BuilderHeader({ title, onOpenTour, clientId, protocols, backTo, 
           </div>
         )}
 
-        {hasProtocols && (
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[10px] text-white/70 font-medium uppercase tracking-wide">Active Protocol:</span>
-            {protocols.map(({ label, cls }) => (
-              <span
-                key={label}
-                className={`px-2.5 py-0.5 text-[11px] font-semibold rounded-full ${cls}`}
-              >
-                {label}
-              </span>
-            ))}
-          </div>
-        )}
+        {/* Active Protocol row intentionally omitted on mobile — too tall, not enough screen space */}
       </div>
     </div>
   );

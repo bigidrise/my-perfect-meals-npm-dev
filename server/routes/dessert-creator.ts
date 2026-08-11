@@ -18,6 +18,7 @@ import { getPrimaryDiet } from "../services/allergyGuardrails";
 import { buildChefAdaptationBlock } from "../utils/chefAdaptationBlock";
 import { resolveCreatorSystemForUser } from "../services/creatorSystems/resolveCreatorSystemForUser";
 import { applyCreatorTransformation } from "../services/creatorSystems/applyCreatorTransformation";
+import { emitActivityEvent } from "../services/coaching/activityEvents";
 import { generateMealImageUnified } from "../services/mealImageGenerator";
 
 let _openai: OpenAI | null = null;
@@ -452,6 +453,18 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
     }
 
     if (isDev) console.log("[DESSERT] Sending response (image handled client-side)...");
+
+    // Phase 3B: emit usage event — dessert was generated
+    if (userId && userId !== "1") {
+      emitActivityEvent({
+        ownerUserId: String(userId),
+        eventType: "dessert_generated",
+        eventClass: "usage",
+        sourceFeature: "dessert_creator",
+        metadata: { dessertCategory, flavorFamily, specificDessert },
+      }).catch((err) => console.error("[ActivityEvents]", err.message));
+    }
+
     const { complianceSection: dessertCompliance, dietClassification: dessertDietClass } =
       buildMealComplianceBundle(meal, dessertEnvelope, { isChefAdapted: dietAdapted });
     return res.json({

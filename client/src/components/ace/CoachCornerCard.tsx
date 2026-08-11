@@ -1,6 +1,5 @@
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { PillButton } from "@/components/ui/pill-button";
 import { ChefHat } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -36,17 +35,16 @@ export default function CoachCornerCard() {
           </p>
         </div>
       </div>
-      <PillButton
-        active
+      <button
         onClick={() =>
           setLocation(
             completed ? "/coach-corner/home" : "/coach-corner/welcome"
           )
         }
-        className="w-full !text-[11px] !py-2.5 !rounded-xl"
+        className="w-full py-2.5 rounded-xl bg-black border-2 border-rose-700 text-white text-[11px] font-semibold uppercase tracking-wide transition-colors"
       >
         {t("openBtn")}
-      </PillButton>
+      </button>
     </div>
     </div>
   );

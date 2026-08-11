@@ -1169,6 +1169,16 @@ export default function DessertCreator() {
                     {/* Row 1: Add to Macros (full width) */}
                     <GlassButton
                       onClick={() => {
+                        // Phase 4A: confirmed consumption event
+                        import("@/lib/coachEvents").then(({ emitCoachEvent }) =>
+                          emitCoachEvent({
+                            eventType: "dessert_added_to_macros",
+                            eventClass: "consumption",
+                            sourceFeature: "dessert_creator",
+                            entityType: "dessert",
+                            metadata: { dessertName: generatedDessert?.name ?? "" },
+                          })
+                        );
                         setLocation(
                           "/biometrics?from=dessert-creator&view=macros",
                         );

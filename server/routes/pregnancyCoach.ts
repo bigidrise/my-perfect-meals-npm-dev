@@ -18,6 +18,8 @@ import { coachingProfiles } from "../db/schema/ace";
 import { eq, sql } from "drizzle-orm";
 import { loadUserProtocolEnvelope } from "../services/protocolEnvelope";
 import { getTierForLookupKey } from "@shared/planFeatures";
+import { generateDoctrineSystemPromptSection } from "../services/coaching/doctrine/supportiveAccountabilityDoctrine";
+import { getComplianceBehaviorSignal, renderBehaviorSignalBlock } from "../services/coaching/doctrine/behaviorProgressClassifier";
 
 const router = express.Router();
 
@@ -317,6 +319,19 @@ router.post("/ask", async (req, res) => {
     const stageDisplay = stageLabel(stage);
     const weekDisplay = weekOfPregnancy ? ` (Week ${weekOfPregnancy})` : "";
 
+    // ── Behavior signal (non-fatal) ─────────────────────────────────────────
+    // Classify participation evidence so the doctrine's SUPPORT + REINFORCE
+    // steps have server-grounded data rather than just the text guidelines.
+    let behaviorSignalSection = "";
+    if (userId) {
+      try {
+        const behaviorSignal = await getComplianceBehaviorSignal(userId);
+        behaviorSignalSection = "\n\n" + renderBehaviorSignalBlock(behaviorSignal);
+      } catch {
+        // Non-fatal — doctrine text still present; signal is an enhancement
+      }
+    }
+
     const systemPrompt = `You are the Pregnancy Coach for My Perfect Pregnancy — a warm, knowledgeable nutrition companion built into the My Perfect Meals app. You specialize in pregnancy nutrition, food safety, and wellness support throughout every stage of pregnancy and postpartum.
 
 ABOUT THIS USER:
@@ -361,6 +376,8 @@ ${
 Use this to shape your communication style — not the content of pregnancy safety rules, which never change.`
     : `No behavioral profile on file yet — use a warm, encouraging, practical tone as a default.`
 }
+
+${generateDoctrineSystemPromptSection("pregnancy")}${behaviorSignalSection}
 
 TONE:
 - Warm, encouraging, practical — like a knowledgeable friend who also happens to know nutrition

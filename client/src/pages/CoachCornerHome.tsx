@@ -1,5 +1,4 @@
 import { useLocation } from "wouter";
-import { ChevronLeft } from "lucide-react";
 import { PillButton } from "@/components/ui/pill-button";
 
 interface Situation {

@@ -13,6 +13,7 @@ import { registerCreatorRoutes } from "./routes/creator";
 import { requireAuth, AuthenticatedRequest } from "./middleware/requireAuth";
 import { createApiRateLimit } from "./middleware/rateLimit";
 import { getAuthUserId } from "./utils/getAuthUserId";
+import { emitActivityEvent } from "./services/coaching/activityEvents";
 import { checkDailyQuota, checkAndIncrementQuota, incrementDailyUsage, AiFeature } from "./services/aiQuotaService";
 import { requireActiveAccess } from "./middleware/requireActiveAccess";
 import { requirePremiumAccess } from "./middleware/requirePremiumAccess";
@@ -85,6 +86,7 @@ import { fridgeRescueRouter } from "./routes/fridgeRescue";
 import inspirationRouter from "./routes/inspiration";
 import groceryCoachRouter from "./routes/groceryCoach";
 import pregnancyCoachRouter from "./routes/pregnancyCoach";
+import coachingEngineRouter from "./routes/coachingEngine";
 import performanceNutritionRouter from "./routes/performanceNutrition";
 import carbCycleRouter from "./routes/carbCycle";
 import nutritionSummaryRouter from "./routes/nutritionSummary";
@@ -633,6 +635,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api", inspirationRouter);
   app.use("/api/grocery-coach", requireAuth, requireProAccess, groceryCoachRouter);
   app.use("/api/pregnancy", requireAuth, requireClinicalAccess, pregnancyCoachRouter);
+  app.use("/api/coach", coachingEngineRouter);
   app.use("/api/performance", requireAuth, requireClinicalAccess, performanceNutritionRouter);
   app.use("/api/performance", requireAuth, requireClinicalAccess, carbCycleRouter);
   app.use("/api/nutrition-summary", requireAuth, nutritionSummaryRouter);
@@ -1331,6 +1334,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           resetAt: quotaCheck.resetAt,
         },
       });
+
+      // Phase 3B: emit usage event — fridge rescue meals were generated
+      if (userId && mealsForResponse.length > 0) {
+        emitActivityEvent({
+          ownerUserId: String(userId),
+          eventType: "fridge_rescue_generated",
+          eventClass: "usage",
+          sourceFeature: "fridge_rescue",
+          metadata: { mealCount: mealsForResponse.length, ingredientCount: Array.isArray(fridgeItems) ? fridgeItems.length : 0 },
+        }).catch((err) => console.error("[ActivityEvents]", err.message));
+      }
     } catch (error: any) {
       console.error("[FRIDGE] handler error", error);
       // Record error for metrics
@@ -1937,6 +1951,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         scope,
         strategy 
       });
+
+      // Phase 3B: emit engagement event — items added to shopping list
+      if (userId && insertedItems.length > 0) {
+        emitActivityEvent({
+          ownerUserId: String(userId),
+          eventType: "shopping_item_added",
+          eventClass: "engagement",
+          sourceFeature: "shopping_list",
+          metadata: { itemCount: insertedItems.length, sourceBuilder: sourceBuilder ?? null, scopeType: scope.type },
+        }).catch((err) => console.error("[ActivityEvents]", err.message));
+      }
     } catch (error) {
       console.error("❌ Shopping list error:", error);
       res.status(500).json({ 
@@ -3559,14 +3584,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? (onboardingMode as 'independent' | 'procare')
         : 'independent';
       
-      // Set onboarding complete — no trial granted, user starts as FREE tier
+      // Stamp the 7-day free trial at onboarding completion — not at signup.
+      // This ensures users who sign up and return later don't lose trial time.
+      // Never overwrite an existing trial (business invite or promotion may have
+      // already granted a longer window — always keep the later expiry).
       const now = new Date();
+      const trialUpdates: Record<string, any> = {};
+      if (!existingUser.trialStartedAt) {
+        trialUpdates.trialStartedAt = now;
+      }
+      if (!existingUser.trialEndsAt) {
+        trialUpdates.trialEndsAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+      }
 
       const [user] = await db.update(users)
         .set({
           onboardingCompletedAt: now,
           onboardingMode: resolvedMode,
           selectedMealBuilder: existingUser.preferredBuilder || existingUser.selectedMealBuilder,
+          ...trialUpdates,
         })
         .where(eq(users.id, userId))
         .returning();
@@ -3576,6 +3612,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         onboardingCompletedAt: user.onboardingCompletedAt?.toISOString(),
         onboardingMode: user.onboardingMode,
         preferredBuilder: user.preferredBuilder,
+        trialEndsAt: user.trialEndsAt?.toISOString() ?? null,
       });
     } catch (error: any) {
       console.error("Error completing onboarding:", error);
@@ -3814,11 +3851,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Optionally enrich the barcode response with today's nutrition strategy
       // so the scanner UI can flag conflicts without blocking the lookup.
       // Works for any logged-in user without requiring the route to be auth-gated.
+      // barcodeUserId hoisted so the Phase 4A event emission below can reference it.
+      let barcodeUserId: string | null = null;
       try {
         // Mirror requireAuth's token/session extraction — non-blocking
         const token = req.headers["x-auth-token"] as string | undefined;
         const sessionUserId = (req as any).session?.userId as string | undefined;
-        let barcodeUserId: string | null = null;
 
         if (token) {
           const [tokenUser] = await db.select({ id: users.id }).from(users)
@@ -3903,6 +3941,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`✅ Product found: ${food.name} from ${food.source}`);
       res.json(response);
+
+      // ── Phase 3B / 4A: emit product_scan_completed engagement event ──────────
+      // Fire-and-forget after response is sent — never blocks the lookup
+      if (barcodeUserId) {
+        const { emitActivityEvent } = await import("./services/coaching/activityEvents");
+        emitActivityEvent({
+          ownerUserId: barcodeUserId,
+          eventType: "product_scan_completed",
+          eventClass: "engagement",
+          sourceFeature: "smart_scan",
+          entityType: "product",
+          entityId: String(code),
+          metadata: { productName: food.name, brand: food.brand ?? null, found: true },
+        }).catch((err: Error) => console.error("[ActivityEvents] product_scan_completed:", err.message));
+      }
     } catch (error: any) {
       console.error(`❌ Barcode lookup error:`, error);
       res.status(500).json({ 
@@ -4465,15 +4518,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return formatted;
       });
 
+      // ── Unified Image Pipeline: generate permanent imageUrls in parallel before responding ─
+      // Matches the architecture used by /api/meals/generate and /api/meals/fridge-rescue.
+      // All images are generated concurrently — no sequential spinner per card.
+      // Callers using useMealImages already guard on meal.imageUrl and will skip the
+      // secondary client-side fetch automatically when imageUrl is present here.
+      const imagedOptions = await (async () => {
+        try {
+          const { generateMealImageUnified, normalizeMealTypeToSourceType } = await import('./services/mealImageGenerator');
+          const sourceType = normalizeMealTypeToSourceType(targetMealType || 'meal');
+          return await Promise.all(
+            formattedOptions.map(async (meal: any) => {
+              if (meal.imageUrl) return meal; // already cached — skip generation
+              const ingNames = (meal.ingredients || [])
+                .map((i: any) => (typeof i === 'string' ? i : i?.name || i?.item || ''))
+                .filter(Boolean);
+              try {
+                const imageUrl = await generateMealImageUnified(meal.name, ingNames, sourceType);
+                return imageUrl ? { ...meal, imageUrl } : meal;
+              } catch { return meal; } // image failure is non-fatal — meal still usable
+            })
+          );
+        } catch { return formattedOptions; } // pipeline failure non-fatal
+      })();
+      // ─────────────────────────────────────────────────────────────────────────────────────
+
       console.log("✅ CRAVING ROUTE COMPLETE", Date.now(), `(${Date.now() - startTime}ms)`);
-      console.log(`🍽️ Variety engine: ${formattedOptions.map((m: any) => m.name).join(" | ")}`);
+      console.log(`🍽️ Variety engine: ${imagedOptions.map((m: any) => m.name).join(" | ")}`);
 
       // Record metrics for health endpoint
       const { recordGeneration } = await import("./services/aiHealthMetrics");
       recordGeneration('/api/meals/craving-creator', 'ai' as any, Date.now() - startTime);
 
       res.json({
-        meals: formattedOptions,
+        meals: imagedOptions,
         generationSource: 'ai',
         ...(dietAdapted && { dietAdapted: true, dietNotice })
       });
@@ -7399,6 +7477,17 @@ Provide a single exceptional meal recommendation in JSON format with the followi
           } : {}),
         } : {}),
       }).returning();
+
+      // Phase 3B: emit engagement event — meal saved to favorites
+      emitActivityEvent({
+        ownerUserId: String(userId),
+        eventType: "meal_saved",
+        eventClass: "engagement",
+        sourceFeature: "meal_builder",
+        entityType: "meal",
+        entityId: String(row.id),
+        metadata: { title: title.trim(), sourceType: sourceType || "unknown" },
+      }).catch((err) => console.error("[ActivityEvents]", err.message));
 
       return res.json({ saved: true, id: row.id });
     } catch (error) {
