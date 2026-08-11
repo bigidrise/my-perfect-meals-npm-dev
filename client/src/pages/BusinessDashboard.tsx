@@ -73,6 +73,7 @@ interface BusinessData {
   usedSeats: number;
   availableSeats: number;
   planLostCount?: number;
+  signupSource?: string | null;
   clientInvitations?: {
     id: string;
     email: string;
@@ -1130,6 +1131,19 @@ export default function BusinessDashboard() {
           <p>This is where you manage your affiliate relationship with My Perfect Meals. You get a unique referral link — when someone signs up through it, you earn a commission tracked automatically.</p>
           <p className="mt-1.5">You can also create <span className="text-white/75 font-medium">promo codes</span> here. A promo code is a shareable shortcut that gives your clients a discount or trial extension. The outcome is the same as a direct Client Invitation, but promo codes can be handed out broadly (posted on a website, printed on a flyer) without entering each person's email one by one.</p>
         </InfoCallout>
+
+        {/* Acquisition Source — shown only when recorded */}
+        {ownerData?.signupSource && (
+          <div className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10">
+            <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
+              <ExternalLink className="w-3.5 h-3.5 text-white/40" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-white/40 text-xs">Acquisition source</p>
+              <p className="text-white/70 text-sm font-medium truncate">{ownerData.signupSource}</p>
+            </div>
+          </div>
+        )}
 
         {/* Organization Success Center */}
         <button

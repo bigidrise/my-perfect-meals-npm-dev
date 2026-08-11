@@ -381,6 +381,8 @@ export const users = pgTable("users", {
   mfaBackupCodes: jsonb("mfa_backup_codes"),                 // SHA-256 hashed backup codes array
   mfaEnrolledAt: timestamp("mfa_enrolled_at", { withTimezone: true }),
   profilePhotoUrl: text("profile_photo_url"), // URL to user's profile photo in object storage
+  // Acquisition tracking — source param captured at signup (e.g. ?source=metroflex or ?ref=metroflex)
+  signupSource: text("signup_source"), // null = organic / unknown
   // Role-based access control for Pro Care
   role: text("role").$type<"admin"|"coach"|"client">().notNull().default("client"), // admin = full access, coach = Pro Care tools, client = assigned board only
   isProCare: boolean("is_pro_care").default(false), // true if user is managed by a coach

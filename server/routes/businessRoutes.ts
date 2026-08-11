@@ -139,6 +139,14 @@ router.get("/mine", requireAuth, requireProAccess, async (req, res) => {
     }
     const { business, callerRole } = resolved;
 
+    // Fetch the owner's acquisition source
+    const [ownerRow] = await db
+      .select({ signupSource: users.signupSource })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    const signupSource = ownerRow?.signupSource ?? null;
+
     const rawMembers = await db
       .select({
         id: businessMembers.id,
@@ -230,6 +238,7 @@ router.get("/mine", requireAuth, requireProAccess, async (req, res) => {
       availableSeats: business.seatLimit - usedSeats,
       planLostCount,
       callerRole,
+      signupSource,
     });
   } catch (err) {
     console.error("[business/mine] error:", err);

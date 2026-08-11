@@ -48,6 +48,7 @@ const SAFE_USER_FIELDS = {
   macrosDefined: users.macrosDefined,
   entitlements: users.entitlements,
   planLookupKey: users.planLookupKey,
+  signupSource: users.signupSource,
 };
 
 router.get("/users/search", async (req, res) => {

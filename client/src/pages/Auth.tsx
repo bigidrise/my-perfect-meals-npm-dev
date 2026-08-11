@@ -16,6 +16,10 @@ export default function Auth() {
   const urlMode = useMemo(() => new URLSearchParams(search).get("mode"), [search]);
   const urlRole = useMemo(() => new URLSearchParams(search).get("role") as "trainer" | "physician" | "business" | null, [search]);
   const isIdleTimeout = useMemo(() => new URLSearchParams(search).get("reason") === "idle_timeout", [search]);
+  const signupSource = useMemo(() => {
+    const p = new URLSearchParams(search);
+    return p.get("source") || p.get("ref") || null;
+  }, [search]);
   const [mode, setMode] = useState<"signup" | "login">(
     isProCare || urlRole ? "signup" : urlMode === "signup" ? "signup" : "login"
   );
@@ -108,7 +112,7 @@ export default function Auth() {
             procareEntryPath: urlRole,
           };
         }
-        u = await signUp(email.trim(), pwd, procareData, isBusinessSignup);
+        u = await signUp(email.trim(), pwd, procareData, isBusinessSignup, signupSource);
         if (isProCare) {
           clearProCareSignupData();
         }
