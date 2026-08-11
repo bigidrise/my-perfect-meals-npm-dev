@@ -523,9 +523,13 @@ export function renderSnapshotForPrompt(snapshot: CoachingContextSnapshot): stri
     `Anti-Inflammatory: ${overlays.antiInflammatoryActive ? "ACTIVE" : "inactive"}`,
     `Diabetic:          ${overlays.diabeticActive ? "ACTIVE" : "inactive"}`,
     ``,
-    `── AVAILABLE MPM FEATURES (use only these for redirects) ──`,
+    `── AVAILABLE MPM FEATURES ──`,
+    `(Recommend a feature ONLY when the user's expressed need matches one of its applicableSituations.)`,
     ...capabilities.map(
-      (cap) => `  • ${cap.label} (${cap.id}) → ${cap.route}`
+      (cap) =>
+        `  • ${cap.label} (${cap.id}) → ${cap.route}\n` +
+        `    Purpose: ${cap.description}\n` +
+        `    Applicable when: ${cap.applicableSituations.join(", ")}`
     ),
     ``,
     `=== END COACHING CONTEXT SNAPSHOT ===`,
