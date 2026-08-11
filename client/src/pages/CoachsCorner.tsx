@@ -18,7 +18,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Settings, Send, RotateCcw, Check } from "lucide-react";
+import { Settings, Send, RotateCcw, Check, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -351,13 +351,14 @@ function ProfileSheet({
 }
 
 // ─── Bootstrap response type ──────────────────────────────────────────────────
+// Must match server/routes/coachingEngine.ts GET /bootstrap response exactly.
 
 interface BootstrapData {
-  completed: boolean;
+  profileCompleted: boolean;
   profile: Record<string, unknown> | null;
-  conversation: { id: string; status: string } | null;
+  conversationId: string | null;
   messages: DbMessage[];
-  pendingFollowupId: string | null;
+  dueFollowup: { id: string } | null;
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -392,23 +393,28 @@ export default function CoachsCorner() {
   // a single round-trip. The server runs profile + conversation in parallel,
   // then messages + followup lookup in parallel.
   const bootstrapQuery = useQuery<BootstrapData>({
-    queryKey: ["/api/coach-corner/bootstrap"],
+    queryKey: ["/api/coach/bootstrap"],
+    // Never retry on 4xx — a routing or auth error should surface immediately,
+    // not create a 7-second backoff delay before the hero renders.
+    retry: (failureCount, error: any) => {
+      if (error?.status >= 400 && error?.status < 500) return false;
+      return failureCount < 2;
+    },
   });
 
   // Process bootstrap exactly once — gate on messagesInitialized ref so
   // subsequent re-fetches (e.g. after profile patch) don't re-initialize state.
   useEffect(() => {
     if (!bootstrapQuery.data || messagesInitialized.current) return;
-    const { completed, profile, conversation, messages: dbMessages } = bootstrapQuery.data;
+    const { profileCompleted, profile, conversationId: convId, messages: dbMessages } = bootstrapQuery.data;
 
-    if (!completed) {
+    if (!profileCompleted) {
       setLocation("/coach-corner/intake");
       return;
     }
 
     messagesInitialized.current = true;
     if (profile) setLocalProfile(profile);
-    const convId = conversation?.id ?? null;
     if (convId) setConversationId(convId);
     setMessages(dbMessages.map(mapDbMessage));
   }, [bootstrapQuery.data, setLocation]);
@@ -419,12 +425,12 @@ export default function CoachsCorner() {
   // followupFired ref prevents double-delivery on re-renders.
   useEffect(() => {
     const data = bootstrapQuery.data;
-    if (!data?.pendingFollowupId || followupFired.current) return;
+    if (!data?.dueFollowup?.id || followupFired.current) return;
     if (!messagesInitialized.current) return; // wait until messages are set
 
     followupFired.current = true;
-    const followupId = data.pendingFollowupId;
-    const convId = data.conversation?.id ?? null;
+    const followupId = data.dueFollowup.id;
+    const convId = data.conversationId ?? null;
 
     (async () => {
       try {
@@ -553,7 +559,7 @@ export default function CoachsCorner() {
       setLocalProfile(data.profile);
       // Invalidate bootstrap so the profile sheet reflects the latest answers
       // on next open; messagesInitialized guard prevents message re-init.
-      queryClient.invalidateQueries({ queryKey: ["/api/coach-corner/bootstrap"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/coach/bootstrap"] });
     },
   });
 
@@ -572,7 +578,7 @@ export default function CoachsCorner() {
   // spinner while the single bootstrap call is in-flight — no full-screen black.
 
   const bootstrapLoading = bootstrapQuery.isLoading;
-  const bootstrapReady = bootstrapQuery.isSuccess && (bootstrapQuery.data?.completed ?? false);
+  const bootstrapReady = bootstrapQuery.isSuccess && (bootstrapQuery.data?.profileCompleted ?? false);
   const hasMessages = messages.length > 0;
 
   return (
@@ -591,7 +597,15 @@ export default function CoachsCorner() {
       <div className="flex-1 flex flex-col w-full max-w-2xl mx-auto min-h-0">
 
         {/* Header */}
-        <div className="shrink-0 bg-black/50 backdrop-blur-md flex items-center justify-end px-4 h-14">
+        <div className="shrink-0 bg-black/50 backdrop-blur-md flex items-center justify-between px-4 h-14">
+          <button
+            onClick={() => window.history.back()}
+            className="flex items-center gap-1 h-8 px-2 rounded-full text-white/60 hover:text-white transition-colors"
+            aria-label="Go back"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="text-xs">Back</span>
+          </button>
           <button
             onClick={() => setShowProfile(true)}
             disabled={!bootstrapReady}
@@ -624,7 +638,9 @@ export default function CoachsCorner() {
               <img
                 src="/assets/ChefBlackApron.png"
                 alt="Coach"
-                className="w-44 h-auto mb-3"
+                width={176}
+                height={176}
+                className="w-44 h-44 mb-3 object-contain"
               />
               <h2 className="text-2xl font-bold text-white mb-2">
                 What's on your mind?
