@@ -2,7 +2,7 @@
 // SERVICE WORKER VERSION
 // Bump this version string on every deploy to force cache refresh
 // ============================================
-const CACHE_VERSION = 'v5';
+const CACHE_VERSION = 'v6';
 const CACHE_NAME = 'mpm-cache-' + CACHE_VERSION;
 
 const STATIC_CACHE = [
