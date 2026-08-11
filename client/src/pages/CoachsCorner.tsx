@@ -156,10 +156,9 @@ function CoachBubble({ structured }: { structured: CoachStructuredResponse }) {
           )}
           {/* ── Permanent professional boundary footer ── */}
           <p className="text-white/35 text-[11px] leading-snug border-t border-white/8 pt-3 mt-1">
-            The more you log—meals, check-ins, and relevant progress—the better Chef's Corner can
-            identify patterns and provide personalized nutrition guidance. For changes to a prescribed
-            nutrition plan, medical concerns, symptoms, or an accurate clinical assessment, consult your
-            physician, dietitian, or qualified healthcare professional.
+            These are suggestions to help you make an informed choice right now. If you're working with
+            a coach, dietitian, or physician, please follow their guidance and check with them about
+            concerns or changes to your nutrition or health plan.
           </p>
         </div>
       </div>
