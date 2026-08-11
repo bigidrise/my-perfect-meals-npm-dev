@@ -430,10 +430,12 @@ export default function CoachsCorner() {
     },
   });
 
-  // Process bootstrap exactly once
+  // One-shot initialization: run exactly once when bootstrap first succeeds.
+  // messagesInitialized ref prevents re-running on subsequent re-fetches
+  // (e.g. after a profile patch invalidates the query).
   useEffect(() => {
     if (!bootstrapQuery.data || messagesInitialized.current) return;
-    const { profileCompleted, profile, conversationId: convId, messages: dbMessages, hasOlderMessages: hasOlder } = bootstrapQuery.data;
+    const { profileCompleted, conversationId: convId, messages: dbMessages, hasOlderMessages: hasOlder } = bootstrapQuery.data;
 
     if (!profileCompleted) {
       setLocation("/coach-corner/intake");
@@ -441,11 +443,19 @@ export default function CoachsCorner() {
     }
 
     messagesInitialized.current = true;
-    if (profile) setLocalProfile(profile);
     if (convId) setConversationId(convId);
     setMessages(dbMessages.map(mapDbMessage));
     setHasOlderMessages(hasOlder ?? false);
   }, [bootstrapQuery.data, setLocation]);
+
+  // Profile sync: runs on every bootstrap fetch (including re-fetches after a
+  // profile patch). Kept separate from the one-shot messages effect so the
+  // messagesInitialized guard never blocks profile label updates.
+  useEffect(() => {
+    const profile = bootstrapQuery.data?.profile;
+    if (!profile) return;
+    setLocalProfile(profile);
+  }, [bootstrapQuery.data?.profile]);
 
   // ── Async follow-up delivery ───────────────────────────────────────────────
   useEffect(() => {
