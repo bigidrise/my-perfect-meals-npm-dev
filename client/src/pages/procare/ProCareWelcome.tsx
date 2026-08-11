@@ -55,7 +55,7 @@ export default function ProCareWelcome() {
   const [location, setLocation] = useLocation();
   const { user } = useAuth();
   const isDesktop = useIsDesktop();
-  const { t } = useTranslation("procare");
+  const { t } = useTranslation();
 
   const isTrainerWelcome = location === "/trainer-welcome";
   const isPhysicianWelcome = location === "/physician-welcome";

@@ -79,7 +79,7 @@ const OPTIONS: IdentityOption[] = [
 
 export default function ProCareIdentity() {
   const [, setLocation] = useLocation();
-  const { t } = useTranslation("procare");
+  const { t } = useTranslation();
   const [role, setRole] = useState<ProfessionalRole>(
     (localStorage.getItem("procare_role") as ProfessionalRole) || null
   );

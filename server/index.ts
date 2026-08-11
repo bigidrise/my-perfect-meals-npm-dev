@@ -1570,47 +1570,63 @@ setTimeout(async () => {
   }
 }, 5500);
 
+// ── Shared retry helper for coaching boot migrations ──────────────────────────
+// A transient DB connection timeout on any coaching migration would leave
+// the engine in a partially-migrated state with no recovery path without
+// retries. withBootRetry wraps any async migration fn with up to
+// MAX_BOOT_ATTEMPTS attempts, 5 s apart, logging progress at each step.
+const MAX_BOOT_ATTEMPTS = 3;
+async function withBootRetry(label: string, fn: () => Promise<void>): Promise<void> {
+  for (let attempt = 1; attempt <= MAX_BOOT_ATTEMPTS; attempt++) {
+    try {
+      await fn();
+      return; // success — stop retrying
+    } catch (err: any) {
+      if (attempt < MAX_BOOT_ATTEMPTS) {
+        console.warn(`⚠️  ${label} attempt ${attempt} failed: ${err.message} — retrying in 5 s`);
+        await new Promise((r) => setTimeout(r, 5000));
+      } else {
+        console.error(`❌ ${label} failed after ${MAX_BOOT_ATTEMPTS} attempts:`, err.message);
+      }
+    }
+  }
+}
+
 // ── Coaching Engine boot migration (9 tables) ─────────────────────────────────
 setTimeout(async () => {
-  try {
+  await withBootRetry("Coaching Engine boot migration", async () => {
     const { db } = await import("./db");
     const { runCoachingEngineMigration } = await import("./db/migrations/runCoachingEngineMigration");
     await runCoachingEngineMigration(db);
-  } catch (err: any) {
-    console.error("❌ Coaching Engine boot migration failed:", err.message);
-  }
+  });
 }, 6000);
 
 // ── Coach Knowledge Library seed (5 adult Corner patterns) ────────────────────
+// Runs with retry: a transient DB connection timeout during cold start should
+// not permanently lose the patterns. Retries up to 3 times, 5 s apart.
 setTimeout(async () => {
-  try {
+  await withBootRetry("Coach Knowledge Library seed", async () => {
     const { seedCoachKnowledgePatterns } = await import("./db/seeds/coachKnowledgePatterns");
     await seedCoachKnowledgePatterns();
-  } catch (err: any) {
-    console.error("❌ Coach Knowledge Library seed failed:", err.message);
-  }
+  });
 }, 7500);
 
 // ── Phase 3B: Platform Observability infrastructure ───────────────────────────
 setTimeout(async () => {
-  try {
+  await withBootRetry("Phase 3B boot migration", async () => {
     const { db } = await import("./db");
     const { runPhase3BMigration } = await import("./db/migrations/runPhase3BMigration");
     await runPhase3BMigration(db);
-  } catch (err: any) {
-    console.error("❌ Phase 3B migration failed:", err.message);
-  }
+  });
 }, 8500);
 
 // ── Coaching Engine Phase 5 migration (completion provenance + followup index) ─
 setTimeout(async () => {
-  try {
+  await withBootRetry("Coaching Phase 5 boot migration", async () => {
     const { db } = await import("./db");
     const { runPhase5Migration } = await import("./db/migrations/runPhase5Migration");
     await runPhase5Migration(db);
-  } catch (err: any) {
-    console.error("❌ Coaching Phase 5 migration failed:", err.message);
-  }
+  });
 }, 9500);
 
 // ── Coach Follow-up Cron (every 10 min) ─────────────────────────────────────

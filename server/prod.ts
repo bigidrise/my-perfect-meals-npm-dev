@@ -74,6 +74,33 @@ app.get("/api/health", (_req, res) => {
   });
 });
 
+// Lightweight health probe for the Coach Knowledge Library.
+// Returns the live knowledge_patterns row count so uptime monitors can alert
+// on a zero-row table (indicating the seed failed all boot retries).
+app.get("/api/health/coaching-patterns", async (_req, res) => {
+  try {
+    const { db: dbHealth } = await import("./db");
+    const { sql: sqlHealth } = await import("drizzle-orm");
+    const result = await dbHealth.execute(
+      sqlHealth`SELECT COUNT(*)::int AS row_count FROM knowledge_patterns`
+    );
+    const rowCount = (result as any).rows?.[0]?.row_count ?? (result as any)[0]?.row_count ?? 0;
+    const healthy = Number(rowCount) > 0;
+    res.status(healthy ? 200 : 503).json({
+      ok: healthy,
+      knowledge_patterns_count: Number(rowCount),
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err: any) {
+    res.status(503).json({
+      ok: false,
+      knowledge_patterns_count: null,
+      error: err.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
 // START SERVER IMMEDIATELY - health checks respond before any heavy init
 const port = Number(process.env.PORT || 5000);
 const server = app.listen(port, "0.0.0.0", () => {
@@ -132,6 +159,10 @@ async function initializeApp() {
   console.log("📋 [INIT] Starting background initialization...");
 
   try {
+    // Initialize Sentry as early as possible so captureException works throughout boot
+    const { initSentry } = await import("./lib/sentry");
+    initSentry();
+
     // Import bootstrap modules
     console.log("📋 [INIT] Loading bootstrap modules...");
     await import("./bootstrap-fetch");
@@ -721,7 +752,7 @@ async function initializeApp() {
     app.use("/api/meals/dessert-creator", dessertCreatorRouter);
     app.use("/api/meals/beverage-creator", beverageCreatorRouter);
     app.use("/api/meals", mealsRouter);
-    app.use("/api/restaurants", resolveCuisineMiddleware, restaurantRoutes);
+    app.use("/api/restaurants", requireAuth, resolveCuisineMiddleware, restaurantRoutes);
     app.use("/api", manualMacrosRouter);
     app.use("/api", macroCalculatorRouter);
     app.use("/api/biometrics/labs", requireAuth, requireClinicalLabsAccess, clinicalLabsRouter);
@@ -1466,47 +1497,100 @@ async function initializeApp() {
         }
       }, 7000);
 
+      // ── Shared retry helper for coaching boot migrations ─────────────────────
+      // A transient DB connection timeout on any coaching migration would leave
+      // the engine in a partially-migrated state with no recovery path without
+      // retries. withBootRetry wraps any async migration fn with up to
+      // MAX_BOOT_ATTEMPTS attempts, 5 s apart, logging progress at each step.
+      const MAX_BOOT_ATTEMPTS = 3;
+      async function withBootRetry(label: string, fn: () => Promise<void>): Promise<void> {
+        for (let attempt = 1; attempt <= MAX_BOOT_ATTEMPTS; attempt++) {
+          try {
+            await fn();
+            return; // success — stop retrying
+          } catch (err: any) {
+            if (attempt < MAX_BOOT_ATTEMPTS) {
+              console.warn(`⚠️  [prod] ${label} attempt ${attempt} failed: ${err.message} — retrying in 5 s`);
+              await new Promise((r) => setTimeout(r, 5000));
+            } else {
+              console.error(`❌ [prod] ${label} failed after ${MAX_BOOT_ATTEMPTS} attempts:`, err.message);
+            }
+          }
+        }
+      }
+
       // ── Coaching Engine boot migration (9 tables) ─────────────────────────
       setTimeout(async () => {
-        try {
+        await withBootRetry("Coaching Engine boot migration", async () => {
           const { db: dbCe } = await import("./db");
           const { runCoachingEngineMigration } = await import("./db/migrations/runCoachingEngineMigration");
           await runCoachingEngineMigration(dbCe);
-        } catch (err: any) {
-          console.error("❌ [prod] Coaching Engine boot migration failed:", err.message);
-        }
+        });
       }, 8000);
 
       // ── Coach Knowledge Library seed (5 adult Corner patterns) ─────────────
+      // Runs with retry: a transient DB connection timeout during cold start
+      // should not permanently lose the patterns. Retries up to 3 times, 5 s
+      // apart. The seed itself creates knowledge_patterns IF NOT EXISTS first,
+      // so it is safe to run before the coaching engine migration completes.
+      // Uses a hand-rolled loop (not withBootRetry) so the exhausted-alert path
+      // can emit a structured log + Sentry event for team visibility.
       setTimeout(async () => {
-        try {
-          const { seedCoachKnowledgePatterns } = await import("./db/seeds/coachKnowledgePatterns");
-          await seedCoachKnowledgePatterns();
-        } catch (err: any) {
-          console.error("❌ [prod] Coach Knowledge Library seed failed:", err.message);
+        const MAX_ATTEMPTS = 3;
+        for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+          try {
+            const { seedCoachKnowledgePatterns } = await import("./db/seeds/coachKnowledgePatterns");
+            await seedCoachKnowledgePatterns();
+            break; // success — stop retrying
+          } catch (err: any) {
+            if (attempt < MAX_ATTEMPTS) {
+              console.warn(`⚠️  [prod] Coach Knowledge Library seed attempt ${attempt} failed: ${err.message} — retrying in 5 s`);
+              await new Promise((r) => setTimeout(r, 5000));
+            } else {
+              console.error(`❌ [prod] Coach Knowledge Library seed failed after ${MAX_ATTEMPTS} attempts:`, err.message);
+              // Always emit a structured log so the team can grep/alert on this key —
+              // a silent, permanent seed failure means Chef's Corner degrades with no visibility.
+              console.error("[ALERT] coach_knowledge_library_seed_exhausted", JSON.stringify({
+                event: "coach_knowledge_library_seed_exhausted",
+                attempts: MAX_ATTEMPTS,
+                error: err.message,
+                impact: "Chef's Corner coaching patterns missing — knowledge_patterns table may be empty",
+                timestamp: new Date().toISOString(),
+              }));
+              // Also forward to Sentry when initialized (DSN configured in env).
+              // captureException is a no-op when Sentry is not initialized, so the
+              // structured log above is the unconditional fallback signal.
+              try {
+                const { captureException } = await import("./lib/sentry");
+                captureException(err, {
+                  context: "coach_knowledge_library_seed",
+                  attempts: MAX_ATTEMPTS,
+                  impact: "Chef's Corner coaching patterns missing — knowledge_patterns table may be empty",
+                });
+              } catch (_sentryErr) {
+                // import or capture failed — structured log above is sufficient
+              }
+            }
+          }
         }
       }, 9500);
 
       // ── Phase 3B: Platform Observability infrastructure ──────────────────────
       setTimeout(async () => {
-        try {
+        await withBootRetry("Phase 3B boot migration", async () => {
           const { db: dbP3b } = await import("./db");
           const { runPhase3BMigration } = await import("./db/migrations/runPhase3BMigration");
           await runPhase3BMigration(dbP3b);
-        } catch (err: any) {
-          console.error("❌ [prod] Phase 3B migration failed:", err.message);
-        }
+        });
       }, 11000);
 
       // ── Coaching Engine Phase 5 (completion provenance + followup index) ─────
       setTimeout(async () => {
-        try {
+        await withBootRetry("Coaching Phase 5 boot migration", async () => {
           const { db: dbP5 } = await import("./db");
           const { runPhase5Migration } = await import("./db/migrations/runPhase5Migration");
           await runPhase5Migration(dbP5);
-        } catch (err: any) {
-          console.error("❌ [prod] Coaching Phase 5 migration failed:", err.message);
-        }
+        });
       }, 12500);
 
       // ── Coach Follow-up Cron (every 10 min) ──────────────────────────────────

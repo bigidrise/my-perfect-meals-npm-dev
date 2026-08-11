@@ -85,7 +85,7 @@ const FOUNDERS: Founder[] = [
 
 export default function ProCareRewards() {
   const [, setLocation] = useLocation();
-  const { t } = useTranslation("procare");
+  const { t } = useTranslation();
   const [selectedFounder, setSelectedFounder] = useState<Founder | null>(null);
   const [systemExpanded, setSystemExpanded] = useState(false);
 

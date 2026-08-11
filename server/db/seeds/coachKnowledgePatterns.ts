@@ -18,6 +18,32 @@ import { db } from "../../db";
 import { sql } from "drizzle-orm";
 
 export async function seedCoachKnowledgePatterns(): Promise<void> {
+  // Defensive: ensure knowledge_patterns table exists before inserting.
+  // The coaching engine migration creates this table, but under cold-start
+  // connection pressure the seed may fire before that migration completes.
+  // Running CREATE TABLE IF NOT EXISTS here is idempotent and costs nothing
+  // when the table already exists.
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS knowledge_patterns (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      specialization TEXT NOT NULL,
+      key TEXT NOT NULL,
+      version INTEGER NOT NULL DEFAULT 1,
+      is_active BOOLEAN NOT NULL DEFAULT false,
+      rule_json JSONB NOT NULL,
+      template_json JSONB NOT NULL,
+      safety_class TEXT NOT NULL DEFAULT 'routine',
+      approved_at TIMESTAMPTZ,
+      approved_by TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+  await db.execute(sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS knowledge_patterns_spec_key_version_idx
+      ON knowledge_patterns (specialization, key, version)
+  `);
+
   const patterns = [
     // ─── 1. Rapid Weight Gain ────────────────────────────────────────────────
     {

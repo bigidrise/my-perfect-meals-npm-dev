@@ -27,7 +27,7 @@ export default function ProfessionalDashboard() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const isDesktop = useIsDesktop();
-  const { t } = useTranslation("procare");
+  const { t } = useTranslation();
   const [state, setState] = useState<DashboardState>({
     phase1: { status: "not_started" },
     phase2: { status: "not_started" },
@@ -151,7 +151,7 @@ function ResumeCertification({
   onBack: () => void;
   onContinue: () => void;
 }) {
-  const { t } = useTranslation("procare");
+  const { t } = useTranslation();
   const totalSteps = 3;
   const completedSteps =
     (personalDone ? 1 : 0) +
@@ -263,7 +263,7 @@ function StepRow({
   inProgress?: boolean;
   locked?: boolean;
 }) {
-  const { t } = useTranslation("procare");
+  const { t } = useTranslation();
   return (
     <div className={`flex items-center gap-4 p-4 rounded-2xl border transition-all ${
       done ? "bg-emerald-900/10 border-emerald-500/30" :
@@ -293,7 +293,7 @@ function StepRow({
 
 function CertifiedDashboard({ user, isDesktop, onBack, onEnterStudio }: { user: any; isDesktop: boolean; onBack: () => void; onEnterStudio: () => void }) {
   const [, setLocation] = useLocation();
-  const { t } = useTranslation("procare");
+  const { t } = useTranslation();
   const firstName = (user?.name || user?.email || "").split(" ")[0] || "Professional";
 
   const enterStudioBtn = (

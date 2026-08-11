@@ -103,7 +103,7 @@ export default function BusinessDashboard() {
   const { user, refreshUser } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const { t } = useTranslation("businessDashboard");
+  const { t } = useTranslation();
 
   const ROLE_OPTIONS = [
     { value: "coach", label: t("businessDashboard.roles.coach") },
