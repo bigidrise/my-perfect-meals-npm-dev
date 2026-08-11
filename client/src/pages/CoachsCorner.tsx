@@ -12,7 +12,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Settings, Send, RotateCcw, Check, MoreHorizontal, Loader2, ArrowLeft } from "lucide-react";
+import { Settings, Send, RotateCcw, Check, MoreHorizontal, Loader2, ArrowLeft, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -406,6 +406,7 @@ export default function CoachsCorner() {
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [localProfile, setLocalProfile] = useState<Record<string, unknown> | null>(null);
   const [hasOlderMessages, setHasOlderMessages] = useState(false);
   const [isLoadingOlder, setIsLoadingOlder] = useState(false);
@@ -420,6 +421,9 @@ export default function CoachsCorner() {
   const didLoadOlderRef = useRef(false);
   // Stores scroll position before prepend so we can restore it after render
   const scrollPreserveRef = useRef<{ scrollHeight: number; scrollTop: number } | null>(null);
+  // Captured at the moment the trash icon is tapped so that confirm-time
+  // state races (bootstrap re-run, invalidation) can't nullify the ID.
+  const pendingClearId = useRef<string | null>(null);
 
   // ── Bootstrap query ────────────────────────────────────────────────────────
   const bootstrapQuery = useQuery<BootstrapData>({
@@ -694,6 +698,35 @@ export default function CoachsCorner() {
     [deleteMsgMutation]
   );
 
+  // ── Clear conversation ─────────────────────────────────────────────────────
+  const clearMutation = useMutation({
+    mutationFn: (cid: string) =>
+      apiRequest(`/api/coach/conversation/${cid}`, { method: "DELETE" }),
+    onSuccess: () => {
+      // Reset all local state — page returns to empty state immediately
+      setMessages([]);
+      setConversationId(null);
+      setHasOlderMessages(false);
+      setShowClearConfirm(false);
+      pendingClearId.current = null;
+      messagesInitialized.current = false;
+      followupFired.current = false;
+      queryClient.invalidateQueries({ queryKey: ["/api/coach/bootstrap"] });
+    },
+    onError: () => {
+      pendingClearId.current = null;
+      setShowClearConfirm(false);
+    },
+  });
+
+  const handleClear = () => {
+    // Prefer the ID captured when the trash icon was tapped.
+    // Fall back to live state / bootstrap data for safety.
+    const cid = pendingClearId.current ?? conversationId ?? bootstrapQuery.data?.conversationId ?? null;
+    if (!cid) return;
+    clearMutation.mutate(cid);
+  };
+
   // ─── Render ────────────────────────────────────────────────────────────────
 
   const bootstrapLoading = bootstrapQuery.isLoading;
@@ -729,15 +762,36 @@ export default function CoachsCorner() {
             <ArrowLeft className="w-4 h-4" />
             <span className="text-xs">Back</span>
           </button>
-          <button
-            onClick={() => setShowProfile(true)}
-            disabled={!bootstrapReady}
-            className="flex items-center gap-1.5 px-3 h-8 rounded-full bg-white/8 border border-white/15 text-white/70 text-xs hover:text-white hover:bg-white/12 transition-colors disabled:opacity-40 disabled:cursor-default"
-            aria-label="Edit coaching profile"
-          >
-            <Settings className="w-3.5 h-3.5" />
-            Edit profile
-          </button>
+          <div className="flex items-center gap-2">
+            {hasMessages && (
+              <button
+                onClick={() => {
+                  // Capture the ID now, while the conversation is definitely
+                  // present (button is only rendered when hasMessages is true).
+                  // This avoids the race where state / bootstrap data could be
+                  // stale by the time the confirm button fires.
+                  pendingClearId.current =
+                    conversationId ?? bootstrapQuery.data?.conversationId ?? null;
+                  setShowClearConfirm(true);
+                }}
+                disabled={clearMutation.isPending}
+                className="flex items-center gap-1.5 px-3 h-8 rounded-full bg-white/8 border border-white/15 text-white/50 text-xs hover:text-red-400 hover:border-red-500/30 hover:bg-red-500/10 transition-colors disabled:opacity-40"
+                aria-label="Clear conversation"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Clear
+              </button>
+            )}
+            <button
+              onClick={() => setShowProfile(true)}
+              disabled={!bootstrapReady}
+              className="flex items-center gap-1.5 px-3 h-8 rounded-full bg-white/8 border border-white/15 text-white/70 text-xs hover:text-white hover:bg-white/12 transition-colors disabled:opacity-40 disabled:cursor-default"
+              aria-label="Edit coaching profile"
+            >
+              <Settings className="w-3.5 h-3.5" />
+              Edit profile
+            </button>
+          </div>
         </div>
 
         {/* Message area */}
@@ -851,6 +905,34 @@ export default function CoachsCorner() {
         }}
         isSaving={patchMutation.isPending}
       />
+
+      {/* Clear conversation confirmation */}
+      <Dialog open={showClearConfirm} onOpenChange={(v) => !v && setShowClearConfirm(false)}>
+        <DialogContent className="bg-zinc-950 border border-white/10 text-white max-w-sm w-full p-6">
+          <DialogHeader>
+            <DialogTitle className="text-white text-base">Clear this conversation?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-white/55 mt-1 leading-relaxed">
+            All messages will be permanently deleted. Your coaching profile stays intact — only the chat history is removed.
+          </p>
+          <div className="flex gap-3 mt-5">
+            <button
+              onClick={() => setShowClearConfirm(false)}
+              disabled={clearMutation.isPending}
+              className="flex-1 py-2.5 rounded-xl border border-white/15 text-white/60 text-sm hover:text-white hover:border-white/25 transition-colors disabled:opacity-40"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleClear}
+              disabled={clearMutation.isPending}
+              className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition-colors disabled:opacity-50"
+            >
+              {clearMutation.isPending ? "Clearing…" : "Clear"}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1033,158 +1033,650 @@
   },
   "pro": {
     "trainerDashboard": {
-      "carbs": "Carbs",
-      "fat": "Fat",
-      "macroTargets": "Macro Targets",
-      "protein": "Protein",
-      "save": "Save",
-      "saved": "Saved",
-      "tourTitle": "Trainer Dashboard Tour",
+      "carbs": "Carboidratos",
+      "fat": "Gorduras",
+      "macroTargets": "Metas de Macros",
+      "protein": "Proteínas",
+      "save": "Salvar",
+      "saved": "Salvo",
+      "tourTitle": "Tour do Painel do Treinador",
       "tour": {
-        "step1Title": "Client Overview",
-        "step1Desc": "See your client's key information and current nutrition setup.",
-        "step2Title": "Macro Targets",
-        "step2Desc": "Set daily protein, carbohydrate, and fat targets for your client.",
-        "step3Title": "Nutrition Context",
-        "step3Desc": "Review the client's goals, coaching notes, and relevant clinical context.",
-        "step4Title": "Meal Builder",
-        "step4Desc": "Choose and assign the nutrition builder that fits your client's needs.",
-        "step5Title": "Progress & Compliance",
-        "step5Desc": "Monitor your client's check-ins, weight trends, and nutrition progress.",
-        "step6Title": "Save Changes",
-        "step6Desc": "Save your updates so they are applied across your client's experience."
+        "step1Title": "Visão Geral do Cliente",
+        "step1Desc": "Veja as informações principais e a configuração nutricional atual do seu cliente.",
+        "step2Title": "Metas de Macros",
+        "step2Desc": "Defina metas diárias de proteínas, carboidratos e gorduras para o seu cliente.",
+        "step3Title": "Contexto Nutricional",
+        "step3Desc": "Revise os objetivos, notas de acompanhamento e o contexto clínico relevante do cliente.",
+        "step4Title": "Construtor de Refeições",
+        "step4Desc": "Escolha e atribua o construtor nutricional que atenda às necessidades do seu cliente.",
+        "step5Title": "Progresso e Conformidade",
+        "step5Desc": "Monitore os check-ins, tendências de peso e progresso nutricional do seu cliente.",
+        "step6Title": "Salvar Alterações",
+        "step6Desc": "Salve suas atualizações para que sejam aplicadas na experiência do seu cliente."
       },
-      "fibrousCarbs": "Fibrous Carbs",
-      "bodyComposition": "Body Composition",
-      "bodyFat": "Body Fat",
-      "targetBodyFat": "Target Body Fat",
-      "method": "Method",
-      "source": "Source",
-      "activeOnClient": "Active on this client",
-      "physicianAuthRequired": "Physician authorization required"
+      "fibrousCarbs": "Carboidratos Fibrosos",
+      "bodyComposition": "Composição Corporal",
+      "bodyFat": "Gordura Corporal",
+      "targetBodyFat": "Gordura Corporal Alvo",
+      "method": "Método",
+      "source": "Fonte",
+      "activeOnClient": "Ativo neste cliente",
+      "physicianAuthRequired": "Autorização médica necessária"
     },
     "clinicianDashboard": {
-      "carbs": "Carbs",
-      "fat": "Fat",
-      "macroTargets": "Macro Targets",
-      "protein": "Protein",
-      "save": "Save",
-      "saved": "Saved",
-      "checkInCancelFailed": "Could not cancel the check-in",
-      "checkInCancelled": "Check-in cancelled",
-      "followUpScheduled": "Follow-up scheduled",
-      "scheduleFollowUpBtn": "Schedule Follow-up",
-      "schedulingFailed": "Scheduling failed",
-      "tourTitle": "Clinician Dashboard Tour",
+      "carbs": "Carboidratos",
+      "fat": "Gorduras",
+      "macroTargets": "Metas de Macros",
+      "protein": "Proteínas",
+      "save": "Salvar",
+      "saved": "Salvo",
+      "checkInCancelFailed": "Não foi possível cancelar o check-in",
+      "checkInCancelled": "Check-in cancelado",
+      "followUpScheduled": "Acompanhamento agendado",
+      "scheduleFollowUpBtn": "Agendar acompanhamento",
+      "schedulingFailed": "Falha no agendamento",
+      "tourTitle": "Tour do Painel do Clínico",
       "tour": {
-        "step1Title": "Client Overview",
-        "step1Desc": "Review your patient's profile, nutrition status, and clinical information.",
-        "step2Title": "Macro Targets",
-        "step2Desc": "Set nutrition targets that support your patient's care plan.",
-        "step3Title": "Clinical Context",
-        "step3Desc": "Review active protocols, conditions, labs, and clinical notes.",
-        "step4Title": "Care Planning",
-        "step4Desc": "Assign the appropriate builder and schedule follow-up care.",
-        "step5Title": "Save Changes",
-        "step5Desc": "Save your updates to keep your patient's plan current."
+        "step1Title": "Visão Geral do Cliente",
+        "step1Desc": "Revise o perfil, status nutricional e informações clínicas do seu paciente.",
+        "step2Title": "Metas de Macros",
+        "step2Desc": "Defina metas nutricionais que apoiem o plano de cuidados do seu paciente.",
+        "step3Title": "Contexto Clínico",
+        "step3Desc": "Revise protocolos ativos, condições, exames e notas clínicas.",
+        "step4Title": "Planejamento de Cuidados",
+        "step4Desc": "Atribua o construtor apropriado e agende o acompanhamento.",
+        "step5Title": "Salvar Alterações",
+        "step5Desc": "Salve suas atualizações para manter o plano do paciente atualizado."
       },
-      "fibrousCarbs": "Fibrous Carbs",
-      "bodyComposition": "Body Composition",
-      "bodyFat": "Body Fat",
-      "targetBodyFat": "Target Body Fat",
-      "medicalDietaryDirectives": "Medical Dietary Directives",
-      "noBodyComp": "No body composition data recorded for this patient yet.",
-      "assignClinicalBuilder": "Assign Clinical Builder"
+      "fibrousCarbs": "Carboidratos Fibrosos",
+      "bodyComposition": "Composição Corporal",
+      "bodyFat": "Gordura Corporal",
+      "targetBodyFat": "Gordura Corporal Alvo",
+      "medicalDietaryDirectives": "Diretrizes Dietéticas Médicas",
+      "noBodyComp": "Nenhum dado de composição corporal registrado para este paciente ainda.",
+      "assignClinicalBuilder": "Atribuir Construtor Clínico"
     },
     "clients": {
-      "archiveConfirm": "Archive this client?",
-      "archiveSubtitle": "Archived clients will be hidden from your active client list.",
-      "back": "Back",
-      "cancel": "Cancel",
-      "desktopRequired": "Please use a desktop browser to manage clients.",
-      "hideArchived": "Hide archived",
-      "inboxEmpty": "No messages yet",
-      "inboxLoading": "Loading messages…",
-      "inboxSubtitle": "Recent messages",
-      "inboxTitle": "Client Inbox",
-      "restore": "Restore",
-      "showArchived": "Show archived",
-      "tapInbox": "Tap a message to open the client’s folder.",
-      "tourTitle": "Clients Tour",
+      "archiveConfirm": "Arquivar este cliente?",
+      "archiveSubtitle": "Clientes arquivados ficarão ocultos da sua lista de clientes ativos.",
+      "back": "Voltar",
+      "cancel": "Cancelar",
+      "desktopRequired": "Use um navegador de desktop para gerenciar clientes.",
+      "hideArchived": "Ocultar arquivados",
+      "inboxEmpty": "Nenhuma mensagem ainda",
+      "inboxLoading": "Carregando mensagens…",
+      "inboxSubtitle": "Mensagens recentes",
+      "inboxTitle": "Caixa de Entrada do Cliente",
+      "restore": "Restaurar",
+      "showArchived": "Mostrar arquivados",
+      "tapInbox": "Toque em uma mensagem para abrir a pasta do cliente.",
+      "tourTitle": "Tour de Clientes",
       "tour": {
-        "step1Title": "Your Clients",
-        "step1Desc": "See all your connected clients in one place.",
-        "step2Title": "Client Inbox",
-        "step2Desc": "Review messages and open a client’s folder directly from the inbox.",
-        "step3Title": "Client Folders",
-        "step3Desc": "Open a client folder to view their dashboard, plans, and progress."
+        "step1Title": "Seus Clientes",
+        "step1Desc": "Veja todos os seus clientes conectados em um só lugar.",
+        "step2Title": "Caixa de Entrada do Cliente",
+        "step2Desc": "Revise mensagens e abra a pasta de um cliente diretamente da caixa de entrada.",
+        "step3Title": "Pastas de Clientes",
+        "step3Desc": "Abra uma pasta de cliente para visualizar seu painel, planos e progresso."
       }
     },
     "clientDashboard": {
-      "tourTitle": "Client Dashboard Tour",
+      "tourTitle": "Tour do Painel do Cliente",
       "tour": {
-        "step1Title": "Your Nutrition Plan",
-        "step1Desc": "View the nutrition plan and builder your professional assigned to you.",
-        "step2Title": "Progress",
-        "step2Desc": "Track your check-ins, weight trends, and nutrition progress.",
-        "step3Title": "Messages",
-        "step3Desc": "Stay connected with your professional and review your conversations.",
-        "step4Title": "Your Goals",
-        "step4Desc": "Review and update your goals to keep your plan on track."
+        "step1Title": "Seu Plano Nutricional",
+        "step1Desc": "Veja o plano nutricional e o construtor que seu profissional atribuiu a você.",
+        "step2Title": "Progresso",
+        "step2Desc": "Acompanhe seus check-ins, tendências de peso e progresso nutricional.",
+        "step3Title": "Mensagens",
+        "step3Desc": "Mantenha contato com seu profissional e revise suas conversas.",
+        "step4Title": "Seus Objetivos",
+        "step4Desc": "Revise e atualize seus objetivos para manter seu plano no caminho certo."
       }
     },
     "boardViewer": {
-      "error": "Could not load this meal board.",
-      "removed": "Meal removed",
-      "removedDesc": "The meal has been removed from this slot.",
+      "error": "Não foi possível carregar este quadro de refeições.",
+      "removed": "Refeição removida",
+      "removedDesc": "A refeição foi removida deste slot.",
       "slots": {
-        "breakfast": "Breakfast",
-        "lunch": "Lunch",
-        "dinner": "Dinner",
-        "snacks": "Snacks"
+        "breakfast": "Café da Manhã",
+        "lunch": "Almoço",
+        "dinner": "Jantar",
+        "snacks": "Lanches"
       }
     },
     "physicianPortal": {
-      "comingSoon": "More features coming soon.",
-      "title": "Physician Portal",
-      "viewClients": "View Patients",
-      "tourTitle": "Physician Portal Tour",
+      "comingSoon": "Mais recursos em breve.",
+      "title": "Portal do Médico",
+      "viewClients": "Ver Pacientes",
+      "tourTitle": "Tour do Portal do Médico",
       "tour": {
-        "step1Title": "Patient Overview",
-        "step1Desc": "See all your connected patients and their current nutrition status.",
-        "step2Title": "Clinical Tools",
-        "step2Desc": "Access clinical builders, lab data, and protocol assignments.",
-        "step3Title": "Care Coordination",
-        "step3Desc": "Coordinate care with nurses, dietitians, and other professionals on your team.",
-        "step4Title": "Get Started",
-        "step4Desc": "Select a patient to open their clinical dashboard and begin managing their plan."
+        "step1Title": "Visão Geral do Paciente",
+        "step1Desc": "Veja todos os seus pacientes conectados e seu status nutricional atual.",
+        "step2Title": "Ferramentas Clínicas",
+        "step2Desc": "Acesse construtores clínicos, dados de exames e atribuições de protocolos.",
+        "step3Title": "Coordenação de Cuidados",
+        "step3Desc": "Coordene o cuidado com enfermeiros, nutricionistas e outros profissionais da sua equipe.",
+        "step4Title": "Começar",
+        "step4Desc": "Selecione um paciente para abrir seu painel clínico e começar a gerenciar seu plano."
       }
     },
     "gnbEntry": {
-      "headerLabel": "General Nutrition Builder",
-      "title": "Where would you like to start?",
-      "subtitle": "Build meals for today, or set up a training nutrition schedule that adjusts your macros based on your workout type.",
-      "continueTo": "Open General Nutrition Builder",
-      "continueDesc": "Build meals using your standard macro targets.",
-      "trainTitle": "Want training-aware macros?",
-      "trainDesc": "Set up a weekly training schedule and your macro targets will automatically adjust on training days versus rest days.",
-      "scheduleTitle": "Training Nutrition Schedule",
-      "scheduleDesc": "Set your weekly training type and get macro targets tailored to each day.",
-      "activeLabel": "Active",
-      "adjustmentsActive": "macro adjustments active",
-      "today": "Today: {{label}}",
-      "editSchedule": "Edit schedule",
-      "setupSchedule": "Set up training schedule",
-      "explainer": "Your macro targets stay the same every day until you set up a training schedule. Once active, training days get more carbohydrates and rest days pull back — automatically.",
+      "headerLabel": "Construtor Geral de Nutrição",
+      "title": "Por onde você gostaria de começar?",
+      "subtitle": "Monte refeições para hoje ou configure uma programação de nutrição de treinamento que ajusta seus macros com base no tipo de treino.",
+      "continueTo": "Abrir Construtor Geral de Nutrição",
+      "continueDesc": "Monte refeições usando suas metas de macros padrão.",
+      "trainTitle": "Quer macros focados em treinamento?",
+      "trainDesc": "Configure uma agenda de treinamento semanal e suas metas de macros serão ajustadas automaticamente nos dias de treino versus dias de descanso.",
+      "scheduleTitle": "Programação de Nutrição de Treinamento",
+      "scheduleDesc": "Defina seu tipo de treinamento semanal e obtenha metas de macros adaptadas para cada dia.",
+      "activeLabel": "Ativo",
+      "adjustmentsActive": "ajustes de macro ativos",
+      "today": "Hoje: {{label}}",
+      "editSchedule": "Editar agenda",
+      "setupSchedule": "Configurar agenda de treinamento",
+      "explainer": "Suas metas de macros permanecem as mesmas todos os dias até que você configure uma agenda de treinamento. Uma vez ativa, os dias de treino recebem mais carboidratos e os dias de descanso reduzem automaticamente.",
       "sessions": {
-        "strength": "Strength Training",
-        "power": "Power / Explosiveness",
-        "endurance": "Endurance / Cardio",
-        "sport_practice": "Sport Practice",
-        "competition": "Competition Day",
-        "recovery": "Active Recovery",
-        "off": "Rest Day"
+        "strength": "Treino de Força",
+        "power": "Potência / Explosão",
+        "endurance": "Resistência / Cardio",
+        "sport_practice": "Treino Esportivo",
+        "competition": "Dia de Competição",
+        "recovery": "Recuperação Ativa",
+        "off": "Dia de Descanso"
       }
+    },
+    "procare": {
+      "bridge": {
+        "step1Badge": "Passo 1 de 3",
+        "step1Title": "Crie sua conta ProCare",
+        "step1Desc": "Configure sua conta profissional para acessar as ferramentas ProCare e a gestão de clientes.",
+        "step1Button": "Criar conta",
+        "step2Badge": "Passo 2 de 3",
+        "step2Title": "Conclua o Treinamento ProCare",
+        "step2Desc": "Conclua o treinamento obrigatório para desbloquear o acesso total ao seu estúdio profissional.",
+        "step2Phase1Title": "Fase 1: Fundamentos da Plataforma",
+        "step2Phase1Desc": "Aprenda os recursos centrais da plataforma e como apoiar seus clientes efetivamente.",
+        "step2Excellent": "Progresso excelente!",
+        "step2Button": "Continuar treinamento",
+        "step3Badge": "Passo 3 de 3",
+        "step3Title": "Ative seu Estúdio",
+        "step3Desc": "Seu treinamento está concluído. Ative seu estúdio profissional e comece a trabalhar com clientes.",
+        "step3Phase2Title": "Fase 2: Ferramentas Avançadas",
+        "step3Phase2Desc": "Desbloqueie ferramentas clínicas e de coaching avançadas para um suporte mais profundo ao cliente.",
+        "step3Button": "Ativar estúdio"
+      },
+      "launchpad": {
+        "certifiedBadge": "Certificado",
+        "certProgress": "Progresso da certificação",
+        "dashboard": "Painel",
+        "enterStudio": "Entrar no Estúdio",
+        "quickLinks": "Links rápidos",
+        "resumeCertification": "Retomar certificação",
+        "resumePhase2": "Retomar Fase 2"
+      },
+      "welcome": {
+        "back": "Voltar",
+        "beginJourney": "Comece sua jornada"
+      },
+      "training": {
+        "back": "Voltar",
+        "backToLaunchpad": "Voltar ao Launchpad",
+        "completeUnlock": "Conclua para desbloquear",
+        "continueButton": "Continuar",
+        "phase2Label": "Fase 2",
+        "progress": "Progresso"
+      },
+      "rewards": {
+        "back": "Voltar",
+        "background": "Histórico profissional"
+      },
+      "identity": {
+        "continueButton": "Continuar"
+      },
+      "attestation": {
+        "categoryLabel": "Categoria profissional",
+        "checkboxLabel": "Confirmo que sou um profissional qualificado e concordo em usar esta plataforma de forma responsável.",
+        "createAccount": "Criar conta",
+        "pendingVerification": "Verificação pendente",
+        "platformSafety": "Segurança da plataforma",
+        "upgradeToPro": "Fazer upgrade para Pro",
+        "upgrading": "Fazendo upgrade…"
+      },
+      "certifiedUnlock": {
+        "badge": "Profissional Certificado",
+        "enterStudio": "Entrar no Estúdio Profissional",
+        "nextStepsTitle": "Seus próximos passos",
+        "subtitle": "Você concluiu a certificação ProCare e desbloqueou o acesso total ao seu estúdio profissional.",
+        "title": "Certificação Concluída",
+        "unlockedTitle": "Estúdio Desbloqueado"
+      }
+    },
+    "trainerCareTeam": {
+      "title": "Equipe de Cuidados do Treinador",
+      "tourTitle": "Equipe de Cuidados do Treinador",
+      "platform": {
+        "explore": "Explore a plataforma",
+        "description": "Saiba como a plataforma pode ajudá-lo a apoiar seus clientes.",
+        "button": "Explorar recursos"
+      },
+      "availability": {
+        "title": "Status de disponibilidade",
+        "saving": "Salvando…",
+        "saved": "Salvo",
+        "available": "Disponível",
+        "away": "Ausente",
+        "offline": "Offline",
+        "from": "De",
+        "until": "Até"
+      },
+      "studio": {
+        "activeClients": "Clientes ativos",
+        "viewAndManage": "Visualize e gerencie seus clientes no portal profissional.",
+        "portalButton": "Abrir Estúdio"
+      },
+      "invite": {
+        "title": "Convidar um Cliente",
+        "roleLabel": "Cargo profissional",
+        "emailLabel": "E-mail do cliente",
+        "emailPlaceholder": "cliente@exemplo.com",
+        "sendInvite": "Enviar convite"
+      },
+      "errors": {
+        "loadFailed": "Falha ao carregar a equipe de cuidados.",
+        "emailRequired": "O e-mail é obrigatório.",
+        "sendInviteFailed": "Falha ao enviar o convite.",
+        "availabilityFailed": "Falha ao atualizar a disponibilidade.",
+        "saveDatesFailed": "Falha ao salvar as datas."
+      },
+      "toast": {
+        "invitationSent": "Convite enviado para {{email}}"
+      },
+      "tour": {
+        "inviteClients": "Convidar clientes",
+        "inviteClientsDesc": "Convide clientes para se conectarem com você e receberem suporte.",
+        "setAvailability": "Defina sua disponibilidade",
+        "setAvailabilityDesc": "Deixe os clientes saberem quando você está disponível, ausente ou offline.",
+        "proPortal": "Use o portal profissional",
+        "proPortalDesc": "Abra o Estúdio para visualizar e gerenciar seus clientes."
+      }
+    },
+    "businessDashboard": {
+      "title": "Painel da Organização",
+      "settingUp": "Configurando…",
+      "confirmingPayment": "Confirmando seu pagamento…",
+      "loading": "Carregando…",
+      "noBusinessFound": "Nenhuma organização encontrada",
+      "orgMember": "Membro da Organização",
+      "orgAccessActive": "Acesso à organização ativo",
+      "role": "Cargo",
+      "access": "Acesso",
+      "joined": "Entrou em",
+      "academy": "Minha Academia Perfect Meals",
+      "orgPolicies": "Políticas da Organização",
+      "clientOwnership": "Propriedade do Cliente",
+      "allSet": "Tudo pronto",
+      "teamSeats": "Vagas da Equipe",
+      "inviteTeamMember": "Convidar Membro da Equipe",
+      "inviteClient": "Convidar Cliente",
+      "sendEmail": "Enviar E-mail",
+      "copyLink": "Copiar Link",
+      "roles": {
+        "coach": "Coach",
+        "trainer": "Treinador",
+        "physician": "Médico",
+        "staff": "Equipe"
+      },
+      "policies": {
+        "orgOnly": "Apenas Clientes da Organização",
+        "orgOnlyDesc": "Os membros só podem trabalhar com clientes atribuídos pela organização.",
+        "withDisclosure": "Permitido com Divulgação",
+        "withDisclosureDesc": "Os membros podem manter clientes pessoais, mas devem divulgá-los à organização.",
+        "free": "Clientes Pessoais Permitidos Livremente",
+        "freeDesc": "Os membros podem manter clientes pessoais fora da organização sem restrições."
+      },
+      "errors": {
+        "couldNotSavePolicy": "Não foi possível salvar a política",
+        "policyError": "Algo deu errado. Tente novamente.",
+        "nameTooShort": "Nome muito curto",
+        "enterTwoChars": "Insira pelo menos 2 caracteres.",
+        "couldNotSave": "Não foi possível salvar",
+        "invalidEmail": "E-mail inválido",
+        "enterValidEmail": "Insira um endereço de e-mail válido.",
+        "inviteFailed": "Falha no convite"
+      },
+      "success": {
+        "policySaved": "Política salva",
+        "policyUpdated": "Política da organização atualizada com sucesso.",
+        "policyUpdatedClient": "Política de propriedade do cliente atualizada.",
+        "invitationSent": "Convite enviado"
+      }
+    },
+    "careTeam": {
+      "tourTitle": "Sua Equipe de Cuidados",
+      "tour": {
+        "inviteYourTeam": "Convide sua equipe de cuidados",
+        "inviteYourTeamDesc": "Convide profissionais de confiança para apoiar sua jornada nutricional.",
+        "setPermissions": "Defina permissões",
+        "setPermissionsDesc": "Escolha o que cada profissional pode visualizar e gerenciar.",
+        "accessCodes": "Use códigos de acesso",
+        "accessCodesDesc": "Conecte-se com um profissional usando o código de acesso seguro dele.",
+        "manageMembers": "Gerencie membros",
+        "manageMembersDesc": "Revise, aprove e revogue o acesso da equipe de cuidados."
+      },
+      "roles": {
+        "trainer": "Treinador",
+        "doctor": "Médico",
+        "np": "Enfermeiro(a) Especialista",
+        "rn": "Enfermeiro(a)",
+        "pa": "Assistente Médico",
+        "nutritionist": "Nutricionista",
+        "dietitian": "Dietista"
+      },
+      "toast": {
+        "invitationAccepted": "Convite aceito!",
+        "invitationSent": "Convite enviado para {{email}}",
+        "providerConnected": "Profissional conectado com sucesso.",
+        "memberApproved": "Membro aprovado.",
+        "accessRevoked": "Acesso revogado."
+      },
+      "errors": {
+        "invalidInvitationCode": "Código de convite inválido.",
+        "loadFailed": "Falha ao carregar a equipe de cuidados.",
+        "emailRequired": "O e-mail é obrigatório.",
+        "sendInviteFailed": "Falha ao enviar o convite.",
+        "providerCodeRequired": "O código do profissional é obrigatório.",
+        "invalidProviderCode": "Código de profissional inválido.",
+        "approveFailed": "Falha ao aprovar membro.",
+        "revokeFailed": "Falha ao revogar membro."
+      },
+      "invite": {
+        "title": "Convidar um Profissional de Cuidados",
+        "roleLabel": "Cargo profissional",
+        "rolePlaceholder": "Escolha um cargo",
+        "emailLabel": "Endereço de e-mail",
+        "emailPlaceholder": "profissional@exemplo.com",
+        "permissionsTitle": "Permissões",
+        "viewMacros": "Visualizar macros",
+        "addMeals": "Adicionar refeições",
+        "editPlan": "Editar plano nutricional",
+        "permissionsHint": "Você pode alterar essas permissões mais tarde.",
+        "sendInvite": "Enviar convite"
+      },
+      "connect": {
+        "title": "Conecte-se com seu Profissional",
+        "description": "Insira o código de acesso fornecido pelo seu profissional de cuidados.",
+        "codeLabel": "Código de acesso do profissional",
+        "codePlaceholder": "Insira o código de acesso",
+        "button": "Conectar profissional",
+        "disclaimer": "Conecte-se apenas com profissionais de confiança."
+      },
+      "howItWorks": {
+        "title": "Como funciona",
+        "step1": "Convide um profissional de cuidados de confiança ou use o código de acesso dele.",
+        "step2": "Escolha as permissões que eles devem ter.",
+        "step3": "Seu profissional pode revisar suas informações nutricionais e apoiar seu plano.",
+        "step4": "Gerencie ou revogue o acesso a qualquer momento.",
+        "disclaimer": "Seus dados permanecem privados e seguros."
+      },
+      "members": {
+        "title": "Conexões de Cuidados Ativas",
+        "subtitle": "Profissionais conectados atualmente à sua conta",
+        "empty": "Nenhum membro da equipe de cuidados ativo ainda.",
+        "unnamedPro": "Profissional de cuidados",
+        "openProPortal": "Abrir portal profissional",
+        "approve": "Aprovar",
+        "revoke": "Revogar acesso",
+        "revokeTitle": "Revogar acesso?",
+        "cancel": "Cancelar",
+        "revokeConfirm": "Revogar acesso"
+      }
+    }
+  },
+  "procare": {
+    "bridge": {
+      "step1Badge": "Etapa 1 de 3",
+      "step1Title": "Crie sua conta ProCare",
+      "step1Desc": "Configure sua conta profissional para acessar as ferramentas ProCare e o gerenciamento de clientes.",
+      "step1Button": "Criar conta",
+      "step2Badge": "Etapa 2 de 3",
+      "step2Title": "Conclua o treinamento ProCare",
+      "step2Desc": "Conclua o treinamento obrigatório para desbloquear o acesso total ao seu estúdio profissional.",
+      "step2Phase1Title": "Fase 1: Fundamentos da Plataforma",
+      "step2Phase1Desc": "Aprenda os recursos principais da plataforma e como apoiar seus clientes de forma eficaz.",
+      "step2Excellent": "Progresso excelente!",
+      "step2Button": "Continuar treinamento",
+      "step3Badge": "Etapa 3 de 3",
+      "step3Title": "Ative seu estúdio",
+      "step3Desc": "Seu treinamento foi concluído. Ative seu estúdio profissional e comece a trabalhar com clientes.",
+      "step3Phase2Title": "Fase 2: Ferramentas Avançadas",
+      "step3Phase2Desc": "Desbloqueie ferramentas clínicas e de coaching avançadas para um suporte mais aprofundado ao cliente.",
+      "step3Button": "Ativar estúdio"
+    },
+    "launchpad": {
+      "certifiedBadge": "Certificado",
+      "certProgress": "Progresso da certificação",
+      "dashboard": "Painel",
+      "enterStudio": "Entrar no Estúdio",
+      "quickLinks": "Links rápidos",
+      "resumeCertification": "Retomar certificação",
+      "resumePhase2": "Retomar Fase 2"
+    },
+    "welcome": {
+      "back": "Voltar",
+      "beginJourney": "Comece sua jornada"
+    },
+    "training": {
+      "back": "Voltar",
+      "backToLaunchpad": "Voltar para o Launchpad",
+      "completeUnlock": "Conclua para desbloquear",
+      "continueButton": "Continuar",
+      "phase2Label": "Fase 2",
+      "progress": "Progresso"
+    },
+    "rewards": {
+      "back": "Voltar",
+      "background": "Histórico profissional"
+    },
+    "identity": {
+      "continueButton": "Continuar"
+    },
+    "attestation": {
+      "categoryLabel": "Categoria profissional",
+      "checkboxLabel": "Confirmo que sou um profissional qualificado e concordo em usar esta plataforma de forma responsável.",
+      "createAccount": "Criar conta",
+      "pendingVerification": "Verificação pendente",
+      "platformSafety": "Segurança da plataforma",
+      "upgradeToPro": "Atualizar para Pro",
+      "upgrading": "Atualizando…"
+    },
+    "certifiedUnlock": {
+      "badge": "Profissional Certificado",
+      "enterStudio": "Entrar no Estúdio Profissional",
+      "nextStepsTitle": "Seus próximos passos",
+      "subtitle": "Você concluiu a certificação ProCare e desbloqueou o acesso total ao seu estúdio profissional.",
+      "title": "Certificação Concluída",
+      "unlockedTitle": "Estúdio Desbloqueado"
+    }
+  },
+  "trainerCareTeam": {
+    "title": "Equipe de Cuidados do Treinador",
+    "tourTitle": "Equipe de Cuidados do Treinador",
+    "platform": {
+      "explore": "Explore a plataforma",
+      "description": "Saiba como a plataforma pode ajudá-lo a apoiar seus clientes.",
+      "button": "Explorar recursos"
+    },
+    "availability": {
+      "title": "Status de disponibilidade",
+      "saving": "Salvando…",
+      "saved": "Salvo",
+      "available": "Disponível",
+      "away": "Ausente",
+      "offline": "Offline",
+      "from": "De",
+      "until": "Até"
+    },
+    "studio": {
+      "activeClients": "Clientes ativos",
+      "viewAndManage": "Visualize e gerencie seus clientes no portal profissional.",
+      "portalButton": "Abrir Studio"
+    },
+    "invite": {
+      "title": "Convidar um cliente",
+      "roleLabel": "Cargo profissional",
+      "emailLabel": "E-mail do cliente",
+      "emailPlaceholder": "client@example.com",
+      "sendInvite": "Enviar convite"
+    },
+    "errors": {
+      "loadFailed": "Falha ao carregar equipe de cuidados.",
+      "emailRequired": "O e-mail é obrigatório.",
+      "sendInviteFailed": "Falha ao enviar convite.",
+      "availabilityFailed": "Falha ao atualizar disponibilidade.",
+      "saveDatesFailed": "Falha ao salvar datas."
+    },
+    "toast": {
+      "invitationSent": "Convite enviado para {{email}}"
+    },
+    "tour": {
+      "inviteClients": "Convidar clientes",
+      "inviteClientsDesc": "Convide clientes para se conectar com você e receber suporte.",
+      "setAvailability": "Defina sua disponibilidade",
+      "setAvailabilityDesc": "Deixe os clientes saberem quando você está disponível, ausente ou offline.",
+      "proPortal": "Use o portal profissional",
+      "proPortalDesc": "Abra o Studio para visualizar e gerenciar seus clientes."
+    }
+  },
+  "businessDashboard": {
+    "title": "Painel da Organização",
+    "settingUp": "Configurando…",
+    "confirmingPayment": "Confirmando seu pagamento…",
+    "loading": "Carregando…",
+    "noBusinessFound": "Nenhuma organização encontrada",
+    "orgMember": "Membro da organização",
+    "orgAccessActive": "Acesso à organização ativo",
+    "role": "Cargo",
+    "access": "Acesso",
+    "joined": "Entrou em",
+    "academy": "Minha Academia Perfect Meals",
+    "orgPolicies": "Políticas da organização",
+    "clientOwnership": "Propriedade do cliente",
+    "allSet": "Tudo pronto",
+    "teamSeats": "Assentos da equipe",
+    "inviteTeamMember": "Convidar membro da equipe",
+    "inviteClient": "Convidar cliente",
+    "sendEmail": "Enviar e-mail",
+    "copyLink": "Copiar link",
+    "roles": {
+      "coach": "Treinador",
+      "trainer": "Treinador",
+      "physician": "Médico",
+      "staff": "Equipe"
+    },
+    "policies": {
+      "orgOnly": "Apenas clientes da organização",
+      "orgOnlyDesc": "Os membros só podem trabalhar com clientes atribuídos através da organização.",
+      "withDisclosure": "Permitido com divulgação",
+      "withDisclosureDesc": "Os membros podem manter clientes pessoais, mas devem divulgá-los à organização.",
+      "free": "Clientes pessoais livremente permitidos",
+      "freeDesc": "Os membros podem manter clientes pessoais fora da organização sem restrições."
+    },
+    "errors": {
+      "couldNotSavePolicy": "Não foi possível salvar a política",
+      "policyError": "Algo deu errado. Por favor, tente novamente.",
+      "nameTooShort": "Nome muito curto",
+      "enterTwoChars": "Por favor, insira pelo menos 2 caracteres.",
+      "couldNotSave": "Não foi possível salvar",
+      "invalidEmail": "E-mail inválido",
+      "enterValidEmail": "Por favor, insira um endereço de e-mail válido.",
+      "inviteFailed": "Falha no convite"
+    },
+    "success": {
+      "policySaved": "Política salva",
+      "policyUpdated": "Política da organização atualizada com sucesso.",
+      "policyUpdatedClient": "Política de propriedade do cliente atualizada.",
+      "invitationSent": "Convite enviado"
+    }
+  },
+  "careTeam": {
+    "tourTitle": "Sua Equipe de Cuidados",
+    "tour": {
+      "inviteYourTeam": "Convide sua equipe de cuidados",
+      "inviteYourTeamDesc": "Convide profissionais de confiança para apoiar sua jornada nutricional.",
+      "setPermissions": "Defina permissões",
+      "setPermissionsDesc": "Escolha o que cada profissional pode visualizar e gerenciar.",
+      "accessCodes": "Use códigos de acesso",
+      "accessCodesDesc": "Conecte-se com um provedor usando seu código de acesso seguro.",
+      "manageMembers": "Gerencie membros",
+      "manageMembersDesc": "Analise, aprove e revogue o acesso da equipe de cuidados."
+    },
+    "roles": {
+      "trainer": "Treinador",
+      "doctor": "Médico",
+      "np": "Enfermeiro(a)",
+      "rn": "Enfermeiro(a)",
+      "pa": "Assistente médico",
+      "nutritionist": "Nutricionista",
+      "dietitian": "Nutricionista"
+    },
+    "toast": {
+      "invitationAccepted": "Convite aceito!",
+      "invitationSent": "Convite enviado para {{email}}",
+      "providerConnected": "Provedor conectado com sucesso.",
+      "memberApproved": "Membro aprovado.",
+      "accessRevoked": "Acesso revogado."
+    },
+    "errors": {
+      "invalidInvitationCode": "Código de convite inválido.",
+      "loadFailed": "Falha ao carregar equipe de cuidados.",
+      "emailRequired": "O e-mail é obrigatório.",
+      "sendInviteFailed": "Falha ao enviar convite.",
+      "providerCodeRequired": "O código do provedor é obrigatório.",
+      "invalidProviderCode": "Código de provedor inválido.",
+      "approveFailed": "Falha ao aprovar membro.",
+      "revokeFailed": "Falha ao revogar membro."
+    },
+    "invite": {
+      "title": "Convidar um profissional de cuidados",
+      "roleLabel": "Cargo profissional",
+      "rolePlaceholder": "Escolha um cargo",
+      "emailLabel": "Endereço de e-mail",
+      "emailPlaceholder": "professional@example.com",
+      "permissionsTitle": "Permissões",
+      "viewMacros": "Visualizar macros",
+      "addMeals": "Adicionar refeições",
+      "editPlan": "Editar plano nutricional",
+      "permissionsHint": "Você pode alterar essas permissões posteriormente.",
+      "sendInvite": "Enviar convite"
+    },
+    "connect": {
+      "title": "Conecte-se com seu provedor",
+      "description": "Insira o código de acesso fornecido pelo seu profissional de cuidados.",
+      "codeLabel": "Código de acesso do provedor",
+      "codePlaceholder": "Insira o código de acesso",
+      "button": "Conectar provedor",
+      "disclaimer": "Conecte-se apenas com provedores em quem você confia."
+    },
+    "howItWorks": {
+      "title": "Como funciona",
+      "step1": "Convide um profissional de cuidados de confiança ou use o código de acesso dele.",
+      "step2": "Escolha as permissões que eles devem ter.",
+      "step3": "Seu profissional pode revisar suas informações nutricionais e apoiar seu plano.",
+      "step4": "Gerencie ou revogue o acesso a qualquer momento.",
+      "disclaimer": "Seus dados permanecem privados e seguros."
+    },
+    "members": {
+      "title": "Conexões de cuidados ativas",
+      "subtitle": "Profissionais atualmente conectados à sua conta",
+      "empty": "Nenhum membro da equipe de cuidados ativo ainda.",
+      "unnamedPro": "Profissional de cuidados",
+      "openProPortal": "Abrir portal profissional",
+      "approve": "Aprovar",
+      "revoke": "Revogar acesso",
+      "revokeTitle": "Revogar acesso?",
+      "cancel": "Cancelar",
+      "revokeConfirm": "Revogar acesso"
     }
   }
 }

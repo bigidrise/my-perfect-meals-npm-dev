@@ -1035,156 +1035,648 @@
     "trainerDashboard": {
       "carbs": "Carbs",
       "fat": "Fat",
-      "macroTargets": "Macro Targets",
+      "macroTargets": "Mga Target na Macro",
       "protein": "Protein",
-      "save": "Save",
-      "saved": "Saved",
-      "tourTitle": "Trainer Dashboard Tour",
+      "save": "I-save",
+      "saved": "Nai-save",
+      "tourTitle": "Tour sa Dashboard ng Trainer",
       "tour": {
-        "step1Title": "Client Overview",
-        "step1Desc": "See your client's key information and current nutrition setup.",
-        "step2Title": "Macro Targets",
-        "step2Desc": "Set daily protein, carbohydrate, and fat targets for your client.",
-        "step3Title": "Nutrition Context",
-        "step3Desc": "Review the client's goals, coaching notes, and relevant clinical context.",
+        "step1Title": "Pangkalahatang-ideya ng Kliyente",
+        "step1Desc": "Tingnan ang mahahalagang impormasyon at kasalukuyang setup ng nutrisyon ng iyong kliyente.",
+        "step2Title": "Mga Target na Macro",
+        "step2Desc": "Itakda ang pang-araw-araw na target para sa protein, carbohydrate, at fat para sa iyong kliyente.",
+        "step3Title": "Konteksto ng Nutrisyon",
+        "step3Desc": "Suriin ang mga layunin, tala ng coaching, at kaugnay na klinikal na konteksto ng kliyente.",
         "step4Title": "Meal Builder",
-        "step4Desc": "Choose and assign the nutrition builder that fits your client's needs.",
-        "step5Title": "Progress & Compliance",
-        "step5Desc": "Monitor your client's check-ins, weight trends, and nutrition progress.",
-        "step6Title": "Save Changes",
-        "step6Desc": "Save your updates so they are applied across your client's experience."
+        "step4Desc": "Piliin at italaga ang nutrition builder na angkop sa mga pangangailangan ng iyong kliyente.",
+        "step5Title": "Pag-unlad at Pagsunod",
+        "step5Desc": "Subaybayan ang mga check-in, trend ng timbang, at pag-unlad sa nutrisyon ng iyong kliyente.",
+        "step6Title": "I-save ang mga Pagbabago",
+        "step6Desc": "I-save ang iyong mga update upang mailapat ang mga ito sa karanasan ng iyong kliyente."
       },
       "fibrousCarbs": "Fibrous Carbs",
-      "bodyComposition": "Body Composition",
+      "bodyComposition": "Komposisyon ng Katawan",
       "bodyFat": "Body Fat",
-      "targetBodyFat": "Target Body Fat",
-      "method": "Method",
+      "targetBodyFat": "Target na Body Fat",
+      "method": "Paraan",
       "source": "Source",
-      "activeOnClient": "Active on this client",
-      "physicianAuthRequired": "Physician authorization required"
+      "activeOnClient": "Aktibo sa kliyenteng ito",
+      "physicianAuthRequired": "Kailangan ng pahintulot ng doktor"
     },
     "clinicianDashboard": {
       "carbs": "Carbs",
       "fat": "Fat",
-      "macroTargets": "Macro Targets",
+      "macroTargets": "Mga Target na Macro",
       "protein": "Protein",
-      "save": "Save",
-      "saved": "Saved",
-      "checkInCancelFailed": "Could not cancel the check-in",
-      "checkInCancelled": "Check-in cancelled",
-      "followUpScheduled": "Follow-up scheduled",
-      "scheduleFollowUpBtn": "Schedule Follow-up",
-      "schedulingFailed": "Scheduling failed",
-      "tourTitle": "Clinician Dashboard Tour",
+      "save": "I-save",
+      "saved": "Nai-save",
+      "checkInCancelFailed": "Hindi nakansela ang check-in",
+      "checkInCancelled": "Nakansela ang check-in",
+      "followUpScheduled": "Naka-schedule na ang follow-up",
+      "scheduleFollowUpBtn": "I-schedule ang Follow-up",
+      "schedulingFailed": "Nabigo ang pag-i-schedule",
+      "tourTitle": "Tour sa Dashboard ng Clinician",
       "tour": {
-        "step1Title": "Client Overview",
-        "step1Desc": "Review your patient's profile, nutrition status, and clinical information.",
-        "step2Title": "Macro Targets",
-        "step2Desc": "Set nutrition targets that support your patient's care plan.",
-        "step3Title": "Clinical Context",
-        "step3Desc": "Review active protocols, conditions, labs, and clinical notes.",
+        "step1Title": "Pangkalahatang-ideya ng Kliyente",
+        "step1Desc": "Suriin ang profile, status ng nutrisyon, at impormasyong klinikal ng iyong pasyente.",
+        "step2Title": "Mga Target na Macro",
+        "step2Desc": "Itakda ang mga target sa nutrisyon na sumusuporta sa care plan ng iyong pasyente.",
+        "step3Title": "Kontekstong Klinikal",
+        "step3Desc": "Suriin ang mga aktibong protocol, kondisyon, laboratoryo, at mga klinikal na tala.",
         "step4Title": "Care Planning",
-        "step4Desc": "Assign the appropriate builder and schedule follow-up care.",
-        "step5Title": "Save Changes",
-        "step5Desc": "Save your updates to keep your patient's plan current."
+        "step4Desc": "Italaga ang angkop na builder at mag-schedule ng follow-up na pangangalaga.",
+        "step5Title": "I-save ang mga Pagbabago",
+        "step5Desc": "I-save ang iyong mga update para panatilihing updated ang plano ng iyong pasyente."
       },
       "fibrousCarbs": "Fibrous Carbs",
-      "bodyComposition": "Body Composition",
+      "bodyComposition": "Komposisyon ng Katawan",
       "bodyFat": "Body Fat",
-      "targetBodyFat": "Target Body Fat",
-      "medicalDietaryDirectives": "Medical Dietary Directives",
-      "noBodyComp": "No body composition data recorded for this patient yet.",
-      "assignClinicalBuilder": "Assign Clinical Builder"
+      "targetBodyFat": "Target na Body Fat",
+      "medicalDietaryDirectives": "Mga Direktiba sa Medical Diet",
+      "noBodyComp": "Wala pang nakatalang data sa komposisyon ng katawan para sa pasyenteng ito.",
+      "assignClinicalBuilder": "Italaga ang Clinical Builder"
     },
     "clients": {
-      "archiveConfirm": "Archive this client?",
-      "archiveSubtitle": "Archived clients will be hidden from your active client list.",
-      "back": "Back",
-      "cancel": "Cancel",
-      "desktopRequired": "Please use a desktop browser to manage clients.",
-      "hideArchived": "Hide archived",
-      "inboxEmpty": "No messages yet",
-      "inboxLoading": "Loading messages…",
-      "inboxSubtitle": "Recent messages",
-      "inboxTitle": "Client Inbox",
-      "restore": "Restore",
-      "showArchived": "Show archived",
-      "tapInbox": "Tap a message to open the client’s folder.",
-      "tourTitle": "Clients Tour",
+      "archiveConfirm": "I-archive ang kliyenteng ito?",
+      "archiveSubtitle": "Ang mga naka-archive na kliyente ay itatago mula sa iyong listahan ng mga aktibong kliyente.",
+      "back": "Bumalik",
+      "cancel": "Kanselahin",
+      "desktopRequired": "Mangyaring gumamit ng desktop browser para pamahalaan ang mga kliyente.",
+      "hideArchived": "Itago ang mga naka-archive",
+      "inboxEmpty": "Wala pang mga mensahe",
+      "inboxLoading": "Naglo-load ng mga mensahe…",
+      "inboxSubtitle": "Mga kamakailang mensahe",
+      "inboxTitle": "Inbox ng Kliyente",
+      "restore": "I-restore",
+      "showArchived": "Ipakita ang mga naka-archive",
+      "tapInbox": "I-tap ang mensahe para buksan ang folder ng kliyente.",
+      "tourTitle": "Tour sa mga Kliyente",
       "tour": {
-        "step1Title": "Your Clients",
-        "step1Desc": "See all your connected clients in one place.",
-        "step2Title": "Client Inbox",
-        "step2Desc": "Review messages and open a client’s folder directly from the inbox.",
-        "step3Title": "Client Folders",
-        "step3Desc": "Open a client folder to view their dashboard, plans, and progress."
+        "step1Title": "Iyong mga Kliyente",
+        "step1Desc": "Tingnan ang lahat ng iyong konektadong kliyente sa isang lugar.",
+        "step2Title": "Inbox ng Kliyente",
+        "step2Desc": "Suriin ang mga mensahe at buksan ang folder ng kliyente nang direkta mula sa inbox.",
+        "step3Title": "Mga Folder ng Kliyente",
+        "step3Desc": "Buksan ang folder ng kliyente para makita ang kanilang dashboard, mga plano, at progreso."
       }
     },
     "clientDashboard": {
-      "tourTitle": "Client Dashboard Tour",
+      "tourTitle": "Tour sa Dashboard ng Kliyente",
       "tour": {
-        "step1Title": "Your Nutrition Plan",
-        "step1Desc": "View the nutrition plan and builder your professional assigned to you.",
-        "step2Title": "Progress",
-        "step2Desc": "Track your check-ins, weight trends, and nutrition progress.",
-        "step3Title": "Messages",
-        "step3Desc": "Stay connected with your professional and review your conversations.",
-        "step4Title": "Your Goals",
-        "step4Desc": "Review and update your goals to keep your plan on track."
+        "step1Title": "Iyong Nutrition Plan",
+        "step1Desc": "Tingnan ang nutrition plan at builder na itinalaga ng iyong propesyonal para sa iyo.",
+        "step2Title": "Pag-unlad",
+        "step2Desc": "Subaybayan ang iyong mga check-in, trend ng timbang, at pag-unlad sa nutrisyon.",
+        "step3Title": "Mga Mensahe",
+        "step3Desc": "Manatiling konektado sa iyong propesyonal at suriin ang iyong mga usapan.",
+        "step4Title": "Iyong mga Layunin",
+        "step4Desc": "Suriin at i-update ang iyong mga layunin para manatili sa tamang landas ang iyong plano."
       }
     },
     "boardViewer": {
-      "error": "Could not load this meal board.",
-      "removed": "Meal removed",
-      "removedDesc": "The meal has been removed from this slot.",
+      "error": "Hindi ma-load ang meal board na ito.",
+      "removed": "Tinanggal ang meal",
+      "removedDesc": "Ang meal ay tinanggal mula sa slot na ito.",
       "slots": {
-        "breakfast": "Breakfast",
-        "lunch": "Lunch",
-        "dinner": "Dinner",
-        "snacks": "Snacks"
+        "breakfast": "Almusal",
+        "lunch": "Tanghalian",
+        "dinner": "Hapunan",
+        "snacks": "Mga Meryenda"
       }
     },
     "physicianPortal": {
-      "comingSoon": "More features coming soon.",
-      "title": "Physician Portal",
-      "viewClients": "View Patients",
-      "tourTitle": "Physician Portal Tour",
+      "comingSoon": "May paparating pang mga feature.",
+      "title": "Portal ng Doktor",
+      "viewClients": "Tingnan ang mga Pasyente",
+      "tourTitle": "Tour sa Portal ng Doktor",
       "tour": {
-        "step1Title": "Patient Overview",
-        "step1Desc": "See all your connected patients and their current nutrition status.",
-        "step2Title": "Clinical Tools",
-        "step2Desc": "Access clinical builders, lab data, and protocol assignments.",
-        "step3Title": "Care Coordination",
-        "step3Desc": "Coordinate care with nurses, dietitians, and other professionals on your team.",
-        "step4Title": "Get Started",
-        "step4Desc": "Select a patient to open their clinical dashboard and begin managing their plan."
+        "step1Title": "Pangkalahatang-ideya ng Pasyente",
+        "step1Desc": "Tingnan ang lahat ng iyong konektadong pasyente at ang kanilang kasalukuyang status ng nutrisyon.",
+        "step2Title": "Mga Klinikal na Tool",
+        "step2Desc": "I-access ang mga klinikal na builder, lab data, at mga assignment ng protocol.",
+        "step3Title": "Koordinasyon ng Pangangalaga",
+        "step3Desc": "Makipag-ugnayan sa pag-aalaga kasama ang mga nurse, dietitian, at iba pang propesyonal sa iyong team.",
+        "step4Title": "Magsimula",
+        "step4Desc": "Pumili ng pasyente para buksan ang kanilang klinikal na dashboard at simulan ang pamamahala sa kanilang plano."
       }
     },
     "gnbEntry": {
       "headerLabel": "General Nutrition Builder",
-      "title": "Where would you like to start?",
-      "subtitle": "Build meals for today, or set up a training nutrition schedule that adjusts your macros based on your workout type.",
-      "continueTo": "Open General Nutrition Builder",
-      "continueDesc": "Build meals using your standard macro targets.",
-      "trainTitle": "Want training-aware macros?",
-      "trainDesc": "Set up a weekly training schedule and your macro targets will automatically adjust on training days versus rest days.",
-      "scheduleTitle": "Training Nutrition Schedule",
-      "scheduleDesc": "Set your weekly training type and get macro targets tailored to each day.",
-      "activeLabel": "Active",
-      "adjustmentsActive": "macro adjustments active",
-      "today": "Today: {{label}}",
-      "editSchedule": "Edit schedule",
-      "setupSchedule": "Set up training schedule",
-      "explainer": "Your macro targets stay the same every day until you set up a training schedule. Once active, training days get more carbohydrates and rest days pull back — automatically.",
+      "title": "Saan mo gustong magsimula?",
+      "subtitle": "Bumuo ng mga meal para sa araw na ito, o mag-set up ng schedule ng nutrisyon para sa pagsasanay na nag-a-adjust ng iyong mga macro batay sa iyong uri ng workout.",
+      "continueTo": "Buksan ang General Nutrition Builder",
+      "continueDesc": "Bumuo ng mga meal gamit ang iyong mga standard na target na macro.",
+      "trainTitle": "Gusto mo ba ng training-aware na mga macro?",
+      "trainDesc": "Mag-set up ng lingguhang schedule ng pagsasanay at ang iyong mga target na macro ay awtomatikong mag-a-adjust sa mga araw ng pagsasanay kumpara sa mga araw ng pahinga.",
+      "scheduleTitle": "Schedule ng Nutrisyon sa Pagsasanay",
+      "scheduleDesc": "Itakda ang iyong lingguhang uri ng pagsasanay at makakuha ng mga target na macro na iniangkop para sa bawat araw.",
+      "activeLabel": "Aktibo",
+      "adjustmentsActive": "aktibo ang pag-adjust ng macro",
+      "today": "Ngayon: {{label}}",
+      "editSchedule": "I-edit ang schedule",
+      "setupSchedule": "I-set up ang schedule ng pagsasanay",
+      "explainer": "Ang iyong mga target na macro ay nananatiling pareho araw-araw hangga't hindi ka nagse-set up ng schedule ng pagsasanay. Kapag aktibo na, ang mga araw ng pagsasanay ay makakakuha ng mas maraming carbohydrates at ang mga araw ng pahinga ay mababawasan — nang awtomatiko.",
       "sessions": {
         "strength": "Strength Training",
         "power": "Power / Explosiveness",
         "endurance": "Endurance / Cardio",
         "sport_practice": "Sport Practice",
-        "competition": "Competition Day",
-        "recovery": "Active Recovery",
-        "off": "Rest Day"
+        "competition": "Araw ng Kompetisyon",
+        "recovery": "Aktibong Pagbawi",
+        "off": "Araw ng Pahinga"
       }
+    },
+    "procare": {
+      "bridge": {
+        "step1Badge": "Hakbang 1 ng 3",
+        "step1Title": "Gumawa ng Iyong ProCare Account",
+        "step1Desc": "I-set up ang iyong propesyonal na account para ma-access ang mga tool ng ProCare at pamamahala ng kliyente.",
+        "step1Button": "Gumawa ng account",
+        "step2Badge": "Hakbang 2 ng 3",
+        "step2Title": "Tapusin ang ProCare Training",
+        "step2Desc": "Tapusin ang kinakailangang pagsasanay para ma-unlock ang ganap na access sa iyong propesyonal na studio.",
+        "step2Phase1Title": "Phase 1: Mga Pundasyon ng Platform",
+        "step2Phase1Desc": "Alamin ang mga pangunahing feature ng platform at kung paano epektibong suportahan ang iyong mga kliyente.",
+        "step2Excellent": "Mahusay na pag-unlad!",
+        "step2Button": "Ituloy ang pagsasanay",
+        "step3Badge": "Hakbang 3 ng 3",
+        "step3Title": "I-activate ang Iyong Studio",
+        "step3Desc": "Tapos na ang iyong pagsasanay. I-activate ang iyong propesyonal na studio at magsimulang makipagtulungan sa mga kliyente.",
+        "step3Phase2Title": "Phase 2: Mga Advanced na Tool",
+        "step3Phase2Desc": "I-unlock ang mga advanced na tool sa klinikal at coaching para sa mas malalim na suporta sa kliyente.",
+        "step3Button": "I-activate ang studio"
+      },
+      "launchpad": {
+        "certifiedBadge": "Certified",
+        "certProgress": "Pag-unlad sa sertipikasyon",
+        "dashboard": "Dashboard",
+        "enterStudio": "Pumasok sa Studio",
+        "quickLinks": "Mga mabilisang link",
+        "resumeCertification": "Ipagpatuloy ang sertipikasyon",
+        "resumePhase2": "Ipagpatuloy ang Phase 2"
+      },
+      "welcome": {
+        "back": "Bumalik",
+        "beginJourney": "Simulan ang iyong paglalakbay"
+      },
+      "training": {
+        "back": "Bumalik",
+        "backToLaunchpad": "Bumalik sa Launchpad",
+        "completeUnlock": "Tapusin para ma-unlock",
+        "continueButton": "Magpatuloy",
+        "phase2Label": "Phase 2",
+        "progress": "Pag-unlad"
+      },
+      "rewards": {
+        "back": "Bumalik",
+        "background": "Propesyonal na background"
+      },
+      "identity": {
+        "continueButton": "Magpatuloy"
+      },
+      "attestation": {
+        "categoryLabel": "Propesyonal na kategorya",
+        "checkboxLabel": "Kinukumpirma ko na ako ay isang kwalipikadong propesyonal at sumasang-ayon na gamitin ang platform na ito nang responsable.",
+        "createAccount": "Gumawa ng account",
+        "pendingVerification": "Naghihintay ng beripikasyon",
+        "platformSafety": "Kaligtasan ng platform",
+        "upgradeToPro": "Mag-upgrade sa Pro",
+        "upgrading": "Nag-a-upgrade…"
+      },
+      "certifiedUnlock": {
+        "badge": "Certified na Propesyonal",
+        "enterStudio": "Pumasok sa Propesyonal na Studio",
+        "nextStepsTitle": "Ang iyong susunod na mga hakbang",
+        "subtitle": "Natapos mo na ang sertipikasyon sa ProCare at na-unlock ang ganap na access sa iyong propesyonal na studio.",
+        "title": "Tapos na ang Sertipikasyon",
+        "unlockedTitle": "Na-unlock ang Studio"
+      }
+    },
+    "trainerCareTeam": {
+      "title": "Trainer Care Team",
+      "tourTitle": "Trainer Care Team",
+      "platform": {
+        "explore": "I-explore ang platform",
+        "description": "Alamin kung paano makakatulong ang platform sa iyo sa pagsuporta sa iyong mga kliyente.",
+        "button": "I-explore ang mga feature"
+      },
+      "availability": {
+        "title": "Status ng availability",
+        "saving": "Nag-i-save…",
+        "saved": "Nai-save",
+        "available": "Available",
+        "away": "Away",
+        "offline": "Offline",
+        "from": "Mula",
+        "until": "Hanggang"
+      },
+      "studio": {
+        "activeClients": "Mga aktibong kliyente",
+        "viewAndManage": "Tingnan at pamahalaan ang iyong mga kliyente sa propesyonal na portal.",
+        "portalButton": "Buksan ang Studio"
+      },
+      "invite": {
+        "title": "Mag-imbita ng Kliyente",
+        "roleLabel": "Propesyonal na role",
+        "emailLabel": "Email ng kliyente",
+        "emailPlaceholder": "client@example.com",
+        "sendInvite": "Magpadala ng imbitasyon"
+      },
+      "errors": {
+        "loadFailed": "Nabigong i-load ang care team.",
+        "emailRequired": "Kailangan ang email.",
+        "sendInviteFailed": "Nabigong magpadala ng imbitasyon.",
+        "availabilityFailed": "Nabigong i-update ang availability.",
+        "saveDatesFailed": "Nabigong i-save ang mga petsa."
+      },
+      "toast": {
+        "invitationSent": "Naipadala na ang imbitasyon sa {{email}}"
+      },
+      "tour": {
+        "inviteClients": "Mag-imbita ng mga kliyente",
+        "inviteClientsDesc": "Mag-imbita ng mga kliyente na kumonekta sa iyo at makatanggap ng suporta.",
+        "setAvailability": "Itakda ang iyong availability",
+        "setAvailabilityDesc": "Ipaalam sa mga kliyente kung ikaw ay available, away, o offline.",
+        "proPortal": "Gamitin ang propesyonal na portal",
+        "proPortalDesc": "Buksan ang Studio para tingnan at pamahalaan ang iyong mga kliyente."
+      }
+    },
+    "businessDashboard": {
+      "title": "Dashboard ng Organisasyon",
+      "settingUp": "Nag-se-setup…",
+      "confirmingPayment": "Kinukumpirma ang iyong bayad…",
+      "loading": "Naglo-load…",
+      "noBusinessFound": "Walang nakitang organisasyon",
+      "orgMember": "Miyembro ng Organisasyon",
+      "orgAccessActive": "Aktibo ang access sa organisasyon",
+      "role": "Role",
+      "access": "Access",
+      "joined": "Sumali",
+      "academy": "My Perfect Meals Academy",
+      "orgPolicies": "Mga Patakaran ng Organisasyon",
+      "clientOwnership": "Pagmamay-ari ng Kliyente",
+      "allSet": "Ayos na ang lahat",
+      "teamSeats": "Mga Upuan ng Team",
+      "inviteTeamMember": "Mag-imbita ng Miyembro ng Team",
+      "inviteClient": "Mag-imbita ng Kliyente",
+      "sendEmail": "Magpadala ng Email",
+      "copyLink": "Kopyahin ang Link",
+      "roles": {
+        "coach": "Coach",
+        "trainer": "Trainer",
+        "physician": "Doktor",
+        "staff": "Staff"
+      },
+      "policies": {
+        "orgOnly": "Mga Kliyente ng Organisasyon Lamang",
+        "orgOnlyDesc": "Ang mga miyembro ay maaari lamang magtrabaho sa mga kliyenteng itinalaga sa pamamagitan ng organisasyon.",
+        "withDisclosure": "Pinapayagan nang may Disclosure",
+        "withDisclosureDesc": "Ang mga miyembro ay maaaring magpanatili ng mga personal na kliyente ngunit dapat itong i-disclose sa organisasyon.",
+        "free": "Malayang Pinapayagan ang mga Personal na Kliyente",
+        "freeDesc": "Ang mga miyembro ay maaaring magpanatili ng mga personal na kliyente sa labas ng organisasyon nang walang mga paghihigpit."
+      },
+      "errors": {
+        "couldNotSavePolicy": "Hindi na-save ang patakaran",
+        "policyError": "May nangyaring mali. Mangyaring subukan muli.",
+        "nameTooShort": "Masyadong maikli ang pangalan",
+        "enterTwoChars": "Mangyaring maglagay ng kahit 2 character.",
+        "couldNotSave": "Hindi na-save",
+        "invalidEmail": "Invalid na email",
+        "enterValidEmail": "Mangyaring maglagay ng wastong email address.",
+        "inviteFailed": "Nabigo ang imbitasyon"
+      },
+      "success": {
+        "policySaved": "Nai-save ang patakaran",
+        "policyUpdated": "Matagumpay na na-update ang patakaran ng organisasyon.",
+        "policyUpdatedClient": "Na-update ang patakaran sa pagmamay-ari ng kliyente.",
+        "invitationSent": "Naipadala ang imbitasyon"
+      }
+    },
+    "careTeam": {
+      "tourTitle": "Iyong Care Team",
+      "tour": {
+        "inviteYourTeam": "Mag-imbita ng iyong care team",
+        "inviteYourTeamDesc": "Mag-imbita ng mga pinagkakatiwalaang propesyonal para suportahan ang iyong paglalakbay sa nutrisyon.",
+        "setPermissions": "Magtakda ng mga pahintulot",
+        "setPermissionsDesc": "Piliin kung ano ang maaaring tingnan at pamahalaan ng bawat propesyonal.",
+        "accessCodes": "Gumamit ng mga access code",
+        "accessCodesDesc": "Kumonekta sa isang provider gamit ang kanilang secure na access code.",
+        "manageMembers": "Pamahalaan ang mga miyembro",
+        "manageMembersDesc": "Suriin, aprubahan, at bawiin ang access ng care team."
+      },
+      "roles": {
+        "trainer": "Trainer",
+        "doctor": "Doktor",
+        "np": "Nurse Practitioner",
+        "rn": "RN",
+        "pa": "Physician Assistant",
+        "nutritionist": "Nutritionist",
+        "dietitian": "Dietitian"
+      },
+      "toast": {
+        "invitationAccepted": "Tinanggap ang imbitasyon!",
+        "invitationSent": "Naipadala na ang imbitasyon sa {{email}}",
+        "providerConnected": "Matagumpay na nakakonekta ang provider.",
+        "memberApproved": "Inaprubahan ang miyembro.",
+        "accessRevoked": "Binawi ang access."
+      },
+      "errors": {
+        "invalidInvitationCode": "Invalid na invitation code.",
+        "loadFailed": "Nabigong i-load ang care team.",
+        "emailRequired": "Kailangan ang email.",
+        "sendInviteFailed": "Nabigong magpadala ng imbitasyon.",
+        "providerCodeRequired": "Kailangan ang provider code.",
+        "invalidProviderCode": "Invalid na provider code.",
+        "approveFailed": "Nabigong aprubahan ang miyembro.",
+        "revokeFailed": "Nabigong bawiin ang access."
+      },
+      "invite": {
+        "title": "Mag-imbita ng Propesyonal sa Pangangalaga",
+        "roleLabel": "Propesyonal na role",
+        "rolePlaceholder": "Pumili ng role",
+        "emailLabel": "Email address",
+        "emailPlaceholder": "professional@example.com",
+        "permissionsTitle": "Mga Pahintulot",
+        "viewMacros": "Tingnan ang mga macro",
+        "addMeals": "Magdagdag ng mga meal",
+        "editPlan": "I-edit ang nutrition plan",
+        "permissionsHint": "Maaari mong baguhin ang mga pahintulot na ito sa ibang pagkakataon.",
+        "sendInvite": "Magpadala ng imbitasyon"
+      },
+      "connect": {
+        "title": "Kumonekta sa Iyong Provider",
+        "description": "Ilagay ang access code na ibinigay ng iyong propesyonal sa pangangalaga.",
+        "codeLabel": "Provider access code",
+        "codePlaceholder": "Ilagay ang access code",
+        "button": "Ikonekta ang provider",
+        "disclaimer": "Kumonekta lamang sa mga provider na pinagkakatiwalaan mo."
+      },
+      "howItWorks": {
+        "title": "Paano ito gumagana",
+        "step1": "Mag-imbita ng pinagkakatiwalaang propesyonal sa pangangalaga o gamitin ang kanilang access code.",
+        "step2": "Piliin ang mga pahintulot na dapat nilang magkaroon.",
+        "step3": "Maaaring suriin ng iyong propesyonal ang iyong impormasyon sa nutrisyon at suportahan ang iyong plano.",
+        "step4": "Pamahalaan o bawiin ang access anumang oras.",
+        "disclaimer": "Ang iyong data ay nananatiling pribado at secure."
+      },
+      "members": {
+        "title": "Mga Aktibong Koneksyon sa Pangangalaga",
+        "subtitle": "Mga propesyonal na kasalukuyang konektado sa iyong account",
+        "empty": "Wala pang mga aktibong miyembro ng care team.",
+        "unnamedPro": "Propesyonal sa pangangalaga",
+        "openProPortal": "Buksan ang propesyonal na portal",
+        "approve": "Aprubahan",
+        "revoke": "Bawiin",
+        "revokeTitle": "Bawiin ang access?",
+        "cancel": "Kanselahin",
+        "revokeConfirm": "Bawiin ang access"
+      }
+    }
+  },
+  "procare": {
+    "bridge": {
+      "step1Badge": "Hakbang 1 ng 3",
+      "step1Title": "Gumawa ng Iyong ProCare Account",
+      "step1Desc": "I-set up ang iyong propesyonal na account para ma-access ang mga tool ng ProCare at pamamahala ng kliyente.",
+      "step1Button": "Gumawa ng account",
+      "step2Badge": "Hakbang 2 ng 3",
+      "step2Title": "Kumpletuhin ang Pagsasanay sa ProCare",
+      "step2Desc": "Kumpletuhin ang kinakailangang pagsasanay para ma-unlock ang ganap na access sa iyong propesyonal na studio.",
+      "step2Phase1Title": "Yugto 1: Mga Pundasyon ng Platform",
+      "step2Phase1Desc": "Alamin ang mga pangunahing feature ng platform at kung paano suportahan ang iyong mga kliyente nang epektibo.",
+      "step2Excellent": "Napakahusay na progreso!",
+      "step2Button": "Ipagpatuloy ang pagsasanay",
+      "step3Badge": "Hakbang 3 ng 3",
+      "step3Title": "I-activate ang Iyong Studio",
+      "step3Desc": "Tapos na ang iyong pagsasanay. I-activate ang iyong propesyonal na studio at magsimulang makipagtulungan sa mga kliyente.",
+      "step3Phase2Title": "Yugto 2: Mga Advanced na Tool",
+      "step3Phase2Desc": "I-unlock ang mga advanced na klinikal at coaching tool para sa mas malalim na suporta sa kliyente.",
+      "step3Button": "I-activate ang studio"
+    },
+    "launchpad": {
+      "certifiedBadge": "Sertipikado",
+      "certProgress": "Pag-unlad ng sertipikasyon",
+      "dashboard": "Dashboard",
+      "enterStudio": "Pumasok sa Studio",
+      "quickLinks": "Mga mabilisang link",
+      "resumeCertification": "Ipagpatuloy ang sertipikasyon",
+      "resumePhase2": "Ipagpatuloy ang Yugto 2"
+    },
+    "welcome": {
+      "back": "Bumalik",
+      "beginJourney": "Simulan ang iyong paglalakbay"
+    },
+    "training": {
+      "back": "Bumalik",
+      "backToLaunchpad": "Bumalik sa Launchpad",
+      "completeUnlock": "Kumpletuhin para ma-unlock",
+      "continueButton": "Magpatuloy",
+      "phase2Label": "Yugto 2",
+      "progress": "Pag-unlad"
+    },
+    "rewards": {
+      "back": "Bumalik",
+      "background": "Propesyonal na background"
+    },
+    "identity": {
+      "continueButton": "Magpatuloy"
+    },
+    "attestation": {
+      "categoryLabel": "Kategoryang propesyonal",
+      "checkboxLabel": "Kinukumpirma ko na ako ay isang kwalipikadong propesyonal at sumasang-ayon na gamitin ang platform na ito nang responsable.",
+      "createAccount": "Gumawa ng account",
+      "pendingVerification": "Naghihintay ng beripikasyon",
+      "platformSafety": "Kaligtasan ng platform",
+      "upgradeToPro": "Mag-upgrade sa Pro",
+      "upgrading": "Nag-a-upgrade…"
+    },
+    "certifiedUnlock": {
+      "badge": "Sertipikadong Propesyonal",
+      "enterStudio": "Pumasok sa Propesyonal na Studio",
+      "nextStepsTitle": "Ang iyong mga susunod na hakbang",
+      "subtitle": "Nakumpleto mo na ang sertipikasyon sa ProCare at na-unlock ang ganap na access sa iyong propesyonal na studio.",
+      "title": "Kumpleto na ang Sertipikasyon",
+      "unlockedTitle": "Naka-unlock na ang Studio"
+    }
+  },
+  "trainerCareTeam": {
+    "title": "Koponan ng Pangangalaga ng Tagapagsanay",
+    "tourTitle": "Koponan ng Pangangalaga ng Tagapagsanay",
+    "platform": {
+      "explore": "I-explore ang platform",
+      "description": "Alamin kung paano ka matutulungan ng platform na suportahan ang iyong mga kliyente.",
+      "button": "I-explore ang mga feature"
+    },
+    "availability": {
+      "title": "Katayuan ng availability",
+      "saving": "Nagse-save…",
+      "saved": "Nai-save",
+      "available": "Available",
+      "away": "Away",
+      "offline": "Offline",
+      "from": "Mula",
+      "until": "Hanggang"
+    },
+    "studio": {
+      "activeClients": "Mga aktibong kliyente",
+      "viewAndManage": "Tingnan at pamahalaan ang iyong mga kliyente sa professional portal.",
+      "portalButton": "Buksan ang Studio"
+    },
+    "invite": {
+      "title": "Mag-imbita ng Kliyente",
+      "roleLabel": "Propesyonal na tungkulin",
+      "emailLabel": "Email ng kliyente",
+      "emailPlaceholder": "client@example.com",
+      "sendInvite": "Magpadala ng imbitasyon"
+    },
+    "errors": {
+      "loadFailed": "Nabigong i-load ang koponan ng pangangalaga.",
+      "emailRequired": "Kinakailangan ang email.",
+      "sendInviteFailed": "Nabigong magpadala ng imbitasyon.",
+      "availabilityFailed": "Nabigong i-update ang availability.",
+      "saveDatesFailed": "Nabigong i-save ang mga petsa."
+    },
+    "toast": {
+      "invitationSent": "Naipadala na ang imbitasyon sa {{email}}"
+    },
+    "tour": {
+      "inviteClients": "Mag-imbita ng mga kliyente",
+      "inviteClientsDesc": "Mag-imbita ng mga kliyente para kumonekta sa iyo at makatanggap ng suporta.",
+      "setAvailability": "I-set ang iyong availability",
+      "setAvailabilityDesc": "Ipaalam sa mga kliyente kung kailan ka available, away, o offline.",
+      "proPortal": "Gamitin ang professional portal",
+      "proPortalDesc": "Buksan ang Studio para tingnan at pamahalaan ang iyong mga kliyente."
+    }
+  },
+  "businessDashboard": {
+    "title": "Dashboard ng Organisasyon",
+    "settingUp": "Nagse-set up…",
+    "confirmingPayment": "Kinukumpirma ang iyong bayad…",
+    "loading": "Naglo-load…",
+    "noBusinessFound": "Walang nakitang organisasyon",
+    "orgMember": "Miyembro ng Organisasyon",
+    "orgAccessActive": "Aktibo ang access sa organisasyon",
+    "role": "Tungkulin",
+    "access": "Access",
+    "joined": "Sumali noong",
+    "academy": "Aking Academy ng Perfect Meals",
+    "orgPolicies": "Mga Patakaran ng Organisasyon",
+    "clientOwnership": "Pagmamay-ari ng Kliyente",
+    "allSet": "Ayos na ang lahat",
+    "teamSeats": "Mga Upuan ng Team",
+    "inviteTeamMember": "Mag-imbita ng Miyembro ng Team",
+    "inviteClient": "Mag-imbita ng Kliyente",
+    "sendEmail": "Magpadala ng Email",
+    "copyLink": "Kopyahin ang Link",
+    "roles": {
+      "coach": "Coach",
+      "trainer": "Tagapagsanay",
+      "physician": "Doktor",
+      "staff": "Staff"
+    },
+    "policies": {
+      "orgOnly": "Mga Kliyente ng Organisasyon Lamang",
+      "orgOnlyDesc": "Ang mga miyembro ay maaari lamang magtrabaho sa mga kliyenteng itinalaga sa pamamagitan ng organisasyon.",
+      "withDisclosure": "Pinapayagan nang may Pagsisiwalat",
+      "withDisclosureDesc": "Ang mga miyembro ay maaaring magpanatili ng mga personal na kliyente ngunit dapat itong isiwalat sa organisasyon.",
+      "free": "Malayang Pinapayagan ang mga Personal na Kliyente",
+      "freeDesc": "Ang mga miyembro ay maaaring magpanatili ng mga personal na kliyente sa labas ng organisasyon nang walang mga paghihigpit."
+    },
+    "errors": {
+      "couldNotSavePolicy": "Hindi ma-save ang patakaran",
+      "policyError": "May mali. Pakisubukang muli.",
+      "nameTooShort": "Masyadong maikli ang pangalan",
+      "enterTwoChars": "Mangyaring maglagay ng kahit 2 character.",
+      "couldNotSave": "Hindi ma-save",
+      "invalidEmail": "Hindi wastong email",
+      "enterValidEmail": "Mangyaring maglagay ng wastong email address.",
+      "inviteFailed": "Nabigo ang imbitasyon"
+    },
+    "success": {
+      "policySaved": "Na-save na ang patakaran",
+      "policyUpdated": "Matagumpay na na-update ang patakaran ng organisasyon.",
+      "policyUpdatedClient": "Na-update na ang patakaran sa pagmamay-ari ng kliyente.",
+      "invitationSent": "Naipadala na ang imbitasyon"
+    }
+  },
+  "careTeam": {
+    "tourTitle": "Iyong Koponan ng Pangangalaga",
+    "tour": {
+      "inviteYourTeam": "Mag-imbita ng iyong koponan ng pangangalaga",
+      "inviteYourTeamDesc": "Mag-imbita ng mga pinagkakatiwalaang propesyonal para suportahan ang iyong paglalakbay sa nutrisyon.",
+      "setPermissions": "I-set ang mga pahintulot",
+      "setPermissionsDesc": "Piliin kung ano ang maaaring tingnan at pamahalaan ng bawat propesyonal.",
+      "accessCodes": "Gumamit ng mga access code",
+      "accessCodesDesc": "Kumonekta sa isang provider gamit ang kanilang secure na access code.",
+      "manageMembers": "Pamahalaan ang mga miyembro",
+      "manageMembersDesc": "Suriin, aprubahan, at bawiin ang access ng koponan ng pangangalaga."
+    },
+    "roles": {
+      "trainer": "Tagapagsanay",
+      "doctor": "Doktor",
+      "np": "Nurse Practitioner",
+      "rn": "RN",
+      "pa": "Physician Assistant",
+      "nutritionist": "Nutrisyunista",
+      "dietitian": "Dietitian"
+    },
+    "toast": {
+      "invitationAccepted": "Tinanggap na ang imbitasyon!",
+      "invitationSent": "Naipadala na ang imbitasyon sa {{email}}",
+      "providerConnected": "Matagumpay na nakakonekta ang provider.",
+      "memberApproved": "Naaprubahan na ang miyembro.",
+      "accessRevoked": "Binawi na ang access."
+    },
+    "errors": {
+      "invalidInvitationCode": "Hindi wastong invitation code.",
+      "loadFailed": "Nabigong i-load ang koponan ng pangangalaga.",
+      "emailRequired": "Kinakailangan ang email.",
+      "sendInviteFailed": "Nabigong magpadala ng imbitasyon.",
+      "providerCodeRequired": "Kinakailangan ang provider code.",
+      "invalidProviderCode": "Hindi wastong provider code.",
+      "approveFailed": "Nabigong aprubahan ang miyembro.",
+      "revokeFailed": "Nabigong bawiin ang access ng miyembro."
+    },
+    "invite": {
+      "title": "Mag-imbita ng Propesyonal sa Pangangalaga",
+      "roleLabel": "Propesyonal na tungkulin",
+      "rolePlaceholder": "Pumili ng tungkulin",
+      "emailLabel": "Email address",
+      "emailPlaceholder": "professional@example.com",
+      "permissionsTitle": "Mga Pahintulot",
+      "viewMacros": "Tingnan ang mga macro",
+      "addMeals": "Magdagdag ng mga pagkain",
+      "editPlan": "I-edit ang plano sa nutrisyon",
+      "permissionsHint": "Maaari mong baguhin ang mga pahintulot na ito sa ibang pagkakataon.",
+      "sendInvite": "Magpadala ng imbitasyon"
+    },
+    "connect": {
+      "title": "Kumonekta sa Iyong Provider",
+      "description": "Ilagay ang access code na ibinigay ng iyong propesyonal sa pangangalaga.",
+      "codeLabel": "Provider access code",
+      "codePlaceholder": "Ilagay ang access code",
+      "button": "Ikonekta ang provider",
+      "disclaimer": "Kumonekta lamang sa mga provider na pinagkakatiwalaan mo."
+    },
+    "howItWorks": {
+      "title": "Paano ito gumagana",
+      "step1": "Mag-imbita ng isang pinagkakatiwalaang propesyonal sa pangangalaga o gamitin ang kanilang access code.",
+      "step2": "Piliin ang mga pahintulot na dapat nilang magkaroon.",
+      "step3": "Maaaring suriin ng iyong propesyonal ang iyong impormasyon sa nutrisyon at suportahan ang iyong plano.",
+      "step4": "Pamahalaan o bawiin ang access anumang oras.",
+      "disclaimer": "Ang iyong data ay nananatiling pribado at secure."
+    },
+    "members": {
+      "title": "Mga Aktibong Koneksyon sa Pangangalaga",
+      "subtitle": "Mga propesyonal na kasalukuyang nakakonekta sa iyong account",
+      "empty": "Wala pang mga aktibong miyembro ng koponan ng pangangalaga.",
+      "unnamedPro": "Propesyonal sa pangangalaga",
+      "openProPortal": "Buksan ang professional portal",
+      "approve": "Aprubahan",
+      "revoke": "Bawiin ang access",
+      "revokeTitle": "Bawiin ang access?",
+      "cancel": "Kanselahin",
+      "revokeConfirm": "Bawiin ang access"
     }
   }
 }

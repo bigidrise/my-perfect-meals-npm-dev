@@ -1033,158 +1033,650 @@
   },
   "pro": {
     "trainerDashboard": {
-      "carbs": "Carbs",
-      "fat": "Fat",
-      "macroTargets": "Macro Targets",
-      "protein": "Protein",
-      "save": "Save",
-      "saved": "Saved",
-      "tourTitle": "Trainer Dashboard Tour",
+      "carbs": "कार्बोहाइड्रेट",
+      "fat": "वसा",
+      "macroTargets": "मैक्रो लक्ष्य",
+      "protein": "प्रोटीन",
+      "save": "सहेजें",
+      "saved": "सहेजा गया",
+      "tourTitle": "ट्रेनर डैशबोर्ड टूर",
       "tour": {
-        "step1Title": "Client Overview",
-        "step1Desc": "See your client's key information and current nutrition setup.",
-        "step2Title": "Macro Targets",
-        "step2Desc": "Set daily protein, carbohydrate, and fat targets for your client.",
-        "step3Title": "Nutrition Context",
-        "step3Desc": "Review the client's goals, coaching notes, and relevant clinical context.",
-        "step4Title": "Meal Builder",
-        "step4Desc": "Choose and assign the nutrition builder that fits your client's needs.",
-        "step5Title": "Progress & Compliance",
-        "step5Desc": "Monitor your client's check-ins, weight trends, and nutrition progress.",
-        "step6Title": "Save Changes",
-        "step6Desc": "Save your updates so they are applied across your client's experience."
+        "step1Title": "क्लाइंट अवलोकन",
+        "step1Desc": "अपने क्लाइंट की मुख्य जानकारी और वर्तमान पोषण सेटअप देखें।",
+        "step2Title": "मैक्रो लक्ष्य",
+        "step2Desc": "अपने क्लाइंट के लिए दैनिक प्रोटीन, कार्बोहाइड्रेट और वसा लक्ष्य निर्धारित करें।",
+        "step3Title": "पोषण संदर्भ",
+        "step3Desc": "क्लाइंट के लक्ष्यों, कोचिंग नोट्स और प्रासंगिक नैदानिक ​​संदर्भ की समीक्षा करें।",
+        "step4Title": "मील बिल्डर",
+        "step4Desc": "वह न्यूट्रिशन बिल्डर चुनें और असाइन करें जो आपके क्लाइंट की जरूरतों के अनुरूप हो।",
+        "step5Title": "प्रगति और अनुपालन",
+        "step5Desc": "अपने क्लाइंट के चेक-इन, वजन के रुझान और पोषण संबंधी प्रगति की निगरानी करें।",
+        "step6Title": "परिवर्तनों को सहेजें",
+        "step6Desc": "अपने अपडेट को सहेजें ताकि वे आपके क्लाइंट के अनुभव में लागू हो जाएं।"
       },
-      "fibrousCarbs": "Fibrous Carbs",
-      "bodyComposition": "Body Composition",
-      "bodyFat": "Body Fat",
-      "targetBodyFat": "Target Body Fat",
-      "method": "Method",
-      "source": "Source",
-      "activeOnClient": "Active on this client",
-      "physicianAuthRequired": "Physician authorization required"
+      "fibrousCarbs": "रेशेदार कार्बोहाइड्रेट",
+      "bodyComposition": "शारीरिक संरचना",
+      "bodyFat": "शरीर की वसा",
+      "targetBodyFat": "लक्षित शरीर की वसा",
+      "method": "विधि",
+      "source": "स्रोत",
+      "activeOnClient": "इस क्लाइंट पर सक्रिय",
+      "physicianAuthRequired": "चिकित्सक प्राधिकरण आवश्यक"
     },
     "clinicianDashboard": {
-      "carbs": "Carbs",
-      "fat": "Fat",
-      "macroTargets": "Macro Targets",
-      "protein": "Protein",
-      "save": "Save",
-      "saved": "Saved",
-      "checkInCancelFailed": "Could not cancel the check-in",
-      "checkInCancelled": "Check-in cancelled",
-      "followUpScheduled": "Follow-up scheduled",
-      "scheduleFollowUpBtn": "Schedule Follow-up",
-      "schedulingFailed": "Scheduling failed",
-      "tourTitle": "Clinician Dashboard Tour",
+      "carbs": "कार्बोहाइड्रेट",
+      "fat": "वसा",
+      "macroTargets": "मैक्रो लक्ष्य",
+      "protein": "प्रोटीन",
+      "save": "सहेजें",
+      "saved": "सहेजा गया",
+      "checkInCancelFailed": "चेक-इन रद्द नहीं किया जा सका",
+      "checkInCancelled": "चेक-इन रद्द कर दिया गया",
+      "followUpScheduled": "फॉलो-अप निर्धारित",
+      "scheduleFollowUpBtn": "फॉलो-अप निर्धारित करें",
+      "schedulingFailed": "निर्धारण विफल रहा",
+      "tourTitle": "क्लिनिशियन डैशबोर्ड टूर",
       "tour": {
-        "step1Title": "Client Overview",
-        "step1Desc": "Review your patient's profile, nutrition status, and clinical information.",
-        "step2Title": "Macro Targets",
-        "step2Desc": "Set nutrition targets that support your patient's care plan.",
-        "step3Title": "Clinical Context",
-        "step3Desc": "Review active protocols, conditions, labs, and clinical notes.",
-        "step4Title": "Care Planning",
-        "step4Desc": "Assign the appropriate builder and schedule follow-up care.",
-        "step5Title": "Save Changes",
-        "step5Desc": "Save your updates to keep your patient's plan current."
+        "step1Title": "क्लाइंट अवलोकन",
+        "step1Desc": "अपने मरीज के प्रोफाइल, पोषण की स्थिति और नैदानिक जानकारी की समीक्षा करें।",
+        "step2Title": "मैक्रो लक्ष्य",
+        "step2Desc": "ऐसे पोषण लक्ष्य निर्धारित करें जो आपके मरीज की देखभाल योजना का समर्थन करें।",
+        "step3Title": "नैदानिक संदर्भ",
+        "step3Desc": "सक्रिय प्रोटोकॉल, स्थितियों, लैब्स और नैदानिक ​​नोट्स की समीक्षा करें।",
+        "step4Title": "देखभाल योजना",
+        "step4Desc": "उपयुक्त बिल्डर असाइन करें और फॉलो-अप देखभाल निर्धारित करें।",
+        "step5Title": "परिवर्तनों को सहेजें",
+        "step5Desc": "अपने मरीज की योजना को वर्तमान रखने के लिए अपने अपडेट को सहेजें।"
       },
-      "fibrousCarbs": "Fibrous Carbs",
-      "bodyComposition": "Body Composition",
-      "bodyFat": "Body Fat",
-      "targetBodyFat": "Target Body Fat",
-      "medicalDietaryDirectives": "Medical Dietary Directives",
-      "noBodyComp": "No body composition data recorded for this patient yet.",
-      "assignClinicalBuilder": "Assign Clinical Builder"
+      "fibrousCarbs": "रेशेदार कार्बोहाइड्रेट",
+      "bodyComposition": "शारीरिक संरचना",
+      "bodyFat": "शरीर की वसा",
+      "targetBodyFat": "लक्षित शरीर की वसा",
+      "medicalDietaryDirectives": "चिकित्सीय आहार निर्देश",
+      "noBodyComp": "इस मरीज के लिए अभी तक कोई शारीरिक संरचना डेटा दर्ज नहीं किया गया है।",
+      "assignClinicalBuilder": "क्लिनिकल बिल्डर असाइन करें"
     },
     "clients": {
-      "archiveConfirm": "Archive this client?",
-      "archiveSubtitle": "Archived clients will be hidden from your active client list.",
-      "back": "Back",
-      "cancel": "Cancel",
-      "desktopRequired": "Please use a desktop browser to manage clients.",
-      "hideArchived": "Hide archived",
-      "inboxEmpty": "No messages yet",
-      "inboxLoading": "Loading messages…",
-      "inboxSubtitle": "Recent messages",
-      "inboxTitle": "Client Inbox",
-      "restore": "Restore",
-      "showArchived": "Show archived",
-      "tapInbox": "Tap a message to open the client’s folder.",
-      "tourTitle": "Clients Tour",
+      "archiveConfirm": "इस क्लाइंट को आर्काइव करें?",
+      "archiveSubtitle": "आर्काइव किए गए क्लाइंट आपकी सक्रिय क्लाइंट सूची से छिपा दिए जाएंगे।",
+      "back": "वापस",
+      "cancel": "रद्द करें",
+      "desktopRequired": "कृपया क्लाइंट्स को प्रबंधित करने के लिए डेस्कटॉप ब्राउज़र का उपयोग करें।",
+      "hideArchived": "आर्काइव किए गए छिपाएं",
+      "inboxEmpty": "अभी तक कोई संदेश नहीं",
+      "inboxLoading": "संदेश लोड हो रहे हैं…",
+      "inboxSubtitle": "हाल के संदेश",
+      "inboxTitle": "क्लाइंट इनबॉक्स",
+      "restore": "पुनर्स्थापित करें",
+      "showArchived": "आर्काइव किए गए दिखाएं",
+      "tapInbox": "क्लाइंट का फोल्डर खोलने के लिए संदेश पर टैप करें।",
+      "tourTitle": "क्लाइंट्स टूर",
       "tour": {
-        "step1Title": "Your Clients",
-        "step1Desc": "See all your connected clients in one place.",
-        "step2Title": "Client Inbox",
-        "step2Desc": "Review messages and open a client’s folder directly from the inbox.",
-        "step3Title": "Client Folders",
-        "step3Desc": "Open a client folder to view their dashboard, plans, and progress."
+        "step1Title": "आपके क्लाइंट्स",
+        "step1Desc": "अपने सभी जुड़े हुए क्लाइंट्स को एक ही जगह देखें।",
+        "step2Title": "क्लाइंट इनबॉक्स",
+        "step2Desc": "संदेशों की समीक्षा करें और इनबॉक्स से सीधे क्लाइंट का फोल्डर खोलें।",
+        "step3Title": "क्लाइंट फोल्डर्स",
+        "step3Desc": "क्लाइंट का डैशबोर्ड, योजनाएं और प्रगति देखने के लिए क्लाइंट फोल्डर खोलें।"
       }
     },
     "clientDashboard": {
-      "tourTitle": "Client Dashboard Tour",
+      "tourTitle": "क्लाइंट डैशबोर्ड टूर",
       "tour": {
-        "step1Title": "Your Nutrition Plan",
-        "step1Desc": "View the nutrition plan and builder your professional assigned to you.",
-        "step2Title": "Progress",
-        "step2Desc": "Track your check-ins, weight trends, and nutrition progress.",
-        "step3Title": "Messages",
-        "step3Desc": "Stay connected with your professional and review your conversations.",
-        "step4Title": "Your Goals",
-        "step4Desc": "Review and update your goals to keep your plan on track."
+        "step1Title": "आपकी पोषण योजना",
+        "step1Desc": "वह पोषण योजना और बिल्डर देखें जो आपके पेशेवर ने आपको असाइन किया है।",
+        "step2Title": "प्रगति",
+        "step2Desc": "अपने चेक-इन, वजन के रुझान और पोषण संबंधी प्रगति को ट्रैक करें।",
+        "step3Title": "संदेश",
+        "step3Desc": "अपने पेशेवर के साथ जुड़े रहें और अपनी बातचीत की समीक्षा करें।",
+        "step4Title": "आपके लक्ष्य",
+        "step4Desc": "अपनी योजना को ट्रैक पर रखने के लिए अपने लक्ष्यों की समीक्षा और अपडेट करें।"
       }
     },
     "boardViewer": {
-      "error": "Could not load this meal board.",
-      "removed": "Meal removed",
-      "removedDesc": "The meal has been removed from this slot.",
+      "error": "यह मील बोर्ड लोड नहीं हो सका।",
+      "removed": "मील हटा दिया गया",
+      "removedDesc": "मील को इस स्लॉट से हटा दिया गया है।",
       "slots": {
-        "breakfast": "Breakfast",
-        "lunch": "Lunch",
-        "dinner": "Dinner",
-        "snacks": "Snacks"
+        "breakfast": "नाश्ता",
+        "lunch": "दोपहर का भोजन",
+        "dinner": "रात का खाना",
+        "snacks": "स्नैक्स"
       }
     },
     "physicianPortal": {
-      "comingSoon": "More features coming soon.",
-      "title": "Physician Portal",
-      "viewClients": "View Patients",
-      "tourTitle": "Physician Portal Tour",
+      "comingSoon": "और फीचर्स जल्द आ रहे हैं।",
+      "title": "चिकित्सक पोर्टल",
+      "viewClients": "मरीज देखें",
+      "tourTitle": "चिकित्सक पोर्टल टूर",
       "tour": {
-        "step1Title": "Patient Overview",
-        "step1Desc": "See all your connected patients and their current nutrition status.",
-        "step2Title": "Clinical Tools",
-        "step2Desc": "Access clinical builders, lab data, and protocol assignments.",
-        "step3Title": "Care Coordination",
-        "step3Desc": "Coordinate care with nurses, dietitians, and other professionals on your team.",
-        "step4Title": "Get Started",
-        "step4Desc": "Select a patient to open their clinical dashboard and begin managing their plan."
+        "step1Title": "मरीज अवलोकन",
+        "step1Desc": "अपने सभी जुड़े हुए मरीजों और उनकी वर्तमान पोषण स्थिति को देखें।",
+        "step2Title": "नैदानिक उपकरण",
+        "step2Desc": "नैदानिक बिल्डर्स, लैब डेटा और प्रोटोकॉल असाइनमेंट तक पहुंचें।",
+        "step3Title": "देखभाल समन्वय",
+        "step3Desc": "अपनी टीम में नर्सों, आहार विशेषज्ञों और अन्य पेशेवरों के साथ देखभाल का समन्वय करें।",
+        "step4Title": "शुरुआत करें",
+        "step4Desc": "मरीज का क्लिनिकल डैशबोर्ड खोलने और उनकी योजना का प्रबंधन शुरू करने के लिए एक मरीज चुनें।"
       }
     },
     "gnbEntry": {
-      "headerLabel": "General Nutrition Builder",
-      "title": "Where would you like to start?",
-      "subtitle": "Build meals for today, or set up a training nutrition schedule that adjusts your macros based on your workout type.",
-      "continueTo": "Open General Nutrition Builder",
-      "continueDesc": "Build meals using your standard macro targets.",
-      "trainTitle": "Want training-aware macros?",
-      "trainDesc": "Set up a weekly training schedule and your macro targets will automatically adjust on training days versus rest days.",
-      "scheduleTitle": "Training Nutrition Schedule",
-      "scheduleDesc": "Set your weekly training type and get macro targets tailored to each day.",
-      "activeLabel": "Active",
-      "adjustmentsActive": "macro adjustments active",
-      "today": "Today: {{label}}",
-      "editSchedule": "Edit schedule",
-      "setupSchedule": "Set up training schedule",
-      "explainer": "Your macro targets stay the same every day until you set up a training schedule. Once active, training days get more carbohydrates and rest days pull back — automatically.",
+      "headerLabel": "सामान्य पोषण बिल्डर",
+      "title": "आप कहां से शुरुआत करना चाहेंगे?",
+      "subtitle": "आज के लिए मील बनाएं, या एक प्रशिक्षण पोषण कार्यक्रम सेट करें जो आपके वर्कआउट के प्रकार के आधार पर आपके मैक्रोज़ को समायोजित करता है।",
+      "continueTo": "सामान्य पोषण बिल्डर खोलें",
+      "continueDesc": "अपने मानक मैक्रो लक्ष्यों का उपयोग करके मील बनाएं।",
+      "trainTitle": "प्रशिक्षण-जागरूक मैक्रोज़ चाहिए?",
+      "trainDesc": "साप्ताहिक प्रशिक्षण कार्यक्रम सेट करें और आपके मैक्रो लक्ष्य प्रशिक्षण के दिनों बनाम आराम के दिनों के आधार पर स्वचालित रूप से समायोजित हो जाएंगे।",
+      "scheduleTitle": "प्रशिक्षण पोषण कार्यक्रम",
+      "scheduleDesc": "अपना साप्ताहिक प्रशिक्षण प्रकार सेट करें और प्रत्येक दिन के लिए अनुकूलित मैक्रो लक्ष्य प्राप्त करें।",
+      "activeLabel": "सक्रिय",
+      "adjustmentsActive": "मैक्रो समायोजन सक्रिय हैं",
+      "today": "आज: {{label}}",
+      "editSchedule": "कार्यक्रम संपादित करें",
+      "setupSchedule": "प्रशिक्षण कार्यक्रम सेट करें",
+      "explainer": "जब तक आप प्रशिक्षण कार्यक्रम सेट नहीं करते, तब तक आपके मैक्रो लक्ष्य हर दिन समान रहते हैं। एक बार सक्रिय होने पर, प्रशिक्षण के दिनों में अधिक कार्बोहाइड्रेट मिलते हैं और आराम के दिनों में कम - स्वचालित रूप से।",
       "sessions": {
-        "strength": "Strength Training",
-        "power": "Power / Explosiveness",
-        "endurance": "Endurance / Cardio",
-        "sport_practice": "Sport Practice",
-        "competition": "Competition Day",
-        "recovery": "Active Recovery",
-        "off": "Rest Day"
+        "strength": "स्ट्रेंथ ट्रेनिंग",
+        "power": "पावर / विस्फोटक शक्ति",
+        "endurance": "सहनशक्ति / कार्डियो",
+        "sport_practice": "खेल अभ्यास",
+        "competition": "प्रतियोगिता का दिन",
+        "recovery": "सक्रिय रिकवरी",
+        "off": "आराम का दिन"
       }
+    },
+    "procare": {
+      "bridge": {
+        "step1Badge": "चरण 1 का 3",
+        "step1Title": "अपना प्रोकेयर अकाउंट बनाएं",
+        "step1Desc": "प्रोकेयर टूल्स और क्लाइंट प्रबंधन तक पहुंचने के लिए अपना पेशेवर अकाउंट सेट करें।",
+        "step1Button": "अकाउंट बनाएं",
+        "step2Badge": "चरण 2 का 3",
+        "step2Title": "प्रोकेयर ट्रेनिंग पूरी करें",
+        "step2Desc": "अपने पेशेवर स्टूडियो तक पूर्ण पहुंच प्राप्त करने के लिए आवश्यक ट्रेनिंग पूरी करें।",
+        "step2Phase1Title": "चरण 1: प्लेटफॉर्म की नींव",
+        "step2Phase1Desc": "प्लेटफॉर्म की मुख्य विशेषताएं सीखें और अपने क्लाइंट्स का प्रभावी ढंग से समर्थन करना सीखें।",
+        "step2Excellent": "उत्कृष्ट प्रगति!",
+        "step2Button": "ट्रेनिंग जारी रखें",
+        "step3Badge": "चरण 3 का 3",
+        "step3Title": "अपना स्टूडियो सक्रिय करें",
+        "step3Desc": "आपकी ट्रेनिंग पूरी हो गई है। अपना पेशेवर स्टूडियो सक्रिय करें और क्लाइंट्स के साथ काम करना शुरू करें।",
+        "step3Phase2Title": "चरण 2: उन्नत उपकरण",
+        "step3Phase2Desc": "गहन क्लाइंट समर्थन के लिए उन्नत नैदानिक और कोचिंग टूल्स अनलॉक करें।",
+        "step3Button": "स्टूडियो सक्रिय करें"
+      },
+      "launchpad": {
+        "certifiedBadge": "प्रमाणित",
+        "certProgress": "प्रमाणन प्रगति",
+        "dashboard": "डैशबोर्ड",
+        "enterStudio": "स्टूडियो में प्रवेश करें",
+        "quickLinks": "त्वरित लिंक्स",
+        "resumeCertification": "प्रमाणन फिर से शुरू करें",
+        "resumePhase2": "चरण 2 फिर से शुरू करें"
+      },
+      "welcome": {
+        "back": "वापस",
+        "beginJourney": "अपनी यात्रा शुरू करें"
+      },
+      "training": {
+        "back": "वापस",
+        "backToLaunchpad": "लॉन्चपैड पर वापस जाएं",
+        "completeUnlock": "अनलॉक करने के लिए पूरा करें",
+        "continueButton": "जारी रखें",
+        "phase2Label": "चरण 2",
+        "progress": "प्रगति"
+      },
+      "rewards": {
+        "back": "वापस",
+        "background": "पेशेवर पृष्ठभूमि"
+      },
+      "identity": {
+        "continueButton": "जारी रखें"
+      },
+      "attestation": {
+        "categoryLabel": "पेशेवर श्रेणी",
+        "checkboxLabel": "मैं पुष्टि करता हूँ कि मैं एक योग्य पेशेवर हूँ और इस प्लेटफॉर्म का जिम्मेदारी से उपयोग करने के लिए सहमत हूँ।",
+        "createAccount": "अकाउंट बनाएं",
+        "pendingVerification": "सत्यापन लंबित",
+        "platformSafety": "प्लेटफॉर्म सुरक्षा",
+        "upgradeToPro": "प्रो में अपग्रेड करें",
+        "upgrading": "अपग्रेड हो रहा है…"
+      },
+      "certifiedUnlock": {
+        "badge": "प्रमाणित पेशेवर",
+        "enterStudio": "पेशेवर स्टूडियो में प्रवेश करें",
+        "nextStepsTitle": "आपके अगले कदम",
+        "subtitle": "आपने प्रोकेयर प्रमाणन पूरा कर लिया है और अपने पेशेवर स्टूडियो तक पूर्ण पहुंच अनलॉक कर ली है।",
+        "title": "प्रमाणन पूर्ण",
+        "unlockedTitle": "स्टूडियो अनलॉक हो गया"
+      }
+    },
+    "trainerCareTeam": {
+      "title": "ट्रेनर केयर टीम",
+      "tourTitle": "ट्रेनर केयर टीम",
+      "platform": {
+        "explore": "प्लेटफॉर्म एक्सप्लोर करें",
+        "description": "जानें कि प्लेटफॉर्म आपके क्लाइंट्स का समर्थन करने में आपकी कैसे मदद कर सकता है।",
+        "button": "फीचर्स एक्सप्लोर करें"
+      },
+      "availability": {
+        "title": "उपलब्धता स्थिति",
+        "saving": "सहेजा जा रहा है…",
+        "saved": "सहेजा गया",
+        "available": "उपलब्ध",
+        "away": "दूर",
+        "offline": "ऑफ़लाइन",
+        "from": "से",
+        "until": "तक"
+      },
+      "studio": {
+        "activeClients": "सक्रिय क्लाइंट्स",
+        "viewAndManage": "पेशेवर पोर्टल में अपने क्लाइंट्स को देखें और प्रबंधित करें।",
+        "portalButton": "स्टूडियो खोलें"
+      },
+      "invite": {
+        "title": "क्लाइंट को आमंत्रित करें",
+        "roleLabel": "पेशेवर भूमिका",
+        "emailLabel": "क्लाइंट ईमेल",
+        "emailPlaceholder": "client@example.com",
+        "sendInvite": "आमंत्रण भेजें"
+      },
+      "errors": {
+        "loadFailed": "केयर टीम लोड करने में विफल।",
+        "emailRequired": "ईमेल आवश्यक है।",
+        "sendInviteFailed": "आमंत्रण भेजने में विफल।",
+        "availabilityFailed": "उपलब्धता अपडेट करने में विफल।",
+        "saveDatesFailed": "तारीखें सहेजने में विफल।"
+      },
+      "toast": {
+        "invitationSent": "आमंत्रण {{email}} को भेजा गया"
+      },
+      "tour": {
+        "inviteClients": "क्लाइंट्स को आमंत्रित करें",
+        "inviteClientsDesc": "क्लाइंट्स को आपसे जुड़ने और समर्थन प्राप्त करने के लिए आमंत्रित करें।",
+        "setAvailability": "अपनी उपलब्धता सेट करें",
+        "setAvailabilityDesc": "क्लाइंट्स को बताएं कि आप कब उपलब्ध, दूर या ऑफ़लाइन हैं।",
+        "proPortal": "पेशेवर पोर्टल का उपयोग करें",
+        "proPortalDesc": "अपने क्लाइंट्स को देखने और प्रबंधित करने के लिए स्टूडियो खोलें।"
+      }
+    },
+    "businessDashboard": {
+      "title": "संगठन डैशबोर्ड",
+      "settingUp": "सेटअप हो रहा है…",
+      "confirmingPayment": "आपका भुगतान कन्फर्म हो रहा है…",
+      "loading": "लोड हो रहा है…",
+      "noBusinessFound": "कोई संगठन नहीं मिला",
+      "orgMember": "संगठन का सदस्य",
+      "orgAccessActive": "संगठन पहुंच सक्रिय है",
+      "role": "भूमिका",
+      "access": "पहुंच",
+      "joined": "शामिल हुए",
+      "academy": "माई परफेक्ट मील्स एकेडमी",
+      "orgPolicies": "संगठन नीतियां",
+      "clientOwnership": "क्लाइंट स्वामित्व",
+      "allSet": "सब तैयार है",
+      "teamSeats": "टीम सीट्स",
+      "inviteTeamMember": "टीम के सदस्य को आमंत्रित करें",
+      "inviteClient": "क्लाइंट को आमंत्रित करें",
+      "sendEmail": "ईमेल भेजें",
+      "copyLink": "लिंक कॉपी करें",
+      "roles": {
+        "coach": "कोच",
+        "trainer": "ट्रेनर",
+        "physician": "चिकित्सक",
+        "staff": "स्टाफ"
+      },
+      "policies": {
+        "orgOnly": "केवल संगठन के क्लाइंट",
+        "orgOnlyDesc": "सदस्य केवल संगठन के माध्यम से असाइन किए गए क्लाइंट्स के साथ काम कर सकते हैं।",
+        "withDisclosure": "प्रकटीकरण के साथ अनुमति",
+        "withDisclosureDesc": "सदस्य व्यक्तिगत क्लाइंट बनाए रख सकते हैं लेकिन उन्हें संगठन के सामने प्रकट करना होगा।",
+        "free": "व्यक्तिगत क्लाइंट्स की पूरी छूट",
+        "freeDesc": "सदस्य बिना किसी प्रतिबंध के संगठन के बाहर व्यक्तिगत क्लाइंट बनाए रख सकते हैं।"
+      },
+      "errors": {
+        "couldNotSavePolicy": "नीति सहेजी नहीं जा सकी",
+        "policyError": "कुछ गलत हो गया। कृपया पुन: प्रयास करें।",
+        "nameTooShort": "नाम बहुत छोटा है",
+        "enterTwoChars": "कृपया कम से कम 2 वर्ण दर्ज करें।",
+        "couldNotSave": "सहेजा नहीं जा सका",
+        "invalidEmail": "अमान्य ईमेल",
+        "enterValidEmail": "कृपया एक वैध ईमेल पता दर्ज करें।",
+        "inviteFailed": "आमंत्रण विफल रहा"
+      },
+      "success": {
+        "policySaved": "नीति सहेजी गई",
+        "policyUpdated": "संगठन नीति सफलतापूर्वक अपडेट की गई।",
+        "policyUpdatedClient": "क्लाइंट स्वामित्व नीति अपडेट की गई।",
+        "invitationSent": "आमंत्रण भेजा गया"
+      }
+    },
+    "careTeam": {
+      "tourTitle": "आपकी केयर टीम",
+      "tour": {
+        "inviteYourTeam": "अपनी केयर टीम को आमंत्रित करें",
+        "inviteYourTeamDesc": "अपनी पोषण यात्रा का समर्थन करने के लिए भरोसेमंद पेशेवरों को आमंत्रित करें।",
+        "setPermissions": "अनुमतियां सेट करें",
+        "setPermissionsDesc": "चुनें कि प्रत्येक पेशेवर क्या देख और प्रबंधित कर सकता है।",
+        "accessCodes": "एक्सेस कोड का उपयोग करें",
+        "accessCodesDesc": "उनके सुरक्षित एक्सेस कोड का उपयोग करके एक प्रदाता से जुड़ें।",
+        "manageMembers": "सदस्यों को प्रबंधित करें",
+        "manageMembersDesc": "केयर टीम की पहुंच की समीक्षा करें, उसे स्वीकृत और निरस्त करें।"
+      },
+      "roles": {
+        "trainer": "ट्रेनर",
+        "doctor": "डॉक्टर",
+        "np": "नर्स प्रैक्टिशनर",
+        "rn": "आरएन",
+        "pa": "फिजिशियन असिस्टेंट",
+        "nutritionist": "पोषण विशेषज्ञ",
+        "dietitian": "आहार विशेषज्ञ"
+      },
+      "toast": {
+        "invitationAccepted": "आमंत्रण स्वीकार किया गया!",
+        "invitationSent": "आमंत्रण {{email}} को भेजा गया",
+        "providerConnected": "प्रदाता सफलतापूर्वक जुड़ गया।",
+        "memberApproved": "सदस्य स्वीकृत।",
+        "accessRevoked": "पहुंच निरस्त की गई।"
+      },
+      "errors": {
+        "invalidInvitationCode": "अमान्य आमंत्रण कोड।",
+        "loadFailed": "केयर टीम लोड करने में विफल।",
+        "emailRequired": "ईमेल आवश्यक है।",
+        "sendInviteFailed": "आमंत्रण भेजने में विफल।",
+        "providerCodeRequired": "प्रदाता कोड आवश्यक है।",
+        "invalidProviderCode": "अमान्य प्रदाता कोड।",
+        "approveFailed": "सदस्य को स्वीकृत करने में विफल।",
+        "revokeFailed": "सदस्य की पहुंच निरस्त करने में विफल।"
+      },
+      "invite": {
+        "title": "एक केयर पेशेवर को आमंत्रित करें",
+        "roleLabel": "पेशेवर भूमिका",
+        "rolePlaceholder": "एक भूमिका चुनें",
+        "emailLabel": "ईमेल पता",
+        "emailPlaceholder": "professional@example.com",
+        "permissionsTitle": "अनुमतियां",
+        "viewMacros": "मैक्रोज़ देखें",
+        "addMeals": "मील जोड़ें",
+        "editPlan": "पोषण योजना संपादित करें",
+        "permissionsHint": "आप बाद में ये अनुमतियां बदल सकते हैं।",
+        "sendInvite": "आमंत्रण भेजें"
+      },
+      "connect": {
+        "title": "अपने प्रदाता के साथ जुड़ें",
+        "description": "अपने केयर पेशेवर द्वारा प्रदान किया गया एक्सेस कोड दर्ज करें।",
+        "codeLabel": "प्रदाता एक्सेस कोड",
+        "codePlaceholder": "एक्सेस कोड दर्ज करें",
+        "button": "प्रदाता से जुड़ें",
+        "disclaimer": "केवल उन्हीं प्रदाताओं से जुड़ें जिन पर आप भरोसा करते हैं।"
+      },
+      "howItWorks": {
+        "title": "यह कैसे काम करता है",
+        "step1": "एक भरोसेमंद केयर पेशेवर को आमंत्रित करें या उनके एक्सेस कोड का उपयोग करें।",
+        "step2": "उनकी अनुमतियां चुनें।",
+        "step3": "आपका पेशेवर आपकी पोषण जानकारी की समीक्षा कर सकता है और आपकी योजना का समर्थन कर सकता है।",
+        "step4": "किसी भी समय पहुंच प्रबंधित या निरस्त करें।",
+        "disclaimer": "आपका डेटा निजी और सुरक्षित रहता है।"
+      },
+      "members": {
+        "title": "सक्रिय केयर कनेक्शन",
+        "subtitle": "वर्तमान में आपके अकाउंट से जुड़े पेशेवर",
+        "empty": "अभी तक कोई सक्रिय केयर टीम सदस्य नहीं है।",
+        "unnamedPro": "केयर पेशेवर",
+        "openProPortal": "पेशेवर पोर्टल खोलें",
+        "approve": "स्वीकृत करें",
+        "revoke": "निरस्त करें",
+        "revokeTitle": "पहुंच निरस्त करें?",
+        "cancel": "रद्द करें",
+        "revokeConfirm": "पहुंच निरस्त करें"
+      }
+    }
+  },
+  "procare": {
+    "bridge": {
+      "step1Badge": "3 में से चरण 1",
+      "step1Title": "अपना ProCare खाता बनाएं",
+      "step1Desc": "ProCare टूल और क्लाइंट प्रबंधन तक पहुंचने के लिए अपना प्रोफेशनल खाता सेट अप करें।",
+      "step1Button": "खाता बनाएं",
+      "step2Badge": "3 में से चरण 2",
+      "step2Title": "ProCare प्रशिक्षण पूरा करें",
+      "step2Desc": "अपने प्रोफेशनल स्टूडियो तक पूर्ण पहुंच अनलॉक करने के लिए आवश्यक प्रशिक्षण पूरा करें।",
+      "step2Phase1Title": "चरण 1: प्लेटफॉर्म फाउंडेशन",
+      "step2Phase1Desc": "प्लेटफ़ॉर्म की मुख्य सुविधाओं के बारे में जानें और अपने क्लाइंट्स को प्रभावी ढंग से सहायता कैसे करें।",
+      "step2Excellent": "उत्कृष्ट प्रगति!",
+      "step2Button": "प्रशिक्षण जारी रखें",
+      "step3Badge": "3 में से चरण 3",
+      "step3Title": "अपना स्टूडियो सक्रिय करें",
+      "step3Desc": "आपका प्रशिक्षण पूरा हो गया है। अपना प्रोफेशनल स्टूडियो सक्रिय करें और क्लाइंट्स के साथ काम करना शुरू करें।",
+      "step3Phase2Title": "चरण 2: एडवांस्ड टूल्स",
+      "step3Phase2Desc": "गहन क्लाइंट सहायता के लिए एडवांस्ड क्लिनिकल और कोचिंग टूल अनलॉक करें।",
+      "step3Button": "स्टूडियो सक्रिय करें"
+    },
+    "launchpad": {
+      "certifiedBadge": "प्रमाणित",
+      "certProgress": "प्रमाणन प्रगति",
+      "dashboard": "डैशबोर्ड",
+      "enterStudio": "स्टूडियो में प्रवेश करें",
+      "quickLinks": "क्विक लिंक्स",
+      "resumeCertification": "प्रमाणन फिर से शुरू करें",
+      "resumePhase2": "चरण 2 फिर से शुरू करें"
+    },
+    "welcome": {
+      "back": "वापस",
+      "beginJourney": "अपनी यात्रा शुरू करें"
+    },
+    "training": {
+      "back": "वापस",
+      "backToLaunchpad": "लॉन्चपैड पर वापस जाएं",
+      "completeUnlock": "अनलॉक करने के लिए पूरा करें",
+      "continueButton": "जारी रखें",
+      "phase2Label": "चरण 2",
+      "progress": "प्रगति"
+    },
+    "rewards": {
+      "back": "वापस",
+      "background": "प्रोफेशनल पृष्ठभूमि"
+    },
+    "identity": {
+      "continueButton": "जारी रखें"
+    },
+    "attestation": {
+      "categoryLabel": "प्रोफेशनल श्रेणी",
+      "checkboxLabel": "मैं पुष्टि करता/करती हूं कि मैं एक योग्य प्रोफेशनल हूं और जिम्मेदारी से इस प्लेटफॉर्म का उपयोग करने के लिए सहमत हूं।",
+      "createAccount": "खाता बनाएं",
+      "pendingVerification": "सत्यापन लंबित है",
+      "platformSafety": "प्लेटफॉर्म सुरक्षा",
+      "upgradeToPro": "प्रो में अपग्रेड करें",
+      "upgrading": "अपग्रेड हो रहा है…"
+    },
+    "certifiedUnlock": {
+      "badge": "प्रमाणित प्रोफेशनल",
+      "enterStudio": "प्रोफेशनल स्टूडियो में प्रवेश करें",
+      "nextStepsTitle": "आपके अगले कदम",
+      "subtitle": "आपने ProCare प्रमाणन पूरा कर लिया है और अपने प्रोफेशनल स्टूडियो तक पूर्ण पहुंच अनलॉक कर ली है।",
+      "title": "प्रमाणन पूरा हुआ",
+      "unlockedTitle": "स्टूडियो अनलॉक हो गया"
+    }
+  },
+  "trainerCareTeam": {
+    "title": "ट्रेनर केयर टीम",
+    "tourTitle": "ट्रेनर केयर टीम",
+    "platform": {
+      "explore": "प्लेटफ़ॉर्म एक्सप्लोर करें",
+      "description": "जानें कि प्लेटफ़ॉर्म आपके क्लाइंट्स का समर्थन करने में कैसे मदद कर सकता है।",
+      "button": "सुविधाएँ एक्सप्लोर करें"
+    },
+    "availability": {
+      "title": "उपलब्धता स्थिति",
+      "saving": "सहेज रहा है…",
+      "saved": "सहेजा गया",
+      "available": "उपलब्ध",
+      "away": "दूर",
+      "offline": "ऑफ़लाइन",
+      "from": "से",
+      "until": "तक"
+    },
+    "studio": {
+      "activeClients": "सक्रिय क्लाइंट",
+      "viewAndManage": "प्रोफेशनल पोर्टल में अपने क्लाइंट्स को देखें और प्रबंधित करें।",
+      "portalButton": "स्टूडियो खोलें"
+    },
+    "invite": {
+      "title": "क्लाइंट को आमंत्रित करें",
+      "roleLabel": "प्रोफेशनल भूमिका",
+      "emailLabel": "क्लाइंट ईमेल",
+      "emailPlaceholder": "client@example.com",
+      "sendInvite": "आमंत्रण भेजें"
+    },
+    "errors": {
+      "loadFailed": "केयर टीम लोड करने में विफल।",
+      "emailRequired": "ईमेल आवश्यक है।",
+      "sendInviteFailed": "आमंत्रण भेजने में विफल।",
+      "availabilityFailed": "उपलब्धता अपडेट करने में विफल।",
+      "saveDatesFailed": "तारीखें सहेजने में विफल।"
+    },
+    "toast": {
+      "invitationSent": "{{email}} को आमंत्रण भेजा गया"
+    },
+    "tour": {
+      "inviteClients": "क्लाइंट्स को आमंत्रित करें",
+      "inviteClientsDesc": "अपने साथ जुड़ने और सहायता प्राप्त करने के लिए क्लाइंट्स को आमंत्रित करें।",
+      "setAvailability": "अपनी उपलब्धता सेट करें",
+      "setAvailabilityDesc": "क्लाइंट्स को बताएं कि आप कब उपलब्ध हैं, दूर हैं या ऑफ़लाइन हैं।",
+      "proPortal": "प्रोफेशनल पोर्टल का उपयोग करें",
+      "proPortalDesc": "अपने क्लाइंट्स को देखने और प्रबंधित करने के लिए स्टूडियो खोलें।"
+    }
+  },
+  "businessDashboard": {
+    "title": "संगठन डैशबोर्ड",
+    "settingUp": "सेट अप हो रहा है…",
+    "confirmingPayment": "आपका भुगतान कन्फर्म हो रहा है…",
+    "loading": "लोड हो रहा है…",
+    "noBusinessFound": "कोई संगठन नहीं मिला",
+    "orgMember": "संगठन सदस्य",
+    "orgAccessActive": "संगठन एक्सेस सक्रिय",
+    "role": "भूमिका",
+    "access": "एक्सेस",
+    "joined": "शामिल हुए",
+    "academy": "माई परफेक्ट मील्स अकादमी",
+    "orgPolicies": "संगठन नीतियां",
+    "clientOwnership": "क्लाइंट स्वामित्व",
+    "allSet": "सब तैयार",
+    "teamSeats": "टीम सीटें",
+    "inviteTeamMember": "टीम सदस्य को आमंत्रित करें",
+    "inviteClient": "क्लाइंट को आमंत्रित करें",
+    "sendEmail": "ईमेल भेजें",
+    "copyLink": "लिंक कॉपी करें",
+    "roles": {
+      "coach": "कोच",
+      "trainer": "ट्रेनर",
+      "physician": "चिकित्सक",
+      "staff": "स्टाफ"
+    },
+    "policies": {
+      "orgOnly": "केवल संगठन के क्लाइंट",
+      "orgOnlyDesc": "सदस्य केवल संगठन के माध्यम से सौंपे गए क्लाइंट्स के साथ काम कर सकते हैं।",
+      "withDisclosure": "प्रकटीकरण के साथ अनुमति",
+      "withDisclosureDesc": "सदस्य व्यक्तिगत क्लाइंट्स रख सकते हैं लेकिन उन्हें संगठन को उनका खुलासा करना होगा।",
+      "free": "व्यक्तिगत क्लाइंट्स की पूरी छूट",
+      "freeDesc": "सदस्य बिना किसी प्रतिबंध के संगठन के बाहर व्यक्तिगत क्लाइंट्स रख सकते हैं।"
+    },
+    "errors": {
+      "couldNotSavePolicy": "नीति सहेज नहीं सकी",
+      "policyError": "कुछ गलत हो गया। कृपया पुन: प्रयास करें।",
+      "nameTooShort": "नाम बहुत छोटा है",
+      "enterTwoChars": "कृपया कम से कम 2 वर्ण दर्ज करें।",
+      "couldNotSave": "सहेज नहीं सका",
+      "invalidEmail": "अमान्य ईमेल",
+      "enterValidEmail": "कृपया एक वैध ईमेल पता दर्ज करें।",
+      "inviteFailed": "आमंत्रण विफल"
+    },
+    "success": {
+      "policySaved": "नीति सहेजी गई",
+      "policyUpdated": "संगठन नीति सफलतापूर्वक अपडेट की गई।",
+      "policyUpdatedClient": "क्लाइंट स्वामित्व नीति अपडेट की गई।",
+      "invitationSent": "आमंत्रण भेजा गया"
+    }
+  },
+  "careTeam": {
+    "tourTitle": "आपकी केयर टीम",
+    "tour": {
+      "inviteYourTeam": "अपनी केयर टीम को आमंत्रित करें",
+      "inviteYourTeamDesc": "अपनी पोषण यात्रा में सहायता के लिए विश्वसनीय प्रोफेशनल्स को आमंत्रित करें।",
+      "setPermissions": "अनुमतियां सेट करें",
+      "setPermissionsDesc": "चुनें कि प्रत्येक प्रोफेशनल क्या देख और प्रबंधित कर सकता है।",
+      "accessCodes": "एक्सेस कोड का उपयोग करें",
+      "accessCodesDesc": "अपने सुरक्षित एक्सेस कोड का उपयोग करके किसी प्रदाता से जुड़ें।",
+      "manageMembers": "सदस्यों को प्रबंधित करें",
+      "manageMembersDesc": "केयर टीम एक्सेस की समीक्षा करें, उसे स्वीकृत करें और रद्द करें।"
+    },
+    "roles": {
+      "trainer": "ट्रेनर",
+      "doctor": "डॉक्टर",
+      "np": "नर्स प्रैक्टिशनर",
+      "rn": "आरएन",
+      "pa": "फिजिशियन असिस्टेंट",
+      "nutritionist": "पोषण विशेषज्ञ",
+      "dietitian": "आहार विशेषज्ञ"
+    },
+    "toast": {
+      "invitationAccepted": "आमंत्रण स्वीकार कर लिया गया!",
+      "invitationSent": "{{email}} को आमंत्रण भेजा गया",
+      "providerConnected": "प्रदाता सफलतापूर्वक जुड़ गया।",
+      "memberApproved": "सदस्य स्वीकृत।",
+      "accessRevoked": "एक्सेस रद्द कर दिया गया।"
+    },
+    "errors": {
+      "invalidInvitationCode": "अमान्य आमंत्रण कोड।",
+      "loadFailed": "केयर टीम लोड करने में विफल।",
+      "emailRequired": "ईमेल आवश्यक है।",
+      "sendInviteFailed": "आमंत्रण भेजने में विफल।",
+      "providerCodeRequired": "प्रदाता कोड आवश्यक है।",
+      "invalidProviderCode": "अमान्य प्रदाता कोड।",
+      "approveFailed": "सदस्य को स्वीकृत करने में विफल।",
+      "revokeFailed": "सदस्य को रद्द करने में विफल।"
+    },
+    "invite": {
+      "title": "केयर प्रोफेशनल को आमंत्रित करें",
+      "roleLabel": "प्रोफेशनल भूमिका",
+      "rolePlaceholder": "एक भूमिका चुनें",
+      "emailLabel": "ईमेल पता",
+      "emailPlaceholder": "professional@example.com",
+      "permissionsTitle": "अनुमतियां",
+      "viewMacros": "मैक्रोज़ देखें",
+      "addMeals": "भोजन जोड़ें",
+      "editPlan": "पोषण योजना संपादित करें",
+      "permissionsHint": "आप इन अनुमतियों को बाद में बदल सकते हैं।",
+      "sendInvite": "आमंत्रण भेजें"
+    },
+    "connect": {
+      "title": "अपने प्रदाता से जुड़ें",
+      "description": "अपने केयर प्रोफेशनल द्वारा प्रदान किया गया एक्सेस कोड दर्ज करें।",
+      "codeLabel": "प्रदाता एक्सेस कोड",
+      "codePlaceholder": "एक्सेस कोड दर्ज करें",
+      "button": "प्रदाता से जुड़ें",
+      "disclaimer": "केवल उन प्रदाताओं के साथ जुड़ें जिन पर आप भरोसा करते हैं।"
+    },
+    "howItWorks": {
+      "title": "यह कैसे काम करता है",
+      "step1": "एक विश्वसनीय केयर प्रोफेशनल को आमंत्रित करें या उनके एक्सेस कोड का उपयोग करें।",
+      "step2": "उन्हें दी जाने वाली अनुमतियां चुनें।",
+      "step3": "आपका प्रोफेशनल आपकी पोषण जानकारी की समीक्षा कर सकता है और आपकी योजना में सहायता कर सकता है।",
+      "step4": "किसी भी समय एक्सेस प्रबंधित करें या रद्द करें।",
+      "disclaimer": "आपका डेटा निजी और सुरक्षित रहता है।"
+    },
+    "members": {
+      "title": "सक्रिय केयर कनेक्शन",
+      "subtitle": "वर्तमान में आपके खाते से जुड़े प्रोफेशनल्स",
+      "empty": "अभी तक कोई सक्रिय केयर टीम सदस्य नहीं है।",
+      "unnamedPro": "केयर प्रोफेशनल",
+      "openProPortal": "प्रोफेशनल पोर्टल खोलें",
+      "approve": "स्वीकृत करें",
+      "revoke": "एक्सेस रद्द करें",
+      "revokeTitle": "एक्सेस रद्द करें?",
+      "cancel": "रद्द करें",
+      "revokeConfirm": "एक्सेस रद्द करें"
     }
   }
 }
