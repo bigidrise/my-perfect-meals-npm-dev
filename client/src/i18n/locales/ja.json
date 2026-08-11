@@ -1033,158 +1033,470 @@
   },
   "pro": {
     "trainerDashboard": {
-      "carbs": "Carbs",
-      "fat": "Fat",
-      "macroTargets": "Macro Targets",
-      "protein": "Protein",
-      "save": "Save",
-      "saved": "Saved",
-      "tourTitle": "Trainer Dashboard Tour",
+      "carbs": "炭水化物",
+      "fat": "脂質",
+      "macroTargets": "マクロ栄養素目標",
+      "protein": "タンパク質",
+      "save": "保存",
+      "saved": "保存済み",
+      "tourTitle": "トレーナーダッシュボードツアー",
       "tour": {
-        "step1Title": "Client Overview",
-        "step1Desc": "See your client's key information and current nutrition setup.",
-        "step2Title": "Macro Targets",
-        "step2Desc": "Set daily protein, carbohydrate, and fat targets for your client.",
-        "step3Title": "Nutrition Context",
-        "step3Desc": "Review the client's goals, coaching notes, and relevant clinical context.",
-        "step4Title": "Meal Builder",
-        "step4Desc": "Choose and assign the nutrition builder that fits your client's needs.",
-        "step5Title": "Progress & Compliance",
-        "step5Desc": "Monitor your client's check-ins, weight trends, and nutrition progress.",
-        "step6Title": "Save Changes",
-        "step6Desc": "Save your updates so they are applied across your client's experience."
+        "step1Title": "クライアント概要",
+        "step1Desc": "クライアントの主要情報と現在の栄養設定を確認します。",
+        "step2Title": "マクロ栄養素目標",
+        "step2Desc": "クライアントの1日のタンパク質、炭水化物、脂質の目標を設定します。",
+        "step3Title": "栄養コンテキスト",
+        "step3Desc": "クライアントの目標、コーチングメモ、関連する臨床的背景を確認します。",
+        "step4Title": "ミールビルダー",
+        "step4Desc": "クライアントのニーズに合った栄養ビルダーを選択して割り当てます。",
+        "step5Title": "進捗とコンプライアンス",
+        "step5Desc": "クライアントのチェックイン、体重推移、栄養摂取の進捗を監視します。",
+        "step6Title": "変更を保存",
+        "step6Desc": "更新内容を保存して、クライアントの画面に反映させます。"
       },
-      "fibrousCarbs": "Fibrous Carbs",
-      "bodyComposition": "Body Composition",
-      "bodyFat": "Body Fat",
-      "targetBodyFat": "Target Body Fat",
-      "method": "Method",
-      "source": "Source",
-      "activeOnClient": "Active on this client",
-      "physicianAuthRequired": "Physician authorization required"
+      "fibrousCarbs": "繊維質炭水化物",
+      "bodyComposition": "体組成",
+      "bodyFat": "体脂肪",
+      "targetBodyFat": "目標体脂肪率",
+      "method": "メソッド",
+      "source": "ソース",
+      "activeOnClient": "このクライアントに対して有効",
+      "physicianAuthRequired": "医師の承認が必要です"
     },
     "clinicianDashboard": {
-      "carbs": "Carbs",
-      "fat": "Fat",
-      "macroTargets": "Macro Targets",
-      "protein": "Protein",
-      "save": "Save",
-      "saved": "Saved",
-      "checkInCancelFailed": "Could not cancel the check-in",
-      "checkInCancelled": "Check-in cancelled",
-      "followUpScheduled": "Follow-up scheduled",
-      "scheduleFollowUpBtn": "Schedule Follow-up",
-      "schedulingFailed": "Scheduling failed",
-      "tourTitle": "Clinician Dashboard Tour",
+      "carbs": "炭水化物",
+      "fat": "脂質",
+      "macroTargets": "マクロ栄養素目標",
+      "protein": "タンパク質",
+      "save": "保存",
+      "saved": "保存済み",
+      "checkInCancelFailed": "チェックインをキャンセルできませんでした",
+      "checkInCancelled": "チェックインをキャンセルしました",
+      "followUpScheduled": "フォローアップを予約しました",
+      "scheduleFollowUpBtn": "フォローアップを予約",
+      "schedulingFailed": "予約に失敗しました",
+      "tourTitle": "臨床医ダッシュボードツアー",
       "tour": {
-        "step1Title": "Client Overview",
-        "step1Desc": "Review your patient's profile, nutrition status, and clinical information.",
-        "step2Title": "Macro Targets",
-        "step2Desc": "Set nutrition targets that support your patient's care plan.",
-        "step3Title": "Clinical Context",
-        "step3Desc": "Review active protocols, conditions, labs, and clinical notes.",
-        "step4Title": "Care Planning",
-        "step4Desc": "Assign the appropriate builder and schedule follow-up care.",
-        "step5Title": "Save Changes",
-        "step5Desc": "Save your updates to keep your patient's plan current."
+        "step1Title": "クライアント概要",
+        "step1Desc": "患者のプロフィール、栄養状態、臨床情報を確認します。",
+        "step2Title": "マクロ栄養素目標",
+        "step2Desc": "患者のケアプランをサポートする栄養目標を設定します。",
+        "step3Title": "臨床コンテキスト",
+        "step3Desc": "アクティブなプロトコル、疾患、検査値、臨床メモを確認します。",
+        "step4Title": "ケアプランニング",
+        "step4Desc": "適切なビルダーを割り当て、フォローアップケアを予約します。",
+        "step5Title": "変更を保存",
+        "step5Desc": "更新内容を保存して、患者のプランを最新の状態に保ちます。"
       },
-      "fibrousCarbs": "Fibrous Carbs",
-      "bodyComposition": "Body Composition",
-      "bodyFat": "Body Fat",
-      "targetBodyFat": "Target Body Fat",
-      "medicalDietaryDirectives": "Medical Dietary Directives",
-      "noBodyComp": "No body composition data recorded for this patient yet.",
-      "assignClinicalBuilder": "Assign Clinical Builder"
+      "fibrousCarbs": "繊維質炭水化物",
+      "bodyComposition": "体組成",
+      "bodyFat": "体脂肪",
+      "targetBodyFat": "目標体脂肪率",
+      "medicalDietaryDirectives": "医学的食事指示",
+      "noBodyComp": "この患者の体組成データはまだ記録されていません。",
+      "assignClinicalBuilder": "臨床ビルダーを割り当て"
     },
     "clients": {
-      "archiveConfirm": "Archive this client?",
-      "archiveSubtitle": "Archived clients will be hidden from your active client list.",
-      "back": "Back",
-      "cancel": "Cancel",
-      "desktopRequired": "Please use a desktop browser to manage clients.",
-      "hideArchived": "Hide archived",
-      "inboxEmpty": "No messages yet",
-      "inboxLoading": "Loading messages…",
-      "inboxSubtitle": "Recent messages",
-      "inboxTitle": "Client Inbox",
-      "restore": "Restore",
-      "showArchived": "Show archived",
-      "tapInbox": "Tap a message to open the client’s folder.",
-      "tourTitle": "Clients Tour",
+      "archiveConfirm": "このクライアントをアーカイブしますか？",
+      "archiveSubtitle": "アーカイブされたクライアントは、アクティブなクライアントリストから非表示になります。",
+      "back": "戻る",
+      "cancel": "キャンセル",
+      "desktopRequired": "クライアント管理にはデスクトップブラウザを使用してください。",
+      "hideArchived": "アーカイブを非表示",
+      "inboxEmpty": "メッセージはありません",
+      "inboxLoading": "メッセージを読み込み中…",
+      "inboxSubtitle": "最近のメッセージ",
+      "inboxTitle": "クライアント受信トレイ",
+      "restore": "復元",
+      "showArchived": "アーカイブを表示",
+      "tapInbox": "メッセージをタップしてクライアントのフォルダを開きます。",
+      "tourTitle": "クライアントツアーツアー",
       "tour": {
-        "step1Title": "Your Clients",
-        "step1Desc": "See all your connected clients in one place.",
-        "step2Title": "Client Inbox",
-        "step2Desc": "Review messages and open a client’s folder directly from the inbox.",
-        "step3Title": "Client Folders",
-        "step3Desc": "Open a client folder to view their dashboard, plans, and progress."
+        "step1Title": "クライアント一覧",
+        "step1Desc": "接続されているすべてのクライアントを一箇所で確認できます。",
+        "step2Title": "クライアント受信トレイ",
+        "step2Desc": "メッセージを確認し、受信トレイから直接クライアントのフォルダを開きます。",
+        "step3Title": "クライアントフォルダ",
+        "step3Desc": "クライアントフォルダを開いて、ダッシュボード、プラン、進捗状況を表示します。"
       }
     },
     "clientDashboard": {
-      "tourTitle": "Client Dashboard Tour",
+      "tourTitle": "クライアントダッシュボードツアー",
       "tour": {
-        "step1Title": "Your Nutrition Plan",
-        "step1Desc": "View the nutrition plan and builder your professional assigned to you.",
-        "step2Title": "Progress",
-        "step2Desc": "Track your check-ins, weight trends, and nutrition progress.",
-        "step3Title": "Messages",
-        "step3Desc": "Stay connected with your professional and review your conversations.",
-        "step4Title": "Your Goals",
-        "step4Desc": "Review and update your goals to keep your plan on track."
+        "step1Title": "栄養プラン",
+        "step1Desc": "担当の専門家が割り当てた栄養プランとビルダーを確認します。",
+        "step2Title": "進捗状況",
+        "step2Desc": "チェックイン、体重推移、栄養摂取の進捗を追跡します。",
+        "step3Title": "メッセージ",
+        "step3Desc": "専門家と連絡を取り合い、会話履歴を確認します。",
+        "step4Title": "目標",
+        "step4Desc": "目標を確認・更新して、プランを継続的に管理します。"
       }
     },
     "boardViewer": {
-      "error": "Could not load this meal board.",
-      "removed": "Meal removed",
-      "removedDesc": "The meal has been removed from this slot.",
+      "error": "この食事ボードを読み込めませんでした。",
+      "removed": "食事を削除しました",
+      "removedDesc": "このスロットから食事が削除されました。",
       "slots": {
-        "breakfast": "Breakfast",
-        "lunch": "Lunch",
-        "dinner": "Dinner",
-        "snacks": "Snacks"
+        "breakfast": "朝食",
+        "lunch": "昼食",
+        "dinner": "夕食",
+        "snacks": "間食"
       }
     },
     "physicianPortal": {
-      "comingSoon": "More features coming soon.",
-      "title": "Physician Portal",
-      "viewClients": "View Patients",
-      "tourTitle": "Physician Portal Tour",
+      "comingSoon": "新機能を順次追加予定です。",
+      "title": "医師ポータル",
+      "viewClients": "患者を表示",
+      "tourTitle": "医師ポータルツアー",
       "tour": {
-        "step1Title": "Patient Overview",
-        "step1Desc": "See all your connected patients and their current nutrition status.",
-        "step2Title": "Clinical Tools",
-        "step2Desc": "Access clinical builders, lab data, and protocol assignments.",
-        "step3Title": "Care Coordination",
-        "step3Desc": "Coordinate care with nurses, dietitians, and other professionals on your team.",
-        "step4Title": "Get Started",
-        "step4Desc": "Select a patient to open their clinical dashboard and begin managing their plan."
+        "step1Title": "患者概要",
+        "step1Desc": "接続されているすべての患者と現在の栄養状態を確認します。",
+        "step2Title": "臨床ツール",
+        "step2Desc": "臨床ビルダー、検査データ、プロトコルの割り当てにアクセスします。",
+        "step3Title": "ケアコーディネーション",
+        "step3Desc": "チームの看護師、管理栄養士、その他の専門家と連携します。",
+        "step4Title": "開始する",
+        "step4Desc": "患者を選択して臨床ダッシュボードを開き、プランの管理を開始します。"
       }
     },
     "gnbEntry": {
-      "headerLabel": "General Nutrition Builder",
-      "title": "Where would you like to start?",
-      "subtitle": "Build meals for today, or set up a training nutrition schedule that adjusts your macros based on your workout type.",
-      "continueTo": "Open General Nutrition Builder",
-      "continueDesc": "Build meals using your standard macro targets.",
-      "trainTitle": "Want training-aware macros?",
-      "trainDesc": "Set up a weekly training schedule and your macro targets will automatically adjust on training days versus rest days.",
-      "scheduleTitle": "Training Nutrition Schedule",
-      "scheduleDesc": "Set your weekly training type and get macro targets tailored to each day.",
-      "activeLabel": "Active",
-      "adjustmentsActive": "macro adjustments active",
-      "today": "Today: {{label}}",
-      "editSchedule": "Edit schedule",
-      "setupSchedule": "Set up training schedule",
-      "explainer": "Your macro targets stay the same every day until you set up a training schedule. Once active, training days get more carbohydrates and rest days pull back — automatically.",
+      "headerLabel": "一般栄養ビルダー",
+      "title": "どこから始めますか？",
+      "subtitle": "今日の食事を作成するか、トレーニングの種類に応じてマクロ栄養素を自動調整する栄養スケジュールを設定します。",
+      "continueTo": "一般栄養ビルダーを開く",
+      "continueDesc": "標準のマクロ栄養素目標を使用して食事を作成します。",
+      "trainTitle": "トレーニング対応のマクロ栄養素が必要ですか？",
+      "trainDesc": "週単位のトレーニングスケジュールを設定すると、トレーニング日と休息日に合わせてマクロ栄養素目標が自動的に調整されます。",
+      "scheduleTitle": "トレーニング栄養スケジュール",
+      "scheduleDesc": "週ごとのトレーニングタイプを設定し、日ごとに最適化されたマクロ栄養素目標を取得します。",
+      "activeLabel": "有効",
+      "adjustmentsActive": "マクロ調整が有効です",
+      "today": "本日: {{label}}",
+      "editSchedule": "スケジュールを編集",
+      "setupSchedule": "トレーニングスケジュールを設定",
+      "explainer": "トレーニングスケジュールを設定するまで、マクロ栄養素目標は毎日一定です。有効にすると、トレーニング日は炭水化物が増え、休息日は抑えられるように自動調整されます。",
       "sessions": {
-        "strength": "Strength Training",
-        "power": "Power / Explosiveness",
-        "endurance": "Endurance / Cardio",
-        "sport_practice": "Sport Practice",
-        "competition": "Competition Day",
-        "recovery": "Active Recovery",
-        "off": "Rest Day"
+        "strength": "筋力トレーニング",
+        "power": "パワー / 瞬発力",
+        "endurance": "持久力 / 有酸素運動",
+        "sport_practice": "スポーツ練習",
+        "competition": "試合日",
+        "recovery": "アクティブリカバリー",
+        "off": "休息日"
       }
+    },
+    "procare": {
+      "bridge": {
+        "step1Badge": "ステップ 1 / 3",
+        "step1Title": "ProCareアカウントの作成",
+        "step1Desc": "専門家アカウントを設定して、ProCareツールとクライアント管理機能にアクセスします。",
+        "step1Button": "アカウントを作成",
+        "step2Badge": "ステップ 2 / 3",
+        "step2Title": "ProCareトレーニングの完了",
+        "step2Desc": "必要なトレーニングを完了して、プロフェッショナルスタジオへのフルアクセス権を解除します。",
+        "step2Phase1Title": "フェーズ 1: プラットフォームの基礎",
+        "step2Phase1Desc": "プラットフォームの主要機能と、クライアントを効果的にサポートする方法を学びます。",
+        "step2Excellent": "素晴らしい進捗です！",
+        "step2Button": "トレーニングを続ける",
+        "step3Badge": "ステップ 3 / 3",
+        "step3Title": "スタジオの有効化",
+        "step3Desc": "トレーニングが完了しました。プロフェッショナルスタジオを有効にして、クライアントとの業務を開始します。",
+        "step3Phase2Title": "フェーズ 2: 高度なツール",
+        "step3Phase2Desc": "より詳細なクライアントサポートのための高度な臨床・コーチングツールをアンロックします。",
+        "step3Button": "スタジオを有効化"
+      },
+      "launchpad": {
+        "certifiedBadge": "認定済み",
+        "certProgress": "認定プロセスの進捗",
+        "dashboard": "ダッシュボード",
+        "enterStudio": "スタジオへ入る",
+        "quickLinks": "クイックリンク",
+        "resumeCertification": "認定プロセスを再開",
+        "resumePhase2": "フェーズ2を再開"
+      },
+      "welcome": {
+        "back": "戻る",
+        "beginJourney": "旅を始める"
+      },
+      "training": {
+        "back": "戻る",
+        "backToLaunchpad": "ランチパッドに戻る",
+        "completeUnlock": "完了してアンロック",
+        "continueButton": "続ける",
+        "phase2Label": "フェーズ 2",
+        "progress": "進捗"
+      },
+      "rewards": {
+        "back": "戻る",
+        "background": "専門的背景"
+      },
+      "identity": {
+        "continueButton": "続ける"
+      },
+      "attestation": {
+        "categoryLabel": "専門カテゴリ",
+        "checkboxLabel": "私は有資格の専門家であることを確認し、このプラットフォームを責任を持って使用することに同意します。",
+        "createAccount": "アカウントを作成",
+        "pendingVerification": "承認待ち",
+        "platformSafety": "プラットフォームの安全性",
+        "upgradeToPro": "プロにアップグレード",
+        "upgrading": "アップグレード中…"
+      },
+      "certifiedUnlock": {
+        "badge": "認定プロフェッショナル",
+        "enterStudio": "プロフェッショナルスタジオへ入る",
+        "nextStepsTitle": "次のステップ",
+        "subtitle": "ProCare認定を完了し、プロフェッショナルスタジオへのフルアクセス権をアンロックしました。",
+        "title": "認定完了",
+        "unlockedTitle": "スタジオアンロック済み"
+      }
+    }
+  },
+  "procare": {
+    "bridge": {
+      "step1Badge": "3ステップ中1ステップ目",
+      "step1Title": "ProCareアカウントの作成",
+      "step1Desc": "プロフェッショナルアカウントを設定し、ProCareツールとクライアント管理にアクセスしましょう。",
+      "step1Button": "アカウントを作成",
+      "step2Badge": "3ステップ中2ステップ目",
+      "step2Title": "ProCareトレーニングを完了",
+      "step2Desc": "必須トレーニングを完了して、プロフェッショナルスタジオへのフルアクセスをアンロックしましょう。",
+      "step2Phase1Title": "フェーズ1：プラットフォームの基礎",
+      "step2Phase1Desc": "コアプラットフォーム機能と、クライアントを効果的にサポートする方法を学びます。",
+      "step2Excellent": "素晴らしい進捗です！",
+      "step2Button": "トレーニングを続ける",
+      "step3Badge": "3ステップ中3ステップ目",
+      "step3Title": "スタジオを有効化",
+      "step3Desc": "トレーニングが完了しました。プロフェッショナルスタジオを有効化して、クライアントとの仕事を始めましょう。",
+      "step3Phase2Title": "フェーズ2：高度なツール",
+      "step3Phase2Desc": "より深いクライアントサポートのための高度な臨床およびコーチングツールをアンロックします。",
+      "step3Button": "スタジオを有効化"
+    },
+    "launchpad": {
+      "certifiedBadge": "認定済み",
+      "certProgress": "認定の進捗",
+      "dashboard": "ダッシュボード",
+      "enterStudio": "スタジオに入る",
+      "quickLinks": "クイックリンク",
+      "resumeCertification": "認定を再開",
+      "resumePhase2": "フェーズ2を再開"
+    },
+    "welcome": {
+      "back": "戻る",
+      "beginJourney": "旅を始める"
+    },
+    "training": {
+      "back": "戻る",
+      "backToLaunchpad": "Launchpadに戻る",
+      "completeUnlock": "完了してアンロック",
+      "continueButton": "続行",
+      "phase2Label": "フェーズ2",
+      "progress": "進捗"
+    },
+    "rewards": {
+      "back": "戻る",
+      "background": "プロフェッショナルな経歴"
+    },
+    "identity": {
+      "continueButton": "続行"
+    },
+    "attestation": {
+      "categoryLabel": "プロフェッショナルカテゴリー",
+      "checkboxLabel": "私は資格のある専門家であることを確認し、このプラットフォームを責任を持って使用することに同意します。",
+      "createAccount": "アカウントを作成",
+      "pendingVerification": "確認待ち",
+      "platformSafety": "プラットフォームの安全性",
+      "upgradeToPro": "Proにアップグレード",
+      "upgrading": "アップグレード中…"
+    },
+    "certifiedUnlock": {
+      "badge": "認定プロフェッショナル",
+      "enterStudio": "プロフェッショナルスタジオに入る",
+      "nextStepsTitle": "次のステップ",
+      "subtitle": "ProCare認定を完了し、プロフェッショナルスタジオへのフルアクセスをアンロックしました。",
+      "title": "認定完了",
+      "unlockedTitle": "スタジオアンロック済み"
+    }
+  },
+  "trainerCareTeam": {
+    "title": "トレーナーケアチーム",
+    "tourTitle": "トレーナーケアチーム",
+    "platform": {
+      "explore": "プラットフォームを探索",
+      "description": "プラットフォームを活用してクライアントをサポートする方法を学びます。",
+      "button": "機能を探索"
+    },
+    "availability": {
+      "title": "ステータス",
+      "saving": "保存中…",
+      "saved": "保存完了",
+      "available": "オンライン",
+      "away": "離席中",
+      "offline": "オフライン",
+      "from": "開始",
+      "until": "終了"
+    },
+    "studio": {
+      "activeClients": "アクティブなクライアント",
+      "viewAndManage": "プロフェッショナルポータルでクライアントを表示・管理します。",
+      "portalButton": "スタジオを開く"
+    },
+    "invite": {
+      "title": "クライアントを招待",
+      "roleLabel": "役割",
+      "emailLabel": "クライアントのメールアドレス",
+      "emailPlaceholder": "client@example.com",
+      "sendInvite": "招待を送信"
+    },
+    "errors": {
+      "loadFailed": "ケアチームの読み込みに失敗しました。",
+      "emailRequired": "メールアドレスが必要です。",
+      "sendInviteFailed": "招待の送信に失敗しました。",
+      "availabilityFailed": "ステータスの更新に失敗しました。",
+      "saveDatesFailed": "日付の保存に失敗しました。"
+    },
+    "toast": {
+      "invitationSent": "{{email}} に招待を送信しました"
+    },
+    "tour": {
+      "inviteClients": "クライアントを招待",
+      "inviteClientsDesc": "クライアントを招待して、サポートを開始しましょう。",
+      "setAvailability": "ステータスを設定",
+      "setAvailabilityDesc": "オンライン、離席中、オフラインの状態をクライアントに知らせます。",
+      "proPortal": "プロフェッショナルポータルを利用",
+      "proPortalDesc": "スタジオを開いてクライアントを表示・管理します。"
+    }
+  },
+  "businessDashboard": {
+    "title": "組織ダッシュボード",
+    "settingUp": "設定中…",
+    "confirmingPayment": "支払いを承認中…",
+    "loading": "読み込み中…",
+    "noBusinessFound": "組織が見つかりません",
+    "orgMember": "組織メンバー",
+    "orgAccessActive": "組織アクセス有効",
+    "role": "役割",
+    "access": "アクセス権",
+    "joined": "参加日",
+    "academy": "My Perfect Meals アカデミー",
+    "orgPolicies": "組織ポリシー",
+    "clientOwnership": "クライアントの所有権",
+    "allSet": "設定完了",
+    "teamSeats": "チームシート",
+    "inviteTeamMember": "チームメンバーを招待",
+    "inviteClient": "クライアントを招待",
+    "sendEmail": "メールを送信",
+    "copyLink": "リンクをコピー",
+    "roles": {
+      "coach": "コーチ",
+      "trainer": "トレーナー",
+      "physician": "医師",
+      "staff": "スタッフ"
+    },
+    "policies": {
+      "orgOnly": "組織クライアントのみ",
+      "orgOnlyDesc": "メンバーは組織を通じて割り当てられたクライアントのみ対応可能です。",
+      "withDisclosure": "開示により許可",
+      "withDisclosureDesc": "個人のクライアントを維持できますが、組織に開示する必要があります。",
+      "free": "個人のクライアントを自由に許可",
+      "freeDesc": "制限なしで組織外の個人クライアントを維持できます。"
+    },
+    "errors": {
+      "couldNotSavePolicy": "ポリシーを保存できませんでした",
+      "policyError": "問題が発生しました。再度お試しください。",
+      "nameTooShort": "名前が短すぎます",
+      "enterTwoChars": "2文字以上入力してください。",
+      "couldNotSave": "保存できませんでした",
+      "invalidEmail": "無効なメールアドレス",
+      "enterValidEmail": "有効なメールアドレスを入力してください。",
+      "inviteFailed": "招待に失敗しました"
+    },
+    "success": {
+      "policySaved": "ポリシーを保存しました",
+      "policyUpdated": "組織ポリシーが正常に更新されました。",
+      "policyUpdatedClient": "クライアント所有権ポリシーが更新されました。",
+      "invitationSent": "招待を送信しました"
+    }
+  },
+  "careTeam": {
+    "tourTitle": "ケアチーム",
+    "tour": {
+      "inviteYourTeam": "ケアチームを招待",
+      "inviteYourTeamDesc": "信頼できる専門家を招待して、栄養管理の旅をサポートしてもらいましょう。",
+      "setPermissions": "権限を設定",
+      "setPermissionsDesc": "各専門家が表示・管理できる内容を選択します。",
+      "accessCodes": "アクセスコードを使用",
+      "accessCodesDesc": "安全なアクセスコードを使用して専門家とつながりましょう。",
+      "manageMembers": "メンバーを管理",
+      "manageMembersDesc": "ケアチームのアクセス権を確認、承認、取り消しします。"
+    },
+    "roles": {
+      "trainer": "トレーナー",
+      "doctor": "医師",
+      "np": "ナースプラクティショナー",
+      "rn": "正看護師",
+      "pa": "医師助手",
+      "nutritionist": "栄養士",
+      "dietitian": "管理栄養士"
+    },
+    "toast": {
+      "invitationAccepted": "招待を承諾しました！",
+      "invitationSent": "{{email}} に招待を送信しました",
+      "providerConnected": "専門家と正常に接続されました。",
+      "memberApproved": "メンバーを承認しました。",
+      "accessRevoked": "アクセスを取り消しました。"
+    },
+    "errors": {
+      "invalidInvitationCode": "無効な招待コードです。",
+      "loadFailed": "ケアチームの読み込みに失敗しました。",
+      "emailRequired": "メールアドレスが必要です。",
+      "sendInviteFailed": "招待の送信に失敗しました。",
+      "providerCodeRequired": "専門家コードが必要です。",
+      "invalidProviderCode": "無効な専門家コードです。",
+      "approveFailed": "メンバーの承認に失敗しました。",
+      "revokeFailed": "アクセス権の取り消しに失敗しました。"
+    },
+    "invite": {
+      "title": "ケア専門家を招待",
+      "roleLabel": "役割",
+      "rolePlaceholder": "役割を選択",
+      "emailLabel": "メールアドレス",
+      "emailPlaceholder": "professional@example.com",
+      "permissionsTitle": "権限",
+      "viewMacros": "マクロの表示",
+      "addMeals": "食事の追加",
+      "editPlan": "栄養計画の編集",
+      "permissionsHint": "これらの権限は後で変更できます。",
+      "sendInvite": "招待を送信"
+    },
+    "connect": {
+      "title": "専門家とつながる",
+      "description": "ケア専門家から提供されたアクセスコードを入力してください。",
+      "codeLabel": "専門家アクセスコード",
+      "codePlaceholder": "アクセスコードを入力",
+      "button": "専門家と接続",
+      "disclaimer": "信頼できる専門家とのみ接続してください。"
+    },
+    "howItWorks": {
+      "title": "利用方法",
+      "step1": "信頼できるケア専門家を招待するか、アクセスコードを使用します。",
+      "step2": "専門家に付与する権限を選択します。",
+      "step3": "専門家が栄養情報を確認し、計画をサポートします。",
+      "step4": "いつでもアクセス権を管理または取り消しできます。",
+      "disclaimer": "データは非公開で安全に保管されます。"
+    },
+    "members": {
+      "title": "アクティブなケア接続",
+      "subtitle": "現在アカウントに接続されている専門家",
+      "empty": "現在、アクティブなケアチームメンバーはいません。",
+      "unnamedPro": "ケア専門家",
+      "openProPortal": "プロフェッショナルポータルを開く",
+      "approve": "承認",
+      "revoke": "取り消し",
+      "revokeTitle": "アクセスを取り消しますか？",
+      "cancel": "キャンセル",
+      "revokeConfirm": "アクセスを取り消す"
     }
   }
 }
