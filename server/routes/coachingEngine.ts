@@ -408,10 +408,14 @@ router.get("/bootstrap", requireAuth, async (req: Request, res: Response) => {
             created_at: string;
           }>(sql`
             SELECT id, role, content, structured_payload, created_at
-            FROM coach_messages
-            WHERE conversation_id = ${convId}
+            FROM (
+              SELECT id, role, content, structured_payload, created_at
+              FROM coach_messages
+              WHERE conversation_id = ${convId}
+              ORDER BY created_at DESC
+              LIMIT 20
+            ) newest
             ORDER BY created_at ASC
-            LIMIT 20
           `)
         : Promise.resolve({ rows: [] as any[] }),
       (async () => {
@@ -429,11 +433,102 @@ router.get("/bootstrap", requireAuth, async (req: Request, res: Response) => {
       profile,
       conversationId: convId,
       messages: messagesResult.rows,
+      hasOlderMessages: messagesResult.rows.length === 20,
       dueFollowup: dueFollowup ?? null,
     });
   } catch (err: any) {
     console.error("[CoachingEngine] GET /bootstrap error:", err);
     return res.status(500).json({ error: "Failed to load coaching bootstrap" });
+  }
+});
+
+// ─── GET /messages/older ──────────────────────────────────────────────────────
+// Cursor-based pagination. beforeId = oldest currently loaded message ID.
+// Returns the 20 messages before it, displayed oldest→newest (ASC).
+
+router.get("/messages/older", requireAuth, async (req: Request, res: Response) => {
+  const authReq = req as AuthenticatedRequest;
+  const userId = authReq.authUser?.id;
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+  const { conversationId, beforeId } = req.query as {
+    conversationId?: string;
+    beforeId?: string;
+  };
+  if (!conversationId || !beforeId) {
+    return res.status(400).json({ error: "conversationId and beforeId are required" });
+  }
+
+  try {
+    // Verify ownership
+    const convCheck = await db.execute<{ owner_id: string }>(sql`
+      SELECT owner_id FROM coach_conversations WHERE id = ${conversationId} LIMIT 1
+    `);
+    const conv = convCheck.rows[0];
+    if (!conv) return res.status(404).json({ error: "Conversation not found" });
+    if (conv.owner_id !== userId) return res.status(403).json({ error: "Forbidden" });
+
+    const result = await db.execute<{
+      id: string;
+      role: string;
+      content: string;
+      structured_payload: any;
+      created_at: string;
+    }>(sql`
+      SELECT id, role, content, structured_payload, created_at
+      FROM (
+        SELECT id, role, content, structured_payload, created_at
+        FROM coach_messages
+        WHERE conversation_id = ${conversationId}
+          AND created_at < (
+            SELECT created_at FROM coach_messages WHERE id = ${beforeId} LIMIT 1
+          )
+        ORDER BY created_at DESC
+        LIMIT 20
+      ) older
+      ORDER BY created_at ASC
+    `);
+
+    return res.json({
+      messages: result.rows,
+      hasMore: result.rows.length === 20,
+    });
+  } catch (err: any) {
+    console.error("[CoachingEngine] GET /messages/older error:", err);
+    return res.status(500).json({ error: "Failed to load older messages" });
+  }
+});
+
+// ─── DELETE /message/:id ──────────────────────────────────────────────────────
+// Deletes a single message. Ownership verified via conversation.owner_id.
+// Removes the chat entry ONLY — extracted coaching memory/patterns derived
+// from this message are intentionally NOT deleted (separate systems).
+
+router.delete("/message/:id", requireAuth, async (req: Request, res: Response) => {
+  const authReq = req as AuthenticatedRequest;
+  const userId = authReq.authUser?.id;
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+  const { id } = req.params;
+
+  try {
+    // Verify ownership via the parent conversation
+    const check = await db.execute<{ owner_id: string }>(sql`
+      SELECT c.owner_id
+      FROM coach_messages m
+      JOIN coach_conversations c ON c.id = m.conversation_id
+      WHERE m.id = ${id}
+      LIMIT 1
+    `);
+    const row = check.rows[0];
+    if (!row) return res.status(404).json({ error: "Message not found" });
+    if (row.owner_id !== userId) return res.status(403).json({ error: "Forbidden" });
+
+    await db.execute(sql`DELETE FROM coach_messages WHERE id = ${id}`);
+    return res.json({ success: true });
+  } catch (err: any) {
+    console.error("[CoachingEngine] DELETE /message/:id error:", err);
+    return res.status(500).json({ error: "Failed to delete message" });
   }
 });
 

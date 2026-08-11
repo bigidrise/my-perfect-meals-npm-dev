@@ -145,6 +145,16 @@ export const persistentHunger: ReasoningFamily = {
 
   safeActions: [
     {
+      kind: "drink",
+      description:
+        "When the user is physically hungry but doesn't want a full meal, suggest a lighter liquid option " +
+        "(protein shake, smoothie, or similar) that satisfies hunger without requiring a full plate of food. " +
+        "No protein-gap evidence is required — the expressed preference for lighter eating is sufficient.",
+      condition: "User is hungry but explicitly doesn't want a full meal, or prefers something lighter",
+      featureId: "beverage_creator",
+      contextToPass: "User's remaining macro targets and preference for lighter/liquid nutrition",
+    },
+    {
       kind: "eat",
       description: "Add a protein-rich snack or meal to close the protein gap.",
       condition: "Protein is below target",

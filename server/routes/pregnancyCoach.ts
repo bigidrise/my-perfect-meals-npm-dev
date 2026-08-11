@@ -106,6 +106,105 @@ function stageLabel(stage: string): string {
   return labels[stage] ?? "Pregnancy";
 }
 
+// ─── Pregnancy status derivation (mirrors client-side derivePregnancyStatus) ──
+// For due-date tracking mode, week and trimester are computed from the due date,
+// not read from the stored stage field. This is the canonical source of truth.
+
+function computeWeekFromDueDate(dueDate: string): number | null {
+  try {
+    const due = new Date(dueDate + "T12:00:00");
+    const now = new Date();
+    const weeksUntilDue = (due.getTime() - now.getTime()) / (7 * 24 * 60 * 60 * 1000);
+    return Math.max(1, Math.min(42, Math.round(40 - weeksUntilDue)));
+  } catch {
+    return null;
+  }
+}
+
+function deriveStageAndWeek(
+  rawStage: string,
+  rawDueDate: string | null,
+  trackingMode: string
+): { resolvedStage: string; weekOfPregnancy: number | null } {
+  if (rawDueDate && trackingMode !== "manual") {
+    const week = computeWeekFromDueDate(rawDueDate);
+    if (week !== null) {
+      let resolvedStage = rawStage;
+      if (week <= 13) resolvedStage = "trimester-1";
+      else if (week <= 27) resolvedStage = "trimester-2";
+      else resolvedStage = "trimester-3";
+      return { resolvedStage, weekOfPregnancy: week };
+    }
+  }
+  return { resolvedStage: rawStage, weekOfPregnancy: null };
+}
+
+// GET /bootstrap — single-call loader: conversation messages + pregnancy context
+// Replaces the 2-step waterfall (GET /conversation + derive from user profile).
+// Uses the same stage/week derivation as the client-side derivePregnancyStatus()
+// so due-date tracking mode produces the correct current week and trimester.
+// Returns: { messages, stage, weekOfPregnancy, symptoms, isBreastfeeding, dueDate, trackingMode }
+router.get("/bootstrap", async (req, res) => {
+  try {
+    const userId = resolveUserId(req);
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
+    // Load conversation and user profile in parallel
+    const [msgs, userRows] = await Promise.all([
+      getConversation(userId),
+      db
+        .select({
+          pregnancyStage: users.pregnancyStage,
+          pregnancyDueDate: users.pregnancyDueDate,
+          pregnancySupportContext: users.pregnancySupportContext,
+        })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1),
+    ]);
+
+    const userRow = userRows[0] ?? null;
+    const ctx = (userRow?.pregnancySupportContext as any) ?? null;
+    const rawStage = (userRow?.pregnancyStage as string | null) ?? null;
+    const rawDueDate = (userRow?.pregnancyDueDate as string | null) ?? null;
+    const trackingMode: string = ctx?.trackingMode ?? "manual";
+
+    // If pregnancy is not configured, return a null stage so the client can
+    // render the setup/unconfigured state — mirrors derivePregnancyStatus returning null.
+    if (!rawStage) {
+      return res.json({
+        messages: msgs,
+        stage: null,
+        weekOfPregnancy: null,
+        symptoms: [],
+        isBreastfeeding: false,
+        dueDate: null,
+        trackingMode: "manual",
+      });
+    }
+
+    // Derive week and resolved stage exactly as the client's derivePregnancyStatus does
+    const { resolvedStage, weekOfPregnancy } = deriveStageAndWeek(
+      rawStage,
+      rawDueDate,
+      trackingMode
+    );
+
+    return res.json({
+      messages: msgs,
+      stage: resolvedStage,
+      weekOfPregnancy,
+      symptoms: ctx?.symptoms ?? [],
+      isBreastfeeding: ctx?.isBreastfeeding ?? false,
+      dueDate: rawDueDate,
+      trackingMode,
+    });
+  } catch (err: any) {
+    console.error("[PregnancyCoach] GET /bootstrap error:", err.message);
+    return res.status(500).json({ error: "Failed to load bootstrap data" });
+  }
+});
+
 // GET /conversation — load persisted conversation history
 router.get("/conversation", async (req, res) => {
   const userId = resolveUserId(req);

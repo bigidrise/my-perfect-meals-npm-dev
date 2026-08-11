@@ -41,7 +41,7 @@ export default function CoachCornerCard() {
             completed ? "/coach-corner/home" : "/coach-corner/welcome"
           )
         }
-        className="w-full py-2.5 rounded-xl bg-black border-2 border-rose-700 text-white text-[11px] font-semibold uppercase tracking-wide transition-colors"
+        className="w-full py-2.5 rounded-xl bg-black border-2 border-orange-600 text-white text-[11px] font-semibold uppercase tracking-wide transition-colors"
       >
         {t("openBtn")}
       </button>
