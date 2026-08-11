@@ -1,24 +1,18 @@
 /**
- * CoachsCorner.tsx — Phase 4B: Conversational coaching interface
+ * CoachsCorner.tsx — Chef's Corner conversational coaching interface
  *
- * Takes the place of the old situation-picker (CoachCornerHome).
- * Backed by the Universal Coaching Engine via POST /api/coach/message.
- *
- * Flow:
- *   1. Check /api/coach-corner/status → if intake not done, redirect to intake
- *   2. Load conversation history from DB on mount
- *   3. Open-ended freeform chat
- *   4. Gear → My Coaching Profile (view / edit individual answers / retake)
- *
- * Evidence rule: usage ≠ consumption. The engine must know what a user
- * actually did vs. what they explored. This UI never fabricates that distinction.
+ * Architecture:
+ *   - Single bootstrap call → newest 20 messages, displayed oldest→newest
+ *   - Cursor-based "load older" pagination — prepend without scroll jump
+ *   - Per-message ⋯ menu → Delete (chat history only; coaching memory separate)
+ *   - One open conversation per user; grows indefinitely in DB
  */
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Settings, Send, RotateCcw, Check, Trash2 } from "lucide-react";
+import { Settings, Send, RotateCcw, Check, MoreHorizontal, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -31,8 +25,6 @@ import type { CoachCornerQuestion } from "@shared/coachCornerTypes";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-// The API returns items as objects; legacy DB rows may have strings.
-// Both are handled in CoachBubble via the planItemText() helper.
 interface PlanItem {
   text: string;
   horizon?: string;
@@ -72,7 +64,6 @@ interface DbMessage {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/** Safely extract display text from a plan item regardless of shape */
 function planItemText(item: PlanItem | string): string {
   if (typeof item === "string") return item;
   return item?.text ?? "";
@@ -82,7 +73,6 @@ function mapDbMessage(msg: DbMessage): UIMessage {
   if (msg.role === "user") {
     return { id: msg.id, role: "user", content: msg.content, createdAt: msg.created_at };
   }
-  // assistant / coach messages carry the structured payload
   return {
     id: msg.id,
     role: "coach",
@@ -124,7 +114,6 @@ function UserBubble({ content }: { content: string }) {
 }
 
 // ─── CoachBubble ──────────────────────────────────────────────────────────────
-// Renders the structured response as flowing prose — no section labels ever shown.
 
 function CoachBubble({ structured }: { structured: CoachStructuredResponse }) {
   const topParagraphs: string[] = [];
@@ -145,7 +134,6 @@ function CoachBubble({ structured }: { structured: CoachStructuredResponse }) {
           {topParagraphs.map((p, i) => (
             <p key={i}>{p}</p>
           ))}
-
           {planWhy && (
             <div className="space-y-2">
               <p>{planWhy}</p>
@@ -161,7 +149,6 @@ function CoachBubble({ structured }: { structured: CoachStructuredResponse }) {
               )}
             </div>
           )}
-
           {learningOpp && (
             <p className="text-white/60 italic text-[13px] border-t border-white/5 pt-3">
               {learningOpp}
@@ -198,6 +185,64 @@ function ThinkingBubble() {
   );
 }
 
+// ─── MessageRow ───────────────────────────────────────────────────────────────
+// Wraps a bubble with a ⋯ options button.
+// Tap ⋯ → "Delete message" menu appears above the button.
+// Deletion is chat-history only; extracted coaching memory is not touched.
+
+function MessageRow({
+  msg,
+  openMenuId,
+  setOpenMenuId,
+  onDelete,
+}: {
+  msg: UIMessage;
+  openMenuId: string | null;
+  setOpenMenuId: (id: string | null) => void;
+  onDelete: (id: string) => void;
+}) {
+  const isOpen = openMenuId === msg.id;
+  const isUser = msg.role === "user";
+
+  return (
+    <div>
+      {isUser ? (
+        <UserBubble content={msg.content!} />
+      ) : (
+        <CoachBubble structured={msg.structured!} />
+      )}
+      {/* ⋯ row — sits below each bubble, aligned to match the bubble side */}
+      <div className={`flex ${isUser ? "justify-end pr-1" : "justify-start pl-1"} mt-0.5`}>
+        <div className="relative">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpenMenuId(isOpen ? null : msg.id);
+            }}
+            className="p-1 rounded-full text-white/20 hover:text-white/55 hover:bg-white/8 transition-all"
+            aria-label="Message options"
+          >
+            <MoreHorizontal className="w-3.5 h-3.5" />
+          </button>
+          {isOpen && (
+            <div
+              className={`absolute ${isUser ? "right-0" : "left-0"} bottom-full mb-1 bg-zinc-900 border border-white/15 rounded-xl shadow-2xl z-50 overflow-hidden`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => onDelete(msg.id)}
+                className="flex items-center px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 w-full text-left whitespace-nowrap transition-colors"
+              >
+                Delete message
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── ProfileSheet ─────────────────────────────────────────────────────────────
 
 function ProfileSheet({
@@ -226,31 +271,22 @@ function ProfileSheet({
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="bg-zinc-950 border border-white/10 text-white max-w-lg w-full max-h-[82dvh] flex flex-col p-0 gap-0 overflow-hidden">
-        {/* Header */}
         <DialogHeader className="px-5 pt-5 pb-3 border-b border-white/10 shrink-0">
           <DialogTitle className="text-white text-left text-base">
             My Coaching Profile
           </DialogTitle>
           <p className="text-xs text-white/50 text-left">
-            These answers shape how Chef's Corner communicates with you — not what the
-            data says.
+            These answers shape how Chef's Corner communicates with you — not what the data says.
           </p>
         </DialogHeader>
 
-        {/* Scrollable question list */}
         <div className="flex-1 overflow-y-auto min-h-0">
           <div className="px-5 pt-4 pb-2 space-y-1.5">
             {questions.length === 0 && (
               <div className="py-8 text-center text-white/30 text-sm">Loading profile…</div>
             )}
-
             {questions.map((q) => {
-              const rawValue = profile?.[q.target] as
-                | string
-                | string[]
-                | number
-                | null
-                | undefined;
+              const rawValue = profile?.[q.target] as string | string[] | number | null | undefined;
               const answerLabel = getAnswerLabel(q, rawValue);
               const isEditing = editingField === q.id;
               const selectedValues = Array.isArray(rawValue)
@@ -261,7 +297,6 @@ function ProfileSheet({
 
               return (
                 <div key={q.id} className="rounded-xl overflow-hidden border border-white/5">
-                  {/* Question row */}
                   <button
                     className={`w-full flex items-start justify-between gap-3 px-4 py-3 text-left transition-colors ${
                       isEditing ? "bg-zinc-800" : "bg-zinc-900 hover:bg-zinc-800/70"
@@ -270,19 +305,14 @@ function ProfileSheet({
                     disabled={isSaving}
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="text-[13px] text-white/85 font-medium leading-snug">
-                        {q.prompt}
-                      </p>
-                      <p className="text-[12px] text-orange-400/70 mt-0.5 line-clamp-1">
-                        {answerLabel}
-                      </p>
+                      <p className="text-[13px] text-white/85 font-medium leading-snug">{q.prompt}</p>
+                      <p className="text-[12px] text-orange-400/70 mt-0.5 line-clamp-1">{answerLabel}</p>
                     </div>
                     <span className="text-white/20 text-[10px] mt-1 shrink-0 select-none">
                       {isEditing ? "▲" : "▼"}
                     </span>
                   </button>
 
-                  {/* Inline options */}
                   {isEditing && (
                     <div className="bg-zinc-800/60 px-3 pt-1.5 pb-2 space-y-1 border-t border-white/5">
                       {q.options.map((opt) => {
@@ -313,9 +343,7 @@ function ProfileSheet({
                             }`}
                           >
                             <span>{opt.label}</span>
-                            {selected && (
-                              <Check className="w-3.5 h-3.5 text-orange-400 shrink-0" />
-                            )}
+                            {selected && <Check className="w-3.5 h-3.5 text-orange-400 shrink-0" />}
                           </button>
                         );
                       })}
@@ -334,7 +362,6 @@ function ProfileSheet({
             })}
           </div>
 
-          {/* Retake button */}
           <div className="px-5 py-4">
             <button
               onClick={onRetake}
@@ -358,19 +385,11 @@ interface BootstrapData {
   profile: Record<string, unknown> | null;
   conversationId: string | null;
   messages: DbMessage[];
+  hasOlderMessages: boolean;
   dueFollowup: { id: string } | null;
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-//
-// Startup philosophy:
-//   1. Render the visual shell immediately — background + images start loading
-//      before any API response arrives.
-//   2. One bootstrap call replaces the old status → conversation → messages
-//      waterfall. The server runs those queries in parallel and returns a single
-//      response.
-//   3. Follow-up delivery is async and non-blocking — it runs after the UI is
-//      already visible and usable.
 
 export default function CoachsCorner() {
   const [, setLocation] = useLocation();
@@ -381,33 +400,34 @@ export default function CoachsCorner() {
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
-  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [localProfile, setLocalProfile] = useState<Record<string, unknown> | null>(null);
+  const [hasOlderMessages, setHasOlderMessages] = useState(false);
+  const [isLoadingOlder, setIsLoadingOlder] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const messagesInitialized = useRef(false);
   const followupFired = useRef(false);
+  // Used to skip the auto-scroll effect when older messages are prepended
+  const didLoadOlderRef = useRef(false);
+  // Stores scroll position before prepend so we can restore it after render
+  const scrollPreserveRef = useRef<{ scrollHeight: number; scrollTop: number } | null>(null);
 
-  // ── Bootstrap: one call instead of three sequential ones ──────────────────
-  // Returns completed, profile, conversation, messages, and pendingFollowupId in
-  // a single round-trip. The server runs profile + conversation in parallel,
-  // then messages + followup lookup in parallel.
+  // ── Bootstrap query ────────────────────────────────────────────────────────
   const bootstrapQuery = useQuery<BootstrapData>({
     queryKey: ["/api/coach/bootstrap"],
-    // Never retry on 4xx — a routing or auth error should surface immediately,
-    // not create a 7-second backoff delay before the hero renders.
     retry: (failureCount, error: any) => {
       if (error?.status >= 400 && error?.status < 500) return false;
       return failureCount < 2;
     },
   });
 
-  // Process bootstrap exactly once — gate on messagesInitialized ref so
-  // subsequent re-fetches (e.g. after profile patch) don't re-initialize state.
+  // Process bootstrap exactly once
   useEffect(() => {
     if (!bootstrapQuery.data || messagesInitialized.current) return;
-    const { profileCompleted, profile, conversationId: convId, messages: dbMessages } = bootstrapQuery.data;
+    const { profileCompleted, profile, conversationId: convId, messages: dbMessages, hasOlderMessages: hasOlder } = bootstrapQuery.data;
 
     if (!profileCompleted) {
       setLocation("/coach-corner/intake");
@@ -418,16 +438,14 @@ export default function CoachsCorner() {
     if (profile) setLocalProfile(profile);
     if (convId) setConversationId(convId);
     setMessages(dbMessages.map(mapDbMessage));
+    setHasOlderMessages(hasOlder ?? false);
   }, [bootstrapQuery.data, setLocation]);
 
-  // ── Phase 5: Async follow-up delivery — runs after UI is visible ──────────
-  // Bootstrap already tells us whether a followup is due (no extra round-trip).
-  // We deliver it in the background; the conversation list updates silently.
-  // followupFired ref prevents double-delivery on re-renders.
+  // ── Async follow-up delivery ───────────────────────────────────────────────
   useEffect(() => {
     const data = bootstrapQuery.data;
     if (!data?.dueFollowup?.id || followupFired.current) return;
-    if (!messagesInitialized.current) return; // wait until messages are set
+    if (!messagesInitialized.current) return;
 
     followupFired.current = true;
     const followupId = data.dueFollowup.id;
@@ -438,9 +456,7 @@ export default function CoachsCorner() {
         const deliverResult = await apiRequest(`/api/coach/followup/${followupId}/deliver`, {
           method: "POST",
         });
-
         if ((deliverResult?.success || deliverResult?.alreadyDelivered) && convId) {
-          // Silently refresh messages in background — UI stays usable throughout
           const refreshed = (await apiRequest(
             `/api/coach/conversation/${convId}/messages`
           )) as { messages: DbMessage[] };
@@ -454,16 +470,75 @@ export default function CoachsCorner() {
     })();
   }, [bootstrapQuery.data]);
 
-  // ── Questions for profile sheet (loaded on demand) ────────────────────────
+  // ── Close ⋯ menu on outside click ─────────────────────────────────────────
+  useEffect(() => {
+    if (!openMenuId) return;
+    const close = () => setOpenMenuId(null);
+    document.addEventListener("click", close, true);
+    return () => document.removeEventListener("click", close, true);
+  }, [openMenuId]);
+
+  // ── Questions (loaded on demand for profile sheet) ─────────────────────────
   const questionsQuery = useQuery<{ questions: CoachCornerQuestion[] }>({
     queryKey: ["/api/coach-corner/questions"],
     enabled: showProfile,
   });
 
-  // ── Auto-scroll ────────────────────────────────────────────────────────────
+  // ── Auto-scroll to bottom on new messages ──────────────────────────────────
+  // Skipped when didLoadOlderRef is true — scroll preservation handles that case.
   useEffect(() => {
+    if (didLoadOlderRef.current) return;
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
+
+  // ── Restore scroll position after older messages are prepended ────────────
+  useEffect(() => {
+    if (!didLoadOlderRef.current) return;
+    didLoadOlderRef.current = false;
+    const container = scrollContainerRef.current;
+    const saved = scrollPreserveRef.current;
+    if (!container || !saved) return;
+    container.scrollTop = container.scrollHeight - saved.scrollHeight + saved.scrollTop;
+    scrollPreserveRef.current = null;
+  }, [messages]);
+
+  // ── Load older messages (cursor-based) ────────────────────────────────────
+  const handleLoadOlder = useCallback(async () => {
+    const cid = conversationId ?? bootstrapQuery.data?.conversationId;
+    const oldestId = messages[0]?.id;
+    if (!cid || !oldestId || isLoadingOlder) return;
+
+    // Record scroll position before prepending
+    const container = scrollContainerRef.current;
+    if (container) {
+      scrollPreserveRef.current = {
+        scrollHeight: container.scrollHeight,
+        scrollTop: container.scrollTop,
+      };
+    }
+    didLoadOlderRef.current = true;
+    setIsLoadingOlder(true);
+
+    try {
+      const result = (await apiRequest(
+        `/api/coach/messages/older?conversationId=${cid}&beforeId=${oldestId}`
+      )) as { messages: DbMessage[]; hasMore: boolean };
+
+      if (result.messages.length > 0) {
+        setMessages((prev) => [...result.messages.map(mapDbMessage), ...prev]);
+      } else {
+        // Nothing came back — don't trigger scroll restoration
+        didLoadOlderRef.current = false;
+        scrollPreserveRef.current = null;
+      }
+      setHasOlderMessages(result.hasMore ?? false);
+    } catch {
+      didLoadOlderRef.current = false;
+      scrollPreserveRef.current = null;
+    } finally {
+      setIsLoadingOlder(false);
+    }
+  }, [conversationId, bootstrapQuery.data, messages, isLoadingOlder]);
 
   // ── Send message ──────────────────────────────────────────────────────────
   const sendMutation = useMutation({
@@ -501,8 +576,7 @@ export default function CoachsCorner() {
           id: `err-${Date.now()}`,
           role: "coach",
           structured: {
-            whatIFound:
-              "I ran into a problem processing your message. This is usually temporary.",
+            whatIFound: "I ran into a problem processing your message. This is usually temporary.",
             whatItCouldMean: "Try again in a moment.",
             todayPlan: null,
             learningOpportunity: null,
@@ -558,8 +632,6 @@ export default function CoachsCorner() {
       }),
     onSuccess: (data: { profile: Record<string, unknown> }) => {
       setLocalProfile(data.profile);
-      // Invalidate bootstrap so the profile sheet reflects the latest answers
-      // on next open; messagesInitialized guard prevents message re-init.
       queryClient.invalidateQueries({ queryKey: ["/api/coach/bootstrap"] });
     },
   });
@@ -572,37 +644,39 @@ export default function CoachsCorner() {
     patchMutation.mutate({ [questionId]: value });
   };
 
-  // ── Clear conversation ─────────────────────────────────────────────────────
-  const clearMutation = useMutation({
-    mutationFn: (cid: string) =>
-      apiRequest(`/api/coach/conversation/${cid}`, { method: "DELETE" }),
-    onSuccess: () => {
-      // Reset all local state — page returns to empty state immediately
-      setMessages([]);
-      setConversationId(null);
-      setShowClearConfirm(false);
-      messagesInitialized.current = false;
-      followupFired.current = false;
-      queryClient.invalidateQueries({ queryKey: ["/api/coach/bootstrap"] });
+  // ── Delete individual message ──────────────────────────────────────────────
+  // Optimistic: remove from UI immediately, restore on server error.
+  // Deletes the chat message ONLY — extracted coaching memory is not affected.
+  const deleteMsgMutation = useMutation({
+    mutationFn: (msgId: string) =>
+      apiRequest(`/api/coach/message/${msgId}`, { method: "DELETE" }),
+    onMutate: async (msgId: string) => {
+      const previous = messages.find((m) => m.id === msgId);
+      setMessages((prev) => prev.filter((m) => m.id !== msgId));
+      setOpenMenuId(null);
+      return { previous };
     },
-    onError: () => {
-      setShowClearConfirm(false);
+    onError: (_err: unknown, _msgId: string, context: any) => {
+      // Restore the deleted message at its original chronological position
+      if (context?.previous) {
+        const msg = context.previous as UIMessage;
+        setMessages((prev) => {
+          const idx = prev.findIndex((m) => m.createdAt > msg.createdAt);
+          if (idx === -1) return [...prev, msg];
+          return [...prev.slice(0, idx), msg, ...prev.slice(idx)];
+        });
+      }
     },
   });
 
-  const handleClear = () => {
-    // Use bootstrap data as primary source — more reliable than state which
-    // can be null if the useEffect guard ran before the ID was set.
-    const cid = conversationId ?? bootstrapQuery.data?.conversationId ?? null;
-    if (!cid) return;
-    clearMutation.mutate(cid);
-  };
+  const handleDeleteMessage = useCallback(
+    (msgId: string) => {
+      deleteMsgMutation.mutate(msgId);
+    },
+    [deleteMsgMutation]
+  );
 
   // ─── Render ────────────────────────────────────────────────────────────────
-  // The visual shell (background gradient + layout) renders immediately on mount
-  // so the browser can start fetching chefs-corner-bg.jpg and ChefBlackApron.png
-  // before the bootstrap response arrives. The message area shows a small inline
-  // spinner while the single bootstrap call is in-flight — no full-screen black.
 
   const bootstrapLoading = bootstrapQuery.isLoading;
   const bootstrapReady = bootstrapQuery.isSuccess && (bootstrapQuery.data?.profileCompleted ?? false);
@@ -619,23 +693,10 @@ export default function CoachsCorner() {
         backgroundPosition: "center 30%",
       }}
     >
-      {/* Centered column — on mobile fills full width; on desktop sits inside
-          the main content area (right of sidebar, left of copilot). */}
       <div className="flex-1 flex flex-col w-full max-w-2xl mx-auto min-h-0">
 
         {/* Header */}
-        <div className="shrink-0 bg-black/50 backdrop-blur-md flex items-center justify-end gap-2 px-4 h-14">
-          {hasMessages && (
-            <button
-              onClick={() => setShowClearConfirm(true)}
-              disabled={clearMutation.isPending}
-              className="flex items-center gap-1.5 px-3 h-8 rounded-full bg-white/8 border border-white/15 text-white/50 text-xs hover:text-red-400 hover:border-red-500/30 hover:bg-red-500/10 transition-colors disabled:opacity-40"
-              aria-label="Clear conversation"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              Clear
-            </button>
-          )}
+        <div className="shrink-0 bg-black/50 backdrop-blur-md flex items-center justify-end px-4 h-14">
           <button
             onClick={() => setShowProfile(true)}
             disabled={!bootstrapReady}
@@ -648,9 +709,8 @@ export default function CoachsCorner() {
         </div>
 
         {/* Message area */}
-        <div className="flex-1 overflow-y-auto px-4 py-5">
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 py-5">
           {bootstrapLoading ? (
-            /* Inline spinner — background is already painted, not a black void */
             <div className="flex items-center justify-center min-h-[58vh]">
               <div className="flex items-center gap-1.5">
                 {[0, 1, 2].map((i) => (
@@ -663,7 +723,6 @@ export default function CoachsCorner() {
               </div>
             </div>
           ) : !hasMessages ? (
-            /* Empty state */
             <div className="flex flex-col items-center justify-center min-h-[58vh] text-center select-none">
               <img
                 src="/assets/ChefBlackApron.png"
@@ -681,13 +740,35 @@ export default function CoachsCorner() {
             </div>
           ) : (
             <div className="space-y-5 py-1">
-              {messages.map((msg) =>
-                msg.role === "user" ? (
-                  <UserBubble key={msg.id} content={msg.content!} />
-                ) : (
-                  <CoachBubble key={msg.id} structured={msg.structured!} />
-                )
+              {/* Load older messages button — cursor-based, preserves scroll */}
+              {hasOlderMessages && (
+                <div className="flex justify-center pb-1">
+                  <button
+                    onClick={handleLoadOlder}
+                    disabled={isLoadingOlder}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs text-white/50 bg-black/30 border border-white/10 hover:text-white/70 hover:bg-black/50 transition-all disabled:opacity-40"
+                  >
+                    {isLoadingOlder ? (
+                      <>
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        Loading…
+                      </>
+                    ) : (
+                      "Load older messages"
+                    )}
+                  </button>
+                </div>
               )}
+
+              {messages.map((msg) => (
+                <MessageRow
+                  key={msg.id}
+                  msg={msg}
+                  openMenuId={openMenuId}
+                  setOpenMenuId={setOpenMenuId}
+                  onDelete={handleDeleteMessage}
+                />
+              ))}
               {isLoading && <ThinkingBubble />}
             </div>
           )}
@@ -725,7 +806,7 @@ export default function CoachsCorner() {
 
       </div>
 
-      {/* Behavioral Profile sheet — portal, renders outside the flow */}
+      {/* Behavioral Profile sheet */}
       <ProfileSheet
         open={showProfile}
         onClose={() => setShowProfile(false)}
@@ -738,34 +819,6 @@ export default function CoachsCorner() {
         }}
         isSaving={patchMutation.isPending}
       />
-
-      {/* Clear conversation confirmation */}
-      <Dialog open={showClearConfirm} onOpenChange={(v) => !v && setShowClearConfirm(false)}>
-        <DialogContent className="bg-zinc-950 border border-white/10 text-white max-w-sm w-full p-6">
-          <DialogHeader>
-            <DialogTitle className="text-white text-base">Clear this conversation?</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-white/55 mt-1 leading-relaxed">
-            All messages will be permanently deleted. Your coaching profile stays intact — only the chat history is removed.
-          </p>
-          <div className="flex gap-3 mt-5">
-            <button
-              onClick={() => setShowClearConfirm(false)}
-              disabled={clearMutation.isPending}
-              className="flex-1 py-2.5 rounded-xl border border-white/15 text-white/60 text-sm hover:text-white hover:border-white/25 transition-colors disabled:opacity-40"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleClear}
-              disabled={clearMutation.isPending}
-              className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition-colors disabled:opacity-50"
-            >
-              {clearMutation.isPending ? "Clearing…" : "Clear"}
-            </button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
