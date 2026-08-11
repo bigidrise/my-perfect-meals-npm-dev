@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Send, Baby, ShieldCheck, Leaf, BookOpen, ChevronDown, ChevronUp, Heart } from "lucide-react";
@@ -151,8 +152,85 @@ export default function MyPerfectPregnancyPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [bootstrapApplied, setBootstrapApplied] = useState(false);
+  // Track which user the applied bootstrap belongs to
+  const [bootstrapUserId, setBootstrapUserId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Single bootstrap query — scoped by user ID to prevent cross-account cache leaks.
+  // Disabled until user.id is available; enabled once authenticated.
+  const {
+    data: bootstrapData,
+    isSuccess: bootstrapReady,
+    isError: bootstrapFailed,
+  } = useQuery({
+    queryKey: ["pregnancy-bootstrap", user?.id ?? null],
+    queryFn: async () => {
+      const res = await fetch(apiUrl("/api/pregnancy/bootstrap"), {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("bootstrap failed");
+      return res.json() as Promise<{
+        messages: Message[];
+        stage: Stage | null;
+        weekOfPregnancy: number | null;
+        symptoms: string[];
+        isBreastfeeding: boolean;
+        dueDate: string | null;
+        trackingMode: string;
+      }>;
+    },
+    enabled: !!user?.id,
+    staleTime: 30_000,
+    retry: 1,
+  });
+
+  // Reset all account-sensitive state whenever the authenticated user changes.
+  // This prevents a prior account's messages/pregnancy data from remaining rendered
+  // during an in-place account switch (e.g. shared device, devtools account swap).
+  useEffect(() => {
+    if (!user?.id) return;
+    if (bootstrapUserId !== null && bootstrapUserId !== user.id) {
+      setMessages([]);
+      setPregnancyData(null);
+      setBootstrapApplied(false);
+      setBootstrapUserId(null);
+    }
+  }, [user?.id, bootstrapUserId]);
+
+  // Apply bootstrap data once it arrives for the current user.
+  // On terminal failure we still flip bootstrapApplied so historyLoaded becomes
+  // true and the empty-state coach prompt is shown (mirrors old finally behavior).
+  useEffect(() => {
+    if (bootstrapApplied) return;
+    if (bootstrapFailed) {
+      setBootstrapApplied(true);
+      setBootstrapUserId(user?.id ?? null);
+      return;
+    }
+    if (!bootstrapReady || !bootstrapData) return;
+    if (Array.isArray(bootstrapData.messages) && bootstrapData.messages.length > 0) {
+      setMessages(bootstrapData.messages);
+    }
+    // Only overwrite pregnancy context when bootstrap returns a configured stage.
+    // A null stage means the user hasn't set up pregnancy yet — preserve the
+    // auth-user seed so the setup/unconfigured state renders correctly.
+    if (bootstrapData.stage) {
+      setPregnancyData({
+        stage: bootstrapData.stage,
+        weekOfPregnancy: bootstrapData.weekOfPregnancy,
+        symptoms: bootstrapData.symptoms ?? [],
+        isBreastfeeding: bootstrapData.isBreastfeeding ?? false,
+        dueDate: bootstrapData.dueDate,
+        trackingMode: bootstrapData.trackingMode ?? "manual",
+      });
+    }
+    setBootstrapApplied(true);
+    setBootstrapUserId(user?.id ?? null);
+  }, [bootstrapReady, bootstrapFailed, bootstrapData, bootstrapApplied, user?.id]);
+
+  // historyLoaded is true once bootstrap settles (success or failure)
+  const historyLoaded = bootstrapApplied;
 
   // Seed from the already-loaded auth user immediately — no extra round-trip
   useEffect(() => {
@@ -166,28 +244,6 @@ export default function MyPerfectPregnancyPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
-
-  // Load saved conversation history on mount
-  useEffect(() => {
-    async function loadHistory() {
-      try {
-        const res = await fetch(apiUrl("/api/pregnancy/conversation"), {
-          credentials: "include",
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (Array.isArray(data.messages) && data.messages.length > 0) {
-            setMessages(data.messages as Message[]);
-          }
-        }
-      } catch {
-        // Silently ignore — start fresh
-      } finally {
-        setHistoryLoaded(true);
-      }
-    }
-    loadHistory();
-  }, []);
 
   function applyUserToPregnancyData(u: any) {
     const status = derivePregnancyStatus(u);
