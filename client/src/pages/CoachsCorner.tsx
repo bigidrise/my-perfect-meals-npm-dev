@@ -350,7 +350,26 @@ function ProfileSheet({
   );
 }
 
+// ─── Bootstrap response shape ─────────────────────────────────────────────────
+
+interface BootstrapData {
+  profileCompleted: boolean;
+  profile: Record<string, unknown> | null;
+  conversationId: string | null;
+  messages: DbMessage[];
+  dueFollowup: { id: string; dueAt: string } | null;
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
+//
+// Startup philosophy (matches Parent's Corner):
+//   1. Render the visual shell immediately — background + images start loading
+//      before any API response arrives.
+//   2. One bootstrap call replaces the old status → conversation → messages
+//      waterfall. The server runs those queries in parallel and returns a single
+//      response.
+//   3. Follow-up delivery is async and non-blocking — it runs after the UI is
+//      already visible and usable.
 
 export default function CoachsCorner() {
   const [, setLocation] = useLocation();
@@ -366,84 +385,69 @@ export default function CoachsCorner() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesInitialized = useRef(false);
+  const followupFired = useRef(false);
 
-  // ── 1. Status gate ─────────────────────────────────────────────────────────
-  const statusQuery = useQuery<{
-    completed: boolean;
-    profile: Record<string, unknown> | null;
-  }>({
-    queryKey: ["/api/coach-corner/status"],
+  // ── Bootstrap: one call instead of three sequential ones ──────────────────
+  // Returns profileCompleted, conversationId, messages, and dueFollowup in a
+  // single round-trip. The server runs profile + conversation in parallel, then
+  // messages + followup lookup in parallel.
+  const bootstrapQuery = useQuery<BootstrapData>({
+    queryKey: ["/api/coach/bootstrap"],
+    queryFn: () => apiRequest("/api/coach/bootstrap?specialization=corner"),
   });
 
-  const profileCompleted = statusQuery.data?.completed ?? false;
-
+  // Process bootstrap exactly once — gate on messagesInitialized ref so
+  // subsequent re-fetches (e.g. after profile patch) don't re-initialize state.
   useEffect(() => {
-    if (!statusQuery.isLoading && statusQuery.data && !statusQuery.data.completed) {
+    if (!bootstrapQuery.data || messagesInitialized.current) return;
+    const { profileCompleted, profile, conversationId: convId, messages: dbMessages } =
+      bootstrapQuery.data;
+
+    if (!profileCompleted) {
       setLocation("/coach-corner/intake");
+      return;
     }
-  }, [statusQuery.isLoading, statusQuery.data, setLocation]);
 
+    messagesInitialized.current = true;
+    if (profile) setLocalProfile(profile);
+    if (convId) setConversationId(convId);
+    setMessages(dbMessages.map(mapDbMessage));
+  }, [bootstrapQuery.data, setLocation]);
+
+  // ── Phase 5: Async follow-up delivery — runs after UI is visible ──────────
+  // Bootstrap already tells us whether a followup is due (no extra round-trip).
+  // We deliver it in the background; the conversation list updates silently.
   useEffect(() => {
-    if (statusQuery.data?.profile && localProfile === null) {
-      setLocalProfile(statusQuery.data.profile);
-    }
-  }, [statusQuery.data]);
+    const data = bootstrapQuery.data;
+    if (!data?.dueFollowup || followupFired.current) return;
+    if (!messagesInitialized.current) return; // wait until messages are set
 
-  // ── 2. Load conversation history ──────────────────────────────────────────
-  const conversationQuery = useQuery<{
-    conversation: { id: string; status: string } | null;
-  }>({
-    queryKey: ["/api/coach/conversation"],
-    enabled: profileCompleted,
-  });
+    followupFired.current = true;
+    const followupId = data.dueFollowup.id;
+    const convId = data.conversationId;
 
-  const convId = conversationQuery.data?.conversation?.id ?? null;
+    (async () => {
+      try {
+        const deliverResult = await apiRequest(`/api/coach/followup/${followupId}/deliver`, {
+          method: "POST",
+        });
 
-  const messagesQuery = useQuery<{ messages: DbMessage[] }>({
-    queryKey: ["/api/coach/conversation", convId, "messages"],
-    enabled: !!convId,
-    queryFn: () => apiRequest(`/api/coach/conversation/${convId}/messages`),
-  });
-
-  useEffect(() => {
-    if (messagesQuery.data?.messages && !messagesInitialized.current) {
-      messagesInitialized.current = true;
-      setConversationId(convId);
-      setMessages(messagesQuery.data.messages.map(mapDbMessage));
-      // Phase 5: after messages load, check if a follow-up is due (inline delivery)
-      checkAndDeliverFollowup();
-    }
-  }, [messagesQuery.data]);
-
-  // ── Phase 5: Inline follow-up delivery ───────────────────────────────────
-  // When the user opens Coach's Corner, if a follow-up is due but the cron
-  // hasn't fired yet, we deliver it immediately and append it to the conversation.
-  const checkAndDeliverFollowup = useCallback(async () => {
-    try {
-      const dueResult = await apiRequest("/api/coach/followup/due");
-      if (!dueResult?.followup?.id) return;
-
-      const followupId = dueResult.followup.id;
-      const deliverResult = await apiRequest(`/api/coach/followup/${followupId}/deliver`, {
-        method: "POST",
-      });
-
-      // alreadyDelivered = cron beat us to it; reload messages to pick it up
-      if (deliverResult?.alreadyDelivered) {
-        await messagesQuery.refetch();
-        return;
+        if ((deliverResult?.success || deliverResult?.alreadyDelivered) && convId) {
+          // Silently refresh messages in background — UI stays usable throughout
+          const refreshed = await apiRequest<{ messages: DbMessage[] }>(
+            `/api/coach/conversation/${convId}/messages`
+          );
+          if (refreshed?.messages) {
+            setMessages(refreshed.messages.map(mapDbMessage));
+          }
+        }
+      } catch {
+        // Non-fatal — follow-up will arrive on next cron tick
       }
+    })();
+  }, [bootstrapQuery.data]);
 
-      // Freshly delivered — reload messages to include the new coach message
-      if (deliverResult?.success) {
-        await messagesQuery.refetch();
-      }
-    } catch {
-      // Non-fatal — follow-up will arrive on next cron tick
-    }
-  }, [messagesQuery]);
-
-  // ── 3. Questions for profile sheet ────────────────────────────────────────
+  // ── Questions for profile sheet (loaded on demand) ────────────────────────
   const questionsQuery = useQuery<{ questions: CoachCornerQuestion[] }>({
     queryKey: ["/api/coach-corner/questions"],
     enabled: showProfile,
@@ -547,12 +551,13 @@ export default function CoachsCorner() {
       }),
     onSuccess: (data: { profile: Record<string, unknown> }) => {
       setLocalProfile(data.profile);
-      queryClient.invalidateQueries({ queryKey: ["/api/coach-corner/status"] });
+      // Invalidate bootstrap so the profile sheet reflects the latest answers
+      // on next open; messagesInitialized guard prevents message re-init.
+      queryClient.invalidateQueries({ queryKey: ["/api/coach/bootstrap"] });
     },
   });
 
   const handleFieldSave = (questionId: string, value: string | string[]) => {
-    // Optimistic: find the question's target field and update local state immediately
     const question = questionsQuery.data?.questions.find((q) => q.id === questionId);
     if (question && localProfile) {
       setLocalProfile({ ...localProfile, [question.target]: value });
@@ -560,26 +565,17 @@ export default function CoachsCorner() {
     patchMutation.mutate({ [questionId]: value });
   };
 
-  // ── Loading / gate ─────────────────────────────────────────────────────────
-  if (statusQuery.isLoading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="flex items-center gap-1.5">
-          {[0, 1, 2].map((i) => (
-            <span
-              key={i}
-              className="w-2 h-2 rounded-full bg-orange-400/40 animate-bounce"
-              style={{ animationDelay: `${i * 0.18}s` }}
-            />
-          ))}
-        </div>
-      </div>
-    );
-  }
+  // ─── Render ────────────────────────────────────────────────────────────────
+  // The visual shell (background gradient + layout) renders immediately on mount
+  // so the browser can start fetching chefs-corner-bg.jpg and ChefBlackApron.png
+  // before the bootstrap response arrives. The message area shows a small inline
+  // spinner while the single bootstrap call is in-flight — no full-screen black
+  // screen.
 
-  if (!profileCompleted) return null;
-
-  // ─── Render ───────────────────────────────────────────────────────────────
+  const bootstrapLoading = bootstrapQuery.isLoading;
+  // bootstrapReady: bootstrap succeeded AND profile was completed (redirect
+  // already fires in the useEffect for the incomplete-profile case).
+  const bootstrapReady = bootstrapQuery.isSuccess && (bootstrapQuery.data?.profileCompleted ?? false);
   const hasMessages = messages.length > 0;
 
   return (
@@ -593,16 +589,16 @@ export default function CoachsCorner() {
         backgroundPosition: "center 30%",
       }}
     >
-      {/* Centered column — constrains everything to a readable width on desktop.
-          On mobile it fills full width; on desktop it sits inside the main content
-          area (right of sidebar, left of copilot) and never touches fixed borders. */}
+      {/* Centered column — on mobile fills full width; on desktop sits inside
+          the main content area (right of sidebar, left of copilot). */}
       <div className="flex-1 flex flex-col w-full max-w-2xl mx-auto min-h-0">
 
-        {/* Header — title shown in DesktopHeader; only Edit profile needed here */}
+        {/* Header */}
         <div className="shrink-0 bg-black/50 backdrop-blur-md flex items-center justify-end px-4 h-14">
           <button
             onClick={() => setShowProfile(true)}
-            className="flex items-center gap-1.5 px-3 h-8 rounded-full bg-white/8 border border-white/15 text-white/70 text-xs hover:text-white hover:bg-white/12 transition-colors"
+            disabled={!bootstrapReady}
+            className="flex items-center gap-1.5 px-3 h-8 rounded-full bg-white/8 border border-white/15 text-white/70 text-xs hover:text-white hover:bg-white/12 transition-colors disabled:opacity-40 disabled:cursor-default"
             aria-label="Edit coaching profile"
           >
             <Settings className="w-3.5 h-3.5" />
@@ -610,9 +606,22 @@ export default function CoachsCorner() {
           </button>
         </div>
 
-        {/* Scrollable messages */}
+        {/* Message area */}
         <div className="flex-1 overflow-y-auto px-4 py-5">
-          {!hasMessages && !conversationQuery.isLoading && !messagesQuery.isLoading ? (
+          {bootstrapLoading ? (
+            /* Inline spinner — background is already painted, not a black void */
+            <div className="flex items-center justify-center min-h-[58vh]">
+              <div className="flex items-center gap-1.5">
+                {[0, 1, 2].map((i) => (
+                  <span
+                    key={i}
+                    className="w-2 h-2 rounded-full bg-orange-400/40 animate-bounce"
+                    style={{ animationDelay: `${i * 0.18}s` }}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : !hasMessages ? (
             /* Empty state */
             <div className="flex flex-col items-center justify-center min-h-[58vh] text-center select-none">
               <img
@@ -642,7 +651,7 @@ export default function CoachsCorner() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input bar — sits at the bottom of the centered column */}
+        {/* Input bar */}
         <div
           className="shrink-0 bg-black/50 backdrop-blur-md px-4 pt-3"
           style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom, 16px))" }}
@@ -654,14 +663,14 @@ export default function CoachsCorner() {
               onChange={handleTextareaChange}
               onKeyDown={handleKeyDown}
               placeholder="Ask Coach anything…"
-              disabled={isLoading}
+              disabled={isLoading || bootstrapLoading}
               rows={1}
               className="flex-1 resize-none bg-zinc-900 border border-white/25 text-white placeholder:text-white/45 text-sm rounded-xl py-3 px-4 focus:outline-none focus:ring-1 focus:ring-orange-500/60 focus:border-orange-500/50 disabled:opacity-50 transition-colors"
               style={{ lineHeight: "1.5", minHeight: "44px", maxHeight: "120px" }}
             />
             <Button
               onClick={handleSend}
-              disabled={!inputText.trim() || isLoading}
+              disabled={!inputText.trim() || isLoading || bootstrapLoading}
               size="icon"
               className="w-11 h-11 rounded-xl bg-orange-600 hover:bg-orange-700 disabled:opacity-40 disabled:bg-zinc-700 shrink-0 transition-colors"
               aria-label="Send message"
