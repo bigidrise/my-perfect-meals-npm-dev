@@ -437,5 +437,39 @@ router.get("/bootstrap", requireAuth, async (req: Request, res: Response) => {
   }
 });
 
+// ─── DELETE /conversation/:id ─────────────────────────────────────────────────
+// Clears the conversation — deletes all messages, investigations, and action
+// plans, then removes the conversation row itself. Ownership verified before
+// any deletion. Next bootstrap call will return no conversation → empty state.
+
+router.delete("/conversation/:id", requireAuth, async (req: Request, res: Response) => {
+  const authReq = req as AuthenticatedRequest;
+  const userId = authReq.authUser?.id;
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+  const { id } = req.params;
+
+  try {
+    // Verify ownership
+    const convCheck = await db.execute<{ owner_id: string }>(sql`
+      SELECT owner_id FROM coach_conversations WHERE id = ${id} LIMIT 1
+    `);
+    const conv = convCheck.rows[0];
+    if (!conv) return res.status(404).json({ error: "Conversation not found" });
+    if (conv.owner_id !== userId) return res.status(403).json({ error: "Forbidden" });
+
+    // Delete child rows first (FK order), then the conversation itself
+    await db.execute(sql`DELETE FROM coach_messages      WHERE conversation_id = ${id}`);
+    await db.execute(sql`DELETE FROM coach_investigations WHERE conversation_id = ${id}`);
+    await db.execute(sql`DELETE FROM coach_action_plans  WHERE conversation_id = ${id}`);
+    await db.execute(sql`DELETE FROM coach_conversations WHERE id = ${id}`);
+
+    return res.json({ success: true });
+  } catch (err: any) {
+    console.error("[CoachingEngine] DELETE /conversation/:id error:", err);
+    return res.status(500).json({ error: "Failed to clear conversation" });
+  }
+});
+
 export default router;
 
