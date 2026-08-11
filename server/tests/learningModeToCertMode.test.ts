@@ -540,7 +540,124 @@ describe("frontend — switch button visibility conditions", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 5. Full end-to-end state machine — Learning → Switch → Cert
+// 5. Quiz retry — "never downgrade a passed quiz" guard
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Mirrors the ON CONFLICT DO UPDATE in POST /api/academy/platform-mastery/lessons/:lessonId/quiz.
+ *
+ *   status = CASE WHEN existing.status = 'completed' THEN 'completed' ELSE $quizStatus END
+ *   score  = $serverScore  (score column is always overwritten — it's the latest attempt)
+ *
+ * The guard ensures a retry with a failing score never strips a previously passing status.
+ */
+function simulateQuizUpsert(
+  existing: ModuleProgressRecord | null,
+  serverScore: number,
+): ModuleProgressRecord {
+  const serverPassed = serverScore >= 80;
+  const quizStatus = serverPassed ? "completed" : "quiz_failed";
+
+  if (existing === null) {
+    // Fresh insert
+    return { status: quizStatus, score: serverScore };
+  }
+
+  // Conflict update — preserve "completed" status; always record latest score
+  const newStatus =
+    existing.status === "completed" ? "completed" : quizStatus;
+
+  return { status: newStatus, score: serverScore };
+}
+
+describe("quiz upsert — never downgrade a previously passed quiz", () => {
+  it("quiz status stays 'completed' after a retry with score=60 (was 80)", () => {
+    // First attempt: user passes at exactly 80%
+    const afterPass = simulateQuizUpsert(null, 80);
+    expect(afterPass.status).toBe("completed");
+    expect(afterPass.score).toBe(80);
+
+    // Retry: user scores 60% — should NOT downgrade the status
+    const afterRetry = simulateQuizUpsert(afterPass, 60);
+    expect(afterRetry.status).toBe("completed");
+  });
+
+  it("quiz score is updated to the latest attempt score even when status is preserved", () => {
+    const afterPass = simulateQuizUpsert(null, 90);
+    const afterRetry = simulateQuizUpsert(afterPass, 50);
+
+    // Status preserved, but score reflects the latest attempt
+    expect(afterRetry.status).toBe("completed");
+    expect(afterRetry.score).toBe(50);
+  });
+
+  it("quiz_failed status is correctly set when a first attempt fails", () => {
+    const afterFail = simulateQuizUpsert(null, 70);
+    expect(afterFail.status).toBe("quiz_failed");
+    expect(afterFail.score).toBe(70);
+  });
+
+  it("quiz_failed → completed upgrade works when the retry passes", () => {
+    const afterFail = simulateQuizUpsert(null, 60);
+    const afterPass = simulateQuizUpsert(afterFail, 85);
+    expect(afterPass.status).toBe("completed");
+    expect(afterPass.score).toBe(85);
+  });
+
+  it("complete endpoint returns ok:true when a retried quiz (score=60) didn't strip the passed status", () => {
+    // Build a progress map where all quizzes were passed, then one was retried with 60%
+    const progressMap = buildLearningModeAllDoneAllQuizzesPassed();
+
+    // Simulate the retry on the first lesson's quiz
+    const firstLessonId = LESSON_IDS[0];
+    const quizKey = `${firstLessonId}-quiz`;
+    const existingQuiz = progressMap.get(quizKey)!;
+    const afterRetry = simulateQuizUpsert(existingQuiz, 60);
+    progressMap.set(quizKey, afterRetry);
+
+    // Status must still be "completed" — the guard held
+    expect(afterRetry.status).toBe("completed");
+
+    // Now simulate switching to cert mode and claiming the certificate
+    const enrollment = simulateEnroll(
+      { status: "in_progress", isCertificationTrack: false, certificateNumber: null, certificateName: null, completedAt: null },
+      true,
+    );
+
+    const result = simulateComplete(enrollment, progressMap, "Jane Doe");
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.certificateNumber).toMatch(/^MPM-PM-/);
+    }
+  });
+
+  it("complete endpoint returns a 400 when the retry DID corrupt status to quiz_failed (regression guard)", () => {
+    // This test documents what would happen WITHOUT the CASE WHEN guard —
+    // it verifies the complete endpoint correctly rejects a corrupted progress map.
+    const progressMap = buildLearningModeAllDoneAllQuizzesPassed();
+
+    // Manually corrupt one quiz to quiz_failed (as if the guard were absent)
+    const firstLessonId = LESSON_IDS[0];
+    progressMap.set(`${firstLessonId}-quiz`, { status: "quiz_failed", score: 60 });
+
+    const enrollment = simulateEnroll(
+      { status: "in_progress", isCertificationTrack: false, certificateNumber: null, certificateName: null, completedAt: null },
+      true,
+    );
+
+    const result = simulateComplete(enrollment, progressMap, "Jane Doe");
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.httpStatus).toBe(400);
+      expect(result.error).toMatch(/quizzes must be passed/i);
+    }
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 6. Full end-to-end state machine — Learning → Switch → Cert
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("full end-to-end state machine — Learning Mode → switch → certificate claimed", () => {
