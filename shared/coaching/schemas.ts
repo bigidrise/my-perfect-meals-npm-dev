@@ -77,7 +77,7 @@ export const ReasoningResultSchema = z.object({
   proposedConfidence: ConfidenceLevelSchema,
   redFlag: z.boolean(),
   redFlagReason: z.string().max(500).optional(),
-  missingData: z.array(z.string().max(200)).max(5),
+  missingData: z.array(z.string().max(200)).max(8),
 });
 
 export type ReasoningResultInput = z.infer<typeof ReasoningResultSchema>;
