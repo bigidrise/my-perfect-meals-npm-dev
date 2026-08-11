@@ -1478,12 +1478,25 @@ async function initializeApp() {
       }, 8000);
 
       // ── Coach Knowledge Library seed (5 adult Corner patterns) ─────────────
+      // Runs with retry: a transient DB connection timeout during cold start
+      // should not permanently lose the patterns. Retries up to 3 times, 5 s
+      // apart. The seed itself creates knowledge_patterns IF NOT EXISTS first,
+      // so it is safe to run before the coaching engine migration completes.
       setTimeout(async () => {
-        try {
-          const { seedCoachKnowledgePatterns } = await import("./db/seeds/coachKnowledgePatterns");
-          await seedCoachKnowledgePatterns();
-        } catch (err: any) {
-          console.error("❌ [prod] Coach Knowledge Library seed failed:", err.message);
+        const MAX_ATTEMPTS = 3;
+        for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+          try {
+            const { seedCoachKnowledgePatterns } = await import("./db/seeds/coachKnowledgePatterns");
+            await seedCoachKnowledgePatterns();
+            break; // success — stop retrying
+          } catch (err: any) {
+            if (attempt < MAX_ATTEMPTS) {
+              console.warn(`⚠️  [prod] Coach Knowledge Library seed attempt ${attempt} failed: ${err.message} — retrying in 5 s`);
+              await new Promise((r) => setTimeout(r, 5000));
+            } else {
+              console.error(`❌ [prod] Coach Knowledge Library seed failed after ${MAX_ATTEMPTS} attempts:`, err.message);
+            }
+          }
         }
       }, 9500);
 

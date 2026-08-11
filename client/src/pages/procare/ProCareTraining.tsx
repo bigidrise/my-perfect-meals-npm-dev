@@ -101,7 +101,7 @@ export default function ProCareTraining() {
   const [, setLocation] = useLocation();
   const { refreshUser } = useAuth();
   const isDesktop = useIsDesktop();
-  const { t } = useTranslation("procare");
+  const { t } = useTranslation();
   const [step, setStep] = useState(0);
   const [completing, setCompleting] = useState(false);
   const [error, setError] = useState<string | null>(null);

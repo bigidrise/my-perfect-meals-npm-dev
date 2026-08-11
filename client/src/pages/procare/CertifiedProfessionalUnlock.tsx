@@ -33,7 +33,7 @@ export default function CertifiedProfessionalUnlock() {
   const [, setLocation] = useLocation();
   const { user, refreshUser } = useAuth();
   const isDesktop = useIsDesktop();
-  const { t } = useTranslation("procare");
+  const { t } = useTranslation();
   const [refreshing, setRefreshing] = useState(true);
 
   useEffect(() => {

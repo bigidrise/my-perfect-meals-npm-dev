@@ -28,7 +28,7 @@ const CATEGORY_LABELS: Record<ProfessionalCategory, string> = {
 export default function ProCareAttestation() {
   const [, setLocation] = useLocation();
   const { user, refreshUser } = useAuth();
-  const { t } = useTranslation("procare");
+  const { t } = useTranslation();
   const [accepted, setAccepted] = useState(false);
   const [category, setCategory] = useState<ProfessionalCategory | null>(null);
   const [upgrading, setUpgrading] = useState(false);
