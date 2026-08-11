@@ -12,7 +12,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Settings, Send, RotateCcw, Check, MoreHorizontal, Loader2 } from "lucide-react";
+import { Settings, Send, RotateCcw, Check, MoreHorizontal, Loader2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -424,6 +424,8 @@ export default function CoachsCorner() {
   // ── Bootstrap query ────────────────────────────────────────────────────────
   const bootstrapQuery = useQuery<BootstrapData>({
     queryKey: ["/api/coach/bootstrap"],
+    staleTime: 30 * 1000,       // 30 s — serve cache while refetch runs in background
+    gcTime: 5 * 60 * 1000,      // 5 min — keep entry in memory between page visits
     retry: (failureCount, error: any) => {
       if (error?.status >= 400 && error?.status < 500) return false;
       return failureCount < 2;
@@ -712,7 +714,15 @@ export default function CoachsCorner() {
       <div className="flex-1 flex flex-col w-full max-w-2xl mx-auto min-h-0">
 
         {/* Header */}
-        <div className="shrink-0 bg-black/50 backdrop-blur-md flex items-center justify-end px-4 h-14">
+        <div className="shrink-0 bg-black/50 backdrop-blur-md flex items-center justify-between px-4 h-14">
+          <button
+            onClick={() => window.history.back()}
+            className="flex items-center gap-1 h-8 px-2 rounded-full text-white/60 hover:text-white transition-colors"
+            aria-label="Go back"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="text-xs">Back</span>
+          </button>
           <button
             onClick={() => setShowProfile(true)}
             disabled={!bootstrapReady}
