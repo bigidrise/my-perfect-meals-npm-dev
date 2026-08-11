@@ -950,8 +950,18 @@ export default function BusinessDashboard() {
                   { done: true, label: "Organization named" },
                   {
                     done: hasInvited,
-                    label: "Invite your first team member",
+                    label: "Invite your team — assign purchased seats to coaches or trainers",
                     action: () => setInviteOpen(true),
+                  },
+                  {
+                    done: (ownerData?.clientInvitations?.length ?? 0) > 0,
+                    label: "Invite your first client — give clients complimentary access",
+                    action: () => setClientInviteOpen(true),
+                  },
+                  {
+                    done: false,
+                    label: "Partner & Revenue Center — unlocks after Academy certification",
+                    action: () => setLocation("/business-center/affiliate"),
                   },
                 ].map(({ done, label, action }) => (
                   <div key={label} className="flex items-center gap-2.5">

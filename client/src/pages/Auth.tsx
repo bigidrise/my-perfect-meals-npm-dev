@@ -40,15 +40,18 @@ export default function Auth() {
 
     const isBusinessUser = fullUser?.professionalRole === "business";
 
-    if (isBusinessUser) {
-      // Business accounts land in Business Center — browsing is free, actions require Pro
-      setLocation("/business-center");
+    if (isBusinessUser && mode === "signup") {
+      // New business signups go directly to org setup + seat purchase
+      setLocation("/business/setup");
+    } else if (isBusinessUser) {
+      // Returning business logins land in their dashboard/center
+      setLocation("/business-dashboard");
     } else if (isProfessional && mode === "login") {
       localStorage.removeItem("mpm_workspace_preference");
       setShowWorkspaceChooser(true);
     } else if (mode === "signup" && urlRole === "business") {
       // Fallback (should be caught above by isBusinessUser, but kept for safety)
-      setLocation("/business-center");
+      setLocation("/business/setup");
     } else if (mode === "signup" && urlRole === "trainer") {
       setLocation("/trainer-welcome");
     } else if (mode === "signup" && urlRole === "physician") {

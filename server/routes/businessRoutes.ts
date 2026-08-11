@@ -1114,6 +1114,63 @@ router.post("/seats", requireAuth, requireProAccess, async (req, res) => {
   }
 });
 
+// ── POST /api/business/create-org — Self-service org creation for new business accounts.
+// Creates a businesses + owner businessMembers row with status=pending_billing.
+// The Stripe webhook flips status to active and sets seatLimit after payment succeeds.
+// This endpoint intentionally does NOT require requireProAccess — it is the entry point
+// before the user has paid. requireAuth only.
+router.post("/create-org", requireAuth, async (req, res) => {
+  const userId = (req as any).authUser?.id as string;
+  const orgName = ((req.body as any).name || "").trim();
+  if (!orgName || orgName.length < 2) {
+    return res.status(400).json({ error: "Organization name must be at least 2 characters." });
+  }
+  if (orgName.length > 80) {
+    return res.status(400).json({ error: "Organization name must be 80 characters or fewer." });
+  }
+  try {
+    // Idempotent: return existing record if user is already an owner
+    const [existing] = await db
+      .select()
+      .from(businesses)
+      .where(eq(businesses.ownerUserId, userId))
+      .limit(1);
+    if (existing) {
+      // Update name if they're changing it
+      if (existing.name !== orgName) {
+        await db.update(businesses).set({ name: orgName, updatedAt: new Date() }).where(eq(businesses.id, existing.id));
+      }
+      return res.json({ businessId: existing.id, created: false });
+    }
+
+    // Create business row with pending_billing — webhook sets it to active after Stripe payment
+    const [newBiz] = await db.insert(businesses).values({
+      name: orgName,
+      ownerUserId: userId,
+      plan: "clinical_business_monthly",
+      seatLimit: 1, // will be updated by webhook to the purchased seat count
+      status: "pending_billing",
+    }).returning();
+
+    // Add owner as seat 1 immediately
+    await db.insert(businessMembers).values({
+      businessId: newBiz.id,
+      userId,
+      role: "owner",
+      status: "active",
+    });
+
+    // Ensure professionalRole is "business" on the user record (no-op if already set at signup)
+    await db.update(users).set({ professionalRole: "business" } as any).where(eq(users.id as any, userId));
+
+    console.log(`✅ [business/create-org] org created | id=${newBiz.id} | owner=${userId} | name="${orgName}"`);
+    return res.json({ businessId: newBiz.id, created: true });
+  } catch (err: any) {
+    console.error("[business/create-org] error:", err);
+    return res.status(500).json({ error: err?.message || "Could not create organization." });
+  }
+});
+
 // ── POST /api/business/dev-seed — DEV ONLY: instantly create a test business for the current user
 router.post("/dev-seed", requireAuth, async (req, res) => {
   if (process.env.NODE_ENV === "production") {
