@@ -132,9 +132,10 @@ router.post("/api/auth/signup", async (req, res) => {
     // Build user values with optional ProCare professional fields
     const isBusinessAccount = req.body.businessAccount === true;
 
-    // Every new account gets a 7-day full-access trial regardless of signup path.
-    // accessTier.ts Tier 2.5 already handles the trial window — it just needs
-    // trialEndsAt to be present on every user row.
+    // Trial is NOT started at signup — it is stamped when the user completes
+    // onboarding (/api/user/complete-onboarding). This prevents penalising users
+    // who sign up and return days later to finish setup.
+    // Tester accounts (internal) still get immediate full access via planLookupKey.
     const userValues: any = {
       email,
       username: email.split("@")[0],
@@ -145,8 +146,6 @@ router.post("/api/auth/signup", async (req, res) => {
       isAdmin,
       isFounder: isTester, // tester-allowlisted signups are founder/partner accounts
       ...(isTester ? { planLookupKey: 'mpm_ultimate_monthly' } : {}),
-      trialStartedAt: new Date(),
-      trialEndsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     };
 
     // Business / Organization account — not a ProCare practitioner.

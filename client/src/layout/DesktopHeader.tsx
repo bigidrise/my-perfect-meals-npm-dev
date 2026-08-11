@@ -151,6 +151,7 @@ export default function DesktopHeader() {
     if (loc.startsWith("/pro/clients/") && loc.includes("/board/")) return t("boardView");
     if (loc.startsWith("/pro/clients/")) return t("clientDashboard");
     if (loc.startsWith("/pro/")) return t("professionalWorkspace");
+    if (loc.startsWith("/coach-corner")) return "Chef's Corner";
     if (loc.startsWith("/lifestyle/")) return t("lifestyle");
     if (loc.startsWith("/builder") || loc.includes("-builder")) return t("mealBuilder");
     if (loc === "/kitchens") return t("kitchenNetwork");

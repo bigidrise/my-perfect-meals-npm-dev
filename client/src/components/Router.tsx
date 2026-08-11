@@ -857,7 +857,7 @@ export default function Router() {
         {COACHES_CORNER_ENABLED && <Route path="/coach-corner/welcome" component={lazy(() => import("@/pages/CoachCornerWelcome"))} />}
         {COACHES_CORNER_ENABLED && <Route path="/coach-corner/intake" component={lazy(() => import("@/pages/CoachCornerIntake"))} />}
         {COACHES_CORNER_ENABLED && <Route path="/coach-corner/complete" component={lazy(() => import("@/pages/CoachCornerComplete"))} />}
-        {COACHES_CORNER_ENABLED && <Route path="/coach-corner/home" component={lazy(() => import("@/pages/CoachCornerHome"))} />}
+        {COACHES_CORNER_ENABLED && <Route path="/coach-corner/home" component={lazy(() => import("@/pages/CoachsCorner"))} />}
         {COACHES_CORNER_ENABLED && <Route path="/coach-corner/progress-slowed" component={lazy(() => import("@/pages/CoachCornerProgressSlowed"))} />}
         {COACHES_CORNER_ENABLED && <Route path="/coach-corner/tired" component={lazy(() => import("@/pages/CoachCornerTired"))} />}
         {/* DELETED: CommunityTestPage, CommunityPage routes */}

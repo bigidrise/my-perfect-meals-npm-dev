@@ -16,6 +16,7 @@ import { derivePreferenceProfile, buildBehavioralMemoryPromptSection } from "../
 import { resolveCreatorSystemForUser } from "../services/creatorSystems/resolveCreatorSystemForUser";
 import { applyCreatorTransformation } from "../services/creatorSystems/applyCreatorTransformation";
 import { generateMealImageUnified } from "../services/mealImageGenerator";
+import { emitActivityEvent } from "../services/coaching/activityEvents";
 import {
   buildBeveragePromptBlocks,
   validateBeverageOutput,
@@ -598,6 +599,18 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
     }
 
     if (isDev) console.log("[BEVERAGE] Sending response (image handled client-side)...");
+
+    // Phase 3B: emit usage event — beverage was generated
+    if (userId && userId !== "1") {
+      emitActivityEvent({
+        ownerUserId: String(userId),
+        eventType: "beverage_generated",
+        eventClass: "usage",
+        sourceFeature: "beverage_creator",
+        metadata: { beverageCategory, flavorFamily, specificDrink },
+      }).catch((err) => console.error("[ActivityEvents]", err.message));
+    }
+
     const { complianceSection: bevCompliance, dietClassification: bevDietClass } =
       buildMealComplianceBundle(meal, beverageEnvelope, { isChefAdapted: dietAdapted });
     return res.json({

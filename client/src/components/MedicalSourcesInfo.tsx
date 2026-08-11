@@ -926,6 +926,299 @@ export function MedicalSourcesInfo({
             </ul>
           </section>
 
+          <section>
+            <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+              🧠 Behavior &amp; Coaching Science
+            </h3>
+            <p className="text-white/60 text-xs mb-3">
+              Chef's Corner collects a Behavioral Profile — a short coaching intake that
+              learns how you make decisions, what motivates you, how you respond to setbacks,
+              and how you prefer to be coached. This is not a psychological assessment or
+              clinical instrument. It is a coaching tool, designed to feel like a coach
+              getting to know you before your first session. The behavioral constructs
+              it uses are grounded in the following established frameworks. Each source
+              is listed with the specific concept it supports and how that concept appears
+              in the system.
+            </p>
+
+            <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">Self-Efficacy</p>
+            <p className="text-white/40 text-xs mb-2">
+              Concept: Confidence in one's ability to perform a behavior predicts whether that behavior will be attempted and sustained. Drives: coaching language that frames goals as achievable steps · avoids language that implies fixed capability · celebrates consistency over perfection.
+            </p>
+            <ul className="space-y-3 mb-5">
+              <SourceItem
+                title="Bandura, A. — Self-Efficacy: Toward a Unifying Theory of Behavioral Change (1977)"
+                description="The foundational paper establishing self-efficacy as a central determinant of behavior change. My Perfect Meals coaching language is explicitly designed to build perceived capability — presenting goals as learnable, recoverable, and within reach — rather than implying fixed-trait success or failure."
+                url="https://psycnet.apa.org/record/1977-25733-001"
+              />
+            </ul>
+
+            <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">Self-Determination Theory</p>
+            <p className="text-white/40 text-xs mb-2">
+              Concept: Intrinsic motivation and long-term behavior change depend on satisfying three psychological needs — autonomy (choice), competence (mastery), and relatedness (connection). Drives: autonomy-supportive coaching language ("build what sounds right") · competence framing in daily check-in interventions · relatedness in accountability and progress acknowledgment.
+            </p>
+            <ul className="space-y-3 mb-5">
+              <SourceItem
+                title="Deci, E.L. & Ryan, R.M. — The 'What' and 'Why' of Goal Pursuits (Psychological Inquiry, 2000)"
+                description="Core academic statement of Self-Determination Theory. The coaching intake's autonomy questions — how directive vs. collaborative you want coaching to be — directly reflect SDT's autonomy dimension. The system avoids prescriptive commands and instead frames direction as a choice."
+                url="https://selfdeterminationtheory.org/theory/"
+              />
+              <SourceItem
+                title="Teixeira, P. et al. — Motivation, Self-Determination, and Long-Term Weight Control (International Journal of Behavioral Nutrition, 2012, PMID 22385818)"
+                description="Empirical support for autonomy-supportive nutritional coaching over directive instruction in sustained dietary behavior. Basis for minimizing prescriptive food lists and favoring direction-first coaching across the system."
+                url="https://pubmed.ncbi.nlm.nih.gov/22385818/"
+              />
+            </ul>
+
+            <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">Stages of Change (Transtheoretical Model)</p>
+            <p className="text-white/40 text-xs mb-2">
+              Concept: Behavior change unfolds through distinct stages — precontemplation, contemplation, preparation, action, maintenance. Effective coaching meets people where they are rather than assuming readiness. Drives: ACE intervention selection · readiness language in the coaching intake · recovery-framing on off-plan days.
+            </p>
+            <ul className="space-y-3 mb-5">
+              <SourceItem
+                title="Prochaska, J.O. & DiClemente, C.C. — Stages and Processes of Self-Change (Journal of Consulting and Clinical Psychology, 1983, PMID 6863699)"
+                description="Original empirical paper introducing the Transtheoretical Model of behavior change. The ACE Intervention Library is structured to activate different coaching messages depending on a user's current behavioral signals — a practical application of stage-matched intervention design."
+                url="https://pubmed.ncbi.nlm.nih.gov/6863699/"
+              />
+            </ul>
+
+            <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">Motivational Interviewing</p>
+            <p className="text-white/40 text-xs mb-2">
+              Concept: A collaborative, goal-oriented conversational style that draws out a person's own motivation rather than prescribing change. Drives: Chef's Corner conversational approach · explore-don't-prescribe coaching philosophy · craving-aware and emotional eating interventions.
+            </p>
+            <ul className="space-y-3 mb-5">
+              <SourceItem
+                title="Miller, W.R. & Rollnick, S. — Motivational Interviewing: Helping People Change (3rd ed., 2013)"
+                description="The primary reference for motivational interviewing as a coaching communication framework. Chef's Corner is designed to draw out the user's own context and reasoning rather than prescribe behavior — asking what they want, reflecting their situation, and offering options rather than instructions."
+                url="https://www.motivationalinterviewing.org/"
+              />
+            </ul>
+
+            <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">Habit Formation</p>
+            <p className="text-white/40 text-xs mb-2">
+              Concept: Habits form through consistent repetition in stable contexts — not through willpower or motivation alone. Average habit formation takes 66 days, not 21. Drives: consistency-first messaging in neutral-day ACE coaching · repetition-emphasis in meal planning guidance.
+            </p>
+            <ul className="space-y-3 mb-5">
+              <SourceItem
+                title="Lally, P. et al. — How Are Habits Formed: Modelling Habit Formation in the Real World (European Journal of Social Psychology, 2010)"
+                description="Empirical study finding that habit formation in real-world dietary and exercise contexts takes an average of 66 days (range 18–254). The basis for the system's consistency-first coaching posture — prioritizing repetition and context stability over intensity or restriction."
+                url="https://doi.org/10.1002/ejsp.674"
+              />
+              <SourceItem
+                title="Gardner, B., Lally, P. & Wardle, J. — Making Health Habitual (British Journal of General Practice, 2012, PMID 23211256)"
+                description="Practical translation of habit research for health behavior change contexts. Supports the coaching design principle of anchoring meal behaviors to consistent daily contexts (same time, same trigger, same environment) rather than relying on sustained motivation."
+                url="https://pubmed.ncbi.nlm.nih.gov/23211256/"
+              />
+            </ul>
+
+            <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">Recovery &amp; Non-Judgmental Framing</p>
+            <p className="text-white/40 text-xs mb-2">
+              Concept: Off-plan days are normal and expected — framing them as failure increases the risk of full abandonment. Effective coaching treats them as data, not character flaws. Drives: off-plan day language in ACE · Chef's Corner recovery responses · avoidance of restriction-based framing.
+            </p>
+            <ul className="space-y-3 mb-5">
+              <SourceItem
+                title="Norcross, J.C. et al. — In Session: Psychotherapy in Practice — Stages of Change (Journal of Clinical Psychology, 2011, PMID 21188747)"
+                description="Evidence review supporting non-judgmental relapse framing in behavior change coaching. Basis for the coaching principle that a missed day or off-plan meal should be acknowledged and contextualized, not penalized — because punitive framing accelerates disengagement."
+                url="https://pubmed.ncbi.nlm.nih.gov/21188747/"
+              />
+            </ul>
+
+            <p className="text-white/60 text-xs leading-relaxed">
+              The Behavioral Profile collected during the Chef's Corner intake is a coaching tool, not a psychological test or clinical assessment. Its purpose is to shape how the system communicates with you — not to diagnose, categorize, or make clinical inferences from your answers. No behavioral response in the intake is used to draw clinical conclusions.
+            </p>
+          </section>
+
+          <section>
+            <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+              🤰 Pregnancy Coach — Evidence &amp; Guidance Sources
+            </h3>
+            <p className="text-white/60 text-xs mb-3">
+              Pregnancy Coach is the conversational layer of My Perfect Pregnancy. Every
+              coaching response is grounded in the user's current stage (trying to conceive
+              through postpartum) and the food safety and nutrient rules that are actively
+              enforced across all meal generators. The following sources are the clinical
+              and regulatory basis for those rules. Each citation identifies the specific
+              My Perfect Meals behavior it supports.
+            </p>
+
+            <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">Food Safety Rules — Blocked Ingredients</p>
+            <p className="text-white/40 text-xs mb-2">
+              Drives: Hard blocks on raw fish · deli meats · high-mercury fish · unpasteurized soft cheeses · raw eggs · alcohol across all meal generators
+            </p>
+            <ul className="space-y-3 mb-5">
+              <SourceItem
+                title="FDA & EPA — Advice About Eating Fish (2024)"
+                description="Joint FDA/EPA guidance establishing the mercury risk tiers used in the platform: AVOID (shark, swordfish, king mackerel, tilefish, bigeye tuna, orange roughy, marlin), LIMIT (albacore tuna, halibut, mahi-mahi, grouper), and BEST CHOICES (salmon, sardines, trout, shrimp, catfish, canned light tuna). The hard-block list maps directly to the AVOID tier."
+                url="https://www.fda.gov/food/consumers/advice-about-eating-fish"
+              />
+              <SourceItem
+                title="ACOG Practice Bulletin — Nutrition During Pregnancy (2021)"
+                description="American College of Obstetricians and Gynecologists clinical guidance establishing the blocked-food list: raw or undercooked fish and shellfish (listeria, toxoplasma risk), deli meats and hot dogs unless heated to steaming (listeria risk), unpasteurized soft cheeses (listeria risk), raw or soft-boiled eggs (salmonella risk), and alcohol (no safe level established). Every blocked ingredient in the pregnancy protocol traces directly to ACOG or FDA guidance."
+                url="https://www.acog.org/clinical/clinical-guidance/committee-opinion/articles/2021/04/nutrition-during-pregnancy"
+              />
+            </ul>
+
+            <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">Trimester-Specific Nutrient Priorities</p>
+            <p className="text-white/40 text-xs mb-2">
+              Drives: T1 folate/iron focus · T2 calcium/protein/vitamin D · T3 DHA/choline/iron · Postpartum fiber/omega-3/protein · Breastfeeding iodine/DHA/+500 kcal
+            </p>
+            <ul className="space-y-3 mb-5">
+              <SourceItem
+                title="NIH Office of Dietary Supplements — Nutrient Fact Sheets (Folate, Iron, Calcium, DHA, Choline, Iodine)"
+                description="The authoritative source for the specific nutrient targets used by trimester: folate 600–800 mcg (T1, neural tube), iron 27mg (T1–T3, oxygen transport), calcium 1,000mg (T2, fetal bone), DHA 200–300mg (T3/breastfeeding, brain development), choline 450mg (T3, brain and spinal cord), iodine 290 mcg (breastfeeding, thyroid function). All targets are drawn directly from NIH DRI values."
+                url="https://ods.od.nih.gov/factsheets/list-all/"
+              />
+              <SourceItem
+                title="National Academies — Weight Gain During Pregnancy: Reexamining the Guidelines (IOM, 2009)"
+                description="Institute of Medicine report establishing gestational weight gain recommendations by pre-pregnancy BMI category and calorie guidance by trimester. The basis for the platform's calorie guidance: no additional calories in T1, +340 kcal in T2, +450 kcal in T3, +500 kcal during breastfeeding."
+                url="https://www.nationalacademies.org/our-work/weight-gain-during-pregnancy-reexamining-the-guidelines"
+              />
+            </ul>
+
+            <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">Symptom-Responsive Ingredient Adjustments</p>
+            <p className="text-white/40 text-xs mb-2">
+              Drives: Nausea → ginger/B6/bland/cool foods · Heartburn → avoid acidic/spicy/fried · Swelling → reduce sodium/increase potassium · Fatigue → iron + vitamin C pairing · Constipation → prunes/chia/oats/water
+            </p>
+            <ul className="space-y-3 mb-5">
+              <SourceItem
+                title="ACOG — Nausea and Vomiting of Pregnancy (Practice Bulletin No. 189, 2018)"
+                description="ACOG clinical guidance establishing ginger, vitamin B6, and small frequent bland meals as first-line dietary interventions for nausea in pregnancy. The basis for the nausea symptom adjustments in every meal generator."
+                url="https://www.acog.org/clinical/clinical-guidance/practice-bulletin/articles/2018/01/nausea-and-vomiting-of-pregnancy"
+              />
+            </ul>
+
+            <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">Caffeine Limits</p>
+            <p className="text-white/40 text-xs mb-2">
+              Drives: Beverage Creator caffeine guidance · Coach escalation on high-caffeine requests
+            </p>
+            <ul className="space-y-3 mb-5">
+              <SourceItem
+                title="ACOG Committee Opinion No. 462 — Moderate Caffeine Consumption During Pregnancy (2010, reaffirmed 2020)"
+                description="ACOG recommendation limiting caffeine to less than 200mg/day during pregnancy, citing increased risk of growth restriction and pregnancy loss at higher intakes. The basis for the platform's caffeine guidance in pregnancy coaching and beverage recommendations."
+                url="https://www.acog.org/clinical/clinical-guidance/committee-opinion/articles/2010/08/moderate-caffeine-consumption-during-pregnancy"
+              />
+            </ul>
+
+            <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">Postpartum &amp; Breastfeeding Nutrition</p>
+            <p className="text-white/40 text-xs mb-2">
+              Drives: Postpartum protocol (fiber, omega-3, protein, iodine/DHA in breastmilk) · Alcohol block during breastfeeding · Extreme diet block postpartum
+            </p>
+            <ul className="space-y-3 mb-5">
+              <SourceItem
+                title="AAP — Breastfeeding and the Use of Human Milk (Pediatrics, 2012, PMID 22371471)"
+                description="American Academy of Pediatrics policy statement recommending exclusive breastfeeding for 6 months. The basis for the alcohol hard-block during breastfeeding (alcohol passes directly into breast milk) and the high-mercury fish block (methylmercury passes into breast milk)."
+                url="https://pubmed.ncbi.nlm.nih.gov/22371471/"
+              />
+              <SourceItem
+                title="WHO — Infant and Young Child Feeding"
+                description="World Health Organization complementary feeding and breastfeeding guidance. Supports the +500 kcal calorie guidance for breastfeeding and iodine/DHA priority during lactation."
+                url="https://www.who.int/news-room/fact-sheets/detail/infant-and-young-child-feeding"
+              />
+            </ul>
+
+            <p className="text-white/60 text-xs leading-relaxed">
+              Pregnancy Coach provides nutritional guidance only. It does not replace your OB/GYN, midwife, or registered dietitian's prenatal care. When a question requires clinical judgment, Pregnancy Coach says so directly and does not speculate.
+            </p>
+          </section>
+
+          <section>
+            <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+              👶 Parent's Corner — Evidence &amp; Guidance Sources
+            </h3>
+            <p className="text-white/60 text-xs mb-3">
+              Parent's Corner is the conversational coaching interface for My Perfect Beginning.
+              The selected child is the nutrition subject — every response is grounded in that
+              child's developmental stage, allergen profile, medical conditions, and feeding
+              context. The following sources are the pediatric and clinical basis for the
+              guidance the system provides. Each citation identifies what it specifically
+              supports in the coaching system.
+            </p>
+
+            <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">Age-Appropriate Food Introduction &amp; Texture Progression</p>
+            <p className="text-white/40 text-xs mb-2">
+              Drives: Stage-matched food generation · texture calibration by developmental stage · first foods guidance for early infant and beginning foods stages
+            </p>
+            <ul className="space-y-3 mb-5">
+              <SourceItem
+                title="AAP — Starting Solid Foods (HealthyChildren.org)"
+                description="American Academy of Pediatrics guidance on when and how to introduce solid foods, including signs of readiness (typically around 6 months), appropriate first foods (single-ingredient purees), texture progression (purees → mashed → soft pieces → family foods), and foods to avoid in the first year (honey, cow's milk as main drink, choking hazards). This is the primary framework for stage-matched meal generation."
+                url="https://www.healthychildren.org/English/ages-stages/baby/feeding-nutrition/Pages/Starting-Solid-Foods.aspx"
+              />
+              <SourceItem
+                title="WHO — Complementary Feeding: Family Foods for Breastfed Children"
+                description="World Health Organization guidance on complementary feeding introduction after 6 months, nutrient-dense first foods, texture progression, and responsive feeding principles. Supports the platform's stage-aware meal generation and the feeding behavior context captured in each child's profile."
+                url="https://www.who.int/publications/i/item/complementary-feeding-family-foods-for-breastfed-children"
+              />
+            </ul>
+
+            <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">Allergen Introduction</p>
+            <p className="text-white/40 text-xs mb-2">
+              Drives: Allergen profile enforcement in child meal generation · early allergen introduction guidance in Parent's Corner coaching
+            </p>
+            <ul className="space-y-3 mb-5">
+              <SourceItem
+                title="NIAID — Addendum Guidelines for Prevention of Peanut Allergy in the United States (Journal of Allergy and Clinical Immunology, 2017, PMID 28065278)"
+                description="National Institute of Allergy and Infectious Diseases clinical guidelines establishing early peanut introduction (4–6 months for high-risk infants with eczema or egg allergy) as protective against peanut allergy. The basis for the platform's early allergen introduction guidance in Parent's Corner and the allergen profile structure in child nutrition profiles."
+                url="https://pubmed.ncbi.nlm.nih.gov/28065278/"
+              />
+              <SourceItem
+                title="AAP — Preventing Allergies in Babies and Young Children (2019)"
+                description="Updated AAP guidance recommending early introduction of allergenic foods (peanut, egg, tree nuts, fish) for most infants, rather than avoidance. The platform's allergen coaching reflects this evidence-based shift away from delayed-introduction approaches."
+                url="https://www.healthychildren.org/English/ages-stages/baby/feeding-nutrition/Pages/Food-Allergies-in-Children.aspx"
+              />
+            </ul>
+
+            <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">Choking Safety &amp; Texture</p>
+            <p className="text-white/40 text-xs mb-2">
+              Drives: Texture calibration by stage · choking-risk ingredient avoidance for infant and toddler stages
+            </p>
+            <ul className="space-y-3 mb-5">
+              <SourceItem
+                title="AAP — Choking Prevention (HealthyChildren.org)"
+                description="American Academy of Pediatrics guidance identifying high-choking-risk foods for children under 4: whole grapes, raw carrots, chunks of meat, hot dogs, hard candies, nuts, popcorn, and raw apple pieces. These categories are blocked or flagged in child meal generation for infant and young toddler stages."
+                url="https://www.healthychildren.org/English/health-issues/injuries-emergencies/Pages/Choking-Prevention.aspx"
+              />
+            </ul>
+
+            <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">Division of Responsibility in Feeding</p>
+            <p className="text-white/40 text-xs mb-2">
+              Drives: Picky eating guidance · feeding behavior coaching language · non-coercive approach to food refusal
+            </p>
+            <ul className="space-y-3 mb-5">
+              <SourceItem
+                title="Satter, E. — Child of Mine: Feeding with Love and Good Sense (2000); Ellyn Satter Institute — Division of Responsibility in Feeding"
+                description="Ellyn Satter's Division of Responsibility (sDOR) framework: parents/caregivers decide what food is offered, when, and where; children decide whether to eat and how much. This framework is the basis for the platform's picky eating coaching language — it avoids coercive or pressure-based feeding advice and reinforces the parent's role without overriding the child's autonomy at the table."
+                url="https://www.ellynsatterinstitute.org/how-to-feed/the-division-of-responsibility-in-feeding/"
+              />
+            </ul>
+
+            <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">Child Growth &amp; Developmental Nutrition</p>
+            <p className="text-white/40 text-xs mb-2">
+              Drives: Stage-appropriate calorie and nutrient calibration · growth-stage meal planning · developmental milestone-aware guidance
+            </p>
+            <ul className="space-y-3 mb-5">
+              <SourceItem
+                title="WHO Child Growth Standards (2006)"
+                description="World Health Organization international reference standards for child growth from birth to 5 years — weight, height, and developmental benchmarks used as the basis for age- and stage-appropriate nutritional calibration in the platform."
+                url="https://www.who.int/tools/child-growth-standards"
+              />
+              <SourceItem
+                title="USDA MyPlate — Kids & Toddlers (Dietary Guidelines for Americans, 2020–2025)"
+                description="USDA evidence-based food group and portion guidance for children aged 1–13. The basis for age-appropriate portion calibration, food variety goals, and the nutrient priorities for toddler, preschool, and early school-age stages in the platform."
+                url="https://www.myplate.gov/life-stages/kids"
+              />
+              <SourceItem
+                title="AAP — Pediatric Nutrition (7th ed., Kleinman & Greer, eds., 2014)"
+                description="The AAP's comprehensive clinical reference for pediatric nutrition — macronutrient and micronutrient requirements by age, common nutritional deficiencies, feeding behavior clinical context, and growth monitoring. The foundational clinical reference for the pediatric nutrition protocols used in child meal generation."
+                url="https://shop.aap.org/pediatric-nutrition-7th-edition/"
+              />
+            </ul>
+
+            <p className="text-white/60 text-xs leading-relaxed">
+              Parent's Corner provides nutritional guidance grounded in the selected child's profile — not individualized medical advice. When a question requires a pediatrician or registered dietitian — growth concerns, diagnostic questions, or medical treatment decisions — Parent's Corner says so directly and does not speculate.
+            </p>
+          </section>
+
           <section className="bg-amber-900/20 border border-amber-500/30 rounded-xl p-4">
             <h3 className="text-amber-400 font-semibold mb-2 flex items-center gap-2">
               <Info className="w-4 h-4" />
@@ -939,11 +1232,14 @@ export function MedicalSourcesInfo({
               oncology-related meal suggestions are intended for general
               supportive wellness use only and are not a substitute for
               oncology, physician, or registered dietitian guidance. Pregnancy
-              Support guidance is for general nutrition education only and is
+              Coach guidance is for general nutrition education only and is
               not a substitute for your OB/GYN, midwife, or registered
-              dietitian's prenatal care. Always verify ingredients and consult
-              a qualified healthcare professional for medical advice, especially
-              for severe allergies or medically complex conditions.
+              dietitian's prenatal care. Parent's Corner guidance is for
+              general child nutrition education only and is not a substitute
+              for your pediatrician or registered dietitian's guidance. Always
+              verify ingredients and consult a qualified healthcare professional
+              for medical advice, especially for severe allergies or medically
+              complex conditions.
             </p>
           </section>
         </div>

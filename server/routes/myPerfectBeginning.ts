@@ -56,6 +56,10 @@ function stageLabel(stage: string): string {
 
 // ─── System prompt builder ────────────────────────────────────────────────────
 
+// Import the shared behavioral doctrine — same governing layer as Coach's Corner
+import { generateDoctrineSystemPromptSection } from "../services/coaching/doctrine/supportiveAccountabilityDoctrine";
+import { getComplianceBehaviorSignal, renderBehaviorSignalBlock } from "../services/coaching/doctrine/behaviorProgressClassifier";
+
 function buildSystemPrompt(
   childContext: Record<string, any>,
   guidanceOutput?: PediatricGuidanceOutput | null
@@ -203,6 +207,8 @@ Before responding, reason through these steps in order (internally — do not ex
 • Use the child's name (${nickname}) naturally in your response
 • Keep answers conversational and warm — under 200 words unless the question is genuinely complex
 • Never use clinical jargon without immediately explaining it in plain language
+
+${generateDoctrineSystemPromptSection("parent")}
 
 ━━━ HARD BOUNDARIES ━━━
 • You do not diagnose conditions
@@ -841,7 +847,20 @@ router.post("/parents-corner", requireAuth, async (req, res) => {
     }
 
     const openai = getOpenAI();
-    const systemPrompt = buildSystemPrompt(resolvedContext, guidanceOutput);
+
+    // ── Behavior signal (non-fatal) ─────────────────────────────────────────
+    // Classify participation evidence so the doctrine's SUPPORT + REINFORCE
+    // steps have server-grounded data. Parent's Corner doesn't run the full
+    // observer pipeline, so we do a lightweight compliance query instead.
+    let behaviorSignalAppend = "";
+    try {
+      const behaviorSignal = await getComplianceBehaviorSignal(userId);
+      behaviorSignalAppend = "\n\n" + renderBehaviorSignalBlock(behaviorSignal);
+    } catch {
+      // Non-fatal — doctrine text still present; signal is an enhancement
+    }
+
+    const systemPrompt = buildSystemPrompt(resolvedContext, guidanceOutput) + behaviorSignalAppend;
 
     // Build messages array with conversation history
     const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [

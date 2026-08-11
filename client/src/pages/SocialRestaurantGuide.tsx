@@ -1198,6 +1198,20 @@ export default function RestaurantGuidePage() {
                                       dateISO: new Date().toISOString().slice(0, 10),
                                       mealSlot: "lunch",
                                     });
+                                    // Phase 4A: confirmed consumption event
+                                    import("@/lib/coachEvents").then(({ emitCoachEvent }) =>
+                                      emitCoachEvent({
+                                        eventType: "restaurant_meal_added_to_macros",
+                                        eventClass: "consumption",
+                                        sourceFeature: "restaurant_guide",
+                                        entityType: "meal",
+                                        metadata: {
+                                          mealName: meal.name || meal.meal || "",
+                                          calories: Math.round(meal.calories || 0),
+                                          protein: Math.round(meal.protein || 0),
+                                        },
+                                      })
+                                    );
                                     setLocation("/biometrics?from=restaurant-guide&view=macros");
                                   }}
                                   className="w-full bg-orange-600 hover:bg-orange-700 text-white font-medium"

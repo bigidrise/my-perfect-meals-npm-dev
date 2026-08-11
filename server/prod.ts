@@ -1466,6 +1466,59 @@ async function initializeApp() {
         }
       }, 7000);
 
+      // ── Coaching Engine boot migration (9 tables) ─────────────────────────
+      setTimeout(async () => {
+        try {
+          const { db: dbCe } = await import("./db");
+          const { runCoachingEngineMigration } = await import("./db/migrations/runCoachingEngineMigration");
+          await runCoachingEngineMigration(dbCe);
+        } catch (err: any) {
+          console.error("❌ [prod] Coaching Engine boot migration failed:", err.message);
+        }
+      }, 8000);
+
+      // ── Coach Knowledge Library seed (5 adult Corner patterns) ─────────────
+      setTimeout(async () => {
+        try {
+          const { seedCoachKnowledgePatterns } = await import("./db/seeds/coachKnowledgePatterns");
+          await seedCoachKnowledgePatterns();
+        } catch (err: any) {
+          console.error("❌ [prod] Coach Knowledge Library seed failed:", err.message);
+        }
+      }, 9500);
+
+      // ── Phase 3B: Platform Observability infrastructure ──────────────────────
+      setTimeout(async () => {
+        try {
+          const { db: dbP3b } = await import("./db");
+          const { runPhase3BMigration } = await import("./db/migrations/runPhase3BMigration");
+          await runPhase3BMigration(dbP3b);
+        } catch (err: any) {
+          console.error("❌ [prod] Phase 3B migration failed:", err.message);
+        }
+      }, 11000);
+
+      // ── Coaching Engine Phase 5 (completion provenance + followup index) ─────
+      setTimeout(async () => {
+        try {
+          const { db: dbP5 } = await import("./db");
+          const { runPhase5Migration } = await import("./db/migrations/runPhase5Migration");
+          await runPhase5Migration(dbP5);
+        } catch (err: any) {
+          console.error("❌ [prod] Coaching Phase 5 migration failed:", err.message);
+        }
+      }, 12500);
+
+      // ── Coach Follow-up Cron (every 10 min) ──────────────────────────────────
+      setTimeout(async () => {
+        try {
+          const { initCoachFollowupCron } = await import("./cron/coachFollowupCron");
+          initCoachFollowupCron();
+        } catch (err: any) {
+          console.error("❌ [prod] Coach followup cron init failed:", err.message);
+        }
+      }, 13000);
+
     }, 4000);
   } catch (error) {
     console.error("❌ [INIT] Initialization failed:", error);

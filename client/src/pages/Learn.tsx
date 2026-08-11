@@ -38,6 +38,7 @@ import {
   Undo2,
   RotateCcw,
   ChevronRight,
+  Baby,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PillButton } from "@/components/ui/pill-button";
@@ -1012,6 +1013,65 @@ const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
             "Make treatment decisions",
             "Replace the guidance of your healthcare provider",
           ],
+        },
+      ],
+    },
+  },
+  {
+    id: "chefs-corner",
+    title: "Chef's Corner",
+    subtitle: "Your conversational nutrition coaching space",
+    icon: ChefHat,
+    content: {
+      sections: [
+        {
+          heading: "What Chef's Corner Is",
+          text: "Chef's Corner is the conversational layer of My Perfect Meals. It is where you go to ask questions, think out loud about your nutrition, and get coaching-level answers that are grounded in your actual plan. It is not a generic chatbot. Every response is aware of your active Nutrition Life Plan, dietary preferences, allergies, health protocols, and any clinical guardrails on your account.",
+        },
+        {
+          heading: "When to Use It",
+          list: [
+            "You want to ask about a specific food, ingredient, or meal choice",
+            "You are unsure whether something fits your plan",
+            "You want to understand why a meal was built a certain way",
+            "You need a substitution or want to explore alternatives",
+            "You have a question about your goals, macros, or daily targets",
+            "You want to learn how to use a feature or get guidance on next steps",
+            "You are eating out and want a quick sanity check",
+          ],
+        },
+        {
+          heading: "How It Works With Your Nutrition Life Plan",
+          text: "Chef's Corner does not operate in isolation. Before it responds, it loads your complete nutrition context — your macro targets, specialty conditions, dietary identity, allergens, and any active clinical protocols. This means you never have to explain your situation from scratch. The coaching adjusts automatically based on who you are and what is active on your account.",
+        },
+        {
+          heading: "What It Respects Automatically",
+          list: [
+            "Your active dietary preferences (vegan, vegetarian, pescatarian, etc.)",
+            "Your allergen and food sensitivity list",
+            "Your macro targets and daily nutrition budget",
+            "Specialty health protocols — diabetic, GLP-1, anti-inflammatory, and others",
+            "Clinical guardrails set by your physician or coach if applicable",
+            "Your performance nutrition protocol if you are in Performance Mode",
+          ],
+        },
+        {
+          heading: "Coaching Profile",
+          text: "The first time you open Chef's Corner, you will be prompted to complete a short coaching profile. These answers shape how Chef's Corner communicates with you — your experience level, how direct you want feedback to be, and what you are focused on right now. You can update this at any time using the Edit Profile button.",
+        },
+        {
+          heading: "What Chef's Corner Does Not Do",
+          list: [
+            "It does not replace your physician or registered dietitian",
+            "It does not override clinical protocols set by your care team",
+            "It does not make medical diagnoses or recommend treatments",
+            "It does not generate meals directly — use your meal builders for that",
+            "It does not store conversation history across sessions beyond what your coaching profile captures",
+          ],
+        },
+        {
+          heading: "How to Get the Best Answers",
+          text: "Be specific. The more context you give — what you ate, what you are trying to do, what is confusing you — the more useful the response will be. Chef's Corner is designed for the kind of real-life questions that come up when you are out in the world trying to make good decisions, not just when you are sitting down to plan.",
         },
       ],
     },
@@ -2755,6 +2815,152 @@ const SECTION_PERFORMANCE_MODES: LibraryTopic[] = [
         {
           heading: "SafetyGuard Always Active",
           text: "SafetyGuard protects you from allergens and respects all your dietary preferences automatically across every meal the builder generates. No performance or session-type adjustment can override an allergen block or a dietary identity restriction.",
+        },
+      ],
+    },
+  },
+  {
+    id: "my-perfect-beginning",
+    title: "My Perfect Beginning",
+    subtitle: "Age-appropriate nutrition for infants, toddlers & children",
+    icon: Baby,
+    content: {
+      sections: [
+        {
+          heading: "What It Is",
+          text: "My Perfect Beginning is the child and infant nutrition system inside My Perfect Meals. It is built for parents who want age-appropriate, evidence-based meal guidance for their children — from the earliest stages of introducing solid foods through toddler and early childhood eating. The system generates meals, snacks, and lunchbox ideas calibrated to your child's developmental stage, not generic adult nutrition.",
+        },
+        {
+          heading: "What the System Covers",
+          list: [
+            "Child Nutrition Profiles — personalized profiles for each child, tracking age, stage, allergies, and preferences",
+            "Pediatric nutrition protocols — evidence-based guidance for each developmental milestone",
+            "Child-safe recipe generation — AI-generated recipes sized, textured, and seasoned for children",
+            "Better versions of favorite foods — healthier takes on the meals kids already love",
+            "Lunchbox Builder — build balanced, kid-approved lunchboxes in seconds",
+            "Growth-stage meal planning — weekly plans calibrated to your child's age and needs",
+            "Developmental nutrition guidance — milestone-aware meal planning as your child grows",
+            "Parent's Corner AI — ask child nutrition questions and get answers grounded in pediatric evidence",
+          ],
+        },
+        {
+          heading: "How It Differs From the General Meal Builders",
+          text: "The general meal builders in My Perfect Meals are calibrated to adult macro targets, portion sizes, seasoning levels, and nutritional priorities. My Perfect Beginning operates on a completely separate set of rules — portion sizes are age-scaled, textures are stage-appropriate (purees for early introduction, soft foods for emerging chewers, finger foods for toddlers), sodium is reduced, and nutrient priorities reflect pediatric developmental needs rather than adult fitness goals.",
+        },
+        {
+          heading: "Your Nutrition Life Plan Still Applies",
+          text: "If you have active allergen protections, dietary preferences, or clinical protocols on your account, those guardrails extend into child meal generation. A peanut allergy on your account will block peanut ingredients in every meal generator — including child meals. You do not need to enter restrictions twice.",
+        },
+        {
+          heading: "Current Status",
+          text: "My Perfect Beginning is actively being built out. The hub, child nutrition profiles, Lunchbox Builder, and Parent's Corner AI are in development. The feature page is available now and will expand as each component is completed.",
+        },
+        {
+          heading: "How to Access It",
+          text: "Open the Lifestyle section of the app and tap My Perfect Beginning. You can also access it from the App Library or directly via the navigation menu if it has been added to your shortcuts.",
+        },
+      ],
+    },
+  },
+  {
+    id: "pregnancy-coach",
+    title: "Pregnancy Coach",
+    subtitle: "Conversational pregnancy nutrition coaching · Stage-aware · Symptom-responsive",
+    icon: Heart,
+    content: {
+      sections: [
+        {
+          heading: "What It Is",
+          text: "Pregnancy Coach is the conversational coaching layer for My Perfect Pregnancy. It is not a general chatbot — every response is grounded in your current stage, your active protocol, your symptoms, and the food safety rules that are already running across your meal generators. You never have to explain where you are in your pregnancy. The system already knows.",
+        },
+        {
+          heading: "How It Differs From the Meal Builders",
+          text: "The My Perfect Pregnancy protocol enforces food safety and nutrient priorities automatically in every meal generator. Pregnancy Coach is the conversational layer on top of that — it is where you go when you want to understand why, ask a question about a specific food, work through a symptom, or get guidance on navigating meals at a restaurant or social event. The builders generate meals. Pregnancy Coach explains, advises, and answers.",
+        },
+        {
+          heading: "What It Knows About You",
+          list: [
+            "Your current stage — trying to conceive, trimester 1–3, breastfeeding, or postpartum",
+            "Your active symptom profile — nausea, heartburn, swelling, fatigue, food aversions",
+            "Trimester-specific nutrient priorities (folate/iron in T1, calcium/protein in T2, DHA/choline in T3)",
+            "All food safety rules currently enforced by your protocol",
+            "Your allergen protections and dietary preferences",
+            "Any other clinical protocols active on your account",
+          ],
+        },
+        {
+          heading: "What to Ask It",
+          list: [
+            "Whether a specific food is safe at your stage",
+            "What to eat when a symptom is making it hard to keep food down",
+            "How to handle meals at a restaurant or family gathering",
+            "What your nutrient priorities mean in practical food terms",
+            "How postpartum and breastfeeding nutrition differ from pregnancy",
+            "How to stay on track when nothing sounds good",
+          ],
+        },
+        {
+          heading: "Clinical Boundaries",
+          text: "Pregnancy Coach provides nutritional guidance — not medical advice. When something genuinely requires your doctor, midwife, or dietitian, it says so clearly. It will never speculate about medical symptoms, diagnose conditions, or recommend medications. The coaching operates within the clinical guardrails set by your active protocols.",
+        },
+        {
+          heading: "How to Access It",
+          text: "Open the Lifestyle section and tap My Perfect Pregnancy. The coaching interface is on that page. You must have My Perfect Pregnancy activated in your profile for the full coaching context to load.",
+        },
+      ],
+    },
+  },
+  {
+    id: "parents-corner",
+    title: "Parent's Corner",
+    subtitle: "Child nutrition coaching · Child is the subject · Parent is the operator",
+    icon: Users,
+    content: {
+      sections: [
+        {
+          heading: "The Core Architecture",
+          text: "Parent's Corner operates on a fundamental design principle: the selected child is the nutrition subject, not the parent or caregiver asking the question. The parent is the authorized operator — asking questions on the child's behalf. Every response is calibrated to that specific child's developmental stage, profile, allergies, conditions, and feeding context, not to the adult using the app.",
+        },
+        {
+          heading: "What It Knows About the Selected Child",
+          list: [
+            "Developmental stage — early infant, beginning foods, young toddler, toddler, preschool, early school age, growing child",
+            "Age in months derived from date of birth or stage mapping",
+            "Full allergen profile — every allergy and food sensitivity on the child's profile",
+            "Diagnosed medical conditions relevant to nutrition",
+            "Feeding concerns — picky eating, texture issues, refusal patterns",
+            "Sensory issues affecting food acceptance",
+            "Food dislikes and preferences",
+            "Cultural dietary preferences",
+          ],
+        },
+        {
+          heading: "Conversation Persistence Per Child",
+          text: "Conversation history is saved per child profile, not per parent account. If you have multiple children, each has their own separate conversation history. When you switch to a different child profile, the coaching context and conversation switch with it. Start Fresh resets the conversation for the currently selected child only.",
+        },
+        {
+          heading: "What to Ask It",
+          list: [
+            "What foods to introduce next at your child's current stage",
+            "How to handle food refusals and picky eating without creating stress",
+            "Whether a specific food or ingredient is appropriate at their age",
+            "How to manage a diagnosed condition through food choices",
+            "What a balanced day of eating looks like for their developmental stage",
+            "How to build a varied palate in an age-appropriate way",
+            "Lunchbox ideas that fit their age, stage, and preferences",
+          ],
+        },
+        {
+          heading: "Today's Tip and Curated Questions",
+          text: "Each session opens with a stage-appropriate Today's Tip — a brief, practical piece of guidance calibrated to your child's current developmental moment. Nine curated question cards cover the most common parent concerns at each stage, so you can get useful answers quickly without having to know exactly how to phrase a question. Free-text Ask Anything is always available for anything not covered by the cards.",
+        },
+        {
+          heading: "Clinical Boundaries",
+          text: "Parent's Corner provides nutritional guidance — not medical advice. When something requires a pediatrician or registered dietitian — growth concerns, diagnostic questions, medical treatment decisions — it says so directly and does not speculate. Child allergen protections on the child's profile are always active and cannot be overridden.",
+        },
+        {
+          heading: "How to Access It",
+          text: "Open My Perfect Beginning from the Lifestyle section, select a child profile, and tap Parent's Corner. The coaching context loads from the selected child's profile automatically.",
         },
       ],
     },
