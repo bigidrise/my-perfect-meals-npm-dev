@@ -154,17 +154,13 @@ function CoachBubble({ structured }: { structured: CoachStructuredResponse }) {
               {learningOpp}
             </p>
           )}
-          {/* ── Disclaimer footer — always shown on coach messages ── */}
-          <div className="border-t border-white/8 pt-3 mt-1 space-y-1.5">
-            <p className="text-white/40 text-[11px] leading-snug">
-              If you log your meals and today's check-in, I can give you a clearer picture of whether
-              this looks nutritional or behavioral — so you can bring that context to your doctor or coach.
-            </p>
-            <p className="text-white/35 text-[11px] leading-snug">
-              Chef's Corner is not a substitute for professional medical or dietary advice.
-              Always consult your physician or a qualified healthcare provider for an accurate assessment.
-            </p>
-          </div>
+          {/* ── Permanent professional boundary footer ── */}
+          <p className="text-white/35 text-[11px] leading-snug border-t border-white/8 pt-3 mt-1">
+            The more you log—meals, check-ins, and relevant progress—the better Chef's Corner can
+            identify patterns and provide personalized nutrition guidance. For changes to a prescribed
+            nutrition plan, medical concerns, symptoms, or an accurate clinical assessment, consult your
+            physician, dietitian, or qualified healthcare professional.
+          </p>
         </div>
       </div>
     </div>
