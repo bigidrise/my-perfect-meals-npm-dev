@@ -106,6 +106,7 @@ export default function BusinessDashboard() {
   const { t } = useTranslation();
 
   const ROLE_OPTIONS = [
+    { value: "admin", label: "Organization Admin" },
     { value: "coach", label: t("businessDashboard.roles.coach") },
     { value: "trainer", label: t("businessDashboard.roles.trainer") },
     { value: "physician", label: t("businessDashboard.roles.physician") },
@@ -141,7 +142,7 @@ export default function BusinessDashboard() {
   // enforces this by showing only a generic spinner until fetchData() resolves
   // and sets viewMode to "owner" | "member" | "none". Do not add any
   // membership-dependent JSX above or outside that guard.
-  const [viewMode, setViewMode] = useState<"owner" | "member" | "none" | null>(null);
+  const [viewMode, setViewMode] = useState<"owner" | "admin" | "member" | "none" | null>(null);
   const isDesktop = useIsDesktop();
   const [loading, setLoading] = useState(true);
   const [polling, setPolling] = useState(fromCheckout);
@@ -293,7 +294,7 @@ export default function BusinessDashboard() {
       if (ownerRes.ok) {
         const json = await ownerRes.json();
         setOwnerData(json);
-        setViewMode("owner");
+        setViewMode(json.callerRole === "admin" ? "admin" : "owner");
         if (json.business?.name === DEFAULT_BUSINESS_NAME) {
           setSetupMode(true);
         }
@@ -810,8 +811,11 @@ export default function BusinessDashboard() {
     );
   }
 
-  // ── Owner view ──────────────────────────────────────────────────────────────
+  // ── Owner / Admin view ──────────────────────────────────────────────────────
   if (!ownerData) return null;
+  // isAdminView: true when the caller is an Organization Admin (not the Owner).
+  // Admins see the full management dashboard but cannot access billing/seat controls.
+  const isAdminView = viewMode === "admin";
   const { business, members, invitations, usedSeats, availableSeats } = ownerData;
 
   // ── Pending billing (org provisioned but Stripe not yet completed) ──────────
@@ -1061,13 +1065,15 @@ export default function BusinessDashboard() {
             ) : (
               <p className="text-white/50 text-xs">{availableSeats} seat{availableSeats !== 1 ? "s" : ""} available</p>
             )}
-            <button
-              className="text-orange-400 text-xs font-semibold flex items-center gap-1 active:opacity-60 transition-opacity"
-              onClick={() => { setManagedSeats(business.seatLimit); setSeatModalOpen(true); }}
-            >
-              <Settings className="w-3 h-3" />
-              Manage
-            </button>
+            {!isAdminView && (
+              <button
+                className="text-orange-400 text-xs font-semibold flex items-center gap-1 active:opacity-60 transition-opacity"
+                onClick={() => { setManagedSeats(business.seatLimit); setSeatModalOpen(true); }}
+              >
+                <Settings className="w-3 h-3" />
+                Manage
+              </button>
+            )}
           </div>
         </Card>
 
