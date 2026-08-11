@@ -716,7 +716,13 @@ export default function CoachsCorner() {
         {/* Header */}
         <div className="shrink-0 bg-black/50 backdrop-blur-md flex items-center justify-between px-4 h-14">
           <button
-            onClick={() => window.history.back()}
+            onClick={() => {
+              if (window.history.length <= 1) {
+                setLocation("/");
+              } else {
+                window.history.back();
+              }
+            }}
             className="flex items-center gap-1 h-8 px-2 rounded-full text-white/60 hover:text-white transition-colors"
             aria-label="Go back"
           >
