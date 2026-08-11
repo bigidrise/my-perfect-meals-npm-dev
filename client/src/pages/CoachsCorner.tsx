@@ -18,7 +18,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Settings, Send, RotateCcw, Check, ArrowLeft, Trash2 } from "lucide-react";
+import { Settings, Send, RotateCcw, Check, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -585,11 +585,17 @@ export default function CoachsCorner() {
       followupFired.current = false;
       queryClient.invalidateQueries({ queryKey: ["/api/coach/bootstrap"] });
     },
+    onError: () => {
+      setShowClearConfirm(false);
+    },
   });
 
   const handleClear = () => {
-    if (!conversationId) return;
-    clearMutation.mutate(conversationId);
+    // Use bootstrap data as primary source — more reliable than state which
+    // can be null if the useEffect guard ran before the ID was set.
+    const cid = conversationId ?? bootstrapQuery.data?.conversationId ?? null;
+    if (!cid) return;
+    clearMutation.mutate(cid);
   };
 
   // ─── Render ────────────────────────────────────────────────────────────────
@@ -618,37 +624,27 @@ export default function CoachsCorner() {
       <div className="flex-1 flex flex-col w-full max-w-2xl mx-auto min-h-0">
 
         {/* Header */}
-        <div className="shrink-0 bg-black/50 backdrop-blur-md flex items-center justify-between px-4 h-14">
-          <button
-            onClick={() => window.history.back()}
-            className="flex items-center gap-1 h-8 px-2 rounded-full text-white/60 hover:text-white transition-colors"
-            aria-label="Go back"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="text-xs">Back</span>
-          </button>
-          <div className="flex items-center gap-2">
-            {hasMessages && (
-              <button
-                onClick={() => setShowClearConfirm(true)}
-                disabled={clearMutation.isPending}
-                className="flex items-center gap-1.5 px-3 h-8 rounded-full bg-white/8 border border-white/15 text-white/50 text-xs hover:text-red-400 hover:border-red-500/30 hover:bg-red-500/10 transition-colors disabled:opacity-40"
-                aria-label="Clear conversation"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                Clear
-              </button>
-            )}
+        <div className="shrink-0 bg-black/50 backdrop-blur-md flex items-center justify-end gap-2 px-4 h-14">
+          {hasMessages && (
             <button
-              onClick={() => setShowProfile(true)}
-              disabled={!bootstrapReady}
-              className="flex items-center gap-1.5 px-3 h-8 rounded-full bg-white/8 border border-white/15 text-white/70 text-xs hover:text-white hover:bg-white/12 transition-colors disabled:opacity-40 disabled:cursor-default"
-              aria-label="Edit coaching profile"
+              onClick={() => setShowClearConfirm(true)}
+              disabled={clearMutation.isPending}
+              className="flex items-center gap-1.5 px-3 h-8 rounded-full bg-white/8 border border-white/15 text-white/50 text-xs hover:text-red-400 hover:border-red-500/30 hover:bg-red-500/10 transition-colors disabled:opacity-40"
+              aria-label="Clear conversation"
             >
-              <Settings className="w-3.5 h-3.5" />
-              Edit profile
+              <Trash2 className="w-3.5 h-3.5" />
+              Clear
             </button>
-          </div>
+          )}
+          <button
+            onClick={() => setShowProfile(true)}
+            disabled={!bootstrapReady}
+            className="flex items-center gap-1.5 px-3 h-8 rounded-full bg-white/8 border border-white/15 text-white/70 text-xs hover:text-white hover:bg-white/12 transition-colors disabled:opacity-40 disabled:cursor-default"
+            aria-label="Edit coaching profile"
+          >
+            <Settings className="w-3.5 h-3.5" />
+            Edit profile
+          </button>
         </div>
 
         {/* Message area */}
