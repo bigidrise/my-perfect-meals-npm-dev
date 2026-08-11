@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { and, desc, eq, gte } from "drizzle-orm";
+import { and, desc, eq, gte, sql } from "drizzle-orm";
 import OpenAI from "openai";
 import { db } from "../db";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
@@ -252,6 +252,103 @@ const router = Router();
 
 router.get("/questions", requireAuth, async (_req, res) => {
   res.json({ questions: COACH_CORNER_QUESTIONS });
+});
+
+// ─── GET /bootstrap ──────────────────────────────────────────────────────────
+// Single endpoint that replaces the old 3-step waterfall:
+//   GET /status → GET /conversation → GET /conversation/:id/messages
+// Also checks for a pending follow-up so the client can deliver it inline
+// without a separate /followup/due call on every open.
+//
+// Response shape:
+//   { completed, profile, conversation, messages, pendingFollowupId }
+
+router.get("/bootstrap", requireAuth, async (req, res) => {
+  const authReq = req as AuthenticatedRequest;
+  const userId = authReq.authUser.id;
+
+  try {
+    // 1. Load coaching profile (status gate)
+    const [profile] = await db
+      .select()
+      .from(coachingProfiles)
+      .where(eq(coachingProfiles.userId, userId))
+      .limit(1);
+
+    const completed = !!profile?.coachProfileCompletedAt;
+
+    if (!completed) {
+      return res.json({
+        completed: false,
+        profile: null,
+        conversation: null,
+        messages: [],
+        pendingFollowupId: null,
+      });
+    }
+
+    // 2. Fetch conversation and pending follow-up in parallel
+    const [convResult, followupMod] = await Promise.all([
+      db.execute<{
+        id: string;
+        specialization: string;
+        status: string;
+        last_message_at: string | null;
+        created_at: string;
+      }>(sql`
+        SELECT id, specialization, status, last_message_at, created_at
+        FROM coach_conversations
+        WHERE owner_id = ${userId}
+          AND specialization = 'corner'
+          AND status = 'open'
+        ORDER BY last_message_at DESC NULLS LAST
+        LIMIT 1
+      `),
+      import("../services/coaching/followupWorker")
+        .then(({ findDueFollowupForUser }) => findDueFollowupForUser(userId))
+        .catch(() => null),
+    ]);
+
+    const conversation = convResult.rows[0] ?? null;
+    let messages: Array<{
+      id: string;
+      role: string;
+      content: string;
+      structured_payload: unknown;
+      created_at: string;
+    }> = [];
+
+    // 3. If there's an open conversation, fetch messages
+    if (conversation) {
+      const messagesResult = await db.execute<{
+        id: string;
+        role: string;
+        content: string;
+        structured_payload: unknown;
+        created_at: string;
+      }>(sql`
+        SELECT id, role, content, structured_payload, created_at
+        FROM coach_messages
+        WHERE conversation_id = ${conversation.id}
+        ORDER BY created_at ASC
+        LIMIT 20
+      `);
+      messages = messagesResult.rows;
+    }
+
+    return res.json({
+      completed: true,
+      profile: profile ?? null,
+      conversation,
+      messages,
+      // Only non-null when there is actually a due follow-up — avoids
+      // the unconditional /followup/due call on every page open.
+      pendingFollowupId: (followupMod as { id?: string } | null)?.id ?? null,
+    });
+  } catch (err: any) {
+    console.error("[CoachCorner] GET /bootstrap error:", err.message);
+    res.status(500).json({ error: "Failed to load bootstrap data" });
+  }
 });
 
 router.get("/status", requireAuth, async (req, res) => {
