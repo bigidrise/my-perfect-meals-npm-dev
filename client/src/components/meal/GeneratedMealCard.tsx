@@ -191,6 +191,21 @@ export default function GeneratedMealCard({
       mealSlot: null,
     });
 
+    // Phase 4A: confirmed consumption event
+    import("@/lib/coachEvents").then(({ emitCoachEvent }) =>
+      emitCoachEvent({
+        eventType: "meal_added_to_macros",
+        eventClass: "consumption",
+        sourceFeature: macroSource ?? "meal_builder",
+        entityType: "meal",
+        metadata: {
+          mealName: generatedMeal?.name ?? "",
+          calories: perServingCalories,
+          protein: perServingProtein,
+        },
+      })
+    );
+
     const url = macroSource 
       ? `/biometrics?from=${macroSource}&view=macros`
       : "/biometrics?view=macros";

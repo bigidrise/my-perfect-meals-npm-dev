@@ -1570,6 +1570,59 @@ setTimeout(async () => {
   }
 }, 5500);
 
+// ── Coaching Engine boot migration (9 tables) ─────────────────────────────────
+setTimeout(async () => {
+  try {
+    const { db } = await import("./db");
+    const { runCoachingEngineMigration } = await import("./db/migrations/runCoachingEngineMigration");
+    await runCoachingEngineMigration(db);
+  } catch (err: any) {
+    console.error("❌ Coaching Engine boot migration failed:", err.message);
+  }
+}, 6000);
+
+// ── Coach Knowledge Library seed (5 adult Corner patterns) ────────────────────
+setTimeout(async () => {
+  try {
+    const { seedCoachKnowledgePatterns } = await import("./db/seeds/coachKnowledgePatterns");
+    await seedCoachKnowledgePatterns();
+  } catch (err: any) {
+    console.error("❌ Coach Knowledge Library seed failed:", err.message);
+  }
+}, 7500);
+
+// ── Phase 3B: Platform Observability infrastructure ───────────────────────────
+setTimeout(async () => {
+  try {
+    const { db } = await import("./db");
+    const { runPhase3BMigration } = await import("./db/migrations/runPhase3BMigration");
+    await runPhase3BMigration(db);
+  } catch (err: any) {
+    console.error("❌ Phase 3B migration failed:", err.message);
+  }
+}, 8500);
+
+// ── Coaching Engine Phase 5 migration (completion provenance + followup index) ─
+setTimeout(async () => {
+  try {
+    const { db } = await import("./db");
+    const { runPhase5Migration } = await import("./db/migrations/runPhase5Migration");
+    await runPhase5Migration(db);
+  } catch (err: any) {
+    console.error("❌ Coaching Phase 5 migration failed:", err.message);
+  }
+}, 9500);
+
+// ── Coach Follow-up Cron (every 10 min) ─────────────────────────────────────
+setTimeout(async () => {
+  try {
+    const { initCoachFollowupCron } = await import("./cron/coachFollowupCron");
+    initCoachFollowupCron();
+  } catch (err: any) {
+    console.error("❌ Coach followup cron init failed:", err.message);
+  }
+}, 10000);
+
 // Global process error handlers for stability
 process.on('unhandledRejection', (reason, promise) => {
   console.error('🚨 Unhandled Rejection at:', promise, 'reason:', reason);

@@ -19,6 +19,7 @@ import { findBrandBySlug, getAllBrands } from "../services/away-from-home/BrandR
 import { generateMenuItemRecommendations } from "../services/away-from-home/generateMenuItemRecommendations";
 import { generateRestaurantMealsAI } from "../services/restaurantMealGeneratorAI";
 import { computeAlphaGalBadge } from "../services/medicalBadges";
+import { emitActivityEvent } from "../services/coaching/activityEvents";
 
 // ── Alpha-gal condition detection keys (mirrors medicalBadges.ts) ─────────────
 const ALPHA_GAL_KEYS = [
@@ -202,6 +203,15 @@ router.post("/guide", async (req, res) => {
             console.error(`⚠️ [Guide/AI] Failed to persist session:`, saveErr);
           }
         })();
+
+        // Phase 3B: emit usage event — restaurant guide was generated (AI branch)
+        emitActivityEvent({
+          ownerUserId: String(userId),
+          eventType: "restaurant_recommendations_generated",
+          eventClass: "usage",
+          sourceFeature: "restaurant_guide",
+          metadata: { restaurantName: restaurantInfo.name, cuisine: detectedCuisine, craving, count: aiRecsWithBadges.length },
+        }).catch((err) => console.error("[ActivityEvents]", err.message));
       }
 
       return;
@@ -309,6 +319,15 @@ router.post("/guide", async (req, res) => {
           console.error(`⚠️ [Guide] Failed to persist session:`, saveErr);
         }
       })();
+
+      // Phase 3B: emit usage event — restaurant guide was generated (verified menu branch)
+      emitActivityEvent({
+        ownerUserId: String(userId),
+        eventType: "restaurant_recommendations_generated",
+        eventClass: "usage",
+        sourceFeature: "restaurant_guide",
+        metadata: { restaurantName: restaurantInfo.name, cuisine: detectedCuisine, craving, count: finalRecommendations.length, menuSource: source },
+      }).catch((err) => console.error("[ActivityEvents]", err.message));
     }
 
   } catch (error) {

@@ -790,6 +790,106 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
       "This is the Ingredient Safety Scanner. Type any food or ingredient to instantly check if it is safe for your dog. The system runs it through the Toxic Ingredient Firewall — a curated library of known canine toxins sourced from ASPCA Poison Control and AVMA veterinary safety references. You get back a clear safety rating: SAFE, CAUTION, or NOT SAFE. If something is flagged, you see exactly why — the specific toxicity reason — and a safe substitution you can use instead. For safe ingredients, you also get a wellness score from one to ten and nutritional notes on why that ingredient benefits dogs. Use the quick check buttons below the search bar to scan common foods instantly, or type anything you are curious about.",
     autoClose: false,
   },
+
+  "/lifestyle/my-perfect-beginning": {
+    pageId: "my-perfect-beginning",
+    title: "My Perfect Beginning",
+    description:
+      "Age-appropriate nutrition guidance for infants, toddlers, and children — personalized to your child's developmental stage and needs.",
+    spokenText:
+      "Welcome to My Perfect Beginning. This is where child and infant nutrition lives inside My Perfect Meals. Everything here is built for parents, not generic adult nutrition. When this system generates a meal for your child, it uses pediatric portion sizes, stage-appropriate textures, reduced sodium, and developmental nutrient priorities — not your adult macro targets. If your child is just starting solid foods, meals are designed for that stage. If they are a toddler, the system knows what that means nutritionally. You can create separate profiles for each child so every meal is calibrated to that specific child's age, stage, and preferences. Your own allergen protections and dietary restrictions extend into child meal generation automatically — you never have to enter them twice. The full hub including child nutrition profiles, the Lunchbox Builder, and Parent's Corner AI is being actively built out. You are looking at the beginning of something designed to change how families feed their children.",
+    autoClose: true,
+  },
+
+  "/lifestyle/my-perfect-beginning/create-meal": {
+    pageId: "my-perfect-beginning-create-meal",
+    title: "My Perfect Beginning — Create a Meal",
+    description:
+      "Generate a child-safe, age-appropriate meal personalized to your child's developmental stage.",
+    spokenText:
+      "This is the My Perfect Beginning meal creator. Select your child's profile and enter what you would like to make — keep it simple or be specific about the ingredients, cuisine, or occasion. The system generates a meal that is sized, textured, and seasoned for your child's developmental stage, not adult preferences. All your allergen protections apply automatically.",
+    autoClose: false,
+  },
+
+  "/lifestyle/my-perfect-pregnancy": {
+    pageId: "pregnancy-coach",
+    title: "Pregnancy Coach",
+    description:
+      "Your conversational pregnancy nutrition coach — stage-aware, symptom-responsive, and grounded in your active My Perfect Pregnancy protocol.",
+    spokenText:
+      "Welcome to Pregnancy Coach. This is the conversational coaching layer for My Perfect Pregnancy. Everything I tell you here is grounded in where you actually are — your trimester, your symptoms, your nutrient priorities, and the food safety rules your active protocol is enforcing across the app. You do not have to explain your situation. I already know your stage. If you are in the first trimester, I know folate and iron are the focus and that nausea may be a real factor in what you can actually eat. If you are in the third, I know DHA, choline, and iron stores matter most. Postpartum and breastfeeding are separate stages with their own rules, and I know those too. You can ask me anything — what to eat when you are nauseous, whether a specific food is safe, how to handle a meal at a restaurant, what a symptom might mean for your nutrition, or how to stay on track when nothing sounds good. If something you ask requires your doctor or midwife, I will tell you that clearly. My job is to make the nutrition side of pregnancy feel less overwhelming and more manageable, one real question at a time.",
+    autoClose: true,
+  },
+
+  "/saved-meals": {
+    pageId: "saved-meals",
+    title: "Saved Meals",
+    description:
+      "Your personal collection of meals you have saved from any builder or creator in the app.",
+    spokenText:
+      "This is your Saved Meals page — your personal recipe collection. Every meal you have ever saved from any builder or creator in the app lives here. You can browse by category, search by name, or filter by the builder it came from. Tapping a saved meal lets you view its full recipe, nutrition breakdown, and ingredients. You can add it to your meal plan, send it to your shopping list, or delete it if it is no longer relevant. Saved meals also feed into Taste Memory — the system that learns your preferences over time and improves how the AI generates meals for you. The more you save, the more personalized your experience becomes.",
+    autoClose: true,
+  },
+
+  "/supplement-hub": {
+    pageId: "supplement-hub",
+    title: "Supplement Hub",
+    description:
+      "Personalized supplement guidance based on your active nutrition protocols, goals, and clinical context.",
+    spokenText:
+      "Welcome to the Supplement Hub. This is where you get supplement guidance that is actually grounded in your situation — not a generic stack from a fitness magazine. The recommendations here are shaped by your active health protocols, dietary identity, goals, and any clinical conditions on your account. If you are diabetic, GLP-1, anti-inflammatory, or have other active protocols, the guidance reflects those contexts. Supplements are presented as supportive tools, not replacements for food, medication, or clinical advice. Always confirm significant supplement choices with your healthcare provider, especially if you have active medical conditions or are taking medications.",
+    autoClose: true,
+  },
+
+  "/tutorials": {
+    pageId: "tutorial-hub",
+    title: "Tutorial Hub",
+    description:
+      "Step-by-step walkthroughs for every major feature in My Perfect Meals — start here if something is unclear.",
+    spokenText:
+      "Welcome to the Tutorial Hub. If something in the app is not clicking, this is the first place to come. Every major feature has a dedicated walkthrough here — from setting up your Nutrition Profile and using the Macro Calculator, to running the meal builders, scanning ingredients, and using specialty hubs like Diabetic Hub or Performance Hub. Tutorials are grouped by topic so you can jump to exactly what you need. If you have worked through a tutorial and something still is not making sense, scroll to the bottom of any tutorial card and use the Contact Support link. We read everything.",
+    autoClose: true,
+  },
+
+  "/lifestyle/my-perfect-beginning/parents-corner": {
+    pageId: "parents-corner",
+    title: "Parent's Corner",
+    description:
+      "Conversational child nutrition coaching grounded in your selected child's profile — stage, allergies, conditions, and feeding context.",
+    spokenText:
+      "Welcome to Parent's Corner. Before we start, here is something important to understand about how this works. The child you have selected is the nutrition subject — not you. Everything I say here is about that child's stage, that child's allergies, that child's feeding concerns, and that child's developmental needs. You are the authorized operator. You are the one asking the questions on their behalf. If you have selected a six-month-old who is just starting solid foods, my answers are calibrated to that stage — first foods, texture progressions, iron introduction, and what to watch for. If you have selected a three-year-old toddler, we are talking about a completely different set of priorities — picky eating, portion sizes, finger foods, and building a varied palate. You can ask me anything about feeding your child — what foods to introduce next, how to handle a food refusal, whether a specific ingredient is safe at their age, how to manage a diagnosed condition through food, or what a balanced day looks like for their stage. I will answer based on that child's complete profile, not generic advice. If something genuinely requires a pediatrician or registered dietitian, I will tell you that directly. To switch to a different child, go back and select a different profile.",
+    autoClose: true,
+  },
+
+  "/my-perfect-beginning/parents-corner": {
+    pageId: "parents-corner-alt",
+    title: "Parent's Corner",
+    description:
+      "Conversational child nutrition coaching grounded in your selected child's profile — stage, allergies, conditions, and feeding context.",
+    spokenText:
+      "Welcome to Parent's Corner. The child you have selected is the nutrition subject. Everything here is grounded in that child's stage, allergies, feeding concerns, and developmental context. Ask anything about feeding, food introduction, condition management, or building healthy eating habits — and I will answer based on your child's actual profile.",
+    autoClose: true,
+  },
+
+  "/coach-corner/home": {
+    pageId: "chefs-corner",
+    title: "Chef's Corner",
+    description:
+      "Your conversational nutrition coaching space. Ask about meals, food choices, substitutions, goals, or how to use the app — and get answers grounded in your active Nutrition Life Plan.",
+    spokenText:
+      "Welcome to Chef's Corner. This is your personal coaching space inside My Perfect Meals, and it works differently from every other part of the app. When you ask me something here, I already know your plan. I know your macro targets, your dietary preferences, your allergens, your health protocols, and any clinical guardrails on your account. You never have to explain your situation from scratch. Just ask. You can ask about a specific food or ingredient, whether something fits your plan, how to handle a meal when you are eating out, what a substitution would look like, or how any part of the app works. The more specific you are, the more useful the answer will be. Think of this as the place you come when the question is real and the answer actually needs to fit your life. Before we go any further, if you have not yet completed your coaching profile, I will prompt you to do that first. It takes about two minutes and it shapes how I communicate with you going forward. You can always update it using the Edit Profile button in the top right corner.",
+    autoClose: true,
+  },
+
+  "/coach-corner/welcome": {
+    pageId: "chefs-corner-welcome",
+    title: "Chef's Corner",
+    description:
+      "Set up your coaching profile so Chef's Corner can communicate in the way that works best for you.",
+    spokenText:
+      "Welcome to Chef's Corner. Before your first conversation, I want to learn a little about how you like to be coached. The questions on this screen take about two minutes and they shape how I communicate with you — how direct I am, what you are focused on right now, and how much detail you want in my responses. There are no wrong answers. Just be honest, and we will figure out the rest together.",
+    autoClose: true,
+  },
 };
 
 export function getPageExplanation(pathname: string): PageExplanation | null {

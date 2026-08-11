@@ -359,6 +359,88 @@ router.post("/intake", requireAuth, async (req, res) => {
   }
 });
 
+// ─── PATCH /profile — update individual profile fields ───────────────────────
+// Accepts the same `answers` format as POST /intake but only writes provided fields.
+// Does NOT update coachProfileCompletedAt — that remains set from the original intake.
+
+router.patch("/profile", requireAuth, async (req, res) => {
+  const authReq = req as AuthenticatedRequest;
+  const userId = authReq.authUser.id;
+
+  const answers = req.body?.answers;
+  if (!answers || typeof answers !== "object") {
+    return res.status(400).json({ error: "Missing answers" });
+  }
+
+  const typed: Partial<Record<CoachCornerFieldTarget, string | string[] | number>> = {};
+
+  for (const question of COACH_CORNER_QUESTIONS) {
+    if (!VALID_QUESTION_IDS.has(question.id)) continue;
+    const raw = answers[question.id];
+    if (raw === undefined || raw === null) continue;
+
+    const validValues = new Set(question.options.map((o) => o.value));
+
+    if (question.multiSelect) {
+      const rawArray = Array.isArray(raw) ? raw : [];
+      const values = rawArray.filter(
+        (v): v is string => typeof v === "string" && validValues.has(v)
+      );
+      if (values.length === 0) continue;
+      const max = question.maxSelect ?? values.length;
+      typed[question.target] = values.slice(0, max);
+      continue;
+    }
+
+    if (typeof raw !== "string" || !validValues.has(raw)) continue;
+
+    if (question.target === "activeDaysPerWeek") {
+      typed[question.target] = parseInt(raw, 10);
+    } else {
+      typed[question.target] = raw;
+    }
+  }
+
+  if (Object.keys(typed).length === 0) {
+    return res.status(400).json({ error: "No valid fields to update" });
+  }
+
+  try {
+    const setObj: Record<string, unknown> = { updatedAt: new Date() };
+    if (typed.offTrackCauses !== undefined) setObj.offTrackCauses = typed.offTrackCauses;
+    if (typed.setbackResponse !== undefined) setObj.setbackResponse = typed.setbackResponse;
+    if (typed.progressMindset !== undefined) setObj.progressMindset = typed.progressMindset;
+    if (typed.trustStyle !== undefined) setObj.trustStyle = typed.trustStyle;
+    if (typed.overwhelmResponse !== undefined) setObj.overwhelmResponse = typed.overwhelmResponse;
+    if (typed.decisionStyle !== undefined) setObj.decisionStyle = typed.decisionStyle;
+    if (typed.eatingDriver !== undefined) setObj.eatingDriver = typed.eatingDriver;
+    if (typed.cravingResponse !== undefined) setObj.cravingResponse = typed.cravingResponse;
+    if (typed.hardestPart !== undefined) setObj.hardestPart = typed.hardestPart;
+    if (typed.activityLevel !== undefined) setObj.activityLevel = typed.activityLevel;
+    if (typed.activeDaysPerWeek !== undefined) setObj.activeDaysPerWeek = typed.activeDaysPerWeek;
+    if (typed.planStartStage !== undefined) setObj.planStartStage = typed.planStartStage;
+    if (typed.recoveryPreference !== undefined) setObj.recoveryPreference = typed.recoveryPreference;
+    if (typed.motivationDriver !== undefined) setObj.motivationDriver = typed.motivationDriver;
+    if (typed.goalType !== undefined) setObj.goalType = typed.goalType;
+
+    await db
+      .update(coachingProfiles)
+      .set(setObj as any)
+      .where(eq(coachingProfiles.userId, userId));
+
+    const [profile] = await db
+      .select()
+      .from(coachingProfiles)
+      .where(eq(coachingProfiles.userId, userId))
+      .limit(1);
+
+    res.json({ profile });
+  } catch (err: any) {
+    console.error("[CoachCorner] PATCH /profile error:", err.message);
+    res.status(500).json({ error: "Failed to update profile" });
+  }
+});
+
 // ---- "My progress has slowed" vertical coaching loop ----
 
 async function loadProgressSlowedContext(
