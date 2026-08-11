@@ -354,5 +354,122 @@ router.post("/followup/:id/deliver", requireAuth, async (req: Request, res: Resp
   }
 });
 
+// ─── GET /bootstrap ───────────────────────────────────────────────────────────
+// Single startup call that replaces the old status → conversation → messages
+// waterfall. Returns everything CoachsCorner needs to render in one round-trip.
+//
+// Server-side query plan:
+//   Phase 1 (parallel): profile row + open conversation
+//   Phase 2 (parallel): messages for that conversation + due follow-up
+// Total: 2 DB round-trips instead of the 4 the client was making sequentially.
+
+router.get("/bootstrap", requireAuth, async (req: Request, res: Response) => {
+  const authReq = req as AuthenticatedRequest;
+  const userId = authReq.authUser?.id;
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+  const specialization = (req.query.specialization as string) || "corner";
+
+  try {
+    // ── Phase 1: profile + conversation in parallel ────────────────────────
+    const [profileRows, convResult] = await Promise.all([
+      db.select().from(coachingProfiles).where(eq(coachingProfiles.userId, userId)).limit(1),
+      db.execute<{
+        id: string;
+        specialization: string;
+        status: string;
+        last_message_at: string | null;
+        created_at: string;
+      }>(sql`
+        SELECT id, specialization, status, last_message_at, created_at
+        FROM coach_conversations
+        WHERE owner_id = ${userId}
+          AND specialization = ${specialization}
+          AND status = 'open'
+        ORDER BY last_message_at DESC NULLS LAST
+        LIMIT 1
+      `),
+    ]);
+
+    const profile = profileRows[0] ?? null;
+    const profileCompleted = !!profile?.coachProfileCompletedAt;
+    const conversation = convResult.rows[0] ?? null;
+    // convId ownership is proven: the query above filters by owner_id = userId.
+    const convId = conversation?.id ?? null;
+
+    // ── Phase 2: messages + due follow-up in parallel ─────────────────────
+    const [messagesResult, dueFollowup] = await Promise.all([
+      convId
+        ? db.execute<{
+            id: string;
+            role: string;
+            content: string;
+            structured_payload: any;
+            created_at: string;
+          }>(sql`
+            SELECT id, role, content, structured_payload, created_at
+            FROM coach_messages
+            WHERE conversation_id = ${convId}
+            ORDER BY created_at ASC
+            LIMIT 20
+          `)
+        : Promise.resolve({ rows: [] as any[] }),
+      (async () => {
+        try {
+          const { findDueFollowupForUser } = await import("../services/coaching/followupWorker");
+          return await findDueFollowupForUser(userId);
+        } catch {
+          return null;
+        }
+      })(),
+    ]);
+
+    return res.json({
+      profileCompleted,
+      profile,
+      conversationId: convId,
+      messages: messagesResult.rows,
+      dueFollowup: dueFollowup ?? null,
+    });
+  } catch (err: any) {
+    console.error("[CoachingEngine] GET /bootstrap error:", err);
+    return res.status(500).json({ error: "Failed to load coaching bootstrap" });
+  }
+});
+
+// ─── DELETE /conversation/:id ─────────────────────────────────────────────────
+// Clears the conversation — deletes all messages, investigations, and action
+// plans, then removes the conversation row itself. Ownership verified before
+// any deletion. Next bootstrap call will return no conversation → empty state.
+
+router.delete("/conversation/:id", requireAuth, async (req: Request, res: Response) => {
+  const authReq = req as AuthenticatedRequest;
+  const userId = authReq.authUser?.id;
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+  const { id } = req.params;
+
+  try {
+    // Verify ownership
+    const convCheck = await db.execute<{ owner_id: string }>(sql`
+      SELECT owner_id FROM coach_conversations WHERE id = ${id} LIMIT 1
+    `);
+    const conv = convCheck.rows[0];
+    if (!conv) return res.status(404).json({ error: "Conversation not found" });
+    if (conv.owner_id !== userId) return res.status(403).json({ error: "Forbidden" });
+
+    // Delete child rows first (FK order), then the conversation itself
+    await db.execute(sql`DELETE FROM coach_messages      WHERE conversation_id = ${id}`);
+    await db.execute(sql`DELETE FROM coach_investigations WHERE conversation_id = ${id}`);
+    await db.execute(sql`DELETE FROM coach_action_plans  WHERE conversation_id = ${id}`);
+    await db.execute(sql`DELETE FROM coach_conversations WHERE id = ${id}`);
+
+    return res.json({ success: true });
+  } catch (err: any) {
+    console.error("[CoachingEngine] DELETE /conversation/:id error:", err);
+    return res.status(500).json({ error: "Failed to clear conversation" });
+  }
+});
+
 export default router;
 

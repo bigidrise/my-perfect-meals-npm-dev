@@ -18,7 +18,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Settings, Send, RotateCcw, Check } from "lucide-react";
+import { Settings, Send, RotateCcw, Check, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -350,7 +350,27 @@ function ProfileSheet({
   );
 }
 
+// ─── Bootstrap response type ──────────────────────────────────────────────────
+// Must match server/routes/coachingEngine.ts GET /bootstrap response exactly.
+
+interface BootstrapData {
+  profileCompleted: boolean;
+  profile: Record<string, unknown> | null;
+  conversationId: string | null;
+  messages: DbMessage[];
+  dueFollowup: { id: string } | null;
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
+//
+// Startup philosophy:
+//   1. Render the visual shell immediately — background + images start loading
+//      before any API response arrives.
+//   2. One bootstrap call replaces the old status → conversation → messages
+//      waterfall. The server runs those queries in parallel and returns a single
+//      response.
+//   3. Follow-up delivery is async and non-blocking — it runs after the UI is
+//      already visible and usable.
 
 export default function CoachsCorner() {
   const [, setLocation] = useLocation();
@@ -361,89 +381,80 @@ export default function CoachsCorner() {
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [localProfile, setLocalProfile] = useState<Record<string, unknown> | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesInitialized = useRef(false);
+  const followupFired = useRef(false);
 
-  // ── 1. Status gate ─────────────────────────────────────────────────────────
-  const statusQuery = useQuery<{
-    completed: boolean;
-    profile: Record<string, unknown> | null;
-  }>({
-    queryKey: ["/api/coach-corner/status"],
+  // ── Bootstrap: one call instead of three sequential ones ──────────────────
+  // Returns completed, profile, conversation, messages, and pendingFollowupId in
+  // a single round-trip. The server runs profile + conversation in parallel,
+  // then messages + followup lookup in parallel.
+  const bootstrapQuery = useQuery<BootstrapData>({
+    queryKey: ["/api/coach/bootstrap"],
+    // Never retry on 4xx — a routing or auth error should surface immediately,
+    // not create a 7-second backoff delay before the hero renders.
+    retry: (failureCount, error: any) => {
+      if (error?.status >= 400 && error?.status < 500) return false;
+      return failureCount < 2;
+    },
   });
 
-  const profileCompleted = statusQuery.data?.completed ?? false;
-
+  // Process bootstrap exactly once — gate on messagesInitialized ref so
+  // subsequent re-fetches (e.g. after profile patch) don't re-initialize state.
   useEffect(() => {
-    if (!statusQuery.isLoading && statusQuery.data && !statusQuery.data.completed) {
+    if (!bootstrapQuery.data || messagesInitialized.current) return;
+    const { profileCompleted, profile, conversationId: convId, messages: dbMessages } = bootstrapQuery.data;
+
+    if (!profileCompleted) {
       setLocation("/coach-corner/intake");
+      return;
     }
-  }, [statusQuery.isLoading, statusQuery.data, setLocation]);
 
+    messagesInitialized.current = true;
+    if (profile) setLocalProfile(profile);
+    if (convId) setConversationId(convId);
+    setMessages(dbMessages.map(mapDbMessage));
+  }, [bootstrapQuery.data, setLocation]);
+
+  // ── Phase 5: Async follow-up delivery — runs after UI is visible ──────────
+  // Bootstrap already tells us whether a followup is due (no extra round-trip).
+  // We deliver it in the background; the conversation list updates silently.
+  // followupFired ref prevents double-delivery on re-renders.
   useEffect(() => {
-    if (statusQuery.data?.profile && localProfile === null) {
-      setLocalProfile(statusQuery.data.profile);
-    }
-  }, [statusQuery.data]);
+    const data = bootstrapQuery.data;
+    if (!data?.dueFollowup?.id || followupFired.current) return;
+    if (!messagesInitialized.current) return; // wait until messages are set
 
-  // ── 2. Load conversation history ──────────────────────────────────────────
-  const conversationQuery = useQuery<{
-    conversation: { id: string; status: string } | null;
-  }>({
-    queryKey: ["/api/coach/conversation"],
-    enabled: profileCompleted,
-  });
+    followupFired.current = true;
+    const followupId = data.dueFollowup.id;
+    const convId = data.conversationId ?? null;
 
-  const convId = conversationQuery.data?.conversation?.id ?? null;
+    (async () => {
+      try {
+        const deliverResult = await apiRequest(`/api/coach/followup/${followupId}/deliver`, {
+          method: "POST",
+        });
 
-  const messagesQuery = useQuery<{ messages: DbMessage[] }>({
-    queryKey: ["/api/coach/conversation", convId, "messages"],
-    enabled: !!convId,
-    queryFn: () => apiRequest(`/api/coach/conversation/${convId}/messages`),
-  });
-
-  useEffect(() => {
-    if (messagesQuery.data?.messages && !messagesInitialized.current) {
-      messagesInitialized.current = true;
-      setConversationId(convId);
-      setMessages(messagesQuery.data.messages.map(mapDbMessage));
-      // Phase 5: after messages load, check if a follow-up is due (inline delivery)
-      checkAndDeliverFollowup();
-    }
-  }, [messagesQuery.data]);
-
-  // ── Phase 5: Inline follow-up delivery ───────────────────────────────────
-  // When the user opens Coach's Corner, if a follow-up is due but the cron
-  // hasn't fired yet, we deliver it immediately and append it to the conversation.
-  const checkAndDeliverFollowup = useCallback(async () => {
-    try {
-      const dueResult = await apiRequest("/api/coach/followup/due");
-      if (!dueResult?.followup?.id) return;
-
-      const followupId = dueResult.followup.id;
-      const deliverResult = await apiRequest(`/api/coach/followup/${followupId}/deliver`, {
-        method: "POST",
-      });
-
-      // alreadyDelivered = cron beat us to it; reload messages to pick it up
-      if (deliverResult?.alreadyDelivered) {
-        await messagesQuery.refetch();
-        return;
+        if ((deliverResult?.success || deliverResult?.alreadyDelivered) && convId) {
+          // Silently refresh messages in background — UI stays usable throughout
+          const refreshed = (await apiRequest(
+            `/api/coach/conversation/${convId}/messages`
+          )) as { messages: DbMessage[] };
+          if (refreshed?.messages) {
+            setMessages(refreshed.messages.map(mapDbMessage));
+          }
+        }
+      } catch {
+        // Non-fatal — follow-up will arrive on next cron tick
       }
+    })();
+  }, [bootstrapQuery.data]);
 
-      // Freshly delivered — reload messages to include the new coach message
-      if (deliverResult?.success) {
-        await messagesQuery.refetch();
-      }
-    } catch {
-      // Non-fatal — follow-up will arrive on next cron tick
-    }
-  }, [messagesQuery]);
-
-  // ── 3. Questions for profile sheet ────────────────────────────────────────
+  // ── Questions for profile sheet (loaded on demand) ────────────────────────
   const questionsQuery = useQuery<{ questions: CoachCornerQuestion[] }>({
     queryKey: ["/api/coach-corner/questions"],
     enabled: showProfile,
@@ -547,12 +558,13 @@ export default function CoachsCorner() {
       }),
     onSuccess: (data: { profile: Record<string, unknown> }) => {
       setLocalProfile(data.profile);
-      queryClient.invalidateQueries({ queryKey: ["/api/coach-corner/status"] });
+      // Invalidate bootstrap so the profile sheet reflects the latest answers
+      // on next open; messagesInitialized guard prevents message re-init.
+      queryClient.invalidateQueries({ queryKey: ["/api/coach/bootstrap"] });
     },
   });
 
   const handleFieldSave = (questionId: string, value: string | string[]) => {
-    // Optimistic: find the question's target field and update local state immediately
     const question = questionsQuery.data?.questions.find((q) => q.id === questionId);
     if (question && localProfile) {
       setLocalProfile({ ...localProfile, [question.target]: value });
@@ -560,26 +572,40 @@ export default function CoachsCorner() {
     patchMutation.mutate({ [questionId]: value });
   };
 
-  // ── Loading / gate ─────────────────────────────────────────────────────────
-  if (statusQuery.isLoading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="flex items-center gap-1.5">
-          {[0, 1, 2].map((i) => (
-            <span
-              key={i}
-              className="w-2 h-2 rounded-full bg-orange-400/40 animate-bounce"
-              style={{ animationDelay: `${i * 0.18}s` }}
-            />
-          ))}
-        </div>
-      </div>
-    );
-  }
+  // ── Clear conversation ─────────────────────────────────────────────────────
+  const clearMutation = useMutation({
+    mutationFn: (cid: string) =>
+      apiRequest(`/api/coach/conversation/${cid}`, { method: "DELETE" }),
+    onSuccess: () => {
+      // Reset all local state — page returns to empty state immediately
+      setMessages([]);
+      setConversationId(null);
+      setShowClearConfirm(false);
+      messagesInitialized.current = false;
+      followupFired.current = false;
+      queryClient.invalidateQueries({ queryKey: ["/api/coach/bootstrap"] });
+    },
+    onError: () => {
+      setShowClearConfirm(false);
+    },
+  });
 
-  if (!profileCompleted) return null;
+  const handleClear = () => {
+    // Use bootstrap data as primary source — more reliable than state which
+    // can be null if the useEffect guard ran before the ID was set.
+    const cid = conversationId ?? bootstrapQuery.data?.conversationId ?? null;
+    if (!cid) return;
+    clearMutation.mutate(cid);
+  };
 
-  // ─── Render ───────────────────────────────────────────────────────────────
+  // ─── Render ────────────────────────────────────────────────────────────────
+  // The visual shell (background gradient + layout) renders immediately on mount
+  // so the browser can start fetching chefs-corner-bg.jpg and ChefBlackApron.png
+  // before the bootstrap response arrives. The message area shows a small inline
+  // spinner while the single bootstrap call is in-flight — no full-screen black.
+
+  const bootstrapLoading = bootstrapQuery.isLoading;
+  const bootstrapReady = bootstrapQuery.isSuccess && (bootstrapQuery.data?.profileCompleted ?? false);
   const hasMessages = messages.length > 0;
 
   return (
@@ -593,16 +619,27 @@ export default function CoachsCorner() {
         backgroundPosition: "center 30%",
       }}
     >
-      {/* Centered column — constrains everything to a readable width on desktop.
-          On mobile it fills full width; on desktop it sits inside the main content
-          area (right of sidebar, left of copilot) and never touches fixed borders. */}
+      {/* Centered column — on mobile fills full width; on desktop sits inside
+          the main content area (right of sidebar, left of copilot). */}
       <div className="flex-1 flex flex-col w-full max-w-2xl mx-auto min-h-0">
 
-        {/* Header — title shown in DesktopHeader; only Edit profile needed here */}
-        <div className="shrink-0 bg-black/50 backdrop-blur-md flex items-center justify-end px-4 h-14">
+        {/* Header */}
+        <div className="shrink-0 bg-black/50 backdrop-blur-md flex items-center justify-end gap-2 px-4 h-14">
+          {hasMessages && (
+            <button
+              onClick={() => setShowClearConfirm(true)}
+              disabled={clearMutation.isPending}
+              className="flex items-center gap-1.5 px-3 h-8 rounded-full bg-white/8 border border-white/15 text-white/50 text-xs hover:text-red-400 hover:border-red-500/30 hover:bg-red-500/10 transition-colors disabled:opacity-40"
+              aria-label="Clear conversation"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Clear
+            </button>
+          )}
           <button
             onClick={() => setShowProfile(true)}
-            className="flex items-center gap-1.5 px-3 h-8 rounded-full bg-white/8 border border-white/15 text-white/70 text-xs hover:text-white hover:bg-white/12 transition-colors"
+            disabled={!bootstrapReady}
+            className="flex items-center gap-1.5 px-3 h-8 rounded-full bg-white/8 border border-white/15 text-white/70 text-xs hover:text-white hover:bg-white/12 transition-colors disabled:opacity-40 disabled:cursor-default"
             aria-label="Edit coaching profile"
           >
             <Settings className="w-3.5 h-3.5" />
@@ -610,15 +647,30 @@ export default function CoachsCorner() {
           </button>
         </div>
 
-        {/* Scrollable messages */}
+        {/* Message area */}
         <div className="flex-1 overflow-y-auto px-4 py-5">
-          {!hasMessages && !conversationQuery.isLoading && !messagesQuery.isLoading ? (
+          {bootstrapLoading ? (
+            /* Inline spinner — background is already painted, not a black void */
+            <div className="flex items-center justify-center min-h-[58vh]">
+              <div className="flex items-center gap-1.5">
+                {[0, 1, 2].map((i) => (
+                  <span
+                    key={i}
+                    className="w-2 h-2 rounded-full bg-orange-400/40 animate-bounce"
+                    style={{ animationDelay: `${i * 0.18}s` }}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : !hasMessages ? (
             /* Empty state */
             <div className="flex flex-col items-center justify-center min-h-[58vh] text-center select-none">
               <img
                 src="/assets/ChefBlackApron.png"
                 alt="Coach"
-                className="w-44 h-auto mb-3"
+                width={176}
+                height={176}
+                className="w-44 h-44 mb-3 object-contain"
               />
               <h2 className="text-2xl font-bold text-white mb-2">
                 What's on your mind?
@@ -642,7 +694,7 @@ export default function CoachsCorner() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input bar — sits at the bottom of the centered column */}
+        {/* Input bar */}
         <div
           className="shrink-0 bg-black/50 backdrop-blur-md px-4 pt-3"
           style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom, 16px))" }}
@@ -654,14 +706,14 @@ export default function CoachsCorner() {
               onChange={handleTextareaChange}
               onKeyDown={handleKeyDown}
               placeholder="Ask Coach anything…"
-              disabled={isLoading}
+              disabled={isLoading || bootstrapLoading}
               rows={1}
               className="flex-1 resize-none bg-zinc-900 border border-white/25 text-white placeholder:text-white/45 text-sm rounded-xl py-3 px-4 focus:outline-none focus:ring-1 focus:ring-orange-500/60 focus:border-orange-500/50 disabled:opacity-50 transition-colors"
               style={{ lineHeight: "1.5", minHeight: "44px", maxHeight: "120px" }}
             />
             <Button
               onClick={handleSend}
-              disabled={!inputText.trim() || isLoading}
+              disabled={!inputText.trim() || isLoading || bootstrapLoading}
               size="icon"
               className="w-11 h-11 rounded-xl bg-orange-600 hover:bg-orange-700 disabled:opacity-40 disabled:bg-zinc-700 shrink-0 transition-colors"
               aria-label="Send message"
@@ -686,6 +738,34 @@ export default function CoachsCorner() {
         }}
         isSaving={patchMutation.isPending}
       />
+
+      {/* Clear conversation confirmation */}
+      <Dialog open={showClearConfirm} onOpenChange={(v) => !v && setShowClearConfirm(false)}>
+        <DialogContent className="bg-zinc-950 border border-white/10 text-white max-w-sm w-full p-6">
+          <DialogHeader>
+            <DialogTitle className="text-white text-base">Clear this conversation?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-white/55 mt-1 leading-relaxed">
+            All messages will be permanently deleted. Your coaching profile stays intact — only the chat history is removed.
+          </p>
+          <div className="flex gap-3 mt-5">
+            <button
+              onClick={() => setShowClearConfirm(false)}
+              disabled={clearMutation.isPending}
+              className="flex-1 py-2.5 rounded-xl border border-white/15 text-white/60 text-sm hover:text-white hover:border-white/25 transition-colors disabled:opacity-40"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleClear}
+              disabled={clearMutation.isPending}
+              className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition-colors disabled:opacity-50"
+            >
+              {clearMutation.isPending ? "Clearing…" : "Clear"}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
