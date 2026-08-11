@@ -89,7 +89,7 @@ export default function ProfessionalOnboardingBridge() {
 }
 
 function PersonalOnboardingStep({ onStart }: { onStart: () => void }) {
-  const { t } = useTranslation("procare");
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white flex flex-col">
       <div className="flex-1 px-4 pt-16 pb-32 max-w-lg mx-auto w-full">
@@ -145,7 +145,7 @@ function PersonalOnboardingStep({ onStart }: { onStart: () => void }) {
 }
 
 function CertPhase1Step({ onStart }: { onStart: () => void }) {
-  const { t } = useTranslation("procare");
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white flex flex-col">
       <div className="flex-1 px-4 pt-16 pb-32 max-w-lg mx-auto w-full">
@@ -211,7 +211,7 @@ function CertPhase1Step({ onStart }: { onStart: () => void }) {
 }
 
 function CertPhase2Step({ onStart }: { onStart: () => void }) {
-  const { t } = useTranslation("procare");
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white flex flex-col">
       <div className="flex-1 px-4 pt-16 pb-32 max-w-lg mx-auto w-full">
