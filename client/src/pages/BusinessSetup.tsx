@@ -8,7 +8,7 @@
  *
  * This page is intentionally ungated — the user has not yet paid.
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { getAuthHeaders } from "@/lib/auth";
@@ -33,6 +33,27 @@ export default function BusinessSetup() {
   const [step, setStep] = useState<"form" | "redirecting">("form");
   const [err, setErr] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Pre-fill org name if a pending_billing org already exists (e.g. owner returns after
+  // abandoning Stripe checkout — we don't want to create a duplicate).
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/business/check-status", {
+          credentials: "include",
+          headers: getAuthHeaders(),
+        });
+        if (res.ok) {
+          const { exists, status, name } = await res.json();
+          if (exists && status === "pending_billing" && name) {
+            setOrgName(name);
+          }
+        }
+      } catch {
+        // Non-fatal — ignore errors, form stays blank
+      }
+    })();
+  }, []);
 
   const resolvedSeats = useCustom ? (parseInt(customSeats) || 0) : seats;
 

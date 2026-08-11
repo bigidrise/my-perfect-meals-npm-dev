@@ -1114,6 +1114,28 @@ router.post("/seats", requireAuth, requireProAccess, async (req, res) => {
   }
 });
 
+// ── GET /api/business/check-status — lightweight status check for login routing.
+// requireAuth only (no requireProAccess) — called before payment is confirmed.
+// Returns { exists, status, name } so Auth.tsx can decide where to send the owner.
+router.get("/check-status", requireAuth, async (req, res) => {
+  const userId = (req as any).authUser?.id as string;
+  try {
+    const [business] = await db
+      .select({ id: businesses.id, status: businesses.status, name: businesses.name })
+      .from(businesses)
+      .where(eq(businesses.ownerUserId, userId))
+      .limit(1);
+
+    if (!business) {
+      return res.json({ exists: false, status: null, name: null });
+    }
+    return res.json({ exists: true, status: business.status, name: business.name });
+  } catch (err) {
+    console.error("[business/check-status] error:", err);
+    return res.status(500).json({ error: "Server error." });
+  }
+});
+
 // ── POST /api/business/create-org — Self-service org creation for new business accounts.
 // Creates a businesses + owner businessMembers row with status=pending_billing.
 // The Stripe webhook flips status to active and sets seatLimit after payment succeeds.

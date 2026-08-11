@@ -833,7 +833,7 @@ export default function BusinessDashboard() {
           </div>
           <button
             className="w-full py-3 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold transition-colors"
-            onClick={() => setLocation("/pricing")}
+            onClick={() => setLocation("/business/setup")}
           >
             Complete Your Subscription
           </button>

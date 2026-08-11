@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useLocation, useSearch } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
-import { login, signUp, getProCareSignupData, clearProCareSignupData } from "@/lib/auth";
+import { login, signUp, getProCareSignupData, clearProCareSignupData, getAuthHeaders } from "@/lib/auth";
 import type { User } from "@/lib/auth";
 import { Stethoscope } from "lucide-react";
 import { WorkspaceChooser } from "@/components/WorkspaceChooser";
@@ -43,9 +43,29 @@ export default function Auth() {
     if (isBusinessUser && mode === "signup") {
       // New business signups go directly to org setup + seat purchase
       setLocation("/business/setup");
-    } else if (isBusinessUser) {
-      // Returning business logins land in their dashboard/center
-      setLocation("/business-dashboard");
+    } else if (isBusinessUser && mode === "login") {
+      // Returning business logins: check payment status before routing.
+      // pending_billing → owner abandoned Stripe checkout, send them back to finish.
+      // active / any other status → straight to their dashboard.
+      try {
+        const statusRes = await fetch("/api/business/check-status", {
+          credentials: "include",
+          headers: getAuthHeaders(),
+        });
+        if (statusRes.ok) {
+          const { exists, status } = await statusRes.json();
+          if (!exists || status === "pending_billing") {
+            setLocation("/business/setup");
+          } else {
+            setLocation("/business-dashboard");
+          }
+        } else {
+          // Fallback: if the check fails, assume they're set up
+          setLocation("/business-dashboard");
+        }
+      } catch {
+        setLocation("/business-dashboard");
+      }
     } else if (isProfessional && mode === "login") {
       localStorage.removeItem("mpm_workspace_preference");
       setShowWorkspaceChooser(true);
