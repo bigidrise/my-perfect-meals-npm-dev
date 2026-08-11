@@ -698,11 +698,11 @@ export default function TrainerClientDashboard() {
                   </p>
                   {(macros.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey] ? (
                     <span className="inline-flex items-center gap-1.5 text-xs text-teal-400 font-medium">
-                      <Check className="h-3.5 w-3.5" /> Active on this client
+                      <Check className="h-3.5 w-3.5" /> {t("pro.trainerDashboard.activeOnClient")}
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1.5 text-xs text-amber-400/80 font-medium">
-                      <Stethoscope className="h-3.5 w-3.5" /> Physician authorization required
+                      <Stethoscope className="h-3.5 w-3.5" /> {t("pro.trainerDashboard.physicianAuthRequired")}
                     </span>
                   )}
                 </div>
@@ -723,29 +723,29 @@ export default function TrainerClientDashboard() {
           <Card className="bg-white/5 border border-white/20">
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2 text-lg font-semibold">
-                Body Composition
+                {t("pro.trainerDashboard.bodyComposition")}
               </CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {parseFloat(bodyComp.currentBodyFatPct) > 0 && (
                 <div className="p-3 rounded-xl bg-black/25 border border-white/10">
-                  <div className="text-xs text-white/60">Body Fat</div>
+                  <div className="text-xs text-white/60">{t("pro.trainerDashboard.bodyFat")}</div>
                   <div className="text-lg font-bold text-white">{parseFloat(bodyComp.currentBodyFatPct).toFixed(1)}%</div>
                 </div>
               )}
               <div className="p-3 rounded-xl bg-black/25 border border-white/10">
-                <div className="text-xs text-white/60">Target Body Fat</div>
+                <div className="text-xs text-white/60">{t("pro.trainerDashboard.targetBodyFat")}</div>
                 <div className="text-lg font-bold text-lime-400">{bodyComp.goalBodyFatPct ? `${parseFloat(bodyComp.goalBodyFatPct).toFixed(1)}%` : "—"}</div>
               </div>
               {parseFloat(bodyComp.currentBodyFatPct) > 0 && (
                 <div className="p-3 rounded-xl bg-black/25 border border-white/10">
-                  <div className="text-xs text-white/60">Method</div>
+                  <div className="text-xs text-white/60">{t("pro.trainerDashboard.method")}</div>
                   <div className="text-sm font-medium text-white">{bodyComp.scanMethod}</div>
                 </div>
               )}
               {bodyCompSource && (
                 <div className="p-3 rounded-xl bg-black/25 border border-white/10">
-                  <div className="text-xs text-white/60">Source</div>
+                  <div className="text-xs text-white/60">{t("pro.trainerDashboard.source")}</div>
                   <div className="text-sm font-medium text-white capitalize">{bodyCompSource}</div>
                 </div>
               )}
@@ -807,7 +807,7 @@ export default function TrainerClientDashboard() {
             </div>
             <div>
               <label className="text-sm text-white/70 mb-1 block">
-                Fibrous Carbs (g)
+                {t("pro.trainerDashboard.fibrousCarbs")} (g)
               </label>
               <Input
                 inputMode="numeric"

@@ -675,7 +675,7 @@ export default function ClinicianClientDashboard() {
               />
             </div>
             <div>
-              <label className="text-sm text-white/70 mb-1 block">Fibrous Carbs (g)</label>
+              <label className="text-sm text-white/70 mb-1 block">{t("pro.clinicianDashboard.fibrousCarbs")} (g)</label>
               <Input
                 inputMode="numeric"
                 className="bg-black/30 border-white/30 text-white"
@@ -697,7 +697,7 @@ export default function ClinicianClientDashboard() {
 
             <div className="col-span-full mt-3">
               <label className="text-sm font-medium text-white/90 mb-2 block">
-                Medical Dietary Directives
+                {t("pro.clinicianDashboard.medicalDietaryDirectives")}
               </label>
               <div className="flex flex-wrap gap-2">
                 {([
@@ -946,7 +946,7 @@ export default function ClinicianClientDashboard() {
         <Card className="bg-white/5 border border-white/20">
           <CardHeader>
             <CardTitle className="text-white/90 flex items-center gap-2 text-lg font-semibold">
-              <Ruler className="h-5 w-5" /> Body Composition
+              <Ruler className="h-5 w-5" /> {t("pro.clinicianDashboard.bodyComposition")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -954,7 +954,7 @@ export default function ClinicianClientDashboard() {
               <div className="space-y-3">
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   <div className="p-3 rounded-xl bg-black/25 border border-white/10">
-                    <div className="text-xs text-white/60">Body Fat</div>
+                    <div className="text-xs text-white/60">{t("pro.clinicianDashboard.bodyFat")}</div>
                     <div className="text-lg font-bold text-white">{parseFloat(bodyComp.currentBodyFatPct).toFixed(1)}%</div>
                   </div>
                   {bodyComp.goalBodyFatPct && (
@@ -978,7 +978,7 @@ export default function ClinicianClientDashboard() {
                 </div>
               </div>
             ) : (
-              <p className="text-white/50 text-md">No body composition data recorded for this patient yet.</p>
+              <p className="text-white/50 text-md">{t("pro.clinicianDashboard.noBodyComp")}</p>
             )}
           </CardContent>
         </Card>
@@ -988,7 +988,7 @@ export default function ClinicianClientDashboard() {
         <Card className="bg-white/5 border border-teal-500/30">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2 text-lg font-semibold">
-              <Trophy className="h-5 w-5 text-teal-400" /> Assign Clinical Builder
+              <Trophy className="h-5 w-5 text-teal-400" /> {t("pro.clinicianDashboard.assignClinicalBuilder")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">

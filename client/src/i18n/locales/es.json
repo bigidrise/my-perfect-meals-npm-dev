@@ -1179,7 +1179,15 @@
         "step5Desc": "Monitor your client's check-ins, weight trends, and nutrition progress.",
         "step6Title": "Save Changes",
         "step6Desc": "Save your updates so they are applied across your client's experience."
-      }
+      },
+      "fibrousCarbs": "Fibrous Carbs",
+      "bodyComposition": "Body Composition",
+      "bodyFat": "Body Fat",
+      "targetBodyFat": "Target Body Fat",
+      "method": "Method",
+      "source": "Source",
+      "activeOnClient": "Active on this client",
+      "physicianAuthRequired": "Physician authorization required"
     },
     "clinicianDashboard": {
       "carbs": "Carbs",
@@ -1205,7 +1213,14 @@
         "step4Desc": "Assign the appropriate builder and schedule follow-up care.",
         "step5Title": "Save Changes",
         "step5Desc": "Save your updates to keep your patient's plan current."
-      }
+      },
+      "fibrousCarbs": "Fibrous Carbs",
+      "bodyComposition": "Body Composition",
+      "bodyFat": "Body Fat",
+      "targetBodyFat": "Target Body Fat",
+      "medicalDietaryDirectives": "Medical Dietary Directives",
+      "noBodyComp": "No body composition data recorded for this patient yet.",
+      "assignClinicalBuilder": "Assign Clinical Builder"
     },
     "clients": {
       "archiveConfirm": "Archive this client?",
