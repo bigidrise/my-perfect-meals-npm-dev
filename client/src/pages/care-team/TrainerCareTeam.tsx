@@ -57,7 +57,7 @@ const DEFAULT_PERMS: Record<ProRole, Permissions> = {
 };
 
 export default function CareTeamPage() {
-  const { t } = useTranslation("trainerCareTeam");
+  const { t } = useTranslation();
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const quickTour = useQuickTour("care-team");

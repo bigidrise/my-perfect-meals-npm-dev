@@ -1104,7 +1104,8 @@
     "proTipDesc": "Envía solo UN día a macros a la vez (no toda la semana) para mantener datos actualizados.",
     "shoppingTitle": "Lista de Compras Lista",
     "shoppingDesc": "¡PUEDES enviar toda la semana a la lista de compras! Esto consolida todos los ingredientes para compras fáciles.",
-    "nextStepsFooter": "Siguiente: ¡Consulta la Lista de Compras para aprender cómo usarla eficazmente!"  },
+    "nextStepsFooter": "Siguiente: ¡Consulta la Lista de Compras para aprender cómo usarla eficazmente!"
+  },
   "coachCorner": {
     "title": "Rincón del Coach",
     "learningDesc": "El chef está aprendiendo lo que funciona para ti.",
@@ -1155,5 +1156,161 @@
     "viewCertifications": "View Certifications →",
     "continueCertification": "Continue Certification →",
     "newOpportunities": "New opportunities added regularly"
+  },
+  "pro": {
+    "trainerDashboard": {
+      "carbs": "Carbs",
+      "fat": "Fat",
+      "macroTargets": "Macro Targets",
+      "protein": "Protein",
+      "save": "Save",
+      "saved": "Saved",
+      "tourTitle": "Trainer Dashboard Tour",
+      "tour": {
+        "step1Title": "Client Overview",
+        "step1Desc": "See your client's key information and current nutrition setup.",
+        "step2Title": "Macro Targets",
+        "step2Desc": "Set daily protein, carbohydrate, and fat targets for your client.",
+        "step3Title": "Nutrition Context",
+        "step3Desc": "Review the client's goals, coaching notes, and relevant clinical context.",
+        "step4Title": "Meal Builder",
+        "step4Desc": "Choose and assign the nutrition builder that fits your client's needs.",
+        "step5Title": "Progress & Compliance",
+        "step5Desc": "Monitor your client's check-ins, weight trends, and nutrition progress.",
+        "step6Title": "Save Changes",
+        "step6Desc": "Save your updates so they are applied across your client's experience."
+      },
+      "fibrousCarbs": "Fibrous Carbs",
+      "bodyComposition": "Body Composition",
+      "bodyFat": "Body Fat",
+      "targetBodyFat": "Target Body Fat",
+      "method": "Method",
+      "source": "Source",
+      "activeOnClient": "Active on this client",
+      "physicianAuthRequired": "Physician authorization required"
+    },
+    "clinicianDashboard": {
+      "carbs": "Carbs",
+      "fat": "Fat",
+      "macroTargets": "Macro Targets",
+      "protein": "Protein",
+      "save": "Save",
+      "saved": "Saved",
+      "checkInCancelFailed": "Could not cancel the check-in",
+      "checkInCancelled": "Check-in cancelled",
+      "followUpScheduled": "Follow-up scheduled",
+      "scheduleFollowUpBtn": "Schedule Follow-up",
+      "schedulingFailed": "Scheduling failed",
+      "tourTitle": "Clinician Dashboard Tour",
+      "tour": {
+        "step1Title": "Client Overview",
+        "step1Desc": "Review your patient's profile, nutrition status, and clinical information.",
+        "step2Title": "Macro Targets",
+        "step2Desc": "Set nutrition targets that support your patient's care plan.",
+        "step3Title": "Clinical Context",
+        "step3Desc": "Review active protocols, conditions, labs, and clinical notes.",
+        "step4Title": "Care Planning",
+        "step4Desc": "Assign the appropriate builder and schedule follow-up care.",
+        "step5Title": "Save Changes",
+        "step5Desc": "Save your updates to keep your patient's plan current."
+      },
+      "fibrousCarbs": "Fibrous Carbs",
+      "bodyComposition": "Body Composition",
+      "bodyFat": "Body Fat",
+      "targetBodyFat": "Target Body Fat",
+      "medicalDietaryDirectives": "Medical Dietary Directives",
+      "noBodyComp": "No body composition data recorded for this patient yet.",
+      "assignClinicalBuilder": "Assign Clinical Builder"
+    },
+    "clients": {
+      "archiveConfirm": "Archive this client?",
+      "archiveSubtitle": "Archived clients will be hidden from your active client list.",
+      "back": "Back",
+      "cancel": "Cancel",
+      "desktopRequired": "Please use a desktop browser to manage clients.",
+      "hideArchived": "Hide archived",
+      "inboxEmpty": "No messages yet",
+      "inboxLoading": "Loading messages…",
+      "inboxSubtitle": "Recent messages",
+      "inboxTitle": "Client Inbox",
+      "restore": "Restore",
+      "showArchived": "Show archived",
+      "tapInbox": "Tap a message to open the client’s folder.",
+      "tourTitle": "Clients Tour",
+      "tour": {
+        "step1Title": "Your Clients",
+        "step1Desc": "See all your connected clients in one place.",
+        "step2Title": "Client Inbox",
+        "step2Desc": "Review messages and open a client’s folder directly from the inbox.",
+        "step3Title": "Client Folders",
+        "step3Desc": "Open a client folder to view their dashboard, plans, and progress."
+      }
+    },
+    "clientDashboard": {
+      "tourTitle": "Client Dashboard Tour",
+      "tour": {
+        "step1Title": "Your Nutrition Plan",
+        "step1Desc": "View the nutrition plan and builder your professional assigned to you.",
+        "step2Title": "Progress",
+        "step2Desc": "Track your check-ins, weight trends, and nutrition progress.",
+        "step3Title": "Messages",
+        "step3Desc": "Stay connected with your professional and review your conversations.",
+        "step4Title": "Your Goals",
+        "step4Desc": "Review and update your goals to keep your plan on track."
+      }
+    },
+    "boardViewer": {
+      "error": "Could not load this meal board.",
+      "removed": "Meal removed",
+      "removedDesc": "The meal has been removed from this slot.",
+      "slots": {
+        "breakfast": "Breakfast",
+        "lunch": "Lunch",
+        "dinner": "Dinner",
+        "snacks": "Snacks"
+      }
+    },
+    "physicianPortal": {
+      "comingSoon": "More features coming soon.",
+      "title": "Physician Portal",
+      "viewClients": "View Patients",
+      "tourTitle": "Physician Portal Tour",
+      "tour": {
+        "step1Title": "Patient Overview",
+        "step1Desc": "See all your connected patients and their current nutrition status.",
+        "step2Title": "Clinical Tools",
+        "step2Desc": "Access clinical builders, lab data, and protocol assignments.",
+        "step3Title": "Care Coordination",
+        "step3Desc": "Coordinate care with nurses, dietitians, and other professionals on your team.",
+        "step4Title": "Get Started",
+        "step4Desc": "Select a patient to open their clinical dashboard and begin managing their plan."
+      }
+    },
+    "gnbEntry": {
+      "headerLabel": "General Nutrition Builder",
+      "title": "Where would you like to start?",
+      "subtitle": "Build meals for today, or set up a training nutrition schedule that adjusts your macros based on your workout type.",
+      "continueTo": "Open General Nutrition Builder",
+      "continueDesc": "Build meals using your standard macro targets.",
+      "trainTitle": "Want training-aware macros?",
+      "trainDesc": "Set up a weekly training schedule and your macro targets will automatically adjust on training days versus rest days.",
+      "scheduleTitle": "Training Nutrition Schedule",
+      "scheduleDesc": "Set your weekly training type and get macro targets tailored to each day.",
+      "activeLabel": "Active",
+      "adjustmentsActive": "macro adjustments active",
+      "today": "Today: {{label}}",
+      "editSchedule": "Edit schedule",
+      "setupSchedule": "Set up training schedule",
+      "explainer": "Your macro targets stay the same every day until you set up a training schedule. Once active, training days get more carbohydrates and rest days pull back — automatically.",
+      "sessions": {
+        "strength": "Strength Training",
+        "power": "Power / Explosiveness",
+        "endurance": "Endurance / Cardio",
+        "sport_practice": "Sport Practice",
+        "competition": "Competition Day",
+        "recovery": "Active Recovery",
+        "off": "Rest Day"
+      }
+    }
   }
 }

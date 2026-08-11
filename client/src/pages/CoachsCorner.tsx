@@ -12,7 +12,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Settings, Send, RotateCcw, Check, MoreHorizontal, Loader2 } from "lucide-react";
+import { Settings, Send, RotateCcw, Check, MoreHorizontal, Loader2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -424,16 +424,20 @@ export default function CoachsCorner() {
   // ── Bootstrap query ────────────────────────────────────────────────────────
   const bootstrapQuery = useQuery<BootstrapData>({
     queryKey: ["/api/coach/bootstrap"],
+    staleTime: 30 * 1000,       // 30 s — serve cache while refetch runs in background
+    gcTime: 5 * 60 * 1000,      // 5 min — keep entry in memory between page visits
     retry: (failureCount, error: any) => {
       if (error?.status >= 400 && error?.status < 500) return false;
       return failureCount < 2;
     },
   });
 
-  // Process bootstrap exactly once
+  // One-shot initialization: run exactly once when bootstrap first succeeds.
+  // messagesInitialized ref prevents re-running on subsequent re-fetches
+  // (e.g. after a profile patch invalidates the query).
   useEffect(() => {
     if (!bootstrapQuery.data || messagesInitialized.current) return;
-    const { profileCompleted, profile, conversationId: convId, messages: dbMessages, hasOlderMessages: hasOlder } = bootstrapQuery.data;
+    const { profileCompleted, conversationId: convId, messages: dbMessages, hasOlderMessages: hasOlder } = bootstrapQuery.data;
 
     if (!profileCompleted) {
       setLocation("/coach-corner/intake");
@@ -441,11 +445,19 @@ export default function CoachsCorner() {
     }
 
     messagesInitialized.current = true;
-    if (profile) setLocalProfile(profile);
     if (convId) setConversationId(convId);
     setMessages(dbMessages.map(mapDbMessage));
     setHasOlderMessages(hasOlder ?? false);
   }, [bootstrapQuery.data, setLocation]);
+
+  // Profile sync: runs on every bootstrap fetch (including re-fetches after a
+  // profile patch). Kept separate from the one-shot messages effect so the
+  // messagesInitialized guard never blocks profile label updates.
+  useEffect(() => {
+    const profile = bootstrapQuery.data?.profile;
+    if (!profile) return;
+    setLocalProfile(profile);
+  }, [bootstrapQuery.data?.profile]);
 
   // ── Async follow-up delivery ───────────────────────────────────────────────
   useEffect(() => {
@@ -702,7 +714,21 @@ export default function CoachsCorner() {
       <div className="flex-1 flex flex-col w-full max-w-2xl mx-auto min-h-0">
 
         {/* Header */}
-        <div className="shrink-0 bg-black/50 backdrop-blur-md flex items-center justify-end px-4 h-14">
+        <div className="shrink-0 bg-black/50 backdrop-blur-md flex items-center justify-between px-4 h-14">
+          <button
+            onClick={() => {
+              if (window.history.length <= 1) {
+                setLocation("/");
+              } else {
+                window.history.back();
+              }
+            }}
+            className="flex items-center gap-1 h-8 px-2 rounded-full text-white/60 hover:text-white transition-colors"
+            aria-label="Go back"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="text-xs">Back</span>
+          </button>
           <button
             onClick={() => setShowProfile(true)}
             disabled={!bootstrapReady}
