@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useLocation, useSearch } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
-import { login, signUp, getProCareSignupData, clearProCareSignupData } from "@/lib/auth";
+import { login, signUp, getProCareSignupData, clearProCareSignupData, getAuthHeaders } from "@/lib/auth";
 import type { User } from "@/lib/auth";
 import { Stethoscope } from "lucide-react";
 import { WorkspaceChooser } from "@/components/WorkspaceChooser";
@@ -16,6 +16,10 @@ export default function Auth() {
   const urlMode = useMemo(() => new URLSearchParams(search).get("mode"), [search]);
   const urlRole = useMemo(() => new URLSearchParams(search).get("role") as "trainer" | "physician" | "business" | null, [search]);
   const isIdleTimeout = useMemo(() => new URLSearchParams(search).get("reason") === "idle_timeout", [search]);
+  const signupSource = useMemo(() => {
+    const p = new URLSearchParams(search);
+    return p.get("source") || p.get("ref") || null;
+  }, [search]);
   const [mode, setMode] = useState<"signup" | "login">(
     isProCare || urlRole ? "signup" : urlMode === "signup" ? "signup" : "login"
   );
@@ -40,15 +44,38 @@ export default function Auth() {
 
     const isBusinessUser = fullUser?.professionalRole === "business";
 
-    if (isBusinessUser) {
-      // Business accounts land in Business Center — browsing is free, actions require Pro
-      setLocation("/business-center");
+    if (isBusinessUser && mode === "signup") {
+      // New business signups go directly to org setup + seat purchase
+      setLocation("/business/setup");
+    } else if (isBusinessUser && mode === "login") {
+      // Returning business logins: check payment status before routing.
+      // pending_billing → owner abandoned Stripe checkout, send them back to finish.
+      // active / any other status → straight to their dashboard.
+      try {
+        const statusRes = await fetch("/api/business/check-status", {
+          credentials: "include",
+          headers: getAuthHeaders(),
+        });
+        if (statusRes.ok) {
+          const { exists, status } = await statusRes.json();
+          if (!exists || status === "pending_billing") {
+            setLocation("/business/setup");
+          } else {
+            setLocation("/business-dashboard");
+          }
+        } else {
+          // Fallback: if the check fails, assume they're set up
+          setLocation("/business-dashboard");
+        }
+      } catch {
+        setLocation("/business-dashboard");
+      }
     } else if (isProfessional && mode === "login") {
       localStorage.removeItem("mpm_workspace_preference");
       setShowWorkspaceChooser(true);
     } else if (mode === "signup" && urlRole === "business") {
       // Fallback (should be caught above by isBusinessUser, but kept for safety)
-      setLocation("/business-center");
+      setLocation("/business/setup");
     } else if (mode === "signup" && urlRole === "trainer") {
       setLocation("/trainer-welcome");
     } else if (mode === "signup" && urlRole === "physician") {
@@ -85,7 +112,7 @@ export default function Auth() {
             procareEntryPath: urlRole,
           };
         }
-        u = await signUp(email.trim(), pwd, procareData, isBusinessSignup);
+        u = await signUp(email.trim(), pwd, procareData, isBusinessSignup, signupSource);
         if (isProCare) {
           clearProCareSignupData();
         }

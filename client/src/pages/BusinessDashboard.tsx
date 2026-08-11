@@ -73,6 +73,7 @@ interface BusinessData {
   usedSeats: number;
   availableSeats: number;
   planLostCount?: number;
+  signupSource?: string | null;
   clientInvitations?: {
     id: string;
     email: string;
@@ -106,6 +107,7 @@ export default function BusinessDashboard() {
   const { t } = useTranslation();
 
   const ROLE_OPTIONS = [
+    { value: "admin", label: "Organization Admin" },
     { value: "coach", label: t("businessDashboard.roles.coach") },
     { value: "trainer", label: t("businessDashboard.roles.trainer") },
     { value: "physician", label: t("businessDashboard.roles.physician") },
@@ -141,7 +143,7 @@ export default function BusinessDashboard() {
   // enforces this by showing only a generic spinner until fetchData() resolves
   // and sets viewMode to "owner" | "member" | "none". Do not add any
   // membership-dependent JSX above or outside that guard.
-  const [viewMode, setViewMode] = useState<"owner" | "member" | "none" | null>(null);
+  const [viewMode, setViewMode] = useState<"owner" | "admin" | "member" | "none" | null>(null);
   const isDesktop = useIsDesktop();
   const [loading, setLoading] = useState(true);
   const [polling, setPolling] = useState(fromCheckout);
@@ -293,7 +295,7 @@ export default function BusinessDashboard() {
       if (ownerRes.ok) {
         const json = await ownerRes.json();
         setOwnerData(json);
-        setViewMode("owner");
+        setViewMode(json.callerRole === "admin" ? "admin" : "owner");
         if (json.business?.name === DEFAULT_BUSINESS_NAME) {
           setSetupMode(true);
         }
@@ -810,8 +812,11 @@ export default function BusinessDashboard() {
     );
   }
 
-  // ── Owner view ──────────────────────────────────────────────────────────────
+  // ── Owner / Admin view ──────────────────────────────────────────────────────
   if (!ownerData) return null;
+  // isAdminView: true when the caller is an Organization Admin (not the Owner).
+  // Admins see the full management dashboard but cannot access billing/seat controls.
+  const isAdminView = viewMode === "admin";
   const { business, members, invitations, usedSeats, availableSeats } = ownerData;
 
   // ── Pending billing (org provisioned but Stripe not yet completed) ──────────
@@ -833,7 +838,7 @@ export default function BusinessDashboard() {
           </div>
           <button
             className="w-full py-3 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold transition-colors"
-            onClick={() => setLocation("/pricing")}
+            onClick={() => setLocation("/business/setup")}
           >
             Complete Your Subscription
           </button>
@@ -950,8 +955,18 @@ export default function BusinessDashboard() {
                   { done: true, label: "Organization named" },
                   {
                     done: hasInvited,
-                    label: "Invite your first team member",
+                    label: "Invite your team — assign purchased seats to coaches or trainers",
                     action: () => setInviteOpen(true),
+                  },
+                  {
+                    done: (ownerData?.clientInvitations?.length ?? 0) > 0,
+                    label: "Invite your first client — give clients complimentary access",
+                    action: () => setClientInviteOpen(true),
+                  },
+                  {
+                    done: false,
+                    label: "Partner & Revenue Center — unlocks after Academy certification",
+                    action: () => setLocation("/business-center/affiliate"),
                   },
                 ].map(({ done, label, action }) => (
                   <div key={label} className="flex items-center gap-2.5">
@@ -1051,13 +1066,15 @@ export default function BusinessDashboard() {
             ) : (
               <p className="text-white/50 text-xs">{availableSeats} seat{availableSeats !== 1 ? "s" : ""} available</p>
             )}
-            <button
-              className="text-orange-400 text-xs font-semibold flex items-center gap-1 active:opacity-60 transition-opacity"
-              onClick={() => { setManagedSeats(business.seatLimit); setSeatModalOpen(true); }}
-            >
-              <Settings className="w-3 h-3" />
-              Manage
-            </button>
+            {!isAdminView && (
+              <button
+                className="text-orange-400 text-xs font-semibold flex items-center gap-1 active:opacity-60 transition-opacity"
+                onClick={() => { setManagedSeats(business.seatLimit); setSeatModalOpen(true); }}
+              >
+                <Settings className="w-3 h-3" />
+                Manage
+              </button>
+            )}
           </div>
         </Card>
 
@@ -1114,6 +1131,19 @@ export default function BusinessDashboard() {
           <p>This is where you manage your affiliate relationship with My Perfect Meals. You get a unique referral link — when someone signs up through it, you earn a commission tracked automatically.</p>
           <p className="mt-1.5">You can also create <span className="text-white/75 font-medium">promo codes</span> here. A promo code is a shareable shortcut that gives your clients a discount or trial extension. The outcome is the same as a direct Client Invitation, but promo codes can be handed out broadly (posted on a website, printed on a flyer) without entering each person's email one by one.</p>
         </InfoCallout>
+
+        {/* Acquisition Source — shown only when recorded */}
+        {ownerData?.signupSource && (
+          <div className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10">
+            <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
+              <ExternalLink className="w-3.5 h-3.5 text-white/40" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-white/40 text-xs">Acquisition source</p>
+              <p className="text-white/70 text-sm font-medium truncate">{ownerData.signupSource}</p>
+            </div>
+          </div>
+        )}
 
         {/* Organization Success Center */}
         <button

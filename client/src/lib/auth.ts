@@ -151,7 +151,7 @@ export interface User {
   narrationSpeedPreference?: "0.75" | "1.0" | "1.25" | "1.5";
   // ProCare Professional fields
 
-  professionalRole?: "trainer" | "physician" | null;
+  professionalRole?: "trainer" | "physician" | "business" | null;
 
   professionalCategory?: "certified" | "experienced" | "non_certified" | null;
 
@@ -376,7 +376,7 @@ export async function upgradeToProCare(procareData: ProCareSignupData): Promise<
   return res.json();
 }
 
-export async function signUp(email: string, password: string, procareData?: ProCareSignupData | null, businessAccount?: boolean): Promise<User> {
+export async function signUp(email: string, password: string, procareData?: ProCareSignupData | null, businessAccount?: boolean, signupSource?: string | null): Promise<User> {
   if (password.length < 6) {
     throw new Error("Password must be at least 6 characters");
   }
@@ -399,7 +399,7 @@ export async function signUp(email: string, password: string, procareData?: ProC
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, ...(procareData ? { procare: procareData } : {}), ...(businessAccount ? { businessAccount: true } : {}) }),
+      body: JSON.stringify({ email, password, ...(procareData ? { procare: procareData } : {}), ...(businessAccount ? { businessAccount: true } : {}), ...(signupSource ? { signupSource } : {}) }),
     });
 
     if (!response.ok) {

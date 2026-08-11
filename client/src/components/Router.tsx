@@ -691,6 +691,7 @@ export default function Router() {
     "/coach-corner/tired",
     "/my-perfect-beginning/parents-corner",
     "/lifestyle/my-perfect-beginning/parents-corner",
+    "/business/start",
   ];
 
   const shouldShowBottomNav = !hideBottomNavRoutes.includes(location);
@@ -732,7 +733,9 @@ export default function Router() {
     "/profile", "/settings",
     "/home",
     "/business/join",
+    "/business/start",
     "/business-dashboard",
+    "/business/setup",
   ];
 
   const isUngatedRoute = ungatedRoutes.some(r => location === r || location.startsWith(r + "/"));
@@ -829,6 +832,8 @@ export default function Router() {
         <Route path="/onboarding/extended" component={ExtendedOnboarding} />
         <Route path="/checkout/success" component={CheckoutSuccess} />
         <Route path="/billing/success" component={CheckoutSuccess} />
+        <Route path="/business/start" component={lazy(() => import("@/pages/BusinessStart"))} />
+        <Route path="/business/setup" component={lazy(() => import("@/pages/BusinessSetup"))} />
         <Route path="/business/dashboard" component={lazy(() => import("@/pages/BusinessDashboard"))} />
         <Route path="/business-dashboard" component={lazy(() => import("@/pages/BusinessDashboard"))} />
         <Route path="/business/join/:token" component={lazy(() => import("@/pages/BusinessInviteAccept"))} />

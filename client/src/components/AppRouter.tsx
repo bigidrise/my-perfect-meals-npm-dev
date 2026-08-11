@@ -103,7 +103,7 @@ export default function AppRouter({ children }: AppRouterProps) {
       return;
     }
 
-    const publicRoutes = ["/welcome", "/auth", "/forgot-password", "/reset-password", "/guest-builder", "/guest-suite", "/guest", "/pricing", "/privacy", "/privacy-policy", "/terms", "/terms-of-service", "/affiliates", "/founders", "/procare-welcome", "/trainer-welcome", "/physician-welcome", "/procare-identity", "/procare-rewards", "/procare-attestation", "/consumer-welcome", "/more", "/delete-account", "/procare-info", "/family-info", "/personal-guidance-info", "/partners"];
+    const publicRoutes = ["/welcome", "/auth", "/forgot-password", "/reset-password", "/guest-builder", "/guest-suite", "/guest", "/pricing", "/privacy", "/privacy-policy", "/terms", "/terms-of-service", "/affiliates", "/founders", "/procare-welcome", "/trainer-welcome", "/physician-welcome", "/procare-identity", "/procare-rewards", "/procare-attestation", "/consumer-welcome", "/more", "/delete-account", "/procare-info", "/family-info", "/personal-guidance-info", "/partners", "/business/start", "/business/setup", "/business/join", "/business-dashboard", "/business/dashboard", "/business-center", "/checkout/success", "/billing/success", "/org-success-center"];
     const isPublicRoute = publicRoutes.some(route => location === route || location.startsWith(route + "/"));
 
     if (loading && isAuthenticated && !isPublicRoute) {
@@ -117,10 +117,13 @@ export default function AppRouter({ children }: AppRouterProps) {
     }
 
     const inProWorkspace = isInProfessionalWorkspace(location) || localStorage.getItem("mpm_active_space") === "workspace";
+    // Business and professional users have their own onboarding paths — never show them the consumer WelcomeGate
+    const isBusinessOrPro = user ? isProfessional(user) : false;
     if (
       isAuthenticated &&
       !isPublicRoute &&
       !inProWorkspace &&
+      !isBusinessOrPro &&
       !isAppleReviewMode &&
       !welcomeGateDoneThisSession &&
       !skipWelcomeGate &&

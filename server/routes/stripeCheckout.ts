@@ -243,7 +243,7 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
         },
       ],
       success_url: `${appUrl}/business-dashboard?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${appUrl}/pricing`,
+      cancel_url: `${appUrl}/business/setup`,
       metadata: {
         userId,
         sku: "clinical_business_monthly",
