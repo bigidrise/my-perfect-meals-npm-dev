@@ -350,19 +350,19 @@ function ProfileSheet({
   );
 }
 
-// ─── Bootstrap response shape ─────────────────────────────────────────────────
+// ─── Bootstrap response type ──────────────────────────────────────────────────
 
 interface BootstrapData {
-  profileCompleted: boolean;
+  completed: boolean;
   profile: Record<string, unknown> | null;
-  conversationId: string | null;
+  conversation: { id: string; status: string } | null;
   messages: DbMessage[];
-  dueFollowup: { id: string; dueAt: string } | null;
+  pendingFollowupId: string | null;
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 //
-// Startup philosophy (matches Parent's Corner):
+// Startup philosophy:
 //   1. Render the visual shell immediately — background + images start loading
 //      before any API response arrives.
 //   2. One bootstrap call replaces the old status → conversation → messages
@@ -388,28 +388,27 @@ export default function CoachsCorner() {
   const followupFired = useRef(false);
 
   // ── Bootstrap: one call instead of three sequential ones ──────────────────
-  // Returns profileCompleted, conversationId, messages, and dueFollowup in a
-  // single round-trip. The server runs profile + conversation in parallel, then
-  // messages + followup lookup in parallel.
+  // Returns completed, profile, conversation, messages, and pendingFollowupId in
+  // a single round-trip. The server runs profile + conversation in parallel,
+  // then messages + followup lookup in parallel.
   const bootstrapQuery = useQuery<BootstrapData>({
-    queryKey: ["/api/coach/bootstrap"],
-    queryFn: () => apiRequest("/api/coach/bootstrap?specialization=corner"),
+    queryKey: ["/api/coach-corner/bootstrap"],
   });
 
   // Process bootstrap exactly once — gate on messagesInitialized ref so
   // subsequent re-fetches (e.g. after profile patch) don't re-initialize state.
   useEffect(() => {
     if (!bootstrapQuery.data || messagesInitialized.current) return;
-    const { profileCompleted, profile, conversationId: convId, messages: dbMessages } =
-      bootstrapQuery.data;
+    const { completed, profile, conversation, messages: dbMessages } = bootstrapQuery.data;
 
-    if (!profileCompleted) {
+    if (!completed) {
       setLocation("/coach-corner/intake");
       return;
     }
 
     messagesInitialized.current = true;
     if (profile) setLocalProfile(profile);
+    const convId = conversation?.id ?? null;
     if (convId) setConversationId(convId);
     setMessages(dbMessages.map(mapDbMessage));
   }, [bootstrapQuery.data, setLocation]);
@@ -417,14 +416,15 @@ export default function CoachsCorner() {
   // ── Phase 5: Async follow-up delivery — runs after UI is visible ──────────
   // Bootstrap already tells us whether a followup is due (no extra round-trip).
   // We deliver it in the background; the conversation list updates silently.
+  // followupFired ref prevents double-delivery on re-renders.
   useEffect(() => {
     const data = bootstrapQuery.data;
-    if (!data?.dueFollowup || followupFired.current) return;
+    if (!data?.pendingFollowupId || followupFired.current) return;
     if (!messagesInitialized.current) return; // wait until messages are set
 
     followupFired.current = true;
-    const followupId = data.dueFollowup.id;
-    const convId = data.conversationId;
+    const followupId = data.pendingFollowupId;
+    const convId = data.conversation?.id ?? null;
 
     (async () => {
       try {
@@ -553,7 +553,7 @@ export default function CoachsCorner() {
       setLocalProfile(data.profile);
       // Invalidate bootstrap so the profile sheet reflects the latest answers
       // on next open; messagesInitialized guard prevents message re-init.
-      queryClient.invalidateQueries({ queryKey: ["/api/coach/bootstrap"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/coach-corner/bootstrap"] });
     },
   });
 
@@ -569,13 +569,10 @@ export default function CoachsCorner() {
   // The visual shell (background gradient + layout) renders immediately on mount
   // so the browser can start fetching chefs-corner-bg.jpg and ChefBlackApron.png
   // before the bootstrap response arrives. The message area shows a small inline
-  // spinner while the single bootstrap call is in-flight — no full-screen black
-  // screen.
+  // spinner while the single bootstrap call is in-flight — no full-screen black.
 
   const bootstrapLoading = bootstrapQuery.isLoading;
-  // bootstrapReady: bootstrap succeeded AND profile was completed (redirect
-  // already fires in the useEffect for the incomplete-profile case).
-  const bootstrapReady = bootstrapQuery.isSuccess && (bootstrapQuery.data?.profileCompleted ?? false);
+  const bootstrapReady = bootstrapQuery.isSuccess && (bootstrapQuery.data?.completed ?? false);
   const hasMessages = messages.length > 0;
 
   return (
