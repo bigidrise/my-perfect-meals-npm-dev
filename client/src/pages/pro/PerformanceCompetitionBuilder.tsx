@@ -366,7 +366,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     dateISO: activeDayISO,
     starchyConsumed: activeDayConsumed.starchyCarbs,
     starchMealsUsed: activeDayConsumed.starchMealsUsed,
-    disabled: !activeDayISO || !!proClientId,
+    disabled: !activeDayISO,
   });
 
   // Day macro totals for the Today row — consumed cal/P/C/F for the active day.
@@ -1493,13 +1493,23 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
             <DailyTargetsCard
               userId={clientId}
               showQuickAddButton={false}
-              targetsOverride={{
-                protein_g: resolvedTargets.protein_g || 0,
-                carbs_g: resolvedTargets.carbs_g || 0,
-                fat_g: resolvedTargets.fat_g || 0,
-                starchyCarbs_g: resolvedTargets.starchyCarbs_g,
-                fibrousCarbs_g: resolvedTargets.fibrousCarbs_g,
-              }}
+              targetsOverride={
+                prescription && prescription.source !== "fallback" && prescription.proteinTarget > 0
+                  ? {
+                      protein_g:      prescription.proteinTarget,
+                      carbs_g:        prescription.carbsTarget,
+                      fat_g:          prescription.fatTarget,
+                      starchyCarbs_g: prescription.starchyCarbsTarget,
+                      fibrousCarbs_g: prescription.fibrousCarbsTarget,
+                    }
+                  : {
+                      protein_g:      resolvedTargets.protein_g || 0,
+                      carbs_g:        resolvedTargets.carbs_g   || 0,
+                      fat_g:          resolvedTargets.fat_g     || 0,
+                      starchyCarbs_g: resolvedTargets.starchyCarbs_g,
+                      fibrousCarbs_g: resolvedTargets.fibrousCarbs_g,
+                    }
+              }
             />
           </div>
 
