@@ -417,11 +417,17 @@ export default function Welcome() {
           Adaptive AI Nutrition Platform
         </p>
 
-        <div className="mb-12 flex justify-center">
+        <div className="mb-12 flex flex-col items-center gap-2">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-black via-orange-600 to-black rounded-2xl border border-orange-400/30 shadow-lg">
             <div className="w-2 h-2 bg-orange-400 rounded-2xl animate-pulse"></div>
             <span className="text-white font-semibold text-sm">
-              Powered by Emotion AI
+              Powered by Emotion AI™
+            </span>
+          </div>
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-black via-cyan-700/80 to-black rounded-2xl border border-cyan-400/30 shadow-lg">
+            <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
+            <span className="text-cyan-200 font-semibold text-sm">
+              Powered by Behavioral AI™
             </span>
           </div>
         </div>

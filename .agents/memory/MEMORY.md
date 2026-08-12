@@ -57,3 +57,4 @@
 - [Professional Context Architecture](professional-context-architecture.md) — Phase 1/2/3 roadmap; UNIQUE(businessId,userId) stays until Phase 2; no workspaces table yet; two-worlds model (personal vs professional).
 - [Coaching Engine — Confidence Doctrine Override](coaching-engine-confidence-doctrine.md) — getConfidenceInstructions() in confidence.ts is the true LLM control surface; system prompt changes in engine.ts are silently defeated if confidence.ts contradicts them.
 - [Meal Share System](meal-share-system.md) — public share links at /m/:token; affiliate ?via=TOKEN travels through Rewardful cookie to checkout; AppRouter publicRoutes must include /m.
+- [Daily Prescription Hierarchy](daily-prescription-hierarchy.md) — one endpoint owns all macro targets; GLP-1 overlay before Performance; Performance baseline must use adjusted values not raw; DailyMacroTotalsRow shared across all 6 builders; Biometrics uses /api/prescription/:dateISO.

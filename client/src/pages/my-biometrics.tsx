@@ -409,110 +409,74 @@ export default function MyBiometrics() {
   const refreshTargetsRef = useRef<() => Promise<void>>(async () => {});
 
   const refreshTargets = async () => {
-    // Priority 0: Performance Protocol — for athletes, daily macro targets change by session type.
-    // If a performance protocol is configured, use its date-specific targets and skip the baseline fetch.
-    if (user?.id) {
-      try {
-        const storedPerfDate = typeof window !== 'undefined'
-          ? localStorage.getItem('mpm.performance.selectedDate') : null;
-        const dateQs = storedPerfDate ? `?date=${storedPerfDate}` : '';
-        const perfRes = await fetch(apiUrl(`/api/performance/today${dateQs}`), {
-          headers: { ...getAuthHeaders() },
-          credentials: 'include',
-          cache: 'no-store',
-        });
-        if (perfRes.ok) {
-          const perfData = await perfRes.json();
-          if (perfData?.configured && (perfData?.calories ?? 0) > 0) {
-            setTargets({
-              calories: perfData.calories,
-              protein_g: perfData.proteinG,
-              carbs_g: perfData.carbsG,
-              fat_g: perfData.fatG,
-              starchyCarbs_g: perfData.starchyCarbsG ?? 0,
-              fibrousCarbs_g: perfData.fibrousCarbsG ?? 0,
-            });
-            setTargetSource('performance');
-            return;
-          }
-        }
-      } catch {
-        // Not on performance protocol or network failure — fall through to baseline
-      }
+    if (!user?.id) {
+      setTargets(null);
+      setTargetSource("none");
+      return;
     }
 
-    // Priority 1: canonical DB record — always fetch fresh, no browser cache.
-    // Both Macro Calculator and Studio Save Targets write to this same record,
-    // so reading it first guarantees Studio changes are immediately visible here.
-    if (user?.id) {
-      try {
-        const data = await apiRequest(`/api/users/${user.id}/macro-targets`, { cache: "no-store" });
-        if (data.hasTargets) {
-            setTargets({
-              calories: data.calories,
-              protein_g: data.protein_g,
-              carbs_g: data.carbs_g,
-              fat_g: data.fat_g,
-              starchyCarbs_g: data.starchyCarbs_g,
-              fibrousCarbs_g: data.fibrousCarbs_g,
-            });
-            // Use resolver only to determine the source label (pro vs self).
-            const resolved = getResolvedTargets(user.id);
-            setTargetSource(resolved.source === "pro" ? "pro" : "self");
-            if (resolved.source === "pro" && resolved.setBy) {
-              setProName(resolved.setBy);
-            }
-            return;
-          }
-        // Server responded successfully with hasTargets: false.
-        // Fall through to local resolver; if that also has nothing, null is correct.
-      } catch (_e) {
-        // Network failure — do not null out targets. Try local resolver as
-        // offline fallback; if that also misses, preserve whatever is currently
-        // displayed rather than flashing null on a transient error.
-        const fallback = getResolvedTargets(user?.id);
-        if (fallback.source !== "none") {
+    // Single authoritative path: the daily prescription resolver.
+    // Applies the full hierarchy in one server call:
+    //   Macro Calculator baseline → GLP-1 clinical overlay → Performance training-day modifier
+    // All surfaces (builders, coach, biometrics) now read the same effective daily prescription.
+    const storedDate = typeof window !== "undefined"
+      ? localStorage.getItem("mpm.performance.selectedDate") : null;
+    const dateISO = storedDate || new Date().toISOString().slice(0, 10);
+
+    try {
+      const prescRes = await fetch(apiUrl(`/api/prescription/${dateISO}`), {
+        headers: { ...getAuthHeaders() },
+        credentials: "include",
+        cache: "no-store",
+      });
+      if (prescRes.ok) {
+        const p = await prescRes.json();
+        if (p && p.source !== "fallback" && (p.caloriesTarget > 0 || p.proteinTarget > 0)) {
           setTargets({
-            calories: fallback.calories,
-            protein_g: fallback.protein_g,
-            carbs_g: fallback.carbs_g,
-            fat_g: fallback.fat_g,
-            starchyCarbs_g: fallback.starchyCarbs_g,
-            fibrousCarbs_g: fallback.fibrousCarbs_g,
+            calories:       p.caloriesTarget,
+            protein_g:      p.proteinTarget,
+            carbs_g:        p.carbsTarget,
+            fat_g:          p.fatTarget,
+            starchyCarbs_g: p.starchyCarbsTarget ?? 0,
+            fibrousCarbs_g: p.fibrousCarbsTarget ?? 0,
           });
-          setTargetSource(fallback.source);
-          if (fallback.source === "pro" && fallback.setBy) {
-            setProName(fallback.setBy);
+          const srcLabel =
+            p.source === "performance"             ? "performance"
+            : p.source === "professional_override" ? "pro"
+            : "self"; // "clinical" (GLP-1 overlay) and "user_default" both display as "self"
+          setTargetSource(srcLabel);
+          if (srcLabel === "pro") {
+            // Surface the ProCare provider name from the local resolver
+            const localResolved = getResolvedTargets(user.id);
+            if (localResolved.source === "pro" && localResolved.setBy) {
+              setProName(localResolved.setBy);
+            }
           }
+          return;
         }
-        // If local also has nothing, preserve whatever targets are already shown.
-        // setTargets(null) must not run on a network failure.
-        return;
       }
+    } catch {
+      // Network failure — fall through to local resolver so we never flash null
     }
 
-    // Priority 2: local resolver (localStorage / proStore).
-    // Reached when: server confirmed hasTargets: false, or user is not logged in.
-    const resolved = getResolvedTargets(user?.id);
+    // Fallback: local resolver (localStorage / proStore).
+    // Used when offline or when the prescription endpoint returns no targets.
+    const resolved = getResolvedTargets(user.id);
     if (resolved.source !== "none") {
       setTargets({
-        calories: resolved.calories,
-        protein_g: resolved.protein_g,
-        carbs_g: resolved.carbs_g,
-        fat_g: resolved.fat_g,
+        calories:       resolved.calories,
+        protein_g:      resolved.protein_g,
+        carbs_g:        resolved.carbs_g,
+        fat_g:          resolved.fat_g,
         starchyCarbs_g: resolved.starchyCarbs_g,
         fibrousCarbs_g: resolved.fibrousCarbs_g,
       });
       setTargetSource(resolved.source);
-      if (resolved.source === "pro" && resolved.setBy) {
-        setProName(resolved.setBy);
-      }
+      if (resolved.source === "pro" && resolved.setBy) setProName(resolved.setBy);
       return;
     }
 
-    // Only reaches here when the server confirmed hasTargets: false (or no user)
-    // AND the local resolver also has nothing. This is the only path where null
-    // is the correct answer — the user genuinely has no targets configured.
+    // No targets configured anywhere — user genuinely has no macro setup.
     setTargets(null);
     setTargetSource("none");
   };
