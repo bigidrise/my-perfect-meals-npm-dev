@@ -817,6 +817,8 @@ export default function Router() {
       <Switch>
         {/* Root route — AppRouter handles redirect to /welcome, /onboarding, or /dashboard */}
         <Route path="/">{() => null}</Route>
+        {/* Public shared meal preview — no auth required */}
+        <Route path="/m/:shareToken" component={lazy(() => import("@/pages/SharedMealPage"))} />
         {/* Core Routes */}
         <Route path="/welcome" component={Welcome} />
         <Route path="/guest-builder" component={GuestBuilder} />

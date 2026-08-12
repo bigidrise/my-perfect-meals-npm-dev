@@ -928,6 +928,11 @@ async function initializeApp() {
     const myPerfectBeginningGenerationRouter = (await import("./routes/my-perfect-beginning")).default;
     app.use("/api/my-perfect-beginning", myPerfectBeginningGenerationRouter);
 
+    // Meal Sharing — POST /api/meals/share (auth) + GET /api/share/:token (public)
+    const mealSharesRouter = (await import("./routes/mealSharesRouter")).default;
+    app.use("/api/meals", mealSharesRouter);
+    app.use("/api/share", mealSharesRouter);
+
     console.log("✅ [INIT] Parity routes mounted");
 
     // ── Org Config — PUBLIC endpoint, must be registered before requireAuth layers ──

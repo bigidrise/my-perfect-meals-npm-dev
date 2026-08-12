@@ -99,6 +99,7 @@ import adminCertRouter from './routes/adminCertRoutes';
 import academyRouter from './routes/academyRoutes';
 import lmsRouter from './routes/lmsRoutes';
 import affiliateRouter, { handleRewardfulWebhook } from './routes/affiliateRoutes';
+import mealSharesRouter from './routes/mealSharesRouter';
 import partnerRouter from './routes/partnerRoutes';
 import promotionRouter from './routes/promotionRoutes';
 import whiteLabelRouter from './routes/whiteLabelRoutes';
@@ -462,6 +463,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/academy', academyRouter);
   app.use('/api/lms', lmsRouter);
   app.use('/api/affiliate', affiliateRouter);
+  // Meal sharing — POST /api/meals/share (auth) + GET /api/share/:token (public)
+  app.use('/api/meals', mealSharesRouter);
+  app.use('/api/share', mealSharesRouter);
   app.use('/api/partner', partnerRouter);
   app.use('/api/promotions', promotionRouter);
   app.post('/api/webhooks/rewardful', handleRewardfulWebhook);

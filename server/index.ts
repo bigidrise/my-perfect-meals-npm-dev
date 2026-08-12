@@ -810,6 +810,24 @@ setTimeout(async () => {
     `);
     const certBridgeCount = (certBridgeResult as any).rowCount ?? (certBridgeResult as any).count ?? '?';
     console.log(`✅ Cert-type bridge: ${certBridgeCount} "platform" → "platform_mastery" record(s) created`);
+    // Meal Shares — public shareable meal preview links
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS meal_shares (
+        share_token TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        meal_name TEXT NOT NULL,
+        meal_description TEXT,
+        meal_image TEXT,
+        calories INTEGER,
+        protein NUMERIC(5,1),
+        carbs NUMERIC(5,1),
+        fat NUMERIC(5,1),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS meal_shares_token_idx ON meal_shares(share_token)`);
+    console.log('✅ meal_shares table ready');
+
     // Adaptive Coaching Engine (ACE) — Sprint 1+2
     const { runAceMigration } = await import('./services/ace/aceBootMigration');
     await runAceMigration();
