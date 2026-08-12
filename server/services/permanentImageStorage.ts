@@ -1,8 +1,9 @@
 // server/services/permanentImageStorage.ts
 // Service for permanently storing DALL-E generated images
-// Primary: Amazon S3 | Fallback: Replit Object Storage (GCS via sidecar)
+// Primary: Amazon S3 | Fallback: Replit Object Storage (@replit/object-storage Client)
 
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { Client as ReplitStorageClient } from "@replit/object-storage";
 import crypto from 'crypto';
 
 function getS3Client(): S3Client {
@@ -39,70 +40,53 @@ interface UploadResult {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // REPLIT OBJECT STORAGE FALLBACK
-// Used when S3 is unavailable / returns 403. Uses the Replit sidecar to
-// generate a pre-signed PUT URL, then uploads directly — no GCS SDK auth
-// required. This is the same mechanism objectStorage.ts uses for all other
-// object storage operations.
+// Uses @replit/object-storage Client which auto-discovers the active bucket
+// via the sidecar's /object-storage/default-bucket endpoint.
+// The signed-URL sidecar path (/object-storage/signed-object-url) returns 401
+// and must NOT be used. This Client path is proven working.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const REPLIT_SIDECAR_ENDPOINT = "http://127.0.0.1:1106";
+// Lazy singleton — initialised once and reused across requests.
+let _replitStorageClient: ReplitStorageClient | null = null;
+function getReplitStorageClient(): ReplitStorageClient {
+  if (!_replitStorageClient) {
+    _replitStorageClient = new ReplitStorageClient();
+  }
+  return _replitStorageClient;
+}
 
 async function uploadToReplitObjectStorage(
   imageBuffer: Buffer,
   contentType: string,
   fileName: string,
 ): Promise<string> {
-  const searchPaths = (process.env.PUBLIC_OBJECT_SEARCH_PATHS || "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-
-  if (!searchPaths.length) {
-    throw new Error("PUBLIC_OBJECT_SEARCH_PATHS not configured — cannot fall back to Replit Object Storage");
-  }
-
-  const bucketPath = searchPaths[0].replace(/^\/+/, "").replace(/\/+$/, "");
-  const bucketName = bucketPath.split("/")[0];
-
-  if (!bucketName) {
-    throw new Error(`Could not extract bucket name from PUBLIC_OBJECT_SEARCH_PATHS: "${searchPaths[0]}"`);
-  }
-
   const objectName = `meal-images/${fileName}`;
+  const client = getReplitStorageClient();
 
-  const signRes = await fetch(`${REPLIT_SIDECAR_ENDPOINT}/object-storage/signed-object-url`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      bucket_name: bucketName,
-      object_name: objectName,
-      method: "PUT",
-      expires_at: new Date(Date.now() + 900 * 1000).toISOString(),
-    }),
+  const result = await client.uploadFromBytes(objectName, imageBuffer, {
+    contentType,
   });
 
-  if (!signRes.ok) {
-    throw new Error(`Replit Object Storage: sidecar signed-URL request failed with HTTP ${signRes.status}`);
+  if (!result.ok) {
+    throw new Error(`Replit Object Storage upload failed: ${result.error?.message ?? "unknown error"}`);
   }
 
-  const { signed_url: signedUrl } = await signRes.json() as { signed_url: string };
-
-  const uploadRes = await fetch(signedUrl, {
-    method: "PUT",
-    headers: {
-      "Content-Type": contentType,
-      "Cache-Control": "public, max-age=31536000",
-    },
-    body: imageBuffer as unknown as BodyInit,
-  });
-
-  if (!uploadRes.ok) {
-    const uploadError = await uploadRes.text().catch(() => "");
-    throw new Error(`GCS upload via signed URL failed: HTTP ${uploadRes.status} — ${uploadError.substring(0, 100)}`);
+  // Discover the bucket ID so we can build the correct public URL.
+  // getBucket() returns the underlying GCS bucket name the client is using.
+  let bucketId: string;
+  try {
+    const bucket = await client.getBucket();
+    bucketId = bucket.name;
+  } catch {
+    // Fallback: read from sidecar directly
+    const sidecarRes = await fetch("http://127.0.0.1:1106/object-storage/default-bucket").catch(() => null);
+    const sidecarJson = sidecarRes?.ok ? await sidecarRes.json().catch(() => null) : null;
+    bucketId = sidecarJson?.bucketId ?? process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID ?? "unknown-bucket";
   }
 
-  console.log(`✅ Image uploaded to Replit Object Storage: /public-objects/${objectName}`);
-  return `/public-objects/${objectName}`;
+  const publicUrl = `/public-objects/${bucketId}/${objectName}`;
+  console.log(`✅ Image uploaded to Replit Object Storage: ${publicUrl}`);
+  return publicUrl;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
