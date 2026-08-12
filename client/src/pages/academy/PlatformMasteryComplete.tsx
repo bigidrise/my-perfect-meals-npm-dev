@@ -10,6 +10,13 @@ interface CertData {
   certificateName: string | null;
   completedAt: string | null;
   isCertificationTrack: boolean;
+  score: number | null;
+}
+
+function getBadgeTier(score: number): { label: string; color: string; border: string; bg: string } {
+  if (score >= 95) return { label: "Master", color: "text-purple-400", border: "border-purple-500/40", bg: "bg-purple-500/10" };
+  if (score >= 90) return { label: "Advanced", color: "text-sky-400", border: "border-sky-500/40", bg: "bg-sky-500/10" };
+  return { label: "Certified", color: "text-emerald-400", border: "border-emerald-500/40", bg: "bg-emerald-500/10" };
 }
 
 export default function PlatformMasteryComplete() {
@@ -26,6 +33,7 @@ export default function PlatformMasteryComplete() {
           certificateName: d.certificateName ?? null,
           completedAt: d.completedAt ?? null,
           isCertificationTrack: d.isCertificationTrack ?? false,
+          score: d.score ?? null,
         });
       })
       .catch(() => {})
@@ -162,6 +170,30 @@ export default function PlatformMasteryComplete() {
                 </div>
               )}
             </div>
+
+            {cert.score !== null && (
+              <div className="grid grid-cols-2 gap-4 pt-2 border-t border-white/10">
+                <div className="text-center">
+                  <p className="text-xs text-white/40 uppercase tracking-widest font-semibold mb-1">
+                    Final Score
+                  </p>
+                  <p className="text-2xl font-black text-white">{cert.score}%</p>
+                </div>
+                <div className="text-center flex flex-col items-center justify-center">
+                  <p className="text-xs text-white/40 uppercase tracking-widest font-semibold mb-1">
+                    Achievement
+                  </p>
+                  {(() => {
+                    const tier = getBadgeTier(cert.score!);
+                    return (
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full border text-xs font-bold ${tier.color} ${tier.border} ${tier.bg}`}>
+                        {tier.label}
+                      </span>
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
 
             {cert.isCertificationTrack && (
               <div className="pt-2 border-t border-white/10 text-center">

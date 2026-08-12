@@ -100,6 +100,7 @@ router.get("/platform-mastery/status", requireAuth, async (req, res) => {
       certificateNumber: enrollmentRecord?.certificateNumber ?? null,
       certificateName: enrollmentRecord?.certificateName ?? null,
       completedAt: enrollmentRecord?.completedAt ?? null,
+      score: enrollmentRecord?.score ?? null,
       progress,
     });
   } catch (err) {
@@ -413,6 +414,16 @@ router.post("/platform-mastery/complete", requireAuth, async (req, res) => {
       }
     }
 
+    // Calculate average quiz score across all 9 passed quizzes
+    const quizScores = LESSON_IDS.map((id) => {
+      const rec = progressMap.get(`${id}-quiz`);
+      return rec?.score ?? null;
+    }).filter((s): s is number => s !== null);
+    const avgScore =
+      quizScores.length > 0
+        ? Math.round(quizScores.reduce((a, b) => a + b, 0) / quizScores.length)
+        : null;
+
     const certNumber = `MPM-PM-${Date.now().toString(36).toUpperCase()}`;
 
     await db
@@ -425,6 +436,7 @@ router.post("/platform-mastery/complete", requireAuth, async (req, res) => {
         certificateName: certificateName.trim(),
         completedAt: new Date(),
         isCertificationTrack,
+        score: avgScore,
       })
       .onConflictDoUpdate({
         target: [
@@ -437,10 +449,11 @@ router.post("/platform-mastery/complete", requireAuth, async (req, res) => {
           certificateName: certificateName.trim(),
           completedAt: new Date(),
           updatedAt: new Date(),
+          score: avgScore,
         },
       });
 
-    return res.json({ ok: true, certificateNumber: certNumber });
+    return res.json({ ok: true, certificateNumber: certNumber, score: avgScore });
   } catch (err) {
     console.error("[Academy] complete error:", err);
     return res.status(500).json({ error: "Failed to issue certificate" });
