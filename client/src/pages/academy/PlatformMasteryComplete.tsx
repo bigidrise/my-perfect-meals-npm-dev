@@ -24,6 +24,7 @@ export default function PlatformMasteryComplete() {
   const [cert, setCert] = useState<CertData | null>(null);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
 
   useEffect(() => {
     apiRequest("/api/academy/platform-mastery/status")
@@ -43,6 +44,7 @@ export default function PlatformMasteryComplete() {
   const handleDownload = async () => {
     if (downloading) return;
     setDownloading(true);
+    setDownloadError(null);
     try {
       const token = localStorage.getItem("mpm_auth_token");
       const res = await fetch("/api/academy/platform-mastery/certificate/pdf", {
@@ -60,7 +62,8 @@ export default function PlatformMasteryComplete() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch {
-      // PDF download not yet available — task #144
+      setDownloadError("Download failed — please try again in a moment.");
+      setTimeout(() => setDownloadError(null), 5000);
     } finally {
       setDownloading(false);
     }
@@ -221,6 +224,11 @@ export default function PlatformMasteryComplete() {
           )}
           {downloading ? "Generating…" : "Download Certificate (PDF)"}
         </motion.button>
+
+        {/* Download error */}
+        {downloadError && (
+          <p className="text-center text-sm text-red-400 -mt-2">{downloadError}</p>
+        )}
 
         {/* Back to Academy */}
         <motion.button

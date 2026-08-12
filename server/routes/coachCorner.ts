@@ -5,6 +5,7 @@ import { db } from "../db";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import { coachingProfiles } from "../db/schema/ace";
 import { users } from "../../shared/schema";
+import { resolveDailyNutritionPrescription } from "../services/prescriptionResolver";
 import { biometricSample } from "../../shared/biometricsSchema";
 import { loadUserProtocolEnvelope } from "../services/protocolEnvelope";
 import {
@@ -89,21 +90,34 @@ async function buildCoachContextBlock(
       }
     }
 
-    // Macro targets — separate query (not in envelope interface)
+    // Macro targets — resolved through the full hierarchy (Macro Calculator →
+    // GLP-1 overlay → Performance modifier) so the coach always quotes the
+    // same numbers the meal builders and Biometrics show.
+    const todayISO = new Date().toISOString().slice(0, 10);
+    const prescription = await resolveDailyNutritionPrescription({ userId, dateISO: todayISO });
+
     const [userRow] = await db
-      .select({
-        dailyCalorieTarget: users.dailyCalorieTarget,
-        dailyProteinTarget: users.dailyProteinTarget,
-        weight: users.weight,
-      })
+      .select({ weight: users.weight })
       .from(users)
       .where(eq(users.id, userId as any))
       .limit(1);
 
-    if (userRow?.dailyCalorieTarget) {
-      let macro = `Daily targets: ${userRow.dailyCalorieTarget} cal`;
-      if (userRow.dailyProteinTarget) macro += `, ${userRow.dailyProteinTarget}g protein`;
-      lines.push(macro);
+    if (prescription.caloriesTarget > 0) {
+      const sourceLabel =
+        prescription.source === "clinical"      ? "GLP-1 clinical overlay"
+        : prescription.source === "performance" ? "Performance protocol"
+        : "Macro Calculator";
+      lines.push(
+        `AUTHORITATIVE DAILY TARGETS (source: ${sourceLabel}): ` +
+        `${prescription.caloriesTarget} cal, ` +
+        `${prescription.proteinTarget}g protein, ` +
+        `${prescription.carbsTarget}g carbs, ` +
+        `${prescription.fatTarget}g fat — ` +
+        `quote ONLY these numbers when the user asks about macro or calorie targets.`
+      );
+      if (prescription.trainingDayType) {
+        lines.push(`Today is a ${prescription.trainingDayType} day (Performance protocol active).`);
+      }
     }
     if (userRow?.weight) {
       lines.push(`Current weight: ${userRow.weight} lbs`);
