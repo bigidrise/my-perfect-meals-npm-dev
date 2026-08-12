@@ -41,6 +41,7 @@ import {
   SessionType,
 } from "./protocol/performanceProtocolResolver";
 import { getTierForLookupKey } from "../../shared/planFeatures";
+import { getExecutableRuleValue } from "./glp1/ruleRegistry";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -176,7 +177,7 @@ export async function resolveDailyNutritionPrescription(
     let guardrails = DEFAULT_GLP1_GUARDRAILS;
     try {
       const glp1Result = await db.execute(
-        sql`SELECT guardrails FROM glp1_profile WHERE user_id = ${parseInt(userId)} LIMIT 1`
+        sql`SELECT guardrails FROM glp1_profile WHERE user_id = ${userId} LIMIT 1`
       );
       const glp1Row = glp1Result.rows?.[0] as { guardrails?: unknown } | undefined;
       if (glp1Row?.guardrails && typeof glp1Row.guardrails === "object") {
@@ -196,11 +197,17 @@ export async function resolveDailyNutritionPrescription(
       : fatMaxG <= 10   ? "intro"
       : "maintenance";
 
-    // Daily calorie adjustment based on treatment phase
+    // Daily calorie adjustment based on treatment phase.
+    // Phase multipliers are registered in the clinical rule registry.
+    // pending_review rules are fail-closed: getExecutableRuleValue returns the
+    // fallback (1.0) when the rule has not yet been approved by an RD/physician,
+    // meaning no calorie adjustment is applied until the rule is promoted.
     const phaseMultiplier =
-      treatmentPhase === "intro"             ? 0.82
-      : treatmentPhase === "muscle_preserve" ? 1.08
-      : 1.0;
+      treatmentPhase === "intro"
+        ? getExecutableRuleValue("glp1_intro_phase_calorie_multiplier", 1.0).value
+        : treatmentPhase === "muscle_preserve"
+        ? getExecutableRuleValue("glp1_muscle_preserve_calorie_multiplier", 1.0).value
+        : 1.0;
     caloriesTarget = Math.round(caloriesTarget * phaseMultiplier);
 
     // Daily protein floor and fat ceiling (per-meal limit × meals per day)
@@ -263,13 +270,31 @@ export async function resolveDailyNutritionPrescription(
   // Performance modifiers apply to the GLP-1-adjusted baseline, but we
   // explicitly re-enforce floors/ceilings so Performance can never silently
   // push protein below the clinical floor or fat above the clinical ceiling.
+  // After clamping protein/fat we rebalance carbs (and the starchy/fibrous
+  // split) so P+C+F calories still sum to caloriesTarget.
   if (isGLP1Active) {
+    const proteinBefore = proteinTarget;
+    const fatBefore     = fatTarget;
+
     if (glp1DailyProteinFloor !== null) {
       proteinTarget = Math.max(proteinTarget, glp1DailyProteinFloor);
     }
     if (glp1DailyFatCeiling !== null) {
       fatTarget = Math.min(fatTarget, glp1DailyFatCeiling);
     }
+
+    // If either clamp actually changed a value, rebalance carbs so macros
+    // still sum to the calorie target (avoids P+C+F mismatch).
+    if (proteinTarget !== proteinBefore || fatTarget !== fatBefore) {
+      const remainingCals = caloriesTarget - proteinTarget * 4 - fatTarget * 9;
+      const prevCarbsTarget = carbsTarget;
+      carbsTarget = Math.max(0, Math.round(remainingCals / 4));
+      // Preserve the starchy/fibrous ratio from before re-enforcement.
+      const carbRatio = prevCarbsTarget > 0 ? carbsTarget / prevCarbsTarget : 0;
+      starchyCarbsTarget = Math.round(starchyCarbsTarget * carbRatio);
+      fibrousCarbsTarget = Math.max(0, carbsTarget - starchyCarbsTarget);
+    }
+
     if (source === "performance") {
       rationaleCodes.push("glp1_limits_enforced_post_performance");
     }
