@@ -5,6 +5,12 @@ import { biometricSample } from "../../shared/biometricsSchema";
 import { eq, gte, and, sql } from "drizzle-orm";
 import type { AuthenticatedRequest } from "../middleware/requireAuth";
 import { requireAuth } from "../middleware/requireAuth";
+import { getOrSet, invalidatePrefix } from "../services/queryCache";
+
+/** Call this from macro-log write routes so the next poll sees fresh alerts. */
+export function invalidatePatternAlertsCache(userId: string): void {
+  invalidatePrefix(`pattern-alerts:${userId}`);
+}
 
 const router = Router();
 
@@ -82,9 +88,14 @@ const THRESHOLDS: Record<string, ThresholdProfile> = {
 // Returns behavioral pattern alerts for the authenticated user.
 // Positive patterns win if detected — never mix positive and drift in same response.
 // Coaching preferences (style, focusAreas, frequency) read from app_preferences server-side.
+// Cached 20 s — polling interval is 30 s so users see at most one stale cycle.
 router.get("/pattern-alerts", requireAuth, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser.id;
+    const cacheKey = `pattern-alerts:${userId}`;
+    const TTL_MS = 20_000;
+
+    const cached = await getOrSet(cacheKey, TTL_MS, async () => {
     const now = new Date();
     const threeDaysAgo   = new Date(now.getTime() - 3  * 24 * 60 * 60 * 1000);
     const sevenDaysAgo   = new Date(now.getTime() - 7  * 24 * 60 * 60 * 1000);
@@ -186,7 +197,7 @@ router.get("/pattern-alerts", requireAuth, async (req, res) => {
       const sorted = positive
         .sort((a, b) => PRIORITY_RANK[b.priority] - PRIORITY_RANK[a.priority])
         .slice(0, 2);
-      return res.json({ alerts: sorted, coachingStyle });
+      return { alerts: sorted, coachingStyle };
     }
 
     // =========================================================
@@ -226,7 +237,10 @@ router.get("/pattern-alerts", requireAuth, async (req, res) => {
       .sort((a, b) => PRIORITY_RANK[b.priority] - PRIORITY_RANK[a.priority])
       .slice(0, 2);
 
-    res.json({ alerts: sorted, coachingStyle });
+    return { alerts: sorted, coachingStyle };
+    }); // end getOrSet
+
+    res.json(cached);
   } catch (e: any) {
     console.error("[pattern-alerts] error:", e);
     res.status(500).json({ error: e.message || "Failed to compute alerts" });
