@@ -7709,7 +7709,22 @@ Provide a single exceptional meal recommendation in JSON format with the followi
         };
       });
 
-      res.json(annotatedRows);
+      // ── Step 2: Response-stripping (NO DB changes) ───────────────────────────
+      // Strip base64 data URIs from the response before sending to the client.
+      // These are self-contained ~2MB PNG blobs stored in meal_data.imageUrl
+      // when the S3/GCS upload failed at save time. Sending them inflates the
+      // Favorites payload from ~2MB to ~50MB. The DB rows are NOT touched here —
+      // the migration script (Step 3) will upload them to object storage later.
+      // Until then the client receives null imageUrl and shows a placeholder.
+      const safeRows = annotatedRows.map((r: any) => {
+        const img = r.mealData?.imageUrl as string | undefined;
+        if (img && (img.startsWith("data:") || img.includes("oaidalleapiprodscus"))) {
+          return { ...r, mealData: { ...r.mealData, imageUrl: null } };
+        }
+        return r;
+      });
+
+      res.json(safeRows);
     } catch (error) {
       console.error("Error listing saved meals:", error);
       res.status(500).json({ error: "Failed to list saved meals" });
