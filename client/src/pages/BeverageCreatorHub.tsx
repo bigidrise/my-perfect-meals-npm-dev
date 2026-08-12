@@ -89,25 +89,10 @@ export default function BeverageCreatorHub() {
       >
         <div className="max-w-2xl mx-auto space-y-4">
 
-          {/* Hero Image */}
-          <div className="relative h-40 rounded-xl overflow-hidden">
-            <img
-              src="/images/beverage-hub-hero.png"
-              alt="Beverage Creator"
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                e.currentTarget.src =
-                  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='160'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%2360a5fa;stop-opacity:0.35' /%3E%3Cstop offset='100%25' style='stop-color:%238b5cf6;stop-opacity:0.35' /%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='400' height='160' fill='url(%23g)'/%3E%3C/svg%3E";
-              }}
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-            <div className="absolute bottom-3 left-3 right-3">
-              <div className="bg-black/55 backdrop-blur-sm rounded-xl px-3 py-2.5">
-                <p className="text-white/90 text-sm">
-                  Every drink — from daily wellness to elite performance.
-                </p>
-              </div>
-            </div>
+          {/* Hub Intro — matches Pairings Hub pattern */}
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold text-white mb-2">Drink Design</h2>
+            <p className="text-sm text-white/70">AI-powered drinks for wellness, performance, refreshment, and everyday enjoyment.</p>
           </div>
 
           {/* Cards */}
