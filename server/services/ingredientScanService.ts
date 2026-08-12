@@ -881,7 +881,9 @@ Analyze how this product aligns with this specific user's health profile.`;
       isFrontLabel: false,
       productNameMissing: !detectedProductName,
       analysisMethod: 'by_label',
-      profileFactorsUsed: Array.isArray(alignment.profileFactorsUsed)
+      // Gate on server-computed analysisProfile so the claim is authoritative:
+      // if the user's envelope has no health factors, force empty regardless of LLM output.
+      profileFactorsUsed: analysisProfile.length > 0 && Array.isArray(alignment.profileFactorsUsed)
         ? alignment.profileFactorsUsed.filter((s: any) => typeof s === 'string')
         : [],
       whatMattersMost: Array.isArray(alignment.whatMattersMost)
@@ -999,7 +1001,9 @@ Do NOT give generic advice. Do NOT say "check the label." You are an expert — 
       isFrontLabel: false,
       productNameMissing: false,
       analysisMethod: 'by_name',
-      profileFactorsUsed: Array.isArray(alignment.profileFactorsUsed)
+      // Gate on server-computed analysisProfile so the claim is authoritative:
+      // if the user's envelope has no health factors, force empty regardless of LLM output.
+      profileFactorsUsed: analysisProfile.length > 0 && Array.isArray(alignment.profileFactorsUsed)
         ? alignment.profileFactorsUsed.filter((s: any) => typeof s === 'string')
         : [],
       whatMattersMost: Array.isArray(alignment.whatMattersMost)
@@ -1097,7 +1101,9 @@ You have TWO sources of information: your product knowledge AND verified label d
       isFrontLabel: false,
       productNameMissing: false,
       analysisMethod: 'full_product_advisor',
-      profileFactorsUsed: Array.isArray(alignment.profileFactorsUsed)
+      // Gate on server-computed analysisProfile so the claim is authoritative:
+      // if the user's envelope has no health factors, force empty regardless of LLM output.
+      profileFactorsUsed: analysisProfile.length > 0 && Array.isArray(alignment.profileFactorsUsed)
         ? alignment.profileFactorsUsed.filter((s: any) => typeof s === 'string')
         : [],
       whatMattersMost: Array.isArray(alignment.whatMattersMost)
