@@ -1411,6 +1411,16 @@ async function initializeApp() {
         }
       }, 5600);
 
+      // Media Assets — canonical media_assets table + saved_meals.media_asset_id FK
+      setTimeout(async () => {
+        try {
+          const { runMediaAssetsMigration } = await import("./db/migrations/runMediaAssetsMigration");
+          await runMediaAssetsMigration();
+        } catch (err: any) {
+          console.error("❌ [prod] Media Assets boot migration failed:", err.message);
+        }
+      }, 5400);
+
       // Promotion Engine — partner_promotions + promotion_redemptions tables
       setTimeout(async () => {
         try {

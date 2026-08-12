@@ -14,6 +14,8 @@ export const savedMeals = pgTable("saved_meals", {
   protocolType: text("protocol_type"),
   bglBucket: varchar("bgl_bucket", { length: 16 }),
   savedFromDiabeticBuilder: boolean("saved_from_diabetic_builder").notNull().default(false),
+  // Media Asset lifecycle — FK to media_assets.id; null for legacy rows
+  mediaAssetId: uuid("media_asset_id"),
 }, (t) => ({
   userIdx: index("saved_meals_user_idx").on(t.userId),
   uniqueMealPerUser: uniqueIndex("saved_meals_user_sig_idx").on(t.userId, t.signatureHash),

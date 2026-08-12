@@ -9,6 +9,7 @@ import { uploadsRouter } from "./routes/uploads";
 import { storage } from "./storage";
 import { ObjectStorageService, objectStorageClient } from "./objectStorage";
 import { processMealImageForSave } from "./services/imageLifecycle";
+import { mediaAssets as mediaAssetsTable } from "./db/schema/mediaAssets";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { registerCreatorRoutes } from "./routes/creator";
 import { requireAuth, AuthenticatedRequest } from "./middleware/requireAuth";
@@ -7515,19 +7516,23 @@ Provide a single exceptional meal recommendation in JSON format with the followi
         return res.json({ saved: false, id: null });
       }
 
-      // Upgrade any temp/data URL to a permanent storage URL before persisting.
-      // processMealImageForSave handles: already-permanent → passthrough,
-      // temp OpenAI/blob URL → ingest to object storage, null → null.
-      // Failures are logged explicitly and never swallowed silently.
+      // ── Canonical media lifecycle gate ───────────────────────────────────
+      // processMealImageForSave routes all images through MediaAssetService:
+      //   • already-permanent → wrapped in media_assets record, passed through
+      //   • base64 / temp URL → uploaded to Object Storage, resized variants created
+      //   • upload failure   → media_assets record with status='failed', imageUrl=null
+      // HARD RULE: base64 is NEVER written to Postgres.
       let finalMealData: any = { ...mealData };
+      let finalMediaAssetId: string | null = null;
       try {
         const imgResult = await processMealImageForSave(mealData.imageUrl, title.trim());
-        if (imgResult.ingestionAttempted && !imgResult.imageUrl) {
+        if (imgResult.imagePending && !imgResult.imageUrl) {
           console.warn(
-            `[savedMeals/toggle] Image ingestion attempted but returned no URL for "${title}" — imageUrl will be null in DB.`
+            `[savedMeals/toggle] Image processing pending/failed for "${title}" — saving with null imageUrl. mediaAssetId: ${imgResult.mediaAssetId}`
           );
         }
         finalMealData = { ...finalMealData, imageUrl: imgResult.imageUrl };
+        finalMediaAssetId = imgResult.mediaAssetId;
       } catch (imgErr) {
         console.error(
           `[savedMeals/toggle] processMealImageForSave threw for "${title}" — saving with null imageUrl. Error:`,
@@ -7542,6 +7547,7 @@ Provide a single exceptional meal recommendation in JSON format with the followi
         sourceType: sourceType || "unknown",
         signatureHash: hash,
         mealData: finalMealData,
+        ...(finalMediaAssetId ? { mediaAssetId: finalMediaAssetId } : {}),
         ...(isDiabeticBuilderMeal ? {
           savedFromDiabeticBuilder: true,
           ...(diabeticMemory?.bglBucket ? {
@@ -7571,19 +7577,102 @@ Provide a single exceptional meal recommendation in JSON format with the followi
     }
   });
 
+  // GET /api/saved-meals/:id — full detail for a single saved meal (expanded view)
+  app.get("/api/saved-meals/:id", requireAuth, requireEssentialAccess, async (req, res) => {
+    try {
+      const userId = (req as AuthenticatedRequest).authUser.id;
+      const mealId = req.params.id;
+
+      const [row] = await db
+        .select({
+          id:                       savedMealsTable.id,
+          userId:                   savedMealsTable.userId,
+          title:                    savedMealsTable.title,
+          sourceType:               savedMealsTable.sourceType,
+          signatureHash:            savedMealsTable.signatureHash,
+          mealData:                 savedMealsTable.mealData,
+          createdAt:                savedMealsTable.createdAt,
+          savedFromDiabeticBuilder: savedMealsTable.savedFromDiabeticBuilder,
+          generatedBglMgdl:         savedMealsTable.generatedBglMgdl,
+          glucoseContext:           savedMealsTable.glucoseContext,
+          protocolType:             savedMealsTable.protocolType,
+          bglBucket:                savedMealsTable.bglBucket,
+          mediaAssetId:             savedMealsTable.mediaAssetId,
+          assetThumbnailUrl:        mediaAssetsTable.thumbnailUrl,
+          assetDisplayUrl:          mediaAssetsTable.displayUrl,
+          assetStatus:              mediaAssetsTable.status,
+        })
+        .from(savedMealsTable)
+        .leftJoin(mediaAssetsTable, eq(savedMealsTable.mediaAssetId, mediaAssetsTable.id))
+        .where(and(eq(savedMealsTable.id, mealId), eq(savedMealsTable.userId, String(userId))))
+        .limit(1);
+
+      if (!row) return res.status(404).json({ error: "Meal not found" });
+
+      const md = row.mealData as any;
+      const legacyImg = (md?.imageUrl as string | undefined) ?? null;
+      const isSafe = legacyImg && !legacyImg.startsWith("data:") && !legacyImg.includes("oaidalleapiprodscus");
+
+      const thumbnailUrl = row.assetThumbnailUrl ?? (isSafe ? legacyImg : null);
+      const displayUrl   = row.assetDisplayUrl   ?? (isSafe ? legacyImg : null);
+
+      return res.json({
+        ...row,
+        mealData: { ...md, imageUrl: displayUrl },
+        thumbnailUrl,
+        displayUrl,
+        mediaStatus: row.assetStatus ?? (thumbnailUrl ? "legacy" : "none"),
+      });
+    } catch (error) {
+      console.error("Error fetching saved meal detail:", error);
+      return res.status(500).json({ error: "Failed to fetch meal detail" });
+    }
+  });
+
+  // GET /api/saved-meals — paginated list with canonical media URLs
   app.get("/api/saved-meals", requireAuth, requireEssentialAccess, async (req, res) => {
     try {
       const userId = (req as AuthenticatedRequest).authUser.id;
       const t0 = Date.now();
 
-      // Fire the main meals query immediately — runs in parallel with the
-      // daily-state lookup below so neither blocks the other.
-      const savedMealsPromise = db.select().from(savedMealsTable)
-        .where(eq(savedMealsTable.userId, String(userId)))
-        .orderBy(desc(savedMealsTable.createdAt));
+      // ── Pagination ─────────────────────────────────────────────────────────
+      const page  = Math.max(1, parseInt(String(req.query.page  ?? "1"),  10) || 1);
+      const limit = Math.min(100, Math.max(1, parseInt(String(req.query.limit ?? "20"), 10) || 20));
+      const offset = (page - 1) * limit;
 
-      // Resolve today's daily nutrition state in parallel. Hard 1-second timeout
-      // so a slow state calc can never block the favorites response.
+      // ── Count + paginated rows in parallel ─────────────────────────────────
+      const countPromise = db
+        .select({ count: sql<number>`COUNT(*)::int` })
+        .from(savedMealsTable)
+        .where(eq(savedMealsTable.userId, String(userId)));
+
+      const rowsPromise = db
+        .select({
+          id:                       savedMealsTable.id,
+          userId:                   savedMealsTable.userId,
+          title:                    savedMealsTable.title,
+          sourceType:               savedMealsTable.sourceType,
+          signatureHash:            savedMealsTable.signatureHash,
+          mealData:                 savedMealsTable.mealData,
+          createdAt:                savedMealsTable.createdAt,
+          savedFromDiabeticBuilder: savedMealsTable.savedFromDiabeticBuilder,
+          generatedBglMgdl:         savedMealsTable.generatedBglMgdl,
+          glucoseContext:           savedMealsTable.glucoseContext,
+          protocolType:             savedMealsTable.protocolType,
+          bglBucket:                savedMealsTable.bglBucket,
+          mediaAssetId:             savedMealsTable.mediaAssetId,
+          assetThumbnailUrl:        mediaAssetsTable.thumbnailUrl,
+          assetDisplayUrl:          mediaAssetsTable.displayUrl,
+          assetStatus:              mediaAssetsTable.status,
+        })
+        .from(savedMealsTable)
+        .leftJoin(mediaAssetsTable, eq(savedMealsTable.mediaAssetId, mediaAssetsTable.id))
+        .where(eq(savedMealsTable.userId, String(userId)))
+        .orderBy(desc(savedMealsTable.createdAt))
+        .limit(limit)
+        .offset(offset);
+
+      // ── Daily nutrition state (starch-policy annotation, 1-second hard timeout) ──
       let savedMealDailyState: {
         starchPolicy: string;
         starchyBudgetExhausted: boolean;
@@ -7642,50 +7731,10 @@ Provide a single exceptional meal recommendation in JSON format with the followi
         // Non-fatal — saved meals still returned without day-mismatch annotation
       }
 
-      const rows = await savedMealsPromise;
+      // ── Resolve paginated rows + total in parallel ─────────────────────────
+      const [[{ count: total }], rows] = await Promise.all([countPromise, rowsPromise]);
 
-      // Back-fill permanent S3 URLs for any meals stored without one
-      let enrichedRows: typeof rows = rows;
-      const needsEnrich = rows.filter(r => {
-        const img = (r.mealData as any)?.imageUrl as string | undefined;
-        return !img || img.startsWith("data:") || img.includes("oaidalleapiprodscus");
-      });
-      if (needsEnrich.length > 0) {
-        try {
-          const names = [...new Set(needsEnrich.map(r => r.title.trim()))];
-          const cachedEntries = await db
-            .select({ mealName: mealImageCache.mealName, imageUrl: mealImageCache.imageUrl, createdAt: mealImageCache.createdAt })
-            .from(mealImageCache)
-            .where(inArray(mealImageCache.mealName, names))
-            .orderBy(desc(mealImageCache.createdAt));
-          // Build map keeping only the most-recent S3 entry per meal name
-          const byName = new Map<string, string>();
-          for (const c of cachedEntries) {
-            if (!byName.has(c.mealName) && c.imageUrl.includes("amazonaws.com")) {
-              byName.set(c.mealName, c.imageUrl);
-            }
-          }
-          if (byName.size > 0) {
-            enrichedRows = rows.map(r => {
-              const img = (r.mealData as any)?.imageUrl as string | undefined;
-              if (!img || img.startsWith("data:") || img.includes("oaidalleapiprodscus")) {
-                const s3Url = byName.get(r.title.trim());
-                if (s3Url) {
-                  return { ...r, mealData: { ...(r.mealData as any), imageUrl: s3Url } };
-                }
-              }
-              return r;
-            });
-          }
-        } catch {
-          // non-fatal — return original rows if enrichment fails
-        }
-      }
-
-      // ── Day-mismatch annotation ──────────────────────────────────────────────
-      // If today's starch strategy conflicts with a saved meal's starch content,
-      // attach a dayMismatchNote so the client can show a contextual warning.
-      // This never removes meals — it's purely informational.
+      // ── Starch terms for day-mismatch annotation ───────────────────────────
       const STARCH_SIGNAL_TERMS = [
         "rice", "pasta", "bread", "potato", "potatoes", "oats", "oatmeal",
         "corn", "tortilla", "noodle", "noodles", "couscous", "quinoa", "barley",
@@ -7693,57 +7742,86 @@ Provide a single exceptional meal recommendation in JSON format with the followi
         "spaghetti", "penne", "linguine", "fettuccine", "ramen", "udon", "soba",
         "polenta", "grits", "macaroni", "mashed", "sweet potato", "yam",
       ];
-
       const shouldFlagStarch =
         savedMealDailyState?.scheduleConfigured &&
-        (savedMealDailyState?.starchPolicy === "zero" ||
-          savedMealDailyState?.starchyBudgetExhausted);
+        (savedMealDailyState?.starchPolicy === "zero" || savedMealDailyState?.starchyBudgetExhausted);
 
-      const annotatedRows = enrichedRows.map(r => {
-        if (!shouldFlagStarch) return r;
+      // ── Build canonical response ───────────────────────────────────────────
+      const meals = rows.map((r: any) => {
         const md = r.mealData as any;
-        const savedStarchyG = Number(md?.starchyCarbs ?? md?.starchyCarbsG ?? 0);
-        // Check numeric starchy carb value OR scan meal name/ingredients for starch terms
-        let hasStarch = savedStarchyG > 5;
-        if (!hasStarch) {
-          const textToScan = [
-            r.title,
-            md?.description ?? "",
-            ...(Array.isArray(md?.ingredients)
-              ? md.ingredients.map((i: any) =>
-                  typeof i === "string" ? i : (i?.name ?? i?.item ?? "")
-                )
-              : []),
-          ].join(" ").toLowerCase();
-          hasStarch = STARCH_SIGNAL_TERMS.some(t => textToScan.includes(t));
+
+        // Canonical thumbnailUrl hierarchy:
+        //   1. media_assets.thumbnail_url (canonical lifecycle, resized variant)
+        //   2. mealData.imageUrl if first-party permanent (legacy — no lifecycle record yet)
+        //   3. null (base64 and expired DALL-E URLs are blocked here — Step 2 defense-in-depth)
+        let effectiveThumbnailUrl: string | null = r.assetThumbnailUrl ?? null;
+        let effectiveDisplayUrl: string | null   = r.assetDisplayUrl   ?? null;
+        if (!effectiveThumbnailUrl) {
+          const rawImg = md?.imageUrl as string | undefined;
+          if (rawImg && !rawImg.startsWith("data:") && !rawImg.includes("oaidalleapiprodscus")) {
+            effectiveThumbnailUrl = rawImg;
+            effectiveDisplayUrl   = rawImg;
+          }
         }
-        if (!hasStarch) return r;
-        const policyLabel = savedMealDailyState?.starchyBudgetExhausted
-          ? "today's starchy carb budget is exhausted"
-          : "today is a no-starch day";
+
+        // Day-mismatch starch check
+        let dayMismatchNote: string | null = null;
+        let dayMismatchPolicy: string | null = null;
+        if (shouldFlagStarch) {
+          const savedStarchyG = Number(md?.starchyCarbs ?? md?.starchyCarbsG ?? 0);
+          let hasStarch = savedStarchyG > 5;
+          if (!hasStarch) {
+            const textToScan = [
+              r.title,
+              md?.description ?? "",
+              ...(Array.isArray(md?.ingredients)
+                ? md.ingredients.map((i: any) =>
+                    typeof i === "string" ? i : (i?.name ?? i?.item ?? "")
+                  )
+                : []),
+            ].join(" ").toLowerCase();
+            hasStarch = STARCH_SIGNAL_TERMS.some(t => textToScan.includes(t));
+          }
+          if (hasStarch) {
+            const policyLabel = savedMealDailyState?.starchyBudgetExhausted
+              ? "today's starchy carb budget is exhausted"
+              : "today is a no-starch day";
+            dayMismatchNote   = `This meal was saved on a different nutrition day. ${policyLabel[0].toUpperCase() + policyLabel.slice(1)} — it may not fit today's strategy.`;
+            dayMismatchPolicy = savedMealDailyState?.starchPolicy ?? null;
+          }
+        }
+
+        // In the list response, mealData.imageUrl is replaced by the canonical
+        // effectiveDisplayUrl so downstream code that reads d?.imageUrl still works.
+        const listMealData = { ...md, imageUrl: effectiveDisplayUrl };
+
         return {
-          ...r,
-          dayMismatchNote: `This meal was saved on a different nutrition day. ${policyLabel[0].toUpperCase() + policyLabel.slice(1)} — it may not fit today's strategy.`,
-          dayMismatchPolicy: savedMealDailyState?.starchPolicy,
+          id:                       r.id,
+          userId:                   r.userId,
+          title:                    r.title,
+          sourceType:               r.sourceType,
+          signatureHash:            r.signatureHash,
+          mealData:                 listMealData,
+          createdAt:                r.createdAt,
+          savedAt:                  r.createdAt,
+          savedFromDiabeticBuilder: r.savedFromDiabeticBuilder,
+          generatedBglMgdl:         r.generatedBglMgdl,
+          glucoseContext:           r.glucoseContext,
+          protocolType:             r.protocolType,
+          bglBucket:                r.bglBucket,
+          mediaAssetId:             r.mediaAssetId,
+          thumbnailUrl:             effectiveThumbnailUrl,
+          displayUrl:               effectiveDisplayUrl,
+          mediaStatus:              (r.assetStatus ?? (effectiveThumbnailUrl ? "legacy" : "none")) as string,
+          dayMismatchNote,
+          dayMismatchPolicy,
         };
       });
 
-      // ── Step 2: Response-stripping (NO DB changes) ───────────────────────────
-      // Strip base64 data URIs from the response before sending to the client.
-      // These are self-contained ~2MB PNG blobs stored in meal_data.imageUrl
-      // when the S3/GCS upload failed at save time. Sending them inflates the
-      // Favorites payload from ~2MB to ~50MB. The DB rows are NOT touched here —
-      // the migration script (Step 3) will upload them to object storage later.
-      // Until then the client receives null imageUrl and shows a placeholder.
-      const safeRows = annotatedRows.map((r: any) => {
-        const img = r.mealData?.imageUrl as string | undefined;
-        if (img && (img.startsWith("data:") || img.includes("oaidalleapiprodscus"))) {
-          return { ...r, mealData: { ...r.mealData, imageUrl: null } };
-        }
-        return r;
-      });
+      const hasMore = (total as number) > page * limit;
+      console.log(`[saved-meals] page=${page} limit=${limit} total=${total} hasMore=${hasMore} elapsed=${Date.now() - t0}ms`);
 
-      res.json(safeRows);
+      res.json({ meals, total, page, limit, hasMore });
     } catch (error) {
       console.error("Error listing saved meals:", error);
       res.status(500).json({ error: "Failed to list saved meals" });

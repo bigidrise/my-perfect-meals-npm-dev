@@ -11,6 +11,7 @@ import {
 import { computeNutritionAndBadges, scaleIngredients } from "../services/familyNutrition";
 import { requireAuth } from "../middleware/requireAuth";
 import { requireActiveAccess } from "../middleware/requireActiveAccess";
+import { processMealImageForSave, isFirstPartyImageUrl } from "../services/imageLifecycle";
 
 export const familyRecipesRouter = Router();
 
@@ -42,13 +43,25 @@ familyRecipesRouter.post("/family-recipes", requireAuth, requireActiveAccess, as
       });
     }
 
+    // ── Media lifecycle gate ─────────────────────────────────────────────────
+    // Ensures no base64 or temporary CDN URLs reach the DB.
+    let safeImageUrl: string | null = imageUrl ?? null;
+    if (imageUrl) {
+      try {
+        const imgResult = await processMealImageForSave(imageUrl, title);
+        safeImageUrl = imgResult.imageUrl;
+      } catch {
+        safeImageUrl = null;
+      }
+    }
+
     // Create recipe
     const [recipe] = await db.insert(familyRecipes).values({
       userId,
       title,
       story,
       servings,
-      imageUrl,
+      imageUrl: safeImageUrl,
       dietaryTags,
       allergens
     }).returning();
@@ -184,6 +197,17 @@ familyRecipesRouter.put("/family-recipes/:id", requireAuth, requireActiveAccess,
       imageUrl 
     } = req.body;
 
+    // ── Media lifecycle gate ─────────────────────────────────────────────────
+    let safeImageUrl: string | null = imageUrl ?? null;
+    if (imageUrl) {
+      try {
+        const imgResult = await processMealImageForSave(imageUrl, title);
+        safeImageUrl = imgResult.imageUrl;
+      } catch {
+        safeImageUrl = null;
+      }
+    }
+
     // Update recipe
     await db
       .update(familyRecipes)
@@ -193,7 +217,7 @@ familyRecipesRouter.put("/family-recipes/:id", requireAuth, requireActiveAccess,
         servings,
         dietaryTags,
         allergens,
-        imageUrl,
+        imageUrl: safeImageUrl,
         updatedAt: new Date()
       })
       .where(and(

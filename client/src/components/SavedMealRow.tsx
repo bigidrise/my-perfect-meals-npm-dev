@@ -128,7 +128,7 @@ export default function SavedMealRow({
       >
         <div className="shrink-0 w-14 h-14 rounded-lg overflow-hidden bg-white/10 mr-3">
           <MealImageSlot
-            imageUrl={d?.imageUrl}
+            imageUrl={row.thumbnailUrl || d?.imageUrl}
             mealName={row.title}
             height="h-14"
             className="!mb-0 !rounded-none"
@@ -159,7 +159,7 @@ export default function SavedMealRow({
       {isExpanded && (
         <div className="px-4 pb-4 space-y-4 border-t border-white/10 pt-4">
           <MealImageSlot
-            imageUrl={d?.imageUrl}
+            imageUrl={row.displayUrl || row.thumbnailUrl || d?.imageUrl}
             mealName={row.title}
             height="h-52"
           />
