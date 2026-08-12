@@ -306,6 +306,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return () => window.removeEventListener("mpm:visibility-resumed", handleVisibilityResumed);
   }, []);
 
+  // When a background polling loop receives a 401/403, the token was invalidated
+  // while the component was still alive (e.g. after server-side logout without a
+  // full page reload).  Sign out immediately so the stale polling stops and the
+  // user is returned to the login page.
+  useEffect(() => {
+    const handlePollingAuthRejected = () => {
+      const token = getAuthToken();
+      if (!token) return; // Already signed out
+      console.warn("⚠️ [AuthContext] mpm:polling-auth-rejected — token invalidated, signing out");
+      setUser(null);
+      localStorage.removeItem("mpm_current_user");
+      localStorage.removeItem("userId");
+      localStorage.removeItem("isAuthenticated");
+      clearAuthToken();
+      clearUserContext();
+      window.location.href = "/login";
+    };
+    window.addEventListener("mpm:polling-auth-rejected", handlePollingAuthRejected);
+    return () => window.removeEventListener("mpm:polling-auth-rejected", handlePollingAuthRejected);
+  }, []);
+
   useEffect(() => {
     const initializeAuth = async () => {
       const currentUser = getCurrentUser();
