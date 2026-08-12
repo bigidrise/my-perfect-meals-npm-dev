@@ -21,7 +21,7 @@ const PLATFORM_MASTERY_LESSONS = [
   { num: 1, title: "Your Profile & Nutrition Protocol", subtitle: "Setting up your dietary identity and health constraints" },
   { num: 2, title: "Meal Builders — Choosing the Right Tool", subtitle: "Every meal creation tool and when to reach for it" },
   { num: 3, title: "Weekly Planning", subtitle: "Building consistent habits with the Meal Planner" },
-  { num: 4, title: "Shopping & Your Grocery Scope", subtitle: "Smart Grocery List, Grocery Coach, Smart Scan, and Fridge Rescue" },
+  { num: 4, title: "Shopping & Your Grocery Scope", subtitle: "Smart Grocery List, Grocery Coach, Product Scan, and Fridge Rescue" },
   { num: 5, title: "Eating Away From Home", subtitle: "Restaurant Guide, Fast Food Guide, and Find Meals Near Me" },
   { num: 6, title: "Biometrics & Tracking", subtitle: "Logging progress and reading your data" },
   { num: 7, title: "Specialized Health & Performance Systems", subtitle: "Clinical programs, performance nutrition, and the protocol hierarchy" },

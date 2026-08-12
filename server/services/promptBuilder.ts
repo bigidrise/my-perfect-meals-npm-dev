@@ -373,6 +373,10 @@ OUTPUT FORMAT: a single JSON object with keys:
   "servings": number
 }
 
+CRITICAL — nutrition field definitions:
+- "fiber_g": the ACTUAL dietary fiber content of this meal's ingredients (typically 3–15g per meal). Do NOT copy the user's daily fibrous carb target into this field. A fibrous carb target is a composition directive (how many vegetables to include); fiber_g is the real fiber in the food on the plate. For example, 1 cup cauliflower ≈ 2g fiber, 6 oz salmon ≈ 0g fiber. Add them up from the actual ingredients.
+- "carbs_g": total carbohydrates including fiber. fiber_g is always ≤ carbs_g.
+
 ${getMeasurementPromptBlock((profile.measurementSystem ?? "imperial") as MeasurementSystem)}
 Scale output for the requested servings exactly (${servings}).
 

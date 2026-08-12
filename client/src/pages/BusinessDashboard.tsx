@@ -882,7 +882,7 @@ export default function BusinessDashboard() {
               </label>
               <input
                 className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-orange-400 placeholder-white/30"
-                placeholder="e.g. Metroflex Performance Nutrition"
+                placeholder="e.g. Apex Performance Nutrition"
                 value={setupName}
                 onChange={(e) => setSetupName(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSaveSetup()}

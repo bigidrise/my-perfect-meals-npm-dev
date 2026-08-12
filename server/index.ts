@@ -673,6 +673,9 @@ setTimeout(async () => {
     await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS procare_training_completed boolean NOT NULL DEFAULT false`);
     // Acquisition tracking — signup source captured from ?source= / ?ref= URL param
     await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS signup_source text`);
+    // Organization relationship split — attribution (who brought them) vs care (who coaches them)
+    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS attribution_organization_id uuid`);
+    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS care_organization_id uuid`);
     // Language Preference — Phase 1 internationalization
     await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS preferred_language text DEFAULT 'auto'`);
     await db.execute(sql`

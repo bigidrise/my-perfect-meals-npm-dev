@@ -165,25 +165,31 @@ export default function AffiliateDashboard() {
   }, [account]);
 
   const openPortal = useCallback(async () => {
+    if (portalLoading) return;
     setPortalLoading(true);
+    // Open the window synchronously inside the click handler so browsers
+    // treat it as a user-initiated popup (not a programmatic one that gets blocked).
+    const win = window.open("", "_blank", "noopener,noreferrer");
     try {
       const data = await apiRequest("/api/affiliate/dashboard-link") as { url?: string };
-      if (data.url) {
-        window.open(data.url, "_blank", "noopener,noreferrer");
+      if (data.url && win) {
+        win.location.href = data.url;
         setTimeout(() => {
           apiRequest("/api/affiliate/rewardful-status")
             .then((s) => setRewardfulStatus(s as RewardfulStatus))
             .catch(() => {});
         }, 3000);
       } else {
+        win?.close();
         toast({ title: "Unavailable", description: "Could not generate portal link.", variant: "destructive" });
       }
     } catch {
+      win?.close();
       toast({ title: "Error", description: "Failed to open portal. Try again.", variant: "destructive" });
     } finally {
       setPortalLoading(false);
     }
-  }, [toast]);
+  }, [toast, portalLoading]);
 
   const syncLink = useCallback(async () => {
     setSyncLoading(true);

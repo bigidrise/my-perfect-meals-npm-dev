@@ -280,6 +280,9 @@ async function initializeApp() {
           await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS procare_training_completed boolean NOT NULL DEFAULT false`);
           // Acquisition tracking — signup source captured from ?source= / ?ref= URL param
           await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS signup_source text`);
+          // Organization relationship split — attribution (who brought them) vs care (who coaches them)
+          await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS attribution_organization_id uuid`);
+          await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS care_organization_id uuid`);
           // Language Preference — Phase 1 internationalization
           await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS preferred_language text DEFAULT 'auto'`);
           // LMS content tables

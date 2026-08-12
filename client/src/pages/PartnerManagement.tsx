@@ -297,7 +297,7 @@ export default function PartnerManagement() {
         >
           <input
             className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-orange-400 placeholder-white/30 mb-1 uppercase"
-            placeholder="e.g. METROFLEX"
+            placeholder="e.g. APEXFIT"
             value={actionInputs["promoCode"] ?? ""}
             onChange={(e) => setActionInputs((p) => ({ ...p, promoCode: e.target.value.toUpperCase() }))}
           />
@@ -319,7 +319,7 @@ export default function PartnerManagement() {
                 <p className="text-white/60 text-xs mb-1">Organization name</p>
                 <input
                   className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-orange-400 placeholder-white/30"
-                  placeholder="e.g. Metroflex Fitness"
+                  placeholder="e.g. Apex Fitness"
                   value={actionInputs["orgName"] ?? ""}
                   onChange={(e) => setActionInputs((p) => ({ ...p, orgName: e.target.value }))}
                 />

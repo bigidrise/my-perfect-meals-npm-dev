@@ -16,6 +16,12 @@ interface Props {
   onAddAnyway?: () => void;
   /** Shopping List context: show "Save Scan" action button */
   onSaveForReview?: () => void;
+  /**
+   * Called when a by-name analysis replaces the initial result (front-label fallback).
+   * Allows the parent to update its authoritative result so Save, Last Analysis card,
+   * and active scan state all reflect what the user sees in the sheet.
+   */
+  onResultRefined?: (result: IngredientScanResult) => void;
   /** Companion context: show companion header badge instead of default header */
   companionName?: string | null;
 }
@@ -462,7 +468,7 @@ function AnalysisProfileSection({ items }: { items: string[] }) {
   );
 }
 
-export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, onAddProduct, onAddAnyway, onSaveForReview, companionName }: Props) {
+export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, onAddProduct, onAddAnyway, onSaveForReview, onResultRefined, companionName }: Props) {
   const { toast } = useToast();
   const [byNameLoading, setByNameLoading] = useState(false);
   const [byNameResult, setByNameResult] = useState<IngredientScanResult | null>(null);
@@ -494,7 +500,12 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
         body: JSON.stringify({ productName: result.productName }),
         headers: { 'Content-Type': 'application/json' },
       }) as { ok: boolean; result: IngredientScanResult };
-      if (data.ok && data.result) setByNameResult(data.result);
+      if (data.ok && data.result) {
+        setByNameResult(data.result);
+        // Propagate the refined result to the parent so Save, Last Analysis card,
+        // and active scan state all reflect the same grade the user sees here.
+        onResultRefined?.(data.result);
+      }
     } catch {
       // silently fail — user can retry
     } finally {
@@ -530,7 +541,7 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
                 />
                 <div className="flex-1">
                   <p className="text-xs text-orange-400 font-bold uppercase tracking-wide">
-                    {companionName ? 'Companion Smart Scan' : 'Ingredient Intelligence'}
+                    {companionName ? 'Companion Product Scan' : 'Ingredient Intelligence'}
                   </p>
                   <h2 className="text-white font-bold text-base leading-tight">
                     {result.productName || 'Full Analysis'}
@@ -655,8 +666,20 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
                     </div>
                   )}
 
-                  {/* Grade banner */}
-                  {grade && (
+                  {/* Grade banner — only shown when a grade was actually calculated */}
+                  {activeResult.fallbackUsed ? (
+                    <div className="rounded-2xl border border-white/15 bg-white/5 p-4 mb-3 flex items-start gap-3">
+                      <div className="text-2xl shrink-0">🔍</div>
+                      <div>
+                        <p className="font-bold text-sm text-white/80">Analysis incomplete</p>
+                        <p className="text-xs text-white/45 mt-1 leading-snug">
+                          {activeResult.ocrConfidenceLow
+                            ? "The image wasn't clear enough to score. Make sure the full ingredients panel is visible and well-lit, then try again."
+                            : "More information is needed to generate a grade. Try scanning the ingredients panel or use Product Lookup."}
+                        </p>
+                      </div>
+                    </div>
+                  ) : grade ? (
                     <div className={`rounded-2xl border p-4 mb-3 flex items-center gap-4 ${grade.bg} shadow-lg ${grade.glow}`}>
                       <div className={`text-6xl font-black leading-none ${grade.color}`}>{activeResult.alignmentGrade}</div>
                       <div>
@@ -664,7 +687,7 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
                         <p className="text-xs text-white/45 mt-0.5">Personalized to your health profile</p>
                       </div>
                     </div>
-                  )}
+                  ) : null}
 
                   {/* Chef verdict */}
                   {verdictCfg && activeResult.verdict && (

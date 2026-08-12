@@ -21,7 +21,7 @@ const LESSONS = [
   { id: "lesson-01", num: 1, title: "Your Profile & Nutrition Protocol", subtitle: "Setting up your dietary identity and health constraints" },
   { id: "lesson-02", num: 2, title: "Meal Builders — Choosing the Right Tool", subtitle: "Every meal creation tool and when to reach for it" },
   { id: "lesson-03", num: 3, title: "Weekly Planning", subtitle: "Building consistent habits with the Meal Planner" },
-  { id: "lesson-04", num: 4, title: "Shopping & Your Grocery Scope", subtitle: "Smart Grocery List, Grocery Coach, Smart Scan, and Fridge Rescue" },
+  { id: "lesson-04", num: 4, title: "Shopping & Your Grocery Scope", subtitle: "Smart Grocery List, Grocery Coach, Product Scan, and Fridge Rescue" },
   { id: "lesson-05", num: 5, title: "Eating Away From Home", subtitle: "Restaurant Guide, Fast Food Guide, and Find Meals Near Me" },
   { id: "lesson-06", num: 6, title: "Biometrics & Tracking", subtitle: "Logging progress and reading your data" },
   { id: "lesson-07", num: 7, title: "Specialized Health & Performance Systems", subtitle: "Clinical programs, performance nutrition, and the protocol hierarchy" },

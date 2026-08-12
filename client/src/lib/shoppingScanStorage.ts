@@ -8,6 +8,8 @@ export interface SavedProductScan {
   barcode?: string;
   ingredients: string[];
   score: string;
+  /** False when the grade was never actually calculated (failed scan, unreadable image, etc.) */
+  gradeCalculated?: boolean;
   householdFlags: string[];
   scanDate: string;
   userDecision: UserDecision;
@@ -16,6 +18,13 @@ export interface SavedProductScan {
   scanSource: "shopping" | "biometrics";
   overallSummary?: string;
   considerations?: string[];
+  /**
+   * Full IngredientScanResult serialized as JSON — used to restore the exact
+   * analysis when the user reopens a scan from Recent Scans. Shopping scans
+   * are cleared nightly so this is effectively session-scoped storage.
+   * Contains only AI-generated analysis output and product data.
+   */
+  fullResult?: string;
 }
 
 function readAll(): SavedProductScan[] {

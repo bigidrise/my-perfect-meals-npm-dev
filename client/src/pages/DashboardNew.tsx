@@ -211,7 +211,7 @@ export default function DashboardNew() {
 
   const handleTabletSend = async () => {
     if (!isProCareClient) {
-      setLocation(showMarketplace ? "/coaches" : "/pricing");
+      setLocation("/pricing");
       return;
     }
     if (!tabletInput.trim() || tabletSending) return;
@@ -243,7 +243,7 @@ export default function DashboardNew() {
 
   const handleTabletTranslate = async (entry: any) => {
     if (!isProCareClient) {
-      setLocation(showMarketplace ? "/coaches" : "/pricing");
+      setLocation("/pricing");
       return;
     }
     if (tabletTranslatingId) return;
@@ -293,7 +293,7 @@ export default function DashboardNew() {
 
   const handleTabletDelete = async (entry: any) => {
     if (!isProCareClient) {
-      setLocation(showMarketplace ? "/coaches" : "/pricing");
+      setLocation("/pricing");
       return;
     }
     try {
@@ -963,7 +963,7 @@ export default function DashboardNew() {
               <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(249,115,22,0.3), rgba(249,115,22,0.1), rgba(0,0,0,0))" }} />
             <Card
               className="relative cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg border border-white/10 transition-all duration-300 rounded-xl shadow-md opacity-70"
-              onClick={() => setLocation(showMarketplace ? "/coaches" : "/pricing")}
+              onClick={() => setLocation("/pricing")}
             >
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
