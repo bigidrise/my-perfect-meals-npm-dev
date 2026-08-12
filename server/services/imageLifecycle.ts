@@ -133,15 +133,15 @@ export async function processMealImageForSave(
 export async function ingestImageToPermanentStorage(
   imageUrl: string,
   mealName: string
-): Promise<{ success: boolean; permanentUrl: string | null }> {
+): Promise<{ success: boolean; permanentUrl: string | null; error?: string }> {
   try {
     const result = await processMealImageForSave(imageUrl, mealName);
     return {
       success: result.imageUrl !== null,
       permanentUrl: result.imageUrl,
     };
-  } catch {
-    return { success: false, permanentUrl: null };
+  } catch (err: any) {
+    return { success: false, permanentUrl: null, error: err?.message ?? "unknown" };
   }
 }
 

@@ -63,26 +63,23 @@ async function uploadToReplitObjectStorage(
   const objectName = `meal-images/${fileName}`;
   const client = getReplitStorageClient();
 
-  const result = await client.uploadFromBytes(objectName, imageBuffer, {
-    contentType,
-  });
+  // Note: UploadOptions only exposes { compress?: boolean } — contentType is not
+  // a supported option in this SDK version. Omit it; the server infers it.
+  const result = await client.uploadFromBytes(objectName, imageBuffer);
 
   if (!result.ok) {
     throw new Error(`Replit Object Storage upload failed: ${result.error?.message ?? "unknown error"}`);
   }
 
-  // Discover the bucket ID so we can build the correct public URL.
-  // getBucket() returns the underlying GCS bucket name the client is using.
-  let bucketId: string;
-  try {
-    const bucket = await client.getBucket();
-    bucketId = bucket.name;
-  } catch {
-    // Fallback: read from sidecar directly
-    const sidecarRes = await fetch("http://127.0.0.1:1106/object-storage/default-bucket").catch(() => null);
-    const sidecarJson = sidecarRes?.ok ? await sidecarRes.json().catch(() => null) : null;
-    bucketId = sidecarJson?.bucketId ?? process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID ?? "unknown-bucket";
-  }
+  // Discover the active bucket ID via the Object Storage sidecar.
+  // The SDK's Client does not expose a public bucketId accessor; the sidecar's
+  // /object-storage/default-bucket endpoint is the supported discovery path.
+  const sidecarRes = await fetch("http://127.0.0.1:1106/object-storage/default-bucket").catch(() => null);
+  const sidecarJson = sidecarRes?.ok ? await sidecarRes.json().catch(() => null) : null;
+  const bucketId: string =
+    sidecarJson?.bucketId ??
+    process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID ??
+    "replit-objstore-2a68d585-4c50-4c2e-a7ff-a9973358bc5b";
 
   const publicUrl = `/public-objects/${bucketId}/${objectName}`;
   console.log(`✅ Image uploaded to Replit Object Storage: ${publicUrl}`);

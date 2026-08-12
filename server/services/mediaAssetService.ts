@@ -41,20 +41,17 @@ function getStorageClient(): ReplitStorageClient {
   return _storageClient;
 }
 
-/** Discover the active bucket ID (used to construct /public-objects/ URLs). */
+/** Discover the active bucket ID (used to construct /public-objects/ URLs).
+ *  Uses the Object Storage sidecar's supported discovery endpoint.
+ *  The SDK Client does not expose a public bucketId accessor. */
 async function getBucketId(): Promise<string> {
-  try {
-    const bucket = await (getStorageClient() as any).getBucket();
-    return bucket.name;
-  } catch {
-    const r = await fetch("http://127.0.0.1:1106/object-storage/default-bucket").catch(() => null);
-    const j = r?.ok ? await r.json().catch(() => null) : null;
-    return (
-      j?.bucketId ??
-      process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID ??
-      "replit-objstore-2a68d585-4c50-4c2e-a7ff-a9973358bc5b"
-    );
-  }
+  const r = await fetch("http://127.0.0.1:1106/object-storage/default-bucket").catch(() => null);
+  const j = r?.ok ? await r.json().catch(() => null) : null;
+  return (
+    j?.bucketId ??
+    process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID ??
+    "replit-objstore-2a68d585-4c50-4c2e-a7ff-a9973358bc5b"
+  );
 }
 
 /** Upload a buffer to Object Storage, return the public /public-objects/ URL. */
@@ -64,7 +61,9 @@ async function uploadBuffer(
   objectName: string,
 ): Promise<string> {
   const client = getStorageClient();
-  const result = await client.uploadFromBytes(objectName, buffer, { contentType } as any);
+  // Note: UploadOptions only exposes { compress?: boolean } in this SDK version.
+  // contentType is not a supported option; omit it.
+  const result = await client.uploadFromBytes(objectName, buffer);
   if (!result.ok) {
     throw new Error(`Object Storage upload failed for ${objectName}: ${result.error?.message ?? "unknown"}`);
   }
