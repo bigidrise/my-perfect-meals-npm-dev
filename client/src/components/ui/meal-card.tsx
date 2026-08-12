@@ -31,6 +31,12 @@ export default function MealCard({ recipe, compact = false, onSelect, onViewReci
     e.stopPropagation();
     if (!recipe || !hasInstructions) return;
     
+    const safeImageUrl = (() => {
+      const url = recipe.imageUrl;
+      if (!url || url.startsWith("data:") || url.includes("oaidalleapiprodscus")) return null;
+      return url;
+    })();
+
     const mealData = {
       id: recipe.id?.toString() || crypto.randomUUID(),
       name: recipe.name,
@@ -38,7 +44,7 @@ export default function MealCard({ recipe, compact = false, onSelect, onViewReci
       mealType: recipe.mealType,
       ingredients: recipe.ingredients || [],
       instructions: recipe.instructions,
-      imageUrl: recipe.imageUrl,
+      imageUrl: safeImageUrl,
       calories: recipe.calories,
       protein: recipe.protein,
       carbs: recipe.carbs,
@@ -49,7 +55,13 @@ export default function MealCard({ recipe, compact = false, onSelect, onViewReci
     };
     
     // Store meal in Chef's Kitchen format + flag to enter prepare mode
-    localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(mealData));
+    try {
+      localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(mealData));
+    } catch {
+      localStorage.removeItem("mpm_chefs_kitchen_meal");
+      localStorage.removeItem("mpm_chefs_kitchen_external_prepare");
+      try { localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(mealData)); } catch { /* give up */ }
+    }
     localStorage.setItem("mpm_chefs_kitchen_external_prepare", "true");
     
     setLocation("/lifestyle/chefs-kitchen");

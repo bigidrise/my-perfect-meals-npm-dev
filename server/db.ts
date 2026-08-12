@@ -46,10 +46,17 @@ function getDatabaseUrl(): string {
   return databaseUrl;
 }
 
-// Use connection pool with keepalive to prevent idle disconnections
+// Use connection pool with keepalive to prevent idle disconnections.
+// min: 3  — pre-warm 3 connections at startup so the first burst of requests
+//            (dashboard + Favorites loading simultaneously) doesn't queue behind
+//            cold SSL handshakes (~65ms each).
+// max: 20 — the dashboard fires 10+ concurrent DB-touching endpoints on load;
+//            10 slots was regularly exhausted, causing saved_meals to queue for
+//            1700ms while waiting for a free connection.
 export const pool = new Pool({
   connectionString: getDatabaseUrl(),
-  max: 10,
+  min: 3,
+  max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
   keepAlive: true,

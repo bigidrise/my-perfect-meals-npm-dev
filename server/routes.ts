@@ -1,5 +1,6 @@
 import { validateProfilePayload } from "./guards/profileFieldGuard";
 import { computeAlphaGalBadge } from "./services/medicalBadges";
+import { resolveDailyNutritionState } from "./services/dailyNutritionState";
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { sendEmail } from "./emailService";
@@ -3887,7 +3888,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const config   = (u as any)?.performanceProtocolConfig;
 
           if (schedule && config) {
-            const { resolveDailyNutritionState } = await import("./services/dailyNutritionState");
             const baseCarbsG = (u as any)?.dailyCarbsTarget ?? 200;
             const rawStarchy = (u as any)?.dailyStarchyCarbsTarget;
             const rawFibrous = (u as any)?.dailyFibrousCarbsTarget;
@@ -7503,9 +7503,16 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   app.get("/api/saved-meals", requireAuth, requireEssentialAccess, async (req, res) => {
     try {
       const userId = (req as AuthenticatedRequest).authUser.id;
+      const t0 = Date.now();
 
-      // Resolve today's daily nutrition state so we can flag saved meals that
-      // conflict with the current day's starch strategy.
+      // Fire the main meals query immediately — runs in parallel with the
+      // daily-state lookup below so neither blocks the other.
+      const savedMealsPromise = db.select().from(savedMealsTable)
+        .where(eq(savedMealsTable.userId, String(userId)))
+        .orderBy(desc(savedMealsTable.createdAt));
+
+      // Resolve today's daily nutrition state in parallel. Hard 1-second timeout
+      // so a slow state calc can never block the favorites response.
       let savedMealDailyState: {
         starchPolicy: string;
         starchyBudgetExhausted: boolean;
@@ -7531,38 +7538,40 @@ Provide a single exceptional meal recommendation in JSON format with the followi
         const schedule = (userForState as any)?.weeklyTrainingSchedule;
         const config   = (userForState as any)?.performanceProtocolConfig;
         if (schedule && config) {
-          const { resolveDailyNutritionState } = await import("./services/dailyNutritionState");
           const baseCarbsG = (userForState as any)?.dailyCarbsTarget ?? 200;
           const rawStarchy = (userForState as any)?.dailyStarchyCarbsTarget ?? null;
           const rawFibrous = (userForState as any)?.dailyFibrousCarbsTarget ?? null;
-          const state = await resolveDailyNutritionState({
-            userId:            String(userId),
-            schedule,
-            config,
-            baseline: {
-              calories:      (userForState as any)?.dailyCalorieTarget ?? 2000,
-              proteinG:      (userForState as any)?.dailyProteinTarget ?? 150,
-              carbsG:        baseCarbsG,
-              fatG:          (userForState as any)?.dailyFatTarget ?? 65,
-              starchyCarbsG: rawStarchy !== null ? Number(rawStarchy) : Math.round(baseCarbsG * 0.7),
-              fibrousCarbsG: rawFibrous !== null ? Number(rawFibrous) : Math.round(baseCarbsG * 0.3),
-            },
-            timezone:          ((userForState as any)?.timezone as string | null) ?? "America/Chicago",
-            performanceActive: true,
-          });
-          savedMealDailyState = {
-            starchPolicy:          state.starchPolicy,
-            starchyBudgetExhausted: state.starchyBudgetExhausted,
-            scheduleConfigured:    state.scheduleConfigured,
-          };
+          const stateOrTimeout = await Promise.race<any>([
+            resolveDailyNutritionState({
+              userId:            String(userId),
+              schedule,
+              config,
+              baseline: {
+                calories:      (userForState as any)?.dailyCalorieTarget ?? 2000,
+                proteinG:      (userForState as any)?.dailyProteinTarget ?? 150,
+                carbsG:        baseCarbsG,
+                fatG:          (userForState as any)?.dailyFatTarget ?? 65,
+                starchyCarbsG: rawStarchy !== null ? Number(rawStarchy) : Math.round(baseCarbsG * 0.7),
+                fibrousCarbsG: rawFibrous !== null ? Number(rawFibrous) : Math.round(baseCarbsG * 0.3),
+              },
+              timezone:          ((userForState as any)?.timezone as string | null) ?? "America/Chicago",
+              performanceActive: true,
+            }),
+            new Promise(resolve => setTimeout(() => resolve(null), 1000)),
+          ]);
+          if (stateOrTimeout) {
+            savedMealDailyState = {
+              starchPolicy:           stateOrTimeout.starchPolicy,
+              starchyBudgetExhausted: stateOrTimeout.starchyBudgetExhausted,
+              scheduleConfigured:     stateOrTimeout.scheduleConfigured,
+            };
+          }
         }
       } catch {
         // Non-fatal — saved meals still returned without day-mismatch annotation
       }
 
-      const rows = await db.select().from(savedMealsTable)
-        .where(eq(savedMealsTable.userId, String(userId)))
-        .orderBy(desc(savedMealsTable.createdAt));
+      const rows = await savedMealsPromise;
 
       // Back-fill permanent S3 URLs for any meals stored without one
       let enrichedRows: typeof rows = rows;
