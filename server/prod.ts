@@ -153,6 +153,74 @@ if (fs.existsSync(clientDistEarly)) {
   console.log("✅ [BOOT] Early static + SPA fallback registered");
 }
 
+// Runs data-only migrations that are safe to defer past the 6-second boot window.
+// Both queries are fully idempotent: the UPDATE only touches rows still at the
+// default false, and the INSERT skips users who already have a platform_mastery
+// record. A 30-second timeout gives the prod DB plenty of room under load.
+async function runGrandfatherMigrations() {
+  const { db: database } = await import("./db");
+  const { sql } = await import("drizzle-orm");
+
+  const timeout30s = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error("Grandfather migration timed out after 30000ms")), 30000),
+  );
+
+  await Promise.race([
+    (async () => {
+      // Grandfather existing certified professionals — Phase 2 gate protection
+      // Sets procare_training_completed=true for professionals who completed Phase 1
+      // BEFORE Phase 2 training existed (cutoff: 2026-07-01).
+      // Idempotent: only touches rows still at the default false.
+      const grandfatherResult = await database.execute(sql`
+        UPDATE users
+        SET procare_training_completed = true
+        WHERE
+          professional_role IS NOT NULL
+          AND procare_training_completed = false
+          AND id IN (
+            SELECT user_id FROM user_certifications
+            WHERE certification_type IN ('platform', 'affiliate_coaching')
+              AND completed_at IS NOT NULL
+              AND completed_at < '2026-07-01T00:00:00Z'
+          )
+      `);
+      const grandfatheredCount = (grandfatherResult as any).rowCount ?? (grandfatherResult as any).count ?? '?';
+      console.log(`✅ [INIT] Grandfather migration: ${grandfatheredCount} professional(s) grandfathered (procare_training_completed=true)`);
+
+      // Cert-type bridge migration — Platform Mastery rename
+      // Copies completed "platform" cert records to "platform_mastery" for users who
+      // completed the Academy before the cert type was renamed. Idempotent: skips users
+      // who already have a "platform_mastery" record.
+      const certBridgeResult = await database.execute(sql`
+        INSERT INTO user_certifications (user_id, certification_type, status, completed_at, certificate_number, certificate_name, is_certification_track, created_at, updated_at)
+        SELECT
+          uc.user_id,
+          'platform_mastery',
+          uc.status,
+          uc.completed_at,
+          CONCAT('cert-type-bridge-v1:', COALESCE(uc.certificate_number, '')),
+          uc.certificate_name,
+          uc.is_certification_track,
+          NOW(),
+          NOW()
+        FROM user_certifications uc
+        WHERE uc.certification_type = 'platform'
+          AND uc.status = 'completed'
+          AND uc.is_certification_track = true
+          AND uc.completed_at < '2026-07-15T00:00:00Z'
+          AND NOT EXISTS (
+            SELECT 1 FROM user_certifications pm
+            WHERE pm.user_id = uc.user_id
+              AND pm.certification_type = 'platform_mastery'
+          )
+      `);
+      const certBridgeCount = (certBridgeResult as any).rowCount ?? (certBridgeResult as any).count ?? '?';
+      console.log(`✅ [INIT] Cert-type bridge: ${certBridgeCount} "platform" → "platform_mastery" record(s) created`);
+    })(),
+    timeout30s,
+  ]);
+}
+
 // Initialize application in background AFTER server is listening
 async function initializeApp() {
   const startTime = Date.now();
@@ -184,6 +252,12 @@ async function initializeApp() {
     // Safe column migrations — wrapped in a hard 6 s timeout so a locked table
     // never stalls the full boot sequence. Columns were added in earlier deploys;
     // this is a no-op on a live DB and can safely be skipped if slow.
+    //
+    // schemaMigPromise is declared outside the try/catch so the background
+    // grandfather migration task can await it — ensuring data migrations never
+    // run before the required columns exist, even when boot times out first.
+    let schemaMigPromise: Promise<void> = Promise.resolve();
+
     console.log("📋 [INIT] Running safe column migrations...");
     try {
       const migTimeout = (ms: number) =>
@@ -197,8 +271,9 @@ async function initializeApp() {
       const { db: database } = await import("./db");
       const { sql } = await import("drizzle-orm");
 
-      await Promise.race([
-        (async () => {
+      // Assign the IIFE to a named promise before racing so the background
+      // grandfather task can await its natural completion independently.
+      schemaMigPromise = (async () => {
           await database.execute(
             sql`ALTER TABLE macro_logs ADD COLUMN IF NOT EXISTS starchy_carbs numeric DEFAULT '0' NOT NULL`,
           );
@@ -363,57 +438,6 @@ async function initializeApp() {
               user_agent text
             )
           `);
-          // Grandfather existing certified professionals — Phase 2 gate protection
-          // Sets procare_training_completed=true for professionals who completed Phase 1
-          // BEFORE Phase 2 training existed (cutoff: 2026-07-01).
-          // Idempotent: only touches rows still at the default false.
-          // The completed_at cutoff prevents this from auto-whitelisting future professionals
-          // who complete Phase 1 after Phase 2 launches — they must complete Phase 2 themselves.
-          const grandfatherResult = await database.execute(sql`
-            UPDATE users
-            SET procare_training_completed = true
-            WHERE
-              professional_role IS NOT NULL
-              AND procare_training_completed = false
-              AND id IN (
-                SELECT user_id FROM user_certifications
-                WHERE certification_type IN ('platform', 'affiliate_coaching')
-                  AND completed_at IS NOT NULL
-                  AND completed_at < '2026-07-01T00:00:00Z'
-              )
-          `);
-          const grandfatheredCount = (grandfatherResult as any).rowCount ?? (grandfatherResult as any).count ?? '?';
-          console.log(`✅ [INIT] Grandfather migration: ${grandfatheredCount} professional(s) grandfathered (procare_training_completed=true)`);
-          // Cert-type bridge migration — Platform Mastery rename
-          // Copies completed "platform" cert records to "platform_mastery" for users who
-          // completed the Academy before the cert type was renamed. Idempotent: skips users
-          // who already have a "platform_mastery" record. requirePhase1Cert accepts both types,
-          // so this migration is additive only — no records are deleted or modified.
-          const certBridgeResult = await database.execute(sql`
-            INSERT INTO user_certifications (user_id, certification_type, status, completed_at, certificate_number, certificate_name, is_certification_track, created_at, updated_at)
-            SELECT
-              uc.user_id,
-              'platform_mastery',
-              uc.status,
-              uc.completed_at,
-              CONCAT('cert-type-bridge-v1:', COALESCE(uc.certificate_number, '')),
-              uc.certificate_name,
-              uc.is_certification_track,
-              NOW(),
-              NOW()
-            FROM user_certifications uc
-            WHERE uc.certification_type = 'platform'
-              AND uc.status = 'completed'
-              AND uc.is_certification_track = true
-              AND uc.completed_at < '2026-07-15T00:00:00Z'
-              AND NOT EXISTS (
-                SELECT 1 FROM user_certifications pm
-                WHERE pm.user_id = uc.user_id
-                  AND pm.certification_type = 'platform_mastery'
-              )
-          `);
-          const certBridgeCount = (certBridgeResult as any).rowCount ?? (certBridgeResult as any).count ?? '?';
-          console.log(`✅ [INIT] Cert-type bridge: ${certBridgeCount} "platform" → "platform_mastery" record(s) created`);
           // Adaptive Coaching Engine (ACE) — Sprint 1+2
           const { runAceMigration } = await import("./services/ace/aceBootMigration");
           await runAceMigration();
@@ -594,9 +618,12 @@ async function initializeApp() {
               WHERE status = 'active'
           `);
           console.log("✅ [INIT] business_members active uniqueness index ensured");
-        })(),
-        migTimeout(6000),
-      ]);
+      })();
+
+      // Race the schema migration promise against a 6-second boot timeout.
+      // The timeout only unblocks the boot path — schemaMigPromise keeps running
+      // so the background grandfather task can await its natural completion.
+      await Promise.race([schemaMigPromise, migTimeout(6000)]);
 
       console.log("✅ [INIT] Column migrations complete");
     } catch (migErr) {
@@ -604,10 +631,21 @@ async function initializeApp() {
         "⚠️ [INIT] Column migration skipped (timeout or error):",
         (migErr as Error).message,
       );
-      console.warn(
-        "⚠️ [INIT] GRANDFATHER MIGRATION MAY NOT HAVE COMPLETED — professionals who certified before Phase 2 may be incorrectly blocked if PHASE2_GATE_ENABLED is flipped on. Verify procare_training_completed rows before enabling the gate.",
-      );
     }
+
+    // Run data migrations (grandfather + cert-bridge) in the background.
+    // Awaiting schemaMigPromise first guarantees required columns exist before
+    // we attempt the UPDATE/INSERT, even when boot timed out early.
+    // On a live prod DB, columns already exist so schema errors are treated as
+    // non-blocking (the .catch(() => {}) swallows them before proceeding).
+    setImmediate(() => {
+      schemaMigPromise
+        .catch(() => {}) // schema error already logged above; columns exist on live DB
+        .then(() => runGrandfatherMigrations())
+        .catch((err: Error) => {
+          console.warn("⚠️ [INIT] Background grandfather migration failed:", err?.message);
+        });
+    });
 
     // Import middleware
     console.log("📋 [INIT] Loading middleware...");
