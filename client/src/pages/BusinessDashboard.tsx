@@ -1374,7 +1374,7 @@ export default function BusinessDashboard() {
                     >
                       <ChevronRight className="w-3.5 h-3.5" />
                     </button>
-                    {m.role !== "owner" && (
+                    {m.role !== "owner" && !(viewMode === "admin" && m.role === "admin") && (
                       <button
                         className={`p-1.5 rounded-lg transition-colors disabled:opacity-40 ${m.planLost ? "bg-yellow-900/40 text-yellow-400" : "bg-red-900/30 text-red-400"}`}
                         onClick={() => handleRemoveMember(m.id)}

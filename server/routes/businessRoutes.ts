@@ -545,7 +545,7 @@ router.delete("/members/:memberId", requireAuth, requireProAccess, async (req, r
     if (!resolved) {
       return res.status(403).json({ error: "No business account found." });
     }
-    const { business } = resolved;
+    const { business, callerRole } = resolved;
 
     const [member] = await db
       .select()
@@ -559,6 +559,12 @@ router.delete("/members/:memberId", requireAuth, requireProAccess, async (req, r
 
     if (member.role === "owner") {
       return res.status(400).json({ error: "Cannot remove the business owner." });
+    }
+
+    // Admins may not remove other admins (or themselves — their own role is also admin).
+    // Only the organization owner can remove or demote an admin member.
+    if (callerRole === "admin" && member.role === "admin") {
+      return res.status(403).json({ error: "Only the organization owner can remove an admin member." });
     }
 
     await db
