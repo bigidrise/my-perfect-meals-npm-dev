@@ -1457,6 +1457,20 @@ async function start() {
     console.log(`🚀 Server running on 0.0.0.0:${PORT} (startup: ${bootTime}ms)`);
   });
 
+  // Dev-only: verify image upload pipeline from within server process context.
+  // Runs 3 s after boot so the sidecar is fully ready. NOT an HTTP endpoint.
+  // See server/services/storageStartupDiagnostic.ts — remove after storage is proven.
+  if (process.env.NODE_ENV !== "production") {
+    setTimeout(async () => {
+      try {
+        const { runStorageStartupDiagnostic } = await import("./services/storageStartupDiagnostic");
+        await runStorageStartupDiagnostic();
+      } catch (err: any) {
+        console.error("[StorageDiagnostic] Failed to run:", err.message);
+      }
+    }, 3000);
+  }
+
   // Legal pages — served as standalone HTML BEFORE Vite/SPA middleware so they are
   // never caught by the React router. Required by Apple App Store and app stores.
   app.use(legalPagesRouter);
