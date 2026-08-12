@@ -73,6 +73,17 @@ export default function MealCardActions({
               : { name: (ing as any).name || (ing as any).item || "", amount: String((ing as any).amount ?? (ing as any).quantity ?? ""), unit: (ing as any).unit || "" }
           );
 
+    // Strip base64 data URLs before storing — they can be 500KB+ and blow
+    // the localStorage quota. Chef's Kitchen only needs the URL for display,
+    // not for cooking guidance, so an S3/CDN URL is kept, data: URIs are dropped.
+    const safeImageUrl = (() => {
+      const url = meal.imageUrl;
+      if (!url) return null;
+      if (url.startsWith("data:")) return null;         // base64 — too large
+      if (url.includes("oaidalleapiprodscus")) return null; // expired DALL·E URL
+      return url;
+    })();
+
     const mealData = {
       id: meal.id || crypto.randomUUID(),
       name: meal.name,
@@ -80,7 +91,7 @@ export default function MealCardActions({
       mealType: meal.mealType,
       ingredients: normalizedIngredients,
       instructions: meal.instructions,
-      imageUrl: meal.imageUrl,
+      imageUrl: safeImageUrl,
       calories: meal.nutrition?.calories || meal.calories,
       protein: meal.nutrition?.protein || meal.protein,
       carbs: meal.nutrition?.carbs || meal.carbs,
@@ -90,8 +101,18 @@ export default function MealCardActions({
       medicalBadges: meal.medicalBadges || [],
     };
 
-    // Store meal in Chef's Kitchen format + flag to enter prepare mode
-    localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(mealData));
+    // Store meal in Chef's Kitchen format + flag to enter prepare mode.
+    // Wrapped in try/catch — if storage is still full for other reasons,
+    // we degrade gracefully instead of crashing the app.
+    try {
+      localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(mealData));
+    } catch {
+      // Storage full — clear stale Chef keys and retry once
+      localStorage.removeItem("mpm_chefs_kitchen_meal");
+      localStorage.removeItem("mpm_chefs_kitchen_external_prepare");
+      localStorage.removeItem("mpm_chefs_kitchen_origin");
+      try { localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(mealData)); } catch { /* give up */ }
+    }
     localStorage.setItem("mpm_chefs_kitchen_external_prepare", "true");
     localStorage.setItem("mpm_chefs_kitchen_origin", window.location.pathname);
 

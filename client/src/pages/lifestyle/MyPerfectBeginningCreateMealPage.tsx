@@ -1191,7 +1191,8 @@ function RecipeCard({
                     instructions: recipe.instructions.join("\n"),
                     imageUrl: imageUrl ?? undefined,
                   };
-                  localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(mealData));
+                  const safeMealData = { ...mealData, imageUrl: (() => { const u = imageUrl; return (!u || u.startsWith("data:") || u.includes("oaidalleapiprodscus")) ? null : u; })() };
+                  try { localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(safeMealData)); } catch { localStorage.removeItem("mpm_chefs_kitchen_meal"); try { localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(safeMealData)); } catch { /* give up */ } }
                   localStorage.setItem("mpm_chefs_kitchen_external_prepare", "true");
                   localStorage.setItem("mpm_chefs_kitchen_origin", window.location.pathname);
                   setLocation("/lifestyle/chefs-kitchen");
