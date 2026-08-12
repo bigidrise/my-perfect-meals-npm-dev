@@ -448,7 +448,13 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
       .where(eq(users.id, userId))
       .limit(1);
 
-    const inviteLink = `${getAppUrl()}/business/join/${token}`;
+    // Team-member invites carry the token through the signup URL so the auth
+    // page knows immediately to treat this signup as a business professional
+    // and skip consumer nutrition onboarding.  Client invites keep the
+    // dedicated join page since they go through a different acceptance flow.
+    const inviteLink = isClient
+      ? `${getAppUrl()}/business/join/${token}`
+      : `${getAppUrl()}/auth?mode=signup&invite=${token}`;
 
     if (shouldSendEmail) {
       await sendBusinessInviteEmail({
@@ -680,7 +686,10 @@ router.post("/invitations/:token/resend", requireAuth, requireProOrOrgAdmin, asy
       .where(eq(users.id, userId))
       .limit(1);
 
-    const inviteLink = `${getAppUrl()}/business/join/${newToken}`;
+    const isClientResend = (invite.invitationType ?? "team_member") === "client";
+    const inviteLink = isClientResend
+      ? `${getAppUrl()}/business/join/${newToken}`
+      : `${getAppUrl()}/auth?mode=signup&invite=${newToken}`;
 
     await sendBusinessInviteEmail({
       to: invite.email,

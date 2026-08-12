@@ -15,13 +15,16 @@ export default function Auth() {
   const isProCare = useMemo(() => new URLSearchParams(search).get("procare") === "true", [search]);
   const urlMode = useMemo(() => new URLSearchParams(search).get("mode"), [search]);
   const urlRole = useMemo(() => new URLSearchParams(search).get("role") as "trainer" | "physician" | "business" | null, [search]);
+  // Invitation token carried from a team-member invite email.  When present this
+  // signup is always business-intent; the token is auto-accepted after auth.
+  const urlInvite = useMemo(() => new URLSearchParams(search).get("invite"), [search]);
   const isIdleTimeout = useMemo(() => new URLSearchParams(search).get("reason") === "idle_timeout", [search]);
   const signupSource = useMemo(() => {
     const p = new URLSearchParams(search);
     return p.get("source") || p.get("ref") || null;
   }, [search]);
   const [mode, setMode] = useState<"signup" | "login">(
-    isProCare || urlRole ? "signup" : urlMode === "signup" ? "signup" : "login"
+    isProCare || urlRole || urlInvite ? "signup" : urlMode === "signup" ? "signup" : "login"
   );
   const [email, setEmail] = useState("");
   const [pwd, setPwd] = useState("");
@@ -31,10 +34,42 @@ export default function Auth() {
   const [showWorkspaceChooser, setShowWorkspaceChooser] = useState(false);
   const [showMfaChallenge, setShowMfaChallenge] = useState(false);
 
+  async function acceptInviteToken(token: string): Promise<{ ok: boolean; error?: string }> {
+    try {
+      const res = await fetch(`/api/business/invite/${token}/accept`, {
+        method: "POST",
+        headers: { ...getAuthHeaders() },
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (!res.ok) return { ok: false, error: data.error };
+      return { ok: true };
+    } catch {
+      return { ok: false, error: "Could not auto-accept invitation." };
+    }
+  }
+
   async function proceedAfterLogin(u: User) {
     setUser(u);
     localStorage.setItem("isAuthenticated", "true");
     sessionStorage.removeItem("mpm.welcomeGateDone");
+
+    // If an invite token is present, auto-accept it now that the user is
+    // authenticated.  On success we always route to the business dashboard,
+    // regardless of whether this was a fresh signup or an existing-user login.
+    if (urlInvite) {
+      const result = await acceptInviteToken(urlInvite);
+      if (!result.ok) {
+        // Show the error and stay on the auth page so the user can resolve it
+        // (e.g. wrong email address — they need to log in with the right account).
+        setErr(result.error || "Could not accept invitation. Please try again.");
+        return;
+      }
+      // Refresh session so the business membership is visible immediately
+      try { await refreshUser(); } catch { /* non-fatal */ }
+      setLocation("/business-dashboard");
+      return;
+    }
 
     const isProfessionalFromLogin = u?.isProCare && (u?.professionalRole === "trainer" || u?.professionalRole === "physician");
     const fullUser = await refreshUser();
@@ -102,8 +137,11 @@ export default function Auth() {
       let u: User;
       if (mode === "signup") {
         let procareData = isProCare ? getProCareSignupData() : null;
-        const isBusinessSignup = urlRole === "business";
-        if (!procareData && urlRole && !isBusinessSignup) {
+        // Treat invite-link signups as business signups so the account is
+        // created with professionalRole="business" from the start and the
+        // invite auto-accept succeeds immediately after (email must match).
+        const isBusinessSignup = urlRole === "business" || !!urlInvite;
+        if (!procareData && urlRole && urlRole !== "business") {
           procareData = {
             professionalRole: urlRole,
             professionalCategory: "certified",
@@ -194,7 +232,16 @@ export default function Auth() {
           </div>
         )}
 
-        {(isProCare || urlRole) && mode === "signup" && (
+        {urlInvite && (
+          <div className="relative z-10 mb-4 flex justify-center">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-900/40 rounded-full border border-blue-400/30">
+              <Stethoscope className="w-4 h-4 text-blue-400" />
+              <span className="text-xs font-semibold text-blue-300">Team Invitation</span>
+            </div>
+          </div>
+        )}
+
+        {!urlInvite && (isProCare || urlRole) && mode === "signup" && (
           <div className="relative z-10 mb-4 flex justify-center">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-900/40 rounded-full border border-blue-400/30">
               <Stethoscope className="w-4 h-4 text-blue-400" />
@@ -206,7 +253,9 @@ export default function Auth() {
         )}
 
         <h1 className="relative z-10 text-2xl font-bold mb-1">
-          {mode === "signup"
+          {urlInvite
+            ? mode === "signup" ? "Join Your Team" : "Sign In to Accept Invite"
+            : mode === "signup"
             ? urlRole === "trainer" ? "Create Trainer Account"
             : urlRole === "physician" ? "Create Physician Account"
             : urlRole === "business" ? "Create Business Account"
@@ -215,7 +264,11 @@ export default function Auth() {
             : "Welcome Back"}
         </h1>
         <p className="relative z-10 text-sm text-white/85 mb-6">
-          {mode === "signup" && (isProCare || urlRole)
+          {urlInvite
+            ? mode === "signup"
+              ? "Create an account with the email address that received the invite to join your team."
+              : "Sign in with the email address that received the invite."
+            : mode === "signup" && (isProCare || urlRole)
             ? "Enter your email and a password to get started."
             : mode === "signup"
             ? "Enter your email and a password to get started."
