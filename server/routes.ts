@@ -7,7 +7,7 @@ import { sendEmail } from "./emailService";
 import { familyRecipesRouter } from "./routes/familyRecipes";
 import { uploadsRouter } from "./routes/uploads";
 import { storage } from "./storage";
-import { ObjectStorageService } from "./objectStorage";
+import { ObjectStorageService, objectStorageClient } from "./objectStorage";
 import { processMealImageForSave } from "./services/imageLifecycle";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { registerCreatorRoutes } from "./routes/creator";
@@ -394,6 +394,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const filePath = (req.params as Record<string, string>)[0] || "";
     try {
       const objectStorageService = new ObjectStorageService();
+
+      // New-format URLs embed the bucket ID directly in the path:
+      //   replit-objstore-<uuid>/meal-images/<filename>
+      // Serve these directly without going through PUBLIC_OBJECT_SEARCH_PATHS.
+      if (filePath.startsWith("replit-objstore-")) {
+        const slashIdx = filePath.indexOf("/");
+        if (slashIdx !== -1) {
+          const bucketName = filePath.slice(0, slashIdx);
+          const objectName = filePath.slice(slashIdx + 1);
+          const file = objectStorageClient.bucket(bucketName).file(objectName);
+          const [exists] = await file.exists();
+          if (!exists) {
+            return res.status(404).json({ error: "File not found" });
+          }
+          return objectStorageService.downloadObject(file, res);
+        }
+      }
+
+      // Legacy-format URLs: search across PUBLIC_OBJECT_SEARCH_PATHS buckets.
       const file = await objectStorageService.searchPublicObject(filePath);
       if (!file) {
         return res.status(404).json({ error: "File not found" });
