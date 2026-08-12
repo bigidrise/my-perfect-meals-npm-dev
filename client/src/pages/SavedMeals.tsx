@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
-import { Heart, ArrowLeft, Loader2 } from "lucide-react";
-import { useSavedMealsList, useDeleteSavedMeal } from "@/hooks/useSavedMeals";
+import { Heart, ArrowLeft, Loader2, ChevronDown } from "lucide-react";
+import { useSavedMealsFeed, useDeleteSavedMeal } from "@/hooks/useSavedMeals";
 import { useToast } from "@/hooks/use-toast";
 import { setQuickView } from "@/lib/macrosQuickView";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
@@ -12,9 +12,13 @@ import SavedMealRow from "@/components/SavedMealRow";
 export default function SavedMeals() {
   const [, setLocation] = useLocation();
   const { t } = useTranslation();
-  const { data: meals, isLoading } = useSavedMealsList();
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useSavedMealsFeed(20);
   const deleteMeal = useDeleteSavedMeal();
   const { toast } = useToast();
+
+  // Flatten pages into a single list
+  const allMeals = data?.pages.flatMap(p => p.meals) ?? [];
+  const totalCount = data?.pages[0]?.total ?? 0;
 
   // ── Source label map (i18n) ───────────────────────────────────────────────
   const SOURCE_LABELS: Record<string, string> = {
@@ -89,13 +93,13 @@ export default function SavedMeals() {
 
   // Expand and scroll to the deep-linked meal once the list has loaded
   useEffect(() => {
-    if (!deepLinkMealId || !meals?.length) return;
+    if (!deepLinkMealId || !allMeals.length) return;
     setTimeout(() => {
       document
         .getElementById(`meal-card-${deepLinkMealId}`)
         ?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 120);
-  }, [deepLinkMealId, meals]);
+  }, [deepLinkMealId, allMeals.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleAddToPlanSuccess = returnPath
     ? () => setLocation(decodeURIComponent(returnPath))
@@ -134,10 +138,13 @@ export default function SavedMeals() {
     setLocation(buildBiometricsUrl({ section: "macros", from: "saved-meals", highlight: true }));
   };
 
-  const allMeals     = meals ?? [];
   const diabeticMeals = allMeals.filter((r: any) => r.savedFromDiabeticBuilder === true);
   const otherMeals    = allMeals.filter((r: any) => r.savedFromDiabeticBuilder !== true);
   const hasDiabetic   = diabeticMeals.length > 0;
+
+  const handleLoadMore = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) fetchNextPage();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950 text-white pb-24 flex flex-col">
@@ -157,6 +164,9 @@ export default function SavedMeals() {
               <Heart className="h-6 w-6 text-red-500" fill="currentColor" />
               {t("savedMeals.pageTitle")}
             </h1>
+            {!isLoading && totalCount > 0 && (
+              <span className="text-xs text-white/40">{allMeals.length} / {totalCount}</span>
+            )}
           </div>
         </div>
       </MobileHeaderGuard>
@@ -246,6 +256,25 @@ export default function SavedMeals() {
                     />
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Load more */}
+            {hasNextPage && (
+              <div className="flex justify-center pt-2 pb-4">
+                <button
+                  onClick={handleLoadMore}
+                  disabled={isFetchingNextPage}
+                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 active:scale-[0.98] text-sm text-white/70 disabled:opacity-50 transition-all"
+                >
+                  {isFetchingNextPage
+                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                    : <ChevronDown className="h-4 w-4" />
+                  }
+                  {isFetchingNextPage
+                    ? "Loading…"
+                    : `Load more (${totalCount - allMeals.length} remaining)`}
+                </button>
               </div>
             )}
           </div>

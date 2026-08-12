@@ -1267,6 +1267,16 @@ setTimeout(async () => {
   }
 }, 4600);
 
+// Media Assets boot migration — canonical media_assets table + saved_meals.media_asset_id FK
+setTimeout(async () => {
+  try {
+    const { runMediaAssetsMigration } = await import("./db/migrations/runMediaAssetsMigration");
+    await runMediaAssetsMigration();
+  } catch (err: any) {
+    console.error("❌ Media Assets boot migration failed:", err.message);
+  }
+}, 4800);
+
 // Backfill: purge stale temp URLs from meal_image_cache
 // Any non-S3 URL is expired or will expire — delete so next request regenerates clean
 setTimeout(async () => {
