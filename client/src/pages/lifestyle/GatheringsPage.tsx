@@ -660,6 +660,13 @@ export default function UltimateExperiencesPage() {
               <span className="text-sm font-medium">Back</span>
             </button>
           )}
+
+          {/* Hub Intro — matches Pairings Hub pattern */}
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold text-white mb-2">Gather & Feast</h2>
+            <p className="text-sm text-white/70">AI-planned multi-course meals for holidays, camping, tailgates, and every occasion.</p>
+          </div>
+
           <div className="w-full max-w-4xl mx-auto">
             <div>
               <Card className="shadow-2xl bg-black/10 backdrop-blur-lg border border-orange-400/20 w-full max-w-xl mx-auto">

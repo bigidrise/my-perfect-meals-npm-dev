@@ -286,32 +286,10 @@ export default function MyPerfectBeginningPage() {
             <span className="text-sm font-medium">Back</span>
           </button>
         )}
-        {/* Hero banner */}
-        <div className="relative rounded-2xl overflow-hidden mb-5 border border-emerald-500/20">
-          <div className="absolute inset-0 bg-gradient-to-br from-emerald-950/70 via-teal-950/50 to-black" />
-          <div className="absolute inset-0 opacity-15 pointer-events-none">
-            <svg viewBox="0 0 400 140" className="w-full h-full" preserveAspectRatio="xMidYMid slice">
-              <circle cx="340" cy="30" r="55" fill="rgba(52,211,153,0.4)" />
-              <circle cx="380" cy="110" r="35" fill="rgba(20,184,166,0.3)" />
-              <circle cx="60" cy="120" r="40" fill="rgba(52,211,153,0.2)" />
-              <circle cx="20" cy="30" r="28" fill="rgba(20,184,166,0.25)" />
-            </svg>
-          </div>
-          <div className="relative px-5 py-6">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/20 border border-emerald-400/30 rounded-full mb-3">
-              <Sprout className="h-3 w-3 text-emerald-400" />
-              <span className="text-emerald-200 text-[10px] font-semibold tracking-wide">
-                Child Nutrition Intelligence™
-              </span>
-            </div>
-            <h2 className="text-xl font-bold text-white mb-1.5">
-              Healthy beginnings, one meal at a time.
-            </h2>
-            <p className="text-sm text-white leading-relaxed">
-              Nutrition built around your child's stage, tastes, and needs —
-              without stealing childhood from the child.
-            </p>
-          </div>
+        {/* Hub Intro — matches Pairings Hub pattern */}
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-bold text-white mb-2">Child Nutrition</h2>
+          <p className="text-sm text-white/70">Age-appropriate meal planning and recipes for infants, toddlers, and growing children.</p>
         </div>
 
         {/* ── Active child display + switcher ── */}

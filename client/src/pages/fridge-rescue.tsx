@@ -802,6 +802,12 @@ const FridgeRescuePage = () => {
               <span className="text-sm font-medium">Lifestyle Hub</span>
             </button>
           )}
+          {/* Hub Intro — matches Pairings Hub pattern */}
+          <div className="text-center mb-6 max-w-2xl mx-auto">
+            <h2 className="text-2xl font-bold text-white mb-2">Cook What You Have</h2>
+            <p className="text-sm text-white/70">Turn the ingredients already in your kitchen into perfectly matched meals.</p>
+          </div>
+
           {/* Create with Chef Entry Point — Studio hidden */}
           <div className="relative mb-4 max-w-2xl mx-auto hidden">
             <div

@@ -671,6 +671,13 @@ export default function CreateDishPage() {
               <span className="text-sm font-medium">Back</span>
             </button>
           )}
+
+          {/* Hub Intro — matches Pairings Hub pattern */}
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold text-white mb-2">Custom Cooking</h2>
+            <p className="text-sm text-white/70">Describe what you want to eat and AI builds the perfect recipe for your health profile.</p>
+          </div>
+
           {/* Kitchen context banner */}
           {activeKitchenSlug && (
             <div className="max-w-xl mx-auto mb-3 flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-orange-500/10 border border-orange-500/20">

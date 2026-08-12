@@ -43,15 +43,10 @@ export default function MyPerfectBeginning() {
             <span className="text-sm font-medium">Back</span>
           </button>
         )}
-        {/* Hero */}
+        {/* Hub Intro — matches Pairings Hub pattern */}
         <div className="text-center mb-10">
-          <div className="w-16 h-16 mx-auto bg-green-500/20 rounded-full flex items-center justify-center mb-4 border border-green-400/30">
-            <Baby className="w-8 h-8 text-green-400" />
-          </div>
-          {!isDesktop && <h2 className="text-3xl font-bold mb-3">My Perfect Beginning</h2>}
-          <p className="text-white/70 text-base max-w-lg mx-auto leading-relaxed">
-            Age-appropriate nutrition guidance for infants, toddlers, and children — personalized to your child's stage and needs.
-          </p>
+          <h2 className="text-2xl font-bold text-white mb-2">Child Nutrition</h2>
+          <p className="text-sm text-white/70">Age-appropriate meal planning and recipes for infants, toddlers, and growing children.</p>
         </div>
 
         {/* Feature Grid */}

@@ -60,20 +60,11 @@ export default function PetsHub() {
           </button>
         )}
 
-        <h1 className="text-2xl font-bold text-white mb-4">My Perfect Pets</h1>
-
-        {/* Companion Nutrition Intelligence banner */}
-        <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-3 mb-5">
-          <p className="text-white font-semibold text-sm">Companion Nutrition Intelligence</p>
-          <p className="text-white/80 text-xs mt-1 leading-relaxed">
-            The same adaptive protocol engine that powers your meals — now for your pets.
-          </p>
+        {/* Hub Intro — matches Pairings Hub pattern */}
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-bold text-white mb-2">Companion Nutrition</h2>
+          <p className="text-sm text-white/70">AI-powered meal planning, recipes, and ingredient safety for dogs and cats.</p>
         </div>
-
-        {/* Choose Your Pet */}
-        <p className="text-white/70 text-xs font-semibold uppercase tracking-widest mb-3 px-1">
-          Choose Your Pet
-        </p>
 
         <div className="flex flex-col gap-3">
           {pets.map((pet, i) => (

@@ -444,6 +444,12 @@ export default function MyPerfectPregnancyPage() {
           </button>
         )}
 
+        {/* Hub Intro — matches Pairings Hub pattern */}
+        <div className="text-center mb-2">
+          <h2 className="text-2xl font-bold text-white mb-2">Pregnancy Nutrition</h2>
+          <p className="text-sm text-white/70">Trimester-aware meal planning, food safety, and your personal pregnancy coach.</p>
+        </div>
+
         {/* Hero card */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}

@@ -112,6 +112,12 @@ export default function CravingCreatorLanding() {
               <span className="text-sm font-medium">Back</span>
             </button>
           )}
+          {/* Hub Intro — matches Pairings Hub pattern */}
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold text-white mb-2">Food Creativity</h2>
+            <p className="text-sm text-white/70">AI-powered meal, dessert, and sushi creation built around what you want right now.</p>
+          </div>
+
           {/* Craving Features - Vertical Stack */}
           <div className="flex flex-col gap-3">
             {cravingFeatures.map((feature) => {

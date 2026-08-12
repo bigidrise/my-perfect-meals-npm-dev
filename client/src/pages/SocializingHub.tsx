@@ -114,6 +114,12 @@ export default function SocializingHub() {
               <span className="text-sm font-medium">Back</span>
             </button>
           )}
+          {/* Hub Intro — matches Pairings Hub pattern */}
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold text-white mb-2">Smart Dining</h2>
+            <p className="text-sm text-white/70">Personalized food guidance for restaurants, travel, gatherings, and life away from home.</p>
+          </div>
+
           {/* Social Features - Vertical Stack */}
           <div className="flex flex-col gap-3">
             {socialFeatures.map((feature) => {
