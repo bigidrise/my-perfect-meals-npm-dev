@@ -10,6 +10,14 @@ import { moderateContent, BLOCKED_MESSAGE } from "../services/tabletModerationSe
 import { notifyClientOfMessage, notifyClientOfNote } from "../services/tabletNotificationService";
 import { logClientActivity } from "../services/activityLog";
 import { sql } from "drizzle-orm";
+import { getOrSet, invalidatePrefix } from "../services/queryCache";
+
+const PRO_UNREAD_TTL_MS = 15_000;
+
+/** Invalidate the pro unread-summary cache for a given pro user. */
+export function invalidateProUnreadCache(proUserId: string): void {
+  invalidatePrefix(`pro-unread:${proUserId}`);
+}
 import multer from "multer";
 import {
   uploadVoiceToS3,
@@ -54,41 +62,44 @@ router.get("/unread-summary", async (req: Request, res: Response) => {
     return;
   }
 
-  const studioId = await getProStudioId(authUser.id);
-  if (!studioId) {
-    res.json({ clients: [], totalUnread: 0 });
-    return;
-  }
+  const cacheKey = `pro-unread:${authUser.id}`;
+  const payload = await getOrSet(cacheKey, PRO_UNREAD_TTL_MS, async () => {
+    const studioId = await getProStudioId(authUser.id);
+    if (!studioId) {
+      return { clients: [], totalUnread: 0 };
+    }
 
-  const result = await db.execute(sql`
-    SELECT
-      cn.client_user_id AS "clientUserId",
-      COUNT(*) FILTER (
-        WHERE cn.created_at > COALESCE(pmr.last_read_at, '1970-01-01'::timestamptz)
-      )::int AS "unreadCount",
-      MAX(cn.created_at) AS "lastMessageAt",
-      (array_agg(cn.body ORDER BY cn.created_at DESC))[1] AS "lastMessageBody"
-    FROM client_notes cn
-    LEFT JOIN pro_message_reads pmr
-      ON pmr.studio_id = cn.studio_id
-      AND pmr.client_user_id = cn.client_user_id
-    WHERE cn.studio_id = ${studioId}
-      AND cn.entry_type = 'message'
-      AND cn.sender = 'client'
-    GROUP BY cn.client_user_id
-  `);
+    const result = await db.execute(sql`
+      SELECT
+        cn.client_user_id AS "clientUserId",
+        COUNT(*) FILTER (
+          WHERE cn.created_at > COALESCE(pmr.last_read_at, '1970-01-01'::timestamptz)
+        )::int AS "unreadCount",
+        MAX(cn.created_at) AS "lastMessageAt",
+        (array_agg(cn.body ORDER BY cn.created_at DESC))[1] AS "lastMessageBody"
+      FROM client_notes cn
+      LEFT JOIN pro_message_reads pmr
+        ON pmr.studio_id = cn.studio_id
+        AND pmr.client_user_id = cn.client_user_id
+      WHERE cn.studio_id = ${studioId}
+        AND cn.entry_type = 'message'
+        AND cn.sender = 'client'
+      GROUP BY cn.client_user_id
+    `);
 
-  const clients = (result.rows as any[]).map((r: any) => ({
-    clientUserId: r.clientUserId,
-    unreadCount: Number(r.unreadCount) || 0,
-    lastMessageAt: r.lastMessageAt,
-    lastMessageBody: r.lastMessageBody,
-  }));
+    const clients = (result.rows as any[]).map((r: any) => ({
+      clientUserId: r.clientUserId,
+      unreadCount: Number(r.unreadCount) || 0,
+      lastMessageAt: r.lastMessageAt,
+      lastMessageBody: r.lastMessageBody,
+    }));
 
-  const totalUnread = clients.reduce((sum, c) => sum + c.unreadCount, 0);
+    const totalUnread = clients.reduce((sum, c) => sum + c.unreadCount, 0);
+    return { clients, totalUnread };
+  });
 
   res.set("Cache-Control", "no-store");
-  res.json({ clients, totalUnread });
+  res.json(payload);
 });
 
 router.get("/all-messages", async (req: Request, res: Response) => {
