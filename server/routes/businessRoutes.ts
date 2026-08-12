@@ -1296,8 +1296,8 @@ router.post("/create-org", requireAuth, async (req, res) => {
       throw conflictErr;
     }
 
-    console.log(`✅ [business/create-org] org created | id=${newBiz.id} | owner=${userId} | name="${orgName}"`);
-    return res.json({ businessId: newBiz.id, created: true });
+    console.log(`✅ [business/create-org] org created | id=${newBiz!.id} | owner=${userId} | name="${orgName}"`);
+    return res.json({ businessId: newBiz!.id, created: true });
   } catch (err: any) {
     console.error("[business/create-org] error:", err);
     return res.status(500).json({ error: err?.message || "Could not create organization." });

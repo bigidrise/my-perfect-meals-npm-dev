@@ -186,8 +186,10 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
     return res.status(401).json({ error: "User not authenticated" });
   }
 
-  // Require an admin-provisioned business record before allowing checkout.
-  // Prevents self-service org creation; organizations must be approved first.
+  // Require an existing business record (created via the self-service /api/business/create-org
+  // flow or by an admin) before allowing checkout. This ensures the org row exists to associate
+  // with the Stripe subscription. A pending_billing status is acceptable — the webhook will
+  // activate it on payment confirmation.
   try {
     const { db: checkDb } = await import("../db");
     const { businesses: bizTable } = await import("../db/schema/business");
@@ -199,8 +201,17 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
       .limit(1);
     if (!existingBiz) {
       return res.status(403).json({
-        code: "ORGANIZATION_APPROVAL_REQUIRED",
-        error: "Organization provisioning is required before purchasing seats. Please contact My Perfect Meals to set up your organization.",
+        code: "ORGANIZATION_REQUIRED",
+        error: "Please complete organization setup before purchasing seats.",
+      });
+    }
+    // Block active organizations from creating a second Stripe checkout — doing so would
+    // create a duplicate subscription and the webhook would overwrite the active billing state.
+    // Active owners must use the Stripe customer portal to change seats or billing details.
+    if (existingBiz.status === "active") {
+      return res.status(403).json({
+        code: "ORGANIZATION_ALREADY_ACTIVE",
+        error: "Your organization is already active. To change your seat count or billing details, use the customer portal.",
       });
     }
   } catch (gateErr) {

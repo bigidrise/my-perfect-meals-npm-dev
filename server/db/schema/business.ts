@@ -27,6 +27,19 @@ export const businesses = pgTable("businesses", {
   independentClientPolicy: text("independent_client_policy")
     .$type<"org_only" | "allowed" | "allowed_with_disclosure">()
     .default("allowed_with_disclosure"),
+  /**
+   * Stable provider idempotency key (UUID) written once before the first send attempt and never
+   * cleared. It is passed to Resend as the `Idempotency-Key` header on every delivery attempt so
+   * Resend deduplicates concurrent or retried requests automatically. The key persists across
+   * Stripe replays so the same UUID is always used for a given business.
+   */
+  welcomeEmailKey: text("welcome_email_key"),
+  /**
+   * Set only after the welcome email has been confirmed delivered (sendBusinessWelcomeEmail returns
+   * true). Checked at the start of the email step so Stripe replays skip re-delivery entirely once
+   * the email is confirmed sent. Never used as a sending lease — that role belongs to welcomeEmailKey.
+   */
+  welcomeEmailSentAt: timestamp("welcome_email_sent_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });

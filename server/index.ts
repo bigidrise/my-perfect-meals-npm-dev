@@ -658,6 +658,10 @@ setTimeout(async () => {
     await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS default_starch_meals_per_day integer`);
     await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS starch_distribution_strategy text`);
     await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS performance_mode_enabled boolean NOT NULL DEFAULT false`);
+    // Business welcome-email idempotency guard
+    await db.execute(sql`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS welcome_email_sent_at timestamptz`);
+    // Stable provider idempotency key (UUID) for the business welcome email — set once, never cleared
+    await db.execute(sql`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS welcome_email_key text`);
     // Client Invitation Engine — extend business_invitations to support client type
     await db.execute(sql`ALTER TABLE business_invitations ADD COLUMN IF NOT EXISTS invitation_type text NOT NULL DEFAULT 'team_member'`);
     await db.execute(sql`ALTER TABLE business_invitations ADD COLUMN IF NOT EXISTS trial_days integer`);

@@ -1150,6 +1150,10 @@ async function initializeApp() {
         // ── Phase 1 additive columns on businesses ────────────────────────
         await db.execute(sql`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS organization_id uuid`);
         await db.execute(sql`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS independent_client_policy text NOT NULL DEFAULT 'allowed_with_disclosure'`);
+        // ── Business welcome-email idempotency guard ──────────────────────
+        await db.execute(sql`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS welcome_email_sent_at timestamptz`);
+        // Stable provider idempotency key (UUID) for the business welcome email — set once, never cleared
+        await db.execute(sql`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS welcome_email_key text`);
         // ── Phase 1 personal plan snapshot columns on users ───────────────
         await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS personal_plan_lookup_key varchar(100)`);
         await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS personal_entitlements text[] NOT NULL DEFAULT ARRAY[]::text[]`);
