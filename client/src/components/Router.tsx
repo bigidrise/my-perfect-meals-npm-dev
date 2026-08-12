@@ -470,6 +470,7 @@ import CertificationComplete from "@/pages/certification/CertificationComplete";
 import CertificationCertificateView from "@/pages/certification/CertificationCertificateView";
 import AcademyHome from "@/pages/academy/AcademyHome";
 import PlatformMasteryDashboard from "@/pages/academy/PlatformMasteryDashboard";
+import PlatformMasteryComplete from "@/pages/academy/PlatformMasteryComplete";
 import LessonReader from "@/pages/academy/LessonReader";
 import LearningHub from "@/pages/learning/LearningHub";
 import PlatformCertDashboard from "@/pages/learning/PlatformCertDashboard";
@@ -817,6 +818,8 @@ export default function Router() {
       <Switch>
         {/* Root route — AppRouter handles redirect to /welcome, /onboarding, or /dashboard */}
         <Route path="/">{() => null}</Route>
+        {/* Public shared meal preview — no auth required */}
+        <Route path="/m/:shareToken" component={lazy(() => import("@/pages/SharedMealPage"))} />
         {/* Core Routes */}
         <Route path="/welcome" component={Welcome} />
         <Route path="/guest-builder" component={GuestBuilder} />
@@ -1103,6 +1106,7 @@ export default function Router() {
         <Route path="/business-center/founding-partner" component={GatedFoundingPartnerProgram} />
         <Route path="/business-center/academy" component={GatedAcademyLandingPage} />
         <Route path="/academy" component={AcademyHome} />
+        <Route path="/academy/platform-mastery/complete" component={PlatformMasteryComplete} />
         <Route path="/academy/platform-mastery/lesson/:lessonId" component={LessonReader} />
         <Route path="/academy/platform-mastery" component={PlatformMasteryDashboard} />
         <Route path="/business-center/industry" component={GatedIndustryPartnerships} />

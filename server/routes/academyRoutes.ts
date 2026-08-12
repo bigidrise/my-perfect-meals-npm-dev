@@ -8,6 +8,7 @@ import {
   certificationModuleProgress,
 } from "../db/schema/certifications";
 import { QUIZ_ANSWER_KEYS } from "../data/platformMasteryQuizKeys";
+import { generateCertificatePDF } from "../services/certificateService";
 
 const router = express.Router();
 
@@ -99,6 +100,7 @@ router.get("/platform-mastery/status", requireAuth, async (req, res) => {
       certificateNumber: enrollmentRecord?.certificateNumber ?? null,
       certificateName: enrollmentRecord?.certificateName ?? null,
       completedAt: enrollmentRecord?.completedAt ?? null,
+      score: enrollmentRecord?.score ?? null,
       progress,
     });
   } catch (err) {
@@ -412,6 +414,16 @@ router.post("/platform-mastery/complete", requireAuth, async (req, res) => {
       }
     }
 
+    // Calculate average quiz score across all 9 passed quizzes
+    const quizScores = LESSON_IDS.map((id) => {
+      const rec = progressMap.get(`${id}-quiz`);
+      return rec?.score ?? null;
+    }).filter((s): s is number => s !== null);
+    const avgScore =
+      quizScores.length > 0
+        ? Math.round(quizScores.reduce((a, b) => a + b, 0) / quizScores.length)
+        : null;
+
     const certNumber = `MPM-PM-${Date.now().toString(36).toUpperCase()}`;
 
     await db
@@ -424,6 +436,7 @@ router.post("/platform-mastery/complete", requireAuth, async (req, res) => {
         certificateName: certificateName.trim(),
         completedAt: new Date(),
         isCertificationTrack,
+        score: avgScore,
       })
       .onConflictDoUpdate({
         target: [
@@ -436,10 +449,11 @@ router.post("/platform-mastery/complete", requireAuth, async (req, res) => {
           certificateName: certificateName.trim(),
           completedAt: new Date(),
           updatedAt: new Date(),
+          score: avgScore,
         },
       });
 
-    return res.json({ ok: true, certificateNumber: certNumber });
+    return res.json({ ok: true, certificateNumber: certNumber, score: avgScore });
   } catch (err) {
     console.error("[Academy] complete error:", err);
     return res.status(500).json({ error: "Failed to issue certificate" });
@@ -475,6 +489,49 @@ router.get("/platform-mastery/certificate", requireAuth, async (req, res) => {
   } catch (err) {
     console.error("[Academy] certificate error:", err);
     return res.status(500).json({ error: "Failed to load certificate" });
+  }
+});
+
+// GET /api/academy/platform-mastery/certificate/pdf — download PDF certificate
+router.get("/platform-mastery/certificate/pdf", requireAuth, async (req, res) => {
+  try {
+    const userId = (req as AuthenticatedRequest).authUser.id;
+
+    const [cert] = await db
+      .select()
+      .from(userCertifications)
+      .where(
+        and(
+          eq(userCertifications.userId, userId),
+          eq(userCertifications.certificationType, CERT_TYPE),
+          eq(userCertifications.status, "completed")
+        )
+      )
+      .limit(1);
+
+    if (!cert) {
+      return res.status(404).json({ error: "Certificate not found" });
+    }
+
+    if (!cert.certificateName) {
+      return res.status(400).json({ error: "Certificate name is required before downloading" });
+    }
+
+    const pdfBuffer = await generateCertificatePDF({
+      name: cert.certificateName,
+      certType: CERT_TYPE,
+      certificateNumber: cert.certificateNumber ?? "MPM-PM-XXXXXX",
+      completedAt: cert.completedAt ? new Date(cert.completedAt) : new Date(),
+    });
+
+    const safeNum = (cert.certificateNumber ?? "certificate").replace(/[^a-zA-Z0-9-]/g, "");
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="MPM-PlatformMastery-${safeNum}.pdf"`);
+    res.setHeader("Content-Length", pdfBuffer.length);
+    return res.send(pdfBuffer);
+  } catch (err) {
+    console.error("[Academy] certificate PDF error:", err);
+    return res.status(500).json({ error: "Failed to generate certificate" });
   }
 });
 

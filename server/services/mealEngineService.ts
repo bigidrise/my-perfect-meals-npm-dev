@@ -380,18 +380,34 @@ async function llmGenerateMeal(
         notes: ing.notes ?? undefined,
       })),
       instructions: parsed.instructions ?? [],
-      nutrition: {
-        calories: Number(parsed.nutrition?.calories ?? 0),
-        protein_g: Number(parsed.nutrition?.protein_g ?? 0),
-        carbs_g: Number(parsed.nutrition?.carbs_g ?? 0),
-        fat_g: Number(parsed.nutrition?.fat_g ?? 0),
-        fiber_g: Number(parsed.nutrition?.fiber_g ?? 0),
-        sugar_g: Number(parsed.nutrition?.sugar_g ?? 0),
-        sodium_mg: Number(
-          parsed.nutrition?.sodium_mg ?? parsed.nutrition?.sodium ?? 0,
-        ),
-        addedSugar_g: Number(parsed.nutrition?.addedSugar_g ?? 0),
-      },
+      nutrition: (() => {
+        const calories   = Number(parsed.nutrition?.calories   ?? 0);
+        const protein_g  = Number(parsed.nutrition?.protein_g  ?? 0);
+        const carbs_g    = Number(parsed.nutrition?.carbs_g    ?? 0);
+        const fat_g      = Number(parsed.nutrition?.fat_g      ?? 0);
+        const sugar_g    = Number(parsed.nutrition?.sugar_g    ?? 0);
+        const sodium_mg  = Number(parsed.nutrition?.sodium_mg ?? parsed.nutrition?.sodium ?? 0);
+        const addedSugar_g = Number(parsed.nutrition?.addedSugar_g ?? 0);
+
+        // Sanity-clamp fiber_g — the AI may echo a daily fibrous-carb target instead of
+        // computing actual ingredient fiber. Two hard rules apply:
+        //   1. Dietary fiber is always a subset of total carbohydrates (fiber_g ≤ carbs_g).
+        //   2. A single meal realistically tops out around 25g of dietary fiber; values above
+        //      that almost certainly reflect a target-echo or hallucination.
+        // We clamp to the smaller of carbs_g and 25, then warn so the issue is visible in logs.
+        const rawFiber_g = Number(parsed.nutrition?.fiber_g ?? 0);
+        const MAX_SINGLE_MEAL_FIBER_G = 25;
+        const fiber_g = Math.min(rawFiber_g, carbs_g, MAX_SINGLE_MEAL_FIBER_G);
+        if (rawFiber_g !== fiber_g) {
+          console.warn(
+            `[MealEngine] fiber_g clamped: raw=${rawFiber_g}g → ${fiber_g}g ` +
+            `(carbs_g=${carbs_g}g, cap=${MAX_SINGLE_MEAL_FIBER_G}g). ` +
+            `Possible daily fibrous-carb target echo in AI output.`
+          );
+        }
+
+        return { calories, protein_g, carbs_g, fat_g, fiber_g, sugar_g, sodium_mg, addedSugar_g };
+      })(),
       servings: Number(parsed.servings ?? request.servings ?? 1),
       source: request.source,
       imageUrl: undefined,

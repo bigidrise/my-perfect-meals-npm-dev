@@ -45,7 +45,7 @@ export function initNativeDemoMode(): boolean {
 
 const AUTH_TOKEN_KEY = "mpm_auth_token";
 
-export type UserRole = "admin" | "coach" | "client";
+export type UserRole = "admin" | "coach" | "client" | "trainer" | "physician";
 
 export type AccessTier = "PAID_FULL" | "FREE";
 

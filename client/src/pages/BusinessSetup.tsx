@@ -144,7 +144,7 @@ export default function BusinessSetup() {
             </label>
             <input
               className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-orange-400 placeholder-white/30 transition-colors"
-              placeholder="e.g. Metroflex Performance Nutrition"
+              placeholder="e.g. Apex Performance Nutrition"
               value={orgName}
               onChange={(e) => setOrgName(e.target.value)}
               autoFocus

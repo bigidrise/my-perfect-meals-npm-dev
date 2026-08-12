@@ -260,7 +260,7 @@ export function computePartnerLifecycle(partner: PartnerRecordForLifecycle): Lif
  * who has completed their org track sees "Organization 100%" clearly, even if the
  * overall flat score is low. The flat overall is displayed as a secondary summary row.
  *
- * Example — Metroflex Gym (referral + organization, 6 applicable):
+ * Example — Apex Gym (referral + organization, 6 applicable):
  *   Universal(1) + Referral(4) + Organization(1) = 6 total
  *   Org Activated ✓ = 1 complete
  *   Per-track: Organization 100% | Referral 0% | Partner Foundation 0%

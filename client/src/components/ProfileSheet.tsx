@@ -394,14 +394,6 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
       route: "/founders",
       testId: "menu-about",
     },
-    {
-      title: t("menu.hireAPro"),
-      description: t("menu.hireAProDesc"),
-      icon: Users,
-      route: "/coaches",
-      testId: "menu-find-coach",
-    },
-
     // Billing
     {
       title: t("menu.subscription"),

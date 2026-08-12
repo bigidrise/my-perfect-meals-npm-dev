@@ -21,7 +21,7 @@ const PLATFORM_MASTERY_LESSONS = [
   { num: 1, title: "Your Profile & Nutrition Protocol", subtitle: "Setting up your dietary identity and health constraints" },
   { num: 2, title: "Meal Builders — Choosing the Right Tool", subtitle: "Every meal creation tool and when to reach for it" },
   { num: 3, title: "Weekly Planning", subtitle: "Building consistent habits with the Meal Planner" },
-  { num: 4, title: "Shopping & Your Grocery Scope", subtitle: "Smart Grocery List, Grocery Coach, Smart Scan, and Fridge Rescue" },
+  { num: 4, title: "Shopping & Your Grocery Scope", subtitle: "Smart Grocery List, Grocery Coach, Product Scan, and Fridge Rescue" },
   { num: 5, title: "Eating Away From Home", subtitle: "Restaurant Guide, Fast Food Guide, and Find Meals Near Me" },
   { num: 6, title: "Biometrics & Tracking", subtitle: "Logging progress and reading your data" },
   { num: 7, title: "Specialized Health & Performance Systems", subtitle: "Clinical programs, performance nutrition, and the protocol hierarchy" },
@@ -322,7 +322,7 @@ export default function AcademyHome() {
           <div className="px-5 py-4 bg-black/20 border-t border-white/5">
             {isCertified ? (
               <button
-                onClick={() => setLocation("/academy/platform-mastery")}
+                onClick={() => setLocation("/academy/platform-mastery/complete")}
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-600/30 border border-emerald-500/30 text-emerald-300 font-semibold text-sm active:scale-[0.98] transition-transform"
               >
                 <Award className="h-4 w-4" />

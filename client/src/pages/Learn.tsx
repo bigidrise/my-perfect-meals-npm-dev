@@ -583,20 +583,20 @@ const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
   {
     id: "my-list",
     title: "My List — Your Personal Shopping Section",
-    subtitle: "Manually added items and Smart Scan results, all in one place",
+    subtitle: "Manually added items and Product Scan results, all in one place",
     icon: ListChecks,
     content: {
       sections: [
         {
           heading: "What My List Is",
-          text: "My List is your personal section of the shopping list — completely separate from the AI-generated grocery categories. It holds two types of items: things you add manually by typing them in, and products you scan using Smart Scan. Unlike the AI grocery sections that get built from your meal plan, My List is entirely under your control.",
+          text: "My List is your personal section of the shopping list — completely separate from the AI-generated grocery categories. It holds two types of items: things you add manually by typing them in, and products you scan using Product Scan. Unlike the AI grocery sections that get built from your meal plan, My List is entirely under your control.",
         },
         {
           heading: "Manually Added Items",
           text: "Tap the Add to My List section at the bottom of the shopping list to type in anything you need — brand name, product name, quantity, unit. Fill in as much or as little as you want, then tap Add to My List and it appears instantly in the My List section above. This is useful for household staples, specialty ingredients, or anything else your meal plan does not automatically include.",
         },
         {
-          heading: "Smart Scan Items",
+          heading: "Product Scan Items",
           text: "When you scan a product using Ingredient Intelligence — whether you photographed the label or searched a product by name — the analysis results sheet shows an 'Add [Product Name] to List' button. Tap it and the item lands in My List instantly. You can also add any of the Better Alternatives shown in the results by tapping the individual Add button on each alternative card. All of these items are scanned products, so they belong in your own section rather than the AI grocery categories.",
         },
         {
@@ -605,7 +605,7 @@ const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
         },
         {
           heading: "The Scanned Badge",
-          text: "Items from Smart Scan show a small orange Scanned badge with a camera icon. This tells you the item came from a label scan rather than being typed manually. It helps you remember where each item came from, especially when your list is a mix of manual adds and scan results.",
+          text: "Items from Product Scan show a small orange Scanned badge with a camera icon. This tells you the item came from a label scan rather than being typed manually. It helps you remember where each item came from, especially when your list is a mix of manual adds and scan results.",
         },
         {
           heading: "How My List Fits Into the Full Shopping List",
@@ -818,7 +818,7 @@ const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
         },
         {
           heading: "Where Items Land",
-          text: "All items added through Smart Scan — whether the scanned product itself or an alternative — land in My List with an orange Scanned badge and camera icon. My List is the personal, user-controlled part of the shopping list, kept entirely separate from the AI-generated grocery categories like Produce, Protein, and Pantry.",
+          text: "All items added through Product Scan — whether the scanned product itself or an alternative — land in My List with an orange Scanned badge and camera icon. My List is the personal, user-controlled part of the shopping list, kept entirely separate from the AI-generated grocery categories like Produce, Protein, and Pantry.",
         },
       ],
     },
@@ -1543,7 +1543,7 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
             "Grocery Coach — meal suggestions and shopping lists",
             "Weekly Meal Board and Meal Planner",
             "Restaurant Guide and Fast Food Guide",
-            "Smart Scan — ingredient and food safety screening",
+            "Product Scan — ingredient and food safety screening",
           ],
         },
         {

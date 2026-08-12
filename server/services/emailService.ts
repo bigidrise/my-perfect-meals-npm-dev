@@ -791,6 +791,148 @@ export async function sendWhiteLabelApplicantConfirmation({
   }
 }
 
+// ─── BUSINESS WELCOME EMAIL ───────────────────────────────────────────────────
+
+export async function sendBusinessWelcomeEmail({
+  to,
+  ownerName,
+  orgName,
+  seatCount,
+  dashboardUrl,
+  idempotencyKey,
+}: {
+  to: string;
+  ownerName: string;
+  orgName: string;
+  seatCount: number;
+  dashboardUrl: string;
+  /** Stable provider idempotency key — pass the DB-stored welcomeEmailKey so Resend deduplicates retries. */
+  idempotencyKey?: string;
+}): Promise<boolean> {
+  if (!resend) {
+    console.log('[BusinessWelcome] Resend not available — skipping welcome email');
+    return false;
+  }
+
+  const inviteUrl = dashboardUrl;
+  const clientsUrl = dashboardUrl;
+  const partnerUrl = dashboardUrl.replace('/business-dashboard', '/business-center');
+
+  try {
+    const { data, error } = await resend.emails.send(
+      {
+        from: EMAIL_FROM,
+        to: [to],
+        subject: `Welcome to My Perfect Meals Business — ${orgName} is ready`,
+        html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+
+          <!-- Header -->
+          <div style="background: linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 100%); padding: 36px 30px; border-radius: 12px 12px 0 0; text-align: center;">
+            <p style="color: #93c5fd; margin: 0 0 8px; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; font-weight: 600;">My Perfect Meals</p>
+            <h1 style="color: white; margin: 0; font-size: 28px; font-weight: 700; line-height: 1.2;">Your Business Account is Active</h1>
+            <p style="color: #bfdbfe; margin: 12px 0 0; font-size: 16px;">${orgName} &mdash; ${seatCount} seat${seatCount !== 1 ? 's' : ''}</p>
+          </div>
+
+          <!-- Body -->
+          <div style="background: #f9fafb; padding: 32px 30px; border-left: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb;">
+
+            <h2 style="color: #111827; font-size: 20px; margin: 0 0 12px;">Hi ${ownerName},</h2>
+            <p style="color: #374151; font-size: 15px; line-height: 1.7; margin: 0 0 24px;">
+              Payment is confirmed and your Clinical Business account for <strong>${orgName}</strong> is live. You have <strong>${seatCount} seat${seatCount !== 1 ? 's' : ''}</strong> available — here's how to get the most out of them right away.
+            </p>
+
+            <!-- CTA -->
+            <div style="text-align: center; margin: 0 0 36px;">
+              <a href="${dashboardUrl}" style="display: inline-block; background: #2563eb; color: white; padding: 16px 44px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 17px; letter-spacing: 0.2px;">
+                Open Business Dashboard →
+              </a>
+            </div>
+
+            <!-- 3-step guide -->
+            <h2 style="color: #111827; font-size: 17px; font-weight: 700; margin: 0 0 20px;">Your next 3 steps</h2>
+
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 32px;">
+              <tr>
+                <td style="vertical-align: top; width: 40px; padding-bottom: 24px;">
+                  <div style="width: 30px; height: 30px; background: #2563eb; border-radius: 50%; text-align: center; line-height: 30px; color: white; font-weight: 700; font-size: 14px;">1</div>
+                </td>
+                <td style="vertical-align: top; padding-bottom: 24px; padding-left: 14px;">
+                  <strong style="color: #111827; font-size: 15px;">Invite your team</strong><br/>
+                  <span style="color: #6b7280; font-size: 13px; line-height: 1.6;">
+                    Add coaches, trainers, and staff from the <strong>Team</strong> tab. Each team member gets their own professional seat with full platform access and their own ProCare Studio.<br/>
+                    <a href="${inviteUrl}" style="color: #2563eb; font-size: 13px;">Invite team members →</a>
+                  </span>
+                </td>
+              </tr>
+              <tr>
+                <td style="vertical-align: top; width: 40px; padding-bottom: 24px;">
+                  <div style="width: 30px; height: 30px; background: #2563eb; border-radius: 50%; text-align: center; line-height: 30px; color: white; font-weight: 700; font-size: 14px;">2</div>
+                </td>
+                <td style="vertical-align: top; padding-bottom: 24px; padding-left: 14px;">
+                  <strong style="color: #111827; font-size: 15px;">Invite your clients</strong><br/>
+                  <span style="color: #6b7280; font-size: 13px; line-height: 1.6;">
+                    Send complimentary access invitations directly from the <strong>Clients</strong> tab. Clients get a dedicated onboarding flow and their trial starts the moment they accept.<br/>
+                    <a href="${clientsUrl}" style="color: #2563eb; font-size: 13px;">Invite clients →</a>
+                  </span>
+                </td>
+              </tr>
+              <tr>
+                <td style="vertical-align: top; width: 40px;">
+                  <div style="width: 30px; height: 30px; background: #059669; border-radius: 50%; text-align: center; line-height: 30px; color: white; font-weight: 700; font-size: 14px;">3</div>
+                </td>
+                <td style="vertical-align: top; padding-left: 14px;">
+                  <strong style="color: #111827; font-size: 15px;">Explore the Partner Center</strong><br/>
+                  <span style="color: #6b7280; font-size: 13px; line-height: 1.6;">
+                    Access certifications, affiliate tools, marketing resources, and your referral dashboard — everything you need to grow your practice.<br/>
+                    <a href="${partnerUrl}" style="color: #059669; font-size: 13px;">Open Partner Center →</a>
+                  </span>
+                </td>
+              </tr>
+            </table>
+
+            <!-- Seat summary -->
+            <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 18px 22px; margin-bottom: 28px;">
+              <p style="color: #1d4ed8; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 6px;">Account Summary</p>
+              <p style="color: #374151; font-size: 14px; margin: 0; line-height: 1.8;">
+                <strong>Organization:</strong> ${orgName}<br/>
+                <strong>Seats available:</strong> ${seatCount}<br/>
+                <strong>Plan:</strong> Clinical Business Monthly
+              </p>
+            </div>
+
+            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
+            <p style="color: #9ca3af; font-size: 12px; text-align: center; margin: 0;">
+              My Perfect Meals — Personalized Nutrition &amp; Meal Planning<br/>
+              Questions? Reply to this email or visit your dashboard for help.
+            </p>
+          </div>
+
+          <!-- Footer -->
+          <div style="background: #1f2937; padding: 20px 30px; border-radius: 0 0 12px 12px; text-align: center;">
+            <p style="color: #6b7280; font-size: 12px; margin: 0;">
+              You're receiving this because you just activated a Clinical Business account on My Perfect Meals.
+            </p>
+          </div>
+
+        </div>
+      `,
+      },
+      idempotencyKey ? { idempotencyKey } : undefined,
+    );
+
+    if (error) {
+      console.error('[BusinessWelcome] Resend error:', error);
+      return false;
+    }
+    console.log('[BusinessWelcome] Welcome email sent:', data?.id);
+    return true;
+  } catch (err) {
+    console.error('[BusinessWelcome] Email failed:', err);
+    return false;
+  }
+}
+
 export async function sendBusinessInviteEmail({
   to,
   businessName,
