@@ -175,6 +175,12 @@ export default function DashboardNew() {
         cache: "no-store",
       });
       if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          // Token was invalidated — stop polling and signal auth context to sign out
+          console.warn("⚠️ [DashboardNew] Tablet poll got 401 — dispatching auth-rejected");
+          window.dispatchEvent(new CustomEvent("mpm:polling-auth-rejected"));
+          return;
+        }
         if (res.status === 404) setTabletError("No active coach connection");
         else setTabletError("Failed to load messages");
         return;
@@ -452,6 +458,12 @@ export default function DashboardNew() {
         credentials: "include",
       });
       if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          // Token was invalidated — stop polling and signal auth context to sign out
+          console.warn("⚠️ [DashboardNew] Provider tablet poll got 401 — dispatching auth-rejected");
+          window.dispatchEvent(new CustomEvent("mpm:polling-auth-rejected"));
+          return;
+        }
         if (res.status === 404) setProviderError("No active provider connection");
         else setProviderError("Failed to load messages");
         return;
