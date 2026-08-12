@@ -59,6 +59,7 @@ import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
 import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
+import { safeLocalStorageSet } from "@/lib/safeLocalStorage";
 
 const DESSERT_CATEGORIES = [
   { value: "surprise", label: "Surprise Me!" },
@@ -296,19 +297,7 @@ export default function DessertCreator() {
 
   useEffect(() => {
     if (generatedDessert) {
-      try {
-        // Never save a base64 data URL to localStorage — it's too large and will
-        // silently fail quota, losing the imageUrl on the next restore.
-        // The write-back effect above re-fetches the S3 URL on mount so the next
-        // save always carries a valid imageUrl.
-        const toSave = generatedDessert.imageUrl?.startsWith('data:')
-          ? { ...generatedDessert, imageUrl: undefined }
-          : generatedDessert;
-        localStorage.setItem(
-          "mpm_dessert_creator_result",
-          JSON.stringify(toSave),
-        );
-      } catch {}
+      safeLocalStorageSet("mpm_dessert_creator_result", generatedDessert);
     }
   }, [generatedDessert]);
 
