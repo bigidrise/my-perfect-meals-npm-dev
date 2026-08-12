@@ -61,7 +61,7 @@ export function useDailyPrescription({
 
     const url = `/api/prescription/${dateISO}${params.toString() ? `?${params}` : ""}`;
 
-    apiRequest("GET", url)
+    apiRequest(url)
       .then((data: DailyNutritionPrescription) => {
         if (thisCount === fetchCount.current) {
           setPrescription(data);

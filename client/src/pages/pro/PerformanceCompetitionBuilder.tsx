@@ -91,6 +91,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { FEATURES } from "@/utils/features";
+import { DailyMacroTotalsRow } from "@/components/DailyMacroTotalsRow";
 import { DayChips } from "@/components/DayChips";
 import { DailyStarchIndicator } from "@/components/DailyStarchIndicator";
 import { useBodyFatStarchAdjustment } from "@/hooks/useBodyFatStarchAdjustment";
@@ -365,8 +366,26 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     dateISO: activeDayISO,
     starchyConsumed: activeDayConsumed.starchyCarbs,
     starchMealsUsed: activeDayConsumed.starchMealsUsed,
-    disabled: !activeDayISO || !!proClientId,
+    disabled: !activeDayISO,
   });
+
+  // Day macro totals for the Today row — consumed cal/P/C/F for the active day.
+  const dayTotals = useMemo(() => {
+    if (!board || !activeDayISO) return { calories: 0, protein: 0, carbs: 0, fat: 0 };
+    const dayLists = getDayLists(board, activeDayISO);
+    const allMeals = [
+      ...dayLists.breakfast,
+      ...dayLists.lunch,
+      ...dayLists.dinner,
+      ...dayLists.snacks,
+    ];
+    return {
+      calories: Math.round(allMeals.reduce((s, m) => s + (m.nutrition?.calories ?? 0), 0)),
+      protein:  Math.round(allMeals.reduce((s, m) => s + (m.nutrition?.protein  ?? 0), 0)),
+      carbs:    Math.round(allMeals.reduce((s, m) => s + (m.nutrition?.carbs    ?? 0), 0)),
+      fat:      Math.round(allMeals.reduce((s, m) => s + (m.nutrition?.fat      ?? 0), 0)),
+    };
+  }, [board, activeDayISO]);
 
   // Build StarchContext for Create With Chef modal
   const starchContext: StarchContext | undefined = useMemo(() => {
@@ -1056,6 +1075,26 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
               </div>
             )}
 
+            {/* ROW 4.8: Daily Macro Totals vs Targets */}
+            {FEATURES.dayPlanning === "alpha" && activeDayISO && (
+              <DailyMacroTotalsRow
+                totals={dayTotals}
+                prescription={prescription}
+                activeDayISO={activeDayISO}
+                fallbackTargets={
+                  resolvedTargets && resolvedTargets.calories > 0
+                    ? {
+                        caloriesTarget: resolvedTargets.calories,
+                        proteinTarget:  resolvedTargets.protein_g,
+                        carbsTarget:    resolvedTargets.carbs_g,
+                        fatTarget:      resolvedTargets.fat_g,
+                        source:         "performance",
+                      }
+                    : null
+                }
+              />
+            )}
+
             {/* ROW 5: Bottom Actions */}
             <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/10">
 
@@ -1454,13 +1493,23 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
             <DailyTargetsCard
               userId={clientId}
               showQuickAddButton={false}
-              targetsOverride={{
-                protein_g: resolvedTargets.protein_g || 0,
-                carbs_g: resolvedTargets.carbs_g || 0,
-                fat_g: resolvedTargets.fat_g || 0,
-                starchyCarbs_g: resolvedTargets.starchyCarbs_g,
-                fibrousCarbs_g: resolvedTargets.fibrousCarbs_g,
-              }}
+              targetsOverride={
+                prescription && prescription.source !== "fallback" && prescription.proteinTarget > 0
+                  ? {
+                      protein_g:      prescription.proteinTarget,
+                      carbs_g:        prescription.carbsTarget,
+                      fat_g:          prescription.fatTarget,
+                      starchyCarbs_g: prescription.starchyCarbsTarget,
+                      fibrousCarbs_g: prescription.fibrousCarbsTarget,
+                    }
+                  : {
+                      protein_g:      resolvedTargets.protein_g || 0,
+                      carbs_g:        resolvedTargets.carbs_g   || 0,
+                      fat_g:          resolvedTargets.fat_g     || 0,
+                      starchyCarbs_g: resolvedTargets.starchyCarbs_g,
+                      fibrousCarbs_g: resolvedTargets.fibrousCarbs_g,
+                    }
+              }
             />
           </div>
 
