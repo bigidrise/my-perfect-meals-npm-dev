@@ -1028,20 +1028,38 @@ export default function BusinessDashboard() {
               </div>
             ) : (
               <>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
                   <Building2 className="w-5 h-5 text-orange-400 flex-shrink-0" />
-                  <span className="font-semibold text-sm">{business.name}</span>
+                  <span className="font-semibold text-sm truncate">{business.name}</span>
+                  {isAdminView && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/15 border border-blue-400/30 text-blue-300 text-xs font-medium flex-shrink-0">
+                      <Shield className="w-3 h-3" />
+                      Organization Admin
+                    </span>
+                  )}
                 </div>
-                <button
-                  className="p-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-white/60 hover:text-white transition-colors"
-                  onClick={() => { setNameInput(business.name); setEditingName(true); }}
-                >
-                  <Pencil className="w-3.5 h-3.5" />
-                </button>
+                {!isAdminView && (
+                  <button
+                    className="p-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-white/60 hover:text-white transition-colors flex-shrink-0"
+                    onClick={() => { setNameInput(business.name); setEditingName(true); }}
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </>
             )}
           </div>
         </Card>
+
+        {/* Admin role explanation — shown only when viewing as admin */}
+        {isAdminView && (
+          <div className="flex items-start gap-2.5 px-1">
+            <HelpCircle className="w-4 h-4 text-blue-400/70 flex-shrink-0 mt-0.5" />
+            <p className="text-white/50 text-xs leading-relaxed">
+              Admins can invite members and manage day-to-day operations. Seat purchases and billing changes are reserved for the Organization Owner.
+            </p>
+          </div>
+        )}
 
         {/* Seat Counter */}
         <Card className="bg-white/5 border border-orange-500/20 text-white p-4">

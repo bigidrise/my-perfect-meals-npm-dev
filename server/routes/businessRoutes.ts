@@ -7,6 +7,7 @@ import { businesses, businessMembers, businessInvitations } from "../db/schema/b
 import { users } from "@shared/schema";
 import { requireAuth } from "../middleware/requireAuth";
 import { requireProAccess } from "../middleware/requireProAccess";
+import { requireProOrOrgAdmin } from "../middleware/requireProOrOrgAdmin";
 import { sendBusinessInviteEmail } from "../services/emailService";
 
 const stripeKey = process.env.STRIPE_SECRET_KEY ?? "";
@@ -129,7 +130,7 @@ async function resolveAuthorizedBusiness(
 }
 
 // ── GET /api/business/mine — owner OR admin fetches the organization dashboard data
-router.get("/mine", requireAuth, requireProAccess, async (req, res) => {
+router.get("/mine", requireAuth, requireProOrOrgAdmin, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   try {
     const resolved = await resolveAuthorizedBusiness(userId, "admin_or_owner");
@@ -279,7 +280,7 @@ router.get("/membership", requireAuth, requireProAccess, async (req, res) => {
 });
 
 // ── POST /api/business/invite — owner sends a team member or client invitation
-router.post("/invite", requireAuth, requireProAccess, async (req, res) => {
+router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   const {
     email,
@@ -479,7 +480,7 @@ router.post("/invite", requireAuth, requireProAccess, async (req, res) => {
 //   2. Call clearRemovalNotice() so any undismissed removal-notice rows — including
 //      historical rows from prior removal cycles — are stamped immediately.
 // Both steps run inside one transaction so they can never diverge.
-router.patch("/members/:memberId/restore", requireAuth, requireProAccess, async (req, res) => {
+router.patch("/members/:memberId/restore", requireAuth, requireProOrOrgAdmin, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   const { memberId } = req.params;
 
@@ -535,7 +536,7 @@ router.patch("/members/:memberId/restore", requireAuth, requireProAccess, async 
 });
 
 // ── DELETE /api/business/members/:memberId — owner removes a member
-router.delete("/members/:memberId", requireAuth, requireProAccess, async (req, res) => {
+router.delete("/members/:memberId", requireAuth, requireProOrOrgAdmin, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   const { memberId } = req.params;
 
@@ -604,7 +605,7 @@ router.post("/removal-notice/dismiss", requireAuth, async (req, res) => {
 });
 
 // ── DELETE /api/business/invitations/:token — owner cancels a pending invite
-router.delete("/invitations/:token", requireAuth, requireProAccess, async (req, res) => {
+router.delete("/invitations/:token", requireAuth, requireProOrOrgAdmin, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   const { token } = req.params;
 
@@ -635,7 +636,7 @@ router.delete("/invitations/:token", requireAuth, requireProAccess, async (req, 
 });
 
 // ── POST /api/business/invitations/:token/resend — owner resends an invite
-router.post("/invitations/:token/resend", requireAuth, requireProAccess, async (req, res) => {
+router.post("/invitations/:token/resend", requireAuth, requireProOrOrgAdmin, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   const { token } = req.params;
 
@@ -701,7 +702,7 @@ router.post("/invitations/:token/resend", requireAuth, requireProAccess, async (
 });
 
 // ── PATCH /api/business/policy — owner updates independent_client_policy
-router.patch("/policy", requireAuth, requireProAccess, async (req, res) => {
+router.patch("/policy", requireAuth, requireProOrOrgAdmin, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   const { policy } = req.body as { policy: string };
 
@@ -738,7 +739,7 @@ router.patch("/policy", requireAuth, requireProAccess, async (req, res) => {
 });
 
 // ── PATCH /api/business/org-policies — owner updates org-level policy flags
-router.patch("/org-policies", requireAuth, requireProAccess, async (req, res) => {
+router.patch("/org-policies", requireAuth, requireProOrOrgAdmin, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   const { requireAcademy, requireProfessionalVerification } = req.body as {
     requireAcademy?: boolean;
@@ -1098,7 +1099,7 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
 });
 
 // ── PATCH /api/business/name — owner renames the business
-router.patch("/name", requireAuth, requireProAccess, async (req, res) => {
+router.patch("/name", requireAuth, requireProOrOrgAdmin, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   const { name } = req.body as { name: string };
 
