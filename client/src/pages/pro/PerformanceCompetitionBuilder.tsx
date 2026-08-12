@@ -335,7 +335,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = React.useState(false);
 
 
-
   // Create With Chef modal state
   const [createWithChefOpen, setCreateWithChefOpen] = useState(false);
   const [createWithChefSlot, setCreateWithChefSlot] = useState<
@@ -366,7 +365,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     dateISO: activeDayISO,
     starchyConsumed: activeDayConsumed.starchyCarbs,
     starchMealsUsed: activeDayConsumed.starchMealsUsed,
-    disabled: !activeDayISO,
+    disabled: !activeDayISO || !!proClientId,
   });
 
   // Day macro totals for the Today row — consumed cal/P/C/F for the active day.
@@ -1271,9 +1270,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                     </section>
                   ))}
 
-                  {/* ================================
-                    SNACKS SECTION - Competition Snacks
-                ==================================== */}
+                  {/* --- SNACKS SECTION - Competition Snacks --- */}
                   <section className="rounded-2xl border border-zinc-800 bg-zinc-900/40 backdrop-blur p-4 col-span-full">
                     <div className="flex items-center justify-between mb-4">
                       <h2 className="text-white/90 text-lg font-medium">

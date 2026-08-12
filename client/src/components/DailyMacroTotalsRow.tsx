@@ -35,6 +35,7 @@ interface Props {
    * is temporarily unavailable. Prevents displaying 0/0/0/0. For the
    * Performance Builder this should be the resolvedTargets from
    * usePerformanceNutrition so the day-specific training numbers still show.
+   * For pro-client views in Beach Body, pass nutritionTargets mapped to this shape.
    */
   fallbackTargets?: PrescriptionSnapshot | null;
 }

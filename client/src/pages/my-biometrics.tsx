@@ -415,10 +415,31 @@ export default function MyBiometrics() {
       return;
     }
 
-    // Single authoritative path: the daily prescription resolver.
-    // Applies the full hierarchy in one server call:
-    //   Macro Calculator baseline → GLP-1 clinical overlay → Performance training-day modifier
-    // All surfaces (builders, coach, biometrics) now read the same effective daily prescription.
+    // ── 1. ProCare precedence (client-side, always checked first) ─────────────
+    // Professional overrides are stored in localStorage / proStore and are NOT
+    // surfaced by the server-side prescription resolver (which is scoped to the
+    // user's own clinical hierarchy). We must check them before hitting the
+    // server, or a client with an active ProCare override would see their
+    // self-set targets labeled "self" instead of the coach/clinician's targets.
+    const localResolved = getResolvedTargets(user.id);
+    if (localResolved.source === "pro") {
+      setTargets({
+        calories:       localResolved.calories,
+        protein_g:      localResolved.protein_g,
+        carbs_g:        localResolved.carbs_g,
+        fat_g:          localResolved.fat_g,
+        starchyCarbs_g: localResolved.starchyCarbs_g,
+        fibrousCarbs_g: localResolved.fibrousCarbs_g,
+      });
+      setTargetSource("pro");
+      if (localResolved.setBy) setProName(localResolved.setBy);
+      return;
+    }
+
+    // ── 2. Server prescription (hierarchy-resolved: GLP-1 → Performance) ──────
+    // Only reached when no ProCare override is active. The server resolver
+    // applies: Macro Calculator baseline → GLP-1 clinical overlay → Performance
+    // training-day modifier. All surfaces read the same effective prescription.
     const storedDate = typeof window !== "undefined"
       ? localStorage.getItem("mpm.performance.selectedDate") : null;
     const dateISO = storedDate || new Date().toISOString().slice(0, 10);
@@ -441,17 +462,9 @@ export default function MyBiometrics() {
             fibrousCarbs_g: p.fibrousCarbsTarget ?? 0,
           });
           const srcLabel =
-            p.source === "performance"             ? "performance"
-            : p.source === "professional_override" ? "pro"
-            : "self"; // "clinical" (GLP-1 overlay) and "user_default" both display as "self"
+            p.source === "performance" ? "performance"
+            : "self"; // "clinical" (GLP-1) and "user_default" both display as "self"
           setTargetSource(srcLabel);
-          if (srcLabel === "pro") {
-            // Surface the ProCare provider name from the local resolver
-            const localResolved = getResolvedTargets(user.id);
-            if (localResolved.source === "pro" && localResolved.setBy) {
-              setProName(localResolved.setBy);
-            }
-          }
           return;
         }
       }
@@ -459,20 +472,19 @@ export default function MyBiometrics() {
       // Network failure — fall through to local resolver so we never flash null
     }
 
-    // Fallback: local resolver (localStorage / proStore).
-    // Used when offline or when the prescription endpoint returns no targets.
-    const resolved = getResolvedTargets(user.id);
-    if (resolved.source !== "none") {
+    // ── 3. Local resolver fallback (offline or no prescription targets) ────────
+    if (localResolved.source !== "none") {
       setTargets({
-        calories:       resolved.calories,
-        protein_g:      resolved.protein_g,
-        carbs_g:        resolved.carbs_g,
-        fat_g:          resolved.fat_g,
-        starchyCarbs_g: resolved.starchyCarbs_g,
-        fibrousCarbs_g: resolved.fibrousCarbs_g,
+        calories:       localResolved.calories,
+        protein_g:      localResolved.protein_g,
+        carbs_g:        localResolved.carbs_g,
+        fat_g:          localResolved.fat_g,
+        starchyCarbs_g: localResolved.starchyCarbs_g,
+        fibrousCarbs_g: localResolved.fibrousCarbs_g,
       });
-      setTargetSource(resolved.source);
-      if (resolved.source === "pro" && resolved.setBy) setProName(resolved.setBy);
+      setTargetSource(localResolved.source);
+      // Note: localResolved.source === "pro" is already handled at step 1 above
+      // and we returned early. TypeScript correctly narrows "pro" out here.
       return;
     }
 

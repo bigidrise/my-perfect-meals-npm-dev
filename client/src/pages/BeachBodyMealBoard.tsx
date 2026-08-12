@@ -1421,6 +1421,17 @@ export default function BeachBodyMealBoard() {
                 totals={totals}
                 prescription={prescription}
                 activeDayISO={activeDayISO}
+                fallbackTargets={
+                  proClientId && nutritionTargets.calories > 0
+                    ? {
+                        caloriesTarget: nutritionTargets.calories,
+                        proteinTarget:  nutritionTargets.protein_g,
+                        carbsTarget:    nutritionTargets.carbs_g,
+                        fatTarget:      nutritionTargets.fat_g,
+                        source:         "user_default",
+                      }
+                    : null
+                }
               />
             )}
 
