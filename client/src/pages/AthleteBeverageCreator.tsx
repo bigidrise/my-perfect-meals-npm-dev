@@ -1033,13 +1033,20 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
                     <div className="grid grid-cols-2 gap-2">
                       <GlassButton
                         onClick={() => {
+                          const safeImageUrl = (() => {
+                            const url = generatedBeverage.imageUrl;
+                            if (!url) return null;
+                            if (url.startsWith("data:")) return null;
+                            if (url.includes("oaidalleapiprodscus")) return null;
+                            return url;
+                          })();
                           const mealData = {
                             id: crypto.randomUUID(),
                             name: generatedBeverage.name,
                             description: generatedBeverage.description,
                             ingredients: generatedBeverage.ingredients || [],
                             instructions: generatedBeverage.instructions,
-                            imageUrl: generatedBeverage.imageUrl,
+                            imageUrl: safeImageUrl,
                           };
                           localStorage.setItem(
                             "mpm_chefs_kitchen_meal",

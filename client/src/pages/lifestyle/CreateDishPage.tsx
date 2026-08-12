@@ -1417,13 +1417,20 @@ export default function CreateDishPage() {
                         <div className="grid grid-cols-2 gap-2">
                           <GlassButton
                             onClick={() => {
+                              const safeImageUrl = (() => {
+                                const url = meal.imageUrl;
+                                if (!url) return null;
+                                if (url.startsWith("data:")) return null;
+                                if (url.includes("oaidalleapiprodscus")) return null;
+                                return url;
+                              })();
                               const mealData = {
                                 id: meal.id || crypto.randomUUID(),
                                 name: meal.name,
                                 description: meal.description,
                                 ingredients: meal.ingredients || [],
                                 instructions: meal.instructions,
-                                imageUrl: meal.imageUrl,
+                                imageUrl: safeImageUrl,
                               };
                               localStorage.setItem(
                                 "mpm_chefs_kitchen_meal",

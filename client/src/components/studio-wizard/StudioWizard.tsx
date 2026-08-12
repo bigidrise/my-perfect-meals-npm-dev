@@ -505,9 +505,16 @@ export default function StudioWizard({ config }: StudioWizardProps) {
 
   const goToChefsKitchenPrepare = () => {
     if (!generatedMeal) return;
+    const safeImageUrl = (() => {
+      const url = generatedMeal.imageUrl;
+      if (!url) return null;
+      if (url.startsWith("data:")) return null;
+      if (url.includes("oaidalleapiprodscus")) return null;
+      return url;
+    })();
     try {
       localStorage.setItem("mpm_chefs_kitchen_external_prepare", "true");
-      localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(generatedMeal));
+      localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify({ ...generatedMeal, imageUrl: safeImageUrl }));
       localStorage.removeItem("mpm_chefs_kitchen_prep");
     } catch {
       // ignore

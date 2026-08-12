@@ -1780,13 +1780,20 @@ export default function UltimateExperiencesPage() {
                         <div className="grid grid-cols-2 gap-2">
                           <GlassButton
                             onClick={() => {
+                              const safeImageUrl = (() => {
+                                const url = course.imageUrl;
+                                if (!url) return null;
+                                if (url.startsWith("data:")) return null;
+                                if (url.includes("oaidalleapiprodscus")) return null;
+                                return url;
+                              })();
                               const mealData = {
                                 id: course.id || crypto.randomUUID(),
                                 name: course.name,
                                 description: course.description,
                                 ingredients: course.ingredients || [],
                                 instructions: course.instructions,
-                                imageUrl: course.imageUrl,
+                                imageUrl: safeImageUrl,
                               };
                               localStorage.setItem(
                                 "mpm_chefs_kitchen_meal",

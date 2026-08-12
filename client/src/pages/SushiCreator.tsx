@@ -1589,9 +1589,15 @@ export default function SushiCreator() {
                                 (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
                                   ? crypto.randomUUID()
                                   : `sushi-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`);
-                              // Never save a base64 data URL — it exceeds localStorage quota.
-                              // ChefsKitchenPage will re-fetch the image from S3 if imageUrl is absent.
-                              const safeImageUrl = meal.imageUrl?.startsWith("data:") ? undefined : meal.imageUrl;
+                              // Never save a base64 data URL or expired DALL·E URL — they can
+                              // exceed the localStorage quota or produce broken images in Chef.
+                              const safeImageUrl = (() => {
+                                const url = meal.imageUrl;
+                                if (!url) return undefined;
+                                if (url.startsWith("data:")) return undefined;
+                                if (url.includes("oaidalleapiprodscus")) return undefined;
+                                return url;
+                              })();
                               const mealData = {
                                 id: safeId,
                                 name: meal.name,
