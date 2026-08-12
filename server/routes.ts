@@ -7577,6 +7577,23 @@ Provide a single exceptional meal recommendation in JSON format with the followi
     }
   });
 
+  // GET /api/saved-meals/check — lightweight key list for "is this meal saved?" checks
+  // MUST be defined BEFORE /:id so Express doesn't treat "check" as a UUID param.
+  app.get("/api/saved-meals/check", requireAuth, requireEssentialAccess, async (req, res) => {
+    try {
+      const userId = (req as AuthenticatedRequest).authUser.id;
+
+      const rows = await db.select({ title: savedMealsTable.title, sourceType: savedMealsTable.sourceType })
+        .from(savedMealsTable)
+        .where(eq(savedMealsTable.userId, String(userId)));
+
+      res.json(rows.map(r => `${r.title.trim().toLowerCase()}|${r.sourceType}`));
+    } catch (error) {
+      console.error("Error checking saved meals:", error);
+      res.status(500).json({ error: "Failed to check saved meals" });
+    }
+  });
+
   // GET /api/saved-meals/:id — full detail for a single saved meal (expanded view)
   app.get("/api/saved-meals/:id", requireAuth, requireEssentialAccess, async (req, res) => {
     try {
@@ -7825,21 +7842,6 @@ Provide a single exceptional meal recommendation in JSON format with the followi
     } catch (error) {
       console.error("Error listing saved meals:", error);
       res.status(500).json({ error: "Failed to list saved meals" });
-    }
-  });
-
-  app.get("/api/saved-meals/check", requireAuth, requireEssentialAccess, async (req, res) => {
-    try {
-      const userId = (req as AuthenticatedRequest).authUser.id;
-
-      const rows = await db.select({ title: savedMealsTable.title, sourceType: savedMealsTable.sourceType })
-        .from(savedMealsTable)
-        .where(eq(savedMealsTable.userId, String(userId)));
-
-      res.json(rows.map(r => `${r.title.trim().toLowerCase()}|${r.sourceType}`));
-    } catch (error) {
-      console.error("Error checking saved meals:", error);
-      res.status(500).json({ error: "Failed to check saved meals" });
     }
   });
 
