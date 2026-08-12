@@ -53,9 +53,20 @@ export async function computeEffectiveAccess(
   // Sandbox accounts get ultimate only in pre-launch mode — once billing is enforced
   // they use their real plan/trial so each tier can be tested by assigning the
   // appropriate plan_lookup_key to the test account.
+  //
+  // IMPORTANT — entitlements and subscription identity are separate concepts:
+  //   • Founder status elevates entitlements to ultimate.
+  //   • The real planLookupKey must be preserved so downstream middleware
+  //     (e.g. requireProCareAccess) can still recognise the actual product
+  //     this account owns.
+  //
+  // We fall back to the synthetic "mpm_ultimate_monthly" key only when the
+  // founder has no real paid plan on record (pure internal/founder accounts).
   if (user.isFounder || (!BILLING_ENFORCED && user.isSandbox)) {
+    // Prefer the real plan key; treat empty strings as absent.
+    const realKey = user.planLookupKey || user.personalPlanLookupKey || null;
     return {
-      planLookupKey: "mpm_ultimate_monthly",
+      planLookupKey: realKey ?? "mpm_ultimate_monthly",
       entitlements: ultimateEntitlements,
       tier: "ultimate",
       sponsoredByBusinessId: null,
