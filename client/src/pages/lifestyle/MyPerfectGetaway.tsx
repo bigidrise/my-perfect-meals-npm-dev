@@ -425,31 +425,10 @@ export default function MyPerfectGetaway() {
           </button>
         )}
 
-        {/* Hero banner */}
-        <div className="relative rounded-2xl overflow-hidden mb-6 border border-orange-500/20">
-          <div className="absolute inset-0 bg-gradient-to-br from-orange-900/60 via-amber-900/40 to-black" />
-          <div className="absolute inset-0 opacity-20">
-            <svg viewBox="0 0 400 160" className="w-full h-full" preserveAspectRatio="xMidYMid slice">
-              <circle cx="60" cy="80" r="45" fill="rgba(251,146,60,0.3)" />
-              <path d="M340 160 Q360 80 380 60 Q370 100 360 160Z" fill="rgba(251,191,36,0.2)" />
-              <path d="M300 160 Q330 70 350 50 Q335 90 320 160Z" fill="rgba(251,146,60,0.15)" />
-              <path d="M20 160 Q40 90 50 70 Q42 100 35 160Z" fill="rgba(251,191,36,0.15)" />
-              <ellipse cx="60" cy="155" rx="30" ry="6" fill="rgba(0,0,0,0.3)" />
-              <path d="M350 155 Q370 100 380 85" stroke="rgba(251,146,60,0.4)" strokeWidth="3" fill="none" />
-              <path d="M320 155 Q340 95 355 78" stroke="rgba(251,191,36,0.3)" strokeWidth="2.5" fill="none" />
-            </svg>
-          </div>
-          <div className="relative px-5 py-6">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-orange-500/20 border border-orange-400/30 rounded-full mb-3">
-              <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse" />
-              <span className="text-orange-200 text-[10px] font-semibold tracking-wide">Coach In Your Pocket™</span>
-            </div>
-            <h2 className="text-xl font-bold text-white mb-1.5">Your coach travels with you.</h2>
-            <p className="text-sm text-white/70 leading-relaxed">
-              Disney, airports, cruises, resorts — wherever life takes you,
-              get personalized picks based on your goals and health profile.
-            </p>
-          </div>
+        {/* Hub Intro — matches Pairings Hub pattern */}
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-bold text-white mb-2">Eat Well, Anywhere</h2>
+          <p className="text-sm text-white/70">Your personal nutrition coach at theme parks, airports, cruises, and resorts.</p>
         </div>
 
         {!result && !showZonePicker && !showVenueSearch && !discoveryResult && (
