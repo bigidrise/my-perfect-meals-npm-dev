@@ -25,6 +25,10 @@ export const BUILDER_CACHE_KEYS: readonly string[] = [
   "mpm_beverage_creator_result",
   "mpm_athlete_beverage_result",
   "mpm_dessert_creator_result",
+  "ai-meal-creator-cached-meals",
+  "ai-athlete-meal-creator-cached-meals",
+  "diabetic-ai-meal-creator-cached-meals",
+  "anti-inflammatory-ai-meal-creator-cached-meals",
 ];
 
 /** Max age before a cache entry is considered stale and eligible for eviction. */

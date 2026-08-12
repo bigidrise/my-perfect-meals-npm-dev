@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { safeLocalStorageSet } from "@/lib/safeLocalStorage";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { apiRequest } from "@/lib/apiRequest";
 import { motion } from "framer-motion";
@@ -482,7 +483,7 @@ export default function WeeklyMealBoard() {
         slot,
         generatedAtISO: new Date().toISOString(),
       };
-      localStorage.setItem(AI_MEALS_CACHE_KEY, JSON.stringify(state));
+      safeLocalStorageSet(AI_MEALS_CACHE_KEY, state);
     } catch {}
   }
 
