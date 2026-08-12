@@ -8,6 +8,7 @@ import {
   certificationModuleProgress,
 } from "../db/schema/certifications";
 import { QUIZ_ANSWER_KEYS } from "../data/platformMasteryQuizKeys";
+import { generateCertificatePDF } from "../services/certificateService";
 
 const router = express.Router();
 
@@ -475,6 +476,49 @@ router.get("/platform-mastery/certificate", requireAuth, async (req, res) => {
   } catch (err) {
     console.error("[Academy] certificate error:", err);
     return res.status(500).json({ error: "Failed to load certificate" });
+  }
+});
+
+// GET /api/academy/platform-mastery/certificate/pdf — download PDF certificate
+router.get("/platform-mastery/certificate/pdf", requireAuth, async (req, res) => {
+  try {
+    const userId = (req as AuthenticatedRequest).authUser.id;
+
+    const [cert] = await db
+      .select()
+      .from(userCertifications)
+      .where(
+        and(
+          eq(userCertifications.userId, userId),
+          eq(userCertifications.certificationType, CERT_TYPE),
+          eq(userCertifications.status, "completed")
+        )
+      )
+      .limit(1);
+
+    if (!cert) {
+      return res.status(404).json({ error: "Certificate not found" });
+    }
+
+    if (!cert.certificateName) {
+      return res.status(400).json({ error: "Certificate name is required before downloading" });
+    }
+
+    const pdfBuffer = await generateCertificatePDF({
+      name: cert.certificateName,
+      certType: CERT_TYPE,
+      certificateNumber: cert.certificateNumber ?? "MPM-PM-XXXXXX",
+      completedAt: cert.completedAt ? new Date(cert.completedAt) : new Date(),
+    });
+
+    const safeNum = (cert.certificateNumber ?? "certificate").replace(/[^a-zA-Z0-9-]/g, "");
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="MPM-PlatformMastery-${safeNum}.pdf"`);
+    res.setHeader("Content-Length", pdfBuffer.length);
+    return res.send(pdfBuffer);
+  } catch (err) {
+    console.error("[Academy] certificate PDF error:", err);
+    return res.status(500).json({ error: "Failed to generate certificate" });
   }
 });
 

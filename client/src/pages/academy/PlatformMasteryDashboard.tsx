@@ -112,7 +112,7 @@ export default function PlatformMasteryDashboard() {
       });
       if ((json as { ok: boolean }).ok) {
         setShowNameModal(false);
-        await load();
+        setLocation("/academy/platform-mastery/complete");
       }
     } catch {
     } finally {
@@ -173,6 +173,12 @@ export default function PlatformMasteryDashboard() {
                 {status?.certificateNumber}
               </p>
             </div>
+            <button
+              onClick={() => setLocation("/academy/platform-mastery/complete")}
+              className="px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 text-xs font-medium active:scale-[0.95] transition-transform flex-shrink-0"
+            >
+              View
+            </button>
           </motion.div>
         )}
 

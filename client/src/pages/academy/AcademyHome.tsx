@@ -322,7 +322,7 @@ export default function AcademyHome() {
           <div className="px-5 py-4 bg-black/20 border-t border-white/5">
             {isCertified ? (
               <button
-                onClick={() => setLocation("/academy/platform-mastery")}
+                onClick={() => setLocation("/academy/platform-mastery/complete")}
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-600/30 border border-emerald-500/30 text-emerald-300 font-semibold text-sm active:scale-[0.98] transition-transform"
               >
                 <Award className="h-4 w-4" />
