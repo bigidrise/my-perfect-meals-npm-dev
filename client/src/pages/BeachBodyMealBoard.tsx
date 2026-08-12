@@ -84,6 +84,7 @@ import {
   Save,
 } from "lucide-react";
 import { FEATURES } from "@/utils/features";
+import { DailyMacroTotalsRow } from "@/components/DailyMacroTotalsRow";
 import { apiRequest } from "@/lib/queryClient";
 import type { PerformanceSessionContext } from "@/hooks/useCreateWithChefRequest";
 import { DayChips } from "@/components/DayChips";
@@ -1415,58 +1416,13 @@ export default function BeachBodyMealBoard() {
             )}
 
             {/* ROW 5: Daily Macro Totals vs Targets */}
-            {FEATURES.dayPlanning === "alpha" && activeDayISO && (() => {
-              const resolved = nutritionTargets;
-              const hasTargets = resolved && resolved.source !== "none" && (
-                resolved.calories > 0 || resolved.protein_g > 0 ||
-                resolved.carbs_g > 0 || resolved.fat_g > 0
-              );
-
-              function macroColor(value: number, target: number): string {
-                if (!target) return "bg-white/10 text-white/80";
-                const pct = value / target;
-                if (pct > 1) return "bg-red-700/60 text-red-100";
-                if (pct >= 0.9) return "bg-amber-600/60 text-amber-100";
-                return "bg-lime-800/50 text-lime-100";
-              }
-
-              return (
-                <div className="flex flex-wrap items-center gap-1.5 px-1">
-                  <span className="text-white/40 text-xs font-medium shrink-0">Today:</span>
-                  {hasTargets ? (
-                    <>
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${macroColor(totals.calories, resolved!.calories)}`}>
-                        {totals.calories.toLocaleString()} / {Math.round(resolved!.calories).toLocaleString()} cal
-                      </span>
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${macroColor(totals.protein, resolved!.protein_g)}`}>
-                        P {totals.protein} / {Math.round(resolved!.protein_g)}g
-                      </span>
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${macroColor(totals.carbs, resolved!.carbs_g)}`}>
-                        C {totals.carbs} / {Math.round(resolved!.carbs_g)}g
-                      </span>
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${macroColor(totals.fat, resolved!.fat_g)}`}>
-                        F {totals.fat} / {Math.round(resolved!.fat_g)}g
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
-                        {totals.calories.toLocaleString()} cal
-                      </span>
-                      <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
-                        P {totals.protein}g
-                      </span>
-                      <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
-                        C {totals.carbs}g
-                      </span>
-                      <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
-                        F {totals.fat}g
-                      </span>
-                    </>
-                  )}
-                </div>
-              );
-            })()}
+            {FEATURES.dayPlanning === "alpha" && activeDayISO && (
+              <DailyMacroTotalsRow
+                totals={totals}
+                prescription={prescription}
+                activeDayISO={activeDayISO}
+              />
+            )}
 
             {/* ROW 6: Bottom Actions */}
             <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/10">

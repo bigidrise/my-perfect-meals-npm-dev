@@ -684,7 +684,11 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
                       <div className={`text-6xl font-black leading-none ${grade.color}`}>{activeResult.alignmentGrade}</div>
                       <div>
                         <p className={`font-bold text-base ${grade.color}`}>{grade.desc}</p>
-                        <p className="text-xs text-white/45 mt-0.5">Personalized to your health profile</p>
+                        <p className="text-xs text-white/45 mt-0.5">
+                          {activeResult.profileFactorsUsed && activeResult.profileFactorsUsed.length > 0
+                            ? 'Personalized to your health profile'
+                            : 'General analysis — add health goals for personalized results'}
+                        </p>
                       </div>
                     </div>
                   ) : null}

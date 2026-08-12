@@ -18,7 +18,8 @@ import { db } from "../db";
 import { users } from "../../shared/schema";
 import { clinicalLabs } from "../db/schema/clinicalLabs";
 import { companionProfiles } from "../db/schema/companionProfiles";
-import { eq, count } from "drizzle-orm";
+import { eq, count, sql } from "drizzle-orm";
+import { DEFAULT_GLP1_GUARDRAILS } from "../../shared/glp1-schema";
 import {
   DailyNutritionPrescription,
   PrescriptionSource,
@@ -144,7 +145,9 @@ export async function resolveDailyNutritionPrescription(
   const starchDistributionStrategy: StarchDistributionStrategy =
     savedStrategy && validStrategies.includes(savedStrategy) ? savedStrategy : "even";
 
-  // ── Performance Hub layer ─────────────────────────────────────────────────
+  // ── Effective daily target variables ─────────────────────────────────────
+  // Start from Macro Calculator baseline. GLP-1 and Performance overlays
+  // modify these in strict priority order: GLP-1 first, then Performance.
   let source: PrescriptionSource = "user_default";
   let caloriesTarget = caloriesBase;
   let proteinTarget  = proteinBase;
@@ -154,16 +157,82 @@ export async function resolveDailyNutritionPrescription(
   let resolvedSessionType: SessionType | null = null;
   let isZeroStarchDay = false;
 
+  // ── GLP-1 Clinical Overlay ─────────────────────────────────────────────────
+  // Applied BEFORE Performance so Performance modifiers operate on the
+  // GLP-1-adjusted baseline, never on the raw Macro Calculator values.
+  // Design rule: Performance must not bypass GLP-1 clinical constraints.
+  const specialtyConditions = Array.isArray(user.specialtyConditions)
+    ? (user.specialtyConditions as string[]) : [];
+  const isGLP1Active =
+    specialtyConditions.includes("glp1") ||
+    (Array.isArray(user.medicalConditions) &&
+      (user.medicalConditions as string[]).some((c) => c === "glp1" || c === "glp-1"));
+
+  let glp1DailyProteinFloor: number | null = null;
+  let glp1DailyFatCeiling: number | null = null;
+
+  if (isGLP1Active) {
+    let guardrails = DEFAULT_GLP1_GUARDRAILS;
+    try {
+      const glp1Result = await db.execute(
+        sql`SELECT guardrails FROM glp1_profile WHERE user_id = ${parseInt(userId)} LIMIT 1`
+      );
+      const glp1Row = glp1Result.rows?.[0] as { guardrails?: unknown } | undefined;
+      if (glp1Row?.guardrails && typeof glp1Row.guardrails === "object") {
+        guardrails = glp1Row.guardrails as typeof DEFAULT_GLP1_GUARDRAILS;
+      }
+    } catch {
+      // Use defaults on any DB error
+    }
+
+    const mealsPerDay = guardrails.mealsPerDay ?? 4;
+    const proteinMinG = guardrails.proteinMinG ?? 25;
+    const fatMaxG     = guardrails.fatMaxG     ?? 15;
+
+    // Infer treatment phase (mirrors logic in resolveGLP1MealTargets.ts)
+    const treatmentPhase =
+      proteinMinG >= 40 ? "muscle_preserve"
+      : fatMaxG <= 10   ? "intro"
+      : "maintenance";
+
+    // Daily calorie adjustment based on treatment phase
+    const phaseMultiplier =
+      treatmentPhase === "intro"             ? 0.82
+      : treatmentPhase === "muscle_preserve" ? 1.08
+      : 1.0;
+    caloriesTarget = Math.round(caloriesTarget * phaseMultiplier);
+
+    // Daily protein floor and fat ceiling (per-meal limit × meals per day)
+    glp1DailyProteinFloor = proteinMinG * mealsPerDay;
+    glp1DailyFatCeiling   = fatMaxG * mealsPerDay;
+    proteinTarget = Math.max(proteinTarget, glp1DailyProteinFloor);
+    fatTarget     = Math.min(fatTarget,     glp1DailyFatCeiling);
+
+    // Recompute carbs for caloric integrity, then re-split starchy/fibrous
+    const remainingCals = caloriesTarget - proteinTarget * 4 - fatTarget * 9;
+    carbsTarget = Math.max(0, Math.round(remainingCals / 4));
+    const carbRatio = carbsBase > 0 ? carbsTarget / carbsBase : 0;
+    starchyCarbsTarget = Math.round(starchyCarbsTarget * carbRatio);
+    fibrousCarbsTarget = Math.max(0, carbsTarget - starchyCarbsTarget);
+
+    source = "clinical";
+    rationaleCodes.push("glp1_daily_overlay_active");
+    if (treatmentPhase !== "maintenance") rationaleCodes.push(`glp1_phase_${treatmentPhase}`);
+  }
+
+  // ── Performance Hub layer ─────────────────────────────────────────────────
   const weeklySchedule = user.weeklyTrainingSchedule as WeeklyTrainingSchedule | null;
   const perfConfig     = user.performanceProtocolConfig as PerformanceProtocolConfig | null;
 
   if (weeklySchedule && perfConfig && user.performanceModeEnabled) {
     try {
       const baseline: MacroBaseline = {
-        calories:      caloriesBase,
-        proteinG:      proteinBase,
-        carbsG:        carbsBase,
-        fatG:          fatBase,
+        // Use GLP-1-adjusted values as the starting point. When GLP-1 is not
+        // active, caloriesTarget === caloriesBase so behaviour is unchanged.
+        calories:      caloriesTarget,
+        proteinG:      proteinTarget,
+        carbsG:        carbsTarget,
+        fatG:          fatTarget,
         starchyCarbsG: starchyCarbsTarget,
         fibrousCarbsG: fibrousCarbsTarget,
       };
@@ -186,6 +255,22 @@ export async function resolveDailyNutritionPrescription(
       }
     } catch {
       rationaleCodes.push("performance_resolver_error_fallback");
+    }
+  }
+
+  // ── GLP-1 Re-enforcement after Performance ────────────────────────────────
+  // Performance modifiers apply to the GLP-1-adjusted baseline, but we
+  // explicitly re-enforce floors/ceilings so Performance can never silently
+  // push protein below the clinical floor or fat above the clinical ceiling.
+  if (isGLP1Active) {
+    if (glp1DailyProteinFloor !== null) {
+      proteinTarget = Math.max(proteinTarget, glp1DailyProteinFloor);
+    }
+    if (glp1DailyFatCeiling !== null) {
+      fatTarget = Math.min(fatTarget, glp1DailyFatCeiling);
+    }
+    if (source === "performance") {
+      rationaleCodes.push("glp1_limits_enforced_post_performance");
     }
   }
 
