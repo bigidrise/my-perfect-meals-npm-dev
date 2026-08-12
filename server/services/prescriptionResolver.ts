@@ -18,6 +18,7 @@ import { db } from "../db";
 import { users } from "../../shared/schema";
 import { clinicalLabs } from "../db/schema/clinicalLabs";
 import { companionProfiles } from "../db/schema/companionProfiles";
+import { dailyNutritionPrescriptions } from "../db/schema/dailyNutritionPrescriptions";
 import { eq, count, sql } from "drizzle-orm";
 import { DEFAULT_GLP1_GUARDRAILS } from "../../shared/glp1-schema";
 import {
@@ -293,6 +294,53 @@ export async function resolveDailyNutritionPrescription(
 
   if (isZeroStarchDay) rationaleCodes.push("zero_starch_day");
   if (source === "user_default") rationaleCodes.push("user_default_targets");
+
+  // ── Persist resolved prescription (fire-and-forget) ───────────────────────
+  // Map internal source names to the DB's source vocabulary.
+  // "clinical" = GLP-1 overlay on the user's own baseline (no procare).
+  const dbSource =
+    source === "performance" ? "performance_overlay" : "macro_calculator";
+  const rationaleSig = rationaleCodes.join(",");
+
+  // Cache guard: use setWhere so the UPDATE is a no-op when the source and
+  // rationale signature are unchanged. This avoids unnecessary writes on
+  // repeated requests for the same date (e.g. repeated page loads today).
+  db.insert(dailyNutritionPrescriptions)
+    .values({
+      userId,
+      date: dateISO,
+      targetCalories:    String(caloriesTarget),
+      targetProtein:     String(proteinTarget),
+      targetTotalCarbs:  String(carbsTarget),
+      targetStarchyCarbs: String(starchyCarbsTarget),
+      targetFibrousCarbs: String(fibrousCarbsTarget),
+      targetFat:         String(fatTarget),
+      source:            dbSource,
+      sourceVersion:     rationaleSig,
+      performanceDayType: trainingDayType ?? null,
+      updatedAt:         new Date(),
+    })
+    .onConflictDoUpdate({
+      target: [dailyNutritionPrescriptions.userId, dailyNutritionPrescriptions.date],
+      set: {
+        targetCalories:    String(caloriesTarget),
+        targetProtein:     String(proteinTarget),
+        targetTotalCarbs:  String(carbsTarget),
+        targetStarchyCarbs: String(starchyCarbsTarget),
+        targetFibrousCarbs: String(fibrousCarbsTarget),
+        targetFat:         String(fatTarget),
+        source:            dbSource,
+        sourceVersion:     rationaleSig,
+        performanceDayType: trainingDayType ?? null,
+        updatedAt:         new Date(),
+      },
+      // Only overwrite if something materially changed — avoids write amplification
+      // on repeated requests for the same date.
+      setWhere: sql`${dailyNutritionPrescriptions.sourceVersion} IS DISTINCT FROM ${rationaleSig}`,
+    })
+    .catch((err: unknown) => {
+      console.error("[prescriptionResolver] upsert failed:", err);
+    });
 
   return {
     date: dateISO,
