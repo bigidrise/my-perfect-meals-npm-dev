@@ -33,9 +33,9 @@ const ShareBodySchema = z.object({
   fat:             z.number().nonnegative().optional(),
 });
 
-router.post("/share", requireAuth, async (req: AuthenticatedRequest, res) => {
+router.post("/share", requireAuth, async (req, res) => {
   try {
-    const userId = req.user?.id;
+    const userId = (req as AuthenticatedRequest).authUser.id;
     if (!userId) return res.status(401).json({ error: "Not authenticated" });
 
     const parsed = ShareBodySchema.safeParse(req.body);
