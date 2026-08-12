@@ -174,8 +174,8 @@ export async function runStorageStartupDiagnostic(): Promise<void> {
   await probeSidecarEndpoints();
   console.log("│");
 
-  // ── PATH 1: current uploadImageToPermanentStorage() ──────────────────────
-  console.log("│ [Path 1] uploadImageToPermanentStorage() …");
+  // ── PATH 1: uploadImageToPermanentStorage() (server production path) ─────
+  console.log("│ [Path 1] uploadImageToPermanentStorage() — production server path …");
   const path1 = await testCurrentUploadPath(tag);
   if (path1.success) {
     console.log(`│   ✅ SUCCEEDED  → ${path1.url}`);
