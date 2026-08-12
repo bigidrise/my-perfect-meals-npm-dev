@@ -30,6 +30,14 @@ function formatRelativeDate(iso: string): string {
 
 /** Reconstruct a full IngredientScanResult from a saved scan so the sheet can reopen. */
 function reconstructResult(scan: SavedProductScan): IngredientScanResult {
+  // Prefer the full saved result if available (stored since the fullResult field was added).
+  if (scan.fullResult) {
+    try {
+      const parsed = JSON.parse(scan.fullResult) as IngredientScanResult;
+      if (parsed && typeof parsed === "object" && parsed.alignmentGrade) return parsed;
+    } catch { /* fall through to reconstruction */ }
+  }
+  // Backward-compatible reconstruction for scans saved before fullResult was introduced.
   const DEFAULT_SCORE_CARDS = {
     kids:        { verdict: "neutral" as const, reason: "" },
     adults:      { verdict: "neutral" as const, reason: "" },
@@ -51,7 +59,7 @@ function reconstructResult(scan: SavedProductScan): IngredientScanResult {
     educationalFooter: "This analysis is for general wellness education and is not medical advice.",
     highRiskFindings: [],
     ocrConfidenceLow: false,
-    fallbackUsed: false,
+    fallbackUsed: scan.gradeCalculated === false,
   };
 }
 
@@ -109,10 +117,13 @@ export default function RecentScans({ refreshKey, onReopen }: Props) {
       {open && (
         <div className="px-3 pb-3 space-y-2">
           {scans.map((scan) => {
-            const gradeStyle = GRADE_COLORS[scan.score] ?? GRADE_COLORS.B;
+            const gradeCalculated = scan.gradeCalculated !== false;
+            const gradeStyle = gradeCalculated
+              ? (GRADE_COLORS[scan.score] ?? GRADE_COLORS.B)
+              : "bg-white/10 border-white/20 text-white/40";
             const decision = DECISION_LABELS[scan.userDecision] ?? DECISION_LABELS.skipped;
             const isExpanded = expandedId === scan.id;
-            const canReopen = !!(scan.overallSummary || scan.considerations?.length);
+            const canReopen = !!(scan.fullResult || scan.overallSummary || scan.considerations?.length);
 
             return (
               <div
@@ -127,7 +138,7 @@ export default function RecentScans({ refreshKey, onReopen }: Props) {
                     <div
                       className={`shrink-0 w-9 h-9 rounded-lg border flex items-center justify-center font-black text-base ${gradeStyle}`}
                     >
-                      {scan.score}
+                      {gradeCalculated ? scan.score : "—"}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">

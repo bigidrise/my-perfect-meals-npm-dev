@@ -294,7 +294,7 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
           "A user is at the grocery store and picks up a packaged protein bar. She wants to know if it fits her plan before buying it. Which tool handles this?",
         options: [
           "Recipe Maker — she enters the ingredients from the label.",
-          "Smart Scan — she scans the barcode for a shopping evaluation.",
+          "Product Scan — she scans the barcode for a shopping evaluation.",
           "MacroScan — she photographs the nutrition label and the platform evaluates it against her profile.",
           "Snack Creator — it generates snack options with similar macro profiles.",
         ],
@@ -557,15 +557,15 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
     id: "lesson-04",
     lessonNumber: 4,
     title: "Shopping & Your Grocery Scope",
-    subtitle: "Smart Grocery List, Grocery Coach, Smart Scan, and Fridge Rescue",
+    subtitle: "Smart Grocery List, Grocery Coach, Product Scan, and Fridge Rescue",
     learningObjectives: [
       "Explain what triggers the Smart Grocery List to populate and what causes it to appear empty",
       "Describe how Grocery Coach provides protocol-aware buying guidance aligned to your active health programs",
       "Use Recipe Maker to adapt a recipe found outside My Perfect Meals to a specific dietary identity and macro target",
-      "Distinguish when to use Smart Scan versus Fridge Rescue for a food decision in or around the home",
+      "Distinguish when to use Product Scan versus Fridge Rescue for a food decision in or around the home",
     ],
     opening:
-      "A saved meal plan answers what you should eat. The shopping tools answer how to get that food into your kitchen — and how to evaluate what you already have. This lesson covers the full grocery scope of My Perfect Meals: your Smart Grocery List, Grocery Coach, Smart Scan, Recipe Maker, and Fridge Rescue.",
+      "A saved meal plan answers what you should eat. The shopping tools answer how to get that food into your kitchen — and how to evaluate what you already have. This lesson covers the full grocery scope of My Perfect Meals: your Smart Grocery List, Grocery Coach, Product Scan, Recipe Maker, and Fridge Rescue.",
     sections: [
       {
         heading: "Smart Grocery List — Your Plan Becomes a List",
@@ -576,8 +576,8 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
         body: "Grocery Coach provides protocol-aware guidance on what to buy — not just what's on your ingredient list, but how to stock your kitchen in a way that supports your active nutrition programs.\n\nWhere the Smart Grocery List tells you exactly which ingredients your saved meals require, Grocery Coach answers the broader question: *given your protocol, what kind of kitchen should you maintain?*\n\nBased on your active health programs and dietary identity, Grocery Coach delivers targeted buying guidance:\n\n- **A user on the GLP-1 Builder** receives guidance on keeping high-protein, easy-to-prepare options available for low-appetite windows\n- **A user on an anti-inflammatory protocol** receives guidance on which produce and protein categories to prioritize across the week\n- **A user managing Type 2 diabetes** receives guidance on structuring their kitchen to support glycemic stability throughout the week\n\nGrocery Coach is the strategic guidance layer above your ingredient list. It helps you make protocol-aligned decisions before you get to the store — so your kitchen consistently supports your plan, not just the meals you happened to save this week.",
       },
       {
-        heading: "Smart Scan — Ingredient Intelligence in the Store",
-        body: "Smart Scan brings profile-aware evaluation to the store shelf. Point your camera at any product barcode and the platform evaluates the nutrition label against your active profile.\n\nWhat Smart Scan checks:\n- Does this product fit your dietary identity?\n- Does it conflict with any medical guardrails?\n- How does it compare to your remaining macro targets?\n\nThe result: compatible, use with caution, or avoid — with the specific reason. Most useful when comparing similar products or evaluating packaged foods you haven't used before.",
+        heading: "Product Scan — Ingredient Intelligence in the Store",
+        body: "Product Scan brings profile-aware evaluation to the store shelf. Point your camera at any product barcode and the platform evaluates the nutrition label against your active profile.\n\nWhat Product Scan checks:\n- Does this product fit your dietary identity?\n- Does it conflict with any medical guardrails?\n- How does it compare to your remaining macro targets?\n\nThe result: compatible, use with caution, or avoid — with the specific reason. Most useful when comparing similar products or evaluating packaged foods you haven't used before.",
       },
       {
         heading: "Recipe Maker — Adapting Recipes You Already Love",
@@ -589,7 +589,7 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
       },
       {
         heading: "A Sustainable Shopping Routine",
-        body: "The friction that breaks most nutrition plans isn't the food itself — it's running out of the right ingredients.\n\nBefore each shop:\n1. Save your weekly plan in the builder\n2. Open your Smart Grocery List\n3. Review through Grocery Coach — note flags and quantity guidance\n4. Use Smart Scan in the store for unfamiliar products\n\nWhen you find a recipe you love outside the app: Recipe Maker.\nWhen you have ingredients but no plan: Fridge Rescue.",
+        body: "The friction that breaks most nutrition plans isn't the food itself — it's running out of the right ingredients.\n\nBefore each shop:\n1. Save your weekly plan in the builder\n2. Open your Smart Grocery List\n3. Review through Grocery Coach — note flags and quantity guidance\n4. Use Product Scan in the store for unfamiliar products\n\nWhen you find a recipe you love outside the app: Recipe Maker.\nWhen you have ingredients but no plan: Fridge Rescue.",
       },
     ],
     exercise: {
@@ -602,7 +602,7 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
       ],
     },
     remember:
-      "Save your plan → review Grocery Coach → use Smart Scan in-store. When you find a recipe to adapt: Recipe Maker. When you have food but no plan: Fridge Rescue.",
+      "Save your plan → review Grocery Coach → use Product Scan in-store. When you find a recipe to adapt: Recipe Maker. When you have food but no plan: Fridge Rescue.",
     closing:
       "You now have the tools to plan and shop. The next lesson covers what happens when you're eating away from home.",
     quiz: [
@@ -645,7 +645,7 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
       {
         id: "l4-q4",
         question:
-          "What factors does Smart Scan evaluate when a user scans a barcode in the store?",
+          "What factors does Product Scan evaluate when a user scans a barcode in the store?",
         options: [
           "Store pricing, product reviews, and total calorie count.",
           "Macronutrient totals only, without profile context.",
@@ -698,7 +698,7 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
           "Grocery Coach — it has a product comparison database.",
           "Fridge Rescue — she enters the serving size to see how it fits a meal.",
           "Recipe Maker — she enters the supplement facts as ingredients.",
-          "Smart Scan — she scans both barcodes in-store to compare them against her profile.",
+          "Product Scan — she scans both barcodes in-store to compare them against her profile.",
         ],
         correctIndex: 3,
       },
@@ -710,7 +710,7 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
           "Opening Grocery Coach from the More page.",
           "Logging a meal via Add to Macros.",
           "Saving or updating a weekly plan in the builder.",
-          "Running Smart Scan on an item not already on the list.",
+          "Running Product Scan on an item not already on the list.",
         ],
         correctIndex: 2,
       },

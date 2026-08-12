@@ -154,6 +154,12 @@ router.post("/api/auth/signup", async (req, res) => {
       userValues.professionalRole = "business";
     }
 
+    // Acquisition source — optional, captured from ?source= or ?ref= URL param
+    const signupSource = typeof req.body.signupSource === "string" ? req.body.signupSource.trim().slice(0, 100) : null;
+    if (signupSource) {
+      userValues.signupSource = signupSource;
+    }
+
     if (procare && procare.professionalCategory) {
       const validRoles = ["trainer", "physician", "dietitian", "nurse_practitioner"];
       const validCategories = ["certified", "experienced", "non_certified"];

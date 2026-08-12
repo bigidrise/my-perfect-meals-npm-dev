@@ -130,41 +130,165 @@ router.post("/", async (req, res) => {
         });
 
         if (subscriptionType === "business_seat") {
-          // Create (or update) the Business record and add owner as seat 1
+          const { businesses, businessMembers } = await import("../db/schema/business");
+          const { eq: eqBiz, sql: drizzleSql } = await import("drizzle-orm");
+
+          // ── Step 1: Create or update the Business record ─────────────────
+          let bizId = "";
+          let orgName = "";
           try {
-            const { businesses, businessMembers } = await import("../db/schema/business");
-            const { eq } = await import("drizzle-orm");
-            const [existing] = await db.select().from(businesses).where(eq(businesses.ownerUserId, userId)).limit(1);
+            const [existing] = await db.select().from(businesses).where(eqBiz(businesses.ownerUserId, userId)).limit(1);
+
             if (!existing) {
-              const [newBiz] = await db.insert(businesses).values({
-                name: "My Business Team",
-                ownerUserId: userId,
-                stripeCustomerId: customerId,
-                stripeSubscriptionId: subscriptionId,
-                plan: sku,
-                seatLimit: seatCount,
-                status: "active",
-              }).returning();
-              await db.insert(businessMembers).values({
-                businessId: newBiz.id,
-                userId,
-                role: "owner",
-                status: "active",
+              // Atomic: business row + owner membership in one transaction so partial failure
+              // leaves no orphaned record. Replay enters the existing branch and repairs.
+              await db.transaction(async (tx) => {
+                const [newBiz] = await tx.insert(businesses).values({
+                  name: "My Business Team",
+                  ownerUserId: userId,
+                  stripeCustomerId: customerId,
+                  stripeSubscriptionId: subscriptionId,
+                  plan: sku,
+                  seatLimit: seatCount,
+                  status: "active",
+                }).returning();
+                await tx.insert(businessMembers).values({
+                  businessId: newBiz.id,
+                  userId,
+                  role: "owner",
+                  status: "active",
+                });
+                bizId = newBiz.id;
+                orgName = newBiz.name;
               });
-              console.log(`✅ [webhook] Business created | id=${newBiz.id} | owner=${userId} | seats=${seatCount}`);
+              console.log(`✅ [webhook] Business created | id=${bizId} | owner=${userId} | seats=${seatCount}`);
             } else {
-              await db.update(businesses).set({
-                seatLimit: seatCount,
-                stripeSubscriptionId: subscriptionId,
-                stripeCustomerId: customerId,
-                status: "active",
-                updatedAt: new Date(),
-              }).where(eq(businesses.id, existing.id));
-              console.log(`✅ [webhook] Business updated | id=${existing.id} | seats=${seatCount}`);
+              // Guard: if the org is already active under a DIFFERENT subscription, this
+              // checkout session is a stale/unauthorized duplicate — ignore it to protect
+              // the existing billing state.
+              const isIntendedSubscription =
+                existing.status === "pending_billing" ||
+                existing.stripeSubscriptionId === subscriptionId ||
+                existing.stripeSubscriptionId === null;
+
+              if (!isIntendedSubscription) {
+                console.warn(
+                  `⚠️ [webhook] Ignoring checkout for already-active org with mismatched subscription | ` +
+                  `bizId=${existing.id} | existingSub=${existing.stripeSubscriptionId} | newSub=${subscriptionId}`,
+                );
+                // Skip further processing — do not overwrite billing state or send email
+                break;
+              }
+
+              // Update core fields and repair missing owner membership in one transaction
+              await db.transaction(async (tx) => {
+                await tx.update(businesses).set({
+                  seatLimit: seatCount,
+                  stripeSubscriptionId: subscriptionId,
+                  stripeCustomerId: customerId,
+                  status: "active",
+                  updatedAt: new Date(),
+                }).where(eqBiz(businesses.id, existing.id));
+                const [ownerMember] = await tx
+                  .select({ id: businessMembers.id })
+                  .from(businessMembers)
+                  .where(drizzleSql`business_id = ${existing.id} AND user_id = ${userId}`)
+                  .limit(1);
+                if (!ownerMember) {
+                  await tx.insert(businessMembers).values({
+                    businessId: existing.id,
+                    userId,
+                    role: "owner",
+                    status: "active",
+                  });
+                  console.log(`🔧 [webhook] Repaired missing owner membership | bizId=${existing.id} | owner=${userId}`);
+                }
+              });
+              bizId = existing.id;
+              orgName = existing.name;
+              console.log(`✅ [webhook] Business updated | id=${bizId} | seats=${seatCount}`);
             }
           } catch (bizErr) {
-            console.error("❌ [webhook] Business creation failed:", bizErr);
+            // Propagate so the outer handler returns 500 and Stripe retries the event
+            console.error("❌ [webhook] Business creation/update failed:", bizErr);
+            throw bizErr;
           }
+
+          // ── Step 2: Welcome email — two-column idempotency ──────────────────
+          //
+          // welcomeEmailKey  — stable UUID written once before the first send attempt and
+          //                    NEVER cleared. Passed to Resend as the idempotency key so
+          //                    Resend deduplicates concurrent and retried requests on its end.
+          //
+          // welcomeEmailSentAt — written ONLY after sendBusinessWelcomeEmail returns true.
+          //                      Checked first; if already set, the whole block is skipped.
+          //
+          // On failure: welcomeEmailKey stays set (next Stripe replay reuses it → Resend
+          // deduplicates), welcomeEmailSentAt stays null, and we throw so the outer handler
+          // returns 500 and Stripe retries. No-email-address case returns 200 — retrying
+          // can't help if the owner has no address.
+          if (bizId) {
+            // Skip if already confirmed delivered
+            const [current] = await db
+              .select({ welcomeEmailSentAt: businesses.welcomeEmailSentAt, welcomeEmailKey: businesses.welcomeEmailKey } as any)
+              .from(businesses)
+              .where(eqBiz(businesses.id, bizId))
+              .limit(1) as any[];
+
+            if ((current as any)?.welcomeEmailSentAt) {
+              console.log(`ℹ️ [webhook] Business welcome email already confirmed for bizId=${bizId} — skipping`);
+            } else {
+              // Atomically write the stable provider idempotency key (set once, never cleared)
+              await db
+                .update(businesses)
+                .set({ welcomeEmailKey: drizzleSql`gen_random_uuid()::text` } as any)
+                .where(drizzleSql`id = ${bizId} AND welcome_email_key IS NULL`);
+
+              // Read back whichever key is now set (ours or a prior concurrent attempt's)
+              const [withKey] = await db
+                .select({ key: (businesses as any).welcomeEmailKey })
+                .from(businesses)
+                .where(eqBiz(businesses.id, bizId))
+                .limit(1) as any[];
+
+              const providerKey: string | null = (withKey as any)?.key ?? null;
+
+              const { sendBusinessWelcomeEmail } = await import("../services/emailService");
+              const [owner] = await db
+                .select({ email: users.email, firstName: users.firstName })
+                .from(users)
+                .where(eqBiz(users.id, userId))
+                .limit(1);
+
+              if (!owner?.email) {
+                console.warn(`[webhook] No email address for owner ${userId} — welcome email skipped | bizId=${bizId}`);
+              } else {
+                const APP_URL = process.env.PUBLIC_APP_URL || "https://app.myperfectmeals.ai";
+                const sent = await sendBusinessWelcomeEmail({
+                  to: owner.email,
+                  ownerName: owner.firstName || "there",
+                  orgName,
+                  seatCount,
+                  dashboardUrl: `${APP_URL}/business-dashboard`,
+                  idempotencyKey: providerKey ?? undefined,
+                });
+
+                if (sent) {
+                  // Mark confirmed delivery — only now is the email considered sent
+                  await db
+                    .update(businesses)
+                    .set({ welcomeEmailSentAt: new Date() } as any)
+                    .where(eqBiz(businesses.id, bizId));
+                  console.log(`✅ [webhook] Business welcome email delivered | bizId=${bizId}`);
+                } else {
+                  // welcomeEmailKey stays set so the next Stripe replay reuses the same
+                  // Resend idempotency key and Resend deduplicates at the provider level.
+                  throw new Error(`[webhook] Welcome email delivery failed for bizId=${bizId} — Stripe will retry`);
+                }
+              }
+            }
+          }
+
           console.log(
             `✅ [webhook] checkout.session.completed — business_seat | user ${userId} → ${sku} | seats=${seatCount} | total=$${(44.99 * seatCount).toFixed(2)}/mo`,
           );

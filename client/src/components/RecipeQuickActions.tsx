@@ -4,6 +4,11 @@ import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { Capacitor } from "@capacitor/core";
+import { Share } from "@capacitor/share";
+import { apiUrl } from "@/lib/resolveApiBase";
+import { getAuthHeaders } from "@/lib/auth";
+import SharePanel from "@/components/SharePanel";
 
 interface Recipe {
   id: string;
@@ -143,20 +148,59 @@ export function RecipeQuickActions({ recipe }: RecipeQuickActionsProps) {
     setLocation(`/cook/${recipe.slug}`);
   };
 
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [shareUrl, setShareUrl]   = useState<string | null>(null);
+  const [sharing, setSharing]     = useState(false);
+
   const handleShare = async () => {
-    const url = `${window.location.origin}/r/${recipe.slug}`;
+    if (sharing) return;
+    setSharing(true);
     try {
-      await navigator.clipboard.writeText(url);
-      toast({
-        title: "Link Copied",
-        description: "Recipe link has been copied to your clipboard.",
-      });
-    } catch {
-      toast({
-        title: "Share Failed",
-        description: "Unable to copy link. Please try again.",
-        variant: "destructive",
-      });
+      // Create a public share link on the server
+      let url = shareUrl;
+      if (!url) {
+        try {
+          const headers: Record<string, string> = {
+            "Content-Type": "application/json",
+            ...((await getAuthHeaders()) as Record<string, string>),
+          };
+          const res = await fetch(apiUrl("/api/meals/share"), {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ mealName: recipe.name }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            url = data.shareUrl as string;
+            setShareUrl(url);
+          }
+        } catch {
+          // fall through — use fallback URL
+        }
+        if (!url) url = window.location.origin;
+      }
+
+      const title = recipe.name;
+      const text  = `Check out this meal from My Perfect Meals: ${title}`;
+
+      if (Capacitor.isNativePlatform()) {
+        await Share.share({ title, text, url, dialogTitle: "Share Recipe" });
+        return;
+      }
+
+      if (typeof navigator !== "undefined" && navigator.share) {
+        try {
+          await navigator.share({ title, text, url });
+          return;
+        } catch (err: any) {
+          if (err?.name === "AbortError") return;
+        }
+      }
+
+      // Desktop fallback — open share panel
+      setPanelOpen(true);
+    } finally {
+      setSharing(false);
     }
   };
 
@@ -195,12 +239,23 @@ export function RecipeQuickActions({ recipe }: RecipeQuickActionsProps) {
         <Button
           variant="outline"
           onClick={handleShare}
+          disabled={sharing}
           className="border-purple-500/50 bg-purple-600/20 text-purple-200 hover:bg-purple-600/30 hover:border-purple-400 text-sm font-medium"
           data-testid={`button-share-${recipe.slug}`}
         >
-          🔗 Share
+          🔗 {sharing ? "Sharing…" : "Share"}
         </Button>
       </div>
+
+      {panelOpen && shareUrl && (
+        <SharePanel
+          open={panelOpen}
+          onClose={() => setPanelOpen(false)}
+          shareUrl={shareUrl}
+          mealName={recipe.name}
+          shareText={`Check out this meal from My Perfect Meals: ${recipe.name}\n\n${shareUrl}`}
+        />
+      )}
 
       {openPicker && (
         <DaySlotPicker

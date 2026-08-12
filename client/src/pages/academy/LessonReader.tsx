@@ -971,13 +971,13 @@ export default function LessonReader() {
           {(() => {
             const next = nextLessonId();
             if (!next) {
-              // Last lesson — go to dashboard to claim cert
+              // Last lesson — go to Platform Mastery dashboard to claim cert
               return (
                 <button
-                  onClick={() => setLocation("/academy")}
+                  onClick={() => setLocation("/academy/platform-mastery")}
                   className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-orange-600 text-white font-bold text-sm active:scale-[0.98] transition-transform"
                 >
-                  Back to Academy
+                  Back to Dashboard
                   <ChevronRight className="h-4 w-4" />
                 </button>
               );

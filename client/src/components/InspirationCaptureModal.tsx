@@ -481,7 +481,7 @@ export default function InspirationCaptureModal({
               )}
               <DialogTitle className="text-xl font-bold text-white">
                 {isSmartScan
-                  ? (isCompanionScan ? `Scan Food For ${profileName}` : "Smart Scan")
+                  ? (isCompanionScan ? `Scan Food For ${profileName}` : "Product Scan")
                   : (phase === "options" ? "Customize Your Meal" : "Recipe Maker")}
               </DialogTitle>
             </div>

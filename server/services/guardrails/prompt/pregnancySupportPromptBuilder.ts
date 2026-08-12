@@ -394,7 +394,9 @@ const SYMPTOM_GUIDANCE: Record<PregnancySymptom, string> = {
   constipation:
     "CONSTIPATION ADAPTATION: Emphasize high-fiber ingredients — vegetables, legumes, whole " +
     "grains, prunes, figs, pears, flaxseed, chia seeds, oats. Avoid low-fiber, heavily " +
-    "processed carbohydrates. Include hydrating foods. Fiber target: 25–35g for this meal.",
+    "processed carbohydrates. Include hydrating foods. Target ingredient-level dietary fiber " +
+    "of 8–12g for this meal (calculated from the actual ingredients chosen, not from any " +
+    "daily carbohydrate allocation target).",
 
   fatigue:
     "FATIGUE ADAPTATION: Prioritize iron-rich foods paired with vitamin C for maximum " +

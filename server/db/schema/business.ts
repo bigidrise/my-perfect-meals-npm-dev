@@ -27,6 +27,19 @@ export const businesses = pgTable("businesses", {
   independentClientPolicy: text("independent_client_policy")
     .$type<"org_only" | "allowed" | "allowed_with_disclosure">()
     .default("allowed_with_disclosure"),
+  /**
+   * Stable provider idempotency key (UUID) written once before the first send attempt and never
+   * cleared. It is passed to Resend as the `Idempotency-Key` header on every delivery attempt so
+   * Resend deduplicates concurrent or retried requests automatically. The key persists across
+   * Stripe replays so the same UUID is always used for a given business.
+   */
+  welcomeEmailKey: text("welcome_email_key"),
+  /**
+   * Set only after the welcome email has been confirmed delivered (sendBusinessWelcomeEmail returns
+   * true). Checked at the start of the email step so Stripe replays skip re-delivery entirely once
+   * the email is confirmed sent. Never used as a sending lease — that role belongs to welcomeEmailKey.
+   */
+  welcomeEmailSentAt: timestamp("welcome_email_sent_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
@@ -38,7 +51,7 @@ export const businessMembers = pgTable("business_members", {
   id: uuid("id").defaultRandom().primaryKey(),
   businessId: uuid("business_id").notNull(),
   userId: text("user_id").notNull(),
-  role: text("role").$type<"owner" | "coach" | "trainer" | "physician" | "staff">().notNull().default("staff"),
+  role: text("role").$type<"owner" | "admin" | "coach" | "trainer" | "physician" | "staff">().notNull().default("staff"),
   status: text("status").$type<"active" | "removed">().notNull().default("active"),
   joinedAt: timestamp("joined_at", { withTimezone: true }).defaultNow(),
   removedAt: timestamp("removed_at", { withTimezone: true }),
@@ -56,7 +69,7 @@ export const businessInvitations = pgTable("business_invitations", {
   businessId: uuid("business_id").notNull(),
   email: text("email").notNull(),
   token: text("token").notNull().unique(),
-  role: text("role").$type<"coach" | "trainer" | "physician" | "staff">().notNull().default("staff"),
+  role: text("role").$type<"admin" | "coach" | "trainer" | "physician" | "staff">().notNull().default("staff"),
   status: text("status").$type<"pending" | "accepted" | "cancelled" | "expired">().notNull().default("pending"),
   invitedByUserId: text("invited_by_user_id").notNull(),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),

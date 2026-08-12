@@ -470,6 +470,7 @@ import CertificationComplete from "@/pages/certification/CertificationComplete";
 import CertificationCertificateView from "@/pages/certification/CertificationCertificateView";
 import AcademyHome from "@/pages/academy/AcademyHome";
 import PlatformMasteryDashboard from "@/pages/academy/PlatformMasteryDashboard";
+import PlatformMasteryComplete from "@/pages/academy/PlatformMasteryComplete";
 import LessonReader from "@/pages/academy/LessonReader";
 import LearningHub from "@/pages/learning/LearningHub";
 import PlatformCertDashboard from "@/pages/learning/PlatformCertDashboard";
@@ -691,6 +692,7 @@ export default function Router() {
     "/coach-corner/tired",
     "/my-perfect-beginning/parents-corner",
     "/lifestyle/my-perfect-beginning/parents-corner",
+    "/business/start",
   ];
 
   const shouldShowBottomNav = !hideBottomNavRoutes.includes(location);
@@ -732,7 +734,9 @@ export default function Router() {
     "/profile", "/settings",
     "/home",
     "/business/join",
+    "/business/start",
     "/business-dashboard",
+    "/business/setup",
   ];
 
   const isUngatedRoute = ungatedRoutes.some(r => location === r || location.startsWith(r + "/"));
@@ -814,6 +818,8 @@ export default function Router() {
       <Switch>
         {/* Root route — AppRouter handles redirect to /welcome, /onboarding, or /dashboard */}
         <Route path="/">{() => null}</Route>
+        {/* Public shared meal preview — no auth required */}
+        <Route path="/m/:shareToken" component={lazy(() => import("@/pages/SharedMealPage"))} />
         {/* Core Routes */}
         <Route path="/welcome" component={Welcome} />
         <Route path="/guest-builder" component={GuestBuilder} />
@@ -829,6 +835,8 @@ export default function Router() {
         <Route path="/onboarding/extended" component={ExtendedOnboarding} />
         <Route path="/checkout/success" component={CheckoutSuccess} />
         <Route path="/billing/success" component={CheckoutSuccess} />
+        <Route path="/business/start" component={lazy(() => import("@/pages/BusinessStart"))} />
+        <Route path="/business/setup" component={lazy(() => import("@/pages/BusinessSetup"))} />
         <Route path="/business/dashboard" component={lazy(() => import("@/pages/BusinessDashboard"))} />
         <Route path="/business-dashboard" component={lazy(() => import("@/pages/BusinessDashboard"))} />
         <Route path="/business/join/:token" component={lazy(() => import("@/pages/BusinessInviteAccept"))} />
@@ -1098,6 +1106,7 @@ export default function Router() {
         <Route path="/business-center/founding-partner" component={GatedFoundingPartnerProgram} />
         <Route path="/business-center/academy" component={GatedAcademyLandingPage} />
         <Route path="/academy" component={AcademyHome} />
+        <Route path="/academy/platform-mastery/complete" component={PlatformMasteryComplete} />
         <Route path="/academy/platform-mastery/lesson/:lessonId" component={LessonReader} />
         <Route path="/academy/platform-mastery" component={PlatformMasteryDashboard} />
         <Route path="/business-center/industry" component={GatedIndustryPartnerships} />

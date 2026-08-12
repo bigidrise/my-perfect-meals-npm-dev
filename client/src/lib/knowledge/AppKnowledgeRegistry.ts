@@ -148,10 +148,10 @@ export const AppKnowledge: Record<string, FeatureKnowledge> = {
     id: "shopping-master",
     title: "Master Shopping List",
     description:
-      "Your full grocery hub — Grocery Store Coach decides what to make, Smart Scan checks any product, and a smart list that syncs with all your meals.",
+      "Your full grocery hub — Grocery Store Coach decides what to make, Product Scan checks any product, and a smart list that syncs with all your meals.",
     howTo: [
       "Tap Grocery Store Coach when you don't know what to make — type or tap a quick chip and get a full personalized meal recommendation with shopping list. A complete recipe card is automatically generated and saved to your Favorites.",
-      "Tap Smart Scan to photograph any ingredient label and get an instant grade + verdict based on your health profile.",
+      "Tap Product Scan to photograph any ingredient label and get an instant grade + verdict based on your health profile.",
       "Use the voice button to quickly add items without typing.",
       "Use the barcode scanner to instantly add packaged foods.",
       "All ingredients from your meal cards automatically appear here.",
@@ -161,7 +161,7 @@ export const AppKnowledge: Record<string, FeatureKnowledge> = {
     ],
     tips: [
       "Grocery Store Coach scales the shopping list automatically for your household size.",
-      "After a Smart Scan your last analysis stays on the page — no need to rescan the same product.",
+      "After a Product Scan your last analysis stays on the page — no need to rescan the same product.",
       "Use voice add when you're moving around the kitchen.",
       "Use Bulk Add when restocking pantry items.",
     ],
@@ -214,11 +214,11 @@ export const AppKnowledge: Record<string, FeatureKnowledge> = {
   // ============================
   "smart-scan": {
     id: "smart-scan",
-    title: "Smart Scan",
+    title: "Product Scan",
     description:
       "Photograph any product label and instantly see how it fits your health profile — letter grade, buy/skip verdict, and specific ingredient flags.",
     howTo: [
-      "Tap Smart Scan on the Shopping page.",
+      "Tap Product Scan on the Shopping page.",
       "Take a photo of any product's ingredient label or nutrition panel.",
       "Review your letter grade (A–D) and verdict: Go for it, Maybe think twice, or Just a heads up.",
       "Scroll down to see exactly which ingredients triggered flags and why.",
@@ -226,7 +226,7 @@ export const AppKnowledge: Record<string, FeatureKnowledge> = {
       "Tap Clear to remove the saved scan, or New Scan to analyze a different product.",
     ],
     tips: [
-      "Smart Scan checks against your full profile: allergies, dietary identity, medical conditions, and avoidances.",
+      "Product Scan checks against your full profile: allergies, dietary identity, medical conditions, and avoidances.",
       "Use it while standing in the grocery store before adding anything to your cart.",
       "The grade reflects your profile specifically — the same product may grade differently for another user.",
     ],

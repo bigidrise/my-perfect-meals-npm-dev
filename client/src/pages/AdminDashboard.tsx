@@ -45,6 +45,7 @@ type AdminUser = {
   macrosDefined: boolean | null;
   entitlements: string[] | null;
   planLookupKey: string | null;
+  signupSource: string | null;
 };
 
 function useAdminAction() {
@@ -186,6 +187,7 @@ function UserDetail({ user, onAction }: { user: AdminUser; onAction: (label: str
     ["Needs Followup", <StatusPill value={user.needsProfessionalFollowup} />],
     ["Entitlements", (user.entitlements?.length ?? 0) > 0 ? user.entitlements!.join(", ") : "none"],
     ["Plan Lookup Key", user.planLookupKey ?? "—"],
+    ["Signup Source", user.signupSource ?? "—"],
     ["Trial Start", user.trialStartedAt ? new Date(user.trialStartedAt).toLocaleDateString() : "—"],
     ["Trial End", user.trialEndsAt ? new Date(user.trialEndsAt).toLocaleDateString() : "—"],
     ["Created", user.createdAt ? new Date(user.createdAt).toLocaleString() : "—"],

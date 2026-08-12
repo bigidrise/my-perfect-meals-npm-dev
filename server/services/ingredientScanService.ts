@@ -580,7 +580,7 @@ const LOW_CONFIDENCE_RESULT: IngredientScanResult = {
   extractedIngredients: [],
   highRiskFindings: [],
   ocrConfidenceLow: true,
-  fallbackUsed: false,
+  fallbackUsed: true,
   productName: '',
   isFrontLabel: false,
   productNameMissing: false,
@@ -847,10 +847,12 @@ Analyze how this product aligns with this specific user's health profile.`;
         flag: (['ok', 'watch', 'avoid'] as const).includes(d.flag) ? d.flag : 'watch' as const,
       }));
 
+    const validGrade = (['A', 'B', 'C', 'D'] as const).includes(alignment.alignmentGrade)
+      ? (alignment.alignmentGrade as 'A' | 'B' | 'C' | 'D')
+      : null;
+
     return {
-      alignmentGrade: (['A', 'B', 'C', 'D'] as const).includes(alignment.alignmentGrade)
-        ? alignment.alignmentGrade
-        : 'B',
+      alignmentGrade: validGrade ?? 'B',
       overallSummary: typeof alignment.overallSummary === 'string' ? alignment.overallSummary : 'Analysis complete.',
       verdict: typeof alignment.verdict === 'string' ? alignment.verdict : '',
       verdictLevel: (['buy', 'caution', 'skip'] as const).includes(alignment.verdictLevel)
@@ -874,7 +876,7 @@ Analyze how this product aligns with this specific user's health profile.`;
       extractedIngredients,
       highRiskFindings,
       ocrConfidenceLow,
-      fallbackUsed: false,
+      fallbackUsed: !validGrade,
       productName: detectedProductName,
       isFrontLabel: false,
       productNameMissing: !detectedProductName,
@@ -968,8 +970,12 @@ Do NOT give generic advice. Do NOT say "check the label." You are an expert — 
       targetCriteria: typeof a.targetCriteria === 'string' ? a.targetCriteria : '',
     })).filter((a: BetterAlternative) => a.category);
 
+    const validGradeByName = (['A', 'B', 'C', 'D'] as const).includes(alignment.alignmentGrade)
+      ? (alignment.alignmentGrade as 'A' | 'B' | 'C' | 'D')
+      : null;
+
     return {
-      alignmentGrade: (['A', 'B', 'C', 'D'] as const).includes(alignment.alignmentGrade) ? alignment.alignmentGrade : 'B',
+      alignmentGrade: validGradeByName ?? 'B',
       overallSummary: typeof alignment.overallSummary === 'string' ? alignment.overallSummary : 'Analysis complete.',
       verdict: typeof alignment.verdict === 'string' ? alignment.verdict : '',
       verdictLevel: (['buy', 'caution', 'skip'] as const).includes(alignment.verdictLevel) ? alignment.verdictLevel : 'caution',
@@ -988,7 +994,7 @@ Do NOT give generic advice. Do NOT say "check the label." You are an expert — 
       extractedIngredients: [],
       highRiskFindings: [],
       ocrConfidenceLow: false,
-      fallbackUsed: false,
+      fallbackUsed: !validGradeByName,
       productName,
       isFrontLabel: false,
       productNameMissing: false,
@@ -1062,8 +1068,12 @@ You have TWO sources of information: your product knowledge AND verified label d
       targetCriteria: typeof a.targetCriteria === 'string' ? a.targetCriteria : '',
     })).filter((a: BetterAlternative) => a.category);
 
+    const validGradeFullAdvisor = (['A', 'B', 'C', 'D'] as const).includes(alignment.alignmentGrade)
+      ? (alignment.alignmentGrade as 'A' | 'B' | 'C' | 'D')
+      : null;
+
     return {
-      alignmentGrade: (['A', 'B', 'C', 'D'] as const).includes(alignment.alignmentGrade) ? alignment.alignmentGrade : 'B',
+      alignmentGrade: validGradeFullAdvisor ?? 'B',
       overallSummary: typeof alignment.overallSummary === 'string' ? alignment.overallSummary : 'Analysis complete.',
       verdict: typeof alignment.verdict === 'string' ? alignment.verdict : '',
       verdictLevel: (['buy', 'caution', 'skip'] as const).includes(alignment.verdictLevel) ? alignment.verdictLevel : 'caution',
@@ -1082,7 +1092,7 @@ You have TWO sources of information: your product knowledge AND verified label d
       extractedIngredients: ingredients.split(',').map((s: string) => s.trim()).filter(Boolean),
       highRiskFindings: [],
       ocrConfidenceLow: false,
-      fallbackUsed: false,
+      fallbackUsed: !validGradeFullAdvisor,
       productName,
       isFrontLabel: false,
       productNameMissing: false,

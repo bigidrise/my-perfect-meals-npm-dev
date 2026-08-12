@@ -162,10 +162,17 @@ export default function CertificationComplete() {
   const handleOpenDashboard = async () => {
     if (dashboardLoading) return;
     setDashboardLoading(true);
+    // Open window synchronously so browsers allow it as a user-initiated popup.
+    const win = window.open("", "_blank", "noopener,noreferrer");
     try {
       const data: any = await apiRequest("/api/affiliate/dashboard-link");
-      if (data.url) window.open(data.url, "_blank", "noopener,noreferrer");
+      if (data.url && win) {
+        win.location.href = data.url;
+      } else {
+        win?.close();
+      }
     } catch {
+      win?.close();
       setLocation("/business-center");
     } finally {
       setDashboardLoading(false);

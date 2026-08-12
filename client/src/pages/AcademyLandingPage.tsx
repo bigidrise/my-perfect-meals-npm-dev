@@ -61,7 +61,7 @@ const PLATFORM_MASTERY_LESSONS = [
   {
     number: "04",
     title: "Shopping & Your Grocery Scope",
-    description: "Smart Grocery List, Grocery Coach, Smart Scan (Ingredient Intelligence), and Fridge Rescue — getting your plan from the board to your kitchen.",
+    description: "Smart Grocery List, Grocery Coach, Product Scan (Ingredient Intelligence), and Fridge Rescue — getting your plan from the board to your kitchen.",
     icon: Leaf,
   },
   {
