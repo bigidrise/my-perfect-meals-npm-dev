@@ -1719,13 +1719,20 @@ export default function CravingCreator() {
                                 (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
                                   ? crypto.randomUUID()
                                   : `craving-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`);
+                              const safeImageUrl = (() => {
+                                const url = meal.imageUrl;
+                                if (!url) return null;
+                                if (url.startsWith("data:")) return null;
+                                if (url.includes("oaidalleapiprodscus")) return null;
+                                return url;
+                              })();
                               const mealData = {
                                 id: safeId,
                                 name: meal.name,
                                 description: meal.description,
                                 ingredients: meal.ingredients || [],
                                 instructions: meal.instructions,
-                                imageUrl: meal.imageUrl,
+                                imageUrl: safeImageUrl,
                                 cookMethod: cookMethod || undefined,
                               };
                               localStorage.setItem(

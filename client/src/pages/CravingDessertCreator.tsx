@@ -1223,13 +1223,20 @@ export default function DessertCreator() {
                     <div className="grid grid-cols-2 gap-2">
                       <GlassButton
                         onClick={() => {
+                          const safeImageUrl = (() => {
+                            const url = generatedDessert.imageUrl;
+                            if (!url) return null;
+                            if (url.startsWith("data:")) return null;
+                            if (url.includes("oaidalleapiprodscus")) return null;
+                            return url;
+                          })();
                           const mealData = {
                             id: crypto.randomUUID(),
                             name: generatedDessert.name,
                             description: generatedDessert.description,
                             ingredients: generatedDessert.ingredients || [],
                             instructions: generatedDessert.instructions,
-                            imageUrl: generatedDessert.imageUrl,
+                            imageUrl: safeImageUrl,
                             cookMethod: cookMethod || undefined,
                           };
                           localStorage.setItem(
