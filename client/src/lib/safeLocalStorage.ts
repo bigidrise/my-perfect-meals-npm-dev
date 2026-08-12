@@ -16,6 +16,8 @@
  *  5. Inject generatedAtISO timestamp so entries can be TTL-evicted later
  */
 
+import { Sentry } from "./sentry";
+
 /** All known builder cache keys — used for cross-eviction when one is over quota. */
 export const BUILDER_CACHE_KEYS: readonly string[] = [
   "fridge-rescue-cached-state",
@@ -144,7 +146,22 @@ export function safeLocalStorageSet(key: string, value: unknown): void {
       clearOtherBuilderCaches(key);
       localStorage.setItem(key, serialized);
     }
-  } catch {
-    // Final fallback: give up silently — don't crash the app
+  } catch (err) {
+    // Final fallback: give up silently — don't crash the app.
+    // Emit observability so unexpected storage failures are surfaced.
+    if (import.meta.env.DEV) {
+      console.warn("[safeLocalStorageSet] Write failed for key:", key, err);
+    } else {
+      try {
+        Sentry.addBreadcrumb({
+          category: "storage",
+          message: `safeLocalStorageSet failed for key: ${key}`,
+          level: "warning",
+          data: { key, error: err instanceof Error ? err.message : String(err) },
+        });
+      } catch {
+        // Sentry itself failed — remain non-throwing
+      }
+    }
   }
 }
