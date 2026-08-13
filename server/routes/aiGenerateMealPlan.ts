@@ -97,6 +97,37 @@ router.post("/api/ai/generate-meal-plan", async (req, res) => {
     if (!slots.length)
       return res.status(400).json({ error: "Schedule is empty" });
 
+    // ── GLP-1 canonical context ─────────────────────────────────────────────
+    // Derive identity from the authenticated session, NEVER from the request
+    // body — body userId is untrusted and resolving GLP-1 for an arbitrary ID
+    // would expose medication status via IDOR.
+    // If the endpoint is hit without a session (unauthenticated), GLP-1
+    // resolution is skipped entirely and meals are generated without constraints.
+    const sessionUserId: string | null = (req as any).authUser?.id ?? null;
+    let glp1PlanTargets: import("../services/glp1/resolveGLP1MealTargets").ResolvedGLP1Targets | null = null;
+    let glp1PlanActive = false;
+    if (sessionUserId) {
+      try {
+        const { resolveGLP1GlobalContext } = await import("../services/glp1/resolveGLP1GlobalContext");
+        const glp1Ctx = await resolveGLP1GlobalContext(
+          sessionUserId,
+          new Date().toISOString().split("T")[0],
+          "lunch",
+        );
+        glp1PlanActive = glp1Ctx.isActive;
+        glp1PlanTargets = glp1Ctx.resolvedTargets;
+        if (glp1PlanActive) {
+          const t = glp1PlanTargets;
+          console.log(
+            `💊 [GLP-1/MealPlan] Active — sources=[${glp1Ctx.activationSources.join(",")}]` +
+            (t ? ` [${t.resolvedMealCalories}kcal / ${t.targetProteinGrams}g prot / ${t.maximumToleratedFatGrams}g fat]` : " [baseline]"),
+          );
+        }
+      } catch (err) {
+        console.warn("⚠️ [GLP-1/MealPlan] Could not resolve context:", err);
+      }
+    }
+
     const expanded: Array<{
       dayIndex: number;
       slotIndex: number;
@@ -127,6 +158,45 @@ router.post("/api/ai/generate-meal-plan", async (req, res) => {
         servings: slot.servings,
         generateImages, // 🔒 PROTECTED: Pass image generation flag
       });
+
+      // ── GLP-1 fail-closed validation ──────────────────────────────────────
+      // Validate each generated meal against GLP-1 targets.
+      // Do NOT mutate nutrition fields — that relabels a non-compliant meal
+      // without changing its ingredients (clinically incorrect).
+      // Non-compliant meals are SKIPPED from the response (fail closed).
+      if (glp1PlanActive && glp1PlanTargets) {
+        const t = glp1PlanTargets;
+        let glp1Compliant = false;
+        try {
+          const { validateMealForDiet } = await import("../services/guardrails/index");
+          const ingList = (meal.ingredients || []).map((i: any) => ({
+            name: i.item ?? i.name ?? "",
+            quantity: i.amount ? String(i.amount) : undefined,
+            unit: i.unit ?? undefined,
+          }));
+          const vr = validateMealForDiet(
+            { name: meal.name, ingredients: ingList, macros: meal.nutrition },
+            "glp1",
+            undefined,
+            slot.mealType === "snack",
+            t,
+          );
+          if (vr.isValid) {
+            glp1Compliant = true;
+          } else {
+            console.warn(
+              `💊 [GLP-1/MealPlan] Dropping "${meal.name}" ` +
+              `(day ${slot.dayIndex + 1} ${slot.mealType}) — fails GLP-1 validation:`,
+              vr.violations,
+            );
+          }
+        } catch (err) {
+          // Validation module failed to load — fail closed: do not accept the meal.
+          console.warn("⚠️ [GLP-1/MealPlan] Validation error — rejecting meal (fail closed):", err);
+        }
+        if (!glp1Compliant) continue; // skip non-compliant meal
+      }
+
       items.push({
         ...meal,
         mealType: slot.mealType,

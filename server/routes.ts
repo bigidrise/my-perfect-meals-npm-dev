@@ -810,11 +810,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // effectiveUserId: the workspace client when a physician delegates; the
-      // authenticated user for create-with-chef; body userId for all other builders.
-      // Controls allergy, protocol, profile, and budget — never the raw body userId.
-      const effectiveUserId: string = delegatedClientId
-        ?? ((type === 'create-with-chef') ? authUserId : (userId ?? ""));
+      // effectiveUserId: the verified workspace client when a physician delegates
+      // (access gate checked above via verifyPhysicianClientAccess); otherwise the
+      // authenticated session user for ALL builder types.
+      // Body userId is NEVER used for profile/protocol/GLP-1 resolution — any
+      // caller that submits another user's ID receives a meal generated for the
+      // caller's own identity, preventing IDOR on PHI-adjacent health data.
+      const effectiveUserId: string = delegatedClientId ?? authUserId;
 
       // 🚨 ENFORCEMENT GATEWAY: Pre-generation — Tier 1 (allergy) + Tier 2 (religious)
       // Uses effectiveUserId — never the untrusted body userId — so a tampered ID
@@ -1021,13 +1023,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // ── Server-side GLP-1 canonical context ───────────────────────────────
-      // Load personalized GLP-1 targets when the client requests GLP-1 mode.
-      // This replaces the static 400 kcal / 12 g fat / 15 g protein fallbacks
-      // in applyGuardrails() and validateMealForDiet() with patient-specific
-      // values from the resolver (phase, appetite, training-demand multipliers).
-      // Loaded server-side — never trusted from the client request body.
+      // Always resolve GLP-1 from the authenticated user's profile — never from
+      // the client-supplied dietType. Activation detected server-side means a
+      // GLP-1 patient using any builder gets the same clinical constraints, not
+      // just when they select the GLP-1 builder explicitly.
+      //
+      // Protocol override priority:
+      //   procare / beachbody → competition-specific rules take full precedence
+      //   performance / anti-inflammatory / etc. → GLP-1 layers on top (override)
+      //   null / undefined / 'general-nutrition' → GLP-1 replaces as effectiveDietType
       let serverGlp1Targets: import("./services/glp1/resolveGLP1MealTargets").ResolvedGLP1Targets | undefined;
-      if (dietType === 'glp1' && effectiveUserId) {
+      // effectiveDietType starts as the client-supplied value; may be overridden
+      // to 'glp1' when the server detects the user is on GLP-1 medication.
+      let effectiveDietType: typeof dietType = dietType;
+      if (effectiveUserId) {
         try {
           const { resolveGLP1GlobalContext } = await import("./services/glp1/resolveGLP1GlobalContext");
           const glp1Ctx = await resolveGLP1GlobalContext(
@@ -1037,19 +1046,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
               ? mealType
               : 'lunch',
           );
-          if (glp1Ctx.isActive && glp1Ctx.resolvedTargets) {
-            serverGlp1Targets = glp1Ctx.resolvedTargets;
+          if (glp1Ctx.isActive) {
+            serverGlp1Targets = glp1Ctx.resolvedTargets ?? undefined;
+            // Override dietType to 'glp1' unless the user is on a clinical protocol
+            // (procare) or competition diet (beachbody) whose rules own macro targets.
+            const GLP1_OVERRIDE_BLOCKLIST = new Set(['procare', 'beachbody']);
+            if (!effectiveDietType || !GLP1_OVERRIDE_BLOCKLIST.has(effectiveDietType)) {
+              effectiveDietType = 'glp1';
+            }
             console.log(
-              `💊 [GLP-1] Personalized targets: ` +
-              `${serverGlp1Targets.resolvedMealCalories}kcal / ` +
-              `${serverGlp1Targets.targetProteinGrams}g prot / ` +
-              `${serverGlp1Targets.maximumToleratedFatGrams}g fat-ceiling ` +
-              `[phase: ${serverGlp1Targets.treatmentPhase}] ` +
-              `[sources: ${glp1Ctx.activationSources.join(",")}]`
+              `💊 [GLP-1] Canonical activation — sources=[${glp1Ctx.activationSources.join(",")}] ` +
+              `effectiveDietType=${effectiveDietType}` +
+              (serverGlp1Targets
+                ? ` [${serverGlp1Targets.resolvedMealCalories}kcal / ` +
+                  `${serverGlp1Targets.targetProteinGrams}g prot / ` +
+                  `${serverGlp1Targets.maximumToleratedFatGrams}g fat-ceiling ` +
+                  `phase:${serverGlp1Targets.treatmentPhase}]`
+                : " [baseline targets]"),
             );
           }
         } catch (err) {
-          console.warn("[GLP-1] Could not load personalized targets — static baselines will apply:", err);
+          console.warn("[GLP-1] Could not resolve canonical context — falling back:", err);
         }
       }
 
@@ -1060,7 +1077,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: effectiveUserId,
         macroTargets,
         count,
-        dietType,
+        dietType: effectiveDietType,
         dietPhase: dietPhase || undefined,
         remainingMacros: effectiveRemainingMacros || undefined,
         builderMode: builderMode || undefined,
@@ -1110,12 +1127,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             meal?.fat,
           );
 
-          if (gateResult.passed === false) {
-            // Explicit === false narrows the discriminated union so TypeScript
-            // exposes .reason from the { passed: false; reason: ... } branch.
-            const gateReason: string = gateResult.reason;
+          if (!gateResult.passed) {
             console.error(
-              `[ClinicalGate] Rejected: reason=${gateReason} ` +
+              `[ClinicalGate] Rejected: reason=${gateResult.reason} ` +
               `context=${budgetGenerationContext} type=${type} ` +
               `carbCeiling=${carbCeiling} fatCeiling=${fatCeiling}`,
             );
@@ -1438,43 +1452,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       console.log(`🔒 [FRIDGE] Nutrition context: diet=[${fridgeNutritionContext.diet.join(",")}] medical=[${fridgeNutritionContext.medical.length} flags] builder=${fridgeNutritionContext.builder ?? "none"}`);
 
-      // ── GLP-1 canonical context for Fridge Rescue ─────────────────────────────
-      // Load patient-specific GLP-1 targets when active, and build a guidance block
-      // that injects them into the fridge rescue prompt via the builderBlock slot.
-      // Same resolver used by the GLP-1 Meal Builder — one canonical intelligence layer.
-      let fridgeGlp1BuilderBlock = "";
-      try {
-        const { resolveGLP1GlobalContext } = await import("./services/glp1/resolveGLP1GlobalContext");
-        const fridgeGlp1Ctx = await resolveGLP1GlobalContext(
-          userId,
-          new Date().toISOString().split("T")[0],
-          "dinner", // fridge rescue generates any meal; dinner is the most common slot
-        );
-        if (fridgeGlp1Ctx.isActive && fridgeGlp1Ctx.resolvedTargets) {
-          const { applyGuardrails: _fridgeApplyGuardrails } = await import("./services/guardrails");
-          fridgeGlp1BuilderBlock = _fridgeApplyGuardrails(
-            "",
-            "glp1",
-            "dinner",
-            undefined,
-            undefined,
-            undefined,
-            undefined,
-            fridgeGlp1Ctx.resolvedTargets,
-          ).modifiedPrompt;
-          console.log(
-            `💊 [FRIDGE/GLP-1] Personalized targets: ` +
-            `${fridgeGlp1Ctx.resolvedTargets.resolvedMealCalories}kcal / ` +
-            `${fridgeGlp1Ctx.resolvedTargets.targetProteinGrams}g prot / ` +
-            `${fridgeGlp1Ctx.resolvedTargets.maximumToleratedFatGrams}g fat-ceiling ` +
-            `[phase: ${fridgeGlp1Ctx.resolvedTargets.treatmentPhase}] ` +
-            `[sources: ${fridgeGlp1Ctx.activationSources.join(",")}]`
-          );
-        }
-      } catch (err) {
-        console.warn("[FRIDGE/GLP-1] Could not resolve GLP-1 context — continuing without:", err);
-      }
-
       // ── Oncology smart enhancement layer ──────────────────────────────────────
       // Detect gaps in the user's fridge items and inject mandatory therapeutic
       // additions so every oncology-support meal includes a fiber anchor + boosters.
@@ -1541,12 +1518,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // ── GLP-1 canonical context ──────────────────────────────────────────────
+      // Load personalized GLP-1 targets and inject as a prompt constraint block
+      // so Fridge Rescue applies the same food-quality rules as the GLP-1 Builder.
+      // The block is appended to builderBlock which the generator injects into its
+      // prompt AFTER the protocol enforcement section.
+      let glp1FridgeBlock = "";
+      let glp1FridgeTargets: import("./services/glp1/resolveGLP1MealTargets").ResolvedGLP1Targets | null = null;
+      try {
+        const { resolveGLP1GlobalContext } = await import("./services/glp1/resolveGLP1GlobalContext");
+        const glp1Ctx = await resolveGLP1GlobalContext(
+          userId,
+          new Date().toISOString().split("T")[0],
+          "lunch", // fridge rescue is meal-type-agnostic; lunch gives balanced defaults
+        );
+        if (glp1Ctx.isActive) {
+          glp1FridgeTargets = glp1Ctx.resolvedTargets;
+          const t = glp1FridgeTargets;
+          glp1FridgeBlock = [
+            "💊 GLP-1 MEDICATION PROTOCOL — MANDATORY CONSTRAINTS (NON-NEGOTIABLE):",
+            "This user is on GLP-1 medication (semaglutide/tirzepatide/Ozempic/Wegovy/Mounjaro or similar).",
+            "Slower gastric emptying and appetite suppression require strict portion and fat controls.",
+            "",
+            `• PORTIONS: Keep each meal to ~${t ? t.resolvedMealCalories : 350} kcal per serving.`,
+            `• FAT CEILING: Maximum ${t ? t.maximumToleratedFatGrams : 12}g fat. High fat causes nausea — safety rule.`,
+            `• PROTEIN FLOOR: Minimum ${t ? t.targetProteinGrams : 15}g protein. Critical for muscle preservation.`,
+            "• DIGESTION: Avoid fried food, heavy cream sauces, raw onions, excess fiber, spicy ingredients.",
+            "• COOKING: Prefer grilled, baked, steamed, or poached. No deep-frying.",
+            "• MOISTURE: Use broth-based or moist preparations. Dry dense foods worsen GLP-1 side effects.",
+            ...(glp1Ctx.compositionNote ? [`• PERFORMANCE NOTE: ${glp1Ctx.compositionNote}`] : []),
+          ].join("\n");
+          console.log(
+            `💊 [GLP-1/FridgeRescue] Active — sources=[${glp1Ctx.activationSources.join(",")}]` +
+            (t
+              ? ` [${t.resolvedMealCalories}kcal / ${t.targetProteinGrams}g prot / ${t.maximumToleratedFatGrams}g fat / phase:${t.treatmentPhase}]`
+              : " [baseline targets]"),
+          );
+        }
+      } catch (err) {
+        console.warn("⚠️ [GLP-1/FridgeRescue] Could not resolve context — GLP-1 constraints skipped:", err);
+      }
+
       // Combine enhancement with any existing builder block from nutrition context
       const combinedBuilderBlock = [
         fridgeNutritionContext.builderBlock || '',
         oncologyFridgeBlock || '',
         aceFridgeBlock || '',
-        fridgeGlp1BuilderBlock || '',
+        glp1FridgeBlock || '',
       ].filter(Boolean).join('\n\n') || undefined;
 
       // Generate multiple meals with proper macros and amounts
@@ -1586,7 +1604,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
       recordGeneration('/api/meals/fridge-rescue', 'ai', durationMs);
 
       console.log("[FRIDGE] ok returning", cleanFridgeMeals.length, "meals");
-      const fridgeMealsWithCompliance = cleanFridgeMeals.map(meal => {
+
+      // ── GLP-1 post-generation validation — fail closed ───────────────────
+      // Filter out any fridge-rescue meal that fails GLP-1 targets. Do NOT
+      // mutate nutrition fields (relabeling macros without changing ingredients
+      // is clinically incorrect). Validator errors also exclude the meal so
+      // a module-load failure never silently passes a non-compliant result.
+      let glp1ValidatedFridgeMeals: typeof cleanFridgeMeals = cleanFridgeMeals;
+      if (glp1FridgeTargets !== null) {
+        try {
+          const { validateMealForDiet: _validateFridgeGlp1 } = await import("./services/guardrails/index");
+          const beforeCount = glp1ValidatedFridgeMeals.length;
+          glp1ValidatedFridgeMeals = glp1ValidatedFridgeMeals.filter(meal => {
+            try {
+              const ingList = (meal.ingredients ?? []).map((i: any) => ({
+                name: i.name ?? "",
+                quantity: i.quantity ?? undefined,
+                unit: i.unit ?? undefined,
+              }));
+              const macros = {
+                calories: (meal as any).calories,
+                protein: (meal as any).protein,
+                fat: (meal as any).fat,
+                carbs: ((meal as any).starchyCarbs ?? 0) + ((meal as any).fibrousCarbs ?? 0),
+              };
+              const vr = _validateFridgeGlp1(
+                { name: meal.name, ingredients: ingList, macros },
+                "glp1", undefined, false,
+                glp1FridgeTargets ?? undefined,
+              );
+              if (!vr.isValid) {
+                console.warn(
+                  `💊 [GLP-1/FridgeRescue] Excluding "${meal.name}" — GLP-1 violations:`,
+                  vr.violations,
+                );
+              }
+              return vr.isValid;
+            } catch {
+              // Fail closed: per-meal validator error excludes this meal.
+              console.warn(`⚠️ [GLP-1/FridgeRescue] Validator error for "${meal.name}" — excluding (fail closed)`);
+              return false;
+            }
+          });
+          if (glp1ValidatedFridgeMeals.length < beforeCount) {
+            console.log(`💊 [GLP-1/FridgeRescue] ${beforeCount - glp1ValidatedFridgeMeals.length} meal(s) excluded after GLP-1 validation`);
+          }
+        } catch (err) {
+          // Fail closed: module load error — exclude all meals rather than serving
+          // unvalidated results to a patient on GLP-1 medication.
+          console.warn("⚠️ [GLP-1/FridgeRescue] Validation module error — excluding all meals (fail closed):", err);
+          glp1ValidatedFridgeMeals = [];
+        }
+      }
+
+      const fridgeMealsWithCompliance = glp1ValidatedFridgeMeals.map(meal => {
         const { complianceSection, dietClassification } = buildMealComplianceBundle(
           meal, fridgeProtocolEnvelope
         );
@@ -1742,13 +1813,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { userId, days, schedule, dietaryRestrictions, selectedIngredients, includeImages = true, mode = "ai_varied", constraints = {} } = req.body;
 
+      // ── Canonical user identity ────────────────────────────────────────────
+      // requireMacroProfile already enforced req.authUser (returns 401 if absent).
+      // Use the authenticated session ID — never the client-supplied body userId —
+      // for any security-sensitive operations (GLP-1 resolution, enforcement gate).
+      const authUserId: string = (req as any).authUser.id;
+
       console.log("🎯 AI Meal Creator generating meal plan:", { userId, days, scheduleCount: schedule?.length });
 
+      // ── GLP-1 canonical context ─────────────────────────────────────────────
+      // Resolve before generation so we can inject constraints and clamp output.
+      // Uses session identity — not the body userId — to prevent IDOR.
+      let glp1PlanTargets: import("./services/glp1/resolveGLP1MealTargets").ResolvedGLP1Targets | null = null;
+      let glp1PlanActive = false;
+      try {
+        const { resolveGLP1GlobalContext } = await import("./services/glp1/resolveGLP1GlobalContext");
+        const glp1Ctx = await resolveGLP1GlobalContext(
+          authUserId,
+          new Date().toISOString().split("T")[0],
+          "lunch",
+        );
+        glp1PlanActive = glp1Ctx.isActive;
+        glp1PlanTargets = glp1Ctx.resolvedTargets;
+        if (glp1PlanActive) {
+          const t = glp1PlanTargets;
+          console.log(
+            `💊 [GLP-1/MealPlan] Active — sources=[${glp1Ctx.activationSources.join(",")}]` +
+            (t ? ` [${t.resolvedMealCalories}kcal / ${t.targetProteinGrams}g prot / ${t.maximumToleratedFatGrams}g fat-ceiling]` : " [baseline]"),
+          );
+        }
+      } catch (err) {
+        console.warn("⚠️ [GLP-1/MealPlan] Could not resolve context:", err);
+      }
+
       // 🚨 ENFORCEMENT GATEWAY: Pre-generation — Tier 1 (allergy) + Tier 2 (religious)
-      if (userId && selectedIngredients && selectedIngredients.length > 0) {
+      // Uses authUserId (session-verified) — not body userId — to enforce for the real caller.
+      if (selectedIngredients && selectedIngredients.length > 0) {
         const ingredientsText = selectedIngredients.join(' ');
         const enforcement = await runEnforcement({
-          userId,
+          userId: authUserId,
           builderType: "meal_planner",
           phase: "pre_generation",
           inputText: ingredientsText,
@@ -1784,102 +1887,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`🚀 Generating ${expectedPerDay} unique slot types for ${dayCount} days`);
 
-      // ── GLP-1 canonical context — resolved before any generation path ────────
-      // Both MealGen V2 and legacy paths read from these maps so every slot (and
-      // every patient who regenerates a single slot) uses the canonical resolver
-      // output, including its second-pass DailyNutritionState remaining-macro
-      // adjustment rather than just the raw first-pass baseline.
-      let weeklyPlanGlp1Active = false;
-      // Keyed by meal type ("breakfast" | "lunch" | "dinner" | "snack")
-      const weeklyPlanGlp1Block: Record<string, string> = {};
-      const weeklyPlanGlp1Targets: Record<string,
-        import("./services/glp1/resolveGLP1MealTargets").ResolvedGLP1Targets> = {};
-      try {
-        const { resolveGLP1GlobalContext } = await import("./services/glp1/resolveGLP1GlobalContext");
-        const { applyGuardrails: _wkApplyGuardrails } = await import("./services/guardrails");
-        const todayISO = new Date().toISOString().split("T")[0];
-
-        // Single activation probe (lunch); avoids a redundant DB trip.
-        const activationCtx = await resolveGLP1GlobalContext(userId || "1", todayISO, "lunch");
-        if (activationCtx.isActive) {
-          weeklyPlanGlp1Active = true;
-          console.log(
-            `💊 [WEEKLY PLAN/GLP-1] Active — sources: [${activationCtx.activationSources.join(",")}]. ` +
-            `Resolving canonical targets per slot type…`
-          );
-
-          // Store the lunch result directly (already second-pass resolved).
-          // Even when personalized targets are unavailable (resolver returned
-          // null), always populate the block with the static-baseline guardrails
-          // so active GLP-1 patients are never served an unguarded plan.
-          if (activationCtx.resolvedTargets) {
-            weeklyPlanGlp1Targets["lunch"] = activationCtx.resolvedTargets;
-            weeklyPlanGlp1Block["lunch"] = _wkApplyGuardrails(
-              "", "glp1", "lunch",
-              undefined, undefined, undefined, undefined,
-              activationCtx.resolvedTargets,
-            ).modifiedPrompt;
-            console.log(
-              `💊 [WEEKLY PLAN/GLP-1] lunch: ` +
-              `${activationCtx.resolvedTargets.resolvedMealCalories}kcal / ` +
-              `${activationCtx.resolvedTargets.targetProteinGrams}g prot / ` +
-              `${activationCtx.resolvedTargets.maximumToleratedFatGrams}g fat-ceiling ` +
-              `[phase: ${activationCtx.resolvedTargets.treatmentPhase}]`
-            );
-          } else {
-            // Static-baseline fallback — no 8th arg → applyGuardrails uses glp1Rules defaults.
-            weeklyPlanGlp1Block["lunch"] = _wkApplyGuardrails("", "glp1", "lunch").modifiedPrompt;
-            console.warn("[WEEKLY PLAN/GLP-1] lunch: personalized targets unavailable — using static baseline");
-          }
-
-          // Call the canonical resolver for each remaining slot type in parallel.
-          // Each call runs resolveGLP1GlobalContext with the correct mealType so
-          // snacks get their own (lower) calorie/fat targets rather than sharing
-          // the lunch resolution. The block is always populated even when the
-          // resolver falls back to static baselines.
-          await Promise.all(
-            (["breakfast", "dinner", "snack"] as const).map(async (mealType) => {
-              try {
-                const ctx = await resolveGLP1GlobalContext(userId || "1", todayISO, mealType);
-                if (ctx.resolvedTargets) {
-                  weeklyPlanGlp1Targets[mealType] = ctx.resolvedTargets;
-                  weeklyPlanGlp1Block[mealType] = _wkApplyGuardrails(
-                    "", "glp1", mealType,
-                    undefined, undefined, undefined, undefined,
-                    ctx.resolvedTargets,
-                  ).modifiedPrompt;
-                  console.log(
-                    `💊 [WEEKLY PLAN/GLP-1] ${mealType}: ` +
-                    `${ctx.resolvedTargets.resolvedMealCalories}kcal / ` +
-                    `${ctx.resolvedTargets.targetProteinGrams}g prot / ` +
-                    `${ctx.resolvedTargets.maximumToleratedFatGrams}g fat-ceiling ` +
-                    `[phase: ${ctx.resolvedTargets.treatmentPhase}]`
-                  );
-                } else {
-                  // Static-baseline fallback — ensures the block is always populated.
-                  weeklyPlanGlp1Block[mealType] = _wkApplyGuardrails("", "glp1", mealType).modifiedPrompt;
-                  console.warn(`[WEEKLY PLAN/GLP-1] ${mealType}: personalized targets unavailable — using static baseline`);
-                }
-              } catch (typeErr) {
-                // Even on resolver error, populate a static baseline block.
-                try {
-                  weeklyPlanGlp1Block[mealType] = _wkApplyGuardrails("", "glp1", mealType).modifiedPrompt;
-                } catch (_) { /* applyGuardrails itself failed — skip silently */ }
-                console.warn(`[WEEKLY PLAN/GLP-1] Could not resolve targets for ${mealType}:`, typeErr);
-              }
-            })
-          );
-        }
-      } catch (err) {
-        console.warn("[WEEKLY PLAN/GLP-1] Could not resolve GLP-1 context — continuing without:", err);
-      }
-
       // MEALGEN V2: Use centralized onboarding-aware generation if enabled
       if (process.env.MEALGEN_V2 === "true") {
         const { getOnboarding, generateDayV2, onboardingHash } = await import("./services/mealgenV2");
 
         try {
-          const onboarding = await getOnboarding(userId || "1");
+          const onboarding = await getOnboarding(authUserId);
           const obHash = onboardingHash(onboarding);
 
           // Handle strict mode constraints
@@ -1893,6 +1906,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
             Object.assign(onboarding, constraints.dietFlags);
           }
 
+          // ── GLP-1 pre-generation constraint injection — MEALGEN V2 ──────
+          // Inject GLP-1 food-quality rules into the onboarding object so V2
+          // generation is constrained at source, not relabeled after the fact.
+          // Nutrition clamping (Math.min/max) is intentionally NOT used — it
+          // relabels macros without changing ingredients, which is clinically wrong.
+          if (glp1PlanActive && glp1PlanTargets) {
+            const t = glp1PlanTargets;
+            onboarding.avoid = [
+              ...(onboarding.avoid || []),
+              "fried foods", "deep-fried", "breaded and fried", "cream sauces",
+              "heavy cream", "butter sauces", "full-fat dairy", "high-fat dressings",
+            ];
+            // Surface the GLP-1 calorie + fat ceiling as a diet flag the V2
+            // engine can respect in its prompt-building layer.
+            // Cast to any: these are extension fields not on the Onboarding type.
+            (onboarding as any).glp1Active = true;
+            (onboarding as any).glp1CalorieCeiling = t.resolvedMealCalories;
+            (onboarding as any).glp1FatCeiling = t.maximumToleratedFatGrams;
+            (onboarding as any).glp1ProteinFloor = t.targetProteinGrams;
+            console.log(`💊 [GLP-1/MealPlanV2] Injected into onboarding — ceiling: ${t.resolvedMealCalories}kcal / fat ≤${t.maximumToleratedFatGrams}g / prot ≥${t.targetProteinGrams}g`);
+          }
+
           const slots = uniqueSlots.map(slot => ({
             courseStyle: slot.slot === "meal" ? (slot.label as any) : "Snack",
             label: slot.label,
@@ -1901,40 +1936,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }));
 
           if (mode === "repeat_one") {
-            // "Repeat one" = one meal per unique slot type repeated across every day.
-            // We generate separately per type so each slot's GLP-1 block and targets
-            // are applied correctly — a snack generated with lunch targets would exceed
-            // snack-specific calorie and fat ceilings and violate the clinical contract.
+            // Generate one meal and duplicate it
             const { generateMealV2 } = await import("./services/mealgenV2");
-
-            // Collect unique courseStyle values from the schedule.
-            const seenStyles = new Set<string>();
-            const uniqueStyles = slots.filter(s => {
-              const key = s.courseStyle.toLowerCase();
-              if (seenStyles.has(key)) return false;
-              seenStyles.add(key);
-              return true;
+            const baseMeal = await generateMealV2({
+              userId: authUserId,
+              courseStyle: slots[0].courseStyle,
+              onboarding,
+              includeImage: includeImages
             });
-
-            // Generate one GLP-1-constrained meal per slot type in parallel.
-            const mealByType: Record<string, any> = {};
-            await Promise.all(uniqueStyles.map(async (s) => {
-              const styleKey = s.courseStyle.toLowerCase();
-              mealByType[styleKey] = await generateMealV2({
-                userId: userId || "1",
-                courseStyle: s.courseStyle,
-                onboarding,
-                includeImage: includeImages,
-                glp1Block:   weeklyPlanGlp1Block[styleKey],
-                glp1Targets: weeklyPlanGlp1Targets[styleKey],
-              });
-            }));
 
             const items: any[] = [];
             for (let d = 0; d < dayCount; d++) {
               for (const slot of uniqueSlots) {
-                const styleKey = (slot.slot === "meal" ? slot.label : "Snack").toLowerCase();
-                const baseMeal = mealByType[styleKey] ?? Object.values(mealByType)[0];
                 items.push({
                   ...baseMeal,
                   dayIndex: d,
@@ -1946,21 +1959,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
             }
 
-            console.log(`🍽️ MEALGEN V2 (repeat_one): Generated ${items.length} items`);
-            return res.json({ days: dayCount, items, meta: { onboardingHash: obHash, mode } });
+            // ── GLP-1 post-generation validation — repeat_one ────────────
+            // Fail closed: filter out items whose actual nutrition violates
+            // GLP-1 targets. Do NOT mutate nutrition fields (that would relabel
+            // a non-compliant meal as compliant without changing its ingredients).
+            let glp1FilteredItems = items;
+            if (glp1PlanActive && glp1PlanTargets) {
+              try {
+                const { validateMealForDiet } = await import("./services/guardrails/index");
+                const t = glp1PlanTargets;
+                const before = glp1FilteredItems.length;
+                glp1FilteredItems = glp1FilteredItems.filter(item => {
+                  // V2 items carry macros at top-level (calories, protein, fats).
+                  // item.nutrition is undefined — never read it for V2 output.
+                  const kcal = item.calories ?? item.nutrition?.calories;
+                  const prot = item.protein ?? item.nutrition?.protein;
+                  const fatG = item.fats   ?? item.fat   ?? item.nutrition?.fat;
+                  // Missing or non-finite macros cannot be validated — reject for GLP-1 safety.
+                  if (!Number.isFinite(kcal) || !Number.isFinite(prot) || !Number.isFinite(fatG)) {
+                    console.warn(`💊 [GLP-1/V2/repeat_one] Dropping "${item.name}" — macros missing/non-finite (kcal:${kcal} prot:${prot} fat:${fatG})`);
+                    return false;
+                  }
+                  const ingList = (item.ingredients || []).map((i: any) => ({
+                    name: i.item ?? i.name ?? "", quantity: i.amount ? String(i.amount) : undefined, unit: i.unit,
+                  }));
+                  const vr = validateMealForDiet(
+                    { name: item.name, ingredients: ingList, macros: { calories: kcal, protein: prot, fat: fatG } },
+                    "glp1", undefined, item.label?.toLowerCase() === "snack", t,
+                  );
+                  if (!vr.isValid) {
+                    console.warn(`💊 [GLP-1/V2/repeat_one] Dropping "${item.name}" — violations:`, vr.violations);
+                  }
+                  return vr.isValid;
+                });
+                if (glp1FilteredItems.length < before) {
+                  console.warn(`💊 [GLP-1/V2/repeat_one] ${before - glp1FilteredItems.length} non-compliant item(s) removed`);
+                }
+              } catch (err) {
+                // Fail closed: validation module error means we cannot confirm compliance.
+                // Return an empty set rather than serving unvalidated meals to a GLP-1 patient.
+                console.warn("⚠️ [GLP-1/V2/repeat_one] Validation error — clearing all items (fail closed):", err);
+                glp1FilteredItems = [];
+              }
+            }
+            console.log(`🍽️ MEALGEN V2 (repeat_one): Generated ${glp1FilteredItems.length} items`);
+            return res.json({ days: dayCount, items: glp1FilteredItems, meta: { onboardingHash: obHash, mode } });
           } else {
-            // Generate variety with per-slot-type GLP-1 blocks and targets.
-            // generateDayV2 threads glp1Block/glp1Targets into each generateMealV2
-            // call keyed by lowercase courseStyle (breakfast/lunch/dinner/snack),
-            // so each slot's craving prompt and retry validation use the correct
-            // resolver output rather than a shared lunch approximation.
+            // Generate variety with constraints
             const dayMeals = await generateDayV2({
-              userId: userId || "1",
+              userId: authUserId,
               onboarding,
               slots,
-              includeImage: includeImages,
-              glp1BlockByType:   weeklyPlanGlp1Block,
-              glp1TargetsByType: weeklyPlanGlp1Targets,
+              includeImage: includeImages
             });
 
             const items: any[] = [];
@@ -1978,8 +2028,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
               });
             }
 
-            console.log(`🍽️ MEALGEN V2: Generated ${items.length} items with onboarding compliance`);
-            return res.json({ days: dayCount, items, meta: { onboardingHash: obHash, mode } });
+            // ── GLP-1 post-generation validation — ai_varied ─────────────
+            // Fail closed: filter out non-compliant items. No nutrition mutation.
+            let glp1FilteredItems = items;
+            if (glp1PlanActive && glp1PlanTargets) {
+              try {
+                const { validateMealForDiet } = await import("./services/guardrails/index");
+                const t = glp1PlanTargets;
+                const before = glp1FilteredItems.length;
+                glp1FilteredItems = glp1FilteredItems.filter(item => {
+                  // V2 items carry macros at top-level (calories, protein, fats).
+                  // item.nutrition is undefined — never read it for V2 output.
+                  const kcal = item.calories ?? item.nutrition?.calories;
+                  const prot = item.protein ?? item.nutrition?.protein;
+                  const fatG = item.fats   ?? item.fat   ?? item.nutrition?.fat;
+                  // Missing or non-finite macros cannot be validated — reject for GLP-1 safety.
+                  if (!Number.isFinite(kcal) || !Number.isFinite(prot) || !Number.isFinite(fatG)) {
+                    console.warn(`💊 [GLP-1/V2/ai_varied] Dropping "${item.name}" — macros missing/non-finite (kcal:${kcal} prot:${prot} fat:${fatG})`);
+                    return false;
+                  }
+                  const ingList = (item.ingredients || []).map((i: any) => ({
+                    name: i.item ?? i.name ?? "", quantity: i.amount ? String(i.amount) : undefined, unit: i.unit,
+                  }));
+                  const vr = validateMealForDiet(
+                    { name: item.name, ingredients: ingList, macros: { calories: kcal, protein: prot, fat: fatG } },
+                    "glp1", undefined, item.label?.toLowerCase() === "snack", t,
+                  );
+                  if (!vr.isValid) {
+                    console.warn(`💊 [GLP-1/V2/ai_varied] Dropping "${item.name}" — violations:`, vr.violations);
+                  }
+                  return vr.isValid;
+                });
+                if (glp1FilteredItems.length < before) {
+                  console.warn(`💊 [GLP-1/V2/ai_varied] ${before - glp1FilteredItems.length} non-compliant item(s) removed`);
+                }
+              } catch (err) {
+                // Fail closed: validation module error means we cannot confirm compliance.
+                // Return an empty set rather than serving unvalidated meals to a GLP-1 patient.
+                console.warn("⚠️ [GLP-1/V2/ai_varied] Validation error — clearing all items (fail closed):", err);
+                glp1FilteredItems = [];
+              }
+            }
+            console.log(`🍽️ MEALGEN V2: Generated ${glp1FilteredItems.length} items with onboarding compliance`);
+            return res.json({ days: dayCount, items: glp1FilteredItems, meta: { onboardingHash: obHash, mode } });
           }
         } catch (error) {
           console.error("MEALGEN V2 failed, falling back to legacy:", error);
@@ -1988,10 +2079,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // LEGACY SYSTEM: Get user profile data for personalized meal generation
-      const [userProfile] = await db.select().from(users).where(eq(users.id, userId || "1")).limit(1);
+      // Use authUserId (session-verified) — not body userId — to prevent IDOR.
+      const [userProfile] = await db.select().from(users).where(eq(users.id, authUserId)).limit(1);
 
-      // weeklyPlanGlp1Active / weeklyPlanGlp1Block / weeklyPlanGlp1Targets are
-      // already resolved via resolveGLP1GlobalContext above (before the V2 branch).
+      // ── GLP-1 canonical context for Weekly Meal Plan ───────────────────────
+      // Load patient-specific targets once; inject into every slot's prompt so
+      // each generated meal respects GLP-1 volume/fat/protein constraints.
+      let weeklyPlanGlp1Active = false;
+      let weeklyPlanGlp1Block = "";
+      try {
+        const { resolveGLP1GlobalContext } = await import("./services/glp1/resolveGLP1GlobalContext");
+        const { applyGuardrails: _planApplyGuardrails } = await import("./services/guardrails");
+        // Use authUserId (session-guaranteed by requireMacroProfile) — NEVER body userId.
+        // Body userId is untrusted; resolving GLP-1 for it would expose another user's
+        // medication status and personalized targets (IDOR on PHI-adjacent data).
+        const weeklyGlp1Ctx = await resolveGLP1GlobalContext(
+          authUserId,
+          new Date().toISOString().split("T")[0],
+          "lunch",
+        );
+        if (weeklyGlp1Ctx.isActive && weeklyGlp1Ctx.resolvedTargets) {
+          weeklyPlanGlp1Active = true;
+          const _wt = weeklyGlp1Ctx.resolvedTargets;
+          // Build the GLP-1 constraint string manually (applyGuardrails returns
+          // GuardrailResult, not a string — we only need the prompt text here).
+          weeklyPlanGlp1Block = [
+            `GLP-1 PROTOCOL: Calories ≤${_wt.resolvedMealCalories}kcal, Fat ≤${_wt.maximumToleratedFatGrams}g, Protein ≥${_wt.targetProteinGrams}g.`,
+            `NO fried, cream sauces, heavy butter, or full-fat dairy. Small portions only.`,
+          ].join(" ");
+          console.log(
+            `💊 [WEEKLY PLAN/GLP-1] Personalized targets: ` +
+            `${weeklyGlp1Ctx.resolvedTargets.resolvedMealCalories}kcal / ` +
+            `${weeklyGlp1Ctx.resolvedTargets.targetProteinGrams}g prot / ` +
+            `${weeklyGlp1Ctx.resolvedTargets.maximumToleratedFatGrams}g fat-ceiling ` +
+            `[phase: ${weeklyGlp1Ctx.resolvedTargets.treatmentPhase}] ` +
+            `[sources: ${weeklyGlp1Ctx.activationSources.join(",")}]`
+          );
+        }
+      } catch (err) {
+        console.warn("[WEEKLY PLAN/GLP-1] Could not resolve GLP-1 context — continuing without:", err);
+      }
 
       // Create variety-focused meal generation system
       const varietyPrompts = {
@@ -2058,15 +2185,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
               personalizedPrompt += `, without ${userProfile.dislikedFoods.join(', ')}`;
             }
 
-            // Inject GLP-1 guidance when patient overlay is active — use the
-            // target resolved for THIS slot's meal type, not a shared lunch block.
-            const slotGlp1Block = weeklyPlanGlp1Block[mealType];
-            if (weeklyPlanGlp1Active && slotGlp1Block) {
-              personalizedPrompt += `. ${slotGlp1Block}`;
+            // Inject GLP-1 guidance when patient overlay is active
+            if (weeklyPlanGlp1Active && weeklyPlanGlp1Block) {
+              personalizedPrompt += `. ${weeklyPlanGlp1Block}`;
             }
 
             console.log(`🎯 Generating ${slot.label} with variety prompt: "${personalizedPrompt}"`);
 
+            // Pass authUserId so the craving-creator resolves GLP-1 for the
+            // authenticated user — this triggers its pre-generation GLP-1
+            // macro-target injection (fat ceiling, protein floor, calorie cap).
             const mealResponse = await fetch(`${INTERNAL_API_BASE}/api/meals/craving-creator`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -2075,15 +2203,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 cravingInput: personalizedPrompt,
                 dietaryRestrictions: userProfile?.dietaryRestrictions || [],
                 allergies: userProfile?.allergies || [],
-                userId: userId || "1",
+                userId: authUserId,
                 variation: tries
               })
             });
 
             if (mealResponse.ok) {
-              // craving-creator responds with { meals: [...] }; pick the first option.
-              const _mealData = await mealResponse.json();
-              const meal = _mealData.meals?.[0] ?? _mealData.meal;
+              const { meal } = await mealResponse.json();
               if (meal) {
                 // Normalize ingredients for proper measurements
                 let normalizedIngredients = Array.isArray(meal.ingredients) ? meal.ingredients : [];
@@ -2099,6 +2225,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   badges: meal.medicalBadges || []
                 };
 
+                // ── GLP-1 fail-closed validation ──────────────────────────
+                // Validate the generated meal against GLP-1 targets.
+                // Do NOT mutate nutrition fields (that relabels a non-compliant
+                // meal without changing its ingredients, which is clinically
+                // incorrect). If it fails, retry with a different prompt variant.
+                if (glp1PlanActive && glp1PlanTargets) {
+                  const t = glp1PlanTargets;
+                  try {
+                    const { validateMealForDiet } = await import("./services/guardrails/index");
+                    const ingList = (normalizedMeal.ingredients || []).map((i: any) => ({
+                      name: i.item ?? i.name ?? "",
+                      quantity: i.amount ? String(i.amount) : undefined,
+                      unit: i.unit ?? undefined,
+                    }));
+                    const vr = validateMealForDiet(
+                      { name: normalizedMeal.name, ingredients: ingList, macros: normalizedMeal.nutrition },
+                      "glp1", undefined, mealType === "snack", t,
+                    );
+                    if (!vr.isValid) {
+                      console.warn(
+                        `💊 [WEEKLY PLAN/GLP-1] "${normalizedMeal.name}" fails validation — retrying (try ${tries + 1}):`,
+                        vr.violations,
+                      );
+                      tries++;
+                      continue; // retry with next prompt variant
+                    }
+                  } catch (err) {
+                    // Validation module failed to load — fail closed: do not accept the meal.
+                    console.warn("⚠️ [WEEKLY PLAN/GLP-1] Validation error — rejecting meal (fail closed):", err);
+                    tries++;
+                    continue;
+                  }
+                }
+
                 // Check for duplicates using improved signature
                 const sig = mealSig(normalizedMeal);
                 if (!seen.has(sig)) {
@@ -2109,60 +2269,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     console.warn(`⚠️ Meal "${normalizedMeal.name}" has unmeasured ingredients, retrying...`);
                     tries++;
                     continue;
-                  }
-
-                  // GLP-1 post-generation validation.
-                  // Run whenever GLP-1 is active AND a guardrail block exists for this
-                  // slot type (which is always true when active — the resolver block is
-                  // always populated, falling back to static glp1Rules when personalized
-                  // targets are unavailable). Normalize top-level macro fields into the
-                  // `macros` object so the validator's calorie/fat/protein checks run.
-                  // Pass slotTargets as the 5th param: undefined → static-baseline checks.
-                  const slotTargets = weeklyPlanGlp1Targets[mealType];
-                  const slotHasGlp1Block = Boolean(weeklyPlanGlp1Block[mealType]);
-                  if (weeklyPlanGlp1Active && slotHasGlp1Block) {
-                    try {
-                      const { validateMealForDiet: _planValidateMeal } = await import("./services/guardrails");
-                      const mealForValidation = {
-                        ...normalizedMeal,
-                        macros: normalizedMeal.macros ?? {
-                          calories: normalizedMeal.calories,
-                          protein:  normalizedMeal.protein,
-                          fat:      normalizedMeal.fat,
-                          carbs:    normalizedMeal.carbs,
-                        },
-                      };
-                      const glp1Check = _planValidateMeal(
-                        mealForValidation as any,
-                        "glp1",
-                        undefined,
-                        mealType === "snack",
-                        slotTargets,   // undefined = static-baseline validation
-                      );
-                      // Treat warnings as retry triggers for active GLP-1 patients:
-                      // static-baseline calorie and protein warnings indicate limits
-                      // that should be enforced even without personalized resolver targets.
-                      const glp1Issues = [
-                        ...(glp1Check.violations ?? []),
-                        ...(glp1Check.warnings ?? []),
-                      ];
-                      if (!glp1Check.isValid || glp1Issues.length > 0) {
-                        console.warn(
-                          `[WEEKLY PLAN/GLP-1] Meal "${normalizedMeal.name}" failed validation — retrying. ` +
-                          `Issues: ${glp1Issues.join("; ")}`,
-                        );
-                        tries++;
-                        continue; // discard this meal and generate a new one
-                      }
-                    } catch (valErr) {
-                      // Validator threw — fail closed: retry rather than accept.
-                      console.warn(
-                        "[WEEKLY PLAN/GLP-1] validateMealForDiet threw — discarding candidate and retrying:",
-                        valErr,
-                      );
-                      tries++;
-                      continue;
-                    }
                   }
 
                   templateMeals.push(normalizedMeal);
@@ -2225,198 +2331,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/ai/regenerate-meal", requireMacroProfile, async (req, res) => {
     try {
-      const { userId, slot, label, time, dayIndex, dietaryRestrictions, selectedIngredients } = req.body;
+      const { slot, label, time, dayIndex, dietaryRestrictions, selectedIngredients } = req.body;
+
+      // requireMacroProfile guarantees req.authUser — use session identity only.
+      const authRegenUserId: string = (req as any).authUser.id;
 
       console.log("🔄 Regenerating meal:", { label, dayIndex });
 
-      // ── GLP-1 canonical context for single-meal regeneration ──────────────
-      // Mirrors the pattern used in /api/ai/generate-meal-plan so a GLP-1
-      // patient's replaced slot is subject to the same resolver-driven
-      // constraints (smaller portions, protein priority, low-fat selection)
-      // as every other surface on the platform.
-      let regenGlp1Active = false;
-      let regenGlp1Block = "";
+      // ── GLP-1 canonical context — regenerate-meal ─────────────────────────
+      // The internal loopback to /api/meals/craving-creator has no session cookie,
+      // so serverAuthUserId inside that handler resolves to undefined and GLP-1 is
+      // never applied. Resolve GLP-1 here using authRegenUserId (session-guaranteed),
+      // inject the constraint block into cravingInput, and independently validate
+      // the returned meal — fail closed on non-compliance.
       let regenGlp1Targets: import("./services/glp1/resolveGLP1MealTargets").ResolvedGLP1Targets | null = null;
-      if (userId) {
-        try {
-          const { resolveGLP1GlobalContext } = await import("./services/glp1/resolveGLP1GlobalContext");
-          const { applyGuardrails: _regenGuardrails } = await import("./services/guardrails");
-          const regenMealType = (slot === "meal" ? (label?.toLowerCase() || "lunch") : "snack") as
-            "breakfast" | "lunch" | "dinner" | "snack";
-          const today = new Date().toISOString().split("T")[0];
-          const regenGlp1Ctx = await resolveGLP1GlobalContext(userId, today, regenMealType);
-          if (regenGlp1Ctx.isActive) {
-            // Active patient — always enable GLP-1 enforcement regardless of whether
-            // personalized targets resolved. When resolvedTargets is null the resolver
-            // has fallen back to static baselines; applyGuardrails without the 8th
-            // argument builds the static-baseline block, and validateMealForDiet with
-            // undefined targets enforces those same baselines post-generation.
-            regenGlp1Active = true;
-            if (regenGlp1Ctx.resolvedTargets) {
-              regenGlp1Targets = regenGlp1Ctx.resolvedTargets;
-              regenGlp1Block = _regenGuardrails(
-                "", "glp1", regenMealType,
-                undefined, undefined, undefined, undefined,
-                regenGlp1Ctx.resolvedTargets,
-              ).modifiedPrompt;
-              console.log(
-                `💊 [REGENERATE-MEAL/GLP-1] Personalized targets: ` +
-                `${regenGlp1Ctx.resolvedTargets.resolvedMealCalories}kcal / ` +
-                `${regenGlp1Ctx.resolvedTargets.targetProteinGrams}g prot / ` +
-                `${regenGlp1Ctx.resolvedTargets.maximumToleratedFatGrams}g fat-ceiling ` +
-                `[phase: ${regenGlp1Ctx.resolvedTargets.treatmentPhase}] ` +
-                `[sources: ${regenGlp1Ctx.activationSources.join(",")}]`,
-              );
-            } else {
-              // Static-baseline fallback — resolver was active but returned null targets.
-              regenGlp1Block = _regenGuardrails("", "glp1", regenMealType).modifiedPrompt;
-              console.warn(
-                `[REGENERATE-MEAL/GLP-1] Personalized targets unavailable — ` +
-                `applying static-baseline guardrails for ${regenMealType} ` +
-                `[sources: ${regenGlp1Ctx.activationSources.join(",")}]`,
-              );
-            }
-          }
-        } catch (err) {
-          console.warn("[REGENERATE-MEAL/GLP-1] Could not resolve GLP-1 context — continuing without:", err);
-        }
-      }
-
-      // Build craving input, injecting GLP-1 guardrail block when active
-      const baseCravingInput = selectedIngredients?.length > 0 ? 
-        `Different ${label} with ${selectedIngredients.join(', ')}` : 
-        `Different healthy ${label}`;
-      const cravingInput = regenGlp1Active && regenGlp1Block
-        ? `${baseCravingInput}. ${regenGlp1Block}`
-        : baseCravingInput;
-
-      // Helper: call craving-creator and return the raw meal object.
-      // Arrow function required — function declarations are disallowed inside
-      // strict-mode module blocks.
-      const fetchRegenMeal = async (cravingText: string): Promise<any> => {
-        const r = await fetch(`${INTERNAL_API_BASE}/api/meals/craving-creator`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            targetMealType: slot === "meal" ? label.toLowerCase() : "snack",
-            cravingInput: cravingText,
-            dietaryRestrictions: [dietaryRestrictions].filter(Boolean),
-            userId: userId || "1",
-          }),
-        });
-        if (!r.ok) {
-          const errorText = await r.text();
-          throw new Error(`Craving creator failed: ${r.status} ${errorText}`);
-        }
-        // craving-creator responds with { meals: [...] }; pick the first option.
-        const _regenData = await r.json();
-        return _regenData.meals?.[0] ?? _regenData.meal ?? null;
-      };
-
-      // Bounded retry loop — up to 3 attempts for active GLP-1 patients, 1 otherwise.
-      // Only a validated-compliant candidate is accepted as `meal`; `meal` stays null
-      // until a pass is confirmed so the loop never silently returns an invalid result.
-      // When all attempts are exhausted without a compliant result, the endpoint returns
-      // 422 rather than serving an unguarded replacement to a clinical patient.
-      const MAX_REGEN_ATTEMPTS = regenGlp1Active ? 3 : 1;
-      let meal: any = null;
-      let lastViolations: string[] = [];
-
-      for (let attempt = 0; attempt < MAX_REGEN_ATTEMPTS; attempt++) {
-        const attemptInput = attempt === 0
-          ? cravingInput
-          : `${cravingInput}. STRICT GLP-1 REQUIREMENT (attempt ${attempt + 1}/${MAX_REGEN_ATTEMPTS}): ` +
-            `${lastViolations.join("; ")}. Ensure full compliance with all listed constraints.`;
-
-        const candidate = await fetchRegenMeal(attemptInput);
-        if (!candidate) continue;
-
-        if (!regenGlp1Active) {
-          // GLP-1 not active — accept the first valid candidate immediately.
-          meal = candidate;
-          break;
-        }
-
-        // Normalize top-level macro fields into the `macros` object so the
-        // validator's calorie/fat/protein checks run even when the Craving Creator
-        // returns macros at the top level rather than nested under `macros`.
-        const normalized = {
-          ...candidate,
-          macros: candidate.macros ?? {
-            calories: candidate.calories,
-            protein:  candidate.protein,
-            fat:      candidate.fat,
-            carbs:    candidate.carbs,
-          },
-        };
-
-        try {
-          const { validateMealForDiet: _regenValidate } = await import("./services/guardrails");
-          const isSnackSlot = slot !== "meal";
-          // regenGlp1Targets is null when the resolver fell back to static baselines.
-          // Pass null→undefined so the validator uses glp1Rules static defaults instead
-          // of skipping macro checks entirely. This ensures active patients are always
-          // validated even when personalized targets are temporarily unavailable.
-          const check = _regenValidate(
-            normalized as any, "glp1", undefined, isSnackSlot,
-            regenGlp1Targets ?? undefined,
-          );
-
-          // Treat warnings as failures: static-baseline calorie/protein warnings
-          // represent limits that must be enforced for active GLP-1 patients.
-          const allIssues = [...(check.violations ?? []), ...(check.warnings ?? [])];
-          if (check.isValid && allIssues.length === 0) {
-            meal = normalized;
-            console.log(`[REGENERATE-MEAL/GLP-1] Attempt ${attempt + 1} compliant — "${candidate.name}".`);
-            break;
-          }
-
-          lastViolations = allIssues;
-          console.warn(
-            `[REGENERATE-MEAL/GLP-1] Attempt ${attempt + 1} "${candidate.name}" failed: ` +
-            allIssues.join("; "),
-          );
-          // Do NOT set `meal` — keep it null so the loop continues seeking a
-          // compliant result rather than silently accepting a known violation.
-        } catch (valErr: any) {
-          // Validator threw — fail closed: count this as a non-compliant attempt
-          // and retry rather than silently accepting a potentially unsafe meal.
-          lastViolations = [`validator error: ${valErr?.message ?? "unknown"}`];
-          console.warn(
-            "[REGENERATE-MEAL/GLP-1] validateMealForDiet threw — treating as non-compliant, retrying:",
-            valErr,
-          );
-          // Do NOT set `meal` here; the loop will retry on the next iteration.
-        }
-      }
-
-      // Clinical safety gate: if all attempts were validated and all failed, return a
-      // 422 so the UI can show a meaningful message rather than serve an unguarded meal.
-      if (!meal && regenGlp1Active) {
-        console.error(
-          `[REGENERATE-MEAL/GLP-1] All ${MAX_REGEN_ATTEMPTS} attempts failed GLP-1 validation. ` +
-          `Last violations: ${lastViolations.join("; ")}`,
+      let regenGlp1Block = "";
+      try {
+        const { resolveGLP1GlobalContext } = await import("./services/glp1/resolveGLP1GlobalContext");
+        const regenGlp1Ctx = await resolveGLP1GlobalContext(
+          authRegenUserId,
+          new Date().toISOString().split("T")[0],
+          (slot === "meal" ? label?.toLowerCase() : "snack") as "breakfast" | "lunch" | "dinner" | "snack",
         );
-        return res.status(422).json({
-          error: "Unable to generate a GLP-1 compliant meal after multiple attempts. Please try again.",
-          violations: lastViolations,
-        });
+        if (regenGlp1Ctx.isActive && regenGlp1Ctx.resolvedTargets) {
+          regenGlp1Targets = regenGlp1Ctx.resolvedTargets;
+          const t = regenGlp1Targets;
+          regenGlp1Block = ` GLP-1 PROTOCOL: Calories ≤${t.resolvedMealCalories}kcal, Fat ≤${t.maximumToleratedFatGrams}g, Protein ≥${t.targetProteinGrams}g. NO fried, cream sauces, heavy butter, full-fat dairy. Small portions only.`;
+          console.log(`💊 [GLP-1/RegenMeal] Active — injecting constraint into prompt [${t.resolvedMealCalories}kcal / ≤${t.maximumToleratedFatGrams}g fat / ≥${t.targetProteinGrams}g prot]`);
+        }
+      } catch (err) {
+        console.warn("⚠️ [GLP-1/RegenMeal] Could not resolve context — regenerating without GLP-1 constraints:", err);
       }
 
-      if (meal) {
-        const updatedMeal = {
-          ...meal,
-          dayIndex,
-          slot,
-          label,
-          time,
-          badges: meal.medicalBadges || [],
-        };
-        console.log(`✅ Regenerated meal: ${meal.name}`);
-        res.json(updatedMeal);
-      } else {
-        throw new Error("No meal returned from craving creator");
+      const mealType = slot === "meal" ? label.toLowerCase() : "snack";
+      const baseCravingInput = selectedIngredients?.length > 0
+        ? `Different ${label} with ${selectedIngredients.join(', ')}`
+        : `Different healthy ${label}`;
+      const cravingInput = `${baseCravingInput}${regenGlp1Block}`;
+
+      // Retry up to 3 times so a non-compliant first attempt doesn't surface to the user.
+      let updatedMeal: any = null;
+      const maxRetries = regenGlp1Targets ? 3 : 1;
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        const mealResponse = await fetch(`${INTERNAL_API_BASE}/api/meals/craving-creator`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            targetMealType: mealType,
+            cravingInput: attempt === 0 ? cravingInput : `${cravingInput} variation ${attempt + 1}`,
+            dietaryRestrictions: [dietaryRestrictions].filter(Boolean),
+            userId: authRegenUserId,
+          })
+        });
+
+        if (!mealResponse.ok) {
+          const errorText = await mealResponse.text();
+          throw new Error(`Craving creator failed: ${mealResponse.status} ${errorText}`);
+        }
+
+        const { meal } = await mealResponse.json();
+        if (!meal) throw new Error("No meal returned from craving creator");
+
+        // ── GLP-1 post-generation fail-closed validation ───────────────────
+        if (regenGlp1Targets) {
+          try {
+            const { validateMealForDiet: _regenValidate } = await import("./services/guardrails/index");
+            const ingList = (meal.ingredients || []).map((i: any) => ({
+              name: i.item ?? i.name ?? "", quantity: i.amount ? String(i.amount) : undefined, unit: i.unit,
+            }));
+            const vr = _regenValidate(
+              { name: meal.name, ingredients: ingList, macros: meal.nutrition ?? { calories: meal.calories, protein: meal.protein, fat: meal.fat } },
+              "glp1", undefined, mealType === "snack", regenGlp1Targets,
+            );
+            if (!vr.isValid) {
+              console.warn(`💊 [GLP-1/RegenMeal] Attempt ${attempt + 1} fails validation — violations:`, vr.violations);
+              if (attempt < maxRetries - 1) continue; // retry
+              // Final attempt still non-compliant — return error rather than a bad meal
+              return res.status(422).json({
+                error: "GLP-1_COMPLIANCE_FAILED",
+                message: "Could not generate a compliant meal within retry budget. Please try a different craving.",
+              });
+            }
+          } catch (err) {
+            // Fail closed: validator error — reject the meal
+            console.warn("⚠️ [GLP-1/RegenMeal] Validation error — rejecting meal (fail closed):", err);
+            if (attempt < maxRetries - 1) continue;
+            return res.status(422).json({ error: "GLP-1_VALIDATION_ERROR", message: "Could not validate the regenerated meal." });
+          }
+        }
+
+        updatedMeal = { ...meal, dayIndex, slot, label, time, badges: meal.medicalBadges || [] };
+        break;
       }
+
+      if (!updatedMeal) throw new Error("All regeneration attempts failed");
+      console.log(`✅ Regenerated meal: ${updatedMeal.name}`);
+      res.json(updatedMeal);
 
     } catch (error: any) {
       console.error("❌ Meal regeneration error:", error);
@@ -4968,6 +4978,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           } catch { /* non-fatal */ }
         }
       }
+      // serverAuthUserId: session or token identity ONLY — never body-supplied.
+      // Used exclusively for GLP-1 resolve to prevent IDOR (body userId can name
+      // any account; resolving GLP-1/PHI for it would expose sensitive health data).
+      const serverAuthUserId: string | undefined = userId;
       // Final fallback: body-provided userId (legacy / admin callers only)
       if (!userId && bodyUserId) userId = bodyUserId;
 
@@ -5038,6 +5052,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cravingInput = `${rawCravingInput} [USER DIET SOFT OVERRIDE: The user has explicitly chosen to include this food despite their dietary preference. You MUST include the specifically requested ingredient exactly as requested. If it is a starchy food (potato, rice, bread, pasta), serve it as a controlled side portion (no more than ½ cup or 4 oz) — not the main base of the meal. Adjust all surrounding ingredients to maintain as much dietary alignment as possible. Do NOT add any additional high-carb or conflicting foods beyond what the user explicitly requested.]`;
       }
 
+      // ── GLP-1 canonical context — pre-generation ─────────────────────────
+      // Uses serverAuthUserId (session/token only — never body userId) to prevent
+      // IDOR: a caller cannot resolve or receive GLP-1 context for another user.
+      let _cravingGlp1Targets: import("./services/glp1/resolveGLP1MealTargets").ResolvedGLP1Targets | undefined;
+      if (serverAuthUserId) {
+        try {
+          const { resolveGLP1GlobalContext } = await import("./services/glp1/resolveGLP1GlobalContext");
+          const glp1Ctx = await resolveGLP1GlobalContext(
+            serverAuthUserId!,
+            new Date().toISOString().split("T")[0],
+            (targetMealType === "breakfast" || targetMealType === "lunch" ||
+             targetMealType === "dinner" || targetMealType === "snack")
+              ? targetMealType as "breakfast" | "lunch" | "dinner" | "snack"
+              : "lunch",
+          );
+          if (glp1Ctx.isActive) {
+            _cravingGlp1Targets = glp1Ctx.resolvedTargets ?? undefined;
+            console.log(
+              `💊 [GLP-1/CravingCreator] Active — sources=[${glp1Ctx.activationSources.join(",")}]` +
+              (_cravingGlp1Targets
+                ? ` [${_cravingGlp1Targets.resolvedMealCalories}kcal / ` +
+                  `${_cravingGlp1Targets.targetProteinGrams}g prot / ` +
+                  `${_cravingGlp1Targets.maximumToleratedFatGrams}g fat-ceiling]`
+                : " [baseline targets]"),
+            );
+          }
+        } catch (err) {
+          console.warn("⚠️ [GLP-1/CravingCreator] Could not resolve context:", err);
+        }
+      }
+
       // 🎲 VARIETY ENGINE: Always generate 3 distinct options (Layers 1-4)
       const { generateCravingMealOptions, generateSingleCompliantFallback } = await import("./services/unifiedMealPipeline");
 
@@ -5073,7 +5118,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         excludeMeals,
         strictMode === true,
         (generationMode === 'recipe' ? 'recipe' : 'meal'),
-        (cultureOverride && typeof cultureOverride === "string" && cultureOverride.trim()) ? cultureOverride.trim() : undefined
+        (cultureOverride && typeof cultureOverride === "string" && cultureOverride.trim()) ? cultureOverride.trim() : undefined,
+        _cravingGlp1Targets,
       );
 
       if (!mealOptions || mealOptions.length === 0) {

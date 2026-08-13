@@ -186,6 +186,8 @@ export async function resolveGLP1GlobalContext(
   const [firstPassTargets, dailyNutritionState] = await Promise.all([
     (async (): Promise<ResolvedGLP1Targets | null> => {
       try {
+        // Pass userId as-is — UUID strings are valid for the DB queries.
+        // Do NOT convert to Number(): UUID→NaN breaks all profile lookups.
         return await loadGLP1ResolvedTargets(userId, { mealType });
       } catch (err) {
         console.warn("[GLP1Context] Initial target resolution failed — using static baselines:", err);
