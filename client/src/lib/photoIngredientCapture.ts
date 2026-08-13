@@ -61,6 +61,8 @@ export interface IngredientScanResult {
   analysisMethod: 'by_name' | 'by_label' | 'full_product_advisor';
   profileFactorsUsed: string[];
   whatMattersMost: string[];
+  /** UPC/barcode if the scan originated from a barcode scanner */
+  barcode?: string;
 }
 
 export interface IngredientCaptureCallbacks {
