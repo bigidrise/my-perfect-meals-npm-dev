@@ -114,6 +114,7 @@ import { SnackCreatorModal } from "@/components/SnackCreatorModal";
 import { GlobalMealActionBar } from "@/components/GlobalMealActionBar";
 import { useNavigateToFavorites } from "@/hooks/useNavigateToFavorites";
 import { useBaselineNutrition } from "@/hooks/useBaselineNutrition";
+import { prescriptionToTargetsOverride } from "@/lib/prescriptionAdapter";
 import { classifyMeal } from "@/utils/starchMealClassifier";
 import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
 import { useDailyNutritionState } from "@/hooks/useDailyNutritionState";
@@ -433,7 +434,10 @@ export default function WeeklyMealBoard() {
     clientId: proClientId ?? null,
     disabled: !activeDayISO,
   });
-  const prescription = nutritionState?.resolvedPrescription ?? null;
+  const prescription = nutritionState?.prescription ?? null;
+  // Training prescription is the display authority when resolved; falls back to
+  // macro-calculator baseline (nutritionTargets) for non-performance/fallback days.
+  const effectiveTargets = prescriptionToTargetsOverride(prescription) ?? nutritionTargets;
 
   // Computed: check if week mode is read-only (any day in week is locked)
   const weekModeReadOnly = React.useMemo(() => {
@@ -1825,7 +1829,7 @@ export default function WeeklyMealBoard() {
                 >
                   {!proClientId && <RemainingMacrosFooter
                     userId={effectiveUserId}
-                    targetsOverride={nutritionTargets}
+                    targetsOverride={effectiveTargets}
                     consumedOverride={consumed}
                     showSaveButton={false}
                     layoutMode={isDay ? "inline" : "sticky"}
