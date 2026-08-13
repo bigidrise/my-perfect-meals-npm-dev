@@ -16,7 +16,6 @@
  *  5. Inject generatedAtISO timestamp so entries can be TTL-evicted later
  */
 
-import { Sentry } from "./sentry";
 
 /** All known builder cache keys — used for cross-eviction when one is over quota. */
 export const BUILDER_CACHE_KEYS: readonly string[] = [
@@ -71,6 +70,75 @@ function stripLargeFields(value: unknown): unknown {
 }
 
 /**
+ * One-time boot migration: remove builder cache entries that are missing a
+ * `generatedAtISO` timestamp.
+ *
+ * Entries written before `safeLocalStorageSet` began injecting timestamps
+ * (either raw objects or raw arrays) have no `generatedAtISO` and cannot be
+ * TTL-evicted by `evictStaleBuilderCaches`. This function removes them so they
+ * don't linger indefinitely.
+ *
+ * Safe to call on every boot:
+ *  - Post-fix object entries already have `generatedAtISO` → kept.
+ *  - Post-fix array entries are stored as `{ data, generatedAtISO }` → kept.
+ *  - Legacy entries (raw objects or raw arrays without the field) → removed.
+ */
+export function migrateLegacyBuilderCaches(): void {
+  for (const key of BUILDER_CACHE_KEYS) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      const parsed = JSON.parse(raw);
+      // Any entry written by safeLocalStorageSet after the fix will be a plain
+      // object with a generatedAtISO field (arrays are wrapped in an envelope).
+      // Anything else — raw arrays, legacy objects without the field — is stale.
+      const hasTimestamp =
+        typeof parsed === "object" &&
+        parsed !== null &&
+        !Array.isArray(parsed) &&
+        !!parsed.generatedAtISO;
+      if (!hasTimestamp) {
+        localStorage.removeItem(key);
+      }
+    } catch {
+      // Corrupt entry — remove it
+      try { localStorage.removeItem(key); } catch {}
+    }
+  }
+}
+
+/**
+ * Read an array-valued builder cache written by `safeLocalStorageSet`.
+ *
+ * `safeLocalStorageSet` wraps raw arrays in `{ data: [...], generatedAtISO }`
+ * so they receive a TTL timestamp. This helper transparently unwraps that
+ * envelope. It also accepts the legacy raw-array format so that any entry that
+ * survived before `migrateLegacyBuilderCaches` ran is still readable.
+ *
+ * Returns an empty array on any error or cache miss.
+ */
+export function safeLocalStorageGetArray<T = unknown>(key: string): T[] {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    // New envelope format: { data: [...], generatedAtISO: "..." }
+    if (
+      typeof parsed === "object" &&
+      parsed !== null &&
+      !Array.isArray(parsed) &&
+      Array.isArray((parsed as Record<string, unknown>).data)
+    ) {
+      return (parsed as { data: T[] }).data;
+    }
+    // Legacy fallback: raw array written before the envelope was introduced
+    if (Array.isArray(parsed)) return parsed as T[];
+    return [];
+  } catch {
+    return [];
+  }
+}
+/**
  * Remove all stale builder cache entries (those older than MAX_AGE_MS).
  * Called automatically by safeLocalStorageSet before each write.
  */
@@ -122,12 +190,19 @@ function clearOtherBuilderCaches(exceptKey: string): void {
  */
 export function safeLocalStorageSet(key: string, value: unknown): void {
   try {
-    // 1. Ensure a timestamp exists for future TTL eviction
+    // 1. Ensure a timestamp exists for future TTL eviction.
+    //    - Plain objects: inject generatedAtISO directly if not already present.
+    //    - Arrays: wrap in { data: [...], generatedAtISO } so they are also
+    //      timestamped. Readers must unwrap via safeLocalStorageGetArray().
     let toWrite: unknown = value;
-    if (typeof value === "object" && value !== null && !Array.isArray(value)) {
-      const obj = value as Record<string, unknown>;
-      if (!obj.generatedAtISO) {
-        toWrite = { ...obj, generatedAtISO: new Date().toISOString() };
+    if (typeof value === "object" && value !== null) {
+      if (Array.isArray(value)) {
+        toWrite = { data: value, generatedAtISO: new Date().toISOString() };
+      } else {
+        const obj = value as Record<string, unknown>;
+        if (!obj.generatedAtISO) {
+          toWrite = { ...obj, generatedAtISO: new Date().toISOString() };
+        }
       }
     }
 
@@ -149,18 +224,26 @@ export function safeLocalStorageSet(key: string, value: unknown): void {
   } catch (err) {
     // Final fallback: give up silently — don't crash the app.
     // Emit observability so unexpected storage failures are surfaced.
-    if (import.meta.env.DEV) {
+    // Use process.env (works in Node/Jest and in Vite browser builds) instead
+    // of import.meta.env so this module stays test-compilable.
+    if (process.env.NODE_ENV === "development") {
       console.warn("[safeLocalStorageSet] Write failed for key:", key, err);
     } else {
       try {
-        Sentry.addBreadcrumb({
-          category: "storage",
-          message: `safeLocalStorageSet failed for key: ${key}`,
-          level: "warning",
-          data: { key, error: err instanceof Error ? err.message : String(err) },
+        // Dynamic import keeps sentry.ts (which uses import.meta) out of the
+        // module's static dependency graph — tests never evaluate it.
+        import("./sentry").then(({ Sentry }) => {
+          Sentry.addBreadcrumb({
+            category: "storage",
+            message: `safeLocalStorageSet failed for key: ${key}`,
+            level: "warning",
+            data: { key, error: err instanceof Error ? err.message : String(err) },
+          });
+        }).catch(() => {
+          // Sentry unavailable — remain non-throwing
         });
       } catch {
-        // Sentry itself failed — remain non-throwing
+        // Non-browser environment (e.g. SSR/tests) — ignore
       }
     }
   }

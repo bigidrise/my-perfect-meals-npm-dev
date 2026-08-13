@@ -10,7 +10,9 @@
 
 import {
   safeLocalStorageSet,
+  safeLocalStorageGetArray,
   evictStaleBuilderCaches,
+  migrateLegacyBuilderCaches,
   BUILDER_CACHE_KEYS,
 } from "@/lib/safeLocalStorage";
 
@@ -114,13 +116,15 @@ describe("safeLocalStorageSet — basic write", () => {
     expect(parsed.generatedAtISO).toBe(ts);
   });
 
-  it("does not inject generatedAtISO for array values", () => {
+  it("wraps array values in a { data, generatedAtISO } envelope", () => {
+    const before = Date.now();
     safeLocalStorageSet("cravingCreator.options.v1", [1, 2, 3]);
     const parsed = JSON.parse(
       mockStorage.getItem("cravingCreator.options.v1")!
     );
-    expect(Array.isArray(parsed)).toBe(true);
-    expect(parsed).toEqual([1, 2, 3]);
+    expect(Array.isArray(parsed)).toBe(false);
+    expect(parsed.data).toEqual([1, 2, 3]);
+    expect(new Date(parsed.generatedAtISO).getTime()).toBeGreaterThanOrEqual(before);
   });
 });
 
@@ -349,5 +353,155 @@ describe("evictStaleBuilderCaches", () => {
     expect(mockStorage.getItem("fridge-rescue-cached-state")).toBeNull();
     // Target key should be written
     expect(mockStorage.getItem("cravingCreator.cache.v1")).not.toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// migrateLegacyBuilderCaches — boot-time cleanup of pre-fix entries
+// ---------------------------------------------------------------------------
+
+describe("migrateLegacyBuilderCaches", () => {
+  it("removes object entries that have no generatedAtISO field", () => {
+    mockStorage.setItem(
+      "cravingCreator.cache.v1",
+      JSON.stringify({ meal: "legacy-no-timestamp" })
+    );
+
+    migrateLegacyBuilderCaches();
+
+    expect(mockStorage.getItem("cravingCreator.cache.v1")).toBeNull();
+  });
+
+  it("removes legacy entries across all known BUILDER_CACHE_KEYS", () => {
+    for (const key of BUILDER_CACHE_KEYS) {
+      mockStorage.setItem(key, JSON.stringify({ meal: "old" }));
+    }
+
+    migrateLegacyBuilderCaches();
+
+    for (const key of BUILDER_CACHE_KEYS) {
+      expect(mockStorage.getItem(key)).toBeNull();
+    }
+  });
+
+  it("keeps entries that already have generatedAtISO", () => {
+    mockStorage.setItem(
+      "cravingCreator.cache.v1",
+      JSON.stringify({ meal: "fresh", generatedAtISO: isoHoursAgo(1) })
+    );
+
+    migrateLegacyBuilderCaches();
+
+    expect(mockStorage.getItem("cravingCreator.cache.v1")).not.toBeNull();
+  });
+
+  it("removes legacy raw array entries (written before the envelope fix)", () => {
+    // Raw arrays were written before safeLocalStorageSet wrapped them in an envelope
+    mockStorage.setItem(
+      "cravingCreator.options.v1",
+      JSON.stringify(["opt-a", "opt-b"])
+    );
+
+    migrateLegacyBuilderCaches();
+
+    // Raw arrays have no generatedAtISO, so they are treated as pre-fix legacy entries
+    expect(mockStorage.getItem("cravingCreator.options.v1")).toBeNull();
+  });
+
+  it("keeps array entries written via safeLocalStorageSet (envelope format survives migration)", () => {
+    // safeLocalStorageSet wraps arrays as { data: [...], generatedAtISO }
+    safeLocalStorageSet("cravingCreator.options.v1", ["opt-a", "opt-b"]);
+
+    migrateLegacyBuilderCaches();
+
+    // The envelope has generatedAtISO, so it is not treated as legacy
+    const raw = mockStorage.getItem("cravingCreator.options.v1");
+    expect(raw).not.toBeNull();
+    const parsed = JSON.parse(raw!);
+    expect(parsed.data).toEqual(["opt-a", "opt-b"]);
+  });
+
+  it("skips keys with no value in localStorage", () => {
+    expect(() => migrateLegacyBuilderCaches()).not.toThrow();
+  });
+
+  it("silently removes corrupt (unparseable) entries", () => {
+    mockStorage.setItem("fridge-rescue-cached-state", "not-valid-json{{{}");
+
+    expect(() => migrateLegacyBuilderCaches()).not.toThrow();
+
+    expect(mockStorage.getItem("fridge-rescue-cached-state")).toBeNull();
+  });
+
+  it("does not disturb non-builder-cache keys in localStorage", () => {
+    const directStorage = mockStorage as unknown as {
+      store: Record<string, string>;
+    };
+    directStorage.store["some-unrelated-key"] = "preserved";
+
+    mockStorage.setItem(
+      "cravingCreator.cache.v1",
+      JSON.stringify({ meal: "legacy" })
+    );
+
+    migrateLegacyBuilderCaches();
+
+    expect(mockStorage.getItem("some-unrelated-key")).toBe("preserved");
+  });
+
+  it("is idempotent — running it twice does not throw or corrupt fresh entries", () => {
+    mockStorage.setItem(
+      "cravingCreator.cache.v1",
+      JSON.stringify({ meal: "fresh", generatedAtISO: isoHoursAgo(2) })
+    );
+
+    migrateLegacyBuilderCaches();
+    migrateLegacyBuilderCaches();
+
+    // The fresh entry should still be present after both passes
+    const raw = mockStorage.getItem("cravingCreator.cache.v1");
+    expect(raw).not.toBeNull();
+    expect(JSON.parse(raw!).meal).toBe("fresh");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// safeLocalStorageGetArray — reads envelope or legacy raw array
+// ---------------------------------------------------------------------------
+
+describe("safeLocalStorageGetArray", () => {
+  it("returns the data array from an envelope written by safeLocalStorageSet", () => {
+    safeLocalStorageSet("cravingCreator.options.v1", ["opt-a", "opt-b"]);
+
+    const result = safeLocalStorageGetArray("cravingCreator.options.v1");
+    expect(result).toEqual(["opt-a", "opt-b"]);
+  });
+
+  it("returns a legacy raw array for backward compatibility", () => {
+    // Simulate a pre-fix raw array still in storage
+    mockStorage.setItem(
+      "cravingCreator.options.v1",
+      JSON.stringify(["legacy-a", "legacy-b"])
+    );
+
+    const result = safeLocalStorageGetArray("cravingCreator.options.v1");
+    expect(result).toEqual(["legacy-a", "legacy-b"]);
+  });
+
+  it("returns an empty array when the key is absent", () => {
+    expect(safeLocalStorageGetArray("cravingCreator.options.v1")).toEqual([]);
+  });
+
+  it("returns an empty array for corrupt entries", () => {
+    mockStorage.setItem("cravingCreator.options.v1", "not-valid-json{{{}");
+    expect(safeLocalStorageGetArray("cravingCreator.options.v1")).toEqual([]);
+  });
+
+  it("returns an empty array when the stored value is a plain object (not an array or envelope)", () => {
+    mockStorage.setItem(
+      "cravingCreator.options.v1",
+      JSON.stringify({ notAnArray: true })
+    );
+    expect(safeLocalStorageGetArray("cravingCreator.options.v1")).toEqual([]);
   });
 });

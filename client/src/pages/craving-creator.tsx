@@ -137,7 +137,7 @@ import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
-import { safeLocalStorageSet } from "@/lib/safeLocalStorage";
+import { safeLocalStorageSet, safeLocalStorageGetArray } from "@/lib/safeLocalStorage";
 
 // ---- Persist the generated meal so it never "disappears" ----
 const CACHE_KEY = "cravingCreator.cache.v1";
@@ -181,14 +181,7 @@ function saveCravingOptionsCache(options: any[]) {
 }
 
 function loadCravingOptionsCache(): any[] {
-  try {
-    const raw = localStorage.getItem(OPTIONS_CACHE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+  return safeLocalStorageGetArray(OPTIONS_CACHE_KEY);
 }
 
 function clearCravingOptionsCache() {
