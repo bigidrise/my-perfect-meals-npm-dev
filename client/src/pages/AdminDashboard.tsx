@@ -4,7 +4,7 @@ import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
-import { Search, User, ShieldAlert, LogOut, RefreshCw, Ban, CheckCircle, RotateCcw, KeyRound, ChefHat, ArrowRight, Award, Users, Download, Mail } from "lucide-react";
+import { Search, User, ShieldAlert, LogOut, RefreshCw, Ban, CheckCircle, RotateCcw, KeyRound, ChefHat, ArrowRight, Award, Users, Download, Mail, Bug } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const ENV = import.meta.env.MODE === "production" ? "PRODUCTION" : "DEVELOPMENT";
@@ -509,6 +509,23 @@ export default function AdminDashboard() {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-white">Certifications</p>
               <p className="text-xs text-white/40 mt-0.5">Manage cert modules, quiz questions, progress, and update announcements</p>
+            </div>
+            <ArrowRight className="h-4 w-4 text-orange-400 flex-shrink-0" />
+          </CardContent>
+        </Card>
+
+        {/* Bug Reports link */}
+        <Card
+          className="bg-black/40 border border-orange-500/20 rounded-2xl cursor-pointer hover:border-orange-500/40 transition-colors"
+          onClick={() => setLocation("/admin/bug-reports")}
+        >
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-orange-500/20 flex-shrink-0">
+              <Bug className="h-5 w-5 text-orange-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-white">Bug Reports</p>
+              <p className="text-xs text-white/40 mt-0.5">Review and triage user-submitted bug reports</p>
             </div>
             <ArrowRight className="h-4 w-4 text-orange-400 flex-shrink-0" />
           </CardContent>
