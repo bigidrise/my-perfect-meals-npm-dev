@@ -1,5 +1,6 @@
 import React, { Component, ReactNode } from 'react';
 import { captureException } from '@/lib/sentry';
+import { pushError } from '@/lib/diagnosticsBuffer';
 
 interface Props {
   children: ReactNode;
@@ -23,6 +24,8 @@ export class GlobalErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('Global Error Boundary caught an error:', error, errorInfo);
     captureException(error, { componentStack: errorInfo.componentStack ?? undefined });
+    // Feed into the in-memory diagnostics buffer so bug reports capture this error
+    pushError(error, errorInfo.componentStack?.split('\n')[1]?.trim());
   }
 
   render() {
@@ -56,11 +59,13 @@ export const setupGlobalErrorHandling = () => {
   window.addEventListener('unhandledrejection', (event) => {
     console.error('Unhandled promise rejection:', event.reason);
     captureException(event.reason, { type: 'unhandledrejection' });
+    pushError(event.reason, 'unhandledrejection');
     event.preventDefault();
   });
 
   window.addEventListener('error', (event) => {
     console.error('Global error:', event.error);
     captureException(event.error, { type: 'global-error', message: event.message });
+    pushError(event.error ?? new Error(event.message), 'global-error');
   });
 };
