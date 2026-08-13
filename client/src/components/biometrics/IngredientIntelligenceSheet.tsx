@@ -2,7 +2,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { X, ChevronDown, ChevronUp, ScanLine, ShoppingBag, Bookmark, ShoppingCart, Check } from 'lucide-react';
 import type { IngredientScanResult, ScoreVerdict, OutcomeVerdict, BetterAlternative } from '@/lib/photoIngredientCapture';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, queryClient } from '@/lib/queryClient';
+import { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 
 interface Props {
@@ -480,25 +481,24 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
     setByNameLoading(false);
   }, [result]);
 
-  // Check if this product is already saved whenever the sheet opens with a new result
+  // Fetch the full saved-groceries list via React Query so any invalidation
+  // (e.g. a delete from the Saved Groceries page) is picked up immediately.
+  const { data: savedGroceriesData } = useQuery<{ items: any[] }>({
+    queryKey: ['/api/saved-groceries'],
+    enabled: open && !!result?.productName,
+    staleTime: 0,
+  });
+
+  // Derive savedGroceryId from the cached list whenever the result or list changes
   useEffect(() => {
-    setSavedGroceryId(null);
-    if (!open || !result?.productName) return;
-    let cancelled = false;
-    (apiRequest('/api/saved-groceries') as Promise<{ items: any[] }>)
-      .then((data) => {
-        if (cancelled) return;
-        const items = data?.items ?? [];
-        const barcode = result.barcode?.trim();
-        const match = items.find((item: any) => {
-          if (barcode && item.barcode === barcode) return true;
-          return item.productName?.toLowerCase() === result.productName?.toLowerCase();
-        });
-        if (match) setSavedGroceryId(match.id);
-      })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [open, result?.productName, result?.barcode]);
+    const items = savedGroceriesData?.items ?? [];
+    const barcode = result?.barcode?.trim();
+    const match = items.find((item: any) => {
+      if (barcode && item.barcode === barcode) return true;
+      return item.productName?.toLowerCase() === result?.productName?.toLowerCase();
+    });
+    setSavedGroceryId(match ? match.id : null);
+  }, [savedGroceriesData, result?.productName, result?.barcode]);
 
   async function handleSaveToGroceries() {
     if (!activeResult?.productName || savingGrocery) return;
@@ -508,7 +508,7 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
     if (savedGroceryId) {
       try {
         await apiRequest(`/api/saved-groceries/${savedGroceryId}`, { method: 'DELETE' });
-        setSavedGroceryId(null);
+        queryClient.invalidateQueries({ queryKey: ['/api/saved-groceries'] });
         toast({
           title: 'Removed from Groceries',
           description: `${activeResult.productName} has been removed from your bookmarks.`,
@@ -540,7 +540,7 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
         }),
         headers: { 'Content-Type': 'application/json' },
       }) as { item?: { id: string }; created?: boolean };
-      setSavedGroceryId(data?.item?.id ?? 'saved');
+      queryClient.invalidateQueries({ queryKey: ['/api/saved-groceries'] });
       toast({
         title: data?.created === false ? 'Already saved' : 'Saved to Groceries',
         description: `${activeResult.productName} is in your grocery bookmarks.`,

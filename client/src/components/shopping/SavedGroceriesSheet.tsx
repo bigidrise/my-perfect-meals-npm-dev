@@ -10,6 +10,7 @@
  */
 
 import { useEffect, useState, useCallback } from "react";
+import { queryClient } from "@/lib/queryClient";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -138,6 +139,7 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
       });
       if (!res.ok) throw new Error();
       setItems((prev) => prev.filter((i) => i.id !== item.id));
+      queryClient.invalidateQueries({ queryKey: ['/api/saved-groceries'] });
       toast({ title: "Removed", description: `${item.productName} removed from saved groceries.` });
     } catch {
       toast({ title: "Couldn't remove item", description: "Please try again.", variant: "destructive" });
