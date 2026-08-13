@@ -180,7 +180,17 @@ export async function resolveDailyNutritionState(
     const storedSource = storedSourceToResolverSource(storedRow.source);
     const currentSource = prescription.source;
 
-    if (storedSource !== currentSource) {
+    // Suppress false positive: a ProCare client who also has Performance Mode
+    // enabled will have a stored source of "procare" (→ "professional_override")
+    // but the prescriptionResolver always returns "performance" when Performance
+    // Mode is active (it does not model ProCare overrides). These two sources
+    // can coexist all day, so a mismatch between them is NOT a real mid-day
+    // prescription change and must not trigger the banner.
+    const isProcarePerformanceOverlap =
+      (storedSource === "professional_override" && currentSource === "performance") ||
+      (storedSource === "performance" && currentSource === "professional_override");
+
+    if (storedSource !== currentSource && !isProcarePerformanceOverlap) {
       prescriptionChangedMidDay = true;
       prescriptionChangeReason = changeReasonLabel(storedSource, currentSource);
     }
