@@ -19,14 +19,18 @@ Returns `GLP1GlobalContext`:
 - `dailyNutritionState: DailyNutritionState | null` — remaining macros today
 - `compositionNote: string` — GLP-1 + Performance composition guidance
 
-## Activation sources (ALL checked, not just selectedMealBuilder)
-1. `users.selectedMealBuilder === "glp1"`
-2. `users.medicalConditions` array contains GLP-1 keyword
-3. `users.specialtyConditions` array contains GLP-1 keyword
-4. `users.preferredBuilder === "glp1"`
-5. `glp1_profile` table has a row for this user
+## Activation sources (3 current-state sources only)
+1. `users.selectedMealBuilder === "glp1"` — user's actively selected builder
+2. `users.medicalConditions` contains "glp1" — physician-managed via `PUT /api/pro/glp1-protocol/:id {enabled:true/false}` (adds/removes "glp1" from array — the canonical clinical toggle)
+3. `users.specialtyConditions` contains a GLP-1 medication keyword (updateable)
 
-**Why:** Previous system only checked `selectedMealBuilder`, making GLP-1 disappear the moment the user navigated away from the GLP-1 Builder page.
+**INTENTIONALLY EXCLUDED:**
+- `users.preferredBuilder` — schema comment says "starting recommendation from onboarding"; NOT a current treatment indicator, could be stale
+- `glp1_profile row exists` — table has no `is_active` field (`id, user_id UNIQUE, guardrails JSONB, created_at, updated_at`); row persists forever after setup with no deactivation mechanism
+
+**Why:** Two stale sources were removed after audit confirmed they can represent historical state ("has ever been GLP-1") not current treatment state. For Premier: "GLP-1 protocol currently active" ≠ "has ever been on GLP-1."
+
+**Future:** Add `users.glp1_protocol_active boolean` as the canonical single flag. The 3 sources establish/migrate it; every feature asks one question: "Is this person's GLP-1 protocol currently active?"
 
 ## Threading path for generated meals
 `POST /api/meals/generate` (routes.ts) →

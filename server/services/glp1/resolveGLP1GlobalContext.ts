@@ -6,12 +6,20 @@
  * generating and food-recommending surface so the user experiences one
  * consistent GLP-1 intelligence layer, not per-feature recreations.
  *
- * ACTIVATION: GLP-1 is active when ANY of these sources is true —
- *   • users.selectedMealBuilder === "glp1"
- *   • users.medicalConditions contains a GLP-1 keyword
- *   • users.specialtyConditions contains a GLP-1 keyword
- *   • users.preferredBuilder === "glp1"
- *   • glp1_profile table has a row for this user
+ * ACTIVATION: GLP-1 is active when ANY of these current-state sources is true —
+ *   • users.selectedMealBuilder === "glp1"         (user's currently selected builder)
+ *   • users.medicalConditions contains "glp1"      (physician-managed: PUT /api/pro/glp1-protocol/:id)
+ *   • users.specialtyConditions contains a GLP-1 keyword (updateable specialty overlay)
+ *
+ * INTENTIONALLY EXCLUDED as activation sources:
+ *   • users.preferredBuilder — "starting recommendation from onboarding" (schema comment),
+ *     NOT a current treatment indicator; could be stale from initial setup
+ *   • glp1_profile row exists — table has no is_active field; a row persists forever
+ *     after GLP-1 setup completes with no deactivation mechanism
+ *
+ * FUTURE: Add users.glp1_protocol_active boolean (canonical single flag).
+ *   The three sources above establish/migrate that state, but every feature should
+ *   eventually ask one question: "Is this person's GLP-1 protocol currently active?"
  *
  * GLP-1 + PERFORMANCE COMPOSITION:
  *   When Performance is also active (users.performanceModeEnabled), the
@@ -62,9 +70,7 @@ function arrayIncludesGLP1(arr: unknown): boolean {
 export type GLP1ActivationSource =
   | "selectedMealBuilder"
   | "medicalConditions"
-  | "specialtyConditions"
-  | "preferredBuilder"
-  | "glp1Profile";
+  | "specialtyConditions";
 
 export interface GLP1GlobalContext {
   /** True when GLP-1 is active from ANY detection source. */
@@ -132,30 +138,22 @@ export async function resolveGLP1GlobalContext(
   const activationSources: GLP1ActivationSource[] = [];
 
   if (userRow) {
+    // Source 1: currently selected builder — user actively controls this
     if (userRow.selectedMealBuilder === "glp1") {
       activationSources.push("selectedMealBuilder");
     }
+    // Source 2: physician-managed clinical assignment
+    // PUT /api/pro/glp1-protocol/:clientId {enabled:true/false} adds/removes "glp1"
+    // from this array — the canonical clinical toggle for GLP-1 activation/deactivation
     if (arrayIncludesGLP1(userRow.medicalConditions)) {
       activationSources.push("medicalConditions");
     }
+    // Source 3: specialty conditions overlay (updateable; GLP-1 keywords valid here)
     if (arrayIncludesGLP1(userRow.specialtyConditions)) {
       activationSources.push("specialtyConditions");
     }
-    if (userRow.preferredBuilder === "glp1") {
-      activationSources.push("preferredBuilder");
-    }
-  }
-
-  // Check for a glp1_profile row (exists = user has completed GLP-1 setup)
-  try {
-    const profileResult = await db.execute(
-      sql`SELECT 1 FROM glp1_profile WHERE user_id = ${userId} LIMIT 1`,
-    );
-    if ((profileResult.rows?.length ?? 0) > 0) {
-      activationSources.push("glp1Profile");
-    }
-  } catch {
-    // glp1_profile may not exist in fresh envs — not an error
+    // NOT CHECKED: preferredBuilder — onboarding recommendation, not current treatment state
+    // NOT CHECKED: glp1_profile row — no is_active field; persists forever after setup
   }
 
   const isActive = activationSources.length > 0;
