@@ -1,22 +1,42 @@
 /**
- * Task 892 — Verify Grocery Coach variety enforcement
+ * Grocery Coach Variety Verification
  *
  * Simulates 10 sequential "give me dinner" requests for the same user,
  * using the same OpenAI prompt + DB history pattern the /recommend route uses.
  *
- * Run:
+ * Modes:
  *   npx tsx scripts/verify-grocery-variety.ts
+ *     → Task 892 baseline: no dietary constraints, wide-open meal pool
+ *
+ *   npx tsx scripts/verify-grocery-variety.ts --constrained
+ *     → Task 895 constraint sim: gluten-free + dairy-free protocol active.
+ *       Verifies variety still rotates when the safe-meal pool is restricted,
+ *       and that scanGeneratedOutput passes 100% of rounds (no protocol violations).
  */
 import OpenAI from "openai";
 import { db } from "../server/db";
 import { sql } from "drizzle-orm";
+import {
+  buildGuestEnvelope,
+  deriveProcedureRules,
+  enforceBeforeGenerate,
+  scanGeneratedOutput,
+  type UserProtocolEnvelope,
+} from "../server/services/protocolEnvelope";
 
-const TEST_USER_ID = "verify-variety-892";
+// ── CLI flags ──────────────────────────────────────────────────────────────────
+const CONSTRAINED_MODE = process.argv.includes("--constrained");
+
+const TEST_USER_ID = CONSTRAINED_MODE
+  ? "verify-variety-895-constrained"
+  : "verify-variety-892";
+
 const MEAL_REQUEST = "give me dinner";
 const ROUNDS = 10;
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+// ── Types ──────────────────────────────────────────────────────────────────────
 interface VarietyMeta {
   primaryProtein: string;
   cuisineStyle: string;
@@ -28,8 +48,32 @@ interface Round {
   round: number;
   mealName: string;
   meta: VarietyMeta;
+  scanPassed: boolean;
+  scanViolations: string[];
 }
 
+// ── Envelope builder ───────────────────────────────────────────────────────────
+
+/**
+ * Build a UserProtocolEnvelope for gluten-free + dairy-free constraints.
+ * dietaryIdentity: ["gluten-free"] — activates the GF procedure rules (no wheat,
+ *   no soy sauce, cross-contamination prevention, etc.)
+ * allergies: ["dairy"] — hard stop on all dairy derivatives.
+ * This mirrors a realistic constrained user without medical conditions, so the
+ * simulation focuses purely on dietary restriction + variety interaction.
+ */
+function buildConstrainedEnvelope(): UserProtocolEnvelope {
+  const base = buildGuestEnvelope();
+  return {
+    ...base,
+    userId: TEST_USER_ID,
+    dietaryIdentity: ["gluten-free"],
+    allergies: ["dairy"],
+    procedural: deriveProcedureRules(["gluten-free"]),
+  };
+}
+
+// ── Variety block (mirrors groceryCoach.ts logic exactly) ─────────────────────
 function buildVarietyBlock(
   dbHistory: Array<{
     mealName: string;
@@ -72,6 +116,7 @@ PREVIOUSLY RECOMMENDED — DO NOT REPEAT:
 ${avoidList}${recentPatterns ? `\n\nRECENT PATTERNS TO ROTATE AWAY FROM:\n${recentPatterns}` : ""}`;
 }
 
+// ── DB history helpers (mirror the route exactly) ─────────────────────────────
 async function loadHistory(): Promise<
   Array<{
     mealName: string;
@@ -105,7 +150,7 @@ async function saveHistory(mealName: string, meta: VarietyMeta): Promise<void> {
       (${TEST_USER_ID}, ${mealName}, ${meta.primaryProtein}, ${meta.cuisineStyle},
        ${meta.majorStarch}, ${meta.cookingMethod})
   `);
-  // Keep last 20 only
+  // Keep last 20 only (mirrors route behaviour)
   await db.execute(sql`
     DELETE FROM grocery_coach_recommendation_history
     WHERE user_id = ${TEST_USER_ID}
@@ -118,19 +163,28 @@ async function saveHistory(mealName: string, meta: VarietyMeta): Promise<void> {
   `);
 }
 
-async function recommendMeal(varietyBlock: string): Promise<{ name: string; meta: VarietyMeta } | null> {
+// ── AI call ───────────────────────────────────────────────────────────────────
+async function recommendMeal(
+  protocolContext: string,
+  varietyBlock: string
+): Promise<{ name: string; meta: VarietyMeta; rawResult: any } | null> {
+  const constraintLabel = CONSTRAINED_MODE
+    ? "Gluten-free + dairy-free protocol active — see constraints below."
+    : "No dietary restrictions or conditions on file — apply general healthy eating principles.";
+
   const systemPrompt = `You are a Grocery Store Coach — a real, confident nutrition coach who helps users decide exactly what to make for dinner and what to buy at the grocery store.
 
 Your mission: turn "I don't know what to eat" into "Here is exactly what to buy, how much to buy, and why it fits your goals."
 
 USER HEALTH PROFILE AND CONSTRAINTS:
-No dietary restrictions or conditions on file — apply general healthy eating principles.${varietyBlock}
+${protocolContext || constraintLabel}${varietyBlock}
 
 SERVING SIZE: All ingredient quantities must be scaled for 1 person.
 
 COACHING RULES:
 - Recommend ONE specific, confident meal (may have 2-3 components, e.g., protein + starch + vegetable).
 - The shopping list must be practical and grocery-store ready.
+- Never include ingredients the user is allergic to or that violate their dietary protocol.
 - Be concise, warm, and coach-like — not clinical, not robotic.
 
 Respond ONLY with valid JSON matching this exact schema (no markdown, no extra text):
@@ -151,7 +205,7 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
   "varietyMetadata": {
     "primaryProtein": "string — main protein source (e.g. 'chicken', 'tofu', 'salmon', 'beef', 'lentils')",
     "cuisineStyle": "string — cuisine or regional style (e.g. 'Italian', 'Asian', 'Mediterranean', 'American', 'Mexican')",
-    "majorStarch": "string — primary starch or carb (e.g. 'pasta', 'rice', 'quinoa', 'bread', 'potato', 'none')",
+    "majorStarch": "string — primary starch or carb (e.g. 'rice', 'quinoa', 'potato', 'none')",
     "cookingMethod": "string — dominant cooking method (e.g. 'stir-fry', 'baked', 'grilled', 'raw', 'slow-cooked', 'sautéed')"
   }
 }`;
@@ -191,30 +245,38 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
       majorStarch: vm.majorStarch ?? "unknown",
       cookingMethod: vm.cookingMethod ?? "unknown",
     },
+    rawResult: result,
   };
 }
 
-function analyzeResults(rounds: Round[]): void {
+// ── Results analysis ──────────────────────────────────────────────────────────
+function analyzeResults(rounds: Round[]): boolean {
   console.log("\n" + "=".repeat(70));
   console.log("RESULTS SUMMARY");
   console.log("=".repeat(70));
 
   // Table header
   console.log(
-    `${"#".padEnd(3)} ${"Meal Name".padEnd(38)} ${"Protein".padEnd(12)} ${"Cuisine".padEnd(14)} ${"Starch".padEnd(12)} ${"Method".padEnd(12)}`
+    `${"#".padEnd(3)} ${"Meal Name".padEnd(38)} ${"Protein".padEnd(12)} ${"Cuisine".padEnd(14)} ${"Starch".padEnd(12)} ${"Method".padEnd(12)} ${"Scan".padEnd(5)}`
   );
-  console.log("-".repeat(95));
+  console.log("-".repeat(101));
   for (const r of rounds) {
+    const scanIcon = r.scanPassed ? "✅" : "❌";
     console.log(
-      `${String(r.round).padEnd(3)} ${r.mealName.slice(0, 37).padEnd(38)} ${r.meta.primaryProtein.slice(0, 11).padEnd(12)} ${r.meta.cuisineStyle.slice(0, 13).padEnd(14)} ${r.meta.majorStarch.slice(0, 11).padEnd(12)} ${r.meta.cookingMethod.slice(0, 11).padEnd(12)}`
+      `${String(r.round).padEnd(3)} ${r.mealName.slice(0, 37).padEnd(38)} ${r.meta.primaryProtein.slice(0, 11).padEnd(12)} ${r.meta.cuisineStyle.slice(0, 13).padEnd(14)} ${r.meta.majorStarch.slice(0, 11).padEnd(12)} ${r.meta.cookingMethod.slice(0, 11).padEnd(12)} ${scanIcon}`
     );
+    if (!r.scanPassed && r.scanViolations.length > 0) {
+      for (const v of r.scanViolations) {
+        console.log(`     ⚠️  Violation: ${v}`);
+      }
+    }
   }
 
   console.log("\n" + "=".repeat(70));
   console.log("VARIETY ANALYSIS");
   console.log("=".repeat(70));
 
-  // 1. Check consecutive protein+cuisine collisions
+  // 1. Consecutive protein+cuisine collisions
   let consecutiveCollisions = 0;
   for (let i = 1; i < rounds.length; i++) {
     const prev = rounds[i - 1].meta;
@@ -273,31 +335,76 @@ function analyzeResults(rounds: Round[]): void {
     console.warn(`  ⚠️  Only ${uniqueNames.size} distinct meal names`);
   }
 
+  // 7. Protocol scan pass rate (constrained mode only)
+  const scansPassed = rounds.filter((r) => r.scanPassed).length;
+  const scansTotal = rounds.length;
+  console.log(`\n  Protocol scan rate  : ${scansPassed}/${scansTotal} passed`);
+  if (scansPassed === scansTotal) {
+    console.log("  ✅ 100% scan pass rate — no protocol violations across all rounds");
+  } else {
+    const failedRounds = rounds.filter((r) => !r.scanPassed).map((r) => r.round);
+    console.warn(`  ❌ Scan failures in round(s): ${failedRounds.join(", ")}`);
+  }
+
   // Overall verdict
   console.log("\n" + "=".repeat(70));
   const passed =
     consecutiveCollisions === 0 &&
     uniqueProteins.size >= 4 &&
     uniqueCuisines.size >= 4 &&
-    uniqueNames.size >= 9;
+    uniqueNames.size >= 9 &&
+    scansPassed === scansTotal;
 
   if (passed) {
     console.log("🎉 VERDICT: PASS — variety enforcement is working correctly.");
+    if (CONSTRAINED_MODE) {
+      console.log("   Constrained pool (gluten-free + dairy-free) maintained full variety");
+      console.log("   AND 100% protocol compliance across all 10 rounds.");
+    }
   } else {
     console.log("❌ VERDICT: FAIL — variety enforcement needs investigation.");
+    if (scansPassed < scansTotal) {
+      console.log("   One or more rounds had protocol violations (gluten/dairy ingredients returned).");
+    }
     process.exitCode = 1;
   }
   console.log("=".repeat(70) + "\n");
+
+  return passed;
 }
 
+// ── Main ──────────────────────────────────────────────────────────────────────
 async function main(): Promise<void> {
   console.log("=".repeat(70));
-  console.log("Grocery Coach Variety Verification — Task 892");
+  if (CONSTRAINED_MODE) {
+    console.log("Grocery Coach Variety Verification — Task 895 (Constrained)");
+    console.log("Constraints : gluten-free + dairy-free protocol active");
+    console.log("Validates   : variety rotation AND 100% scanGeneratedOutput pass rate");
+  } else {
+    console.log("Grocery Coach Variety Verification — Task 892 (Baseline)");
+    console.log("Constraints : none (wide-open meal pool)");
+  }
   console.log(`User ID  : ${TEST_USER_ID}`);
   console.log(`Request  : "${MEAL_REQUEST}" × ${ROUNDS} rounds`);
   console.log("=".repeat(70));
 
-  // 1. Clear any leftover history from previous runs
+  // Build the protocol envelope for this run
+  const envelope: UserProtocolEnvelope = CONSTRAINED_MODE
+    ? buildConstrainedEnvelope()
+    : buildGuestEnvelope();
+
+  // Build protocol context block from the envelope (mirrors groceryCoach.ts)
+  const { combined: protocolContext } = CONSTRAINED_MODE
+    ? enforceBeforeGenerate(envelope, { generatorName: "verify_variety_895" })
+    : { combined: "" };
+
+  if (CONSTRAINED_MODE) {
+    console.log("\nProtocol context injected into every prompt:");
+    console.log(protocolContext.slice(0, 500) + (protocolContext.length > 500 ? "…" : ""));
+    console.log();
+  }
+
+  // Clear any leftover history from previous runs
   await db.execute(sql`
     DELETE FROM grocery_coach_recommendation_history WHERE user_id = ${TEST_USER_ID}
   `);
@@ -311,31 +418,64 @@ async function main(): Promise<void> {
     const varietyBlock = buildVarietyBlock(history);
     process.stdout.write(` (${history.length} prior entries) — calling AI...`);
 
-    const result = await recommendMeal(varietyBlock);
+    const result = await recommendMeal(protocolContext, varietyBlock);
     if (!result) {
       console.error(`\nRound ${i} failed — aborting.`);
       process.exit(1);
     }
 
+    // ── Post-generation protocol scan (mirrors groceryCoach.ts) ──────────────
+    const mealForScan = {
+      name: result.rawResult?.meal?.name ?? result.name,
+      description: result.rawResult?.meal?.description,
+      ingredients: [
+        ...(result.rawResult?.shoppingList ?? []).map((x: any) => ({ name: x.item ?? "" })),
+        ...(result.rawResult?.ownedIngredients ?? []).map((x: any) => ({ name: x.item ?? "" })),
+      ],
+    };
+
+    const scan = scanGeneratedOutput(mealForScan, envelope, {
+      generatorName: "verify_variety_895",
+      skipAdaptableConflicts: true,
+    });
+
+    const scanViolations = [
+      ...scan.violations.map((v: any) => `[ingredient] ${v.term ?? v.reason ?? String(v)}`),
+      ...scan.instructionViolations.map((v: any) => `[instruction] ${String(v)}`),
+    ];
+
     await saveHistory(result.name, result.meta);
 
+    const scanIcon = scan.passed ? "✅ scan:pass" : "❌ scan:FAIL";
     console.log(` ✓`);
     console.log(`  Meal    : ${result.name}`);
     console.log(`  Protein : ${result.meta.primaryProtein}  |  Cuisine: ${result.meta.cuisineStyle}  |  Starch: ${result.meta.majorStarch}  |  Method: ${result.meta.cookingMethod}`);
+    console.log(`  ${scanIcon}`);
+    if (!scan.passed) {
+      for (const v of scanViolations) {
+        console.log(`  ⚠️  ${v}`);
+      }
+    }
 
-    rounds.push({ round: i, mealName: result.name, meta: result.meta });
+    rounds.push({
+      round: i,
+      mealName: result.name,
+      meta: result.meta,
+      scanPassed: scan.passed,
+      scanViolations,
+    });
   }
 
   analyzeResults(rounds);
 
-  // 2. Verify DB state
+  // Verify DB state
   const finalCount = await db.execute(sql`
     SELECT COUNT(*) as cnt FROM grocery_coach_recommendation_history WHERE user_id = ${TEST_USER_ID}
   `);
   const cnt = (finalCount.rows[0] as any)?.cnt;
   console.log(`DB check: grocery_coach_recommendation_history has ${cnt} rows for test user ✓`);
 
-  // 3. Cleanup
+  // Cleanup
   await db.execute(sql`
     DELETE FROM grocery_coach_recommendation_history WHERE user_id = ${TEST_USER_ID}
   `);
