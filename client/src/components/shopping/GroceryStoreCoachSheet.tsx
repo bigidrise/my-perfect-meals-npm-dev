@@ -134,6 +134,19 @@ const LOADING_MESSAGES = [
 
 const RANK_MEDAL: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" };
 
+/**
+ * Returns true when the saved advice no longer covers all items in the current
+ * shopping list — e.g. after a swap changed an ingredient.
+ * @internal exported for unit tests
+ */
+export function isAdviceStale(
+  advice: { advice: Array<{ ingredient: string }> },
+  shoppingList: Array<{ item: string }>,
+): boolean {
+  const covered = new Set(advice.advice.map((a) => a.ingredient.toLowerCase()));
+  return !shoppingList.every((s) => covered.has(s.item.toLowerCase()));
+}
+
 /** Stable product key — must stay in sync with server/routes/savedGroceries.ts */
 export function computeClientProductKey(brand: string, ingredient: string): string {
   const b = brand.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -217,20 +230,34 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const loadingInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // ── Session generation token ─────────────────────────────────────────────────
+  // Incremented every time SESSION_KEY changes (user login / account switch).
+  // Every async callback captures this value before its first `await` and
+  // discards the response if the token no longer matches — preventing in-flight
+  // requests initiated for user A from landing in user B's session.
+  const sessionGenRef = useRef(0);
+
   // ── Session persistence ──────────────────────────────────────────────────────
   // Restore from localStorage whenever SESSION_KEY changes (user login / account switch).
   // resultOwnerKey is cleared FIRST so the save effect below sees a mismatch
   // (null !== SESSION_KEY) in the same render cycle and refuses to write the
   // prior account's result under the new user's key.
   useEffect(() => {
+    sessionGenRef.current += 1; // invalidate all in-flight async requests for the old key
     setResultOwnerKey(null); // ← clear before state so save effect detects transition
     setResult(null);
     setConversation([]);
+    setProductAdvice(null); // clear prior user's advice alongside result/conversation
     setPhase("idle");
     try {
       const raw = localStorage.getItem(SESSION_KEY);
       if (!raw) return;
-      const session = JSON.parse(raw) as { result?: CoachResult; conversation?: ConversationMessage[]; savedAt?: number };
+      const session = JSON.parse(raw) as {
+        result?: CoachResult;
+        conversation?: ConversationMessage[];
+        productAdvice?: ProductAdviceResult;
+        savedAt?: number;
+      };
       // Expire after 24 h
       if (!session.savedAt || Date.now() - session.savedAt > 24 * 60 * 60 * 1000) {
         localStorage.removeItem(SESSION_KEY);
@@ -240,6 +267,21 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
         setResult(session.result);
         setResultOwnerKey(SESSION_KEY); // result now belongs to this user's key
         setPhase("result");
+
+        if (session.productAdvice?.advice?.length) {
+          // Verify the saved advice still covers the same ingredients as the
+          // restored shopping list. If a swap changed the list since the advice
+          // was generated, re-fetch rather than showing stale picks.
+          if (!isAdviceStale(session.productAdvice, session.result.shoppingList ?? [])) {
+            setProductAdvice(session.productAdvice);
+          } else {
+            // Stale — silently re-fetch in the background
+            fetchProductAdvice(session.result.shoppingList ?? []);
+          }
+        } else if (session.result.shoppingList?.length) {
+          // No saved advice — fetch now so Smart Cart isn't empty
+          fetchProductAdvice(session.result.shoppingList);
+        }
       }
       if (session.conversation?.length) {
         setConversation(session.conversation);
@@ -256,11 +298,12 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
         localStorage.setItem(SESSION_KEY, JSON.stringify({
           result,
           conversation,
+          productAdvice: productAdvice ?? undefined,
           savedAt: Date.now(),
         }));
       } catch {}
     }
-  }, [result, conversation, SESSION_KEY, resultOwnerKey]);
+  }, [result, conversation, productAdvice, SESSION_KEY, resultOwnerKey]);
 
   useEffect(() => {
     if (!open) {
@@ -273,7 +316,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       setCartExpanded(true);
       setCardPhase("idle");
       setMealCard(null);
-      setProductAdvice(null);
+      // productAdvice preserved intentionally — Smart Cart repopulates on reopen.
       setAdvisorLoading(false);
       setBrandsAdded(false);
       setSavedProductKeys(new Set());
@@ -307,18 +350,20 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
 
   const fetchProductAdvice = useCallback(async (shoppingList: ShoppingListItem[]) => {
     if (!shoppingList.length) return;
+    const gen = sessionGenRef.current; // capture before first await
     setAdvisorLoading(true);
     setProductAdvice(null);
     setBrandsAdded(false);
     try {
       const ingredients = shoppingList.map((s) => s.item);
       const data = await post("/api/grocery-coach/product-advisor", { ingredients });
+      if (sessionGenRef.current !== gen) return; // identity changed while in-flight — discard
       if (data?.advice?.length) {
         setProductAdvice(data as ProductAdviceResult);
       }
     } catch {
     } finally {
-      setAdvisorLoading(false);
+      if (sessionGenRef.current === gen) setAdvisorLoading(false);
     }
   }, []);
 
@@ -371,6 +416,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   const sendMessage = useCallback(async (msg: string) => {
     if (!msg.trim()) return;
     const userMsg = msg.trim();
+    const gen = sessionGenRef.current; // capture before first await
     setInput("");
     setPhase("loading");
     setAddedToList(false);
@@ -389,6 +435,8 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
         conversationHistory: conversation,
         servingCount,
       });
+
+      if (sessionGenRef.current !== gen) return; // identity changed — discard
 
       if (data?.error) throw new Error(data.error);
 
@@ -410,6 +458,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
         fetchProductAdvice(data.shoppingList);
       }
     } catch (err: any) {
+      if (sessionGenRef.current !== gen) return; // identity changed — suppress error UI
       setPhase("idle");
       toast({
         title: "Coach unavailable",
@@ -492,10 +541,12 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   }, [productAdvice, result, addItems, toast]);
 
   const finalizeCard = useCallback(async (coachResult: CoachResult) => {
+    const gen = sessionGenRef.current; // capture before first await
     try {
       const data = await post("/api/grocery-coach/finalize-card", {
         recommendation: coachResult,
       });
+      if (sessionGenRef.current !== gen) return; // identity changed — discard
       if (data?.status === "ready" && data?.id) {
         setMealCard({
           id: data.id,
@@ -508,7 +559,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
         setCardPhase("failed");
       }
     } catch {
-      setCardPhase("failed");
+      if (sessionGenRef.current === gen) setCardPhase("failed");
     }
   }, []);
 
@@ -518,6 +569,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
 
   // ── Per-ingredient swap ───────────────────────────────────────────────────────
   const handleSwapRequest = useCallback(async (item: ShoppingListItem, customRequest?: string) => {
+    const gen = sessionGenRef.current; // capture before first await
     setSwapTarget(item);
     setSwapResult(null);
     setSwapSelected(null);
@@ -539,13 +591,17 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
         remainingIngredients: remaining,
         ...(customRequest ? { userRequest: customRequest } : {}),
       });
+      if (sessionGenRef.current !== gen) return; // identity changed — discard
       setSwapResult(data);
       setSwapSelected(data.coachSuggestion);
     } catch (err: any) {
+      if (sessionGenRef.current !== gen) return;
       setSwapError(err?.message || "Could not get suggestions. Please try again.");
     } finally {
-      setSwapLoading(false);
-      setSwapCustomLoading(false);
+      if (sessionGenRef.current === gen) {
+        setSwapLoading(false);
+        setSwapCustomLoading(false);
+      }
     }
   }, [result]);
 
