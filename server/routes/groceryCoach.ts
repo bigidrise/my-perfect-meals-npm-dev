@@ -374,6 +374,38 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
       }
     }
 
+    // ── Save to recommendation history (non-blocking, fire-and-forget) ────────
+    // Wrapped in Promise.resolve().then() so any synchronous failure (e.g. db
+    // not yet initialised in tests) is caught by .catch() and never propagates
+    // to the outer request handler.
+    // Defined before the scan block so both the retry-success path and the
+    // main-success path can call it.
+    const saveToHistory = (uid: string, meal: any) => {
+      if (!uid || !meal?.name) return;
+      const vm = meal.varietyMetadata as Record<string, string> | undefined;
+      Promise.resolve().then(() =>
+        db.execute(sql`
+          INSERT INTO grocery_coach_recommendation_history
+            (user_id, meal_name, primary_protein, cuisine_style, major_starch, cooking_method)
+          VALUES
+            (${uid}, ${meal.name as string},
+             ${vm?.primaryProtein ?? null}, ${vm?.cuisineStyle ?? null},
+             ${vm?.majorStarch ?? null}, ${vm?.cookingMethod ?? null})
+        `)
+      ).then(() =>
+        db.execute(sql`
+          DELETE FROM grocery_coach_recommendation_history
+          WHERE user_id = ${uid}
+            AND id NOT IN (
+              SELECT id FROM grocery_coach_recommendation_history
+              WHERE user_id = ${uid}
+              ORDER BY created_at DESC
+              LIMIT 20
+            )
+        `)
+      ).catch((e: any) => console.warn("[GroceryCoach] History save failed:", e?.message));
+    };
+
     // ── Post-generation protocol scan ─────────────────────────────────────────
     try {
       const buildMealForScan = (r: any) => ({
@@ -433,6 +465,7 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
             if (retryScan.passed) {
               retryPassed = true;
               console.log(`✅ [GroceryCoach] Retry passed protocol scan.`);
+              if (userId) saveToHistory(userId, retryResult?.meal ? { ...retryResult.meal, varietyMetadata: retryResult.varietyMetadata } : null);
               return res.json({ ...retryResult, servingCount: finalServingCount });
             }
             retryScanViolations = retryScan.violations
@@ -460,35 +493,7 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
       throw scanErr;
     }
 
-    // ── Save to recommendation history (non-blocking, fire-and-forget) ────────
-    // Wrapped in Promise.resolve().then() so any synchronous failure (e.g. db
-    // not yet initialised in tests) is caught by .catch() and never propagates
-    // to the outer request handler.
-    if (userId && result?.meal?.name) {
-      const vm = result.varietyMetadata as Record<string, string> | undefined;
-      const mealName = result.meal.name as string;
-      Promise.resolve().then(() =>
-        db.execute(sql`
-          INSERT INTO grocery_coach_recommendation_history
-            (user_id, meal_name, primary_protein, cuisine_style, major_starch, cooking_method)
-          VALUES
-            (${userId}, ${mealName},
-             ${vm?.primaryProtein ?? null}, ${vm?.cuisineStyle ?? null},
-             ${vm?.majorStarch ?? null}, ${vm?.cookingMethod ?? null})
-        `)
-      ).then(() =>
-        db.execute(sql`
-          DELETE FROM grocery_coach_recommendation_history
-          WHERE user_id = ${userId}
-            AND id NOT IN (
-              SELECT id FROM grocery_coach_recommendation_history
-              WHERE user_id = ${userId}
-              ORDER BY created_at DESC
-              LIMIT 20
-            )
-        `)
-      ).catch((e: any) => console.warn("[GroceryCoach] History save failed:", e?.message));
-    }
+    if (userId) saveToHistory(userId, result?.meal ? { ...result.meal, varietyMetadata: result.varietyMetadata } : null);
 
     return res.json({ ...result, servingCount: finalServingCount });
   } catch (err: any) {
