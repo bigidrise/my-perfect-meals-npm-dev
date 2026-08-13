@@ -6,9 +6,18 @@
  *
  * Regression guard for Task 810 which added overlay-related keywords.
  * A future keyword-map refactor that silently breaks routing will fail here.
+ *
+ * ── KEYWORD SNAPSHOT ────────────────────────────────────────────────────────
+ * GLP1_KEYWORDS_SNAPSHOT below mirrors the keywords[] array in the "GLP-1 Hub"
+ * entry of KEYWORD_FEATURE_MAP (KeywordFeatureMap.ts).
+ *
+ * If you add, remove, or rename a keyword in KeywordFeatureMap.ts you MUST
+ * update GLP1_KEYWORDS_SNAPSHOT here to match, otherwise the
+ * "GLP-1 keyword snapshot" suite will fail.
+ * ────────────────────────────────────────────────────────────────────────────
  */
 
-import { findFeatureFromKeywords } from "@/components/copilot/KeywordFeatureMap";
+import { findFeatureFromKeywords, KEYWORD_FEATURE_MAP } from "@/components/copilot/KeywordFeatureMap";
 import { PAGE_EXPLANATIONS } from "@/components/copilot/CopilotPageExplanations";
 
 // ── 1. Keyword → path routing ─────────────────────────────────────────────────
@@ -143,5 +152,62 @@ describe("GLP-1 KeywordFeatureMap entry integrity", () => {
     const result = findFeatureFromKeywords("glp-1");
     expect(result).not.toBeNull();
     expect(result!.walkthroughId).toBe("glp1-hub");
+  });
+});
+
+// ── 4. Keyword snapshot — MUST be kept in sync with KeywordFeatureMap.ts ─────
+//
+// This is the structural enforcement gate described in the file header.
+// When you change the GLP-1 Hub keywords[] in KeywordFeatureMap.ts you MUST
+// update GLP1_KEYWORDS_SNAPSHOT below to match, or this suite will fail.
+
+/**
+ * Exact mirror of the keywords[] array in the "GLP-1 Hub" KEYWORD_FEATURE_MAP
+ * entry.  Sorted alphabetically so diff output is human-readable.
+ */
+const GLP1_KEYWORDS_SNAPSHOT: readonly string[] = [
+  "g l p one",
+  "glp",
+  "glp hub",
+  "glp one",
+  "glp platform wide",
+  "glp everywhere",
+  "glp-1",
+  "glp-1 across app",
+  "glp-1 and performance",
+  "glp-1 baseline",
+  "glp-1 how it works",
+  "glp-1 hub",
+  "glp-1 overlay",
+  "glp-1 platform",
+  "glp-1 support",
+  "how does glp work",
+  "injection",
+  "metabolic medication support",
+  "ozempic",
+  "semaglutide",
+  "wegovy",
+  "weight loss meds",
+];
+
+describe("GLP-1 keyword snapshot", () => {
+  /** Pull the live entry straight from the map so there is no indirection. */
+  const glp1Entry = KEYWORD_FEATURE_MAP.find(
+    (m) => m.walkthroughId === "glp1-hub",
+  );
+
+  test("GLP-1 hub entry exists in KEYWORD_FEATURE_MAP", () => {
+    expect(glp1Entry).toBeDefined();
+  });
+
+  test("keyword count matches snapshot — add/remove requires updating GLP1_KEYWORDS_SNAPSHOT", () => {
+    const liveKeywords = [...(glp1Entry?.keywords ?? [])].sort();
+    expect(liveKeywords.length).toBe(GLP1_KEYWORDS_SNAPSHOT.length);
+  });
+
+  test("exact keyword set matches snapshot — no silent additions or removals", () => {
+    const liveKeywords = [...(glp1Entry?.keywords ?? [])].sort();
+    const snapshotSorted = [...GLP1_KEYWORDS_SNAPSHOT].sort();
+    expect(liveKeywords).toEqual(snapshotSorted);
   });
 });

@@ -53,6 +53,12 @@ export const KEYWORD_FEATURE_MAP: FeatureMapping[] = [
   },
   
   // GLP-1 Hub
+  // ⚠️  KEYWORD CHANGE REQUIRES A TEST UPDATE ⚠️
+  // The exact keyword list below is snapshot-tested in:
+  //   client/src/lib/__tests__/copilotGlp1Keywords.test.ts
+  // If you add, remove, or rename a keyword here you MUST update the
+  // GLP1_KEYWORDS_SNAPSHOT constant in that file to match, or the
+  // "GLP-1 keyword snapshot" test suite will fail CI.
   {
     path: "/glp1-hub",
     walkthroughId: "glp1-hub",
