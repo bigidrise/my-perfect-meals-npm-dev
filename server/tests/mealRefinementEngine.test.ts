@@ -188,6 +188,29 @@ jest.mock("../services/savedGroceryCompliance", () => ({
 // ── System under test ─────────────────────────────────────────────────────────
 import { getMealRefinementEngine, refineMeal, MealRefinementRetryableError } from "../services/mealRefinementEngine";
 
+// ── Stable LLM responses for new types ───────────────────────────────────────
+const ADJUST_MACROS_AI_RESPONSE = JSON.stringify({
+  adjustedIngredients: [
+    { item: "Greek Yogurt", change: "swapped from sour cream", reason: "Higher protein, lower fat" },
+  ],
+  macroImpact: { calories: 350, protein: 30, carbs: 40, fat: 8, summary: "+18g protein, -5g fat" },
+  coachNote: "Swapping to Greek yogurt boosts your protein significantly.",
+  protocolNote: null,
+});
+
+const CHANGE_METHOD_AI_RESPONSE = JSON.stringify({
+  newMethod: "Air Fryer",
+  cookingNotes: "Cook at 400°F for 15 minutes, flipping halfway through.",
+  cookingTips: [
+    { tip: "Pat dry before cooking", reason: "Removes excess moisture for better crispiness." },
+  ],
+  ingredientChanges: [
+    { item: "Cooking Spray", change: "Add 1 spray to prevent sticking" },
+  ],
+  estimatedMealFatGrams: 10,
+  protocolNote: null,
+});
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function resetMocks() {
   capturedSystemPrompts.length = 0;
@@ -198,6 +221,19 @@ function resetMocks() {
   mockGlp1Context = null;
   mockCompliantItems = [];
   mockResolveGLP1GlobalContext.mockClear();
+
+  // Restore scanGeneratedOutput and loadUserProtocolEnvelope implementations
+  // so that mockReturnValue() calls from previous tests don't leak.
+  const envMock = jest.requireMock("../services/protocolEnvelope");
+  envMock.scanGeneratedOutput.mockReset();
+  envMock.scanGeneratedOutput.mockImplementation((_meal: any, _env: any, _ctx: any) => ({
+    passed: mockScanPassed,
+    message: mockScanMessage,
+    violations: mockScanViolations,
+    primaryViolation: mockScanViolations[0] ?? null,
+  }));
+  envMock.loadUserProtocolEnvelope.mockReset();
+  envMock.loadUserProtocolEnvelope.mockResolvedValue(makeEnvelope());
 }
 
 const BASE_REQUEST = {
@@ -212,6 +248,815 @@ const BASE_REQUEST = {
 // ─────────────────────────────────────────────────────────────────────────────
 // Tests
 // ─────────────────────────────────────────────────────────────────────────────
+
+// ── Shared helpers for strict-loader tests ────────────────────────────────────
+
+/**
+ * Set mockGlp1Context to a non-null inactive context so strict-loader tests
+ * don't fail at the GLP-1 null-check (null = resolver failure in strict mode).
+ * Call this in beforeEach for test suites that exercise adjust_macros /
+ * change_cooking_method.
+ */
+function useDefaultStrictContext() {
+  mockGlp1Context = { isActive: false, resolvedTargets: null };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// adjust_macros tests
+// ─────────────────────────────────────────────────────────────────────────────
+
+const BASE_MACRO_REQUEST = {
+  changeType: "adjust_macros" as const,
+  userId: "user-abc",
+  macroGoal: "more protein",
+  mealName: "Chicken Bowl",
+  mealDescription: "A balanced grain bowl with vegetables",
+  currentIngredients: ["chicken breast", "brown rice", "spinach"],
+  currentMacros: { calories: 450, protein: 25, carbs: 55, fat: 12 },
+};
+
+describe("MealRefinementEngine — adjust_macros", () => {
+  beforeEach(() => {
+    resetMocks();
+    useDefaultStrictContext();
+  });
+
+  // Helper: configure the LLM mock to return a given JSON string for its next call(s).
+  function mockLLM(response: string) {
+    const openai = jest.requireMock("openai");
+    const instance = new openai.default();
+    instance.chat.completions.create.mockResolvedValueOnce({
+      choices: [{ message: { content: response } }],
+    });
+    return instance.chat.completions.create;
+  }
+
+  // ── 1. Happy path ──────────────────────────────────────────────────────────
+  test("returns MacroAdjustmentResult with correct shape on happy path", async () => {
+    mockLLM(ADJUST_MACROS_AI_RESPONSE);
+
+    const engine = getMealRefinementEngine();
+    const result = await engine.refine(BASE_MACRO_REQUEST) as any;
+
+    expect(Array.isArray(result.adjustedIngredients)).toBe(true);
+    expect(result.adjustedIngredients.length).toBeGreaterThan(0);
+    expect(typeof result.adjustedIngredients[0].item).toBe("string");
+    expect(typeof result.adjustedIngredients[0].change).toBe("string");
+    expect(result.macroImpact).toBeDefined();
+    expect(typeof result.macroImpact.summary).toBe("string");
+    expect(typeof result.coachNote).toBe("string");
+    expect(result).toHaveProperty("protocolNote");
+  });
+
+  // ── 2. Strict fail-closed: GLP-1 resolver returns null ───────────────────
+  test("throws when GLP-1 resolver returns null (strict fail-closed)", async () => {
+    // null = resolver failure in strict mode
+    mockGlp1Context = null;
+
+    const engine = getMealRefinementEngine();
+    await expect(engine.refine(BASE_MACRO_REQUEST)).rejects.toThrow(
+      /clinical guidance temporarily unavailable/i,
+    );
+  });
+
+  // ── 3. Strict fail-closed: protocol envelope load fails ──────────────────
+  test("throws when protocol envelope fails to load (strict fail-closed)", async () => {
+    const { loadUserProtocolEnvelope } = jest.requireMock("../services/protocolEnvelope");
+    loadUserProtocolEnvelope.mockRejectedValueOnce(new Error("DB connection error"));
+
+    const engine = getMealRefinementEngine();
+    await expect(engine.refine(BASE_MACRO_REQUEST)).rejects.toThrow(
+      /could not load dietary protocol/i,
+    );
+  });
+
+  // ── 4. Allergen in adjustedIngredients item — blocked by allergen guard ───
+  test("blocks when allergen appears in adjustedIngredients item and scan passes", async () => {
+    const { loadUserProtocolEnvelope } = jest.requireMock("../services/protocolEnvelope");
+    loadUserProtocolEnvelope.mockResolvedValue(makeEnvelope({ allergies: ["peanut"] }));
+    mockScanPassed = true; // avoidances scan passes — allergen guard must catch it
+
+    // First attempt: allergen in item name
+    const allergenResponse = JSON.stringify({
+      adjustedIngredients: [{ item: "Peanut Butter", change: "added for protein", reason: "High protein" }],
+      macroImpact: { calories: 400, protein: 32, carbs: 38, fat: 16, summary: "+7g protein, +4g fat" },
+      coachNote: "Added peanut butter for a protein boost.",
+      protocolNote: null,
+    });
+    // Second attempt (retry) also contains the allergen → both fail → throws
+    mockLLM(allergenResponse);
+    mockLLM(allergenResponse);
+
+    const engine = getMealRefinementEngine();
+    await expect(engine.refine(BASE_MACRO_REQUEST)).rejects.toThrow(
+      /conflicts with your active health protocol/i,
+    );
+  });
+
+  // ── 5. Allergen hidden only in macroImpact.summary — caught by extractAllStrings
+  test("blocks when allergen is hidden only in macroImpact.summary", async () => {
+    const { loadUserProtocolEnvelope } = jest.requireMock("../services/protocolEnvelope");
+    loadUserProtocolEnvelope.mockResolvedValue(makeEnvelope({ allergies: ["walnut"] }));
+    mockScanPassed = true;
+
+    // allergen is ONLY in the summary string — not in item names
+    const hiddenAllergenResponse = JSON.stringify({
+      adjustedIngredients: [{ item: "Greek Yogurt", change: "added for protein", reason: "Good protein source" }],
+      macroImpact: {
+        calories: 360, protein: 32, carbs: 38, fat: 9,
+        summary: "+7g protein (consider walnut topping for extra calories)",
+      },
+      coachNote: "Greek yogurt is an excellent swap.",
+      protocolNote: null,
+    });
+    mockLLM(hiddenAllergenResponse);
+    mockLLM(hiddenAllergenResponse);
+
+    const engine = getMealRefinementEngine();
+    await expect(engine.refine(BASE_MACRO_REQUEST)).rejects.toThrow(
+      /conflicts with your active health protocol/i,
+    );
+  });
+
+  // ── 6. Allergen hidden in protocolNote — caught by extractAllStrings ──────
+  test("blocks when allergen is hidden only in protocolNote", async () => {
+    const { loadUserProtocolEnvelope } = jest.requireMock("../services/protocolEnvelope");
+    loadUserProtocolEnvelope.mockResolvedValue(makeEnvelope({ allergies: ["sesame"] }));
+    mockScanPassed = true;
+
+    const hiddenAllergenResponse = JSON.stringify({
+      adjustedIngredients: [{ item: "Chickpea Flour", change: "swapped from white flour", reason: "More protein" }],
+      macroImpact: { calories: 370, protein: 28, carbs: 42, fat: 10, summary: "+3g protein" },
+      coachNote: "Chickpea flour is a great swap for protein.",
+      protocolNote: "Note: sesame-based tahini is a common complement but avoided here.",
+    });
+    mockLLM(hiddenAllergenResponse);
+    mockLLM(hiddenAllergenResponse);
+
+    const engine = getMealRefinementEngine();
+    await expect(engine.refine(BASE_MACRO_REQUEST)).rejects.toThrow(
+      /conflicts with your active health protocol/i,
+    );
+  });
+
+  // ── 7. Violation on first pass → retry succeeds → result returned ─────────
+  test("retry succeeds when first LLM attempt has a violation", async () => {
+    const shellfisnResponse = JSON.stringify({
+      adjustedIngredients: [{ item: "Shrimp", change: "added for lean protein", reason: "Very lean" }],
+      macroImpact: { calories: 340, protein: 34, carbs: 35, fat: 6, summary: "+9g protein" },
+      coachNote: "Shrimp is an excellent lean protein.",
+      protocolNote: null,
+    });
+    mockLLM(shellfisnResponse);   // first LLM call: scan will flag it
+    mockLLM(ADJUST_MACROS_AI_RESPONSE); // second LLM call (retry): clean
+
+    // Scan fails on first call only, passes on retry
+    const { scanGeneratedOutput } = jest.requireMock("../services/protocolEnvelope");
+    (scanGeneratedOutput as jest.Mock)
+      .mockReturnValueOnce({ passed: false, message: "contains shellfish", violations: [{ term: "Shrimp" }] })
+      .mockReturnValueOnce({ passed: true, violations: [], message: "" });
+
+    const engine = getMealRefinementEngine();
+    const result = await engine.refine(BASE_MACRO_REQUEST) as any;
+
+    expect(result.adjustedIngredients).toBeDefined();
+    expect(result.macroImpact).toBeDefined();
+  });
+
+  // ── 8. Violation on both attempts → throws ────────────────────────────────
+  test("throws when both LLM attempts produce a protocol violation", async () => {
+    const violatingResponse = JSON.stringify({
+      adjustedIngredients: [{ item: "Almond Butter", change: "added", reason: "Rich in protein" }],
+      macroImpact: { calories: 410, protein: 29, carbs: 35, fat: 18, summary: "+4g protein" },
+      coachNote: "Almond butter adds healthy fats and protein.",
+      protocolNote: null,
+    });
+    mockLLM(violatingResponse);
+    mockLLM(violatingResponse);
+
+    const { scanGeneratedOutput } = jest.requireMock("../services/protocolEnvelope");
+    (scanGeneratedOutput as jest.Mock)
+      .mockReturnValueOnce({ passed: false, message: "contains tree nuts — hard stop", violations: [{ term: "Almond" }] })
+      .mockReturnValueOnce({ passed: false, message: "contains tree nuts — hard stop", violations: [{ term: "Almond" }] });
+
+    const engine = getMealRefinementEngine();
+    await expect(engine.refine(BASE_MACRO_REQUEST)).rejects.toThrow(
+      /conflicts with your active health protocol/i,
+    );
+  });
+
+  // ── 9. Allergen in currentIngredients baseline → blocked before LLM call ──
+  test("throws before calling the LLM when currentIngredients contains a confirmed allergen", async () => {
+    const { loadUserProtocolEnvelope } = jest.requireMock("../services/protocolEnvelope");
+    // "Peanuts" category expands to include "peanut" via taxonomy
+    loadUserProtocolEnvelope.mockResolvedValueOnce(makeEnvelope({ allergies: ["Peanuts"] }));
+
+    const engine = getMealRefinementEngine();
+    // peanut is in the baseline currentIngredients → must throw before any LLM call
+    await expect(
+      engine.refine({
+        ...BASE_MACRO_REQUEST,
+        currentIngredients: ["chicken breast", "peanut sauce", "rice"],
+      }),
+    ).rejects.toThrow(/confirmed allergen/i);
+
+    // Verify the LLM was never called (no system prompt captured)
+    expect(capturedSystemPrompts).toHaveLength(0);
+  });
+
+  // ── 10. GLP-1 fat ceiling violated in macroImpact.fat → blocked ──────────
+  test("blocks when macroImpact.fat exceeds the GLP-1 fat ceiling on both attempts", async () => {
+    mockGlp1Context = {
+      isActive: true,
+      activationSources: ["medicalConditions"],
+      resolvedTargets: {
+        treatmentPhase: "maintenance",
+        resolvedMealCalories: 400,
+        targetProteinGrams: 28,
+        maximumToleratedFatGrams: 12,
+        minimumProteinFloor: 20,
+      },
+    };
+
+    // fat = 25g — exceeds ceiling of 12g
+    const highFatResponse = JSON.stringify({
+      adjustedIngredients: [{ item: "Full-fat Cheese", change: "added", reason: "Boosts protein" }],
+      macroImpact: { calories: 380, protein: 31, carbs: 35, fat: 25, summary: "+6g protein, +13g fat" },
+      coachNote: "Full-fat cheese boosts protein nicely.",
+      protocolNote: null,
+    });
+    mockLLM(highFatResponse);
+    mockLLM(highFatResponse);
+
+    const engine = getMealRefinementEngine();
+    await expect(engine.refine(BASE_MACRO_REQUEST)).rejects.toThrow(
+      /conflicts with your active health protocol/i,
+    );
+  });
+
+  // ── 11. coachNote is forwarded as instructions to scanGeneratedOutput ─────
+  test("passes coachNote as the instructions field to scanGeneratedOutput", async () => {
+    mockLLM(ADJUST_MACROS_AI_RESPONSE);
+
+    const engine = getMealRefinementEngine();
+    await engine.refine(BASE_MACRO_REQUEST);
+
+    const { scanGeneratedOutput } = jest.requireMock("../services/protocolEnvelope");
+    const calls = (scanGeneratedOutput as jest.Mock).mock.calls;
+    expect(calls.length).toBeGreaterThan(0);
+    const payload = calls[0][0];
+    // coachNote from ADJUST_MACROS_AI_RESPONSE should appear in payload.instructions
+    expect(typeof payload.instructions).toBe("string");
+    expect(payload.instructions).toMatch(/greek yogurt/i);
+  });
+
+  // ── 9b. Category-label allergen expansion — Tree Nuts catches "cashew" ───
+  test("blocks when allergen is 'Tree Nuts' and response contains 'cashew cream'", async () => {
+    const { loadUserProtocolEnvelope } = jest.requireMock("../services/protocolEnvelope");
+    loadUserProtocolEnvelope.mockResolvedValueOnce(makeEnvelope({ allergies: ["Tree Nuts"] }));
+
+    // macroImpact.summary contains "cashew cream" — caught via taxonomy expansion
+    const cashewResponse = JSON.stringify({
+      adjustedIngredients: [{ item: "Cashew Cream", change: "added for creaminess", reason: "Lower dairy" }],
+      macroImpact: { calories: 370, protein: 28, carbs: 40, fat: 12, summary: "Replaced sour cream with cashew cream (+3g fat)" },
+      coachNote: "Cashew cream adds a rich texture.",
+      protocolNote: null,
+    });
+    mockLLM(cashewResponse);
+    mockLLM(cashewResponse);
+
+    const engine = getMealRefinementEngine();
+    await expect(engine.refine(BASE_MACRO_REQUEST)).rejects.toThrow(
+      /conflicts with your active health protocol/i,
+    );
+  });
+
+  // ── 9c. Compound label "Wheat/Gluten" catches "pasta" ─────────────────────
+  test("blocks when allergen is 'Wheat/Gluten' and response contains 'pasta'", async () => {
+    const { loadUserProtocolEnvelope } = jest.requireMock("../services/protocolEnvelope");
+    loadUserProtocolEnvelope.mockResolvedValueOnce(makeEnvelope({ allergies: ["Wheat/Gluten"] }));
+
+    const pastaResponse = JSON.stringify({
+      adjustedIngredients: [{ item: "Whole Wheat Pasta", change: "added for carbs", reason: "Complex carbs" }],
+      macroImpact: { calories: 420, protein: 28, carbs: 55, fat: 9, summary: "+15g carbs from pasta" },
+      coachNote: "Pasta is a great carb source for sustained energy.",
+      protocolNote: null,
+    });
+    mockLLM(pastaResponse);
+    mockLLM(pastaResponse);
+
+    const engine = getMealRefinementEngine();
+    await expect(engine.refine(BASE_MACRO_REQUEST)).rejects.toThrow(
+      /conflicts with your active health protocol/i,
+    );
+  });
+
+  // ── 9d. Qualified label "Lactose Intolerance" catches "cheese" ────────────
+  test("blocks when allergen is 'Lactose Intolerance' and response contains 'cheese'", async () => {
+    const { loadUserProtocolEnvelope } = jest.requireMock("../services/protocolEnvelope");
+    loadUserProtocolEnvelope.mockResolvedValueOnce(makeEnvelope({ allergies: ["Lactose Intolerance"] }));
+
+    const cheeseResponse = JSON.stringify({
+      adjustedIngredients: [{ item: "Cheddar Cheese", change: "added for protein", reason: "High protein dairy" }],
+      macroImpact: { calories: 380, protein: 33, carbs: 38, fat: 11, summary: "+8g protein from cheese" },
+      coachNote: "Cheddar cheese is high in protein and calcium.",
+      protocolNote: null,
+    });
+    mockLLM(cheeseResponse);
+    mockLLM(cheeseResponse);
+
+    const engine = getMealRefinementEngine();
+    await expect(engine.refine(BASE_MACRO_REQUEST)).rejects.toThrow(
+      /conflicts with your active health protocol/i,
+    );
+  });
+
+  // ── 12. GLP-1 active + null macroImpact.fat → blocked ────────────────────
+  test("blocks when GLP-1 is active and macroImpact.fat is null on both attempts", async () => {
+    mockGlp1Context = {
+      isActive: true,
+      activationSources: ["medicalConditions"],
+      resolvedTargets: {
+        treatmentPhase: "maintenance",
+        resolvedMealCalories: 400,
+        targetProteinGrams: 28,
+        maximumToleratedFatGrams: 12,
+        minimumProteinFloor: 20,
+      },
+    };
+
+    // fat is null — GLP-1 must treat this as a violation
+    const nullFatResponse = JSON.stringify({
+      adjustedIngredients: [{ item: "Greek Yogurt", change: "swapped", reason: "Higher protein" }],
+      macroImpact: { calories: 350, protein: 30, carbs: 40, fat: null, summary: "+5g protein" },
+      coachNote: "Greek yogurt is a great swap.",
+      protocolNote: null,
+    });
+    mockLLM(nullFatResponse);
+    mockLLM(nullFatResponse);
+
+    const engine = getMealRefinementEngine();
+    await expect(engine.refine(BASE_MACRO_REQUEST)).rejects.toThrow(
+      /conflicts with your active health protocol/i,
+    );
+  });
+
+  // ── 12b. Non-numeric macroImpact values are rejected (GLP-1 active) ───────
+  test.each([
+    ["empty string", ""],
+    ["whitespace", "   "],
+    ["boolean true", true],
+    ["boolean false", false],
+    ["numeric string", "9"],
+  ])(
+    "blocks when GLP-1 is active and macroImpact.fat is a non-numeric value: %s",
+    async (_label, badFat) => {
+      mockGlp1Context = {
+        isActive: true,
+        activationSources: ["medicalConditions"],
+        resolvedTargets: {
+          treatmentPhase: "maintenance",
+          resolvedMealCalories: 400,
+          targetProteinGrams: 28,
+          maximumToleratedFatGrams: 12,
+          minimumProteinFloor: 20,
+        },
+      };
+
+      const badResponse = JSON.stringify({
+        adjustedIngredients: [{ item: "Greek Yogurt", change: "swapped", reason: "Higher protein" }],
+        macroImpact: { calories: 350, protein: 30, carbs: 40, fat: badFat, summary: "+5g protein" },
+        coachNote: "Greek yogurt is a great swap.",
+        protocolNote: null,
+      });
+      mockLLM(badResponse);
+      mockLLM(badResponse);
+
+      const engine = getMealRefinementEngine();
+      await expect(engine.refine(BASE_MACRO_REQUEST)).rejects.toThrow(
+        /conflicts with your active health protocol/i,
+      );
+    },
+  );
+
+  // ── 13. GLP-1 fat retry succeeds when retry is within ceiling ────────────
+  test("returns result when retry macroImpact.fat is within the GLP-1 ceiling", async () => {
+    mockGlp1Context = {
+      isActive: true,
+      activationSources: ["medicalConditions"],
+      resolvedTargets: {
+        treatmentPhase: "maintenance",
+        resolvedMealCalories: 400,
+        targetProteinGrams: 28,
+        maximumToleratedFatGrams: 12,
+        minimumProteinFloor: 20,
+      },
+    };
+
+    // First attempt: fat = 18g (over ceiling)
+    const highFatResponse = JSON.stringify({
+      adjustedIngredients: [{ item: "Whole Milk", change: "added", reason: "Boosts protein" }],
+      macroImpact: { calories: 380, protein: 29, carbs: 35, fat: 18, summary: "+4g protein, +6g fat" },
+      coachNote: "Whole milk adds creaminess and protein.",
+      protocolNote: null,
+    });
+    // Retry: fat = 8g (within ceiling)
+    const compliantResponse = JSON.stringify({
+      adjustedIngredients: [{ item: "Greek Yogurt", change: "swapped from sour cream", reason: "Higher protein, lower fat" }],
+      macroImpact: { calories: 350, protein: 30, carbs: 40, fat: 8, summary: "+5g protein, -4g fat" },
+      coachNote: "Greek yogurt is the perfect lower-fat swap.",
+      protocolNote: null,
+    });
+    mockLLM(highFatResponse);
+    mockLLM(compliantResponse);
+
+    const engine = getMealRefinementEngine();
+    const result = await engine.refine(BASE_MACRO_REQUEST) as any;
+
+    expect(result.macroImpact.fat).toBe(8);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// change_cooking_method tests
+// ─────────────────────────────────────────────────────────────────────────────
+
+const BASE_COOKING_METHOD_REQUEST = {
+  changeType: "change_cooking_method" as const,
+  userId: "user-abc",
+  targetMethod: "air fryer",
+  mealName: "Herb Chicken",
+  mealDescription: "Seasoned chicken thighs with rosemary and lemon",
+  currentIngredients: ["chicken thighs", "rosemary", "lemon", "olive oil"],
+  currentMethod: "oven-baked",
+};
+
+describe("MealRefinementEngine — change_cooking_method", () => {
+  beforeEach(() => {
+    resetMocks();
+    useDefaultStrictContext();
+  });
+
+  function mockLLM(response: string) {
+    const openai = jest.requireMock("openai");
+    const instance = new openai.default();
+    instance.chat.completions.create.mockResolvedValueOnce({
+      choices: [{ message: { content: response } }],
+    });
+    return instance.chat.completions.create;
+  }
+
+  // ── 1. Happy path ──────────────────────────────────────────────────────────
+  test("returns CookingMethodResult with correct shape on happy path", async () => {
+    mockLLM(CHANGE_METHOD_AI_RESPONSE);
+
+    const engine = getMealRefinementEngine();
+    const result = await engine.refine(BASE_COOKING_METHOD_REQUEST) as any;
+
+    expect(typeof result.newMethod).toBe("string");
+    expect(result.newMethod).toBeTruthy();
+    expect(typeof result.cookingNotes).toBe("string");
+    expect(result.cookingNotes).toBeTruthy();
+    expect(Array.isArray(result.cookingTips)).toBe(true);
+    expect(Array.isArray(result.ingredientChanges)).toBe(true);
+    expect(result).toHaveProperty("protocolNote");
+  });
+
+  // ── 2. Strict fail-closed: GLP-1 resolver returns null ───────────────────
+  test("throws when GLP-1 resolver returns null (strict fail-closed)", async () => {
+    mockGlp1Context = null;
+
+    const engine = getMealRefinementEngine();
+    await expect(engine.refine(BASE_COOKING_METHOD_REQUEST)).rejects.toThrow(
+      /clinical guidance temporarily unavailable/i,
+    );
+  });
+
+  // ── 3. Allergen hidden in cookingTips[].reason — caught by extractAllStrings
+  test("blocks when allergen is hidden only in cookingTips[].reason", async () => {
+    const { loadUserProtocolEnvelope } = jest.requireMock("../services/protocolEnvelope");
+    loadUserProtocolEnvelope.mockResolvedValue(makeEnvelope({ allergies: ["peanut"] }));
+    mockScanPassed = true;
+
+    // allergen ONLY in tip reason — not in item names or cookingNotes
+    const tipAllergenResponse = JSON.stringify({
+      newMethod: "Air Fryer",
+      cookingNotes: "Cook at 400°F for 15 minutes, flipping halfway.",
+      cookingTips: [
+        {
+          tip: "Pat the chicken dry before cooking",
+          reason: "A peanut oil spray can help crispiness but avoid if allergic.",
+        },
+      ],
+      ingredientChanges: [{ item: "Cooking Spray", change: "Use 1 spray" }],
+      protocolNote: null,
+    });
+    mockLLM(tipAllergenResponse);
+    mockLLM(tipAllergenResponse);
+
+    const engine = getMealRefinementEngine();
+    await expect(engine.refine(BASE_COOKING_METHOD_REQUEST)).rejects.toThrow(
+      /conflicts with your active health protocol/i,
+    );
+  });
+
+  // ── 4. Allergen hidden in cookingNotes — caught by extractAllStrings ──────
+  test("blocks when allergen is hidden only in cookingNotes", async () => {
+    const { loadUserProtocolEnvelope } = jest.requireMock("../services/protocolEnvelope");
+    loadUserProtocolEnvelope.mockResolvedValue(makeEnvelope({ allergies: ["shellfish"] }));
+    mockScanPassed = true;
+
+    const notesAllergenResponse = JSON.stringify({
+      newMethod: "Slow Cooker",
+      cookingNotes: "Cook on low for 6 hours. A shellfish stock can enhance depth — skip if allergic.",
+      cookingTips: [{ tip: "Add vegetables in the last 30 minutes", reason: "Keeps them firm." }],
+      ingredientChanges: [],
+      protocolNote: null,
+    });
+    mockLLM(notesAllergenResponse);
+    mockLLM(notesAllergenResponse);
+
+    const engine = getMealRefinementEngine();
+    await expect(engine.refine(BASE_COOKING_METHOD_REQUEST)).rejects.toThrow(
+      /conflicts with your active health protocol/i,
+    );
+  });
+
+  // ── 5. Allergen hidden in protocolNote — caught by extractAllStrings ──────
+  test("blocks when allergen is hidden only in protocolNote", async () => {
+    const { loadUserProtocolEnvelope } = jest.requireMock("../services/protocolEnvelope");
+    loadUserProtocolEnvelope.mockResolvedValue(makeEnvelope({ allergies: ["soy"] }));
+    mockScanPassed = true;
+
+    const noteAllergenResponse = JSON.stringify({
+      newMethod: "Air Fryer",
+      cookingNotes: "Cook at 400°F for 15 minutes.",
+      cookingTips: [{ tip: "Pat dry first", reason: "Better crispiness." }],
+      ingredientChanges: [{ item: "Cooking Spray", change: "Use 1 spray" }],
+      protocolNote: "Note: soy-based marinades pair well but are excluded for this user.",
+    });
+    mockLLM(noteAllergenResponse);
+    mockLLM(noteAllergenResponse);
+
+    const engine = getMealRefinementEngine();
+    await expect(engine.refine(BASE_COOKING_METHOD_REQUEST)).rejects.toThrow(
+      /conflicts with your active health protocol/i,
+    );
+  });
+
+  // ── 6. Violation on first pass → retry succeeds → result returned ─────────
+  test("retry succeeds when first LLM attempt has a scan violation", async () => {
+    const { scanGeneratedOutput } = jest.requireMock("../services/protocolEnvelope");
+    (scanGeneratedOutput as jest.Mock)
+      .mockReturnValueOnce({
+        passed: false,
+        message: "contains pork — active avoidance",
+        violations: [{ term: "lard", reason: "active avoidance" }],
+      })
+      .mockReturnValueOnce({ passed: true, violations: [], message: "" });
+
+    const violatingResponse = JSON.stringify({
+      newMethod: "Air Fryer",
+      cookingNotes: "Coat with lard for extra crispiness. Cook at 400°F for 15 minutes.",
+      cookingTips: [{ tip: "Use lard sparingly", reason: "Enhances flavour." }],
+      ingredientChanges: [{ item: "Lard", change: "Add 1 tbsp coating" }],
+      protocolNote: null,
+    });
+    mockLLM(violatingResponse);
+    mockLLM(CHANGE_METHOD_AI_RESPONSE);
+
+    const engine = getMealRefinementEngine();
+    const result = await engine.refine(BASE_COOKING_METHOD_REQUEST) as any;
+
+    expect(typeof result.newMethod).toBe("string");
+    expect(typeof result.cookingNotes).toBe("string");
+  });
+
+  // ── 7. Violation on both attempts → throws ────────────────────────────────
+  test("throws when both LLM attempts produce a protocol violation", async () => {
+    const { scanGeneratedOutput } = jest.requireMock("../services/protocolEnvelope");
+    (scanGeneratedOutput as jest.Mock)
+      .mockReturnValueOnce({ passed: false, message: "contains dairy — hard stop", violations: [{ term: "butter" }] })
+      .mockReturnValueOnce({ passed: false, message: "contains dairy — hard stop", violations: [{ term: "butter" }] });
+
+    const violatingResponse = JSON.stringify({
+      newMethod: "Air Fryer",
+      cookingNotes: "Brush with melted butter before cooking at 400°F.",
+      cookingTips: [{ tip: "Use butter generously", reason: "Better browning." }],
+      ingredientChanges: [{ item: "Butter", change: "Add 2 tbsp" }],
+      estimatedMealFatGrams: 20,
+      protocolNote: null,
+    });
+    mockLLM(violatingResponse);
+    mockLLM(violatingResponse);
+
+    const engine = getMealRefinementEngine();
+    await expect(engine.refine(BASE_COOKING_METHOD_REQUEST)).rejects.toThrow(
+      /conflicts with your active health protocol/i,
+    );
+  });
+
+  // ── 8. Allergen in currentIngredients baseline → blocked before LLM call ──
+  test("throws before calling the LLM when currentIngredients contains a confirmed allergen", async () => {
+    const { loadUserProtocolEnvelope } = jest.requireMock("../services/protocolEnvelope");
+    // "Shellfish" expands via taxonomy to include "shrimp", so "shrimp paste" is caught
+    loadUserProtocolEnvelope.mockResolvedValueOnce(makeEnvelope({ allergies: ["Shellfish"] }));
+
+    const engine = getMealRefinementEngine();
+    await expect(
+      engine.refine({
+        ...BASE_COOKING_METHOD_REQUEST,
+        currentIngredients: ["chicken thighs", "shrimp paste", "lemon"],
+      }),
+    ).rejects.toThrow(/confirmed allergen/i);
+
+    expect(capturedSystemPrompts).toHaveLength(0);
+  });
+
+  // ── 9b. Category-label allergen expansion — Tree Nuts catches "almond" ──
+  test("blocks when allergen is 'Tree Nuts' and response contains 'almond butter'", async () => {
+    const { loadUserProtocolEnvelope } = jest.requireMock("../services/protocolEnvelope");
+    loadUserProtocolEnvelope.mockResolvedValueOnce(makeEnvelope({ allergies: ["Tree Nuts"] }));
+
+    // LLM response contains "almond butter" — caught via taxonomy expansion
+    const almondResponse = JSON.stringify({
+      newMethod: "Air Fryer",
+      cookingNotes: "Toss in almond butter sauce and cook at 400°F for 15 minutes.",
+      cookingTips: [{ tip: "Pat dry first", reason: "Better crispiness." }],
+      ingredientChanges: [{ item: "Almond Butter", change: "Add 1 tbsp glaze" }],
+      estimatedMealFatGrams: 11,
+      protocolNote: null,
+    });
+    mockLLM(almondResponse);
+    mockLLM(almondResponse);
+
+    const engine = getMealRefinementEngine();
+    await expect(engine.refine(BASE_COOKING_METHOD_REQUEST)).rejects.toThrow(
+      /conflicts with your active health protocol/i,
+    );
+  });
+
+  // ── 9. GLP-1 fat ceiling violated via estimatedMealFatGrams → blocked ─────
+  test("blocks when estimatedMealFatGrams exceeds the GLP-1 fat ceiling on both attempts", async () => {
+    mockGlp1Context = {
+      isActive: true,
+      activationSources: ["medicalConditions"],
+      resolvedTargets: {
+        treatmentPhase: "maintenance",
+        resolvedMealCalories: 400,
+        targetProteinGrams: 28,
+        maximumToleratedFatGrams: 12,
+        minimumProteinFloor: 20,
+      },
+    };
+
+    // estimatedMealFatGrams = 30 — exceeds ceiling of 12g
+    const highFatMethodResponse = JSON.stringify({
+      newMethod: "Deep Fryer",
+      cookingNotes: "Heat oil to 375°F and fry for 8 minutes until golden.",
+      cookingTips: [{ tip: "Use plenty of oil", reason: "Ensures even cooking." }],
+      ingredientChanges: [{ item: "Frying Oil", change: "Add 2 cups vegetable oil" }],
+      estimatedMealFatGrams: 30,
+      protocolNote: "High fat content due to deep frying.",
+    });
+    mockLLM(highFatMethodResponse);
+    mockLLM(highFatMethodResponse);
+
+    const engine = getMealRefinementEngine();
+    await expect(engine.refine(BASE_COOKING_METHOD_REQUEST)).rejects.toThrow(
+      /conflicts with your active health protocol/i,
+    );
+  });
+
+  // ── 10. cookingNotes + tips are forwarded as instructions to scanner ──────
+  test("passes cookingNotes and tip text as the instructions field to scanGeneratedOutput", async () => {
+    mockLLM(CHANGE_METHOD_AI_RESPONSE);
+
+    const engine = getMealRefinementEngine();
+    await engine.refine(BASE_COOKING_METHOD_REQUEST);
+
+    const { scanGeneratedOutput } = jest.requireMock("../services/protocolEnvelope");
+    const calls = (scanGeneratedOutput as jest.Mock).mock.calls;
+    expect(calls.length).toBeGreaterThan(0);
+    const payload = calls[0][0];
+    // cookingNotes from CHANGE_METHOD_AI_RESPONSE should appear in payload.instructions
+    expect(typeof payload.instructions).toBe("string");
+    expect(payload.instructions).toMatch(/400.*f|flipping/i);  // from "Cook at 400°F for 15 minutes, flipping halfway through."
+  });
+
+  // ── 11. GLP-1 active + null estimatedMealFatGrams → blocked ──────────────
+  test("blocks when GLP-1 is active and estimatedMealFatGrams is null on both attempts", async () => {
+    mockGlp1Context = {
+      isActive: true,
+      activationSources: ["medicalConditions"],
+      resolvedTargets: {
+        treatmentPhase: "maintenance",
+        resolvedMealCalories: 400,
+        targetProteinGrams: 28,
+        maximumToleratedFatGrams: 12,
+        minimumProteinFloor: 20,
+      },
+    };
+
+    const nullFatResponse = JSON.stringify({
+      newMethod: "Air Fryer",
+      cookingNotes: "Cook at 400°F for 15 minutes.",
+      cookingTips: [{ tip: "Pat dry", reason: "Better crispiness." }],
+      ingredientChanges: [],
+      estimatedMealFatGrams: null,   // GLP-1 must treat null as a violation
+      protocolNote: null,
+    });
+    mockLLM(nullFatResponse);
+    mockLLM(nullFatResponse);
+
+    const engine = getMealRefinementEngine();
+    await expect(engine.refine(BASE_COOKING_METHOD_REQUEST)).rejects.toThrow(
+      /conflicts with your active health protocol/i,
+    );
+  });
+
+  // ── 11b. Non-numeric estimatedMealFatGrams rejected (GLP-1 active) ────────
+  test.each([
+    ["empty string", ""],
+    ["whitespace", "   "],
+    ["boolean true", true],
+    ["boolean false", false],
+    ["numeric string", "9"],
+  ])(
+    "blocks when GLP-1 is active and estimatedMealFatGrams is a non-numeric value: %s",
+    async (_label, badFat) => {
+      mockGlp1Context = {
+        isActive: true,
+        activationSources: ["medicalConditions"],
+        resolvedTargets: {
+          treatmentPhase: "maintenance",
+          resolvedMealCalories: 400,
+          targetProteinGrams: 28,
+          maximumToleratedFatGrams: 12,
+          minimumProteinFloor: 20,
+        },
+      };
+
+      const badResponse = JSON.stringify({
+        newMethod: "Air Fryer",
+        cookingNotes: "Cook at 400°F for 15 minutes.",
+        cookingTips: [{ tip: "Pat dry", reason: "Better crispiness." }],
+        ingredientChanges: [],
+        estimatedMealFatGrams: badFat,
+        protocolNote: null,
+      });
+      mockLLM(badResponse);
+      mockLLM(badResponse);
+
+      const engine = getMealRefinementEngine();
+      await expect(engine.refine(BASE_COOKING_METHOD_REQUEST)).rejects.toThrow(
+        /conflicts with your active health protocol/i,
+      );
+    },
+  );
+
+  // ── 12. GLP-1 retry succeeds when estimatedMealFatGrams is within ceiling ─
+  test("returns result when retry estimatedMealFatGrams is within the GLP-1 fat ceiling", async () => {
+    mockGlp1Context = {
+      isActive: true,
+      activationSources: ["medicalConditions"],
+      resolvedTargets: {
+        treatmentPhase: "maintenance",
+        resolvedMealCalories: 400,
+        targetProteinGrams: 28,
+        maximumToleratedFatGrams: 12,
+        minimumProteinFloor: 20,
+      },
+    };
+
+    // First attempt: 25g fat (over ceiling)
+    const highFatResponse = JSON.stringify({
+      newMethod: "Pan Fried",
+      cookingNotes: "Fry in 3 tbsp butter until golden.",
+      cookingTips: [{ tip: "Use generous butter", reason: "Better browning." }],
+      ingredientChanges: [{ item: "Butter", change: "Add 3 tbsp" }],
+      estimatedMealFatGrams: 25,
+      protocolNote: null,
+    });
+    // Retry: 9g fat (within ceiling)
+    const compliantMethodResponse = JSON.stringify({
+      newMethod: "Air Fryer",
+      cookingNotes: "Cook at 400°F for 15 minutes, flipping halfway.",
+      cookingTips: [{ tip: "Pat dry before cooking", reason: "Better crispiness." }],
+      ingredientChanges: [{ item: "Cooking Spray", change: "1 light spray instead of butter" }],
+      estimatedMealFatGrams: 9,
+      protocolNote: null,
+    });
+    mockLLM(highFatResponse);
+    mockLLM(compliantMethodResponse);
+
+    const engine = getMealRefinementEngine();
+    const result = await engine.refine(BASE_COOKING_METHOD_REQUEST) as any;
+
+    expect(result.estimatedMealFatGrams).toBe(9);
+    expect(result.newMethod).toBe("Air Fryer");
+  });
+});
 
 describe("MealRefinementEngine — replace_ingredient", () => {
   beforeEach(() => {

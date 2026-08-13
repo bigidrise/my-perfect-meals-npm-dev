@@ -1,37 +1,26 @@
 /**
  * mealRefinementEngine.ts
  *
- * Shared Meal Refinement Engine — modifies an existing meal instead of regenerating from scratch.
+ * Universal service for refining an existing meal recommendation. Any endpoint
+ * that needs to swap, adjust, or re-roll part of a generated meal should go
+ * through this engine rather than duplicating the protocol-loading + LLM call
+ * pattern. This keeps clinical logic in one place so new conditions (oncology,
+ * ARFID, etc.) added to the protocol envelope are automatically inherited.
  *
- * CONTRACT (refineMeal — universal function API):
- *   existingMeal (any builder JSON) + changeInstruction + userId
- *   → load protocol context (envelope + GLP-1 + saved groceries)
- *   → call LLM with full existing meal JSON + change instruction + protocol constraints
- *   → combined validation pass: NDE scan + GLP-1 macros + diabetic starch gate
- *   → if any issue: single retry with combined fix instruction → combined validation again
- *   → return updated meal in the same JSON schema as the input
+ * Phase 1: "replace_ingredient" — ingredient swap for Grocery Coach.
+ * Phase 2: "adjust_macros"      — macro-target adjustment (e.g. "more protein").
+ *          "change_cooking_method" — cooking-method rewrite (e.g. "air-fryer friendly").
+ *
+ * Also exports refineMeal() (function API) for callers that need the full
+ * existingMeal + changeInstruction + retry + NDE scan pipeline directly.
  *
  * CLINICAL GUARANTEES:
  *   • GLP-1 FAIL-CLOSED — if the resolver throws or returns active with no targets,
- *     the engine throws MealRefinementRetryableError (surfaces as 503) instead of
- *     proceeding unguarded.
+ *     the engine throws MealRefinementRetryableError (surfaces as 503).
  *   • GLP-1 MACROS — absent/non-finite macros on a GLP-1 meal are treated as a
  *     violation (cannot verify compliance = fail closed).
  *   • DIABETIC STARCH GATE — starchBudgetViolation.detected triggers remediation,
  *     not a warning. Both initial and retry outputs are gated.
- *   • EVERY RETRY is re-validated through the same combined pass; no retry escapes
- *     validation.
- *
- * MealRefinementEngine class (Phase 1 — replace_ingredient):
- *   Thin class wrapper around the same protocol-loading pattern, used by Grocery
- *   Coach's ingredient swap. New change types should be added as new entries in the
- *   MealRefinementRequest/RefinementChangeType union below, or as changeInstruction
- *   strings passed to refineMeal().
- *
- * DESIGN RULES:
- *   - Protocol loading reuses loadUserProtocolEnvelope + resolveGLP1GlobalContext + filterSavedGroceriesForCompliance.
- *   - NDE scan reuses scanGeneratedOutput — same post-gen validator used by every builder.
- *   - The identity of the existing meal is preserved unless the requested change requires otherwise.
  */
 
 import OpenAI from "openai";
@@ -56,9 +45,11 @@ import {
   buildSavedGroceriesPromptBlock,
 } from "./savedGroceryCompliance";
 
-// ─── Types (class-based API — Phase 1) ───────────────────────────────────────
-
-export type RefinementChangeType = "replace_ingredient";
+// ── Public types ──────────────────────────────────────────────────────────────
+export type RefinementChangeType =
+  | "replace_ingredient"
+  | "adjust_macros"
+  | "change_cooking_method";
 
 export interface ReplaceIngredientRequest {
   changeType: "replace_ingredient";
@@ -80,7 +71,30 @@ export interface ReplaceIngredientRequest {
   userRequest?: string;
 }
 
-export type RefinementRequest = ReplaceIngredientRequest;
+export interface AdjustMacrosRequest {
+  changeType: "adjust_macros";
+  /** ID of the authenticated user requesting the refinement. */
+  userId: string;
+  /**
+   * Plain-language macro goal, e.g. "more protein", "lower carbs",
+   * "reduce fat", "fewer calories".
+   */
+  macroGoal: string;
+  /** Name of the meal being adjusted. */
+  mealName?: string;
+  /** Short description of the meal. */
+  mealDescription?: string;
+  /** Current ingredient list so the LLM can make targeted swaps. */
+  currentIngredients?: string[];
+  /** Current estimated macros for the meal (used to anchor the adjustment). */
+  currentMacros?: { calories?: number; protein?: number; carbs?: number; fat?: number };
+}
+export type RefinementRequest =
+  | ReplaceIngredientRequest
+  | AdjustMacrosRequest
+  | ChangeCookingMethodRequest;
+
+// ── Result types ──────────────────────────────────────────────────────────────
 
 export interface SwapSuggestion {
   item: string;
@@ -102,7 +116,15 @@ export interface SwapRefinementResult {
   protocolNote: string | null;
 }
 
-export type RefinementResult = SwapRefinementResult;
+export interface AdjustedIngredient {
+  item: string;
+  change: string;   // short description of what changed, e.g. "doubled portion"
+  reason: string;
+}
+export type RefinementResult =
+  | SwapRefinementResult
+  | MacroAdjustmentResult
+  | CookingMethodResult;
 
 // ── Retryable error marker ────────────────────────────────────────────────────
 
@@ -122,8 +144,218 @@ function getOpenAI(): OpenAI {
   return _openai;
 }
 
-// ── Ingredient extractor ──────────────────────────────────────────────────────
+/**
+ * Lenient protocol context loader — used by _replaceIngredient.
+ * Falls back to guest envelope / no GLP-1 context if any layer fails.
+ * Callers that need clinical safety guarantees should use loadProtocolContextStrict.
+ */
+async function loadProtocolContext(userId: string): Promise<{
+  envelope: UserProtocolEnvelope;
+  protocolContext: string;
+  glp1Block: string;
+  glp1Targets: ResolvedGLP1Targets | null;
+  savedBlock: string;
+}> {
+  // ── 1. Protocol envelope ────────────────────────────────────────────────────
+  let envelope: UserProtocolEnvelope = buildGuestEnvelope();
+  let protocolContext = "";
+  try {
+    envelope = await loadUserProtocolEnvelope(userId).catch(() => null) ?? buildGuestEnvelope();
+    protocolContext = enforceBeforeGenerate(envelope, { generatorName: "meal_refinement" }).combined;
+  } catch {
+    // Proceed without protocol context.
+  }
 
+  // ── 2. GLP-1 context ────────────────────────────────────────────────────────
+  let glp1Block = "";
+  let glp1Targets: ResolvedGLP1Targets | null = null;
+  try {
+    const todayISO = new Date().toISOString().slice(0, 10);
+    const glp1Ctx = await resolveGLP1GlobalContext(userId, todayISO).catch(() => null);
+    if (glp1Ctx) {
+      glp1Block = buildGLP1RecommendationBlock(glp1Ctx);
+      glp1Targets = glp1Ctx.resolvedTargets ?? null;
+    }
+  } catch {
+    // Non-fatal.
+  }
+
+  // ── 3. Saved groceries ──────────────────────────────────────────────────────
+  let savedBlock = "";
+  try {
+    const sgRows = await db
+      .select({
+        id: userSavedGroceryItems.id,
+        productName: userSavedGroceryItems.productName,
+        brand: userSavedGroceryItems.brand,
+        category: userSavedGroceryItems.category,
+        productKey: userSavedGroceryItems.productKey,
+        nutritionJson: userSavedGroceryItems.nutritionJson,
+        savedAt: userSavedGroceryItems.savedAt,
+      })
+      .from(userSavedGroceryItems)
+      .where(eq(userSavedGroceryItems.userId, userId));
+
+    if (sgRows.length > 0) {
+      const { compliant } = filterSavedGroceriesForCompliance(
+        sgRows as any,
+        envelope,
+        { glp1Targets, isDiabetic: envelope.hasDiabetes },
+      );
+      savedBlock = buildSavedGroceriesPromptBlock(compliant);
+    }
+  } catch {
+    // Non-fatal.
+  }
+
+  return { envelope, protocolContext, glp1Block, glp1Targets, savedBlock };
+}
+
+/**
+ * Strict (fail-closed) protocol context loader — used by clinical handlers
+ * (_adjustMacros, _changeCookingMethod).
+ *
+ * Throws rather than silently degrading so that a resolver failure never
+ * causes these handlers to generate guidance without the correct clinical
+ * context. The router's catch block converts the throw into a 500 response.
+ */
+async function loadProtocolContextStrict(userId: string): Promise<{
+  envelope: UserProtocolEnvelope;
+  protocolContext: string;
+  glp1Block: string;
+  glp1Targets: ResolvedGLP1Targets | null;
+  savedBlock: string;
+}> {
+  // ── 1. Protocol envelope — required; throw on failure or null return ─────────
+  let envelope: UserProtocolEnvelope;
+  try {
+    const loaded = await loadUserProtocolEnvelope(userId);
+    if (!loaded) {
+      throw new Error("Protocol envelope returned null.");
+    }
+    envelope = loaded;
+  } catch (err: any) {
+    throw new Error(
+      `Clinical guidance temporarily unavailable — could not load dietary protocol. Please try again. (${err?.message})`,
+    );
+  }
+  const protocolContext = enforceBeforeGenerate(envelope, { generatorName: "meal_refinement" }).combined;
+
+  // ── 2. GLP-1 context — fail closed when resolver fails ────────────────────
+  let glp1Block = "";
+  let glp1Targets: ResolvedGLP1Targets | null = null;
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const glp1Ctx = await resolveGLP1GlobalContext(userId, todayISO).catch(() => null);
+  if (glp1Ctx === null) {
+    throw new Error("Clinical guidance temporarily unavailable — GLP-1 resolver failed. Please try again.");
+  }
+  if (glp1Ctx.isActive && !glp1Ctx.resolvedTargets) {
+    throw new Error("GLP-1 clinical targets temporarily unavailable. Please try again.");
+  }
+  glp1Block = buildGLP1RecommendationBlock(glp1Ctx);
+  glp1Targets = glp1Ctx.resolvedTargets ?? null;
+
+  // ── 3. Saved groceries — non-fatal even in strict mode ────────────────────
+  let savedBlock = "";
+  try {
+    const sgRows = await db
+      .select({
+        id: userSavedGroceryItems.id,
+        productName: userSavedGroceryItems.productName,
+        brand: userSavedGroceryItems.brand,
+        category: userSavedGroceryItems.category,
+        productKey: userSavedGroceryItems.productKey,
+        nutritionJson: userSavedGroceryItems.nutritionJson,
+        savedAt: userSavedGroceryItems.savedAt,
+      })
+      .from(userSavedGroceryItems)
+      .where(eq(userSavedGroceryItems.userId, userId));
+
+    if (sgRows.length > 0) {
+      const { compliant } = filterSavedGroceriesForCompliance(
+        sgRows as any,
+        envelope,
+        { glp1Targets, isDiabetic: envelope.hasDiabetes },
+      );
+      savedBlock = buildSavedGroceriesPromptBlock(compliant);
+    }
+  } catch {
+    // Saved-grocery context is not safety-critical — proceed without it.
+  }
+
+  return { envelope, protocolContext, glp1Block, glp1Targets, savedBlock };
+}
+
+/**
+ * Recursively collects every string value in a JSON-like object/array into
+ * one space-joined blob.  Used to build the full-text scan corpus from an LLM
+ * response so that allergens or forbidden terms hidden in ANY field
+ * (macroImpact.summary, protocolNote, cookingTips[].reason, etc.) are caught
+ * — not just top-level ingredient names.
+ */
+function extractAllStrings(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) return value.map(extractAllStrings).join(" ");
+  if (value !== null && typeof value === "object") {
+    return Object.values(value as Record<string, unknown>)
+      .map(extractAllStrings)
+      .join(" ");
+  }
+  return "";
+}
+
+/**
+ * Canonical allergy taxonomy — maps standardized category labels (as they are
+ * stored in the DB) to the specific ingredient members that should be blocked.
+ * Keys are normalised to lowercase. Ingredient members use common forms so that
+ * substring matching against generated text works reliably.
+ *
+ * Examples of how labels arrive: "Tree Nuts", "tree-nuts", "Shellfish",
+ * "Dairy", "Peanuts", "Gluten", "Soy", "Eggs", "Sesame", "Fish", "Wheat".
+ */
+const ALLERGEN_TAXONOMY: Record<string, string[]> = {
+  // Tree nuts ──────────────────────────────────────────────────────────────
+  "tree nut":   ["almond", "cashew", "walnut", "pecan", "pistachio", "hazelnut", "macadamia", "brazil nut", "pine nut", "chestnut", "praline", "marzipan", "frangipane", "gianduja", "nougat"],
+  "tree nuts":  ["almond", "cashew", "walnut", "pecan", "pistachio", "hazelnut", "macadamia", "brazil nut", "pine nut", "chestnut", "praline", "marzipan", "frangipane", "gianduja", "nougat"],
+  "tree-nut":   ["almond", "cashew", "walnut", "pecan", "pistachio", "hazelnut", "macadamia", "brazil nut", "pine nut", "chestnut", "praline", "marzipan"],
+  "tree-nuts":  ["almond", "cashew", "walnut", "pecan", "pistachio", "hazelnut", "macadamia", "brazil nut", "pine nut", "chestnut", "praline", "marzipan"],
+  "nuts":       ["almond", "cashew", "walnut", "pecan", "pistachio", "hazelnut", "macadamia", "brazil nut", "pine nut", "chestnut", "praline", "marzipan"],
+  "nut":        ["almond", "cashew", "walnut", "pecan", "pistachio", "hazelnut", "macadamia", "brazil nut", "pine nut", "chestnut"],
+  // Peanuts (separate from tree nuts) ──────────────────────────────────────
+  "peanut":     ["peanut", "groundnut", "arachis"],
+  "peanuts":    ["peanut", "groundnut", "arachis"],
+  "groundnut":  ["peanut", "groundnut", "arachis"],
+  // Shellfish ───────────────────────────────────────────────────────────────
+  "shellfish":  ["shrimp", "crab", "lobster", "crayfish", "crawfish", "prawn", "clam", "oyster", "scallop", "mussel", "squid", "octopus", "abalone", "barnacle", "langoustine"],
+  // Fish ─────────────────────────────────────────────────────────────────────
+  "fish":       ["salmon", "tuna", "cod", "tilapia", "catfish", "bass", "halibut", "trout", "sardine", "anchovy", "mahi", "snapper", "flounder", "pollock", "herring", "mackerel", "swordfish", "carp", "pike", "perch"],
+  // Dairy / Milk ─────────────────────────────────────────────────────────────
+  "dairy":      ["milk", "butter", "cheese", "cream", "yogurt", "yoghurt", "whey", "casein", "lactose", "ghee", "kefir", "quark", "sour cream", "ricotta", "mozzarella", "parmesan", "cheddar", "brie", "feta", "mascarpone", "custard"],
+  "milk":       ["milk", "butter", "cheese", "cream", "yogurt", "yoghurt", "whey", "casein", "lactose", "ghee", "kefir", "sour cream", "ricotta", "mozzarella", "parmesan", "cheddar"],
+  "lactose":    ["milk", "butter", "cheese", "cream", "yogurt", "yoghurt", "whey", "casein", "lactose", "ghee"],
+  // Eggs ─────────────────────────────────────────────────────────────────────
+  "egg":        ["egg", "eggs", "mayonnaise", "mayo", "meringue", "albumin", "ovomucin", "lysozyme", "ovalbumin"],
+  "eggs":       ["egg", "eggs", "mayonnaise", "mayo", "meringue", "albumin", "ovomucin", "lysozyme", "ovalbumin"],
+  // Wheat / Gluten ───────────────────────────────────────────────────────────
+  "wheat":      ["wheat", "flour", "bread", "pasta", "gluten", "barley", "rye", "spelt", "semolina", "durum", "farro", "kamut", "seitan"],
+  "gluten":     ["wheat", "flour", "bread", "pasta", "gluten", "barley", "rye", "spelt", "semolina", "seitan"],
+  "grain":      ["wheat", "barley", "rye", "oat", "spelt", "millet"],
+  // Soy ──────────────────────────────────────────────────────────────────────
+  "soy":        ["soy", "soya", "tofu", "tempeh", "edamame", "miso", "natto", "tamari", "soy sauce"],
+  "soya":       ["soy", "soya", "tofu", "tempeh", "edamame", "miso", "natto", "tamari"],
+  "soybean":    ["soy", "soya", "tofu", "tempeh", "edamame", "miso", "natto"],
+  "soybeans":   ["soy", "soya", "tofu", "tempeh", "edamame", "miso", "natto"],
+  // Sesame ───────────────────────────────────────────────────────────────────
+  "sesame":     ["sesame", "tahini", "sesame oil", "sesame seed"],
+  // Sulfites / Sulphites ─────────────────────────────────────────────────────
+  "sulfite":    ["sulfite", "sulphite", "metabisulfite"],
+  "sulfites":   ["sulfite", "sulphite", "metabisulfite"],
+  "sulphite":   ["sulfite", "sulphite", "metabisulfite"],
+  "sulphites":  ["sulfite", "sulphite", "metabisulfite"],
+  // Legumes ──────────────────────────────────────────────────────────────────
+  "legume":     ["peanut", "soy", "lentil", "chickpea", "pea", "lupine", "lupin"],
+  "legumes":    ["peanut", "soy", "lentil", "chickpea", "pea", "lupine", "lupin"],
+};
 /**
  * Extracts a flat list of ingredient name strings from any meal JSON.
  * Handles the known builder schemas:
@@ -189,6 +421,10 @@ export class MealRefinementEngine {
     switch (request.changeType) {
       case "replace_ingredient":
         return this._replaceIngredient(request);
+      case "adjust_macros":
+        return this._adjustMacros(request);
+      case "change_cooking_method":
+        return this._changeCookingMethod(request);
       default: {
         throw new Error(`Unsupported refinement changeType: ${(request as any).changeType}`);
       }
@@ -200,59 +436,10 @@ export class MealRefinementEngine {
   private async _replaceIngredient(req: ReplaceIngredientRequest): Promise<SwapRefinementResult> {
     const { userId, ingredientToReplace, mealName, mealDescription, remainingIngredients, userRequest } = req;
 
-    // ── 1. Protocol envelope ──────────────────────────────────────────────────
-    let envelope: UserProtocolEnvelope = buildGuestEnvelope();
-    let protocolContext = "";
-    try {
-      envelope = await loadUserProtocolEnvelope(userId).catch(() => null) ?? buildGuestEnvelope();
-      protocolContext = enforceBeforeGenerate(envelope, { generatorName: "grocery_swap" }).combined;
-    } catch {
-      // Proceed without protocol context rather than blocking the swap.
-    }
+    const { envelope, protocolContext, glp1Block, glp1Targets, savedBlock } =
+      await loadProtocolContext(userId);
 
-    // ── 2. GLP-1 context ──────────────────────────────────────────────────────
-    let glp1Block = "";
-    let glp1Targets: ResolvedGLP1Targets | null = null;
-    try {
-      const todayISO = new Date().toISOString().slice(0, 10);
-      const glp1Ctx = await resolveGLP1GlobalContext(userId, todayISO).catch(() => null);
-      if (glp1Ctx) {
-        glp1Block = buildGLP1RecommendationBlock(glp1Ctx);
-        glp1Targets = glp1Ctx.resolvedTargets ?? null;
-      }
-    } catch {
-      // Non-fatal for swap — proceed without GLP-1 overlay.
-    }
-
-    // ── 3. Saved groceries ────────────────────────────────────────────────────
-    let savedBlock = "";
-    try {
-      const sgRows = await db
-        .select({
-          id: userSavedGroceryItems.id,
-          productName: userSavedGroceryItems.productName,
-          brand: userSavedGroceryItems.brand,
-          category: userSavedGroceryItems.category,
-          productKey: userSavedGroceryItems.productKey,
-          nutritionJson: userSavedGroceryItems.nutritionJson,
-          savedAt: userSavedGroceryItems.savedAt,
-        })
-        .from(userSavedGroceryItems)
-        .where(eq(userSavedGroceryItems.userId, userId));
-
-      if (sgRows.length > 0) {
-        const { compliant } = filterSavedGroceriesForCompliance(
-          sgRows as any,
-          envelope,
-          { glp1Targets, isDiabetic: envelope.hasDiabetes },
-        );
-        savedBlock = buildSavedGroceriesPromptBlock(compliant);
-      }
-    } catch {
-      // Non-fatal — proceed without saved grocery context.
-    }
-
-    // ── 4. Build system prompt ────────────────────────────────────────────────
+    // ── Build system prompt ────────────────────────────────────────────────────
     const remaining =
       Array.isArray(remainingIngredients) && remainingIngredients.length > 0
         ? remainingIngredients.join(", ")
@@ -292,7 +479,7 @@ Respond ONLY with valid JSON:
   "protocolNote": "string | null"
 }`;
 
-    // ── 5. LLM call ───────────────────────────────────────────────────────────
+    // ── LLM call ───────────────────────────────────────────────────────────
     const completion = await getOpenAI().chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
@@ -321,10 +508,7 @@ Respond ONLY with valid JSON:
       throw new Error("Swap response missing coachSuggestion.");
     }
 
-    // ── 6. GLP-1 fat ceiling validation ──────────────────────────────────────
-    // Extracts a verified finite fat_grams value. Absent, null, or non-finite
-    // values are treated as UNVERIFIED — not compliant — because the model's
-    // self-reported field is optional and untrusted when omitted.
+    // ── GLP-1 fat ceiling validation ──────────────────────────────────────
     // fat_grams is only considered verified when it is a finite non-negative number.
     // Absent, null, non-finite, or negative values are all treated as UNVERIFIED.
     const extractFatGrams = (suggestion: any): number | null => {
@@ -339,8 +523,6 @@ Respond ONLY with valid JSON:
 
     if (fatCeiling !== null) {
       const initialFat = extractFatGrams(swapData.coachSuggestion);
-
-      // Retry when fat is unverified (absent/null/non-finite) OR confirmed over ceiling.
       const initialExceeds = initialFat !== null && initialFat > fatCeiling;
       const initialUnverified = initialFat === null;
 
@@ -370,13 +552,8 @@ ${correctionNote} Set fat_grams to a realistic finite number in the JSON respons
             temperature: 0.5,
             max_tokens: 600,
           });
-
           const retryRaw = retryCompletion.choices[0]?.message?.content ?? "{}";
-          try {
-            retrySwapData = JSON.parse(retryRaw);
-          } catch {
-            retrySwapData = null;
-          }
+          try { retrySwapData = JSON.parse(retryRaw); } catch { retrySwapData = null; }
         } catch {
           // Retry call failed — fall through to warning on original swapData.
         }
@@ -388,28 +565,19 @@ ${correctionNote} Set fat_grams to a realistic finite number in the JSON respons
           retryFat <= fatCeiling;
 
         if (retryCompliant) {
-          // Retry returned a verified compliant suggestion — use it without warning.
           swapData = retrySwapData;
         } else {
-          // Use the retry result if it has a valid suggestion item, otherwise keep original.
-          if (retrySwapData?.coachSuggestion?.item) {
-            swapData = retrySwapData;
-          }
-          // Append a warning appropriate to the final state.
-          const existing = swapData.protocolNote
-            ? `${swapData.protocolNote} `
-            : "";
+          if (retrySwapData?.coachSuggestion?.item) swapData = retrySwapData;
+          const existing = swapData.protocolNote ? `${swapData.protocolNote} ` : "";
           const finalFat = extractFatGrams(swapData.coachSuggestion);
-          if (finalFat === null) {
-            swapData.protocolNote = `${existing}⚠ GLP-1 fat ceiling: unable to verify the fat content of this swap against your ${fatCeiling}g limit. Confirm with your care team before adding it.`;
-          } else {
-            swapData.protocolNote = `${existing}⚠ GLP-1 fat ceiling: this swap may exceed your ${fatCeiling}g fat limit per meal. Choose a lower-fat option or check with your care team before adding it.`;
-          }
+          swapData.protocolNote = finalFat === null
+            ? `${existing}⚠ GLP-1 fat ceiling: unable to verify the fat content of this swap against your ${fatCeiling}g limit. Confirm with your care team before adding it.`
+            : `${existing}⚠ GLP-1 fat ceiling: this swap may exceed your ${fatCeiling}g fat limit per meal. Choose a lower-fat option or check with your care team before adding it.`;
         }
       }
     }
 
-    // ── 7. Protocol scan on the suggestion ───────────────────────────────────
+    // ── Protocol scan on the suggestion ───────────────────────────────────
     // Non-fatal: appends a protocolNote warning rather than blocking.
     try {
       const scan = scanGeneratedOutput(
@@ -434,6 +602,427 @@ ${correctionNote} Set fat_grams to a realistic finite number in the JSON respons
       savedOption: swapData.savedOption ?? null,
       alternatives: Array.isArray(swapData.alternatives) ? swapData.alternatives : [],
       protocolNote: swapData.protocolNote ?? null,
+    };
+  }
+
+  // ── adjust_macros ─────────────────────────────────────────────────────────
+
+  private async _adjustMacros(req: AdjustMacrosRequest): Promise<MacroAdjustmentResult> {
+    const {
+      userId,
+      macroGoal,
+      mealName,
+      mealDescription,
+      currentIngredients,
+      currentMacros,
+    } = req;
+
+    // Strict: throws if protocol envelope or GLP-1 resolver is unavailable.
+    const { envelope, protocolContext, glp1Block, glp1Targets, savedBlock } =
+      await loadProtocolContextStrict(userId);
+
+    // ── Pre-generation baseline allergen check ────────────────────────────────
+    // Reject immediately if the client-supplied ingredient list contains a
+    // confirmed allergen. The model is instructed to preserve those ingredients,
+    // so silently forwarding them would bypass the post-gen allergen guard.
+    if (Array.isArray(currentIngredients) && currentIngredients.length > 0) {
+      const baselineAllergen = findAllergenInText(
+        currentIngredients.join(" "),
+        envelope.allergies ?? [],
+      );
+      if (baselineAllergen) {
+        throw new Error(
+          `Your ingredient list contains "${baselineAllergen}", which is a confirmed allergen. ` +
+          `Please update the meal before requesting a macro adjustment.`,
+        );
+      }
+    }
+
+    const ingredientList =
+      Array.isArray(currentIngredients) && currentIngredients.length > 0
+        ? currentIngredients.join(", ")
+        : "not specified";
+
+    const macroSnapshot =
+      currentMacros
+        ? Object.entries(currentMacros)
+            .filter(([, v]) => v !== undefined)
+            .map(([k, v]) => `${k}: ${v}${k === "calories" ? " kcal" : "g"}`)
+            .join(", ")
+        : null;
+
+    const buildSystemPrompt = (extraInstruction = "") =>
+      `You are a Macro Adjustment Coach. The user wants to adjust the macronutrient profile of an existing meal without completely rebuilding it.
+
+USER HEALTH PROFILE:
+${protocolContext || "No dietary restrictions on file — apply general healthy eating principles."}
+${glp1Block ? `\n${glp1Block}` : ""}
+${savedBlock ? `\n\n${savedBlock}` : ""}
+
+MEAL CONTEXT:
+Meal: ${mealName || "current meal"}${mealDescription ? `\nDescription: ${mealDescription}` : ""}
+Current ingredients: ${ingredientList}
+${macroSnapshot ? `Current estimated macros: ${macroSnapshot}` : ""}
+
+MACRO GOAL: "${macroGoal}"
+${extraInstruction}
+Rules:
+- Make the MINIMUM ingredient changes needed to achieve the macro goal — preserve the dish identity
+- Every change must be clinically safe for this user (respect allergies, conditions, GLP-1 limits)
+- NEVER introduce any ingredient the user is allergic to or that violates their active dietary protocol
+- adjustedIngredients: list only the ingredients that actually change (add, remove, swap, or resize); unchanged ingredients are omitted
+- macroImpact: estimate the new macro values and provide a short human-readable summary of the delta
+- coachNote: a warm 1-2 sentence coach-voice explanation of what changed and why
+- protocolNote: short clinical note only when genuinely relevant to this user's conditions, otherwise null
+
+Respond ONLY with valid JSON:
+{
+  "adjustedIngredients": [
+    { "item": "string", "change": "string — what changed, e.g. 'swapped to Greek yogurt'", "reason": "string" }
+  ],
+  "macroImpact": {
+    "calories": number | null,
+    "protein": number | null,
+    "carbs": number | null,
+    "fat": number | null,
+    "summary": "string — e.g. '+18g protein, -5g fat'"
+  },
+  "coachNote": "string",
+  "protocolNote": "string | null"
+}`;
+
+    const runLLM = async (systemPrompt: string) => {
+      const completion = await getOpenAI().chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: macroGoal },
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.65,
+        max_tokens: 700,
+      });
+      return completion.choices[0]?.message?.content ?? "{}";
+    };
+
+    const parseAndValidate = (raw: string) => {
+      let data: any;
+      try { data = JSON.parse(raw); } catch {
+        throw new Error("Could not parse macro adjustment response from LLM.");
+      }
+      if (!Array.isArray(data.adjustedIngredients)) {
+        throw new Error("Macro adjustment response missing adjustedIngredients.");
+      }
+      if (!data.macroImpact?.summary) {
+        throw new Error("Macro adjustment response missing macroImpact.");
+      }
+      return data;
+    };
+
+    /**
+     * Build the full scan payload for a macro-adjustment response.
+     * • description = extractAllStrings(data) covers every text field.
+     * • instructions = coachNote so that scanGeneratedOutput evaluates it
+     *   against envelope.procedural.forbiddenInstructions (e.g. cross-
+     *   contamination rules, halal/kosher prep rules).
+     * • ingredients includes BOTH the baseline currentIngredients (preserved
+     *   by the model) AND the adjusted ingredients.
+     */
+    const buildScanPayload = (data: any) => ({
+      name: `Macro adjustment: ${mealName || "meal"}`,
+      description: extractAllStrings(data),
+      ingredients: [
+        ...(Array.isArray(currentIngredients)
+          ? currentIngredients.map(i => ({ name: String(i) }))
+          : []),
+        ...(data.adjustedIngredients as any[]).map((ai: any) => ({
+          name: typeof ai.item === "string" ? ai.item : "",
+        })),
+      ],
+      // coachNote contains actionable prep guidance — enforce procedural rules on it
+      instructions: typeof data.coachNote === "string" ? data.coachNote : undefined,
+    });
+
+    /** Returns a violation message string, or null if safe. */
+    const checkViolations = (data: any): string | null => {
+      const payload = buildScanPayload(data);
+      // 1. avoidances + dietary identity + procedural (instructions) via scanGeneratedOutput
+      const scan = scanGeneratedOutput(payload, envelope, {
+        generatorName: "macro_adjustment",
+        skipAdaptableConflicts: true,
+      });
+      if (!scan.passed) return scan.message;
+      // 2. explicit allergen guard on the FULL response text
+      const allergenHit = findAllergenInText(extractAllStrings(data), envelope.allergies ?? []);
+      if (allergenHit) {
+        return `This suggestion contains "${allergenHit}", which is listed as a confirmed allergen for this user.`;
+      }
+      // 3. GLP-1 numeric enforcement — null/missing/non-numeric estimates are
+      //    violations when clinical targets are active. We require typeof === "number"
+      //    to reject "", false, true, "25", whitespace, and any other non-numeric
+      //    JSON value that Number() would coerce to a finite number.
+      if (glp1Targets) {
+        const rawFat = data.macroImpact?.fat;
+        const rawCal = data.macroImpact?.calories;
+        if (typeof rawFat !== "number" || !Number.isFinite(rawFat) || rawFat < 0) {
+          return "GLP-1 protocol requires a numeric fat estimate — the response did not provide one.";
+        }
+        if (rawFat > glp1Targets.maximumToleratedFatGrams) {
+          return (
+            `GLP-1 fat ceiling exceeded: ${rawFat}g fat (limit ${glp1Targets.maximumToleratedFatGrams}g). ` +
+            `Please request a lower-fat adjustment.`
+          );
+        }
+        if (typeof rawCal !== "number" || !Number.isFinite(rawCal) || rawCal < 0) {
+          return "GLP-1 protocol requires a numeric calorie estimate — the response did not provide one.";
+        }
+        if (rawCal > glp1Targets.resolvedMealCalories * 1.25) {
+          return (
+            `GLP-1 calorie ceiling exceeded: ${Math.round(rawCal)} kcal ` +
+            `(limit ~${glp1Targets.resolvedMealCalories} kcal). Please request a lighter adjustment.`
+          );
+        }
+      }
+      return null;
+    };
+
+    // ── First attempt ─────────────────────────────────────────────────────────
+    let data = parseAndValidate(await runLLM(buildSystemPrompt()));
+    let violation = checkViolations(data);
+
+    // ── Retry if violation detected ───────────────────────────────────────────
+    if (violation) {
+      console.warn(`[MealRefinement/AdjustMacros] Protocol violation on first pass — retrying. ${violation}`);
+      const retryInstruction =
+        `\n\nCRITICAL CORRECTION — RETRY REQUIRED: Your previous suggestion violated the user's dietary protocol: ${violation}. ` +
+        `You MUST NOT include any allergen or protocol-forbidden ingredient — not as a swap target, ` +
+        `side ingredient, or preparation component. Recommend a fully compliant alternative.\n`;
+      try {
+        data = parseAndValidate(await runLLM(buildSystemPrompt(retryInstruction)));
+        violation = checkViolations(data);
+      } catch (retryErr: any) {
+        throw new Error(`Macro adjustment unavailable — could not produce a safe recommendation. ${retryErr?.message}`);
+      }
+    }
+
+    // ── Block if retry also violates ──────────────────────────────────────────
+    if (violation) {
+      console.error(`[MealRefinement/AdjustMacros] Both attempts violated protocol — blocking. ${violation}`);
+      throw new Error(
+        `This macro adjustment conflicts with your active health protocol and cannot be shown safely. ` +
+        `Please try a different goal or ask your coach for guidance.`,
+      );
+    }
+
+    return {
+      adjustedIngredients: data.adjustedIngredients,
+      macroImpact: data.macroImpact,
+      coachNote: typeof data.coachNote === "string" ? data.coachNote : "",
+      protocolNote: data.protocolNote ?? null,
+    };
+  }
+
+  // ── change_cooking_method ─────────────────────────────────────────────────
+
+  private async _changeCookingMethod(req: ChangeCookingMethodRequest): Promise<CookingMethodResult> {
+    const {
+      userId,
+      targetMethod,
+      mealName,
+      mealDescription,
+      currentIngredients,
+      currentMethod,
+    } = req;
+
+    // Strict: throws if protocol envelope or GLP-1 resolver is unavailable.
+    const { envelope, protocolContext, glp1Block, glp1Targets } =
+      await loadProtocolContextStrict(userId);
+
+    // ── Pre-generation baseline allergen check ────────────────────────────────
+    if (Array.isArray(currentIngredients) && currentIngredients.length > 0) {
+      const baselineAllergen = findAllergenInText(
+        currentIngredients.join(" "),
+        envelope.allergies ?? [],
+      );
+      if (baselineAllergen) {
+        throw new Error(
+          `Your ingredient list contains "${baselineAllergen}", which is a confirmed allergen. ` +
+          `Please update the meal before requesting a cooking method change.`,
+        );
+      }
+    }
+
+    const ingredientList =
+      Array.isArray(currentIngredients) && currentIngredients.length > 0
+        ? currentIngredients.join(", ")
+        : "not specified";
+
+    const buildSystemPrompt = (extraInstruction = "") =>
+      `You are a Culinary Technique Coach. The user wants to convert an existing meal to a different cooking method without changing its overall concept.
+
+USER HEALTH PROFILE:
+${protocolContext || "No dietary restrictions on file — apply general healthy eating principles."}
+${glp1Block ? `\n${glp1Block}` : ""}
+
+MEAL CONTEXT:
+Meal: ${mealName || "current meal"}${mealDescription ? `\nDescription: ${mealDescription}` : ""}
+Current method: ${currentMethod || "not specified"}
+Current ingredients: ${ingredientList}
+
+TARGET METHOD: "${targetMethod}"
+${extraInstruction}
+Rules:
+- Rewrite ONLY what needs to change for the new cooking method — keep the dish recognisable
+- Every change must be clinically safe for this user (no added allergens, no protocol violations)
+- NEVER introduce any ingredient the user is allergic to or that violates their active dietary protocol
+- newMethod: canonical name for the cooking method (e.g. "Air Fryer", "Slow Cooker")
+- cookingNotes: clear step-by-step or key technique instructions for the new method (2-4 sentences)
+- cookingTips: 1-3 practical tips specific to this method/dish combination
+- ingredientChanges: list only ingredients that need adjustment for the method (quantity, prep, or swap); omit unchanged ones
+- estimatedMealFatGrams: your best estimate of the total fat (g) in the complete meal after this method change; include any oils, coatings, or fat added by the technique; use null if you cannot estimate
+- protocolNote: short clinical note only if the method change affects clinical compliance (e.g. added oil for air fryer exceeds GLP-1 fat limit), otherwise null
+
+Respond ONLY with valid JSON:
+{
+  "newMethod": "string",
+  "cookingNotes": "string",
+  "cookingTips": [
+    { "tip": "string", "reason": "string — optional, why this tip matters" }
+  ],
+  "ingredientChanges": [
+    { "item": "string", "change": "string — what changes and why" }
+  ],
+  "estimatedMealFatGrams": number | null,
+  "protocolNote": "string | null"
+}`;
+
+    const runLLM = async (systemPrompt: string) => {
+      const completion = await getOpenAI().chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: `Convert this meal to ${targetMethod}` },
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.65,
+        max_tokens: 700,
+      });
+      return completion.choices[0]?.message?.content ?? "{}";
+    };
+
+    const parseAndValidate = (raw: string) => {
+      let data: any;
+      try { data = JSON.parse(raw); } catch {
+        throw new Error("Could not parse cooking method response from LLM.");
+      }
+      if (!data.newMethod || !data.cookingNotes) {
+        throw new Error("Cooking method response missing required fields.");
+      }
+      return data;
+    };
+
+    /**
+     * Build the full scan payload for a cooking-method response.
+     * • description = extractAllStrings(data) covers every text field.
+     * • instructions = cookingNotes + tip text so that scanGeneratedOutput
+     *   evaluates them against envelope.procedural.forbiddenInstructions
+     *   (e.g. cross-contamination rules, halal/kosher prep requirements).
+     * • ingredients includes BOTH the baseline currentIngredients (preserved
+     *   by the model) AND the ingredientChanges.
+     */
+    const buildScanPayload = (data: any) => {
+      const tipTexts = (Array.isArray(data.cookingTips) ? data.cookingTips : [])
+        .flatMap((t: any) => [t.tip, t.reason].filter(Boolean))
+        .join(" ");
+      return {
+        name: `Cooking method change: ${mealName || "meal"}`,
+        description: extractAllStrings(data),
+        ingredients: [
+          ...(Array.isArray(currentIngredients)
+            ? currentIngredients.map(i => ({ name: String(i) }))
+            : []),
+          ...(Array.isArray(data.ingredientChanges) ? data.ingredientChanges : [])
+            .map((ic: any) => ({ name: typeof ic.item === "string" ? ic.item : "" }))
+            .filter((x: any) => x.name),
+        ],
+        // cookingNotes + tip text carry procedural instructions — enforce forbidden-instruction rules
+        instructions: [
+          typeof data.cookingNotes === "string" ? data.cookingNotes : "",
+          tipTexts,
+        ].filter(Boolean).join(" ") || undefined,
+      };
+    };
+
+    /** Returns a violation message string, or null if safe. */
+    const checkViolations = (data: any): string | null => {
+      const payload = buildScanPayload(data);
+      // 1. avoidances + dietary identity + procedural (covers baseline + changed)
+      const scan = scanGeneratedOutput(payload, envelope, {
+        generatorName: "cooking_method_change",
+        skipAdaptableConflicts: true,
+      });
+      if (!scan.passed) return scan.message;
+      // 2. explicit allergen guard on the FULL response text
+      const allergenHit = findAllergenInText(extractAllStrings(data), envelope.allergies ?? []);
+      if (allergenHit) {
+        return `This suggestion contains "${allergenHit}", which is listed as a confirmed allergen for this user.`;
+      }
+      // 3. GLP-1 numeric enforcement — null/missing/non-numeric estimates are
+      //    violations when clinical targets are active. typeof === "number" rejects
+      //    "", false, "25", whitespace, and other JSON values Number() would accept.
+      if (glp1Targets) {
+        const rawFat = data.estimatedMealFatGrams;
+        if (typeof rawFat !== "number" || !Number.isFinite(rawFat) || rawFat < 0) {
+          return "GLP-1 protocol requires a numeric fat estimate — the response did not provide one.";
+        }
+        if (rawFat > glp1Targets.maximumToleratedFatGrams) {
+          return (
+            `GLP-1 fat ceiling exceeded: estimated ${rawFat}g fat for this method ` +
+            `(limit ${glp1Targets.maximumToleratedFatGrams}g). Please choose a lower-fat cooking method.`
+          );
+        }
+      }
+      return null;
+    };
+
+    // ── First attempt ─────────────────────────────────────────────────────────
+    let data = parseAndValidate(await runLLM(buildSystemPrompt()));
+    let violation = checkViolations(data);
+
+    // ── Retry if violation detected ───────────────────────────────────────────
+    if (violation) {
+      console.warn(`[MealRefinement/CookingMethod] Protocol violation on first pass — retrying. ${violation}`);
+      const retryInstruction =
+        `\n\nCRITICAL CORRECTION — RETRY REQUIRED: Your previous suggestion violated the user's dietary protocol: ${violation}. ` +
+        `You MUST NOT include any allergen or protocol-forbidden ingredient anywhere in the cooking method, ` +
+        `instructions, tips, or ingredient changes. Recommend a fully compliant alternative.\n`;
+      try {
+        data = parseAndValidate(await runLLM(buildSystemPrompt(retryInstruction)));
+        violation = checkViolations(data);
+      } catch (retryErr: any) {
+        throw new Error(`Cooking method change unavailable — could not produce a safe recommendation. ${retryErr?.message}`);
+      }
+    }
+
+    // ── Block if retry also violates ──────────────────────────────────────────
+    if (violation) {
+      console.error(`[MealRefinement/CookingMethod] Both attempts violated protocol — blocking. ${violation}`);
+      throw new Error(
+        `This cooking method change conflicts with your active health protocol and cannot be shown safely. ` +
+        `Please try a different cooking method or ask your coach for guidance.`,
+      );
+    }
+
+    return {
+      newMethod: data.newMethod,
+      cookingNotes: data.cookingNotes,
+      cookingTips: Array.isArray(data.cookingTips) ? data.cookingTips : [],
+      ingredientChanges: Array.isArray(data.ingredientChanges) ? data.ingredientChanges : [],
+      protocolNote: data.protocolNote ?? null,
+      estimatedMealFatGrams:
+        data.estimatedMealFatGrams != null && Number.isFinite(Number(data.estimatedMealFatGrams))
+          ? Number(data.estimatedMealFatGrams)
+          : null,
     };
   }
 }
@@ -1009,4 +1598,145 @@ Return ONLY valid JSON — no markdown, no commentary outside the JSON.`;
     changesSummary: changesSummaryRaw,
     protocolNote,
   };
+}
+
+export interface CookingTip {
+  tip: string;
+  reason?: string;
+}
+
+export interface CookingMethodIngredientChange {
+  item: string;
+  change: string;   // e.g. "reduce quantity by half — method retains moisture"
+}
+
+/** Returned by the engine for a "change_cooking_method" refinement. */
+export interface CookingMethodResult {
+  newMethod: string;
+  cookingNotes: string;    // step-by-step or key instructions for the new method
+  cookingTips: CookingTip[];
+  ingredientChanges: CookingMethodIngredientChange[];
+  protocolNote: string | null;
+  /**
+   * LLM-estimated total meal fat (g) after the method change.
+   * Used for GLP-1 fat ceiling enforcement; null when the LLM could not estimate.
+   */
+  estimatedMealFatGrams: number | null;
+}
+
+/**
+ * Explicit allergen guard — scans raw text against envelope.allergies.
+ * scanGeneratedOutput checks avoidances but not confirmed allergens; this
+ * function provides the missing hard-stop check.
+ *
+ * Each allergen label is expanded using expandAllergenTerms so that category
+ * labels (e.g. "Tree Nuts") catch their members (almond, cashew, walnut, …)
+ * and not just the literal label string.
+ *
+ * Returns the first allergen label whose label or any member appears in the
+ * text, or null if safe.
+ */
+export function findAllergenInText(text: string, allergies: string[]): string | null {
+  if (!allergies.length || !text) return null;
+  const normalized = text.toLowerCase();
+  for (const allergen of allergies) {
+    if (!allergen) continue;
+    for (const term of expandAllergenTerms(allergen)) {
+      if (term && normalized.includes(term)) {
+        return allergen; // return the original label for the error message
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Expands an allergen label into all the ingredient terms that should be
+ * blocked in generated text.
+ *
+ * Normalisation handles:
+ *  - Compound labels:  "Wheat/Gluten" → split on "/" → expand both "wheat" and "gluten"
+ *  - Qualifier words:  "Lactose Intolerance" → strip "intolerance" → expand "lactose"
+ *                      "Nut Allergy" → strip "allergy" → expand "nut"
+ *  - Hyphen/space:     "tree-nuts" → "tree nuts" (and vice-versa)
+ *  - Singular/plural:  "nuts" → "nut", "nut" → "nuts"
+ *
+ * The original label is always included so exact literal matches still work.
+ */
+export function expandAllergenTerms(label: string): string[] {
+  const key = label.toLowerCase().trim();
+  const collected = new Set<string>([key]);
+
+  /**
+   * Look up one normalised key in the taxonomy and add all members to
+   * `collected`. Tries several normalised variants of the key.
+   */
+  const addFromTaxonomy = (k: string) => {
+    for (const variant of [
+      k,
+      k.replace(/-/g, " "),    // "tree-nuts" → "tree nuts"
+      k.replace(/\s/g, "-"),   // "tree nuts" → "tree-nuts"
+      k.replace(/s$/, ""),     // "nuts" → "nut"
+      `${k}s`,                 // "nut" → "nuts"
+    ]) {
+      collected.add(variant);
+      for (const member of ALLERGEN_TAXONOMY[variant] ?? []) {
+        collected.add(member);
+      }
+    }
+  };
+
+  // Strip qualifier words that don't affect the allergen category
+  // e.g. "Lactose Intolerance" → "lactose", "Nut Allergy" → "nut"
+  const QUALIFIERS = /\b(intolerance|allergy|allergies|sensitivity|sensitivities|free|avoidance)\b/g;
+  const stripped = key.replace(QUALIFIERS, " ").replace(/\s{2,}/g, " ").trim();
+
+  // Split on "/" "," "&" "+" to handle compound labels like "Wheat/Gluten"
+  const parts = stripped.split(/[\/,&+]/).map(p => p.trim()).filter(Boolean);
+
+  for (const part of parts) {
+    addFromTaxonomy(part);
+  }
+
+  // Also try the full stripped key in case it maps directly (e.g. "lactose")
+  if (stripped && stripped !== key) {
+    addFromTaxonomy(stripped);
+  }
+
+  return Array.from(collected).filter(Boolean);
+}
+
+export interface MacroImpact {
+  calories?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+  summary: string;  // e.g. "+18 g protein, –5 g fat"
+}
+
+/** Returned by the engine for an "adjust_macros" refinement. */
+export interface MacroAdjustmentResult {
+  adjustedIngredients: AdjustedIngredient[];
+  macroImpact: MacroImpact;
+  coachNote: string;
+  protocolNote: string | null;
+}
+
+export interface ChangeCookingMethodRequest {
+  changeType: "change_cooking_method";
+  /** ID of the authenticated user requesting the refinement. */
+  userId: string;
+  /**
+   * Target cooking method, e.g. "air fryer", "slow cooker", "grilled",
+   * "baked", "stovetop", "steamed".
+   */
+  targetMethod: string;
+  /** Name of the meal being converted. */
+  mealName?: string;
+  /** Short description of the meal. */
+  mealDescription?: string;
+  /** Ingredient list to preserve (quantities may change). */
+  currentIngredients?: string[];
+  /** Current cooking method, if known (adds context). */
+  currentMethod?: string;
 }

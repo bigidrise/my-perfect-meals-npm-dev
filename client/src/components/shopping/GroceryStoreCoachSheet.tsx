@@ -495,7 +495,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     setSwapCustomLoading(false);
     setSwapSelected(null);
     setSwapError(null);
-  }, []);
+  }, [SESSION_KEY]);
 
   const handleAddToList = useCallback(() => {
     if (!result?.shoppingList?.length) return;
