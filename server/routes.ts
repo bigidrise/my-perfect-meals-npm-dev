@@ -1340,6 +1340,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       console.log(`🔒 [FRIDGE] Nutrition context: diet=[${fridgeNutritionContext.diet.join(",")}] medical=[${fridgeNutritionContext.medical.length} flags] builder=${fridgeNutritionContext.builder ?? "none"}`);
 
+      // ── GLP-1 canonical context for Fridge Rescue ─────────────────────────────
+      // Load patient-specific GLP-1 targets when active, and build a guidance block
+      // that injects them into the fridge rescue prompt via the builderBlock slot.
+      // Same resolver used by the GLP-1 Meal Builder — one canonical intelligence layer.
+      let fridgeGlp1BuilderBlock = "";
+      try {
+        const { resolveGLP1GlobalContext } = await import("./services/glp1/resolveGLP1GlobalContext");
+        const fridgeGlp1Ctx = await resolveGLP1GlobalContext(
+          userId,
+          new Date().toISOString().split("T")[0],
+          "dinner", // fridge rescue generates any meal; dinner is the most common slot
+        );
+        if (fridgeGlp1Ctx.isActive && fridgeGlp1Ctx.resolvedTargets) {
+          const { applyGuardrails: _fridgeApplyGuardrails } = await import("./services/guardrails");
+          fridgeGlp1BuilderBlock = _fridgeApplyGuardrails(
+            "",
+            "glp1",
+            "dinner",
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            fridgeGlp1Ctx.resolvedTargets,
+          );
+          console.log(
+            `💊 [FRIDGE/GLP-1] Personalized targets: ` +
+            `${fridgeGlp1Ctx.resolvedTargets.resolvedMealCalories}kcal / ` +
+            `${fridgeGlp1Ctx.resolvedTargets.targetProteinGrams}g prot / ` +
+            `${fridgeGlp1Ctx.resolvedTargets.maximumToleratedFatGrams}g fat-ceiling ` +
+            `[phase: ${fridgeGlp1Ctx.resolvedTargets.treatmentPhase}] ` +
+            `[sources: ${fridgeGlp1Ctx.activationSources.join(",")}]`
+          );
+        }
+      } catch (err) {
+        console.warn("[FRIDGE/GLP-1] Could not resolve GLP-1 context — continuing without:", err);
+      }
+
       // ── Oncology smart enhancement layer ──────────────────────────────────────
       // Detect gaps in the user's fridge items and inject mandatory therapeutic
       // additions so every oncology-support meal includes a fiber anchor + boosters.
@@ -1411,6 +1448,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fridgeNutritionContext.builderBlock || '',
         oncologyFridgeBlock || '',
         aceFridgeBlock || '',
+        fridgeGlp1BuilderBlock || '',
       ].filter(Boolean).join('\n\n') || undefined;
 
       // Generate multiple meals with proper macros and amounts
