@@ -51,12 +51,7 @@ router.post("/recommend", async (req, res) => {
     const finalServingCount = Math.max(1, Math.min(12, Number(servingCount) || 1));
 
     const detectedMealType = detectMealType(message);
-    const protocolContext = userId
-      ? enforceBeforeGenerate(
-          await loadUserProtocolEnvelope(userId).catch(() => null) ?? buildGuestEnvelope(),
-          { generatorName: "product_advisor" }
-        ).combined
-      : "";
+    let protocolContext = "";
     let macroContext = "";
     let groceryEnvelope = buildGuestEnvelope();
     let glp1RecommendationBlock = "";
@@ -293,7 +288,7 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
     });
 
     const raw = completion.choices[0]?.message?.content ?? "{}";
-    const result = await finalizeMealCard({ recommendation, userId: userId! });
+    let result: any;
     try {
       result = JSON.parse(raw);
     } catch {
@@ -540,15 +535,14 @@ router.post("/product-advisor", async (req, res) => {
     const userId = resolveUserId(req);
 
     const { ingredients: rawIngredients, store: rawStore } = req.body;
-    const { ingredients: rawIngredients, store: rawStore } = req.body;
     const engine = getProductAdvisorEngine();
-    const protocolContext = userId
+    const paProtocolContext = userId
       ? enforceBeforeGenerate(
           await loadUserProtocolEnvelope(userId).catch(() => null) ?? buildGuestEnvelope(),
           { generatorName: "product_advisor" }
         ).combined
       : "";
-    const result = await finalizeMealCard({ recommendation, userId: userId! });
+    const result = await engine.buildCartRecommendations(rawIngredients, paProtocolContext, rawStore ?? "");
 
     return res.json(result);
   } catch (err: any) {
@@ -566,8 +560,6 @@ router.post("/product-advisor", async (req, res) => {
 router.post("/swap-ingredient", async (req, res) => {
   try {
     const userId = resolveUserId(req);
-
-    const { ingredients: rawIngredients, store: rawStore } = req.body;
     if (!userId) return res.status(401).json({ error: "Not authenticated" });
 
     const {
@@ -850,11 +842,3 @@ router.post("/finalize-card", async (req, res) => {
 });
 
 export default router;
-
-    const ingredients: string[] = rawIngredients
-      .slice(0, 20)
-      .map((x: unknown) => String(x).trim())
-      .filter(Boolean);
-
-    const store: string | undefined =
-      typeof rawStore === "string" && rawStore.trim() ? rawStore.trim() : undefined;
