@@ -63,6 +63,15 @@ export interface IngredientScanResult {
   whatMattersMost: string[];
   /** UPC/barcode if the scan originated from a barcode scanner */
   barcode?: string;
+  /**
+   * Barcode lookup metadata — only present when the scan was initiated via a
+   * barcode/UPC lookup rather than a camera label scan.
+   * true  → product was matched in Open Food Facts (or equivalent DB)
+   * false → nutrition was estimated from the raw barcode; less reliable
+   */
+  resolvedFromDb?: boolean;
+  /** The canonical product name returned by the barcode database, if any */
+  resolvedName?: string;
 }
 
 export interface IngredientCaptureCallbacks {

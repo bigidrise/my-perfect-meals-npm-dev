@@ -354,7 +354,32 @@ function hasLabRelevantCondition(items: string[]): boolean {
   return LAB_CONDITION_KEYWORDS.some((kw) => joined.includes(kw));
 }
 
-// ── Confidence Tier Badge ──────────────────────────────────────────────────────
+function BarcodeDatabaseBadge({ resolvedFromDb, resolvedName }: { resolvedFromDb: boolean; resolvedName?: string }) {
+  if (resolvedFromDb) {
+    return (
+      <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/8 px-3.5 py-2.5 mb-4 flex items-center gap-2.5">
+        <span className="text-emerald-400 text-base shrink-0">✓</span>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-bold text-emerald-300">Database match · Open Food Facts</p>
+          {resolvedName && (
+            <p className="text-[11px] text-white/40 leading-tight truncate">{resolvedName}</p>
+          )}
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-xl border border-amber-500/25 bg-amber-500/8 px-3.5 py-2.5 mb-4 flex items-center gap-2.5">
+      <span className="text-amber-400 text-base shrink-0">≈</span>
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-bold text-amber-300">Not in database · AI estimate</p>
+        <p className="text-[11px] text-white/40 leading-tight">
+          Barcode not found — analysis based on AI product knowledge
+        </p>
+      </div>
+    </div>
+  );
+}
 type AnalysisMethod = 'by_name' | 'by_label' | 'full_product_advisor';
 const TIER_CONFIG: Record<AnalysisMethod, { label: string; dot: string; border: string; bg: string; text: string }> = {
   by_name:             { label: 'Quick Analysis',          dot: 'bg-amber-400',   border: 'border-amber-500/25',   bg: 'bg-amber-500/8',   text: 'text-amber-300' },
@@ -723,6 +748,14 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
                     productNameMissing={activeResult.productNameMissing}
                     onScanLabel={onRescan}
                   />
+
+                  {/* Barcode database source badge — shown only for barcode-originated scans */}
+                  {activeResult.barcode && activeResult.resolvedFromDb !== undefined && (
+                    <BarcodeDatabaseBadge
+                      resolvedFromDb={activeResult.resolvedFromDb}
+                      resolvedName={activeResult.resolvedName}
+                    />
+                  )}
 
                   {/* By-name accuracy banner */}
                   {isByName && (
