@@ -56,7 +56,7 @@ export const KEYWORD_FEATURE_MAP: FeatureMapping[] = [
   {
     path: "/glp1-hub",
     walkthroughId: "glp1-hub",
-    keywords: ["glp", "glp one", "glp-1", "ozempic", "wegovy", "semaglutide", "injection", "g l p one", "glp hub", "glp-1 hub", "weight loss meds"],
+    keywords: ["glp", "glp one", "glp-1", "ozempic", "wegovy", "semaglutide", "injection", "g l p one", "glp hub", "glp-1 hub", "weight loss meds", "glp-1 support", "glp-1 overlay", "glp-1 platform", "metabolic medication support", "how does glp work", "glp-1 how it works", "glp platform wide", "glp everywhere", "glp-1 across app", "glp-1 baseline", "glp-1 and performance"],
   },
   
   // Anti-Inflammatory Meal Builder
