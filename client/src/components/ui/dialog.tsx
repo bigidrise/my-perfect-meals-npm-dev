@@ -31,8 +31,12 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
 
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
+    /** Set to false to suppress the built-in close ✕ button (use when the
+     *  consuming component renders its own close control). Default: true. */
+    showCloseButton?: boolean;
+  }
+>(({ className, children, showCloseButton = true, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Content
@@ -44,10 +48,12 @@ const DialogContent = React.forwardRef<
       {...props}
     >
       {children}
-      <DialogPrimitive.Close className="absolute right-4 top-4 inline-flex items-center justify-center h-7 w-7 rounded-md text-white/40 hover:text-white/70 hover:bg-white/10 transition-colors focus:outline-none disabled:pointer-events-none">
-        <X className="h-4 w-4" />
-        <span className="sr-only">Close</span>
-      </DialogPrimitive.Close>
+      {showCloseButton && (
+        <DialogPrimitive.Close className="absolute right-4 top-4 inline-flex items-center justify-center h-7 w-7 rounded-md text-white/40 hover:text-white/70 hover:bg-white/10 transition-colors focus:outline-none disabled:pointer-events-none">
+          <X className="h-4 w-4" />
+          <span className="sr-only">Close</span>
+        </DialogPrimitive.Close>
+      )}
     </DialogPrimitive.Content>
   </DialogPortal>
 ))

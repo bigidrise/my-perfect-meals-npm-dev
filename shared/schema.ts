@@ -1988,3 +1988,5 @@ export const complianceSnapshots = pgTable("compliance_snapshots", {
 export type ComplianceSnapshot = typeof complianceSnapshots.$inferSelect;
 
 export { userDocumentAcceptance } from "../server/db/schema/legal";
+export { bugReports, bugReportStatusEnum } from "../server/db/schema/bugReports";
+export type { BugReport, NewBugReport } from "../server/db/schema/bugReports";

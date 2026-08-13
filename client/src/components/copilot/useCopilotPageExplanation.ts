@@ -7,6 +7,19 @@ import { shouldAllowAutoOpen } from './CopilotRespectGuard';
 import { isGuestMode } from '@/lib/guestMode';
 
 /**
+ * Pages that form the App Library area of the app.
+ * Co-Pilot mentions the amber bug-report icon once on first visit to any of these.
+ */
+const APP_LIBRARY_PAGES = new Set(['/learn', '/tutorials', '/tips', '/learning']);
+
+const BUG_REPORT_INTRO_FLAG = 'bug-report-intro-seen';
+
+const BUG_REPORT_INTRO_SENTENCE =
+  ' One more thing — look for the amber bug icon in the top right corner of the app. ' +
+  "That's the Report a Bug button. If something ever looks wrong or behaves unexpectedly, " +
+  'tap it to send us a note. We check every report.';
+
+/**
  * Hook that triggers page explanations when navigating to new pages.
  * 
  * Auto-close is now handled by CopilotSheet based on actual audio completion
@@ -58,6 +71,18 @@ export function useCopilotPageExplanation() {
       // This prevents the infinite loop
       CopilotExplanationStore.markSessionOpened(normalizedPath);
 
+      // On the first visit ever to any App Library page, append the bug-report intro.
+      // Uses a persistent localStorage flag so it fires at most once across all sessions.
+      let spokenText = explanation.spokenText;
+      if (
+        APP_LIBRARY_PAGES.has(normalizedPath) &&
+        localStorage.getItem(BUG_REPORT_INTRO_FLAG) !== 'true'
+      ) {
+        spokenText = spokenText + BUG_REPORT_INTRO_SENTENCE;
+        // Mark as seen so no other App Library page repeats it
+        localStorage.setItem(BUG_REPORT_INTRO_FLAG, 'true');
+      }
+
       // Open Copilot if it's not already open
       if (!isOpen) {
         open();
@@ -70,7 +95,7 @@ export function useCopilotPageExplanation() {
         setLastResponse({
           title: explanation.title,
           description: explanation.description,
-          spokenText: explanation.spokenText,
+          spokenText,
           autoClose: explanation.autoClose ?? true, // Default to auto-close for explanations
         });
       }, 300);

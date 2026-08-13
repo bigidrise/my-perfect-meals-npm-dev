@@ -7,6 +7,7 @@ import { useOrgBranding } from "@/hooks/useOrgBranding";
 import { ChevronLeft } from "lucide-react";
 import { getTierForLookupKey } from "@shared/planFeatures";
 import { useTranslation } from "react-i18next";
+import { BugReportButton } from "@/components/BugReportButton";
 
 /** Maps route paths to routeTitles i18n keys */
 const ROUTE_KEY_MAP: Record<string, string> = {
@@ -178,6 +179,7 @@ export default function DesktopHeader() {
             {tc(planBadge.text)}
           </span>
         )}
+        <BugReportButton />
         <ProfileSheet>
           <button className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-white/5 transition-colors">
             <span className="text-xs font-semibold text-orange-400">{tc("hubLabel")}</span>
