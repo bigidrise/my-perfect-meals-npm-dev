@@ -251,6 +251,19 @@ export default function ShoppingListMasterView() {
     }
   }, [barcodeLoading, persistScan, addItem, toast]);
 
+  /**
+   * Test hook — allows Playwright to simulate a camera barcode scan without
+   * real hardware or the BarcodeDetector API.  Wires into lookupAndOpenBarcode
+   * (the same function MobileBarcodeCamera's onBarcode callback invokes) so
+   * badge rendering and all downstream logic are exercised identically.
+   * Only exposed when navigator.webdriver === true (Playwright automation flag).
+   */
+  useEffect(() => {
+    if (typeof window === 'undefined' || !navigator.webdriver) return;
+    (window as any).__mpmFireCameraBarcode = (code: string) => lookupAndOpenBarcode(code);
+    return () => { delete (window as any).__mpmFireCameraBarcode; };
+  }, [lookupAndOpenBarcode]);
+
   type ShoppingOpts = typeof opts;
   
   const toggleOpt = useCallback(<K extends keyof ShoppingOpts>(key: K) => {
