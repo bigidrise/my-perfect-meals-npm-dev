@@ -601,7 +601,8 @@ export async function generateCravingMealUnified(
   userId?: string,
   dietaryRestrictionsOverride?: string[],
   strictMode: boolean = false,
-  starchContext?: StarchContext
+  starchContext?: StarchContext,
+  glp1Targets?: ResolvedGLP1Targets
 ): Promise<MealGenerationResponse> {
   const validMealType = normalizeMealType(mealType);
 
@@ -780,8 +781,33 @@ REQUIRED STRUCTURE FOR EVERY MEAL:
 `
         : '';
       
+      // ── GLP-1 personalized guardrail block ───────────────────────────────────
+      // When the canonical resolver provided patient-specific targets, inject
+      // them into the prompt so the AI uses phase/appetite/training-adjusted
+      // meal targets rather than the static 400 kcal / 12 g fat defaults.
+      let glp1CravingBlock = "";
+      if (glp1Targets) {
+        glp1CravingBlock = applyGuardrails(
+          "",           // empty base — extract only the GLP-1 guidance additions
+          'glp1',
+          validMealType,
+          undefined,    // dietPhase — carried inside glp1Targets
+          undefined,    // remainingMacros — not relevant for single-meal craving
+          undefined,    // builderMode
+          undefined,    // dailyProteinTarget
+          glp1Targets,
+        );
+        console.log(
+          `💊 [CRAVING/GLP-1] Personalized targets: ` +
+          `${glp1Targets.resolvedMealCalories}kcal / ` +
+          `${glp1Targets.targetProteinGrams}g prot / ` +
+          `${glp1Targets.maximumToleratedFatGrams}g fat-ceiling ` +
+          `[phase: ${glp1Targets.treatmentPhase}] [baseline: ${glp1Targets.usedBaseline}]`
+        );
+      }
+
       const prompt = `You are a creative chef helping someone satisfy their food craving.
-${cravingDietBlock ? `\n${cravingDietBlock}\n` : ""}${oncologyCravingBlock}${strictMode ? `\n${buildStrictModeBlock(cravingInput)}\n` : ""}${starchGuidance ? `\n${starchGuidance}\n` : ""}
+${cravingDietBlock ? `\n${cravingDietBlock}\n` : ""}${glp1CravingBlock ? `\n${glp1CravingBlock}\n` : ""}${oncologyCravingBlock}${strictMode ? `\n${buildStrictModeBlock(cravingInput)}\n` : ""}${starchGuidance ? `\n${starchGuidance}\n` : ""}
 CRAVING: "${cravingInput}"
 MEAL TYPE: ${validMealType}
 
@@ -876,6 +902,27 @@ Respond with ONLY valid JSON in this exact format:
       // ENFORCE CARBS: If AI returned 0s, derive from ingredients (data-layer enforcement)
       let unifiedMeal = enforceCarbs(rawMeal);
       let cravingDietaryComplianceVerified = false;
+
+      // ── GLP-1 post-generation validation ─────────────────────────────────────
+      // Validates that the AI-generated meal actually stays within the patient's
+      // resolved fat ceiling, calorie ceiling, and protein floor. Violations are
+      // logged with detail so they appear in the server proof trace.
+      if (glp1Targets) {
+        const glp1PostCheck = validateMealForDiet(rawMeal as any, 'glp1', undefined, false, glp1Targets);
+        if (!glp1PostCheck.isValid) {
+          console.warn(
+            `⚠️ [CRAVING/GLP-1] Post-gen validation FAILED — ` +
+            `meal: "${rawMeal.name}" | violations: ${glp1PostCheck.violations.join('; ')} | ` +
+            `generated: ${rawMeal.calories}kcal / ${rawMeal.protein}g prot / ${rawMeal.fat}g fat`
+          );
+        } else {
+          console.log(
+            `✅ [CRAVING/GLP-1] Post-gen validation PASSED — ` +
+            `meal: "${rawMeal.name}" | ` +
+            `${rawMeal.calories}kcal / ${rawMeal.protein}g prot / ${rawMeal.fat}g fat`
+          );
+        }
+      }
 
       // POST-GENERATION dietary validation (vegan / vegetarian / pescatarian)
       // Order: validate → substitute (max 1 pass) → re-validate → single AI regeneration
@@ -3848,7 +3895,7 @@ export async function generateMealUnified(
       const cravingInput = Array.isArray(request.input) 
         ? request.input.join(', ') 
         : request.input;
-      result = await generateCravingMealUnified(cravingInput, request.mealType, request.userId, undefined, request.strictMode === true, request.starchContext);
+      result = await generateCravingMealUnified(cravingInput, request.mealType, request.userId, undefined, request.strictMode === true, request.starchContext, request.glp1Targets);
       break;
 
     case 'create-with-chef':

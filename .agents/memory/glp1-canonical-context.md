@@ -55,7 +55,33 @@ When Performance is also active, the training-day prescription controls macro ta
 ## Do NOT hard-code volume reduction percentages
 Any phase-specific reduction rules belong in `resolveGLP1MealTargets` registry (rule-based resolver). Do not scatter percentage numbers through feature code.
 
-## Stages remaining (not yet implemented)
-- Stage 2: Type-A generation surfaces — Craving Creator, Fridge Rescue, Weekly Meal Plan routes need `resolveGLP1GlobalContext` wired at their route level (not just inside generateMealUnified which only covers create-with-chef + snack-creator)
-- Stage 3: Recommendation surfaces — Restaurant Guide fallback, Getaways, Buffet, Grocery Coach, Find Your Meals hardening
-- Stage 4: Remaining surfaces + consolidate 6+ scattered GLP-1 prompt blocks into canonical layer
+## #791 — Craving Creator + Fridge Rescue wired (complete)
+
+### Craving Creator
+- `generateCravingMealUnified` now accepts `glp1Targets?: ResolvedGLP1Targets`
+- When active: `applyGuardrails("", 'glp1', mealType, ..., glp1Targets)` builds the GLP-1 guidance block and it's injected into the craving prompt before the OpenAI call
+- Post-gen: `validateMealForDiet(rawMeal, 'glp1', undefined, false, glp1Targets)` validates fat ceiling + calorie ceiling + protein floor; result logged with meal name + macro numbers
+- `generateMealUnified` craving switch case now passes `request.glp1Targets`
+
+### Fridge Rescue (POST /api/meals/fridge-rescue)
+- After `getActiveNutritionContext`, route now calls `resolveGLP1GlobalContext` and builds a GLP-1 guidance block via `applyGuardrails`
+- Block appended to `combinedBuilderBlock` → flows into `generateFridgeRescueMeals({ ..., builderBlock })`
+- Protocol enforcement (`filterMealsByProtocol`) already runs post-gen — GLP-1 guidance now also reaches the prompt layer
+
+### Proof log signature (what the server emits for a GLP-1 user)
+```
+[GLP1Context] user=X date=Y meal=Z active=true sources=[medicalConditions] performance=false targets=420kcal / 28g prot / 11g fat-ceiling [phase: maintenance]
+💊 [CRAVING/GLP-1] Personalized targets: 420kcal / 28g prot / 11g fat-ceiling [phase: maintenance] [baseline: default]
+✅ [CRAVING/GLP-1] Post-gen validation PASSED — meal: "..." | 385kcal / 32g prot / 9g fat
+```
+
+## Stages remaining (not yet started)
+- Stage 2 remainder: Weekly Meal Plan routes need `resolveGLP1GlobalContext`
+- Stage 3: Restaurant Guide fallback, Getaways, Buffet, Grocery Coach, Find Your Meals hardening (task #792 merged separately)
+- Stage 4: Locate Sushi Creator / Recipe Maker / Recipe Scan routes + consolidate 6 scattered GLP-1 prompt blocks
+
+## Visual indicator gap (diagnosed)
+- Builder pages (`BuilderHeader`): GLP-1 Protocol orange badge DOES show when `medicalConditions`/`specialtyConditions` contains a GLP-1 keyword — via `PROTOCOL_MAP` in `nutritionPersonalization.ts`
+- Non-builder surfaces (Chef, Craving, Fridge Rescue, Restaurant Guide, etc.): NO persistent GLP-1 active indicator
+- No platform-wide "GLP-1 Support Active" banner exists anywhere
+- No "Macro Calculator baseline vs GLP-1 resolved" comparison visible in the UI
