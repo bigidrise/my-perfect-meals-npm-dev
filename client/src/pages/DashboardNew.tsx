@@ -52,6 +52,7 @@ import {
 import { getTierForLookupKey } from "@shared/planFeatures";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { BugReportButton } from "@/components/BugReportButton";
 import { ComplianceCard } from "@/components/dashboard/ComplianceCard";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
@@ -801,8 +802,9 @@ export default function DashboardNew() {
             </div>
             {/* CENTER: MPM — always mathematically centered */}
             <h1 className="justify-self-center text-md font-bold text-white">{t("mpmLabel")}</h1>
-            {/* RIGHT: Hub button */}
-            <div className="justify-self-end">
+            {/* RIGHT: Bug report + Hub */}
+            <div className="justify-self-end flex items-center gap-2">
+              <BugReportButton />
               <ProfileSheet>
                 <button
                   className="flex items-center gap-1.5 px-3 py-2 bg-black/50 backdrop-blur-sm border border-white/10 rounded-lg hover:bg-black/70 hover:border-orange-500/30 transition-all"

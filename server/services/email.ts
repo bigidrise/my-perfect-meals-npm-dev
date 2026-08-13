@@ -21,7 +21,7 @@ export async function sendEmail({ to, subject, html }: SendEmailInput): Promise<
   }
   try {
     await resend.emails.send({
-      from: "My Perfect Meals <no-reply@myperfectmeals.com>",
+      from: "My Perfect Meals <noreply@mail.myperfectmeals.com>",
       to,
       subject,
       html,

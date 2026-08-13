@@ -449,6 +449,7 @@ import PartnerCenter from "@/pages/PartnerCenter";
 import PromotionsHub from "@/pages/business/PromotionsHub";
 import PromoRedemption from "@/pages/PromoRedemption";
 import AdminCampaignManager from "@/pages/admin/AdminCampaignManager";
+import BugReportsDashboard from "@/pages/admin/BugReportsDashboard";
 import AcademyLandingPage from "@/pages/AcademyLandingPage";
 import PartnerProgramsHub from "@/pages/PartnerProgramsHub";
 import HowPartnershipsWork from "@/pages/HowPartnershipsWork";
@@ -645,6 +646,7 @@ const GatedPartnerCenter = () => <BusinessSuiteGate><PartnerCenter /></BusinessS
 // Stable module-level wrappers for AdminGuard routes — must stay at module scope.
 const GuardedAdminCertifications = () => <AdminGuard component={AdminCertifications} />;
 const GuardedAdminCampaignManager = () => <AdminGuard component={AdminCampaignManager} />;
+const GuardedBugReportsDashboard = () => <AdminGuard component={BugReportsDashboard} />;
 
 export default function Router() {
   const [location, setLocation] = useLocation();
@@ -1118,6 +1120,7 @@ export default function Router() {
         <Route path="/business-center/promotions" component={PromotionsHub} />
         <Route path="/join/promo/:token" component={PromoRedemption} />
         <Route path="/admin/campaigns" component={GuardedAdminCampaignManager} />
+        <Route path="/admin/bug-reports" component={GuardedBugReportsDashboard} />
         {/* Public partner pages — no login required */}
         <Route path="/partners" component={PublicPartnersHub} />
         <Route path="/partners/founding" component={FoundingPartnerProgram} />

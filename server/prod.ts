@@ -807,6 +807,10 @@ async function initializeApp() {
     // Daily Nutrition State — canonical per-date state (prescription + consumed + planned + remaining)
     const nutritionStateRoutes = (await import("./routes/nutritionState")).default;
     app.use("/api/nutrition-state", nutritionStateRoutes);
+
+    // Bug Reports — authenticated in-app diagnostic submission
+    const bugReportsRoutes = (await import("./routes/bugReports")).default;
+    app.use("/api/bug-reports", bugReportsRoutes);
     app.use(
       "/api/translate",
       requireAuth,
@@ -1435,6 +1439,16 @@ async function initializeApp() {
           console.error("❌ [prod] Nutrition State migration failed:", err.message);
         }
       }, 6200);
+
+      // Bug Reports migration — bug_reports table + status enum
+      setTimeout(async () => {
+        try {
+          const { runBugReportsMigration } = await import("./db/migrations/runBugReportsMigration");
+          await runBugReportsMigration();
+        } catch (err: any) {
+          console.error("❌ [prod] Bug Reports migration failed:", err.message);
+        }
+      }, 6800);
 
       // Promotion Engine — partner_promotions + promotion_redemptions tables
       setTimeout(async () => {

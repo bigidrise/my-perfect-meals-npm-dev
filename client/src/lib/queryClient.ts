@@ -1,8 +1,20 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import { apiUrl } from "./resolveApiBase";
+import { pushFailedRequest } from "./diagnosticsBuffer";
 
-async function throwIfResNotOk(res: Response) {
+async function throwIfResNotOk(res: Response, meta?: { method?: string; startedAt?: number }) {
   if (!res.ok) {
+    // Record in the diagnostics buffer before throwing.
+    // 401/403 are noted but not suppressed — they're valid diagnostic signal.
+    const duration = meta?.startedAt != null ? Date.now() - meta.startedAt : undefined;
+    const method   = (meta?.method ?? "GET").toUpperCase();
+    try {
+      const url = new URL(res.url);
+      pushFailedRequest(method, url.pathname + url.search, res.status, duration);
+    } catch {
+      pushFailedRequest(method, res.url, res.status, duration);
+    }
+
     let message = res.statusText;
     let code: string | undefined;
 
@@ -72,7 +84,8 @@ export async function apiRequest(
   if (authToken) {
     fetchHeaders["x-auth-token"] = authToken;
   }
-  
+
+  const startedAt = Date.now();
   const res = await fetch(fullUrl, {
     method,
     headers: fetchHeaders,
@@ -80,7 +93,7 @@ export async function apiRequest(
     credentials: "include",
   });
 
-  await throwIfResNotOk(res);
+  await throwIfResNotOk(res, { method, startedAt });
   
   const contentType = res.headers.get("content-type");
   if (contentType && contentType.includes("text/html")) {

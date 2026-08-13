@@ -7366,6 +7366,10 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   const { default: nutritionStateRoutes } = await import("./routes/nutritionState");
   app.use("/api/nutrition-state", nutritionStateRoutes);
 
+  // Bug Reports — authenticated in-app diagnostic submission
+  const { default: bugReportsRoutes } = await import("./routes/bugReports");
+  app.use("/api/bug-reports", bugReportsRoutes);
+
   // Mount routes
   app.use("/api", mealPlansRoutes);
   app.use("/api", mealLogsRoutes);

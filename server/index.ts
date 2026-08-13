@@ -1288,6 +1288,16 @@ setTimeout(async () => {
   }
 }, 5200);
 
+// Bug Reports boot migration — bug_reports table + status enum
+setTimeout(async () => {
+  try {
+    const { runBugReportsMigration } = await import("./db/migrations/runBugReportsMigration");
+    await runBugReportsMigration();
+  } catch (err: any) {
+    console.error("❌ Bug Reports boot migration failed:", err.message);
+  }
+}, 5600);
+
 // Backfill: purge stale temp URLs from meal_image_cache
 // Any non-S3 URL is expired or will expire — delete so next request regenerates clean
 setTimeout(async () => {
