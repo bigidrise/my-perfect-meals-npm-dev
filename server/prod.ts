@@ -1438,6 +1438,7 @@ async function initializeApp() {
       setTimeout(async () => {
         try {
           const { sql: migSql } = await import("drizzle-orm");
+          const { db: database } = await import("./db");
           await database.execute(migSql`ALTER TABLE daily_nutrition_prescriptions ADD COLUMN IF NOT EXISTS meals_per_day integer`);
           await database.execute(migSql`ALTER TABLE daily_nutrition_prescriptions ADD COLUMN IF NOT EXISTS starch_meals_per_day integer`);
           await database.execute(migSql`ALTER TABLE daily_nutrition_prescriptions ADD COLUMN IF NOT EXISTS starch_distribution_strategy text`);

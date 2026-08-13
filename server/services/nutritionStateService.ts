@@ -6,19 +6,18 @@
  * /api/nutrition-state route AND the /api/meals/generate route — should
  * call instead of duplicating DB queries.
  *
- * Extracted from routes/nutritionState.ts so generation can resolve
- * the authoritative remaining budget before invoking the AI.
+ * Returns the canonical DailyNutritionState shape defined in
+ * shared/dailyNutritionPrescription.ts. All field names must match
+ * that interface exactly.
  */
 
 import { db } from "../db";
-import { users, macroLogs } from "../../shared/schema";
+import { users } from "../../shared/schema";
 import { eq, sql } from "drizzle-orm";
 import { resolveDailyNutritionPrescription } from "./prescriptionResolver";
 import { getUserTimezone } from "./nutritionDayService";
-import { computeGramsPerRemainingMeal } from "../../shared/dailyNutritionPrescription";
 import type {
   DailyNutritionState,
-  MacroTotals,
   GenerationContext,
 } from "../../shared/dailyNutritionPrescription";
 
@@ -41,12 +40,12 @@ export async function resolveDailyNutritionState(
   const user = userRows[0];
   if (!user) throw new Error(`User not found: ${userId}`);
 
-  // ── Consumed: aggregate macro_logs for this user-local date ─────────────
+  // ── Consumed: aggregate macro_logs for this user-local date ──────────────
   const consumedRows = await db.execute(sql`
     SELECT
       COALESCE(SUM(kcal::numeric),         0) AS calories,
       COALESCE(SUM(protein::numeric),       0) AS protein,
-      COALESCE(SUM(carbs::numeric),         0) AS total_carbs,
+      COALESCE(SUM(carbs::numeric),         0) AS carbs,
       COALESCE(SUM(starchy_carbs::numeric), 0) AS starchy_carbs,
       COALESCE(SUM(fibrous_carbs::numeric), 0) AS fibrous_carbs,
       COALESCE(SUM(fat::numeric),           0) AS fat,
@@ -63,52 +62,54 @@ export async function resolveDailyNutritionState(
 
   const cr = (consumedRows.rows?.[0] ?? {}) as Record<string, unknown>;
 
-  const consumed: MacroTotals & { starchMeals: number; mealCount: number } = {
-    calories:    Number(cr.calories    ?? 0),
-    protein:     Number(cr.protein     ?? 0),
-    totalCarbs:  Number(cr.total_carbs ?? 0),
-    starchyCarbs: Number(cr.starchy_carbs ?? 0),
-    fibrousCarbs: Number(cr.fibrous_carbs ?? 0),
-    fat:         Number(cr.fat         ?? 0),
-    starchMeals: Number(cr.starch_meal_count ?? 0),
-    mealCount:   Number(cr.meal_count  ?? 0),
+  // Field names must match DailyNutritionState["consumed"]
+  const consumed: DailyNutritionState["consumed"] = {
+    calories:          Number(cr.calories           ?? 0),
+    protein:           Number(cr.protein            ?? 0),
+    carbs:             Number(cr.carbs              ?? 0),
+    fat:               Number(cr.fat                ?? 0),
+    starchyCarbs:      Number(cr.starchy_carbs      ?? 0),
+    fibrousCarbs:      Number(cr.fibrous_carbs      ?? 0),
+    starchMealsLogged: Number(cr.starch_meal_count  ?? 0),
+    mealCount:         Number(cr.meal_count         ?? 0),
   };
 
-  // ── Planned: zeros until Stage 2 wires board reservations ───────────────
-  const planned: MacroTotals & { starchMeals: number; mealCount: number } = {
-    calories: 0, protein: 0, totalCarbs: 0,
-    starchyCarbs: 0, fibrousCarbs: 0, fat: 0,
-    starchMeals: 0, mealCount: 0,
+  // ── Planned: zeros — board reservation wiring is Stage 2 / #691 ──────────
+  const planned: DailyNutritionState["planned"] = {
+    calories:           0,
+    protein:            0,
+    carbs:              0,
+    fat:                0,
+    starchyCarbs:       0,
+    starchMealsPlanned: 0,
+    reservationCount:   0,
   };
 
-  // ── Remaining = prescription − consumed − planned (floor 0) ─────────────
+  // ── Remaining = prescription − consumed − planned (clamped ≥ 0) ──────────
   const clamp = (n: number) => Math.max(0, Math.round(n));
 
-  const remaining = {
-    calories:      clamp(prescription.caloriesTarget    - consumed.calories     - planned.calories),
-    protein:       clamp(prescription.proteinTarget      - consumed.protein      - planned.protein),
-    totalCarbs:    clamp(prescription.carbsTarget        - consumed.totalCarbs   - planned.totalCarbs),
-    starchyCarbs:  clamp(prescription.starchyCarbsTarget - consumed.starchyCarbs - planned.starchyCarbs),
-    fibrousCarbs:  clamp(prescription.fibrousCarbsTarget - consumed.fibrousCarbs - planned.fibrousCarbs),
-    fat:           clamp(prescription.fatTarget          - consumed.fat          - planned.fat),
-    starchMeals:   Math.max(0, prescription.starchMealsAllowed - consumed.starchMeals - planned.starchMeals),
-    nonStarchMeals: 0,
+  const remaining: DailyNutritionState["remaining"] = {
+    calories:     clamp(prescription.caloriesTarget    - consumed.calories     - planned.calories),
+    protein:      clamp(prescription.proteinTarget     - consumed.protein      - planned.protein),
+    carbs:        clamp(prescription.carbsTarget       - consumed.carbs        - planned.carbs),
+    fat:          clamp(prescription.fatTarget         - consumed.fat          - planned.fat),
+    starchyCarbs: clamp(prescription.starchyCarbsTarget - consumed.starchyCarbs - planned.starchyCarbs),
+    fibrousCarbs: clamp(prescription.fibrousCarbsTarget - consumed.fibrousCarbs),
+    starchMealsRemaining: Math.max(
+      0,
+      prescription.starchMealsAllowed
+        - consumed.starchMealsLogged
+        - planned.starchMealsPlanned,
+    ),
   };
 
-  const mealsPerDay       = user.macroMealsPerDay      ?? 4;
-  const starchMealsPerDay = user.defaultStarchMealsPerDay ?? 2;
-  const mealsConsumed     = consumed.mealCount;
-  const mealsPlanned      = planned.mealCount;
-  const mealsRemaining    = Math.max(0, mealsPerDay - mealsConsumed - mealsPlanned);
+  const mealsPerDay       = (user as any).macroMealsPerDay         ?? 4;
+  const starchMealsPerDay = (user as any).defaultStarchMealsPerDay ?? 2;
 
-  remaining.nonStarchMeals = Math.max(0, mealsRemaining - remaining.starchMeals);
-
-  const gramsPerRemainingStarchMeal = computeGramsPerRemainingMeal(
-    remaining.starchyCarbs,
-    remaining.starchMeals,
-  );
-
-  // ── Active constraints ───────────────────────────────────────────────────
+  // ── Derive generation context from clinical flags ─────────────────────────
+  // Priority order: diabetic > glp1 > performance > standard.
+  // This context is what the AI generation layer uses to select guardrails.
+  // Performance is NOT a separate clinical condition — it adjusts macros only.
   const specialtyConditions = Array.isArray(user.specialtyConditions)
     ? (user.specialtyConditions as string[]) : [];
   const medicalConditions = Array.isArray(user.medicalConditions)
@@ -116,63 +117,56 @@ export async function resolveDailyNutritionState(
 
   const glp1Active = specialtyConditions.includes("glp1")
     || medicalConditions.some(c => c === "glp1" || c === "glp-1");
-
   const diabeticActive = specialtyConditions.includes("diabetic")
     || medicalConditions.some(c => c === "diabetic" || c.includes("diabetes"));
-
-  const performanceActive = !!user.performanceModeEnabled
+  const performanceActive = !!(user as any).performanceModeEnabled
     && prescription.trainingDayType !== null;
 
-  const clinicalActive =
-    prescription.clinicalPrecisionStatus === "clinical_precision_active";
-
-  const procareActive =
-    typeof user.planLookupKey === "string" && user.planLookupKey.includes("procare");
+  const generationContext: GenerationContext =
+    diabeticActive    ? "diabetic" :
+    glp1Active        ? "glp1"     :
+    performanceActive ? "performance_training_day" :
+    "standard";
 
   return {
-    date: dateISO,
-    resolvedPrescription: prescription,
+    date:       dateISO,
+    resolvedAt: new Date().toISOString(),
+    prescription,
     consumed,
     planned,
     remaining,
-    mealPlan: {
+    mealPlanConfig: {
       mealsPerDay,
-      mealsConsumed,
-      mealsPlanned,
-      mealsRemaining,
       starchMealsPerDay,
-      starchMealsConsumed:  consumed.starchMeals,
-      starchMealsPlanned:   planned.starchMeals,
-      starchMealsRemaining: remaining.starchMeals,
       starchDistributionStrategy: prescription.starchDistributionStrategy,
-      gramsPerRemainingStarchMeal,
-      isZeroStarchDay: prescription.isZeroStarchDay,
     },
     activeConstraints: {
-      performanceActive,
-      glp1Active,
-      diabeticActive,
-      clinicalActive,
-      procareActive,
+      generationContext,
+      starchSlotsExhausted:    remaining.starchMealsRemaining <= 0,
+      calorieBudgetExhausted:  remaining.calories <= 0,
+      proteinBudgetMet:
+        consumed.protein + planned.protein >= prescription.proteinTarget,
     },
   };
 }
 
 /**
- * Derive a typed GenerationContext from a user's active constraints and the
- * client-supplied context string (used in the generation route).
+ * Derive a GenerationContext for a generation request.
+ *
+ * Base context comes from the resolved state (clinical conditions take priority).
+ * If the client signals a performance context and the base is "standard",
+ * the context is upgraded to "performance_training_day".
  */
 export function deriveGenerationContext(
-  activeConstraints: DailyNutritionState["activeConstraints"],
+  constraints: DailyNutritionState["activeConstraints"],
   clientContext?: string,
 ): GenerationContext {
-  const isPerf = activeConstraints.performanceActive
-    || clientContext === "performance_training_day";
-
-  if (activeConstraints.diabeticActive && isPerf) return "diabetic_performance";
-  if (activeConstraints.diabeticActive)            return "diabetic";
-  if (activeConstraints.glp1Active && isPerf)      return "glp1_performance";
-  if (activeConstraints.glp1Active)                return "glp1";
-  if (isPerf)                                      return "performance_training_day";
-  return "standard";
+  // Client may explicitly signal a performance training day for standard users.
+  if (
+    constraints.generationContext === "standard" &&
+    clientContext === "performance_training_day"
+  ) {
+    return "performance_training_day";
+  }
+  return constraints.generationContext;
 }

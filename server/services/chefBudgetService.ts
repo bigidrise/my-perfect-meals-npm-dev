@@ -18,8 +18,7 @@
  */
 
 import { resolveDailyNutritionState, deriveGenerationContext } from "./nutritionStateService";
-import { computeNextMealBudget } from "./nutritionBudget";
-import type { NextMealBudget } from "../../shared/dailyNutritionPrescription";
+import { computeNextMealBudget, type MealBudget } from "./nutritionBudget";
 
 export interface ChefBudgetResult {
   remainingMacros: {
@@ -36,7 +35,7 @@ export interface ChefBudgetResult {
   starchyCarbsRemaining: number;
   /** Adaptive per-starch-meal gram target based on remaining allocation */
   gramsPerRemainingStarchMeal: number | undefined;
-  budget: NextMealBudget;
+  budget: MealBudget;
 }
 
 /**
@@ -57,27 +56,39 @@ export async function resolveChefBudget(
 ): Promise<ChefBudgetResult> {
   const nutritionState = await resolveDailyNutritionState(authUserId, dateISO);
 
-  const gCtx = deriveGenerationContext(
-    nutritionState.activeConstraints,
-    clientCtx,
+  // mealsLeft = how many meal slots still need a budget (unconsumed + unplanned).
+  // remaining macros already have consumed + planned subtracted, so we divide by
+  // the number of genuinely unfilled slots. Clamped to 1 to avoid ÷0.
+  const filledSlots =
+    (nutritionState.consumed.mealCount ?? 0) +
+    (nutritionState.planned.reservationCount ?? 0);
+  const mealsLeft = Math.max(
+    1,
+    nutritionState.mealPlanConfig.mealsPerDay - filledSlots,
   );
 
-  const budget = computeNextMealBudget(nutritionState, {
-    generationContext: gCtx,
-    mealIndex: 0,
-  });
+  const budget = computeNextMealBudget(nutritionState, mealsLeft);
+
+  const { remaining } = nutritionState;
+
+  // gramsPerRemainingStarchMeal: divide remaining starchy carbs evenly across
+  // remaining starch slots. undefined when no starch slots remain.
+  const gramsPerRemainingStarchMeal: number | undefined =
+    remaining.starchMealsRemaining > 0
+      ? Math.round(remaining.starchyCarbs / remaining.starchMealsRemaining)
+      : undefined;
 
   return {
     remainingMacros: {
-      calories: budget.caloriesBudget,
-      protein:  budget.proteinBudget,
-      carbs:    budget.carbsBudget,
-      fat:      budget.fatBudget,
+      calories: budget.caloriesTarget,
+      protein:  budget.proteinTarget,
+      carbs:    budget.carbsTarget,
+      fat:      budget.fatTarget,
     },
-    starchAllowed: budget.starchAllowed,
-    starchMealsRemaining:        nutritionState.mealPlan.starchMealsRemaining,
-    starchyCarbsRemaining:       nutritionState.remaining.starchyCarbs,
-    gramsPerRemainingStarchMeal: nutritionState.mealPlan.gramsPerRemainingStarchMeal,
+    starchAllowed:               budget.starchSlotAvailable,
+    starchMealsRemaining:        remaining.starchMealsRemaining,
+    starchyCarbsRemaining:       remaining.starchyCarbs,
+    gramsPerRemainingStarchMeal,
     budget,
   };
 }

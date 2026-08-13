@@ -939,8 +939,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           console.log(
             `🥗 [BudgetResolver] authUserId=${authUserId} date=${budgetDateISO} ` +
-            `cal=${chefBudget.budget.caloriesBudget} starch=${chefBudget.starchAllowed} ` +
-            `notes=${chefBudget.budget.clinicalNotes.join(",") || "none"}`,
+            `cal=${chefBudget.budget.caloriesTarget} starch=${chefBudget.starchAllowed}`,
           );
         } catch (err) {
           // Fail-closed: do NOT proceed with untrusted client macros.
