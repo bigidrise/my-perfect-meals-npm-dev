@@ -439,6 +439,12 @@ export default function AdminDashboard() {
     };
   }, []);
 
+  useEffect(() => {
+    const base = "Admin Dashboard";
+    document.title = newBugCount && newBugCount > 0 ? `(${newBugCount}) ${base}` : base;
+    return () => { document.title = base; };
+  }, [newBugCount]);
+
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black text-white">
