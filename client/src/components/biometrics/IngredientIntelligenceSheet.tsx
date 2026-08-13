@@ -503,6 +503,24 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
   async function handleSaveToGroceries() {
     if (!activeResult?.productName || savingGrocery) return;
     setSavingGrocery(true);
+
+    // If already saved, unsave it
+    if (savedGroceryId) {
+      try {
+        await apiRequest(`/api/saved-groceries/${savedGroceryId}`, { method: 'DELETE' });
+        setSavedGroceryId(null);
+        toast({
+          title: 'Removed from Groceries',
+          description: `${activeResult.productName} has been removed from your bookmarks.`,
+        });
+      } catch {
+        toast({ title: 'Could not remove', description: 'Please try again.', variant: 'destructive' });
+      } finally {
+        setSavingGrocery(false);
+      }
+      return;
+    }
+
     try {
       const barcode = result?.barcode?.trim() || undefined;
       const data = await apiRequest('/api/saved-groceries', {

@@ -159,6 +159,8 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   // Saved groceries — keys of items the user has already saved
   const [savedProductKeys, setSavedProductKeys] = useState<Set<string>>(new Set());
   const [savingKey, setSavingKey] = useState<string | null>(null);
+  // Smart Cart "show saved only" toggle
+  const [showSavedOnly, setShowSavedOnly] = useState(false);
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const loadingInterval = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -179,6 +181,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       setBrandsAdded(false);
       setSavedProductKeys(new Set());
       setSavingKey(null);
+      setShowSavedOnly(false);
       if (loadingInterval.current) clearInterval(loadingInterval.current);
     }
   }, [open]);
@@ -283,6 +286,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     setAddedToList(false);
     setProductAdvice(null);
     setBrandsAdded(false);
+    setShowSavedOnly(false);
 
     const newConvo: ConversationMessage[] = [
       ...conversation,
@@ -702,31 +706,57 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                   <div style={{ borderRadius: 12, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(249,115,22,0.2)", overflow: "hidden" }}>
 
                     {/* Header row */}
-                    <button
-                      onClick={() => setCartExpanded((v) => !v)}
-                      style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <Sparkles style={{ width: 16, height: 16, color: "#fb923c" }} />
-                        <span style={{ color: "white", fontWeight: 600, fontSize: 14 }}>Smart Cart</span>
-                        {advisorLoading && (
-                          <div style={{ display: "flex", alignItems: "center", gap: 6, color: "rgba(255,255,255,0.4)", fontSize: 12 }}>
-                            <Loader2 style={{ width: 12, height: 12, animation: "spin 1s linear infinite" }} />
-                            Finding best brands…
-                          </div>
-                        )}
-                        {hasAdvice && !advisorLoading && (
-                          <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>
-                            ({productAdvice!.advice.length} ingredient{productAdvice!.advice.length !== 1 ? "s" : ""})
-                          </span>
-                        )}
-                      </div>
-                      {!advisorLoading && (
-                        cartExpanded
-                          ? <ChevronUp style={{ width: 16, height: 16, color: "rgba(255,255,255,0.4)" }} />
-                          : <ChevronDown style={{ width: 16, height: 16, color: "rgba(255,255,255,0.4)" }} />
-                      )}
-                    </button>
+                    {(() => {
+                      const hasSavedInCart = hasAdvice && productAdvice!.advice.some((a) =>
+                        a.recommended.some((b) => savedProductKeys.has(computeClientProductKey(b.brand, a.ingredient)))
+                      );
+                      return (
+                        <div style={{ display: "flex", alignItems: "center" }}>
+                          <button
+                            onClick={() => setCartExpanded((v) => !v)}
+                            style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
+                          >
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                              <Sparkles style={{ width: 16, height: 16, color: "#fb923c" }} />
+                              <span style={{ color: "white", fontWeight: 600, fontSize: 14 }}>Smart Cart</span>
+                              {advisorLoading && (
+                                <div style={{ display: "flex", alignItems: "center", gap: 6, color: "rgba(255,255,255,0.4)", fontSize: 12 }}>
+                                  <Loader2 style={{ width: 12, height: 12, animation: "spin 1s linear infinite" }} />
+                                  Finding best brands…
+                                </div>
+                              )}
+                              {hasAdvice && !advisorLoading && (
+                                <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>
+                                  ({productAdvice!.advice.length} ingredient{productAdvice!.advice.length !== 1 ? "s" : ""})
+                                </span>
+                              )}
+                            </div>
+                            {!advisorLoading && (
+                              cartExpanded
+                                ? <ChevronUp style={{ width: 16, height: 16, color: "rgba(255,255,255,0.4)" }} />
+                                : <ChevronDown style={{ width: 16, height: 16, color: "rgba(255,255,255,0.4)" }} />
+                            )}
+                          </button>
+                          {hasSavedInCart && !advisorLoading && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setShowSavedOnly((v) => !v); }}
+                              title={showSavedOnly ? "Show all ingredients" : "Show saved favorites only"}
+                              style={{
+                                flexShrink: 0, display: "flex", alignItems: "center", gap: 5,
+                                margin: "0 12px 0 0", padding: "5px 10px", borderRadius: 999,
+                                border: showSavedOnly ? "1px solid rgba(249,115,22,0.5)" : "1px solid rgba(255,255,255,0.12)",
+                                background: showSavedOnly ? "rgba(249,115,22,0.18)" : "rgba(255,255,255,0.05)",
+                                color: showSavedOnly ? "#fb923c" : "rgba(255,255,255,0.45)",
+                                fontSize: 11, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
+                              }}
+                            >
+                              <BookmarkCheck style={{ width: 12, height: 12, flexShrink: 0 }} />
+                              {showSavedOnly ? "Saved only" : "Saved only"}
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })()}
 
                     <AnimatePresence initial={false}>
                       {cartExpanded && hasAdvice && !advisorLoading && (
@@ -772,7 +802,12 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                             })()}
 
                             {/* Per-ingredient advice */}
-                            {productAdvice!.advice.map((advice) => (
+                            {(showSavedOnly
+                              ? productAdvice!.advice.filter((a) =>
+                                  a.recommended.some((b) => savedProductKeys.has(computeClientProductKey(b.brand, a.ingredient)))
+                                )
+                              : productAdvice!.advice
+                            ).map((advice) => (
                               <div key={advice.ingredient}>
                                 <div style={{ color: "rgba(251,146,60,0.7)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>
                                   {advice.ingredient}
