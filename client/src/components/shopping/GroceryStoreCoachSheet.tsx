@@ -464,20 +464,15 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
 
   const handleAddToList = useCallback(() => {
     if (!result?.shoppingList?.length) return;
-    // Include shoppingList (items to buy) AND ownedIngredients (recipe items the
-    // LLM assumed you already have) — this ensures the full ingredient list always
-    // reaches the shopping list, even if the model inferred some as "owned".
-    const toItems = (arr: Array<{ item: string; quantity: string; unit: string }>): UniversalIngredient[] =>
-      arr.map((s) => ({
-        name: s.item,
-        quantity: parseFloat(s.quantity) || 1,
-        unit: s.unit || "",
-        sourceMeals: [result.meal?.name || "Grocery Coach"],
-      }));
-    const allItems = [
-      ...toItems(result.shoppingList),
-      ...toItems(result.ownedIngredients ?? []),
-    ];
+    // Only add shoppingList items — those are the things the user needs to buy.
+    // ownedIngredients are items the user already has at home and must NOT be
+    // added to the purchase list.
+    const allItems: UniversalIngredient[] = result.shoppingList.map((s) => ({
+      name: s.item,
+      quantity: parseFloat(s.quantity) || 1,
+      unit: s.unit || "",
+      sourceMeals: [result.meal?.name || "Grocery Coach"],
+    }));
     addItems(allItems);
     setAddedToList(true);
     toast({ title: "Added to shopping list!", description: `${allItems.length} items added.` });
