@@ -1141,13 +1141,13 @@ export default function ShoppingListMasterView() {
                     setBarcodeLoading(true);
                     try {
                       const data = await apiRequest(
-                        "/api/biometrics/ingredient-scan-by-name",
+                        "/api/biometrics/ingredient-scan-by-barcode",
                         {
                           method: "POST",
-                          body: JSON.stringify({ productName: barcode }),
+                          body: JSON.stringify({ barcode }),
                           headers: { "Content-Type": "application/json" },
                         },
-                      ) as { ok: boolean; result: IngredientScanResult };
+                      ) as { ok: boolean; result: IngredientScanResult; resolvedFromDb: boolean; resolvedName: string };
 
                       if (data?.ok && data?.result) {
                         // Stamp the barcode so the sheet uses it as the save key
