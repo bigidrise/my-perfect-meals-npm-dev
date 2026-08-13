@@ -5706,13 +5706,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Resolve GLP-1 targets for this user before generation so cache/template
+      // and AI paths all enforce the same clinical constraints.
+      // Always uses req.authUser.id — never the body userId — to prevent
+      // cross-user clinical context loading.
+      let aiCreatorGlp1Targets: import("./services/glp1/resolveGLP1MealTargets").ResolvedGLP1Targets | undefined;
+      try {
+        const { resolveGLP1GlobalContext } = await import("./services/glp1/resolveGLP1GlobalContext");
+        const authId = String((req as AuthenticatedRequest).authUser?.id ?? userId ?? "");
+        if (authId) {
+          const glp1Ctx = await resolveGLP1GlobalContext(authId, new Date().toISOString().split("T")[0], "lunch");
+          if (glp1Ctx.isActive && glp1Ctx.resolvedTargets) {
+            aiCreatorGlp1Targets = glp1Ctx.resolvedTargets;
+          }
+        }
+      } catch (_err) { /* non-fatal — generation proceeds without GLP-1 overlay */ }
+
       // Use unified pipeline (deterministic: cache → templates → fallback)
       const { generateCravingMealUnified } = await import("./services/unifiedMealPipeline");
       
       const result = await generateCravingMealUnified(
         cravingInput || "something delicious",
         "lunch",
-        userId
+        userId,
+        undefined,
+        false,
+        undefined,
+        aiCreatorGlp1Targets
       );
       
       if (!result.success || !result.meal) {
@@ -5780,13 +5800,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("🔄 Single meal regeneration request:", { targetMealType, userId });
 
+      // Resolve GLP-1 targets before regeneration — same clinical constraints
+      // must apply here as in any other generation surface.
+      let regenGlp1Targets: import("./services/glp1/resolveGLP1MealTargets").ResolvedGLP1Targets | undefined;
+      try {
+        const { resolveGLP1GlobalContext } = await import("./services/glp1/resolveGLP1GlobalContext");
+        const authId = String((req as AuthenticatedRequest).authUser?.id ?? userId ?? "");
+        if (authId) {
+          const mType = (targetMealType === 'breakfast' || targetMealType === 'lunch' || targetMealType === 'dinner' || targetMealType === 'snack') ? targetMealType : 'lunch';
+          const glp1Ctx = await resolveGLP1GlobalContext(authId, new Date().toISOString().split("T")[0], mType);
+          if (glp1Ctx.isActive && glp1Ctx.resolvedTargets) {
+            regenGlp1Targets = glp1Ctx.resolvedTargets;
+          }
+        }
+      } catch (_err) { /* non-fatal */ }
+
       // Use unified pipeline (deterministic: cache → templates → fallback)
       const { generateCravingMealUnified } = await import("./services/unifiedMealPipeline");
       
       const result = await generateCravingMealUnified(
         "something delicious", // Generic craving for regeneration
         targetMealType || "lunch",
-        userId
+        userId,
+        undefined,
+        false,
+        undefined,
+        regenGlp1Targets
       );
       
       if (!result.success || !result.meal) {

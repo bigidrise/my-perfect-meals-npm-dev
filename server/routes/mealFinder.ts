@@ -61,6 +61,22 @@ router.post('/meal-finder', async (req, res) => {
       if (reqUser?.id && reqUser.id !== 'mock-user-id') userId = reqUser.id;
     }
 
+    // ── Resolve GLP-1 context FIRST — outside all catch-and-continue blocks ──
+    // A resolver failure must return 503 and never fall through to unguarded
+    // restaurant recommendations. Resolving inside the nutrition-context try/catch
+    // would let a nutrition-load failure silently skip GLP-1 enforcement.
+    const todayISO = new Date().toISOString().slice(0, 10);
+    let mealFinderGlp1Ctx: Awaited<ReturnType<typeof resolveGLP1GlobalContext>> | null = null;
+    if (userId) {
+      mealFinderGlp1Ctx = await resolveGLP1GlobalContext(userId, todayISO).catch(() => null);
+      if (mealFinderGlp1Ctx === null) {
+        return res.status(503).json({ error: "Clinical guidance temporarily unavailable. Please try again.", retryable: true });
+      }
+      if (mealFinderGlp1Ctx.isActive && !mealFinderGlp1Ctx.resolvedTargets) {
+        return res.status(503).json({ error: "GLP-1 clinical targets temporarily unavailable. Please try again.", retryable: true });
+      }
+    }
+
     // ── Load unified nutrition context (protocol + active builder) ─────────
     let protocolBlock: string | undefined;
     let builderBlock: string | undefined;
@@ -81,16 +97,15 @@ router.post('/meal-finder', async (req, res) => {
         const envelope = await loadUserProtocolEnvelope(userId);
         if (envelope) protocolEnvelope = envelope;
         console.log(`🔒 [MEAL-FINDER] Nutrition context: diet=[${nutritionContext.diet.join(",")}] medical=[${nutritionContext.medical.length} flags] builder=${nutritionContext.builder ?? "none"} envelope=${protocolEnvelope ? "✓" : "✗"} hasDiabetes=${protocolEnvelope?.hasDiabetes ?? false}`);
-        // Load remaining macros + GLP-1 canonical context in parallel
+
+        // Load remaining macros (non-fatal — omitted on error)
         try {
-          const todayISO = new Date().toISOString().slice(0, 10);
-          const [dailyState, glp1Ctx] = await Promise.all([
+          const [dailyState] = await Promise.all([
             resolveDailyNutritionState(userId, todayISO).catch(() => null),
-            resolveGLP1GlobalContext(userId, todayISO).catch(() => null),
           ]);
           if (dailyState) remainingMacrosBlock = buildRemainingMacrosBlock(dailyState.remaining);
           // Combine GLP-1 recommendation block with existing protocol block
-          const glp1Block = glp1Ctx ? buildGLP1RecommendationBlock(glp1Ctx) : "";
+          const glp1Block = mealFinderGlp1Ctx ? buildGLP1RecommendationBlock(mealFinderGlp1Ctx) : "";
           if (glp1Block) {
             protocolBlock = [protocolBlock, glp1Block].filter(Boolean).join("\n\n");
           }
@@ -136,10 +151,34 @@ router.post('/meal-finder', async (req, res) => {
     });
     console.log(`✅ [ROUTE CAP] ${rawResults.length} raw → ${results.length} capped (${seenRestaurants.size} restaurants)`);
 
+    // ── GLP-1 post-gen meal filtering ──────────────────────────────────────────
+    // Filter any meal whose estimated fat or calorie value exceeds the patient-
+    // specific ceiling so non-compliant restaurant meals never reach a GLP-1 patient.
+    let glpFilteredResults = results;
+    if (mealFinderGlp1Ctx?.isActive && mealFinderGlp1Ctx.resolvedTargets) {
+      const t = mealFinderGlp1Ctx.resolvedTargets;
+      glpFilteredResults = results.filter((r: any) => {
+        const fat = Number(r.meal?.fatGrams ?? r.meal?.fat);
+        const cal = Number(r.meal?.calories);
+        if (Number.isFinite(fat) && fat > t.maximumToleratedFatGrams) {
+          console.warn(`[MEAL-FINDER/GLP-1] Filtered "${r.meal?.name}" — fat ${fat}g > ceiling ${t.maximumToleratedFatGrams}g`);
+          return false;
+        }
+        if (Number.isFinite(cal) && cal > t.resolvedMealCalories * 1.25) {
+          console.warn(`[MEAL-FINDER/GLP-1] Filtered "${r.meal?.name}" — cal ${cal} > ceiling ${Math.round(t.resolvedMealCalories * 1.25)}`);
+          return false;
+        }
+        return true;
+      });
+      if (glpFilteredResults.length < results.length) {
+        console.log(`[MEAL-FINDER/GLP-1] Filtered ${results.length - glpFilteredResults.length} non-compliant meals`);
+      }
+    }
+
     // ── Unified Image Pipeline: attach permanent imageUrls to all meals ──────
     // Meals from findMealsNearby don't carry imageUrls — generate them server-side
     // so clients receive complete cards immediately (no shimmer, no second fetch).
-    let resultsWithImages = results;
+    let resultsWithImages = glpFilteredResults;
     if (results.length > 0) {
       try {
         const { generateMealImageUnified: _mfGenImg } = await import('../services/mealImageGenerator');
@@ -168,8 +207,8 @@ router.post('/meal-finder', async (req, res) => {
       query: mealQuery,
       zipCode,
       results: resultsWithImages,
-      count: results.length,
-      ...(results.length === 0 && {
+      count: glpFilteredResults.length,
+      ...(glpFilteredResults.length === 0 && {
         message: `No restaurants found serving "${mealQuery}" near ZIP ${zipCode}. Try a different search or ZIP code.`
       })
     });

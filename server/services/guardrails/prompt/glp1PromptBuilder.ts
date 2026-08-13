@@ -220,3 +220,64 @@ export function getGLP1IngredientFilter(ingredients: string[]): string[] {
     );
   });
 }
+
+/**
+ * buildGLP1ConstraintOverlay — GLP-1 stacking overlay for non-GLP-1 diet types
+ *
+ * When a user is GLP-1 active (detected from any source: profile, medical
+ * conditions, specialtyConditions, etc.) but is using a builder whose primary
+ * diet type is not 'glp1', this overlay appends GLP-1 clinical constraints to
+ * the already-built prompt rather than replacing it.
+ *
+ * Unlike buildGLP1Prompt (which rebuilds from scratch), this function is
+ * additive — the primary diet prompt is kept, and GLP-1 rules are stacked on
+ * top as a mandatory medical protocol section.
+ *
+ * Use this in applyGuardrails() when glp1Targets are present and dietType !== 'glp1'.
+ */
+export function buildGLP1ConstraintOverlay(
+  mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack',
+  resolvedTargets?: ResolvedGLP1Targets
+): string {
+  const t = resolvedTargets;
+  const phaseNote =
+    t && t.treatmentPhase !== 'unknown'
+      ? ` [${t.treatmentPhase.replace('_', ' ')} phase]`
+      : '';
+
+  if (t && !t.usedBaseline) {
+    const calTarget =
+      mealType === 'snack' ? t.resolvedSnackCalories : t.resolvedMealCalories;
+    const appetiteNote =
+      t.appetiteLevel !== 'normal' ? ` — appetite: ${t.appetiteLevel}` : '';
+    const trainingNote =
+      t.trainingDemand !== 'none' ? ` — training: ${t.trainingDemand}` : '';
+    return (
+      `\n\n💊 GLP-1 MEDICAL PROTOCOL — MANDATORY CONSTRAINTS${phaseNote}` +
+      ` (stacked on primary diet${appetiteNote}${trainingNote}):\n` +
+      `These constraints are clinically required and override any conflicting guidance above.\n` +
+      `- Calorie target: ~${calTarget} kcal (personalized from patient's daily budget)\n` +
+      `- Fat ceiling: ${t.maximumToleratedFatGrams}g maximum / ${t.targetFatGrams}g target` +
+      ` (high fat is the primary nausea trigger — enforce strictly)\n` +
+      `- Protein priority: ${t.targetProteinGrams}g target / ${t.minimumProteinFloor}g hard floor\n` +
+      `- Portion: SMALL to MODERATE — no large or restaurant-style portions\n` +
+      `- Cooking: avoid fried, battered, breaded, or high-fat preparations; prefer baked, steamed, grilled, poached, or sautéed with minimal oil\n` +
+      `- No carbonated drinks, heavy sauces, or high-fat condiments regardless of diet category\n` +
+      (t.activeConstraints.length > 0
+        ? `- Additional stacked protocols: ${t.activeConstraints.join(', ')}\n`
+        : '')
+    );
+  }
+
+  // Baseline fallback when resolver lacked user-specific data
+  return (
+    `\n\n💊 GLP-1 MEDICAL PROTOCOL — MANDATORY CONSTRAINTS (stacked on primary diet):\n` +
+    `These constraints are clinically required and override any conflicting guidance above.\n` +
+    `- Calorie target: ~${glp1Rules.portionGuidelines.maxCalories} kcal maximum per meal\n` +
+    `- Fat ceiling: ${glp1Rules.portionGuidelines.maxFatGrams}g maximum (high fat is the primary nausea trigger)\n` +
+    `- Protein priority: minimum ${glp1Rules.portionGuidelines.minProteinGrams}g per meal\n` +
+    `- Portion: SMALL to MODERATE — no large or restaurant-style portions\n` +
+    `- Cooking: avoid fried, battered, breaded, or high-fat preparations; prefer baked, steamed, grilled, or poached\n` +
+    `- No carbonated drinks, heavy sauces, or high-fat condiments\n`
+  );
+}

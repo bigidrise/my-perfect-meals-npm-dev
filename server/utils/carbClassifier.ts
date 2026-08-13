@@ -119,9 +119,9 @@ export function deriveCarbs(
 export function enforceCarbs<T extends {
   starchyCarbs?: number;
   fibrousCarbs?: number;
-  carbs?: number;
+  carbs?: number | null;
   nutrition?: {
-    carbs?: number;
+    carbs?: number | null;
     starchyCarbs?: number;
     fibrousCarbs?: number;
   };

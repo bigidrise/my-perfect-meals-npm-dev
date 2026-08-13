@@ -41,13 +41,20 @@ router.post("/recommend", async (req, res) => {
 
     const nutritionContext = await getActiveNutritionContext(userId);
 
-    // ── Remaining macros + GLP-1 canonical context in parallel ─────────────
+    // ── GLP-1 canonical context — fail closed ─────────────────────────────────
     const todayISO = new Date().toISOString().slice(0, 10);
+    const glp1Ctx = await resolveGLP1GlobalContext(userId, todayISO).catch(() => null);
+    if (glp1Ctx === null) {
+      return res.status(503).json({ error: "Clinical guidance temporarily unavailable. Please try again.", retryable: true });
+    }
+    if (glp1Ctx.isActive && !glp1Ctx.resolvedTargets) {
+      return res.status(503).json({ error: "GLP-1 clinical targets temporarily unavailable. Please try again.", retryable: true });
+    }
+
     let remainingMacrosBlock = "";
     let glp1Block = "";
-    const [dailyState, glp1Ctx] = await Promise.all([
+    const [dailyState] = await Promise.all([
       resolveDailyNutritionState(userId, todayISO).catch(() => null),
-      resolveGLP1GlobalContext(userId, todayISO).catch(() => null),
     ]);
     if (dailyState) remainingMacrosBlock = buildRemainingMacrosBlock(dailyState.remaining);
     if (glp1Ctx) glp1Block = buildGLP1RecommendationBlock(glp1Ctx);
@@ -61,7 +68,47 @@ router.post("/recommend", async (req, res) => {
       glp1RecommendationBlock: glp1Block || undefined,
     });
 
-    return res.json({ recommendations });
+    // ── GLP-1 post-gen plate filtering ────────────────────────────────────────
+    // Buffet plates include estimatedCalories, estimatedProteinGrams, and
+    // estimatedFatGrams. Filter any plate whose estimated fat exceeds the patient-
+    // specific ceiling before returning recommendations — prompt guidance alone
+    // cannot guarantee the AI respected the ceiling.
+    let filtered = recommendations;
+    if (glp1Ctx.isActive && glp1Ctx.resolvedTargets) {
+      const t = glp1Ctx.resolvedTargets;
+      const before = recommendations.length;
+      filtered = recommendations.filter((rec: any) => {
+        const fat = rec.meal?.fatGrams;
+        const cal = rec.meal?.calories;
+        if (typeof fat === "number" && fat > t.maximumToleratedFatGrams) {
+          console.warn(
+            `[BUFFET/GLP-1] Filtered plate "${rec.meal?.name}" — fat ${fat}g > ceiling ${t.maximumToleratedFatGrams}g`
+          );
+          return false;
+        }
+        if (typeof cal === "number" && cal > t.resolvedMealCalories * 1.25) {
+          // 25 % headroom for estimate imprecision
+          console.warn(
+            `[BUFFET/GLP-1] Filtered plate "${rec.meal?.name}" — cal ${cal} > ceiling ${t.resolvedMealCalories * 1.25}`
+          );
+          return false;
+        }
+        return true;
+      });
+      if (filtered.length === 0 && before > 0) {
+        // All plates were non-compliant — fail closed rather than sending bad food
+        console.error("[BUFFET/GLP-1] All plates exceeded clinical limits — returning 503");
+        return res.status(503).json({
+          error: "All buffet recommendations exceeded your GLP-1 clinical fat limit. Please describe lower-fat options available.",
+          retryable: true,
+        });
+      }
+      if (filtered.length < before) {
+        console.log(`[BUFFET/GLP-1] Filtered ${before - filtered.length} non-compliant plates; returning ${filtered.length}`);
+      }
+    }
+
+    return res.json({ recommendations: filtered });
   } catch (err) {
     console.error("[Buffet] Error:", err);
     return res.status(500).json({

@@ -131,7 +131,13 @@ export async function resolveGLP1GlobalContext(
       .limit(1);
     userRow = found ?? null;
   } catch (err) {
-    console.warn("[GLP1Context] Could not load user row:", err);
+    // Propagate: without the user row we cannot determine GLP-1 status.
+    // Callers that use .catch(() => null) will get null and return 503 (fail closed).
+    // This prevents silently serving an unguarded recommendation to a GLP-1 patient
+    // during DB degradation.
+    throw new Error(
+      `[GLP1Context] User row lookup failed — GLP-1 status indeterminate: ${err instanceof Error ? err.message : String(err)}`
+    );
   }
 
   // ── 2. Detect activation from every possible source ──────────────────────
@@ -183,6 +189,8 @@ export async function resolveGLP1GlobalContext(
   }
 
   // ── 6. Load resolved targets + DailyNutritionState in parallel ───────────
+  // Pass userId as a string — users.id and glp1_profile.user_id are TEXT/varchar.
+  // Number(userId) converts UUIDs to NaN and matches nothing in the DB.
   const [firstPassTargets, dailyNutritionState] = await Promise.all([
     (async (): Promise<ResolvedGLP1Targets | null> => {
       try {

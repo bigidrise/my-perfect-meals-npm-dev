@@ -39,6 +39,8 @@ router.post("/recommend", async (req, res) => {
     let macroContext = "";
     let groceryEnvelope = buildGuestEnvelope();
     let glp1RecommendationBlock = "";
+    // Stored outside the if(userId) block so post-gen validation can access it.
+    let groceryGlp1Targets: import("../services/glp1/resolveGLP1MealTargets").ResolvedGLP1Targets | null = null;
 
     if (userId) {
       // Use the same full 5-tier constraint package every other builder uses.
@@ -52,8 +54,19 @@ router.post("/recommend", async (req, res) => {
       // Load GLP-1 canonical context — covers all activation sources
       // (selectedMealBuilder, medicalConditions, specialtyConditions, glp1_profile, and others)
       const todayISO = new Date().toISOString().slice(0, 10);
+      // Fail closed: if GLP-1 resolver fails, return 503 rather than serving
+      // a recommendation without the clinical overlay.
       const glp1Ctx = await resolveGLP1GlobalContext(userId, todayISO).catch(() => null);
-      if (glp1Ctx) glp1RecommendationBlock = buildGLP1RecommendationBlock(glp1Ctx);
+      if (glp1Ctx === null) {
+        return res.status(503).json({ error: "Clinical guidance temporarily unavailable. Please try again.", retryable: true });
+      }
+      if (glp1Ctx.isActive && !glp1Ctx.resolvedTargets) {
+        return res.status(503).json({ error: "GLP-1 clinical targets temporarily unavailable. Please try again.", retryable: true });
+      }
+      if (glp1Ctx) {
+        glp1RecommendationBlock = buildGLP1RecommendationBlock(glp1Ctx);
+        groceryGlp1Targets = glp1Ctx.resolvedTargets ?? null;
+      }
 
       const [userRow] = await db
         .select({
@@ -155,7 +168,9 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
     // Validates the complete CoachResult contract so neither the initial
     // response nor a retry is ever returned with missing or wrong-typed fields.
     // Returns a human-readable reason string, or null when the payload is valid.
-    function invalidReason(r: any): string | null {
+    // NOTE: must be a const arrow function — block-scoped function declarations
+    // are disallowed in strict mode (TS1252).
+    const invalidReason = (r: any): string | null => {
       if (r == null || typeof r !== "object") return "response is not an object";
       // meal
       if (!r.meal || typeof r.meal !== "object")          return "missing meal object";
@@ -193,13 +208,84 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
       // followUpSuggestions (may be empty but must be an array)
       if (!Array.isArray(r.followUpSuggestions))          return "missing followUpSuggestions array";
       return null;
-    }
+    };
 
     // Validate the initial response before using it.
     const initialInvalid = invalidReason(result);
     if (initialInvalid) {
       console.error(`[GroceryCoach] Initial response failed schema validation: ${initialInvalid}`);
       return res.status(500).json({ error: "Could not parse coach response. Try again." });
+    }
+
+    // ── GLP-1 post-gen macro validation ──────────────────────────────────────
+    // GroceryCoach returns structured macros (result.macros.calories/protein/fat).
+    // Validate them against the patient's resolved GLP-1 targets before returning.
+    if (groceryGlp1Targets) {
+      const t = groceryGlp1Targets;
+      const mac = result.macros ?? {};
+      const fat = Number(mac.fat);
+      const cal = Number(mac.calories);
+      const prot = Number(mac.protein);
+      const fatViolation = Number.isFinite(fat) && fat > t.maximumToleratedFatGrams;
+      const calViolation = Number.isFinite(cal) && cal > t.resolvedMealCalories * 1.25; // 25 % headroom for estimates
+      const protFloorViolation = Number.isFinite(prot) && prot < t.minimumProteinFloor * 0.75; // 25 % headroom
+      if (fatViolation || calViolation) {
+        console.warn(
+          `[GroceryCoach/GLP-1] Macro violation — fat:${fat}g (ceil:${t.maximumToleratedFatGrams}g) ` +
+          `cal:${cal} (ceil:${Math.round(t.resolvedMealCalories * 1.25)}) — retrying`
+        );
+        // Retry with an explicit GLP-1 macro correction appended to the system prompt.
+        const glp1MacroFix =
+          `\n\nCRITICAL GLP-1 MACRO CORRECTION: Your previous recommendation had ` +
+          `${fat}g fat (limit is ${t.maximumToleratedFatGrams}g) and ${Math.round(cal)} calories ` +
+          `(limit is ~${t.resolvedMealCalories} kcal). Recommend a lower-fat alternative meal ` +
+          `using lean proteins (chicken breast, white fish, egg whites, legumes) and non-oily cooking ` +
+          `methods. Fat must be ≤ ${t.maximumToleratedFatGrams}g and calories ≤ ${t.resolvedMealCalories} kcal.`;
+        try {
+          const glp1RetryCompletion = await getOpenAI().chat.completions.create({
+            model: "gpt-4o-mini",
+            messages: [
+              { role: "system", content: systemPrompt + glp1MacroFix },
+              ...priorMessages,
+              { role: "user", content: message },
+            ],
+            response_format: { type: "json_object" },
+            temperature: 0.6,
+            max_tokens: 1400,
+          });
+          const glp1RetryRaw = glp1RetryCompletion.choices[0]?.message?.content ?? "{}";
+          const glp1RetryResult = JSON.parse(glp1RetryRaw);
+          const glp1RetryInvalid = invalidReason(glp1RetryResult);
+          if (!glp1RetryInvalid) {
+            const retryFat = Number(glp1RetryResult.macros?.fat);
+            const retryCal = Number(glp1RetryResult.macros?.calories);
+            if (
+              (!Number.isFinite(retryFat) || retryFat <= t.maximumToleratedFatGrams) &&
+              (!Number.isFinite(retryCal) || retryCal <= t.resolvedMealCalories * 1.25)
+            ) {
+              console.log(`✅ [GroceryCoach/GLP-1] Retry passed — fat:${retryFat}g cal:${retryCal}`);
+              Object.assign(result, glp1RetryResult);
+            } else {
+              console.warn(`[GroceryCoach/GLP-1] Retry still non-compliant — returning 400`);
+              return res.status(400).json({
+                error: "PROTOCOL_VIOLATION",
+                message: `Could not find a meal within your GLP-1 fat limit (${t.maximumToleratedFatGrams}g). Try asking for a lighter option.`,
+                retryable: true,
+              });
+            }
+          } else {
+            console.warn(`[GroceryCoach/GLP-1] Retry failed schema — using original with warning`);
+          }
+        } catch (glp1RetryErr) {
+          console.warn("[GroceryCoach/GLP-1] Retry request failed:", glp1RetryErr);
+        }
+      }
+      if (protFloorViolation) {
+        console.warn(`[GroceryCoach/GLP-1] Protein ${prot}g below floor ${t.minimumProteinFloor}g — appending coach note`);
+        if (Array.isArray(result.reasoning)) {
+          result.reasoning.push(`GLP-1 note: This meal's protein (${Math.round(prot)}g) is below your target of ${t.minimumProteinFloor}g. Consider adding a lean protein source such as egg whites, white fish, or legumes.`);
+        }
+      }
     }
 
     // ── Post-generation protocol scan ─────────────────────────────────────────
@@ -293,27 +379,27 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
           console.warn(`⚠️ [GroceryCoach] Retry attempt threw: ${retryErr?.message}`);
         }
 
-        // ── Both attempts failed — return the validated original with warning ──
-        // `result` is always shape-valid here (validated above before this block).
-        // ndeSummary prefers the retry scan's violations; falls back to the
-        // original scan when the retry threw, was schema-invalid, or had no terms.
+        // ── Both attempts failed — fail closed ───────────────────────────────
+        // A hard protocol violation that survives retry cannot be returned to
+        // the user even with a warning banner; warnings cannot make unsafe food
+        // guidance acceptable.  Return 422 so the client can prompt a retry.
         if (!retryPassed) {
           const ndeSummary =
             retryScanViolations ??
             scan.violations.map((v: any) => v.reason || v.message || String(v)).join("; ");
-          const protocolWarning =
-            "I want to flag that this recommendation may not fully align with your active health protocol. " +
-            "Please review the ingredients carefully with your care team before purchasing.";
-          return res.json({
-            ...result,
-            servingCount: finalServingCount,
+          console.error(
+            `🚫 [GroceryCoach] Both generation attempts failed hard protocol scan — blocking response. violations: ${ndeSummary}`
+          );
+          return res.status(422).json({
+            error: "This recommendation conflicts with your active health protocol and cannot be shown safely. Please try a different item.",
             ndeSummary,
-            protocolWarning,
           });
         }
       }
-    } catch {
-      // Non-fatal — scan failure must not block the response
+    } catch (scanErr: any) {
+      // Scan errors are not swallowed — re-throw so the outer handler returns 500.
+      // A failed scan must never silently pass the result through.
+      throw scanErr;
     }
 
     return res.json({ ...result, servingCount: finalServingCount });
