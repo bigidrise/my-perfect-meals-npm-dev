@@ -429,7 +429,14 @@ export default function AdminDashboard() {
 
     fetchBugCount();
     const interval = setInterval(fetchBugCount, 60_000);
-    return () => clearInterval(interval);
+
+    // Re-fetch immediately when a report status is changed on the bug reports page
+    window.addEventListener("bug-reports-updated", fetchBugCount);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("bug-reports-updated", fetchBugCount);
+    };
   }, []);
 
   if (!user) {
