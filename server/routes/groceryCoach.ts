@@ -22,8 +22,15 @@ function resolveUserId(req: any): string | undefined {
   return req.authUser?.id || (req.session as any)?.userId || req.user?.id;
 }
 
-router.post("/recommend", async (req, res) => {
-  try {
+/** Infer meal type from the user's free-text message via simple keyword detection. */
+function detectMealType(message: string): "breakfast" | "lunch" | "dinner" | "snack" | null {
+  const lower = message.toLowerCase();
+  if (/\b(breakfast|morning meal|brunch|oatmeal|eggs?|pancakes?|waffles?|granola|smoothie bowl)\b/.test(lower)) return "breakfast";
+  if (/\b(lunch|midday|noon|midday meal|lunchbox|sandwich|wrap|salad for lunch)\b/.test(lower)) return "lunch";
+  if (/\b(dinner|supper|evening meal|tonight|tonight'?s? meal|what'?s? for dinner)\b/.test(lower)) return "dinner";
+  if (/\b(snack|snacks?|appetizer|bite|nibble|between meals?)\b/.test(lower)) return "snack";
+  return null;
+}
     const userId = resolveUserId(req);
     const { message, conversationHistory = [], servingCount } = req.body;
 
@@ -37,6 +44,8 @@ router.post("/recommend", async (req, res) => {
     }
 
     const finalServingCount = Math.max(1, Math.min(12, Number(servingCount) || 1));
+
+    const detectedMealType = detectMealType(message);
     let protocolContext = "";
     let macroContext = "";
     let groceryEnvelope = buildGuestEnvelope();
@@ -135,13 +144,24 @@ router.post("/recommend", async (req, res) => {
     if (userId) {
       let dbHistory: Array<{ mealName: string; primaryProtein: string | null; cuisineStyle: string | null; majorStarch: string | null; cookingMethod: string | null }> = [];
       try {
-        const histRows = await db.execute(sql`
-          SELECT meal_name, primary_protein, cuisine_style, major_starch, cooking_method
-          FROM grocery_coach_recommendation_history
-          WHERE user_id = ${userId}
-          ORDER BY created_at DESC
-          LIMIT 20
-        `);
+        const histRows = await db.execute(
+          detectedMealType
+            ? sql`
+                SELECT meal_name, primary_protein, cuisine_style, major_starch, cooking_method
+                FROM grocery_coach_recommendation_history
+                WHERE user_id = ${userId}
+                  AND (meal_type = ${detectedMealType} OR meal_type IS NULL)
+                ORDER BY created_at DESC
+                LIMIT 20
+              `
+            : sql`
+                SELECT meal_name, primary_protein, cuisine_style, major_starch, cooking_method
+                FROM grocery_coach_recommendation_history
+                WHERE user_id = ${userId}
+                ORDER BY created_at DESC
+                LIMIT 20
+              `
+        );
         dbHistory = (histRows.rows as any[]).map((r: any) => ({
           mealName: r.meal_name,
           primaryProtein: r.primary_protein ?? null,
@@ -261,7 +281,7 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
     });
 
     const raw = completion.choices[0]?.message?.content ?? "{}";
-    let result: any;
+    const result = await finalizeMealCard({ recommendation, userId: userId! });
     try {
       result = JSON.parse(raw);
     } catch {
@@ -313,7 +333,7 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
     if (groceryGlp1Targets) {
       const t = groceryGlp1Targets;
       const mac = result.macros ?? {};
-      const fat = Number(mac.fat);
+              const fat      = toN(nut.fat ?? nut.total_fat ?? nut.fatGrams);
       const cal = Number(mac.calories);
       const prot = Number(mac.protein);
       const fatViolation = Number.isFinite(fat) && fat > t.maximumToleratedFatGrams;
@@ -514,11 +534,7 @@ router.post("/product-advisor", async (req, res) => {
     }
 
     const engine = getProductAdvisorEngine();
-    const result = await engine.buildCartRecommendations(
-      userId,
-      ingredients.slice(0, 20).map(String),
-      typeof store === "string" ? store : undefined,
-    );
+    const result = await finalizeMealCard({ recommendation, userId: userId! });
 
     return res.json(result);
   } catch (err: any) {
