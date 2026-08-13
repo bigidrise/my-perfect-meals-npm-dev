@@ -61,6 +61,15 @@ export function prescriptionToTargetsOverride(
     fat_g:          prescription.fatTarget,
     starchyCarbs_g: prescription.starchyCarbsTarget,
     fibrousCarbs_g: prescription.fibrousCarbsTarget,
-    calories_kcal:  prescription.caloriesTarget,
+    // Guard against a server-side misconfiguration that resolves calorieTarget=0.
+    // A calorie target of exactly 0 is never a valid resolved prescription — it
+    // indicates a clinical override that failed to set the field (e.g. a default
+    // DB row that was never populated). Treat it the same way as absent: return
+    // undefined so callers fall back to the macro-calculator baseline rather than
+    // silently displaying "0 kcal" to the user.
+    calories_kcal:
+      prescription.caloriesTarget != null && prescription.caloriesTarget > 0
+        ? prescription.caloriesTarget
+        : undefined,
   };
 }
