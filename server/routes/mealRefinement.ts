@@ -21,6 +21,8 @@ import {
   buildGuestEnvelope,
 } from "../services/protocolEnvelope";
 import { getAuthUserId } from "../utils/getAuthUserId";
+import { resolveGLP1GlobalContext } from "../services/glp1/resolveGLP1GlobalContext";
+import { findAllergenInText, extractIngredientNames } from "../services/mealRefinementEngine";
 
 const router = Router();
 
@@ -111,6 +113,28 @@ router.post(
         }
       }
 
+      // ── GLP-1 context — fail-closed for active GLP-1 users ─────────────────
+      // Must resolve before generation so the system prompt carries fat/calorie
+      // ceilings, and post-gen macro validation can enforce them.
+      let glp1Targets: import("../services/glp1/resolveGLP1MealTargets").ResolvedGLP1Targets | null = null;
+      if (userId) {
+        const todayISO = new Date().toISOString().slice(0, 10);
+        const glp1Ctx = await resolveGLP1GlobalContext(userId, todayISO).catch(() => null);
+        if (glp1Ctx === null) {
+          return res.status(503).json({
+            error: "Clinical guidance temporarily unavailable. Please try again.",
+            retryable: true,
+          });
+        }
+        if (glp1Ctx.isActive && !glp1Ctx.resolvedTargets) {
+          return res.status(503).json({
+            error: "GLP-1 macro targets are unavailable. Please try again.",
+            retryable: true,
+          });
+        }
+        glp1Targets = glp1Ctx.isActive ? glp1Ctx.resolvedTargets : null;
+      }
+
       // Build a readable summary of the original meal
       const name = meal.name ?? meal.title ?? "Unknown Meal";
       const description = meal.description ?? "";
@@ -127,10 +151,14 @@ router.post(
       const cookingTime = meal.cookingTime ?? meal.prepTime ?? "";
       const difficulty = meal.difficulty ?? "";
 
+      const glp1PromptBlock = glp1Targets
+        ? `\nGLP-1 CLINICAL PROTOCOL (absolute hard limits — never exceed):\n- Fat per serving MUST be ≤ ${glp1Targets.maximumToleratedFatGrams}g\n- Calories per serving MUST be ≤ ${glp1Targets.resolvedMealCalories} kcal\n- Use only lean proteins and non-oily cooking methods. No fried preparations, heavy oils, avocado, full-fat dairy, or fatty cuts.\n`
+        : "";
+
       const systemPrompt = `You are a precision nutrition coach refining an existing meal based on a user's request. Make the minimum change needed to honour the request while keeping the spirit of the original dish. Return a complete, improved meal.
 
 ACTIVE PROTOCOL CONSTRAINTS (non-negotiable — never violate even if the user asks):
-${protocolContext || "No special dietary restrictions on file — apply general healthy eating principles."}
+${protocolContext || "No special dietary restrictions on file — apply general healthy eating principles."}${glp1PromptBlock}
 
 RULES:
 - Keep the same meal style and approximate macros unless the request explicitly targets them.
@@ -192,6 +220,40 @@ Refine this meal per the request. Return only the JSON object.`;
       // Normalize name + title so all consumers get both fields
       if (!refined.name && refined.title) refined.name = refined.title;
       if (!refined.title && refined.name) refined.title = refined.name;
+
+      // ── Confirmed-allergen guard ──────────────────────────────────────────────
+      // Uses the same ALLERGEN_TAXONOMY expansion as MealRefinementEngine so that
+      // compound labels (e.g. "tree nuts") catch member species (e.g. "almond").
+      // scanGeneratedOutput does NOT walk envelope.allergies directly, so this
+      // check must be explicit.
+      const refinedIngredientText = extractIngredientNames(refined as Record<string, unknown>).join(" ");
+      const allergenHit = findAllergenInText(
+        `${refined.name ?? ""} ${refined.description ?? ""} ${refinedIngredientText}`,
+        (envelope as any).allergies ?? [],
+      );
+      if (allergenHit) {
+        return res.status(422).json({
+          error: `The refined meal contains ${allergenHit}, which conflicts with your active allergen restrictions. Please try a different refinement.`,
+        });
+      }
+
+      // ── GLP-1 post-gen macro validation ──────────────────────────────────────
+      if (glp1Targets) {
+        const t = glp1Targets;
+        const fat = Number(refined.nutrition?.fat ?? refined.fat ?? refined.fat_g);
+        const cal = Number(refined.nutrition?.calories ?? refined.calories);
+        const fatViolation = Number.isFinite(fat) && fat > t.maximumToleratedFatGrams;
+        const calViolation = Number.isFinite(cal) && cal > t.resolvedMealCalories * 1.25;
+        if (fatViolation || calViolation) {
+          const detail = [
+            fatViolation ? `fat: ${fat}g (limit ${t.maximumToleratedFatGrams}g)` : "",
+            calViolation ? `calories: ${cal} (limit ~${t.resolvedMealCalories} kcal)` : "",
+          ].filter(Boolean).join(", ");
+          return res.status(422).json({
+            error: `The refined meal exceeds your GLP-1 clinical limits (${detail}). Try requesting a lighter preparation.`,
+          });
+        }
+      }
 
       // Protocol scan on refined output
       const scanMeal = {

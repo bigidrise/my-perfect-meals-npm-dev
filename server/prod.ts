@@ -1605,7 +1605,9 @@ async function initializeApp() {
       // ── Grocery Coach recommendation history (variety memory) ────────────────
       setTimeout(async () => {
         try {
-          await db.execute(sql`
+          const { db: dbGcr } = await import("./db");
+          const { sql: sqlGcr } = await import("drizzle-orm");
+          await dbGcr.execute(sqlGcr`
             CREATE TABLE IF NOT EXISTS grocery_coach_recommendation_history (
               id              serial PRIMARY KEY,
               user_id         text        NOT NULL,
@@ -1617,7 +1619,7 @@ async function initializeApp() {
               created_at      timestamptz NOT NULL DEFAULT now()
             )
           `);
-          await db.execute(sql`
+          await dbGcr.execute(sqlGcr`
             CREATE INDEX IF NOT EXISTS idx_gcr_history_user_date
               ON grocery_coach_recommendation_history (user_id, created_at DESC)
           `);

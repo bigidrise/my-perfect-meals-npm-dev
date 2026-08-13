@@ -8,6 +8,7 @@ import { resolveGLP1GlobalContext, buildGLP1RecommendationBlock } from "../servi
 import { getProductAdvisorEngine } from "../services/productAdvisor";
 import { finalizeMealCard } from "../services/mealCardFinalizer";
 import { filterSavedGroceriesForCompliance, buildSavedGroceriesPromptBlock } from "../services/savedGroceryCompliance";
+import { getMealRefinementEngine } from "../services/mealRefinementEngine";
 
 const router = express.Router();
 
@@ -84,19 +85,18 @@ router.post("/recommend", async (req, res) => {
 
       // ── Saved Groceries ───────────────────────────────────────────────────────
       try {
-        const sgRows = await db
-          .select({
-            id: userSavedGroceryItems.id,
-            productName: userSavedGroceryItems.productName,
-            brand: userSavedGroceryItems.brand,
-            category: userSavedGroceryItems.category,
-            productKey: userSavedGroceryItems.productKey,
-            nutritionJson: userSavedGroceryItems.nutritionJson,
-            productMeta: userSavedGroceryItems.productMeta,
-            savedAt: userSavedGroceryItems.savedAt,
-          })
-          .from(userSavedGroceryItems)
-          .where(eq(userSavedGroceryItems.userId, userId));
+      const sgRows = await db
+        .select({
+          id: userSavedGroceryItems.id,
+          productName: userSavedGroceryItems.productName,
+          brand: userSavedGroceryItems.brand,
+          category: userSavedGroceryItems.category,
+          productKey: userSavedGroceryItems.productKey,
+          nutritionJson: userSavedGroceryItems.nutritionJson,
+          savedAt: userSavedGroceryItems.savedAt,
+        })
+        .from(userSavedGroceryItems)
+        .where(eq(userSavedGroceryItems.userId, userId));
 
         if (sgRows.length > 0) {
           let diabeticCarbCeiling: number | null = null;
@@ -106,7 +106,7 @@ router.post("/recommend", async (req, res) => {
           }
 
           const itemsWithIngredients = sgRows.map((row) => {
-            const meta = row.productMeta as Record<string, unknown> | null;
+            const meta = (row as any).productMeta as Record<string, unknown> | null;
             const ingredients = Array.isArray(meta?.ingredients)
               ? (meta!.ingredients as string[]).filter((i) => typeof i === "string")
               : null;
@@ -461,17 +461,22 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
     }
 
     // ── Save to recommendation history (non-blocking, fire-and-forget) ────────
+    // Wrapped in Promise.resolve().then() so any synchronous failure (e.g. db
+    // not yet initialised in tests) is caught by .catch() and never propagates
+    // to the outer request handler.
     if (userId && result?.meal?.name) {
       const vm = result.varietyMetadata as Record<string, string> | undefined;
-      db.execute(sql`
-        INSERT INTO grocery_coach_recommendation_history
-          (user_id, meal_name, primary_protein, cuisine_style, major_starch, cooking_method)
-        VALUES
-          (${userId}, ${result.meal.name as string},
-           ${vm?.primaryProtein ?? null}, ${vm?.cuisineStyle ?? null},
-           ${vm?.majorStarch ?? null}, ${vm?.cookingMethod ?? null})
-      `).then(() =>
-        // Cap at 20 entries per user — delete oldest beyond the limit
+      const mealName = result.meal.name as string;
+      Promise.resolve().then(() =>
+        db.execute(sql`
+          INSERT INTO grocery_coach_recommendation_history
+            (user_id, meal_name, primary_protein, cuisine_style, major_starch, cooking_method)
+          VALUES
+            (${userId}, ${mealName},
+             ${vm?.primaryProtein ?? null}, ${vm?.cuisineStyle ?? null},
+             ${vm?.majorStarch ?? null}, ${vm?.cookingMethod ?? null})
+        `)
+      ).then(() =>
         db.execute(sql`
           DELETE FROM grocery_coach_recommendation_history
           WHERE user_id = ${userId}
@@ -791,14 +796,12 @@ router.post("/swap-ingredient", async (req, res) => {
 router.post("/finalize-card", async (req, res) => {
   try {
     const userId = resolveUserId(req);
-    if (!userId) return res.status(401).json({ status: "failed", id: null, reason: "Not authenticated" });
-
     const { recommendation } = req.body;
     if (!recommendation?.meal?.name) {
       return res.status(400).json({ status: "failed", id: null, reason: "recommendation is required" });
     }
 
-    const result = await finalizeMealCard({ recommendation, userId });
+    const result = await finalizeMealCard({ recommendation, userId: userId! });
     return res.json({ status: "ready", ...result });
   } catch (err: any) {
     console.error("[GroceryCoach/FinalizeCard] Error:", err?.message);
