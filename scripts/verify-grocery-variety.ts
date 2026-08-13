@@ -18,6 +18,12 @@
  *       Verifies variety still rotates when both no-animal-products AND hard
  *       carb ceilings are active, and that scanGeneratedOutput passes 100% of
  *       rounds (no animal-product or carb-ceiling violations).
+ *
+ *   npx tsx scripts/verify-grocery-variety.ts --overlap
+ *     → Task 900 overlap sim: pre-seeds 5 meals in DB history AND places those
+ *       same 5 meal names in session conversationHistory, then verifies:
+ *       (a) the merged avoid-list contains each name only once (no duplicates), and
+ *       (b) new AI rounds produce meals distinct from both history sources.
  */
 import OpenAI from "openai";
 import { db } from "../server/db";
@@ -32,9 +38,13 @@ import {
 
 // ── CLI flags ──────────────────────────────────────────────────────────────────
 const CONSTRAINED_MODE = process.argv.includes("--constrained");
+
+const OVERLAP_MODE = process.argv.includes("--overlap");
 const VEGAN_DIABETIC_MODE = process.argv.includes("--vegan-diabetic");
 
-const TEST_USER_ID = VEGAN_DIABETIC_MODE
+const TEST_USER_ID = OVERLAP_MODE
+  ? "verify-variety-900-overlap"
+  : VEGAN_DIABETIC_MODE
   ? "verify-variety-899-vegan-diabetic"
   : CONSTRAINED_MODE
   ? "verify-variety-895-constrained"
@@ -484,8 +494,52 @@ function analyzeResults(rounds: Round[]): boolean {
   return passed;
 }
 
-// ── Main ──────────────────────────────────────────────────────────────────────
+/**
+ * Build a variety block that mirrors the route's exact merge logic:
+ *   allAvoidNames = [...new Set([...dbNames, ...sessionNames].filter(Boolean))]
+ * This is the post-fix version — duplicates are removed.
+ */
+function buildVarietyBlockWithSession(
+  dbHistory: Array<{
+    mealName: string;
+    primaryProtein: string | null;
+    cuisineStyle: string | null;
+    majorStarch: string | null;
+    cookingMethod: string | null;
+  }>,
+  sessionNames: string[]
+): { block: string; avoidNames: string[] } {
+  const allAvoidNames = [
+    ...new Set(
+      [...dbHistory.map((e) => e.mealName), ...sessionNames].filter(Boolean)
+    ),
+  ];
+
+  if (allAvoidNames.length === 0) return { block: "", avoidNames: [] };
+
+  const avoidList = allAvoidNames.slice(0, 20).map((n) => `- ${n}`).join("\n");
+  const recentPatterns = dbHistory.slice(0, 5).map((e) => {
+    const dims = [e.primaryProtein, e.cuisineStyle, e.majorStarch, e.cookingMethod].filter(Boolean);
+    return dims.length ? `- ${e.mealName} (${dims.join(", ")})` : `- ${e.mealName}`;
+  }).join("\n");
+
+  const block = `
+
+VARIETY RULES:
+- NEVER recommend a meal whose name or core structure matches anything in the PREVIOUSLY RECOMMENDED list below.
+- Actively rotate: protein type, cuisine/regional style, major starch, and cooking method. If recent meals all used chicken, pick a different protein. If they all used Italian style, try another cuisine.
+- If the user explicitly names a food they want (e.g. "I want chicken pasta again"), honour that — explicit intent overrides variety.
+
+PREVIOUSLY RECOMMENDED — DO NOT REPEAT:
+${avoidList}${recentPatterns ? `\n\nRECENT PATTERNS TO ROTATE AWAY FROM:\n${recentPatterns}` : ""}`;
+
+  return { block, avoidNames: allAvoidNames };
+}
 async function main(): Promise<void> {
+  if (OVERLAP_MODE) {
+    return runOverlapMode();
+  }
+
   console.log("=".repeat(70));
   if (VEGAN_DIABETIC_MODE) {
     console.log("Grocery Coach Variety Verification — Task 899 (Vegan + Diabetic)");
@@ -632,3 +686,213 @@ main().catch((err) => {
   console.error("Fatal error:", err);
   process.exit(1);
 });
+
+/** 5 seed meals that will appear in both DB history and session history */
+const OVERLAP_SEED_MEALS = [
+  {
+    mealName: "Grilled Salmon with Quinoa",
+    primaryProtein: "salmon",
+    cuisineStyle: "Mediterranean",
+    majorStarch: "quinoa",
+    cookingMethod: "grilled",
+  },
+  {
+    mealName: "Chicken Tikka Masala",
+    primaryProtein: "chicken",
+    cuisineStyle: "Indian",
+    majorStarch: "rice",
+    cookingMethod: "sautéed",
+  },
+  {
+    mealName: "Beef Tacos",
+    primaryProtein: "beef",
+    cuisineStyle: "Mexican",
+    majorStarch: "tortilla",
+    cookingMethod: "grilled",
+  },
+  {
+    mealName: "Tofu Stir-Fry with Noodles",
+    primaryProtein: "tofu",
+    cuisineStyle: "Asian",
+    majorStarch: "noodles",
+    cookingMethod: "stir-fry",
+  },
+  {
+    mealName: "Lemon Herb Pork Chops with Roasted Potatoes",
+    primaryProtein: "pork",
+    cuisineStyle: "American",
+    majorStarch: "potato",
+    cookingMethod: "baked",
+  },
+];
+
+const OVERLAP_AI_ROUNDS = 5;
+
+async function runOverlapMode(): Promise<void> {
+  console.log("=".repeat(70));
+  console.log("Grocery Coach Variety Verification — Task 900 (Overlap)");
+  console.log("Validates : avoid-list deduplication when DB history and session");
+  console.log("            conversationHistory contain the same meal names.");
+  console.log(`User ID  : ${TEST_USER_ID}`);
+  console.log("=".repeat(70));
+
+  // 1. Clean slate
+  await db.execute(sql`
+    DELETE FROM grocery_coach_recommendation_history WHERE user_id = ${TEST_USER_ID}
+  `);
+  console.log("\n✓ Cleared prior history for test user");
+
+  // 2. Pre-seed DB with 5 meals
+  for (const m of OVERLAP_SEED_MEALS) {
+    await db.execute(sql`
+      INSERT INTO grocery_coach_recommendation_history
+        (user_id, meal_name, primary_protein, cuisine_style, major_starch, cooking_method)
+      VALUES
+        (${TEST_USER_ID}, ${m.mealName}, ${m.primaryProtein},
+         ${m.cuisineStyle}, ${m.majorStarch}, ${m.cookingMethod})
+    `);
+  }
+  console.log(`✓ Pre-seeded DB with ${OVERLAP_SEED_MEALS.length} meals`);
+
+  // 3. Build session names — same 5 meal names as the DB entries
+  const sessionNames = OVERLAP_SEED_MEALS.map((m) => m.mealName);
+  console.log(`✓ Session history contains the same ${sessionNames.length} meal names`);
+
+  // 4. Load DB history and build the merged avoid-list
+  const dbHistory = await loadHistory();
+  const { block: varietyBlock, avoidNames } = buildVarietyBlockWithSession(
+    dbHistory,
+    sessionNames
+  );
+
+  console.log("\n" + "=".repeat(70));
+  console.log("DEDUPLICATION CHECK");
+  console.log("=".repeat(70));
+
+  // 5. Assert deduplication — each meal name must appear only once
+  let dedupePass = true;
+  const nameCounts = new Map<string, number>();
+  for (const name of avoidNames) {
+    nameCounts.set(name, (nameCounts.get(name) ?? 0) + 1);
+  }
+  const duplicates = [...nameCounts.entries()].filter(([, count]) => count > 1);
+
+  console.log(`  Combined avoid-list length : ${avoidNames.length}`);
+  console.log(`  DB history entries         : ${dbHistory.length}`);
+  console.log(`  Session history entries    : ${sessionNames.length}`);
+  console.log(`  Unique names in avoid-list : ${nameCounts.size}`);
+
+  if (duplicates.length === 0) {
+    console.log("  ✅ No duplicates — each meal name appears exactly once");
+  } else {
+    dedupePass = false;
+    console.error(
+      `  ❌ ${duplicates.length} duplicate(s) found in avoid-list — deduplication is broken:`
+    );
+    for (const [name, count] of duplicates) {
+      console.error(`     "${name}" appears ${count} times`);
+    }
+  }
+
+  // 6. Print the full avoid-list for inspection
+  console.log("\n  Avoid-list contents:");
+  for (const name of avoidNames) {
+    console.log(`    - ${name}`);
+  }
+
+  // 7. Verify all 5 seeded meals are present in the avoid-list (nothing dropped)
+  let coveragePass = true;
+  for (const m of OVERLAP_SEED_MEALS) {
+    if (!avoidNames.includes(m.mealName)) {
+      coveragePass = false;
+      console.error(`  ❌ Seed meal missing from avoid-list: "${m.mealName}"`);
+    }
+  }
+  if (coveragePass) {
+    console.log("\n  ✅ All 5 seeded meals are present in the avoid-list");
+  }
+
+  // 8. Run AI rounds to confirm new meals are distinct from all seeded meals
+  console.log("\n" + "=".repeat(70));
+  console.log(`AI VARIETY CHECK — ${OVERLAP_AI_ROUNDS} rounds with combined avoid-list`);
+  console.log("=".repeat(70) + "\n");
+
+  const seededNamesLower = new Set(OVERLAP_SEED_MEALS.map((m) => m.mealName.toLowerCase()));
+  const newMealNames: string[] = [];
+  let aiPass = true;
+
+  for (let i = 1; i <= OVERLAP_AI_ROUNDS; i++) {
+    // Rebuild avoid-list to include newly generated meals from this run too
+    const currentDbHistory = await loadHistory();
+    const currentSessionNames = [
+      ...sessionNames,
+      ...newMealNames, // prior rounds in this session
+    ];
+    const { block: currentBlock, avoidNames: currentAvoid } =
+      buildVarietyBlockWithSession(currentDbHistory, currentSessionNames);
+
+    process.stdout.write(`Round ${i}/${OVERLAP_AI_ROUNDS} — avoid-list has ${currentAvoid.length} entries — calling AI...`);
+
+    const result = await recommendMeal("", currentBlock);
+    if (!result) {
+      console.error(`\nRound ${i} failed — aborting.`);
+      process.exit(1);
+    }
+
+    const nameLower = result.name.toLowerCase();
+    const isRepeat = seededNamesLower.has(nameLower) || newMealNames.some((n) => n.toLowerCase() === nameLower);
+
+    console.log(` ✓`);
+    console.log(`  Meal    : ${result.name}`);
+    console.log(`  Protein : ${result.meta.primaryProtein}  |  Cuisine: ${result.meta.cuisineStyle}  |  Starch: ${result.meta.majorStarch}  |  Method: ${result.meta.cookingMethod}`);
+
+    if (isRepeat) {
+      aiPass = false;
+      console.error(`  ❌ REPEAT — this meal was in the seeded history or a prior round`);
+    } else {
+      console.log(`  ✅ New meal — not in seeded history or prior rounds`);
+    }
+
+    await saveHistory(result.name, result.meta);
+    newMealNames.push(result.name);
+  }
+
+  // 9. Final verdict
+  console.log("\n" + "=".repeat(70));
+  console.log("OVERLAP MODE VERDICT");
+  console.log("=".repeat(70));
+
+  const overallPass = dedupePass && coveragePass && aiPass;
+
+  if (dedupePass) {
+    console.log("✅ Deduplication  : avoid-list has no duplicate meal names");
+  } else {
+    console.log("❌ Deduplication  : duplicates found — route merge logic needs dedup");
+  }
+  if (coveragePass) {
+    console.log("✅ Coverage       : all seeded meals appear in the avoid-list");
+  } else {
+    console.log("❌ Coverage       : some seeded meals are missing from the avoid-list");
+  }
+  if (aiPass) {
+    console.log(`✅ AI variety     : all ${OVERLAP_AI_ROUNDS} new rounds produced meals not in either history`);
+  } else {
+    console.log(`❌ AI variety     : one or more rounds repeated a seeded or prior meal`);
+  }
+
+  if (overallPass) {
+    console.log("\n🎉 VERDICT: PASS — overlap deduplication is working correctly.");
+  } else {
+    console.log("\n❌ VERDICT: FAIL — overlap handling needs investigation.");
+    process.exitCode = 1;
+  }
+  console.log("=".repeat(70) + "\n");
+
+  // Cleanup
+  await db.execute(sql`
+    DELETE FROM grocery_coach_recommendation_history WHERE user_id = ${TEST_USER_ID}
+  `);
+  console.log("Cleaned up test rows.\n");
+
+  process.exit(process.exitCode ?? 0);
+}
