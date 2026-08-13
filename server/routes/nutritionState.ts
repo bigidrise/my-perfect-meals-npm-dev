@@ -1,187 +1,223 @@
 /**
- * nutritionState.ts — GET /api/nutrition-state/:dateISO
+ * Daily Nutrition State API
  *
- * Returns the canonical DailyNutritionState for the authenticated user on
- * the given date. This is the single authority every meal builder reads —
- * no builder computes or caches its own nutrition targets independently.
+ * GET /api/nutrition-state/:dateISO
  *
- * Stage 1 (#690): planned nutrition is zeros. Board reservation wiring
- * happens in Stage 2 (#691) when the Weekly Meal Board is integrated.
+ * Returns the complete DailyNutritionState for the authenticated user on the
+ * given date: prescription + consumed (logged) + planned (board reservations
+ * not yet logged) + remaining budget + meal plan config + active constraints.
  *
- * Auth: requireAuth — user always reads their own state (or ProCare coach
- * reads a client's state via ?clientId=).
+ * This is the canonical endpoint every meal builder should consult before
+ * generating. No builder should invent its own budget accounting.
+ *
+ * Double-counting prevention:
+ *   - A board item that has been logged (macro_logs.board_item_reference = item.id)
+ *     is counted in "consumed" only, NOT in "planned".
+ *   - Board items without a matching log row count toward "planned" only.
+ *
+ * Query params:
+ *   timezone  — IANA timezone string (default: "UTC"). Used to compute which
+ *               macro_logs belong to the requested calendar day.
  */
 
-import express from "express";
+import { Router } from "express";
 import { db } from "../db";
 import { users, macroLogs } from "../../shared/schema";
 import { eq, sql } from "drizzle-orm";
-import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
+import { requireAuth } from "../middleware/requireAuth";
 import { resolveDailyNutritionPrescription } from "../services/prescriptionResolver";
-import { getUserTimezone } from "../services/nutritionDayService";
-import type {
-  DailyNutritionState,
-  MacroTotals,
-} from "../../shared/dailyNutritionPrescription";
-import { computeGramsPerRemainingMeal } from "../../shared/dailyNutritionPrescription";
+import { deriveGenerationContext } from "../services/nutritionBudget";
+import { localDayUTCBounds } from "../utils/localDayBounds";
+import type { DailyNutritionState } from "../../shared/dailyNutritionPrescription";
 
-const router = express.Router();
+const router = Router();
 
-// ── GET /api/nutrition-state/:dateISO ─────────────────────────────────────────
+// ── Route ─────────────────────────────────────────────────────────────────────
 
 router.get("/:dateISO", requireAuth, async (req, res) => {
   try {
-    const authUser = (req as AuthenticatedRequest).authUser;
-    // ProCare coaches may query a client's state
-    const clientId  = (req.query.clientId as string) ?? null;
-    const userId    = clientId ?? String(authUser.id);
+    const userId: string = (req as any).authUser?.id || (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
     const { dateISO } = req.params;
-
     if (!/^\d{4}-\d{2}-\d{2}$/.test(dateISO)) {
-      return res.status(400).json({ error: "dateISO must be YYYY-MM-DD" });
+      return res.status(400).json({ error: "Invalid date format. Use YYYY-MM-DD." });
     }
 
-    // ── Run in parallel: prescription + user row + timezone ───────────────
-    const [prescription, userRows, tz] = await Promise.all([
-      resolveDailyNutritionPrescription({ userId, dateISO }),
-      db.select().from(users).where(eq(users.id, userId)).limit(1),
-      getUserTimezone(userId),
-    ]);
+    const timezone = (req.query.timezone as string | undefined) || "UTC";
+    const { start: logStart, end: logEnd } = localDayUTCBounds(dateISO, timezone);
 
-    const user = userRows[0];
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
+    // ── 1. Aggregate consumed macros for the day ──────────────────────────────
+    const [consumedRow] = await db
+      .select({
+        calories:          sql<number>`COALESCE(SUM(${macroLogs.kcal}::numeric), 0)`,
+        protein:           sql<number>`COALESCE(SUM(${macroLogs.protein}::numeric), 0)`,
+        carbs:             sql<number>`COALESCE(SUM(${macroLogs.carbs}::numeric), 0)`,
+        fat:               sql<number>`COALESCE(SUM(${macroLogs.fat}::numeric), 0)`,
+        starchyCarbs:      sql<number>`COALESCE(SUM(${macroLogs.starchyCarbs}::numeric), 0)`,
+        fibrousCarbs:      sql<number>`COALESCE(SUM(${macroLogs.fibrousCarbs}::numeric), 0)`,
+        mealCount:         sql<number>`COUNT(*)`,
+        starchMealsLogged: sql<number>`COUNT(*) FILTER (WHERE ${macroLogs.starchyCarbs}::numeric > 0)`,
+      })
+      .from(macroLogs)
+      .where(
+        sql`${macroLogs.userId} = ${userId}
+          AND ${macroLogs.at} >= ${logStart.toISOString()}::timestamptz
+          AND ${macroLogs.at} <= ${logEnd.toISOString()}::timestamptz`,
+      );
+
+    const consumed = {
+      calories:          Number(consumedRow?.calories ?? 0),
+      protein:           Number(consumedRow?.protein ?? 0),
+      carbs:             Number(consumedRow?.carbs ?? 0),
+      fat:               Number(consumedRow?.fat ?? 0),
+      starchyCarbs:      Number(consumedRow?.starchyCarbs ?? 0),
+      fibrousCarbs:      Number(consumedRow?.fibrousCarbs ?? 0),
+      mealCount:         Number(consumedRow?.mealCount ?? 0),
+      starchMealsLogged: Number(consumedRow?.starchMealsLogged ?? 0),
+    };
+
+    // ── 2. Load user profile (for mealPlanConfig + specialtyConditions) ───────
+    const [userRow] = await db
+      .select({
+        macroMealsPerDay:    users.macroMealsPerDay,
+        specialtyConditions: users.specialtyConditions,
+      })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    const specialtyConditions: string[] = Array.isArray(userRow?.specialtyConditions)
+      ? (userRow!.specialtyConditions as string[])
+      : [];
+
+    // ── 3. Resolve prescription with actual consumption ────────────────────────
+    const prescription = await resolveDailyNutritionPrescription({
+      userId,
+      dateISO,
+      consumed: {
+        starchyCarbs:    consumed.starchyCarbs,
+        starchMealsUsed: consumed.starchMealsLogged,
+      },
+    });
+
+    // ── 4. Query planned (board items for today not yet logged) ───────────────
+    // A board item is "for today" when its calendar date (start_date + day_index)
+    // matches dateISO. An item is "logged" when macro_logs.board_item_reference = item.id.
+    let plannedCalories     = 0;
+    let plannedProtein      = 0;
+    let plannedCarbs        = 0;
+    let plannedFat          = 0;
+    let plannedStarchyCarbs = 0;
+    let reservationCount    = 0;
+    let starchMealsPlanned  = 0;
+
+    try {
+      const boardItemsResult = await db.execute(sql`
+        SELECT bi.id, bi.macros
+        FROM meal_board_items bi
+        JOIN meal_boards b ON bi.board_id = b.id
+        WHERE b.user_id::text = ${userId}
+          AND (b.start_date::date + (bi.day_index * INTERVAL '1 day'))::date = ${dateISO}::date
+          AND NOT EXISTS (
+            SELECT 1 FROM macro_logs ml
+            WHERE ml.board_item_reference = bi.id::text
+              AND ml.user_id = ${userId}
+          )
+      `);
+
+      for (const r of boardItemsResult.rows) {
+        const mac = (r as any).macros as Record<string, number> | null;
+        if (!mac) continue;
+        // Board items store calories as either "kcal" (the DB/board contract) or
+        // "calories" (some builder paths). Normalise with kcal-first fallback.
+        const cal     = Number(mac.kcal ?? mac.calories ?? 0);
+        const pro     = Number(mac.protein ?? 0);
+        const carb    = Number(mac.carbohydrates ?? mac.carbs ?? 0);
+        const fat     = Number(mac.fat ?? 0);
+        const starchy = Number(mac.starchyCarbs ?? 0);
+        plannedCalories     += cal;
+        plannedProtein      += pro;
+        plannedCarbs        += carb;
+        plannedFat          += fat;
+        plannedStarchyCarbs += starchy;
+        reservationCount    += 1;
+        if (starchy > 0) starchMealsPlanned += 1;
+      }
+    } catch (boardErr) {
+      // Non-fatal: board items query falls back to zeros if the table doesn't
+      // exist yet (fresh environments before migration runs).
+      console.warn("[nutritionState] board items query failed, falling back to zeros:", boardErr);
     }
 
-    // ── Consumed: aggregate macro_logs for this user-local date ──────────
-    // Uses the user's timezone so CDT/PST users get their local day boundary.
-    const consumedRows = await db.execute(sql`
-      SELECT
-        COALESCE(SUM(kcal::numeric),         0) AS calories,
-        COALESCE(SUM(protein::numeric),       0) AS protein,
-        COALESCE(SUM(carbs::numeric),         0) AS total_carbs,
-        COALESCE(SUM(starchy_carbs::numeric), 0) AS starchy_carbs,
-        COALESCE(SUM(fibrous_carbs::numeric), 0) AS fibrous_carbs,
-        COALESCE(SUM(fat::numeric),           0) AS fat,
-        COUNT(*) FILTER (
-          WHERE starchy_carbs::numeric > 0 AND source != 'alcohol'
-        )                                        AS starch_meal_count,
-        COUNT(*) FILTER (
-          WHERE source != 'alcohol'
-        )                                        AS meal_count
-      FROM macro_logs
-      WHERE user_id = ${userId}
-        AND (at AT TIME ZONE ${tz})::date = ${dateISO}::date
-    `);
-
-    const cr = (consumedRows.rows?.[0] ?? {}) as Record<string, unknown>;
-
-    const consumed: MacroTotals & { starchMeals: number; mealCount: number } = {
-      calories:    Number(cr.calories    ?? 0),
-      protein:     Number(cr.protein     ?? 0),
-      totalCarbs:  Number(cr.total_carbs ?? 0),
-      starchyCarbs: Number(cr.starchy_carbs ?? 0),
-      fibrousCarbs: Number(cr.fibrous_carbs ?? 0),
-      fat:         Number(cr.fat         ?? 0),
-      starchMeals: Number(cr.starch_meal_count ?? 0),
-      mealCount:   Number(cr.meal_count  ?? 0),
+    const planned = {
+      calories:          plannedCalories,
+      protein:           plannedProtein,
+      carbs:             plannedCarbs,
+      fat:               plannedFat,
+      starchyCarbs:      plannedStarchyCarbs,
+      starchMealsPlanned,
+      reservationCount,
     };
 
-    // ── Planned: zeros in Stage 1 (#690) — wired in Stage 2 (#691) ───────
-    const planned: MacroTotals & { starchMeals: number; mealCount: number } = {
-      calories: 0, protein: 0, totalCarbs: 0,
-      starchyCarbs: 0, fibrousCarbs: 0, fat: 0,
-      starchMeals: 0, mealCount: 0,
-    };
-
-    // ── Remaining = prescription − consumed − planned (floor 0) ──────────
-    const clamp = (n: number) => Math.max(0, Math.round(n));
+    // ── 5. Compute remaining budget ───────────────────────────────────────────
+    const totalUsedCalories     = consumed.calories     + planned.calories;
+    const totalUsedProtein      = consumed.protein      + planned.protein;
+    const totalUsedCarbs        = consumed.carbs        + planned.carbs;
+    const totalUsedFat          = consumed.fat          + planned.fat;
+    const totalUsedStarchyCarbs = consumed.starchyCarbs + planned.starchyCarbs;
+    const totalUsedFibrousCarbs = consumed.fibrousCarbs;
+    const totalUsedStarchMeals  = consumed.starchMealsLogged + planned.starchMealsPlanned;
 
     const remaining = {
-      calories:     clamp(prescription.caloriesTarget   - consumed.calories     - planned.calories),
-      protein:      clamp(prescription.proteinTarget     - consumed.protein      - planned.protein),
-      totalCarbs:   clamp(prescription.carbsTarget       - consumed.totalCarbs   - planned.totalCarbs),
-      starchyCarbs: clamp(prescription.starchyCarbsTarget - consumed.starchyCarbs - planned.starchyCarbs),
-      fibrousCarbs: clamp(prescription.fibrousCarbsTarget - consumed.fibrousCarbs - planned.fibrousCarbs),
-      fat:          clamp(prescription.fatTarget         - consumed.fat          - planned.fat),
-      starchMeals:  Math.max(0, prescription.starchMealsAllowed - consumed.starchMeals - planned.starchMeals),
-      nonStarchMeals: 0, // computed below after mealsRemaining is known
+      calories:             Math.max(0, prescription.caloriesTarget    - totalUsedCalories),
+      protein:              Math.max(0, prescription.proteinTarget      - totalUsedProtein),
+      carbs:                Math.max(0, prescription.carbsTarget        - totalUsedCarbs),
+      fat:                  Math.max(0, prescription.fatTarget          - totalUsedFat),
+      starchyCarbs:         Math.max(0, prescription.starchyCarbsTarget - totalUsedStarchyCarbs),
+      fibrousCarbs:         Math.max(0, prescription.fibrousCarbsTarget - totalUsedFibrousCarbs),
+      starchMealsRemaining: Math.max(0, prescription.starchMealsAllowed - totalUsedStarchMeals),
     };
 
-    // ── Meal plan configuration ───────────────────────────────────────────
-    // Prefer the snapshotted values from the prescription row (written by
-    // prescriptionResolver on this call). Fall back to users columns.
-    const mealsPerDay       = user.macroMealsPerDay      ?? 4;
-    const starchMealsPerDay = user.defaultStarchMealsPerDay ?? 2;
+    // ── 6. Meal plan config (prefer prescription snapshot; fall back to user row)
+    const mealPlanConfig = {
+      mealsPerDay:                userRow?.macroMealsPerDay ?? 4,
+      starchMealsPerDay:          prescription.starchMealsAllowed,
+      starchDistributionStrategy: prescription.starchDistributionStrategy,
+    };
 
-    const mealsConsumed  = consumed.mealCount;
-    const mealsPlanned   = planned.mealCount;
-    const mealsRemaining = Math.max(0, mealsPerDay - mealsConsumed - mealsPlanned);
-
-    remaining.nonStarchMeals = Math.max(0, mealsRemaining - remaining.starchMeals);
-
-    // Adaptive starchy-carb target for the next starch meal
-    const gramsPerRemainingStarchMeal = computeGramsPerRemainingMeal(
-      remaining.starchyCarbs,
-      remaining.starchMeals,
+    // ── 7. Active constraints ─────────────────────────────────────────────────
+    const generationContext = deriveGenerationContext(
+      prescription.source,
+      prescription.trainingDayType,
+      prescription.rationaleCodes,
+      specialtyConditions,
     );
 
-    // ── Active constraints ────────────────────────────────────────────────
-    const specialtyConditions = Array.isArray(user.specialtyConditions)
-      ? (user.specialtyConditions as string[]) : [];
-    const medicalConditions = Array.isArray(user.medicalConditions)
-      ? (user.medicalConditions as string[]) : [];
+    const activeConstraints = {
+      generationContext,
+      starchSlotsExhausted:   remaining.starchMealsRemaining <= 0,
+      calorieBudgetExhausted: remaining.calories <= 0,
+      proteinBudgetMet:
+        consumed.protein + planned.protein >= prescription.proteinTarget,
+    };
 
-    const glp1Active = specialtyConditions.includes("glp1")
-      || medicalConditions.some(c => c === "glp1" || c === "glp-1");
-
-    const diabeticActive = specialtyConditions.includes("diabetic")
-      || medicalConditions.some(c => c === "diabetic" || c.includes("diabetes"));
-
-    const performanceActive = !!user.performanceModeEnabled
-      && prescription.trainingDayType !== null;
-
-    const clinicalActive =
-      prescription.clinicalPrecisionStatus === "clinical_precision_active";
-
-    // ProCare: user is a ProCare client if their plan key includes 'procare'
-    // OR if a ProCare coach is currently querying their state (clientId param).
-    const procareActive = !!clientId
-      || (typeof user.planLookupKey === "string" && user.planLookupKey.includes("procare"));
-
-    // ── Assemble and return ───────────────────────────────────────────────
+    // ── 8. Build and return DailyNutritionState ───────────────────────────────
     const state: DailyNutritionState = {
-      date: dateISO,
-      resolvedPrescription: prescription,
+      date:        dateISO,
+      resolvedAt:  new Date().toISOString(),
+      prescription,
       consumed,
       planned,
       remaining,
-      mealPlan: {
-        mealsPerDay,
-        mealsConsumed,
-        mealsPlanned,
-        mealsRemaining,
-        starchMealsPerDay,
-        starchMealsConsumed:  consumed.starchMeals,
-        starchMealsPlanned:   planned.starchMeals,
-        starchMealsRemaining: remaining.starchMeals,
-        starchDistributionStrategy: prescription.starchDistributionStrategy,
-        gramsPerRemainingStarchMeal,
-        isZeroStarchDay: prescription.isZeroStarchDay,
-      },
-      activeConstraints: {
-        performanceActive,
-        glp1Active,
-        diabeticActive,
-        clinicalActive,
-        procareActive,
-      },
+      mealPlanConfig,
+      activeConstraints,
     };
 
-    res.json(state);
-  } catch (err: any) {
-    console.error("[nutritionState] GET error:", err);
-    res.status(500).json({ error: "Failed to resolve daily nutrition state" });
+    return res.json(state);
+  } catch (err) {
+    console.error("[nutritionState] error:", err);
+    return res.status(500).json({ error: "Failed to resolve nutrition state" });
   }
 });
 

@@ -327,13 +327,11 @@ export async function resolveDailyNutritionPrescription(
     source === "performance" ? "performance_overlay" : "macro_calculator";
   const rationaleSig = rationaleCodes.join(",");
 
-  // Cache guard: use setWhere so the UPDATE is a no-op when the source and
-  // rationale signature are unchanged. This avoids unnecessary writes on
-  // repeated requests for the same date (e.g. repeated page loads today).
-  // Meal-plan config snapshot (#690): snapshot the user's preferences at
-  // resolve time so every builder reads from one place without a second
-  // user query. Intentional user changes trigger a new resolution because
-  // sourceVersion changes, making setWhere fire a real UPDATE.
+  // Snapshot the user's meal-plan preferences at resolve time so every builder
+  // reads from one place. The upsert runs unconditionally (no setWhere) because
+  // meal-plan config changes (mealsPerDay, starchMealsPerDay, starchDistribution)
+  // must always refresh the snapshot even when the macro rationale hasn't changed.
+  // The write is fire-and-forget so the slight extra DB traffic is acceptable.
   const snapshotMealsPerDay       = user.macroMealsPerDay ?? 4;
   const snapshotStarchMealsPerDay = baselineStarchMeals;
 
@@ -372,9 +370,9 @@ export async function resolveDailyNutritionPrescription(
         starchDistributionStrategy: starchDistributionStrategy,
         updatedAt:         new Date(),
       },
-      // Only overwrite if something materially changed — avoids write amplification
-      // on repeated requests for the same date.
-      setWhere: sql`${dailyNutritionPrescriptions.sourceVersion} IS DISTINCT FROM ${rationaleSig}`,
+      // No setWhere guard — snapshot columns (mealsPerDay, starchMealsPerDay,
+      // starchDistributionStrategy) must always be refreshed so a mid-day
+      // preference change takes effect immediately on the same date.
     })
     .catch((err: unknown) => {
       console.error("[prescriptionResolver] upsert failed:", err);

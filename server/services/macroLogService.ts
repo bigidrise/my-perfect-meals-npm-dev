@@ -47,10 +47,14 @@ export interface MacroLogServiceInput {
   mealId?: string;
   title?: string;
   /**
-   * Stable board item ID (#690 — reservation mechanics).
-   * Set when a meal is logged from the board ("Log All") so the nutrition
-   * state engine can distinguish planned (on board, not yet logged) from
-   * consumed (logged). Null / omitted for manual / quick-log entries.
+   * UUID of the meal_board_items row being converted to a log.
+   *
+   * When set, writeMacroLog enforces that only ONE log row can reference a given
+   * board item (via the unique partial index on macro_logs.board_item_reference).
+   * A second call with the same value throws a duplicate error that callers should
+   * surface as HTTP 409 ALREADY_LOGGED.
+   *
+   * Null / undefined for all non-board logging paths (manual entry, builders, etc.).
    */
   boardItemReference?: string | null;
 }
@@ -123,9 +127,17 @@ export async function writeMacroLog(input: MacroLogServiceInput) {
       : kcalFrom(protein, carbohydrates, fat);
 
   const when = parseAt(dateIso);
-  const sourceVal = String(source || "manual").slice(0, 24);
 
-  const insertData = {
+  // Board item logs must never accumulate onto other board item logs — each board
+  // item is a distinct meal event. Use a unique per-item source key so the
+  // (userId, source, date) daily-accumulate constraint never merges two board items.
+  // "bi:" prefix + first 20 chars of UUID fits within the 24-char source column.
+  const boardItemReference = input.boardItemReference ?? null;
+  const sourceVal = boardItemReference
+    ? `bi:${boardItemReference.slice(0, 20)}`
+    : String(source || "manual").slice(0, 24);
+
+  const insertData: Record<string, unknown> = {
     userId,
     at: when,
     source: sourceVal,
@@ -138,17 +150,49 @@ export async function writeMacroLog(input: MacroLogServiceInput) {
     starchyCarbs: starchyCarbs != null ? starchyCarbs.toString() : "0",
     fibrousCarbs: fibrousCarbs != null ? fibrousCarbs.toString() : "0",
     classificationSource,
-    // boardItemReference links this log entry back to its board item so the
-    // nutrition state engine can correctly separate planned from consumed.
-    ...(input.boardItemReference ? { boardItemReference: input.boardItemReference } : {}),
+    ...(mealId ? { mealId } : {}),
+    ...(boardItemReference ? { boardItemReference } : {}),
   };
+
+  // Pre-check: if boardItemReference is set, verify it hasn't already been logged.
+  // This runs before the INSERT so the error is always surfaced, regardless of
+  // whether the unique partial index exists (belt-and-suspenders for race conditions).
+  if (boardItemReference) {
+    const [existing] = await db
+      .select({ id: macroLogs.id })
+      .from(macroLogs)
+      .where(sql`${macroLogs.boardItemReference} = ${boardItemReference}`)
+      .limit(1);
+    if (existing) {
+      const alreadyLoggedErr: any = new Error("Board item already logged");
+      alreadyLoggedErr.code = "ALREADY_LOGGED";
+      alreadyLoggedErr.boardItemReference = boardItemReference;
+      throw alreadyLoggedErr;
+    }
+  }
 
   let row: any;
   try {
-    [row] = await db.insert(macroLogs).values(insertData).returning();
+    [row] = await db.insert(macroLogs).values(insertData as any).returning();
   } catch (insertErr: any) {
     const isDuplicate = (insertErr?.cause?.code ?? insertErr?.code) === "23505";
     if (!isDuplicate) throw insertErr;
+
+    // Board-item reservation uniqueness: one macro_log per board item only.
+    // Never accumulate — the partial unique index on board_item_reference enforces this,
+    // so a 23505 on that column means the item was already logged. Surface as ALREADY_LOGGED
+    // so routes can return HTTP 409 rather than silently double-counting.
+    const errDetail: string = insertErr?.cause?.detail ?? insertErr?.detail ?? "";
+    const isAlreadyLogged =
+      boardItemReference != null &&
+      (errDetail.includes("board_item_reference") ||
+        errDetail.includes(boardItemReference));
+    if (isAlreadyLogged) {
+      const alreadyLoggedErr: any = new Error("Board item already logged");
+      alreadyLoggedErr.code = "ALREADY_LOGGED";
+      alreadyLoggedErr.boardItemReference = boardItemReference;
+      throw alreadyLoggedErr;
+    }
 
     // Duplicate daily entry — accumulate onto existing row.
     // Match by the owner's local calendar day (not UTC date) so a CDT user

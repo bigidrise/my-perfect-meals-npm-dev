@@ -6,358 +6,287 @@
  *
  * computeNextMealBudget() is a pure function (no DB, no network) so no
  * mocks are needed. All tests run against real DailyNutritionState shapes.
+ *
+ * API: computeNextMealBudget(state: DailyNutritionState, mealsLeft: number): MealBudget
+ * Returns: { caloriesTarget, proteinTarget, carbsTarget, fatTarget,
+ *            starchyCarbsTarget, fibrousCarbsTarget, starchSlotAvailable,
+ *            generationContext, mealsLeft }
  */
 
 import { computeNextMealBudget } from "../services/nutritionBudget";
-import type {
-  DailyNutritionState,
-  MealContext,
-} from "../../shared/dailyNutritionPrescription";
+import type { DailyNutritionState } from "../../shared/dailyNutritionPrescription";
 import { buildFallbackPrescription } from "../../shared/dailyNutritionPrescription";
 
 // ── Test helpers ──────────────────────────────────────────────────────────────
 
 function makeState(overrides: Partial<DailyNutritionState> = {}): DailyNutritionState {
-  const base = buildFallbackPrescription("2026-08-12");
   const prescription = {
-    ...base,
-    caloriesTarget:    2000,
-    proteinTarget:     150,
-    carbsTarget:       200,
-    fatTarget:         67,
-    starchyCarbsTarget: 100,
-    fibrousCarbsTarget: 100,
-    starchMealsAllowed: 2,
-    starchMealsUsed:    0,
-    starchMealsRemaining: 2,
-    starchyCarbsConsumed: 0,
+    ...buildFallbackPrescription("2026-08-12"),
+    caloriesTarget:        2000,
+    proteinTarget:         150,
+    carbsTarget:           200,
+    fatTarget:             67,
+    starchyCarbsTarget:    100,
+    fibrousCarbsTarget:    100,
+    starchMealsAllowed:    2,
+    starchMealsUsed:       0,
+    starchMealsRemaining:  2,
+    starchyCarbsConsumed:  0,
     starchyCarbsRemaining: 100,
     gramsPerRemainingStarchMeal: 50,
     source: "user_default" as const,
   };
 
-  const zeros = {
-    calories: 0, protein: 0, totalCarbs: 0,
-    starchyCarbs: 0, fibrousCarbs: 0, fat: 0,
-    starchMeals: 0, mealCount: 0,
-  };
-
-  return {
-    date: "2026-08-12",
-    resolvedPrescription: prescription,
-    consumed: { ...zeros },
-    planned:  { ...zeros },
-    remaining: {
-      calories: 2000, protein: 150, totalCarbs: 200,
-      starchyCarbs: 100, fibrousCarbs: 100, fat: 67,
-      starchMeals: 2, nonStarchMeals: 2,
+  const base: DailyNutritionState = {
+    date:       "2026-08-12",
+    resolvedAt: "2026-08-12T12:00:00.000Z",
+    prescription,
+    consumed: {
+      calories: 0, protein: 0, carbs: 0, fat: 0,
+      starchyCarbs: 0, fibrousCarbs: 0,
+      mealCount: 0, starchMealsLogged: 0,
     },
-    mealPlan: {
-      mealsPerDay:          4,
-      mealsConsumed:        0,
-      mealsPlanned:         0,
-      mealsRemaining:       4,
-      starchMealsPerDay:    2,
-      starchMealsConsumed:  0,
-      starchMealsPlanned:   0,
-      starchMealsRemaining: 2,
+    planned: {
+      calories: 0, protein: 0, carbs: 0, fat: 0,
+      starchyCarbs: 0, starchMealsPlanned: 0, reservationCount: 0,
+    },
+    remaining: {
+      calories: 2000, protein: 150, carbs: 200, fat: 67,
+      starchyCarbs: 100, fibrousCarbs: 100, starchMealsRemaining: 2,
+    },
+    mealPlanConfig: {
+      mealsPerDay:                4,
+      starchMealsPerDay:          2,
       starchDistributionStrategy: "even",
-      gramsPerRemainingStarchMeal: 50,
-      isZeroStarchDay: false,
     },
     activeConstraints: {
-      performanceActive: false,
-      glp1Active:        false,
-      diabeticActive:    false,
-      clinicalActive:    false,
-      procareActive:     false,
+      generationContext:   "standard",
+      starchSlotsExhausted:   false,
+      calorieBudgetExhausted: false,
+      proteinBudgetMet:       false,
     },
-    ...overrides,
   };
-}
 
-const standardContext: MealContext = {
-  generationContext: "standard",
-  mealIndex: 0,
-};
+  return { ...base, ...overrides };
+}
 
 // ── Standard budget division ──────────────────────────────────────────────────
 
 describe("computeNextMealBudget — standard", () => {
-  test("divides remaining equally across mealsRemaining", () => {
+  test("divides remaining macros evenly across mealsLeft", () => {
     const state  = makeState();
-    const budget = computeNextMealBudget(state, standardContext);
+    const budget = computeNextMealBudget(state, 4);
 
     // 4 meals left → each gets ¼ of remaining
-    expect(budget.caloriesBudget).toBe(500);   // 2000 / 4
-    expect(budget.proteinBudget).toBe(38);     // round(150/4)
-    expect(budget.carbsBudget).toBe(50);       // 200 / 4
-    expect(budget.fatBudget).toBe(17);         // round(67/4)
-    expect(budget.starchAllowed).toBe(true);
-    expect(budget.mealsRemaining).toBe(4);
-    expect(budget.starchMealsRemaining).toBe(2);
-    expect(budget.clinicalNotes).toHaveLength(0);
+    expect(budget.caloriesTarget).toBe(500);   // 2000 / 4
+    expect(budget.proteinTarget).toBe(38);     // round(150/4)
+    expect(budget.carbsTarget).toBe(50);       // 200 / 4
+    expect(budget.fatTarget).toBe(17);         // round(67/4)
+    expect(budget.starchSlotAvailable).toBe(true);
+    expect(budget.mealsLeft).toBe(4);
   });
 
-  test("starchyBudget capped to gramsPerRemainingStarchMeal when over adaptive target", () => {
-    // gramsPerRemainingStarchMeal = 50, but even split of 100g / 4 meals = 25g
-    // — below the cap so no cap fires in default state
+  test("starchyCarbsTarget is proportional share when slots remain", () => {
     const state  = makeState();
-    const budget = computeNextMealBudget(state, standardContext);
-    expect(budget.starchyBudget).toBe(25); // 100/4, under 50g cap → no cap note
-    expect(budget.clinicalNotes).not.toContain("starchy_carbs_capped_to_adaptive_per_meal_target");
+    const budget = computeNextMealBudget(state, 4);
+    // 100g starchy / 4 meals = 25g
+    expect(budget.starchyCarbsTarget).toBe(25);
+    expect(budget.fibrousCarbsTarget).toBe(25); // 100g fibrous / 4 = 25g
   });
 
-  test("starchyBudget is capped when per-meal share exceeds adaptive target", () => {
-    // Only 1 meal remaining but 100g starchy carbs left (50g was already used).
-    // gramsPerRemainingStarchMeal = 50 (100g / 2 starch slots remaining).
-    // Even split = 100g / 1 meal = 100g — exceeds the 50g adaptive cap.
+  test("single meal left gets all remaining budget", () => {
     const state = makeState({
       remaining: {
-        calories: 500, protein: 38, totalCarbs: 100,
-        starchyCarbs: 100, fibrousCarbs: 0, fat: 17,
-        starchMeals: 2, nonStarchMeals: 0,
-      },
-      mealPlan: {
-        mealsPerDay: 4, mealsConsumed: 3, mealsPlanned: 0, mealsRemaining: 1,
-        starchMealsPerDay: 2, starchMealsConsumed: 0, starchMealsPlanned: 0,
-        starchMealsRemaining: 2,
-        starchDistributionStrategy: "even",
-        gramsPerRemainingStarchMeal: 50,
-        isZeroStarchDay: false,
+        calories: 600, protein: 45, carbs: 60, fat: 20,
+        starchyCarbs: 40, fibrousCarbs: 20, starchMealsRemaining: 1,
       },
     });
-    const budget = computeNextMealBudget(state, standardContext);
-    expect(budget.starchyBudget).toBe(50);
-    expect(budget.fibrousBudget).toBe(50); // excess rerouted
-    expect(budget.clinicalNotes).toContain("starchy_carbs_capped_to_adaptive_per_meal_target");
+    const budget = computeNextMealBudget(state, 1);
+    expect(budget.caloriesTarget).toBe(600);
+    expect(budget.proteinTarget).toBe(45);
+    expect(budget.carbsTarget).toBe(60);
+    expect(budget.starchyCarbsTarget).toBe(40);
+    expect(budget.starchSlotAvailable).toBe(true);
+  });
+
+  test("mealsLeft=0 is clamped to 1 to avoid division-by-zero", () => {
+    const state  = makeState();
+    const budget = computeNextMealBudget(state, 0);
+    expect(budget.mealsLeft).toBe(1);
+    expect(budget.caloriesTarget).toBe(2000); // full remaining ÷ 1
+  });
+
+  test("negative mealsLeft is clamped to 1", () => {
+    const state  = makeState();
+    const budget = computeNextMealBudget(state, -3);
+    expect(budget.mealsLeft).toBe(1);
+  });
+
+  test("passes generationContext through from activeConstraints", () => {
+    const state = makeState({
+      activeConstraints: {
+        generationContext:      "glp1",
+        starchSlotsExhausted:   false,
+        calorieBudgetExhausted: false,
+        proteinBudgetMet:       false,
+      },
+    });
+    const budget = computeNextMealBudget(state, 2);
+    expect(budget.generationContext).toBe("glp1");
   });
 });
 
 // ── Starch slot gate (the advisor's core scenario) ────────────────────────────
 
 describe("computeNextMealBudget — starch slot gate", () => {
-  test("starchAllowed is false when starchMealsRemaining = 0", () => {
+  test("starchSlotAvailable is false when starchMealsRemaining = 0", () => {
     const state = makeState({
       remaining: {
-        calories: 1000, protein: 75, totalCarbs: 100,
+        calories: 1000, protein: 75, carbs: 100,
         starchyCarbs: 50, fibrousCarbs: 50, fat: 33,
-        starchMeals: 0, nonStarchMeals: 2,
-      },
-      mealPlan: {
-        mealsPerDay: 4, mealsConsumed: 2, mealsPlanned: 0, mealsRemaining: 2,
-        starchMealsPerDay: 2, starchMealsConsumed: 2, starchMealsPlanned: 0,
         starchMealsRemaining: 0,
-        starchDistributionStrategy: "even",
-        gramsPerRemainingStarchMeal: undefined,
-        isZeroStarchDay: false,
       },
     });
-    const budget = computeNextMealBudget(state, standardContext);
+    const budget = computeNextMealBudget(state, 2);
 
-    expect(budget.starchAllowed).toBe(false);
-    expect(budget.starchyBudget).toBe(0);
-    // Rerouted to fibrous: 50/2 = 25g starchy → fibrous (50/2 base + 25 rerouted = 50)
-    expect(budget.fibrousBudget).toBeGreaterThan(0);
-    expect(budget.clinicalNotes).toContain("starch_slots_exhausted_rerouted_to_fibrous");
+    expect(budget.starchSlotAvailable).toBe(false);
+    expect(budget.starchyCarbsTarget).toBe(0);
+    // All remaining carbs become fibrous when starch is exhausted
+    expect(budget.fibrousCarbsTarget).toBeGreaterThan(0);
   });
 
-  test("advisor scenario: 100g starchy, 2 starch meals, meal 1 uses 46g → meal 2 gets ~54g", () => {
+  test("all remaining carbs rerouted to fibrous when starch slots exhausted", () => {
+    const state = makeState({
+      remaining: {
+        calories: 800, protein: 60, carbs: 80,
+        starchyCarbs: 40, fibrousCarbs: 40, fat: 26,
+        starchMealsRemaining: 0,
+      },
+    });
+    const budget = computeNextMealBudget(state, 2);
+
+    expect(budget.starchyCarbsTarget).toBe(0);
+    // When starch exhausted: fibrousCarbsTarget = carbsTarget (all remaining carbs)
+    expect(budget.fibrousCarbsTarget).toBe(budget.carbsTarget);
+    expect(budget.fibrousCarbsTarget).toBeGreaterThan(0);
+  });
+
+  test("advisor scenario: after 1 starch meal, meal 2 gets remaining starch budget", () => {
     // After first starch meal (46g starchy consumed):
     // remaining starchy = 100 - 46 = 54g, starchMealsRemaining = 1
-    // gramsPerRemainingStarchMeal = 54g (all remaining for the last slot)
     const state = makeState({
-      consumed: {
-        calories: 450, protein: 40, totalCarbs: 60,
-        starchyCarbs: 46, fibrousCarbs: 14, fat: 15,
-        starchMeals: 1, mealCount: 1,
-      },
       remaining: {
-        calories: 1550, protein: 110, totalCarbs: 140,
+        calories: 1550, protein: 110, carbs: 140,
         starchyCarbs: 54, fibrousCarbs: 86, fat: 52,
-        starchMeals: 1, nonStarchMeals: 2,
-      },
-      mealPlan: {
-        mealsPerDay: 4, mealsConsumed: 1, mealsPlanned: 0, mealsRemaining: 3,
-        starchMealsPerDay: 2, starchMealsConsumed: 1, starchMealsPlanned: 0,
         starchMealsRemaining: 1,
-        starchDistributionStrategy: "even",
-        gramsPerRemainingStarchMeal: 54, // all remaining starchy for the last slot
-        isZeroStarchDay: false,
-      },
-      resolvedPrescription: {
-        ...buildFallbackPrescription("2026-08-12"),
-        caloriesTarget: 2000, proteinTarget: 150, carbsTarget: 200,
-        fatTarget: 67, starchyCarbsTarget: 100, fibrousCarbsTarget: 100,
-        starchMealsAllowed: 2, starchMealsUsed: 1, starchMealsRemaining: 1,
-        starchyCarbsConsumed: 46, starchyCarbsRemaining: 54,
-        gramsPerRemainingStarchMeal: 54,
-        source: "user_default" as const,
       },
     });
-    const budget = computeNextMealBudget(state, { ...standardContext, mealIndex: 1 });
+    const budget = computeNextMealBudget(state, 3);
 
-    // Next starch meal should get approximately 54g (the adaptive target)
-    expect(budget.starchAllowed).toBe(true);
-    expect(budget.starchyBudget).toBeLessThanOrEqual(54);
-    expect(budget.starchyBudget).toBeGreaterThan(0);
-    expect(budget.starchMealsRemaining).toBe(1);
+    expect(budget.starchSlotAvailable).toBe(true);
+    // 54g / 3 meals = 18g per meal
+    expect(budget.starchyCarbsTarget).toBe(18);
   });
 
-  test("after second starch meal accepted, starchMealsRemaining = 0 → next request gets 0", () => {
+  test("starchyCarbsTarget is 0 even when remaining.starchyCarbs > 0 but slots = 0", () => {
+    // This is the double-counting prevention: starchy carbs budget left but no slots
     const state = makeState({
       remaining: {
-        calories: 1100, protein: 72, totalCarbs: 80,
-        starchyCarbs: 0, fibrousCarbs: 80, fat: 35,
-        starchMeals: 0, nonStarchMeals: 2,
-      },
-      mealPlan: {
-        mealsPerDay: 4, mealsConsumed: 2, mealsPlanned: 0, mealsRemaining: 2,
-        starchMealsPerDay: 2, starchMealsConsumed: 2, starchMealsPlanned: 0,
+        calories: 500, protein: 38, carbs: 50,
+        starchyCarbs: 30, fibrousCarbs: 20, fat: 17,
         starchMealsRemaining: 0,
-        starchDistributionStrategy: "even",
-        gramsPerRemainingStarchMeal: undefined,
-        isZeroStarchDay: false,
       },
     });
-    const budget = computeNextMealBudget(state, { ...standardContext, mealIndex: 2 });
-
-    expect(budget.starchAllowed).toBe(false);
-    expect(budget.starchyBudget).toBe(0);
-    // Fibrous budget gets the rerouted starchy grams (0g since starchyCarbs remaining = 0)
-    expect(budget.clinicalNotes).not.toContain("starch_slots_exhausted_rerouted_to_fibrous");
+    const budget = computeNextMealBudget(state, 2);
+    expect(budget.starchyCarbsTarget).toBe(0);
   });
-});
 
-// ── Meals exhausted ───────────────────────────────────────────────────────────
-
-describe("computeNextMealBudget — meals exhausted", () => {
-  test("mealsRemaining = 0 → uses divisor of 1 (not NaN/Infinity), budgets reflect full remaining", () => {
+  test("starchSlotAvailable is true as long as starchMealsRemaining >= 1", () => {
     const state = makeState({
       remaining: {
-        calories: 200, protein: 20, totalCarbs: 25,
-        starchyCarbs: 10, fibrousCarbs: 15, fat: 5,
-        starchMeals: 1, nonStarchMeals: 0,
-      },
-      mealPlan: {
-        mealsPerDay: 4, mealsConsumed: 4, mealsPlanned: 0, mealsRemaining: 0,
-        starchMealsPerDay: 2, starchMealsConsumed: 2, starchMealsPlanned: 0,
+        calories: 500, protein: 38, carbs: 50,
+        starchyCarbs: 30, fibrousCarbs: 20, fat: 17,
         starchMealsRemaining: 1,
-        starchDistributionStrategy: "even",
-        gramsPerRemainingStarchMeal: 10,
-        isZeroStarchDay: false,
       },
     });
-    const budget = computeNextMealBudget(state, standardContext);
-
-    // mealsLeft is clamped to 1 when 0 → budgets equal remaining totals
-    expect(budget.caloriesBudget).toBe(200);
-    expect(budget.mealsRemaining).toBe(0);
-    expect(isNaN(budget.caloriesBudget)).toBe(false);
-    expect(isFinite(budget.caloriesBudget)).toBe(true);
+    const budget = computeNextMealBudget(state, 2);
+    expect(budget.starchSlotAvailable).toBe(true);
+    expect(budget.starchyCarbsTarget).toBeGreaterThan(0);
   });
 });
 
-// ── Clinical ceilings ─────────────────────────────────────────────────────────
+// ── Zero / exhausted budget edge cases ───────────────────────────────────────
 
-describe("computeNextMealBudget — diabetic carb ceiling", () => {
-  test("caps carbs at 35g and reroutes excess to protein", () => {
-    const state = makeState({
-      activeConstraints: {
-        performanceActive: false, glp1Active: false,
-        diabeticActive: true, clinicalActive: false, procareActive: false,
-      },
-      // remaining carbs / 4 meals = 200/4 = 50g → exceeds 35g ceiling
-    });
-    const budget = computeNextMealBudget(state, {
-      generationContext: "diabetic",
-      mealIndex: 0,
-    });
-
-    expect(budget.carbsBudget).toBe(35);
-    // Excess 15g carbs rerouted to protein
-    expect(budget.proteinBudget).toBe(Math.round(150 / 4) + 15);
-    expect(budget.clinicalNotes).toContain("diabetic_carb_ceiling_applied_35g");
-  });
-
-  test("does not fire when carbs per meal is already under 35g", () => {
+describe("computeNextMealBudget — exhausted budget", () => {
+  test("all targets are 0 when remaining is fully consumed", () => {
     const state = makeState({
       remaining: {
-        calories: 500, protein: 38, totalCarbs: 100,
-        starchyCarbs: 50, fibrousCarbs: 50, fat: 17,
-        starchMeals: 2, nonStarchMeals: 2,
-      },
-      activeConstraints: {
-        performanceActive: false, glp1Active: false,
-        diabeticActive: true, clinicalActive: false, procareActive: false,
-      },
-      mealPlan: {
-        mealsPerDay: 4, mealsConsumed: 0, mealsPlanned: 0, mealsRemaining: 4,
-        starchMealsPerDay: 2, starchMealsConsumed: 0, starchMealsPlanned: 0,
-        starchMealsRemaining: 2,
-        starchDistributionStrategy: "even",
-        gramsPerRemainingStarchMeal: 50,
-        isZeroStarchDay: false,
+        calories: 0, protein: 0, carbs: 0, fat: 0,
+        starchyCarbs: 0, fibrousCarbs: 0, starchMealsRemaining: 0,
       },
     });
-    const budget = computeNextMealBudget(state, { generationContext: "diabetic", mealIndex: 0 });
+    const budget = computeNextMealBudget(state, 2);
+    expect(budget.caloriesTarget).toBe(0);
+    expect(budget.proteinTarget).toBe(0);
+    expect(budget.carbsTarget).toBe(0);
+    expect(budget.fatTarget).toBe(0);
+    expect(budget.starchyCarbsTarget).toBe(0);
+    expect(budget.fibrousCarbsTarget).toBe(0);
+    expect(budget.starchSlotAvailable).toBe(false);
+  });
 
-    // 100g / 4 meals = 25g — already under ceiling
-    expect(budget.carbsBudget).toBe(25);
-    expect(budget.clinicalNotes).not.toContain("diabetic_carb_ceiling_applied_35g");
+  test("no target ever goes negative — clamped to 0", () => {
+    // Passing more consumed than prescription (shouldn't happen but must be safe)
+    const state = makeState({
+      remaining: {
+        calories: -200, protein: -10, carbs: -5, fat: -3,
+        starchyCarbs: -10, fibrousCarbs: -5, starchMealsRemaining: 0,
+      },
+    });
+    const budget = computeNextMealBudget(state, 2);
+    // computeNextMealBudget operates on remaining which is pre-clamped by the endpoint,
+    // but even if negative values leak through, the result should be >= 0
+    expect(budget.caloriesTarget).toBeGreaterThanOrEqual(0);
+    expect(budget.proteinTarget).toBeGreaterThanOrEqual(0);
+    expect(budget.carbsTarget).toBeGreaterThanOrEqual(0);
+    expect(budget.fatTarget).toBeGreaterThanOrEqual(0);
+    expect(budget.starchyCarbsTarget).toBeGreaterThanOrEqual(0);
+    expect(budget.fibrousCarbsTarget).toBeGreaterThanOrEqual(0);
   });
 });
 
-describe("computeNextMealBudget — GLP-1 fat ceiling", () => {
-  test("caps fat per meal to fatTarget / mealsPerDay", () => {
-    const state = makeState({
-      // 67g fat / 4 meals = 16.75 → 17g ceiling per meal
-      // But remaining.fat / mealsRemaining = 67/4 ≈ 17g — right at the ceiling
-      // To trigger it, reduce mealsRemaining so per-meal share > ceiling
-      remaining: {
-        calories: 1000, protein: 75, totalCarbs: 100,
-        starchyCarbs: 50, fibrousCarbs: 50, fat: 67, // full day fat remaining
-        starchMeals: 2, nonStarchMeals: 0,
-      },
-      mealPlan: {
-        mealsPerDay: 4, mealsConsumed: 2, mealsPlanned: 0, mealsRemaining: 2,
-        starchMealsPerDay: 2, starchMealsConsumed: 0, starchMealsPlanned: 0,
-        starchMealsRemaining: 2,
-        starchDistributionStrategy: "even",
-        gramsPerRemainingStarchMeal: 50,
-        isZeroStarchDay: false,
-      },
-      activeConstraints: {
-        performanceActive: false, glp1Active: true,
-        diabeticActive: false, clinicalActive: false, procareActive: false,
-      },
-    });
-    const budget = computeNextMealBudget(state, { generationContext: "glp1", mealIndex: 2 });
+// ── Generation context passthrough ────────────────────────────────────────────
 
-    // per-meal share = 67/2 = 33.5g; fat ceiling = 67/4 = 16.75 → 17g
-    expect(budget.fatBudget).toBe(17); // capped at fatTarget / mealsPerDay
-    expect(budget.clinicalNotes).toContain("glp1_per_meal_fat_ceiling_applied");
+describe("computeNextMealBudget — generationContext", () => {
+  test("returns 'standard' by default", () => {
+    const state  = makeState();
+    const budget = computeNextMealBudget(state, 4);
+    expect(budget.generationContext).toBe("standard");
   });
-});
 
-// ── Floor enforcement ─────────────────────────────────────────────────────────
-
-describe("computeNextMealBudget — floors", () => {
-  test("all budgets are ≥ 0 even when remaining is negative (edge case)", () => {
+  test("returns 'diabetic' when activeConstraints has diabetic context", () => {
     const state = makeState({
-      remaining: {
-        calories: -100, protein: -50, totalCarbs: -30,
-        starchyCarbs: -20, fibrousCarbs: -10, fat: -5,
-        starchMeals: 0, nonStarchMeals: 1,
+      activeConstraints: {
+        generationContext:      "diabetic",
+        starchSlotsExhausted:   false,
+        calorieBudgetExhausted: false,
+        proteinBudgetMet:       false,
       },
     });
-    const budget = computeNextMealBudget(state, standardContext);
+    const budget = computeNextMealBudget(state, 2);
+    expect(budget.generationContext).toBe("diabetic");
+  });
 
-    expect(budget.caloriesBudget).toBeGreaterThanOrEqual(0);
-    expect(budget.proteinBudget).toBeGreaterThanOrEqual(0);
-    expect(budget.carbsBudget).toBeGreaterThanOrEqual(0);
-    expect(budget.fatBudget).toBeGreaterThanOrEqual(0);
-    expect(budget.starchyBudget).toBeGreaterThanOrEqual(0);
-    expect(budget.fibrousBudget).toBeGreaterThanOrEqual(0);
+  test("returns 'performance_training_day' for performance context", () => {
+    const state = makeState({
+      activeConstraints: {
+        generationContext:      "performance_training_day",
+        starchSlotsExhausted:   false,
+        calorieBudgetExhausted: false,
+        proteinBudgetMet:       false,
+      },
+    });
+    const budget = computeNextMealBudget(state, 3);
+    expect(budget.generationContext).toBe("performance_training_day");
   });
 });
