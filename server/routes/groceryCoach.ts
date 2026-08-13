@@ -3,7 +3,8 @@ import OpenAI from "openai";
 import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
-import { loadUserProtocolEnvelope, enforceBeforeGenerate, buildGuestEnvelope } from "../services/protocolEnvelope";
+import { loadUserProtocolEnvelope, enforceBeforeGenerate, buildGuestEnvelope, scanGeneratedOutput } from "../services/protocolEnvelope";
+import { resolveGLP1GlobalContext, buildGLP1RecommendationBlock } from "../services/glp1/resolveGLP1GlobalContext";
 import { getProductAdvisorEngine } from "../services/productAdvisor";
 import { finalizeMealCard } from "../services/mealCardFinalizer";
 
@@ -36,6 +37,8 @@ router.post("/recommend", async (req, res) => {
     const finalServingCount = Math.max(1, Math.min(12, Number(servingCount) || 1));
     let protocolContext = "";
     let macroContext = "";
+    let groceryEnvelope = buildGuestEnvelope();
+    let glp1RecommendationBlock = "";
 
     if (userId) {
       // Use the same full 5-tier constraint package every other builder uses.
@@ -43,8 +46,14 @@ router.post("/recommend", async (req, res) => {
       // condition guidance blocks (GLP-1, oncology, pregnancy, thyroid, etc.),
       // palate preferences, sweetener rules, procedural/cross-contamination rules,
       // and performance nutrition overlay.
-      const envelope = await loadUserProtocolEnvelope(userId).catch(() => null) ?? buildGuestEnvelope();
-      protocolContext = enforceBeforeGenerate(envelope, { generatorName: "grocery_coach" }).combined;
+      groceryEnvelope = await loadUserProtocolEnvelope(userId).catch(() => null) ?? buildGuestEnvelope();
+      protocolContext = enforceBeforeGenerate(groceryEnvelope, { generatorName: "grocery_coach" }).combined;
+
+      // Load GLP-1 canonical context — covers all five activation sources
+      // (selectedMealBuilder, medicalConditions, specialtyConditions, preferredBuilder, glp1_profile)
+      const todayISO = new Date().toISOString().slice(0, 10);
+      const glp1Ctx = await resolveGLP1GlobalContext(userId, todayISO).catch(() => null);
+      if (glp1Ctx) glp1RecommendationBlock = buildGLP1RecommendationBlock(glp1Ctx);
 
       const [userRow] = await db
         .select({
@@ -70,6 +79,7 @@ Your mission: turn "I don't know what to eat" into "Here is exactly what to buy,
 
 USER HEALTH PROFILE AND CONSTRAINTS:
 ${protocolContext || "No dietary restrictions or conditions on file — apply general healthy eating principles."}
+${glp1RecommendationBlock ? `\n${glp1RecommendationBlock}` : ""}
 ${macroContext ? `\n${macroContext}` : ""}
 
 SERVING SIZE: All ingredient quantities must be scaled for ${finalServingCount} ${finalServingCount === 1 ? "person" : "people"}.
@@ -141,7 +151,30 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
       return res.status(500).json({ error: "Could not parse coach response. Try again." });
     }
 
-    return res.json({ ...result, servingCount: finalServingCount });
+    // ── Post-generation protocol scan ─────────────────────────────────────────
+    // Grocery Coach generates a meal suggestion; run the same post-gen scan
+    // that every other builder uses so GLP-1, diabetic, and allergy rules are
+    // enforced on the output — not just the prompt.
+    let ndeSummary: string | undefined;
+    try {
+      const mealForScan = {
+        name: result.meal?.name ?? "Grocery Coach Recommendation",
+        description: result.meal?.description,
+        ingredients: (result.shoppingList ?? []).map((i: any) => ({ name: i.item ?? "" })),
+      };
+      const scan = scanGeneratedOutput(mealForScan, groceryEnvelope, {
+        generatorName: "grocery_coach",
+        skipAdaptableConflicts: true,
+      });
+      if (!scan.passed) {
+        ndeSummary = scan.violations.map((v: any) => v.message || v.reason || String(v)).join("; ");
+        console.warn(`⚠️ [GroceryCoach] Post-gen scan flagged: ${ndeSummary}`);
+      }
+    } catch {
+      // Non-fatal — scan failure must not block the response
+    }
+
+    return res.json({ ...result, servingCount: finalServingCount, ...(ndeSummary ? { ndeSummary } : {}) });
   } catch (err: any) {
     console.error("[GroceryCoach] Error:", err?.message);
     return res.status(500).json({ error: "Your coach is unavailable right now. Please try again." });

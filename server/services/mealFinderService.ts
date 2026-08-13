@@ -32,6 +32,9 @@ interface MealFinderRequest {
    *  all medical condition guidance needed for post-generation validation.
    *  Without this, the diabetic validator and protocol post-scan are silently skipped. */
   protocolEnvelope?: UserProtocolEnvelope;
+  /** Pre-built remaining-day macro budget block from buildRemainingMacrosBlock().
+   *  Injected into each AI call so meal selection/sides reflect today's remaining budget. */
+  remainingMacrosBlock?: string;
 }
 
 interface RestaurantResult {
@@ -311,7 +314,7 @@ async function resolveWithFallback(
 // ─── Main export ─────────────────────────────────────────────────────────────
 
 export async function findMealsNearby(request: MealFinderRequest): Promise<RestaurantResult[]> {
-  const { mealQuery, zipCode, user, dietaryRestrictions: bodyDiet, priceRange, protocolBlock, builderBlock, cuisinePreference, protocolEnvelope } = request;
+  const { mealQuery, zipCode, user, dietaryRestrictions: bodyDiet, priceRange, protocolBlock, builderBlock, cuisinePreference, protocolEnvelope, remainingMacrosBlock } = request;
 
   // Merge body-supplied dietary restrictions with user's DB restrictions
   const effectiveDiet: string[] = Array.from(new Set([
@@ -357,6 +360,7 @@ export async function findMealsNearby(request: MealFinderRequest): Promise<Resta
           protocolBlock: protocolBlock || undefined,
           builderBlock: builderBlock || undefined,
           protocolEnvelope,
+          remainingMacrosBlock: remainingMacrosBlock || undefined,
         });
         if (aiMeals && aiMeals.length > 0) {
           return aiMeals.slice(0, 2).map((meal) => ({
@@ -428,6 +432,7 @@ export async function findMealsNearby(request: MealFinderRequest): Promise<Resta
         protocolBlock: protocolBlock || undefined,
         builderBlock: builderBlock || undefined,
         protocolEnvelope,
+        remainingMacrosBlock: remainingMacrosBlock || undefined,
       });
 
       if (aiMeals && aiMeals.length > 0) {

@@ -188,7 +188,7 @@ export async function resolveGLP1GlobalContext(
   const [firstPassTargets, dailyNutritionState] = await Promise.all([
     (async (): Promise<ResolvedGLP1Targets | null> => {
       try {
-        return await loadGLP1ResolvedTargets(Number(userId), { mealType });
+        return await loadGLP1ResolvedTargets(userId, { mealType });
       } catch (err) {
         console.warn("[GLP1Context] Initial target resolution failed — using static baselines:", err);
         return null;
@@ -211,7 +211,7 @@ export async function resolveGLP1GlobalContext(
   let resolvedTargets = firstPassTargets;
   if (firstPassTargets && dailyNutritionState) {
     try {
-      resolvedTargets = await loadGLP1ResolvedTargets(Number(userId), {
+      resolvedTargets = await loadGLP1ResolvedTargets(userId, {
         mealType,
         remainingMacros: {
           calories: dailyNutritionState.remaining.calories,
@@ -248,4 +248,47 @@ export async function resolveGLP1GlobalContext(
     dailyNutritionState,
     compositionNote,
   };
+}
+
+// ─── Recommendation-surface prompt block ─────────────────────────────────────
+
+/**
+ * Build a GLP-1 guidance block appropriate for recommendation surfaces
+ * (restaurants, getaways, buffets, meal finder, grocery coach).
+ *
+ * Recommendation surfaces cannot enforce portion sizes but CAN guide:
+ *   - Food selection (protein priority, lower-fat preparation)
+ *   - Eating strategy (stop at comfortable fullness, avoid heavy items)
+ *   - Side choices (non-starchy vegetables over fries/rice)
+ *
+ * Returns an empty string when GLP-1 is not active so callers can safely
+ * append it without an extra isActive check.
+ */
+export function buildGLP1RecommendationBlock(ctx: GLP1GlobalContext): string {
+  if (!ctx.isActive) return "";
+
+  const t = ctx.resolvedTargets;
+  const phase = t?.treatmentPhase ?? "active";
+  const proteinTarget = t?.targetProteinGrams ?? 15;
+  const fatCeiling = t?.maximumToleratedFatGrams ?? 12;
+  const calTarget = t?.resolvedMealCalories ?? 400;
+
+  const lines: string[] = [
+    `GLP-1 MEDICATION PROTOCOL — ACTIVE (sources: ${ctx.activationSources.join(", ")})`,
+    `Treatment phase: ${phase} | Meal target: ~${calTarget} kcal | Protein: ≥${proteinTarget}g | Fat ceiling: ≤${fatCeiling}g`,
+    "",
+    "FOOD SELECTION RULES for this GLP-1 patient (recommendation surface — you cannot control exact serving sizes, so guide CHOICES and PREPARATION):",
+    `• PROTEIN FIRST: Always lead recommendations with the highest-protein option available. Target ≥${proteinTarget}g protein.`,
+    `• FAT CEILING: Avoid fried foods, heavy cream sauces, buttery preparations, and high-fat cheeses. Favor preparations ≤${fatCeiling}g fat.`,
+    "• PREPARATION: Prefer grilled, baked, steamed, or roasted. Avoid breaded, fried, or sauce-heavy dishes.",
+    "• STARCH STRATEGY: Recommend skipping or reducing starchy sides (fries, rice, bun, bread). Suggest vegetables or salad instead.",
+    "• PORTION AWARENESS: Note that GLP-1 medications reduce appetite — smaller portions are appropriate. Do NOT encourage large plates or 'hearty' meals.",
+    "• AVOID: Heavy appetizers, creamy soups, sugary drinks, desserts, high-fat entrees.",
+  ];
+
+  if (ctx.compositionNote) {
+    lines.push("", ctx.compositionNote);
+  }
+
+  return lines.join("\n");
 }
