@@ -165,6 +165,24 @@ async function openBarcodeModalCameraMode(page: Page) {
 }
 
 /**
+ * Open the Scan Barcode modal in Manual (default) mode.
+ * The modal always opens in manual mode, so no tab switch is needed.
+ */
+async function openBarcodeModalManualMode(page: Page) {
+  await page.click('[data-testid="button-barcode-scan"]');
+  // The modal opens in manual mode by default — input is immediately visible
+  await expect(page.getByTestId("input-barcode")).toBeVisible({ timeout: 5_000 });
+}
+
+/**
+ * Type a barcode into the manual input and click "Look Up".
+ */
+async function typeAndSubmitBarcode(page: Page, code: string) {
+  await page.getByTestId("input-barcode").fill(code);
+  await page.getByTestId("button-add-barcode").click();
+}
+
+/**
  * Simulate MobileBarcodeCamera firing onBarcode(code) by calling the test
  * hook that ShoppingListMasterView exposes when navigator.webdriver is true.
  */
@@ -250,6 +268,87 @@ test.describe("Camera barcode scan → BarcodeDatabaseBadge", () => {
       await openBarcodeModalCameraMode(page);
 
       await fireCameraBarcode(page, "099999999999");
+
+      // IngredientIntelligenceSheet should open and show the AI estimate badge
+      await expect(
+        page.getByText("Not in database · AI estimate")
+      ).toBeVisible({ timeout: 8_000 });
+    }
+  );
+});
+
+// ── Manual barcode entry tests ─────────────────────────────────────────────────
+
+test.describe("Manual barcode entry → BarcodeDatabaseBadge", () => {
+  test(
+    'shows "Database match · Open Food Facts" badge when resolvedFromDb is true',
+    async ({ page }) => {
+      await mockInfraRoutes(page);
+
+      // Mock barcode API — product found in Open Food Facts
+      await page.route("/api/biometrics/ingredient-scan-by-barcode", (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            ok: true,
+            resolvedFromDb: true,
+            resolvedName: "Organic Whole Milk (Open Food Facts)",
+            result: makeBarcodeScanResult(),
+          }),
+        })
+      );
+
+      await page.goto("/shopping-list");
+
+      await expect(
+        page.getByTestId("button-barcode-scan")
+      ).toBeVisible({ timeout: 10_000 });
+
+      // Open the modal in manual (default) mode
+      await openBarcodeModalManualMode(page);
+
+      // Type the barcode and submit via the "Look Up" button
+      await typeAndSubmitBarcode(page, "012000030901");
+
+      // IngredientIntelligenceSheet should open and show the DB match badge
+      await expect(
+        page.getByText("Database match · Open Food Facts")
+      ).toBeVisible({ timeout: 8_000 });
+    }
+  );
+
+  test(
+    'shows "Not in database · AI estimate" badge when resolvedFromDb is false',
+    async ({ page }) => {
+      await mockInfraRoutes(page);
+
+      // Mock barcode API — barcode not found in DB, AI estimate used
+      await page.route("/api/biometrics/ingredient-scan-by-barcode", (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            ok: true,
+            resolvedFromDb: false,
+            resolvedName: null,
+            result: makeBarcodeScanResult({ productName: "Unknown Brand Crackers" }),
+          }),
+        })
+      );
+
+      await page.goto("/shopping-list");
+
+      await expect(
+        page.getByTestId("button-barcode-scan")
+      ).toBeVisible({ timeout: 10_000 });
+
+      // Open the modal in manual (default) mode
+      await openBarcodeModalManualMode(page);
+
+      // Type the barcode and submit by pressing Enter
+      await page.getByTestId("input-barcode").fill("099999999999");
+      await page.getByTestId("input-barcode").press("Enter");
 
       // IngredientIntelligenceSheet should open and show the AI estimate badge
       await expect(
