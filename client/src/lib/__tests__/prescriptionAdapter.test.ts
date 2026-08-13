@@ -214,3 +214,74 @@ describe("DailyStarchIndicator smoke — starchyCarbs_g is non-zero from a resol
     expect(result!.starchyCarbs_g).toBeUndefined();
   });
 });
+
+// ── FibrousCarbs smoke ────────────────────────────────────────────────────────
+//
+// fibrousCarbs_g has the same field-name-mismatch risk as starchyCarbs_g:
+// if fibrousCarbsTarget were renamed on the server-side prescription (or
+// mistyped in the adapter), fibrousCarbs_g would silently become undefined
+// with no TypeScript error and no visible crash.
+//
+// These tests specifically exercise the fibrous-carbs-only prescription path
+// (starchyCarbsTarget absent) to guarantee the mapping survives a rename.
+
+describe("FibrousCarbs smoke — fibrousCarbs_g is non-zero from a fibrous-carbs-only prescription", () => {
+  it("fibrousCarbs_g is truthy (non-zero, non-undefined) for a clinical/anti-inflammatory prescription with only fibrousCarbsTarget set", () => {
+    const result = prescriptionToTargetsOverride({
+      proteinTarget: 160,
+      carbsTarget: 180,
+      fatTarget: 60,
+      fibrousCarbsTarget: 100,
+      // starchyCarbsTarget intentionally absent — fibrous-carbs-only prescription
+      source: "clinical",
+    });
+    expect(result).toBeDefined();
+    expect(result!.fibrousCarbs_g).toBeDefined();
+    expect(result!.fibrousCarbs_g).toBeGreaterThan(0);
+  });
+
+  it("fibrousCarbs_g carries the exact value from fibrousCarbsTarget", () => {
+    const result = prescriptionToTargetsOverride({
+      proteinTarget: 160,
+      carbsTarget: 180,
+      fatTarget: 60,
+      fibrousCarbsTarget: 115,
+      source: "clinical",
+    });
+    expect(result!.fibrousCarbs_g).toBe(115);
+  });
+
+  it("fibrousCarbs_g is truthy for a performance prescription with only fibrousCarbsTarget", () => {
+    const result = prescriptionToTargetsOverride({
+      proteinTarget: 200,
+      carbsTarget: 250,
+      fatTarget: 75,
+      fibrousCarbsTarget: 140,
+      source: "performance",
+    });
+    expect(result!.fibrousCarbs_g).toBe(140);
+    // starchyCarbs_g must be undefined, not 0, when absent
+    expect(result!.starchyCarbs_g).toBeUndefined();
+  });
+
+  it("fibrousCarbs_g is undefined (not 0) when fibrousCarbsTarget is absent — never silently zeroed", () => {
+    const result = prescriptionToTargetsOverride({
+      proteinTarget: 180,
+      carbsTarget: 200,
+      fatTarget: 70,
+      // fibrousCarbsTarget intentionally absent
+    });
+    expect(result).toBeDefined();
+    // Must be undefined — not 0 — so consumers can distinguish
+    // "fibrous target not set" from "fibrous target is zero".
+    expect(result!.fibrousCarbs_g).toBeUndefined();
+  });
+
+  it("fibrousCarbs_g is undefined when source is fallback (server could not resolve)", () => {
+    const result = prescriptionToTargetsOverride(
+      validPrescription({ fibrousCarbsTarget: 100, source: "fallback" }),
+    );
+    // The whole override is undefined — caller must use baseline
+    expect(result).toBeUndefined();
+  });
+});
