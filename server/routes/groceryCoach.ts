@@ -22,6 +22,16 @@ function resolveUserId(req: any): string | undefined {
   return req.authUser?.id || (req.session as any)?.userId || req.user?.id;
 }
 
+/** Infer meal type from the user's free-text message via simple keyword detection. */
+function detectMealType(message: string): "breakfast" | "lunch" | "dinner" | "snack" | null {
+  const lower = message.toLowerCase();
+  if (/\b(breakfast|morning meal|brunch|oatmeal|eggs?|pancakes?|waffles?|granola|smoothie bowl)\b/.test(lower)) return "breakfast";
+  if (/\b(lunch|midday|noon|midday meal|lunchbox|sandwich|wrap|salad for lunch)\b/.test(lower)) return "lunch";
+  if (/\b(dinner|supper|evening meal|tonight|tonight'?s? meal|what'?s? for dinner)\b/.test(lower)) return "dinner";
+  if (/\b(snack|snacks?|appetizer|bite|nibble|between meals?)\b/.test(lower)) return "snack";
+  return null;
+}
+
 router.post("/recommend", async (req, res) => {
   try {
     const userId = resolveUserId(req);
@@ -37,6 +47,8 @@ router.post("/recommend", async (req, res) => {
     }
 
     const finalServingCount = Math.max(1, Math.min(12, Number(servingCount) || 1));
+
+    const detectedMealType = detectMealType(message);
     let protocolContext = "";
     let macroContext = "";
     let groceryEnvelope = buildGuestEnvelope();
@@ -135,13 +147,24 @@ router.post("/recommend", async (req, res) => {
     if (userId) {
       let dbHistory: Array<{ mealName: string; primaryProtein: string | null; cuisineStyle: string | null; majorStarch: string | null; cookingMethod: string | null }> = [];
       try {
-        const histRows = await db.execute(sql`
-          SELECT meal_name, primary_protein, cuisine_style, major_starch, cooking_method
-          FROM grocery_coach_recommendation_history
-          WHERE user_id = ${userId}
-          ORDER BY created_at DESC
-          LIMIT 20
-        `);
+        const histRows = await db.execute(
+          detectedMealType
+            ? sql`
+                SELECT meal_name, primary_protein, cuisine_style, major_starch, cooking_method
+                FROM grocery_coach_recommendation_history
+                WHERE user_id = ${userId}
+                  AND (meal_type = ${detectedMealType} OR meal_type IS NULL)
+                ORDER BY created_at DESC
+                LIMIT 20
+              `
+            : sql`
+                SELECT meal_name, primary_protein, cuisine_style, major_starch, cooking_method
+                FROM grocery_coach_recommendation_history
+                WHERE user_id = ${userId}
+                ORDER BY created_at DESC
+                LIMIT 20
+              `
+        );
         dbHistory = (histRows.rows as any[]).map((r: any) => ({
           mealName: r.meal_name,
           primaryProtein: r.primary_protein ?? null,
@@ -313,7 +336,7 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
     if (groceryGlp1Targets) {
       const t = groceryGlp1Targets;
       const mac = result.macros ?? {};
-      const fat = Number(mac.fat);
+              const fat      = toN(nut.fat ?? nut.total_fat ?? nut.fatGrams);
       const cal = Number(mac.calories);
       const prot = Number(mac.protein);
       const fatViolation = Number.isFinite(fat) && fat > t.maximumToleratedFatGrams;
@@ -374,6 +397,38 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
       }
     }
 
+    // ── Save to recommendation history (non-blocking, fire-and-forget) ────────
+    // Wrapped in Promise.resolve().then() so any synchronous failure (e.g. db
+    // not yet initialised in tests) is caught by .catch() and never propagates
+    // to the outer request handler.
+    // Defined before the scan block so both the retry-success path and the
+    // main-success path can call it.
+    const saveToHistory = (uid: string, meal: any) => {
+      if (!uid || !meal?.name) return;
+      const vm = meal.varietyMetadata as Record<string, string> | undefined;
+      Promise.resolve().then(() =>
+        db.execute(sql`
+          INSERT INTO grocery_coach_recommendation_history
+            (user_id, meal_name, primary_protein, cuisine_style, major_starch, cooking_method)
+          VALUES
+            (${uid}, ${meal.name as string},
+             ${vm?.primaryProtein ?? null}, ${vm?.cuisineStyle ?? null},
+             ${vm?.majorStarch ?? null}, ${vm?.cookingMethod ?? null})
+        `)
+      ).then(() =>
+        db.execute(sql`
+          DELETE FROM grocery_coach_recommendation_history
+          WHERE user_id = ${uid}
+            AND id NOT IN (
+              SELECT id FROM grocery_coach_recommendation_history
+              WHERE user_id = ${uid}
+              ORDER BY created_at DESC
+              LIMIT 20
+            )
+        `)
+      ).catch((e: any) => console.warn("[GroceryCoach] History save failed:", e?.message));
+    };
+
     // ── Post-generation protocol scan ─────────────────────────────────────────
     try {
       const buildMealForScan = (r: any) => ({
@@ -433,6 +488,7 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
             if (retryScan.passed) {
               retryPassed = true;
               console.log(`✅ [GroceryCoach] Retry passed protocol scan.`);
+              if (userId) saveToHistory(userId, retryResult?.meal ? { ...retryResult.meal, varietyMetadata: retryResult.varietyMetadata } : null);
               return res.json({ ...retryResult, servingCount: finalServingCount });
             }
             retryScanViolations = retryScan.violations
@@ -460,35 +516,7 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
       throw scanErr;
     }
 
-    // ── Save to recommendation history (non-blocking, fire-and-forget) ────────
-    // Wrapped in Promise.resolve().then() so any synchronous failure (e.g. db
-    // not yet initialised in tests) is caught by .catch() and never propagates
-    // to the outer request handler.
-    if (userId && result?.meal?.name) {
-      const vm = result.varietyMetadata as Record<string, string> | undefined;
-      const mealName = result.meal.name as string;
-      Promise.resolve().then(() =>
-        db.execute(sql`
-          INSERT INTO grocery_coach_recommendation_history
-            (user_id, meal_name, primary_protein, cuisine_style, major_starch, cooking_method)
-          VALUES
-            (${userId}, ${mealName},
-             ${vm?.primaryProtein ?? null}, ${vm?.cuisineStyle ?? null},
-             ${vm?.majorStarch ?? null}, ${vm?.cookingMethod ?? null})
-        `)
-      ).then(() =>
-        db.execute(sql`
-          DELETE FROM grocery_coach_recommendation_history
-          WHERE user_id = ${userId}
-            AND id NOT IN (
-              SELECT id FROM grocery_coach_recommendation_history
-              WHERE user_id = ${userId}
-              ORDER BY created_at DESC
-              LIMIT 20
-            )
-        `)
-      ).catch((e: any) => console.warn("[GroceryCoach] History save failed:", e?.message));
-    }
+    if (userId) saveToHistory(userId, result?.meal ? { ...result.meal, varietyMetadata: result.varietyMetadata } : null);
 
     return res.json({ ...result, servingCount: finalServingCount });
   } catch (err: any) {
@@ -509,11 +537,13 @@ router.post("/product-advisor", async (req, res) => {
     }
 
     const engine = getProductAdvisorEngine();
-    const result = await engine.buildCartRecommendations(
-      userId,
-      ingredients.slice(0, 20).map(String),
-      typeof store === "string" ? store : undefined,
-    );
+    const protocolContext = userId
+      ? enforceBeforeGenerate(
+          await loadUserProtocolEnvelope(userId).catch(() => null) ?? buildGuestEnvelope(),
+          { generatorName: "product_advisor" }
+        ).combined
+      : "";
+    const result = await engine.buildCartRecommendations(ingredients, protocolContext, store ?? "");
 
     return res.json(result);
   } catch (err: any) {
