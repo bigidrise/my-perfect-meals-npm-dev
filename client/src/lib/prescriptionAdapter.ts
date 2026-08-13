@@ -26,6 +26,7 @@ interface PrescriptionLike {
   fatTarget: number;
   starchyCarbsTarget?: number;
   fibrousCarbsTarget?: number;
+  caloriesTarget?: number;
   /** "fallback" prescriptions are placeholders — do not override the display. */
   source?: string;
 }
@@ -60,5 +61,6 @@ export function prescriptionToTargetsOverride(
     fat_g:          prescription.fatTarget,
     starchyCarbs_g: prescription.starchyCarbsTarget,
     fibrousCarbs_g: prescription.fibrousCarbsTarget,
+    calories_kcal:  prescription.caloriesTarget,
   };
 }

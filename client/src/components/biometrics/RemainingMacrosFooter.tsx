@@ -32,6 +32,7 @@ export interface MacroTargets {
   fat_g: number;
   starchyCarbs_g?: number;
   fibrousCarbs_g?: number;
+  calories_kcal?: number;
 }
 
 interface RemainingMacrosFooterProps {

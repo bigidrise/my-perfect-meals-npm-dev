@@ -21,6 +21,11 @@
 import { useState, useEffect, useRef } from "react";
 import type { DailyNutritionState } from "../../../shared/dailyNutritionPrescription";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/contexts/AuthContext";
+import { _nutritionStateCache, _nutritionStateCacheKey } from "./nutritionStateCache";
+
+// Re-export so callers that previously imported from this module still work.
+export { _nutritionStateCache, _nutritionStateCacheKey } from "./nutritionStateCache";
 
 interface UseDailyNutritionStateInput {
   /** ISO date (YYYY-MM-DD). Hook is idle when empty. */
@@ -46,7 +51,18 @@ export function useDailyNutritionState({
   clientId,
   disabled = false,
 }: UseDailyNutritionStateInput): UseDailyNutritionStateResult {
-  const [state, setState] = useState<DailyNutritionState | null>(null);
+  const { user } = useAuth();
+  const userId = user?.id ?? "";
+
+  // Seed state synchronously from the module-level cache on the very first render.
+  // Cache is scoped to the authenticated viewer's user ID so two accounts that
+  // share a tab session never see each other's health data.
+  // This means `effectivelyLoading` starts as false on repeat visits (warm cache),
+  // so neither DailyTargetsCard nor RemainingMacrosFooter ever flashes the shimmer.
+  const [state, setState] = useState<DailyNutritionState | null>(() => {
+    if (!userId || !dateISO || disabled) return null;
+    return _nutritionStateCache.get(_nutritionStateCacheKey(userId, dateISO, clientId)) ?? null;
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fetchCount = useRef(0);
@@ -66,6 +82,9 @@ export function useDailyNutritionState({
     apiRequest(url)
       .then((data: DailyNutritionState) => {
         if (thisCount === fetchCount.current) {
+          if (userId) {
+            _nutritionStateCache.set(_nutritionStateCacheKey(userId, dateISO, clientId), data);
+          }
           setState(data);
           setIsLoading(false);
         }
