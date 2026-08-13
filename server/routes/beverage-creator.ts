@@ -23,6 +23,7 @@ import {
   attemptBeverageAutoFix,
 } from "../services/guardrails/beverageMedicalRules";
 import { buildAcePromptBlock } from "../services/ace/buildAcePromptBlock";
+import { resolveGLP1GlobalContext } from "../services/glp1/resolveGLP1GlobalContext";
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -101,7 +102,7 @@ beverageCreatorRouter.post("/", async (req, res) => {
       customBeverageDescription,
       servingSize,
       dietaryPreferences,
-      userId,
+      userId: _bodyUserId, // ignored — safety/clinical identity always comes from req.authUser
       safetyMode,
       overrideToken,
       skipPalate,
@@ -110,6 +111,10 @@ beverageCreatorRouter.post("/", async (req, res) => {
       cultureOverride: _cultureOverride,
       cuisineOverride: _cuisineOverride,
     } = req.body ?? {};
+
+    // Always use the authenticated identity for all clinical, safety, and profile
+    // lookups — the body-supplied userId is discarded to prevent IDOR.
+    const userId = String((req as any).authUser?.id ?? "");
 
     // Accept either key name — some clients send cuisineOverride, others cultureOverride
     const cultureOverride: string | undefined = (_cultureOverride || _cuisineOverride) ?? undefined;
@@ -339,6 +344,66 @@ beverageCreatorRouter.post("/", async (req, res) => {
       beverageContext.builder,
     );
 
+    // ── Canonical GLP-1 personalized beverage targets ─────────────────────────
+    // Loaded server-side from resolveGLP1GlobalContext so beverage calorie /
+    // protein / fat ceilings match the patient-specific values used by every
+    // other generation surface (same resolver, same clinical rules).
+    //
+    // The custom beverage GLP-1 block above handles ingredient-level rules
+    // (single serving, no added sugar, etc.).  This block adds the macro-target
+    // layer on top so a GLP-1 user gets the same personalized ceilings in
+    // Beverage Creator that they get in the meal builders and the unified route.
+    let glp1CanonicalBlock = "";
+    // Stored outside the try block so the post-generation validator can use it.
+    let beverageGlp1ResolvedTargets: import("../services/glp1/resolveGLP1MealTargets").ResolvedGLP1Targets | null = null;
+    if (userId) {
+      try {
+        const glp1Ctx = await resolveGLP1GlobalContext(
+          userId,
+          new Date().toISOString().split("T")[0],
+          // Beverages are portion-equivalent to snacks for GLP-1 sizing
+          "snack",
+        );
+        if (glp1Ctx.isActive && !glp1Ctx.resolvedTargets) {
+          throw new Error("[GLP-1] Active GLP-1 patient detected but clinical targets unavailable — generation blocked");
+        }
+        if (glp1Ctx.isActive && glp1Ctx.resolvedTargets) {
+          beverageGlp1ResolvedTargets = glp1Ctx.resolvedTargets;
+          const t = glp1Ctx.resolvedTargets;
+          const phaseNote =
+            t.treatmentPhase !== "unknown"
+              ? ` [${t.treatmentPhase.replace("_", " ")} phase]`
+              : "";
+          const appetiteNote =
+            t.appetiteLevel !== "normal"
+              ? ` — appetite: ${t.appetiteLevel}`
+              : "";
+          glp1CanonicalBlock =
+            `\n💊 GLP-1 PATIENT-SPECIFIC BEVERAGE TARGETS${phaseNote}:\n` +
+            `- Calorie target: ~${t.resolvedSnackCalories} kcal (personalized from this patient's daily budget)\n` +
+            `- Fat ceiling: ${t.maximumToleratedFatGrams}g maximum / ${t.targetFatGrams}g target` +
+            ` (high fat is the primary nausea trigger — enforce strictly)\n` +
+            `- Protein: ${t.minimumProteinFloor}g hard floor / ${t.targetProteinGrams}g target\n` +
+            `- Serving: SINGLE serving (8–12 oz for smoothies / shakes) — ` +
+            `NEVER pitcher, large-format, or double portions${appetiteNote}\n` +
+            (glp1Ctx.compositionNote
+              ? `- NOTE: ${glp1Ctx.compositionNote}\n`
+              : "") +
+            `These targets are patient-specific and take precedence over generic GLP-1 defaults above.\n`;
+          console.log(
+            `💊 [GLP-1/Beverage] Canonical targets injected: ` +
+              `${t.resolvedSnackCalories}kcal / ${t.targetProteinGrams}g prot / ` +
+              `${t.maximumToleratedFatGrams}g fat-ceiling ` +
+              `[phase: ${t.treatmentPhase}] [sources: ${glp1Ctx.activationSources.join(",")}]`,
+          );
+        }
+      } catch (err: any) {
+        // Always re-throw: without confirmed GLP-1 status the generation must
+        // not proceed unguarded — this includes resolver/DB failures.
+        throw err;
+      }
+    }
+
     // ── Adaptive Coaching Context (ACE) ────────────────────────────────────────
     // Injected AFTER all protocol/medical/behavioral blocks. Lowest priority tier.
     // Returns null when no check-in exists today → no-op, prompt unchanged.
@@ -361,7 +426,7 @@ beverageCreatorRouter.post("/", async (req, res) => {
     const prompt = `
 You are a professional mixologist, nutritionist, and beverage chef inside the My Perfect Meals system.
 Generate a FULL structured beverage recipe.
-${beverageProtocolBlock ? `\n${beverageProtocolBlock}\n` : ""}${medicalBeverageBlock}${cuisineOverrideBlock}${beverageBehavioralMemorySection ? `\n${beverageBehavioralMemorySection}\n` : ""}${dietCategoryStrategy.coachingBlock ? `\n${dietCategoryStrategy.coachingBlock}\n` : ""}${softOverrideBlock}${aceBlock}
+${beverageProtocolBlock ? `\n${beverageProtocolBlock}\n` : ""}${medicalBeverageBlock}${glp1CanonicalBlock}${cuisineOverrideBlock}${beverageBehavioralMemorySection ? `\n${beverageBehavioralMemorySection}\n` : ""}${dietCategoryStrategy.coachingBlock ? `\n${dietCategoryStrategy.coachingBlock}\n` : ""}${softOverrideBlock}${aceBlock}
 The result MUST be a drink. Never generate solid food, meals, or desserts.
 
 Return JSON ONLY, following this exact schema:
@@ -558,6 +623,48 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
     const ingredientNames = normalizedIngredients.map((i: any) =>
       String(i.name ?? "").toLowerCase()
     );
+
+    // ── GLP-1 post-generation macro validation ─────────────────────────────
+    // Validates the final beverage against the patient's resolved fat ceiling,
+    // calorie target, and protein floor. Prompt-level guidance alone is not
+    // sufficient for clinical enforcement.
+    // NOTE: the OpenAI response schema puts macros under meal.nutrition.* —
+    // reading from meal.* directly always yields 0 because GPT puts them nested.
+    if (beverageGlp1ResolvedTargets) {
+      const { validateMealForDiet: _bevValidate } = await import("../services/guardrails");
+      const mealNutrition = meal.nutrition ?? {};
+      const bevGlp1Check = _bevValidate(
+        {
+          name: String(meal.name ?? ""),
+          ingredients: normalizedIngredients.map((i: any) => ({ name: String(i.name ?? "") })),
+          macros: {
+            calories: Number(mealNutrition.calories ?? 0),
+            protein: Number(mealNutrition.protein ?? 0),
+            fat: Number(mealNutrition.fat ?? 0),
+          },
+        },
+        null,
+        undefined,
+        true, // beverages are snack-equivalent for GLP-1 sizing
+        beverageGlp1ResolvedTargets,
+      );
+      if (!bevGlp1Check.isValid) {
+        console.error(
+          `🚫 [BEVERAGE/GLP-1] Post-gen validation FAILED — ${bevGlp1Check.violations.join('; ')} | ` +
+          `generated: ${meal.calories}kcal / ${meal.protein}g prot / ${meal.fat}g fat`
+        );
+        return res.status(400).json({
+          error: "PROTOCOL_VIOLATION",
+          message: `Generated beverage exceeds GLP-1 clinical limits: ${bevGlp1Check.violations[0]}. Please try again.`,
+          violations: bevGlp1Check.violations,
+          retryable: true,
+        });
+      }
+      console.log(
+        `✅ [BEVERAGE/GLP-1] Post-gen PASSED — "${meal.name}" ` +
+        `${meal.calories}kcal / ${meal.protein}g prot / ${meal.fat}g fat`
+      );
+    }
 
     let userConditions: string[] = [];
     if (userId && userId !== "1") {

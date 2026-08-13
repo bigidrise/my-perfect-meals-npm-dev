@@ -45,9 +45,13 @@ interface LoadOptions {
  *
  * Returns resolved targets or falls back to baseline if the user record
  * is not found or does not have targets set.
+ *
+ * @param userId  String user ID (UUID or numeric string).
+ *   NOTE: users.id and glp1_profile.user_id are TEXT/varchar columns.
+ *   Never pass Number(userId) — UUID strings coerce to NaN and match nothing.
  */
 export async function loadGLP1ResolvedTargets(
-  userId: string | number,
+  userId: string,
   options: LoadOptions
 ): Promise<ResolvedGLP1Targets> {
   // ── 1. Load user macro targets ───────────────────────────────────────────
@@ -58,45 +62,43 @@ export async function loadGLP1ResolvedTargets(
     musclePreservationPriority: options.musclePreservationPriority ?? false,
   };
 
-  try {
-    const userResult = await db.execute(
-      sql`SELECT daily_calorie_target, daily_protein_target, daily_fat_target, daily_carbs_target
-          FROM users WHERE id = ${userId} LIMIT 1`
-    );
-    const userRows = userResult.rows as Array<{
-      daily_calorie_target: number | null;
-      daily_protein_target: number | null;
-      daily_fat_target: number | null;
-      daily_carbs_target: number | null;
-    }>;
+  // ── DB errors propagate rather than falling back to defaults ───────────────
+  // When a DB failure occurs, the resolver (resolveGLP1GlobalContext) catches the
+  // thrown error and returns null, which triggers the fail-closed isActive+noTargets
+  // → 503 check at every generation route. Swallowing DB errors here would let an
+  // active GLP-1 patient proceed with generic static baselines instead of their
+  // patient-specific targets — a clinical safety risk.
+  const userResult = await db.execute(
+    sql`SELECT daily_calorie_target, daily_protein_target, daily_fat_target, daily_carbs_target
+        FROM users WHERE id = ${userId} LIMIT 1`
+  );
+  const userRows = userResult.rows as Array<{
+    daily_calorie_target: number | null;
+    daily_protein_target: number | null;
+    daily_fat_target: number | null;
+    daily_carbs_target: number | null;
+  }>;
 
-    if (userRows.length > 0) {
-      const u = userRows[0];
-      userContext = {
-        ...userContext,
-        dailyCalorieTarget: u.daily_calorie_target ?? undefined,
-        dailyProteinTarget: u.daily_protein_target ?? undefined,
-        dailyFatTarget: u.daily_fat_target ?? undefined,
-        dailyCarbsTarget: u.daily_carbs_target ?? undefined,
-        macroMealsPerDay: undefined,
-      };
-    }
-  } catch (err) {
-    console.warn('[glp1TargetLoader] Failed to load user macro targets — using baselines', err);
+  if (userRows.length > 0) {
+    const u = userRows[0];
+    userContext = {
+      ...userContext,
+      dailyCalorieTarget: u.daily_calorie_target ?? undefined,
+      dailyProteinTarget: u.daily_protein_target ?? undefined,
+      dailyFatTarget: u.daily_fat_target ?? undefined,
+      dailyCarbsTarget: u.daily_carbs_target ?? undefined,
+      macroMealsPerDay: undefined,
+    };
   }
 
   // ── 2. Load GLP-1 guardrails ─────────────────────────────────────────────
-  try {
-    const profileResult = await db.execute(
-      sql`SELECT guardrails FROM glp1_profile WHERE user_id = ${userId}`
-    );
-    const profileRow = profileResult.rows?.[0] as { guardrails?: unknown } | undefined;
-    const guardrails = (profileRow?.guardrails as GLP1Guardrails) ?? DEFAULT_GLP1_GUARDRAILS;
-    userContext.glp1Guardrails = guardrails;
-  } catch (err) {
-    console.warn('[glp1TargetLoader] Failed to load glp1_profile guardrails — using defaults', err);
-    userContext.glp1Guardrails = DEFAULT_GLP1_GUARDRAILS;
-  }
+  // Guardrails failure propagates too — we can't safely resolve targets without them.
+  const profileResult = await db.execute(
+    sql`SELECT guardrails FROM glp1_profile WHERE user_id = ${userId}`
+  );
+  const profileRow = profileResult.rows?.[0] as { guardrails?: unknown } | undefined;
+  // guardrails row may not exist yet (user pre-dates glp1_profile setup) — use defaults.
+  userContext.glp1Guardrails = (profileRow?.guardrails as GLP1Guardrails) ?? DEFAULT_GLP1_GUARDRAILS;
 
   // ── 3. Resolve ───────────────────────────────────────────────────────────
   const mealContext: GLP1MealContext = {

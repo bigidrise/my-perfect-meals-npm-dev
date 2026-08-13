@@ -89,6 +89,22 @@ export function validateGLP1Meal(
 
   // ── Macro validation ──────────────────────────────────────────────────────
   if (meal.macros) {
+    // Fail-closed: absent or non-finite required macro fields are treated as a
+    // validation failure rather than silently bypassing numeric checks.
+    // This prevents a malformed or partial model response from passing validation
+    // simply because its macro fields were missing/undefined.
+    const requiredMacroFields = ['calories', 'protein', 'fat'] as const;
+    const missingFields = requiredMacroFields.filter(f => {
+      const v = meal.macros![f];
+      return v === undefined || v === null || !Number.isFinite(v);
+    });
+    if (missingFields.length > 0) {
+      violations.push(
+        `Required macro field(s) absent or non-finite for GLP-1 validation: ${missingFields.join(', ')}. ` +
+        `Meal cannot be accepted without verified macro values.`,
+      );
+    }
+
     if (isSnack) {
       // Snack limits — use resolved targets if available
       const snackCalLimit = resolvedTargets && !resolvedTargets.usedBaseline

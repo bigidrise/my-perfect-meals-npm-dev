@@ -151,49 +151,8 @@ describe('DailyStarchIndicator — compact variant prescription prop reactivity'
       />,
     );
 
-    expect(getStatusText()).toBe('🟢 2 Available');
-
-    rerender(
-      <DailyStarchIndicator
-        meals={[FIBER_MEAL]}
-        prescription={makePrescription(1)}
-      />,
-    );
-
-    expect(getStatusText()).toBe('🟢 Available');
-  });
-
-  it('reflects the new slot count when a starch meal has already been consumed', () => {
-    // 2 slots, 1 starch meal consumed → 1 remaining.
-    const { rerender } = render(
-      <DailyStarchIndicator
-        meals={[STARCH_MEAL]}
-        prescription={makePrescription(2)}
-      />,
-    );
-
-    expect(getStatusText()).toBe('🟢 2 Available');
-
-    rerender(
-      <DailyStarchIndicator
-        meals={[FIBER_MEAL]}
-        prescription={makePrescription(1)}
-      />,
-    );
-
-    expect(getStatusText()).toBe('🟢 Available');
-  });
-
-  it('reflects the new slot count when a starch meal has already been consumed', () => {
-    // 2 slots, 1 starch meal consumed → 1 remaining.
-    const { rerender } = render(
-      <DailyStarchIndicator
-        meals={[STARCH_MEAL]}
-        prescription={makePrescription(2)}
-      />,
-    );
-
-    expect(getStatusText()).toBe('🟢 2 Available');
+    // 1 starch meal is consumed; 2 allowed → 1 remaining
+    expect(getStatusText()).toBe('🟢 1 Remaining');
 
     rerender(
       <DailyStarchIndicator
@@ -264,6 +223,10 @@ describe('DailyStarchIndicator — compact variant prescription prop reactivity'
 
     // The normal compact pill should still be present.
     const pill = container.querySelector('.text-xs');
+    const spans = pill ? pill.querySelectorAll('span') : [];
+
     expect(pill).not.toBeNull();
+    // At least one span carries the starch slot count.
+    expect(spans.length).toBeGreaterThan(0);
   });
 });

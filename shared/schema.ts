@@ -1987,6 +1987,36 @@ export const complianceSnapshots = pgTable("compliance_snapshots", {
 
 export type ComplianceSnapshot = typeof complianceSnapshots.$inferSelect;
 
+// ── Saved Groceries ───────────────────────────────────────────────────────────
+// Persistent grocery preference library — distinct from shopping_list_items
+// (which is ephemeral/scoped). A saved item is a product the user liked and
+// wants Grocery Coach to remember and prioritize across future sessions.
+export const userSavedGroceryItems = pgTable("user_saved_grocery_items", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  productName: text("product_name").notNull(),
+  brand: text("brand"),
+  barcode: text("barcode"),
+  // Computed dedup key: "upc::<barcode>" when scanned, "name::<brand>::<normalized_name>" otherwise.
+  // UNIQUE per user — repeated taps can never create duplicates.
+  productKey: text("product_key").notNull(),
+  category: text("category"),
+  source: text("source").notNull(), // 'grocery-coach' | 'scanner' | 'manual'
+  // Full product nutrition at save time — preserved verbatim so future compliance
+  // re-checks can compare against today's GLP-1, diabetic, or other ceilings.
+  nutritionJson: jsonb("nutrition_json").$type<Record<string, number>>(),
+  // Raw advisor/scanner payload — gives us a path back into Product Intelligence
+  // later rather than relying only on a product name six months later.
+  productMeta: jsonb("product_meta"),
+  imageUrl: text("image_url"),
+  savedAt: timestamp("saved_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({
+  userProductKeyIdx: uniqueIndex("idx_saved_grocery_user_product_key").on(t.userId, t.productKey),
+}));
+
+export type UserSavedGroceryItem = typeof userSavedGroceryItems.$inferSelect;
+export type NewUserSavedGroceryItem = typeof userSavedGroceryItems.$inferInsert;
+
 export { userDocumentAcceptance } from "../server/db/schema/legal";
 export { bugReports, bugReportStatusEnum } from "../server/db/schema/bugReports";
 export type { BugReport, NewBugReport } from "../server/db/schema/bugReports";

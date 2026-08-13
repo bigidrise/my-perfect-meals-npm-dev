@@ -24,7 +24,7 @@ import { performanceRules } from './rules/performanceRules';
 import { buildPerformancePrompt, getPerformanceSystemPrompt, type CompetitionPhase } from './prompt/performancePromptBuilder';
 import { validatePerformanceMeal } from './validators/performanceValidator';
 import { glp1Rules, getGLP1SystemPrompt } from './rules/glp1Rules';
-import { buildGLP1Prompt, buildGLP1SnackPrompt } from './prompt/glp1PromptBuilder';
+import { buildGLP1Prompt, buildGLP1SnackPrompt, buildGLP1ConstraintOverlay } from './prompt/glp1PromptBuilder';
 import { validateGLP1Meal, validateGLP1Snack } from './validators/glp1Validator';
 import type { ResolvedGLP1Targets } from '../glp1/resolveGLP1MealTargets';
 import { ProCareRulePack, PROCARE_FIXED_RULES } from './rules/procareTypes';
@@ -94,12 +94,25 @@ export function applyGuardrails(
   dailyProteinTarget?: number,
   glp1Targets?: ResolvedGLP1Targets
 ): GuardrailResult {
-  // No diet-specific guardrails for null/undefined diet type (Weekly Meal Board),
-  // but still inject ingredient precision block.
+  // No primary-diet guardrails for null/undefined diet type (Weekly Meal Board,
+  // Create With Chef with no builder selection, etc.).
+  // GLP-1 is a mandatory medical protocol — still inject overlay when targets
+  // are present, regardless of whether a primary diet type was selected.
   if (!dietType) {
+    const nullDietRules: string[] = ['ingredient-precision'];
+    let nullDietPrompt = basePrompt;
+    if (glp1Targets) {
+      nullDietPrompt = basePrompt + buildGLP1ConstraintOverlay(mealType, glp1Targets);
+      nullDietRules.unshift('glp1-medical-overlay', 'glp1-small-portions', 'glp1-low-fat', 'glp1-high-protein');
+      if (!glp1Targets.usedBaseline) nullDietRules.push('glp1-personalized-targets');
+      console.log(
+        `💊 GLP-1 medical overlay on null-diet ${mealType} ` +
+        `[${glp1Targets.resolvedMealCalories}kcal / ${glp1Targets.maximumToleratedFatGrams}g fat-ceiling]`
+      );
+    }
     return {
-      modifiedPrompt: basePrompt + '\n\n' + INGREDIENT_PRECISION_PROMPT_BLOCK,
-      appliedRules: ['ingredient-precision'],
+      modifiedPrompt: nullDietPrompt + '\n\n' + INGREDIENT_PRECISION_PROMPT_BLOCK,
+      appliedRules: nullDietRules,
       warnings: []
     };
   }
@@ -293,6 +306,32 @@ export function applyGuardrails(
       console.log(`⚠️ Unknown diet type: ${dietType}, no guardrails applied`);
   }
 
+  // GLP-1 stacking overlay: when resolved targets are provided but the primary
+  // diet type is not 'glp1', append GLP-1 constraints as a mandatory medical
+  // protocol additive layer (does not replace the primary diet's prompt).
+  //
+  // Activation: any source — selectedMealBuilder, medicalConditions,
+  // specialtyConditions, preferredBuilder, or glp1_profile row — triggers
+  // this overlay. The overlay carries the patient-specific calorie/protein/fat
+  // ceilings from resolveGLP1MealTargets, or baseline values on fallback.
+  if (glp1Targets && dietType !== 'glp1') {
+    modifiedPrompt = modifiedPrompt + buildGLP1ConstraintOverlay(mealType, glp1Targets);
+    appliedRules.push('glp1-medical-overlay');
+    appliedRules.push('glp1-small-portions');
+    appliedRules.push('glp1-low-fat');
+    appliedRules.push('glp1-high-protein');
+    if (glp1Targets && !glp1Targets.usedBaseline) {
+      appliedRules.push('glp1-personalized-targets');
+      console.log(
+        `💊 GLP-1 medical overlay stacked on ${dietType} for ${mealType} ` +
+        `[${glp1Targets.resolvedMealCalories}kcal / ${glp1Targets.targetProteinGrams}g prot / ` +
+        `${glp1Targets.maximumToleratedFatGrams}g fat-ceiling — phase: ${glp1Targets.treatmentPhase}]`
+      );
+    } else {
+      console.log(`💊 GLP-1 medical overlay stacked on ${dietType} for ${mealType} [baseline fallback]`);
+    }
+  }
+
   // Inject mode-aware macro budget block for all non-BeachBody builders.
   // BeachBody handles its own macro block internally in beachbodyPromptBuilder.ts.
   if (remainingMacros && builderMode && dietType !== 'beachbody') {
@@ -374,173 +413,243 @@ export function validateMealForDiet(
     };
   }
 
-  // No diet-specific validation for null diet type, but still check ingredient precision
+  // No primary-diet validation for null diet type, but GLP-1 is a mandatory
+  // medical protocol — still run overlay validator when targets are present.
   if (!dietType) {
-    return mergeWithPrecision({ isValid: true, violations: [], blockedIngredients: [] });
-  }
-
-  switch (dietType as any) {
-    case 'anti-inflammatory': {
-      const antiInflamResult = validateAntiInflammatoryMeal(meal);
-      console.log(getValidationSummary(antiInflamResult));
-      return mergeWithPrecision(antiInflamResult);
-    }
-
-    case 'liver-support': {
-      const liverResult = validateLiverSupportMeal(meal);
-      if (liverResult.violations.length > 0) {
-        console.log(`🛡️ Liver Support Validation: ${liverResult.violations.length} violations found`);
-        liverResult.violations.forEach(v => console.log(`  ⚠️ ${v}`));
-      }
-      return mergeWithPrecision(liverResult);
-    }
-
-    case 'kidney-disease': {
-      const blocked = kidneyDiseaseBlockedIngredients;
-      const violations: string[] = [];
-      for (const ing of meal.ingredients) {
-        const name = (ing.name || '').toLowerCase();
-        const match = blocked.find(b => name.includes(b.toLowerCase()));
-        if (match) violations.push(`Ingredient "${ing.name}" is not safe for kidney disease diet (high potassium/phosphorus/sodium)`);
-      }
-      if (violations.length > 0) {
-        console.log(`🩺 Kidney Disease Validation: ${violations.length} violation(s) found`);
-        violations.forEach(v => console.log(`  ⚠️ ${v}`));
-      }
-      return mergeWithPrecision({ isValid: violations.length === 0, violations, blockedIngredients: violations.map(v => v.split('"')[1] || v) });
-    }
-
-    case 'heart-failure': {
-      const blocked = heartFailureBlockedIngredients;
-      const violations: string[] = [];
-      for (const ing of meal.ingredients) {
-        const name = (ing.name || '').toLowerCase();
-        const match = blocked.find(b => name.includes(b.toLowerCase()));
-        if (match) violations.push(`Ingredient "${ing.name}" is not safe for heart failure diet (high sodium/saturated fat/alcohol)`);
-      }
-      if (violations.length > 0) {
-        console.log(`🩺 Heart Failure Validation: ${violations.length} violation(s) found`);
-        violations.forEach(v => console.log(`  ⚠️ ${v}`));
-      }
-      return mergeWithPrecision({ isValid: violations.length === 0, violations, blockedIngredients: violations.map(v => v.split('"')[1] || v) });
-    }
-
-    case 'liver-disease': {
-      const blocked = liverDiseaseBlockedIngredients;
-      const violations: string[] = [];
-      for (const ing of meal.ingredients) {
-        const name = (ing.name || '').toLowerCase();
-        const match = blocked.find(b => name.includes(b.toLowerCase()));
-        if (match) violations.push(`Ingredient "${ing.name}" is not safe for liver disease diet (alcohol/raw shellfish/high sodium/fried)`);
-      }
-      if (violations.length > 0) {
-        console.log(`🩺 Liver Disease Validation: ${violations.length} violation(s) found`);
-        violations.forEach(v => console.log(`  ⚠️ ${v}`));
-      }
-      return mergeWithPrecision({ isValid: violations.length === 0, violations, blockedIngredients: violations.map(v => v.split('"')[1] || v) });
-    }
-
-    case 'diabetic': {
-      const diabeticResult = validateDiabeticMeal({
-        name: meal.name,
-        ingredients: meal.ingredients,
-        description: '',
-      });
-      if (diabeticResult.violations.length > 0) {
-        console.log(`🛡️ Diabetic Validation: ${diabeticResult.violations.length} violations found`);
-        diabeticResult.violations.forEach(v => console.log(`  ⚠️ ${v}`));
-      }
-      return mergeWithPrecision({
-        isValid: diabeticResult.isValid,
-        violations: diabeticResult.violations,
-        blockedIngredients: diabeticResult.violations.map(v => v.split('"')[1] || v),
-      });
-    }
-
-    case 'beachbody': {
-      const bbPhase = dietPhase || 'lean';
-      const beachbodyResult = validateBeachBodyMeal(
-        { name: meal.name, ingredients: meal.ingredients, instructions: meal.instructions },
-        bbPhase,
-        isSnack
-      );
-      if (beachbodyResult.violations.length > 0) {
-        console.log(`🛡️ BeachBody Validation (${bbPhase}): ${beachbodyResult.violations.length} violations found`);
-        beachbodyResult.violations.forEach(v => console.log(`  ⚠️ ${v}`));
-      }
-      return mergeWithPrecision(beachbodyResult);
-    }
-
-    case 'general-nutrition': {
-      const generalResult = validateGeneralNutritionMeal(
-        { name: meal.name, ingredients: meal.ingredients, instructions: meal.instructions },
-        isSnack
-      );
-      if (generalResult.violations.length > 0) {
-        console.log(`🛡️ General Nutrition Validation: ${generalResult.violations.length} violations found`);
-        generalResult.violations.forEach(v => console.log(`  ⚠️ ${v}`));
-      }
-      return mergeWithPrecision(generalResult);
-    }
-
-    case 'performance': {
-      const perfResult = validatePerformanceMeal(
-        { name: meal.name, ingredients: meal.ingredients, instructions: meal.instructions },
-        (dietPhase as unknown as CompetitionPhase) || 'carb',
-        isSnack
-      );
-      if (perfResult.violations.length > 0) {
-        console.log(`🏆 Performance Validation: ${perfResult.violations.length} violations found`);
-        perfResult.violations.forEach(v => console.log(`  ⚠️ ${v}`));
-      }
-      return mergeWithPrecision(perfResult);
-    }
-
-    case 'glp1': {
+    if (glp1Targets) {
       const glp1MealObj = { name: meal.name, ingredients: meal.ingredients, instructions: meal.instructions, macros: meal.macros };
       const glp1Result = isSnack
         ? validateGLP1Snack(glp1MealObj, glp1Targets)
         : validateGLP1Meal(glp1MealObj, false, glp1Targets);
-      if (glp1Targets && !glp1Targets.usedBaseline) {
-        console.log(`💊 GLP-1 Validation [personalized: ${glp1Targets.resolvedMealCalories}kcal / ${glp1Targets.maximumToleratedFatGrams}g fat / ${glp1Targets.targetProteinGrams}g protein]: ${glp1Result.violations.length} violations, ${glp1Result.warnings?.length ?? 0} warnings`);
-      } else {
-        console.log(`💊 GLP-1 Validation [baseline]: ${glp1Result.violations.length} violations, ${glp1Result.warnings?.length ?? 0} warnings`);
-      }
       if (glp1Result.violations.length > 0) {
+        console.log(
+          `💊 GLP-1 validation on null-diet ${isSnack ? 'snack' : 'meal'}: ` +
+          `${glp1Result.violations.length} violation(s)`
+        );
         glp1Result.violations.forEach(v => console.log(`  ⚠️ ${v}`));
       }
       return mergeWithPrecision(glp1Result);
     }
-
-    case 'carnivore':
-    case 'vegan':
-    case 'vegetarian':
-    case 'pescatarian': {
-      const dietaryResult = validateDietaryRestriction(
-        { name: meal.name, ingredients: meal.ingredients, instructions: meal.instructions },
-        dietType as DietaryMode,
-      );
-      if (dietaryResult.violations.length > 0) {
-        console.log(`🌿 ${dietType.charAt(0).toUpperCase() + dietType.slice(1)} Validation: ${dietaryResult.violations.length} violation(s) found — confidence: ${dietaryResult.confidence}`);
-        dietaryResult.dietaryViolations.forEach(v =>
-          console.log(`  ⚠️ [${v.severity.toUpperCase()}] ${v.reason}`)
-        );
-      } else {
-        console.log(`✅ ${dietType.charAt(0).toUpperCase() + dietType.slice(1)} Validation: passed — confidence: ${dietaryResult.confidence}`);
-      }
-      return mergeWithPrecision({
-        isValid: dietaryResult.isValid && dietaryResult.confidence !== 'low',
-        violations: dietaryResult.violations,
-        blockedIngredients: dietaryResult.blockedIngredients ?? [],
-        warnings: dietaryResult.confidence === 'low'
-          ? ['Meal contains unverifiable ingredients — compliance cannot be confirmed']
-          : undefined,
-      });
-    }
-
-    default:
-      return mergeWithPrecision({ isValid: true, violations: [], blockedIngredients: [] });
+    return mergeWithPrecision({ isValid: true, violations: [], blockedIngredients: [] });
   }
+
+  // ── Primary diet validation ────────────────────────────────────────────────
+  // Run the diet-specific validator first, then optionally stack GLP-1 overlay.
+  // Extracted into an inner function so the GLP-1 overlay can be applied after
+  // any diet type without duplicating each case's return statement.
+  function runPrimaryValidation(): ValidationResult {
+    switch (dietType as any) {
+      case 'anti-inflammatory': {
+        const antiInflamResult = validateAntiInflammatoryMeal(meal);
+        console.log(getValidationSummary(antiInflamResult));
+        return mergeWithPrecision(antiInflamResult);
+      }
+
+      case 'liver-support': {
+        const liverResult = validateLiverSupportMeal(meal);
+        if (liverResult.violations.length > 0) {
+          console.log(`🛡️ Liver Support Validation: ${liverResult.violations.length} violations found`);
+          liverResult.violations.forEach(v => console.log(`  ⚠️ ${v}`));
+        }
+        return mergeWithPrecision(liverResult);
+      }
+
+      case 'kidney-disease': {
+        const blocked = kidneyDiseaseBlockedIngredients;
+        const violations: string[] = [];
+        for (const ing of meal.ingredients) {
+          const name = (ing.name || '').toLowerCase();
+          const match = blocked.find(b => name.includes(b.toLowerCase()));
+          if (match) violations.push(`Ingredient "${ing.name}" is not safe for kidney disease diet (high potassium/phosphorus/sodium)`);
+        }
+        if (violations.length > 0) {
+          console.log(`🩺 Kidney Disease Validation: ${violations.length} violation(s) found`);
+          violations.forEach(v => console.log(`  ⚠️ ${v}`));
+        }
+        return mergeWithPrecision({ isValid: violations.length === 0, violations, blockedIngredients: violations.map(v => v.split('"')[1] || v) });
+      }
+
+      case 'heart-failure': {
+        const blocked = heartFailureBlockedIngredients;
+        const violations: string[] = [];
+        for (const ing of meal.ingredients) {
+          const name = (ing.name || '').toLowerCase();
+          const match = blocked.find(b => name.includes(b.toLowerCase()));
+          if (match) violations.push(`Ingredient "${ing.name}" is not safe for heart failure diet (high sodium/saturated fat/alcohol)`);
+        }
+        if (violations.length > 0) {
+          console.log(`🩺 Heart Failure Validation: ${violations.length} violation(s) found`);
+          violations.forEach(v => console.log(`  ⚠️ ${v}`));
+        }
+        return mergeWithPrecision({ isValid: violations.length === 0, violations, blockedIngredients: violations.map(v => v.split('"')[1] || v) });
+      }
+
+      case 'liver-disease': {
+        const blocked = liverDiseaseBlockedIngredients;
+        const violations: string[] = [];
+        for (const ing of meal.ingredients) {
+          const name = (ing.name || '').toLowerCase();
+          const match = blocked.find(b => name.includes(b.toLowerCase()));
+          if (match) violations.push(`Ingredient "${ing.name}" is not safe for liver disease diet (alcohol/raw shellfish/high sodium/fried)`);
+        }
+        if (violations.length > 0) {
+          console.log(`🩺 Liver Disease Validation: ${violations.length} violation(s) found`);
+          violations.forEach(v => console.log(`  ⚠️ ${v}`));
+        }
+        return mergeWithPrecision({ isValid: violations.length === 0, violations, blockedIngredients: violations.map(v => v.split('"')[1] || v) });
+      }
+
+      case 'diabetic': {
+        const diabeticResult = validateDiabeticMeal({
+          name: meal.name,
+          ingredients: meal.ingredients,
+          description: '',
+        });
+        if (diabeticResult.violations.length > 0) {
+          console.log(`🛡️ Diabetic Validation: ${diabeticResult.violations.length} violations found`);
+          diabeticResult.violations.forEach(v => console.log(`  ⚠️ ${v}`));
+        }
+        return mergeWithPrecision({
+          isValid: diabeticResult.isValid,
+          violations: diabeticResult.violations,
+          blockedIngredients: diabeticResult.violations.map(v => v.split('"')[1] || v),
+        });
+      }
+
+      case 'beachbody': {
+        const bbPhase = dietPhase || 'lean';
+        const beachbodyResult = validateBeachBodyMeal(
+          { name: meal.name, ingredients: meal.ingredients, instructions: meal.instructions },
+          bbPhase,
+          isSnack
+        );
+        if (beachbodyResult.violations.length > 0) {
+          console.log(`🛡️ BeachBody Validation (${bbPhase}): ${beachbodyResult.violations.length} violations found`);
+          beachbodyResult.violations.forEach(v => console.log(`  ⚠️ ${v}`));
+        }
+        return mergeWithPrecision(beachbodyResult);
+      }
+
+      case 'general-nutrition': {
+        const generalResult = validateGeneralNutritionMeal(
+          { name: meal.name, ingredients: meal.ingredients, instructions: meal.instructions },
+          isSnack
+        );
+        if (generalResult.violations.length > 0) {
+          console.log(`🛡️ General Nutrition Validation: ${generalResult.violations.length} violations found`);
+          generalResult.violations.forEach(v => console.log(`  ⚠️ ${v}`));
+        }
+        return mergeWithPrecision(generalResult);
+      }
+
+      case 'performance': {
+        const perfResult = validatePerformanceMeal(
+          { name: meal.name, ingredients: meal.ingredients, instructions: meal.instructions },
+          (dietPhase as unknown as CompetitionPhase) || 'carb',
+          isSnack
+        );
+        if (perfResult.violations.length > 0) {
+          console.log(`🏆 Performance Validation: ${perfResult.violations.length} violations found`);
+          perfResult.violations.forEach(v => console.log(`  ⚠️ ${v}`));
+        }
+        return mergeWithPrecision(perfResult);
+      }
+
+      case 'glp1': {
+        const glp1MealObj = { name: meal.name, ingredients: meal.ingredients, instructions: meal.instructions, macros: meal.macros };
+        const glp1Result = isSnack
+          ? validateGLP1Snack(glp1MealObj, glp1Targets)
+          : validateGLP1Meal(glp1MealObj, false, glp1Targets);
+        if (glp1Targets && !glp1Targets.usedBaseline) {
+          console.log(`💊 GLP-1 Validation [personalized: ${glp1Targets.resolvedMealCalories}kcal / ${glp1Targets.maximumToleratedFatGrams}g fat / ${glp1Targets.targetProteinGrams}g protein]: ${glp1Result.violations.length} violations, ${glp1Result.warnings?.length ?? 0} warnings`);
+        } else {
+          console.log(`💊 GLP-1 Validation [baseline]: ${glp1Result.violations.length} violations, ${glp1Result.warnings?.length ?? 0} warnings`);
+        }
+        if (glp1Result.violations.length > 0) {
+          glp1Result.violations.forEach(v => console.log(`  ⚠️ ${v}`));
+        }
+        return mergeWithPrecision(glp1Result);
+      }
+
+      case 'carnivore':
+      case 'vegan':
+      case 'vegetarian':
+      case 'pescatarian': {
+        const dietaryResult = validateDietaryRestriction(
+          { name: meal.name, ingredients: meal.ingredients, instructions: meal.instructions },
+          dietType as DietaryMode,
+        );
+        if (dietaryResult.violations.length > 0) {
+          const dLabel = (dietType as string).charAt(0).toUpperCase() + (dietType as string).slice(1);
+          console.log(`🌿 ${dLabel} Validation: ${dietaryResult.violations.length} violation(s) found — confidence: ${dietaryResult.confidence}`);
+          dietaryResult.dietaryViolations.forEach(v =>
+            console.log(`  ⚠️ [${v.severity.toUpperCase()}] ${v.reason}`)
+          );
+        } else {
+          const dLabel = (dietType as string).charAt(0).toUpperCase() + (dietType as string).slice(1);
+          console.log(`✅ ${dLabel} Validation: passed — confidence: ${dietaryResult.confidence}`);
+        }
+        return mergeWithPrecision({
+          isValid: dietaryResult.isValid && dietaryResult.confidence !== 'low',
+          violations: dietaryResult.violations,
+          blockedIngredients: dietaryResult.blockedIngredients ?? [],
+          warnings: dietaryResult.confidence === 'low'
+            ? ['Meal contains unverifiable ingredients — compliance cannot be confirmed']
+            : undefined,
+        });
+      }
+
+      default:
+        return mergeWithPrecision({ isValid: true, violations: [], blockedIngredients: [] });
+    }
+  }
+
+  const primaryResult = runPrimaryValidation();
+
+  // ── GLP-1 stacking validation overlay ────────────────────────────────────
+  // When resolved targets are provided but the primary diet is not 'glp1',
+  // the patient is GLP-1 active from a non-builder source (medical conditions,
+  // specialtyConditions, glp1_profile row, etc.).  Run the GLP-1 validator as
+  // a stacking overlay and merge any violations into the primary result.
+  //
+  // The 'glp1' case above already handles the direct path — skip it here.
+  if (glp1Targets && dietType !== 'glp1') {
+    const glp1MealObj = {
+      name: meal.name,
+      ingredients: meal.ingredients,
+      instructions: meal.instructions,
+      macros: meal.macros,
+    };
+    const glp1Overlay = isSnack
+      ? validateGLP1Snack(glp1MealObj, glp1Targets)
+      : validateGLP1Meal(glp1MealObj, false, glp1Targets);
+
+    if (glp1Overlay.violations.length > 0) {
+      const phaseNote = !glp1Targets.usedBaseline ? ` [${glp1Targets.treatmentPhase}]` : ' [baseline]';
+      console.log(
+        `💊 GLP-1 stacking overlay validation${phaseNote} on ${dietType}: ` +
+        `${glp1Overlay.violations.length} additional violation(s)`
+      );
+      glp1Overlay.violations.forEach(v => console.log(`  ⚠️ [GLP-1 overlay] ${v}`));
+
+      // Merge overlay violations into primary result
+      const mergedViolations = [...primaryResult.violations, ...glp1Overlay.violations];
+      return {
+        isValid: mergedViolations.length === 0,
+        violations: mergedViolations,
+        blockedIngredients: [
+          ...(primaryResult.blockedIngredients ?? []),
+          ...(glp1Overlay.blockedIngredients ?? []),
+        ],
+        warnings: [
+          ...(primaryResult.warnings ?? []),
+          ...(glp1Overlay.warnings ?? []),
+        ],
+      };
+    }
+  }
+
+  return primaryResult;
 }
 
 /**

@@ -161,19 +161,27 @@ router.post("/guide", async (req, res) => {
         `Falling back to AI generation.`
       );
 
-      // ── Load nutrition context + GLP-1 canonical context in parallel ─────────
-      //    so the fallback branch is as constrained as the verified-menu branch
+      // ── Load nutrition context + GLP-1 canonical context ────────────────────
+      // GLP-1 MUST be resolved OUTSIDE the non-fatal nutrition-context try block so
+      // that a resolver failure always returns 503 and never falls through to
+      // unguarded AI generation.
       const todayISO = new Date().toISOString().slice(0, 10);
+      const fallbackGlp1Ctx = await resolveGLP1GlobalContext(userId, todayISO).catch(() => null);
+      if (fallbackGlp1Ctx === null) {
+        return res.status(503).json({ error: "Clinical guidance temporarily unavailable. Please try again.", retryable: true });
+      }
+      if (fallbackGlp1Ctx.isActive && !fallbackGlp1Ctx.resolvedTargets) {
+        return res.status(503).json({ error: "GLP-1 clinical targets temporarily unavailable. Please try again.", retryable: true });
+      }
+
       let fallbackContext: Awaited<ReturnType<typeof getActiveNutritionContext>> | undefined;
       let fallbackRemainingMacrosBlock = "";
-      let fallbackGlp1Block = "";
+      const fallbackGlp1Block = fallbackGlp1Ctx ? buildGLP1RecommendationBlock(fallbackGlp1Ctx) : "";
       try {
-        const [ctx, glp1Ctx] = await Promise.all([
+        const [ctx] = await Promise.all([
           getActiveNutritionContext(userId),
-          resolveGLP1GlobalContext(userId, todayISO).catch(() => null),
         ]);
         fallbackContext = ctx;
-        fallbackGlp1Block = glp1Ctx ? buildGLP1RecommendationBlock(glp1Ctx) : "";
         // Load remaining daily budget so the AI can guide preparation and sides
         try {
           const state = await resolveDailyNutritionState(userId, todayISO);
@@ -184,11 +192,11 @@ router.post("/guide", async (req, res) => {
         console.log(
           `🔒 [Guide/AI] Nutrition context: diet=[${fallbackContext.diet.join(",")}] ` +
           `medical=[${fallbackContext.medical.length} flags] builder=${fallbackContext.builder ?? "none"} ` +
-          `glp1=${glp1Ctx?.isActive ? `ACTIVE[${glp1Ctx.activationSources.join(",")}]` : "inactive"} ` +
+          `glp1=${fallbackGlp1Ctx?.isActive ? `ACTIVE[${fallbackGlp1Ctx.activationSources.join(",")}]` : "inactive"} ` +
           `remainingMacros=${fallbackRemainingMacrosBlock ? "populated" : "empty"}`
         );
       } catch {
-        console.warn(`⚠️ [Guide/AI] Could not load nutrition context — proceeding without protocol constraints`);
+        console.warn(`⚠️ [Guide/AI] Could not load nutrition context — continuing with GLP-1 constraints only`);
       }
 
       // Combine protocol block with GLP-1 recommendation guidance
@@ -212,11 +220,35 @@ router.post("/guide", async (req, res) => {
         remainingMacrosBlock: fallbackRemainingMacrosBlock || undefined,
       });
 
+      // ── GLP-1 post-gen meal filtering ─────────────────────────────────────────
+      // Filter any AI-generated meal whose estimated fat exceeds the patient-
+      // specific ceiling so non-compliant items never reach a GLP-1 patient.
+      let filteredAiRecs = aiRecs;
+      if (fallbackGlp1Ctx.isActive && fallbackGlp1Ctx.resolvedTargets) {
+        const t = fallbackGlp1Ctx.resolvedTargets;
+        filteredAiRecs = aiRecs.filter((rec: any) => {
+          const fat = Number(rec.fat ?? rec.fatGrams);
+          const cal = Number(rec.calories ?? rec.estimatedCalories);
+          if (Number.isFinite(fat) && fat > t.maximumToleratedFatGrams) {
+            console.warn(`[Guide/AI/GLP-1] Filtered "${rec.name}" — fat ${fat}g > ceiling ${t.maximumToleratedFatGrams}g`);
+            return false;
+          }
+          if (Number.isFinite(cal) && cal > t.resolvedMealCalories * 1.25) {
+            console.warn(`[Guide/AI/GLP-1] Filtered "${rec.name}" — cal ${cal} > ceiling ${Math.round(t.resolvedMealCalories * 1.25)}`);
+            return false;
+          }
+          return true;
+        });
+        if (filteredAiRecs.length < aiRecs.length) {
+          console.log(`[Guide/AI/GLP-1] Filtered ${aiRecs.length - filteredAiRecs.length} non-compliant meals`);
+        }
+      }
+
       const generationTime = Date.now() - generationStart;
-      console.log(`✅ [Guide/AI] ${aiRecs.length} recs in ${generationTime}ms`);
+      console.log(`✅ [Guide/AI] ${filteredAiRecs.length} recs in ${generationTime}ms`);
 
       // Attach alpha-gal safety badges when user has the condition active.
-      const aiRecsWithBadges = attachAlphaGalBadges(aiRecs, isAlphaGalActive(user));
+      const aiRecsWithBadges = attachAlphaGalBadges(filteredAiRecs, isAlphaGalActive(user));
 
       res.json({
         recommendations: aiRecsWithBadges,
@@ -267,9 +299,15 @@ router.post("/guide", async (req, res) => {
 
     // ── Step 3: Nutrition context (protocol + active builder) + GLP-1 ────────
     const todayISO = new Date().toISOString().slice(0, 10);
-    const [guideContext, guideGlp1Ctx] = await Promise.all([
+    const guideGlp1Ctx = await resolveGLP1GlobalContext(userId, todayISO).catch(() => null);
+    if (guideGlp1Ctx === null) {
+      return res.status(503).json({ error: "Clinical guidance temporarily unavailable. Please try again.", retryable: true });
+    }
+    if (guideGlp1Ctx.isActive && !guideGlp1Ctx.resolvedTargets) {
+      return res.status(503).json({ error: "GLP-1 clinical targets temporarily unavailable. Please try again.", retryable: true });
+    }
+    const [guideContext] = await Promise.all([
       getActiveNutritionContext(userId),
-      resolveGLP1GlobalContext(userId, todayISO).catch(() => null),
     ]);
     const guideGlp1Block = guideGlp1Ctx ? buildGLP1RecommendationBlock(guideGlp1Ctx) : "";
     console.log(
@@ -336,9 +374,34 @@ router.post("/guide", async (req, res) => {
     }
     // ─────────────────────────────────────────────────────────────────────────────
 
+    // ── GLP-1 post-gen meal filtering (verified-menu branch) ─────────────────
+    // Filter any recommendation whose fat or calorie estimate exceeds the
+    // patient-specific ceiling — verified menu items carry calorie/fat fields.
+    let verifiedFiltered: typeof recommendationsWithImages = recommendationsWithImages;
+    if (guideGlp1Ctx.isActive && guideGlp1Ctx.resolvedTargets) {
+      const t = guideGlp1Ctx.resolvedTargets;
+      const beforeLen = recommendationsWithImages.length;
+      verifiedFiltered = recommendationsWithImages.filter((rec: any) => {
+        const fat = Number(rec.fat ?? rec.fatGrams);
+        const cal = Number(rec.calories);
+        if (Number.isFinite(fat) && fat > t.maximumToleratedFatGrams) {
+          console.warn(`[Guide/GLP-1] Filtered "${rec.name}" — fat ${fat}g > ceiling ${t.maximumToleratedFatGrams}g`);
+          return false;
+        }
+        if (Number.isFinite(cal) && cal > t.resolvedMealCalories * 1.25) {
+          console.warn(`[Guide/GLP-1] Filtered "${rec.name}" — cal ${cal} > ceiling ${Math.round(t.resolvedMealCalories * 1.25)}`);
+          return false;
+        }
+        return true;
+      });
+      if (verifiedFiltered.length < beforeLen) {
+        console.log(`[Guide/GLP-1] Filtered ${beforeLen - verifiedFiltered.length} non-compliant verified-menu items`);
+      }
+    }
+
     // Attach alpha-gal safety badges when user has the condition active.
     const finalRecommendations = attachAlphaGalBadges(
-      recommendationsWithImages,
+      verifiedFiltered,
       isAlphaGalActive(user)
     );
 

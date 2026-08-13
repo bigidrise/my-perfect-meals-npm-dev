@@ -20,6 +20,7 @@ import { createIngredientSignature, hashSignature } from './ingredientSignature'
 import { getCachedMeals, cacheMeals } from './mealCachePersistent';
 import { generateFridgeRescueMeals } from './fridgeRescueGenerator';
 import { applyGuardrails, validateMealForDiet, getSystemPromptForDiet, DietType, BuilderMode } from './guardrails';
+import { buildGLP1ConstraintOverlay } from './guardrails/prompt/glp1PromptBuilder';
 import type { ResolvedGLP1Targets } from './glp1/resolveGLP1MealTargets';
 import { normalizeIngredients as normalizeIngredientsToUS } from './ingredientNormalizer';
 import { 
@@ -462,9 +463,9 @@ function getFallbackImage(mealType: string): string {
  * Ensure a meal has an image URL, generating one if needed
  * @param useFallbackOnly - If true, skip DALL-E and use static fallback immediately (for premades)
  */
-// =======================
+// -----------------------
 // BEGIN CANVA IMAGE SYSTEM — ensureImage
-// =======================
+// -----------------------
 interface MealVisualDescriptor {
   title: string;
   mealType: string;
@@ -545,9 +546,9 @@ async function ensureImage(
   // 4) Last resort: neutral placeholder (never pancakes)
   return "/images/placeholders/meal-placeholder.jpg";
 }
-// =======================
+// -----------------------
 // END CANVA IMAGE SYSTEM — ensureImage
-// =======================
+// -----------------------
 
 
 /**
@@ -674,6 +675,18 @@ export async function generateCravingMealUnified(
     const cachedIsStarchy = (cachedMeal.starchyCarbs ?? 0) > 5;
     if (!starchPlacement.shouldIncludeStarch && cachedIsStarchy) {
       console.log(`🥦 [CRAVING/Cache] Skipping starchy cached meal ("${cachedMeal.name}") — prescription says fiber-based (${starchPlacement.reason})`);
+    } else if (glp1Targets) {
+      // GLP-1 active — validate cached meal before serving. Cached meals may pre-date
+      // the patient's current phase/targets, so they must pass the same validation gate.
+      const cacheVr = validateMealForDiet(cachedMeal as any, 'glp1', undefined, validMealType === 'snack', glp1Targets);
+      if (cacheVr.isValid) {
+        macroAuditCache(cachedMeal.name ?? cravingInput, "hit", signature, { carbs: cachedMeal.carbs });
+        console.log(`🚀 [GLP-1] Cache hit (validated) for craving: "${cravingInput}" — ${cachedMeal.name}`);
+        return { success: true, meal: cachedMeal, source: cachedMeal.source === 'ai' ? 'ai' : 'catalog' };
+      } else {
+        console.log(`💊 [CRAVING/Cache] Cached meal "${cachedMeal.name}" fails GLP-1 validation — bypassing cache, regenerating`);
+        // Fall through to AI generation with GLP-1 constraints active
+      }
     } else {
       macroAuditCache(cachedMeal.name ?? cravingInput, "hit", signature, { carbs: cachedMeal.carbs });
       console.log(`🚀 Cache hit for craving: "${cravingInput}" diet:${cravingPrimaryDiet} starch:${starchCacheKey} (source: ${cached.source})`);
@@ -703,52 +716,56 @@ export async function generateCravingMealUnified(
         console.log(`🚫 [TEMPLATE GUARD] Template "${meal.name}" violates ${cravingPrimaryDiet} diet (${reasons.join(", ")}) — escalating to AI`);
         // Fall through to AI generation below — do NOT return this template
       } else {
-        // Template passes dietary check — safe to use
-        console.log(`📋 Template match for "${cravingInput}" (score: ${templateMatches[0].score}) — diet OK`);
-        const unifiedMeal: UnifiedMeal = {
-          id: meal.id,
-          name: meal.name,
-          description: meal.description,
-          ingredients: meal.ingredients,
-          instructions: meal.instructions,
-          calories: meal.calories,
-          protein: meal.protein,
-          carbs: meal.carbs,
-          starchyCarbs: 0,
-          fibrousCarbs: 0,
-          fat: meal.fat,
-          cookingTime: '20 minutes',
-          difficulty: 'Easy',
-          imageUrl: meal.imageUrl,
-          medicalBadges: [],
-          source: 'catalog'
+        // Template passes dietary check — validate against GLP-1 targets if active
+        const candidateUnifiedMeal: UnifiedMeal = {
+          id: meal.id, name: meal.name, description: meal.description,
+          ingredients: meal.ingredients, instructions: meal.instructions,
+          calories: meal.calories, protein: meal.protein, carbs: meal.carbs,
+          starchyCarbs: 0, fibrousCarbs: 0, fat: meal.fat,
+          cookingTime: '20 minutes', difficulty: 'Easy',
+          imageUrl: meal.imageUrl, medicalBadges: [], source: 'catalog'
         };
-        await cacheMeals(signature, [unifiedMeal], validMealType, 'template');
-        return { success: true, meal: unifiedMeal, source: 'catalog' };
+        if (glp1Targets) {
+          const tVr = validateMealForDiet(candidateUnifiedMeal as any, 'glp1', undefined, validMealType === 'snack', glp1Targets);
+          if (!tVr.isValid) {
+            console.log(`💊 [TEMPLATE/GLP-1] Template "${meal.name}" fails GLP-1 validation — escalating to AI`);
+            // Fall through to AI generation below — do NOT return this template
+          } else {
+            console.log(`📋 Template match for "${cravingInput}" (score: ${templateMatches[0].score}) — diet OK, GLP-1 validated`);
+            await cacheMeals(signature, [candidateUnifiedMeal], validMealType, 'template');
+            return { success: true, meal: candidateUnifiedMeal, source: 'catalog' };
+          }
+        } else {
+          console.log(`📋 Template match for "${cravingInput}" (score: ${templateMatches[0].score}) — diet OK`);
+          await cacheMeals(signature, [candidateUnifiedMeal], validMealType, 'template');
+          return { success: true, meal: candidateUnifiedMeal, source: 'catalog' };
+        }
       }
     } else {
-      // No dietary restrictions — use template as-is
-      console.log(`📋 Template match for "${cravingInput}" (score: ${templateMatches[0].score})`);
-      const unifiedMeal: UnifiedMeal = {
-        id: meal.id,
-        name: meal.name,
-        description: meal.description,
-        ingredients: meal.ingredients,
-        instructions: meal.instructions,
-        calories: meal.calories,
-        protein: meal.protein,
-        carbs: meal.carbs,
-        starchyCarbs: 0,
-        fibrousCarbs: 0,
-        fat: meal.fat,
-        cookingTime: '20 minutes',
-        difficulty: 'Easy',
-        imageUrl: meal.imageUrl,
-        medicalBadges: [],
-        source: 'catalog'
+      // No dietary restrictions — validate against GLP-1 if active, then use template
+      const candidateUnifiedMeal: UnifiedMeal = {
+        id: meal.id, name: meal.name, description: meal.description,
+        ingredients: meal.ingredients, instructions: meal.instructions,
+        calories: meal.calories, protein: meal.protein, carbs: meal.carbs,
+        starchyCarbs: 0, fibrousCarbs: 0, fat: meal.fat,
+        cookingTime: '20 minutes', difficulty: 'Easy',
+        imageUrl: meal.imageUrl, medicalBadges: [], source: 'catalog'
       };
-      await cacheMeals(signature, [unifiedMeal], validMealType, 'template');
-      return { success: true, meal: unifiedMeal, source: 'catalog' };
+      if (glp1Targets) {
+        const tVr = validateMealForDiet(candidateUnifiedMeal as any, 'glp1', undefined, validMealType === 'snack', glp1Targets);
+        if (!tVr.isValid) {
+          console.log(`💊 [TEMPLATE/GLP-1] Template "${meal.name}" fails GLP-1 validation (no diet restrictions) — escalating to AI`);
+          // Fall through to AI generation
+        } else {
+          console.log(`📋 Template match for "${cravingInput}" (score: ${templateMatches[0].score}) — GLP-1 validated`);
+          await cacheMeals(signature, [candidateUnifiedMeal], validMealType, 'template');
+          return { success: true, meal: candidateUnifiedMeal, source: 'catalog' };
+        }
+      } else {
+        console.log(`📋 Template match for "${cravingInput}" (score: ${templateMatches[0].score})`);
+        await cacheMeals(signature, [candidateUnifiedMeal], validMealType, 'template');
+        return { success: true, meal: candidateUnifiedMeal, source: 'catalog' };
+      }
     }
   }
 
@@ -787,7 +804,8 @@ REQUIRED STRUCTURE FOR EVERY MEAL:
       // meal targets rather than the static 400 kcal / 12 g fat defaults.
       let glp1CravingBlock = "";
       if (glp1Targets) {
-        glp1CravingBlock = applyGuardrails(
+        // applyGuardrails returns GuardrailResult — extract the modifiedPrompt string.
+        const _glp1GuardrailResult = applyGuardrails(
           "",           // empty base — extract only the GLP-1 guidance additions
           'glp1',
           validMealType,
@@ -796,7 +814,8 @@ REQUIRED STRUCTURE FOR EVERY MEAL:
           undefined,    // builderMode
           undefined,    // dailyProteinTarget
           glp1Targets,
-        ).modifiedPrompt;
+        );
+        glp1CravingBlock = _glp1GuardrailResult.modifiedPrompt ?? "";
         console.log(
           `💊 [CRAVING/GLP-1] Personalized targets: ` +
           `${glp1Targets.resolvedMealCalories}kcal / ` +
@@ -903,25 +922,26 @@ Respond with ONLY valid JSON in this exact format:
       let unifiedMeal = enforceCarbs(rawMeal);
       let cravingDietaryComplianceVerified = false;
 
-      // ── GLP-1 post-generation validation ─────────────────────────────────────
-      // Validates that the AI-generated meal actually stays within the patient's
-      // resolved fat ceiling, calorie ceiling, and protein floor. Violations are
-      // logged with detail so they appear in the server proof trace.
+      // ── GLP-1 post-generation validation — fail closed ───────────────────────
+      // Throws if the generated meal violates GLP-1 targets so the outer attempt
+      // loop retries with a different prompt variant rather than returning a
+      // clinically non-compliant meal. Do NOT mutate nutrition fields.
       if (glp1Targets) {
-        const glp1PostCheck = validateMealForDiet(rawMeal as any, 'glp1', undefined, false, glp1Targets);
+        const glp1PostCheck = validateMealForDiet(rawMeal as any, 'glp1', undefined, validMealType === 'snack', glp1Targets);
         if (!glp1PostCheck.isValid) {
-          console.warn(
+          const msg =
             `⚠️ [CRAVING/GLP-1] Post-gen validation FAILED — ` +
             `meal: "${rawMeal.name}" | violations: ${glp1PostCheck.violations.join('; ')} | ` +
-            `generated: ${rawMeal.calories}kcal / ${rawMeal.protein}g prot / ${rawMeal.fat}g fat`
-          );
-        } else {
-          console.log(
-            `✅ [CRAVING/GLP-1] Post-gen validation PASSED — ` +
-            `meal: "${rawMeal.name}" | ` +
-            `${rawMeal.calories}kcal / ${rawMeal.protein}g prot / ${rawMeal.fat}g fat`
-          );
+            `generated: ${rawMeal.calories}kcal / ${rawMeal.protein}g prot / ${rawMeal.fat}g fat`;
+          console.warn(msg);
+          // Throw so the variety engine retries this attempt slot with a new prompt.
+          throw new Error(`GLP-1 validation failed: ${glp1PostCheck.violations.join('; ')}`);
         }
+        console.log(
+          `✅ [CRAVING/GLP-1] Post-gen validation PASSED — ` +
+          `meal: "${rawMeal.name}" | ` +
+          `${rawMeal.calories}kcal / ${rawMeal.protein}g prot / ${rawMeal.fat}g fat`
+        );
       }
 
       // POST-GENERATION dietary validation (vegan / vegetarian / pescatarian)
@@ -1128,7 +1148,16 @@ Respond with ONLY valid JSON in this exact format:
       };
       
     } catch (aiError: any) {
-      // AI failed - fall back to deterministic catalog
+      // ── GLP-1 validation failures must never enter the catalog fallback ──────
+      // The GLP-1 post-gen check throws a typed error so the outer attempt loop
+      // (variety engine) can retry the slot with a new prompt variant.
+      // Swallowing it and serving an unvalidated catalog meal violates fail-closed.
+      if (glp1Targets && aiError?.message?.startsWith('GLP-1 validation failed')) {
+        console.warn(`💊 [CRAVING/UNIFIED] Re-throwing GLP-1 validation error — no catalog fallback for active GLP-1 context`);
+        throw aiError;
+      }
+
+      // AI failed for a non-GLP-1 reason - fall back to deterministic catalog
       console.error(`❌ AI generation failed, using catalog fallback:`, aiError.message);
       
       const fallback = getDeterministicFallback(validMealType, [cravingInput]);
@@ -1156,6 +1185,22 @@ Respond with ONLY valid JSON in this exact format:
       
       // ENFORCE CARBS: Derive from ingredients for catalog fallback
       const unifiedMeal = enforceCarbs(rawFallbackMeal);
+
+      // ── GLP-1 defense-in-depth: validate fallback before serving ─────────────
+      // Even for non-GLP-1 AI errors, the catalog fallback must pass GLP-1 targets
+      // before it can be returned to an active GLP-1 patient.
+      if (glp1Targets) {
+        const fallbackVr = validateMealForDiet(unifiedMeal as any, 'glp1', undefined, validMealType === 'snack', glp1Targets);
+        if (!fallbackVr.isValid) {
+          console.warn(
+            `💊 [CRAVING/UNIFIED] Catalog fallback "${unifiedMeal.name}" fails GLP-1 validation — ` +
+            `rejecting rather than serving non-compliant meal. Violations:`, fallbackVr.violations
+          );
+          // Throw so the outer retry loop can try a different prompt variant.
+          throw new Error(`GLP-1 validation failed (catalog fallback): ${fallbackVr.violations.join('; ')}`);
+        }
+        console.log(`✅ [CRAVING/UNIFIED] Catalog fallback "${unifiedMeal.name}" passes GLP-1 validation`);
+      }
       
       await cacheMeals(signature, [unifiedMeal], validMealType, 'template');
       
@@ -1761,7 +1806,8 @@ export async function generateCravingMealOptions(
   excludeMeals?: string[],
   strictMode: boolean = false,
   generationMode: 'meal' | 'recipe' = 'meal',
-  cuisineOverride?: string
+  cuisineOverride?: string,
+  glp1Targets?: ResolvedGLP1Targets,
 ): Promise<UnifiedMeal[]> {
   const validMealType = normalizeMealType(mealType);
   const category = inferCravingCategory(cravingInput, validMealType);
@@ -1931,6 +1977,40 @@ export async function generateCravingMealOptions(
     console.log(`🧬 [VARIETY ENGINE] Oncology hard-block overlay injected (trigger: ${_oncologyTrigger})`);
   }
 
+  // ── GLP-1 prompt constraint injection ────────────────────────────────────
+  // When personalized targets are available, append a clinical constraint block
+  // to dietBlock so EVERY variety-engine prompt carries the GLP-1 rules.
+  // Placed after all other diet blocks so GLP-1 overrides rather than merges.
+  if (glp1Targets) {
+    const t = glp1Targets;
+    const glp1PromptBlock = [
+      ``,
+      `═══ GLP-1 MEDICATION PROTOCOL — HARD CONSTRAINTS (ALL OPTIONS) ═══`,
+      `This user is on GLP-1 medication. All ${3} options MUST comply with these clinical rules.`,
+      `Treatment phase: ${t.treatmentPhase ?? "active"}`,
+      ``,
+      `MACRO CEILINGS (per meal — hard limits, not guidelines):`,
+      `• Calories: ≤ ${t.resolvedMealCalories} kcal`,
+      `• Fat: ≤ ${t.maximumToleratedFatGrams} g  — FRIED, CREAMY, BUTTERY dishes are FORBIDDEN`,
+      `• Protein: ≥ ${t.targetProteinGrams} g  — lean protein MUST anchor every option`,
+      ``,
+      `FORBIDDEN PREPARATIONS: fried, deep-fried, breaded, cream sauces, butter-based sauces,`,
+      `heavy cheese, full-fat dairy, high-fat dressings, or any preparation that pushes fat > ${t.maximumToleratedFatGrams}g.`,
+      ``,
+      `PORTION RULE: GLP-1 medications reduce appetite and slow gastric emptying.`,
+      `Keep portions small (1-1.5 cups total plate volume). Do NOT generate large, heavy plates.`,
+      ``,
+      `STARCH RULE: Starchy sides (rice, pasta, bread, potato) are OPTIONAL and must appear as`,
+      `controlled portions (≤ ¼ cup / 2 oz). Non-starchy vegetables are PREFERRED as volume.`,
+      `═══════════════════════════════════════════════════════════════════`,
+    ].join('\n');
+    dietBlock += glp1PromptBlock;
+    console.log(
+      `💊 [VARIETY ENGINE] GLP-1 hard-constraint block injected ` +
+      `[${t.resolvedMealCalories}kcal / ≥${t.targetProteinGrams}g prot / ≤${t.maximumToleratedFatGrams}g fat]`,
+    );
+  }
+
   const excludeClause = excludeMeals && excludeMeals.length > 0
     ? `ANTI-REPETITION: Do NOT generate anything resembling these recently seen options — vary the primary ingredient, preparation, and concept: ${excludeMeals.join(", ")}`
     : "";
@@ -2047,6 +2127,51 @@ export async function generateCravingMealOptions(
   // OR where more than 1 starch source is present. Prompts alone are insufficient —
   // this is the code-level enforcement the AI cannot bypass.
   finalOptions = filterByStarchStructure(finalOptions, dietRestrictions);
+
+  // ── GLP-1 post-generation validation — fail closed ───────────────────────
+  // Filter out any option that fails GLP-1 targets. Do NOT mutate nutrition
+  // fields — relabeling macros without changing ingredients is clinically wrong.
+  // Validator module errors also exclude the option (fail closed).
+  if (glp1Targets) {
+    try {
+      const { validateMealForDiet } = await import("./guardrails/index");
+      const isSnack = validMealType === "snack";
+      const beforeCount = finalOptions.length;
+      finalOptions = finalOptions.filter((opt: any) => {
+        try {
+          const ingList = ((opt as any).ingredients || []).map((i: any) => ({
+            name: typeof i === "string" ? i : (i?.name ?? i?.item ?? ""),
+            quantity: typeof i === "string" ? undefined : (i?.quantity ?? (i?.amount ? String(i.amount) : undefined)),
+            unit: typeof i === "string" ? undefined : i?.unit,
+          }));
+          const macros = {
+            calories: (opt as any).calories ?? (opt as any).nutrition?.calories,
+            protein:  (opt as any).protein  ?? (opt as any).nutrition?.protein,
+            fat:      (opt as any).fat      ?? (opt as any).nutrition?.fat,
+            carbs:    (opt as any).carbs    ?? (opt as any).nutrition?.carbs,
+          };
+          const vr = validateMealForDiet(
+            { name: (opt as any).name, ingredients: ingList, macros },
+            "glp1", undefined, isSnack, glp1Targets!,
+          );
+          if (!vr.isValid) {
+            console.warn(`💊 [VARIETY ENGINE] Excluding "${(opt as any).name}" — GLP-1 violations:`, vr.violations);
+          }
+          return vr.isValid;
+        } catch {
+          console.warn(`⚠️ [VARIETY ENGINE] Validator error for "${(opt as any).name}" — excluding (fail closed)`);
+          return false;
+        }
+      });
+      if (finalOptions.length < beforeCount) {
+        console.log(`💊 [VARIETY ENGINE] ${beforeCount - finalOptions.length} option(s) excluded by GLP-1 post-validation`);
+      }
+    } catch (err) {
+      // Fail closed: module load error — clear all options rather than serving unvalidated meals.
+      console.warn("⚠️ [VARIETY ENGINE] GLP-1 validation module error — clearing all options (fail closed):", err);
+      finalOptions = [];
+    }
+  }
 
   console.log(`✅ [VARIETY ENGINE] ${finalOptions.length} options: ${finalOptions.map((o: any) => o?.name).join(" | ")}`);
   return finalOptions.map((opt, idx) => {
@@ -2501,6 +2626,7 @@ async function generateBeverageFromDescription(
   slotHint?: string,
   starchContext?: StarchContext,
   remainingMacros?: { protein?: number; carbs?: number; fat?: number; calories?: number },
+  glp1Targets?: ResolvedGLP1Targets,
 ): Promise<MealGenerationResponse> {
   console.log(`🍹 [CREATE-WITH-CHEF/BEVERAGE] "${beverageCategory}" intent detected — routing to beverage pipeline`);
 
@@ -2622,6 +2748,43 @@ GENERATION RULES:
 
   console.log(`✅ [CREATE-WITH-CHEF/BEVERAGE] Generated: ${unifiedMeal.name}`);
 
+  // ── GLP-1 post-generation macro validation ───────────────────────────────
+  // Prompt-level guidance alone is not sufficient for clinical enforcement.
+  // Validate the generated beverage against the patient's resolved fat ceiling,
+  // calorie target, and protein floor before returning it.
+  if (glp1Targets) {
+    const glp1BevCheck = validateMealForDiet(
+      {
+        name: unifiedMeal.name,
+        ingredients: unifiedMeal.ingredients.map(i => ({ name: i.name })),
+        macros: {
+          calories: unifiedMeal.calories,
+          protein: unifiedMeal.protein,
+          fat: unifiedMeal.fat,
+          carbs: unifiedMeal.carbs ?? undefined,
+        },
+      },
+      null,
+      undefined,
+      true, // beverages are snack-equivalent for GLP-1 sizing
+      glp1Targets,
+    );
+    if (!glp1BevCheck.isValid) {
+      console.error(
+        `🚫 [CREATE-WITH-CHEF/BEVERAGE/GLP-1] Post-gen validation FAILED — ` +
+        `${glp1BevCheck.violations.join('; ')} | ` +
+        `${unifiedMeal.calories}kcal / ${unifiedMeal.protein}g prot / ${unifiedMeal.fat}g fat`
+      );
+      throw new Error(
+        `[GLP-1] Generated beverage exceeds clinical limits: ${glp1BevCheck.violations.join('; ')}`
+      );
+    }
+    console.log(
+      `✅ [CREATE-WITH-CHEF/BEVERAGE/GLP-1] Post-gen validation PASSED — ` +
+      `"${unifiedMeal.name}" ${unifiedMeal.calories}kcal / ${unifiedMeal.protein}g prot / ${unifiedMeal.fat}g fat`
+    );
+  }
+
   return {
     success: true,
     meal: unifiedMeal,
@@ -2677,8 +2840,9 @@ export async function generateFromDescriptionUnified(
       userId,
       dietType,
       mealType,
-      starchContext,  // server-authoritative starch constraints (forceStarch already cleared above)
+      starchContext,   // server-authoritative starch constraints (forceStarch already cleared above)
       remainingMacros, // server-authoritative macro budget
+      glp1Targets,     // patient-specific clinical targets for post-gen validation
     );
   }
 
@@ -2872,12 +3036,14 @@ FORMAT: Return as JSON object:
 
 Create the recipe for: "${description}"`;
 
-    // Apply diet-specific guardrails — skip entirely when strictMode is ON
-    // (guardrails inject balance/wholefood rules that add unwanted ingredients)
+    // Apply diet-specific guardrails — skip dietary rules when strictMode is ON
+    // (guardrails inject balance/wholefood rules that add unwanted ingredients).
+    // GLP-1 is a mandatory medical protocol and is always injected regardless
+    // of strictMode — it is not a dietary preference the user can override.
     let prompt: string;
     if (strictMode) {
       prompt = `${basePrompt}\n\n${buildStrictModeBlock(description)}`;
-      console.log(`🔒 [StrictMode] Guardrails skipped — user override active`);
+      console.log(`🔒 [StrictMode] Dietary guardrails skipped — user override active`);
     } else {
       const guardrailResult = applyGuardrails(
         basePrompt,
@@ -2893,6 +3059,16 @@ Create the recipe for: "${description}"`;
       if (guardrailResult.appliedRules.length > 0) {
         console.log(`🛡️ Applied guardrails: ${guardrailResult.appliedRules.join(', ')}`);
       }
+    }
+    // GLP-1 medical overlay — applied AFTER the strict/non-strict block so it
+    // is never skipped by strictMode.  The overlay is a no-op when glp1Targets
+    // is undefined (non-GLP-1 user or resolver not yet loaded).
+    if (glp1Targets && strictMode) {
+      prompt = prompt + buildGLP1ConstraintOverlay(validMealType, glp1Targets);
+      console.log(
+        `💊 [StrictMode/GLP-1] Medical overlay injected: ` +
+        `${glp1Targets.resolvedMealCalories}kcal / ${glp1Targets.maximumToleratedFatGrams}g fat-ceiling`
+      );
     }
 
     // EXPLICIT OVERRIDE INJECTION: user confirmed a builder guardrail conflict
@@ -3012,7 +3188,7 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
       
       let tempMeal: UnifiedMeal = {
         id: `chef-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        name: culturalNameTransform(mealData.name, chefEnvelope.cuisinePreference),
+        name: culturalNameTransform(mealData.name, chefEnvelope.cuisinePreference ?? undefined),
         description: mealData.description,
         ingredients: normalizeIngredients(mealData.ingredients || []),
         instructions: mealData.instructions,
@@ -3044,9 +3220,73 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
           console.warn(`⚠️ Hub validation soft warnings: ${hubValidation.violations.map(v => v.message).join(', ')}`);
         }
       } else if (dietType) {
-        const validation = validateMealForDiet(tempMeal, dietType, undefined, false, glp1Targets);
+        // Run primary-diet validation for non-hub, non-GLP-1-only paths.
+        // Populate macros from top-level UnifiedMeal fields so the GLP-1
+        // validator's macro branch actually fires (meal.macros is undefined
+        // on UnifiedMeal but the validator reads meal.macros.fat etc.).
+        const mealForDietValidation = {
+          ...tempMeal,
+          macros: { calories: tempMeal.calories, protein: tempMeal.protein, fat: tempMeal.fat, carbs: tempMeal.carbs ?? undefined },
+        };
+        const validation = validateMealForDiet(mealForDietValidation, dietType, undefined, false, glp1Targets);
         if (!validation.isValid) {
-          console.warn(`⚠️ Meal has legacy guardrail violations: ${validation.violations.join(', ')}`);
+          const glp1Violations = validation.violations.filter(v =>
+            v.toLowerCase().includes('glp') || v.toLowerCase().includes('fat') ||
+            v.toLowerCase().includes('protein') || v.toLowerCase().includes('portion')
+          );
+          if (glp1Violations.length > 0 && attemptCount < MAX_REGENERATION_ATTEMPTS) {
+            lastFixHint =
+              `GLP-1 CLINICAL CONSTRAINT VIOLATION — regenerate strictly compliant:\n` +
+              glp1Violations.join('; ') + '\n' +
+              `Reduce fat to under ${glp1Targets?.maximumToleratedFatGrams ?? 15}g, ` +
+              `target ${glp1Targets?.targetProteinGrams ?? 25}g protein, ` +
+              `keep meal small and easily digestible.`;
+            console.warn(`⚠️ [GLP-1] Post-gen violation (attempt ${attemptCount}) — scheduling regeneration: ${glp1Violations.join(', ')}`);
+            continue;
+          }
+          console.warn(`⚠️ Meal has guardrail violations: ${validation.violations.join(', ')}`);
+        }
+      }
+
+      // ── GLP-1 macro enforcement — always runs when targets are present ─────
+      // Runs independently of the hub/diet branch so GLP-1 clinical constraints
+      // are enforced even when hub guardrails are active (the hub validator does
+      // not check GLP-1 macro ceilings).
+      // Runs for ALL diet types including 'glp1' — the primary switch above only
+      // logs warnings on exhaustion; this block throws when retries are exhausted.
+      if (glp1Targets) {
+        const mealForGLP1 = {
+          name: tempMeal.name,
+          ingredients: tempMeal.ingredients,
+          instructions: tempMeal.instructions,
+          macros: { calories: tempMeal.calories, protein: tempMeal.protein, fat: tempMeal.fat, carbs: tempMeal.carbs ?? undefined },
+        };
+        const glp1MacroCheck = validateMealForDiet(mealForGLP1, null, undefined, false, glp1Targets);
+        if (!glp1MacroCheck.isValid) {
+          if (attemptCount < MAX_REGENERATION_ATTEMPTS) {
+            lastFixHint =
+              `GLP-1 MACRO VIOLATION — regenerate with smaller, leaner meal:\n` +
+              glp1MacroCheck.violations.join('; ') + '\n' +
+              `Target: ~${glp1Targets.resolvedMealCalories} kcal, ` +
+              `max ${glp1Targets.maximumToleratedFatGrams}g fat, ` +
+              `min ${glp1Targets.targetProteinGrams}g protein.`;
+            console.warn(
+              `⚠️ [GLP-1] Macro ceiling exceeded (attempt ${attemptCount}): ` +
+              glp1MacroCheck.violations.join(', ')
+            );
+            continue;
+          }
+          // Fail closed — return a clinical error rather than serving a meal
+          // that violates the patient's fat ceiling or protein floor.
+          throw new Error(
+            `[GLP-1] Meal exceeds patient clinical limits after ${attemptCount} attempts: ` +
+            glp1MacroCheck.violations.join('; ')
+          );
+        } else {
+          console.log(
+            `✅ [GLP-1] Macro compliance verified: ` +
+            `${tempMeal.calories}kcal / ${tempMeal.fat}g fat / ${tempMeal.protein}g prot`
+          );
         }
       }
 
@@ -3366,7 +3606,7 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
       fat: finalMealData.fat || 15,
       cookingTime: finalMealData.cookingTime || '25 minutes',
       difficulty: finalMealData.difficulty || 'Easy',
-      imageUrl,
+      imageUrl: imageUrl ?? '',
       substitutionNotes: finalMealData.substitutionNotes,
       medicalBadges: [],
       source: 'ai',
@@ -3646,9 +3886,69 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
           console.warn(`⚠️ Snack hub validation soft warnings: ${snackHubValidation.violations.map(v => v.message).join(', ')}`);
         }
       } else if (dietType) {
-        const validation = validateMealForDiet(tempSnack, dietType, undefined, true, glp1Targets);
+        // Run primary-diet validation for non-hub, non-GLP-1-only paths.
+        // Populate macros from top-level UnifiedMeal fields so the GLP-1
+        // validator's macro branch actually fires.
+        const snackForDietValidation = {
+          ...tempSnack,
+          macros: { calories: tempSnack.calories, protein: tempSnack.protein, fat: tempSnack.fat, carbs: tempSnack.carbs },
+        };
+        const validation = validateMealForDiet(snackForDietValidation, dietType, undefined, true, glp1Targets);
         if (!validation.isValid) {
-          console.warn(`⚠️ Snack has legacy guardrail violations: ${validation.violations.join(', ')}`);
+          const glp1Violations = validation.violations.filter(v =>
+            v.toLowerCase().includes('glp') || v.toLowerCase().includes('fat') ||
+            v.toLowerCase().includes('protein') || v.toLowerCase().includes('portion')
+          );
+          if (glp1Violations.length > 0 && snackAttemptCount < SNACK_MAX_REGENERATION_ATTEMPTS) {
+            snackLastFixHint =
+              `GLP-1 CLINICAL CONSTRAINT VIOLATION — regenerate strictly compliant:\n` +
+              glp1Violations.join('; ') + '\n' +
+              `Reduce fat to under ${glp1Targets?.maximumToleratedFatGrams ?? 8}g, ` +
+              `target ${glp1Targets?.targetProteinGrams ?? 8}g protein, ` +
+              `keep snack very small (${glp1Targets?.resolvedSnackCalories ?? 150} kcal max).`;
+            console.warn(`⚠️ [GLP-1] Post-gen snack violation (attempt ${snackAttemptCount}) — scheduling regeneration: ${glp1Violations.join(', ')}`);
+            continue;
+          }
+          console.warn(`⚠️ Snack has guardrail violations: ${validation.violations.join(', ')}`);
+        }
+      }
+
+      // ── GLP-1 macro enforcement for snacks — always runs when targets are present ──
+      // Runs independently of hub/diet branch so hub-routed users also get
+      // GLP-1 macro validation and regeneration when violations are found.
+      if (glp1Targets) {
+        const snackForGLP1 = {
+          name: tempSnack.name,
+          ingredients: tempSnack.ingredients,
+          instructions: tempSnack.instructions,
+          macros: { calories: tempSnack.calories, protein: tempSnack.protein, fat: tempSnack.fat, carbs: tempSnack.carbs ?? undefined },
+        };
+        const glp1MacroCheck = validateMealForDiet(snackForGLP1, null, undefined, true, glp1Targets);
+        if (!glp1MacroCheck.isValid) {
+          if (snackAttemptCount < SNACK_MAX_REGENERATION_ATTEMPTS) {
+            snackLastFixHint =
+              `GLP-1 MACRO VIOLATION — regenerate with smaller, leaner snack:\n` +
+              glp1MacroCheck.violations.join('; ') + '\n' +
+              `Target: ~${glp1Targets.resolvedSnackCalories} kcal, ` +
+              `max ${Math.round(glp1Targets.maximumToleratedFatGrams * 0.4)}g fat, ` +
+              `min ${Math.round(glp1Targets.minimumProteinFloor * 0.5)}g protein.`;
+            console.warn(
+              `⚠️ [GLP-1] Snack macro ceiling exceeded (attempt ${snackAttemptCount}): ` +
+              glp1MacroCheck.violations.join(', ')
+            );
+            continue;
+          }
+          // Fail closed — return a clinical error rather than serving a snack
+          // that violates the patient's fat ceiling or protein floor.
+          throw new Error(
+            `[GLP-1] Snack exceeds patient clinical limits after ${snackAttemptCount} attempts: ` +
+            glp1MacroCheck.violations.join('; ')
+          );
+        } else {
+          console.log(
+            `✅ [GLP-1] Snack macro compliance verified: ` +
+            `${tempSnack.calories}kcal / ${tempSnack.fat}g fat / ${tempSnack.protein}g prot`
+          );
         }
       }
 

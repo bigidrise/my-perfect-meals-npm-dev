@@ -1426,6 +1426,30 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
         ],
         correctIndex: 1,
       },
+      {
+        id: "l8-q11",
+        question:
+          "A GLP-1 patient builds her weekly meal plan in the Metabolic Medication Builder, then uses Craving Creator, Fridge Rescue, and the Restaurant Guide throughout the week. Which surfaces apply GLP-1 intelligence?",
+        options: [
+          "Only the Metabolic Medication Builder — GLP-1 support is specific to that builder.",
+          "The builder and Craving Creator only — lifestyle creators share builder settings, but dining tools do not.",
+          "All of them — GLP-1 support is platform-wide and follows the patient across meal builders, lifestyle creators, dining guidance, and food discovery tools.",
+          "All of them, but only after the patient manually re-activates GLP-1 mode in each tool.",
+        ],
+        correctIndex: 2,
+      },
+      {
+        id: "l8-q12",
+        question:
+          "A nurse affiliate explains GLP-1 support to a new client this way: \"The platform replaces your standard nutrition baseline with a GLP-1 plan once you activate the builder.\" What is wrong with that explanation?",
+        options: [
+          "Nothing — GLP-1 activation does replace the standard baseline with a medication-specific one.",
+          "The Macro Calculator baseline is never replaced. GLP-1 support applies an overlay — protein priority, meal volume adjustments, fat tolerance — on top of the baseline, not instead of it.",
+          "The explanation is correct only for physician-assigned ProCare protocols, not self-assigned GLP-1 users.",
+          "The explanation should clarify that the baseline is replaced only during the first 12 weeks of GLP-1 use.",
+        ],
+        correctIndex: 1,
+      },
     ],
   },
   {

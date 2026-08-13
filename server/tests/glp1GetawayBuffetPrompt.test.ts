@@ -544,14 +544,30 @@ describe("GET /api/getaway/coach — GLP-1 user with NO meals logged (edge case)
     expect(userMsg.content).not.toContain("CURRENT DAY REMAINING BUDGET");
   });
 
-  test("route does not crash when both daily state and GLP-1 context are unavailable", async () => {
+  test("resolver rejection returns 503 fail-closed (no recommendation served)", async () => {
     mockResolveGLP1GlobalContext.mockRejectedValue(new Error("GLP-1 resolver error"));
 
     const res = await request(testApp)
       .post("/api/getaway/coach")
       .send({ message: "Resort options?" });
 
-    // Route handles errors gracefully — either 200 with degraded prompt or 500
-    expect([200, 500]).toContain(res.status);
+    // Fail closed: GLP-1 status indeterminate → 503, no recommendation
+    expect(res.status).toBe(503);
+    expect(res.body.retryable).toBe(true);
+  });
+
+  test("isActive=true but resolvedTargets=null returns 503 fail-closed", async () => {
+    mockResolveGLP1GlobalContext.mockResolvedValue({
+      ...GLP1_CONTEXT_ACTIVE,
+      resolvedTargets: null,
+    });
+
+    const res = await request(testApp)
+      .post("/api/getaway/coach")
+      .send({ message: "Beach resort lunch?" });
+
+    // Fail closed: active GLP-1 patient but clinical targets unavailable → 503
+    expect(res.status).toBe(503);
+    expect(res.body.retryable).toBe(true);
   });
 });

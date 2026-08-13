@@ -156,7 +156,10 @@ RESPONSE FORMAT — return valid JSON only, no markdown, no code fences:
     {
       "name": "Specific menu item name",
       "where": "Restaurant or stand name at the venue, including zone if known",
-      "why": "One sentence — why this fits their profile"
+      "why": "One sentence — why this fits their profile",
+      "estimatedCalories": 0,
+      "estimatedProteinGrams": 0,
+      "estimatedFatGrams": 0
     }
   ],
   "whyTheyFit": ["Bullet reason fitting their goals or protocol", "Another reason"],
@@ -172,13 +175,22 @@ Keep bestChoices to 2-3 items. The avoid array should be [] if nothing is specif
     // ── Craving intent: extract the user's food request from the message ─────
     const cravingInstructions = buildCravingInstructions(message.trim(), nutritionContext?.envelope?.hasDiabetes ?? false);
 
-    // ── Remaining macros + GLP-1 canonical context in parallel ───────────────
+    // ── GLP-1 canonical context — fail closed ─────────────────────────────────
+    // Resolve before any other context so a resolver failure returns 503 rather
+    // than silently serving an unguarded recommendation to a GLP-1 patient.
     const todayISO = new Date().toISOString().slice(0, 10);
+    const glp1Ctx = await resolveGLP1GlobalContext(userId, todayISO).catch(() => null);
+    if (glp1Ctx === null) {
+      return res.status(503).json({ error: "Clinical guidance temporarily unavailable. Please try again.", retryable: true });
+    }
+    if (glp1Ctx.isActive && !glp1Ctx.resolvedTargets) {
+      return res.status(503).json({ error: "GLP-1 clinical targets temporarily unavailable. Please try again.", retryable: true });
+    }
+
     let remainingMacrosBlock = "";
     let glp1Block = "";
-    const [dailyState, glp1Ctx] = await Promise.all([
+    const [dailyState] = await Promise.all([
       resolveDailyNutritionState(userId, todayISO).catch(() => null),
-      resolveGLP1GlobalContext(userId, todayISO).catch(() => null),
     ]);
     if (dailyState) remainingMacrosBlock = buildRemainingMacrosBlock(dailyState.remaining);
     if (glp1Ctx) glp1Block = buildGLP1RecommendationBlock(glp1Ctx);
@@ -218,6 +230,26 @@ Based on where this person is right now, give them their best food guidance.`;
 
     if (locationZoneLabel && !result.zone) {
       result.zone = locationZoneLabel;
+    }
+
+    // ── GLP-1 post-gen bestChoice filtering ───────────────────────────────────
+    // Each bestChoice now includes estimatedFatGrams from the AI response schema.
+    // Filter any choice whose estimated fat exceeds the patient-specific ceiling
+    // so non-compliant items never reach a GLP-1 patient.
+    if (glp1Ctx.isActive && glp1Ctx.resolvedTargets && Array.isArray(result.bestChoices)) {
+      const t = glp1Ctx.resolvedTargets;
+      const before = result.bestChoices.length;
+      result.bestChoices = result.bestChoices.filter((choice: any) => {
+        const fat = Number(choice.estimatedFatGrams);
+        if (Number.isFinite(fat) && fat > t.maximumToleratedFatGrams) {
+          console.warn(`[GETAWAY/GLP-1] Filtered "${choice.name}" — fat ${fat}g > ceiling ${t.maximumToleratedFatGrams}g`);
+          return false;
+        }
+        return true;
+      });
+      if (result.bestChoices.length < before) {
+        console.log(`[GETAWAY/GLP-1] Filtered ${before - result.bestChoices.length} non-compliant choices`);
+      }
     }
 
     res.json({ ok: true, ...result });

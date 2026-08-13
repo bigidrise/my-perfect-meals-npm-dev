@@ -759,6 +759,24 @@ setTimeout(async () => {
         user_agent text
       )
     `);
+    // Saved Groceries — persistent grocery preference library
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS user_saved_grocery_items (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id varchar NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        product_name text NOT NULL,
+        brand text,
+        barcode text,
+        product_key text NOT NULL,
+        category text,
+        source text NOT NULL DEFAULT 'manual',
+        nutrition_json jsonb,
+        product_meta jsonb,
+        image_url text,
+        saved_at timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT uniq_saved_grocery_user_product_key UNIQUE (user_id, product_key)
+      )
+    `);
     // Grandfather existing certified professionals — Phase 2 gate protection
     // Sets procare_training_completed=true for professionals who completed Phase 1
     // BEFORE Phase 2 training existed (cutoff: 2026-07-01).
