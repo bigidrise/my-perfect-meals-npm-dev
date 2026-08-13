@@ -75,13 +75,22 @@ Any phase-specific reduction rules belong in `resolveGLP1MealTargets` registry (
 ✅ [CRAVING/GLP-1] Post-gen validation PASSED — meal: "..." | 385kcal / 32g prot / 9g fat
 ```
 
-## Stages remaining (not yet started)
-- Stage 2 remainder: Weekly Meal Plan routes need `resolveGLP1GlobalContext`
-- Stage 3: Restaurant Guide fallback, Getaways, Buffet, Grocery Coach, Find Your Meals hardening (task #792 merged separately)
-- Stage 4: Locate Sushi Creator / Recipe Maker / Recipe Scan routes + consolidate 6 scattered GLP-1 prompt blocks
+## Weekly Meal Plan wired (/api/ai/generate-meal-plan)
+- `resolveGLP1GlobalContext` called once per plan generation (after userProfile fetch)
+- When active: `applyGuardrails("", 'glp1', 'lunch', ..., resolvedTargets)` builds GLP-1 block
+- Block appended to `personalizedPrompt` for every slot in the plan
+- Log: `💊 [WEEKLY PLAN/GLP-1] Personalized targets: Xkcal / Xg prot / Xg fat-ceiling [phase: Y] [sources: Z]`
+- Note: `/api/generate-weekly-plan` (line 7144) is a stub with hardcoded meals — NOT the real plan generator; the real one is `/api/ai/generate-meal-plan` at line 1738
 
-## Visual indicator gap (diagnosed)
-- Builder pages (`BuilderHeader`): GLP-1 Protocol orange badge DOES show when `medicalConditions`/`specialtyConditions` contains a GLP-1 keyword — via `PROTOCOL_MAP` in `nutritionPersonalization.ts`
-- Non-builder surfaces (Chef, Craving, Fridge Rescue, Restaurant Guide, etc.): NO persistent GLP-1 active indicator
-- No platform-wide "GLP-1 Support Active" banner exists anywhere
-- No "Macro Calculator baseline vs GLP-1 resolved" comparison visible in the UI
+## Visual indicator (ProtocolStatusBadge) — COMPLETE
+- `client/src/components/ProtocolStatusBadge.tsx` — shared component; zero render when inactive
+- Fetches `GET /api/nutrition/active-protocol` (new server endpoint inside `registerRoutes()`)
+- Endpoint calls `resolveGLP1GlobalContext` + reads `user.performanceModeEnabled` — server-resolved, NOT client `selectedMealBuilder`
+- Shows: "GLP-1 Support Active" (orange) | "Performance + GLP-1 Support" (orange) | "Performance Active" (emerald)
+- Renders in: `craving-creator.tsx` (after header controls) and `fridge-rescue.tsx` (after hub intro)
+- `staleTime: 120_000` — stable within session, won't hammer the resolver
+
+## Stages remaining
+- Stage 4: Sushi Creator, Recipe Maker, Recipe Scan + consolidate 6 scattered GLP-1 prompt blocks (task #793)
+- GLP-1 + Performance composition proof — need a test user with both active to see the server log trace side-by-side
+- Visual indicator placement on Restaurant Guide, Find Meals, Getaways, Buffet (those are recommendation surfaces, badge is not yet placed there)

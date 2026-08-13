@@ -1869,6 +1869,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // LEGACY SYSTEM: Get user profile data for personalized meal generation
       const [userProfile] = await db.select().from(users).where(eq(users.id, userId || "1")).limit(1);
 
+      // ── GLP-1 canonical context for Weekly Meal Plan ───────────────────────
+      // Load patient-specific targets once; inject into every slot's prompt so
+      // each generated meal respects GLP-1 volume/fat/protein constraints.
+      let weeklyPlanGlp1Active = false;
+      let weeklyPlanGlp1Block = "";
+      try {
+        const { resolveGLP1GlobalContext } = await import("./services/glp1/resolveGLP1GlobalContext");
+        const { applyGuardrails: _planApplyGuardrails } = await import("./services/guardrails");
+        const weeklyGlp1Ctx = await resolveGLP1GlobalContext(
+          userId || "1",
+          new Date().toISOString().split("T")[0],
+          "lunch",
+        );
+        if (weeklyGlp1Ctx.isActive && weeklyGlp1Ctx.resolvedTargets) {
+          weeklyPlanGlp1Active = true;
+          weeklyPlanGlp1Block = _planApplyGuardrails(
+            "",
+            "glp1",
+            "lunch",
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            weeklyGlp1Ctx.resolvedTargets,
+          );
+          console.log(
+            `💊 [WEEKLY PLAN/GLP-1] Personalized targets: ` +
+            `${weeklyGlp1Ctx.resolvedTargets.resolvedMealCalories}kcal / ` +
+            `${weeklyGlp1Ctx.resolvedTargets.targetProteinGrams}g prot / ` +
+            `${weeklyGlp1Ctx.resolvedTargets.maximumToleratedFatGrams}g fat-ceiling ` +
+            `[phase: ${weeklyGlp1Ctx.resolvedTargets.treatmentPhase}] ` +
+            `[sources: ${weeklyGlp1Ctx.activationSources.join(",")}]`
+          );
+        }
+      } catch (err) {
+        console.warn("[WEEKLY PLAN/GLP-1] Could not resolve GLP-1 context — continuing without:", err);
+      }
+
       // Create variety-focused meal generation system
       const varietyPrompts = {
         breakfast: [
@@ -1932,6 +1970,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
             if (userProfile?.dislikedFoods && userProfile.dislikedFoods.length > 0) {
               personalizedPrompt += `, without ${userProfile.dislikedFoods.join(', ')}`;
+            }
+
+            // Inject GLP-1 guidance when patient overlay is active
+            if (weeklyPlanGlp1Active && weeklyPlanGlp1Block) {
+              personalizedPrompt += `. ${weeklyPlanGlp1Block}`;
             }
 
             console.log(`🎯 Generating ${slot.label} with variety prompt: "${personalizedPrompt}"`);
@@ -7138,6 +7181,38 @@ function getMealIngredientsDatabase() {
     } catch (error) {
       console.error("Error updating user meal preferences:", error);
       res.status(500).json({ error: "Failed to update user preferences" });
+    }
+  });
+
+  // ── Canonical active-protocol state ────────────────────────────────────────
+  // Single endpoint the client reads to decide which protocol badge to show.
+  // Server-resolved: calls resolveGLP1GlobalContext (same resolver used by every
+  // food-generation surface) so the badge always matches what the AI actually
+  // received — not what the client guesses from selectedMealBuilder.
+  app.get("/api/nutrition/active-protocol", requireAuth, async (req, res) => {
+    try {
+      const userId = String((req as any).user?.id ?? "");
+      if (!userId) return res.status(400).json({ error: "Not authenticated" });
+
+      const today = new Date().toISOString().split("T")[0];
+
+      // Resolve GLP-1 state via canonical resolver
+      const { resolveGLP1GlobalContext } = await import("./services/glp1/resolveGLP1GlobalContext");
+      const glp1Ctx = await resolveGLP1GlobalContext(userId, today, "lunch");
+
+      // Performance mode from user profile column
+      const [dbUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      const performanceActive = !!((dbUser as any)?.performanceModeEnabled);
+
+      return res.json({
+        glp1Active: glp1Ctx.isActive,
+        performanceActive,
+        activationSources: glp1Ctx.activationSources,
+        resolvedTargets: glp1Ctx.isActive ? glp1Ctx.resolvedTargets : null,
+      });
+    } catch (err: any) {
+      console.error("[active-protocol]", err);
+      return res.status(500).json({ error: "Failed to resolve protocol state" });
     }
   });
 
