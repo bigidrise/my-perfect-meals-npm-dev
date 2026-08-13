@@ -41,9 +41,12 @@ router.post("/macros/log", requireAuth, async (req, res) => {
       fibrousCarbs,
       fiber,
       nutrition,
-      // boardItemReference — stable board item ID for reservation accounting (#690)
-      boardItemReference,
     } = req.body ?? {};
+    // NOTE: boardItemReference is intentionally NOT accepted here.
+    // Generic manual logging must never set board_item_reference — only the
+    // ownership-verified POST /boards/:boardId/items/:itemId/log endpoint may do
+    // so. Accepting it here would allow any authenticated user to claim another
+    // user's board item UUID and trigger ALREADY_LOGGED for the real owner.
 
     // Support nested nutrition object (new format) or flat fields (legacy)
     const proteinVal   = Number(nutrition?.protein_g ?? protein ?? 0);
@@ -72,7 +75,7 @@ router.post("/macros/log", requireAuth, async (req, res) => {
       mealType,
       dateIso: loggedAt,
       mealId,
-      boardItemReference: boardItemReference ?? null,
+      // boardItemReference intentionally omitted — not trusted from generic route
     });
 
     res.json({ success: true, log: row });

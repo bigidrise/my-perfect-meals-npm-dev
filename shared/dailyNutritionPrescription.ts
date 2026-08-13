@@ -112,6 +112,117 @@ export interface DailyNutritionPrescription {
   rationaleCodes: string[];
 }
 
+// ── Generation context ────────────────────────────────────────────────────────
+
+/**
+ * What kind of generation session is active for this meal.
+ * Kept separate from the persistent `performanceModeEnabled` flag so that
+ * a rest-day user with Performance Mode on gets "standard", not
+ * "performance_training_day".
+ */
+export type GenerationContext =
+  | "standard"
+  | "performance_training_day"
+  | "glp1"
+  | "diabetic"
+  | "renal"
+  | "cardiac"
+  | "pregnancy";
+
+// ── Daily Nutrition State ─────────────────────────────────────────────────────
+
+/**
+ * Complete nutrition state for one calendar day.
+ * Returned by GET /api/nutrition-state/:dateISO.
+ *
+ * Combines:
+ *  - prescription  (resolved macro targets for the day)
+ *  - consumed      (what's been logged via macro_logs)
+ *  - planned       (board reservations not yet converted to logs)
+ *  - remaining     (prescription − consumed − planned, clamped ≥ 0)
+ *  - mealPlanConfig (snapshotted user preferences for this day)
+ *  - activeConstraints (generationContext + budget exhaustion flags)
+ *
+ * Double-counting rule:
+ *   A board item with a matching macro_log (board_item_reference = item.id)
+ *   counts in "consumed" ONLY — never in both consumed and planned.
+ */
+export interface DailyNutritionState {
+  /** Calendar date (YYYY-MM-DD) */
+  date: string;
+  /** ISO timestamp when this state was computed */
+  resolvedAt: string;
+
+  /** Resolved macro targets for this day */
+  prescription: DailyNutritionPrescription;
+
+  /** Meals already logged today (from macro_logs) */
+  consumed: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    starchyCarbs: number;
+    fibrousCarbs: number;
+    /** Number of log rows that contained starchy carbs */
+    starchMealsLogged: number;
+    /** Total number of macro_log rows for this date */
+    mealCount: number;
+  };
+
+  /**
+   * Board reservations for today that have NOT yet been converted to logs.
+   * A reservation is "planned" until board_item_reference appears in macro_logs.
+   */
+  planned: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    starchyCarbs: number;
+    /** Board items on the board with starchy carbs (not yet logged) */
+    starchMealsPlanned: number;
+    /** Count of unlogged board items for today */
+    reservationCount: number;
+  };
+
+  /**
+   * Remaining macro budget = prescription − consumed − planned.
+   * All values clamped to 0 — never negative.
+   */
+  remaining: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    starchyCarbs: number;
+    fibrousCarbs: number;
+    /** starchMealsAllowed − starchMealsLogged − starchMealsPlanned, clamped to 0 */
+    starchMealsRemaining: number;
+  };
+
+  /** Meal-plan config snapshotted for this day */
+  mealPlanConfig: {
+    /** User's meals-per-day preference (from macroMealsPerDay) */
+    mealsPerDay: number;
+    /** Resolved starch meal count for today (performance-adjusted) */
+    starchMealsPerDay: number;
+    starchDistributionStrategy: StarchDistributionStrategy;
+  };
+
+  /** Flags that constrain the next generation call */
+  activeConstraints: {
+    /** What type of generation context is active for THIS meal */
+    generationContext: GenerationContext;
+    /** True when all starch meal slots are used (consumed + planned ≥ allowed) */
+    starchSlotsExhausted: boolean;
+    /** True when remaining.calories ≤ 0 */
+    calorieBudgetExhausted: boolean;
+    /** True when consumed.protein + planned.protein ≥ prescription.proteinTarget */
+    proteinBudgetMet: boolean;
+  };
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
@@ -211,27 +322,6 @@ export function computeGramsPerRemainingMeal(
   return Math.round(starchyCarbsRemaining / starchMealsRemaining);
 }
 
-// ── Daily Nutrition State (Stage 1 — #690) ───────────────────────────────────
-
-/**
- * Why this builder was opened / what context frames generation.
- *
- * Design rule (advisor-approved):
- *   performanceModeEnabled = persistent user preference (users.performance_mode_enabled)
- *   generationContext       = why THIS session was opened
- *
- * "performance_training_day" is set only when the user navigated explicitly from
- * Training Schedule → Build Meals for a training day. Merely having a schedule
- * in the DB must never activate performance targets.
- */
-export type GenerationContext =
-  | "standard"
-  | "performance_training_day"
-  | "glp1"
-  | "glp1_performance"
-  | "diabetic"
-  | "diabetic_performance";
-
 /** Contextual inputs for a single meal-generation request */
 export interface MealContext {
   generationContext: GenerationContext;
@@ -272,70 +362,6 @@ export interface NextMealBudget {
   starchMealsRemaining: number;
   /** Machine-readable notes explaining any clinical ceiling that was applied */
   clinicalNotes: string[];
-}
-
-/**
- * DailyNutritionState — the single object every builder reads.
- *
- * Returned by GET /api/nutrition-state/:dateISO.
- * No builder computes or caches its own nutrition targets independently.
- *
- * Advisor-approved design rules:
- *  1. resolvedPrescription   = server authority chain (Macro Calculator → GLP-1 → Performance)
- *  2. consumed               = explicitly logged meals in macro_logs (server-aggregated)
- *  3. planned                = board meals not yet logged (Stage 1: zeros; wire in #691)
- *  4. remaining              = prescription - consumed - planned (floored at 0)
- *  5. mealPlan               = snapshotted config so every builder reads the same values
- *  6. activeConstraints      = which protocols are shaping today's prescription (flags only)
- */
-export interface DailyNutritionState {
-  date: string;
-
-  // 1. What the user is allowed to eat today
-  resolvedPrescription: DailyNutritionPrescription;
-
-  // 2. What has been explicitly logged
-  consumed: MacroTotals & {
-    starchMeals: number; // log rows with starchy_carbs > 0
-    mealCount: number;   // total non-alcohol log rows
-  };
-
-  // 3. Board meals not yet logged (zeros until #691 wires board reservations)
-  planned: MacroTotals & {
-    starchMeals: number;
-    mealCount: number;
-  };
-
-  // 4. prescription − consumed − planned (floored at 0)
-  remaining: MacroTotals & {
-    starchMeals: number;    // starchMealsAllowed - consumed.starchMeals - planned.starchMeals
-    nonStarchMeals: number; // mealsRemaining - remaining.starchMeals
-  };
-
-  // 5. Meal plan configuration (snapshotted from users at prescription time)
-  mealPlan: {
-    mealsPerDay: number;
-    mealsConsumed: number;
-    mealsPlanned: number;
-    mealsRemaining: number;
-    starchMealsPerDay: number;
-    starchMealsConsumed: number;
-    starchMealsPlanned: number;
-    starchMealsRemaining: number;
-    starchDistributionStrategy: StarchDistributionStrategy;
-    gramsPerRemainingStarchMeal: number | undefined;
-    isZeroStarchDay: boolean;
-  };
-
-  // 6. Which protocols are active (flags — not numeric values)
-  activeConstraints: {
-    /** users.performance_mode_enabled === true AND today has a training session */
-    performanceActive: boolean;
-    glp1Active: boolean;
-    diabeticActive: boolean;
-    clinicalActive: boolean;
-    procareActive: boolean;
-  };
 }
 
 // ── Build a minimal fallback prescription ─────────────────────────────────────

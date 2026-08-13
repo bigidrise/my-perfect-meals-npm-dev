@@ -1433,8 +1433,17 @@ async function initializeApp() {
       // Adds: daily_nutrition_prescriptions meal-plan snapshot cols + macro_logs.board_item_reference
       setTimeout(async () => {
         try {
-          const { runNutritionStateMigration } = await import("./db/migrations/runNutritionStateMigration");
-          await runNutritionStateMigration();
+          const { sql: migSql } = await import("drizzle-orm");
+          await database.execute(migSql`ALTER TABLE daily_nutrition_prescriptions ADD COLUMN IF NOT EXISTS meals_per_day integer`);
+          await database.execute(migSql`ALTER TABLE daily_nutrition_prescriptions ADD COLUMN IF NOT EXISTS starch_meals_per_day integer`);
+          await database.execute(migSql`ALTER TABLE daily_nutrition_prescriptions ADD COLUMN IF NOT EXISTS starch_distribution_strategy text`);
+          await database.execute(migSql`ALTER TABLE macro_logs ADD COLUMN IF NOT EXISTS board_item_reference text`);
+          await database.execute(migSql`
+            CREATE UNIQUE INDEX IF NOT EXISTS macro_logs_board_item_ref_uniq
+            ON macro_logs(board_item_reference)
+            WHERE board_item_reference IS NOT NULL
+          `);
+          console.log("✅ [prod] Daily Nutrition State schema additions complete");
         } catch (err: any) {
           console.error("❌ [prod] Nutrition State migration failed:", err.message);
         }
