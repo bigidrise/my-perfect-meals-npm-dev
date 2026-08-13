@@ -18,6 +18,7 @@ import {
   XCircle,
   Loader2,
   BookmarkCheck,
+  Bookmark,
   AlertTriangle,
 } from "lucide-react";
 import { useLocation } from "wouter";
@@ -155,6 +156,9 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   const [productAdvice, setProductAdvice] = useState<ProductAdviceResult | null>(null);
   const [advisorLoading, setAdvisorLoading] = useState(false);
   const [brandsAdded, setBrandsAdded] = useState(false);
+  // Saved groceries — keys of items the user has already saved
+  const [savedProductKeys, setSavedProductKeys] = useState<Set<string>>(new Set());
+  const [savingKey, setSavingKey] = useState<string | null>(null);
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const loadingInterval = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -173,6 +177,8 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       setProductAdvice(null);
       setAdvisorLoading(false);
       setBrandsAdded(false);
+      setSavedProductKeys(new Set());
+      setSavingKey(null);
       if (loadingInterval.current) clearInterval(loadingInterval.current);
     }
   }, [open]);
@@ -207,6 +213,67 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       setAdvisorLoading(false);
     }
   }, []);
+
+  // ── Saved Groceries helpers ──────────────────────────────────────────────────
+  // Client-side productKey — must stay in sync with server/routes/savedGroceries.ts
+  const computeClientProductKey = (brand: string, ingredient: string): string => {
+    const b = brand.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const n = ingredient.toLowerCase().replace(/[^a-z0-9]/g, "");
+    return `name::${b}::${n}`;
+  };
+
+  const fetchSavedKeys = useCallback(async () => {
+    try {
+      const res = await fetch("/api/saved-groceries", { credentials: "include" });
+      if (!res.ok) return;
+      const data = await res.json();
+      const keys = new Set<string>((data.items ?? []).map((i: any) => i.productKey as string));
+      setSavedProductKeys(keys);
+    } catch {
+      // Non-critical — bookmarks just won't pre-fill
+    }
+  }, []);
+
+  // Refresh saved keys whenever product advice loads so bookmarks are accurate
+  useEffect(() => {
+    if (productAdvice) fetchSavedKeys();
+  }, [productAdvice, fetchSavedKeys]);
+
+  const handleSaveGrocery = useCallback(async (
+    ingredient: string,
+    category: string,
+    brand: BrandRecommendation,
+  ) => {
+    const productKey = computeClientProductKey(brand.brand, ingredient);
+    if (savedProductKeys.has(productKey) || savingKey === productKey) return;
+    setSavingKey(productKey);
+    try {
+      const res = await fetch("/api/saved-groceries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          productName: ingredient,
+          brand: brand.brand,
+          category,
+          source: "grocery-coach",
+          productMeta: {
+            ingredient,
+            brand: brand.brand,
+            rank: brand.rank,
+            grade: brand.grade,
+            reason: brand.reason,
+          },
+        }),
+      });
+      if (!res.ok) throw new Error();
+      setSavedProductKeys((prev) => new Set([...prev, productKey]));
+    } catch {
+      // Silently fail — user can tap again
+    } finally {
+      setSavingKey(null);
+    }
+  }, [savedProductKeys, savingKey]);
 
   const sendMessage = useCallback(async (msg: string) => {
     if (!msg.trim()) return;
@@ -722,6 +789,30 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                                           {brand.reason}
                                         </div>
                                       </div>
+                                      {/* Save to Grocery Favorites */}
+                                      {(() => {
+                                        const pKey = computeClientProductKey(brand.brand, advice.ingredient);
+                                        const isSaved = savedProductKeys.has(pKey);
+                                        const isSaving = savingKey === pKey;
+                                        return (
+                                          <button
+                                            onClick={() => handleSaveGrocery(advice.ingredient, advice.category, brand)}
+                                            disabled={isSaved || isSaving}
+                                            title={isSaved ? "Saved to Grocery Favorites" : "Save to Grocery Favorites"}
+                                            style={{
+                                              flexShrink: 0, display: "flex", alignItems: "center",
+                                              justifyContent: "center", width: 28, height: 28,
+                                              borderRadius: 6, border: "none", cursor: isSaved ? "default" : "pointer",
+                                              background: isSaved ? "rgba(249,115,22,0.15)" : "rgba(255,255,255,0.05)",
+                                            }}
+                                          >
+                                            {isSaved
+                                              ? <BookmarkCheck style={{ width: 14, height: 14, color: "#f97316" }} />
+                                              : <Bookmark style={{ width: 14, height: 14, color: "rgba(255,255,255,0.35)" }} />
+                                            }
+                                          </button>
+                                        );
+                                      })()}
                                     </div>
                                   ))}
                                 </div>

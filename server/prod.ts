@@ -1698,6 +1698,29 @@ async function initializeApp() {
         });
       }, 12500);
 
+      // ── Saved Groceries — boot migration ─────────────────────────────────────
+      await withBootRetry("Saved Groceries boot migration", async () => {
+        const { db: dbSg } = await import("./db");
+        const { sql: sqlSg } = await import("drizzle-orm");
+        await dbSg.execute(sqlSg`
+          CREATE TABLE IF NOT EXISTS user_saved_grocery_items (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id varchar NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            product_name text NOT NULL,
+            brand text,
+            barcode text,
+            product_key text NOT NULL,
+            category text,
+            source text NOT NULL DEFAULT 'manual',
+            nutrition_json jsonb,
+            product_meta jsonb,
+            image_url text,
+            saved_at timestamptz NOT NULL DEFAULT now(),
+            CONSTRAINT uniq_saved_grocery_user_product_key UNIQUE (user_id, product_key)
+          )
+        `);
+      });
+
       // ── Coach Follow-up Cron (every 10 min) ──────────────────────────────────
       setTimeout(async () => {
         try {

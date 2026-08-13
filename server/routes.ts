@@ -87,6 +87,7 @@ import { assignBuilder, isValidBuilder, VALID_BUILDERS } from "./services/builde
 import { fridgeRescueRouter } from "./routes/fridgeRescue";
 import inspirationRouter from "./routes/inspiration";
 import groceryCoachRouter from "./routes/groceryCoach";
+import savedGroceriesRouter from "./routes/savedGroceries";
 import pregnancyCoachRouter from "./routes/pregnancyCoach";
 import coachingEngineRouter from "./routes/coachingEngine";
 import performanceNutritionRouter from "./routes/performanceNutrition";
@@ -659,6 +660,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api", fridgeRescueRouter);
   app.use("/api", inspirationRouter);
   app.use("/api/grocery-coach", requireAuth, requireProAccess, groceryCoachRouter);
+  app.use("/api/saved-groceries", requireAuth, savedGroceriesRouter);
   app.use("/api/pregnancy", requireAuth, requireClinicalAccess, pregnancyCoachRouter);
   app.use("/api/coach", coachingEngineRouter);
   app.use("/api/performance", requireAuth, requireClinicalAccess, performanceNutritionRouter);
@@ -1127,9 +1129,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             meal?.fat,
           );
 
-          if (!gateResult.passed) {
+          if (gateResult.passed === false) {
+            const gateReason: string = gateResult.reason;
             console.error(
-              `[ClinicalGate] Rejected: reason=${gateResult.reason} ` +
+              `[ClinicalGate] Rejected: reason=${gateReason} ` +
               `context=${budgetGenerationContext} type=${type} ` +
               `carbCeiling=${carbCeiling} fatCeiling=${fatCeiling}`,
             );

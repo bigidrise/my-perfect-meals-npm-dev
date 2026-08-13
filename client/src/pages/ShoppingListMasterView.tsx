@@ -42,6 +42,7 @@ import { isGuestMode, markStepCompleted } from "@/lib/guestMode";
 import type { IngredientScanResult } from "@/lib/photoIngredientCapture";
 import InspirationCaptureModal from "@/components/InspirationCaptureModal";
 import GroceryStoreCoachSheet from "@/components/shopping/GroceryStoreCoachSheet";
+import SavedGroceriesSheet from "@/components/shopping/SavedGroceriesSheet";
 import { IngredientIntelligenceSheet } from "@/components/biometrics/IngredientIntelligenceSheet";
 import VoiceShoppingModal from "@/components/shopping/VoiceShoppingModal";
 
@@ -155,6 +156,7 @@ export default function ShoppingListMasterView() {
   const [addOtherPrefill, setAddOtherPrefill] = useState<string | undefined>(undefined);
   const [scanModalOpen, setScanModalOpen] = useState(false);
   const [groceryCoachOpen, setGroceryCoachOpen] = useState(false);
+  const [savedGroceriesOpen, setSavedGroceriesOpen] = useState(false);
   const [scanRefreshKey, setScanRefreshKey] = useState(0);
   const [bulkText, setBulkText] = useState("");
   const [barcodeText, setBarcodeText] = useState("");
@@ -536,6 +538,21 @@ export default function ShoppingListMasterView() {
               </span>
               <span className="bg-orange-500/20 border border-orange-400/20 rounded-lg px-2 py-0.5 text-[10px] text-orange-300 font-semibold uppercase tracking-wide flex-shrink-0">
                 {hasGroceryCoachAccess ? "Pro" : "🔒 Pro"}
+              </span>
+            </Button>
+          </div>
+
+          {/* Saved Groceries */}
+          <div className="relative mt-2">
+            <Button
+              onClick={() => setSavedGroceriesOpen(true)}
+              className="relative w-full flex items-center gap-3 bg-gradient-to-r from-orange-900/40 to-black/60 rounded-2xl py-3 h-auto border border-orange-500/20 text-left"
+              data-testid="button-saved-groceries"
+            >
+              <span className="text-xl">🔖</span>
+              <span className="flex-1 min-w-0">
+                <span className="block text-white font-semibold text-sm leading-tight">Saved Groceries</span>
+                <span className="block text-orange-300/50 text-xs mt-0.5">Products you've saved — Coach remembers these</span>
               </span>
             </Button>
           </div>
@@ -1003,6 +1020,12 @@ export default function ShoppingListMasterView() {
         <GroceryStoreCoachSheet
           open={groceryCoachOpen}
           onOpenChange={setGroceryCoachOpen}
+        />
+
+        {/* Saved Groceries */}
+        <SavedGroceriesSheet
+          open={savedGroceriesOpen}
+          onOpenChange={setSavedGroceriesOpen}
         />
 
         {/* Smart Scan — Ingredient Intake Modal */}

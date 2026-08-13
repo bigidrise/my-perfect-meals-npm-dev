@@ -1,12 +1,13 @@
 import express from "express";
 import OpenAI from "openai";
 import { db } from "../db";
-import { users } from "@shared/schema";
+import { users, userSavedGroceryItems } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { loadUserProtocolEnvelope, enforceBeforeGenerate, buildGuestEnvelope, scanGeneratedOutput } from "../services/protocolEnvelope";
 import { resolveGLP1GlobalContext, buildGLP1RecommendationBlock } from "../services/glp1/resolveGLP1GlobalContext";
 import { getProductAdvisorEngine } from "../services/productAdvisor";
 import { finalizeMealCard } from "../services/mealCardFinalizer";
+import { filterSavedGroceriesForCompliance, buildSavedGroceriesPromptBlock } from "../services/savedGroceryCompliance";
 
 const router = express.Router();
 
@@ -41,6 +42,8 @@ router.post("/recommend", async (req, res) => {
     let glp1RecommendationBlock = "";
     // Stored outside the if(userId) block so post-gen validation can access it.
     let groceryGlp1Targets: import("../services/glp1/resolveGLP1MealTargets").ResolvedGLP1Targets | null = null;
+    // Saved grocery preferences — compliant items injected into the system prompt.
+    let savedGroceriesBlock = "";
 
     if (userId) {
       // Use the same full 5-tier constraint package every other builder uses.
@@ -84,6 +87,43 @@ router.post("/recommend", async (req, res) => {
         if (userRow.dailyFatTarget) parts.push(`${userRow.dailyFatTarget}g fat`);
         macroContext = `Daily macro targets: ${parts.join(", ")}`;
       }
+
+      // ── Saved Groceries — fetch and run server-side compliance filter ────────
+      // The LLM is never asked to evaluate clinical compliance. We do it here
+      // using the already-loaded protocol envelope and GLP-1 targets, then only
+      // inject the items that pass into the system prompt as vetted favorites.
+      try {
+        const sgRows = await db
+          .select({
+            id: userSavedGroceryItems.id,
+            productName: userSavedGroceryItems.productName,
+            brand: userSavedGroceryItems.brand,
+            category: userSavedGroceryItems.category,
+            productKey: userSavedGroceryItems.productKey,
+            nutritionJson: userSavedGroceryItems.nutritionJson,
+            savedAt: userSavedGroceryItems.savedAt,
+          })
+          .from(userSavedGroceryItems)
+          .where(eq(userSavedGroceryItems.userId, userId));
+
+        if (sgRows.length > 0) {
+          const { compliant } = filterSavedGroceriesForCompliance(
+            sgRows as any,
+            groceryEnvelope,
+            {
+              glp1Targets: groceryGlp1Targets,
+              isDiabetic: !!groceryEnvelope.diabeticGuidance,
+            },
+          );
+          savedGroceriesBlock = buildSavedGroceriesPromptBlock(compliant);
+          if (compliant.length > 0) {
+            console.log(`[GroceryCoach] Injecting ${compliant.length} saved grocery favorites for user ${userId}`);
+          }
+        }
+      } catch (sgErr: any) {
+        // Non-fatal — proceed without saved context rather than blocking the coach
+        console.warn("[GroceryCoach] Could not load saved groceries:", sgErr?.message);
+      }
     }
 
     const systemPrompt = `You are a Grocery Store Coach — a real, confident nutrition coach who helps users decide exactly what to make for dinner and what to buy at the grocery store. You are NOT a recipe generator or meal builder. You are a decision-making assistant.
@@ -94,6 +134,7 @@ USER HEALTH PROFILE AND CONSTRAINTS:
 ${protocolContext || "No dietary restrictions or conditions on file — apply general healthy eating principles."}
 ${glp1RecommendationBlock ? `\n${glp1RecommendationBlock}` : ""}
 ${macroContext ? `\n${macroContext}` : ""}
+${savedGroceriesBlock ? `\n\n${savedGroceriesBlock}` : ""}
 
 SERVING SIZE: All ingredient quantities must be scaled for ${finalServingCount} ${finalServingCount === 1 ? "person" : "people"}.
 
