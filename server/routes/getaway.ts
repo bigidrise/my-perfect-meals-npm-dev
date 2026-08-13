@@ -11,6 +11,9 @@ import {
   getVenuesPublicPayload,
 } from "../services/locationContext/engine";
 import { discoverVenue } from "../services/locationContext/venueDiscovery";
+import { resolveDailyNutritionState } from "../services/nutritionStateService";
+import { buildCravingInstructions, buildRemainingMacrosBlock } from "../services/restaurantMealGeneratorAI";
+import { resolveGLP1GlobalContext, buildGLP1RecommendationBlock } from "../services/glp1/resolveGLP1GlobalContext";
 
 const router = Router();
 
@@ -166,8 +169,25 @@ RESPONSE FORMAT — return valid JSON only, no markdown, no code fences:
 
 Keep bestChoices to 2-3 items. The avoid array should be [] if nothing is specifically problematic for this user. The familyNote array should have 1-2 practical tips about eating at this venue with family or children. For venues like theme parks, cruises, and resorts this is almost always relevant. For a solo business airport context it can be []. The zone field should be null when no zone was specified.`;
 
+    // ── Craving intent: extract the user's food request from the message ─────
+    const cravingInstructions = buildCravingInstructions(message.trim(), nutritionContext?.envelope?.hasDiabetes ?? false);
+
+    // ── Remaining macros + GLP-1 canonical context in parallel ───────────────
+    const todayISO = new Date().toISOString().slice(0, 10);
+    let remainingMacrosBlock = "";
+    let glp1Block = "";
+    const [dailyState, glp1Ctx] = await Promise.all([
+      resolveDailyNutritionState(userId, todayISO).catch(() => null),
+      resolveGLP1GlobalContext(userId, todayISO).catch(() => null),
+    ]);
+    if (dailyState) remainingMacrosBlock = buildRemainingMacrosBlock(dailyState.remaining);
+    if (glp1Ctx) glp1Block = buildGLP1RecommendationBlock(glp1Ctx);
+
     const contextParts: string[] = [profileBlock];
     if (nutritionContext?.combinedBlock) contextParts.push(nutritionContext.combinedBlock);
+    if (glp1Block) contextParts.push(glp1Block);
+    if (cravingInstructions) contextParts.push(cravingInstructions);
+    if (remainingMacrosBlock) contextParts.push(remainingMacrosBlock);
     if (locationBlock) contextParts.push(locationBlock);
     const userPrompt = `${contextParts.join("\n\n")}
 

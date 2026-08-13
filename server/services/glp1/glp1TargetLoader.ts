@@ -47,7 +47,7 @@ interface LoadOptions {
  * is not found or does not have targets set.
  */
 export async function loadGLP1ResolvedTargets(
-  userId: number,
+  userId: string | number,
   options: LoadOptions
 ): Promise<ResolvedGLP1Targets> {
   // ── 1. Load user macro targets ───────────────────────────────────────────

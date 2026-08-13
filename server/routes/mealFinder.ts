@@ -9,6 +9,9 @@ import { users } from '@shared/schema';
 import { findMealsNearby } from '../services/mealFinderService';
 import { getActiveNutritionContext } from '../services/nutritionContext/getActiveNutritionContext';
 import { loadUserProtocolEnvelope } from '../services/protocolEnvelope';
+import { resolveDailyNutritionState } from '../services/nutritionStateService';
+import { buildRemainingMacrosBlock } from '../services/restaurantMealGeneratorAI';
+import { resolveGLP1GlobalContext, buildGLP1RecommendationBlock } from '../services/glp1/resolveGLP1GlobalContext';
 
 const router = express.Router();
 
@@ -61,6 +64,7 @@ router.post('/meal-finder', async (req, res) => {
     // ── Load unified nutrition context (protocol + active builder) ─────────
     let protocolBlock: string | undefined;
     let builderBlock: string | undefined;
+    let remainingMacrosBlock: string | undefined;
     let contextUser: any = (req as any).user;
     let protocolEnvelope: import('../services/protocolEnvelope').UserProtocolEnvelope | undefined;
     if (userId) {
@@ -77,6 +81,22 @@ router.post('/meal-finder', async (req, res) => {
         const envelope = await loadUserProtocolEnvelope(userId);
         if (envelope) protocolEnvelope = envelope;
         console.log(`🔒 [MEAL-FINDER] Nutrition context: diet=[${nutritionContext.diet.join(",")}] medical=[${nutritionContext.medical.length} flags] builder=${nutritionContext.builder ?? "none"} envelope=${protocolEnvelope ? "✓" : "✗"} hasDiabetes=${protocolEnvelope?.hasDiabetes ?? false}`);
+        // Load remaining macros + GLP-1 canonical context in parallel
+        try {
+          const todayISO = new Date().toISOString().slice(0, 10);
+          const [dailyState, glp1Ctx] = await Promise.all([
+            resolveDailyNutritionState(userId, todayISO).catch(() => null),
+            resolveGLP1GlobalContext(userId, todayISO).catch(() => null),
+          ]);
+          if (dailyState) remainingMacrosBlock = buildRemainingMacrosBlock(dailyState.remaining);
+          // Combine GLP-1 recommendation block with existing protocol block
+          const glp1Block = glp1Ctx ? buildGLP1RecommendationBlock(glp1Ctx) : "";
+          if (glp1Block) {
+            protocolBlock = [protocolBlock, glp1Block].filter(Boolean).join("\n\n");
+          }
+        } catch {
+          // Non-fatal — remaining macros block simply omitted
+        }
       } catch (err) {
         console.warn('[MEAL-FINDER] Could not load nutrition context:', err);
       }
@@ -98,6 +118,7 @@ router.post('/meal-finder', async (req, res) => {
       builderBlock,
       cuisinePreference: contextUser?.cuisinePreference ?? null,
       protocolEnvelope,
+      remainingMacrosBlock,
     });
 
     // Hard cap: 3 restaurants max, 2 meals each (6 total)
