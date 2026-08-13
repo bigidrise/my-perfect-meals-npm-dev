@@ -114,6 +114,12 @@ const LOADING_MESSAGES = [
 
 const RANK_MEDAL: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" };
 
+/** Stable product key — must stay in sync with server/routes/savedGroceries.ts */
+export function computeClientProductKey(brand: string, ingredient: string): string {
+  const b = brand.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const n = ingredient.toLowerCase().replace(/[^a-z0-9]/g, "");
+  return `name::${b}::${n}`;
+}
 const GRADE_COLOR: Record<string, string> = {
   A: "rgba(16,185,129,0.9)",
   B: "rgba(251,191,36,0.9)",
@@ -218,13 +224,6 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   }, []);
 
   // ── Saved Groceries helpers ──────────────────────────────────────────────────
-  // Client-side productKey — must stay in sync with server/routes/savedGroceries.ts
-  const computeClientProductKey = (brand: string, ingredient: string): string => {
-    const b = brand.toLowerCase().replace(/[^a-z0-9]/g, "");
-    const n = ingredient.toLowerCase().replace(/[^a-z0-9]/g, "");
-    return `name::${b}::${n}`;
-  };
-
   const fetchSavedKeys = useCallback(async () => {
     try {
       const res = await fetch("/api/saved-groceries", { credentials: "include" });
@@ -781,131 +780,18 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                               </div>
                             )}
 
-                            {/* Personalization banner — shown when ≥1 saved favorite is in results */}
-                            {(() => {
-                              const hasSavedItems = productAdvice!.advice.some((a) =>
-                                a.recommended.some((b) => savedProductKeys.has(computeClientProductKey(b.brand, a.ingredient)))
-                              );
-                              return hasSavedItems ? (
-                                <div style={{
-                                  display: "flex", alignItems: "center", gap: 8,
-                                  padding: "8px 12px", borderRadius: 8,
-                                  background: "rgba(249,115,22,0.08)",
-                                  border: "1px solid rgba(249,115,22,0.2)",
-                                }}>
-                                  <span style={{ fontSize: 14 }}>★</span>
-                                  <span style={{ color: "#fb923c", fontSize: 12, fontWeight: 600 }}>
-                                    Personalized from your Saved Groceries
-                                  </span>
-                                </div>
-                              ) : null;
-                            })()}
-
-                            {/* Per-ingredient advice */}
-                            {(showSavedOnly
-                              ? productAdvice!.advice.filter((a) =>
-                                  a.recommended.some((b) => savedProductKeys.has(computeClientProductKey(b.brand, a.ingredient)))
-                                )
-                              : productAdvice!.advice
-                            ).map((advice) => (
-                              <div key={advice.ingredient}>
-                                <div style={{ color: "rgba(251,146,60,0.7)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>
-                                  {advice.ingredient}
-                                </div>
-
-                                {/* Recommended brands */}
-                                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                                  {advice.recommended.map((brand) => (
-                                    <div
-                                      key={brand.brand}
-                                      style={{
-                                        display: "flex", alignItems: "flex-start", gap: 10,
-                                        padding: "10px 12px", borderRadius: 10,
-                                        background: brand.rank === 1 ? "rgba(16,185,129,0.08)" : "rgba(255,255,255,0.04)",
-                                        border: brand.rank === 1 ? "1px solid rgba(16,185,129,0.2)" : "1px solid rgba(255,255,255,0.07)",
-                                      }}
-                                    >
-                                      <span style={{ fontSize: 16, lineHeight: 1, flexShrink: 0, marginTop: 1 }}>
-                                        {RANK_MEDAL[brand.rank] ?? "•"}
-                                      </span>
-                                      <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3, flexWrap: "wrap" }}>
-                                          <span style={{ color: "white", fontWeight: 600, fontSize: 14 }}>{brand.brand}</span>
-                                          <span style={{
-                                            padding: "1px 7px", borderRadius: 999, fontSize: 11, fontWeight: 700,
-                                            background: `${GRADE_COLOR[brand.grade] ?? "rgba(249,115,22,0.9)"}22`,
-                                            color: GRADE_COLOR[brand.grade] ?? "#fb923c",
-                                            border: `1px solid ${GRADE_COLOR[brand.grade] ?? "#fb923c"}44`,
-                                          }}>
-                                            {brand.grade}
-                                          </span>
-                                          {savedProductKeys.has(computeClientProductKey(brand.brand, advice.ingredient)) && (
-                                            <span style={{
-                                              padding: "1px 7px", borderRadius: 999, fontSize: 11, fontWeight: 700,
-                                              background: "rgba(249,115,22,0.15)",
-                                              color: "#fb923c",
-                                              border: "1px solid rgba(249,115,22,0.35)",
-                                            }}>
-                                              ★ Saved
-                                            </span>
-                                          )}
-                                        </div>
-                                        <div style={{ color: "rgba(255,255,255,0.55)", fontSize: 12, lineHeight: 1.4 }}>
-                                          {brand.reason}
-                                        </div>
-                                      </div>
-                                      {/* Save to Grocery Favorites */}
-                                      {(() => {
-                                        const pKey = computeClientProductKey(brand.brand, advice.ingredient);
-                                        const isSaved = savedProductKeys.has(pKey);
-                                        const isSaving = savingKey === pKey;
-                                        return (
-                                          <button
-                                            onClick={() => handleSaveGrocery(advice.ingredient, advice.category, brand)}
-                                            disabled={isSaved || isSaving}
-                                            title={isSaved ? "Saved to Grocery Favorites" : "Save to Grocery Favorites"}
-                                            style={{
-                                              flexShrink: 0, display: "flex", alignItems: "center",
-                                              justifyContent: "center", width: 28, height: 28,
-                                              borderRadius: 6, border: "none", cursor: isSaved ? "default" : "pointer",
-                                              background: isSaved ? "rgba(249,115,22,0.15)" : "rgba(255,255,255,0.05)",
-                                            }}
-                                          >
-                                            {isSaved
-                                              ? <BookmarkCheck style={{ width: 14, height: 14, color: "#f97316" }} />
-                                              : <Bookmark style={{ width: 14, height: 14, color: "rgba(255,255,255,0.35)" }} />
-                                            }
-                                          </button>
-                                        );
-                                      })()}
-                                    </div>
-                                  ))}
-                                </div>
-
-                                {/* Avoid */}
-                                {advice.avoid.length > 0 && (
-                                  <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
-                                    {advice.avoid.map((av) => (
-                                      <div
-                                        key={av.brand}
-                                        style={{
-                                          display: "flex", alignItems: "flex-start", gap: 10,
-                                          padding: "8px 12px", borderRadius: 10,
-                                          background: "rgba(239,68,68,0.07)",
-                                          border: "1px solid rgba(239,68,68,0.18)",
-                                        }}
-                                      >
-                                        <XCircle style={{ width: 15, height: 15, color: "#ef4444", flexShrink: 0, marginTop: 1 }} />
-                                        <div style={{ flex: 1, minWidth: 0 }}>
-                                          <span style={{ color: "rgba(255,255,255,0.8)", fontWeight: 600, fontSize: 13 }}>{av.brand}</span>
-                                          <span style={{ color: "rgba(255,255,255,0.45)", fontSize: 12 }}> — {av.reason}</span>
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            ))}
+                            {/* Personalization banner + per-ingredient brand cards */}
+                            <SmartCartAdviceBody
+                              advice={showSavedOnly
+                                ? productAdvice!.advice.filter((a) =>
+                                    a.recommended.some((b) => savedProductKeys.has(computeClientProductKey(b.brand, a.ingredient)))
+                                  )
+                                : productAdvice!.advice
+                              }
+                              savedProductKeys={savedProductKeys}
+                              savingKey={savingKey}
+                              onSave={handleSaveGrocery}
+                            />
 
                             {/* Summary avoid block */}
                             {avoidList.length === 0 && (
@@ -1094,4 +980,146 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     </>,
     document.body
   );
+}
+
+export function SmartCartAdviceBody({
+  advice,
+  savedProductKeys,
+  savingKey,
+  onSave,
+}: SmartCartAdviceBodyProps) {
+  const hasSavedItems = advice.some((a) =>
+    a.recommended.some((b) => savedProductKeys.has(computeClientProductKey(b.brand, a.ingredient)))
+  );
+
+  return (
+    <>
+      {/* Personalization banner — shown when ≥1 saved favorite is in results */}
+      {hasSavedItems && (
+        <div
+          data-testid="personalization-banner"
+          style={{
+            display: "flex", alignItems: "center", gap: 8,
+            padding: "8px 12px", borderRadius: 8,
+            background: "rgba(249,115,22,0.08)",
+            border: "1px solid rgba(249,115,22,0.2)",
+          }}
+        >
+          <span style={{ fontSize: 14 }}>★</span>
+          <span style={{ color: "#fb923c", fontSize: 12, fontWeight: 600 }}>
+            Personalized from your Saved Groceries
+          </span>
+        </div>
+      )}
+
+      {/* Per-ingredient advice */}
+      {advice.map((a) => (
+        <div key={a.ingredient}>
+          <div style={{ color: "rgba(251,146,60,0.7)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>
+            {a.ingredient}
+          </div>
+
+          {/* Recommended brands */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {a.recommended.map((brand) => {
+              const pKey = computeClientProductKey(brand.brand, a.ingredient);
+              const isSaved = savedProductKeys.has(pKey);
+              const isSaving = savingKey === pKey;
+              return (
+                <div
+                  key={brand.brand}
+                  style={{
+                    display: "flex", alignItems: "flex-start", gap: 10,
+                    padding: "10px 12px", borderRadius: 10,
+                    background: brand.rank === 1 ? "rgba(16,185,129,0.08)" : "rgba(255,255,255,0.04)",
+                    border: brand.rank === 1 ? "1px solid rgba(16,185,129,0.2)" : "1px solid rgba(255,255,255,0.07)",
+                  }}
+                >
+                  <span style={{ fontSize: 16, lineHeight: 1, flexShrink: 0, marginTop: 1 }}>
+                    {RANK_MEDAL[brand.rank] ?? "•"}
+                  </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3, flexWrap: "wrap" }}>
+                      <span style={{ color: "white", fontWeight: 600, fontSize: 14 }}>{brand.brand}</span>
+                      <span style={{
+                        padding: "1px 7px", borderRadius: 999, fontSize: 11, fontWeight: 700,
+                        background: `${GRADE_COLOR[brand.grade] ?? "rgba(249,115,22,0.9)"}22`,
+                        color: GRADE_COLOR[brand.grade] ?? "#fb923c",
+                        border: `1px solid ${GRADE_COLOR[brand.grade] ?? "#fb923c"}44`,
+                      }}>
+                        {brand.grade}
+                      </span>
+                      {isSaved && (
+                        <span
+                          data-testid={`saved-badge-${brand.brand}`}
+                          style={{
+                            padding: "1px 7px", borderRadius: 999, fontSize: 11, fontWeight: 700,
+                            background: "rgba(249,115,22,0.15)",
+                            color: "#fb923c",
+                            border: "1px solid rgba(249,115,22,0.35)",
+                          }}
+                        >
+                          ★ Saved
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ color: "rgba(255,255,255,0.55)", fontSize: 12, lineHeight: 1.4 }}>
+                      {brand.reason}
+                    </div>
+                  </div>
+                  {/* Save to Grocery Favorites */}
+                  <button
+                    onClick={() => onSave(a.ingredient, a.category, brand)}
+                    disabled={isSaved || isSaving}
+                    title={isSaved ? "Saved to Grocery Favorites" : "Save to Grocery Favorites"}
+                    style={{
+                      flexShrink: 0, display: "flex", alignItems: "center",
+                      justifyContent: "center", width: 28, height: 28,
+                      borderRadius: 6, border: "none", cursor: isSaved ? "default" : "pointer",
+                      background: isSaved ? "rgba(249,115,22,0.15)" : "rgba(255,255,255,0.05)",
+                    }}
+                  >
+                    {isSaved
+                      ? <BookmarkCheck style={{ width: 14, height: 14, color: "#f97316" }} />
+                      : <Bookmark style={{ width: 14, height: 14, color: "rgba(255,255,255,0.35)" }} />
+                    }
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Avoid */}
+          {a.avoid.length > 0 && (
+            <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+              {a.avoid.map((av) => (
+                <div
+                  key={av.brand}
+                  style={{
+                    display: "flex", alignItems: "flex-start", gap: 10,
+                    padding: "8px 12px", borderRadius: 10,
+                    background: "rgba(239,68,68,0.07)",
+                    border: "1px solid rgba(239,68,68,0.18)",
+                  }}
+                >
+                  <XCircle style={{ width: 15, height: 15, color: "#ef4444", flexShrink: 0, marginTop: 1 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ color: "rgba(255,255,255,0.8)", fontWeight: 600, fontSize: 13 }}>{av.brand}</span>
+                    <span style={{ color: "rgba(255,255,255,0.45)", fontSize: 12 }}> — {av.reason}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+    </>
+  );
+}
+
+interface SmartCartAdviceBodyProps {
+  advice: IngredientAdvice[];
+  savedProductKeys: Set<string>;
+  savingKey: string | null;
+  onSave: (ingredient: string, category: string, brand: BrandRecommendation) => void;
 }
