@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { resolveDisplayCarbTargets } from "@/lib/macroResolver";
 import { useTodayMacros } from "@/hooks/useTodayMacros";
@@ -8,7 +8,7 @@ import {
   MPM_MACRO_COLORS,
   getMacroProgressColor,
 } from "@/components/glass/mpmGlassStandard";
-import { Flame, RefreshCw } from "lucide-react";
+import { Flame, RefreshCw, X } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -70,6 +70,25 @@ export function RemainingMacrosFooter({
     window.addEventListener("mpm:targetsUpdated", handleUpdate);
     return () => window.removeEventListener("mpm:targetsUpdated", handleUpdate);
   }, []);
+
+  // Dismiss state for the mid-day prescription changed banner
+  const todayKey = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  const storageKey = `mpm:prescriptionBannerDismissed:${todayKey}`;
+  const [bannerDismissed, setBannerDismissed] = useState(() => {
+    try {
+      return sessionStorage.getItem(storageKey) === "1";
+    } catch {
+      return false;
+    }
+  });
+  const dismissBanner = useCallback(() => {
+    try {
+      sessionStorage.setItem(storageKey, "1");
+    } catch {
+      // sessionStorage unavailable — suppress silently
+    }
+    setBannerDismissed(true);
+  }, [storageKey]);
 
   // Presentation component — never resolves nutrition internally.
   // The parent workflow page must supply targetsOverride with pre-resolved targets.
@@ -156,14 +175,21 @@ export function RemainingMacrosFooter({
             </button>
           )}
 
-          {prescriptionChangedMidDay && (
+          {prescriptionChangedMidDay && !bannerDismissed && (
             <div className="flex items-center gap-1.5 mb-2 px-1 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20">
               <RefreshCw className="w-3 h-3 text-amber-400 shrink-0" />
-              <span className="text-amber-300 text-xs">
+              <span className="text-amber-300 text-xs flex-1">
                 {prescriptionChangeReason
                   ? `Your targets were updated today (${prescriptionChangeReason})`
                   : "Your nutrition targets were updated today"}
               </span>
+              <button
+                onClick={dismissBanner}
+                aria-label="Dismiss"
+                className="text-amber-400/60 hover:text-amber-300 transition-colors p-0.5 shrink-0"
+              >
+                <X className="w-3 h-3" />
+              </button>
             </div>
           )}
 
