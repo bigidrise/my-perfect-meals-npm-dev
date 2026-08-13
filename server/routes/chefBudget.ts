@@ -48,8 +48,7 @@ router.post("/", requireAuth, requireEssentialAccess, async (req, res) => {
 
     console.log(
       `🥗 [ChefBudget] authUserId=${authUserId} date=${dateISO} ` +
-      `cal=${result.budget.caloriesBudget} starch=${result.starchAllowed} ` +
-      `notes=${result.budget.clinicalNotes.join(",") || "none"}`,
+      `cal=${result.budget.caloriesTarget} starch=${result.starchAllowed}`,
     );
 
     res.json(result);

@@ -3076,6 +3076,70 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
         };
       }
 
+      // ── Hard starch numeric gate ──────────────────────────────────────────
+      // Post-generation validation: compare the meal's actual starchyCarbs (g)
+      // against the server-authoritative per-meal ceiling from the budget resolver.
+      // This is the advisor-mandated hard ceiling (not the soft annotation in
+      // scanGeneratedOutput). Starchy carbs are the only hard-block macro —
+      // protein and fibrous veg overages are acceptable.
+      //
+      // Tolerance: ±3g for AI rounding. After MAX_REGENERATION_ATTEMPTS, serve
+      // as-is but log the failure — prefer a slightly over-budget meal over a
+      // broken UX. GLP-1 fat ceiling is enforced the same way in nutritionBudget.ts.
+      {
+        const STARCH_TOLERANCE_G = 3;
+        const generatedStarchyG: number = (tempMeal as any).starchyCarbs ?? 0;
+        const isZeroStarchCtx =
+          starchContext?.isZeroStarchDay || starchContext?.forceFiberBased;
+
+        if (isZeroStarchCtx && generatedStarchyG > STARCH_TOLERANCE_G) {
+          // Case 1 — zero-starch day / all slots exhausted
+          console.warn(
+            `🥔 [STARCH HARD GATE] Zero-starch violation: "${(tempMeal as any).name}" ` +
+            `produced ${generatedStarchyG}g (attempt ${attemptCount})`
+          );
+          if (attemptCount < MAX_REGENERATION_ATTEMPTS) {
+            lastFixHint =
+              `STARCH HARD VIOLATION: Today's starchy-carb budget is fully exhausted. ` +
+              `This meal must contain ZERO starchy carbohydrates. ` +
+              `Strictly forbidden: rice, pasta, bread, oats, potatoes, sweet potatoes, ` +
+              `beans, lentils, corn, peas, quinoa, couscous, tortillas, crackers, or any grain. ` +
+              `Build the meal exclusively from lean protein + non-starchy vegetables ` +
+              `(leafy greens, broccoli, cauliflower, asparagus, zucchini, bell peppers, ` +
+              `mushrooms, cucumbers, tomatoes). Re-generate fully compliant.`;
+            continue;
+          }
+          console.error(
+            `❌ [STARCH HARD GATE] Could not eliminate starch after ${attemptCount} attempts — serving as-is`
+          );
+        } else if (
+          !isZeroStarchCtx &&
+          starchContext?.gramsPerRemainingStarchMeal != null &&
+          generatedStarchyG >
+            starchContext.gramsPerRemainingStarchMeal + STARCH_TOLERANCE_G
+        ) {
+          // Case 2 — per-meal ceiling exceeded
+          const ceiling = starchContext.gramsPerRemainingStarchMeal;
+          console.warn(
+            `🥔 [STARCH HARD GATE] Per-meal ceiling exceeded: "${(tempMeal as any).name}" ` +
+            `generated ${generatedStarchyG}g vs ${ceiling}g ceiling (attempt ${attemptCount})`
+          );
+          if (attemptCount < MAX_REGENERATION_ATTEMPTS) {
+            lastFixHint =
+              `STARCH BUDGET VIOLATION: This meal contains ${generatedStarchyG}g of starchy ` +
+              `carbohydrates. The maximum allowed for this meal is ${ceiling}g. ` +
+              `Reduce starchy portions (rice, potato, bread, pasta, oats) so total starchy ` +
+              `carbs ≤ ${ceiling}g, or replace starchy sides with non-starchy vegetables ` +
+              `(broccoli, cauliflower, leafy greens, asparagus, zucchini). ` +
+              `Keep the protein target intact. Re-generate fully compliant.`;
+            continue;
+          }
+          console.error(
+            `❌ [STARCH HARD GATE] Could not reduce starch to ${ceiling}g after ${attemptCount} attempts — serving as-is`
+          );
+        }
+      }
+
       // ── Thyroid support post-gen scan (additive modifier) ────────────────
       // Runs independently of oncology. Hard violations (kelp supplements, alcohol,
       // pseudoscientific claims) trigger regeneration. Advisory flags are logged only.

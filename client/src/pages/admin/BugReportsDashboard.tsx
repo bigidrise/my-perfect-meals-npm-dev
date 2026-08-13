@@ -333,6 +333,8 @@ export default function BugReportsDashboard() {
     setReports((prev) =>
       prev.map((r) => (r.id === id ? { ...r, status: newStatus } : r))
     );
+    // Notify other pages (e.g. AdminDashboard badge) that report counts changed
+    window.dispatchEvent(new CustomEvent("bug-reports-updated"));
   }
 
   const filtered =
