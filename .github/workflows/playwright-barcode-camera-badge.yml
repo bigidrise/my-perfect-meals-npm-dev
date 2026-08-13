@@ -7,6 +7,8 @@ on:
       - "client/src/components/biometrics/IngredientIntelligenceSheet.tsx"
       - "client/e2e/barcode-camera-database-badge.spec.ts"
       - "playwright.config.ts"
+      - "server/routes/biometricsRoutes.ts"
+      - "server/tests/barcodeScanContract.test.ts"
 
 jobs:
   playwright:
@@ -56,6 +58,10 @@ jobs:
             echo "  attempt $i — not ready yet"
             sleep 2
           done
+
+      - name: Run barcode route contract test (Jest)
+        run: |
+          npx jest server/tests/barcodeScanContract.test.ts --no-coverage --forceExit
 
       - name: Run barcode camera badge spec
         run: |

@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
+import { PillButton } from "@/components/ui/pill-button";
 import { post } from "@/lib/api";
 import { useShoppingListStore } from "@/stores/shoppingListStore";
 import type { UniversalIngredient } from "@/stores/shoppingListStore";
@@ -1398,26 +1399,16 @@ export function SmartCartAdviceBody({
                     <div style={{ color: "rgba(255,255,255,0.55)", fontSize: 12, lineHeight: 1.4 }}>
                       {brand.reason}
                     </div>
-                    {/* Save Product — labeled pill button below the reason text */}
-                    <button
-                      onClick={() => onSave(a.ingredient, a.category, brand)}
-                      disabled={isSaved || isSaving}
-                      style={{
-                        display: "inline-flex", alignItems: "center", gap: 5,
-                        marginTop: 8, padding: "5px 10px", borderRadius: 999,
-                        border: isSaved ? "1px solid rgba(249,115,22,0.4)" : "1px solid rgba(255,255,255,0.12)",
-                        background: isSaved ? "rgba(249,115,22,0.12)" : "rgba(255,255,255,0.06)",
-                        color: isSaved ? "#fb923c" : "rgba(255,255,255,0.5)",
-                        fontSize: 11, fontWeight: 600, cursor: isSaved ? "default" : "pointer",
-                      }}
-                    >
-                      {isSaved ? (
-                        <><BookmarkCheck style={{ width: 12, height: 12 }} /> Saved to Groceries</>
-                      ) : (
-                        <><Bookmark style={{ width: 12, height: 12 }} /> {isSaving ? "Saving…" : "Save Product"}</>
-                      )}
-                    </button>
                   </div>
+                  <PillButton
+                    active={isSaved}
+                    variant="amber"
+                    onClick={() => onSave(a.ingredient, a.category, brand)}
+                    disabled={isSaved || isSaving}
+                    style={{ flexShrink: 0, alignSelf: "flex-start", marginTop: 2 }}
+                  >
+                    {isSaved ? "Saved ✓" : isSaving ? "Saving…" : "Save"}
+                  </PillButton>
                 </div>
               );
             })}
