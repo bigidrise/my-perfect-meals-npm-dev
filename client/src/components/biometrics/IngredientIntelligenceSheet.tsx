@@ -500,6 +500,31 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
     setSavedGroceryId(match ? match.id : null);
   }, [savedGroceriesData, result?.productName, result?.barcode]);
 
+  // Invalidate saved-groceries when this tab regains visibility so a cross-tab
+  // save is reflected as soon as the user switches back (recovery path).
+  useEffect(() => {
+    if (!open || !result?.productName) return;
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        queryClient.invalidateQueries({ queryKey: ['/api/saved-groceries'] });
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [open, result?.productName]);
+
+  // Listen for saves/unsaves broadcast from other tabs via BroadcastChannel and
+  // invalidate the React Query cache so this tab updates immediately.
+  useEffect(() => {
+    if (!open || !result?.productName) return;
+    if (typeof BroadcastChannel === 'undefined') return;
+    const channel = new BroadcastChannel('mpm:grocery-saved');
+    channel.onmessage = () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/saved-groceries'] });
+    };
+    return () => channel.close();
+  }, [open, result?.productName]);
+
   async function handleSaveToGroceries() {
     if (!activeResult?.productName || savingGrocery) return;
     setSavingGrocery(true);
@@ -509,6 +534,7 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
       try {
         await apiRequest(`/api/saved-groceries/${savedGroceryId}`, { method: 'DELETE' });
         queryClient.invalidateQueries({ queryKey: ['/api/saved-groceries'] });
+        try { new BroadcastChannel('mpm:grocery-saved').postMessage(null); } catch { /* unavailable */ }
         toast({
           title: 'Removed from Groceries',
           description: `${activeResult.productName} has been removed from your bookmarks.`,
@@ -541,6 +567,7 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
         headers: { 'Content-Type': 'application/json' },
       }) as { item?: { id: string }; created?: boolean };
       queryClient.invalidateQueries({ queryKey: ['/api/saved-groceries'] });
+      try { new BroadcastChannel('mpm:grocery-saved').postMessage(null); } catch { /* unavailable */ }
       toast({
         title: data?.created === false ? 'Already saved' : 'Saved to Groceries',
         description: `${activeResult.productName} is in your grocery bookmarks.`,
