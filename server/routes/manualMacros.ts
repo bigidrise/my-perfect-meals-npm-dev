@@ -41,6 +41,8 @@ router.post("/macros/log", requireAuth, async (req, res) => {
       fibrousCarbs,
       fiber,
       nutrition,
+      // boardItemReference — stable board item ID for reservation accounting (#690)
+      boardItemReference,
     } = req.body ?? {};
 
     // Support nested nutrition object (new format) or flat fields (legacy)
@@ -70,6 +72,7 @@ router.post("/macros/log", requireAuth, async (req, res) => {
       mealType,
       dateIso: loggedAt,
       mealId,
+      boardItemReference: boardItemReference ?? null,
     });
 
     res.json({ success: true, log: row });

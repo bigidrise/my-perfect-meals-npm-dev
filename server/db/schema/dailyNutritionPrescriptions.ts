@@ -26,6 +26,7 @@ import {
   text,
   date,
   numeric,
+  integer,
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
@@ -82,6 +83,21 @@ export const dailyNutritionPrescriptions = pgTable(
      * Null means Performance Mode was not active or day type was not applicable.
      */
     performanceDayType: text("performance_day_type"),
+
+    // ── Meal plan config snapshot (#690) ─────────────────────────────────────
+    // Snapshotted from users at prescription time so every builder reads the
+    // same values without a second user query.  Intentional user changes to
+    // these preferences trigger a new prescription resolution for that date.
+
+    /** users.macro_meals_per_day at resolve time */
+    mealsPerDay: integer("meals_per_day"),
+
+    /** users.default_starch_meals_per_day at resolve time (baseline preference,
+     *  before Performance day-type adjustment which lives in starchMealsAllowed) */
+    starchMealsPerDay: integer("starch_meals_per_day"),
+
+    /** users.starch_distribution_strategy at resolve time */
+    starchDistributionStrategy: text("starch_distribution_strategy"),
 
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

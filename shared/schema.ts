@@ -49,6 +49,18 @@ export const macroLogs = pgTable("macro_logs", {
   // 'conservative_fallback' — no split info available; all carbs treated as starchy
   // 'unclassified'        — legacy rows written before this column existed
   classificationSource: varchar("classification_source", { length: 25 }).notNull().default("unclassified"),
+
+  /**
+   * Reservation identity (#690).
+   *
+   * When a board meal is logged via "Log All", the route sets this to the
+   * stable board item ID so the nutrition state engine can distinguish
+   * planned (on board, not yet logged) from consumed (logged).
+   *
+   * NULL on manual / quick-log entries that have no board origin.
+   * Indexed for efficient planned-vs-consumed queries.
+   */
+  boardItemReference: text("board_item_reference"),
 });
 
 // Re-export biometrics schema (unchanged)

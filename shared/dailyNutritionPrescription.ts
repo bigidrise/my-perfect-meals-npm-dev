@@ -211,6 +211,135 @@ export function computeGramsPerRemainingMeal(
   return Math.round(starchyCarbsRemaining / starchMealsRemaining);
 }
 
+// ── Daily Nutrition State (Stage 1 — #690) ───────────────────────────────────
+
+/**
+ * Why this builder was opened / what context frames generation.
+ *
+ * Design rule (advisor-approved):
+ *   performanceModeEnabled = persistent user preference (users.performance_mode_enabled)
+ *   generationContext       = why THIS session was opened
+ *
+ * "performance_training_day" is set only when the user navigated explicitly from
+ * Training Schedule → Build Meals for a training day. Merely having a schedule
+ * in the DB must never activate performance targets.
+ */
+export type GenerationContext =
+  | "standard"
+  | "performance_training_day"
+  | "glp1"
+  | "glp1_performance"
+  | "diabetic"
+  | "diabetic_performance";
+
+/** Contextual inputs for a single meal-generation request */
+export interface MealContext {
+  generationContext: GenerationContext;
+  /** 0-based position in the day's meal plan (0 = first meal) */
+  mealIndex: number;
+  isSnack?: boolean;
+  timeOfDay?: "morning" | "midday" | "afternoon" | "evening";
+}
+
+/** Macro totals shape reused across consumed / planned / remaining */
+export interface MacroTotals {
+  calories: number;
+  protein: number;
+  totalCarbs: number;
+  starchyCarbs: number;
+  fibrousCarbs: number;
+  fat: number;
+}
+
+/**
+ * Per-meal budget produced by computeNextMealBudget().
+ *
+ * Every meal builder feeds these values into the AI prompt constraints AND
+ * validates the generated meal's actual macros against them server-side.
+ * A meal that exceeds the envelope must be repaired / regenerated before
+ * being presented to the user.
+ */
+export interface NextMealBudget {
+  caloriesBudget: number;
+  proteinBudget: number;
+  carbsBudget: number;
+  fatBudget: number;
+  starchyBudget: number;
+  fibrousBudget: number;
+  /** false when all starch slots for the day have been used */
+  starchAllowed: boolean;
+  mealsRemaining: number;
+  starchMealsRemaining: number;
+  /** Machine-readable notes explaining any clinical ceiling that was applied */
+  clinicalNotes: string[];
+}
+
+/**
+ * DailyNutritionState — the single object every builder reads.
+ *
+ * Returned by GET /api/nutrition-state/:dateISO.
+ * No builder computes or caches its own nutrition targets independently.
+ *
+ * Advisor-approved design rules:
+ *  1. resolvedPrescription   = server authority chain (Macro Calculator → GLP-1 → Performance)
+ *  2. consumed               = explicitly logged meals in macro_logs (server-aggregated)
+ *  3. planned                = board meals not yet logged (Stage 1: zeros; wire in #691)
+ *  4. remaining              = prescription - consumed - planned (floored at 0)
+ *  5. mealPlan               = snapshotted config so every builder reads the same values
+ *  6. activeConstraints      = which protocols are shaping today's prescription (flags only)
+ */
+export interface DailyNutritionState {
+  date: string;
+
+  // 1. What the user is allowed to eat today
+  resolvedPrescription: DailyNutritionPrescription;
+
+  // 2. What has been explicitly logged
+  consumed: MacroTotals & {
+    starchMeals: number; // log rows with starchy_carbs > 0
+    mealCount: number;   // total non-alcohol log rows
+  };
+
+  // 3. Board meals not yet logged (zeros until #691 wires board reservations)
+  planned: MacroTotals & {
+    starchMeals: number;
+    mealCount: number;
+  };
+
+  // 4. prescription − consumed − planned (floored at 0)
+  remaining: MacroTotals & {
+    starchMeals: number;    // starchMealsAllowed - consumed.starchMeals - planned.starchMeals
+    nonStarchMeals: number; // mealsRemaining - remaining.starchMeals
+  };
+
+  // 5. Meal plan configuration (snapshotted from users at prescription time)
+  mealPlan: {
+    mealsPerDay: number;
+    mealsConsumed: number;
+    mealsPlanned: number;
+    mealsRemaining: number;
+    starchMealsPerDay: number;
+    starchMealsConsumed: number;
+    starchMealsPlanned: number;
+    starchMealsRemaining: number;
+    starchDistributionStrategy: StarchDistributionStrategy;
+    gramsPerRemainingStarchMeal: number | undefined;
+    isZeroStarchDay: boolean;
+  };
+
+  // 6. Which protocols are active (flags — not numeric values)
+  activeConstraints: {
+    /** users.performance_mode_enabled === true AND today has a training session */
+    performanceActive: boolean;
+    glp1Active: boolean;
+    diabeticActive: boolean;
+    clinicalActive: boolean;
+    procareActive: boolean;
+  };
+}
+
+// ── Build a minimal fallback prescription ─────────────────────────────────────
+
 /**
  * Build a minimal fallback prescription when no targets are available.
  */

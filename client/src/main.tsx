@@ -5,6 +5,7 @@
 
 import { Capacitor } from "@capacitor/core";
 import { patchFetchForCredentials } from "@/lib/fetch-credentials-patch";
+import { migrateLegacyBuilderCaches } from "@/lib/safeLocalStorage";
 import "@/i18n";
 
 const APP_STORAGE_VERSION = "3";
@@ -31,6 +32,15 @@ const DRAFT_KEY_PREFIXES = [
       console.log(`[MPM Storage] Purged ${keysToRemove.length} stale draft keys (v${current} → v${APP_STORAGE_VERSION})`);
     }
     localStorage.setItem(STORAGE_VERSION_KEY, APP_STORAGE_VERSION);
+  } catch {}
+})();
+
+// Remove pre-fix builder cache entries that have no generatedAtISO timestamp.
+// Without a timestamp, evictStaleBuilderCaches can never TTL-evict them.
+// This runs once synchronously on every boot; entries already stamped are untouched.
+(function runLegacyBuilderCacheMigration() {
+  try {
+    migrateLegacyBuilderCaches();
   } catch {}
 })();
 

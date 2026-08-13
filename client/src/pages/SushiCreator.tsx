@@ -126,6 +126,7 @@ import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
 import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
+import { safeLocalStorageSet } from "@/lib/safeLocalStorage";
 
 // ---- Persist the generated meal so it never "disappears" ----
 const CACHE_KEY = "sushiCreator.cache.v1";
@@ -139,9 +140,7 @@ type CachedCravingState = {
 };
 
 function saveCravingCache(state: CachedCravingState) {
-  try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify(state));
-  } catch {}
+  safeLocalStorageSet(CACHE_KEY, state);
 }
 
 function loadCravingCache(): CachedCravingState | null {

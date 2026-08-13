@@ -137,6 +137,7 @@ import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
+import { safeLocalStorageSet, safeLocalStorageGetArray } from "@/lib/safeLocalStorage";
 
 // ---- Persist the generated meal so it never "disappears" ----
 const CACHE_KEY = "cravingCreator.cache.v1";
@@ -150,9 +151,7 @@ type CachedCravingState = {
 };
 
 function saveCravingCache(state: CachedCravingState) {
-  try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify(state));
-  } catch {}
+  safeLocalStorageSet(CACHE_KEY, state);
 }
 
 function loadCravingCache(): CachedCravingState | null {
@@ -178,20 +177,11 @@ function clearCravingCache() {
 const OPTIONS_CACHE_KEY = "cravingCreator.options.v1";
 
 function saveCravingOptionsCache(options: any[]) {
-  try {
-    localStorage.setItem(OPTIONS_CACHE_KEY, JSON.stringify(options));
-  } catch {}
+  safeLocalStorageSet(OPTIONS_CACHE_KEY, options);
 }
 
 function loadCravingOptionsCache(): any[] {
-  try {
-    const raw = localStorage.getItem(OPTIONS_CACHE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+  return safeLocalStorageGetArray(OPTIONS_CACHE_KEY);
 }
 
 function clearCravingOptionsCache() {

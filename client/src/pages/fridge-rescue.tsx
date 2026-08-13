@@ -86,6 +86,7 @@ import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
+import { safeLocalStorageSet } from "@/lib/safeLocalStorage";
 
 const FRIDGE_RESCUE_TOUR_STEPS: TourStep[] = [
   {
@@ -327,9 +328,7 @@ const FridgeRescuePage = () => {
 
   // Save state to localStorage
   function saveFridgeRescueCache(state: CachedFridgeRescueState) {
-    try {
-      localStorage.setItem(CACHE_KEY, JSON.stringify(state));
-    } catch {}
+    safeLocalStorageSet(CACHE_KEY, state);
   }
 
   // Load state from localStorage

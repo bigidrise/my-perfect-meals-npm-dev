@@ -803,6 +803,10 @@ async function initializeApp() {
     // Daily Nutrition Prescription — shared resolver for all builders
     const prescriptionRoutes = (await import("./routes/prescriptionRoutes")).default;
     app.use("/api/prescription", prescriptionRoutes);
+
+    // Daily Nutrition State — canonical per-date state (prescription + consumed + planned + remaining)
+    const nutritionStateRoutes = (await import("./routes/nutritionState")).default;
+    app.use("/api/nutrition-state", nutritionStateRoutes);
     app.use(
       "/api/translate",
       requireAuth,
@@ -1420,6 +1424,17 @@ async function initializeApp() {
           console.error("❌ [prod] Media Assets boot migration failed:", err.message);
         }
       }, 5400);
+
+      // Daily Nutrition State migration (#690)
+      // Adds: daily_nutrition_prescriptions meal-plan snapshot cols + macro_logs.board_item_reference
+      setTimeout(async () => {
+        try {
+          const { runNutritionStateMigration } = await import("./db/migrations/runNutritionStateMigration");
+          await runNutritionStateMigration();
+        } catch (err: any) {
+          console.error("❌ [prod] Nutrition State migration failed:", err.message);
+        }
+      }, 6200);
 
       // Promotion Engine — partner_promotions + promotion_redemptions tables
       setTimeout(async () => {

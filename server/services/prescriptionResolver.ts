@@ -330,6 +330,13 @@ export async function resolveDailyNutritionPrescription(
   // Cache guard: use setWhere so the UPDATE is a no-op when the source and
   // rationale signature are unchanged. This avoids unnecessary writes on
   // repeated requests for the same date (e.g. repeated page loads today).
+  // Meal-plan config snapshot (#690): snapshot the user's preferences at
+  // resolve time so every builder reads from one place without a second
+  // user query. Intentional user changes trigger a new resolution because
+  // sourceVersion changes, making setWhere fire a real UPDATE.
+  const snapshotMealsPerDay       = user.macroMealsPerDay ?? 4;
+  const snapshotStarchMealsPerDay = baselineStarchMeals;
+
   db.insert(dailyNutritionPrescriptions)
     .values({
       userId,
@@ -343,6 +350,9 @@ export async function resolveDailyNutritionPrescription(
       source:            dbSource,
       sourceVersion:     rationaleSig,
       performanceDayType: trainingDayType ?? null,
+      mealsPerDay:       snapshotMealsPerDay,
+      starchMealsPerDay: snapshotStarchMealsPerDay,
+      starchDistributionStrategy: starchDistributionStrategy,
       updatedAt:         new Date(),
     })
     .onConflictDoUpdate({
@@ -357,6 +367,9 @@ export async function resolveDailyNutritionPrescription(
         source:            dbSource,
         sourceVersion:     rationaleSig,
         performanceDayType: trainingDayType ?? null,
+        mealsPerDay:       snapshotMealsPerDay,
+        starchMealsPerDay: snapshotStarchMealsPerDay,
+        starchDistributionStrategy: starchDistributionStrategy,
         updatedAt:         new Date(),
       },
       // Only overwrite if something materially changed — avoids write amplification
