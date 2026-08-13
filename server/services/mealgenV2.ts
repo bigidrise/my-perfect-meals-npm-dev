@@ -10,6 +10,7 @@ import {
   logSafetyEnforcement,
   UserSafetyProfile
 } from "./allergyGuardrails";
+import type { ResolvedGLP1Targets } from "./glp1/resolveGLP1MealTargets";
 
 // ---------- Public API ----------
 export type Onboarding = {
@@ -53,12 +54,26 @@ export async function generateMealV2(opts: {
   onboarding: Onboarding;
   includeImage?: boolean;
   variation?: number;
+  /** GLP-1 guardrail prompt block from applyGuardrails().modifiedPrompt — appended
+   *  to cravingInput so the AI prompt (not the ignored `constraints` field) carries
+   *  the clinical constraints. */
+  glp1Block?: string;
+  /** Per-slot resolved GLP-1 targets; when provided the retry loop validates each
+   *  candidate and rejects/regens until compliant (or 4 tries exhausted). */
+  glp1Targets?: ResolvedGLP1Targets;
 }): Promise<Meal> {
   const constraints = mapOnboardingToConstraints(opts.onboarding);
+
+  // /api/meals/craving-creator uses `cravingInput` as the AI prompt directive;
+  // the `constraints` object is not forwarded to the LLM. Inject the GLP-1
+  // guardrail block here so it actually reaches the generation model.
+  const baseCraving = `${opts.courseStyle}${opts.variation ? ` variation ${opts.variation}` : ''}`;
+  const buildCraving = (extra?: string) =>
+    [baseCraving, opts.glp1Block, extra].filter(Boolean).join(". ");
   
   const raw = await callCravingCreator({
     targetMealType: opts.courseStyle.toLowerCase(),
-    cravingInput: `${opts.courseStyle} ${opts.variation ? `variation ${opts.variation}` : ''}`,
+    cravingInput: buildCraving(),
     userId: opts.userId,
     dietaryRestrictions: constraints.allergies || [],
     allergies: constraints.allergies || [],
@@ -68,15 +83,55 @@ export async function generateMealV2(opts: {
   let meal = normalizeMeal(raw);
   meal.ingredients = enforceMeasuredIngredients(meal.ingredients);
 
-  // Validate against onboarding; auto-regen up to 4 tries
+  // Validate against onboarding + GLP-1 constraints; auto-regen up to 4 tries
   let tries = 0;
   while (tries < 4) {
-    const why = violatesOnboarding(meal, opts.onboarding);
-    if (!why) break;
-    
+    const onboardingWhy = violatesOnboarding(meal, opts.onboarding);
+
+    // GLP-1 post-generation check.  Run whenever a block or targets are configured
+    // (block exists = patient is active, even under static-baseline fallback).
+    // Fail CLOSED: a validator exception is treated the same as a violation so the
+    // retry loop always produces another candidate rather than silently serving
+    // a potentially non-compliant meal.
+    // Treat warnings as failures: static-baseline calorie and protein warnings
+    // indicate the meal exceeds or misses clinical limits that only become hard
+    // violations with personalized targets; for active patients the same thresholds
+    // apply and we must retry.
+    let glp1Why: string | null = null;
+    if (opts.glp1Block || opts.glp1Targets) {
+      try {
+        const { validateMealForDiet } = await import("./guardrails");
+        const isSnack = opts.courseStyle === "Snack";
+        const mealForValidation = {
+          ...meal,
+          macros: {
+            calories: meal.calories,
+            protein:  meal.protein,
+            fat:      meal.fats,   // V2 Meal uses "fats"; validator reads "fat"
+            carbs:    meal.carbs,
+          },
+        };
+        const check = validateMealForDiet(
+          mealForValidation as any, "glp1", undefined, isSnack,
+          opts.glp1Targets,  // undefined = static-baseline validation
+        );
+        const allIssues = [...(check.violations ?? []), ...(check.warnings ?? [])];
+        if (!check.isValid || allIssues.length > 0) {
+          glp1Why = allIssues.join("; ");
+        }
+      } catch (validatorErr: any) {
+        // Validator itself threw — treat as non-compliant so we retry rather than
+        // silently accepting a meal that may have triggered the error due to bad data.
+        glp1Why = `validator error: ${validatorErr?.message ?? "unknown"}`;
+      }
+    }
+
+    if (!onboardingWhy && !glp1Why) break;
+
+    const whyAll = [onboardingWhy, glp1Why].filter(Boolean).join("; ");
     const regen = await callCravingCreator({
       targetMealType: opts.courseStyle.toLowerCase(),
-      cravingInput: `${opts.courseStyle} variation ${tries + 2} avoiding ${why}`,
+      cravingInput: buildCraving(`Avoid: ${whyAll}`),
       userId: opts.userId,
       dietaryRestrictions: constraints.allergies || [],
       allergies: constraints.allergies || [],
@@ -87,7 +142,43 @@ export async function generateMealV2(opts: {
     meal.ingredients = enforceMeasuredIngredients(meal.ingredients);
     tries++;
   }
-  
+
+  // Final GLP-1 validation pass — always validate the last candidate, including
+  // warnings, to catch any residual issues after retry exhaustion.
+  // Throw if still non-compliant so the route-level catch can fall back to the
+  // legacy path rather than serving an unguarded meal.
+  if (opts.glp1Block || opts.glp1Targets) {
+    try {
+      const { validateMealForDiet: _finalValidate } = await import("./guardrails");
+      const isSnack = opts.courseStyle === "Snack";
+      const mealForFinalValidation = {
+        ...meal,
+        macros: {
+          calories: meal.calories,
+          protein:  meal.protein,
+          fat:      meal.fats,  // V2 Meal uses "fats"; validator reads "fat"
+          carbs:    meal.carbs,
+        },
+      };
+      const finalCheck = _finalValidate(
+        mealForFinalValidation as any, "glp1", undefined, isSnack,
+        opts.glp1Targets,
+      );
+      const finalIssues = [...(finalCheck.violations ?? []), ...(finalCheck.warnings ?? [])];
+      if (!finalCheck.isValid || finalIssues.length > 0) {
+        // Propagate to the caller (route) so it can fall back to legacy generation
+        // rather than returning a known-invalid meal to a GLP-1 patient.
+        throw new Error(
+          `GLP-1 validation failed after ${tries} retries for "${meal.name}": ` +
+          finalIssues.join("; "),
+        );
+      }
+    } catch (finalErr: any) {
+      // Re-throw both our own validation error and unexpected validator exceptions.
+      throw finalErr;
+    }
+  }
+
   console.log(`✅ Generated compliant meal: ${meal.name} (${tries} retries)`);
   return meal;
 }
@@ -97,6 +188,10 @@ export async function generateDayV2(opts: {
   onboarding: Onboarding;
   slots: Array<{ courseStyle: "Breakfast"|"Lunch"|"Dinner"|"Snack"; label: string; time: string; order: number }>;
   includeImage?: boolean;
+  /** Per-slot-type GLP-1 guardrail prompt blocks (keyed by lowercase meal type). */
+  glp1BlockByType?: Record<string, string>;
+  /** Per-slot-type resolved GLP-1 targets (keyed by lowercase meal type). */
+  glp1TargetsByType?: Record<string, ResolvedGLP1Targets>;
 }): Promise<Meal[]> {
   // Concurrency cap of 3 to prevent overwhelming the API
   const chunks = chunk(opts.slots, 3);
@@ -104,12 +199,15 @@ export async function generateDayV2(opts: {
   
   for (const grp of chunks) {
     const batch = await Promise.all(grp.map(async (s, i) => {
+      const mealType = s.courseStyle.toLowerCase();
       const m = await generateMealV2({
         userId: opts.userId,
         courseStyle: s.courseStyle,
         onboarding: opts.onboarding,
         includeImage: Boolean(opts.includeImage),
         variation: i,
+        glp1Block:    opts.glp1BlockByType?.[mealType],
+        glp1Targets:  opts.glp1TargetsByType?.[mealType],
       });
       return m;
     }));
@@ -124,12 +222,15 @@ export async function generateDayV2(opts: {
     while (seen.has(sig) && tries < 4) {
       console.log(`🔄 Duplicate meal detected, regenerating...`);
       const s = opts.slots[i];
+      const mealType = s.courseStyle.toLowerCase();
       out[i] = await generateMealV2({
         userId: opts.userId,
         courseStyle: s.courseStyle,
         onboarding: opts.onboarding,
         includeImage: Boolean(opts.includeImage),
         variation: tries + 10,
+        glp1Block:   opts.glp1BlockByType?.[mealType],
+        glp1Targets: opts.glp1TargetsByType?.[mealType],
       });
       sig = mealSig(out[i]);
       tries++;
@@ -217,7 +318,9 @@ async function callCravingCreator(body: any) {
     }
     
     const data = await res.json();
-    return data.meal || data;
+    // craving-creator responds with { meals: [...] }; pick the first option.
+    // data.meal is checked for legacy compat but should not be present.
+    return data.meals?.[0] ?? data.meal ?? null;
   } finally {
     clearTimeout(timeout);
   }
