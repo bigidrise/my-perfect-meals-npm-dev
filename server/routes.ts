@@ -1110,9 +1110,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             meal?.fat,
           );
 
-          if (!gateResult.passed) {
+          if (gateResult.passed === false) {
+            // Explicit === false narrows the discriminated union so TypeScript
+            // exposes .reason from the { passed: false; reason: ... } branch.
+            const gateReason: string = gateResult.reason;
             console.error(
-              `[ClinicalGate] Rejected: reason=${gateResult.reason} ` +
+              `[ClinicalGate] Rejected: reason=${gateReason} ` +
               `context=${budgetGenerationContext} type=${type} ` +
               `carbCeiling=${carbCeiling} fatCeiling=${fatCeiling}`,
             );
@@ -1458,7 +1461,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             undefined,
             undefined,
             fridgeGlp1Ctx.resolvedTargets,
-          );
+          ).modifiedPrompt;
           console.log(
             `💊 [FRIDGE/GLP-1] Personalized targets: ` +
             `${fridgeGlp1Ctx.resolvedTargets.resolvedMealCalories}kcal / ` +
@@ -1893,7 +1896,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             undefined,
             undefined,
             weeklyGlp1Ctx.resolvedTargets,
-          );
+          ).modifiedPrompt;
           console.log(
             `💊 [WEEKLY PLAN/GLP-1] Personalized targets: ` +
             `${weeklyGlp1Ctx.resolvedTargets.resolvedMealCalories}kcal / ` +
