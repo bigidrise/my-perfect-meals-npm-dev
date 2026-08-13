@@ -534,6 +534,61 @@ router.post('/ingredient-intelligence', requireAuth, requireActiveAccess, async 
   }
 });
 
+// Barcode lookup — resolves UPC/EAN → product name via Open Food Facts, then runs the by-name scan.
+// Falls back to the raw barcode string as productName if no DB match is found.
+router.post('/ingredient-scan-by-barcode', requireAuth, requireActiveAccess, async (req, res) => {
+  try {
+    const { barcode } = req.body;
+    if (!barcode || typeof barcode !== 'string' || !barcode.trim()) {
+      return res.status(400).json({ ok: false, error: 'barcode is required' });
+    }
+    const cleanBarcode = barcode.trim().replace(/\D/g, '');
+    if (!cleanBarcode) {
+      return res.status(400).json({ ok: false, error: 'barcode must contain digits' });
+    }
+
+    // Resolve barcode → product name via Open Food Facts (free, no key needed)
+    let productName: string = cleanBarcode;
+    let resolvedFromDb = false;
+    try {
+      const offUrl = `https://world.openfoodfacts.org/api/v0/product/${encodeURIComponent(cleanBarcode)}.json`;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      const offRes = await fetch(offUrl, {
+        signal: controller.signal,
+        headers: { 'User-Agent': 'MyPerfectMeals/1.0 (https://myperfectmeals.com)' },
+      });
+      clearTimeout(timeout);
+      if (offRes.ok) {
+        const offData: any = await offRes.json();
+        if (offData?.status === 1 && offData?.product) {
+          const p = offData.product;
+          const name =
+            p.product_name_en?.trim() ||
+            p.product_name?.trim() ||
+            p.abbreviated_product_name?.trim() ||
+            '';
+          if (name) {
+            productName = name;
+            resolvedFromDb = true;
+          }
+        }
+      }
+    } catch (lookupErr: any) {
+      // Timeout or network error — continue with raw barcode as fallback
+      console.warn('[barcode] Open Food Facts lookup failed:', lookupErr?.message);
+    }
+
+    const userId = getAuthUserId(req);
+    const { analyzeProductByName } = await import('../services/ingredientScanService');
+    const result = await analyzeProductByName(productName, String(userId));
+    return res.json({ ok: true, result, resolvedFromDb, resolvedName: productName });
+  } catch (error: any) {
+    console.error('Barcode scan error:', error);
+    return res.status(500).json({ ok: false, error: 'Failed to analyze barcode product', detail: error?.message });
+  }
+});
+
 // Ingredient Intelligence — analyze by product name (front-label path)
 // Uses AI knowledge of the named product to generate a personalized verdict + branded alternatives.
 // NOT a verified label scan — accuracy disclaimer is included in the response.
