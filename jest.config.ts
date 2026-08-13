@@ -22,10 +22,11 @@ const config: Config = {
     "^.+\\.tsx?$": ["ts-jest", {
       useESM: true,
       tsconfig: {
-        types: ["jest", "node"]
+        types: ["jest", "node"],
+        jsx: "react-jsx"
       }
     }]
   },
-  extensionsToTreatAsEsm: [".ts"]
+  extensionsToTreatAsEsm: [".ts", ".tsx"]
 };
 export default config;
