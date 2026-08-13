@@ -31,6 +31,9 @@ function detectMealType(message: string): "breakfast" | "lunch" | "dinner" | "sn
   if (/\b(snack|snacks?|appetizer|bite|nibble|between meals?)\b/.test(lower)) return "snack";
   return null;
 }
+
+router.post("/recommend", async (req, res) => {
+  try {
     const userId = resolveUserId(req);
     const { message, conversationHistory = [], servingCount } = req.body;
 
@@ -281,7 +284,7 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
     });
 
     const raw = completion.choices[0]?.message?.content ?? "{}";
-    const result = await finalizeMealCard({ recommendation, userId: userId! });
+    let result: any;
     try {
       result = JSON.parse(raw);
     } catch {
@@ -534,7 +537,13 @@ router.post("/product-advisor", async (req, res) => {
     }
 
     const engine = getProductAdvisorEngine();
-    const result = await finalizeMealCard({ recommendation, userId: userId! });
+    const protocolContext = userId
+      ? enforceBeforeGenerate(
+          await loadUserProtocolEnvelope(userId).catch(() => null) ?? buildGuestEnvelope(),
+          { generatorName: "product_advisor" }
+        ).combined
+      : "";
+    const result = await engine.buildCartRecommendations(ingredients, protocolContext, store ?? "");
 
     return res.json(result);
   } catch (err: any) {
