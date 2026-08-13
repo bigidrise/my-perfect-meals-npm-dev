@@ -752,6 +752,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         explicitOverride,
         userDietOverride,
         performanceSessionContext,
+        generationContext,
       } = req.body;
 
       // When user chose "Continue Anyway" on the diet guard, inject a soft coaching override
@@ -763,11 +764,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // (loadUserProtocolEnvelope → carbCycleContext → enforceBeforeGenerate) — no
       // direct input-string mutation needed here.
 
+      // For create-with-chef: always resolve against the authenticated user.
+      // Body userId is untrusted — a caller can set it to any string to load a
+      // different user's allergy profile, clinical protocol, and macro targets.
+      // effectiveUserId is used for ALL downstream safety, profile, and pipeline calls.
+      const effectiveUserId: string = (type === 'create-with-chef')
+        ? String((req as AuthenticatedRequest).authUser.id)
+        : (userId ?? "");
+
       // 🚨 ENFORCEMENT GATEWAY: Pre-generation — Tier 1 (allergy) + Tier 2 (religious)
-      if (userId && input) {
+      // Uses effectiveUserId — never the untrusted body userId — so a tampered ID
+      // cannot bypass the authenticated user's allergy/religious constraints.
+      if (effectiveUserId && input) {
         const inputText = Array.isArray(input) ? input.join(' ') : input;
         const enforcement = await runEnforcement({
-          userId,
+          userId: effectiveUserId,
           builderType: type || "create_dish",
           phase: "pre_generation",
           inputText,
@@ -827,7 +838,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Auto-enrich nutritionStrategy from user profile if not explicitly provided
       // Skip entirely when strictMode is on — no veg targets should be injected
       let nutritionStrategy = bodyNutritionStrategy ?? null;
-      if (!strictMode && !nutritionStrategy && userId && type === 'create-with-chef') {
+      if (!strictMode && !nutritionStrategy && effectiveUserId && type === 'create-with-chef') {
         try {
           const { db } = await import("./db");
           const { users } = await import("../shared/schema");
@@ -841,7 +852,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             macroCycleDayType: users.macroCycleDayType,
             macroMealsPerDay: users.macroMealsPerDay,
             carbCycleState: users.carbCycleState,
-          }).from(users).where(eq(users.id, userId)).limit(1);
+          }).from(users).where(eq(users.id, effectiveUserId)).limit(1);
           if (macroUser) {
             // If a starch response protocol is active, override the user's saved starch target
             // with the protocol's allocation. This feeds the carb cycle directly into
@@ -875,18 +886,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // ── Server-side per-meal budget enforcement (create-with-chef only) ──────
+      // The budget is resolved for the AUTHENTICATED user (req.authUser.id).
+      // The body userId is deliberately NOT used — it is untrusted; a caller
+      // could supply any userId to generate against another user's budget.
+      // ProCare physician-for-client delegation is not permitted in the Chef
+      // generation path: physicians generate under their own nutrition targets.
+      //
+      // Fail-closed contract: if resolution fails for any reason, this handler
+      // returns HTTP 503 rather than honoring client-supplied remainingMacros.
+      //
+      // Create mutable shadow variables so the const-destructured body values
+      // can be overridden without a TypeScript "cannot reassign const" error.
+      let effectiveRemainingMacros: typeof remainingMacros = remainingMacros;
+      let effectiveStarchContext: typeof starchContext = starchContext;
+
+      if (type === 'create-with-chef') {
+        const authUserId = String((req as AuthenticatedRequest).authUser.id);
+        // Prefer the date embedded in the starchContext (builder's active day);
+        // fall back to today in UTC when it is absent.
+        const budgetDateISO: string = (starchContext as any)?.dateISO
+          ?? new Date().toISOString().split("T")[0];
+
+        try {
+          const { resolveChefBudget } = await import("./services/chefBudgetService");
+          const chefBudget = await resolveChefBudget(
+            authUserId,
+            budgetDateISO,
+            typeof generationContext === "string" ? generationContext : undefined,
+          );
+
+          // Override client-supplied remainingMacros — client values are untrusted.
+          effectiveRemainingMacros = chefBudget.remainingMacros;
+
+          // Replace client starchContext starch fields with server-authoritative values
+          // from macro_logs consumption. This propagates partial-slot usage (e.g. one
+          // of two starch slots already used) even when the slot gate is not fully
+          // exhausted, so the AI prompt uses the correct gram allocation.
+          // When slots are exhausted: also set isZeroStarchDay + forceFiberBased to close
+          // all bypass paths (client forceStarch:true, starchy description auto-detect).
+          effectiveStarchContext = {
+            ...(effectiveStarchContext as object ?? {}),
+            starchMealsAllowed:          chefBudget.starchMealsRemaining,
+            starchyCarbsRemaining:       chefBudget.starchyCarbsRemaining,
+            gramsPerRemainingStarchMeal: chefBudget.gramsPerRemainingStarchMeal,
+            ...(chefBudget.starchAllowed ? {} : {
+              isZeroStarchDay: true,
+              forceStarch:     false,
+              forceFiberBased: true,
+            }),
+          };
+
+          console.log(
+            `🥗 [BudgetResolver] authUserId=${authUserId} date=${budgetDateISO} ` +
+            `cal=${chefBudget.budget.caloriesBudget} starch=${chefBudget.starchAllowed} ` +
+            `notes=${chefBudget.budget.clinicalNotes.join(",") || "none"}`,
+          );
+        } catch (err) {
+          // Fail-closed: do NOT proceed with untrusted client macros.
+          console.error("[BudgetResolver] Resolution failed — blocking generation:", err);
+          return res.status(503).json({
+            success: false,
+            error: "Nutrition budget could not be resolved. Please try again.",
+            source: "budget_error",
+          });
+        }
+      }
+
       const result = await generateMealUnified({
         type,
         mealType,
         input: effectiveInput,
-        userId,
+        userId: effectiveUserId,
         macroTargets,
         count,
         dietType,
         dietPhase: dietPhase || undefined,
-        remainingMacros: remainingMacros || undefined,
+        remainingMacros: effectiveRemainingMacros || undefined,
         builderMode: builderMode || undefined,
-        starchContext,
+        starchContext: effectiveStarchContext,
         diversityContext: diversityContext || null,
         nutritionStrategy: nutritionStrategy ?? undefined,
         strictMode: strictMode === true,
@@ -894,6 +972,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         safetyAlreadyChecked: true,
         explicitOverride: explicitOverride || null,
         performanceSessionContext: performanceSessionContext || undefined,
+        generationContext: typeof generationContext === 'string' ? generationContext : undefined,
       });
 
       const durationMs = Date.now() - startTime;
@@ -907,8 +986,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // NOTE: pipeline returns BOTH result.meal and result.meals[0] — patch both so all
       // consumers (hook reads meals[0], other readers use meal) get the classification.
       if (result.success && (result.meal || result.meals?.length)) {
-        const envelope = userId
-          ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
+        const envelope = effectiveUserId
+          ? (await loadUserProtocolEnvelope(effectiveUserId).catch(() => null)) ?? buildGuestEnvelope()
           : buildGuestEnvelope();
         if (result.meal) {
           const { complianceSection, dietClassification } = buildMealComplianceBundle(result.meal, envelope);

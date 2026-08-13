@@ -808,6 +808,10 @@ async function initializeApp() {
     const nutritionStateRoutes = (await import("./routes/nutritionState")).default;
     app.use("/api/nutrition-state", nutritionStateRoutes);
 
+    // Chef Budget — server-authoritative per-meal budget for Create-with-Chef
+    const chefBudgetRoutes = (await import("./routes/chefBudget")).default;
+    app.use("/api/meals/chef-budget", chefBudgetRoutes);
+
     // Bug Reports — authenticated in-app diagnostic submission
     const bugReportsRoutes = (await import("./routes/bugReports")).default;
     app.use("/api/bug-reports", bugReportsRoutes);

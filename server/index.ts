@@ -1473,6 +1473,14 @@ async function start() {
   // myPerfectBeginning.ts take precedence for shared paths (/generated-meals etc.).
   app.use("/api/my-perfect-beginning", myPerfectBeginningGenerationRouter);
 
+  // Daily nutrition prescription + state routes (must be before registerRoutes for /api/* order)
+  const prescriptionRoutes = (await import("./routes/prescriptionRoutes")).default;
+  app.use("/api/prescription", prescriptionRoutes);
+  const nutritionStateRoutes = (await import("./routes/nutritionState")).default;
+  app.use("/api/nutrition-state", nutritionStateRoutes);
+  const chefBudgetRoutes = (await import("./routes/chefBudget")).default;
+  app.use("/api/meals/chef-budget", chefBudgetRoutes);
+
   // 🎯 CRITICAL: API routes FIRST to prevent Vite middleware interference
   await registerRoutes(app);
 

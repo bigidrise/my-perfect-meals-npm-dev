@@ -295,6 +295,12 @@ export interface MealGenerationRequest {
     starchyCarbs_g?: number;
     fibrousCarbs_g?: number;
   };
+  /**
+   * Training-day context from the builder. "performance_training_day" injects
+   * high-carb fuelling guidance; "rest_day" injects recovery guidance.
+   * Only used when performanceSessionContext is absent.
+   */
+  generationContext?: string;
 }
 
 export interface MealGenerationResponse {
@@ -2429,12 +2435,17 @@ function detectBeverageIntent(description: string): string | null {
 // Called when detectBeverageIntent() returns a non-null category.
 // Reuses the same protocol envelope + GPT-4o model as the Beverage Creator,
 // but runs entirely inline — no HTTP redirect, completely seamless to the user.
+//
+// Accepts the server-resolved starchContext and remainingMacros so the prompt
+// enforces starch-slot and macro budget constraints even for drink requests.
 async function generateBeverageFromDescription(
   description: string,
   beverageCategory: string,
   userId: string | undefined,
   dietType?: DietType,
   slotHint?: string,
+  starchContext?: StarchContext,
+  remainingMacros?: { protein?: number; carbs?: number; fat?: number; calories?: number },
 ): Promise<MealGenerationResponse> {
   console.log(`🍹 [CREATE-WITH-CHEF/BEVERAGE] "${beverageCategory}" intent detected — routing to beverage pipeline`);
 
@@ -2458,11 +2469,32 @@ async function generateBeverageFromDescription(
     ? `\nThis drink is for the user's ${slotHint} slot — adjust flavor profile, caffeine level, and macros appropriately for ${slotHint}.`
     : '';
 
+  // Build server-authoritative nutrition enforcement block.
+  // These constraints come from the server budget resolver — they are not client hints.
+  const noStarch = starchContext?.forceFiberBased || starchContext?.isZeroStarchDay;
+  const macroCeiling = remainingMacros
+    ? [
+        remainingMacros.calories != null ? `- CALORIES: do not exceed ${remainingMacros.calories} kcal` : '',
+        remainingMacros.protein  != null ? `- PROTEIN: do not exceed ${remainingMacros.protein}g` : '',
+        remainingMacros.carbs    != null ? `- TOTAL CARBS: do not exceed ${remainingMacros.carbs}g` : '',
+        remainingMacros.fat      != null ? `- FAT: do not exceed ${remainingMacros.fat}g` : '',
+      ].filter(Boolean).join('\n')
+    : '';
+
+  const budgetBlock = [
+    noStarch
+      ? 'STARCH CONSTRAINT: This meal slot has no starch allowance remaining. Do NOT include oats, rice, banana, dates, or any starchy ingredient that would meaningfully raise the drink\'s starchy-carb content. Use berries, low-carb vegetables, or other fibrous ingredients instead.'
+      : '',
+    macroCeiling
+      ? `MACRO BUDGET (server-enforced — must not be exceeded):\n${macroCeiling}`
+      : '',
+  ].filter(Boolean).join('\n\n');
+
   const prompt = `You are a professional beverage chef inside the My Perfect Meals system.
 Generate a complete, structured ${beverageCategory} recipe.
 ${protocolBlock ? `\n${protocolBlock}\n` : ''}
 CRITICAL: The output MUST be a DRINK/BEVERAGE. Never generate solid food, meals, eggs, chicken, rice, or any non-drinkable item.
-
+${budgetBlock ? `\n${budgetBlock}\n` : ''}
 TASK: Create a ${beverageCategory} based on this user request: "${description}"${slotContext}
 
 ${CATEGORY_RULES[beverageCategory] ? `DRINK-SPECIFIC RULES:\n${CATEGORY_RULES[beverageCategory]}` : ''}
@@ -2473,7 +2505,7 @@ Return JSON ONLY (no extra text), following this exact schema:
   "description": "",
   "ingredients": [{"name": "", "amount": "", "unit": ""}],
   "instructions": "",
-  "nutrition": {"calories": 0, "protein": 0, "carbs": 0, "fat": 0},
+  "nutrition": {"calories": 0, "protein": 0, "carbs": 0, "fat": 0, "starchyCarbs": 0, "fibrousCarbs": 0},
   "reasoning": ""
 }
 
@@ -2483,6 +2515,7 @@ GENERATION RULES:
 3. Instructions = clear step-by-step blending/mixing/brewing directions.
 4. Nutrition must be realistic for the drink size.
 5. Apply all dietary requirements strictly.
+6. starchyCarbs = grams from starchy ingredients (oats, banana, dates, grains). fibrousCarbs = grams from fibrous ingredients (berries, leafy greens). Must sum to <= total carbs.
 `;
 
   const OpenAI = (await import('openai')).default;
@@ -2506,6 +2539,12 @@ GENERATION RULES:
 
   const nutrition = bev.nutrition || {};
 
+  // Use AI-returned starchyCarbs/fibrousCarbs when present; fall back to
+  // splitting total carbs proportionally (beverages are typically fibrous-dominant).
+  const totalCarbs   = Number(nutrition.carbs)       ?? 0;
+  const starchyCarbs = Number(nutrition.starchyCarbs) || 0;
+  const fibrousCarbs = Number(nutrition.fibrousCarbs) || Math.max(0, totalCarbs - starchyCarbs);
+
   const unifiedMeal: UnifiedMeal = {
     id: `chef-bev-${Date.now()}`,
     name: bev.name || description,
@@ -2514,9 +2553,9 @@ GENERATION RULES:
     instructions: bev.instructions || '',
     calories: Number(nutrition.calories) || 0,
     protein: Number(nutrition.protein) || 0,
-    carbs: Number(nutrition.carbs) ?? 0,
-    starchyCarbs: 0,
-    fibrousCarbs: 0,
+    carbs: totalCarbs,
+    starchyCarbs,
+    fibrousCarbs,
     fat: Number(nutrition.fat) || 0,
     cookingTime: '5 minutes',
     difficulty: 'Easy',
@@ -2556,9 +2595,19 @@ export async function generateFromDescriptionUnified(
     reasoning: string;
     starchyCarbs_g?: number;
     fibrousCarbs_g?: number;
-  }
+  },
+  generationContext?: string
 ): Promise<MealGenerationResponse> {
   const validMealType = normalizeMealType(mealType);
+
+  // ── Starch enforcement — applied BEFORE any pipeline early returns ───────
+  // The server budget resolver (routes.ts) patches starchContext with
+  // forceFiberBased:true / isZeroStarchDay:true when starch slots are exhausted.
+  // We re-apply the constraint here so it survives every early-return branch
+  // (beverage, legacy paths, etc.) and cannot be bypassed at the pipeline level.
+  if (starchContext?.forceFiberBased || starchContext?.isZeroStarchDay) {
+    starchContext = { ...starchContext, forceStarch: false };
+  }
 
   // ── INTENT DETECTION: Is the user asking for a drink? ────────────────────
   // User intent takes absolute priority over slot context.
@@ -2566,7 +2615,15 @@ export async function generateFromDescriptionUnified(
   // No redirect, no popup — completely seamless.
   const beverageIntent = detectBeverageIntent(description);
   if (beverageIntent) {
-    return generateBeverageFromDescription(description, beverageIntent, userId, dietType, mealType);
+    return generateBeverageFromDescription(
+      description,
+      beverageIntent,
+      userId,
+      dietType,
+      mealType,
+      starchContext,  // server-authoritative starch constraints (forceStarch already cleared above)
+      remainingMacros, // server-authoritative macro budget
+    );
   }
 
   // Auto-detect starchy foods in user's description and force starch if found
@@ -2814,6 +2871,19 @@ This meal MUST reflect today's training demands:
 Do NOT generate a generic meal. Composition, portions, and ingredients must align with: ${psc.sessionLabel}.`;
       prompt = prompt + sessionBlock;
       console.log(`🏋️ [PerformanceSession] Injected session context: ${psc.sessionType} (${psc.sessionLabel})`);
+    }
+
+    // TRAINING-DAY GENERATION CONTEXT INJECTION
+    // Appended after performanceSessionContext so both can coexist; generationContext
+    // is a lighter-weight signal used when a full performanceSessionContext isn't available.
+    if (generationContext && !performanceSessionContext) {
+      if (generationContext === 'performance_training_day') {
+        prompt = prompt + `\n\n=== TRAINING DAY MEAL CONTEXT ===\nThis meal is being generated for an active training day. Prioritise complex carbohydrates for glycogen support (oats, sweet potato, rice, whole grains), lean high-quality protein for muscle repair, and moderate healthy fat. Avoid heavy, sluggish, or high-fat meals that would impair performance or recovery.`;
+        console.log(`🏃 [GenerationContext] Injected training-day fuelling guidance`);
+      } else if (generationContext === 'rest_day') {
+        prompt = prompt + `\n\n=== REST DAY MEAL CONTEXT ===\nThis meal is being generated for a rest/recovery day. Reduce starchy carbohydrates relative to training days. Prioritise anti-inflammatory ingredients (omega-3 rich fish, leafy greens, colourful vegetables, turmeric, ginger), high protein for muscle repair, and healthy fats. Keep total carbs moderate.`;
+        console.log(`🧘 [GenerationContext] Injected rest-day recovery guidance`);
+      }
     }
 
     const messages: Array<{ role: 'system' | 'user'; content: string }> = [];
@@ -3722,7 +3792,8 @@ export async function generateMealUnified(
         request.dietPhase,
         request.remainingMacros,
         request.builderMode,
-        request.performanceSessionContext
+        request.performanceSessionContext,
+        request.generationContext,
       );
       break;
 
