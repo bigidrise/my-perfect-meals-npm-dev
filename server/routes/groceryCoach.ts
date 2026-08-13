@@ -288,7 +288,7 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
     });
 
     const raw = completion.choices[0]?.message?.content ?? "{}";
-    const result = await finalizeMealCard({ recommendation, userId: userId! });
+    let result: any;
     try {
       result = JSON.parse(raw);
     } catch {
