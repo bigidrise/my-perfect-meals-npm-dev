@@ -82,6 +82,85 @@ function getCompactText(): string {
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
+describe('DailyStarchIndicator — compact variant gram-guidance hint reactivity', () => {
+  it('shows the gram-guidance hint when gramsPerRemainingStarchMeal is present', () => {
+    const { getByText } = render(
+      <DailyStarchIndicator
+        meals={[FIBER_MEAL]}
+        compact
+        prescription={makePrescription(2, {
+          starchMealsRemaining: 2,
+          gramsPerRemainingStarchMeal: 45,
+        })}
+      />,
+    );
+
+    expect(getByText('~45g ea')).toBeInTheDocument();
+  });
+
+  it('updates the gram-guidance hint when gramsPerRemainingStarchMeal changes', () => {
+    const { rerender, getByText } = render(
+      <DailyStarchIndicator
+        meals={[FIBER_MEAL]}
+        compact
+        prescription={makePrescription(2, {
+          starchMealsRemaining: 2,
+          gramsPerRemainingStarchMeal: 45,
+        })}
+      />,
+    );
+
+    // Initial gram guidance is visible.
+    expect(getByText('~45g ea')).toBeInTheDocument();
+
+    // Prescription refreshes mid-session with a new gram target.
+    rerender(
+      <DailyStarchIndicator
+        meals={[FIBER_MEAL]}
+        compact
+        prescription={makePrescription(2, {
+          starchMealsRemaining: 2,
+          gramsPerRemainingStarchMeal: 60,
+        })}
+      />,
+    );
+
+    // The hint must update to the new value without a page reload.
+    expect(getByText('~60g ea')).toBeInTheDocument();
+  });
+
+  it('hides the gram-guidance hint when starchMealsRemaining drops to 0', () => {
+    const { rerender, getByText, queryByText } = render(
+      <DailyStarchIndicator
+        meals={[FIBER_MEAL]}
+        compact
+        prescription={makePrescription(1, {
+          starchMealsRemaining: 1,
+          gramsPerRemainingStarchMeal: 50,
+        })}
+      />,
+    );
+
+    // Hint is visible while meals remain.
+    expect(getByText('~50g ea')).toBeInTheDocument();
+
+    // A starch meal is logged — remaining drops to 0.
+    rerender(
+      <DailyStarchIndicator
+        meals={[STARCH_MEAL]}
+        compact
+        prescription={makePrescription(1, {
+          starchMealsRemaining: 0,
+          gramsPerRemainingStarchMeal: 50,
+        })}
+      />,
+    );
+
+    // showGramGuidance becomes false → hint must disappear.
+    expect(queryByText(/~\d+g ea/)).toBeNull();
+  });
+});
+
 describe('DailyStarchIndicator — compact variant prescription prop reactivity', () => {
   it('updates the compact label when starchMealsAllowed increases', () => {
     const { rerender } = render(
