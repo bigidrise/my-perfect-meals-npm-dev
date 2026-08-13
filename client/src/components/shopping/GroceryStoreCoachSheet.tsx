@@ -1,5 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -162,14 +161,6 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   const { toast } = useToast();
   const addItems = useShoppingListStore((s) => s.addItems);
   const [, setLocation] = useLocation();
-  const { user } = useAuth();
-
-  // Session key is scoped by userId so one user's meal data is never shown
-  // to a subsequently authenticated user on a shared browser or device.
-  const sessionKey = useMemo(
-    () => (user?.id ? `grocery-coach-session:${user.id}` : null),
-    [user?.id],
-  );
 
   const [phase, setPhase] = useState<Phase>("idle");
   const [servingCount, setServingCount] = useState(1);
@@ -206,73 +197,12 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const loadingInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // ── Session persistence ──────────────────────────────────────────────────────
-  // Sessions are keyed by userId and guarded by a `sessionReady` gate that
-  // prevents in-flight state from the previous user from being written under the
-  // new user's key when identity changes.
-  //
-  // Lifecycle on user switch:
-  //   1. sessionKey changes → sessionReady=false, state cleared
-  //   2. hydration effect reads new user's stored session
-  //   3. sessionReady=true → persistence is unblocked for the new user
-  const [sessionReady, setSessionReady] = useState(false);
-
-  // Hydrate: clears prior state immediately on identity change, then restores.
-  useEffect(() => {
-    // Identity changed — block persistence and wipe stale state before reading
-    // the new user's session. This prevents the old result from being written
-    // to the new user's key by a persistence effect that fires between renders.
-    setSessionReady(false);
-    setResult(null);
-    setConversation([]);
-    setPhase("idle");
-
-    if (!sessionKey) return; // not authenticated — leave cleared
-
-    try {
-      const raw = localStorage.getItem(sessionKey);
-      if (!raw) { setSessionReady(true); return; }
-      const session = JSON.parse(raw) as {
-        result?: CoachResult;
-        conversation?: ConversationMessage[];
-        savedAt?: number;
-      };
-      // Expire after 24 h
-      if (!session.savedAt || Date.now() - session.savedAt > 24 * 60 * 60 * 1000) {
-        localStorage.removeItem(sessionKey);
-        setSessionReady(true);
-        return;
-      }
-      if (session.result) {
-        setResult(session.result);
-        setPhase("result");
-      }
-      if (session.conversation?.length) {
-        setConversation(session.conversation);
-      }
-    } catch { /* ignore parse/storage errors */ }
-
-    setSessionReady(true);
-  }, [sessionKey]); // re-runs whenever the authenticated user changes
-
-  // Persist: only runs after hydration completes to prevent cross-account writes.
-  useEffect(() => {
-    if (!sessionKey || !result || !sessionReady) return;
-    try {
-      localStorage.setItem(sessionKey, JSON.stringify({
-        result,
-        conversation,
-        savedAt: Date.now(),
-      }));
-    } catch {}
-  }, [sessionKey, result, conversation, sessionReady]);
-
   useEffect(() => {
     if (!open) {
-      // Reset transient UI state only.
-      // result / conversation / phase are intentionally preserved so the user
-      // returns to their meal when they reopen the sheet.
+      setPhase("idle");
       setInput("");
+      setResult(null);
+      setConversation([]);
       setAddedToList(false);
       setListExpanded(true);
       setCartExpanded(true);
@@ -410,19 +340,8 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       // Trigger card generation immediately — non-blocking to the recommendation display
       finalizeCard(coachResult);
 
-      // Build the combined ingredient list once — shoppingList (items to buy) +
-      // ownedIngredients (items the model assumed you already have) — so the
-      // Product Advisor can return brand picks for every ingredient that lands
-      // on the full shopping list, not just the ones flagged as "needs buying".
-      const allIngredients: ShoppingListItem[] = [
-        ...(data.shoppingList ?? []),
-        ...(data.ownedIngredients ?? []).map((o: { item: string; quantity: string; unit: string }) => ({
-          ...o,
-          category: "Other" as const,
-        })),
-      ];
-      if (allIngredients.length) {
-        fetchProductAdvice(allIngredients);
+      if (data.shoppingList?.length) {
+        fetchProductAdvice(data.shoppingList);
       }
     } catch (err: any) {
       setPhase("idle");
@@ -435,47 +354,17 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     }
   }, [conversation, servingCount, toast, fetchProductAdvice]);
 
-  const handleNewSession = useCallback(() => {
-    try { if (sessionKey) localStorage.removeItem(sessionKey); } catch {}
-    setPhase("idle");
-    setResult(null);
-    setConversation([]);
-    setInput("");
-    setAddedToList(false);
-    setListExpanded(true);
-    setCartExpanded(true);
-    setCardPhase("idle");
-    setMealCard(null);
-    setProductAdvice(null);
-    setAdvisorLoading(false);
-    setBrandsAdded(false);
-    setSavedProductKeys(new Set());
-    setSavingKey(null);
-    setShowSavedOnly(false);
-    setBrandsAddedCount(0);
-    setSwapTarget(null);
-    setSwapResult(null);
-    setSwapLoading(false);
-    setSwapCustom("");
-    setSwapCustomLoading(false);
-    setSwapSelected(null);
-    setSwapError(null);
-  }, []);
-
   const handleAddToList = useCallback(() => {
     if (!result?.shoppingList?.length) return;
-    // Only add shoppingList items — those are the things the user needs to buy.
-    // ownedIngredients are items the user already has at home and must NOT be
-    // added to the purchase list.
-    const allItems: UniversalIngredient[] = result.shoppingList.map((s) => ({
+    const items: UniversalIngredient[] = result.shoppingList.map((s) => ({
       name: s.item,
       quantity: parseFloat(s.quantity) || 1,
       unit: s.unit || "",
       sourceMeals: [result.meal?.name || "Grocery Coach"],
     }));
-    addItems(allItems);
+    addItems(items);
     setAddedToList(true);
-    toast({ title: "Added to shopping list!", description: `${allItems.length} items added.` });
+    toast({ title: "Added to shopping list!", description: `${items.length} items added.` });
   }, [result, addItems, toast]);
 
   const handleAddBrandsToList = useCallback(() => {
@@ -636,15 +525,6 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
             <div style={{ color: "white", fontWeight: 700, fontSize: 15, lineHeight: 1.2 }}>Grocery Store Coach</div>
             <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12 }}>Decide what to make. Know what to buy.</div>
           </div>
-          {result && (
-            <button
-              onClick={handleNewSession}
-              title="Start a new session"
-              style={{ padding: "5px 10px", borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.45)", fontSize: 11, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}
-            >
-              New
-            </button>
-          )}
           <button
             onClick={() => onOpenChange(false)}
             style={{ padding: 8, borderRadius: 12, background: "rgba(255,255,255,0.05)", border: "none", color: "rgba(255,255,255,0.5)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}

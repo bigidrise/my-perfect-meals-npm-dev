@@ -337,6 +337,33 @@ describe("MealRefinementEngine — replace_ingredient", () => {
         dailyNutritionState: null,
       };
 
+      // Provide a compliant fat_grams so no retry is triggered — isolates
+      // the prompt-content assertion from the retry path.
+      const COMPLIANT_FAT_RESPONSE = JSON.stringify({
+        coachSuggestion: {
+          item: "Grilled Chicken Breast",
+          reason: "Lean protein that fits the meal style and your protocol.",
+          quantity: "6",
+          unit: "oz",
+          fat_grams: 4, // well within 12g ceiling
+        },
+        savedOption: null,
+        alternatives: [
+          { item: "Turkey Breast", reason: "Another lean white-meat option." },
+        ],
+        protocolNote: null,
+      });
+
+      const { default: OpenAI } = await import("openai");
+      const mockInstance = new (OpenAI as any)();
+      mockInstance.chat.completions.create.mockImplementationOnce(
+        async (params: any) => {
+          const sys = params.messages?.find((m: any) => m.role === "system");
+          if (sys?.content) capturedSystemPrompts.push(sys.content);
+          return { choices: [{ message: { content: COMPLIANT_FAT_RESPONSE } }] };
+        },
+      );
+
       const engine = getMealRefinementEngine();
       await engine.refine(BASE_REQUEST);
 
@@ -472,7 +499,357 @@ describe("MealRefinementEngine — replace_ingredient", () => {
     });
   });
 
-  // ── 4. Result shape ───────────────────────────────────────────────────────
+  // ── 4. GLP-1 fat ceiling validation ──────────────────────────────────────
+  describe("GLP-1 fat ceiling validation", () => {
+    const HIGH_FAT_RESPONSE = JSON.stringify({
+      coachSuggestion: {
+        item: "Peanut Butter",
+        reason: "Good protein source",
+        quantity: "2",
+        unit: "tbsp",
+        fat_grams: 16, // exceeds ceiling of 12g
+      },
+      savedOption: null,
+      alternatives: [],
+      protocolNote: null,
+    });
+
+    const LOW_FAT_RESPONSE = JSON.stringify({
+      coachSuggestion: {
+        item: "Greek Yogurt",
+        reason: "Low-fat protein source",
+        quantity: "6",
+        unit: "oz",
+        fat_grams: 5, // within ceiling
+      },
+      savedOption: null,
+      alternatives: [],
+      protocolNote: null,
+    });
+
+    const STILL_HIGH_FAT_RESPONSE = JSON.stringify({
+      coachSuggestion: {
+        item: "Avocado",
+        reason: "Healthy fats",
+        quantity: "1/2",
+        unit: "medium",
+        fat_grams: 15, // still exceeds 12g ceiling
+      },
+      savedOption: null,
+      alternatives: [],
+      protocolNote: null,
+    });
+
+    beforeEach(() => {
+      // Activate GLP-1 with a fat ceiling of 12g per meal
+      mockGlp1Context = {
+        isActive: true,
+        activationSources: ["medicalConditions"],
+        performanceActive: false,
+        compositionNote: "",
+        resolvedTargets: {
+          treatmentPhase: "maintenance",
+          resolvedMealCalories: 420,
+          targetProteinGrams: 28,
+          maximumToleratedFatGrams: 12,
+        },
+        dailyNutritionState: null,
+      };
+    });
+
+    test("when LLM suggestion exceeds fat ceiling, retry is triggered with a corrective prompt", async () => {
+      const { default: OpenAI } = await import("openai");
+      const mockInstance = new (OpenAI as any)();
+
+      // First call — high-fat suggestion
+      mockInstance.chat.completions.create.mockImplementationOnce(
+        async (params: any) => {
+          const sys = params.messages?.find((m: any) => m.role === "system");
+          if (sys?.content) capturedSystemPrompts.push(sys.content);
+          return { choices: [{ message: { content: HIGH_FAT_RESPONSE } }] };
+        },
+      );
+      // Retry call — compliant low-fat suggestion
+      mockInstance.chat.completions.create.mockImplementationOnce(
+        async (params: any) => {
+          const sys = params.messages?.find((m: any) => m.role === "system");
+          if (sys?.content) capturedSystemPrompts.push(sys.content);
+          return { choices: [{ message: { content: LOW_FAT_RESPONSE } }] };
+        },
+      );
+
+      const engine = getMealRefinementEngine();
+      const result = await engine.refine(BASE_REQUEST);
+
+      // Two LLM calls should have been made
+      expect(capturedSystemPrompts).toHaveLength(2);
+      // Retry prompt must contain the fat-ceiling correction notice
+      expect(capturedSystemPrompts[1]).toContain("CRITICAL CORRECTION");
+      expect(capturedSystemPrompts[1]).toContain("12");
+      // Result must come from the compliant retry suggestion
+      expect(result.coachSuggestion.item).toBe("Greek Yogurt");
+      // No fat-ceiling warning since retry succeeded
+      expect(result.protocolNote).toBeNull();
+    });
+
+    test("when retry also exceeds the fat ceiling, a clear protocolNote warning is appended", async () => {
+      const { default: OpenAI } = await import("openai");
+      const mockInstance = new (OpenAI as any)();
+
+      // First call — high-fat
+      mockInstance.chat.completions.create.mockImplementationOnce(
+        async (params: any) => {
+          const sys = params.messages?.find((m: any) => m.role === "system");
+          if (sys?.content) capturedSystemPrompts.push(sys.content);
+          return { choices: [{ message: { content: HIGH_FAT_RESPONSE } }] };
+        },
+      );
+      // Retry — still high-fat
+      mockInstance.chat.completions.create.mockImplementationOnce(
+        async (params: any) => {
+          const sys = params.messages?.find((m: any) => m.role === "system");
+          if (sys?.content) capturedSystemPrompts.push(sys.content);
+          return {
+            choices: [{ message: { content: STILL_HIGH_FAT_RESPONSE } }],
+          };
+        },
+      );
+
+      const engine = getMealRefinementEngine();
+      const result = await engine.refine(BASE_REQUEST);
+
+      expect(capturedSystemPrompts).toHaveLength(2);
+      expect(result.protocolNote).not.toBeNull();
+      expect(result.protocolNote).toContain("GLP-1 fat ceiling");
+      expect(result.protocolNote).toContain("12");
+    });
+
+    test("when fat_grams is absent, it is treated as unverified and retry is triggered", async () => {
+      // Default SWAP_AI_RESPONSE has no fat_grams — treated as unverified, not compliant.
+      // Both the initial call and the retry use the default mock (both return no fat_grams).
+      const engine = getMealRefinementEngine();
+      const result = await engine.refine(BASE_REQUEST);
+
+      // Two LLM calls should have been made (initial + retry)
+      expect(capturedSystemPrompts).toHaveLength(2);
+      // Retry prompt must contain the requirement notice (not a correction)
+      expect(capturedSystemPrompts[1]).toContain("CRITICAL REQUIREMENT");
+      expect(capturedSystemPrompts[1]).toContain("12");
+      // After retry also returns no fat_grams, a cannot-verify warning is appended
+      expect(result.protocolNote).not.toBeNull();
+      expect(result.protocolNote).toContain("unable to verify the fat content");
+    });
+
+    test("when fat_grams is absent and retry provides a compliant value, no warning is added", async () => {
+      const { default: OpenAI } = await import("openai");
+      const mockInstance = new (OpenAI as any)();
+
+      // First call — no fat_grams (unverified)
+      mockInstance.chat.completions.create.mockImplementationOnce(
+        async (params: any) => {
+          const sys = params.messages?.find((m: any) => m.role === "system");
+          if (sys?.content) capturedSystemPrompts.push(sys.content);
+          return { choices: [{ message: { content: SWAP_AI_RESPONSE } }] };
+        },
+      );
+      // Retry call — compliant fat_grams provided
+      mockInstance.chat.completions.create.mockImplementationOnce(
+        async (params: any) => {
+          const sys = params.messages?.find((m: any) => m.role === "system");
+          if (sys?.content) capturedSystemPrompts.push(sys.content);
+          return { choices: [{ message: { content: LOW_FAT_RESPONSE } }] };
+        },
+      );
+
+      const engine = getMealRefinementEngine();
+      const result = await engine.refine(BASE_REQUEST);
+
+      expect(capturedSystemPrompts).toHaveLength(2);
+      expect(result.coachSuggestion.item).toBe("Greek Yogurt");
+      expect(result.protocolNote).toBeNull();
+    });
+
+    test("when fat_grams is negative, it is treated as unverified and retry is triggered", async () => {
+      const NEGATIVE_FAT_RESPONSE = JSON.stringify({
+        coachSuggestion: {
+          item: "Steamed Edamame",
+          reason: "Plant-based protein",
+          quantity: "1",
+          unit: "cup",
+          fat_grams: -3, // negative — invalid, must be treated as unverified
+        },
+        savedOption: null,
+        alternatives: [],
+        protocolNote: null,
+      });
+
+      const { default: OpenAI } = await import("openai");
+      const mockInstance = new (OpenAI as any)();
+
+      // Initial call — negative fat_grams (unverified)
+      mockInstance.chat.completions.create.mockImplementationOnce(
+        async (params: any) => {
+          const sys = params.messages?.find((m: any) => m.role === "system");
+          if (sys?.content) capturedSystemPrompts.push(sys.content);
+          return { choices: [{ message: { content: NEGATIVE_FAT_RESPONSE } }] };
+        },
+      );
+      // Retry — also negative (worst case)
+      mockInstance.chat.completions.create.mockImplementationOnce(
+        async (params: any) => {
+          const sys = params.messages?.find((m: any) => m.role === "system");
+          if (sys?.content) capturedSystemPrompts.push(sys.content);
+          return { choices: [{ message: { content: NEGATIVE_FAT_RESPONSE } }] };
+        },
+      );
+
+      const engine = getMealRefinementEngine();
+      const result = await engine.refine(BASE_REQUEST);
+
+      // Retry should have been triggered (negative is unverified)
+      expect(capturedSystemPrompts).toHaveLength(2);
+      // Cannot-verify warning should be present
+      expect(result.protocolNote).toContain("unable to verify the fat content");
+    });
+
+    test("when fat_grams is negative and retry provides a compliant value, no warning is added", async () => {
+      const NEGATIVE_FAT_RESPONSE = JSON.stringify({
+        coachSuggestion: {
+          item: "Steamed Edamame",
+          reason: "Plant-based protein",
+          quantity: "1",
+          unit: "cup",
+          fat_grams: -3,
+        },
+        savedOption: null,
+        alternatives: [],
+        protocolNote: null,
+      });
+
+      const { default: OpenAI } = await import("openai");
+      const mockInstance = new (OpenAI as any)();
+
+      mockInstance.chat.completions.create.mockImplementationOnce(
+        async (params: any) => {
+          const sys = params.messages?.find((m: any) => m.role === "system");
+          if (sys?.content) capturedSystemPrompts.push(sys.content);
+          return { choices: [{ message: { content: NEGATIVE_FAT_RESPONSE } }] };
+        },
+      );
+      // Retry — compliant fat_grams
+      mockInstance.chat.completions.create.mockImplementationOnce(
+        async (params: any) => {
+          const sys = params.messages?.find((m: any) => m.role === "system");
+          if (sys?.content) capturedSystemPrompts.push(sys.content);
+          return { choices: [{ message: { content: LOW_FAT_RESPONSE } }] };
+        },
+      );
+
+      const engine = getMealRefinementEngine();
+      const result = await engine.refine(BASE_REQUEST);
+
+      expect(capturedSystemPrompts).toHaveLength(2);
+      expect(result.coachSuggestion.item).toBe("Greek Yogurt");
+      expect(result.protocolNote).toBeNull();
+    });
+
+    test("when fat_grams is null (not just absent), it is also treated as unverified", async () => {
+      const NULL_FAT_RESPONSE = JSON.stringify({
+        coachSuggestion: {
+          item: "Cottage Cheese",
+          reason: "High protein, low fat",
+          quantity: "1",
+          unit: "cup",
+          fat_grams: null, // explicitly null — must not be treated as compliant
+        },
+        savedOption: null,
+        alternatives: [],
+        protocolNote: null,
+      });
+
+      const { default: OpenAI } = await import("openai");
+      const mockInstance = new (OpenAI as any)();
+
+      // Initial call — null fat_grams
+      mockInstance.chat.completions.create.mockImplementationOnce(
+        async (params: any) => {
+          const sys = params.messages?.find((m: any) => m.role === "system");
+          if (sys?.content) capturedSystemPrompts.push(sys.content);
+          return { choices: [{ message: { content: NULL_FAT_RESPONSE } }] };
+        },
+      );
+      // Retry — also null fat_grams (worst case)
+      mockInstance.chat.completions.create.mockImplementationOnce(
+        async (params: any) => {
+          const sys = params.messages?.find((m: any) => m.role === "system");
+          if (sys?.content) capturedSystemPrompts.push(sys.content);
+          return { choices: [{ message: { content: NULL_FAT_RESPONSE } }] };
+        },
+      );
+
+      const engine = getMealRefinementEngine();
+      const result = await engine.refine(BASE_REQUEST);
+
+      // Retry should have been triggered
+      expect(capturedSystemPrompts).toHaveLength(2);
+      // Cannot-verify warning should be present
+      expect(result.protocolNote).toContain("unable to verify the fat content");
+    });
+
+    test("when GLP-1 is not active, fat ceiling is not enforced even when fat_grams is high", async () => {
+      mockGlp1Context = { isActive: false, resolvedTargets: null };
+
+      const { default: OpenAI } = await import("openai");
+      const mockInstance = new (OpenAI as any)();
+      mockInstance.chat.completions.create.mockImplementationOnce(
+        async (params: any) => {
+          const sys = params.messages?.find((m: any) => m.role === "system");
+          if (sys?.content) capturedSystemPrompts.push(sys.content);
+          return { choices: [{ message: { content: HIGH_FAT_RESPONSE } }] };
+        },
+      );
+
+      const engine = getMealRefinementEngine();
+      const result = await engine.refine(BASE_REQUEST);
+
+      // Only one LLM call — no retry without GLP-1
+      expect(capturedSystemPrompts).toHaveLength(1);
+      expect(result.protocolNote).toBeNull();
+    });
+
+    test("when fat_grams is exactly at the ceiling, no retry is triggered", async () => {
+      const AT_CEILING_RESPONSE = JSON.stringify({
+        coachSuggestion: {
+          item: "Almond Milk",
+          reason: "Dairy-free option",
+          quantity: "1",
+          unit: "cup",
+          fat_grams: 12, // exactly at ceiling — should not trigger retry
+        },
+        savedOption: null,
+        alternatives: [],
+        protocolNote: null,
+      });
+
+      const { default: OpenAI } = await import("openai");
+      const mockInstance = new (OpenAI as any)();
+      mockInstance.chat.completions.create.mockImplementationOnce(
+        async (params: any) => {
+          const sys = params.messages?.find((m: any) => m.role === "system");
+          if (sys?.content) capturedSystemPrompts.push(sys.content);
+          return { choices: [{ message: { content: AT_CEILING_RESPONSE } }] };
+        },
+      );
+
+      const engine = getMealRefinementEngine();
+      const result = await engine.refine(BASE_REQUEST);
+
+      expect(capturedSystemPrompts).toHaveLength(1);
+      expect(result.protocolNote).toBeNull();
+    });
+  });
+
+  // ── 5. Result shape ───────────────────────────────────────────────────────
   describe("result contract", () => {
     test("result always contains coachSuggestion, savedOption, alternatives, and protocolNote", async () => {
       const engine = getMealRefinementEngine();
