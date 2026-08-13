@@ -43,6 +43,11 @@ interface CoachResult {
   shoppingList: ShoppingListItem[];
   followUpSuggestions: string[];
   servingCount: number;
+  /** Present when both generation attempts failed the post-gen protocol scan.
+   * Coach-voice warning the user should read before acting on this recommendation. */
+  protocolWarning?: string;
+  /** Human-readable violation summary from the protocol scan — shown inside the warning banner. */
+  ndeSummary?: string;
 }
 
 type CardPhase = "idle" | "generating" | "ready" | "failed";
@@ -756,6 +761,32 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                         </motion.div>
                       )}
                     </AnimatePresence>
+                  </div>
+                )}
+
+                {/* ── Protocol warning banner — shown when both scan attempts failed ── */}
+                {result.protocolWarning && (
+                  <div style={{
+                    borderRadius: 12,
+                    background: "rgba(234,179,8,0.1)",
+                    border: "1px solid rgba(234,179,8,0.4)",
+                    padding: 16,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 8,
+                  }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                      <AlertTriangle style={{ width: 18, height: 18, color: "#facc15", flexShrink: 0, marginTop: 1 }} />
+                      <span style={{ color: "#fef08a", fontWeight: 700, fontSize: 14 }}>Health Protocol Notice</span>
+                    </div>
+                    <p style={{ color: "rgba(254,240,138,0.85)", fontSize: 13, lineHeight: 1.5, margin: 0 }}>
+                      {result.protocolWarning}
+                    </p>
+                    {result.ndeSummary && (
+                      <p style={{ color: "rgba(254,240,138,0.55)", fontSize: 12, lineHeight: 1.4, margin: 0, fontStyle: "italic" }}>
+                        {result.ndeSummary}
+                      </p>
+                    )}
                   </div>
                 )}
 
