@@ -49,8 +49,8 @@ router.post("/recommend", async (req, res) => {
       groceryEnvelope = await loadUserProtocolEnvelope(userId).catch(() => null) ?? buildGuestEnvelope();
       protocolContext = enforceBeforeGenerate(groceryEnvelope, { generatorName: "grocery_coach" }).combined;
 
-      // Load GLP-1 canonical context — covers all five activation sources
-      // (selectedMealBuilder, medicalConditions, specialtyConditions, preferredBuilder, glp1_profile)
+      // Load GLP-1 canonical context — covers all activation sources
+      // (selectedMealBuilder, medicalConditions, specialtyConditions, glp1_profile, and others)
       const todayISO = new Date().toISOString().slice(0, 10);
       const glp1Ctx = await resolveGLP1GlobalContext(userId, todayISO).catch(() => null);
       if (glp1Ctx) glp1RecommendationBlock = buildGLP1RecommendationBlock(glp1Ctx);
@@ -151,30 +151,172 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
       return res.status(500).json({ error: "Could not parse coach response. Try again." });
     }
 
+    // ── Full schema validation ────────────────────────────────────────────────
+    // Validates the complete CoachResult contract so neither the initial
+    // response nor a retry is ever returned with missing or wrong-typed fields.
+    // Returns a human-readable reason string, or null when the payload is valid.
+    function invalidReason(r: any): string | null {
+      if (r == null || typeof r !== "object") return "response is not an object";
+      // meal
+      if (!r.meal || typeof r.meal !== "object")          return "missing meal object";
+      if (typeof r.meal.name !== "string" || !r.meal.name.trim()) return "missing meal.name";
+      if (typeof r.meal.description !== "string")         return "missing meal.description";
+      if (typeof r.meal.prepTime !== "string")            return "missing meal.prepTime";
+      if (typeof r.meal.servings !== "number")            return "missing meal.servings";
+      // reasoning
+      if (!Array.isArray(r.reasoning) || r.reasoning.length === 0) return "missing reasoning array";
+      if (!r.reasoning.every((x: any) => typeof x === "string"))   return "reasoning contains non-string";
+      // macros
+      if (!r.macros || typeof r.macros !== "object")      return "missing macros object";
+      for (const f of ["calories", "protein", "carbs", "fat"] as const) {
+        if (typeof r.macros[f] !== "number")              return `missing macros.${f}`;
+      }
+      // shoppingList
+      if (!Array.isArray(r.shoppingList) || r.shoppingList.length === 0) return "missing shoppingList array";
+      for (let idx = 0; idx < r.shoppingList.length; idx++) {
+        const s = r.shoppingList[idx];
+        if (!s || typeof s !== "object")                  return `shoppingList[${idx}] not an object`;
+        if (typeof s.item !== "string" || !s.item.trim()) return `shoppingList[${idx}] missing item`;
+        if (typeof s.quantity !== "string")               return `shoppingList[${idx}] missing quantity`;
+        if (typeof s.unit !== "string")                   return `shoppingList[${idx}] missing unit`;
+        if (typeof s.category !== "string")               return `shoppingList[${idx}] missing category`;
+      }
+      // ownedIngredients (may be empty but must be a valid array)
+      if (!Array.isArray(r.ownedIngredients))             return "missing ownedIngredients array";
+      for (let idx = 0; idx < r.ownedIngredients.length; idx++) {
+        const o = r.ownedIngredients[idx];
+        if (!o || typeof o !== "object")                  return `ownedIngredients[${idx}] not an object`;
+        if (typeof o.item !== "string" || !o.item.trim()) return `ownedIngredients[${idx}] missing item`;
+        if (typeof o.quantity !== "string")               return `ownedIngredients[${idx}] missing quantity`;
+        if (typeof o.unit !== "string")                   return `ownedIngredients[${idx}] missing unit`;
+      }
+      // followUpSuggestions (may be empty but must be an array)
+      if (!Array.isArray(r.followUpSuggestions))          return "missing followUpSuggestions array";
+      return null;
+    }
+
+    // Validate the initial response before using it.
+    const initialInvalid = invalidReason(result);
+    if (initialInvalid) {
+      console.error(`[GroceryCoach] Initial response failed schema validation: ${initialInvalid}`);
+      return res.status(500).json({ error: "Could not parse coach response. Try again." });
+    }
+
     // ── Post-generation protocol scan ─────────────────────────────────────────
     // Grocery Coach generates a meal suggestion; run the same post-gen scan
     // that every other builder uses so GLP-1, diabetic, and allergy rules are
     // enforced on the output — not just the prompt.
-    let ndeSummary: string | undefined;
+    //
+    // When a hard violation is detected (skipAdaptableConflicts=true means only
+    // hard conflicts reach here), we retry generation with an explicit exclusion
+    // appended to the system prompt — same pattern used in dessert-creator.ts.
+    // If the retry also fails, we return the ORIGINAL (validated) result with
+    // ndeSummary + a coach-voice warning sentence so the user is informed.
     try {
-      const mealForScan = {
-        name: result.meal?.name ?? "Grocery Coach Recommendation",
-        description: result.meal?.description,
-        ingredients: (result.shoppingList ?? []).map((i: any) => ({ name: i.item ?? "" })),
-      };
-      const scan = scanGeneratedOutput(mealForScan, groceryEnvelope, {
+      // Combine shoppingList + ownedIngredients so the scan covers ALL
+      // ingredients that will appear in the finalized meal — a forbidden or
+      // allergenic ingredient the user already "owns" must still be caught.
+      const buildMealForScan = (r: any) => ({
+        name: r.meal?.name ?? "Grocery Coach Recommendation",
+        description: r.meal?.description,
+        ingredients: [
+          ...(r.shoppingList ?? []).map((i: any) => ({ name: i.item ?? "" })),
+          ...(r.ownedIngredients ?? []).map((i: any) => ({ name: i.item ?? "" })),
+        ],
+      });
+
+      const scan = scanGeneratedOutput(buildMealForScan(result), groceryEnvelope, {
         generatorName: "grocery_coach",
         skipAdaptableConflicts: true,
       });
+
       if (!scan.passed) {
-        ndeSummary = scan.violations.map((v: any) => v.message || v.reason || String(v)).join("; ");
-        console.warn(`⚠️ [GroceryCoach] Post-gen scan flagged: ${ndeSummary}`);
+        // ── Hard violation detected — retry with explicit exclusion ────────────
+        const violatingTerms = scan.violations.map((v: any) => v.term).filter(Boolean);
+        const exclusionClause = violatingTerms.length > 0
+          ? `"${violatingTerms.join('", "')}" (${scan.primaryViolation?.reason ?? "conflicts with active dietary protocol"})`
+          : "the previously suggested ingredients (they conflict with the active dietary protocol)";
+
+        const retryInstruction =
+          `\n\nCRITICAL CORRECTION — RETRY REQUIRED: The previous recommendation included ${exclusionClause}. ` +
+          `You MUST NOT include ${violatingTerms.length > 0 ? violatingTerms.join(", ") + " or any derivative of these ingredients" : "those ingredients"} ` +
+          `in any part of the meal — not as a main ingredient, a side dish, a sauce, a garnish, or a seasoning. ` +
+          `Recommend a fully compliant alternative meal that meets all of the user's active health protocols.`;
+
+        console.warn(
+          `⚠️ [GroceryCoach] Hard protocol violation — retrying. Excluded terms: ${violatingTerms.join(", ") || "(see scan message)"}`
+        );
+
+        let retryPassed = false;
+        let retryScanViolations: string | undefined;
+
+        try {
+          const retryCompletion = await getOpenAI().chat.completions.create({
+            model: "gpt-4o-mini",
+            messages: [
+              { role: "system", content: systemPrompt + retryInstruction },
+              ...priorMessages,
+              { role: "user", content: message },
+            ],
+            response_format: { type: "json_object" },
+            temperature: 0.75,
+            max_tokens: 1400,
+          });
+
+          const retryRaw = retryCompletion.choices[0]?.message?.content ?? "{}";
+          const retryResult = JSON.parse(retryRaw);
+
+          // Full schema validation — a schema-invalid retry is treated as a
+          // retry failure so the client always receives a complete CoachResult.
+          const retryInvalid = invalidReason(retryResult);
+          if (retryInvalid) {
+            console.warn(`⚠️ [GroceryCoach] Retry failed schema validation (${retryInvalid}) — using original with warning.`);
+          } else {
+            const retryScan = scanGeneratedOutput(buildMealForScan(retryResult), groceryEnvelope, {
+              generatorName: "grocery_coach_retry",
+              skipAdaptableConflicts: true,
+            });
+
+            if (retryScan.passed) {
+              retryPassed = true;
+              console.log(`✅ [GroceryCoach] Retry passed protocol scan.`);
+              return res.json({ ...retryResult, servingCount: finalServingCount });
+            }
+            // Capture retry scan violations for a more accurate ndeSummary.
+            retryScanViolations = retryScan.violations
+              .map((v: any) => v.reason || v.message || String(v))
+              .filter(Boolean)
+              .join("; ") || undefined;
+            console.warn(`⚠️ [GroceryCoach] Retry also failed scan: ${retryScan.message}`);
+          }
+        } catch (retryErr: any) {
+          console.warn(`⚠️ [GroceryCoach] Retry attempt threw: ${retryErr?.message}`);
+        }
+
+        // ── Both attempts failed — return the validated original with warning ──
+        // `result` is always shape-valid here (validated above before this block).
+        // ndeSummary prefers the retry scan's violations; falls back to the
+        // original scan when the retry threw, was schema-invalid, or had no terms.
+        if (!retryPassed) {
+          const ndeSummary =
+            retryScanViolations ??
+            scan.violations.map((v: any) => v.reason || v.message || String(v)).join("; ");
+          const protocolWarning =
+            "I want to flag that this recommendation may not fully align with your active health protocol. " +
+            "Please review the ingredients carefully with your care team before purchasing.";
+          return res.json({
+            ...result,
+            servingCount: finalServingCount,
+            ndeSummary,
+            protocolWarning,
+          });
+        }
       }
     } catch {
       // Non-fatal — scan failure must not block the response
     }
 
-    return res.json({ ...result, servingCount: finalServingCount, ...(ndeSummary ? { ndeSummary } : {}) });
+    return res.json({ ...result, servingCount: finalServingCount });
   } catch (err: any) {
     console.error("[GroceryCoach] Error:", err?.message);
     return res.status(500).json({ error: "Your coach is unavailable right now. Please try again." });
