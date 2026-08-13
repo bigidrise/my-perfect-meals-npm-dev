@@ -269,7 +269,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
         }),
       });
       if (!res.ok) throw new Error();
-      setSavedProductKeys((prev) => new Set([...prev, productKey]));
+      setSavedProductKeys((prev) => new Set(Array.from(prev).concat(productKey)));
     } catch {
       // Silently fail — user can tap again
     } finally {

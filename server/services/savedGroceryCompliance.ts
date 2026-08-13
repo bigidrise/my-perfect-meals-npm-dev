@@ -19,7 +19,14 @@ export interface SavedGroceryItemSlim {
   brand: string | null;
   category: string | null;
   productKey: string;
-  nutritionJson: Record<string, number> | null;
+  /**
+   * Flat macro object when saved from Grocery Coach: { calories, protein, carbs, fat }.
+   * Scanner-saved items store { scoreCards, outcomeCards } here — fat/carbs are absent.
+   * The filter treats any non-finite value as absent and fails closed for clinical users.
+   */
+  nutritionJson: Record<string, unknown> | null;
+  /** Extracted ingredient list — persisted in productMeta.ingredients by the scanner. */
+  ingredients?: string[] | null;
   savedAt: Date | string;
 }
 
@@ -36,6 +43,12 @@ function productMatchesTerm(item: SavedGroceryItemSlim, term: string): boolean {
   const t = normalize(term);
   if (normalize(item.productName).includes(t)) return true;
   if (item.brand && normalize(item.brand).includes(t)) return true;
+  // Also check persisted ingredient list (populated by scanner via productMeta.ingredients).
+  if (item.ingredients) {
+    for (const ing of item.ingredients) {
+      if (ing && normalize(ing).includes(t)) return true;
+    }
+  }
   return false;
 }
 
@@ -73,20 +86,33 @@ export function filterSavedGroceriesForCompliance(
       }
     }
 
-    // ── Tier 3: GLP-1 fat ceiling (requires nutrition data at save time) ──
-    if (!exclusionReason && glp1Targets && item.nutritionJson) {
-      const fat = Number(item.nutritionJson.fat);
-      if (Number.isFinite(fat) && fat > glp1Targets.maximumToleratedFatGrams) {
+    // ── Tier 3: GLP-1 fat ceiling ─────────────────────────────────────────────
+    // Fail closed on three conditions:
+    //   a) nutritionJson is null
+    //   b) nutritionJson is present but fat is absent or non-numeric
+    //      (scanner items store { scoreCards, outcomeCards } — fat is undefined → NaN)
+    //   c) fat is finite and exceeds the ceiling
+    // In cases (a) and (b) we cannot verify compliance, so the item is excluded.
+    if (!exclusionReason && glp1Targets) {
+      const fat = item.nutritionJson ? Number(item.nutritionJson.fat) : NaN;
+      if (!Number.isFinite(fat)) {
+        exclusionReason =
+          "Nutrition data unavailable — cannot verify fat content against your GLP-1 limit";
+      } else if (fat > glp1Targets.maximumToleratedFatGrams) {
         exclusionReason =
           `Fat content (${fat}g) exceeds your current GLP-1 limit ` +
           `(${glp1Targets.maximumToleratedFatGrams}g per meal)`;
       }
     }
 
-    // ── Tier 4: Diabetic carb ceiling (requires nutrition data at save time) ──
-    if (!exclusionReason && isDiabetic && typeof diabeticCarbCeiling === "number" && item.nutritionJson) {
-      const carbs = Number(item.nutritionJson.carbs);
-      if (Number.isFinite(carbs) && carbs > diabeticCarbCeiling) {
+    // ── Tier 4: Diabetic carb ceiling ─────────────────────────────────────────
+    // Same fail-closed rule: treat absent/non-finite carbs as unverifiable.
+    if (!exclusionReason && isDiabetic && typeof diabeticCarbCeiling === "number") {
+      const carbs = item.nutritionJson ? Number(item.nutritionJson.carbs) : NaN;
+      if (!Number.isFinite(carbs)) {
+        exclusionReason =
+          "Nutrition data unavailable — cannot verify carb content against your diabetic limit";
+      } else if (carbs > diabeticCarbCeiling) {
         exclusionReason =
           `Carb content (${carbs}g) exceeds your current diabetic limit ` +
           `(${diabeticCarbCeiling}g per meal)`;

@@ -16,27 +16,14 @@ import express from "express";
 import { db } from "../db";
 import { userSavedGroceryItems, shoppingListItems } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
+import { computeProductKey } from "../utils/productKey";
+
+export { computeProductKey };
 
 const router = express.Router();
 
 function resolveUserId(req: any): string | undefined {
   return req.authUser?.id || (req.session as any)?.userId || req.user?.id;
-}
-
-/**
- * Compute a stable deduplication key for a grocery product.
- * - Barcode/UPC is the strongest identity — two scans of the same product always collide.
- * - Without barcode, fall back to normalized brand + product name.
- */
-export function computeProductKey(
-  barcode: string | undefined | null,
-  brand: string | undefined | null,
-  productName: string,
-): string {
-  if (barcode?.trim()) return `upc::${barcode.trim()}`;
-  const b = (brand ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
-  const n = productName.toLowerCase().replace(/[^a-z0-9]/g, "");
-  return `name::${b}::${n}`;
 }
 
 // ── GET / — list all saved items ─────────────────────────────────────────────

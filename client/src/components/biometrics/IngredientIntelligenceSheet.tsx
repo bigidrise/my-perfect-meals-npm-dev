@@ -587,6 +587,12 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
             alignmentGrade: activeResult.alignmentGrade,
             verdictLevel: activeResult.verdictLevel,
             analysisMethod: activeResult.analysisMethod,
+            // Persist extracted ingredients so the server-side compliance filter
+            // can perform allergen/avoidance matching against actual ingredients,
+            // not just product name and brand.
+            ingredients: activeResult.extractedIngredients?.length
+              ? activeResult.extractedIngredients
+              : undefined,
           },
         }),
         headers: { 'Content-Type': 'application/json' },
