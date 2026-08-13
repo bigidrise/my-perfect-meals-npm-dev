@@ -203,7 +203,10 @@ beforeEach(() => {
   mockDb.deletedFromTables  = [];
   mockDb.txExecuted         = false;
   mockDb.updateCalled       = false;
-  jest.resetModules();
+  // Do NOT call jest.resetModules() here — it re-runs module initialisation on
+  // every dynamic import(), which accumulates open handles and causes timeouts
+  // when the full suite runs. The mock state is already reset above; the cached
+  // module instances read mockDb by reference so the reset takes effect.
 });
 
 // ── Suite A: Generic delete — authentication gate ─────────────────────────────

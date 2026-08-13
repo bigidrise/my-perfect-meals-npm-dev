@@ -322,9 +322,13 @@ export async function resolveDailyNutritionPrescription(
 
   // ── Persist resolved prescription (fire-and-forget) ───────────────────────
   // Map internal source names to the DB's source vocabulary.
-  // "clinical" = GLP-1 overlay on the user's own baseline (no procare).
+  // Each distinct source must be stored distinctly so mid-day-change detection
+  // in nutritionStateService can compare stored vs. current without false positives.
   const dbSource =
-    source === "performance" ? "performance_overlay" : "macro_calculator";
+    source === "performance"          ? "performance_overlay" :
+    source === "clinical"             ? "clinical"            :
+    source === "professional_override"? "procare"             :
+    "macro_calculator";
   const rationaleSig = rationaleCodes.join(",");
 
   // Snapshot the user's meal-plan preferences at resolve time so every builder

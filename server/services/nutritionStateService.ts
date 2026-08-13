@@ -251,6 +251,7 @@ function storedSourceToResolverSource(stored: string | null): PrescriptionSource
   switch (stored) {
     case "procare":             return "professional_override";
     case "performance_overlay": return "performance";
+    case "clinical":            return "clinical";
     default:                    return "user_default"; // macro_calculator / unknown
   }
 }
