@@ -13,12 +13,14 @@
 
 import { db } from "../db";
 import { users } from "../../shared/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, and } from "drizzle-orm";
 import { resolveDailyNutritionPrescription } from "./prescriptionResolver";
 import { getUserTimezone } from "./nutritionDayService";
+import { dailyNutritionPrescriptions } from "../db/schema/dailyNutritionPrescriptions";
 import type {
   DailyNutritionState,
   GenerationContext,
+  PrescriptionSource,
 } from "../../shared/dailyNutritionPrescription";
 
 /**
@@ -31,10 +33,20 @@ export async function resolveDailyNutritionState(
   userId: string,
   dateISO: string,
 ): Promise<DailyNutritionState> {
-  const [prescription, userRows, tz] = await Promise.all([
+  const [prescription, userRows, tz, storedPrescriptionRows] = await Promise.all([
     resolveDailyNutritionPrescription({ userId, dateISO }),
     db.select().from(users).where(eq(users.id, userId)).limit(1),
     getUserTimezone(userId),
+    db
+      .select({ source: dailyNutritionPrescriptions.source })
+      .from(dailyNutritionPrescriptions)
+      .where(
+        and(
+          eq(dailyNutritionPrescriptions.userId, userId),
+          eq(dailyNutritionPrescriptions.date, dateISO),
+        ),
+      )
+      .limit(1),
   ]);
 
   const user = userRows[0];
@@ -156,6 +168,24 @@ export async function resolveDailyNutritionState(
     performanceActive ? "performance_training_day" :
     "standard";
 
+  // ── Mid-day prescription change detection ─────────────────────────────────
+  // Compare the stored prescription source (written when the day was first
+  // resolved) with the source the resolver just computed. If they differ and
+  // at least one meal has already been logged, the prescription changed mid-day.
+  let prescriptionChangedMidDay: boolean | undefined;
+  let prescriptionChangeReason: string | undefined;
+
+  const storedRow = storedPrescriptionRows[0];
+  if (storedRow && consumed.mealCount > 0) {
+    const storedSource = storedSourceToResolverSource(storedRow.source);
+    const currentSource = prescription.source;
+
+    if (storedSource !== currentSource) {
+      prescriptionChangedMidDay = true;
+      prescriptionChangeReason = changeReasonLabel(storedSource, currentSource);
+    }
+  }
+
   return {
     date:       dateISO,
     resolvedAt: new Date().toISOString(),
@@ -175,6 +205,10 @@ export async function resolveDailyNutritionState(
       proteinBudgetMet:
         consumed.protein + planned.protein >= prescription.proteinTarget,
     },
+    ...(prescriptionChangedMidDay && {
+      prescriptionChangedMidDay,
+      prescriptionChangeReason,
+    }),
   };
 }
 
@@ -197,4 +231,30 @@ export function deriveGenerationContext(
     return "performance_training_day";
   }
   return constraints.generationContext;
+}
+
+/**
+ * Map the DailyNutritionPrescriptions table source string to the PrescriptionSource
+ * used by the resolver, so the two can be compared for mid-day-change detection.
+ */
+function storedSourceToResolverSource(stored: string | null): PrescriptionSource {
+  switch (stored) {
+    case "procare":             return "professional_override";
+    case "performance_overlay": return "performance";
+    default:                    return "user_default"; // macro_calculator / unknown
+  }
+}
+
+/**
+ * Human-readable label for a PrescriptionSource transition.
+ * Only called when a transition is actually detected.
+ */
+function changeReasonLabel(from: PrescriptionSource, to: PrescriptionSource): string {
+  if (to === "professional_override") return "ProCare override";
+  if (to === "performance")           return "Performance Mode";
+  if (to === "clinical")              return "Clinical plan";
+  if (from === "professional_override" || from === "performance") {
+    return "Nutrition plan update";
+  }
+  return "Nutrition plan update";
 }

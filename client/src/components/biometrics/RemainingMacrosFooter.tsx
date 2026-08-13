@@ -8,7 +8,7 @@ import {
   MPM_MACRO_COLORS,
   getMacroProgressColor,
 } from "@/components/glass/mpmGlassStandard";
-import { Flame } from "lucide-react";
+import { Flame, RefreshCw } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -42,6 +42,10 @@ interface RemainingMacrosFooterProps {
   consumedOverride?: ConsumedMacros;
   targetsOverride?: MacroTargets;
   layoutMode?: "sticky" | "inline";
+  /** When true, shows an inline note that targets were updated mid-day */
+  prescriptionChangedMidDay?: boolean;
+  /** Short label for what caused the change, e.g. "ProCare override" */
+  prescriptionChangeReason?: string;
 }
 
 export function RemainingMacrosFooter({
@@ -52,6 +56,8 @@ export function RemainingMacrosFooter({
   consumedOverride,
   targetsOverride,
   layoutMode = "sticky",
+  prescriptionChangedMidDay,
+  prescriptionChangeReason,
 }: RemainingMacrosFooterProps) {
   const { user } = useAuth();
   const effectiveUserId = userId ?? user?.id ?? "";
@@ -148,6 +154,17 @@ export function RemainingMacrosFooter({
             >
               Save Day to Biometrics
             </button>
+          )}
+
+          {prescriptionChangedMidDay && (
+            <div className="flex items-center gap-1.5 mb-2 px-1 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20">
+              <RefreshCw className="w-3 h-3 text-amber-400 shrink-0" />
+              <span className="text-amber-300 text-xs">
+                {prescriptionChangeReason
+                  ? `Your targets were updated today (${prescriptionChangeReason})`
+                  : "Your nutrition targets were updated today"}
+              </span>
+            </div>
           )}
 
           <div className="flex items-center justify-center mb-2 gap-1.5">

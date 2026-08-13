@@ -1829,6 +1829,8 @@ export default function WeeklyMealBoard() {
                     consumedOverride={consumed}
                     showSaveButton={false}
                     layoutMode={isDay ? "inline" : "sticky"}
+                    prescriptionChangedMidDay={nutritionState?.prescriptionChangedMidDay}
+                    prescriptionChangeReason={nutritionState?.prescriptionChangeReason}
                     onSaveDay={
                       isDay
                         ? async () => {

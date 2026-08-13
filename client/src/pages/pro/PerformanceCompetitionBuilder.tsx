@@ -1545,6 +1545,8 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                     consumedOverride={consumed}
                     showSaveButton={false}
                     layoutMode="inline"
+                    prescriptionChangedMidDay={nutritionState?.prescriptionChangedMidDay}
+                    prescriptionChangeReason={nutritionState?.prescriptionChangeReason}
                     onSaveDay={async () => {
                       const targets = {
                         calories:  prescription?.caloriesTarget || 0,

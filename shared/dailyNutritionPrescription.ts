@@ -221,6 +221,23 @@ export interface DailyNutritionState {
     /** True when consumed.protein + planned.protein ≥ prescription.proteinTarget */
     proteinBudgetMet: boolean;
   };
+
+  /**
+   * True when the prescription source changed after at least one meal was already
+   * logged today — e.g. a ProCare override was written, Performance Mode was
+   * toggled, or a GLP-1 overlay was applied mid-day.
+   *
+   * Surfaces in the macro tracker so users understand why remaining macros
+   * shifted without thinking something broke.
+   */
+  prescriptionChangedMidDay?: boolean;
+
+  /**
+   * Short human-readable label for the source of the change.
+   * Only present when prescriptionChangedMidDay is true.
+   * Examples: "ProCare override", "Performance Mode", "Clinical plan"
+   */
+  prescriptionChangeReason?: string;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

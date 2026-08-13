@@ -1286,6 +1286,8 @@ export default function WeeklyMealBoard() {
                   targetsOverride={nutritionTargets}
                   showSaveButton={false}
                   layoutMode="inline"
+                  prescriptionChangedMidDay={nutritionState?.prescriptionChangedMidDay}
+                  prescriptionChangeReason={nutritionState?.prescriptionChangeReason}
                   onSaveDay={async () => {
                     const targets = {
                       calories: resolved.calories || 0,
