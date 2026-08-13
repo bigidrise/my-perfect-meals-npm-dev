@@ -169,6 +169,10 @@ router.post("/recommend", async (req, res) => {
                 LIMIT 20
               `
         );
+        dbHistory = (histRows.rows ?? histRows) as typeof dbHistory;
+      } catch (histErr: any) {
+        console.warn("[GroceryCoach] Could not load variety history:", histErr?.message);
+      }
       const allAvoidNames = dbHistory.map((e) => e.mealName).filter(Boolean);
 
       if (allAvoidNames.length > 0) {
@@ -530,7 +534,7 @@ router.post("/product-advisor", async (req, res) => {
     }
 
     const engine = getProductAdvisorEngine();
-    const result = await engine.buildCartRecommendations(userId!, rawIngredients as string[], rawStore);
+    const result = await engine.buildCartRecommendations(userId!, ingredients as string[], store);
 
     return res.json(result);
   } catch (err: any) {
