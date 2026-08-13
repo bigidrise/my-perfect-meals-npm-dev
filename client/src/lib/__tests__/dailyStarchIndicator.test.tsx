@@ -128,4 +128,50 @@ describe('DailyStarchIndicator — prescription prop reactivity', () => {
 
     expect(getStatusText()).toBe('🟠 Used');
   });
+
+  it('shows the Rest Day — Zero Starch panel when isZeroStarchDay flips to true', () => {
+    const { rerender, queryByText } = render(
+      <DailyStarchIndicator
+        meals={[FIBER_MEAL]}
+        prescription={makePrescription(1, { isZeroStarchDay: false })}
+      />,
+    );
+
+    // Panel must be absent when isZeroStarchDay is false.
+    expect(queryByText(/Rest Day — Zero Starch/)).toBeNull();
+
+    // Prescription flips to a zero-starch day (e.g. rest day applied mid-session).
+    rerender(
+      <DailyStarchIndicator
+        meals={[FIBER_MEAL]}
+        prescription={makePrescription(0, { isZeroStarchDay: true })}
+      />,
+    );
+
+    // The special callout panel must now be visible.
+    expect(queryByText(/Rest Day — Zero Starch/)).not.toBeNull();
+  });
+
+  it('hides the Rest Day — Zero Starch panel when isZeroStarchDay flips back to false', () => {
+    const { rerender, queryByText } = render(
+      <DailyStarchIndicator
+        meals={[FIBER_MEAL]}
+        prescription={makePrescription(0, { isZeroStarchDay: true })}
+      />,
+    );
+
+    // Panel must be present at the start.
+    expect(queryByText(/Rest Day — Zero Starch/)).not.toBeNull();
+
+    // Prescription reverts (e.g. user switches back to a training day).
+    rerender(
+      <DailyStarchIndicator
+        meals={[FIBER_MEAL]}
+        prescription={makePrescription(1, { isZeroStarchDay: false })}
+      />,
+    );
+
+    // The special callout panel must no longer be visible.
+    expect(queryByText(/Rest Day — Zero Starch/)).toBeNull();
+  });
 });
