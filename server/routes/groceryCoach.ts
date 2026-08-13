@@ -36,7 +36,6 @@ router.post("/recommend", async (req, res) => {
   try {
     const userId = resolveUserId(req);
 
-    const { ingredients: rawIngredients, store: rawStore } = req.body;
     const { message, conversationHistory = [], servingCount } = req.body;
 
     if (!message || typeof message !== "string") {
@@ -143,9 +142,9 @@ router.post("/recommend", async (req, res) => {
       }
     }
 
-    // ── Recommendation history — variety memory ───────────────────────────────
-    // Load the last 20 DB entries + any session recommendations from conversation
-    // history, then build a "do not repeat" block for the system prompt.
+    const dietaryIdentityTag = groceryEnvelope.dietaryIdentity?.length
+      ? [...groceryEnvelope.dietaryIdentity].sort().join(",").toLowerCase()
+      : "omnivore";
     let varietyBlock = "";
     if (userId) {
       let dbHistory: Array<{ mealName: string; primaryProtein: string | null; cuisineStyle: string | null; majorStarch: string | null; cookingMethod: string | null }> = [];
@@ -156,6 +155,7 @@ router.post("/recommend", async (req, res) => {
                 SELECT meal_name, primary_protein, cuisine_style, major_starch, cooking_method
                 FROM grocery_coach_recommendation_history
                 WHERE user_id = ${userId}
+                  AND dietary_identity_tag = ${dietaryIdentityTag}
                   AND (meal_type = ${detectedMealType} OR meal_type IS NULL)
                 ORDER BY created_at DESC
                 LIMIT 20
@@ -164,31 +164,12 @@ router.post("/recommend", async (req, res) => {
                 SELECT meal_name, primary_protein, cuisine_style, major_starch, cooking_method
                 FROM grocery_coach_recommendation_history
                 WHERE user_id = ${userId}
+                  AND dietary_identity_tag = ${dietaryIdentityTag}
                 ORDER BY created_at DESC
                 LIMIT 20
               `
         );
-        dbHistory = (histRows.rows as any[]).map((r: any) => ({
-          mealName: r.meal_name,
-          primaryProtein: r.primary_protein ?? null,
-          cuisineStyle: r.cuisine_style ?? null,
-          majorStarch: r.major_starch ?? null,
-          cookingMethod: r.cooking_method ?? null,
-        }));
-      } catch {
-        // Non-fatal — variety enforcement degrades gracefully if history is unavailable
-      }
-
-      // Also pull meal names from the current session conversation
-      const sessionNames = (conversationHistory as any[])
-        .filter((m: any) => m.role === "assistant" && typeof m.content === "string" && m.content.startsWith("Recommended: "))
-        .map((m: any) => (m.content as string).replace("Recommended: ", "").trim());
-
-      const allAvoidNames = Array.from(
-        new Set(
-          [...dbHistory.map((e) => e.mealName), ...sessionNames].filter(Boolean)
-        )
-      );
+      const allAvoidNames = dbHistory.map((e) => e.mealName).filter(Boolean);
 
       if (allAvoidNames.length > 0) {
         const avoidList = allAvoidNames.slice(0, 20).map((n) => `- ${n}`).join("\n");
@@ -415,19 +396,24 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
       Promise.resolve().then(() =>
         db.execute(sql`
           INSERT INTO grocery_coach_recommendation_history
-            (user_id, meal_name, primary_protein, cuisine_style, major_starch, cooking_method)
+            (user_id, meal_name, primary_protein, cuisine_style, major_starch, cooking_method, dietary_identity_tag, meal_type)
           VALUES
             (${uid}, ${meal.name as string},
              ${vm?.primaryProtein ?? null}, ${vm?.cuisineStyle ?? null},
-             ${vm?.majorStarch ?? null}, ${vm?.cookingMethod ?? null})
+             ${vm?.majorStarch ?? null}, ${vm?.cookingMethod ?? null},
+             ${dietaryIdentityTag}, ${detectedMealType ?? null})
         `)
       ).then(() =>
+        // Prune to 20 rows scoped by (user_id, dietary_identity_tag) so history
+        // for one diet identity never evicts history from another identity.
         db.execute(sql`
           DELETE FROM grocery_coach_recommendation_history
           WHERE user_id = ${uid}
+            AND dietary_identity_tag = ${dietaryIdentityTag}
             AND id NOT IN (
               SELECT id FROM grocery_coach_recommendation_history
               WHERE user_id = ${uid}
+                AND dietary_identity_tag = ${dietaryIdentityTag}
               ORDER BY created_at DESC
               LIMIT 20
             )
@@ -536,8 +522,10 @@ router.post("/product-advisor", async (req, res) => {
   try {
     const userId = resolveUserId(req);
 
-    const { ingredients: rawIngredients, store: rawStore } = req.body;
-    if (!Array.isArray(rawIngredients) || rawIngredients.length === 0) {
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
+    const { ingredients, store } = req.body;
+    if (!Array.isArray(ingredients) || ingredients.length === 0) {
       return res.status(400).json({ error: "ingredients array is required" });
     }
 
@@ -560,6 +548,8 @@ router.post("/product-advisor", async (req, res) => {
 router.post("/swap-ingredient", async (req, res) => {
   try {
     const userId = resolveUserId(req);
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
     const {
       ingredientToReplace, mealName, mealDescription,
       shoppingList, ownedIngredients, macros, reasoning,
@@ -825,7 +815,6 @@ router.post("/finalize-card", async (req, res) => {
   try {
     const userId = resolveUserId(req);
 
-    const { ingredients: rawIngredients, store: rawStore } = req.body;
     const { recommendation } = req.body;
     if (!recommendation?.meal?.name) {
       return res.status(400).json({ status: "failed", id: null, reason: "recommendation is required" });

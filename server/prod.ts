@@ -1627,6 +1627,12 @@ async function initializeApp() {
             ALTER TABLE grocery_coach_recommendation_history
               ADD COLUMN IF NOT EXISTS meal_type text
           `);
+          // Task 903: tag rows with the dietary identity active at recommendation time
+          // so that switching diets (e.g. vegan → omnivore) flushes the avoid-list.
+          await dbGcr.execute(sqlGcr`
+            ALTER TABLE grocery_coach_recommendation_history
+              ADD COLUMN IF NOT EXISTS dietary_identity_tag text NOT NULL DEFAULT 'omnivore'
+          `);
           console.log("✅ [prod] Grocery Coach recommendation history boot migration complete");
         } catch (err: any) {
           console.error("❌ [prod] Grocery Coach recommendation history migration failed:", err.message);
