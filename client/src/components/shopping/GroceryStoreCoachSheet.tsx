@@ -197,12 +197,47 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const loadingInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // ── Session persistence ──────────────────────────────────────────────────────
+  // Restore a previous session from localStorage on mount (navigation-safe).
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("grocery-coach-session");
+      if (!raw) return;
+      const session = JSON.parse(raw) as { result?: CoachResult; conversation?: ConversationMessage[]; savedAt?: number };
+      // Expire after 24 h
+      if (!session.savedAt || Date.now() - session.savedAt > 24 * 60 * 60 * 1000) {
+        localStorage.removeItem("grocery-coach-session");
+        return;
+      }
+      if (session.result) {
+        setResult(session.result);
+        setPhase("result");
+      }
+      if (session.conversation?.length) {
+        setConversation(session.conversation);
+      }
+    } catch {}
+  }, []); // mount only
+
+  // Save active session whenever result or conversation changes.
+  useEffect(() => {
+    if (result) {
+      try {
+        localStorage.setItem("grocery-coach-session", JSON.stringify({
+          result,
+          conversation,
+          savedAt: Date.now(),
+        }));
+      } catch {}
+    }
+  }, [result, conversation]);
+
   useEffect(() => {
     if (!open) {
-      setPhase("idle");
+      // Reset transient UI state only.
+      // result / conversation / phase are intentionally preserved so the user
+      // returns to their meal when they reopen the sheet.
       setInput("");
-      setResult(null);
-      setConversation([]);
       setAddedToList(false);
       setListExpanded(true);
       setCartExpanded(true);
@@ -354,17 +389,52 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     }
   }, [conversation, servingCount, toast, fetchProductAdvice]);
 
+  const handleNewSession = useCallback(() => {
+    try { localStorage.removeItem("grocery-coach-session"); } catch {}
+    setPhase("idle");
+    setResult(null);
+    setConversation([]);
+    setInput("");
+    setAddedToList(false);
+    setListExpanded(true);
+    setCartExpanded(true);
+    setCardPhase("idle");
+    setMealCard(null);
+    setProductAdvice(null);
+    setAdvisorLoading(false);
+    setBrandsAdded(false);
+    setSavedProductKeys(new Set());
+    setSavingKey(null);
+    setShowSavedOnly(false);
+    setBrandsAddedCount(0);
+    setSwapTarget(null);
+    setSwapResult(null);
+    setSwapLoading(false);
+    setSwapCustom("");
+    setSwapCustomLoading(false);
+    setSwapSelected(null);
+    setSwapError(null);
+  }, []);
+
   const handleAddToList = useCallback(() => {
     if (!result?.shoppingList?.length) return;
-    const items: UniversalIngredient[] = result.shoppingList.map((s) => ({
-      name: s.item,
-      quantity: parseFloat(s.quantity) || 1,
-      unit: s.unit || "",
-      sourceMeals: [result.meal?.name || "Grocery Coach"],
-    }));
-    addItems(items);
+    // Include shoppingList (items to buy) AND ownedIngredients (recipe items the
+    // LLM assumed you already have) — this ensures the full ingredient list always
+    // reaches the shopping list, even if the model inferred some as "owned".
+    const toItems = (arr: Array<{ item: string; quantity: string; unit: string }>): UniversalIngredient[] =>
+      arr.map((s) => ({
+        name: s.item,
+        quantity: parseFloat(s.quantity) || 1,
+        unit: s.unit || "",
+        sourceMeals: [result.meal?.name || "Grocery Coach"],
+      }));
+    const allItems = [
+      ...toItems(result.shoppingList),
+      ...toItems(result.ownedIngredients ?? []),
+    ];
+    addItems(allItems);
     setAddedToList(true);
-    toast({ title: "Added to shopping list!", description: `${items.length} items added.` });
+    toast({ title: "Added to shopping list!", description: `${allItems.length} items added.` });
   }, [result, addItems, toast]);
 
   const handleAddBrandsToList = useCallback(() => {
@@ -525,6 +595,15 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
             <div style={{ color: "white", fontWeight: 700, fontSize: 15, lineHeight: 1.2 }}>Grocery Store Coach</div>
             <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12 }}>Decide what to make. Know what to buy.</div>
           </div>
+          {result && (
+            <button
+              onClick={handleNewSession}
+              title="Start a new session"
+              style={{ padding: "5px 10px", borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.45)", fontSize: 11, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}
+            >
+              New
+            </button>
+          )}
           <button
             onClick={() => onOpenChange(false)}
             style={{ padding: 8, borderRadius: 12, background: "rgba(255,255,255,0.05)", border: "none", color: "rgba(255,255,255,0.5)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
