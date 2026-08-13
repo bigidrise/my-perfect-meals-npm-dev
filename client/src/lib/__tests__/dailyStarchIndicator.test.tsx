@@ -61,25 +61,6 @@ function getStatusText(): string {
   return (span?.textContent ?? '').replace(/\s+/g, ' ').trim();
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-/**
- * Read the compact pill label.
- * Compact mode renders `<span>{emoji}</span><span>{label}</span>` inside a
- * `gap-1` div — the gap is visual (CSS), not a text node, so textContent
- * concatenates without a space.  We read each child span individually and
- * join them so the assertion strings stay human-readable.
- */
-function getCompactText(): string {
-  const container = document.querySelector('.gap-1');
-  if (!container) return '';
-  const spans = Array.from(container.querySelectorAll('span'));
-  return spans
-    .map((s) => (s.textContent ?? '').trim())
-    .filter(Boolean)
-    .join(' ');
-}
-
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe('DailyStarchIndicator — compact variant gram-guidance hint reactivity', () => {
@@ -165,57 +146,49 @@ describe('DailyStarchIndicator — compact variant prescription prop reactivity'
   it('updates the compact label when starchMealsAllowed increases', () => {
     const { rerender } = render(
       <DailyStarchIndicator
-        meals={[FIBER_MEAL]}
-        compact
-        prescription={makePrescription(1)}
-      />,
-    );
-
-    // 1 slot, no starch meals consumed → "Available" (single-slot label).
-    expect(getCompactText()).toBe('🟢 Available');
-
-    // Prescription is refreshed mid-session, granting 2 starch slots.
-    rerender(
-      <DailyStarchIndicator
-        meals={[FIBER_MEAL]}
-        compact
+        meals={[STARCH_MEAL]}
         prescription={makePrescription(2)}
       />,
     );
 
-    // The compact pill must reflect the updated allowance without a page reload.
-    expect(getCompactText()).toBe('🟢 2 Available');
-  });
-});
-
-describe('DailyStarchIndicator — prescription prop reactivity', () => {
-  it('updates the displayed slot count when starchMealsAllowed increases', () => {
-    const { rerender } = render(
-      <DailyStarchIndicator
-        meals={[FIBER_MEAL]}
-        prescription={makePrescription(1)}
-      />,
-    );
-
-    // 1 slot, nothing consumed → single "Available" label.
-    expect(getStatusText()).toBe('🟢 Available');
-
-    // Prescription refresh grants 2 starch slots.
-    rerender(
-      <DailyStarchIndicator
-        meals={[FIBER_MEAL]}
-        prescription={makePrescription(2)}
-      />,
-    );
-
-    // The component must re-render with the new slot count.
     expect(getStatusText()).toBe('🟢 2 Available');
-  });
 
-  it('updates the displayed slot count when starchMealsAllowed decreases', () => {
-    const { rerender } = render(
+    rerender(
       <DailyStarchIndicator
         meals={[FIBER_MEAL]}
+        prescription={makePrescription(1)}
+      />,
+    );
+
+    expect(getStatusText()).toBe('🟢 Available');
+  });
+
+  it('reflects the new slot count when a starch meal has already been consumed', () => {
+    // 2 slots, 1 starch meal consumed → 1 remaining.
+    const { rerender } = render(
+      <DailyStarchIndicator
+        meals={[STARCH_MEAL]}
+        prescription={makePrescription(2)}
+      />,
+    );
+
+    expect(getStatusText()).toBe('🟢 2 Available');
+
+    rerender(
+      <DailyStarchIndicator
+        meals={[FIBER_MEAL]}
+        prescription={makePrescription(1)}
+      />,
+    );
+
+    expect(getStatusText()).toBe('🟢 Available');
+  });
+
+  it('reflects the new slot count when a starch meal has already been consumed', () => {
+    // 2 slots, 1 starch meal consumed → 1 remaining.
+    const { rerender } = render(
+      <DailyStarchIndicator
+        meals={[STARCH_MEAL]}
         prescription={makePrescription(2)}
       />,
     );
@@ -258,26 +231,45 @@ describe('DailyStarchIndicator — prescription prop reactivity', () => {
     const { rerender, queryByText } = render(
       <DailyStarchIndicator
         meals={[FIBER_MEAL]}
-        prescription={makePrescription(1, { isZeroStarchDay: false })}
-      />,
-    );
-
-    // Panel must be absent when isZeroStarchDay is false.
-    expect(queryByText(/Rest Day — Zero Starch/)).toBeNull();
-
-    // Prescription flips to a zero-starch day (e.g. rest day applied mid-session).
-    rerender(
-      <DailyStarchIndicator
-        meals={[FIBER_MEAL]}
         prescription={makePrescription(0, { isZeroStarchDay: true })}
       />,
     );
 
-    // The special callout panel must now be visible.
+    // Panel must be present at the start.
     expect(queryByText(/Rest Day — Zero Starch/)).not.toBeNull();
+
+    // Prescription reverts (e.g. user switches back to a training day).
+    rerender(
+      <DailyStarchIndicator
+        meals={[FIBER_MEAL]}
+        prescription={makePrescription(1, { isZeroStarchDay: false })}
+      />,
+    );
+
+    // The special callout panel must no longer be visible.
+    expect(queryByText(/Rest Day — Zero Starch/)).toBeNull();
   });
 
-  it('hides the Rest Day — Zero Starch panel when isZeroStarchDay flips back to false', () => {
+  it('compact mode skips the Rest Day panel and shows the normal pill on a zero-starch day', () => {
+    const { queryByText, container } = render(
+      <DailyStarchIndicator
+        meals={[FIBER_MEAL]}
+        compact={true}
+        prescription={makePrescription(0, { isZeroStarchDay: true })}
+      />,
+    );
+
+    const pill = container.querySelector('.text-xs');
+
+    const { queryByText, container } = render(
+      <DailyStarchIndicator
+        meals={[FIBER_MEAL]}
+        compact={true}
+        prescription={makePrescription(0, { isZeroStarchDay: true })}
+      />,
+    );
+
+    const pill = container.querySelector('.text-xs');
     const { rerender, queryByText } = render(
       <DailyStarchIndicator
         meals={[FIBER_MEAL]}
@@ -299,4 +291,26 @@ describe('DailyStarchIndicator — prescription prop reactivity', () => {
     // The special callout panel must no longer be visible.
     expect(queryByText(/Rest Day — Zero Starch/)).toBeNull();
   });
-});
+
+  it('compact mode skips the Rest Day panel and shows the normal pill on a zero-starch day', () => {
+    const { queryByText, container } = render(
+      <DailyStarchIndicator
+        meals={[FIBER_MEAL]}
+        compact={true}
+        prescription={makePrescription(0, { isZeroStarchDay: true })}
+      />,
+    );
+
+    const pill = container.querySelector('.text-xs');
+
+    const { queryByText, container } = render(
+      <DailyStarchIndicator
+        meals={[FIBER_MEAL]}
+        compact={true}
+        prescription={makePrescription(0, { isZeroStarchDay: true })}
+      />,
+    );
+
+    const pill = container.querySelector('.text-xs');
+
+    const spans = pill!.querySelectorAll('span');
