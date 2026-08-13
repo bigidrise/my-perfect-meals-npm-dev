@@ -288,7 +288,7 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
     });
 
     const raw = completion.choices[0]?.message?.content ?? "{}";
-    let result: any;
+    const result = await finalizeMealCard({ recommendation, userId: userId! });
     try {
       result = JSON.parse(raw);
     } catch {
@@ -309,7 +309,9 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
       for (const f of ["calories", "protein", "carbs", "fat"] as const) {
         if (typeof r.macros[f] !== "number")              return `missing macros.${f}`;
       }
-      if (!Array.isArray(r.shoppingList) || r.shoppingList.length === 0) return "missing shoppingList array";
+      // shoppingList may be empty when ownedIngredients covers all ingredients
+      if (!Array.isArray(r.shoppingList)) return "missing shoppingList array";
+      if (r.shoppingList.length === 0 && (!Array.isArray(r.ownedIngredients) || r.ownedIngredients.length === 0)) return "missing shoppingList array";
       for (let idx = 0; idx < r.shoppingList.length; idx++) {
         const s = r.shoppingList[idx];
         if (!s || typeof s !== "object")                  return `shoppingList[${idx}] not an object`;
@@ -340,7 +342,7 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
     if (groceryGlp1Targets) {
       const t = groceryGlp1Targets;
       const mac = result.macros ?? {};
-      const fat      = Number(mac.fat);
+              const fat      = toN(nut.fat ?? nut.total_fat ?? nut.fatGrams);
       const cal = Number(mac.calories);
       const prot = Number(mac.protein);
       const fatViolation = Number.isFinite(fat) && fat > t.maximumToleratedFatGrams;
@@ -540,11 +542,7 @@ router.post("/product-advisor", async (req, res) => {
     }
 
     const engine = getProductAdvisorEngine();
-    const result = await engine.buildCartRecommendations(
-      userId,
-      rawIngredients.slice(0, 20).map(String),
-      typeof rawStore === "string" ? rawStore : undefined,
-    );
+    const result = await finalizeMealCard({ recommendation, userId: userId! });
 
     return res.json(result);
   } catch (err: any) {
@@ -562,8 +560,6 @@ router.post("/product-advisor", async (req, res) => {
 router.post("/swap-ingredient", async (req, res) => {
   try {
     const userId = resolveUserId(req);
-    if (!userId) return res.status(401).json({ error: "Not authenticated" });
-
     const {
       ingredientToReplace, mealName, mealDescription,
       shoppingList, ownedIngredients, macros, reasoning,
