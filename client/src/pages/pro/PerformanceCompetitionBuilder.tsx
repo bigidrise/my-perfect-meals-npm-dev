@@ -335,7 +335,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   // DailyNutritionState — the single server authority for macro targets, consumed, and remaining.
   // Board meals are "planned" (not yet logged); consumption comes from macro_logs server-side.
   // This replaces useDailyPrescription and the board-derived activeDayConsumed starch count.
-  const { state: nutritionState } = useDailyNutritionState({
+  const { state: nutritionState, isLoading: nutritionStateLoading } = useDailyNutritionState({
     dateISO: activeDayISO,
     clientId: proClientId ?? null,
     disabled: !activeDayISO,

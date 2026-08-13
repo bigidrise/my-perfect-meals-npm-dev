@@ -109,5 +109,13 @@ export function useDailyNutritionState({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateISO, clientId, disabled]);
 
-  return { state, isLoading, error, refetch: fetch };
+  // Cover the one-render gap between when the hook becomes enabled (disabled→false,
+  // dateISO set) and when the async fetch effect actually runs and flips isLoading→true.
+  // Without this, callers see isLoading=false + state=null for one render, which causes
+  // them to briefly fall back to the macro-calculator baseline before the prescription
+  // arrives (visible number swap on training days).
+  const effectivelyLoading =
+    isLoading || (!disabled && !!dateISO && state === null && error === null);
+
+  return { state, isLoading: effectivelyLoading, error, refetch: fetch };
 }
