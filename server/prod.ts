@@ -1602,6 +1602,31 @@ async function initializeApp() {
         }
       }, 7000);
 
+      // ── Grocery Coach recommendation history (variety memory) ────────────────
+      setTimeout(async () => {
+        try {
+          await db.execute(sql`
+            CREATE TABLE IF NOT EXISTS grocery_coach_recommendation_history (
+              id              serial PRIMARY KEY,
+              user_id         text        NOT NULL,
+              meal_name       text        NOT NULL,
+              primary_protein text,
+              cuisine_style   text,
+              major_starch    text,
+              cooking_method  text,
+              created_at      timestamptz NOT NULL DEFAULT now()
+            )
+          `);
+          await db.execute(sql`
+            CREATE INDEX IF NOT EXISTS idx_gcr_history_user_date
+              ON grocery_coach_recommendation_history (user_id, created_at DESC)
+          `);
+          console.log("✅ [prod] Grocery Coach recommendation history boot migration complete");
+        } catch (err: any) {
+          console.error("❌ [prod] Grocery Coach recommendation history migration failed:", err.message);
+        }
+      }, 7500);
+
       // ── Shared retry helper for coaching boot migrations ─────────────────────
       // A transient DB connection timeout on any coaching migration would leave
       // the engine in a partially-migrated state with no recovery path without

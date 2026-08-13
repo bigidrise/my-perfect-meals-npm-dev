@@ -1769,6 +1769,34 @@ process.on('unhandledRejection', (reason, promise) => {
   // Don't exit - log and continue for stability
 });
 
+// ── Grocery Coach recommendation history (variety memory) ─────────────────────
+// Non-critical — variety enforcement degrades gracefully if this migration fails.
+setTimeout(async () => {
+  try {
+    const { db } = await import("./db");
+    const { sql } = await import("drizzle-orm");
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS grocery_coach_recommendation_history (
+        id          serial PRIMARY KEY,
+        user_id     text        NOT NULL,
+        meal_name   text        NOT NULL,
+        primary_protein text,
+        cuisine_style   text,
+        major_starch    text,
+        cooking_method  text,
+        created_at  timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+    await db.execute(sql`
+      CREATE INDEX IF NOT EXISTS idx_gcr_history_user_date
+        ON grocery_coach_recommendation_history (user_id, created_at DESC)
+    `);
+    console.log("✅ Grocery Coach recommendation history boot migration complete");
+  } catch (err: any) {
+    console.error("❌ Grocery Coach recommendation history migration failed:", err.message);
+  }
+}, 6500);
+
 process.on('uncaughtException', (error) => {
   console.error('🚨 Uncaught Exception:', error);
   // Log but don't exit in development for better stability
