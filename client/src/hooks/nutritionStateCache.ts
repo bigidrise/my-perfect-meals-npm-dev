@@ -27,6 +27,17 @@ import type { DailyNutritionState } from "../../../shared/dailyNutritionPrescrip
 export const _nutritionStateCache = new Map<string, DailyNutritionState>();
 
 /**
+ * Monotonically increasing generation counter.
+ *
+ * Incremented every time the cache is cleared (i.e. on logout).
+ * The hook captures this value when a fetch begins and checks it before writing
+ * the response to the cache — if the generation has advanced (because the user
+ * logged out while the request was in-flight), the write is silently discarded,
+ * preventing stale data from leaking into the next session.
+ */
+let _cacheGeneration = 0;
+
+/**
  * Tracks the local calendar date (YYYY-MM-DD) on which each cache entry was
  * written.  Exported for tests that need to inject a past date to verify the
  * staleness guard.
@@ -83,4 +94,21 @@ export function setCachedNutritionState(
 ): void {
   _nutritionStateCache.set(key, value);
   _nutritionStateCacheWriteDate.set(key, localDateISO());
+}
+
+/** Returns the current cache generation.  Captured by the hook at fetch-start. */
+export function getCacheGeneration(): number {
+  return _cacheGeneration;
+}
+
+/**
+ * Clears all cached entries AND advances the generation.
+ *
+ * All callers that perform a logout MUST use this function instead of calling
+ * `_nutritionStateCache.clear()` directly, so that any in-flight requests that
+ * resolve after the logout cannot repopulate the cache.
+ */
+export function clearNutritionCache(): void {
+  _nutritionStateCache.clear();
+  _cacheGeneration++;
 }
