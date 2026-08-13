@@ -96,25 +96,69 @@ router.post("/boards/:boardId/items", async (req, res) => {
 });
 
 // Delete item from board
+//
+// When a board item is removed (replaced or cancelled), its associated macro_log
+// row — if the item was already "logged" via the /log endpoint — must also be
+// deleted so the starch slot is released and the nutrition budget reflects the
+// correct remaining allocation before any replacement meal is generated.
+//
+// Security: board ownership is verified before any mutation. The item lookup is
+// scoped to both itemId AND boardId so a caller cannot delete an item from a
+// different board by supplying a mismatched boardId.  All mutations are wrapped
+// in a transaction so the log and the board item are always removed together.
 router.delete("/boards/:boardId/items/:itemId", async (req, res) => {
   try {
+    const authUserId: string = (req as any).authUser?.id || (req.session as any)?.userId;
+    if (!authUserId) return res.status(401).json({ error: "Unauthorized" });
+
     const { boardId, itemId } = req.params;
 
-    await db.delete(mealBoardItems).where(eq(mealBoardItems.id, itemId));
-
+    // 1. Load the board and verify ownership.
     const [board] = await db.select().from(mealBoards).where(eq(mealBoards.id, boardId)).limit(1);
-    if (board) {
-      await db.update(mealBoards).set({
-        lastUpdatedByUserId: board.userId,
+    if (!board) return res.status(404).json({ error: "Board not found" });
+    if (board.userId !== authUserId) return res.status(403).json({ error: "Forbidden" });
+
+    // 2. Verify the item belongs to this board (prevents cross-board deletion).
+    const [item] = await db
+      .select()
+      .from(mealBoardItems)
+      .where(and(eq(mealBoardItems.id, itemId), eq(mealBoardItems.boardId, boardId)))
+      .limit(1);
+    if (!item) return res.status(404).json({ error: "Board item not found" });
+
+    // 3. Atomically delete the board item (and optionally its macro_log).
+    //
+    //    releaseLog: true  — "replace" intent: the caller is swapping this meal
+    //    for a different one.  The associated log (if any) is deleted so the
+    //    starch slot it consumed is returned to the remaining budget before the
+    //    replacement is generated.  Pass this only when the product flow
+    //    explicitly means "undo this meal and start over" — not for simple
+    //    board cleanup where nutrition history should be preserved.
+    //
+    //    releaseLog: false (default) — board-item removal only.  Any committed
+    //    macro_log stays intact so the user's nutrition history is preserved.
+    const releaseLog = req.body?.releaseLog === true;
+
+    await db.transaction(async (tx) => {
+      if (releaseLog) {
+        await tx.delete(macroLogs).where(
+          sql`${macroLogs.boardItemReference} = ${itemId}`
+        );
+      }
+      await tx.delete(mealBoardItems).where(
+        and(eq(mealBoardItems.id, itemId), eq(mealBoardItems.boardId, boardId))
+      );
+      await tx.update(mealBoards).set({
+        lastUpdatedByUserId: authUserId,
         lastUpdatedByRole: "client",
         updatedAt: new Date(),
       }).where(eq(mealBoards.id, boardId));
-    }
+    });
 
-    res.json({ ok: true });
+    return res.json({ ok: true });
   } catch (error) {
     console.error("Error deleting board item:", error);
-    res.status(500).json({ error: "Failed to delete item" });
+    return res.status(500).json({ error: "Failed to delete item" });
   }
 });
 
