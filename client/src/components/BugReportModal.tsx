@@ -110,10 +110,10 @@ export function BugReportModal({ open, onClose }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={open ? handleClose : undefined}>
-      <DialogContent showCloseButton={false} className="max-w-md w-full bg-zinc-900 border border-white/10 text-white p-0 overflow-hidden">
+      <DialogContent showCloseButton={false} className="max-w-md w-full bg-zinc-900 border border-white/10 text-white p-0 overflow-hidden flex flex-col max-h-[85dvh]">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 shrink-0">
           <div className="flex items-center gap-2">
             <Bug className="w-4 h-4 text-amber-400" strokeWidth={1.75} />
             <h2 className="text-sm font-semibold text-white">Report a Bug</h2>
@@ -129,7 +129,7 @@ export function BugReportModal({ open, onClose }: Props) {
         </div>
 
         {/* Body */}
-        <div className="px-5 py-4 space-y-4">
+        <div className="px-5 py-4 space-y-4 overflow-y-auto">
 
           {/* ── SUCCESS ── */}
           {phase === "success" && (
@@ -219,7 +219,7 @@ export function BugReportModal({ open, onClose }: Props) {
 
               {/* Server error */}
               {phase === "error" && serverError && (
-                <p className="text-xs text-red-400 bg-red-900/20 rounded-lg px-3 py-2">{serverError}</p>
+                <p className="text-xs text-red-400 bg-red-900/20 rounded-lg px-3 py-2 break-words">{serverError}</p>
               )}
 
               {/* Actions */}

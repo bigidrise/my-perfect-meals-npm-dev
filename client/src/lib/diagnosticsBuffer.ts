@@ -18,10 +18,14 @@ const MAX_ERRORS   = 15;
 const MAX_REQUESTS = 15;
 
 export interface DiagnosticError {
-  message:   string;   // truncated at 300 chars
-  stack?:    string;   // first 3 lines only, source location when available
-  source?:   string;   // component name / filename if captured
-  timestamp: string;   // ISO
+  message:         string;   // truncated at 300 chars
+  stack?:          string;   // first 3 lines only, source location when available
+  source?:         string;   // component name / filename if captured
+  timestamp:       string;   // ISO
+  /** True when the error originates from Vite/HMR or Replit preview
+   *  infrastructure — not from application code. The Developer Summary
+   *  treats these as lower-priority than real app errors. */
+  isInfrastructure?: boolean;
 }
 
 export interface DiagnosticRequest {
@@ -77,6 +81,32 @@ function sanitizeStack(stack: string | undefined): string | undefined {
     .join("\n");
 }
 
+// ── Infrastructure noise detection ───────────────────────────────────────────
+
+/**
+ * Patterns that identify Vite/HMR/Replit-preview infrastructure errors.
+ * These are captured for completeness but deprioritised in the Developer
+ * Diagnostic Summary so they don't overshadow real application errors.
+ */
+const INFRASTRUCTURE_MESSAGE_PATTERNS = [
+  /websocket closed without opened/i,
+  /\[vite\]/i,
+  /hmr\s+(update|disconnect|reconnect|connect)/i,
+  /vite.*hmr/i,
+];
+
+const INFRASTRUCTURE_STACK_PATTERNS = [
+  /@vite\/client/i,
+  /vite\/dist\/client/i,
+  /replit\.dev\/@vite\//i,
+];
+
+function detectInfrastructure(msg: string, stack: string | undefined): boolean {
+  if (INFRASTRUCTURE_MESSAGE_PATTERNS.some(r => r.test(msg))) return true;
+  if (stack && INFRASTRUCTURE_STACK_PATTERNS.some(r => r.test(stack))) return true;
+  return false;
+}
+
 // ── Public push API ───────────────────────────────────────────────────────────
 
 export function pushError(
@@ -84,11 +114,14 @@ export function pushError(
   source?: string,
 ): void {
   const err = error instanceof Error ? error : new Error(String(error));
+  const message   = err.message.slice(0, 300);
+  const stack     = sanitizeStack(err.stack);
   const entry: DiagnosticError = {
-    message:   err.message.slice(0, 300),
-    stack:     sanitizeStack(err.stack),
+    message,
+    stack,
     source,
-    timestamp: new Date().toISOString(),
+    timestamp:       new Date().toISOString(),
+    isInfrastructure: detectInfrastructure(message, err.stack),
   };
   _errors = [entry, ..._errors].slice(0, MAX_ERRORS);
 }
