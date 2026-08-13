@@ -17,7 +17,8 @@ import type { AuthenticatedRequest } from "../middleware/requireAuth";
 import { restaurantEngine, officialJsonProvider } from "../services/away-from-home/ProviderRegistry";
 import { findBrandBySlug, getAllBrands } from "../services/away-from-home/BrandRegistry";
 import { generateMenuItemRecommendations } from "../services/away-from-home/generateMenuItemRecommendations";
-import { generateRestaurantMealsAI } from "../services/restaurantMealGeneratorAI";
+import { generateRestaurantMealsAI, buildRemainingMacrosBlock } from "../services/restaurantMealGeneratorAI";
+import { resolveDailyNutritionState } from "../services/nutritionStateService";
 import { computeAlphaGalBadge } from "../services/medicalBadges";
 import { emitActivityEvent } from "../services/coaching/activityEvents";
 
