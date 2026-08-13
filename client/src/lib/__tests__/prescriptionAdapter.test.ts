@@ -376,3 +376,80 @@ describe("Fat smoke — fat_g is non-zero when only fatTarget is present", () =>
     expect(result).toBeUndefined();
   });
 });
+
+// ── Calorie smoke ─────────────────────────────────────────────────────────────
+//
+// calories_kcal has the same field-name-mismatch risk as every other mapped
+// field: if calorieTarget were ever renamed on the server-side prescription
+// (or mistyped in the adapter), calories_kcal would silently become undefined
+// — no TypeScript error, no visible crash, just every builder showing zero
+// calories. These tests lock down the calorieTarget → calories_kcal mapping.
+
+describe("Calorie smoke — calories_kcal is non-zero when only calorieTarget is present", () => {
+  it("calories_kcal is truthy (non-zero, non-undefined) when caloriesTarget is set alongside the core macros", () => {
+    const result = prescriptionToTargetsOverride({
+      proteinTarget: 160,
+      carbsTarget: 180,
+      fatTarget: 65,
+      caloriesTarget: 1900,
+      // starchyCarbsTarget and fibrousCarbsTarget intentionally absent
+    });
+    expect(result).toBeDefined();
+    expect(result!.calories_kcal).toBeDefined();
+    expect(result!.calories_kcal).toBeGreaterThan(0);
+  });
+
+  it("calories_kcal carries the exact value from caloriesTarget", () => {
+    const result = prescriptionToTargetsOverride({
+      proteinTarget: 160,
+      carbsTarget: 180,
+      fatTarget: 65,
+      caloriesTarget: 2050,
+    });
+    expect(result!.calories_kcal).toBe(2050);
+  });
+
+  it("calories_kcal is truthy for a clinical prescription with caloriesTarget set", () => {
+    const result = prescriptionToTargetsOverride(
+      validPrescription({ caloriesTarget: 1750, source: "clinical" }),
+    );
+    expect(result!.calories_kcal).toBe(1750);
+  });
+
+  it("calories_kcal is truthy for a performance prescription with caloriesTarget set", () => {
+    const result = prescriptionToTargetsOverride(
+      validPrescription({ caloriesTarget: 2800, source: "performance" }),
+    );
+    expect(result!.calories_kcal).toBe(2800);
+  });
+
+  it("calories_kcal is undefined (not 0) when caloriesTarget is absent — never silently zeroed", () => {
+    // Build a prescription without caloriesTarget to confirm the adapter does
+    // not substitute 0 when the field is missing.
+    const result = prescriptionToTargetsOverride({
+      proteinTarget: 180,
+      carbsTarget: 200,
+      fatTarget: 70,
+      // caloriesTarget intentionally absent
+    });
+    expect(result).toBeDefined();
+    // Must be undefined — not 0 — so callers can distinguish
+    // "calorie target not set" from "calorie target is zero".
+    expect(result!.calories_kcal).toBeUndefined();
+  });
+
+  it("calories_kcal is undefined when prescription is null (baseline fallback path)", () => {
+    const result = prescriptionToTargetsOverride(null);
+    expect(result).toBeUndefined();
+    // calories_kcal is not accessible — the whole result is undefined,
+    // not an object with calories_kcal: 0.
+  });
+
+  it("calories_kcal is undefined when source is fallback (server could not resolve)", () => {
+    const result = prescriptionToTargetsOverride(
+      validPrescription({ caloriesTarget: 2000, source: "fallback" }),
+    );
+    // The whole override is undefined — caller must use baseline
+    expect(result).toBeUndefined();
+  });
+});
