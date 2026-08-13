@@ -1,0 +1,151 @@
+/**
+ * prescriptionAdapter.test.ts
+ *
+ * Unit tests for prescriptionToTargetsOverride().
+ *
+ * This adapter is the single place where server DailyNutritionPrescription
+ * field names (proteinTarget, carbsTarget, fatTarget …) are translated to
+ * the MacroTargets display contract (protein_g, carbs_g, fat_g …) consumed
+ * by DailyTargetsCard and RemainingMacrosFooter across all 7 builders.
+ *
+ * The root-cause bug that prompted these tests was a field rename that was
+ * invisible to TypeScript because 438 pre-existing errors suppressed the
+ * excess-property diagnostic. These tests catch that class of regression
+ * even when the compiler is silent.
+ */
+
+import { prescriptionToTargetsOverride } from "../prescriptionAdapter";
+
+// ── helpers ───────────────────────────────────────────────────────────────────
+
+function validPrescription(overrides: Record<string, unknown> = {}) {
+  return {
+    proteinTarget: 180,
+    carbsTarget: 200,
+    fatTarget: 70,
+    starchyCarbsTarget: 80,
+    fibrousCarbsTarget: 120,
+    source: "performance",
+    ...overrides,
+  };
+}
+
+// ── Field-name mapping ────────────────────────────────────────────────────────
+
+describe("prescriptionToTargetsOverride — field mapping", () => {
+  it("maps proteinTarget → protein_g", () => {
+    const result = prescriptionToTargetsOverride(validPrescription({ proteinTarget: 175 }));
+    expect(result?.protein_g).toBe(175);
+  });
+
+  it("maps carbsTarget → carbs_g", () => {
+    const result = prescriptionToTargetsOverride(validPrescription({ carbsTarget: 220 }));
+    expect(result?.carbs_g).toBe(220);
+  });
+
+  it("maps fatTarget → fat_g", () => {
+    const result = prescriptionToTargetsOverride(validPrescription({ fatTarget: 65 }));
+    expect(result?.fat_g).toBe(65);
+  });
+
+  it("maps starchyCarbsTarget → starchyCarbs_g", () => {
+    const result = prescriptionToTargetsOverride(validPrescription({ starchyCarbsTarget: 90 }));
+    expect(result?.starchyCarbs_g).toBe(90);
+  });
+
+  it("maps fibrousCarbsTarget → fibrousCarbs_g", () => {
+    const result = prescriptionToTargetsOverride(validPrescription({ fibrousCarbsTarget: 130 }));
+    expect(result?.fibrousCarbs_g).toBe(130);
+  });
+
+  it("returns the complete MacroTargets shape with all five fields", () => {
+    const result = prescriptionToTargetsOverride(
+      validPrescription({
+        proteinTarget: 180,
+        carbsTarget: 200,
+        fatTarget: 70,
+        starchyCarbsTarget: 80,
+        fibrousCarbsTarget: 120,
+      }),
+    );
+    expect(result).toEqual({
+      protein_g:      180,
+      carbs_g:        200,
+      fat_g:          70,
+      starchyCarbs_g: 80,
+      fibrousCarbs_g: 120,
+    });
+  });
+
+  it("preserves undefined starchyCarbsTarget as undefined (not 0)", () => {
+    const result = prescriptionToTargetsOverride({
+      proteinTarget: 180,
+      carbsTarget: 200,
+      fatTarget: 70,
+    });
+    expect(result?.starchyCarbs_g).toBeUndefined();
+  });
+});
+
+// ── Null / undefined guards ───────────────────────────────────────────────────
+
+describe("prescriptionToTargetsOverride — null / undefined guards", () => {
+  it("returns undefined for null prescription", () => {
+    expect(prescriptionToTargetsOverride(null)).toBeUndefined();
+  });
+
+  it("returns undefined for undefined prescription", () => {
+    expect(prescriptionToTargetsOverride(undefined)).toBeUndefined();
+  });
+});
+
+// ── Fallback source guard ─────────────────────────────────────────────────────
+
+describe('prescriptionToTargetsOverride — source === "fallback"', () => {
+  it('returns undefined when source is "fallback"', () => {
+    const result = prescriptionToTargetsOverride(validPrescription({ source: "fallback" }));
+    expect(result).toBeUndefined();
+  });
+
+  it("returns a value when source is any other string", () => {
+    for (const source of ["performance", "procare", "clinical", "regular", undefined]) {
+      const result = prescriptionToTargetsOverride(validPrescription({ source }));
+      expect(result).toBeDefined();
+    }
+  });
+});
+
+// ── Zero-value guard ──────────────────────────────────────────────────────────
+
+describe("prescriptionToTargetsOverride — zero-value guard", () => {
+  it("returns undefined when both proteinTarget and carbsTarget are 0", () => {
+    const result = prescriptionToTargetsOverride(
+      validPrescription({ proteinTarget: 0, carbsTarget: 0 }),
+    );
+    expect(result).toBeUndefined();
+  });
+
+  it("returns a value when proteinTarget is 0 but carbsTarget is positive", () => {
+    const result = prescriptionToTargetsOverride(
+      validPrescription({ proteinTarget: 0, carbsTarget: 150 }),
+    );
+    expect(result).toBeDefined();
+    expect(result?.carbs_g).toBe(150);
+  });
+
+  it("returns a value when carbsTarget is 0 but proteinTarget is positive", () => {
+    const result = prescriptionToTargetsOverride(
+      validPrescription({ proteinTarget: 180, carbsTarget: 0 }),
+    );
+    expect(result).toBeDefined();
+    expect(result?.protein_g).toBe(180);
+  });
+
+  it("returns undefined for negative proteinTarget and carbsTarget (treated as unresolved)", () => {
+    // Negative values fail the > 0 check so both branches return undefined
+    const result = prescriptionToTargetsOverride(
+      validPrescription({ proteinTarget: -1, carbsTarget: -1 }),
+    );
+    expect(result).toBeUndefined();
+  });
+});

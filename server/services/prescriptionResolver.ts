@@ -324,10 +324,15 @@ export async function resolveDailyNutritionPrescription(
   // Map internal source names to the DB's source vocabulary.
   // Each distinct source must be stored distinctly so mid-day-change detection
   // in nutritionStateService can compare stored vs. current without false positives.
+  // Re-widen to the full PrescriptionSource union so the "professional_override"
+  // branch compiles even though the current resolver paths only assign
+  // "user_default", "clinical", and "performance". The branch is preserved
+  // for when ProCare overrides are wired in.
+  const srcKey = source as PrescriptionSource;
   const dbSource =
-    source === "performance"          ? "performance_overlay" :
-    source === "clinical"             ? "clinical"            :
-    source === "professional_override"? "procare"             :
+    srcKey === "performance"          ? "performance_overlay" :
+    srcKey === "clinical"             ? "clinical"            :
+    srcKey === "professional_override"? "procare"             :
     "macro_calculator";
   const rationaleSig = rationaleCodes.join(",");
 
