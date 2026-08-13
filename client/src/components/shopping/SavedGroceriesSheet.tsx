@@ -23,18 +23,78 @@ import {
   Loader2,
   AlertTriangle,
   CheckCircle2,
+  ChevronRight,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useShoppingListStore } from "@/stores/shoppingListStore";
+import { IngredientIntelligenceSheet } from "@/components/biometrics/IngredientIntelligenceSheet";
+import type { IngredientScanResult } from "@/lib/photoIngredientCapture";
+
+interface SavedGroceryItemMeta {
+  alignmentGrade?: string;
+  verdictLevel?: string;
+  analysisMethod?: string;
+  ingredients?: string[];
+  resolvedFromDb?: boolean;
+  resolvedName?: string;
+}
 
 interface SavedGroceryItem {
   id: string;
   productName: string;
   brand: string | null;
+  barcode: string | null;
   category: string | null;
   source: string;
-  nutritionJson: Record<string, number> | null;
+  nutritionJson: Record<string, any> | null;
+  productMeta: SavedGroceryItemMeta | null;
   savedAt: string;
+}
+
+/**
+ * Reconstruct a minimal IngredientScanResult from a saved grocery item so
+ * IngredientIntelligenceSheet can display the badge and whatever analysis
+ * data was persisted at save time.
+ */
+function buildResultFromSavedItem(item: SavedGroceryItem): IngredientScanResult {
+  const meta = item.productMeta ?? {};
+  const nutrition = item.nutritionJson ?? {};
+
+  return {
+    productName: item.brand ? `${item.brand} ${item.productName}` : item.productName,
+    alignmentGrade: (meta.alignmentGrade as IngredientScanResult['alignmentGrade']) ?? 'B',
+    verdictLevel: (meta.verdictLevel as IngredientScanResult['verdictLevel']) ?? 'caution',
+    analysisMethod: (meta.analysisMethod as IngredientScanResult['analysisMethod']) ?? 'by_name',
+    overallSummary: '',
+    verdict: '',
+    scoreCards: nutrition.scoreCards ?? {
+      kids:        { verdict: 'neutral', reason: '' },
+      adults:      { verdict: 'neutral', reason: '' },
+      diet:        { verdict: 'neutral', reason: '' },
+      fitnessGoal: { verdict: 'neutral', reason: '' },
+    },
+    outcomeCards: nutrition.outcomeCards ?? [],
+    analysisProfile: [],
+    betterAlternatives: [],
+    ingredientDecoder: [],
+    ingredientConsiderations: [],
+    mayNotAlignWith: [],
+    betterFor: [],
+    householdNotes: [],
+    educationalFooter: '',
+    extractedIngredients: meta.ingredients ?? [],
+    highRiskFindings: [],
+    ocrConfidenceLow: false,
+    fallbackUsed: false,
+    isFrontLabel: false,
+    productNameMissing: false,
+    profileFactorsUsed: [],
+    whatMattersMost: [],
+    // Barcode DB resolution metadata — drives the badge in IngredientIntelligenceSheet
+    barcode: item.barcode ?? undefined,
+    resolvedFromDb: meta.resolvedFromDb,
+    resolvedName: meta.resolvedName,
+  };
 }
 
 interface Props {
@@ -85,6 +145,7 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [analysisItem, setAnalysisItem] = useState<SavedGroceryItem | null>(null);
 
   const fetchItems = useCallback(async () => {
     setLoading(true);
@@ -156,11 +217,11 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
 
   if (!open) return null;
 
-  return createPortal(
+  const mainSheet = createPortal(
     <AnimatePresence>
       {open && (
         <>
-          {/* Backdrop */}
+          {/* Backdrop — hidden while analysis sheet is open so z-index doesn't fight */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -169,10 +230,11 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
             style={{
               position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)",
               backdropFilter: "blur(4px)", zIndex: 9998,
+              visibility: analysisItem ? "hidden" : "visible",
             }}
           />
 
-          {/* Sheet */}
+          {/* Sheet — hidden while analysis sheet is open so z-index doesn't fight */}
           <motion.div
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
@@ -186,6 +248,7 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
               padding: "0 0 env(safe-area-inset-bottom, 16px)",
               zIndex: 9999,
               boxShadow: "0 -8px 40px rgba(0,0,0,0.5)",
+              visibility: analysisItem ? "hidden" : "visible",
             }}
           >
             {/* Drag handle */}
@@ -276,6 +339,7 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
                         const isAdding = addingId === item.id;
                         const isAdded = addedIds.has(item.id);
                         const isRemoving = removingId === item.id;
+                        const hasAnalysis = !!(item.productMeta?.alignmentGrade || item.productMeta?.resolvedFromDb !== undefined);
 
                         return (
                           <div
@@ -287,9 +351,22 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
                               border: "1px solid rgba(255,255,255,0.07)",
                             }}
                           >
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ color: "white", fontWeight: 600, fontSize: 14, marginBottom: 2 }}>
-                                {item.productName}
+                            {/* Tappable product info — opens analysis sheet if data exists */}
+                            <button
+                              onClick={() => hasAnalysis && setAnalysisItem(item)}
+                              style={{
+                                flex: 1, minWidth: 0, background: "none", border: "none",
+                                cursor: hasAnalysis ? "pointer" : "default",
+                                textAlign: "left", padding: 0,
+                              }}
+                            >
+                              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                                <div style={{ color: "white", fontWeight: 600, fontSize: 14, marginBottom: 2 }}>
+                                  {item.productName}
+                                </div>
+                                {hasAnalysis && (
+                                  <ChevronRight style={{ width: 13, height: 13, color: "rgba(249,115,22,0.6)", flexShrink: 0 }} />
+                                )}
                               </div>
                               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                                 {item.brand && (
@@ -304,8 +381,17 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
                                 }}>
                                   {SOURCE_LABEL[item.source] ?? item.source}
                                 </span>
+                                {item.productMeta?.resolvedFromDb === true && (
+                                  <span style={{
+                                    padding: "1px 6px", borderRadius: 999, fontSize: 10, fontWeight: 600,
+                                    background: "rgba(16,185,129,0.12)", color: "rgba(16,185,129,0.8)",
+                                    border: "1px solid rgba(16,185,129,0.2)",
+                                  }}>
+                                    ✓ DB
+                                  </span>
+                                )}
                               </div>
-                            </div>
+                            </button>
 
                             {/* Add to list */}
                             <button
@@ -357,5 +443,21 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
       )}
     </AnimatePresence>,
     document.body,
+  );
+
+  // Render the analysis sheet outside the main portal so it layers above it
+  const analysisSheet = analysisItem ? (
+    <IngredientIntelligenceSheet
+      open={!!analysisItem}
+      result={buildResultFromSavedItem(analysisItem)}
+      onClose={() => setAnalysisItem(null)}
+    />
+  ) : null;
+
+  return (
+    <>
+      {mainSheet}
+      {analysisSheet}
+    </>
   );
 }

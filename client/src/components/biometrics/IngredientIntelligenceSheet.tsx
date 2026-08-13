@@ -593,6 +593,10 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
             ingredients: activeResult.extractedIngredients?.length
               ? activeResult.extractedIngredients
               : undefined,
+            // Persist barcode DB resolution metadata so the badge is available
+            // when a saved grocery is reopened in the sheet without a fresh scan.
+            resolvedFromDb: activeResult.resolvedFromDb,
+            resolvedName: activeResult.resolvedName ?? undefined,
           },
         }),
         headers: { 'Content-Type': 'application/json' },
@@ -755,8 +759,9 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
                     onScanLabel={onRescan}
                   />
 
-                  {/* Barcode database source badge — shown only for barcode-originated scans */}
-                  {activeResult.barcode && activeResult.resolvedFromDb !== undefined && (
+                  {/* Barcode database source badge — shown for barcode scans and saved
+                      groceries whose productMeta preserved resolvedFromDb */}
+                  {activeResult.resolvedFromDb !== undefined && (
                     <BarcodeDatabaseBadge
                       resolvedFromDb={activeResult.resolvedFromDb}
                       resolvedName={activeResult.resolvedName}
