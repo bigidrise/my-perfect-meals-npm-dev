@@ -1614,6 +1614,7 @@ export default function DiabeticMenuBuilder() {
             userId={effectiveUserId}
             onQuickAddClick={() => setAdditionalMacrosOpen(true)}
             targetsOverride={effectiveTargets}
+            isLoading={nutritionStateLoading}
           />
         </div>
 
@@ -1699,6 +1700,7 @@ export default function DiabeticMenuBuilder() {
                 <RemainingMacrosFooter
                   consumedOverride={consumed}
                   targetsOverride={effectiveTargets}
+                  isLoading={nutritionStateLoading}
                   showSaveButton={false}
                   layoutMode="inline"
                   prescriptionChangedMidDay={nutritionState?.prescriptionChangedMidDay}

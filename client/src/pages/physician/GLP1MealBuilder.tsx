@@ -1483,6 +1483,7 @@ export default function GLP1MealBuilder() {
               userId={effectiveUserId}
               onQuickAddClick={() => setAdditionalMacrosOpen(true)}
               targetsOverride={effectiveTargets}
+              isLoading={nutritionStateLoading}
             />
           </div>
 
@@ -1542,6 +1543,7 @@ export default function GLP1MealBuilder() {
                 <RemainingMacrosFooter
                   consumedOverride={consumed}
                   targetsOverride={effectiveTargets}
+                  isLoading={nutritionStateLoading}
                   showSaveButton={false}
                   layoutMode="inline"
                   prescriptionChangedMidDay={nutritionState?.prescriptionChangedMidDay}
