@@ -61,6 +61,11 @@ router.get("/:dateISO", requireAuth, async (req, res) => {
     }
 
     const state = await resolveDailyNutritionState(userId, dateISO);
+    res.set({
+      "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "Pragma": "no-cache",
+      "Expires": "0",
+    });
     res.json(state);
   } catch (err: any) {
     if (err?.message?.startsWith("User not found")) {
