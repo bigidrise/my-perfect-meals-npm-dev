@@ -435,8 +435,9 @@ export default function WeeklyMealBoard() {
     disabled: !activeDayISO,
   });
   const prescription = nutritionState?.prescription ?? null;
-  // Training prescription is the display authority when resolved; falls back to
-  // macro-calculator baseline (nutritionTargets) for non-performance/fallback days.
+  // Server prescription (clinical, performance, or user_default) is the display
+  // authority whenever the server resolves one. Falls back to macro-calculator
+  // baseline only when the server returns null or source === "fallback".
   const effectiveTargets = prescriptionToTargetsOverride(prescription) ?? nutritionTargets;
 
   // Computed: check if week mode is read-only (any day in week is locked)

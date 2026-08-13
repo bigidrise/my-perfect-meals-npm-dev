@@ -392,8 +392,9 @@ export default function DiabeticMenuBuilder() {
     disabled: !activeDayISO,
   });
   const prescription = nutritionState?.prescription ?? null;
-  // Training prescription is the display authority when resolved; falls back to
-  // macro-calculator baseline (nutritionTargets) for non-performance/fallback days.
+  // Server prescription (clinical, performance, or user_default) is the display
+  // authority whenever the server resolves one. Falls back to macro-calculator
+  // baseline only when the server returns null or source === "fallback".
   const effectiveTargets = prescriptionToTargetsOverride(prescription) ?? nutritionTargets;
 
   // Day macro totals for the Today row — consumed cal/P/C/F for the active day.
@@ -941,7 +942,7 @@ export default function DiabeticMenuBuilder() {
     const r = nutritionState.remaining;
     return {
       protein:  r.protein,
-      carbs:    r.totalCarbs,
+      carbs:    r.carbs,
       fat:      r.fat,
       calories: r.calories,
     };

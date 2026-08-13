@@ -34,8 +34,12 @@ interface PrescriptionLike {
  * Convert a server-resolved prescription to the MacroTargets shape consumed
  * by DailyTargetsCard (`targetsOverride`) and RemainingMacrosFooter (`targetsOverride`).
  *
- * Returns `undefined` when the prescription is absent or a fallback so that
- * callers can supply their own default (typically `useBaselineNutrition()`).
+ * Returns `undefined` only when the prescription is absent OR when
+ * source === "fallback" (the server itself fell back to raw macro-calc values
+ * because it couldn't resolve — rare). ALL other sources — "user_default",
+ * "clinical" (GLP-1, diabetic, anti-inflammatory), "performance", and
+ * "professional_override" — are treated as authoritative and override the
+ * client-side macro-calculator baseline.
  *
  * Usage in a builder:
  *   const prescription = nutritionState?.prescription ?? null;

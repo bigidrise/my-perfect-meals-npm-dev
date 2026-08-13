@@ -348,7 +348,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     const r = nutritionState.remaining;
     return {
       protein:  r.protein,
-      carbs:    r.totalCarbs,
+      carbs:    r.carbs,
       fat:      r.fat,
       calories: r.calories,
     };
