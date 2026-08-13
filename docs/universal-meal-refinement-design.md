@@ -311,10 +311,20 @@ When `slotContext` is present, the server resolves in this order before any LLM 
    Allergies, dietary identity, avoidances, conditions.
 
 6. Compute slot budget:
-   slotBudget = remainingMacros − (planned macros for OTHER slots this day)
-   = DailyNutritionState.remaining − (sum of planned items excluding THIS itemId/mealId)
+   Call resolveDailyNutritionState with itemId (or mealId for JSON system) excluded
+   from the planned totals. Call this result dailyStateWithoutThisItem.
 
-   This is the maximum the refined meal may consume.
+   slotBudget = dailyStateWithoutThisItem.remaining
+
+   This is equivalent to:
+     prescription − consumed − sum(other planned items, NOT including i-xxx)
+
+   It is the maximum the refined meal may consume.
+
+   ⚠ COMMON MISTAKE: Do NOT subtract other planned items a second time.
+   DailyNutritionState.remaining already deducts all planned items from the
+   prescription. If i-xxx is excluded when calling the resolver, the remaining
+   value IS the slot budget — no further subtraction is needed or correct.
 
 7. Compute starch allowance:
    If Performance is active: starchMealsAllowed for today from prescription.
@@ -365,12 +375,13 @@ POST /api/refinement/preview
 **Server resolution (steps 1–11 above)**
 
 1. Confirm userId owns board b-xxx ✓
-2. `resolveDailyNutritionState("u-xxx", "2026-08-18")`:
+2. `resolveDailyNutritionState("u-xxx", "2026-08-18", excludeItemId: "i-xxx")`:
    - prescription: 2400 cal, 180g protein, 240g carbs, 80g fat
-   - consumed (breakfast): 620 cal, 45g protein, 68g carbs, 18g fat
-   - planned (other items this day): 520 cal (dinner, not yet logged)
-   - remaining = 2400 − 620 − 520 = 1260 cal for lunch + snacks
-   - slot budget for lunch (item i-xxx excluded from planned): 680 cal, 52g protein, 88g carbs, 22g fat
+   - consumed (breakfast logged): 620 cal, 45g protein, 68g carbs, 18g fat
+   - planned (other items, i-xxx excluded): 520 cal, 38g protein, 52g carbs, 15g fat (dinner only)
+   - dailyStateWithoutThisItem.remaining = 2400−620−520 = 1260 cal | 97g protein | 120g carbs | 47g fat
+   - slotBudget = remaining = 1260 cal, 97g protein, 120g carbs, 47g fat
+     (The full remaining budget is available for this lunch slot; no further subtraction.)
 3. Performance prescription: Tuesday = training day. `starchMealsAllowed = 2`. One starch already consumed at breakfast → 1 remaining. Starch must stay ≤ remaining allowance.
 4. GLP-1 active: `maximumToleratedFatGrams = 20g` per meal.
 5. Protocol envelope: no allergies, Performance profile.
@@ -401,18 +412,25 @@ Refined: Grilled Chicken Bowl with Sweet Potato
 Server verifies token (signature + expiry). Then:
 
 ```
-1. Store original snapshot:
-   UPDATE meal_board_items
-     SET original_meal_snapshot = <existingMeal JSON>,
-         refinement_token = <token>
-   WHERE id = 'i-xxx'
+1. Replace reservation — INSERT first, DELETE second (atomicity):
+   POST   /api/boards/b-xxx/items {
+     dayIndex, slot,
+     mealId (new UUID),
+     title, macros (refined), ingredients (refined),
+     original_meal_snapshot: <existingMeal JSON from token>   ← stored on NEW item
+   }
+   → returns new itemId "i-yyy"
 
-2. Replace reservation:
    DELETE /api/boards/b-xxx/items/i-xxx  (releaseLog: false — preserve any consumed log)
-   POST   /api/boards/b-xxx/items        { dayIndex, slot, mealId (new UUID), title, macros (refined), ingredients (refined) }
+   → only attempted after INSERT succeeds; if DELETE fails, log the orphan but do not 500
 
-3. Respond with { success: true, replacedItemId: "i-yyy", originalSnapshot: {...}, restoreToken: "..." }
+2. Respond with { success: true, replacedItemId: "i-yyy", originalSnapshot: {...}, restoreToken: "..." }
 ```
+
+⚠ ORDERING RULE: The original snapshot must be stored on the NEW item i-yyy, not on i-xxx.
+i-xxx is deleted during confirm — any data written to it is immediately lost.
+The token already carries originalMeal (signed), so the INSERT can write it directly to i-yyy.original_meal_snapshot.
+For the JSON board system: write new board state first, verify write, then remove old mealId from slot.
 
 **Planned/remaining update** happens automatically — `resolveDailyNutritionState` recomputes next time it is called. No manual total update needed; the normalized board items are the source of truth.
 
