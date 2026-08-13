@@ -1,89 +1,260 @@
 /**
- * mealRefinement.ts — POST /api/meal-refinement/refine
+ * Meal Refinement Route — POST /api/meal-refinement/refine
  *
- * Universal meal refinement endpoint. Any builder can send its existing meal JSON
- * and a natural-language change instruction to receive an updated meal in the same
- * schema, validated against the user's full protocol context.
+ * Takes a generated meal + a refinement request (chip text or free text)
+ * and returns an improved version that still passes the full protocol stack.
  *
- * Auth: requireAuth (every authenticated user can refine meals).
- * Clinical gates: enforced inside mealRefinementEngine via protocol envelope.
+ * SECURITY: Fail-closed for authenticated users — if the protocol envelope
+ * cannot be loaded the request is rejected with 503 rather than silently
+ * falling back to the permissive guest envelope, which would bypass the
+ * user's clinical/dietary restrictions.
  */
 
-import express from "express";
-import { refineMeal, MealRefinementRetryableError } from "../services/mealRefinementEngine";
+import { Router } from "express";
+import OpenAI from "openai";
+import { requireAuth } from "../middleware/requireAuth";
+import { requireActiveAccess } from "../middleware/requireActiveAccess";
+import {
+  loadUserProtocolEnvelope,
+  enforceBeforeGenerate,
+  scanGeneratedOutput,
+  buildGuestEnvelope,
+} from "../services/protocolEnvelope";
+import { getAuthUserId } from "../utils/getAuthUserId";
 
-const router = express.Router();
+const router = Router();
 
-function resolveUserId(req: any): string | undefined {
-  return req.authUser?.id || (req.session as any)?.userId || req.user?.id;
+let _openai: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!_openai) _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  return _openai;
 }
 
-/**
- * POST /api/meal-refinement/refine
- *
- * Body:
- *   existingMeal      {object}  — Full meal JSON from any builder.
- *   changeInstruction {string}  — Natural-language description of the change.
- *   mealType?         {string}  — "breakfast" | "lunch" | "dinner" | "snack" (default: "lunch")
- *   generatorName?    {string}  — Originating builder name for NDE audit (default: "meal_refinement")
- *
- * Response:
- *   updatedMeal       {object}  — Modified meal in the same schema as existingMeal.
- *   changesSummary    {string}  — What changed and why.
- *   protocolNote      {string|null} — Protocol note when a soft constraint was relevant.
- */
-router.post("/refine", async (req, res) => {
-  try {
-    const userId = resolveUserId(req);
-    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+/** Flatten a meal's ingredient list to a readable string for the prompt. */
+function summarizeIngredients(ingredients: any[]): string {
+  return ingredients
+    .map((i) => {
+      if (typeof i === "string") return i;
+      const qty = i.quantity ?? i.amount ?? "";
+      const unit = i.unit ?? "";
+      const name = i.name ?? i.item ?? "ingredient";
+      return [qty, unit, name].filter(Boolean).join(" ").trim();
+    })
+    .join(", ");
+}
 
-    const { existingMeal, changeInstruction, mealType, generatorName } = req.body;
-
-    if (!existingMeal || typeof existingMeal !== "object" || Array.isArray(existingMeal)) {
-      return res.status(400).json({ error: "existingMeal must be a non-null object." });
-    }
-
-    if (!changeInstruction || typeof changeInstruction !== "string" || !changeInstruction.trim()) {
-      return res.status(400).json({ error: "changeInstruction is required." });
-    }
-
-    const validMealTypes = ["breakfast", "lunch", "dinner", "snack"];
-    const resolvedMealType = validMealTypes.includes(mealType) ? mealType : "lunch";
-
-    const result = await refineMeal({
-      userId,
-      existingMeal: existingMeal as Record<string, unknown>,
-      changeInstruction: changeInstruction.trim(),
-      mealType: resolvedMealType as "breakfast" | "lunch" | "dinner" | "snack",
-      generatorName: typeof generatorName === "string" ? generatorName : "meal_refinement",
-    });
-
-    return res.json(result);
-  } catch (err: any) {
-    const message: string = err?.message ?? "Meal refinement unavailable. Please try again.";
-
-    // GLP-1 resolver temporarily unavailable — clients must retry, not treat as a user error
-    if (err instanceof MealRefinementRetryableError) {
-      return res.status(503).json({ error: message, retryable: true });
-    }
-
-    // PROTOCOL_VIOLATION — user-facing error with a specific action hint
-    if (message.startsWith("PROTOCOL_VIOLATION")) {
-      return res.status(400).json({
-        error: "PROTOCOL_VIOLATION",
-        message: message.replace(/^PROTOCOL_VIOLATION:\s*/, ""),
-        retryable: true,
-      });
-    }
-
-    // Hard protocol block — modification conflicts with active health protocol
-    if (message.includes("conflicts with your active health protocol")) {
-      return res.status(422).json({ error: message });
-    }
-
-    console.error("[MealRefinement] Error:", message);
-    return res.status(500).json({ error: "Meal refinement unavailable. Please try again." });
+/** Flatten instructions to a readable string for the prompt. */
+function summarizeInstructions(instructions: any): string {
+  if (!instructions) return "";
+  if (typeof instructions === "string") return instructions.slice(0, 500);
+  if (Array.isArray(instructions)) {
+    return instructions
+      .map((s, i) => {
+        const text = typeof s === "string" ? s : s.step ?? s.text ?? JSON.stringify(s);
+        return `${i + 1}. ${text}`;
+      })
+      .join(" ")
+      .slice(0, 500);
   }
-});
+  return "";
+}
+
+router.post(
+  "/refine",
+  requireAuth,
+  requireActiveAccess,
+  async (req: any, res: any) => {
+    try {
+      const { meal, request: refinementRequest, builderType } = req.body;
+
+      if (!meal || typeof meal !== "object") {
+        return res.status(400).json({ error: "meal is required" });
+      }
+      if (!refinementRequest || typeof refinementRequest !== "string") {
+        return res.status(400).json({ error: "request is required" });
+      }
+
+      const userId = getAuthUserId(req as any);
+
+      // Load protocol envelope.
+      // For authenticated users, a failed load is a hard error — we must not
+      // silently fall back to the guest envelope and generate a meal that
+      // could violate their allergies or medical restrictions.
+      let envelope = buildGuestEnvelope();
+      let protocolContext = "";
+      if (userId) {
+        let loaded;
+        try {
+          loaded = await loadUserProtocolEnvelope(userId);
+        } catch (envelopeErr) {
+          console.error("[MealRefinement] Protocol envelope load failed for authenticated user:", envelopeErr);
+          return res.status(503).json({
+            error: "Could not load your dietary profile. Please try again in a moment.",
+          });
+        }
+        if (!loaded) {
+          return res.status(503).json({
+            error: "Could not load your dietary profile. Please try again in a moment.",
+          });
+        }
+        envelope = loaded;
+        try {
+          const enforced = enforceBeforeGenerate(envelope, {
+            generatorName: "meal_refinement",
+          });
+          protocolContext = enforced.combined;
+        } catch (enforceErr) {
+          console.error("[MealRefinement] Protocol enforcement failed:", enforceErr);
+          return res.status(503).json({
+            error: "Could not apply your dietary rules. Please try again in a moment.",
+          });
+        }
+      }
+
+      // Build a readable summary of the original meal
+      const name = meal.name ?? meal.title ?? "Unknown Meal";
+      const description = meal.description ?? "";
+      const ingredients = summarizeIngredients(meal.ingredients ?? []);
+      const instructions = summarizeInstructions(
+        meal.instructions ?? meal.cookingInstructions
+      );
+      // Support both standard (protein/carbs/fat) and _g-suffixed (protein_g/carbs_g/fat_g)
+      // schema variants so MealCardFull meals (which use _g fields) produce accurate context.
+      const nutrition = meal.nutrition
+        ? `${meal.nutrition.calories ?? 0} cal, ${meal.nutrition.protein ?? meal.nutrition.protein_g ?? 0}g protein, ${meal.nutrition.carbs ?? meal.nutrition.carbs_g ?? 0}g carbs, ${meal.nutrition.fat ?? meal.nutrition.fat_g ?? 0}g fat`
+        : `${meal.calories ?? 0} cal, ${meal.protein ?? meal.protein_g ?? 0}g protein, ${meal.carbs ?? meal.carbs_g ?? 0}g carbs, ${meal.fat ?? meal.fat_g ?? 0}g fat`;
+      const servings = meal.servings ?? meal.servingCount ?? 2;
+      const cookingTime = meal.cookingTime ?? meal.prepTime ?? "";
+      const difficulty = meal.difficulty ?? "";
+
+      const systemPrompt = `You are a precision nutrition coach refining an existing meal based on a user's request. Make the minimum change needed to honour the request while keeping the spirit of the original dish. Return a complete, improved meal.
+
+ACTIVE PROTOCOL CONSTRAINTS (non-negotiable — never violate even if the user asks):
+${protocolContext || "No special dietary restrictions on file — apply general healthy eating principles."}
+
+RULES:
+- Keep the same meal style and approximate macros unless the request explicitly targets them.
+- Only change what the user requests — preserve everything else.
+- All protocol constraints are absolute hard limits.
+- Preserve the serving count (${servings} servings) unless asked to change it.
+- Return ONLY valid JSON — no markdown, no explanation, no extra text outside the JSON object.
+
+OUTPUT FORMAT (all fields required):
+{
+  "name": "Refined meal name",
+  "title": "Refined meal name",
+  "description": "Updated description reflecting the change",
+  "ingredients": [
+    { "name": "ingredient", "quantity": 1, "unit": "cup", "category": "Produce" }
+  ],
+  "instructions": ["Step 1…", "Step 2…"],
+  "nutrition": { "calories": 450, "protein": 35, "carbs": 40, "fat": 14 },
+  "servings": ${servings},
+  "cookingTime": "${cookingTime || "25 min"}",
+  "difficulty": "${difficulty || "Easy"}"
+}`;
+
+      const userPrompt = `ORIGINAL MEAL:
+Name: ${name}
+Description: ${description}
+Ingredients: ${ingredients}
+Instructions: ${instructions}
+Nutrition (${servings} servings): ${nutrition}
+${builderType ? `Builder type: ${builderType}` : ""}
+
+USER'S REFINEMENT REQUEST: "${refinementRequest}"
+
+Refine this meal per the request. Return only the JSON object.`;
+
+      const completion = await getOpenAI().chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        temperature: 0.7,
+        max_tokens: 1600,
+        response_format: { type: "json_object" },
+      });
+
+      const rawContent = completion.choices[0]?.message?.content;
+      if (!rawContent) {
+        return res.status(500).json({ error: "No response from AI" });
+      }
+
+      let refined: any;
+      try {
+        refined = JSON.parse(rawContent);
+      } catch {
+        return res.status(500).json({ error: "AI returned an invalid response" });
+      }
+
+      // Normalize name + title so all consumers get both fields
+      if (!refined.name && refined.title) refined.name = refined.title;
+      if (!refined.title && refined.name) refined.title = refined.name;
+
+      // Protocol scan on refined output
+      const scanMeal = {
+        name: refined.name ?? "",
+        description: refined.description ?? "",
+        ingredients: (refined.ingredients ?? []).map((i: any) => ({
+          name: typeof i === "string" ? i : (i.name ?? i.item ?? ""),
+          amount:
+            typeof i === "string"
+              ? 1
+              : (i.quantity ?? i.amount ?? 1),
+          unit: typeof i === "string" ? "" : (i.unit ?? ""),
+        })),
+        instructions: refined.instructions,
+      };
+
+      const scan = scanGeneratedOutput(scanMeal, envelope, {
+        generatorName: "meal_refinement",
+        skipAdaptableConflicts: false,
+      });
+
+      // Reject any failed scan — this covers both ingredient violations (violations array)
+      // and instruction-only violations (passed: false, empty violations array).
+      if (!scan.passed) {
+        return res.status(422).json({
+          error:
+            "The refined meal conflicts with your active dietary protocol. Please try a different refinement.",
+          ndeSummary: scan.message,
+        });
+      }
+
+      // Merge refined fields back, preserving original metadata that wasn't changed
+      const refinedName = refined.name ?? meal.name ?? meal.title ?? "Refined Meal";
+      const result = {
+        // Carry forward original non-content metadata
+        id: meal.id,
+        savedMealId: meal.savedMealId,
+        builderType: meal.builderType ?? builderType,
+        dietClassification: meal.dietClassification,
+        medicalBadges: meal.medicalBadges,
+        appliedProtocol: meal.appliedProtocol,
+        diabeticMemory: meal.diabeticMemory,
+        entryType: meal.entryType,
+        // Apply refined content
+        ...refined,
+        // Normalize name/title so MealCard (which renders title || name) always shows the new name
+        name: refinedName,
+        title: refinedName,
+        // imageUrl intentionally omitted — parent decides whether to regenerate
+        imageUrl: undefined,
+      };
+
+      return res.json({
+        meal: result,
+        refinementApplied: refinementRequest,
+      });
+    } catch (err: any) {
+      console.error("[MealRefinement] Error:", err);
+      return res
+        .status(500)
+        .json({ error: "Refinement failed. Please try again." });
+    }
+  }
+);
 
 export default router;

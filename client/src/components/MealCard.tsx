@@ -1,7 +1,7 @@
 // client/src/components/MealCard.tsx
 import * as React from "react";
 import { getMealFallbackImage } from "@/lib/mealFallbackImage";
-import { BarChart3, Loader2 } from "lucide-react";
+import { BarChart3, Loader2, Wand2, RotateCcw } from "lucide-react";
 import { useTranslatedMeal } from "@/hooks/useTranslatedMeal";
 import { getClinicalCoachingLine } from "@/utils/clinicalCoachingLine";
 import { generateMedicalBadges, getUserMedicalProfile, type MedicalBadge } from "@/utils/medicalBadges";
@@ -23,6 +23,7 @@ import FavoriteButton from "@/components/FavoriteButton";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import ProtocolVisibilityPanel from "@/components/ProtocolVisibilityPanel";
 import { useAuth } from "@/contexts/AuthContext";
+import MealRefinementSheet from "@/components/MealRefinementSheet";
 
 // UUID v4 guard — used to validate savedMealId before hitting the translation endpoint
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -144,6 +145,8 @@ export function MealCard({
   const { user } = useAuth();
   const [macrosLogged, setMacrosLogged] = React.useState(false);
   const [ingredientsExpanded, setIngredientsExpanded] = React.useState(false);
+  const [refineOpen, setRefineOpen] = React.useState(false);
+  const [preRefineMeal, setPreRefineMeal] = React.useState<Meal | null>(null);
   const [instructionsExpanded, setInstructionsExpanded] = React.useState(false);
   const [activeStep, setActiveStep] = React.useState<number | null>(null);
   const [translatedContent, setTranslatedContent] = React.useState<{
@@ -252,6 +255,7 @@ export function MealCard({
   const [imageRevealed, setImageRevealed] = React.useState(false);
 
   return (
+    <>
     <div className={`relative rounded-2xl border bg-white/5 backdrop-blur-xl overflow-hidden hover:bg-white/10 transition-colors ${isChefMeal ? "flash-border" : "border-white/20"}`}>
       {/* Image slot — always rendered for AI/chef meals so shimmer shows while loading */}
       {(isAIMeal || imageUrl) && (
@@ -533,8 +537,35 @@ export function MealCard({
           />
         </div>
 
+        {/* Undo refinement banner */}
+        {preRefineMeal && (
+          <div className="mt-3 flex items-center justify-between gap-2 rounded-lg bg-violet-950/40 border border-violet-500/30 px-3 py-2 text-xs">
+            <div className="flex items-center gap-1.5 text-violet-300">
+              <Wand2 className="h-3 w-3 shrink-0" />
+              <span>Showing refined version</span>
+            </div>
+            <button
+              className="flex items-center gap-1 text-violet-400 font-medium active:opacity-70"
+              onClick={() => {
+                onUpdated(preRefineMeal);
+                setPreRefineMeal(null);
+              }}
+            >
+              <RotateCcw className="h-3 w-3" />
+              Restore original
+            </button>
+          </div>
+        )}
+
         {/* Action Buttons */}
         <div className="mt-3 flex flex-col gap-2">
+          <button
+            className="w-full flex items-center justify-center gap-2 rounded-xl border border-violet-500/40 bg-violet-950/30 py-2.5 text-sm font-semibold text-violet-300 active:bg-violet-900/40 transition-colors"
+            onClick={() => setRefineOpen(true)}
+          >
+            <Wand2 className="h-4 w-4" />
+            Refine Meal
+          </button>
           {date !== "board" && (
             <MacroBridgeButton
               meal={{
@@ -573,5 +604,19 @@ export function MealCard({
         </div>
       </div>
     </div>
+
+    <MealRefinementSheet
+      open={refineOpen}
+      onOpenChange={setRefineOpen}
+      meal={meal}
+      builderType={builderType ?? meal.builderType}
+      onRefined={(refined) => {
+        if (!preRefineMeal) setPreRefineMeal({ ...meal });
+        // Normalize name → title so the card header (which renders title || name) updates
+        const refinedName = refined.name ?? refined.title ?? meal.title ?? meal.name;
+        onUpdated({ ...meal, ...refined, name: refinedName, title: refinedName });
+      }}
+    />
+    </>
   );
 }

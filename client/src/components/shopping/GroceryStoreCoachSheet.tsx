@@ -22,7 +22,10 @@ import {
   Bookmark,
   AlertTriangle,
   ArrowLeftRight,
+  Wand2,
+  RotateCcw,
 } from "lucide-react";
+import MealRefinementSheet from "@/components/MealRefinementSheet";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { PillButton } from "@/components/ui/pill-button";
@@ -159,16 +162,15 @@ function groupByCategory(items: ShoppingListItem[]): Record<string, ShoppingList
 }
 
 export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
+  const { user } = useAuth();
   const { toast } = useToast();
   const addItems = useShoppingListStore((s) => s.addItems);
   const [, setLocation] = useLocation();
-  const { user } = useAuth();
 
-  // Session key is scoped by userId so one user's meal data is never shown
-  // to a subsequently authenticated user on a shared browser or device.
-  const sessionKey = useMemo(
-    () => (user?.id ? `grocery-coach-session:${user.id}` : null),
-    [user?.id],
+  // Scope the session key to the authenticated user so sessions are never shared across accounts.
+  const SESSION_KEY = useMemo(
+    () => `grocery-coach-session:${user?.id ?? "guest"}`,
+    [user?.id]
   );
 
   const [phase, setPhase] = useState<Phase>("idle");
@@ -202,70 +204,63 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   const [swapCustomLoading, setSwapCustomLoading] = useState(false);
   const [swapSelected, setSwapSelected] = useState<SwapSuggestion | null>(null);
   const [swapError, setSwapError] = useState<string | null>(null);
+  // Meal refinement state
+  const [refineOpen, setRefineOpen] = useState(false);
+  const [preRefinedResult, setPreRefinedResult] = useState<CoachResult | null>(null);
+
+  // Tracks which SESSION_KEY the current in-memory `result` was loaded under.
+  // The save effect compares this to SESSION_KEY before writing; a mismatch means
+  // we're mid-transition (user just changed) and the stale result must not be
+  // persisted under the new user's key.
+  const [resultOwnerKey, setResultOwnerKey] = useState<string | null>(null);
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const loadingInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // ── Session persistence ──────────────────────────────────────────────────────
-  // Sessions are keyed by userId and guarded by a `sessionReady` gate that
-  // prevents in-flight state from the previous user from being written under the
-  // new user's key when identity changes.
-  //
-  // Lifecycle on user switch:
-  //   1. sessionKey changes → sessionReady=false, state cleared
-  //   2. hydration effect reads new user's stored session
-  //   3. sessionReady=true → persistence is unblocked for the new user
-  const [sessionReady, setSessionReady] = useState(false);
-
-  // Hydrate: clears prior state immediately on identity change, then restores.
+  // Restore from localStorage whenever SESSION_KEY changes (user login / account switch).
+  // resultOwnerKey is cleared FIRST so the save effect below sees a mismatch
+  // (null !== SESSION_KEY) in the same render cycle and refuses to write the
+  // prior account's result under the new user's key.
   useEffect(() => {
-    // Identity changed — block persistence and wipe stale state before reading
-    // the new user's session. This prevents the old result from being written
-    // to the new user's key by a persistence effect that fires between renders.
-    setSessionReady(false);
+    setResultOwnerKey(null); // ← clear before state so save effect detects transition
     setResult(null);
     setConversation([]);
     setPhase("idle");
-
-    if (!sessionKey) return; // not authenticated — leave cleared
-
     try {
-      const raw = localStorage.getItem(sessionKey);
-      if (!raw) { setSessionReady(true); return; }
-      const session = JSON.parse(raw) as {
-        result?: CoachResult;
-        conversation?: ConversationMessage[];
-        savedAt?: number;
-      };
+      const raw = localStorage.getItem(SESSION_KEY);
+      if (!raw) return;
+      const session = JSON.parse(raw) as { result?: CoachResult; conversation?: ConversationMessage[]; savedAt?: number };
       // Expire after 24 h
       if (!session.savedAt || Date.now() - session.savedAt > 24 * 60 * 60 * 1000) {
-        localStorage.removeItem(sessionKey);
-        setSessionReady(true);
+        localStorage.removeItem(SESSION_KEY);
         return;
       }
       if (session.result) {
         setResult(session.result);
+        setResultOwnerKey(SESSION_KEY); // result now belongs to this user's key
         setPhase("result");
       }
       if (session.conversation?.length) {
         setConversation(session.conversation);
       }
-    } catch { /* ignore parse/storage errors */ }
-
-    setSessionReady(true);
-  }, [sessionKey]); // re-runs whenever the authenticated user changes
-
-  // Persist: only runs after hydration completes to prevent cross-account writes.
-  useEffect(() => {
-    if (!sessionKey || !result || !sessionReady) return;
-    try {
-      localStorage.setItem(sessionKey, JSON.stringify({
-        result,
-        conversation,
-        savedAt: Date.now(),
-      }));
     } catch {}
-  }, [sessionKey, result, conversation, sessionReady]);
+  }, [SESSION_KEY]); // re-run on user change, not just mount
+
+  // Save active session — but ONLY when the result belongs to the current user's key.
+  // If resultOwnerKey !== SESSION_KEY we are mid-transition; writing would persist
+  // a prior account's data under the new user's storage key.
+  useEffect(() => {
+    if (result && resultOwnerKey === SESSION_KEY) {
+      try {
+        localStorage.setItem(SESSION_KEY, JSON.stringify({
+          result,
+          conversation,
+          savedAt: Date.now(),
+        }));
+      } catch {}
+    }
+  }, [result, conversation, SESSION_KEY, resultOwnerKey]);
 
   useEffect(() => {
     if (!open) {
@@ -401,6 +396,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       setConversation([...newConvo, { role: "assistant", content: assistantSummary }]);
       const coachResult = data as CoachResult;
       setResult(coachResult);
+      setResultOwnerKey(SESSION_KEY);
       setPhase("result");
       setListExpanded(true);
       setCartExpanded(true);
@@ -425,9 +421,10 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   }, [conversation, servingCount, toast, fetchProductAdvice]);
 
   const handleNewSession = useCallback(() => {
-    try { if (sessionKey) localStorage.removeItem(sessionKey); } catch {}
+    try { localStorage.removeItem(SESSION_KEY); } catch {}
     setPhase("idle");
     setResult(null);
+    setResultOwnerKey(null);
     setConversation([]);
     setInput("");
     setAddedToList(false);
@@ -570,6 +567,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
         ),
       };
     });
+    setResultOwnerKey(SESSION_KEY); // result still belongs to this user's session
     const replaced = swapTarget.item;
     const chosen = swapSelected.item;
     setSwapTarget(null);
@@ -590,9 +588,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   const hasAdvice = productAdvice && productAdvice.advice.length > 0;
   const avoidList = productAdvice?.advice.flatMap((a) => a.avoid) ?? [];
 
-  if (!open) return null;
-
-  return createPortal(
+  const portal = open ? createPortal(
     <>
       {/* Backdrop */}
       <div
@@ -766,7 +762,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                   <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 14, lineHeight: 1.5, marginBottom: 12 }}>
                     {result.meal?.description}
                   </div>
-                  <div style={{ display: "flex", gap: 16 }}>
+                  <div style={{ display: "flex", gap: 16, marginBottom: 12 }}>
                     <span style={{ display: "flex", alignItems: "center", gap: 6, color: "rgba(255,255,255,0.5)", fontSize: 13 }}>
                       <Clock style={{ width: 14, height: 14, flexShrink: 0 }} />
                       {result.meal?.prepTime || "~30 min"}
@@ -777,6 +773,30 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                       {(result.servingCount || result.meal?.servings || 1) === 1 ? "serving" : "servings"}
                     </span>
                   </div>
+                  {/* Undo refinement row */}
+                  {preRefinedResult && (
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 10px", borderRadius: 8, background: "rgba(139,92,246,0.12)", border: "1px solid rgba(139,92,246,0.3)", marginBottom: 10 }}>
+                      <span style={{ display: "flex", alignItems: "center", gap: 6, color: "#a78bfa", fontSize: 12, fontWeight: 600 }}>
+                        <Wand2 style={{ width: 12, height: 12 }} />
+                        Showing refined version
+                      </span>
+                      <button
+                        onClick={() => { setResult(preRefinedResult); setResultOwnerKey(SESSION_KEY); setPreRefinedResult(null); }}
+                        style={{ display: "flex", alignItems: "center", gap: 5, color: "#a78bfa", fontSize: 12, fontWeight: 600, background: "none", border: "none", cursor: "pointer" }}
+                      >
+                        <RotateCcw style={{ width: 11, height: 11 }} />
+                        Restore original
+                      </button>
+                    </div>
+                  )}
+                  {/* Refine Meal button */}
+                  <button
+                    onClick={() => setRefineOpen(true)}
+                    style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "10px 0", borderRadius: 10, background: "rgba(139,92,246,0.18)", border: "1px solid rgba(139,92,246,0.4)", color: "#c4b5fd", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
+                  >
+                    <Wand2 style={{ width: 14, height: 14 }} />
+                    Refine Meal
+                  </button>
                 </div>
 
                 {/* ── Card generation status ── */}
@@ -1374,6 +1394,54 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       `}</style>
     </>,
     document.body
+  ) : null;
+
+  return (
+    <>
+      {portal}
+      {result && (
+        <MealRefinementSheet
+          open={refineOpen}
+          onOpenChange={setRefineOpen}
+          meal={{
+            name: result.meal?.name,
+            description: result.meal?.description,
+            ingredients: [
+              ...(result.ownedIngredients ?? []).map((i) => ({ name: i.item, quantity: i.quantity, unit: i.unit })),
+              ...(result.shoppingList ?? []).map((i) => ({ name: i.item, quantity: i.quantity, unit: i.unit, category: i.category })),
+            ],
+            nutrition: result.macros,
+            servings: result.servingCount || result.meal?.servings || 1,
+            prepTime: result.meal?.prepTime,
+          }}
+          builderType="grocery-coach"
+          onRefined={(refined) => {
+            if (!preRefinedResult) setPreRefinedResult(result);
+            setResult((prev) => {
+              if (!prev) return prev;
+              return {
+                ...prev,
+                meal: {
+                  ...prev.meal,
+                  name: refined.name ?? prev.meal.name,
+                  description: refined.description ?? prev.meal.description,
+                },
+                macros: refined.nutrition ?? prev.macros,
+                shoppingList: Array.isArray(refined.ingredients)
+                  ? refined.ingredients.map((i: any) => ({
+                      item: typeof i === "string" ? i : (i.name ?? i.item ?? ""),
+                      quantity: typeof i === "string" ? "1" : String(i.quantity ?? i.amount ?? "1"),
+                      unit: typeof i === "string" ? "" : (i.unit ?? ""),
+                      category: typeof i === "string" ? "Other" : (i.category ?? "Other"),
+                    }))
+                  : prev.shoppingList,
+              };
+            });
+            setResultOwnerKey(SESSION_KEY); // refined result still belongs to this user
+          }}
+        />
+      )}
+    </>
   );
 }
 

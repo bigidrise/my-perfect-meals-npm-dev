@@ -195,16 +195,22 @@ export class MealRefinementEngine {
     }
   }
 
+  // ── replace_ingredient ────────────────────────────────────────────────────
+
   private async _replaceIngredient(req: ReplaceIngredientRequest): Promise<SwapRefinementResult> {
     const { userId, ingredientToReplace, mealName, mealDescription, remainingIngredients, userRequest } = req;
 
+    // ── 1. Protocol envelope ──────────────────────────────────────────────────
     let envelope: UserProtocolEnvelope = buildGuestEnvelope();
     let protocolContext = "";
     try {
       envelope = await loadUserProtocolEnvelope(userId).catch(() => null) ?? buildGuestEnvelope();
       protocolContext = enforceBeforeGenerate(envelope, { generatorName: "grocery_swap" }).combined;
-    } catch { /* proceed without protocol context */ }
+    } catch {
+      // Proceed without protocol context rather than blocking the swap.
+    }
 
+    // ── 2. GLP-1 context ──────────────────────────────────────────────────────
     let glp1Block = "";
     let glp1Targets: ResolvedGLP1Targets | null = null;
     try {
@@ -214,8 +220,11 @@ export class MealRefinementEngine {
         glp1Block = buildGLP1RecommendationBlock(glp1Ctx);
         glp1Targets = glp1Ctx.resolvedTargets ?? null;
       }
-    } catch { /* non-fatal for swap */ }
+    } catch {
+      // Non-fatal for swap — proceed without GLP-1 overlay.
+    }
 
+    // ── 3. Saved groceries ────────────────────────────────────────────────────
     let savedBlock = "";
     try {
       const sgRows = await db
@@ -239,8 +248,11 @@ export class MealRefinementEngine {
         );
         savedBlock = buildSavedGroceriesPromptBlock(compliant);
       }
-    } catch { /* non-fatal */ }
+    } catch {
+      // Non-fatal — proceed without saved grocery context.
+    }
 
+    // ── 4. Build system prompt ────────────────────────────────────────────────
     const remaining =
       Array.isArray(remainingIngredients) && remainingIngredients.length > 0
         ? remainingIngredients.join(", ")
@@ -274,12 +286,13 @@ Rules:
 
 Respond ONLY with valid JSON:
 {
-  "coachSuggestion": { "item": "string", "reason": "string — 1-2 sentences", "quantity": "string", "unit": "string" },
+  "coachSuggestion": { "item": "string", "reason": "string — 1-2 sentences", "quantity": "string", "unit": "string", "fat_grams": number | null },
   "savedOption": { "item": "string", "reason": "string — mention it's from their saved products" } | null,
   "alternatives": [{ "item": "string", "reason": "string" }],
   "protocolNote": "string | null"
 }`;
 
+    // ── 5. LLM call ───────────────────────────────────────────────────────────
     const completion = await getOpenAI().chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
@@ -308,9 +321,102 @@ Respond ONLY with valid JSON:
       throw new Error("Swap response missing coachSuggestion.");
     }
 
+    // ── 6. GLP-1 fat ceiling validation ──────────────────────────────────────
+    // Extracts a verified finite fat_grams value. Absent, null, or non-finite
+    // values are treated as UNVERIFIED — not compliant — because the model's
+    // self-reported field is optional and untrusted when omitted.
+    // fat_grams is only considered verified when it is a finite non-negative number.
+    // Absent, null, non-finite, or negative values are all treated as UNVERIFIED.
+    const extractFatGrams = (suggestion: any): number | null => {
+      const v = suggestion?.fat_grams;
+      return typeof v === "number" && isFinite(v) && v >= 0 ? v : null;
+    };
+
+    const fatCeiling =
+      glp1Targets !== null
+        ? (glp1Targets.maximumToleratedFatGrams ?? null)
+        : null;
+
+    if (fatCeiling !== null) {
+      const initialFat = extractFatGrams(swapData.coachSuggestion);
+
+      // Retry when fat is unverified (absent/null/non-finite) OR confirmed over ceiling.
+      const initialExceeds = initialFat !== null && initialFat > fatCeiling;
+      const initialUnverified = initialFat === null;
+
+      if (initialExceeds || initialUnverified) {
+        const correctionNote = initialExceeds
+          ? `CRITICAL CORRECTION: Your previous suggestion contained ${initialFat}g fat, exceeding the GLP-1 ceiling of ${fatCeiling}g. You MUST suggest a replacement with fat_grams ≤${fatCeiling}g.`
+          : `CRITICAL REQUIREMENT: GLP-1 is active with a fat ceiling of ${fatCeiling}g per meal. You MUST include a numeric fat_grams estimate in coachSuggestion — do not omit or null it.`;
+
+        const retryPrompt = `${systemPrompt}
+
+${correctionNote} Set fat_grams to a realistic finite number in the JSON response. This is a clinical safety requirement — do not ignore it.`;
+
+        let retrySwapData: any = null;
+        try {
+          const retryCompletion = await getOpenAI().chat.completions.create({
+            model: "gpt-4o-mini",
+            messages: [
+              { role: "system", content: retryPrompt },
+              {
+                role: "user",
+                content: userRequest
+                  ? `Replace ${ingredientToReplace} with ${userRequest}`
+                  : `Find the best replacement for ${ingredientToReplace}`,
+              },
+            ],
+            response_format: { type: "json_object" },
+            temperature: 0.5,
+            max_tokens: 600,
+          });
+
+          const retryRaw = retryCompletion.choices[0]?.message?.content ?? "{}";
+          try {
+            retrySwapData = JSON.parse(retryRaw);
+          } catch {
+            retrySwapData = null;
+          }
+        } catch {
+          // Retry call failed — fall through to warning on original swapData.
+        }
+
+        const retryFat = extractFatGrams(retrySwapData?.coachSuggestion);
+        const retryCompliant =
+          retrySwapData?.coachSuggestion?.item &&
+          retryFat !== null &&
+          retryFat <= fatCeiling;
+
+        if (retryCompliant) {
+          // Retry returned a verified compliant suggestion — use it without warning.
+          swapData = retrySwapData;
+        } else {
+          // Use the retry result if it has a valid suggestion item, otherwise keep original.
+          if (retrySwapData?.coachSuggestion?.item) {
+            swapData = retrySwapData;
+          }
+          // Append a warning appropriate to the final state.
+          const existing = swapData.protocolNote
+            ? `${swapData.protocolNote} `
+            : "";
+          const finalFat = extractFatGrams(swapData.coachSuggestion);
+          if (finalFat === null) {
+            swapData.protocolNote = `${existing}⚠ GLP-1 fat ceiling: unable to verify the fat content of this swap against your ${fatCeiling}g limit. Confirm with your care team before adding it.`;
+          } else {
+            swapData.protocolNote = `${existing}⚠ GLP-1 fat ceiling: this swap may exceed your ${fatCeiling}g fat limit per meal. Choose a lower-fat option or check with your care team before adding it.`;
+          }
+        }
+      }
+    }
+
+    // ── 7. Protocol scan on the suggestion ───────────────────────────────────
+    // Non-fatal: appends a protocolNote warning rather than blocking.
     try {
       const scan = scanGeneratedOutput(
-        { name: `Swap: ${swapData.coachSuggestion.item}`, ingredients: [{ name: swapData.coachSuggestion.item }] },
+        {
+          name: `Swap: ${swapData.coachSuggestion.item}`,
+          ingredients: [{ name: swapData.coachSuggestion.item }],
+        },
         envelope,
         { generatorName: "grocery_swap", skipAdaptableConflicts: true },
       );
@@ -319,7 +425,9 @@ Respond ONLY with valid JSON:
         swapData.protocolNote =
           `${existing}Note: "${swapData.coachSuggestion.item}" may conflict with your protocol — ${scan.message}. Review before adding.`;
       }
-    } catch { /* scan errors non-fatal */ }
+    } catch {
+      // Scan errors are non-fatal for ingredient swap.
+    }
 
     return {
       coachSuggestion: swapData.coachSuggestion,

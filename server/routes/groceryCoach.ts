@@ -2,7 +2,7 @@ import express from "express";
 import OpenAI from "openai";
 import { db } from "../db";
 import { users, userSavedGroceryItems } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { loadUserProtocolEnvelope, enforceBeforeGenerate, buildGuestEnvelope, scanGeneratedOutput } from "../services/protocolEnvelope";
 import { resolveGLP1GlobalContext, buildGLP1RecommendationBlock } from "../services/glp1/resolveGLP1GlobalContext";
 import { getProductAdvisorEngine } from "../services/productAdvisor";
@@ -128,6 +128,61 @@ router.post("/recommend", async (req, res) => {
       }
     }
 
+    // ── Recommendation history — variety memory ───────────────────────────────
+    // Load the last 20 DB entries + any session recommendations from conversation
+    // history, then build a "do not repeat" block for the system prompt.
+    let varietyBlock = "";
+    if (userId) {
+      let dbHistory: Array<{ mealName: string; primaryProtein: string | null; cuisineStyle: string | null; majorStarch: string | null; cookingMethod: string | null }> = [];
+      try {
+        const histRows = await db.execute(sql`
+          SELECT meal_name, primary_protein, cuisine_style, major_starch, cooking_method
+          FROM grocery_coach_recommendation_history
+          WHERE user_id = ${userId}
+          ORDER BY created_at DESC
+          LIMIT 20
+        `);
+        dbHistory = (histRows.rows as any[]).map((r: any) => ({
+          mealName: r.meal_name,
+          primaryProtein: r.primary_protein ?? null,
+          cuisineStyle: r.cuisine_style ?? null,
+          majorStarch: r.major_starch ?? null,
+          cookingMethod: r.cooking_method ?? null,
+        }));
+      } catch {
+        // Non-fatal — variety enforcement degrades gracefully if history is unavailable
+      }
+
+      // Also pull meal names from the current session conversation
+      const sessionNames = (conversationHistory as any[])
+        .filter((m: any) => m.role === "assistant" && typeof m.content === "string" && m.content.startsWith("Recommended: "))
+        .map((m: any) => (m.content as string).replace("Recommended: ", "").trim());
+
+      const allAvoidNames = [
+        ...dbHistory.map((e) => e.mealName),
+        ...sessionNames,
+      ].filter(Boolean);
+
+      if (allAvoidNames.length > 0) {
+        const avoidList = allAvoidNames.slice(0, 20).map((n) => `- ${n}`).join("\n");
+        const recentPatterns = dbHistory.slice(0, 5).map((e) => {
+          const dims = [e.primaryProtein, e.cuisineStyle, e.majorStarch, e.cookingMethod].filter(Boolean);
+          return dims.length ? `- ${e.mealName} (${dims.join(", ")})` : `- ${e.mealName}`;
+        }).join("\n");
+
+        varietyBlock = `
+
+VARIETY RULES:
+- NEVER recommend a meal whose name or core structure matches anything in the PREVIOUSLY RECOMMENDED list below.
+- Actively rotate: protein type, cuisine/regional style, major starch, and cooking method. If recent meals all used chicken, pick a different protein. If they all used Italian style, try another cuisine.
+- If the user explicitly names a food they want (e.g. "I want chicken pasta again"), honour that — explicit intent overrides variety.
+- Saved Groceries preferences may still guide product choices inside the new meal; variety applies to the meal structure, not saved product brands.
+
+PREVIOUSLY RECOMMENDED — DO NOT REPEAT:
+${avoidList}${recentPatterns ? `\n\nRECENT PATTERNS TO ROTATE AWAY FROM:\n${recentPatterns}` : ""}`;
+      }
+    }
+
     const systemPrompt = `You are a Grocery Store Coach — a real, confident nutrition coach who helps users decide exactly what to make for dinner and what to buy at the grocery store. You are NOT a recipe generator or meal builder. You are a decision-making assistant.
 
 Your mission: turn "I don't know what to eat" into "Here is exactly what to buy, how much to buy, and why it fits your goals."
@@ -136,7 +191,7 @@ USER HEALTH PROFILE AND CONSTRAINTS:
 ${protocolContext || "No dietary restrictions or conditions on file — apply general healthy eating principles."}
 ${glp1RecommendationBlock ? `\n${glp1RecommendationBlock}` : ""}
 ${macroContext ? `\n${macroContext}` : ""}
-${savedGroceriesBlock ? `\n\n${savedGroceriesBlock}` : ""}
+${savedGroceriesBlock ? `\n\n${savedGroceriesBlock}` : ""}${varietyBlock}
 
 SERVING SIZE: All ingredient quantities must be scaled for ${finalServingCount} ${finalServingCount === 1 ? "person" : "people"}.
 
@@ -180,7 +235,13 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
       "category": "Produce|Meat|Plant Proteins|Dairy & Eggs|Grains & Packaged|Pantry|Frozen|Other"
     }
   ],
-  "followUpSuggestions": ["string", "string", "string"]
+  "followUpSuggestions": ["string", "string", "string"],
+  "varietyMetadata": {
+    "primaryProtein": "string — main protein source (e.g. 'chicken', 'tofu', 'salmon', 'beef', 'lentils')",
+    "cuisineStyle": "string — cuisine or regional style (e.g. 'Italian', 'Asian', 'Mediterranean', 'American', 'Mexican')",
+    "majorStarch": "string — primary starch or carb (e.g. 'pasta', 'rice', 'quinoa', 'bread', 'potato', 'none')",
+    "cookingMethod": "string — dominant cooking method (e.g. 'stir-fry', 'baked', 'grilled', 'raw', 'slow-cooked', 'sautéed')"
+  }
 }`;
 
     const priorMessages = (conversationHistory as any[])
@@ -397,6 +458,31 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
       }
     } catch (scanErr: any) {
       throw scanErr;
+    }
+
+    // ── Save to recommendation history (non-blocking, fire-and-forget) ────────
+    if (userId && result?.meal?.name) {
+      const vm = result.varietyMetadata as Record<string, string> | undefined;
+      db.execute(sql`
+        INSERT INTO grocery_coach_recommendation_history
+          (user_id, meal_name, primary_protein, cuisine_style, major_starch, cooking_method)
+        VALUES
+          (${userId}, ${result.meal.name as string},
+           ${vm?.primaryProtein ?? null}, ${vm?.cuisineStyle ?? null},
+           ${vm?.majorStarch ?? null}, ${vm?.cookingMethod ?? null})
+      `).then(() =>
+        // Cap at 20 entries per user — delete oldest beyond the limit
+        db.execute(sql`
+          DELETE FROM grocery_coach_recommendation_history
+          WHERE user_id = ${userId}
+            AND id NOT IN (
+              SELECT id FROM grocery_coach_recommendation_history
+              WHERE user_id = ${userId}
+              ORDER BY created_at DESC
+              LIMIT 20
+            )
+        `)
+      ).catch((e: any) => console.warn("[GroceryCoach] History save failed:", e?.message));
     }
 
     return res.json({ ...result, servingCount: finalServingCount });
