@@ -51,6 +51,19 @@ export function BugReportModal({ open, onClose }: Props) {
 
   async function handleSubmit() {
     if (!description.trim() || phase === "submitting") return;
+
+    // Proactively detect a fully-cleared session before touching the network.
+    // The button is hidden for guests, but the session can vanish while the
+    // modal is already open. Catching this here avoids a round-trip 401 and
+    // gives a cleaner message while keeping the typed text intact.
+    if (!user) {
+      setServerError(
+        "Your session expired before the report could be sent. Your text is still here — please log back in and hit Send Report again.",
+      );
+      setPhase("error");
+      return;
+    }
+
     setPhase("submitting");
     setServerError(null);
 
