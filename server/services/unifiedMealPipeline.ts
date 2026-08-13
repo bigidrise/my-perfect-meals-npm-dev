@@ -20,6 +20,7 @@ import { createIngredientSignature, hashSignature } from './ingredientSignature'
 import { getCachedMeals, cacheMeals } from './mealCachePersistent';
 import { generateFridgeRescueMeals } from './fridgeRescueGenerator';
 import { applyGuardrails, validateMealForDiet, getSystemPromptForDiet, DietType, BuilderMode } from './guardrails';
+import type { ResolvedGLP1Targets } from './glp1/resolveGLP1MealTargets';
 import { normalizeIngredients as normalizeIngredientsToUS } from './ingredientNormalizer';
 import { 
   resolveHubCoupling, 
@@ -301,6 +302,13 @@ export interface MealGenerationRequest {
    * Only used when performanceSessionContext is absent.
    */
   generationContext?: string;
+  /**
+   * Patient-specific GLP-1 resolved targets from the canonical context resolver.
+   * When provided, applyGuardrails() and validateMealForDiet() use personalized
+   * protein/fat/calorie constraints instead of static 400 kcal / 12 g fat defaults.
+   * Loaded server-side by the route handler — never trusted from the client body.
+   */
+  glp1Targets?: ResolvedGLP1Targets;
 }
 
 export interface MealGenerationResponse {
@@ -2596,7 +2604,8 @@ export async function generateFromDescriptionUnified(
     starchyCarbs_g?: number;
     fibrousCarbs_g?: number;
   },
-  generationContext?: string
+  generationContext?: string,
+  glp1Targets?: ResolvedGLP1Targets
 ): Promise<MealGenerationResponse> {
   const validMealType = normalizeMealType(mealType);
 
@@ -2829,7 +2838,9 @@ Create the recipe for: "${description}"`;
         validMealType,
         dietPhase as any,
         remainingMacros,
-        builderMode
+        builderMode,
+        undefined,    // dailyProteinTarget — not used here
+        glp1Targets   // personalized GLP-1 targets from canonical resolver
       );
       prompt = guardrailResult.modifiedPrompt;
       if (guardrailResult.appliedRules.length > 0) {
@@ -2986,7 +2997,7 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
           console.warn(`⚠️ Hub validation soft warnings: ${hubValidation.violations.map(v => v.message).join(', ')}`);
         }
       } else if (dietType) {
-        const validation = validateMealForDiet(tempMeal, dietType);
+        const validation = validateMealForDiet(tempMeal, dietType, undefined, false, glp1Targets);
         if (!validation.isValid) {
           console.warn(`⚠️ Meal has legacy guardrail violations: ${validation.violations.join(', ')}`);
         }
@@ -3376,7 +3387,8 @@ export async function generateSnackFromCravingUnified(
   userId?: string,
   dietType?: DietType,
   strictMode: boolean = false,
-  explicitOverride?: ExplicitOverride | null
+  explicitOverride?: ExplicitOverride | null,
+  glp1Targets?: ResolvedGLP1Targets
 ): Promise<MealGenerationResponse> {
   console.log(`🍪 Snack Creator: Generating healthy snack from craving: "${cravingDescription}"${dietType ? ` (diet: ${dietType})` : ''}`);
   
@@ -3485,7 +3497,8 @@ FORMAT: Return as JSON object:
 Create the healthy snack transformation for: "${cravingDescription}"`;
 
     // Apply diet-specific guardrails to the prompt
-    const guardrailResult = applyGuardrails(basePrompt, dietType || null, 'snack');
+    const guardrailResult = applyGuardrails(basePrompt, dietType || null, 'snack',
+      undefined, undefined, undefined, undefined, glp1Targets);
     let guardrailedPrompt = guardrailResult.modifiedPrompt;
     
     if (guardrailResult.appliedRules.length > 0) {
@@ -3586,7 +3599,7 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
           console.warn(`⚠️ Snack hub validation soft warnings: ${snackHubValidation.violations.map(v => v.message).join(', ')}`);
         }
       } else if (dietType) {
-        const validation = validateMealForDiet(tempSnack, dietType);
+        const validation = validateMealForDiet(tempSnack, dietType, undefined, true, glp1Targets);
         if (!validation.isValid) {
           console.warn(`⚠️ Snack has legacy guardrail violations: ${validation.violations.join(', ')}`);
         }
@@ -3858,6 +3871,7 @@ export async function generateMealUnified(
         request.builderMode,
         request.performanceSessionContext,
         request.generationContext,
+        request.glp1Targets,
       );
       break;
 
@@ -3865,7 +3879,7 @@ export async function generateMealUnified(
       const snackCraving = Array.isArray(request.input) 
         ? request.input.join(', ') 
         : request.input;
-      result = await generateSnackFromCravingUnified(snackCraving, request.userId, request.dietType, request.strictMode === true, request.explicitOverride);
+      result = await generateSnackFromCravingUnified(snackCraving, request.userId, request.dietType, request.strictMode === true, request.explicitOverride, request.glp1Targets);
       break;
 
     case 'fridge-rescue':

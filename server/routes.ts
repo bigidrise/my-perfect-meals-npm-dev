@@ -969,6 +969,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // ── Server-side GLP-1 canonical context ───────────────────────────────
+      // Load personalized GLP-1 targets when the client requests GLP-1 mode.
+      // This replaces the static 400 kcal / 12 g fat / 15 g protein fallbacks
+      // in applyGuardrails() and validateMealForDiet() with patient-specific
+      // values from the resolver (phase, appetite, training-demand multipliers).
+      // Loaded server-side — never trusted from the client request body.
+      let serverGlp1Targets: import("./services/glp1/resolveGLP1MealTargets").ResolvedGLP1Targets | undefined;
+      if (dietType === 'glp1' && effectiveUserId) {
+        try {
+          const { resolveGLP1GlobalContext } = await import("./services/glp1/resolveGLP1GlobalContext");
+          const glp1Ctx = await resolveGLP1GlobalContext(
+            effectiveUserId,
+            new Date().toISOString().split("T")[0],
+            (mealType === 'breakfast' || mealType === 'lunch' || mealType === 'dinner' || mealType === 'snack')
+              ? mealType
+              : 'lunch',
+          );
+          if (glp1Ctx.isActive && glp1Ctx.resolvedTargets) {
+            serverGlp1Targets = glp1Ctx.resolvedTargets;
+            console.log(
+              `💊 [GLP-1] Personalized targets: ` +
+              `${serverGlp1Targets.resolvedMealCalories}kcal / ` +
+              `${serverGlp1Targets.targetProteinGrams}g prot / ` +
+              `${serverGlp1Targets.maximumToleratedFatGrams}g fat-ceiling ` +
+              `[phase: ${serverGlp1Targets.treatmentPhase}] ` +
+              `[sources: ${glp1Ctx.activationSources.join(",")}]`
+            );
+          }
+        } catch (err) {
+          console.warn("[GLP-1] Could not load personalized targets — static baselines will apply:", err);
+        }
+      }
+
       const result = await generateMealUnified({
         type,
         mealType,
@@ -989,6 +1022,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         explicitOverride: explicitOverride || null,
         performanceSessionContext: performanceSessionContext || undefined,
         generationContext: typeof generationContext === 'string' ? generationContext : undefined,
+        glp1Targets: serverGlp1Targets,
       });
 
       const durationMs = Date.now() - startTime;
