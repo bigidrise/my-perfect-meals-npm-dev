@@ -46,6 +46,13 @@ export interface MacroLogServiceInput {
   dateIso?: string;
   mealId?: string;
   title?: string;
+  /**
+   * Stable board item ID (#690 — reservation mechanics).
+   * Set when a meal is logged from the board ("Log All") so the nutrition
+   * state engine can distinguish planned (on board, not yet logged) from
+   * consumed (logged). Null / omitted for manual / quick-log entries.
+   */
+  boardItemReference?: string | null;
 }
 
 function kcalFrom(p = 0, c = 0, f = 0): number {
@@ -131,7 +138,9 @@ export async function writeMacroLog(input: MacroLogServiceInput) {
     starchyCarbs: starchyCarbs != null ? starchyCarbs.toString() : "0",
     fibrousCarbs: fibrousCarbs != null ? fibrousCarbs.toString() : "0",
     classificationSource,
-    ...(mealId ? { mealId } : {}),
+    // boardItemReference links this log entry back to its board item so the
+    // nutrition state engine can correctly separate planned from consumed.
+    ...(input.boardItemReference ? { boardItemReference: input.boardItemReference } : {}),
   };
 
   let row: any;

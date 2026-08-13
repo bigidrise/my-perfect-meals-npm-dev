@@ -1277,6 +1277,17 @@ setTimeout(async () => {
   }
 }, 4800);
 
+// Daily Nutrition State boot migration (#690)
+// Adds: daily_nutrition_prescriptions meal-plan snapshot cols + macro_logs.board_item_reference
+setTimeout(async () => {
+  try {
+    const { runNutritionStateMigration } = await import("./db/migrations/runNutritionStateMigration");
+    await runNutritionStateMigration();
+  } catch (err: any) {
+    console.error("❌ Nutrition State boot migration failed:", err.message);
+  }
+}, 5200);
+
 // Backfill: purge stale temp URLs from meal_image_cache
 // Any non-S3 URL is expired or will expire — delete so next request regenerates clean
 setTimeout(async () => {

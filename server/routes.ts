@@ -7361,6 +7361,11 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   const { default: prescriptionRoutes } = await import("./routes/prescriptionRoutes");
   app.use("/api/prescription", prescriptionRoutes);
 
+  // Daily Nutrition State — canonical per-date state (prescription + consumed + planned + remaining)
+  // Single authority for every meal builder (#690). Replaces client-side macro calculators.
+  const { default: nutritionStateRoutes } = await import("./routes/nutritionState");
+  app.use("/api/nutrition-state", nutritionStateRoutes);
+
   // Mount routes
   app.use("/api", mealPlansRoutes);
   app.use("/api", mealLogsRoutes);
