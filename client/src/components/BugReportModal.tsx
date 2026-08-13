@@ -16,7 +16,7 @@
  */
 
 import { useState } from "react";
-import { Bug, X, Loader2, CheckCircle2 } from "lucide-react";
+import { Bug, Trash2, Loader2, CheckCircle2 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { BUILD_VERSION } from "@/buildVersion";
@@ -85,7 +85,7 @@ export function BugReportModal({ open, onClose }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={open ? handleClose : undefined}>
-      <DialogContent className="max-w-md w-full bg-zinc-900 border border-white/10 text-white p-0 overflow-hidden">
+      <DialogContent showCloseButton={false} className="max-w-md w-full bg-zinc-900 border border-white/10 text-white p-0 overflow-hidden">
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
@@ -95,11 +95,11 @@ export function BugReportModal({ open, onClose }: Props) {
           </div>
           <button
             onClick={handleClose}
-            className="text-white/40 hover:text-white/80 transition-colors"
+            className="text-red-400/70 hover:text-red-400 transition-colors"
             aria-label="Close"
             disabled={phase === "submitting"}
           >
-            <X className="w-4 h-4" />
+            <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
 
