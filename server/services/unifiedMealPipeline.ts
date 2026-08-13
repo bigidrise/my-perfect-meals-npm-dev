@@ -796,7 +796,7 @@ REQUIRED STRUCTURE FOR EVERY MEAL:
           undefined,    // builderMode
           undefined,    // dailyProteinTarget
           glp1Targets,
-        );
+        ).modifiedPrompt;
         console.log(
           `💊 [CRAVING/GLP-1] Personalized targets: ` +
           `${glp1Targets.resolvedMealCalories}kcal / ` +

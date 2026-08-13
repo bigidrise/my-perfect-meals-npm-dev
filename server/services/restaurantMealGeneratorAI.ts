@@ -628,7 +628,7 @@ Make the meals sound like something you would genuinely see on the menu at ${res
         description: meal.description || "A delicious and healthy option",
         calories: meal.calories || 400,
         protein: meal.protein || 25,
-        carbs: totalCarbs,
+        carbs: totalCarbs ?? 0,
         starchyCarbs: starchyCarbs,
         fibrousCarbs: fibrousCarbs,
         fat: meal.fat || 12,
@@ -815,7 +815,7 @@ Return ONLY a single JSON object (not an array) with this exact structure:
           ingredients: meal.ingredients,
           macros: { carbs: meal.carbs, fiber: undefined as number | undefined },
         };
-        const result = validateDiabeticMeal(mealForValidation, { glucoseState: diabeticGlucoseState });
+        const result = validateDiabeticMeal(mealForValidation, { glucoseState: diabeticGlucoseState ?? undefined });
 
         if (result.isValid) {
           validatedMeals.push(meal);
@@ -882,7 +882,7 @@ Return ONLY a single JSON object (not an array):
               ingredients: Array.isArray(retryMeal.ingredients) ? retryMeal.ingredients : [],
               macros: { carbs: retryCarbTotal },
             };
-            const retryResult = validateDiabeticMeal(retryForValidation, { glucoseState: diabeticGlucoseState });
+            const retryResult = validateDiabeticMeal(retryForValidation, { glucoseState: diabeticGlucoseState ?? undefined });
 
             if (retryResult.isValid) {
               const rawHowToOrder = retryMeal.howToOrder;

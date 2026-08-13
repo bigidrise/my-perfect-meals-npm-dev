@@ -155,7 +155,7 @@ export function MedicalSourcesInfo({
 
             <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">Nutrition During GI Symptoms</p>
             <p className="text-white/40 text-xs mb-2">
-              Drives: GLP-1 Builder · Snack Creator · Meal Builders · Grocery Coach · Beverage Creator · Coach's Corner
+              Drives: GLP-1 Builder · Snack Creator · Meal Builders · Grocery Coach · Beverage Creator · Coach's Corner · Craving Creator · Fridge Rescue · Restaurant Guide · Getaways &amp; Travel Dining · Buffet Guidance · Find Your Meals · Weekly Meal Plan
             </p>
             <ul className="space-y-3 mb-5">
               <SourceItem
@@ -217,6 +217,10 @@ export function MedicalSourcesInfo({
               priority) reflects the published clinical evidence. Specific numerical targets
               (protein grams, fat ceilings, calorie ranges) are either derived from the user's
               macro calculator or set by their prescribing provider — not invented by the platform.
+              The evidence framework activates through three pathways: selection of the GLP-1
+              Builder by the user, a physician-assigned metabolic medication condition via ProCare,
+              or a specialtyCondition flag on the user's profile — ensuring the resolver engages
+              regardless of how the clinical context was established.
             </p>
           </section>
 
@@ -797,7 +801,7 @@ export function MedicalSourcesInfo({
 
             <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">Nutrition During GI Symptoms</p>
             <p className="text-white/40 text-xs mb-2">
-              Drives: GLP-1 Builder · Snack Creator · Meal Builders · Grocery Coach · Beverage Creator · Coach's Corner
+              Drives: GLP-1 Builder · Snack Creator · Meal Builders · Grocery Coach · Beverage Creator · Coach's Corner · Craving Creator · Fridge Rescue · Restaurant Guide · Getaways &amp; Travel Dining · Buffet Guidance · Find Your Meals · Weekly Meal Plan
             </p>
             <ul className="space-y-3 mb-5">
               <SourceItem
@@ -859,6 +863,10 @@ export function MedicalSourcesInfo({
               priority) reflects the published clinical evidence. Specific numerical targets
               (protein grams, fat ceilings, calorie ranges) are either derived from the user's
               macro calculator or set by their prescribing provider — not invented by the platform.
+              The evidence framework activates through three pathways: selection of the GLP-1
+              Builder by the user, a physician-assigned metabolic medication condition via ProCare,
+              or a specialtyCondition flag on the user's profile — ensuring the resolver engages
+              regardless of how the clinical context was established.
             </p>
           </section>
 
