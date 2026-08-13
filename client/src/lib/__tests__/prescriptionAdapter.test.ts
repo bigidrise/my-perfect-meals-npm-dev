@@ -438,6 +438,21 @@ describe("Calorie smoke — calories_kcal is non-zero when only calorieTarget is
     expect(result!.calories_kcal).toBeUndefined();
   });
 
+  it("calories_kcal is undefined (not 0) when caloriesTarget is 0 — treated as unresolved", () => {
+    // A server misconfiguration (e.g. an un-populated clinical override row) can
+    // resolve caloriesTarget=0. Without a guard the adapter would pass 0 through
+    // as calories_kcal=0, silently showing "0 kcal" in every builder. The adapter
+    // must treat caloriesTarget=0 as unresolved — identical to the field being
+    // absent — so callers fall back to the macro-calculator baseline.
+    const result = prescriptionToTargetsOverride(
+      validPrescription({ caloriesTarget: 0 }),
+    );
+    // The overall prescription is still valid (protein + carbs are non-zero),
+    // so the adapter returns a MacroTargets object — just without calories_kcal.
+    expect(result).toBeDefined();
+    expect(result!.calories_kcal).toBeUndefined();
+  });
+
   it("calories_kcal is undefined when prescription is null (baseline fallback path)", () => {
     const result = prescriptionToTargetsOverride(null);
     expect(result).toBeUndefined();
