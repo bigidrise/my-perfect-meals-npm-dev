@@ -24,6 +24,13 @@
  *       same 5 meal names in session conversationHistory, then verifies:
  *       (a) the merged avoid-list contains each name only once (no duplicates), and
  *       (b) new AI rounds produce meals distinct from both history sources.
+ *
+ *   npx tsx scripts/verify-grocery-variety.ts --keto-dairy-free
+ *     → Task 902 constraint sim: keto protocol identity + dairy allergy (~20 g
+ *       carb ceiling per meal, no dairy). Verifies variety still rotates when
+ *       the near-zero starch pool forces repeated fatty-meat selections, and
+ *       that scanGeneratedOutput passes 100% of rounds (no dairy or carb-ceiling
+ *       violations).
  */
 import OpenAI from "openai";
 import { db } from "../server/db";
@@ -42,7 +49,10 @@ const CONSTRAINED_MODE = process.argv.includes("--constrained");
 const OVERLAP_MODE = process.argv.includes("--overlap");
 const VEGAN_DIABETIC_MODE = process.argv.includes("--vegan-diabetic");
 
-const TEST_USER_ID = OVERLAP_MODE
+const KETO_DAIRY_FREE_MODE = process.argv.includes("--keto-dairy-free");
+const TEST_USER_ID = KETO_DAIRY_FREE_MODE
+  ? "verify-variety-902-keto-dairy-free"
+  : OVERLAP_MODE
   ? "verify-variety-900-overlap"
   : VEGAN_DIABETIC_MODE
   ? "verify-variety-899-vegan-diabetic"
@@ -61,6 +71,13 @@ const ROUNDS = 10;
  */
 const VEGAN_DIABETIC_CARB_CEILING = 45;
 
+/**
+ * Hard carb ceiling enforced per round in --keto-dairy-free mode.
+ * Keto targets ≤20–25 g net carbs/day; for a single dinner this script treats
+ * 20 g as the per-meal hard ceiling — matching the task's stated ~20 g/day
+ * budget (a full day's allocation given to the single simulated dinner).
+ */
+const KETO_DAIRY_FREE_CARB_CEILING = 20;
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -107,6 +124,30 @@ function buildConstrainedEnvelope(): UserProtocolEnvelope {
   };
 }
 
+/**
+ * Build a UserProtocolEnvelope for keto + dairy-free constraints (Task 902).
+ *
+ * dietaryIdentity: ["keto"] — activates the keto procedure rules: ≤20–25 g net
+ *   carbs per day, no grains, no starchy vegetables, no refined sugars. Fats
+ *   are the primary energy source.
+ * allergies: ["dairy"] — hard stop on all dairy derivatives (butter, cream,
+ *   cheese, milk, yogurt, whey). This removes the most common keto fat source
+ *   and forces the AI toward other fats (avocado, olive oil, coconut oil, nuts).
+ *
+ * The combination is the pressure point this task targets: near-zero starch
+ * + no dairy pushes toward fatty-meat + avocado monotony. The simulation
+ * verifies variety still rotates under that pressure.
+ */
+function buildKetoDairyFreeEnvelope(): UserProtocolEnvelope {
+  const base = buildGuestEnvelope();
+  return {
+    ...base,
+    userId: TEST_USER_ID,
+    dietaryIdentity: ["keto"],
+    allergies: ["dairy"],
+    procedural: deriveProcedureRules(["keto"]),
+  };
+}
 /**
  * Build a UserProtocolEnvelope for vegan + diabetic constraints (Task 899).
  *
@@ -236,7 +277,9 @@ async function recommendMeal(
   protocolContext: string,
   varietyBlock: string
 ): Promise<{ name: string; meta: VarietyMeta; rawResult: any } | null> {
-  const constraintLabel = VEGAN_DIABETIC_MODE
+  const constraintLabel = KETO_DAIRY_FREE_MODE
+    ? "Keto + dairy-free protocol active — see constraints below."
+    : VEGAN_DIABETIC_MODE
     ? "Vegan + diabetic protocol active — see constraints below."
     : CONSTRAINED_MODE
     ? "Gluten-free + dairy-free protocol active — see constraints below."
@@ -347,8 +390,10 @@ function analyzeResults(rounds: Round[]): boolean {
   console.log("=".repeat(70));
 
   // 1. Consecutive protein+cuisine collisions
-  // Note: for --vegan-diabetic the protein universe is genuinely narrow (legumes
-  // only), so this check is informational rather than a hard pass gate in that mode.
+  // Note: for --vegan-diabetic and --keto-dairy-free the protein universe is
+  // genuinely narrow (legumes / fatty meats), so this check is informational
+  // rather than a hard pass gate in those modes.
+  const isNarrowPool = VEGAN_DIABETIC_MODE || KETO_DAIRY_FREE_MODE;
   let consecutiveCollisions = 0;
   for (let i = 1; i < rounds.length; i++) {
     const prev = rounds[i - 1].meta;
@@ -365,9 +410,10 @@ function analyzeResults(rounds: Round[]): boolean {
   }
   if (consecutiveCollisions === 0) {
     console.log("  ✅ No consecutive protein+cuisine collisions");
-  } else if (VEGAN_DIABETIC_MODE) {
+  } else if (isNarrowPool) {
+    const poolLabel = KETO_DAIRY_FREE_MODE ? "keto+dairy-free" : "vegan+diabetic";
     console.log(
-      `  ℹ️  ${consecutiveCollisions} consecutive collision(s) noted — informational only for vegan+diabetic pool`
+      `  ℹ️  ${consecutiveCollisions} consecutive collision(s) noted — informational only for ${poolLabel} pool`
     );
   }
 
@@ -395,6 +441,11 @@ function analyzeResults(rounds: Round[]): boolean {
   const starches = rounds.map((r) => r.meta.majorStarch.toLowerCase());
   const uniqueStarches = new Set(starches);
   console.log(`  Unique starches     : ${uniqueStarches.size}/10 — [${[...uniqueStarches].join(", ")}]`);
+  if (KETO_DAIRY_FREE_MODE) {
+    console.log(
+      "  ℹ️  Starch variety is expected to be low (near-zero carbs) — unique-starch count is informational only"
+    );
+  }
 
   // 5. Unique cooking methods
   const methods = rounds.map((r) => r.meta.cookingMethod.toLowerCase());
@@ -422,15 +473,20 @@ function analyzeResults(rounds: Round[]): boolean {
     console.warn(`  ❌ Scan failures in round(s): ${failedRounds.join(", ")}`);
   }
 
-  // 8. Carb ceiling check — vegan+diabetic mode only
+  // 8. Carb ceiling check — vegan+diabetic and keto+dairy-free modes
   // scanGeneratedOutput does not evaluate macronutrient totals, so we assert
   // the AI-reported macros.carbs explicitly. A missing or over-ceiling value
   // is a hard failure even when the ingredient scan passes.
+  const activeCeilingForSummary = KETO_DAIRY_FREE_MODE
+    ? KETO_DAIRY_FREE_CARB_CEILING
+    : VEGAN_DIABETIC_MODE
+    ? VEGAN_DIABETIC_CARB_CEILING
+    : null;
   let carbCeilingAllPassed = true;
-  if (VEGAN_DIABETIC_MODE) {
+  if (activeCeilingForSummary !== null) {
     const carbsPassed = rounds.filter((r) => r.carbCeilingPassed).length;
     const carbsFailed = rounds.filter((r) => !r.carbCeilingPassed);
-    console.log(`\n  Carb ceiling check  : ${carbsPassed}/${scansTotal} rounds ≤ ${VEGAN_DIABETIC_CARB_CEILING}g`);
+    console.log(`\n  Carb ceiling check  : ${carbsPassed}/${scansTotal} rounds ≤ ${activeCeilingForSummary}g`);
     if (carbsPassed === scansTotal) {
       const carbValues = rounds.map((r) => `${r.carbsG}g`).join(", ");
       console.log(`  ✅ All rounds within carb ceiling — reported carbs: [${carbValues}]`);
@@ -440,33 +496,39 @@ function analyzeResults(rounds: Round[]): boolean {
         if (r.carbsG === null) {
           console.warn(`  ❌ Round ${r.round}: macros.carbs missing or non-numeric`);
         } else {
-          console.warn(`  ❌ Round ${r.round}: ${r.carbsG}g carbs exceeds ${VEGAN_DIABETIC_CARB_CEILING}g ceiling`);
+          console.warn(`  ❌ Round ${r.round}: ${r.carbsG}g carbs exceeds ${activeCeilingForSummary}g ceiling`);
         }
       }
     }
   }
 
   // Overall verdict
-  // --vegan-diabetic: task criteria are distinct names + ≥4 proteins + ≥4 cuisines
-  // + 100% ingredient scan + 100% explicit carb-ceiling assertion.
-  // Consecutive-collision gate is omitted because the plant-protein universe
-  // (legumes) is genuinely narrower than an unrestricted pool.
+  // --keto-dairy-free / --vegan-diabetic: task criteria are distinct names +
+  // ≥4 proteins + ≥4 cuisines + 100% ingredient scan + 100% carb-ceiling assertion.
+  // Consecutive-collision gate is omitted for narrow pools because the available
+  // protein universe is genuinely more restricted than unrestricted mode.
   console.log("\n" + "=".repeat(70));
-  const passed = VEGAN_DIABETIC_MODE
-    ? uniqueProteins.size >= 4 &&
-      uniqueCuisines.size >= 4 &&
-      uniqueNames.size === 10 &&
-      scansPassed === scansTotal &&
-      carbCeilingAllPassed
-    : consecutiveCollisions === 0 &&
-      uniqueProteins.size >= 4 &&
-      uniqueCuisines.size >= 4 &&
-      uniqueNames.size >= 9 &&
-      scansPassed === scansTotal;
+  const passed =
+    KETO_DAIRY_FREE_MODE || VEGAN_DIABETIC_MODE
+      ? uniqueProteins.size >= 4 &&
+        uniqueCuisines.size >= 4 &&
+        uniqueNames.size === 10 &&
+        scansPassed === scansTotal &&
+        carbCeilingAllPassed
+      : consecutiveCollisions === 0 &&
+        uniqueProteins.size >= 4 &&
+        uniqueCuisines.size >= 4 &&
+        uniqueNames.size >= 9 &&
+        scansPassed === scansTotal;
 
   if (passed) {
     console.log("🎉 VERDICT: PASS — variety enforcement is working correctly.");
-    if (VEGAN_DIABETIC_MODE) {
+    if (KETO_DAIRY_FREE_MODE) {
+      console.log(`   Keto + dairy-free pool (≤${KETO_DAIRY_FREE_CARB_CEILING}g carbs/meal, no dairy) maintained`);
+      console.log("   full variety AND 100% protocol compliance across all 10 rounds.");
+      console.log("   All rounds: distinct meal names, ≥4 proteins, ≥4 cuisines,");
+      console.log("   ingredient scan passed, AND carbs within keto ceiling.");
+    } else if (VEGAN_DIABETIC_MODE) {
       console.log(`   Vegan + diabetic pool (${VEGAN_DIABETIC_CARB_CEILING}g carb ceiling) maintained full variety`);
       console.log("   AND 100% protocol compliance across all 10 rounds.");
       console.log("   All rounds: distinct meal names, ≥4 proteins, ≥4 cuisines,");
@@ -478,14 +540,16 @@ function analyzeResults(rounds: Round[]): boolean {
   } else {
     console.log("❌ VERDICT: FAIL — variety enforcement needs investigation.");
     if (scansPassed < scansTotal) {
-      if (VEGAN_DIABETIC_MODE) {
+      if (KETO_DAIRY_FREE_MODE) {
+        console.log("   One or more rounds had ingredient protocol violations (dairy or non-keto ingredients returned).");
+      } else if (VEGAN_DIABETIC_MODE) {
         console.log("   One or more rounds had ingredient protocol violations (animal products returned).");
       } else {
         console.log("   One or more rounds had protocol violations (gluten/dairy ingredients returned).");
       }
     }
-    if (VEGAN_DIABETIC_MODE && !carbCeilingAllPassed) {
-      console.log(`   One or more rounds exceeded the ${VEGAN_DIABETIC_CARB_CEILING}g carb ceiling or had missing macros.`);
+    if ((KETO_DAIRY_FREE_MODE || VEGAN_DIABETIC_MODE) && !carbCeilingAllPassed) {
+      console.log(`   One or more rounds exceeded the ${activeCeilingForSummary}g carb ceiling or had missing macros.`);
     }
     process.exitCode = 1;
   }
@@ -541,7 +605,12 @@ async function main(): Promise<void> {
   }
 
   console.log("=".repeat(70));
-  if (VEGAN_DIABETIC_MODE) {
+  if (KETO_DAIRY_FREE_MODE) {
+    console.log("Grocery Coach Variety Verification — Task 902 (Keto + Dairy-Free)");
+    console.log(`Constraints : keto (≤${KETO_DAIRY_FREE_CARB_CEILING}g carbs/meal, no grains/starches) + dairy allergy`);
+    console.log("Validates   : variety rotation, ≥4 proteins, ≥4 cuisines, AND 100% scan pass rate");
+    console.log("             Pressure point: near-zero starch + no dairy → fatty-meat+avocado monotony risk");
+  } else if (VEGAN_DIABETIC_MODE) {
     console.log("Grocery Coach Variety Verification — Task 899 (Vegan + Diabetic)");
     console.log("Constraints : vegan (no animal products) + diabetic (~45 g carb ceiling/meal)");
     console.log("Validates   : variety rotation, ≥4 proteins, ≥4 cuisines, AND 100% scan pass rate");
@@ -558,24 +627,41 @@ async function main(): Promise<void> {
   console.log("=".repeat(70));
 
   // Build the protocol envelope for this run
-  const envelope: UserProtocolEnvelope = VEGAN_DIABETIC_MODE
+  const envelope: UserProtocolEnvelope = KETO_DAIRY_FREE_MODE
+    ? buildKetoDairyFreeEnvelope()
+    : VEGAN_DIABETIC_MODE
     ? buildVeganDiabeticEnvelope()
     : CONSTRAINED_MODE
     ? buildConstrainedEnvelope()
     : buildGuestEnvelope();
 
   // Determine the generator name for this run
-  const generatorName = VEGAN_DIABETIC_MODE
+  const generatorName = KETO_DAIRY_FREE_MODE
+    ? "verify_variety_902"
+    : VEGAN_DIABETIC_MODE
     ? "verify_variety_899"
     : "verify_variety_895";
 
   // Build protocol context block from the envelope (mirrors groceryCoach.ts)
-  const { combined: protocolContext } =
-    VEGAN_DIABETIC_MODE || CONSTRAINED_MODE
+  const { combined: baseProtocolContext } =
+    KETO_DAIRY_FREE_MODE || VEGAN_DIABETIC_MODE || CONSTRAINED_MODE
       ? enforceBeforeGenerate(envelope, { generatorName })
       : { combined: "" };
 
-  if (VEGAN_DIABETIC_MODE || CONSTRAINED_MODE) {
+  // In keto+dairy-free mode, append a hard ≤20g-per-meal carb directive so the
+  // AI receives an explicit numeric ceiling, not just "keep carbs minimal". This
+  // ensures the verification tests compliance with the stated ceiling rather than
+  // only rejecting meals after the fact.
+  const protocolContext = KETO_DAIRY_FREE_MODE
+    ? baseProtocolContext +
+      `\n\n🚨 HARD CARB CEILING (keto + dairy-free): This dinner MUST contain ` +
+      `≤${KETO_DAIRY_FREE_CARB_CEILING}g net carbohydrates in total. ` +
+      `Dairy (butter, cream, cheese, milk, yogurt, whey, ghee) is strictly ` +
+      `forbidden due to a dairy allergy. Fat must come from avocado, olive oil, ` +
+      `coconut oil, or nuts. Report the exact carb count in macros.carbs.`
+    : baseProtocolContext;
+
+  if (KETO_DAIRY_FREE_MODE || VEGAN_DIABETIC_MODE || CONSTRAINED_MODE) {
     console.log("\nProtocol context injected into every prompt:");
     console.log(protocolContext.slice(0, 600) + (protocolContext.length > 600 ? "…" : ""));
     console.log();
@@ -621,27 +707,34 @@ async function main(): Promise<void> {
       ...scan.instructionViolations.map((v: any) => `[instruction] ${String(v)}`),
     ];
 
-    // ── Explicit carb-ceiling check (vegan-diabetic mode only) ────────────────
+    // ── Explicit carb-ceiling check (vegan-diabetic and keto-dairy-free modes) ─
     // scanGeneratedOutput never evaluates macronutrient totals — it only checks
-    // ingredient identity. For vegan+diabetic we must assert the AI-reported
+    // ingredient identity. For carb-ceiling modes we must assert the AI-reported
     // macros.carbs is finite and within the ceiling injected into every prompt.
+    const activeCarbCeiling = KETO_DAIRY_FREE_MODE
+      ? KETO_DAIRY_FREE_CARB_CEILING
+      : VEGAN_DIABETIC_MODE
+      ? VEGAN_DIABETIC_CARB_CEILING
+      : null;
     const rawCarbsG: unknown = result.rawResult?.macros?.carbs;
     const carbsG: number | null =
       typeof rawCarbsG === "number" && isFinite(rawCarbsG) ? rawCarbsG : null;
-    const carbCeilingPassed: boolean = VEGAN_DIABETIC_MODE
-      ? carbsG !== null && carbsG <= VEGAN_DIABETIC_CARB_CEILING
-      : true; // Not checked in other modes.
+    const carbCeilingPassed: boolean =
+      activeCarbCeiling !== null
+        ? carbsG !== null && carbsG <= activeCarbCeiling
+        : true; // Not checked in baseline / constrained modes.
 
     await saveHistory(result.name, result.meta);
 
     const scanIcon = scan.passed ? "✅ scan:pass" : "❌ scan:FAIL";
-    const carbIcon = !VEGAN_DIABETIC_MODE
-      ? ""
-      : carbCeilingPassed
-      ? `  ✅ carbs:${carbsG}g (≤${VEGAN_DIABETIC_CARB_CEILING}g)`
-      : carbsG === null
-      ? `  ❌ carbs:MISSING (macros.carbs absent or non-numeric)`
-      : `  ❌ carbs:${carbsG}g EXCEEDS ceiling of ${VEGAN_DIABETIC_CARB_CEILING}g`;
+    const carbIcon =
+      activeCarbCeiling === null
+        ? ""
+        : carbCeilingPassed
+        ? `  ✅ carbs:${carbsG}g (≤${activeCarbCeiling}g)`
+        : carbsG === null
+        ? `  ❌ carbs:MISSING (macros.carbs absent or non-numeric)`
+        : `  ❌ carbs:${carbsG}g EXCEEDS ceiling of ${activeCarbCeiling}g`;
 
     console.log(` ✓`);
     console.log(`  Meal    : ${result.name}`);
