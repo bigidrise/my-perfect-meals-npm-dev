@@ -58,6 +58,7 @@ import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import TrashButton from "@/components/ui/TrashButton";
 import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
+import { safeLocalStorageSet } from "@/lib/safeLocalStorage";
 
 const BEVERAGE_CATEGORIES = [
   { value: "surprise", label: "Surprise Me!" },
@@ -276,19 +277,7 @@ export default function BeverageCreator() {
 
   useEffect(() => {
     if (generatedBeverage) {
-      try {
-        // Never save a base64 data URL to localStorage — it's too large and will
-        // silently fail quota, losing the imageUrl on the next restore.
-        // The write-back effect above re-fetches the S3 URL on mount so the next
-        // save always carries a valid imageUrl.
-        const toSave = generatedBeverage.imageUrl?.startsWith('data:')
-          ? { ...generatedBeverage, imageUrl: undefined }
-          : generatedBeverage;
-        localStorage.setItem(
-          "mpm_beverage_creator_result",
-          JSON.stringify(toSave),
-        );
-      } catch {}
+      safeLocalStorageSet("mpm_beverage_creator_result", generatedBeverage);
     }
   }, [generatedBeverage]);
 
@@ -1064,13 +1053,20 @@ export default function BeverageCreator() {
                     <div className="grid grid-cols-2 gap-2">
                       <GlassButton
                         onClick={() => {
+                          const safeImageUrl = (() => {
+                            const url = generatedBeverage.imageUrl;
+                            if (!url) return null;
+                            if (url.startsWith("data:")) return null;
+                            if (url.includes("oaidalleapiprodscus")) return null;
+                            return url;
+                          })();
                           const mealData = {
                             id: crypto.randomUUID(),
                             name: generatedBeverage.name,
                             description: generatedBeverage.description,
                             ingredients: generatedBeverage.ingredients || [],
                             instructions: generatedBeverage.instructions,
-                            imageUrl: generatedBeverage.imageUrl,
+                            imageUrl: safeImageUrl,
                           };
                           localStorage.setItem(
                             "mpm_chefs_kitchen_meal",

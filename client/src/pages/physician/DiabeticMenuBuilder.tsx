@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { safeLocalStorageSet } from "@/lib/safeLocalStorage";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
@@ -662,7 +663,7 @@ export default function DiabeticMenuBuilder() {
         slot,
         generatedAtISO: new Date().toISOString(),
       };
-      localStorage.setItem(AI_MEALS_CACHE_KEY, JSON.stringify(state));
+      safeLocalStorageSet(AI_MEALS_CACHE_KEY, state);
     } catch {}
   }
 

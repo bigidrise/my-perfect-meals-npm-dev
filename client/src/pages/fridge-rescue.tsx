@@ -86,6 +86,7 @@ import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
+import { safeLocalStorageSet } from "@/lib/safeLocalStorage";
 
 const FRIDGE_RESCUE_TOUR_STEPS: TourStep[] = [
   {
@@ -327,9 +328,7 @@ const FridgeRescuePage = () => {
 
   // Save state to localStorage
   function saveFridgeRescueCache(state: CachedFridgeRescueState) {
-    try {
-      localStorage.setItem(CACHE_KEY, JSON.stringify(state));
-    } catch {}
+    safeLocalStorageSet(CACHE_KEY, state);
   }
 
   // Load state from localStorage
@@ -1503,13 +1502,20 @@ const FridgeRescuePage = () => {
                             className="flex-1 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-400 hover:from-red-400 hover:via-orange-400 hover:to-yellow-300 text-white font-semibold text-xs flex items-center justify-center gap-1.5"
                             onClick={() => {
                               guardAction("Enter Studio is a premium feature. Upgrade to cook meals step-by-step with our AI chef.", () => {
+                                const safeImageUrl = (() => {
+                                  const url = meal.imageUrl;
+                                  if (!url) return null;
+                                  if (url.startsWith("data:")) return null;
+                                  if (url.includes("oaidalleapiprodscus")) return null;
+                                  return url;
+                                })();
                                 const mealData = {
                                   id: meal.id || crypto.randomUUID(),
                                   name: meal.name,
                                   description: meal.description,
                                   ingredients: meal.ingredients || [],
                                   instructions: meal.instructions,
-                                  imageUrl: meal.imageUrl,
+                                  imageUrl: safeImageUrl,
                                   cookMethod: cookMethod || undefined,
                                 };
                                 localStorage.setItem(

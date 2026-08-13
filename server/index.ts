@@ -1267,6 +1267,27 @@ setTimeout(async () => {
   }
 }, 4600);
 
+// Media Assets boot migration — canonical media_assets table + saved_meals.media_asset_id FK
+setTimeout(async () => {
+  try {
+    const { runMediaAssetsMigration } = await import("./db/migrations/runMediaAssetsMigration");
+    await runMediaAssetsMigration();
+  } catch (err: any) {
+    console.error("❌ Media Assets boot migration failed:", err.message);
+  }
+}, 4800);
+
+// Daily Nutrition State boot migration (#690)
+// Adds: daily_nutrition_prescriptions meal-plan snapshot cols + macro_logs.board_item_reference
+setTimeout(async () => {
+  try {
+    const { runNutritionStateMigration } = await import("./db/migrations/runNutritionStateMigration");
+    await runNutritionStateMigration();
+  } catch (err: any) {
+    console.error("❌ Nutrition State boot migration failed:", err.message);
+  }
+}, 5200);
+
 // Backfill: purge stale temp URLs from meal_image_cache
 // Any non-S3 URL is expired or will expire — delete so next request regenerates clean
 setTimeout(async () => {
@@ -1456,6 +1477,20 @@ async function start() {
     const bootTime = Date.now() - startTime;
     console.log(`🚀 Server running on 0.0.0.0:${PORT} (startup: ${bootTime}ms)`);
   });
+
+  // Dev-only: verify image upload pipeline from within server process context.
+  // Runs 3 s after boot so the sidecar is fully ready. NOT an HTTP endpoint.
+  // See server/services/storageStartupDiagnostic.ts — remove after storage is proven.
+  if (process.env.NODE_ENV !== "production") {
+    setTimeout(async () => {
+      try {
+        const { runStorageStartupDiagnostic } = await import("./services/storageStartupDiagnostic");
+        await runStorageStartupDiagnostic();
+      } catch (err: any) {
+        console.error("[StorageDiagnostic] Failed to run:", err.message);
+      }
+    }, 3000);
+  }
 
   // Legal pages — served as standalone HTML BEFORE Vite/SPA middleware so they are
   // never caught by the React router. Required by Apple App Store and app stores.

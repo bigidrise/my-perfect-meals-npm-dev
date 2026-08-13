@@ -56,6 +56,7 @@ import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
 import TrashButton from "@/components/ui/TrashButton";
 import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
+import { safeLocalStorageSet } from "@/lib/safeLocalStorage";
 
 const PERFORMANCE_GOALS = [
   { value: "pre-workout-energy", label: "Pre-Workout Energy" },
@@ -273,17 +274,7 @@ export default function AthleteBeverageCreator() {
 
   useEffect(() => {
     if (generatedBeverage) {
-      try {
-        // Never save a base64 data URL to localStorage — it's too large and will
-        // silently fail quota, losing the imageUrl on the next restore.
-        const toSave = generatedBeverage.imageUrl?.startsWith('data:')
-          ? { ...generatedBeverage, imageUrl: undefined }
-          : generatedBeverage;
-        localStorage.setItem(
-          "mpm_athlete_beverage_result",
-          JSON.stringify(toSave),
-        );
-      } catch {}
+      safeLocalStorageSet("mpm_athlete_beverage_result", generatedBeverage);
     }
   }, [generatedBeverage]);
 
@@ -1033,13 +1024,20 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
                     <div className="grid grid-cols-2 gap-2">
                       <GlassButton
                         onClick={() => {
+                          const safeImageUrl = (() => {
+                            const url = generatedBeverage.imageUrl;
+                            if (!url) return null;
+                            if (url.startsWith("data:")) return null;
+                            if (url.includes("oaidalleapiprodscus")) return null;
+                            return url;
+                          })();
                           const mealData = {
                             id: crypto.randomUUID(),
                             name: generatedBeverage.name,
                             description: generatedBeverage.description,
                             ingredients: generatedBeverage.ingredients || [],
                             instructions: generatedBeverage.instructions,
-                            imageUrl: generatedBeverage.imageUrl,
+                            imageUrl: safeImageUrl,
                           };
                           localStorage.setItem(
                             "mpm_chefs_kitchen_meal",

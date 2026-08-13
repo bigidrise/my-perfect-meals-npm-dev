@@ -132,6 +132,14 @@ export default function GeneratedMealCard({
   const handlePrepareWithChef = () => {
     if (!hasInstructions) return;
 
+    // Strip base64/expired image URLs before storing — they can be 500KB+ and
+    // crash the app with a QuotaExceededError.
+    const safeImageUrl = (() => {
+      const url = generatedMeal.imageUrl;
+      if (!url || url.startsWith("data:") || url.includes("oaidalleapiprodscus")) return null;
+      return url;
+    })();
+
     const mealData = {
       id: generatedMeal.id || crypto.randomUUID(),
       name: generatedMeal.name,
@@ -139,7 +147,7 @@ export default function GeneratedMealCard({
       mealType: generatedMeal.mealType,
       ingredients: generatedMeal.ingredients || [],
       instructions: generatedMeal.instructions,
-      imageUrl: generatedMeal.imageUrl,
+      imageUrl: safeImageUrl,
       calories: generatedMeal.nutrition?.calories || generatedMeal.calories,
       protein: generatedMeal.nutrition?.protein || generatedMeal.protein,
       carbs: generatedMeal.nutrition?.carbs || generatedMeal.carbs,
@@ -149,7 +157,14 @@ export default function GeneratedMealCard({
       medicalBadges: generatedMeal.medicalBadges || [],
     };
 
-    localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(mealData));
+    try {
+      localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(mealData));
+    } catch {
+      localStorage.removeItem("mpm_chefs_kitchen_meal");
+      localStorage.removeItem("mpm_chefs_kitchen_external_prepare");
+      localStorage.removeItem("mpm_chefs_kitchen_origin");
+      try { localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(mealData)); } catch { /* give up */ }
+    }
     localStorage.setItem("mpm_chefs_kitchen_external_prepare", "true");
     localStorage.setItem("mpm_chefs_kitchen_origin", window.location.pathname);
 

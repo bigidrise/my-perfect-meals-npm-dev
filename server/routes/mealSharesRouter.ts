@@ -14,6 +14,7 @@ import { userAffiliateAccounts } from "../db/schema/affiliateAccounts";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { processMealImageForSave } from "../services/imageLifecycle";
 
 const router = Router();
 
@@ -45,6 +46,20 @@ router.post("/share", requireAuth, async (req, res) => {
 
     const data = parsed.data;
 
+    // ── Media lifecycle gate ───────────────────────────────────────────────
+    // The Zod schema already rejects base64 (z.string().url() blocks data: URIs).
+    // This gate additionally blocks expired DALL-E CDN URLs.
+    const TEMP_PATTERNS = ["oaidalleapiprodscus", "blob.core.windows.net", "openai.com"];
+    let safeMealImage = data.mealImage || null;
+    if (safeMealImage && TEMP_PATTERNS.some(p => safeMealImage!.includes(p))) {
+      try {
+        const imgResult = await processMealImageForSave(safeMealImage, data.mealName);
+        safeMealImage = imgResult.imageUrl;
+      } catch {
+        safeMealImage = null;
+      }
+    }
+
     // Generate a unique token (retry once on collision — astronomically unlikely)
     let shareToken = makeShareToken();
     const existing = await db.select().from(mealShares).where(eq(mealShares.shareToken, shareToken)).limit(1);
@@ -55,7 +70,7 @@ router.post("/share", requireAuth, async (req, res) => {
       userId,
       mealName:        data.mealName,
       mealDescription: data.mealDescription ?? null,
-      mealImage:       data.mealImage || null,
+      mealImage:       safeMealImage,
       calories:        data.calories ?? null,
       protein:         data.protein != null ? String(data.protein) : null,
       carbs:           data.carbs   != null ? String(data.carbs)   : null,

@@ -15,6 +15,13 @@ import {
   uploadVoiceToS3,
   getVoiceObjectKey,
 } from "../services/tabletVoiceService";
+import { getOrSet, invalidatePrefix } from "../services/queryCache";
+
+const CLIENT_TABLET_TTL_MS = 15_000;
+
+function invalidateClientTabletCache(clientUserId: string): void {
+  invalidatePrefix(`client-tablet:${clientUserId}`);
+}
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 
@@ -69,37 +76,44 @@ router.get("/", async (req: Request, res: Response) => {
     return;
   }
 
-  const studioId = await resolveStudioId(authUser.id);
-  if (!studioId) {
+  const cacheKey = `client-tablet:${authUser.id}`;
+  const payload = await getOrSet(cacheKey, CLIENT_TABLET_TTL_MS, async () => {
+    const studioId = await resolveStudioId(authUser.id);
+    if (!studioId) {
+      return null; // caller handles 404
+    }
+
+    const result = await db.execute(sql`
+      SELECT
+        id,
+        body,
+        author_user_id AS "authorUserId",
+        entry_type     AS "entryType",
+        sender,
+        created_at     AS "createdAt",
+        content_type   AS "contentType",
+        audio_object_key  AS "audioObjectKey",
+        audio_duration_sec AS "audioDurationSec",
+        transcript,
+        transcript_status AS "transcriptStatus"
+      FROM client_notes
+      WHERE client_user_id = ${authUser.id}
+        AND entry_type     = 'message'
+        AND visibility     = 'shared_with_client'
+      ORDER BY created_at ASC
+      LIMIT 200
+    `);
+
+    return { messages: result.rows };
+  });
+
+  if (payload === null) {
     res.status(404).json({ error: "No active professional connection" });
     return;
   }
 
-  const result = await db.execute(sql`
-    SELECT
-      id,
-      body,
-      author_user_id AS "authorUserId",
-      entry_type     AS "entryType",
-      sender,
-      created_at     AS "createdAt",
-      content_type   AS "contentType",
-      audio_object_key  AS "audioObjectKey",
-      audio_duration_sec AS "audioDurationSec",
-      transcript,
-      transcript_status AS "transcriptStatus"
-    FROM client_notes
-    WHERE client_user_id = ${authUser.id}
-      AND entry_type     = 'message'
-      AND visibility     = 'shared_with_client'
-    ORDER BY created_at ASC
-    LIMIT 200
-  `);
-
-  const entries = result.rows;
-
   res.set("Cache-Control", "no-store");
-  res.json({ messages: entries });
+  res.json(payload);
 });
 
 router.post("/message", async (req: Request, res: Response) => {
@@ -183,6 +197,10 @@ router.post("/message", async (req: Request, res: Response) => {
     entry.id,
     { sender: "client" }
   );
+
+  // Invalidate the cached message list so the client sees their own message
+  // on the very next poll, not after the TTL expires.
+  invalidateClientTabletCache(authUser.id);
 
   const [clientUser] = await db
     .select({ firstName: users.firstName, nickname: users.nickname })
