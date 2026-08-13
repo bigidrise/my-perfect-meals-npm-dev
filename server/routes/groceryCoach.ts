@@ -340,7 +340,7 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
     if (groceryGlp1Targets) {
       const t = groceryGlp1Targets;
       const mac = result.macros ?? {};
-              const fat      = toN(nut.fat ?? nut.total_fat ?? nut.fatGrams);
+      const fat      = Number(mac.fat);
       const cal = Number(mac.calories);
       const prot = Number(mac.protein);
       const fatViolation = Number.isFinite(fat) && fat > t.maximumToleratedFatGrams;
