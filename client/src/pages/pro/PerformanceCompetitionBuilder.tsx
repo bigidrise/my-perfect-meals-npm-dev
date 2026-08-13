@@ -109,6 +109,7 @@ import { getBuilderProtocolBadges } from "@/lib/nutritionPersonalization";
 import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
 import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
 import { useDailyNutritionState } from "@/hooks/useDailyNutritionState";
+import { prescriptionToTargetsOverride } from "@/lib/prescriptionAdapter";
 
 const PERFORMANCE_TOUR_STEPS: TourStep[] = [
   {
@@ -340,6 +341,9 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     disabled: !activeDayISO,
   });
   const prescription = nutritionState?.prescription ?? null;
+  // Prescription is the display authority; undefined when absent/fallback so footer
+  // shows its "Set your macros" prompt instead of zeroed targets.
+  const effectiveTargets = prescriptionToTargetsOverride(prescription);
 
   // Server-resolved remaining budget — already floored at 0, no client clamping needed.
   // Declared AFTER useDailyNutritionState to avoid a temporal-dead-zone crash.
@@ -1474,17 +1478,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
             <DailyTargetsCard
               userId={clientId}
               showQuickAddButton={false}
-              targetsOverride={
-                prescription && prescription.source !== "fallback" && prescription.proteinTarget > 0
-                  ? {
-                      protein_g:      prescription.proteinTarget,
-                      carbs_g:        prescription.carbsTarget,
-                      fat_g:          prescription.fatTarget,
-                      starchyCarbs_g: prescription.starchyCarbsTarget,
-                      fibrousCarbs_g: prescription.fibrousCarbsTarget,
-                    }
-                  : undefined
-              }
+              targetsOverride={effectiveTargets}
             />
           </div>
 
@@ -1542,6 +1536,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
               return (
                 <div className="col-span-full mb-6">
                   <RemainingMacrosFooter
+                    targetsOverride={effectiveTargets}
                     consumedOverride={consumed}
                     showSaveButton={false}
                     layoutMode="inline"
