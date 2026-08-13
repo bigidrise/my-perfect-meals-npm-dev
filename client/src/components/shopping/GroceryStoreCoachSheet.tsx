@@ -410,8 +410,19 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       // Trigger card generation immediately — non-blocking to the recommendation display
       finalizeCard(coachResult);
 
-      if (data.shoppingList?.length) {
-        fetchProductAdvice(data.shoppingList);
+      // Build the combined ingredient list once — shoppingList (items to buy) +
+      // ownedIngredients (items the model assumed you already have) — so the
+      // Product Advisor can return brand picks for every ingredient that lands
+      // on the full shopping list, not just the ones flagged as "needs buying".
+      const allIngredients: ShoppingListItem[] = [
+        ...(data.shoppingList ?? []),
+        ...(data.ownedIngredients ?? []).map((o: { item: string; quantity: string; unit: string }) => ({
+          ...o,
+          category: "Other" as const,
+        })),
+      ];
+      if (allIngredients.length) {
+        fetchProductAdvice(allIngredients);
       }
     } catch (err: any) {
       setPhase("idle");
