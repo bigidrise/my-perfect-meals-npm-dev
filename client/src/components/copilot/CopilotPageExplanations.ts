@@ -851,6 +851,26 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     autoClose: true,
   },
 
+  "/tips": {
+    pageId: "tips-strategies",
+    title: "Tips & Strategies",
+    description:
+      "Pro tips, power-user strategies, and shortcuts for getting the most out of every feature in My Perfect Meals.",
+    spokenText:
+      "Welcome to Tips and Strategies. This is where you find the techniques that turn everyday users into power users. Whether you want to sharpen how you write meal prompts, build a smarter weekly planning routine, get the most out of your Favorites and Saved Meals, or understand how the clinical hubs work together, every tip here is practical and immediately usable. You will also find pointers to the App Library and Chef Copilot so you always know where to go when you want to go deeper. Browse by category or scroll through at your own pace.",
+    autoClose: true,
+  },
+
+  "/learning": {
+    pageId: "learning-hub",
+    title: "Learning & Certifications",
+    description:
+      "Complete the Platform Mastery Academy and Business Success Certification to unlock affiliate and coaching credentials.",
+    spokenText:
+      "Welcome to Learning and Certifications. This is the professional development center for coaches, trainers, and affiliates using My Perfect Meals. Here you can track your progress through the Platform Mastery Academy, complete the Business Success Certification, and unlock your affiliate coaching credentials once both certifications are done. Each certification is a structured course with video lessons, knowledge checks, and a final assessment. Completing them qualifies you to coach clients through ProCare and share the platform as a certified affiliate. If there are pending updates to any certification you have already completed, you will see a notification badge here.",
+    autoClose: true,
+  },
+
   "/lifestyle/my-perfect-beginning/parents-corner": {
     pageId: "parents-corner",
     title: "Parent's Corner",
