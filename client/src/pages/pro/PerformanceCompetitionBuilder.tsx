@@ -339,7 +339,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     clientId: proClientId ?? null,
     disabled: !activeDayISO,
   });
-  const prescription = nutritionState?.resolvedPrescription ?? null;
+  const prescription = nutritionState?.prescription ?? null;
 
   // Server-resolved remaining budget — already floored at 0, no client clamping needed.
   // Declared AFTER useDailyNutritionState to avoid a temporal-dead-zone crash.

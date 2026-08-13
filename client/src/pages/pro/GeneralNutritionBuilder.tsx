@@ -69,6 +69,7 @@ import { setActiveBuilderNs } from "@/lib/activeBuilderNs";
 import { v4 as uuidv4 } from "uuid";
 import { CreateWithChefModal } from "@/components/CreateWithChefModal";
 import { useBaselineNutrition } from "@/hooks/useBaselineNutrition";
+import { prescriptionToTargetsOverride } from "@/lib/prescriptionAdapter";
 import { classifyMeal } from "@/utils/starchMealClassifier";
 import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
 import { InformationModal } from "@/components/ui/universal-modal";
@@ -249,7 +250,10 @@ export default function WeeklyMealBoard() {
     clientId: proClientId ?? null,
     disabled: !activeDayISO,
   });
-  const prescription = nutritionState?.resolvedPrescription ?? null;
+  const prescription = nutritionState?.prescription ?? null;
+  // Training prescription is the display authority when resolved; falls back to
+  // macro-calculator baseline (nutritionTargets) for non-performance/fallback days.
+  const effectiveTargets = prescriptionToTargetsOverride(prescription) ?? nutritionTargets;
 
   // Day macro totals for the Today row — consumed cal/P/C/F for the active day.
   const dayTotals = useMemo(() => {
@@ -1223,7 +1227,7 @@ export default function WeeklyMealBoard() {
           <DailyTargetsCard
             userId={effectiveUserId}
             showQuickAddButton={false}
-            targetsOverride={nutritionTargets}
+            targetsOverride={effectiveTargets}
           />
         </div>
 
@@ -1283,7 +1287,7 @@ export default function WeeklyMealBoard() {
               <div className="col-span-full mb-6">
                 <RemainingMacrosFooter
                   consumedOverride={consumed}
-                  targetsOverride={nutritionTargets}
+                  targetsOverride={effectiveTargets}
                   showSaveButton={false}
                   layoutMode="inline"
                   prescriptionChangedMidDay={nutritionState?.prescriptionChangedMidDay}

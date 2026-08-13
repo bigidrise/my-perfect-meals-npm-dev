@@ -35,6 +35,11 @@ function resetExecuteQueue(
 ) {
   executeQueue = [consumedRow, plannedRow];
   executeCallCount = 0;
+  // Reset the select-call counter so the next service invocation always routes
+  // callIndex=0 to the user row, even when the same test calls the service twice.
+  selectCallCount = 0;
+  // Reset stored-prescription stub; override per-test to exercise source-change detection.
+  mockStoredPrescriptionRows = [];
 }
 
 function zeroPlanRow(): Record<string, unknown> {
@@ -49,16 +54,34 @@ function zeroPlanRow(): Record<string, unknown> {
   };
 }
 
+// ── db.select call counter + stored-prescription stub ─────────────────────────
+// resolveDailyNutritionState calls db.select twice per invocation (inside
+// Promise.all, so the calls are synchronously ordered):
+//   1st call → users table                   → always returns [mockUserRow]
+//   2nd call → dailyNutritionPrescriptions   → returns mockStoredPrescriptionRows
+//
+// Default: mockStoredPrescriptionRows = [] (no prior snapshot = no detection).
+// Override per-test to exercise mid-day source-change detection.
+// selectCallCount is reset in resetExecuteQueue() so tests that call the
+// service more than once continue to route correctly.
+
+let selectCallCount = 0;
+// Override in tests that need a stored prescription snapshot for detection tests.
+let mockStoredPrescriptionRows: Record<string, unknown>[] = [];
+
 jest.mock("../db", () => ({
   db: {
     select: jest.fn(() => {
-      // Drizzle fluent chain: .select().from().where().limit() → user row
+      // Capture call index synchronously at chain-creation time.
+      const callIndex = selectCallCount++;
       const chain: any = {
         from:  () => chain,
         where: () => chain,
-        limit: () => Promise.resolve([mockUserRow]),
-        then:  (res: any, rej: any) => Promise.resolve([mockUserRow]).then(res, rej),
-        catch: (rej: any) => Promise.resolve([mockUserRow]).catch(rej),
+        limit: () =>
+          Promise.resolve(callIndex === 0 ? [mockUserRow] : mockStoredPrescriptionRows),
+        then:  (res: any, rej: any) =>
+          Promise.resolve(callIndex === 0 ? [mockUserRow] : mockStoredPrescriptionRows).then(res, rej),
+        catch: (rej: any) => Promise.resolve([]).catch(rej),
       };
       return chain;
     }),
@@ -88,6 +111,7 @@ jest.mock("../../shared/schema", () => ({
 
 jest.mock("drizzle-orm", () => ({
   eq:  jest.fn(() => "eq-stub"),
+  and: jest.fn((...args: unknown[]) => ({ and: args })),
   sql: Object.assign(
     (strings: TemplateStringsArray, ...vals: unknown[]) => ({
       sql: strings.join("?"),
@@ -109,9 +133,9 @@ jest.mock("../services/nutritionDayService", () => ({
   getUserTimezone: jest.fn(async () => "UTC"),
 }));
 
-// ── dailyNutritionPrescriptions schema stub (fire-and-forget upsert) ──────────
+// ── dailyNutritionPrescriptions schema stub (fire-and-forget upsert + select) ──
 jest.mock("../db/schema/dailyNutritionPrescriptions", () => ({
-  dailyNutritionPrescriptions: { userId: "userId", date: "date" },
+  dailyNutritionPrescriptions: { userId: "userId", date: "date", source: "source" },
 }));
 
 // ── NOW import the module under test (after all mocks are registered) ─────────
@@ -410,3 +434,109 @@ describe("resolveDailyNutritionState — activeConstraints update with new presc
     expect(state.activeConstraints.starchSlotsExhausted).toBe(true);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCENARIO 5 — starchyCarbs and starchMealsRemaining clamp correctly after a
+// mid-day prescription change
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("resolveDailyNutritionState — starchyCarbs and starchMealsRemaining mid-day clamp", () => {
+  beforeEach(() => {
+    mockUserRow = makeUserRow();
+  });
+
+  test("remaining.starchyCarbs is clamped to 0 when consumed exceeds new (lower) prescription", async () => {
+    // Prescription changed mid-day: starchyCarbsTarget dropped to 80g.
+    // User already consumed 90g before the change → 80 − 90 = −10 → clamped to 0.
+    mockPrescription = makePrescription({ starchyCarbsTarget: 80 });
+    resetExecuteQueue(makeConsumedRow({ starchy_carbs: 90 }));
+
+    const state = await resolveDailyNutritionState(USER_ID, DATE);
+
+    expect(state.remaining.starchyCarbs).toBe(0);
+    expect(state.remaining.starchyCarbs).toBeGreaterThanOrEqual(0);
+    expect(state.consumed.starchyCarbs).toBe(90);
+    expect(state.prescription.starchyCarbsTarget).toBe(80);
+  });
+
+  test("starchMealsRemaining is clamped to 0 when logged meals exceed new (lower) allowance", async () => {
+    // Prescription changed mid-day: starchMealsAllowed dropped to 1.
+    // User already logged 2 starch meals before the change → 1 − 2 = −1 → clamped to 0.
+    mockPrescription = makePrescription({ starchMealsAllowed: 1 });
+    resetExecuteQueue(makeConsumedRow({ starch_meal_count: 2 }));
+
+    const state = await resolveDailyNutritionState(USER_ID, DATE);
+
+    expect(state.remaining.starchMealsRemaining).toBe(0);
+    expect(state.remaining.starchMealsRemaining).toBeGreaterThanOrEqual(0);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCENARIO 6 — prescriptionChangedMidDay source-change detection
+// Verifies the detection uses the correct persisted source vocabulary so that
+// unchanged-source users (including clinical/GLP-1) never see a false-positive
+// banner, while real source transitions are correctly flagged.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("resolveDailyNutritionState — prescriptionChangedMidDay source-change detection", () => {
+  beforeEach(() => {
+    mockUserRow = makeUserRow();
+    // mockStoredPrescriptionRows defaults to [] (no stored snapshot) via
+    // resetExecuteQueue(); individual tests override it where needed.
+  });
+
+  test("GLP-1 user does not see false-positive banner when clinical prescription is unchanged", async () => {
+    // prescriptionResolver now persists source="clinical" for GLP-1.
+    // storedSourceToResolverSource maps "clinical" → "clinical".
+    // So stored="clinical" vs current="clinical" → no change → banner MUST NOT fire.
+    mockPrescription = makePrescription({ source: "clinical" });
+    // resetExecuteQueue must come first — it resets mockStoredPrescriptionRows to [].
+    resetExecuteQueue(makeConsumedRow({ meal_count: 2, calories: 600 }));
+    mockStoredPrescriptionRows = [{ source: "clinical" }];
+
+    const state = await resolveDailyNutritionState(USER_ID, DATE);
+
+    expect(state.prescriptionChangedMidDay).toBeUndefined();
+  });
+
+  test("prescriptionChangedMidDay fires when performance overlay activates mid-day", async () => {
+    // User had a standard (macro_calculator) prescription this morning and
+    // activates Performance Mode after logging a meal.
+    mockPrescription = makePrescription({ source: "performance" });
+    mockStoredPrescriptionRows = [{ source: "performance_overlay" }];
+    // Reset after setting the stored rows so selectCallCount is 0 but
+    // mockStoredPrescriptionRows is NOT cleared (resetExecuteQueue clears it, so
+    // we set it after the reset).
+    resetExecuteQueue(makeConsumedRow({ meal_count: 1 }));
+    mockStoredPrescriptionRows = [{ source: "macro_calculator" }];
+
+    const state = await resolveDailyNutritionState(USER_ID, DATE);
+
+    expect(state.prescriptionChangedMidDay).toBe(true);
+    expect(state.prescriptionChangeReason).toBe("Performance Mode");
+  });
+
+  test("prescriptionChangedMidDay is absent when no stored snapshot exists yet", async () => {
+    // First resolution of the day — nothing in dailyNutritionPrescriptions yet.
+    mockPrescription = makePrescription({ source: "user_default" });
+    resetExecuteQueue(makeConsumedRow({ meal_count: 1 }));
+    // mockStoredPrescriptionRows already reset to [] by resetExecuteQueue
+
+    const state = await resolveDailyNutritionState(USER_ID, DATE);
+
+    expect(state.prescriptionChangedMidDay).toBeUndefined();
+  });
+
+  test("prescriptionChangedMidDay is absent when no meals logged even if source changed", async () => {
+    // Source changed but user hasn't logged anything yet — nothing to flag.
+    mockPrescription = makePrescription({ source: "clinical" });
+    resetExecuteQueue(makeConsumedRow({ meal_count: 0 }));
+    mockStoredPrescriptionRows = [{ source: "macro_calculator" }];
+
+    const state = await resolveDailyNutritionState(USER_ID, DATE);
+
+    expect(state.prescriptionChangedMidDay).toBeUndefined();
+  });
+});
+

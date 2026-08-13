@@ -104,6 +104,7 @@ import { SnackCreatorModal } from "@/components/SnackCreatorModal";
 import { GlobalMealActionBar } from "@/components/GlobalMealActionBar";
 import { useNavigateToFavorites } from "@/hooks/useNavigateToFavorites";
 import { useBaselineNutrition } from "@/hooks/useBaselineNutrition";
+import { prescriptionToTargetsOverride } from "@/lib/prescriptionAdapter";
 import { classifyMeal } from "@/utils/starchMealClassifier";
 import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
 import DailyMealProgressBar from "@/components/guided/DailyMealProgressBar";
@@ -390,7 +391,10 @@ export default function DiabeticMenuBuilder() {
     clientId: proClientId ?? null,
     disabled: !activeDayISO,
   });
-  const prescription = nutritionState?.resolvedPrescription ?? null;
+  const prescription = nutritionState?.prescription ?? null;
+  // Training prescription is the display authority when resolved; falls back to
+  // macro-calculator baseline (nutritionTargets) for non-performance/fallback days.
+  const effectiveTargets = prescriptionToTargetsOverride(prescription) ?? nutritionTargets;
 
   // Day macro totals for the Today row — consumed cal/P/C/F for the active day.
   const dayTotals = useMemo(() => {
@@ -1605,7 +1609,7 @@ export default function DiabeticMenuBuilder() {
           <DailyTargetsCard
             userId={effectiveUserId}
             onQuickAddClick={() => setAdditionalMacrosOpen(true)}
-            targetsOverride={nutritionTargets}
+            targetsOverride={effectiveTargets}
           />
         </div>
 
@@ -1690,7 +1694,7 @@ export default function DiabeticMenuBuilder() {
               <div className="col-span-full mb-6">
                 <RemainingMacrosFooter
                   consumedOverride={consumed}
-                  targetsOverride={nutritionTargets}
+                  targetsOverride={effectiveTargets}
                   showSaveButton={false}
                   layoutMode="inline"
                   prescriptionChangedMidDay={nutritionState?.prescriptionChangedMidDay}
