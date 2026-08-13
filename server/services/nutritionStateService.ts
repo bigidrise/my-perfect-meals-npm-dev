@@ -290,13 +290,26 @@ function areSourcesCompatible(a: PrescriptionSource, b: PrescriptionSource): boo
 /**
  * Human-readable label for a PrescriptionSource transition.
  * Only called when a transition is actually detected.
+ *
+ * Direction semantics:
+ *   from = storedRow.source  (what was written to daily_nutrition_prescriptions —
+ *                             the MOST RECENT write wins, so ProCare upserts after
+ *                             the macro calculator make "from" = professional_override)
+ *   to   = prescription.source (what the resolver computed fresh)
+ *
+ * The resolver never returns "professional_override" — it can only produce
+ * user_default | performance | clinical. Therefore the canonical ProCare banner
+ * case is from="professional_override", to="user_default", and the check must
+ * inspect "from" to identify it.
  */
 function changeReasonLabel(from: PrescriptionSource, to: PrescriptionSource): string {
-  if (to === "professional_override") return "ProCare override";
-  if (to === "performance")           return "Performance Mode";
-  if (to === "clinical")              return "Clinical plan";
-  if (from === "professional_override" || from === "performance") {
-    return "Nutrition plan update";
-  }
+  // ProCare professional wrote targets mid-day: the stored row was stamped
+  // 'procare' (→ professional_override) and the resolver still sees user_default.
+  if (from === "professional_override") return "ProCare override";
+  // Transitioning into Performance Mode (performance overlay newly applied).
+  if (to === "performance")             return "Performance Mode";
+  if (from === "performance")           return "Nutrition plan update";
+  // Transitioning into a clinical plan.
+  if (to === "clinical")                return "Clinical plan";
   return "Nutrition plan update";
 }
