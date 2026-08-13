@@ -12,6 +12,12 @@
  *     → Task 895 constraint sim: gluten-free + dairy-free protocol active.
  *       Verifies variety still rotates when the safe-meal pool is restricted,
  *       and that scanGeneratedOutput passes 100% of rounds (no protocol violations).
+ *
+ *   npx tsx scripts/verify-grocery-variety.ts --vegan-diabetic
+ *     → Task 899 constraint sim: vegan + diabetic (~45 g carb ceiling per meal).
+ *       Verifies variety still rotates when both no-animal-products AND hard
+ *       carb ceilings are active, and that scanGeneratedOutput passes 100% of
+ *       rounds (no animal-product or carb-ceiling violations).
  */
 import OpenAI from "openai";
 import { db } from "../server/db";
@@ -26,13 +32,24 @@ import {
 
 // ── CLI flags ──────────────────────────────────────────────────────────────────
 const CONSTRAINED_MODE = process.argv.includes("--constrained");
+const VEGAN_DIABETIC_MODE = process.argv.includes("--vegan-diabetic");
 
-const TEST_USER_ID = CONSTRAINED_MODE
+const TEST_USER_ID = VEGAN_DIABETIC_MODE
+  ? "verify-variety-899-vegan-diabetic"
+  : CONSTRAINED_MODE
   ? "verify-variety-895-constrained"
   : "verify-variety-892";
 
 const MEAL_REQUEST = "give me dinner";
 const ROUNDS = 10;
+
+/**
+ * Hard carb ceiling enforced per round in --vegan-diabetic mode.
+ * Mirrors the ~45 g/meal limit stated in the diabeticGuidance injected into
+ * every prompt. Any AI response exceeding this is treated as a ceiling breach
+ * and fails the round, regardless of scanGeneratedOutput result.
+ */
+const VEGAN_DIABETIC_CARB_CEILING = 45;
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -50,6 +67,13 @@ interface Round {
   meta: VarietyMeta;
   scanPassed: boolean;
   scanViolations: string[];
+  /** Carbs reported by the AI (grams). Null when macros were missing/invalid. */
+  carbsG: number | null;
+  /**
+   * True when carb ceiling is not relevant (non-vegan-diabetic modes),
+   * or when carbsG is a finite number <= VEGAN_DIABETIC_CARB_CEILING.
+   */
+  carbCeilingPassed: boolean;
 }
 
 // ── Envelope builder ───────────────────────────────────────────────────────────
@@ -70,6 +94,40 @@ function buildConstrainedEnvelope(): UserProtocolEnvelope {
     dietaryIdentity: ["gluten-free"],
     allergies: ["dairy"],
     procedural: deriveProcedureRules(["gluten-free"]),
+  };
+}
+
+/**
+ * Build a UserProtocolEnvelope for vegan + diabetic constraints (Task 899).
+ *
+ * dietaryIdentity: ["vegan"] — hard outer wall: no meat, poultry, seafood, eggs,
+ *   dairy, honey, or any animal-derived ingredient.
+ * hasDiabetes: true — activates the medical hard-limit layer so scanGeneratedOutput
+ *   enforces carb ceilings.
+ * medicalHardLimits: ["diabetes"] — triggers the medical enforcement layer in
+ *   enforceBeforeGenerate, injecting carb guidance into the prompt.
+ * diabeticGuidance: static ceiling string (~45 g carbs per meal) — mirrors what the
+ *   real glucose-based guidance would inject for a stable-glucose diabetic user.
+ *
+ * This is the tightest double-constraint supported by the protocol: no animal
+ * products AND hard carb ceilings. The simulation focuses on whether variety
+ * still rotates (avoiding legume-protein monotony) while staying compliant.
+ */
+function buildVeganDiabeticEnvelope(): UserProtocolEnvelope {
+  const base = buildGuestEnvelope();
+  return {
+    ...base,
+    userId: TEST_USER_ID,
+    dietaryIdentity: ["vegan"],
+    medicalHardLimits: ["diabetes"],
+    hasDiabetes: true,
+    diabeticGuidance:
+      "Glucose is stable — maintain a diabetic-friendly meal pattern. " +
+      "Keep carbohydrates at or below 45 g per meal. " +
+      "Prioritise high-fibre, low-glycaemic carb sources (legumes, non-starchy vegetables, quinoa). " +
+      "Avoid refined grains, added sugars, and high-starch portions.",
+    diabeticGlucoseState: null,
+    procedural: deriveProcedureRules(["vegan"]),
   };
 }
 
@@ -168,7 +226,9 @@ async function recommendMeal(
   protocolContext: string,
   varietyBlock: string
 ): Promise<{ name: string; meta: VarietyMeta; rawResult: any } | null> {
-  const constraintLabel = CONSTRAINED_MODE
+  const constraintLabel = VEGAN_DIABETIC_MODE
+    ? "Vegan + diabetic protocol active — see constraints below."
+    : CONSTRAINED_MODE
     ? "Gluten-free + dairy-free protocol active — see constraints below."
     : "No dietary restrictions or conditions on file — apply general healthy eating principles.";
 
@@ -277,6 +337,8 @@ function analyzeResults(rounds: Round[]): boolean {
   console.log("=".repeat(70));
 
   // 1. Consecutive protein+cuisine collisions
+  // Note: for --vegan-diabetic the protein universe is genuinely narrow (legumes
+  // only), so this check is informational rather than a hard pass gate in that mode.
   let consecutiveCollisions = 0;
   for (let i = 1; i < rounds.length; i++) {
     const prev = rounds[i - 1].meta;
@@ -293,6 +355,10 @@ function analyzeResults(rounds: Round[]): boolean {
   }
   if (consecutiveCollisions === 0) {
     console.log("  ✅ No consecutive protein+cuisine collisions");
+  } else if (VEGAN_DIABETIC_MODE) {
+    console.log(
+      `  ℹ️  ${consecutiveCollisions} consecutive collision(s) noted — informational only for vegan+diabetic pool`
+    );
   }
 
   // 2. Unique proteins
@@ -335,7 +401,7 @@ function analyzeResults(rounds: Round[]): boolean {
     console.warn(`  ⚠️  Only ${uniqueNames.size} distinct meal names`);
   }
 
-  // 7. Protocol scan pass rate (constrained mode only)
+  // 7. Protocol scan pass rate
   const scansPassed = rounds.filter((r) => r.scanPassed).length;
   const scansTotal = rounds.length;
   console.log(`\n  Protocol scan rate  : ${scansPassed}/${scansTotal} passed`);
@@ -346,25 +412,70 @@ function analyzeResults(rounds: Round[]): boolean {
     console.warn(`  ❌ Scan failures in round(s): ${failedRounds.join(", ")}`);
   }
 
+  // 8. Carb ceiling check — vegan+diabetic mode only
+  // scanGeneratedOutput does not evaluate macronutrient totals, so we assert
+  // the AI-reported macros.carbs explicitly. A missing or over-ceiling value
+  // is a hard failure even when the ingredient scan passes.
+  let carbCeilingAllPassed = true;
+  if (VEGAN_DIABETIC_MODE) {
+    const carbsPassed = rounds.filter((r) => r.carbCeilingPassed).length;
+    const carbsFailed = rounds.filter((r) => !r.carbCeilingPassed);
+    console.log(`\n  Carb ceiling check  : ${carbsPassed}/${scansTotal} rounds ≤ ${VEGAN_DIABETIC_CARB_CEILING}g`);
+    if (carbsPassed === scansTotal) {
+      const carbValues = rounds.map((r) => `${r.carbsG}g`).join(", ");
+      console.log(`  ✅ All rounds within carb ceiling — reported carbs: [${carbValues}]`);
+    } else {
+      carbCeilingAllPassed = false;
+      for (const r of carbsFailed) {
+        if (r.carbsG === null) {
+          console.warn(`  ❌ Round ${r.round}: macros.carbs missing or non-numeric`);
+        } else {
+          console.warn(`  ❌ Round ${r.round}: ${r.carbsG}g carbs exceeds ${VEGAN_DIABETIC_CARB_CEILING}g ceiling`);
+        }
+      }
+    }
+  }
+
   // Overall verdict
+  // --vegan-diabetic: task criteria are distinct names + ≥4 proteins + ≥4 cuisines
+  // + 100% ingredient scan + 100% explicit carb-ceiling assertion.
+  // Consecutive-collision gate is omitted because the plant-protein universe
+  // (legumes) is genuinely narrower than an unrestricted pool.
   console.log("\n" + "=".repeat(70));
-  const passed =
-    consecutiveCollisions === 0 &&
-    uniqueProteins.size >= 4 &&
-    uniqueCuisines.size >= 4 &&
-    uniqueNames.size >= 9 &&
-    scansPassed === scansTotal;
+  const passed = VEGAN_DIABETIC_MODE
+    ? uniqueProteins.size >= 4 &&
+      uniqueCuisines.size >= 4 &&
+      uniqueNames.size === 10 &&
+      scansPassed === scansTotal &&
+      carbCeilingAllPassed
+    : consecutiveCollisions === 0 &&
+      uniqueProteins.size >= 4 &&
+      uniqueCuisines.size >= 4 &&
+      uniqueNames.size >= 9 &&
+      scansPassed === scansTotal;
 
   if (passed) {
     console.log("🎉 VERDICT: PASS — variety enforcement is working correctly.");
-    if (CONSTRAINED_MODE) {
+    if (VEGAN_DIABETIC_MODE) {
+      console.log(`   Vegan + diabetic pool (${VEGAN_DIABETIC_CARB_CEILING}g carb ceiling) maintained full variety`);
+      console.log("   AND 100% protocol compliance across all 10 rounds.");
+      console.log("   All rounds: distinct meal names, ≥4 proteins, ≥4 cuisines,");
+      console.log("   ingredient scan passed, AND carbs within ceiling.");
+    } else if (CONSTRAINED_MODE) {
       console.log("   Constrained pool (gluten-free + dairy-free) maintained full variety");
       console.log("   AND 100% protocol compliance across all 10 rounds.");
     }
   } else {
     console.log("❌ VERDICT: FAIL — variety enforcement needs investigation.");
     if (scansPassed < scansTotal) {
-      console.log("   One or more rounds had protocol violations (gluten/dairy ingredients returned).");
+      if (VEGAN_DIABETIC_MODE) {
+        console.log("   One or more rounds had ingredient protocol violations (animal products returned).");
+      } else {
+        console.log("   One or more rounds had protocol violations (gluten/dairy ingredients returned).");
+      }
+    }
+    if (VEGAN_DIABETIC_MODE && !carbCeilingAllPassed) {
+      console.log(`   One or more rounds exceeded the ${VEGAN_DIABETIC_CARB_CEILING}g carb ceiling or had missing macros.`);
     }
     process.exitCode = 1;
   }
@@ -376,7 +487,11 @@ function analyzeResults(rounds: Round[]): boolean {
 // ── Main ──────────────────────────────────────────────────────────────────────
 async function main(): Promise<void> {
   console.log("=".repeat(70));
-  if (CONSTRAINED_MODE) {
+  if (VEGAN_DIABETIC_MODE) {
+    console.log("Grocery Coach Variety Verification — Task 899 (Vegan + Diabetic)");
+    console.log("Constraints : vegan (no animal products) + diabetic (~45 g carb ceiling/meal)");
+    console.log("Validates   : variety rotation, ≥4 proteins, ≥4 cuisines, AND 100% scan pass rate");
+  } else if (CONSTRAINED_MODE) {
     console.log("Grocery Coach Variety Verification — Task 895 (Constrained)");
     console.log("Constraints : gluten-free + dairy-free protocol active");
     console.log("Validates   : variety rotation AND 100% scanGeneratedOutput pass rate");
@@ -389,18 +504,26 @@ async function main(): Promise<void> {
   console.log("=".repeat(70));
 
   // Build the protocol envelope for this run
-  const envelope: UserProtocolEnvelope = CONSTRAINED_MODE
+  const envelope: UserProtocolEnvelope = VEGAN_DIABETIC_MODE
+    ? buildVeganDiabeticEnvelope()
+    : CONSTRAINED_MODE
     ? buildConstrainedEnvelope()
     : buildGuestEnvelope();
 
-  // Build protocol context block from the envelope (mirrors groceryCoach.ts)
-  const { combined: protocolContext } = CONSTRAINED_MODE
-    ? enforceBeforeGenerate(envelope, { generatorName: "verify_variety_895" })
-    : { combined: "" };
+  // Determine the generator name for this run
+  const generatorName = VEGAN_DIABETIC_MODE
+    ? "verify_variety_899"
+    : "verify_variety_895";
 
-  if (CONSTRAINED_MODE) {
+  // Build protocol context block from the envelope (mirrors groceryCoach.ts)
+  const { combined: protocolContext } =
+    VEGAN_DIABETIC_MODE || CONSTRAINED_MODE
+      ? enforceBeforeGenerate(envelope, { generatorName })
+      : { combined: "" };
+
+  if (VEGAN_DIABETIC_MODE || CONSTRAINED_MODE) {
     console.log("\nProtocol context injected into every prompt:");
-    console.log(protocolContext.slice(0, 500) + (protocolContext.length > 500 ? "…" : ""));
+    console.log(protocolContext.slice(0, 600) + (protocolContext.length > 600 ? "…" : ""));
     console.log();
   }
 
@@ -435,7 +558,7 @@ async function main(): Promise<void> {
     };
 
     const scan = scanGeneratedOutput(mealForScan, envelope, {
-      generatorName: "verify_variety_895",
+      generatorName,
       skipAdaptableConflicts: true,
     });
 
@@ -444,13 +567,32 @@ async function main(): Promise<void> {
       ...scan.instructionViolations.map((v: any) => `[instruction] ${String(v)}`),
     ];
 
+    // ── Explicit carb-ceiling check (vegan-diabetic mode only) ────────────────
+    // scanGeneratedOutput never evaluates macronutrient totals — it only checks
+    // ingredient identity. For vegan+diabetic we must assert the AI-reported
+    // macros.carbs is finite and within the ceiling injected into every prompt.
+    const rawCarbsG: unknown = result.rawResult?.macros?.carbs;
+    const carbsG: number | null =
+      typeof rawCarbsG === "number" && isFinite(rawCarbsG) ? rawCarbsG : null;
+    const carbCeilingPassed: boolean = VEGAN_DIABETIC_MODE
+      ? carbsG !== null && carbsG <= VEGAN_DIABETIC_CARB_CEILING
+      : true; // Not checked in other modes.
+
     await saveHistory(result.name, result.meta);
 
     const scanIcon = scan.passed ? "✅ scan:pass" : "❌ scan:FAIL";
+    const carbIcon = !VEGAN_DIABETIC_MODE
+      ? ""
+      : carbCeilingPassed
+      ? `  ✅ carbs:${carbsG}g (≤${VEGAN_DIABETIC_CARB_CEILING}g)`
+      : carbsG === null
+      ? `  ❌ carbs:MISSING (macros.carbs absent or non-numeric)`
+      : `  ❌ carbs:${carbsG}g EXCEEDS ceiling of ${VEGAN_DIABETIC_CARB_CEILING}g`;
+
     console.log(` ✓`);
     console.log(`  Meal    : ${result.name}`);
     console.log(`  Protein : ${result.meta.primaryProtein}  |  Cuisine: ${result.meta.cuisineStyle}  |  Starch: ${result.meta.majorStarch}  |  Method: ${result.meta.cookingMethod}`);
-    console.log(`  ${scanIcon}`);
+    console.log(`  ${scanIcon}${carbIcon}`);
     if (!scan.passed) {
       for (const v of scanViolations) {
         console.log(`  ⚠️  ${v}`);
@@ -463,6 +605,8 @@ async function main(): Promise<void> {
       meta: result.meta,
       scanPassed: scan.passed,
       scanViolations,
+      carbsG,
+      carbCeilingPassed,
     });
   }
 
