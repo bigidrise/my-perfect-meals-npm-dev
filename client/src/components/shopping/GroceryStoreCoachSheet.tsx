@@ -751,6 +751,26 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                               </div>
                             )}
 
+                            {/* Personalization banner — shown when ≥1 saved favorite is in results */}
+                            {(() => {
+                              const hasSavedItems = productAdvice!.advice.some((a) =>
+                                a.recommended.some((b) => savedProductKeys.has(computeClientProductKey(b.brand, a.ingredient)))
+                              );
+                              return hasSavedItems ? (
+                                <div style={{
+                                  display: "flex", alignItems: "center", gap: 8,
+                                  padding: "8px 12px", borderRadius: 8,
+                                  background: "rgba(249,115,22,0.08)",
+                                  border: "1px solid rgba(249,115,22,0.2)",
+                                }}>
+                                  <span style={{ fontSize: 14 }}>★</span>
+                                  <span style={{ color: "#fb923c", fontSize: 12, fontWeight: 600 }}>
+                                    Personalized from your Saved Groceries
+                                  </span>
+                                </div>
+                              ) : null;
+                            })()}
+
                             {/* Per-ingredient advice */}
                             {productAdvice!.advice.map((advice) => (
                               <div key={advice.ingredient}>
@@ -774,7 +794,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                                         {RANK_MEDAL[brand.rank] ?? "•"}
                                       </span>
                                       <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+                                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3, flexWrap: "wrap" }}>
                                           <span style={{ color: "white", fontWeight: 600, fontSize: 14 }}>{brand.brand}</span>
                                           <span style={{
                                             padding: "1px 7px", borderRadius: 999, fontSize: 11, fontWeight: 700,
@@ -784,6 +804,16 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                                           }}>
                                             {brand.grade}
                                           </span>
+                                          {savedProductKeys.has(computeClientProductKey(brand.brand, advice.ingredient)) && (
+                                            <span style={{
+                                              padding: "1px 7px", borderRadius: 999, fontSize: 11, fontWeight: 700,
+                                              background: "rgba(249,115,22,0.15)",
+                                              color: "#fb923c",
+                                              border: "1px solid rgba(249,115,22,0.35)",
+                                            }}>
+                                              ★ Saved
+                                            </span>
+                                          )}
                                         </div>
                                         <div style={{ color: "rgba(255,255,255,0.55)", fontSize: 12, lineHeight: 1.4 }}>
                                           {brand.reason}
