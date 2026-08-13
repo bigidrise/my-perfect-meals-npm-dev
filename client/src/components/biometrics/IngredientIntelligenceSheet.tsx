@@ -472,11 +472,67 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
   const { toast } = useToast();
   const [byNameLoading, setByNameLoading] = useState(false);
   const [byNameResult, setByNameResult] = useState<IngredientScanResult | null>(null);
+  const [savedGroceryId, setSavedGroceryId] = useState<string | null>(null);
+  const [savingGrocery, setSavingGrocery] = useState(false);
 
   useEffect(() => {
     setByNameResult(null);
     setByNameLoading(false);
   }, [result]);
+
+  // Check if this product is already saved whenever the sheet opens with a new result
+  useEffect(() => {
+    setSavedGroceryId(null);
+    if (!open || !result?.productName) return;
+    let cancelled = false;
+    (apiRequest('/api/saved-groceries') as Promise<{ items: any[] }>)
+      .then((data) => {
+        if (cancelled) return;
+        const items = data?.items ?? [];
+        const barcode = result.barcode?.trim();
+        const match = items.find((item: any) => {
+          if (barcode && item.barcode === barcode) return true;
+          return item.productName?.toLowerCase() === result.productName?.toLowerCase();
+        });
+        if (match) setSavedGroceryId(match.id);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [open, result?.productName, result?.barcode]);
+
+  async function handleSaveToGroceries() {
+    if (!activeResult?.productName || savingGrocery) return;
+    setSavingGrocery(true);
+    try {
+      const barcode = result?.barcode?.trim() || undefined;
+      const data = await apiRequest('/api/saved-groceries', {
+        method: 'POST',
+        body: JSON.stringify({
+          productName: activeResult.productName,
+          source: 'scanner',
+          barcode: barcode || undefined,
+          nutritionJson: activeResult.scoreCards
+            ? { scoreCards: activeResult.scoreCards, outcomeCards: activeResult.outcomeCards }
+            : undefined,
+          productMeta: {
+            alignmentGrade: activeResult.alignmentGrade,
+            verdictLevel: activeResult.verdictLevel,
+            analysisMethod: activeResult.analysisMethod,
+          },
+        }),
+        headers: { 'Content-Type': 'application/json' },
+      }) as { item?: { id: string }; created?: boolean };
+      setSavedGroceryId(data?.item?.id ?? 'saved');
+      toast({
+        title: data?.created === false ? 'Already saved' : 'Saved to Groceries',
+        description: `${activeResult.productName} is in your grocery bookmarks.`,
+      });
+    } catch {
+      toast({ title: 'Could not save', description: 'Please try again.', variant: 'destructive' });
+    } finally {
+      setSavingGrocery(false);
+    }
+  }
 
   function handleAddProduct(name: string) {
     if (!onAddProduct) return;
@@ -801,6 +857,27 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
                           Save Scan
                         </button>
                       )}
+                    </div>
+                  )}
+
+                  {/* Save to Groceries */}
+                  {activeResult.productName && (
+                    <div className="mt-2 mb-4">
+                      <button
+                        onClick={handleSaveToGroceries}
+                        disabled={savingGrocery}
+                        className={`w-full flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold border transition-all active:scale-[.98] ${
+                          savedGroceryId
+                            ? 'bg-orange-500/15 border-orange-500/30 text-orange-300'
+                            : 'bg-white/6 border-white/12 text-white/60 hover:border-white/20 hover:text-white/80'
+                        } ${savingGrocery ? 'opacity-60 pointer-events-none' : ''}`}
+                      >
+                        <Bookmark
+                          className="w-4 h-4"
+                          fill={savedGroceryId ? 'currentColor' : 'none'}
+                        />
+                        {savedGroceryId ? 'Saved to Groceries' : 'Save to Groceries'}
+                      </button>
                     </div>
                   )}
 
