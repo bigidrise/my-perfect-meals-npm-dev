@@ -721,11 +721,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   /* 🗑️ REMOVED: Original fridge rescue generator - replaced by unified pipeline */
 
-  // ============================================================================
-  // UNIFIED MEAL GENERATION ENDPOINT
+  // -- UNIFIED MEAL GENERATION ENDPOINT --
   // Single canonical endpoint for ALL meal generation (AI Meal Creator, AI Premades, Fridge Rescue)
   // Guarantees: consistent response format, fallback images, error handling
-  // ============================================================================
   app.post("/api/meals/generate", requireAuth, requireEssentialAccess, async (req, res) => {
     console.log("🔄 Unified meal generation endpoint hit");
     const startTime = Date.now();
@@ -901,7 +899,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let effectiveRemainingMacros: typeof remainingMacros = remainingMacros;
       let effectiveStarchContext: typeof starchContext = starchContext;
 
-      if (type === 'create-with-chef') {
+      // ── Server-side per-meal budget enforcement ────────────────────────────
+      // For create-with-chef: always run — fail-closed, also overrides remainingMacros.
+      // For all other types with a client-provided starchContext: run server resolution
+      // to replace client-supplied starch fields with authoritative values from
+      // macro_logs consumption. Non-fatal on failure for non-create-with-chef types
+      // (continues with client starchContext as fallback) — prevents gate regression.
+      const _shouldResolveBudget = type === 'create-with-chef' || starchContext != null;
+      if (_shouldResolveBudget) {
         const authUserId = String((req as AuthenticatedRequest).authUser.id);
         // Prefer the date embedded in the starchContext (builder's active day);
         // fall back to today in UTC when it is absent.
@@ -916,15 +921,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
             typeof generationContext === "string" ? generationContext : undefined,
           );
 
-          // Override client-supplied remainingMacros — client values are untrusted.
-          effectiveRemainingMacros = chefBudget.remainingMacros;
+          // Override client-supplied remainingMacros only for create-with-chef.
+          // Other builder types manage their own macro budgets independently.
+          if (type === 'create-with-chef') {
+            effectiveRemainingMacros = chefBudget.remainingMacros;
+          }
 
-          // Replace client starchContext starch fields with server-authoritative values
-          // from macro_logs consumption. This propagates partial-slot usage (e.g. one
-          // of two starch slots already used) even when the slot gate is not fully
-          // exhausted, so the AI prompt uses the correct gram allocation.
-          // When slots are exhausted: also set isZeroStarchDay + forceFiberBased to close
-          // all bypass paths (client forceStarch:true, starchy description auto-detect).
+          // Replace starch fields with server-authoritative values for ALL types.
+          // This propagates partial-slot usage (e.g. one of two starch slots already
+          // used) and ensures the hard starch gate in generateMealUnified has the
+          // correct ceiling to enforce post-generation, regardless of builder type.
+          // When slots are exhausted: also set isZeroStarchDay + forceFiberBased to
+          // close all bypass paths (client forceStarch:true, starchy description auto-detect).
           effectiveStarchContext = {
             ...(effectiveStarchContext as object ?? {}),
             starchMealsAllowed:          chefBudget.starchMealsRemaining,
@@ -938,17 +946,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
 
           console.log(
-            `🥗 [BudgetResolver] authUserId=${authUserId} date=${budgetDateISO} ` +
-            `cal=${chefBudget.budget.caloriesTarget} starch=${chefBudget.starchAllowed}`,
+            `🥗 [BudgetResolver] type=${type} authUserId=${authUserId} date=${budgetDateISO} ` +
+            `starch=${chefBudget.starchAllowed} gramsPerMeal=${chefBudget.gramsPerRemainingStarchMeal ?? 'n/a'}`,
           );
         } catch (err) {
-          // Fail-closed: do NOT proceed with untrusted client macros.
-          console.error("[BudgetResolver] Resolution failed — blocking generation:", err);
-          return res.status(503).json({
-            success: false,
-            error: "Nutrition budget could not be resolved. Please try again.",
-            source: "budget_error",
-          });
+          if (type === 'create-with-chef') {
+            // Fail-closed for create-with-chef: do NOT proceed with untrusted client macros.
+            console.error("[BudgetResolver] Resolution failed — blocking generation:", err);
+            return res.status(503).json({
+              success: false,
+              error: "Nutrition budget could not be resolved. Please try again.",
+              source: "budget_error",
+            });
+          }
+          // Non-create-with-chef: log warning and continue with client-provided starchContext.
+          // The post-generation gate will still fire using whichever starchContext was provided.
+          console.warn(
+            `[BudgetResolver] Non-blocking resolution failure for builder type "${type}" — ` +
+            `falling back to client starchContext:`,
+            (err as Error).message,
+          );
         }
       }
 

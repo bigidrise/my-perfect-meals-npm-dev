@@ -3892,6 +3892,102 @@ export async function generateMealUnified(
       };
   }
 
+  // ── Hard starch numeric gate — ALL builder types ─────────────────────────
+  // This gate fires for every generation type that was given a starchContext.
+  // For create-with-chef the gate also fires inside generateFromDescriptionUnified
+  // with retry logic (preferred path); this is the safety net that catches any
+  // slip-through AND the ONLY gate for craving, fridge-rescue, snack-creator, etc.
+  //
+  // Uses the same tolerance (±3 g) and ceiling logic as the inner gate.
+  // • Single-meal result: reject (return error) so the client can retry with the hint.
+  // • Multi-meal result: filter violating meals; reject entirely if none survive.
+  // The hint always includes the actual ceiling grams so the AI knows what to target.
+  if (request.starchContext && result.success) {
+    const _GATE_TOLERANCE_G = 3;
+    const _ctx = request.starchContext;
+    const _isZeroStarch = _ctx.isZeroStarchDay || _ctx.forceFiberBased;
+
+    const _checkStarch = (meal: UnifiedMeal): { violated: boolean; hint: string } => {
+      const _generatedG: number = (meal as any).starchyCarbs ?? 0;
+
+      if (_isZeroStarch && _generatedG > _GATE_TOLERANCE_G) {
+        return {
+          violated: true,
+          hint:
+            `STARCH HARD VIOLATION (${request.type}): Today's starchy-carb budget is fully exhausted. ` +
+            `This meal must contain ZERO starchy carbohydrates. ` +
+            `Strictly forbidden: rice, pasta, bread, oats, potatoes, sweet potatoes, ` +
+            `beans, lentils, corn, peas, quinoa, couscous, tortillas, crackers, or any grain. ` +
+            `Build the meal exclusively from lean protein + non-starchy vegetables ` +
+            `(leafy greens, broccoli, cauliflower, asparagus, zucchini, bell peppers, ` +
+            `mushrooms, cucumbers, tomatoes). Re-generate fully compliant.`,
+        };
+      }
+
+      if (
+        !_isZeroStarch &&
+        _ctx.gramsPerRemainingStarchMeal != null &&
+        _generatedG > _ctx.gramsPerRemainingStarchMeal + _GATE_TOLERANCE_G
+      ) {
+        const _ceiling = _ctx.gramsPerRemainingStarchMeal;
+        return {
+          violated: true,
+          hint:
+            `STARCH BUDGET VIOLATION (${request.type}): This meal contains ${_generatedG}g of starchy ` +
+            `carbohydrates but the maximum allowed for this meal is ${_ceiling}g. ` +
+            `Reduce starchy portions (rice, potato, bread, pasta, oats) so total starchy ` +
+            `carbs ≤ ${_ceiling}g, or replace starchy sides with non-starchy vegetables ` +
+            `(broccoli, cauliflower, leafy greens, asparagus, zucchini). ` +
+            `Keep the protein target intact. Re-generate fully compliant.`,
+        };
+      }
+
+      return { violated: false, hint: '' };
+    };
+
+    // Single-meal result
+    if (result.meal) {
+      const _check = _checkStarch(result.meal);
+      if (_check.violated) {
+        console.warn(
+          `🥔 [STARCH HARD GATE/${request.type}] Violation on "${result.meal.name}" ` +
+          `(starchyCarbs=${(result.meal as any).starchyCarbs ?? 0}g) — rejecting.`
+        );
+        return { success: false, source: 'error', error: _check.hint };
+      }
+    }
+
+    // Multi-meal result (fridge-rescue, craving batch, etc.)
+    if (result.meals?.length) {
+      const _before = result.meals.length;
+      const _passing: UnifiedMeal[] = [];
+      for (const _m of result.meals) {
+        const _check = _checkStarch(_m);
+        if (_check.violated) {
+          console.warn(
+            `🥔 [STARCH HARD GATE/${request.type}] Filtered "${_m.name}" ` +
+            `(starchyCarbs=${(_m as any).starchyCarbs ?? 0}g > budget)`
+          );
+        } else {
+          _passing.push(_m);
+        }
+      }
+      result.meals = _passing;
+      if (_passing.length < _before) {
+        console.warn(
+          `🥔 [STARCH HARD GATE/${request.type}] Filtered ${_before - _passing.length}/${_before} meals — over starch budget`
+        );
+      }
+      if (_passing.length === 0) {
+        return {
+          success: false,
+          source: 'error',
+          error: `All generated meals exceeded the starchy carb budget for this meal slot. Please try again.`,
+        };
+      }
+    }
+  }
+
   // 🚨 POST-GENERATION VALIDATION: Scan output for allergens that slipped through
   // Skip if safety was already checked with override token (user acknowledged the risk)
   if (request.userId && result.success && !request.safetyAlreadyChecked) {
