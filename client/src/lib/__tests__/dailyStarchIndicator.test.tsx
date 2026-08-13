@@ -61,7 +61,53 @@ function getStatusText(): string {
   return (span?.textContent ?? '').replace(/\s+/g, ' ').trim();
 }
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/**
+ * Read the compact pill label.
+ * Compact mode renders `<span>{emoji}</span><span>{label}</span>` inside a
+ * `gap-1` div — the gap is visual (CSS), not a text node, so textContent
+ * concatenates without a space.  We read each child span individually and
+ * join them so the assertion strings stay human-readable.
+ */
+function getCompactText(): string {
+  const container = document.querySelector('.gap-1');
+  if (!container) return '';
+  const spans = Array.from(container.querySelectorAll('span'));
+  return spans
+    .map((s) => (s.textContent ?? '').trim())
+    .filter(Boolean)
+    .join(' ');
+}
+
 // ── Tests ─────────────────────────────────────────────────────────────────────
+
+describe('DailyStarchIndicator — compact variant prescription prop reactivity', () => {
+  it('updates the compact label when starchMealsAllowed increases', () => {
+    const { rerender } = render(
+      <DailyStarchIndicator
+        meals={[FIBER_MEAL]}
+        compact
+        prescription={makePrescription(1)}
+      />,
+    );
+
+    // 1 slot, no starch meals consumed → "Available" (single-slot label).
+    expect(getCompactText()).toBe('🟢 Available');
+
+    // Prescription is refreshed mid-session, granting 2 starch slots.
+    rerender(
+      <DailyStarchIndicator
+        meals={[FIBER_MEAL]}
+        compact
+        prescription={makePrescription(2)}
+      />,
+    );
+
+    // The compact pill must reflect the updated allowance without a page reload.
+    expect(getCompactText()).toBe('🟢 2 Available');
+  });
+});
 
 describe('DailyStarchIndicator — prescription prop reactivity', () => {
   it('updates the displayed slot count when starchMealsAllowed increases', () => {
