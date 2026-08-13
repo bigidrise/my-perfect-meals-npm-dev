@@ -501,6 +501,146 @@ router.post("/product-advisor", async (req, res) => {
   }
 });
 
+// ── Ingredient Swap ─────────────────────────────────────────────────────────────
+// Replace ONE ingredient in an existing Grocery Coach recommendation.
+// Uses the same 3-source protocol context as /recommend (envelope + GLP-1 + saved
+// groceries) so every suggestion is evaluated against current clinical rules.
+// Coach suggests; user confirms — the endpoint never silently changes the meal.
+router.post("/swap-ingredient", async (req, res) => {
+  try {
+    const userId = resolveUserId(req);
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
+    const { ingredientToReplace, mealName, mealDescription, remainingIngredients, userRequest } = req.body;
+    if (!ingredientToReplace || typeof ingredientToReplace !== "string") {
+      return res.status(400).json({ error: "ingredientToReplace is required" });
+    }
+
+    // ── Protocol context — same sources as /recommend ─────────────────────────
+    let swapEnvelope = buildGuestEnvelope();
+    let protocolContext = "";
+    let glp1Block = "";
+    let savedBlock = "";
+    let swapGlp1Targets: import("../services/glp1/resolveGLP1MealTargets").ResolvedGLP1Targets | null = null;
+
+    try {
+      swapEnvelope = await loadUserProtocolEnvelope(userId).catch(() => null) ?? buildGuestEnvelope();
+      protocolContext = enforceBeforeGenerate(swapEnvelope, { generatorName: "grocery_swap" }).combined;
+    } catch { /* proceed without protocol context */ }
+
+    try {
+      const todayISO = new Date().toISOString().slice(0, 10);
+      const glp1Ctx = await resolveGLP1GlobalContext(userId, todayISO).catch(() => null);
+      if (glp1Ctx) {
+        glp1Block = buildGLP1RecommendationBlock(glp1Ctx);
+        swapGlp1Targets = glp1Ctx.resolvedTargets ?? null;
+      }
+    } catch { /* proceed without GLP-1 */ }
+
+    try {
+      const sgRows = await db
+        .select({
+          id: userSavedGroceryItems.id,
+          productName: userSavedGroceryItems.productName,
+          brand: userSavedGroceryItems.brand,
+          category: userSavedGroceryItems.category,
+          productKey: userSavedGroceryItems.productKey,
+          nutritionJson: userSavedGroceryItems.nutritionJson,
+          savedAt: userSavedGroceryItems.savedAt,
+        })
+        .from(userSavedGroceryItems)
+        .where(eq(userSavedGroceryItems.userId, userId));
+
+      if (sgRows.length > 0) {
+        const { compliant } = filterSavedGroceriesForCompliance(
+          sgRows as any,
+          swapEnvelope,
+          { glp1Targets: swapGlp1Targets, isDiabetic: swapEnvelope.hasDiabetes },
+        );
+        savedBlock = buildSavedGroceriesPromptBlock(compliant);
+      }
+    } catch { /* proceed without saved groceries */ }
+
+    const remaining = Array.isArray(remainingIngredients) && remainingIngredients.length > 0
+      ? remainingIngredients.join(", ")
+      : "the other meal ingredients";
+
+    const systemPrompt = `You are a Grocery Store Coach. A user wants to replace ONE ingredient in their planned meal while keeping everything else.
+
+USER HEALTH PROFILE:
+${protocolContext || "No dietary restrictions on file — apply general healthy eating principles."}
+${glp1Block ? `\n${glp1Block}` : ""}
+${savedBlock ? `\n\n${savedBlock}` : ""}
+
+MEAL CONTEXT:
+Meal: ${mealName || "current meal"}${mealDescription ? `\nDescription: ${mealDescription}` : ""}
+Keeping these ingredients: ${remaining}
+
+TASK: Replace "${ingredientToReplace}"${userRequest ? ` — the user specifically wants: "${userRequest}" (evaluate this first; if it is clinically safe and fits the meal, make it the coachSuggestion)` : ""}.
+
+Rules:
+- NEVER suggest "${ingredientToReplace}" or any variation of it
+- NEVER suggest anything that violates the user's allergies or hard dietary rules  
+- coachSuggestion must be the single best replacement — practical, grocery-store-ready, fits the meal style and the protocol
+- alternatives: 1–2 different valid options (must differ from coachSuggestion)
+- savedOption: set this ONLY if one of the user's saved groceries (listed above as user favorites) would work as a valid, compliant replacement — otherwise null
+- protocolNote: short clinical note only when genuinely relevant, otherwise null
+- quantity: realistic for a home meal; unit: common grocery unit (cups, oz, lbs, bunch, etc.)
+
+Respond ONLY with valid JSON:
+{
+  "coachSuggestion": { "item": "string", "reason": "string — 1-2 sentences", "quantity": "string", "unit": "string" },
+  "savedOption": { "item": "string", "reason": "string — mention it's from their saved products" } | null,
+  "alternatives": [{ "item": "string", "reason": "string" }],
+  "protocolNote": "string | null"
+}`;
+
+    const completion = await getOpenAI().chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userRequest
+          ? `Replace ${ingredientToReplace} with ${userRequest}`
+          : `Find the best replacement for ${ingredientToReplace}` },
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.7,
+      max_tokens: 600,
+    });
+
+    const raw = completion.choices[0]?.message?.content ?? "{}";
+    let swapData: any;
+    try {
+      swapData = JSON.parse(raw);
+    } catch {
+      return res.status(500).json({ error: "Could not parse swap response. Try again." });
+    }
+
+    if (!swapData.coachSuggestion?.item) {
+      return res.status(500).json({ error: "Swap response missing suggestion. Try again." });
+    }
+
+    // Run protocol scan on the coach suggestion before returning — non-fatal,
+    // appends a protocolNote warning rather than blocking the response.
+    try {
+      const scan = scanGeneratedOutput(
+        { name: `Swap: ${swapData.coachSuggestion.item}`, ingredients: [{ name: swapData.coachSuggestion.item }] },
+        swapEnvelope,
+        { generatorName: "grocery_swap", skipAdaptableConflicts: true },
+      );
+      if (!scan.passed) {
+        const existingNote = swapData.protocolNote ? `${swapData.protocolNote} ` : "";
+        swapData.protocolNote = `${existingNote}Note: "${swapData.coachSuggestion.item}" may conflict with your protocol — ${scan.message}. Review before adding.`;
+      }
+    } catch { /* scan errors are non-fatal for swap */ }
+
+    return res.json(swapData);
+  } catch (err: any) {
+    console.error("[GroceryCoach/Swap] Error:", err?.message);
+    return res.status(500).json({ error: "Ingredient swap unavailable. Please try again." });
+  }
+});
+
 // ── Finalize Card — generate full meal card and save to Favorites ─────────────
 router.post("/finalize-card", async (req, res) => {
   try {
