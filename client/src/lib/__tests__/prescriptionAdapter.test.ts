@@ -149,3 +149,68 @@ describe("prescriptionToTargetsOverride — zero-value guard", () => {
     expect(result).toBeUndefined();
   });
 });
+
+// ── DailyStarchIndicator smoke ────────────────────────────────────────────────
+//
+// DailyStarchIndicator reads starchyCarbs_g from the MacroTargets shape that
+// prescriptionToTargetsOverride produces. If starchyCarbsTarget were ever
+// renamed on the prescription (or mistyped in the adapter), starchyCarbs_g
+// would silently become undefined — no TypeScript error, no visible crash.
+// These tests lock down that the value is non-zero when a real prescription
+// is in play, and that undefined is only returned when the prescription
+// explicitly omits the field (the baseline-fallback case).
+
+describe("DailyStarchIndicator smoke — starchyCarbs_g is non-zero from a resolved prescription", () => {
+  it("starchyCarbs_g is truthy (non-zero, non-undefined) for a resolved clinical prescription", () => {
+    const result = prescriptionToTargetsOverride(
+      validPrescription({ starchyCarbsTarget: 80, source: "clinical" }),
+    );
+    expect(result).toBeDefined();
+    expect(result!.starchyCarbs_g).toBeDefined();
+    expect(result!.starchyCarbs_g).toBeGreaterThan(0);
+  });
+
+  it("starchyCarbs_g is truthy for a performance prescription", () => {
+    const result = prescriptionToTargetsOverride(
+      validPrescription({ starchyCarbsTarget: 120, source: "performance" }),
+    );
+    expect(result!.starchyCarbs_g).toBe(120);
+  });
+
+  it("starchyCarbs_g is truthy for a procare (professional_override) prescription", () => {
+    const result = prescriptionToTargetsOverride(
+      validPrescription({ starchyCarbsTarget: 60, source: "professional_override" }),
+    );
+    expect(result!.starchyCarbs_g).toBe(60);
+  });
+
+  it("starchyCarbs_g is undefined when prescription is absent (baseline fallback path)", () => {
+    // When there is no prescription, prescriptionToTargetsOverride returns
+    // undefined and DailyStarchIndicator falls back to the strategyOverride /
+    // bodyFatSlotDelta baseline — starchyCarbs_g should NOT be zero here,
+    // it should simply be absent so callers know to use the baseline.
+    const result = prescriptionToTargetsOverride(null);
+    expect(result).toBeUndefined();
+  });
+
+  it("starchyCarbs_g is undefined when source is fallback (server could not resolve)", () => {
+    const result = prescriptionToTargetsOverride(
+      validPrescription({ starchyCarbsTarget: 80, source: "fallback" }),
+    );
+    // Returns undefined — caller must use baseline, not a stale starchyCarbs_g
+    expect(result).toBeUndefined();
+  });
+
+  it("starchyCarbs_g is undefined (not 0) when the prescription has no starchyCarbsTarget — never silently zeroed", () => {
+    const result = prescriptionToTargetsOverride({
+      proteinTarget: 180,
+      carbsTarget: 200,
+      fatTarget: 70,
+      // starchyCarbsTarget intentionally absent
+    });
+    expect(result).toBeDefined();
+    // Must be undefined — not 0 — so DailyStarchIndicator can distinguish
+    // "target not set" from "target is zero".
+    expect(result!.starchyCarbs_g).toBeUndefined();
+  });
+});
