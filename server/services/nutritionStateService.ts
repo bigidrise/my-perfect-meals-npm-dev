@@ -33,20 +33,26 @@ export async function resolveDailyNutritionState(
   userId: string,
   dateISO: string,
 ): Promise<DailyNutritionState> {
-  const [prescription, userRows, tz, storedPrescriptionRows] = await Promise.all([
+  // ── Read stored prescription source BEFORE resolving ─────────────────────
+  // The prescriptionResolver fire-and-forgets an upsert that overwrites this
+  // row. Reading first ensures we capture the PREVIOUS source for mid-day
+  // change detection — a concurrent read would race the upsert.
+  const storedPrescriptionRows = await db
+    .select({ source: dailyNutritionPrescriptions.source })
+    .from(dailyNutritionPrescriptions)
+    .where(
+      and(
+        eq(dailyNutritionPrescriptions.userId, userId),
+        eq(dailyNutritionPrescriptions.date, dateISO),
+      ),
+    )
+    .limit(1);
+
+  // Now resolve concurrently — the upsert triggered here writes the NEW source.
+  const [prescription, userRows, tz] = await Promise.all([
     resolveDailyNutritionPrescription({ userId, dateISO }),
     db.select().from(users).where(eq(users.id, userId)).limit(1),
     getUserTimezone(userId),
-    db
-      .select({ source: dailyNutritionPrescriptions.source })
-      .from(dailyNutritionPrescriptions)
-      .where(
-        and(
-          eq(dailyNutritionPrescriptions.userId, userId),
-          eq(dailyNutritionPrescriptions.date, dateISO),
-        ),
-      )
-      .limit(1),
   ]);
 
   const user = userRows[0];
@@ -238,15 +244,16 @@ export function deriveGenerationContext(
 }
 
 /**
- * Map the DailyNutritionPrescriptions table source string to the PrescriptionSource
- * used by the resolver, so the two can be compared for mid-day-change detection.
+ * Map the DB-stored source string back to the PrescriptionSource used by the
+ * resolver. Must be the exact inverse of the dbSource mapping in
+ * prescriptionResolver.ts — keep both in sync whenever a new source is added.
  */
 function storedSourceToResolverSource(stored: string | null): PrescriptionSource {
   switch (stored) {
     case "procare":             return "professional_override";
     case "performance_overlay": return "performance";
     case "clinical":            return "clinical";
-    default:                    return "user_default"; // macro_calculator / unknown
+    default:                    return "user_default"; // macro_calculator / unknown / null
   }
 }
 

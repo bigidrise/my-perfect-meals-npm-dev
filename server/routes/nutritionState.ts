@@ -7,20 +7,24 @@
  * given date: prescription + consumed (logged) + planned (board reservations
  * not yet logged) + remaining budget + meal plan config + active constraints.
  *
- * Auth: requireAuth — user always reads their own state (or ProCare coach
- * reads a client's state via ?clientId= after relationship verification).
+ * Auth: requireAuth — user always reads their own state (or ProCare physician
+ * reads a client's state via ?clientId= after full authorization:
+ *   1. Org isolation (assertSameOrg — cross-org access returns 403)
+ *   2. Care-team relationship — active clientLink OR studio membership
+ * This mirrors the authorization enforced by requireWorkspaceAccess and the
+ * physician budget delegation path in chefBudget.ts.
  *
  * Query params:
+ *   clientId  — ProCare client user ID (physician delegation; optional)
  *   timezone  — IANA timezone string (default: "UTC"). Used to compute which
  *               macro_logs belong to the requested calendar day.
  */
 
 import { Router } from "express";
-import { db } from "../db";
-import { and, eq } from "drizzle-orm";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import { resolveDailyNutritionState } from "../services/nutritionStateService";
-import { clientLinks } from "../db/schema/procare";
+import { verifyPhysicianClientAccess } from "../services/procareAccessService";
+import { handleOrgIsolationError } from "../lib/orgIsolation";
 
 const router = Router();
 
@@ -36,20 +40,23 @@ router.get("/:dateISO", requireAuth, async (req, res) => {
     let userId = authUserId;
 
     if (requestedClientId && requestedClientId !== authUserId) {
-      // Verify the requester is an active ProCare coach for this client.
-      const link = await db
-        .select({ id: clientLinks.id })
-        .from(clientLinks)
-        .where(
-          and(
-            eq(clientLinks.proUserId, authUserId),
-            eq(clientLinks.clientUserId, requestedClientId),
-            eq(clientLinks.active, true),
-          ),
-        )
-        .limit(1);
+      // Authorize via the centralized helper:
+      //   • assertSameOrg — org isolation check (throws OrgIsolationError on violation)
+      //   • clientLink OR studio membership — care-team relationship check
+      let hasAccess: boolean;
+      try {
+        hasAccess = await verifyPhysicianClientAccess(authUserId, requestedClientId);
+      } catch (err) {
+        const handled = handleOrgIsolationError(err, res);
+        if (!handled) {
+          // Non-isolation error during authorization — fail closed
+          console.error("[nutritionState] Authorization check failed:", err);
+          return res.status(503).json({ error: "Authorization check failed. Please try again." });
+        }
+        return;
+      }
 
-      if (link.length === 0) {
+      if (!hasAccess) {
         return res.status(403).json({ error: "Not authorized to view this client's nutrition state" });
       }
       userId = requestedClientId;

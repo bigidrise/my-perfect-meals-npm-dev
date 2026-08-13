@@ -16,6 +16,17 @@
  *
  * Auth: requireAuth — coaches read a client's state via ?clientId= (the server
  * verifies the coach–client relationship before serving the data).
+ *
+ * PHI Isolation
+ * ─────────────
+ * The hook stores fetched data alongside the identity key (userId:dateISO:clientId)
+ * it belongs to. At every render, the returned `state` is synchronously derived:
+ *   - When the stored key matches the current render's key → return the stored data.
+ *   - When they differ (account switch, client switch, date change) → immediately
+ *     return getCachedNutritionState for the NEW key (or null) so no render ever
+ *     commits the prior viewer's PHI to the DOM.
+ * The paired atomic update (data + key in one setState call) ensures no render
+ * window where key and data are out of sync.
  */
 
 import { useState, useEffect, useRef } from "react";
@@ -65,17 +76,35 @@ export function useDailyNutritionState({
   const { user } = useAuth();
   const userId = user?.id ?? "";
 
-  // Seed state synchronously from the module-level cache on the very first render.
-  // Cache is scoped to the authenticated viewer's user ID so two accounts that
-  // share a tab session never see each other's health data.
-  // getCachedNutritionState applies the date-staleness guard so an entry written
-  // on a previous calendar day is treated as a miss (forces a fresh fetch).
-  // This means `effectivelyLoading` starts as false on repeat visits (warm cache),
-  // so neither DailyTargetsCard nor RemainingMacrosFooter ever flashes the shimmer.
-  const [state, setState] = useState<DailyNutritionState | null>(() => {
-    if (!userId || !dateISO || disabled) return null;
-    return getCachedNutritionState(_nutritionStateCacheKey(userId, dateISO, clientId)) ?? null;
+  // The identity key for this render — includes viewer, date, and delegated client.
+  // When any of these changes, currentKey changes and the derived-state guard below
+  // synchronously returns the new identity's cached value (or null) on that same render.
+  const currentKey =
+    userId && dateISO ? _nutritionStateCacheKey(userId, dateISO, clientId) : "";
+
+  // ── Identity-keyed state ────────────────────────────────────────────────────
+  // We store { data, key } as a paired unit so data and its identity key are always
+  // updated atomically in one React setState call. This prevents any render window
+  // where key and data are out of sync after a fetch completes.
+  const [fetched, setFetched] = useState<{
+    data: DailyNutritionState | null;
+    key: string;
+  }>(() => {
+    if (!userId || !dateISO || disabled) return { data: null, key: "" };
+    const key = _nutritionStateCacheKey(userId, dateISO, clientId);
+    return { data: getCachedNutritionState(key) ?? null, key };
   });
+
+  // ── Synchronous PHI isolation guard ────────────────────────────────────────
+  // Derived at every render — never stored in state with a one-render lag.
+  // When currentKey ≠ fetched.key (account switch, client switch, date change),
+  // we immediately return the cache for the NEW identity (or null).
+  // No render ever commits prior-user/prior-client PHI to the DOM.
+  const state: DailyNutritionState | null =
+    fetched.key === currentKey
+      ? fetched.data
+      : (currentKey ? (getCachedNutritionState(currentKey) ?? null) : null);
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fetchCount = useRef(0);
@@ -83,10 +112,14 @@ export function useDailyNutritionState({
   const fetch = () => {
     if (!dateISO || disabled) return;
 
+    // Capture the identity key at call time so the fetch callback always writes
+    // to the correct (userId:dateISO:clientId) slot even if props change mid-flight.
+    const fetchKey = currentKey;
+
     setIsLoading(true);
     setError(null);
     const thisCount = ++fetchCount.current;
-    // Snapshot the generation at request-start.  If logout fires while the
+    // Snapshot the cache generation at request-start. If logout fires while the
     // request is in-flight the generation will have advanced, and the success
     // handler will silently discard the stale response rather than writing it
     // back into the cache for the next user to read.
@@ -100,10 +133,15 @@ export function useDailyNutritionState({
     apiRequest(url)
       .then((data: DailyNutritionState) => {
         if (thisCount === fetchCount.current) {
-          if (userId && thisGeneration === getCacheGeneration()) {
-            setCachedNutritionState(_nutritionStateCacheKey(userId, dateISO, clientId), data);
+          // Only write to cache when the generation hasn't advanced (i.e. no logout
+          // fired mid-flight). This prevents a logged-out user's response from being
+          // written into the cache under the next session's key.
+          if (fetchKey && thisGeneration === getCacheGeneration()) {
+            setCachedNutritionState(fetchKey, data);
           }
-          setState(data);
+          // Atomic update — data and key written in one setState call so no
+          // render can observe a key/data mismatch.
+          setFetched({ data, key: fetchKey });
           setIsLoading(false);
         }
       })
@@ -121,16 +159,20 @@ export function useDailyNutritionState({
             console.warn("[useDailyNutritionState] Server unreachable, nutrition state unavailable:", err);
             setError("Nutrition state unavailable");
           }
-          setState(null);
+          // Null data but key is still updated so the identity guard resolves correctly.
+          setFetched({ data: null, key: fetchKey });
           setIsLoading(false);
         }
       });
   };
 
+  // Re-fetch when viewer identity (userId), delegated client (clientId), date, or
+  // disabled flag changes. userId is included so an account switch triggers a fresh
+  // fetch rather than inheriting prior state through the stale fetchCount guard.
   useEffect(() => {
     fetch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dateISO, clientId, disabled]);
+  }, [userId, dateISO, clientId, disabled]);
 
   // Automatically re-fetch whenever a macro log mutation fires the global
   // "macros:updated" event — covers "Log to macros", "Log All", and any other
@@ -144,7 +186,7 @@ export function useDailyNutritionState({
     window.addEventListener("macros:updated", handler);
     return () => window.removeEventListener("macros:updated", handler);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dateISO, clientId, disabled]);
+  }, [userId, dateISO, clientId, disabled]);
 
   // Cover the one-render gap between when the hook becomes enabled (disabled→false,
   // dateISO set) and when the async fetch effect actually runs and flips isLoading→true.

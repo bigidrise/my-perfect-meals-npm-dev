@@ -1922,6 +1922,7 @@ export default function AntiInflammatoryMenuBuilder() {
           remainingMacros={remainingMacrosForChef}
           builderMode="targeted"
           generationContext={generationContext}
+          proClientId={proClientId}
         />
 
         {/* Snack Creator Modal (Phase 2 - craving to healthy snack) - with clinical mode guardrails */}

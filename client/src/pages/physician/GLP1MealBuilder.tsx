@@ -1696,6 +1696,7 @@ export default function GLP1MealBuilder() {
         remainingMacros={remainingMacrosForChef}
         builderMode="targeted"
         generationContext={generationContext}
+        proClientId={proClientId}
       />
 
       {/* Snack Creator Modal (Phase 2 - craving to healthy snack) - with GLP-1 guardrails */}

@@ -2091,6 +2091,7 @@ export default function BeachBodyMealBoard() {
           remainingMacros={remainingMacrosForChef}
           performanceSessionContext={performanceSessionContext}
           generationContext={generationContext}
+          proClientId={proClientId}
         />
 
         {/* Snack Creator Modal - contest prep guardrails (performance mode) */}

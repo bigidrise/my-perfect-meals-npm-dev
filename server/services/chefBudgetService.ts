@@ -19,6 +19,7 @@
 
 import { resolveDailyNutritionState, deriveGenerationContext } from "./nutritionStateService";
 import { computeNextMealBudget, type MealBudget } from "./nutritionBudget";
+import type { GenerationContext } from "../../shared/dailyNutritionPrescription";
 
 export interface ChefBudgetResult {
   remainingMacros: {
@@ -35,6 +36,21 @@ export interface ChefBudgetResult {
   starchyCarbsRemaining: number;
   /** Adaptive per-starch-meal gram target based on remaining allocation */
   gramsPerRemainingStarchMeal: number | undefined;
+  /**
+   * The authoritative generation context derived from the user's resolved
+   * nutrition state. Used by the post-gen clinical ceiling gate in routes.ts
+   * to determine whether diabetic or GLP-1 ceiling validation applies.
+   * Gating on this field (rather than clinicalNotes) ensures clinical ceilings
+   * are always enforced — even when the user's remaining macros are already
+   * below the nominal ceiling and no clamp note was emitted.
+   */
+  generationContext: GenerationContext;
+  /**
+   * Clinical enforcement notes from computeNextMealBudget.
+   * Consumed by the post-gen clinical ceiling gate in routes.ts to determine
+   * which ceilings were applied (e.g. "diabetic_carb_ceiling_applied_35g").
+   */
+  clinicalNotes: string[];
   budget: MealBudget;
 }
 
@@ -78,6 +94,8 @@ export async function resolveChefBudget(
       ? Math.round(remaining.starchyCarbs / remaining.starchMealsRemaining)
       : undefined;
 
+  const generationContext = deriveGenerationContext(nutritionState.activeConstraints, clientCtx);
+
   return {
     remainingMacros: {
       calories: budget.caloriesTarget,
@@ -89,6 +107,8 @@ export async function resolveChefBudget(
     starchMealsRemaining:        remaining.starchMealsRemaining,
     starchyCarbsRemaining:       remaining.starchyCarbs,
     gramsPerRemainingStarchMeal,
+    generationContext,
+    clinicalNotes:               budget.clinicalNotes,
     budget,
   };
 }

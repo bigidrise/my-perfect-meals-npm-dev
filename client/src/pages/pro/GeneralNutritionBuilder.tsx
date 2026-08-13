@@ -1519,6 +1519,7 @@ export default function WeeklyMealBoard() {
         remainingMacros={remainingMacrosForChef}
         builderMode="lifestyle"
         generationContext={generationContext}
+        proClientId={proClientId}
       />
 
       {/* Quick Tour Modal */}
