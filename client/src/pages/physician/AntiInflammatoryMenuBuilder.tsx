@@ -1760,6 +1760,8 @@ export default function AntiInflammatoryMenuBuilder() {
                     targetsOverride={nutritionTargets}
                     showSaveButton={false}
                     layoutMode="inline"
+                    prescriptionChangedMidDay={nutritionState?.prescriptionChangedMidDay}
+                    prescriptionChangeReason={nutritionState?.prescriptionChangeReason}
                     onSaveDay={async () => {
                       const raw = getMacroTargets(effectiveUserId);
                       const targets = raw 
