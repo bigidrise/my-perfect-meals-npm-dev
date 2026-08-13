@@ -415,6 +415,35 @@ export default function AdminDashboard() {
   const [results, setResults] = useState<AdminUser[]>([]);
   const [selected, setSelected] = useState<AdminUser | null>(null);
   const [searching, setSearching] = useState(false);
+  const [newBugCount, setNewBugCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    const fetchBugCount = () => {
+      fetch(apiUrl("/api/bug-reports"), { headers: getAuthHeaders() })
+        .then((r) => r.ok ? r.json() : Promise.reject())
+        .then((data: { status: string }[]) => {
+          setNewBugCount(data.filter((r) => r.status === "new").length);
+        })
+        .catch(() => { /* silent — badge just won't show */ });
+    };
+
+    fetchBugCount();
+    const interval = setInterval(fetchBugCount, 60_000);
+
+    // Re-fetch immediately when a report status is changed on the bug reports page
+    window.addEventListener("bug-reports-updated", fetchBugCount);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("bug-reports-updated", fetchBugCount);
+    };
+  }, []);
+
+  useEffect(() => {
+    const base = "Admin Dashboard";
+    document.title = newBugCount && newBugCount > 0 ? `(${newBugCount}) ${base}` : base;
+    return () => { document.title = base; };
+  }, [newBugCount]);
 
   if (!user) {
     return (
@@ -524,7 +553,14 @@ export default function AdminDashboard() {
               <Bug className="h-5 w-5 text-orange-400" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-white">Bug Reports</p>
+              <p className="text-sm font-semibold text-white flex items-center gap-2">
+                Bug Reports
+                {newBugCount != null && newBugCount > 0 && (
+                  <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-red-600 text-white text-xs font-bold leading-none">
+                    {newBugCount}
+                  </span>
+                )}
+              </p>
               <p className="text-xs text-white/40 mt-0.5">Review and triage user-submitted bug reports</p>
             </div>
             <ArrowRight className="h-4 w-4 text-orange-400 flex-shrink-0" />

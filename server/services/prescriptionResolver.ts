@@ -321,23 +321,39 @@ export async function resolveDailyNutritionPrescription(
   if (source === "user_default") rationaleCodes.push("user_default_targets");
 
   // ── Persist resolved prescription (fire-and-forget) ───────────────────────
-  // Map internal source names to the DB's source vocabulary.
-  // "clinical" = GLP-1 overlay on the user's own baseline (no procare).
+  // Map internal PrescriptionSource values to the DB's source vocabulary.
+  // Each source must map to a DISTINCT stored value so nutritionStateService
+  // can detect mid-day prescription transitions reliably.
+  //
+  //   "performance" → "performance_overlay"
+  //   "clinical"    → "clinical"         ← distinct; was formerly "macro_calculator"
+  //   "user_default"/"fallback" → "macro_calculator"
+  //
+  // Note: "professional_override" is written by the ProCare prescription path
+  // (not this resolver) and is stored as "procare" by that path.
+  //
+  // IMPORTANT: adding a new PrescriptionSource here requires updating
+  // storedSourceToResolverSource() in nutritionStateService.ts to match.
   const dbSource =
-    source === "performance" ? "performance_overlay" : "macro_calculator";
+    source === "performance" ? "performance_overlay" :
+    source === "clinical"    ? "clinical" :
+    "macro_calculator";
   const rationaleSig = rationaleCodes.join(",");
 
-  // Cache guard: use setWhere so the UPDATE is a no-op when the source and
-  // rationale signature are unchanged. This avoids unnecessary writes on
-  // repeated requests for the same date (e.g. repeated page loads today).
-  // Meal-plan config snapshot (#690): snapshot the user's preferences at
-  // resolve time so every builder reads from one place without a second
-  // user query. Intentional user changes trigger a new resolution because
-  // sourceVersion changes, making setWhere fire a real UPDATE.
+  // Snapshot the user's meal-plan preferences at resolve time so every builder
+  // reads from one place. The upsert runs unconditionally (no setWhere) because
+  // meal-plan config changes (mealsPerDay, starchMealsPerDay, starchDistribution)
+  // must always refresh the snapshot even when the macro rationale hasn't changed.
+  //
+  // The write is AWAITED (not fire-and-forget) so that the next invocation of
+  // resolveDailyNutritionState always reads a committed source value. Fire-and-forget
+  // allowed a pending write from a prior resolution to land after the sequential
+  // read in resolveDailyNutritionState, silently overwriting the newer source and
+  // producing false mid-day change alerts on the following request.
   const snapshotMealsPerDay       = user.macroMealsPerDay ?? 4;
   const snapshotStarchMealsPerDay = baselineStarchMeals;
 
-  db.insert(dailyNutritionPrescriptions)
+  await db.insert(dailyNutritionPrescriptions)
     .values({
       userId,
       date: dateISO,
@@ -372,9 +388,9 @@ export async function resolveDailyNutritionPrescription(
         starchDistributionStrategy: starchDistributionStrategy,
         updatedAt:         new Date(),
       },
-      // Only overwrite if something materially changed — avoids write amplification
-      // on repeated requests for the same date.
-      setWhere: sql`${dailyNutritionPrescriptions.sourceVersion} IS DISTINCT FROM ${rationaleSig}`,
+      // No setWhere guard — snapshot columns (mealsPerDay, starchMealsPerDay,
+      // starchDistributionStrategy) must always be refreshed so a mid-day
+      // preference change takes effect immediately on the same date.
     })
     .catch((err: unknown) => {
       console.error("[prescriptionResolver] upsert failed:", err);

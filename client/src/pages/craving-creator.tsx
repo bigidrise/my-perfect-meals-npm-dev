@@ -58,6 +58,7 @@ import {
   getUserMedicalProfile,
 } from "@/utils/medicalPersonalization";
 import { post } from "@/lib/api";
+import ProtocolStatusBadge from "@/components/ProtocolStatusBadge";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import ShareRecipeButton from "@/components/ShareRecipeButton";
 import TranslateToggle from "@/components/TranslateToggle";
@@ -838,7 +839,7 @@ export default function CravingCreator() {
               <span className="text-sm font-medium">Back</span>
             </button>
           )}
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-4">
             {/* Spacer for layout */}
 
             {replaceId && (
@@ -853,6 +854,9 @@ export default function CravingCreator() {
               </GlassButton>
             )}
           </div>
+
+          {/* Server-resolved protocol indicator — shows when GLP-1 or Performance overlay is active */}
+          <ProtocolStatusBadge className="mb-4" />
 
           {/* Create with Chef Entry Point — Studio hidden */}
           <div className="relative mb-6 hidden">

@@ -50,6 +50,14 @@ interface CreateWithChefModalProps {
   remainingMacros?: RemainingMacros;
   builderMode?: BuilderMode;
   performanceSessionContext?: PerformanceSessionContext;
+  /** Nutritional generation context — e.g. "performance_training_day" or "rest_day". */
+  generationContext?: string;
+  /**
+   * ProCare client user ID — set when a physician opens the modal for a client.
+   * Passed to the server so budget and safety context resolve against the
+   * client's DailyNutritionState, not the physician's.
+   */
+  proClientId?: string;
 }
 
 export function CreateWithChefModal({
@@ -64,6 +72,8 @@ export function CreateWithChefModal({
   remainingMacros,
   builderMode,
   performanceSessionContext,
+  generationContext,
+  proClientId,
 }: CreateWithChefModalProps) {
   const [description, setDescription] = useState("");
   const [safetyEnabled, setSafetyEnabled] = useState(true);
@@ -103,7 +113,7 @@ export function CreateWithChefModal({
   const userId = user?.id?.toString() || guestSession?.sessionId || "";
   
   const { generating, progress, error, generateMeal, cancel } =
-    useCreateWithChefRequest(userId);
+    useCreateWithChefRequest(userId, proClientId);
   const { toast } = useToast();
   
   const {
@@ -187,7 +197,8 @@ export function CreateWithChefModal({
       diversityContext,
       remainingMacros,
       builderMode,
-      performanceSessionContext
+      performanceSessionContext,
+      generationContext
     );
 
     if (meal) {

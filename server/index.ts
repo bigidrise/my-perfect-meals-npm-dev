@@ -1473,6 +1473,14 @@ async function start() {
   // myPerfectBeginning.ts take precedence for shared paths (/generated-meals etc.).
   app.use("/api/my-perfect-beginning", myPerfectBeginningGenerationRouter);
 
+  // Daily nutrition prescription + state routes (must be before registerRoutes for /api/* order)
+  const prescriptionRoutes = (await import("./routes/prescriptionRoutes")).default;
+  app.use("/api/prescription", prescriptionRoutes);
+  const nutritionStateRoutes = (await import("./routes/nutritionState")).default;
+  app.use("/api/nutrition-state", nutritionStateRoutes);
+  const chefBudgetRoutes = (await import("./routes/chefBudget")).default;
+  app.use("/api/meals/chef-budget", chefBudgetRoutes);
+
   // 🎯 CRITICAL: API routes FIRST to prevent Vite middleware interference
   await registerRoutes(app);
 
@@ -1641,6 +1649,32 @@ setTimeout(async () => {
     console.error("❌ classification_source boot migration failed:", err.message);
   }
 }, 5500);
+
+// ── Daily Nutrition State — schema additions ───────────────────────────────────
+// Adds meal-plan config snapshot columns to daily_nutrition_prescriptions and
+// board_item_reference to macro_logs. Idempotent: safe on every boot.
+setTimeout(async () => {
+  try {
+    const { db } = await import("./db");
+    const { sql } = await import("drizzle-orm");
+    // Meal-plan config snapshot on prescriptions
+    await db.execute(sql`ALTER TABLE daily_nutrition_prescriptions ADD COLUMN IF NOT EXISTS meals_per_day integer`);
+    await db.execute(sql`ALTER TABLE daily_nutrition_prescriptions ADD COLUMN IF NOT EXISTS starch_meals_per_day integer`);
+    await db.execute(sql`ALTER TABLE daily_nutrition_prescriptions ADD COLUMN IF NOT EXISTS starch_distribution_strategy text`);
+    // Board reservation link on macro_logs
+    await db.execute(sql`ALTER TABLE macro_logs ADD COLUMN IF NOT EXISTS board_item_reference text`);
+    // Unique partial index: one macro_log per board_item_reference (NULLs excluded
+    // so non-board logs remain unrestricted). Prevents double-logging board items.
+    await db.execute(sql`
+      CREATE UNIQUE INDEX IF NOT EXISTS macro_logs_board_item_ref_uniq
+      ON macro_logs(board_item_reference)
+      WHERE board_item_reference IS NOT NULL
+    `);
+    console.log("✅ Daily Nutrition State schema additions complete");
+  } catch (err: any) {
+    console.error("❌ Daily Nutrition State schema additions failed:", err.message);
+  }
+}, 5800);
 
 // ── Shared retry helper for coaching boot migrations ──────────────────────────
 // A transient DB connection timeout on any coaching migration would leave

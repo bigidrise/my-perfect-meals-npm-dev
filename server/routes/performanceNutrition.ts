@@ -14,6 +14,7 @@ import OpenAI from "openai";
 import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq, sql } from "drizzle-orm";
+import { getUserTimezone, todayInTimezone } from "../services/nutritionDayService";
 import { loadUserProtocolEnvelope } from "../services/protocolEnvelope";
 import { logAudit, getClientIp } from "../lib/auditLog";
 
@@ -876,6 +877,29 @@ router.patch("/mode", async (req, res) => {
     }
 
     await db.update(users).set({ performanceModeEnabled: enabled } as any).where(eq(users.id, userId));
+
+    // When Performance Mode is turned ON, ensure a row exists in
+    // daily_nutrition_prescriptions for today so mid-day change detection
+    // has a baseline to compare against.  We insert "macro_calculator"
+    // (the pre-toggle state) ON CONFLICT DO NOTHING so an existing row
+    // written earlier in the day is preserved — the resolver will compute
+    // "performance" on the next /api/nutrition-state call and the mismatch
+    // fires the amber banner.  Awaited before returning so an immediate
+    // nutrition-state fetch always sees the row.  Uses the user's saved
+    // timezone so the calendar date matches resolver and meal-log queries.
+    if (enabled) {
+      try {
+        const tz = await getUserTimezone(userId);
+        const prescDate = todayInTimezone(tz);
+        await db.execute(sql`
+          INSERT INTO daily_nutrition_prescriptions (user_id, date, source, updated_at)
+          VALUES (${userId}, ${prescDate}::date, 'macro_calculator', NOW())
+          ON CONFLICT (user_id, date) DO NOTHING
+        `);
+      } catch (err: unknown) {
+        console.error("[performanceNutrition] Prescription baseline stamp failed:", (err as Error).message);
+      }
+    }
 
     console.log(`[performanceNutrition] performanceModeEnabled=${enabled} for user ${userId}`);
     return res.json({ ok: true, performanceModeEnabled: enabled });

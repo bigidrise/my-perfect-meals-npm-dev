@@ -28,7 +28,8 @@
     "drift-check": "bash scripts/prepush-check.sh",
     "release-check": "bash scripts/release-check.sh",
     "postinstall": "npx patch-package && bash scripts/install-hooks.sh",
-    "test:pediatric": "tsx tests/pediatric/run-scenarios.ts"
+    "test:pediatric": "tsx tests/pediatric/run-scenarios.ts",
+    "test:bug-report-session": "node --test server/tests/runBugReportButtonSessionExpiry.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.879.0",
@@ -202,6 +203,7 @@
   "devDependencies": {
     "@replit/vite-plugin-cartographer": "^0.2.8",
     "@replit/vite-plugin-runtime-error-modal": "^0.0.3",
+    "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
@@ -234,11 +236,11 @@
     "node-forge": "^1.4.0",
     "path-to-regexp": "^0.1.13",
     "picomatch": "^4.0.4",
-    "tar": "^7.5.13",
     "uuid": "^14.0.0",
     "shell-quote": "^1.8.4",
     "micromatch": {
       "picomatch": "^2.3.2"
-    }
+    },
+    "websocket-driver": "0.7.5"
   }
 }

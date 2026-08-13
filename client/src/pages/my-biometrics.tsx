@@ -399,6 +399,7 @@ export default function MyBiometrics() {
 
   // Macro Targets state (persistent, not date-specific) - now with pro override support
   const [targets, setTargets] = useState<MacroTargets | null>(null);
+  const [targetsLoading, setTargetsLoading] = useState(true);
   const [targetSource, setTargetSource] = useState<"pro" | "self" | "performance" | "none">(
     "none",
   );
@@ -412,8 +413,13 @@ export default function MyBiometrics() {
     if (!user?.id) {
       setTargets(null);
       setTargetSource("none");
+      setTargetsLoading(false);
       return;
     }
+
+    // Signal that a fresh resolution is starting so the UI shows the shimmer
+    // rather than stale or empty values during the async prescription fetch.
+    setTargetsLoading(true);
 
     // ── 1. ProCare precedence (client-side, always checked first) ─────────────
     // Professional overrides are stored in localStorage / proStore and are NOT
@@ -433,6 +439,7 @@ export default function MyBiometrics() {
       });
       setTargetSource("pro");
       if (localResolved.setBy) setProName(localResolved.setBy);
+      setTargetsLoading(false);
       return;
     }
 
@@ -465,6 +472,7 @@ export default function MyBiometrics() {
             p.source === "performance" ? "performance"
             : "self"; // "clinical" (GLP-1) and "user_default" both display as "self"
           setTargetSource(srcLabel);
+          setTargetsLoading(false);
           return;
         }
       }
@@ -485,12 +493,14 @@ export default function MyBiometrics() {
       setTargetSource(localResolved.source);
       // Note: localResolved.source === "pro" is already handled at step 1 above
       // and we returned early. TypeScript correctly narrows "pro" out here.
+      setTargetsLoading(false);
       return;
     }
 
     // No targets configured anywhere — user genuinely has no macro setup.
     setTargets(null);
     setTargetSource("none");
+    setTargetsLoading(false);
   };
 
   // Keep the ref current every render so event listeners always call the latest version.
@@ -1907,7 +1917,22 @@ export default function MyBiometrics() {
                 </div>
               )}
 
-              {targets ? (
+              {targetsLoading ? (
+                /* Skeleton shimmer — shown while the prescription fetch is in flight */
+                <div data-testid="biometrics-progress-bars" aria-busy="true">
+                  {["Protein", "Carbs", "Fat", "Calories"].map((label) => (
+                    <div key={label} className="space-y-2 mb-3">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-white">{label}</span>
+                        <div className="animate-pulse h-4 w-20 rounded bg-white/10" />
+                      </div>
+                      <div className="h-2 w-full rounded bg-white/10 overflow-hidden">
+                        <div className="animate-pulse h-2 w-1/3 bg-white/10 rounded" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : targets ? (
                 <>
                   {/* Top summary badges with pulsing effect */}
                   <div className="flex flex-wrap gap-2 mb-3">

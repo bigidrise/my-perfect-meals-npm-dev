@@ -69,6 +69,7 @@ import { setActiveBuilderNs } from "@/lib/activeBuilderNs";
 import { v4 as uuidv4 } from "uuid";
 import { CreateWithChefModal } from "@/components/CreateWithChefModal";
 import { useBaselineNutrition } from "@/hooks/useBaselineNutrition";
+import { prescriptionToTargetsOverride } from "@/lib/prescriptionAdapter";
 import { classifyMeal } from "@/utils/starchMealClassifier";
 import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
 import { InformationModal } from "@/components/ui/universal-modal";
@@ -80,7 +81,7 @@ import { useNavigateToFavorites } from "@/hooks/useNavigateToFavorites";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
-import { useDailyPrescription } from "@/hooks/useDailyPrescription";
+import { useDailyNutritionState } from "@/hooks/useDailyNutritionState";
 import { BuilderHeader } from "@/components/pro/BuilderHeader";
 import { getBuilderProtocolBadges } from "@/lib/nutritionPersonalization";
 
@@ -241,28 +242,22 @@ export default function WeeklyMealBoard() {
   const [createWithChefOpen, setCreateWithChefOpen] = useState(false);
   const [createWithChefSlot, setCreateWithChefSlot] = useState<"breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6">("breakfast");
 
-  // Consumed starch totals for the active day — fed into the prescription hook
-  const activeDayConsumed = useMemo(() => {
-    if (!board || !activeDayISO) return { starchyCarbs: 0, starchMealsUsed: 0 };
-    const dayLists = getDayLists(board, activeDayISO);
-    const allMeals = [...dayLists.breakfast, ...dayLists.lunch, ...dayLists.dinner, ...dayLists.snacks];
-    let starchyCarbs = 0;
-    let starchMealsUsed = 0;
-    for (const m of allMeals) {
-      const stored = (m as any).starchyCarbs ?? m.nutrition?.starchyCarbs;
-      if (typeof stored === 'number' && stored > 0) starchyCarbs += stored;
-      if (classifyMeal(m).isStarchMeal) starchMealsUsed++;
-    }
-    return { starchyCarbs, starchMealsUsed };
-  }, [board, activeDayISO]);
-
-  // DailyNutritionPrescription — server-resolved, date-aware, performance-aware.
-  const { prescription } = useDailyPrescription({
+  // DailyNutritionState — the single server authority for macro targets, consumed, and remaining.
+  // Board meals are "planned" (not yet logged); consumption comes from macro_logs server-side.
+  // This replaces both useDailyPrescription and the local board-derived starch counting.
+  const { state: nutritionState, isLoading: nutritionStateLoading } = useDailyNutritionState({
     dateISO: activeDayISO,
-    starchyConsumed: activeDayConsumed.starchyCarbs,
-    starchMealsUsed: activeDayConsumed.starchMealsUsed,
-    disabled: !activeDayISO || !!proClientId,
+    clientId: proClientId ?? null,
+    disabled: !activeDayISO,
   });
+  const prescription = nutritionState?.prescription ?? null;
+  // Training prescription is the display authority when resolved; falls back to
+  // macro-calculator baseline (nutritionTargets) for non-performance/fallback days.
+  // While the prescription is still loading, pass undefined so DailyTargetsCard and
+  // RemainingMacrosFooter show their empty state rather than flashing the baseline numbers.
+  const effectiveTargets = nutritionStateLoading
+    ? undefined
+    : (prescriptionToTargetsOverride(prescription) ?? nutritionTargets);
 
   // Day macro totals for the Today row — consumed cal/P/C/F for the active day.
   const dayTotals = useMemo(() => {
@@ -281,6 +276,12 @@ export default function WeeklyMealBoard() {
       fat:      Math.round(allMeals.reduce((s, m) => s + (m.nutrition?.fat      ?? 0), 0)),
     };
   }, [board, activeDayISO]);
+
+  // Derive generationContext from server-resolved training day type.
+  const generationContext = useMemo((): string | undefined => {
+    if (!prescription || prescription.trainingDayType === null) return undefined;
+    return prescription.trainingDayType === 'rest' ? 'rest_day' : 'performance_training_day';
+  }, [prescription?.trainingDayType]);
 
   // Build StarchContext for Create With Chef modal
   const starchContext: StarchContext | undefined = useMemo(() => {
@@ -595,19 +596,17 @@ export default function WeeklyMealBoard() {
   // 🔧 FIX #1: Use real macro tracking instead of board state
   const macroData = useTodayMacros(effectiveUserId || "");
   const nutritionBudget = useNutritionBudget(effectiveUserId || "");
-  // lifestyle: only drop constraint if significantly over budget (>150 kcal or >25g protein over).
-  // Slight overages still get guidance-mode awareness — the system bends, it doesn't disappear.
+  // Server-resolved remaining budget — floored at 0 on the server, so no client clamping needed.
   const remainingMacrosForChef = useMemo(() => {
-    if (!nutritionBudget.hasTargets) return undefined;
-    const r = nutritionBudget.remaining;
-    if (r.calories < -150 || r.protein < -25) return undefined;
+    if (!nutritionState?.remaining) return undefined;
+    const r = nutritionState.remaining;
     return {
-      protein: Math.max(0, r.protein),
-      carbs: Math.max(0, r.carbs),
-      fat: Math.max(0, r.fat),
-      calories: Math.max(0, r.calories),
+      protein:  r.protein,
+      carbs:    r.totalCarbs,
+      fat:      r.fat,
+      calories: r.calories,
     };
-  }, [nutritionBudget.hasTargets, nutritionBudget.remaining]);
+  }, [nutritionState?.remaining]);
   const totals = {
     calories: macroData.kcal || 0,
     protein: macroData.protein || 0,
@@ -1232,7 +1231,8 @@ export default function WeeklyMealBoard() {
           <DailyTargetsCard
             userId={effectiveUserId}
             showQuickAddButton={false}
-            targetsOverride={nutritionTargets}
+            targetsOverride={effectiveTargets}
+            isLoading={nutritionStateLoading}
           />
         </div>
 
@@ -1292,9 +1292,12 @@ export default function WeeklyMealBoard() {
               <div className="col-span-full mb-6">
                 <RemainingMacrosFooter
                   consumedOverride={consumed}
-                  targetsOverride={nutritionTargets}
+                  targetsOverride={effectiveTargets}
+                  isLoading={nutritionStateLoading}
                   showSaveButton={false}
                   layoutMode="inline"
+                  prescriptionChangedMidDay={nutritionState?.prescriptionChangedMidDay}
+                  prescriptionChangeReason={nutritionState?.prescriptionChangeReason}
                   onSaveDay={async () => {
                     const targets = {
                       calories: resolved.calories || 0,
@@ -1515,6 +1518,8 @@ export default function WeeklyMealBoard() {
         starchContext={starchContext}
         remainingMacros={remainingMacrosForChef}
         builderMode="lifestyle"
+        generationContext={generationContext}
+        proClientId={proClientId}
       />
 
       {/* Quick Tour Modal */}

@@ -92,11 +92,11 @@ interface UseCreateWithChefRequestResult {
   generating: boolean;
   progress: number;
   error: string | null;
-  generateMeal: (description: string, mealType: "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6", dietType?: DietType, dietPhase?: BeachBodyPhase, starchContext?: StarchContext, safetyOptions?: SafetyOptions, strictMode?: boolean, explicitOverride?: ExplicitOverride, userDietOverride?: boolean, diversityContext?: DiversityContext, remainingMacros?: RemainingMacros, builderMode?: BuilderMode, performanceSessionContext?: PerformanceSessionContext) => Promise<Meal | null>;
+  generateMeal: (description: string, mealType: "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6", dietType?: DietType, dietPhase?: BeachBodyPhase, starchContext?: StarchContext, safetyOptions?: SafetyOptions, strictMode?: boolean, explicitOverride?: ExplicitOverride, userDietOverride?: boolean, diversityContext?: DiversityContext, remainingMacros?: RemainingMacros, builderMode?: BuilderMode, performanceSessionContext?: PerformanceSessionContext, generationContext?: string) => Promise<Meal | null>;
   cancel: () => void;
 }
 
-export function useCreateWithChefRequest(userId?: string): UseCreateWithChefRequestResult {
+export function useCreateWithChefRequest(userId?: string, proClientId?: string): UseCreateWithChefRequestResult {
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -144,7 +144,8 @@ export function useCreateWithChefRequest(userId?: string): UseCreateWithChefRequ
     diversityContext?: DiversityContext,
     remainingMacros?: RemainingMacros,
     builderMode?: BuilderMode,
-    performanceSessionContext?: PerformanceSessionContext
+    performanceSessionContext?: PerformanceSessionContext,
+    generationContext?: string
   ): Promise<Meal | null> => {
     setGenerating(true);
     setError(null);
@@ -174,6 +175,8 @@ export function useCreateWithChefRequest(userId?: string): UseCreateWithChefRequ
           explicitOverride: explicitOverride || null,
           userDietOverride: userDietOverride === true,
           performanceSessionContext: performanceSessionContext || null,
+          generationContext: generationContext || null,
+          proClientId: proClientId || undefined,
         }),
         signal: abortControllerRef.current.signal,
       });

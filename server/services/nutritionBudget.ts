@@ -1,119 +1,150 @@
 /**
- * nutritionBudget.ts — Next Meal Budget Resolver (#690)
+ * Nutrition Budget Engine
  *
- * computeNextMealBudget() is the single function every meal builder calls
- * before generation. It takes the canonical DailyNutritionState and returns
- * the per-meal nutrient envelope the AI must stay within.
+ * Computes the per-meal macro budget that constrains AI generation before
+ * the generator runs, and is validated server-side after generation.
  *
- * Design rules (advisor-approved):
- *  - Constrain generation BEFORE the AI runs (prompt injection)
- *  - Server validates generated meal macros AFTER generation
- *  - Clinical ceilings only tighten — they never widen the envelope
- *  - Starch slot gate is absolute: zero starchy carbs when slots exhausted
- *  - GLP-1 and Diabetic constraints layer in order; neither can be bypassed
+ * Design rules:
+ *  - computeNextMealBudget() is pure — no DB access, no side effects.
+ *  - Starchy carb target is 0 when all starch slots have been used.
+ *  - All targets are clamped to 0 — never negative.
+ *  - remainingMeals = 0 is handled gracefully (returns 0 targets).
+ *  - generationContext is kept separate from performanceModeEnabled;
+ *    it reflects what is active for THIS generation request, not user state.
  */
 
-import type { DailyNutritionState, MealContext, NextMealBudget } from "../../shared/dailyNutritionPrescription";
+import type {
+  DailyNutritionState,
+  GenerationContext,
+} from "../../shared/dailyNutritionPrescription";
+
+export interface MealBudget {
+  /** Per-meal calorie target (remaining ÷ mealsLeft) */
+  caloriesTarget: number;
+  proteinTarget: number;
+  carbsTarget: number;
+  fatTarget: number;
+  /** 0 when all starch slots are exhausted — callers must honour this */
+  starchyCarbsTarget: number;
+  fibrousCarbsTarget: number;
+  /** True when at least one starch slot remains */
+  starchSlotAvailable: boolean;
+  /** The generation context driving this budget */
+  generationContext: GenerationContext;
+  /** How many more meals are expected after this one */
+  mealsLeft: number;
+  /**
+   * Audit trail of clinical ceiling rules applied to this budget.
+   * Examples: "diabetic_carb_ceiling_applied_35g", "glp1_per_meal_fat_ceiling_applied",
+   * "starch_slots_exhausted_rerouted_to_fibrous".
+   * Empty array when no clinical adjustments were made.
+   */
+  clinicalNotes: string[];
+}
 
 /**
- * Compute the per-meal nutrient budget given the current day's nutrition state.
+ * Compute the macro budget for the NEXT meal given the current daily state.
  *
- * Algorithm:
- *   1. Base budget = remaining nutrition ÷ meals remaining (even split)
- *   2. Starch slot gate: if starchMealsRemaining === 0, starchyBudget = 0;
- *      excess starchy grams are rerouted to fibrous carbs so the meal's
- *      calorie total stays intact.
- *   3. Adaptive starchy cap: if only one starch meal is left but gramsPerRemainingStarchMeal
- *      says "save X grams for that slot", cap starchyBudget at X.
- *   4. Clinical ceilings (tighten only):
- *      - Diabetic: carbs ≤ 35 g/meal (in-range glucose floor; validator applies
- *        the full glucose-state-aware ceiling at generation time)
- *      - GLP-1: fat ≤ prescription.fatTarget ÷ mealsPerDay
+ * - Budget = remaining (prescription − consumed − planned) ÷ mealsLeft
+ * - starchyCarbsTarget = 0 when starchMealsRemaining ≤ 0
+ * - All values clamped ≥ 0
+ *
+ * @param state   Current DailyNutritionState (from /api/nutrition-state)
+ * @param mealsLeft  How many more meals (including this one) are expected today.
+ *                   Callers should pass (mealsPerDay − mealsConsumedSoFar).
+ *                   Clamped to 1 to avoid division-by-zero.
  */
 export function computeNextMealBudget(
   state: DailyNutritionState,
-  _mealContext: MealContext,
-): NextMealBudget {
-  const { remaining, mealPlan, activeConstraints, resolvedPrescription } = state;
+  mealsLeft: number,
+): MealBudget {
+  const divisor = Math.max(1, mealsLeft);
+
+  const { remaining, activeConstraints, mealPlanConfig, prescription } = state;
+
   const clinicalNotes: string[] = [];
 
-  // Avoid division by zero — treat 0 meals remaining as 1 so the budget
-  // is computed (the builder will show it as zero-opportunity anyway).
-  const mealsLeft = Math.max(1, mealPlan.mealsRemaining);
+  const starchSlotAvailable = remaining.starchMealsRemaining > 0;
 
-  // ── 1. Base per-meal share (even split of remaining) ───────────────────
-  let caloriesBudget = Math.round(remaining.calories     / mealsLeft);
-  let proteinBudget  = Math.round(remaining.protein      / mealsLeft);
-  let carbsBudget    = Math.round(remaining.totalCarbs   / mealsLeft);
-  let fatBudget      = Math.round(remaining.fat          / mealsLeft);
-  let starchyBudget  = Math.round(remaining.starchyCarbs / mealsLeft);
-  let fibrousBudget  = Math.round(remaining.fibrousCarbs / mealsLeft);
-
-  // ── 2. Starch slot gate ────────────────────────────────────────────────
-  const starchAllowed = mealPlan.starchMealsRemaining > 0;
-
-  if (!starchAllowed) {
-    // All starch slots are used. Reroute starchy gram budget to fibrous
-    // so the meal keeps its calorie target (both are 4 kcal/g).
-    if (starchyBudget > 0) {
-      fibrousBudget += starchyBudget;
-      starchyBudget  = 0;
-      clinicalNotes.push("starch_slots_exhausted_rerouted_to_fibrous");
-    }
-  } else {
-    // ── 3. Adaptive starchy cap ─────────────────────────────────────────
-    // gramsPerRemainingStarchMeal is the reservation-aware target.
-    // If the budget exceeds it, hold back the excess for future starch meals.
-    const adaptiveTarget = resolvedPrescription.gramsPerRemainingStarchMeal;
-    if (adaptiveTarget !== undefined && starchyBudget > adaptiveTarget) {
-      const excess = starchyBudget - adaptiveTarget;
-      starchyBudget  = adaptiveTarget;
-      fibrousBudget += excess;
-      clinicalNotes.push("starchy_carbs_capped_to_adaptive_per_meal_target");
-    }
+  if (!starchSlotAvailable) {
+    clinicalNotes.push("starch_slots_exhausted_rerouted_to_fibrous");
   }
 
-  // ── 4. Clinical ceilings — tighten only, never widen ──────────────────
+  // When starch budget is exhausted the generator must not produce starchy carbs.
+  const starchyCarbsTarget = starchSlotAvailable
+    ? Math.max(0, Math.round(remaining.starchyCarbs / divisor))
+    : 0;
 
-  if (activeConstraints.diabeticActive) {
-    // 35 g/meal is the platform-wide in-range carb floor constraint.
-    // The full glucose-state-aware ceiling (15/25/35/45 g depending on BGL)
-    // is applied by diabeticPromptBuilder.ts during generation.
-    const DIABETIC_CARB_CEILING = 35;
-    if (carbsBudget > DIABETIC_CARB_CEILING) {
-      const excess = carbsBudget - DIABETIC_CARB_CEILING;
-      carbsBudget = DIABETIC_CARB_CEILING;
-      // Carb → protein calorie swap (4 kcal/g each — 1:1 gram substitution)
-      proteinBudget += excess;
-      clinicalNotes.push("diabetic_carb_ceiling_applied_35g");
-    }
+  let carbsTarget = Math.max(0, Math.round(remaining.carbs / divisor));
+  // fibrousCarbsTarget picks up any carbs that starchy budget can't use
+  const fibrousCarbsTarget = starchSlotAvailable
+    ? Math.max(0, Math.round(remaining.fibrousCarbs / divisor))
+    : Math.max(0, carbsTarget); // all remaining carbs become fibrous
+
+  let fatTarget = Math.max(0, Math.round(remaining.fat / divisor));
+
+  // ── Clinical ceilings ─────────────────────────────────────────────────────
+  // Diabetic: hard cap of 35 g carbs per meal to prevent glycaemic spikes.
+  if (activeConstraints.generationContext === "diabetic" && carbsTarget > 35) {
+    carbsTarget = 35;
+    clinicalNotes.push("diabetic_carb_ceiling_applied_35g");
   }
 
-  if (activeConstraints.glp1Active) {
-    // Per-meal fat ceiling = daily fat target ÷ mealsPerDay.
-    // The prescriptionResolver already enforced the daily fat ceiling;
-    // this per-meal slice prevents any single meal from consuming all the
-    // daily fat budget, which is a GLP-1 tolerability failure mode.
-    const fatPerMeal = Math.round(
-      resolvedPrescription.fatTarget / Math.max(1, mealPlan.mealsPerDay),
+  // GLP-1: per-meal fat ceiling = prescription daily fatTarget ÷ mealsPerDay.
+  // Prevents excess fat from triggering GI side-effects common with GLP-1 meds.
+  if (activeConstraints.generationContext === "glp1") {
+    const glp1FatCeiling = Math.max(
+      0,
+      Math.round(prescription.fatTarget / Math.max(1, mealPlanConfig.mealsPerDay)),
     );
-    if (fatBudget > fatPerMeal) {
-      fatBudget = fatPerMeal;
+    if (fatTarget > glp1FatCeiling) {
+      fatTarget = glp1FatCeiling;
       clinicalNotes.push("glp1_per_meal_fat_ceiling_applied");
     }
   }
 
-  // ── Floor everything at 0 ──────────────────────────────────────────────
   return {
-    caloriesBudget:      Math.max(0, caloriesBudget),
-    proteinBudget:       Math.max(0, proteinBudget),
-    carbsBudget:         Math.max(0, carbsBudget),
-    fatBudget:           Math.max(0, fatBudget),
-    starchyBudget:       Math.max(0, starchyBudget),
-    fibrousBudget:       Math.max(0, fibrousBudget),
-    starchAllowed,
-    mealsRemaining:      mealPlan.mealsRemaining,
-    starchMealsRemaining: mealPlan.starchMealsRemaining,
+    caloriesTarget: Math.max(0, Math.round(remaining.calories / divisor)),
+    proteinTarget: Math.max(0, Math.round(remaining.protein / divisor)),
+    carbsTarget,
+    fatTarget,
+    starchyCarbsTarget,
+    fibrousCarbsTarget,
+    starchSlotAvailable,
+    generationContext: activeConstraints.generationContext,
+    mealsLeft: divisor,
     clinicalNotes,
   };
+}
+
+/**
+ * Derive the GenerationContext from a resolved DailyNutritionState.
+ *
+ * Rules (evaluated in priority order):
+ *  1. diabetic   — specialtyConditions includes "diabetic"
+ *  2. glp1       — rationaleCodes includes "glp1_daily_overlay_active"
+ *  3. performance_training_day — source === "performance" AND trainingDayType !== "rest"
+ *  4. standard   — fallback
+ *
+ * This is intentionally kept separate from performanceModeEnabled (a persistent
+ * user flag). generationContext reflects what is ACTIVE for THIS meal — e.g.
+ * a user with performanceModeEnabled on a rest day gets "standard" not
+ * "performance_training_day".
+ */
+export function deriveGenerationContext(
+  source: string,
+  trainingDayType: string | null,
+  rationaleCodes: string[],
+  specialtyConditions: string[],
+): GenerationContext {
+  if (specialtyConditions.includes("diabetic")) return "diabetic";
+  if (rationaleCodes.includes("glp1_daily_overlay_active")) return "glp1";
+  if (
+    source === "performance" &&
+    trainingDayType !== null &&
+    trainingDayType !== "rest"
+  ) {
+    return "performance_training_day";
+  }
+  return "standard";
 }

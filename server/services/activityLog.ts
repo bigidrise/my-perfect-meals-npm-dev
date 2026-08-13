@@ -13,7 +13,8 @@ type ActivityAction =
   | "cycle_protocol_updated"
   | "nutrition_strategy_viewed"
   | "nutrition_strategy_acknowledged"
-  | "board_access_changed";
+  | "board_access_changed"
+  | "board_item_logged";
 
 export async function logClientActivity(
   studioId: string,

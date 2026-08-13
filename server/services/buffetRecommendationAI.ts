@@ -17,6 +17,7 @@
 import OpenAI from "openai";
 import type { AwayFromHomeRecommendation } from "@shared/awayFromHome";
 import type { ActiveNutritionContext } from "./nutritionContext/getActiveNutritionContext";
+import { buildCravingInstructions } from "./restaurantMealGeneratorAI";
 import { randomUUID } from "crypto";
 
 let _openai: OpenAI | null = null;
@@ -44,6 +45,12 @@ export interface BuffetRecommendationRequest {
   nutritionContext: ActiveNutritionContext;
   /** Raw user row (for name, allergies, dietType) */
   user?: Record<string, unknown>;
+  /** Specific food the user has requested (e.g. "salmon", "steak") — AI must feature it prominently */
+  requestedFood?: string;
+  /** Pre-built remaining-day macro budget block from buildRemainingMacrosBlock() */
+  remainingMacrosBlock?: string;
+  /** GLP-1 recommendation-surface guidance block from buildGLP1RecommendationBlock() */
+  glp1RecommendationBlock?: string;
 }
 
 /** Derive fibrousCarbs from fiber (application rule — never ask AI for this) */
@@ -126,7 +133,7 @@ function mapPlate(parsed: Record<string, unknown>): AwayFromHomeRecommendation {
 export async function generateBuffetRecommendations(
   req: BuffetRecommendationRequest
 ): Promise<AwayFromHomeRecommendation[]> {
-  const { foodsDescription, categories, nutritionContext } = req;
+  const { foodsDescription, categories, nutritionContext, requestedFood, remainingMacrosBlock, glp1RecommendationBlock } = req;
 
   const foodsLines: string[] = [];
   if (foodsDescription.trim()) {
@@ -187,8 +194,16 @@ Return ONLY valid JSON with this exact shape (no markdown, no explanation):
   ]
 }`;
 
+  // GLP-1 / craving intent: if the user requested a specific food, preserve it as
+  // the anchor protein. For diabetic users, achieve carb compliance via sides only.
+  const hasDiabetes = nutritionContext?.envelope?.hasDiabetes ?? false;
+  const cravingInstructions = buildCravingInstructions(requestedFood, hasDiabetes);
+
   const userPrompt = `USER NUTRITION PROFILE:
 ${nutritionContext.combinedBlock || "(standard healthy adult — no active protocols)"}
+${glp1RecommendationBlock ?? ""}
+${cravingInstructions}
+${remainingMacrosBlock ?? ""}
 
 BUFFET FOODS AVAILABLE:
 ${foodsBlock}

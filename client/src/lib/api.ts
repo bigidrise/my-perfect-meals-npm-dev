@@ -168,8 +168,8 @@ export const put = <T = any>(
   init: RequestInit = {},
 ) => apiJSON<T>(path, { ...init, method: "PUT", json });
 
-export const del = <T = any>(path: string, init: RequestInit = {}) =>
-  apiJSON<T>(path, { ...init, method: "DELETE" });
+export const del = <T = any>(path: string, json?: Json, init: RequestInit = {}) =>
+  apiJSON<T>(path, { ...init, method: "DELETE", json });
 
 export const patch = <T = any>(
   path: string,

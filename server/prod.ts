@@ -808,6 +808,10 @@ async function initializeApp() {
     const nutritionStateRoutes = (await import("./routes/nutritionState")).default;
     app.use("/api/nutrition-state", nutritionStateRoutes);
 
+    // Chef Budget — server-authoritative per-meal budget for Create-with-Chef
+    const chefBudgetRoutes = (await import("./routes/chefBudget")).default;
+    app.use("/api/meals/chef-budget", chefBudgetRoutes);
+
     // Bug Reports — authenticated in-app diagnostic submission
     const bugReportsRoutes = (await import("./routes/bugReports")).default;
     app.use("/api/bug-reports", bugReportsRoutes);
@@ -1433,8 +1437,18 @@ async function initializeApp() {
       // Adds: daily_nutrition_prescriptions meal-plan snapshot cols + macro_logs.board_item_reference
       setTimeout(async () => {
         try {
-          const { runNutritionStateMigration } = await import("./db/migrations/runNutritionStateMigration");
-          await runNutritionStateMigration();
+          const { sql: migSql } = await import("drizzle-orm");
+          const { db: database } = await import("./db");
+          await database.execute(migSql`ALTER TABLE daily_nutrition_prescriptions ADD COLUMN IF NOT EXISTS meals_per_day integer`);
+          await database.execute(migSql`ALTER TABLE daily_nutrition_prescriptions ADD COLUMN IF NOT EXISTS starch_meals_per_day integer`);
+          await database.execute(migSql`ALTER TABLE daily_nutrition_prescriptions ADD COLUMN IF NOT EXISTS starch_distribution_strategy text`);
+          await database.execute(migSql`ALTER TABLE macro_logs ADD COLUMN IF NOT EXISTS board_item_reference text`);
+          await database.execute(migSql`
+            CREATE UNIQUE INDEX IF NOT EXISTS macro_logs_board_item_ref_uniq
+            ON macro_logs(board_item_reference)
+            WHERE board_item_reference IS NOT NULL
+          `);
+          console.log("✅ [prod] Daily Nutrition State schema additions complete");
         } catch (err: any) {
           console.error("❌ [prod] Nutrition State migration failed:", err.message);
         }

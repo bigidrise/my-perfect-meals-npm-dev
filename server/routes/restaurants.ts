@@ -17,7 +17,9 @@ import type { AuthenticatedRequest } from "../middleware/requireAuth";
 import { restaurantEngine, officialJsonProvider } from "../services/away-from-home/ProviderRegistry";
 import { findBrandBySlug, getAllBrands } from "../services/away-from-home/BrandRegistry";
 import { generateMenuItemRecommendations } from "../services/away-from-home/generateMenuItemRecommendations";
-import { generateRestaurantMealsAI } from "../services/restaurantMealGeneratorAI";
+import { generateRestaurantMealsAI, buildRemainingMacrosBlock } from "../services/restaurantMealGeneratorAI";
+import { resolveDailyNutritionState } from "../services/nutritionStateService";
+import { resolveGLP1GlobalContext, buildGLP1RecommendationBlock } from "../services/glp1/resolveGLP1GlobalContext";
 import { computeAlphaGalBadge } from "../services/medicalBadges";
 import { emitActivityEvent } from "../services/coaching/activityEvents";
 
@@ -159,6 +161,42 @@ router.post("/guide", async (req, res) => {
         `Falling back to AI generation.`
       );
 
+      // ── Load nutrition context + GLP-1 canonical context in parallel ─────────
+      //    so the fallback branch is as constrained as the verified-menu branch
+      const todayISO = new Date().toISOString().slice(0, 10);
+      let fallbackContext: Awaited<ReturnType<typeof getActiveNutritionContext>> | undefined;
+      let fallbackRemainingMacrosBlock = "";
+      let fallbackGlp1Block = "";
+      try {
+        const [ctx, glp1Ctx] = await Promise.all([
+          getActiveNutritionContext(userId),
+          resolveGLP1GlobalContext(userId, todayISO).catch(() => null),
+        ]);
+        fallbackContext = ctx;
+        fallbackGlp1Block = glp1Ctx ? buildGLP1RecommendationBlock(glp1Ctx) : "";
+        // Load remaining daily budget so the AI can guide preparation and sides
+        try {
+          const state = await resolveDailyNutritionState(userId, todayISO);
+          fallbackRemainingMacrosBlock = buildRemainingMacrosBlock(state?.remaining ?? null);
+        } catch {
+          // Non-fatal — remaining macros block simply omitted
+        }
+        console.log(
+          `🔒 [Guide/AI] Nutrition context: diet=[${fallbackContext.diet.join(",")}] ` +
+          `medical=[${fallbackContext.medical.length} flags] builder=${fallbackContext.builder ?? "none"} ` +
+          `glp1=${glp1Ctx?.isActive ? `ACTIVE[${glp1Ctx.activationSources.join(",")}]` : "inactive"} ` +
+          `remainingMacros=${fallbackRemainingMacrosBlock ? "populated" : "empty"}`
+        );
+      } catch {
+        console.warn(`⚠️ [Guide/AI] Could not load nutrition context — proceeding without protocol constraints`);
+      }
+
+      // Combine protocol block with GLP-1 recommendation guidance
+      const fallbackProtocolBlock = [
+        fallbackContext?.combinedBlock,
+        fallbackGlp1Block,
+      ].filter(Boolean).join("\n\n") || undefined;
+
       const aiUser = bodyDiet.length > 0
         ? { ...(user || {}), dietaryRestrictions: effectiveDiet } as any
         : user;
@@ -168,6 +206,10 @@ router.post("/guide", async (req, res) => {
         cuisine: detectedCuisine,
         cravingContext: craving,
         user: aiUser,
+        protocolBlock: fallbackProtocolBlock,
+        protocolEnvelope: fallbackContext?.envelope || undefined,
+        builderBlock: fallbackContext?.builderBlock || undefined,
+        remainingMacrosBlock: fallbackRemainingMacrosBlock || undefined,
       });
 
       const generationTime = Date.now() - generationStart;
@@ -223,12 +265,24 @@ router.post("/guide", async (req, res) => {
       `✅ [Guide] Engine resolved ${items.length} items for "${identity.displayName}" via source="${source}"`
     );
 
-    // ── Step 3: Nutrition context (protocol + active builder) ─────────────────
-    const guideContext = await getActiveNutritionContext(userId);
+    // ── Step 3: Nutrition context (protocol + active builder) + GLP-1 ────────
+    const todayISO = new Date().toISOString().slice(0, 10);
+    const [guideContext, guideGlp1Ctx] = await Promise.all([
+      getActiveNutritionContext(userId),
+      resolveGLP1GlobalContext(userId, todayISO).catch(() => null),
+    ]);
+    const guideGlp1Block = guideGlp1Ctx ? buildGLP1RecommendationBlock(guideGlp1Ctx) : "";
     console.log(
       `🔒 [Guide] Nutrition context: diet=[${guideContext.diet.join(",")}] ` +
-      `medical=[${guideContext.medical.length} flags] builder=${guideContext.builder ?? "none"}`
+      `medical=[${guideContext.medical.length} flags] builder=${guideContext.builder ?? "none"} ` +
+      `glp1=${guideGlp1Ctx?.isActive ? `ACTIVE[${guideGlp1Ctx.activationSources.join(",")}]` : "inactive"}`
     );
+
+    // Combine protocol block with GLP-1 recommendation guidance
+    const guideProtocolBlock = [
+      guideContext.combinedBlock,
+      guideGlp1Block,
+    ].filter(Boolean).join("\n\n") || guideContext.combinedBlock;
 
     // ── Step 4: AI reasons over verified items ─────────────────────────────────
     const aiUser = bodyDiet.length > 0
@@ -244,7 +298,7 @@ router.post("/guide", async (req, res) => {
       menuLastVerifiedAt,
       craving,
       user: aiUser,
-      protocolBlock: guideContext.combinedBlock,
+      protocolBlock: guideProtocolBlock,
       protocolEnvelope: guideContext.envelope,
       builderBlock: guideContext.builderBlock || undefined,
     });

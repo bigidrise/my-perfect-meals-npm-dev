@@ -44,6 +44,7 @@ import { lockDay, isDayLocked } from "@/lib/lockedDays";
 import { setQuickView } from "@/lib/macrosQuickView";
 import { getMacroTargets } from "@/lib/dailyLimits";
 import { useBaselineNutrition } from "@/hooks/useBaselineNutrition";
+import { prescriptionToTargetsOverride } from "@/lib/prescriptionAdapter";
 import { classifyMeal } from "@/utils/starchMealClassifier";
 import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
 import { useAuth } from "@/contexts/AuthContext";
@@ -108,7 +109,7 @@ import { useTodayMacros } from "@/hooks/useTodayMacros";
 import { useNutritionBudget } from "@/hooks/useNutritionBudget";
 import { useOnboardingProfile } from "@/hooks/useOnboardingProfile";
 import { useQuickTour } from "@/hooks/useQuickTour";
-import { useDailyPrescription } from "@/hooks/useDailyPrescription";
+import { useDailyNutritionState } from "@/hooks/useDailyNutritionState";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
@@ -359,27 +360,27 @@ export default function BeachBodyMealBoard() {
   >("breakfast");
 
   // Consumed starch totals for the active day — fed into the prescription hook
-  const activeDayConsumed = useMemo(() => {
-    if (!board || !activeDayISO) return { starchyCarbs: 0, starchMealsUsed: 0 };
-    const dayLists = getDayLists(board, activeDayISO);
-    const allMeals = [...dayLists.breakfast, ...dayLists.lunch, ...dayLists.dinner, ...dayLists.snacks];
-    let starchyCarbs = 0;
-    let starchMealsUsed = 0;
-    for (const m of allMeals) {
-      const stored = (m as any).starchyCarbs ?? m.nutrition?.starchyCarbs;
-      if (typeof stored === 'number' && stored > 0) starchyCarbs += stored;
-      if (classifyMeal(m).isStarchMeal) starchMealsUsed++;
-    }
-    return { starchyCarbs, starchMealsUsed };
-  }, [board, activeDayISO]);
-
-  // DailyNutritionPrescription — server-resolved, date-aware, performance-aware.
-  const { prescription } = useDailyPrescription({
+  // DailyNutritionState — the single server authority for macro targets, consumed, and remaining.
+  // Board meals are "planned" (not yet logged); consumption comes from macro_logs server-side.
+  const { state: nutritionState, isLoading: nutritionStateLoading } = useDailyNutritionState({
     dateISO: activeDayISO,
-    starchyConsumed: activeDayConsumed.starchyCarbs,
-    starchMealsUsed: activeDayConsumed.starchMealsUsed,
-    disabled: !activeDayISO || !!proClientId,
+    clientId: proClientId ?? null,
+    disabled: !activeDayISO,
   });
+  const prescription = nutritionState?.prescription ?? null;
+  // Training prescription is the display authority when resolved; falls back to
+  // macro-calculator baseline (nutritionTargets) for non-performance/fallback days.
+  // While the prescription is still loading, pass undefined so DailyTargetsCard and
+  // RemainingMacrosFooter show their empty state rather than flashing the baseline numbers.
+  const effectiveTargets = nutritionStateLoading
+    ? undefined
+    : (prescriptionToTargetsOverride(prescription) ?? nutritionTargets);
+
+  // Derive generationContext from server-resolved training day type.
+  const generationContext = useMemo((): string | undefined => {
+    if (!prescription || prescription.trainingDayType === null) return undefined;
+    return prescription.trainingDayType === 'rest' ? 'rest_day' : 'performance_training_day';
+  }, [prescription?.trainingDayType]);
 
   // Build StarchContext for Create With Chef modal
   const starchContext: StarchContext | undefined = useMemo(() => {
@@ -1025,16 +1026,17 @@ export default function BeachBodyMealBoard() {
 
   // Remaining macro budget — passed to AI so it generates within today's remaining allowance.
   // Only send if the user has targets configured. Clamp negatives to 0 (overage = nothing left).
+  // Server-resolved remaining budget — already floored at 0, no client clamping needed.
   const remainingMacrosForChef = useMemo(() => {
-    if (!nutritionBudget.hasTargets) return undefined;
-    const r = nutritionBudget.remaining;
+    if (!nutritionState?.remaining) return undefined;
+    const r = nutritionState.remaining;
     return {
-      protein: Math.max(0, r.protein),
-      carbs: Math.max(0, r.carbs),
-      fat: Math.max(0, r.fat),
-      calories: Math.max(0, r.calories),
+      protein:  r.protein,
+      carbs:    r.totalCarbs,
+      fat:      r.fat,
+      calories: r.calories,
     };
-  }, [nutritionBudget.hasTargets, nutritionBudget.remaining]);
+  }, [nutritionState?.remaining]);
 
   const totals = useMemo(() => {
     if (!board) return { calories: 0, protein: 0, carbs: 0, fat: 0 };
@@ -1853,7 +1855,8 @@ export default function BeachBodyMealBoard() {
             <DailyTargetsCard
               userId={effectiveUserId}
               onQuickAddClick={() => setAdditionalMacrosOpen(true)}
-              targetsOverride={nutritionTargets}
+              targetsOverride={effectiveTargets}
+              isLoading={nutritionStateLoading}
             />
           </div>
         </div>
@@ -1931,9 +1934,12 @@ export default function BeachBodyMealBoard() {
                 <div className="col-span-full mb-6">
                   <RemainingMacrosFooter
                     consumedOverride={consumed}
-                    targetsOverride={nutritionTargets}
+                    targetsOverride={effectiveTargets}
+                    isLoading={nutritionStateLoading}
                     showSaveButton={false}
                     layoutMode="inline"
+                    prescriptionChangedMidDay={nutritionState?.prescriptionChangedMidDay}
+                    prescriptionChangeReason={nutritionState?.prescriptionChangeReason}
                     onSaveDay={async () => {
                       const raw = getMacroTargets(effectiveUserId);
                       const targets = raw
@@ -2084,6 +2090,8 @@ export default function BeachBodyMealBoard() {
           starchContext={starchContext}
           remainingMacros={remainingMacrosForChef}
           performanceSessionContext={performanceSessionContext}
+          generationContext={generationContext}
+          proClientId={proClientId}
         />
 
         {/* Snack Creator Modal - contest prep guardrails (performance mode) */}

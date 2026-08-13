@@ -61,12 +61,18 @@ function buildDeveloperSummary(
 ): string {
   const page = esc(route || "Unknown");
 
-  const firstError  = diag?.errors?.[0];
+  const allErrors   = diag?.errors ?? [];
   const failedReqs  = diag?.failedRequests ?? [];
-  const firstFail   = failedReqs[0];
+
+  // Prefer a real app error over infrastructure noise (Vite/HMR/WS).
+  // Only fall back to an infrastructure error if that's all we have.
+  const appErrors  = allErrors.filter(e => !e.isInfrastructure);
+  const firstError = appErrors[0] ?? allErrors[0];
+  const infraOnly  = allErrors.length > 0 && appErrors.length === 0;
 
   const recentErrorMsg = firstError
-    ? esc(firstError.message.slice(0, 200))
+    ? esc(firstError.message.slice(0, 200)) +
+      (infraOnly ? " <em style=\"color:#6b7280;\">(dev infrastructure — not an app error)</em>" : "")
     : "Not identified from captured diagnostics.";
 
   const sourceLocation = firstError
@@ -80,7 +86,11 @@ function buildDeveloperSummary(
   // Build a brief event sequence (most recent first = already sorted by buffer)
   const allEvents: Array<{ ts: string; label: string }> = [];
   (diag?.errors ?? []).slice(0, 5).forEach(e =>
-    allEvents.push({ ts: e.timestamp, label: `Error: ${esc(e.message.slice(0, 100))}` })
+    allEvents.push({
+      ts: e.timestamp,
+      label: `Error: ${esc(e.message.slice(0, 100))}` +
+        (e.isInfrastructure ? " <em style=\"color:#6b7280;\">[dev infra]</em>" : ""),
+    })
   );
   (diag?.failedRequests ?? []).slice(0, 5).forEach(r =>
     allEvents.push({ ts: r.timestamp, label: `${r.method} ${esc(r.path)} → ${r.status}` })

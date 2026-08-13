@@ -2,6 +2,7 @@
 // Generates restaurant-specific meals using OpenAI GPT-4
 // Falls back to locked generator if AI fails
 import { type User } from "@shared/schema";
+import type { DailyNutritionState } from "../../shared/dailyNutritionPrescription";
 import OpenAI from 'openai';
 // DO NOT call generateImage() from imageService directly.
 // Use generateMealImageUnified only.
@@ -58,7 +59,69 @@ interface RestaurantMealRequest {
   protocolBlock?: string;           // Pre-built protocol enforcement block from caller
   protocolEnvelope?: UserProtocolEnvelope; // Envelope for post-gen scan
   builderBlock?: string;            // Active meal builder guidance (additive, after protocol)
+  remainingMacrosBlock?: string;    // Pre-built remaining-day budget block (Getaways/Buffet/FindMeals)
+  menuContext?: string;             // Buffet/venue-specific available foods context
 }
+
+// ─── Shared personalization helpers ─────────────────────────────────────────
+// Exported so Getaways, Buffet, and Find Your Meals all use the same language.
+
+/**
+ * Build the food-intent preservation block.
+ * When a user has expressed a specific craving, this instructs the AI to center
+ * ALL recommendations on that food and only adjust preparation/sides, never
+ * substituting the core food category for a medical or dietary reason — except
+ * a genuine hard-safety allergy conflict.
+ *
+ * For diabetic users: the protein is preserved, carb compliance is achieved
+ * via non-starchy sides/sauces instead of swapping the protein.
+ *
+ * GLP-1 NOTE: For restaurant and away-from-home surfaces, GLP-1 guidance should
+ * influence food selection and eating strategy (protein-first, lighter prep,
+ * sensible sides, stop at comfortable fullness) — NOT impose a hard portion-size
+ * ceiling that the system cannot actually enforce at a restaurant.
+ */
+export function buildCravingInstructions(
+  cravingContext: string | undefined,
+  hasDiabetes: boolean,
+): string {
+  if (!cravingContext) return "";
+  return `\n\nCRITICAL: The user is specifically craving "${cravingContext}". ALL meals MUST prominently feature ${cravingContext} as the main ingredient or protein. Focus on ${cravingContext}-based dishes that this restaurant would realistically serve.${
+    hasDiabetes
+      ? ` DIABETIC COMPLIANCE RULE: Keep "${cravingContext}" as the primary protein. Achieve low-carb compliance by using NON-STARCHY sides only (spinach, asparagus, zucchini, broccoli, mixed greens, salad without croutons, mushrooms, cucumber). Do NOT substitute the protein to meet carb targets — adjust the sides and sauces instead.`
+      : ""
+  }`;
+}
+
+/**
+ * Build the current-day remaining budget block.
+ * Injected after the craving block so the AI knows how much macro room the user
+ * has left today. For restaurant contexts this softly guides preparation/sides
+ * rather than rejecting the user's food request.
+ *
+ * Returns an empty string when remaining data is unavailable (graceful degradation).
+ */
+export function buildRemainingMacrosBlock(
+  remaining: Pick<DailyNutritionState["remaining"], "calories" | "protein" | "carbs" | "fat"> & {
+    starchyCarbs?: number;
+    starchMealsRemaining?: number;
+  } | null | undefined,
+): string {
+  if (!remaining) return "";
+  const starchLine =
+    remaining.starchMealsRemaining !== undefined
+      ? `\n  • Starch meals remaining today: ${remaining.starchMealsRemaining}`
+      : remaining.starchyCarbs !== undefined
+        ? `\n  • Starchy carbs remaining: ${Math.round(remaining.starchyCarbs)}g`
+        : "";
+  return `\n\nCURRENT DAY REMAINING BUDGET (use to guide preparation, sides, and portion strategy — do NOT reject the requested food category):
+  • Calories: ${Math.round(remaining.calories)} kcal
+  • Protein: ${Math.round(remaining.protein)}g
+  • Carbs: ${Math.round(remaining.carbs)}g
+  • Fat: ${Math.round(remaining.fat)}g${starchLine}
+If starch meals remaining is 0 or starchy carbs remaining is very low, prefer non-starchy sides (salad, vegetables) and suggest skipping/reducing starchy items (bun, fries, rice) — but keep the user's requested protein as-is.`;
+}
+// ────────────────────────────────────────────────────────────────────────────
 
 interface RestaurantMeal {
   id: string;
@@ -327,13 +390,8 @@ export async function generateRestaurantMealsAI(request: RestaurantMealRequest):
   // When the user has diabetes, add an explicit rule to preserve the protein and fix the sides —
   // so the model doesn't drift to chicken simply because potatoes are blocked.
   const hasDiabetesForPrompt = request.protocolEnvelope?.hasDiabetes ?? false;
-  const cravingInstructions = cravingContext
-    ? `\n\nCRITICAL: The user is specifically craving "${cravingContext}". ALL meals MUST prominently feature ${cravingContext} as the main ingredient or protein. Focus on ${cravingContext}-based dishes that this restaurant would realistically serve.${
-        hasDiabetesForPrompt
-          ? ` DIABETIC COMPLIANCE RULE: Keep "${cravingContext}" as the primary protein. Achieve low-carb compliance by using NON-STARCHY sides only (spinach, asparagus, zucchini, broccoli, mixed greens, salad without croutons, mushrooms, cucumber). Do NOT substitute the protein to meet carb targets — adjust the sides and sauces instead.`
-          : ''
-      }`
-    : '';
+  const cravingInstructions = buildCravingInstructions(cravingContext, hasDiabetesForPrompt);
+  const remainingMacrosBlock = request.remainingMacrosBlock ?? "";
 
   // ── Cuisine archetype classification ────────────────────────────────────────
   const archetypeResult = classifyRestaurantArchetype(restaurantName, [], cravingContext);
@@ -427,7 +485,7 @@ Adjustments go in "howToOrder.modify" and "howToOrder.swap" — NOT in the meal 
     // Use OpenAI to generate restaurant-specific meals
     const prompt = `You are a nutrition expert helping someone order healthy meals at "${restaurantName}", a ${cuisine} restaurant.
 ${protocolBlock ? `\n${protocolBlock}\n` : ""}${builderBlock ? `\n${builderBlock}\n` : ""}
-${medicalWaiterBlock}${allergyContext}${dietaryContext}${avoidContext}${cravingInstructions}${dietBehaviorBlock}
+${medicalWaiterBlock}${allergyContext}${dietaryContext}${avoidContext}${cravingInstructions}${remainingMacrosBlock}${dietBehaviorBlock}
 ${archetypeRealism}
 
 TONE AND LANGUAGE RULES:
@@ -570,7 +628,7 @@ Make the meals sound like something you would genuinely see on the menu at ${res
         description: meal.description || "A delicious and healthy option",
         calories: meal.calories || 400,
         protein: meal.protein || 25,
-        carbs: totalCarbs,
+        carbs: totalCarbs ?? 0,
         starchyCarbs: starchyCarbs,
         fibrousCarbs: fibrousCarbs,
         fat: meal.fat || 12,
@@ -757,7 +815,7 @@ Return ONLY a single JSON object (not an array) with this exact structure:
           ingredients: meal.ingredients,
           macros: { carbs: meal.carbs, fiber: undefined as number | undefined },
         };
-        const result = validateDiabeticMeal(mealForValidation, { glucoseState: diabeticGlucoseState });
+        const result = validateDiabeticMeal(mealForValidation, { glucoseState: diabeticGlucoseState ?? undefined });
 
         if (result.isValid) {
           validatedMeals.push(meal);
@@ -824,7 +882,7 @@ Return ONLY a single JSON object (not an array):
               ingredients: Array.isArray(retryMeal.ingredients) ? retryMeal.ingredients : [],
               macros: { carbs: retryCarbTotal },
             };
-            const retryResult = validateDiabeticMeal(retryForValidation, { glucoseState: diabeticGlucoseState });
+            const retryResult = validateDiabeticMeal(retryForValidation, { glucoseState: diabeticGlucoseState ?? undefined });
 
             if (retryResult.isValid) {
               const rawHowToOrder = retryMeal.howToOrder;

@@ -3,7 +3,7 @@ import type { Config } from "jest";
 const config: Config = {
   preset: "ts-jest",
   testEnvironment: "node",
-  roots: ["<rootDir>/server/tests"],
+  roots: ["<rootDir>/server/tests", "<rootDir>/client/src/lib/__tests__"],
   moduleFileExtensions: ["ts", "tsx", "js", "json"],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/client/src/$1",
@@ -21,11 +21,16 @@ const config: Config = {
   transform: {
     "^.+\\.tsx?$": ["ts-jest", {
       useESM: true,
+      // Disable type-checking during test runs — ts-jest transpiles only.
+      // This avoids false-positive failures caused by @types version mismatches
+      // in the manually-restored environment (tar CVE block prevents npm ci).
+      diagnostics: false,
       tsconfig: {
-        types: ["jest", "node"]
+        types: ["jest", "node"],
+        jsx: "react-jsx"
       }
     }]
   },
-  extensionsToTreatAsEsm: [".ts"]
+  extensionsToTreatAsEsm: [".ts", ".tsx"]
 };
 export default config;

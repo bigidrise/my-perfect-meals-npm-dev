@@ -90,13 +90,20 @@ export default function ProBoardViewer() {
     fetchBoard();
   }, [fetchBoard]);
 
+  /**
+   * Remove an item from the Pro board.
+   *
+   * Does NOT pass releaseLog so the server preserves any associated macro_log.
+   * releaseLog: true is reserved for an explicit replacement/undo flow where the
+   * user deliberately wants to un-log the meal and re-plan — not a plain trash action.
+   */
   const deleteItem = async (itemId: string) => {
     if (!board) return;
     try {
       const headers = getAuthHeaders();
       const res = await fetch(apiUrl(`/api/pro/board/clients/${clientId}/boards/${board.id}/items/${itemId}`), {
         method: "DELETE",
-        headers: { ...headers },
+        headers: { "Content-Type": "application/json", ...headers },
       });
       if (!res.ok) throw new Error("Failed to delete");
       setItems((prev) => prev.filter((i) => i.id !== itemId));
