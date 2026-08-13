@@ -285,3 +285,94 @@ describe("FibrousCarbs smoke — fibrousCarbs_g is non-zero from a fibrous-carbs
     expect(result).toBeUndefined();
   });
 });
+
+// ── Fat smoke ─────────────────────────────────────────────────────────────────
+//
+// fat_g has the same field-name-mismatch risk as starchyCarbs_g and
+// fibrousCarbs_g: if fatTarget were ever renamed on the server-side
+// prescription (or mistyped in the adapter), fat_g would silently become
+// undefined — no TypeScript error, no visible crash, just every builder
+// displaying zero fat.
+//
+// These tests specifically exercise a fat-only prescription shape
+// (starchyCarbsTarget and fibrousCarbsTarget absent) to guarantee the
+// fatTarget → fat_g mapping survives a rename.
+
+describe("Fat smoke — fat_g is non-zero when only fatTarget is present", () => {
+  it("fat_g is truthy (non-zero, non-undefined) when fatTarget is set alongside protein and carbs only", () => {
+    const result = prescriptionToTargetsOverride({
+      proteinTarget: 160,
+      carbsTarget: 180,
+      fatTarget: 65,
+      // starchyCarbsTarget and fibrousCarbsTarget intentionally absent
+    });
+    expect(result).toBeDefined();
+    expect(result!.fat_g).toBeDefined();
+    expect(result!.fat_g).toBeGreaterThan(0);
+  });
+
+  it("fat_g carries the exact value from fatTarget", () => {
+    const result = prescriptionToTargetsOverride({
+      proteinTarget: 160,
+      carbsTarget: 180,
+      fatTarget: 55,
+    });
+    expect(result!.fat_g).toBe(55);
+  });
+
+  it("fat_g is truthy for a clinical prescription with only fatTarget (no starchy/fibrous carbs)", () => {
+    const result = prescriptionToTargetsOverride({
+      proteinTarget: 140,
+      carbsTarget: 160,
+      fatTarget: 80,
+      source: "clinical",
+    });
+    expect(result!.fat_g).toBe(80);
+    expect(result!.starchyCarbs_g).toBeUndefined();
+    expect(result!.fibrousCarbs_g).toBeUndefined();
+  });
+
+  it("fat_g is truthy for a performance prescription with only fatTarget", () => {
+    const result = prescriptionToTargetsOverride({
+      proteinTarget: 200,
+      carbsTarget: 250,
+      fatTarget: 90,
+      source: "performance",
+    });
+    expect(result!.fat_g).toBe(90);
+  });
+
+  it("fat_g is undefined (not 0) when fatTarget is absent — never silently zeroed", () => {
+    // Build a prescription-like object without fatTarget to confirm the adapter
+    // does not substitute 0 when the field is missing.
+    const result = prescriptionToTargetsOverride(
+      // Cast needed because fatTarget is required in PrescriptionLike; this
+      // simulates a future rename where the field disappears at runtime.
+      { proteinTarget: 180, carbsTarget: 200 } as Parameters<
+        typeof prescriptionToTargetsOverride
+      >[0],
+    );
+    // If fatTarget is absent, fat_g must be undefined — not 0 — so callers
+    // can distinguish "target not set" from "target is zero".
+    if (result !== undefined) {
+      expect(result.fat_g).toBeUndefined();
+    }
+    // If the zero-value guard fires (both protein and carbs must be > 0 so
+    // this branch won't fire here), result could be undefined — that's fine too.
+  });
+
+  it("fat_g is undefined when prescription is null (baseline fallback path)", () => {
+    const result = prescriptionToTargetsOverride(null);
+    expect(result).toBeUndefined();
+    // fat_g is not accessible — the whole result is undefined, not an object
+    // with fat_g: 0.
+  });
+
+  it("fat_g is undefined when source is fallback (server could not resolve)", () => {
+    const result = prescriptionToTargetsOverride(
+      validPrescription({ fatTarget: 70, source: "fallback" }),
+    );
+    // The whole override is undefined — caller must use baseline
+    expect(result).toBeUndefined();
+  });
+});
