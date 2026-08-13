@@ -29,6 +29,7 @@ const router = Router();
 router.get("/:dateISO", requireAuth, async (req, res) => {
   try {
     const authUser = (req as AuthenticatedRequest).authUser;
+
     const authUserId = String(authUser.id);
     const requestedClientId = (req.query.clientId as string) ?? null;
 
