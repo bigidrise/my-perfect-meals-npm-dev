@@ -288,7 +288,7 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
     });
 
     const raw = completion.choices[0]?.message?.content ?? "{}";
-    const result = await finalizeMealCard({ recommendation, userId: userId! });
+    let result: any;
     try {
       result = JSON.parse(raw);
     } catch {
@@ -342,7 +342,7 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
     if (groceryGlp1Targets) {
       const t = groceryGlp1Targets;
       const mac = result.macros ?? {};
-              const fat      = toN(nut.fat ?? nut.total_fat ?? nut.fatGrams);
+      const fat      = Number(mac.fat);
       const cal = Number(mac.calories);
       const prot = Number(mac.protein);
       const fatViolation = Number.isFinite(fat) && fat > t.maximumToleratedFatGrams;
@@ -542,7 +542,7 @@ router.post("/product-advisor", async (req, res) => {
     }
 
     const engine = getProductAdvisorEngine();
-    const result = await finalizeMealCard({ recommendation, userId: userId! });
+    const result = await engine.buildCartRecommendations(userId!, rawIngredients as string[], rawStore);
 
     return res.json(result);
   } catch (err: any) {
