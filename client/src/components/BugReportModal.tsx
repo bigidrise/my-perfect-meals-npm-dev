@@ -75,7 +75,19 @@ export function BugReportModal({ open, onClose }: Props) {
       setPhase("success");
     } catch (err: any) {
       console.error("[BugReportModal] submission failed:", err);
-      setServerError("Something went wrong sending your report. Please try again.");
+
+      // Detect session expiry (401) and show a targeted message.
+      // The report text is intentionally preserved in the modal so the user
+      // can log back in and re-submit without retyping.
+      const is401 =
+        err instanceof Error &&
+        (err.message.startsWith("401:") || err.message === "401");
+
+      setServerError(
+        is401
+          ? "Your session expired before the report could be sent. Your text is still here — please log back in and hit Send Report again."
+          : "Something went wrong sending your report. Please try again.",
+      );
       setPhase("error");
     }
   }
