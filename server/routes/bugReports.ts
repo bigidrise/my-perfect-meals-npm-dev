@@ -1,5 +1,5 @@
 /**
- * bugReports.ts — POST /api/bug-reports
+ * bugReports.ts — POST /api/bug-reports | GET /api/bug-reports | PATCH /api/bug-reports/:id/status
  *
  * Authenticated endpoint. Inserts a record into bug_reports, then sends a
  * developer-actionable diagnostic email to support@myperfectmeals.ai.
@@ -10,13 +10,16 @@
  *   if Resend fails, we log the error and return 201 (report was stored).
  * - Diagnostics are sanitized further server-side before storage (strip any leaked keys).
  * - status defaults to 'new' for all new reports.
+ * - GET / and PATCH /:id/status are admin-only (requireAdmin middleware).
  */
 
 import express from "express";
 import { db } from "../db";
 import { bugReports } from "../../shared/schema";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
+import { requireAdmin } from "../middleware/requireAdmin";
 import { sendBugReportEmail } from "../services/bugReportEmail";
+import { eq } from "drizzle-orm";
 
 const router = express.Router();
 
@@ -38,6 +41,56 @@ function sanitizeDiagnostics(raw: unknown): object | null {
     return null;
   }
 }
+
+const VALID_STATUSES = ["new", "reviewing", "resolved"] as const;
+type BugReportStatus = typeof VALID_STATUSES[number];
+
+// ── GET /api/bug-reports — admin list (newest first) ─────────────────────────
+
+router.get("/", requireAuth, requireAdmin, async (_req, res) => {
+  try {
+    const reports = await db
+      .select()
+      .from(bugReports)
+      .orderBy(bugReports.createdAt);
+
+    // Return newest-first
+    res.json(reports.reverse());
+  } catch (err: any) {
+    console.error("[bugReports] GET list error:", err);
+    res.status(500).json({ error: "Failed to fetch bug reports" });
+  }
+});
+
+// ── PATCH /api/bug-reports/:id/status — admin status update ──────────────────
+
+router.patch("/:id/status", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body ?? {};
+
+    if (!status || !VALID_STATUSES.includes(status as BugReportStatus)) {
+      return res.status(400).json({
+        error: `status must be one of: ${VALID_STATUSES.join(", ")}`,
+      });
+    }
+
+    const [updated] = await db
+      .update(bugReports)
+      .set({ status: status as BugReportStatus })
+      .where(eq(bugReports.id, id))
+      .returning();
+
+    if (!updated) {
+      return res.status(404).json({ error: "Bug report not found" });
+    }
+
+    res.json({ id: updated.id, status: updated.status });
+  } catch (err: any) {
+    console.error("[bugReports] PATCH status error:", err);
+    res.status(500).json({ error: "Failed to update status" });
+  }
+});
 
 // ── POST /api/bug-reports ─────────────────────────────────────────────────────
 
