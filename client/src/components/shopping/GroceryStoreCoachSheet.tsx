@@ -25,7 +25,7 @@ import {
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { PillButton } from "@/components/ui/pill-button";
-import { post } from "@/lib/api";
+import { get, post } from "@/lib/api";
 import { useShoppingListStore } from "@/stores/shoppingListStore";
 import type { UniversalIngredient } from "@/stores/shoppingListStore";
 
@@ -260,10 +260,8 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   // ── Saved Groceries helpers ──────────────────────────────────────────────────
   const fetchSavedKeys = useCallback(async () => {
     try {
-      const res = await fetch("/api/saved-groceries", { credentials: "include" });
-      if (!res.ok) return;
-      const data = await res.json();
-      const keys = new Set<string>((data.items ?? []).map((i: any) => i.productKey as string));
+      const data = await get<{ items: Array<{ productKey: string }> }>("/api/saved-groceries");
+      const keys = new Set<string>((data.items ?? []).map((i) => i.productKey));
       setSavedProductKeys(keys);
     } catch {
       // Non-critical — bookmarks just won't pre-fill
@@ -284,25 +282,19 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     if (savedProductKeys.has(productKey) || savingKey === productKey) return;
     setSavingKey(productKey);
     try {
-      const res = await fetch("/api/saved-groceries", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          productName: ingredient,
+      await post("/api/saved-groceries", {
+        productName: ingredient,
+        brand: brand.brand,
+        category,
+        source: "grocery-coach",
+        productMeta: {
+          ingredient,
           brand: brand.brand,
-          category,
-          source: "grocery-coach",
-          productMeta: {
-            ingredient,
-            brand: brand.brand,
-            rank: brand.rank,
-            grade: brand.grade,
-            reason: brand.reason,
-          },
-        }),
+          rank: brand.rank,
+          grade: brand.grade,
+          reason: brand.reason,
+        },
       });
-      if (!res.ok) throw new Error();
       setSavedProductKeys((prev) => new Set(Array.from(prev).concat(productKey)));
     } catch {
       // Silently fail — user can tap again
@@ -438,23 +430,13 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       const remaining = result?.shoppingList
         .filter((s) => s.item !== item.item)
         .map((s) => s.item) ?? [];
-      const resp = await fetch("/api/grocery-coach/swap-ingredient", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          ingredientToReplace: item.item,
-          mealName: result?.meal?.name,
-          mealDescription: result?.meal?.description,
-          remainingIngredients: remaining,
-          ...(customRequest ? { userRequest: customRequest } : {}),
-        }),
+      const data = await post<SwapResult>("/api/grocery-coach/swap-ingredient", {
+        ingredientToReplace: item.item,
+        mealName: result?.meal?.name,
+        mealDescription: result?.meal?.description,
+        remainingIngredients: remaining,
+        ...(customRequest ? { userRequest: customRequest } : {}),
       });
-      if (!resp.ok) {
-        const errData = await resp.json().catch(() => ({}));
-        throw new Error((errData as any).error || "Swap unavailable");
-      }
-      const data: SwapResult = await resp.json();
       setSwapResult(data);
       setSwapSelected(data.coachSuggestion);
     } catch (err: any) {
