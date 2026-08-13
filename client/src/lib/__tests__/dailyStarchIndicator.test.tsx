@@ -259,58 +259,11 @@ describe('DailyStarchIndicator — compact variant prescription prop reactivity'
       />,
     );
 
-    const pill = container.querySelector('.text-xs');
-
-    const { queryByText, container } = render(
-      <DailyStarchIndicator
-        meals={[FIBER_MEAL]}
-        compact={true}
-        prescription={makePrescription(0, { isZeroStarchDay: true })}
-      />,
-    );
-
-    const pill = container.querySelector('.text-xs');
-    const { rerender, queryByText } = render(
-      <DailyStarchIndicator
-        meals={[FIBER_MEAL]}
-        prescription={makePrescription(0, { isZeroStarchDay: true })}
-      />,
-    );
-
-    // Panel must be present at the start.
-    expect(queryByText(/Rest Day — Zero Starch/)).not.toBeNull();
-
-    // Prescription reverts (e.g. user switches back to a training day).
-    rerender(
-      <DailyStarchIndicator
-        meals={[FIBER_MEAL]}
-        prescription={makePrescription(1, { isZeroStarchDay: false })}
-      />,
-    );
-
-    // The special callout panel must no longer be visible.
+    // Compact mode must NOT render the full Rest Day callout panel.
     expect(queryByText(/Rest Day — Zero Starch/)).toBeNull();
+
+    // The normal compact pill should still be present.
+    const pill = container.querySelector('.text-xs');
+    expect(pill).not.toBeNull();
   });
-
-  it('compact mode skips the Rest Day panel and shows the normal pill on a zero-starch day', () => {
-    const { queryByText, container } = render(
-      <DailyStarchIndicator
-        meals={[FIBER_MEAL]}
-        compact={true}
-        prescription={makePrescription(0, { isZeroStarchDay: true })}
-      />,
-    );
-
-    const pill = container.querySelector('.text-xs');
-
-    const { queryByText, container } = render(
-      <DailyStarchIndicator
-        meals={[FIBER_MEAL]}
-        compact={true}
-        prescription={makePrescription(0, { isZeroStarchDay: true })}
-      />,
-    );
-
-    const pill = container.querySelector('.text-xs');
-
-    const spans = pill!.querySelectorAll('span');
+});

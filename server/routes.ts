@@ -762,13 +762,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // (loadUserProtocolEnvelope → carbCycleContext → enforceBeforeGenerate) — no
       // direct input-string mutation needed here.
 
-      // For create-with-chef: always resolve against the authenticated user.
-      // Body userId is untrusted — a caller can set it to any string to load a
-      // different user's allergy profile, clinical protocol, and macro targets.
-      // effectiveUserId is used for ALL downstream safety, profile, and pipeline calls.
-      const effectiveUserId: string = (type === 'create-with-chef')
-        ? String((req as AuthenticatedRequest).authUser.id)
-        : (userId ?? "");
+      // authUserId is always the authenticated session — the physician when
+      // delegating, the regular user otherwise. It is the audit/actor principal.
+      const authUserId = String((req as AuthenticatedRequest).authUser.id);
+
+      // ── ProCare physician-for-client delegation (early auth) ─────────────────
+      // When a physician sends proClientId in the body, establish the workspace
+      // client BEFORE effectiveUserId is set so ALL downstream lookups (allergy
+      // enforcement, clinical protocol, profile, and budget) use the client's
+      // context — not the physician's. The physician remains the actor principal.
+      //
+      // Authorization order:
+      //   1. Org isolation (assertSameOrg inside verifyPhysicianClientAccess) —
+      //      cross-org access throws OrgIsolationError → 403 before any DB read.
+      //   2. Care-team relationship — active clientLink OR studio membership.
+      //   Unauthorized proClientId returns 403; missing proClientId is a no-op.
+      let delegatedClientId: string | undefined;
+      {
+        const { proClientId: bodyProClientId } = req.body as { proClientId?: string };
+        if (bodyProClientId && typeof bodyProClientId === "string") {
+          const { verifyPhysicianClientAccess } = await import("./services/procareAccessService");
+          const { handleOrgIsolationError } = await import("./lib/orgIsolation");
+          try {
+            const hasAccess = await verifyPhysicianClientAccess(authUserId, bodyProClientId);
+            if (!hasAccess) {
+              return res.status(403).json({
+                success: false,
+                error: "Not authorized to generate meals for this client.",
+                source: "access_denied",
+              });
+            }
+            delegatedClientId = bodyProClientId;
+          } catch (err) {
+            const handled = handleOrgIsolationError(err, res);
+            if (!handled) {
+              // Not an org-isolation error — fail closed rather than leaving the
+              // request unresolved (handleOrgIsolationError returns false and sends
+              // no response for unrecognized errors).
+              return res.status(503).json({
+                success: false,
+                error: "Authorization check failed. Please try again.",
+                source: "auth_error",
+              });
+            }
+            return;
+          }
+        }
+      }
+
+      // effectiveUserId: the workspace client when a physician delegates; the
+      // authenticated user for create-with-chef; body userId for all other builders.
+      // Controls allergy, protocol, profile, and budget — never the raw body userId.
+      const effectiveUserId: string = delegatedClientId
+        ?? ((type === 'create-with-chef') ? authUserId : (userId ?? ""));
 
       // 🚨 ENFORCEMENT GATEWAY: Pre-generation — Tier 1 (allergy) + Tier 2 (religious)
       // Uses effectiveUserId — never the untrusted body userId — so a tampered ID
@@ -884,12 +930,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // ── Server-side per-meal budget enforcement (create-with-chef only) ──────
-      // The budget is resolved for the AUTHENTICATED user (req.authUser.id).
-      // The body userId is deliberately NOT used — it is untrusted; a caller
-      // could supply any userId to generate against another user's budget.
-      // ProCare physician-for-client delegation is not permitted in the Chef
-      // generation path: physicians generate under their own nutrition targets.
+      // ── Server-side per-meal budget enforcement ───────────────────────────────
+      // Budget is resolved for the AUTHENTICATED user by default. The body
+      // userId is deliberately NOT used — it is untrusted.
+      //
+      // ProCare physician-for-client delegation:
+      //   When a physician sends proClientId in the body, the server verifies the
+      //   active care-team relationship (clientLink or studio membership) and — if
+      //   authorized — resolves the budget against the CLIENT's DailyNutritionState,
+      //   not the physician's. Unauthorized proClientId values return HTTP 403.
+      //   The proClientId field must come from a trusted UI context; it is still
+      //   validated server-side via verifyPhysicianClientAccess before use.
       //
       // Fail-closed contract: if resolution fails for any reason, this handler
       // returns HTTP 503 rather than honoring client-supplied remainingMacros.
@@ -898,16 +949,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // can be overridden without a TypeScript "cannot reassign const" error.
       let effectiveRemainingMacros: typeof remainingMacros = remainingMacros;
       let effectiveStarchContext: typeof starchContext = starchContext;
+      // Populated inside the budget-resolver try block; consulted by the
+      // post-gen clinical ceiling gate below.
+      let budgetGenerationContext: string = "standard";
 
-      // ── Server-side per-meal budget enforcement ────────────────────────────
-      // For create-with-chef: always run — fail-closed, also overrides remainingMacros.
-      // For all other types with a client-provided starchContext: run server resolution
-      // to replace client-supplied starch fields with authoritative values from
-      // macro_logs consumption. Non-fatal on failure for non-create-with-chef types
-      // (continues with client starchContext as fallback) — prevents gate regression.
-      const _shouldResolveBudget = type === 'create-with-chef' || starchContext != null;
-      if (_shouldResolveBudget) {
-        const authUserId = String((req as AuthenticatedRequest).authUser.id);
+      if (true) {
+        // delegatedClientId is set above when a physician has authorized access to a
+        // client. When set, budget resolves against the client's DailyNutritionState.
+        const budgetUserId = delegatedClientId ?? authUserId;
         // Prefer the date embedded in the starchContext (builder's active day);
         // fall back to today in UTC when it is absent.
         const budgetDateISO: string = (starchContext as any)?.dateISO
@@ -916,16 +965,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           const { resolveChefBudget } = await import("./services/chefBudgetService");
           const chefBudget = await resolveChefBudget(
-            authUserId,
+            budgetUserId,
             budgetDateISO,
             typeof generationContext === "string" ? generationContext : undefined,
           );
 
-          // Override client-supplied remainingMacros only for create-with-chef.
-          // Other builder types manage their own macro budgets independently.
-          if (type === 'create-with-chef') {
-            effectiveRemainingMacros = chefBudget.remainingMacros;
-          }
+          // Override client-supplied remainingMacros for ALL builder types.
+          // Clinical ceilings (diabetic 35g carb cap, GLP-1 fat ceiling) are
+          // computed in resolveChefBudget and must apply universally — not just
+          // for Create-with-Chef. Trusting client-supplied macros for direct
+          // builders would allow them to bypass these clinical constraints.
+          effectiveRemainingMacros = chefBudget.remainingMacros;
+
+          // Hoist generation context for post-gen clinical ceiling gate (below).
+          // Gating on generationContext (not clinicalNotes) ensures the gate fires
+          // even when remaining macros are already below the nominal ceiling and no
+          // clamp note was emitted.
+          budgetGenerationContext = chefBudget.generationContext;
 
           // Replace starch fields with server-authoritative values for ALL types.
           // This propagates partial-slot usage (e.g. one of two starch slots already
@@ -950,22 +1006,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             `starch=${chefBudget.starchAllowed} gramsPerMeal=${chefBudget.gramsPerRemainingStarchMeal ?? 'n/a'}`,
           );
         } catch (err) {
-          if (type === 'create-with-chef') {
-            // Fail-closed for create-with-chef: do NOT proceed with untrusted client macros.
-            console.error("[BudgetResolver] Resolution failed — blocking generation:", err);
-            return res.status(503).json({
-              success: false,
-              error: "Nutrition budget could not be resolved. Please try again.",
-              source: "budget_error",
-            });
-          }
-          // Non-create-with-chef: log warning and continue with client-provided starchContext.
-          // The post-generation gate will still fire using whichever starchContext was provided.
-          console.warn(
-            `[BudgetResolver] Non-blocking resolution failure for builder type "${type}" — ` +
-            `falling back to client starchContext:`,
-            (err as Error).message,
-          );
+          // Fail-closed for ALL builder types: starch-slot and clinical constraints
+          // cannot be enforced without a server-authoritative DailyNutritionState.
+          // Proceeding with untrusted client context would allow starchy meals to be
+          // generated despite exhausted slots — the exact bypass this block was added
+          // to prevent. No fallback path is safe here.
+          console.error("[BudgetResolver] Resolution failed — blocking generation:", err);
+          return res.status(503).json({
+            success: false,
+            error: "Nutrition budget could not be resolved. Please try again.",
+            source: "budget_error",
+          });
         }
       }
 
@@ -1029,6 +1080,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
       recordGeneration('/api/meals/generate', result.source as any, durationMs);
 
       console.log(`✅ Unified generation complete: source=${result.source}, success=${result.success}`);
+
+      // ── Post-gen clinical ceiling gate ────────────────────────────────────
+      // Validates actual generated meal macros against server-resolved clinical
+      // ceilings, covering every builder type (snack-creator, craving,
+      // fridge-rescue, premade, create-with-chef).
+      //
+      // Gate is driven by budgetGenerationContext (not clinicalNotes) so it
+      // fires even when the user's remaining macros are already below the nominal
+      // per-meal ceiling (e.g. 20 g carbs left for a diabetic user) and no clamp
+      // note was emitted. Null / non-finite macro values fail safely for clinical
+      // users: unknown nutrition cannot be cleared as safe.
+      if (result.success && effectiveRemainingMacros) {
+        const { validateClinicalMacros } = await import("./services/clinicalMacroGate");
+        const carbCeiling = effectiveRemainingMacros.carbs;
+        const fatCeiling  = effectiveRemainingMacros.fat;
+
+        const mealsToValidate: any[] = [
+          ...(result.meal  ? [result.meal]   : []),
+          ...(result.meals ?? []),
+        ];
+
+        for (const meal of mealsToValidate) {
+          const gateResult = validateClinicalMacros(
+            budgetGenerationContext,
+            carbCeiling,
+            fatCeiling,
+            meal?.carbs,
+            meal?.fat,
+          );
+
+          if (!gateResult.passed) {
+            console.error(
+              `[ClinicalGate] Rejected: reason=${gateResult.reason} ` +
+              `context=${budgetGenerationContext} type=${type} ` +
+              `carbCeiling=${carbCeiling} fatCeiling=${fatCeiling}`,
+            );
+            return res.status(503).json({
+              success: false,
+              error:   "Generated meal could not be verified against clinical nutrition limits. Please try again.",
+              source:  "clinical_ceiling_violation",
+            });
+          }
+        }
+      }
 
       // ── Compliance bundle: attach complianceSection + dietClassification ──
       // Every meal leaving the server MUST pass through buildMealComplianceBundle.

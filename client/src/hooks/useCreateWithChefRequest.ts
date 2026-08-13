@@ -96,7 +96,7 @@ interface UseCreateWithChefRequestResult {
   cancel: () => void;
 }
 
-export function useCreateWithChefRequest(userId?: string): UseCreateWithChefRequestResult {
+export function useCreateWithChefRequest(userId?: string, proClientId?: string): UseCreateWithChefRequestResult {
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -176,6 +176,7 @@ export function useCreateWithChefRequest(userId?: string): UseCreateWithChefRequ
           userDietOverride: userDietOverride === true,
           performanceSessionContext: performanceSessionContext || null,
           generationContext: generationContext || null,
+          proClientId: proClientId || undefined,
         }),
         signal: abortControllerRef.current.signal,
       });

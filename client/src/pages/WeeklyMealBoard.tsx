@@ -2013,6 +2013,7 @@ export default function WeeklyMealBoard() {
           starchContext={starchContext}
           diversityContext={diversityContext}
           dietType="general-nutrition"
+          proClientId={proClientId}
         />
 
         {/* Snack Creator Modal (Phase 2 - craving to healthy snack) */}

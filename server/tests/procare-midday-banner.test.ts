@@ -28,11 +28,13 @@
  */
 
 // ── db mock (call-count-aware) ─────────────────────────────────────────────────
-// resolveDailyNutritionState calls db.select() twice in the same Promise.all():
-//   call 0 → users table (user row)
-//   call 1 → daily_nutrition_prescriptions table (stored prescription row)
+// resolveDailyNutritionState reads the stored prescription source SEQUENTIALLY
+// before Promise.all, then reads the user row inside Promise.all:
+//   call 0 → daily_nutrition_prescriptions table (stored prescription source)
+//   call 1 → users table (user row)
 //
-// We track the call count so each select can return independent data.
+// This ordering eliminates the upsert race condition described in nutritionStateService.ts.
+// The mock must model this order exactly so tests reflect production behaviour.
 
 let selectCallCount = 0;
 let mockUserRow: Record<string, unknown> = {};
@@ -69,13 +71,13 @@ jest.mock("../db", () => ({
         where: () => chain,
         limit: () => {
           if (callIndex === 0) {
-            // users table → always return a user row
-            return Promise.resolve([mockUserRow]);
+            // First call: daily_nutrition_prescriptions → stored source row or empty
+            return Promise.resolve(
+              mockStoredPrescRow !== null ? [mockStoredPrescRow] : [],
+            );
           }
-          // daily_nutrition_prescriptions → return stored row or empty array
-          return Promise.resolve(
-            mockStoredPrescRow !== null ? [mockStoredPrescRow] : [],
-          );
+          // Subsequent calls: users table → always return the user row
+          return Promise.resolve([mockUserRow]);
         },
       };
       return chain;

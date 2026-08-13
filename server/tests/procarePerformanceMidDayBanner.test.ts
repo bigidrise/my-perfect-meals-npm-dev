@@ -27,18 +27,18 @@
  *
  * Mock strategy
  * ─────────────
- * resolveDailyNutritionState calls Promise.all with:
- *   [resolveDailyNutritionPrescription, db.select(users), getUserTimezone, db.select(storedRows)]
- *
- * db.select is called twice per invocation. A selectCallCount queue lets
- * the first call return [mockUserRow] and the second return [mockStoredRow].
+ * resolveDailyNutritionState reads the stored prescription source SEQUENTIALLY
+ * before Promise.all (to avoid the upsert race), then reads the user row inside
+ * Promise.all:
+ *   call 0 → daily_nutrition_prescriptions (stored source)
+ *   call 1 → users table (user row)
  *
  * db.execute is called twice per invocation (consumed + planned aggregates).
  * An executeQueue drives the consumed row; planned always returns zeros.
  */
 
 // ── db.select queue ────────────────────────────────────────────────────────────
-// Call 0 → user row, Call 1 → stored prescription row.
+// Call 0 → stored prescription row, Call 1 → user row.
 let selectCallCount = 0;
 let mockUserRow:   Record<string, unknown> = {};
 let mockStoredRow: Record<string, unknown> | null = null; // null → no stored row
@@ -80,14 +80,16 @@ jest.mock("../db", () => ({
         where: () => chain,
         limit: () => {
           if (callIndex === 0) {
-            // First select: users table → user row
-            return Promise.resolve([mockUserRow]);
+            // First call: dailyNutritionPrescriptions → stored source row
+            return Promise.resolve(mockStoredRow ? [mockStoredRow] : []);
           }
-          // Second select: dailyNutritionPrescriptions → stored source row
-          return Promise.resolve(mockStoredRow ? [mockStoredRow] : []);
+          // Subsequent calls: users table → user row
+          return Promise.resolve([mockUserRow]);
         },
         then:  (res: any, rej: any) => {
-          const val = callIndex === 0 ? [mockUserRow] : (mockStoredRow ? [mockStoredRow] : []);
+          const val = callIndex === 0
+            ? (mockStoredRow ? [mockStoredRow] : [])
+            : [mockUserRow];
           return Promise.resolve(val).then(res, rej);
         },
         catch: (rej: any) => Promise.resolve([]).catch(rej),

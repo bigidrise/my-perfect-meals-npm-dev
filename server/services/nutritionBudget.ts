@@ -33,6 +33,13 @@ export interface MealBudget {
   generationContext: GenerationContext;
   /** How many more meals are expected after this one */
   mealsLeft: number;
+  /**
+   * Audit trail of clinical ceiling rules applied to this budget.
+   * Examples: "diabetic_carb_ceiling_applied_35g", "glp1_per_meal_fat_ceiling_applied",
+   * "starch_slots_exhausted_rerouted_to_fibrous".
+   * Empty array when no clinical adjustments were made.
+   */
+  clinicalNotes: string[];
 }
 
 /**
@@ -53,31 +60,60 @@ export function computeNextMealBudget(
 ): MealBudget {
   const divisor = Math.max(1, mealsLeft);
 
-  const { remaining, activeConstraints, mealPlanConfig } = state;
+  const { remaining, activeConstraints, mealPlanConfig, prescription } = state;
+
+  const clinicalNotes: string[] = [];
 
   const starchSlotAvailable = remaining.starchMealsRemaining > 0;
+
+  if (!starchSlotAvailable) {
+    clinicalNotes.push("starch_slots_exhausted_rerouted_to_fibrous");
+  }
 
   // When starch budget is exhausted the generator must not produce starchy carbs.
   const starchyCarbsTarget = starchSlotAvailable
     ? Math.max(0, Math.round(remaining.starchyCarbs / divisor))
     : 0;
 
-  const carbsTarget = Math.max(0, Math.round(remaining.carbs / divisor));
+  let carbsTarget = Math.max(0, Math.round(remaining.carbs / divisor));
   // fibrousCarbsTarget picks up any carbs that starchy budget can't use
   const fibrousCarbsTarget = starchSlotAvailable
     ? Math.max(0, Math.round(remaining.fibrousCarbs / divisor))
     : Math.max(0, carbsTarget); // all remaining carbs become fibrous
 
+  let fatTarget = Math.max(0, Math.round(remaining.fat / divisor));
+
+  // ── Clinical ceilings ─────────────────────────────────────────────────────
+  // Diabetic: hard cap of 35 g carbs per meal to prevent glycaemic spikes.
+  if (activeConstraints.generationContext === "diabetic" && carbsTarget > 35) {
+    carbsTarget = 35;
+    clinicalNotes.push("diabetic_carb_ceiling_applied_35g");
+  }
+
+  // GLP-1: per-meal fat ceiling = prescription daily fatTarget ÷ mealsPerDay.
+  // Prevents excess fat from triggering GI side-effects common with GLP-1 meds.
+  if (activeConstraints.generationContext === "glp1") {
+    const glp1FatCeiling = Math.max(
+      0,
+      Math.round(prescription.fatTarget / Math.max(1, mealPlanConfig.mealsPerDay)),
+    );
+    if (fatTarget > glp1FatCeiling) {
+      fatTarget = glp1FatCeiling;
+      clinicalNotes.push("glp1_per_meal_fat_ceiling_applied");
+    }
+  }
+
   return {
     caloriesTarget: Math.max(0, Math.round(remaining.calories / divisor)),
     proteinTarget: Math.max(0, Math.round(remaining.protein / divisor)),
     carbsTarget,
-    fatTarget: Math.max(0, Math.round(remaining.fat / divisor)),
+    fatTarget,
     starchyCarbsTarget,
     fibrousCarbsTarget,
     starchSlotAvailable,
     generationContext: activeConstraints.generationContext,
     mealsLeft: divisor,
+    clinicalNotes,
   };
 }
 

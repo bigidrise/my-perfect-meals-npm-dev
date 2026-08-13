@@ -1654,6 +1654,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
           remainingMacros={remainingMacrosForChef}
           builderMode="hybrid"
           generationContext={generationContext}
+          proClientId={proClientId}
         />
 
         {/* Snack Creator Modal (Phase 2 - craving to healthy snack) - with STRICT performance guardrails */}

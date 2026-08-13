@@ -26,6 +26,7 @@
 // executeQueue holds the rows arrays for each call in order.
 // Use resetExecuteQueue() before each test to start fresh.
 
+// ── db.execute queue ───────────────────────────────────────────────────────────
 let executeQueue: Array<Record<string, unknown>> = [];
 let executeCallCount = 0;
 
@@ -35,11 +36,9 @@ function resetExecuteQueue(
 ) {
   executeQueue = [consumedRow, plannedRow];
   executeCallCount = 0;
-  // Reset the select-call counter so the next service invocation always routes
-  // callIndex=0 to the user row, even when the same test calls the service twice.
+  // Reset the select-call counter and queue so each test starts fresh.
   selectCallCount = 0;
-  // Reset stored-prescription stub; override per-test to exercise source-change detection.
-  mockStoredPrescriptionRows = [];
+  selectQueue = [];
 }
 
 function zeroPlanRow(): Record<string, unknown> {
@@ -54,34 +53,52 @@ function zeroPlanRow(): Record<string, unknown> {
   };
 }
 
-// ── db.select call counter + stored-prescription stub ─────────────────────────
-// resolveDailyNutritionState calls db.select twice per invocation (inside
-// Promise.all, so the calls are synchronously ordered):
-//   1st call → users table                   → always returns [mockUserRow]
-//   2nd call → dailyNutritionPrescriptions   → returns mockStoredPrescriptionRows
+// ── db.select queue ────────────────────────────────────────────────────────────
+// resolveDailyNutritionState calls db.select TWICE per invocation (sequential):
+//   1st call → stored prescription source (dailyNutritionPrescriptions)
+//   2nd call → user row (users table, inside Promise.all)
 //
-// Default: mockStoredPrescriptionRows = [] (no prior snapshot = no detection).
-// Override per-test to exercise mid-day source-change detection.
-// selectCallCount is reset in resetExecuteQueue() so tests that call the
-// service more than once continue to route correctly.
+// selectQueue[0] = rows for the 1st select (stored source)
+// selectQueue[1+] fallback to [mockUserRow] for the user select
+//
+// Tests that need to exercise mid-day change detection must call
+// resetSelectQueue(storedSourceRow) to seed the stored-source result.
+// Tests that don't call resetSelectQueue get [mockUserRow] for every select
+// (backward-compatible with the existing tests).
 
 let selectCallCount = 0;
-// Override in tests that need a stored prescription snapshot for detection tests.
-let mockStoredPrescriptionRows: Record<string, unknown>[] = [];
+let selectQueue: Array<Record<string, unknown>[]> = [];
+
+/**
+ * Seed the stored-source select queue for a single invocation.
+ * @param storedSourceRow  Row from dailyNutritionPrescriptions; pass null for
+ *                         "no prior stored prescription" (first-time resolution).
+ */
+function resetSelectQueue(storedSourceRow: Record<string, unknown> | null = null) {
+  selectCallCount = 0;
+  // slot 0: stored source (empty array = no row found)
+  // subsequent calls fall back to [mockUserRow] via the mock
+  selectQueue = [storedSourceRow ? [storedSourceRow] : []];
+}
+
 
 jest.mock("../db", () => ({
   db: {
     select: jest.fn(() => {
-      // Capture call index synchronously at chain-creation time.
-      const callIndex = selectCallCount++;
+      // Capture the call index at select() time, not at limit() time.
+      const callIdx = selectCallCount++;
+      const getResult = () => {
+        if (callIdx < selectQueue.length) return selectQueue[callIdx];
+        // Fallback for calls beyond the queue: return the current mockUserRow.
+        // This keeps all pre-existing tests working without calling resetSelectQueue.
+        return [mockUserRow];
+      };
       const chain: any = {
         from:  () => chain,
         where: () => chain,
-        limit: () =>
-          Promise.resolve(callIndex === 0 ? [mockUserRow] : mockStoredPrescriptionRows),
-        then:  (res: any, rej: any) =>
-          Promise.resolve(callIndex === 0 ? [mockUserRow] : mockStoredPrescriptionRows).then(res, rej),
-        catch: (rej: any) => Promise.resolve([]).catch(rej),
+        limit: () => Promise.resolve(getResult()),
+        then:  (res: any, rej: any) => Promise.resolve(getResult()).then(res, rej),
+        catch: (rej: any) => Promise.resolve(getResult()).catch(rej),
       };
       return chain;
     }),
@@ -111,7 +128,7 @@ jest.mock("../../shared/schema", () => ({
 
 jest.mock("drizzle-orm", () => ({
   eq:  jest.fn(() => "eq-stub"),
-  and: jest.fn((...args: unknown[]) => ({ and: args })),
+  and: jest.fn((..._args: unknown[]) => "and-stub"),
   sql: Object.assign(
     (strings: TemplateStringsArray, ...vals: unknown[]) => ({
       sql: strings.join("?"),
@@ -140,6 +157,14 @@ jest.mock("../db/schema/dailyNutritionPrescriptions", () => ({
 
 // ── NOW import the module under test (after all mocks are registered) ─────────
 import { resolveDailyNutritionState } from "../services/nutritionStateService";
+
+// Reset both queues before every test to prevent cross-test leakage.
+beforeEach(() => {
+  selectCallCount = 0;
+  selectQueue = [];
+  executeCallCount = 0;
+  executeQueue = [];
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS
@@ -473,43 +498,44 @@ describe("resolveDailyNutritionState — starchyCarbs and starchMealsRemaining m
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SCENARIO 6 — prescriptionChangedMidDay source-change detection
-// Verifies the detection uses the correct persisted source vocabulary so that
-// unchanged-source users (including clinical/GLP-1) never see a false-positive
-// banner, while real source transitions are correctly flagged.
+// SCENARIO 6 — Mid-day prescription-source change detection
+//
+// The service reads the stored prescription source BEFORE calling the resolver
+// (which fire-and-forgets a new upsert), then compares stored vs resolved.
+// Uses resetSelectQueue() to correctly seed the stored-source result for the
+// first db.select call (sequential, before Promise.all).
+//
+// These tests verify:
+//   (a) ProCare, clinical, and performance transitions are correctly detected.
+//   (b) Steady-state (source unchanged) does NOT falsely report a change.
+//   (c) Clinical source never produces a false positive after being established.
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe("resolveDailyNutritionState — prescriptionChangedMidDay source-change detection", () => {
+describe("resolveDailyNutritionState — mid-day prescription source transitions", () => {
   beforeEach(() => {
     mockUserRow = makeUserRow();
-    // mockStoredPrescriptionRows defaults to [] (no stored snapshot) via
-    // resetExecuteQueue(); individual tests override it where needed.
+    resetExecuteQueue(makeConsumedRow({ meal_count: 1 })); // at least 1 meal logged
   });
 
-  test("GLP-1 user does not see false-positive banner when clinical prescription is unchanged", async () => {
-    // prescriptionResolver now persists source="clinical" for GLP-1.
-    // storedSourceToResolverSource maps "clinical" → "clinical".
-    // So stored="clinical" vs current="clinical" → no change → banner MUST NOT fire.
-    mockPrescription = makePrescription({ source: "clinical" });
-    // resetExecuteQueue must come first — it resets mockStoredPrescriptionRows to [].
-    resetExecuteQueue(makeConsumedRow({ meal_count: 2, calories: 600 }));
-    mockStoredPrescriptionRows = [{ source: "clinical" }];
+  test("ProCare override detected: stored=procare → current=user_default", async () => {
+    // The resolver NEVER returns "professional_override" — ProCare writes targets
+    // via a separate path and stamps source="procare" in the DB.
+    // Detection fires when storedSourceToResolverSource("procare") = "professional_override"
+    // and the resolver computes "user_default" for the same user.
+    // changeReasonLabel("professional_override", "user_default") → "ProCare override".
+    mockPrescription = makePrescription({ source: "user_default" });
+    resetSelectQueue({ source: "procare" });
 
     const state = await resolveDailyNutritionState(USER_ID, DATE);
 
-    expect(state.prescriptionChangedMidDay).toBeUndefined();
+    expect(state.prescriptionChangedMidDay).toBe(true);
+    expect(state.prescriptionChangeReason).toBe("ProCare override");
   });
 
-  test("prescriptionChangedMidDay fires when performance overlay activates mid-day", async () => {
-    // User had a standard (macro_calculator) prescription this morning and
-    // activates Performance Mode after logging a meal.
+
+  test("Performance transition detected: stored=macro_calculator → current=performance", async () => {
     mockPrescription = makePrescription({ source: "performance" });
-    mockStoredPrescriptionRows = [{ source: "performance_overlay" }];
-    // Reset after setting the stored rows so selectCallCount is 0 but
-    // mockStoredPrescriptionRows is NOT cleared (resetExecuteQueue clears it, so
-    // we set it after the reset).
-    resetExecuteQueue(makeConsumedRow({ meal_count: 1 }));
-    mockStoredPrescriptionRows = [{ source: "macro_calculator" }];
+    resetSelectQueue({ source: "macro_calculator" });
 
     const state = await resolveDailyNutritionState(USER_ID, DATE);
 
@@ -517,26 +543,71 @@ describe("resolveDailyNutritionState — prescriptionChangedMidDay source-change
     expect(state.prescriptionChangeReason).toBe("Performance Mode");
   });
 
-  test("prescriptionChangedMidDay is absent when no stored snapshot exists yet", async () => {
-    // First resolution of the day — nothing in dailyNutritionPrescriptions yet.
-    mockPrescription = makePrescription({ source: "user_default" });
-    resetExecuteQueue(makeConsumedRow({ meal_count: 1 }));
-    // mockStoredPrescriptionRows already reset to [] by resetExecuteQueue
+  test("Clinical transition detected: stored=macro_calculator → current=clinical", async () => {
+    mockPrescription = makePrescription({ source: "clinical" });
+    resetSelectQueue({ source: "macro_calculator" });
+
+    const state = await resolveDailyNutritionState(USER_ID, DATE);
+
+    expect(state.prescriptionChangedMidDay).toBe(true);
+    expect(state.prescriptionChangeReason).toBe("Clinical plan");
+  });
+
+  test("ProCare steady-state: stored=procare → current=user_default (no false positive when ProCare is active)", async () => {
+    // storedSourceToResolverSource("procare") = "professional_override"
+    // currentSource = "professional_override" (same) → no change → banner must NOT fire.
+    mockPrescription = makePrescription({ source: "professional_override" });
+    resetSelectQueue({ source: "procare" });
 
     const state = await resolveDailyNutritionState(USER_ID, DATE);
 
     expect(state.prescriptionChangedMidDay).toBeUndefined();
   });
 
-  test("prescriptionChangedMidDay is absent when no meals logged even if source changed", async () => {
-    // Source changed but user hasn't logged anything yet — nothing to flag.
+
+  test("Clinical steady-state: stored=clinical → current=clinical (no false positive)", async () => {
     mockPrescription = makePrescription({ source: "clinical" });
+    resetSelectQueue({ source: "clinical" });
+
+    const state = await resolveDailyNutritionState(USER_ID, DATE);
+
+    expect(state.prescriptionChangedMidDay).toBeUndefined();
+  });
+
+  test("Performance steady-state: stored=performance_overlay → current=performance (no false positive)", async () => {
+    mockPrescription = makePrescription({ source: "performance" });
+    resetSelectQueue({ source: "performance_overlay" });
+
+    const state = await resolveDailyNutritionState(USER_ID, DATE);
+
+    expect(state.prescriptionChangedMidDay).toBeUndefined();
+  });
+
+  test("Standard steady-state: stored=macro_calculator → current=user_default (no false positive)", async () => {
+    mockPrescription = makePrescription({ source: "user_default" });
+    resetSelectQueue({ source: "macro_calculator" });
+
+    const state = await resolveDailyNutritionState(USER_ID, DATE);
+
+    expect(state.prescriptionChangedMidDay).toBeUndefined();
+  });
+
+  test("No stored row → prescriptionChangedMidDay is undefined (first resolution of the day)", async () => {
+    mockPrescription = makePrescription({ source: "user_default" });
+    resetSelectQueue(null);
+
+    const state = await resolveDailyNutritionState(USER_ID, DATE);
+
+    expect(state.prescriptionChangedMidDay).toBeUndefined();
+  });
+
+  test("No meals logged → prescriptionChangedMidDay is undefined even if source differs", async () => {
     resetExecuteQueue(makeConsumedRow({ meal_count: 0 }));
-    mockStoredPrescriptionRows = [{ source: "macro_calculator" }];
+    mockPrescription = makePrescription({ source: "professional_override" });
+    resetSelectQueue({ source: "macro_calculator" });
 
     const state = await resolveDailyNutritionState(USER_ID, DATE);
 
     expect(state.prescriptionChangedMidDay).toBeUndefined();
   });
 });
-
