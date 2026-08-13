@@ -1,9 +1,10 @@
 import { Router } from "express";
 import { db } from "../db";
 import { mealBoards, mealBoardItems } from "../db/schema/mealBoards";
+import { macroLogs } from "../../shared/schema";
 import { careTeamMember } from "../db/schema/careTeam";
 import { clientNotes, studios } from "../db/schema/studio";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import { requireBoardAccess, BoardAccessRequest } from "../middleware/requireBoardAccess";
 import { logActivityFireAndForget } from "../services/activityLog";
@@ -152,6 +153,7 @@ router.delete(
 
       const { boardId, itemId } = req.params;
 
+      // 1. Load board and verify it belongs to the expected client.
       const [board] = await db
         .select()
         .from(mealBoards)
@@ -162,16 +164,46 @@ router.delete(
         return res.status(404).json({ error: "Board not found or access denied" });
       }
 
-      await db.delete(mealBoardItems).where(eq(mealBoardItems.id, itemId));
+      // 2. Verify the item belongs to this board (prevents cross-board deletion).
+      const [item] = await db
+        .select()
+        .from(mealBoardItems)
+        .where(and(eq(mealBoardItems.id, itemId), eq(mealBoardItems.boardId, boardId)))
+        .limit(1);
 
-      await db
-        .update(mealBoards)
-        .set({
-          lastUpdatedByUserId: authUser.id,
-          lastUpdatedByRole: access.role,
-          updatedAt: new Date(),
-        })
-        .where(eq(mealBoards.id, boardId));
+      if (!item) {
+        return res.status(404).json({ error: "Board item not found" });
+      }
+
+      // 3. Atomically delete the board item (and optionally its macro_log).
+      //
+      //    releaseLog: true  — "replace" intent: the caller is swapping this meal.
+      //    The associated log is deleted so the client's starch slot is returned
+      //    to the remaining budget before the replacement meal is generated.
+      //    Use this only when the product flow explicitly means "undo and re-plan".
+      //
+      //    releaseLog: false (default) — remove the board item only; preserve the
+      //    committed macro_log so the client's nutrition history is not erased.
+      const releaseLog = req.body?.releaseLog === true;
+
+      await db.transaction(async (tx) => {
+        if (releaseLog) {
+          await tx.delete(macroLogs).where(
+            sql`${macroLogs.boardItemReference} = ${itemId}`
+          );
+        }
+        await tx.delete(mealBoardItems).where(
+          and(eq(mealBoardItems.id, itemId), eq(mealBoardItems.boardId, boardId))
+        );
+        await tx
+          .update(mealBoards)
+          .set({
+            lastUpdatedByUserId: authUser.id,
+            lastUpdatedByRole: access.role,
+            updatedAt: new Date(),
+          })
+          .where(eq(mealBoards.id, boardId));
+      });
 
       res.json({ ok: true });
     } catch (error) {

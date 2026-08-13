@@ -49,11 +49,23 @@ export function useAddBoardItem() {
   });
 }
 
+/**
+ * Delete a board item.
+ *
+ * @param releaseLog  When true (replace-intent), the server also deletes any
+ *   associated macro_log so the starch slot consumed by that log is returned
+ *   to the remaining budget before the replacement meal is generated.
+ *   When false/omitted (ordinary removal), the committed macro_log is
+ *   preserved so the user's nutrition history is not erased.
+ */
 export function useDeleteBoardItem(boardId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (itemId: string) => 
-      del(`/api/boards/${boardId}/items/${itemId}`),
+    mutationFn: ({ itemId, releaseLog = false }: { itemId: string; releaseLog?: boolean }) =>
+      del(
+        `/api/boards/${boardId}/items/${itemId}`,
+        releaseLog ? { releaseLog: true } : undefined,
+      ),
     onSuccess: () => qc.invalidateQueries(),
   });
 }
