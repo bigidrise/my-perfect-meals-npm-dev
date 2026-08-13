@@ -8,7 +8,6 @@ import { resolveGLP1GlobalContext, buildGLP1RecommendationBlock } from "../servi
 import { getProductAdvisorEngine } from "../services/productAdvisor";
 import { finalizeMealCard } from "../services/mealCardFinalizer";
 import { filterSavedGroceriesForCompliance, buildSavedGroceriesPromptBlock } from "../services/savedGroceryCompliance";
-import { getMealRefinementEngine } from "../services/mealRefinementEngine";
 
 const router = express.Router();
 
@@ -48,18 +47,11 @@ router.post("/recommend", async (req, res) => {
 
     if (userId) {
       // Use the same full 5-tier constraint package every other builder uses.
-      // This covers: dietary identity, allergies (hard-stop), medical hard limits,
-      // condition guidance blocks (GLP-1, oncology, pregnancy, thyroid, etc.),
-      // palate preferences, sweetener rules, procedural/cross-contamination rules,
-      // and performance nutrition overlay.
       groceryEnvelope = await loadUserProtocolEnvelope(userId).catch(() => null) ?? buildGuestEnvelope();
       protocolContext = enforceBeforeGenerate(groceryEnvelope, { generatorName: "grocery_coach" }).combined;
 
-      // Load GLP-1 canonical context — covers all activation sources
-      // (selectedMealBuilder, medicalConditions, specialtyConditions, glp1_profile, and others)
+      // Load GLP-1 canonical context — fail closed
       const todayISO = new Date().toISOString().slice(0, 10);
-      // Fail closed: if GLP-1 resolver fails, return 503 rather than serving
-      // a recommendation without the clinical overlay.
       const glp1Ctx = await resolveGLP1GlobalContext(userId, todayISO).catch(() => null);
       if (glp1Ctx === null) {
         return res.status(503).json({ error: "Clinical guidance temporarily unavailable. Please try again.", retryable: true });
@@ -90,10 +82,7 @@ router.post("/recommend", async (req, res) => {
         macroContext = `Daily macro targets: ${parts.join(", ")}`;
       }
 
-      // ── Saved Groceries — fetch and run server-side compliance filter ────────
-      // The LLM is never asked to evaluate clinical compliance. We do it here
-      // using the already-loaded protocol envelope and GLP-1 targets, then only
-      // inject the items that pass into the system prompt as vetted favorites.
+      // ── Saved Groceries ───────────────────────────────────────────────────────
       try {
         const sgRows = await db
           .select({
@@ -110,21 +99,12 @@ router.post("/recommend", async (req, res) => {
           .where(eq(userSavedGroceryItems.userId, userId));
 
         if (sgRows.length > 0) {
-          // Derive a per-meal carb ceiling for diabetic users from the user's
-          // persisted daily carb target (already fetched above). Divide by 3
-          // as a conservative meal-count estimate. Falls back to 45g — the
-          // standard clinical guidance for a 3-meal diabetic day — when no
-          // daily carb target is on file.
           let diabeticCarbCeiling: number | null = null;
           if (groceryEnvelope.hasDiabetes) {
             const dailyCarbs = userRow?.dailyCarbsTarget;
-            diabeticCarbCeiling = dailyCarbs && dailyCarbs > 0
-              ? Math.round(dailyCarbs / 3)
-              : 45;
+            diabeticCarbCeiling = dailyCarbs && dailyCarbs > 0 ? Math.round(dailyCarbs / 3) : 45;
           }
 
-          // Extract ingredients from productMeta (scanner saves extractedIngredients there)
-          // so allergen/avoidance matching can check actual ingredients, not just name/brand.
           const itemsWithIngredients = sgRows.map((row) => {
             const meta = row.productMeta as Record<string, unknown> | null;
             const ingredients = Array.isArray(meta?.ingredients)
@@ -136,11 +116,7 @@ router.post("/recommend", async (req, res) => {
           const { compliant } = filterSavedGroceriesForCompliance(
             itemsWithIngredients as any,
             groceryEnvelope,
-            {
-              glp1Targets: groceryGlp1Targets,
-              isDiabetic: groceryEnvelope.hasDiabetes,
-              diabeticCarbCeiling,
-            },
+            { glp1Targets: groceryGlp1Targets, isDiabetic: groceryEnvelope.hasDiabetes, diabeticCarbCeiling },
           );
           savedGroceriesBlock = buildSavedGroceriesPromptBlock(compliant);
           if (compliant.length > 0) {
@@ -148,7 +124,6 @@ router.post("/recommend", async (req, res) => {
           }
         }
       } catch (sgErr: any) {
-        // Non-fatal — proceed without saved context rather than blocking the coach
         console.warn("[GroceryCoach] Could not load saved groceries:", sgErr?.message);
       }
     }
@@ -232,29 +207,20 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
       return res.status(500).json({ error: "Could not parse coach response. Try again." });
     }
 
-    // ── Full schema validation ────────────────────────────────────────────────
-    // Validates the complete CoachResult contract so neither the initial
-    // response nor a retry is ever returned with missing or wrong-typed fields.
-    // Returns a human-readable reason string, or null when the payload is valid.
-    // NOTE: must be a const arrow function — block-scoped function declarations
-    // are disallowed in strict mode (TS1252).
+    // ── Full schema validation ─────────────────────────────────────────────────
     const invalidReason = (r: any): string | null => {
       if (r == null || typeof r !== "object") return "response is not an object";
-      // meal
       if (!r.meal || typeof r.meal !== "object")          return "missing meal object";
       if (typeof r.meal.name !== "string" || !r.meal.name.trim()) return "missing meal.name";
       if (typeof r.meal.description !== "string")         return "missing meal.description";
       if (typeof r.meal.prepTime !== "string")            return "missing meal.prepTime";
       if (typeof r.meal.servings !== "number")            return "missing meal.servings";
-      // reasoning
       if (!Array.isArray(r.reasoning) || r.reasoning.length === 0) return "missing reasoning array";
       if (!r.reasoning.every((x: any) => typeof x === "string"))   return "reasoning contains non-string";
-      // macros
       if (!r.macros || typeof r.macros !== "object")      return "missing macros object";
       for (const f of ["calories", "protein", "carbs", "fat"] as const) {
         if (typeof r.macros[f] !== "number")              return `missing macros.${f}`;
       }
-      // shoppingList
       if (!Array.isArray(r.shoppingList) || r.shoppingList.length === 0) return "missing shoppingList array";
       for (let idx = 0; idx < r.shoppingList.length; idx++) {
         const s = r.shoppingList[idx];
@@ -264,7 +230,6 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
         if (typeof s.unit !== "string")                   return `shoppingList[${idx}] missing unit`;
         if (typeof s.category !== "string")               return `shoppingList[${idx}] missing category`;
       }
-      // ownedIngredients (may be empty but must be a valid array)
       if (!Array.isArray(r.ownedIngredients))             return "missing ownedIngredients array";
       for (let idx = 0; idx < r.ownedIngredients.length; idx++) {
         const o = r.ownedIngredients[idx];
@@ -273,12 +238,10 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
         if (typeof o.quantity !== "string")               return `ownedIngredients[${idx}] missing quantity`;
         if (typeof o.unit !== "string")                   return `ownedIngredients[${idx}] missing unit`;
       }
-      // followUpSuggestions (may be empty but must be an array)
       if (!Array.isArray(r.followUpSuggestions))          return "missing followUpSuggestions array";
       return null;
     };
 
-    // Validate the initial response before using it.
     const initialInvalid = invalidReason(result);
     if (initialInvalid) {
       console.error(`[GroceryCoach] Initial response failed schema validation: ${initialInvalid}`);
@@ -286,8 +249,6 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
     }
 
     // ── GLP-1 post-gen macro validation ──────────────────────────────────────
-    // GroceryCoach returns structured macros (result.macros.calories/protein/fat).
-    // Validate them against the patient's resolved GLP-1 targets before returning.
     if (groceryGlp1Targets) {
       const t = groceryGlp1Targets;
       const mac = result.macros ?? {};
@@ -295,20 +256,16 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
       const cal = Number(mac.calories);
       const prot = Number(mac.protein);
       const fatViolation = Number.isFinite(fat) && fat > t.maximumToleratedFatGrams;
-      const calViolation = Number.isFinite(cal) && cal > t.resolvedMealCalories * 1.25; // 25 % headroom for estimates
-      const protFloorViolation = Number.isFinite(prot) && prot < t.minimumProteinFloor * 0.75; // 25 % headroom
+      const calViolation = Number.isFinite(cal) && cal > t.resolvedMealCalories * 1.25;
+      const protFloorViolation = Number.isFinite(prot) && prot < t.minimumProteinFloor * 0.75;
       if (fatViolation || calViolation) {
-        console.warn(
-          `[GroceryCoach/GLP-1] Macro violation — fat:${fat}g (ceil:${t.maximumToleratedFatGrams}g) ` +
-          `cal:${cal} (ceil:${Math.round(t.resolvedMealCalories * 1.25)}) — retrying`
-        );
-        // Retry with an explicit GLP-1 macro correction appended to the system prompt.
+        console.warn(`[GroceryCoach/GLP-1] Macro violation — fat:${fat}g cal:${cal} — retrying`);
         const glp1MacroFix =
           `\n\nCRITICAL GLP-1 MACRO CORRECTION: Your previous recommendation had ` +
           `${fat}g fat (limit is ${t.maximumToleratedFatGrams}g) and ${Math.round(cal)} calories ` +
           `(limit is ~${t.resolvedMealCalories} kcal). Recommend a lower-fat alternative meal ` +
-          `using lean proteins (chicken breast, white fish, egg whites, legumes) and non-oily cooking ` +
-          `methods. Fat must be ≤ ${t.maximumToleratedFatGrams}g and calories ≤ ${t.resolvedMealCalories} kcal.`;
+          `using lean proteins and non-oily cooking methods. ` +
+          `Fat must be ≤ ${t.maximumToleratedFatGrams}g and calories ≤ ${t.resolvedMealCalories} kcal.`;
         try {
           const glp1RetryCompletion = await getOpenAI().chat.completions.create({
             model: "gpt-4o-mini",
@@ -349,7 +306,7 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
         }
       }
       if (protFloorViolation) {
-        console.warn(`[GroceryCoach/GLP-1] Protein ${prot}g below floor ${t.minimumProteinFloor}g — appending coach note`);
+        console.warn(`[GroceryCoach/GLP-1] Protein ${prot}g below floor ${t.minimumProteinFloor}g — appending note`);
         if (Array.isArray(result.reasoning)) {
           result.reasoning.push(`GLP-1 note: This meal's protein (${Math.round(prot)}g) is below your target of ${t.minimumProteinFloor}g. Consider adding a lean protein source such as egg whites, white fish, or legumes.`);
         }
@@ -357,19 +314,7 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
     }
 
     // ── Post-generation protocol scan ─────────────────────────────────────────
-    // Grocery Coach generates a meal suggestion; run the same post-gen scan
-    // that every other builder uses so GLP-1, diabetic, and allergy rules are
-    // enforced on the output — not just the prompt.
-    //
-    // When a hard violation is detected (skipAdaptableConflicts=true means only
-    // hard conflicts reach here), we retry generation with an explicit exclusion
-    // appended to the system prompt — same pattern used in dessert-creator.ts.
-    // If the retry also fails, we return the ORIGINAL (validated) result with
-    // ndeSummary + a coach-voice warning sentence so the user is informed.
     try {
-      // Combine shoppingList + ownedIngredients so the scan covers ALL
-      // ingredients that will appear in the finalized meal — a forbidden or
-      // allergenic ingredient the user already "owns" must still be caught.
       const buildMealForScan = (r: any) => ({
         name: r.meal?.name ?? "Grocery Coach Recommendation",
         description: r.meal?.description,
@@ -385,7 +330,6 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
       });
 
       if (!scan.passed) {
-        // ── Hard violation detected — retry with explicit exclusion ────────────
         const violatingTerms = scan.violations.map((v: any) => v.term).filter(Boolean);
         const exclusionClause = violatingTerms.length > 0
           ? `"${violatingTerms.join('", "')}" (${scan.primaryViolation?.reason ?? "conflicts with active dietary protocol"})`
@@ -397,9 +341,7 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
           `in any part of the meal — not as a main ingredient, a side dish, a sauce, a garnish, or a seasoning. ` +
           `Recommend a fully compliant alternative meal that meets all of the user's active health protocols.`;
 
-        console.warn(
-          `⚠️ [GroceryCoach] Hard protocol violation — retrying. Excluded terms: ${violatingTerms.join(", ") || "(see scan message)"}`
-        );
+        console.warn(`⚠️ [GroceryCoach] Hard protocol violation — retrying. Excluded terms: ${violatingTerms.join(", ") || "(see scan message)"}`);
 
         let retryPassed = false;
         let retryScanViolations: string | undefined;
@@ -419,9 +361,6 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
 
           const retryRaw = retryCompletion.choices[0]?.message?.content ?? "{}";
           const retryResult = JSON.parse(retryRaw);
-
-          // Full schema validation — a schema-invalid retry is treated as a
-          // retry failure so the client always receives a complete CoachResult.
           const retryInvalid = invalidReason(retryResult);
           if (retryInvalid) {
             console.warn(`⚠️ [GroceryCoach] Retry failed schema validation (${retryInvalid}) — using original with warning.`);
@@ -430,13 +369,11 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
               generatorName: "grocery_coach_retry",
               skipAdaptableConflicts: true,
             });
-
             if (retryScan.passed) {
               retryPassed = true;
               console.log(`✅ [GroceryCoach] Retry passed protocol scan.`);
               return res.json({ ...retryResult, servingCount: finalServingCount });
             }
-            // Capture retry scan violations for a more accurate ndeSummary.
             retryScanViolations = retryScan.violations
               .map((v: any) => v.reason || v.message || String(v))
               .filter(Boolean)
@@ -447,17 +384,11 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
           console.warn(`⚠️ [GroceryCoach] Retry attempt threw: ${retryErr?.message}`);
         }
 
-        // ── Both attempts failed — fail closed ───────────────────────────────
-        // A hard protocol violation that survives retry cannot be returned to
-        // the user even with a warning banner; warnings cannot make unsafe food
-        // guidance acceptable.  Return 422 so the client can prompt a retry.
         if (!retryPassed) {
           const ndeSummary =
             retryScanViolations ??
             scan.violations.map((v: any) => v.reason || v.message || String(v)).join("; ");
-          console.error(
-            `🚫 [GroceryCoach] Both generation attempts failed hard protocol scan — blocking response. violations: ${ndeSummary}`
-          );
+          console.error(`🚫 [GroceryCoach] Both generation attempts failed hard protocol scan — blocking response. violations: ${ndeSummary}`);
           return res.status(422).json({
             error: "This recommendation conflicts with your active health protocol and cannot be shown safely. Please try a different item.",
             ndeSummary,
@@ -465,8 +396,6 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
         }
       }
     } catch (scanErr: any) {
-      // Scan errors are not swallowed — re-throw so the outer handler returns 500.
-      // A failed scan must never silently pass the result through.
       throw scanErr;
     }
 
@@ -477,7 +406,7 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
   }
 });
 
-// ── Product Advisor — proactive brand recommendations for a meal's shopping list ──
+// ── Product Advisor ─────────────────────────────────────────────────────────────
 router.post("/product-advisor", async (req, res) => {
   try {
     const userId = resolveUserId(req);
@@ -503,38 +432,276 @@ router.post("/product-advisor", async (req, res) => {
 });
 
 // ── Ingredient Swap ─────────────────────────────────────────────────────────────
-// Thin adapter: delegates to MealRefinementEngine.refine() so all clinical
-// protocol-loading, GLP-1 context, saved-grocery filtering, and post-gen scan
-// logic live in one place. If a new condition is added to the protocol envelope
-// the swap inherits it automatically.
+// Replace ONE ingredient in an existing Grocery Coach recommendation.
+// Delegates to the shared MealRefinementEngine (refineMeal) so all protocol
+// enforcement (envelope, GLP-1 fail-closed, NDE scan, diabetic starch gate,
+// saved groceries) lives in one place. Alternatives generated separately and
+// NDE-scanned before return. Coach suggests; user confirms — never silently changes.
 router.post("/swap-ingredient", async (req, res) => {
   try {
     const userId = resolveUserId(req);
     if (!userId) return res.status(401).json({ error: "Not authenticated" });
 
-    const { ingredientToReplace, mealName, mealDescription, remainingIngredients, userRequest } = req.body;
+    const {
+      ingredientToReplace, mealName, mealDescription,
+      shoppingList, ownedIngredients, macros, reasoning,
+      remainingIngredients, userRequest,
+    } = req.body;
+
     if (!ingredientToReplace || typeof ingredientToReplace !== "string") {
       return res.status(400).json({ error: "ingredientToReplace is required" });
     }
 
-    const result = await getMealRefinementEngine().refine({
-      changeType: "replace_ingredient",
+    // Build an existingMeal object from whatever the client sent.
+    const existingMeal: Record<string, unknown> = {
+      meal: {
+        name: mealName || "current meal",
+        description: mealDescription || "",
+      },
+      shoppingList: Array.isArray(shoppingList)
+        ? shoppingList
+        : (Array.isArray(remainingIngredients)
+            ? remainingIngredients.map((item: string) => ({ item, quantity: "", unit: "" }))
+            : [{ item: ingredientToReplace, quantity: "", unit: "" }]),
+      ownedIngredients: Array.isArray(ownedIngredients) ? ownedIngredients : [],
+      macros: macros && typeof macros === "object" ? macros : {},
+      reasoning: Array.isArray(reasoning) ? reasoning : [],
+    };
+
+    const changeInstruction = userRequest
+      ? `Replace "${ingredientToReplace}" with "${userRequest}" if it is clinically safe and fits the meal style; otherwise replace it with the single best compliant alternative.`
+      : `Replace "${ingredientToReplace}" with the single best compliant alternative that fits the meal style and the user's protocol.`;
+
+    const { refineMeal, MealRefinementRetryableError } = await import("../services/mealRefinementEngine");
+
+    // ── Primary swap via engine (protocol-enforced) ───────────────────────
+    const refined = await refineMeal({
       userId,
-      ingredientToReplace,
-      mealName,
-      mealDescription,
-      remainingIngredients,
-      userRequest,
+      existingMeal,
+      changeInstruction,
+      generatorName: "grocery_swap",
     });
 
-    return res.json(result);
+    // ── Extract coachSuggestion from the updated shoppingList ─────────────
+    const oldItemsSet = new Set<string>(
+      (existingMeal.shoppingList as any[]).map((i: any) =>
+        typeof i.item === "string" ? i.item.toLowerCase().trim() : "",
+      ),
+    );
+    const newList = Array.isArray((refined.updatedMeal as any).shoppingList)
+      ? (refined.updatedMeal as any).shoppingList
+      : [];
+
+    const newEntry =
+      newList.find(
+        (i: any) => typeof i.item === "string" && !oldItemsSet.has(i.item.toLowerCase().trim()),
+      ) ?? newList[0];
+
+    const suggestionItem: string = newEntry?.item ?? ingredientToReplace;
+    const suggestionQty: string  = newEntry?.quantity ?? "";
+    const suggestionUnit: string = newEntry?.unit ?? "";
+
+    // ── Alternatives — lightweight follow-up LLM call ─────────────────────
+    let alternatives: Array<{ item: string; reason: string }> = [];
+    let savedOption: { item: string; reason: string } | null = null;
+
+    try {
+      const swapEnvelope = await loadUserProtocolEnvelope(userId).catch(() => null) ?? buildGuestEnvelope();
+      const altProtocolCtx = enforceBeforeGenerate(swapEnvelope, { generatorName: "grocery_swap_alt" }).combined;
+
+      // Load GLP-1 targets for alternatives enforcement.
+      // The primary suggestion went through the full engine (fail-closed); for
+      // alternatives we load targets explicitly so the same fat/calorie ceiling
+      // applies to every option returned to the user.
+      const todayISO = new Date().toISOString().slice(0, 10);
+      const altGlp1Ctx = await resolveGLP1GlobalContext(userId, todayISO).catch(() => null);
+      const altGlp1Targets = (altGlp1Ctx?.isActive && altGlp1Ctx.resolvedTargets)
+        ? altGlp1Ctx.resolvedTargets
+        : null;
+
+      // Explicit clinical constraint blocks injected into the alternatives prompt.
+      const glp1AltBlock = altGlp1Targets
+        ? `GLP-1 CONSTRAINT: Every alternative MUST have ≤${altGlp1Targets.maximumToleratedFatGrams}g fat per serving and ≤${altGlp1Targets.resolvedMealCalories} kcal. Do NOT suggest fatty meats, oils, full-fat dairy, fried preparations, or avocado.\n\n`
+        : "";
+      const diabeticAltBlock = swapEnvelope.hasDiabetes
+        ? `DIABETIC CONSTRAINT: Every alternative MUST be low-carb. Do NOT suggest bread, rice, pasta, potatoes, corn, or sugary sauces. Prefer non-starchy vegetables, lean proteins, or legumes.\n\n`
+        : "";
+
+      const sgRows = await db
+        .select({
+          id: userSavedGroceryItems.id,
+          productName: userSavedGroceryItems.productName,
+          brand: userSavedGroceryItems.brand,
+          category: userSavedGroceryItems.category,
+          productKey: userSavedGroceryItems.productKey,
+          nutritionJson: userSavedGroceryItems.nutritionJson,
+          savedAt: userSavedGroceryItems.savedAt,
+        })
+        .from(userSavedGroceryItems)
+        .where(eq(userSavedGroceryItems.userId, userId));
+
+      const savedProductNames = sgRows.map((r) => r.productName).filter(Boolean);
+
+      const altCompletion = await getOpenAI().chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content:
+              `You are a Grocery Coach. The user's primary swap for "${ingredientToReplace}" is "${suggestionItem}". ` +
+              `Suggest 2 DIFFERENT alternative replacements (not "${suggestionItem}", not "${ingredientToReplace}") ` +
+              `that fit the meal "${mealName || "current meal"}".\n\n` +
+              `${glp1AltBlock}${diabeticAltBlock}` +
+              `Also comply with:\n${altProtocolCtx || "No restrictions."}\n\n` +
+              (savedProductNames.length > 0
+                ? `User's saved products (prefer as savedOption if one complies with ALL constraints above): ${savedProductNames.join(", ")}\n\n`
+                : "") +
+              `Respond ONLY with valid JSON:\n` +
+              `{ "alternatives": [{ "item": "string", "reason": "string — 1 sentence" }], ` +
+              `"savedOption": { "item": "string", "reason": "string — mention it's from their saved products" } | null }`,
+          },
+          { role: "user", content: `Give 2 alternatives to replace "${ingredientToReplace}" in this meal.` },
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.7,
+        max_tokens: 400,
+      });
+
+      const altRaw = altCompletion.choices[0]?.message?.content ?? "{}";
+      let altData: any;
+      try {
+        altData = JSON.parse(altRaw);
+      } catch {
+        altData = {};
+      }
+
+      // Whether this user has a clinical protocol requiring verified macros.
+      const isClinical = altGlp1Targets !== null || swapEnvelope.hasDiabetes;
+
+      // ── Alternatives: NDE scan only (no nutrition data available from LLM)
+      // For clinical users we cannot verify that the LLM-suggested item meets
+      // fat/carb ceilings, so alternatives are omitted — the primary suggestion
+      // from the engine is already macro-verified and is sufficient.
+      if (!isClinical && Array.isArray(altData.alternatives)) {
+        for (const alt of altData.alternatives.slice(0, 2)) {
+          if (!alt?.item || typeof alt.item !== "string") continue;
+          const altScan = scanGeneratedOutput(
+            { name: `Alt: ${alt.item}`, ingredients: [{ name: alt.item }] },
+            swapEnvelope,
+            { generatorName: "grocery_swap_alt", skipAdaptableConflicts: true },
+          );
+          if (altScan.passed) {
+            alternatives.push({ item: alt.item, reason: alt.reason ?? "" });
+          }
+        }
+      }
+
+      if (altData.savedOption?.item && typeof altData.savedOption.item === "string") {
+        const soScan = scanGeneratedOutput(
+          { name: `SavedOpt: ${altData.savedOption.item}`, ingredients: [{ name: altData.savedOption.item }] },
+          swapEnvelope,
+          { generatorName: "grocery_swap_saved", skipAdaptableConflicts: true },
+        );
+
+        if (soScan.passed) {
+          // ── savedOption macro gate ────────────────────────────────────────
+          // For clinical users, validate fat/carbs from nutritionJson.
+          // If the saved row has no nutritionJson, the macros are unverifiable
+          // → reject for clinical users rather than surface an unsafe option.
+          const matchedRow = sgRows.find(
+            (r) => r.productName?.toLowerCase().trim() === altData.savedOption.item.toLowerCase().trim(),
+          );
+
+          let savedOptionOk = true;
+
+          if (isClinical) {
+            if (!matchedRow?.nutritionJson) {
+              // Cannot verify clinical compliance without nutrition data — fail closed.
+              console.warn(
+                `[GroceryCoach/Swap] savedOption "${altData.savedOption.item}" has no nutritionJson — rejected for clinical user`,
+              );
+              savedOptionOk = false;
+            } else {
+              const nut = matchedRow.nutritionJson as Record<string, unknown>;
+              const toN = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : null; };
+              const fat      = toN(nut.fat ?? nut.total_fat ?? nut.fatGrams);
+              const calories = toN(nut.calories ?? nut.energy ?? nut.kcal);
+              const carbs    = toN(nut.carbs ?? nut.total_carbohydrates ?? nut.carbGrams);
+
+              if (altGlp1Targets) {
+                // Fat must be present AND within ceiling — null fat = unverifiable = reject.
+                if (fat === null) {
+                  console.warn(`[GroceryCoach/Swap] savedOption "${altData.savedOption.item}" has no fat value — rejected for GLP-1 user`);
+                  savedOptionOk = false;
+                } else if (fat > altGlp1Targets.maximumToleratedFatGrams) {
+                  console.warn(`[GroceryCoach/Swap] savedOption "${altData.savedOption.item}" fat=${fat}g > GLP-1 ceiling ${altGlp1Targets.maximumToleratedFatGrams}g — rejected`);
+                  savedOptionOk = false;
+                }
+                // Calories — reject if present and over ceiling; unverifiable calories are
+                // still allowed (fat ceiling is the primary GLP-1 gate for swaps).
+                if (savedOptionOk && calories !== null && calories > altGlp1Targets.resolvedMealCalories) {
+                  console.warn(`[GroceryCoach/Swap] savedOption "${altData.savedOption.item}" calories=${calories} > GLP-1 ceiling ${altGlp1Targets.resolvedMealCalories} — rejected`);
+                  savedOptionOk = false;
+                }
+              }
+
+              if (savedOptionOk && swapEnvelope.hasDiabetes) {
+                // Carbs must be present AND within ceiling for diabetic users.
+                if (carbs === null) {
+                  console.warn(`[GroceryCoach/Swap] savedOption "${altData.savedOption.item}" has no carbs value — rejected for diabetic user`);
+                  savedOptionOk = false;
+                } else if (carbs > 45) {
+                  console.warn(`[GroceryCoach/Swap] savedOption "${altData.savedOption.item}" carbs=${carbs}g > diabetic ceiling 45g — rejected`);
+                  savedOptionOk = false;
+                }
+              }
+            }
+          }
+
+          if (savedOptionOk) {
+            savedOption = { item: altData.savedOption.item, reason: altData.savedOption.reason ?? "" };
+          }
+        }
+      }
+    } catch (altErr: any) {
+      console.warn("[GroceryCoach/Swap] Alternatives generation failed:", altErr?.message);
+    }
+
+    return res.json({
+      coachSuggestion: {
+        item: suggestionItem,
+        reason: refined.changesSummary,
+        quantity: suggestionQty,
+        unit: suggestionUnit,
+      },
+      savedOption,
+      alternatives,
+      protocolNote: refined.protocolNote ?? null,
+      updatedMeal: refined.updatedMeal,
+    });
   } catch (err: any) {
-    console.error("[GroceryCoach/Swap] Error:", err?.message);
+    const message: string = err?.message ?? "Ingredient swap unavailable. Please try again.";
+
+    if (err?.name === "MealRefinementRetryableError") {
+      return res.status(503).json({ error: message, retryable: true });
+    }
+    if (message.startsWith("PROTOCOL_VIOLATION")) {
+      return res.status(400).json({
+        error: "PROTOCOL_VIOLATION",
+        message: message.replace(/^PROTOCOL_VIOLATION:\s*/, ""),
+        retryable: true,
+      });
+    }
+    if (message.includes("conflicts with your active health protocol")) {
+      return res.status(422).json({ error: message });
+    }
+
+    console.error("[GroceryCoach/Swap] Error:", message);
     return res.status(500).json({ error: "Ingredient swap unavailable. Please try again." });
   }
 });
 
-// ── Finalize Card — generate full meal card and save to Favorites ─────────────
+// ── Finalize Card ──────────────────────────────────────────────────────────────
 router.post("/finalize-card", async (req, res) => {
   try {
     const userId = resolveUserId(req);

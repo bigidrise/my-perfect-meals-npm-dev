@@ -87,6 +87,7 @@ import { assignBuilder, isValidBuilder, VALID_BUILDERS } from "./services/builde
 import { fridgeRescueRouter } from "./routes/fridgeRescue";
 import inspirationRouter from "./routes/inspiration";
 import groceryCoachRouter from "./routes/groceryCoach";
+import mealRefinementRouter from "./routes/mealRefinement";
 import savedGroceriesRouter from "./routes/savedGroceries";
 import pregnancyCoachRouter from "./routes/pregnancyCoach";
 import coachingEngineRouter from "./routes/coachingEngine";
@@ -660,6 +661,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api", fridgeRescueRouter);
   app.use("/api", inspirationRouter);
   app.use("/api/grocery-coach", requireAuth, requireProAccess, groceryCoachRouter);
+  app.use("/api/meal-refinement", requireAuth, mealRefinementRouter);
   app.use("/api/saved-groceries", requireAuth, savedGroceriesRouter);
   app.use("/api/pregnancy", requireAuth, requireClinicalAccess, pregnancyCoachRouter);
   app.use("/api/coach", coachingEngineRouter);

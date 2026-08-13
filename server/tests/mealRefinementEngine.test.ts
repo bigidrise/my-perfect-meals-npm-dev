@@ -186,7 +186,7 @@ jest.mock("../services/savedGroceryCompliance", () => ({
 }));
 
 // ── System under test ─────────────────────────────────────────────────────────
-import { getMealRefinementEngine } from "../services/mealRefinementEngine";
+import { getMealRefinementEngine, refineMeal, MealRefinementRetryableError } from "../services/mealRefinementEngine";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function resetMocks() {
@@ -514,6 +514,364 @@ describe("MealRefinementEngine — replace_ingredient", () => {
       );
       // The user-facing message should reference the userRequest
       expect(capturedSystemPrompts[0]).toContain("lower in sodium");
+    });
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// refineMeal — universal function API
+// These tests cover the actual endpoint-facing function, not the legacy class.
+// Key differences from the class: GLP-1 is FAIL-CLOSED (throws instead of
+// continuing without GLP-1 context), and the output goes through a combined
+// NDE + GLP-1 macro + diabetic starch validation pass with retry.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Minimal compliant meal JSON in the "regular builder" schema. */
+const EXISTING_MEAL = {
+  name: "Asian Noodle Bowl",
+  description: "A savory noodle dish with rich broth",
+  ingredients: [
+    { name: "pork belly" },
+    { name: "ramen noodles" },
+    { name: "bok choy" },
+  ],
+  macros: { calories: 520, protein: 22, fat: 28, carbs: 55 },
+};
+
+/** LLM response shape expected by refineMeal (full meal + changesSummary). */
+const REFINE_AI_RESPONSE_CLEAN = JSON.stringify({
+  name: "Asian Noodle Bowl",
+  description: "A lighter version with grilled chicken",
+  ingredients: [
+    { name: "grilled chicken breast" },
+    { name: "ramen noodles" },
+    { name: "bok choy" },
+  ],
+  macros: { calories: 420, protein: 32, fat: 8, carbs: 45 },
+  changesSummary: "Replaced pork belly with grilled chicken for a leaner protein.",
+});
+
+const REFINE_BASE_REQUEST = {
+  userId: "user-abc",
+  existingMeal: EXISTING_MEAL,
+  changeInstruction: "Replace pork belly with a leaner protein",
+};
+
+describe("refineMeal — universal function API", () => {
+  beforeEach(() => {
+    resetMocks();
+    // Default glp1Context: not active (safe baseline)
+    mockGlp1Context = { isActive: false, resolvedTargets: null };
+    // Default LLM: return a clean meal refinement response
+    const { default: OpenAI } = require("openai");
+    const mockInst = new (OpenAI as any)();
+    jest
+      .spyOn(mockInst.chat.completions, "create")
+      .mockResolvedValue({ choices: [{ message: { content: REFINE_AI_RESPONSE_CLEAN } }] });
+  });
+
+  // ── GLP-1 FAIL-CLOSED ──────────────────────────────────────────────────────
+
+  describe("GLP-1 fail-closed behaviour", () => {
+    test("throws MealRefinementRetryableError when the GLP-1 resolver returns null", async () => {
+      // Simulate resolver failure (network error, DB down, etc.)
+      mockResolveGLP1GlobalContext.mockResolvedValueOnce(null);
+
+      await expect(refineMeal(REFINE_BASE_REQUEST)).rejects.toThrow(
+        MealRefinementRetryableError,
+      );
+    });
+
+    test("MealRefinementRetryableError message hints at a retry", async () => {
+      mockResolveGLP1GlobalContext.mockResolvedValueOnce(null);
+
+      await expect(refineMeal(REFINE_BASE_REQUEST)).rejects.toThrow(
+        /temporarily unavailable/i,
+      );
+    });
+
+    test("throws MealRefinementRetryableError when GLP-1 is active but resolvedTargets is null", async () => {
+      // Active patient but targets failed to load — cannot enforce GLP-1 ceiling
+      mockResolveGLP1GlobalContext.mockResolvedValueOnce({
+        isActive: true,
+        resolvedTargets: null,
+      });
+
+      await expect(refineMeal(REFINE_BASE_REQUEST)).rejects.toThrow(
+        MealRefinementRetryableError,
+      );
+    });
+  });
+
+  // ── SUCCESSFUL REFINEMENT ─────────────────────────────────────────────────
+
+  describe("successful refinement", () => {
+    test("returns updatedMeal, changesSummary, and protocolNote", async () => {
+      mockResolveGLP1GlobalContext.mockResolvedValueOnce({
+        isActive: false,
+        resolvedTargets: null,
+      });
+
+      // Override LLM via the module-level mockCreate
+      const openaiMod = await import("openai");
+      const inst = new (openaiMod.default as any)();
+      inst.chat.completions.create.mockResolvedValueOnce({
+        choices: [{ message: { content: REFINE_AI_RESPONSE_CLEAN } }],
+      });
+
+      const result = await refineMeal(REFINE_BASE_REQUEST);
+
+      expect(result).toHaveProperty("updatedMeal");
+      expect(result).toHaveProperty("changesSummary");
+      expect(result).toHaveProperty("protocolNote");
+      expect(typeof result.changesSummary).toBe("string");
+      expect(result.changesSummary.length).toBeGreaterThan(0);
+    });
+
+    test("updatedMeal preserves the top-level schema of the existing meal", async () => {
+      mockResolveGLP1GlobalContext.mockResolvedValueOnce({
+        isActive: false,
+        resolvedTargets: null,
+      });
+
+      const openaiMod = await import("openai");
+      const inst = new (openaiMod.default as any)();
+      inst.chat.completions.create.mockResolvedValueOnce({
+        choices: [{ message: { content: REFINE_AI_RESPONSE_CLEAN } }],
+      });
+
+      const result = await refineMeal(REFINE_BASE_REQUEST);
+
+      // The LLM response did not include changesSummary in the returned meal
+      expect(result.updatedMeal).not.toHaveProperty("changesSummary");
+      // The meal schema keys are present
+      expect(result.updatedMeal).toHaveProperty("name");
+      expect(result.updatedMeal).toHaveProperty("ingredients");
+      expect(result.updatedMeal).toHaveProperty("macros");
+    });
+  });
+
+  // ── NDE VALIDATION FAIL-CLOSED ────────────────────────────────────────────
+
+  describe("NDE validation — both attempts fail", () => {
+    test("throws a hard block error when both initial and retry generations fail the NDE scan", async () => {
+      mockResolveGLP1GlobalContext.mockResolvedValue({
+        isActive: false,
+        resolvedTargets: null,
+      });
+
+      // Both generations fail the NDE scan
+      mockScanPassed = false;
+      mockScanMessage = "contains shellfish — active allergy";
+      mockScanViolations = [
+        { term: "shrimp", reason: "shellfish allergy" },
+      ];
+
+      const openaiMod = await import("openai");
+      const inst = new (openaiMod.default as any)();
+      // Both initial and retry return a violating meal
+      inst.chat.completions.create
+        .mockResolvedValueOnce({ choices: [{ message: { content: REFINE_AI_RESPONSE_CLEAN } }] })
+        .mockResolvedValueOnce({ choices: [{ message: { content: REFINE_AI_RESPONSE_CLEAN } }] });
+
+      await expect(refineMeal(REFINE_BASE_REQUEST)).rejects.toThrow(
+        /conflicts with your active health protocol|Cannot apply/i,
+      );
+    });
+
+    test("throws PROTOCOL_VIOLATION when both attempts fail GLP-1 fat ceiling", async () => {
+      // GLP-1 active with a tight fat ceiling
+      const glp1Targets = {
+        treatmentPhase: "maintenance",
+        resolvedMealCalories: 400,
+        targetProteinGrams: 28,
+        minimumProteinFloor: 25,
+        maximumToleratedFatGrams: 8,
+      };
+      mockResolveGLP1GlobalContext.mockResolvedValue({
+        isActive: true,
+        resolvedTargets: glp1Targets,
+      });
+      mockScanPassed = true; // NDE passes — only GLP-1 macros fail
+
+      // Both LLM calls return a meal with fat=20g (above the 8g ceiling)
+      const fatViolatingMeal = JSON.stringify({
+        name: "Fatty Bowl",
+        description: "Oily broth",
+        ingredients: [{ name: "pork belly" }],
+        macros: { calories: 420, protein: 22, fat: 20, carbs: 30 },
+        changesSummary: "Updated.",
+      });
+
+      const openaiMod = await import("openai");
+      const inst = new (openaiMod.default as any)();
+      inst.chat.completions.create
+        .mockResolvedValueOnce({ choices: [{ message: { content: fatViolatingMeal } }] })
+        .mockResolvedValueOnce({ choices: [{ message: { content: fatViolatingMeal } }] });
+
+      await expect(refineMeal(REFINE_BASE_REQUEST)).rejects.toThrow(/PROTOCOL_VIOLATION/);
+    });
+
+    test("protocolNote is set when GLP-1 protein floor is soft-violated but meal is otherwise compliant", async () => {
+      const glp1Targets = {
+        treatmentPhase: "maintenance",
+        resolvedMealCalories: 500,
+        targetProteinGrams: 30,
+        minimumProteinFloor: 30,
+        maximumToleratedFatGrams: 15,
+      };
+      mockResolveGLP1GlobalContext.mockResolvedValueOnce({
+        isActive: true,
+        resolvedTargets: glp1Targets,
+      });
+      mockScanPassed = true;
+
+      // Meal passes fat/cal gates but protein is low (18g < 30g * 0.75 = 22.5g)
+      const lowProteinMeal = JSON.stringify({
+        name: "Light Veggie Bowl",
+        description: "Low protein but compliant fat/cal",
+        ingredients: [{ name: "zucchini" }],
+        macros: { calories: 350, protein: 18, fat: 10, carbs: 40 },
+        changesSummary: "Made it vegetable-forward.",
+      });
+
+      const openaiMod = await import("openai");
+      const inst = new (openaiMod.default as any)();
+      inst.chat.completions.create.mockResolvedValueOnce({
+        choices: [{ message: { content: lowProteinMeal } }],
+      });
+
+      const result = await refineMeal(REFINE_BASE_REQUEST);
+
+      expect(result.protocolNote).not.toBeNull();
+      expect(result.protocolNote).toMatch(/protein/i);
+      expect(result.protocolNote).toMatch(/GLP-1/i);
+    });
+  });
+
+  // ── SCHEMA PRESERVATION ────────────────────────────────────────────────────
+
+  describe("schema preservation contract", () => {
+    test("throws when retry response also drops a critical schema key (ingredients)", async () => {
+      mockResolveGLP1GlobalContext.mockResolvedValue({
+        isActive: false,
+        resolvedTargets: null,
+      });
+
+      // First LLM call: omits 'ingredients' (critical key) — triggers retry.
+      // Second LLM call (retry): also omits 'ingredients' — must throw hard.
+      const missingIngredientsResponse = JSON.stringify({
+        name: "Asian Noodle Bowl",
+        description: "Updated bowl",
+        // 'ingredients' deliberately absent
+        macros: { calories: 420, protein: 32, fat: 8, carbs: 45 },
+        changesSummary: "Swapped protein.",
+      });
+
+      const openaiMod = await import("openai");
+      const inst = new (openaiMod.default as any)();
+      inst.chat.completions.create
+        .mockResolvedValueOnce({ choices: [{ message: { content: missingIngredientsResponse } }] })
+        .mockResolvedValueOnce({ choices: [{ message: { content: missingIngredientsResponse } }] });
+
+      await expect(
+        refineMeal({
+          ...REFINE_BASE_REQUEST,
+          existingMeal: {
+            name: "Asian Noodle Bowl",
+            description: "Original",
+            ingredients: [{ name: "pork belly" }], // present in input
+            macros: { calories: 520, protein: 22, fat: 28, carbs: 55 },
+          },
+        }),
+      ).rejects.toThrow(/preserving the required meal structure|missing/i);
+    });
+
+    test("non-critical keys omitted by the LLM are restored from the existing meal on the initial pass", async () => {
+      mockResolveGLP1GlobalContext.mockResolvedValueOnce({
+        isActive: false,
+        resolvedTargets: null,
+      });
+
+      // LLM omits 'servings' and 'prepTime' (non-critical)
+      const partialResponse = JSON.stringify({
+        name: "Asian Noodle Bowl",
+        description: "Lighter version",
+        ingredients: [{ name: "grilled chicken breast" }],
+        macros: { calories: 420, protein: 32, fat: 8, carbs: 45 },
+        changesSummary: "Switched to chicken.",
+      });
+
+      const openaiMod = await import("openai");
+      const inst = new (openaiMod.default as any)();
+      inst.chat.completions.create.mockResolvedValueOnce({
+        choices: [{ message: { content: partialResponse } }],
+      });
+
+      const result = await refineMeal({
+        ...REFINE_BASE_REQUEST,
+        existingMeal: {
+          name: "Asian Noodle Bowl",
+          description: "Original",
+          ingredients: [{ name: "pork belly" }],
+          macros: { calories: 520, protein: 22, fat: 28, carbs: 55 },
+          servings: 2,          // non-critical — must be preserved
+          prepTime: "30 mins",  // non-critical — must be preserved
+        },
+      });
+
+      expect(result.updatedMeal).toHaveProperty("servings", 2);
+      expect(result.updatedMeal).toHaveProperty("prepTime", "30 mins");
+    });
+
+    test("changesSummary in the returned result reflects the retry output, not the rejected first attempt", async () => {
+      // Trigger a retry via schema failure (missing 'ingredients') rather than
+      // NDE — avoids the need to flip mockScanPassed mid-test.
+      // NDE passes for both calls; only the schema gate changes.
+      mockResolveGLP1GlobalContext.mockResolvedValue({
+        isActive: false,
+        resolvedTargets: null,
+      });
+      mockScanPassed = true;
+      mockScanViolations = [];
+
+      // First LLM response: missing the critical 'ingredients' key → schema
+      // failure forces a retry with a schema correction instruction.
+      const firstAttemptResponse = JSON.stringify({
+        name: "Asian Noodle Bowl",
+        description: "Updated version",
+        // 'ingredients' deliberately absent — triggers schema-preservation retry
+        macros: { calories: 420, protein: 32, fat: 8, carbs: 45 },
+        changesSummary: "FIRST ATTEMPT SUMMARY — should NOT appear in result.",
+      });
+
+      // Retry response: all critical keys present, NDE passes.
+      const retryResponse = JSON.stringify({
+        name: "Asian Noodle Bowl",
+        description: "Updated version (retry)",
+        ingredients: [{ name: "grilled chicken" }],
+        macros: { calories: 420, protein: 32, fat: 8, carbs: 45 },
+        changesSummary: "RETRY ATTEMPT SUMMARY — should appear in result.",
+      });
+
+      const openaiMod = await import("openai");
+      const inst = new (openaiMod.default as any)();
+      inst.chat.completions.create
+        .mockResolvedValueOnce({ choices: [{ message: { content: firstAttemptResponse } }] })
+        .mockResolvedValueOnce({ choices: [{ message: { content: retryResponse } }] });
+
+      const result = await refineMeal({
+        ...REFINE_BASE_REQUEST,
+        existingMeal: {
+          name: "Asian Noodle Bowl",
+          description: "Original",
+          ingredients: [{ name: "pork belly" }], // 'ingredients' is a critical input key
+          macros: { calories: 520, protein: 22, fat: 28, carbs: 55 },
+        },
+      });
+
+      expect(result.changesSummary).toContain("RETRY ATTEMPT SUMMARY");
+      expect(result.changesSummary).not.toContain("FIRST ATTEMPT SUMMARY");
     });
   });
 });

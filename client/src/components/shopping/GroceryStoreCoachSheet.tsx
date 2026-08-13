@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -161,6 +162,14 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   const { toast } = useToast();
   const addItems = useShoppingListStore((s) => s.addItems);
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
+
+  // Session key is scoped by userId so one user's meal data is never shown
+  // to a subsequently authenticated user on a shared browser or device.
+  const sessionKey = useMemo(
+    () => (user?.id ? `grocery-coach-session:${user.id}` : null),
+    [user?.id],
+  );
 
   const [phase, setPhase] = useState<Phase>("idle");
   const [servingCount, setServingCount] = useState(1);
@@ -198,15 +207,40 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   const loadingInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // ── Session persistence ──────────────────────────────────────────────────────
-  // Restore a previous session from localStorage on mount (navigation-safe).
+  // Sessions are keyed by userId and guarded by a `sessionReady` gate that
+  // prevents in-flight state from the previous user from being written under the
+  // new user's key when identity changes.
+  //
+  // Lifecycle on user switch:
+  //   1. sessionKey changes → sessionReady=false, state cleared
+  //   2. hydration effect reads new user's stored session
+  //   3. sessionReady=true → persistence is unblocked for the new user
+  const [sessionReady, setSessionReady] = useState(false);
+
+  // Hydrate: clears prior state immediately on identity change, then restores.
   useEffect(() => {
+    // Identity changed — block persistence and wipe stale state before reading
+    // the new user's session. This prevents the old result from being written
+    // to the new user's key by a persistence effect that fires between renders.
+    setSessionReady(false);
+    setResult(null);
+    setConversation([]);
+    setPhase("idle");
+
+    if (!sessionKey) return; // not authenticated — leave cleared
+
     try {
-      const raw = localStorage.getItem("grocery-coach-session");
-      if (!raw) return;
-      const session = JSON.parse(raw) as { result?: CoachResult; conversation?: ConversationMessage[]; savedAt?: number };
+      const raw = localStorage.getItem(sessionKey);
+      if (!raw) { setSessionReady(true); return; }
+      const session = JSON.parse(raw) as {
+        result?: CoachResult;
+        conversation?: ConversationMessage[];
+        savedAt?: number;
+      };
       // Expire after 24 h
       if (!session.savedAt || Date.now() - session.savedAt > 24 * 60 * 60 * 1000) {
-        localStorage.removeItem("grocery-coach-session");
+        localStorage.removeItem(sessionKey);
+        setSessionReady(true);
         return;
       }
       if (session.result) {
@@ -216,21 +250,22 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       if (session.conversation?.length) {
         setConversation(session.conversation);
       }
-    } catch {}
-  }, []); // mount only
+    } catch { /* ignore parse/storage errors */ }
 
-  // Save active session whenever result or conversation changes.
+    setSessionReady(true);
+  }, [sessionKey]); // re-runs whenever the authenticated user changes
+
+  // Persist: only runs after hydration completes to prevent cross-account writes.
   useEffect(() => {
-    if (result) {
-      try {
-        localStorage.setItem("grocery-coach-session", JSON.stringify({
-          result,
-          conversation,
-          savedAt: Date.now(),
-        }));
-      } catch {}
-    }
-  }, [result, conversation]);
+    if (!sessionKey || !result || !sessionReady) return;
+    try {
+      localStorage.setItem(sessionKey, JSON.stringify({
+        result,
+        conversation,
+        savedAt: Date.now(),
+      }));
+    } catch {}
+  }, [sessionKey, result, conversation, sessionReady]);
 
   useEffect(() => {
     if (!open) {
@@ -390,7 +425,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   }, [conversation, servingCount, toast, fetchProductAdvice]);
 
   const handleNewSession = useCallback(() => {
-    try { localStorage.removeItem("grocery-coach-session"); } catch {}
+    try { if (sessionKey) localStorage.removeItem(sessionKey); } catch {}
     setPhase("idle");
     setResult(null);
     setConversation([]);
