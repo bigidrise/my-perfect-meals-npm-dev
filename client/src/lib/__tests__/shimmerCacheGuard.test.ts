@@ -37,7 +37,13 @@
 
 import fs from "fs";
 import path from "path";
-import { _nutritionStateCacheKey, _nutritionStateCache } from "../../hooks/nutritionStateCache";
+import {
+  _nutritionStateCacheKey,
+  _nutritionStateCache,
+  _nutritionStateCacheWriteDate,
+  getCachedNutritionState,
+  setCachedNutritionState,
+} from "../../hooks/nutritionStateCache";
 import type { DailyNutritionState } from "../../../../shared/dailyNutritionPrescription";
 
 // ── Paths ─────────────────────────────────────────────────────────────────────
@@ -314,11 +320,15 @@ describe("useDailyNutritionState source — hook wiring", () => {
 
   it("seeds useState initialiser from the user-scoped cache", () => {
     expect(src).toMatch(/useState\s*<[^>]*>\s*\(\s*\(\s*\)\s*=>/);
-    expect(src).toMatch(/_nutritionStateCache\.get\s*\(/);
+    // The hook must use the date-guarded helper, not raw Map.get, so stale
+    // entries from a previous calendar day are automatically rejected.
+    expect(src).toMatch(/getCachedNutritionState\s*\(/);
   });
 
   it("writes to the cache on successful fetch", () => {
-    expect(src).toMatch(/_nutritionStateCache\.set\s*\(/);
+    // The hook must use the date-tagging helper so every write stamps today's
+    // calendar date and the staleness guard can fire correctly at midnight.
+    expect(src).toMatch(/setCachedNutritionState\s*\(/);
   });
 
   it("guards the cache write so only authenticated users populate it", () => {
@@ -447,5 +457,68 @@ describe("_nutritionStateCache — round-trip read/write", () => {
     expect(_nutritionStateCache.get(keyA)).toBe(MOCK_STATE);
     expect(_nutritionStateCache.get(keyB)).toBe(stateB);
     expect(_nutritionStateCache.get(keyA)).not.toBe(_nutritionStateCache.get(keyB));
+  });
+});
+
+// ── 8. Date-staleness guard ───────────────────────────────────────────────────
+
+describe("getCachedNutritionState — stale cache entries are treated as misses", () => {
+  afterEach(() => {
+    _nutritionStateCache.clear();
+    _nutritionStateCacheWriteDate.clear();
+  });
+
+  it("returns undefined when the entry was written on a previous calendar date", () => {
+    // Simulate a user who left the builder open overnight: the cache has a
+    // value but the write-date stamp is from a past day.
+    const key = _nutritionStateCacheKey("user-1", "2026-08-12");
+    _nutritionStateCache.set(key, MOCK_STATE);
+    _nutritionStateCacheWriteDate.set(key, "2000-01-01"); // clearly yesterday
+
+    expect(getCachedNutritionState(key)).toBeUndefined();
+  });
+
+  it("returns the entry when it was written on today's calendar date (fresh write)", () => {
+    // setCachedNutritionState stamps the current local date, so reading it back
+    // immediately should always be a hit.
+    const key = _nutritionStateCacheKey("user-1", "2026-08-13");
+    setCachedNutritionState(key, MOCK_STATE);
+
+    expect(getCachedNutritionState(key)).toBe(MOCK_STATE);
+  });
+
+  it("returns undefined when the raw value exists but no write-date was recorded", () => {
+    // Defensive: a value in the Map with no corresponding write-date entry
+    // (e.g. written directly by a test or old code) must be a miss.
+    const key = _nutritionStateCacheKey("user-1", "2026-08-13");
+    _nutritionStateCache.set(key, MOCK_STATE);
+    // _nutritionStateCacheWriteDate intentionally not set
+
+    expect(getCachedNutritionState(key)).toBeUndefined();
+  });
+
+  it("returns undefined for a key that has never been written", () => {
+    const key = _nutritionStateCacheKey("user-1", "2099-12-31");
+    expect(getCachedNutritionState(key)).toBeUndefined();
+  });
+
+  it("a stale entry does not seed state (simulates hook useState initializer)", () => {
+    // This mirrors exactly what the hook's useState(() => ...) does:
+    // getCachedNutritionState returns undefined for a stale entry, so the
+    // fallback ?? null makes state null, which correctly triggers a shimmer
+    // and then a fresh network fetch — preventing the visible number swap.
+    const key = _nutritionStateCacheKey("user-1", "2026-08-12");
+    _nutritionStateCache.set(key, MOCK_STATE);
+    _nutritionStateCacheWriteDate.set(key, "2000-01-01"); // stale
+
+    const seededState = getCachedNutritionState(key) ?? null;
+    expect(seededState).toBeNull();
+
+    // Because state is null, effectivelyLoading is true — the shimmer renders
+    // and the fresh fetch fires, preventing a stale number from ever appearing.
+    const effectivelyLoading =
+      false /* isLoading */ ||
+      (true /* !disabled */ && true /* !!dateISO */ && seededState === null && true /* error===null */);
+    expect(effectivelyLoading).toBe(true);
   });
 });

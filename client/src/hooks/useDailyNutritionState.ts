@@ -22,10 +22,20 @@ import { useState, useEffect, useRef } from "react";
 import type { DailyNutritionState } from "../../../shared/dailyNutritionPrescription";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
-import { _nutritionStateCache, _nutritionStateCacheKey } from "./nutritionStateCache";
+import {
+  _nutritionStateCache,
+  _nutritionStateCacheKey,
+  getCachedNutritionState,
+  setCachedNutritionState,
+} from "./nutritionStateCache";
 
 // Re-export so callers that previously imported from this module still work.
-export { _nutritionStateCache, _nutritionStateCacheKey } from "./nutritionStateCache";
+export {
+  _nutritionStateCache,
+  _nutritionStateCacheKey,
+  getCachedNutritionState,
+  setCachedNutritionState,
+} from "./nutritionStateCache";
 
 interface UseDailyNutritionStateInput {
   /** ISO date (YYYY-MM-DD). Hook is idle when empty. */
@@ -61,7 +71,7 @@ export function useDailyNutritionState({
   // so neither DailyTargetsCard nor RemainingMacrosFooter ever flashes the shimmer.
   const [state, setState] = useState<DailyNutritionState | null>(() => {
     if (!userId || !dateISO || disabled) return null;
-    return _nutritionStateCache.get(_nutritionStateCacheKey(userId, dateISO, clientId)) ?? null;
+    return getCachedNutritionState(_nutritionStateCacheKey(userId, dateISO, clientId)) ?? null;
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -83,7 +93,7 @@ export function useDailyNutritionState({
       .then((data: DailyNutritionState) => {
         if (thisCount === fetchCount.current) {
           if (userId) {
-            _nutritionStateCache.set(_nutritionStateCacheKey(userId, dateISO, clientId), data);
+            setCachedNutritionState(_nutritionStateCacheKey(userId, dateISO, clientId), data);
           }
           setState(data);
           setIsLoading(false);
