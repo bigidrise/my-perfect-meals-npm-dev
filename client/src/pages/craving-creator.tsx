@@ -42,6 +42,8 @@ import {
   Users,
   ArrowLeft,
   ChefHat,
+  Wand2,
+  RotateCcw,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -53,6 +55,7 @@ import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useTranslation } from "react-i18next";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
 import AlphaGalBadge from "@/components/AlphaGalBadge";
+import MealRefinementSheet from "@/components/MealRefinementSheet";
 import {
   generateMedicalBadges,
   getUserMedicalProfile,
@@ -233,6 +236,8 @@ export default function CravingCreator() {
   const [dietaryRestrictions, setDietaryRestrictions] = useState("");
   const [savedMeals, setSavedMeals] = useState(new Set<string>());
   const [generatedMeals, setGeneratedMeals] = useState<MealData[]>([]);
+  const [refineIndex, setRefineIndex] = useState<number | null>(null);
+  const [preRefinedMealsByIndex, setPreRefinedMealsByIndex] = useState<Record<number, MealData>>({});
   const [mealOptions, setMealOptions] = useState<any[]>([]);
   const [isPlatingMeal, setIsPlatingMeal] = useState(false);
   const { loadingImages, hydrateImages } = useMealImages(setGeneratedMeals, { mealType: "meal", concurrency: 1 });
@@ -1357,6 +1362,40 @@ export default function CravingCreator() {
                             Create New
                           </button>
                         </div>
+                        {/* Refine Meal button */}
+                        <button
+                          onClick={() => setRefineIndex(index)}
+                          className="mt-2 w-full flex items-center justify-center gap-2 rounded-xl border border-violet-500/40 bg-violet-950/30 py-2.5 text-sm font-semibold text-violet-300 active:bg-violet-900/40 transition-colors"
+                        >
+                          <Wand2 className="h-4 w-4" />
+                          Refine Meal
+                        </button>
+                        {/* Undo refinement banner */}
+                        {preRefinedMealsByIndex[index] && (
+                          <div className="mt-2 flex items-center justify-between gap-2 rounded-lg bg-violet-950/40 border border-violet-500/30 px-3 py-2 text-xs">
+                            <span className="flex items-center gap-1.5 text-violet-300">
+                              <Wand2 className="h-3 w-3 shrink-0" />
+                              Showing refined version
+                            </span>
+                            <button
+                              className="flex items-center gap-1 text-violet-400 font-medium active:opacity-70"
+                              onClick={() => {
+                                const orig = preRefinedMealsByIndex[index];
+                                setGeneratedMeals((prev) =>
+                                  prev.map((m, i) => (i === index ? orig : m))
+                                );
+                                setPreRefinedMealsByIndex((prev) => {
+                                  const next = { ...prev };
+                                  delete next[index];
+                                  return next;
+                                });
+                              }}
+                            >
+                              <RotateCcw className="h-3 w-3" />
+                              Restore original
+                            </button>
+                          </div>
+                        )}
                       </div>
 
                       {/* Starch Substitution Notice (when Chef picked alternatives) */}
@@ -1858,6 +1897,29 @@ export default function CravingCreator() {
           onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
         />
       </motion.div>
+
+      {/* Meal refinement sheet — rendered at root level so it clears the page */}
+      <MealRefinementSheet
+        open={refineIndex !== null}
+        onOpenChange={(v) => { if (!v) setRefineIndex(null); }}
+        meal={refineIndex !== null ? (generatedMeals[refineIndex] ?? null) : null}
+        builderType="craving-creator"
+        onRefined={(refined) => {
+          if (refineIndex === null) return;
+          const idx = refineIndex;
+          setPreRefinedMealsByIndex((prev) => ({
+            ...prev,
+            // Preserve the FIRST original only — never overwrite with an intermediate version
+            [idx]: prev[idx] ?? generatedMeals[idx],
+          }));
+          setGeneratedMeals((prev) =>
+            prev.map((m, i) =>
+              i === idx ? { ...m, ...refined, name: refined.name ?? m.name } : m
+            )
+          );
+          setRefineIndex(null);
+        }}
+      />
     </PhaseGate>
   );
 }

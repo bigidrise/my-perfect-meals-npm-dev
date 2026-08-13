@@ -661,7 +661,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api", fridgeRescueRouter);
   app.use("/api", inspirationRouter);
   app.use("/api/grocery-coach", requireAuth, requireProAccess, groceryCoachRouter);
-  app.use("/api/meal-refinement", requireAuth, mealRefinementRouter);
+  app.use("/api/meal-refinement", requireAuth, requireActiveAccess, mealRefinementRouter);
   app.use("/api/saved-groceries", requireAuth, savedGroceriesRouter);
   app.use("/api/pregnancy", requireAuth, requireClinicalAccess, pregnancyCoachRouter);
   app.use("/api/coach", coachingEngineRouter);
