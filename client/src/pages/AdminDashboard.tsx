@@ -418,12 +418,18 @@ export default function AdminDashboard() {
   const [newBugCount, setNewBugCount] = useState<number | null>(null);
 
   useEffect(() => {
-    fetch(apiUrl("/api/bug-reports"), { headers: getAuthHeaders() })
-      .then((r) => r.ok ? r.json() : Promise.reject())
-      .then((data: { status: string }[]) => {
-        setNewBugCount(data.filter((r) => r.status === "new").length);
-      })
-      .catch(() => { /* silent — badge just won't show */ });
+    const fetchBugCount = () => {
+      fetch(apiUrl("/api/bug-reports"), { headers: getAuthHeaders() })
+        .then((r) => r.ok ? r.json() : Promise.reject())
+        .then((data: { status: string }[]) => {
+          setNewBugCount(data.filter((r) => r.status === "new").length);
+        })
+        .catch(() => { /* silent — badge just won't show */ });
+    };
+
+    fetchBugCount();
+    const interval = setInterval(fetchBugCount, 60_000);
+    return () => clearInterval(interval);
   }, []);
 
   if (!user) {
