@@ -180,17 +180,11 @@ export async function resolveDailyNutritionState(
     const storedSource = storedSourceToResolverSource(storedRow.source);
     const currentSource = prescription.source;
 
-    // Suppress false positive: a ProCare client who also has Performance Mode
-    // enabled will have a stored source of "procare" (→ "professional_override")
-    // but the prescriptionResolver always returns "performance" when Performance
-    // Mode is active (it does not model ProCare overrides). These two sources
-    // can coexist all day, so a mismatch between them is NOT a real mid-day
-    // prescription change and must not trigger the banner.
-    const isProcarePerformanceOverlap =
-      (storedSource === "professional_override" && currentSource === "performance") ||
-      (storedSource === "performance" && currentSource === "professional_override");
-
-    if (storedSource !== currentSource && !isProcarePerformanceOverlap) {
+    // Use the compatibility matrix defined below. Compatible pairs (e.g.
+    // ProCare + Performance Mode) can coexist all day without the prescription
+    // actually changing, so they must never trigger the banner. To support a
+    // new pairing, add it to COMPATIBLE_SOURCE_PAIRS — do not extend this block.
+    if (!areSourcesCompatible(storedSource, currentSource)) {
       prescriptionChangedMidDay = true;
       prescriptionChangeReason = changeReasonLabel(storedSource, currentSource);
     }
@@ -254,6 +248,43 @@ function storedSourceToResolverSource(stored: string | null): PrescriptionSource
     case "clinical":            return "clinical";
     default:                    return "user_default"; // macro_calculator / unknown
   }
+}
+
+/**
+ * Source pairs that are considered compatible and must NOT trigger the
+ * mid-day prescription-change banner, even when the stored source differs
+ * from the resolver's current source.
+ *
+ * Each entry is [sourceA, sourceB]. The check is symmetric — (A, B) also
+ * covers (B, A).
+ *
+ * When to add a new entry:
+ *   Two sources are compatible when they can legitimately coexist all day
+ *   without the prescription actually changing mid-day. For example, ProCare
+ *   writes "professional_override" to the DB, but if the same user also has
+ *   Performance Mode enabled the resolver returns "performance" — both can be
+ *   true simultaneously, so this is NOT a real mid-day prescription change.
+ *
+ *   Add a row here rather than extending the comparison block above so that
+ *   new source pairings are always in one place and are easy to audit.
+ */
+const COMPATIBLE_SOURCE_PAIRS: ReadonlyArray<[PrescriptionSource, PrescriptionSource]> = [
+  // ProCare stores "professional_override"; Performance Mode resolver returns
+  // "performance". A ProCare client with Performance Mode enabled will always
+  // hit this pair — it must never fire the banner.
+  ["professional_override", "performance"],
+];
+
+/**
+ * Returns true when two PrescriptionSource values are considered compatible
+ * (i.e. their mismatch does NOT indicate a real mid-day change).
+ * Equal sources are always compatible.
+ */
+function areSourcesCompatible(a: PrescriptionSource, b: PrescriptionSource): boolean {
+  if (a === b) return true;
+  return COMPATIBLE_SOURCE_PAIRS.some(
+    ([x, y]) => (a === x && b === y) || (a === y && b === x),
+  );
 }
 
 /**
