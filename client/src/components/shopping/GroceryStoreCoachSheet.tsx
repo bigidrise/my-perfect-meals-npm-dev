@@ -153,6 +153,31 @@ export function computeClientProductKey(brand: string, ingredient: string): stri
   const n = ingredient.toLowerCase().replace(/[^a-z0-9]/g, "");
   return `name::${b}::${n}`;
 }
+
+/**
+ * Merges the two ingredient buckets returned by the Grocery Coach into a single
+ * ShoppingListItem array suitable for the Product Advisor.
+ *
+ * - shoppingList: items the user still needs to buy
+ * - ownedIngredients: items the model assumed the user already has at home
+ *
+ * Both buckets are sent to the advisor so Smart Cart returns brand picks for
+ * every ingredient in the recipe, not just the ones flagged as "needs buying".
+ * Owned items are assigned category "Other" because the model does not produce
+ * category metadata for them.
+ */
+export function buildAllIngredients(data: {
+  shoppingList?: ShoppingListItem[];
+  ownedIngredients?: Array<{ item: string; quantity: string; unit: string }>;
+}): ShoppingListItem[] {
+  return [
+    ...(data.shoppingList ?? []),
+    ...(data.ownedIngredients ?? []).map((o) => ({
+      ...o,
+      category: "Other" as const,
+    })),
+  ];
+}
 const GRADE_COLOR: Record<string, string> = {
   A: "rgba(16,185,129,0.9)",
   B: "rgba(251,191,36,0.9)",
@@ -272,15 +297,16 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
           // Verify the saved advice still covers the same ingredients as the
           // restored shopping list. If a swap changed the list since the advice
           // was generated, re-fetch rather than showing stale picks.
-          if (!isAdviceStale(session.productAdvice, session.result.shoppingList ?? [])) {
+          const allIng = buildAllIngredients(session.result);
+          if (!isAdviceStale(session.productAdvice, allIng)) {
             setProductAdvice(session.productAdvice);
           } else {
             // Stale — silently re-fetch in the background
-            fetchProductAdvice(session.result.shoppingList ?? []);
+            fetchProductAdvice(allIng);
           }
-        } else if (session.result.shoppingList?.length) {
+        } else if (buildAllIngredients(session.result).length) {
           // No saved advice — fetch now so Smart Cart isn't empty
-          fetchProductAdvice(session.result.shoppingList);
+          fetchProductAdvice(buildAllIngredients(session.result));
         }
       }
       if (session.conversation?.length) {
@@ -454,8 +480,15 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       // Trigger card generation immediately — non-blocking to the recommendation display
       finalizeCard(coachResult);
 
-      if (data.shoppingList?.length) {
-        fetchProductAdvice(data.shoppingList);
+      // Build the combined ingredient list — shoppingList (items to buy) +
+      // ownedIngredients (items the model assumed the user already has) — so the
+      // Product Advisor returns brand picks for every ingredient in the recipe,
+      // not just the ones flagged as "needs buying".  The edge case of an empty
+      // shoppingList with non-empty ownedIngredients is covered: the guard inside
+      // fetchProductAdvice checks the combined length, not shoppingList alone.
+      const allIngredients = buildAllIngredients(data);
+      if (allIngredients.length) {
+        fetchProductAdvice(allIngredients);
       }
     } catch (err: any) {
       if (sessionGenRef.current !== gen) return; // identity changed — suppress error UI

@@ -1623,7 +1623,7 @@ async function initializeApp() {
             CREATE INDEX IF NOT EXISTS idx_gcr_history_user_date
               ON grocery_coach_recommendation_history (user_id, created_at DESC)
           `);
-          await db.execute(sql`
+          await dbGcr.execute(sqlGcr`
             ALTER TABLE grocery_coach_recommendation_history
               ADD COLUMN IF NOT EXISTS meal_type text
           `);

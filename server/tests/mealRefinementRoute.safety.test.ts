@@ -171,6 +171,16 @@ jest.mock("openai", () => {
   return { __esModule: true, default: MockOpenAI };
 });
 
+// ── Mock: GLP-1 resolver ───────────────────────────────────────────────────────
+// Default: resolver available and user is NOT on GLP-1.
+// Individual tests that need a different state override this mock.
+let mockGlp1Ctx: any = { isActive: false, resolvedTargets: null };
+
+jest.mock("../services/glp1/resolveGLP1GlobalContext", () => ({
+  resolveGLP1GlobalContext: jest.fn().mockImplementation(async () => mockGlp1Ctx),
+  buildGLP1RecommendationBlock: jest.fn().mockReturnValue(""),
+}));
+
 // ── Imports ───────────────────────────────────────────────────────────────────
 
 import request from "supertest";
@@ -220,6 +230,8 @@ describe("POST /api/meal-refinement/refine — protocol safety gate", () => {
     scanPassed = true;
     scanMessage = "";
     scanViolations = [];
+    // Reset GLP-1 context to non-active / resolver available
+    mockGlp1Ctx = { isActive: false, resolvedTargets: null };
   });
 
   // ── Test 1: Compliant refinement ────────────────────────────────────────────
@@ -337,9 +349,7 @@ describe("POST /api/meal-refinement/refine — protocol safety gate", () => {
     expect(res.status).toBe(503);
     expect(res.body).toHaveProperty("error");
     expect(res.body.error).toMatch(/dietary profile|try again/i);
-
-    // Restore default behavior
-    mockLoad.mockResolvedValue(null);
+    // No explicit restore needed: mockRejectedValueOnce self-restores after one call.
   });
 
   it("returns 503 when the authenticated user's protocol envelope returns null", async () => {
@@ -354,8 +364,75 @@ describe("POST /api/meal-refinement/refine — protocol safety gate", () => {
     expect(res.status).toBe(503);
     expect(res.body).toHaveProperty("error");
     expect(res.body.error).toMatch(/dietary profile|try again/i);
+    // No explicit restore needed: mockResolvedValueOnce self-restores after one call.
+  });
 
-    // Restore default behavior
-    mockLoad.mockResolvedValue(null);
+  // ── Test 6: GLP-1 resolver throws — fail-closed for ALL users ──────────────
+  // An active GLP-1 user whose resolver throws must NEVER receive a refinement
+  // that bypasses the fat/calorie gate.  The route must return 503 without
+  // calling OpenAI so no unverified meal is generated.
+  it("returns 503 and makes no OpenAI call when the GLP-1 resolver throws for an active GLP-1 user (null daily tolerance)", async () => {
+    // Active GLP-1 with null glp1DailyTolerance — the unreliable proxy the old
+    // code used would have passed this user through without GLP-1 enforcement.
+    mockGlp1Ctx = null; // simulate resolver throw → .catch(() => null)
+    const { resolveGLP1GlobalContext } = await import("../services/glp1/resolveGLP1GlobalContext");
+    (resolveGLP1GlobalContext as jest.Mock).mockRejectedValueOnce(new Error("DB timeout"));
+
+    const { default: OpenAI } = await import("openai");
+    const mockInstance = new (OpenAI as any)();
+    mockInstance.chat.completions.create.mockClear();
+
+    const res = await request(app)
+      .post("/api/meal-refinement/refine")
+      .send({ meal: ORIGINAL_MEAL, request: "Make it heartier" });
+
+    expect(res.status).toBe(503);
+    expect(res.body).toHaveProperty("error");
+    expect(res.body.error).toMatch(/clinical guidance|try again/i);
+    // Confirm no OpenAI call was made — the route must block before generation
+    expect(mockInstance.chat.completions.create).not.toHaveBeenCalled();
+  });
+
+  // ── Test 7: GLP-1 resolver returns null — fail-closed for ALL users ─────────
+  // Same scenario but resolver explicitly returns null rather than throwing.
+  it("returns 503 when the GLP-1 resolver returns null (not just throws)", async () => {
+    const { resolveGLP1GlobalContext } = await import("../services/glp1/resolveGLP1GlobalContext");
+    (resolveGLP1GlobalContext as jest.Mock).mockResolvedValueOnce(null);
+
+    const res = await request(app)
+      .post("/api/meal-refinement/refine")
+      .send({ meal: ORIGINAL_MEAL, request: "More protein" });
+
+    expect(res.status).toBe(503);
+    expect(res.body).toHaveProperty("error");
+    expect(res.body.error).toMatch(/clinical guidance|try again/i);
+  });
+
+  // ── Test 8: Active GLP-1 with targets available — refinement proceeds ───────
+  // Confirms the route does NOT block a compliant GLP-1 user whose resolver
+  // returns active context with valid targets and a scan-passing response.
+  // REFINED_MEAL_RESPONSE has nutrition: { calories: 480, fat: 10 } —
+  // both within the limits set here (500 kcal, 15g fat).
+  it("returns 200 for an active GLP-1 user when the resolver is available and the refined meal is compliant", async () => {
+    // Assign directly to mockGlp1Ctx — the mock reads this variable at call time
+    // via its base implementation `async () => mockGlp1Ctx`, avoiding the
+    // mockResolvedValueOnce / mockImplementation interaction ambiguity.
+    mockGlp1Ctx = {
+      isActive: true,
+      resolvedTargets: {
+        treatmentPhase: "maintenance",
+        resolvedMealCalories: 500,
+        targetProteinGrams: 30,
+        maximumToleratedFatGrams: 15,
+      },
+    };
+    scanPassed = true;
+
+    const res = await request(app)
+      .post("/api/meal-refinement/refine")
+      .send({ meal: ORIGINAL_MEAL, request: "Add more protein" });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty("meal");
   });
 });
