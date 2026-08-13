@@ -480,6 +480,27 @@ router.post("/users/:userId/macro-targets", requireAuth, async (req, res) => {
         body: `New macro targets: ${calories} cal, ${protein_g}g protein.`,
         url: "/my-biometrics",
       });
+
+      // Stamp the day's prescription row as ProCare-controlled so the
+      // mid-day change detection in nutritionStateService can fire the
+      // amber banner for the client.  Awaited so the row is durable before
+      // success is returned; a nutrition-state fetch immediately after the
+      // coach write will see the correct source.  Uses the client's saved
+      // timezone so the calendar date matches what the resolver and meal
+      // logs use for this user.
+      try {
+        const clientTz = await getUserTimezone(userId);
+        const prescDate = todayInTimezone(clientTz);
+        await db.execute(sql`
+          INSERT INTO daily_nutrition_prescriptions (user_id, date, source, updated_at)
+          VALUES (${userId}, ${prescDate}::date, 'procare', NOW())
+          ON CONFLICT (user_id, date) DO UPDATE SET
+            source     = 'procare',
+            updated_at = NOW()
+        `);
+      } catch (err: unknown) {
+        console.error("[manualMacros] Prescription source stamp failed:", (err as Error).message);
+      }
     }
 
     res.json({ 
