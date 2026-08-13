@@ -1856,6 +1856,7 @@ export default function BeachBodyMealBoard() {
               userId={effectiveUserId}
               onQuickAddClick={() => setAdditionalMacrosOpen(true)}
               targetsOverride={effectiveTargets}
+              isLoading={nutritionStateLoading}
             />
           </div>
         </div>
@@ -1934,6 +1935,7 @@ export default function BeachBodyMealBoard() {
                   <RemainingMacrosFooter
                     consumedOverride={consumed}
                     targetsOverride={effectiveTargets}
+                    isLoading={nutritionStateLoading}
                     showSaveButton={false}
                     layoutMode="inline"
                     prescriptionChangedMidDay={nutritionState?.prescriptionChangedMidDay}

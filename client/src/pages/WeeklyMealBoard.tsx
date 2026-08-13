@@ -1834,6 +1834,7 @@ export default function WeeklyMealBoard() {
                   {!proClientId && <RemainingMacrosFooter
                     userId={effectiveUserId}
                     targetsOverride={effectiveTargets}
+                    isLoading={nutritionStateLoading}
                     consumedOverride={consumed}
                     showSaveButton={false}
                     layoutMode={isDay ? "inline" : "sticky"}

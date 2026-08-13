@@ -15,6 +15,8 @@ interface DailyTargetsCardProps {
     starchyCarbs_g?: number;
     fibrousCarbs_g?: number;
   };
+  /** When true, renders skeleton shimmer bars instead of zero values */
+  isLoading?: boolean;
 }
 
 export function DailyTargetsCard({
@@ -22,6 +24,7 @@ export function DailyTargetsCard({
   onQuickAddClick,
   showQuickAddButton = true,
   targetsOverride,
+  isLoading = false,
 }: DailyTargetsCardProps) {
   const [, setTick] = useState(0);
 
@@ -74,28 +77,39 @@ export function DailyTargetsCard({
             </div>
           )}
         </div>
-        <div className="grid grid-cols-5 gap-2">
-          <div className="text-center">
-            <div className="text-lg font-bold text-white">{Math.round(resolved.protein_g || 0)}g</div>
-            <div className="text-xs text-white/60">Protein</div>
+        {isLoading ? (
+          <div className="grid grid-cols-5 gap-2">
+            {["Protein", "Total Carbs", "Starchy", "Fibrous", "Fat"].map((label) => (
+              <div key={label} className="text-center">
+                <div className="animate-pulse h-6 w-10 mx-auto rounded bg-white/10 mb-1" />
+                <div className="text-xs text-white/60">{label}</div>
+              </div>
+            ))}
           </div>
-          <div className="text-center">
-            <div className="text-lg font-bold text-white">{Math.round(resolved.carbs_g || 0)}g</div>
-            <div className="text-xs text-white/60">Total Carbs</div>
+        ) : (
+          <div className="grid grid-cols-5 gap-2">
+            <div className="text-center">
+              <div className="text-lg font-bold text-white">{Math.round(resolved.protein_g || 0)}g</div>
+              <div className="text-xs text-white/60">Protein</div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-bold text-white">{Math.round(resolved.carbs_g || 0)}g</div>
+              <div className="text-xs text-white/60">Total Carbs</div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-bold text-white">{Math.round(starchyCarbs)}g</div>
+              <div className="text-xs text-white/60">Starchy</div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-bold text-white">{Math.round(fibrousCarbs)}g</div>
+              <div className="text-xs text-white/60">Fibrous</div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-bold text-white">{Math.round(resolved.fat_g || 0)}g</div>
+              <div className="text-xs text-white/60">Fat</div>
+            </div>
           </div>
-          <div className="text-center">
-            <div className="text-lg font-bold text-white">{Math.round(starchyCarbs)}g</div>
-            <div className="text-xs text-white/60">Starchy</div>
-          </div>
-          <div className="text-center">
-            <div className="text-lg font-bold text-white">{Math.round(fibrousCarbs)}g</div>
-            <div className="text-xs text-white/60">Fibrous</div>
-          </div>
-          <div className="text-center">
-            <div className="text-lg font-bold text-white">{Math.round(resolved.fat_g || 0)}g</div>
-            <div className="text-xs text-white/60">Fat</div>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

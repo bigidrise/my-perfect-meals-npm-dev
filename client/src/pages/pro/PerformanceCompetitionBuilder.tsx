@@ -1479,6 +1479,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
               userId={clientId}
               showQuickAddButton={false}
               targetsOverride={effectiveTargets}
+              isLoading={nutritionStateLoading}
             />
           </div>
 
@@ -1537,6 +1538,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                 <div className="col-span-full mb-6">
                   <RemainingMacrosFooter
                     targetsOverride={effectiveTargets}
+                    isLoading={nutritionStateLoading}
                     consumedOverride={consumed}
                     showSaveButton={false}
                     layoutMode="inline"

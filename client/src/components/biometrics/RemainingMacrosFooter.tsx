@@ -46,6 +46,8 @@ interface RemainingMacrosFooterProps {
   prescriptionChangedMidDay?: boolean;
   /** Short label for what caused the change, e.g. "ProCare override" */
   prescriptionChangeReason?: string;
+  /** When true, renders skeleton shimmer bars instead of the "Set your macros" prompt */
+  isLoading?: boolean;
 }
 
 export function RemainingMacrosFooter({
@@ -58,6 +60,7 @@ export function RemainingMacrosFooter({
   layoutMode = "sticky",
   prescriptionChangedMidDay,
   prescriptionChangeReason,
+  isLoading = false,
 }: RemainingMacrosFooterProps) {
   const { user } = useAuth();
   const effectiveUserId = userId ?? user?.id ?? "";
@@ -148,6 +151,31 @@ export function RemainingMacrosFooter({
   const contentClass = isInline
     ? ""
     : MPM_STICKY_FOOTER.content;
+
+  if (isLoading) {
+    return (
+      <div className={containerClass}>
+        <div className={`${innerClass} px-4 py-3`}>
+          <div className="flex items-center justify-center mb-2">
+            <span className="text-white/70 text-xs font-medium uppercase tracking-wide">
+              Remaining Today
+            </span>
+          </div>
+          <div className="grid gap-2 grid-cols-4">
+            {["Protein", "Starchy", "Fibrous", "Fat"].map((label) => (
+              <div key={label} className="flex flex-col items-center rounded-lg px-1.5 py-1.5 bg-black/20">
+                <div className="text-[10px] uppercase tracking-wide mb-0.5 text-white/50">{label}</div>
+                <div className="animate-pulse h-6 w-10 rounded bg-white/10 mb-1" />
+                <div className="w-full h-1 bg-black/30 rounded-full overflow-hidden mt-1">
+                  <div className="animate-pulse h-full w-1/3 bg-white/10 rounded-full" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!hasTargets) {
     return (

@@ -1232,6 +1232,7 @@ export default function WeeklyMealBoard() {
             userId={effectiveUserId}
             showQuickAddButton={false}
             targetsOverride={effectiveTargets}
+            isLoading={nutritionStateLoading}
           />
         </div>
 
@@ -1292,6 +1293,7 @@ export default function WeeklyMealBoard() {
                 <RemainingMacrosFooter
                   consumedOverride={consumed}
                   targetsOverride={effectiveTargets}
+                  isLoading={nutritionStateLoading}
                   showSaveButton={false}
                   layoutMode="inline"
                   prescriptionChangedMidDay={nutritionState?.prescriptionChangedMidDay}

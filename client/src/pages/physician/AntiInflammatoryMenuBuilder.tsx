@@ -1707,6 +1707,7 @@ export default function AntiInflammatoryMenuBuilder() {
               userId={effectiveUserId}
               onQuickAddClick={() => setAdditionalMacrosOpen(true)}
               targetsOverride={effectiveTargets}
+              isLoading={nutritionStateLoading}
             />
           </div>
 
@@ -1766,6 +1767,7 @@ export default function AntiInflammatoryMenuBuilder() {
                   <RemainingMacrosFooter
                     consumedOverride={consumed}
                     targetsOverride={effectiveTargets}
+                    isLoading={nutritionStateLoading}
                     showSaveButton={false}
                     layoutMode="inline"
                     prescriptionChangedMidDay={nutritionState?.prescriptionChangedMidDay}
