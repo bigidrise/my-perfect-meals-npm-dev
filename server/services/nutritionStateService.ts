@@ -74,15 +74,43 @@ export async function resolveDailyNutritionState(
     mealCount:         Number(cr.meal_count         ?? 0),
   };
 
-  // ── Planned: zeros — board reservation wiring is Stage 2 / #691 ──────────
+  // ── Planned: board reservations not yet converted to logs ────────────────
+  // Query meal_board_items rows for this user/date that do NOT have a
+  // matching board_item_reference in macro_logs (those are already consumed).
+  const plannedRows = await db.execute(sql`
+    SELECT
+      COALESCE(SUM((mbi.macros->>'kcal')::numeric),         0) AS calories,
+      COALESCE(SUM((mbi.macros->>'protein')::numeric),      0) AS protein,
+      COALESCE(SUM((mbi.macros->>'carbs')::numeric),        0) AS carbs,
+      COALESCE(SUM((mbi.macros->>'fat')::numeric),          0) AS fat,
+      COALESCE(SUM((mbi.macros->>'starchyCarbs')::numeric), 0) AS starchy_carbs,
+      COUNT(*) FILTER (
+        WHERE COALESCE((mbi.macros->>'starchyCarbs')::numeric, 0) > 0
+      )                                                         AS starch_meal_count,
+      COUNT(*)                                                  AS reservation_count
+    FROM meal_board_items mbi
+    JOIN meal_boards mb ON mb.id = mbi.board_id
+    WHERE mb.user_id = ${userId}::uuid
+      AND (
+        mb.start_date::date
+        + (mbi.day_index * INTERVAL '1 day')
+      ) = ${dateISO}::date
+      AND NOT EXISTS (
+        SELECT 1 FROM macro_logs ml
+        WHERE ml.board_item_reference = mbi.id::text
+      )
+  `);
+
+  const pr = (plannedRows.rows?.[0] ?? {}) as Record<string, unknown>;
+
   const planned: DailyNutritionState["planned"] = {
-    calories:           0,
-    protein:            0,
-    carbs:              0,
-    fat:                0,
-    starchyCarbs:       0,
-    starchMealsPlanned: 0,
-    reservationCount:   0,
+    calories:           Number(pr.calories          ?? 0),
+    protein:            Number(pr.protein           ?? 0),
+    carbs:              Number(pr.carbs             ?? 0),
+    fat:                Number(pr.fat               ?? 0),
+    starchyCarbs:       Number(pr.starchy_carbs     ?? 0),
+    starchMealsPlanned: Number(pr.starch_meal_count ?? 0),
+    reservationCount:   Number(pr.reservation_count ?? 0),
   };
 
   // ── Remaining = prescription − consumed − planned (clamped ≥ 0) ──────────
