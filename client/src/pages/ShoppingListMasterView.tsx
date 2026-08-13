@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import {
   Select,
   SelectContent,
@@ -216,9 +217,9 @@ export default function ShoppingListMasterView() {
           }));
         }, 300);
       } else {
-        // Product unknown — fall back to adding by barcode note
+        // Product unknown — fall back to adding by barcode note with a clear label
         addItem({
-          name: "Scanned Product",
+          name: `Unknown product — Barcode: ${barcode}`,
           quantity: 1,
           unit: "",
           notes: `Barcode: ${barcode}`,
@@ -227,14 +228,22 @@ export default function ShoppingListMasterView() {
         setBarcodeModalOpen(false);
         setBarcodeScanMode("manual");
         toast({
-          title: "Product not found",
-          description: "Added to your list — try scanning the label for full analysis.",
+          title: `Barcode ${barcode} not found`,
+          description: "This product isn't in our database. Try scanning the label for a photo-based lookup.",
+          action: (
+            <ToastAction
+              altText="Scan label"
+              onClick={() => setScanModalOpen(true)}
+            >
+              Scan label
+            </ToastAction>
+          ),
         });
       }
     } catch {
       // Network / server error — fall back gracefully
       addItem({
-        name: "Scanned Product",
+        name: `Unknown product — Barcode: ${barcode}`,
         quantity: 1,
         unit: "",
         notes: `Barcode: ${barcode}`,
