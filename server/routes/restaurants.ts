@@ -174,11 +174,6 @@ router.post("/guide", async (req, res) => {
         ]);
         fallbackContext = ctx;
         fallbackGlp1Block = glp1Ctx ? buildGLP1RecommendationBlock(glp1Ctx) : "";
-        console.log(
-          `🔒 [Guide/AI] Nutrition context: diet=[${fallbackContext.diet.join(",")}] ` +
-          `medical=[${fallbackContext.medical.length} flags] builder=${fallbackContext.builder ?? "none"} ` +
-          `glp1=${glp1Ctx?.isActive ? `ACTIVE[${glp1Ctx.activationSources.join(",")}]` : "inactive"}`
-        );
         // Load remaining daily budget so the AI can guide preparation and sides
         try {
           const state = await resolveDailyNutritionState(userId, todayISO);
@@ -186,6 +181,12 @@ router.post("/guide", async (req, res) => {
         } catch {
           // Non-fatal — remaining macros block simply omitted
         }
+        console.log(
+          `🔒 [Guide/AI] Nutrition context: diet=[${fallbackContext.diet.join(",")}] ` +
+          `medical=[${fallbackContext.medical.length} flags] builder=${fallbackContext.builder ?? "none"} ` +
+          `glp1=${glp1Ctx?.isActive ? `ACTIVE[${glp1Ctx.activationSources.join(",")}]` : "inactive"} ` +
+          `remainingMacros=${fallbackRemainingMacrosBlock ? "populated" : "empty"}`
+        );
       } catch {
         console.warn(`⚠️ [Guide/AI] Could not load nutrition context — proceeding without protocol constraints`);
       }
