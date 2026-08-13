@@ -50,6 +50,8 @@ interface CreateWithChefModalProps {
   remainingMacros?: RemainingMacros;
   builderMode?: BuilderMode;
   performanceSessionContext?: PerformanceSessionContext;
+  /** Nutritional generation context — e.g. "performance_training_day" or "rest_day". */
+  generationContext?: string;
 }
 
 export function CreateWithChefModal({
@@ -64,6 +66,7 @@ export function CreateWithChefModal({
   remainingMacros,
   builderMode,
   performanceSessionContext,
+  generationContext,
 }: CreateWithChefModalProps) {
   const [description, setDescription] = useState("");
   const [safetyEnabled, setSafetyEnabled] = useState(true);
@@ -187,7 +190,8 @@ export function CreateWithChefModal({
       diversityContext,
       remainingMacros,
       builderMode,
-      performanceSessionContext
+      performanceSessionContext,
+      generationContext
     );
 
     if (meal) {

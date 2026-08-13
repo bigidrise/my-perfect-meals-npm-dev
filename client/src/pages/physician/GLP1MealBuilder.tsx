@@ -108,7 +108,7 @@ import { InformationModal } from "@/components/ui/universal-modal";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
-import { useDailyPrescription } from "@/hooks/useDailyPrescription";
+import { useDailyNutritionState } from "@/hooks/useDailyNutritionState";
 import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import { PillButton } from "@/components/ui/pill-button";
@@ -322,28 +322,14 @@ export default function GLP1MealBuilder() {
   const [createWithChefOpen, setCreateWithChefOpen] = useState(false);
   const [createWithChefSlot, setCreateWithChefSlot] = useState<"breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6">("breakfast");
 
-  // Consumed starch totals for the active day — fed into the prescription hook
-  const activeDayConsumed = useMemo(() => {
-    if (!board || !activeDayISO) return { starchyCarbs: 0, starchMealsUsed: 0 };
-    const dayLists = getDayLists(board, activeDayISO);
-    const allMeals = [...dayLists.breakfast, ...dayLists.lunch, ...dayLists.dinner, ...dayLists.snacks];
-    let starchyCarbs = 0;
-    let starchMealsUsed = 0;
-    for (const m of allMeals) {
-      const stored = (m as any).starchyCarbs ?? m.nutrition?.starchyCarbs;
-      if (typeof stored === 'number' && stored > 0) starchyCarbs += stored;
-      if (classifyMeal(m).isStarchMeal) starchMealsUsed++;
-    }
-    return { starchyCarbs, starchMealsUsed };
-  }, [board, activeDayISO]);
-
-  // DailyNutritionPrescription — server-resolved, date-aware, performance-aware.
-  const { prescription } = useDailyPrescription({
+  // DailyNutritionState — the single server authority for macro targets, consumed, and remaining.
+  // Board meals are "planned" (not yet logged); consumption comes from macro_logs server-side.
+  const { state: nutritionState } = useDailyNutritionState({
     dateISO: activeDayISO,
-    starchyConsumed: activeDayConsumed.starchyCarbs,
-    starchMealsUsed: activeDayConsumed.starchMealsUsed,
-    disabled: !activeDayISO || !!proClientId,
+    clientId: proClientId ?? null,
+    disabled: !activeDayISO,
   });
+  const prescription = nutritionState?.resolvedPrescription ?? null;
 
   // Day macro totals for the Today row — consumed cal/P/C/F for the active day.
   const dayTotals = useMemo(() => {
@@ -362,6 +348,12 @@ export default function GLP1MealBuilder() {
       fat:      Math.round(allMeals.reduce((s, m) => s + (m.nutrition?.fat      ?? 0), 0)),
     };
   }, [board, activeDayISO]);
+
+  // Derive generationContext from server-resolved training day type.
+  const generationContext = useMemo((): string | undefined => {
+    if (!prescription || prescription.trainingDayType === null) return undefined;
+    return prescription.trainingDayType === 'rest' ? 'rest_day' : 'performance_training_day';
+  }, [prescription?.trainingDayType]);
 
   // Build StarchContext for Create With Chef modal
   const starchContext: StarchContext | undefined = useMemo(() => {
@@ -810,16 +802,17 @@ export default function GLP1MealBuilder() {
   // 🔧 FIX #1: Use real macro tracking instead of board state
   const macroData = useTodayMacros(effectiveUserId || "");
   const nutritionBudget = useNutritionBudget(effectiveUserId || "");
+  // Server-resolved remaining budget — already floored at 0, no client clamping needed.
   const remainingMacrosForChef = useMemo(() => {
-    if (!nutritionBudget.hasTargets) return undefined;
-    const r = nutritionBudget.remaining;
+    if (!nutritionState?.remaining) return undefined;
+    const r = nutritionState.remaining;
     return {
-      protein: Math.max(0, r.protein),
-      carbs: Math.max(0, r.carbs),
-      fat: Math.max(0, r.fat),
-      calories: Math.max(0, r.calories),
+      protein:  r.protein,
+      carbs:    r.totalCarbs,
+      fat:      r.fat,
+      calories: r.calories,
     };
-  }, [nutritionBudget.hasTargets, nutritionBudget.remaining]);
+  }, [nutritionState?.remaining]);
   const totals = {
     calories: macroData.kcal || 0,
     protein: macroData.protein || 0,
@@ -1690,6 +1683,7 @@ export default function GLP1MealBuilder() {
         starchContext={starchContext}
         remainingMacros={remainingMacrosForChef}
         builderMode="targeted"
+        generationContext={generationContext}
       />
 
       {/* Snack Creator Modal (Phase 2 - craving to healthy snack) - with GLP-1 guardrails */}

@@ -20,13 +20,14 @@
 import { Router } from "express";
 import { db } from "../db";
 import { users } from "../../shared/schema";
-import { eq, count } from "drizzle-orm";
+import { eq, count, and } from "drizzle-orm";
 import { requireAuth } from "../middleware/requireAuth";
 import { resolveDailyNutritionPrescription } from "../services/prescriptionResolver";
 import { getTierForLookupKey } from "../../shared/planFeatures";
 import { deriveClinicalStatus } from "../../shared/dailyNutritionPrescription";
 import { clinicalLabs } from "../db/schema/clinicalLabs";
 import { companionProfiles } from "../db/schema/companionProfiles";
+import { clientLinks } from "../db/schema/procare";
 
 const VALID_DISTRIBUTION_STRATEGIES = ["even", "workout", "morning", "evening", "ai"] as const;
 type DistributionStrategy = typeof VALID_DISTRIBUTION_STRATEGIES[number];
@@ -37,12 +38,36 @@ const router = Router();
 
 router.get("/:dateISO", requireAuth, async (req, res) => {
   try {
-    const userId = (req as any).authUser?.id || (req.session as any)?.userId;
-    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+    const authUserId = (req as any).authUser?.id || (req.session as any)?.userId;
+    if (!authUserId) return res.status(401).json({ error: "Unauthorized" });
 
     const { dateISO } = req.params;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(dateISO)) {
       return res.status(400).json({ error: "Invalid date format. Use YYYY-MM-DD." });
+    }
+
+    // ProCare: coaches may request a client's prescription via ?clientId=
+    const requestedClientId = (req.query.clientId as string) || null;
+    let userId = authUserId;
+
+    if (requestedClientId && requestedClientId !== authUserId) {
+      // Verify the requester is an active ProCare coach for this client.
+      const link = await db
+        .select({ id: clientLinks.id })
+        .from(clientLinks)
+        .where(
+          and(
+            eq(clientLinks.proUserId, authUserId),
+            eq(clientLinks.clientUserId, requestedClientId),
+            eq(clientLinks.active, true),
+          ),
+        )
+        .limit(1);
+
+      if (link.length === 0) {
+        return res.status(403).json({ error: "Not authorized to view this client's prescription" });
+      }
+      userId = requestedClientId;
     }
 
     // starchyConsumed must be STARCHY carbs only — not total carbs
