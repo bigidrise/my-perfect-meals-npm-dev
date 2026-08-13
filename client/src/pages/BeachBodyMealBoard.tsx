@@ -362,16 +362,19 @@ export default function BeachBodyMealBoard() {
   // Consumed starch totals for the active day — fed into the prescription hook
   // DailyNutritionState — the single server authority for macro targets, consumed, and remaining.
   // Board meals are "planned" (not yet logged); consumption comes from macro_logs server-side.
-  const { state: nutritionState } = useDailyNutritionState({
+  const { state: nutritionState, isLoading: nutritionStateLoading } = useDailyNutritionState({
     dateISO: activeDayISO,
     clientId: proClientId ?? null,
     disabled: !activeDayISO,
   });
   const prescription = nutritionState?.prescription ?? null;
-  // Server prescription (clinical, performance, or user_default) is the display
-  // authority whenever the server resolves one. Falls back to macro-calculator
-  // baseline only when the server returns null or source === "fallback".
-  const effectiveTargets = prescriptionToTargetsOverride(prescription) ?? nutritionTargets;
+  // Training prescription is the display authority when resolved; falls back to
+  // macro-calculator baseline (nutritionTargets) for non-performance/fallback days.
+  // While the prescription is still loading, pass undefined so DailyTargetsCard and
+  // RemainingMacrosFooter show their empty state rather than flashing the baseline numbers.
+  const effectiveTargets = nutritionStateLoading
+    ? undefined
+    : (prescriptionToTargetsOverride(prescription) ?? nutritionTargets);
 
   // Derive generationContext from server-resolved training day type.
   const generationContext = useMemo((): string | undefined => {
@@ -1029,7 +1032,7 @@ export default function BeachBodyMealBoard() {
     const r = nutritionState.remaining;
     return {
       protein:  r.protein,
-      carbs:    r.carbs,
+      carbs:    r.totalCarbs,
       fat:      r.fat,
       calories: r.calories,
     };

@@ -429,16 +429,19 @@ export default function WeeklyMealBoard() {
   // DailyNutritionState — single server authority for macro targets, consumed, and remaining.
   // Replaces useDailyPrescription + board-derived activeDayConsumed starch counting.
   // Consumption comes from macro_logs server-side; board meals are "planned" (not yet logged).
-  const { state: nutritionState } = useDailyNutritionState({
+  const { state: nutritionState, isLoading: nutritionStateLoading } = useDailyNutritionState({
     dateISO: activeDayISO,
     clientId: proClientId ?? null,
     disabled: !activeDayISO,
   });
   const prescription = nutritionState?.prescription ?? null;
-  // Server prescription (clinical, performance, or user_default) is the display
-  // authority whenever the server resolves one. Falls back to macro-calculator
-  // baseline only when the server returns null or source === "fallback".
-  const effectiveTargets = prescriptionToTargetsOverride(prescription) ?? nutritionTargets;
+  // Training prescription is the display authority when resolved; falls back to
+  // macro-calculator baseline (nutritionTargets) for non-performance/fallback days.
+  // While the prescription is still loading, pass undefined so DailyTargetsCard and
+  // RemainingMacrosFooter show their empty state rather than flashing the baseline numbers.
+  const effectiveTargets = nutritionStateLoading
+    ? undefined
+    : (prescriptionToTargetsOverride(prescription) ?? nutritionTargets);
 
   // Computed: check if week mode is read-only (any day in week is locked)
   const weekModeReadOnly = React.useMemo(() => {
