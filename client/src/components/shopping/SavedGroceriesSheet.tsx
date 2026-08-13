@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useShoppingListStore } from "@/stores/shoppingListStore";
+import { get, post, apiJSON } from "@/lib/api";
 import { IngredientIntelligenceSheet } from "@/components/biometrics/IngredientIntelligenceSheet";
 import type { IngredientScanResult } from "@/lib/photoIngredientCapture";
 
@@ -151,9 +152,7 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/saved-groceries", { credentials: "include" });
-      if (!res.ok) throw new Error(`${res.status}`);
-      const data = await res.json();
+      const data = await get<{ items: SavedGroceryItem[] }>("/api/saved-groceries");
       setItems(data.items ?? []);
     } catch {
       setError("Could not load your saved groceries. Pull to refresh.");
@@ -172,13 +171,8 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
   const handleAddToList = useCallback(async (item: SavedGroceryItem) => {
     setAddingId(item.id);
     try {
-      const res = await fetch(`/api/saved-groceries/${item.id}/add-to-list`, {
-        method: "POST",
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      setAddedIds((prev) => new Set([...prev, item.id]));
+      const data = await post<{ name?: string }>(`/api/saved-groceries/${item.id}/add-to-list`);
+      setAddedIds((prev) => new Set(Array.from(prev).concat(item.id)));
       await hydrate();
       toast({
         title: "Added to list!",
@@ -194,11 +188,7 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
   const handleRemove = useCallback(async (item: SavedGroceryItem) => {
     setRemovingId(item.id);
     try {
-      const res = await fetch(`/api/saved-groceries/${item.id}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error();
+      await apiJSON(`/api/saved-groceries/${item.id}`, { method: "DELETE" });
       setItems((prev) => prev.filter((i) => i.id !== item.id));
       queryClient.invalidateQueries({ queryKey: ['/api/saved-groceries'] });
       toast({ title: "Removed", description: `${item.productName} removed from saved groceries.` });
