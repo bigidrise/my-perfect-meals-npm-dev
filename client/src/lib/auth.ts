@@ -1,6 +1,7 @@
 // client/src/lib/auth.ts
 import { apiUrl } from '@/lib/resolveApiBase';
 import { Capacitor } from '@capacitor/core';
+import { clearNutritionCache } from '../hooks/nutritionStateCache';
 
 export type MealBuilderType = "weekly" | "diabetic" | "glp1" | "anti_inflammatory" | "beach_body" | "general_nutrition" | "performance_competition";
 
@@ -571,6 +572,7 @@ export function logout(): void {
   localStorage.removeItem("isAuthenticated");
   localStorage.removeItem("coachMode");
   localStorage.removeItem("mpm.hasSeenWelcome");
+  clearNutritionCache();
 }
 
 export function getCurrentUser(): User | null {

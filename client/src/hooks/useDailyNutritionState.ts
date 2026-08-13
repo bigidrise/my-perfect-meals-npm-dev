@@ -27,6 +27,7 @@ import {
   _nutritionStateCacheKey,
   getCachedNutritionState,
   setCachedNutritionState,
+  getCacheGeneration,
 } from "./nutritionStateCache";
 
 // Re-export so callers that previously imported from this module still work.
@@ -67,6 +68,8 @@ export function useDailyNutritionState({
   // Seed state synchronously from the module-level cache on the very first render.
   // Cache is scoped to the authenticated viewer's user ID so two accounts that
   // share a tab session never see each other's health data.
+  // getCachedNutritionState applies the date-staleness guard so an entry written
+  // on a previous calendar day is treated as a miss (forces a fresh fetch).
   // This means `effectivelyLoading` starts as false on repeat visits (warm cache),
   // so neither DailyTargetsCard nor RemainingMacrosFooter ever flashes the shimmer.
   const [state, setState] = useState<DailyNutritionState | null>(() => {
@@ -83,6 +86,11 @@ export function useDailyNutritionState({
     setIsLoading(true);
     setError(null);
     const thisCount = ++fetchCount.current;
+    // Snapshot the generation at request-start.  If logout fires while the
+    // request is in-flight the generation will have advanced, and the success
+    // handler will silently discard the stale response rather than writing it
+    // back into the cache for the next user to read.
+    const thisGeneration = getCacheGeneration();
 
     const params = new URLSearchParams();
     if (clientId) params.set("clientId", clientId);
@@ -92,7 +100,7 @@ export function useDailyNutritionState({
     apiRequest(url)
       .then((data: DailyNutritionState) => {
         if (thisCount === fetchCount.current) {
-          if (userId) {
+          if (userId && thisGeneration === getCacheGeneration()) {
             setCachedNutritionState(_nutritionStateCacheKey(userId, dateISO, clientId), data);
           }
           setState(data);

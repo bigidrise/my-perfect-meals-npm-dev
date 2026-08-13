@@ -13,6 +13,7 @@ import { apiUrl } from "@/lib/resolveApiBase";
 import i18n, { resolveI18nLang } from "@/i18n";
 import { isGuestMode, getGuestSession } from "@/lib/guestMode";
 import { setUserContext, clearUserContext } from "@/lib/sentry";
+import { clearNutritionCache } from "@/hooks/nutritionStateCache";
 
 interface AuthContextType {
   user: User | null;
@@ -295,6 +296,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           localStorage.removeItem("isAuthenticated");
           clearAuthToken();
           clearUserContext();
+          clearNutritionCache();
           window.location.href = "/login";
         }
       } catch {
@@ -321,6 +323,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       localStorage.removeItem("isAuthenticated");
       clearAuthToken();
       clearUserContext();
+      clearNutritionCache();
       window.location.href = "/login";
     };
     window.addEventListener("mpm:polling-auth-rejected", handlePollingAuthRejected);
@@ -347,6 +350,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             localStorage.removeItem("isAuthenticated");
             clearAuthToken();
             clearUserContext();
+            clearNutritionCache();
             if (window.location.pathname !== "/login" && window.location.pathname !== "/welcome") {
               window.location.href = "/login";
             }
@@ -396,6 +400,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         localStorage.removeItem("isAuthenticated");
         clearAuthToken();
         clearUserContext();
+        clearNutritionCache();
         const publicPaths = ["/login", "/welcome", "/auth", "/forgot-password", "/reset-password", "/pricing", "/privacy", "/guest-builder", "/guest-suite", "/consumer-welcome", "/procare-welcome", "/procare-identity", "/procare-attestation", "/founders", "/affiliates", "/delete-account", "/terms", "/privacy-policy", "/partners"];
         const isPublicPath = publicPaths.some(p => window.location.pathname === p || window.location.pathname.startsWith(p + "/"));
         if (!isPublicPath) {

@@ -22,6 +22,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders, clearAuthToken } from "@/lib/auth";
 import { clearUserContext } from "@/lib/sentry";
+import { clearNutritionCache } from "@/hooks/nutritionStateCache";
 
 // Must match server/middleware/requireAuth.ts IDLE_TIMEOUT_MS
 const IDLE_TIMEOUT_MS: Record<string, number> = {
@@ -82,6 +83,7 @@ export function IdleTimeoutModal() {
     localStorage.removeItem("isAuthenticated");
     clearAuthToken();
     clearUserContext();
+    clearNutritionCache();
 
     // Redirect with a message the login page can display
     window.location.href = "/login?reason=idle_timeout";
