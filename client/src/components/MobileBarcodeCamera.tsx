@@ -102,69 +102,15 @@ export default function MobileBarcodeCamera({
     return constraints;
   }, []);
 
-  // Canvas-based barcode detection fallback (simplified approach)
+  // Canvas-based barcode detection is not available without a real barcode library.
+  // Show a clear error so the user falls back to manual entry instead of waiting silently.
   const startCanvasBasedDetection = useCallback(async () => {
-    if (!videoRef.current || !onBarcode) return;
-
-    console.log("🔍 Starting canvas-based barcode detection...");
-    setUsingZXing(true);
-
-    try {
-      // Create a hidden canvas for frame capture
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error("Canvas context not available");
-
-      canvas.width = 640;
-      canvas.height = 480;
-      canvas.style.display = 'none';
-      document.body.appendChild(canvas);
-
-      // Simple frame analysis loop
-      const scanLoop = async () => {
-        if (!videoRef.current || videoRef.current.readyState < 2) {
-          setTimeout(scanLoop, 100);
-          return;
-        }
-
-        try {
-          // Draw current video frame to canvas
-          ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-          
-          // Get image data for analysis
-          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-          
-          // Simple pattern detection for demo (this would normally use a real library)
-          // For now, simulate successful detection for testing
-          const mockBarcode = "123456789012"; // UPC-A format
-          
-          // Randomly simulate barcode detection (1 in 20 chance per frame)
-          if (Math.random() < 0.05 && lastCodeRef.current !== mockBarcode) {
-            console.log("🎯 Canvas detected mock barcode:", mockBarcode);
-            lastCodeRef.current = mockBarcode;
-            onBarcode!(mockBarcode);
-            
-            // Clean up canvas
-            document.body.removeChild(canvas);
-            return;
-          }
-          
-        } catch (e) {
-          console.log("Canvas frame capture error:", e);
-        }
-
-        // Continue scanning with throttle
-        setTimeout(scanLoop, 500);
-      };
-
-      scanLoop();
-      console.log("🎯 Canvas-based detection active");
-    } catch (e: any) {
-      console.error("Canvas detection failed:", e);
-      setUsingZXing(false);
-      setError("Camera analysis temporarily unavailable. Please try manual entry.");
-    }
-  }, [onBarcode]);
+    setUsingZXing(false);
+    setError(
+      "Live barcode scanning requires Chrome on Android or a browser that supports the BarcodeDetector API. " +
+      "Please type the barcode number manually."
+    );
+  }, []);
 
   // Stop all decoders
   const stopDecoders = useCallback(async () => {

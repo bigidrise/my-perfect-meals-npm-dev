@@ -76,6 +76,7 @@ router.post("/recommend", async (req, res) => {
           dailyCalorieTarget: users.dailyCalorieTarget,
           dailyProteinTarget: users.dailyProteinTarget,
           dailyFatTarget: users.dailyFatTarget,
+          dailyCarbsTarget: users.dailyCarbsTarget,
         })
         .from(users)
         .where(eq(users.id, userId))
@@ -101,18 +102,43 @@ router.post("/recommend", async (req, res) => {
             category: userSavedGroceryItems.category,
             productKey: userSavedGroceryItems.productKey,
             nutritionJson: userSavedGroceryItems.nutritionJson,
+            productMeta: userSavedGroceryItems.productMeta,
             savedAt: userSavedGroceryItems.savedAt,
           })
           .from(userSavedGroceryItems)
           .where(eq(userSavedGroceryItems.userId, userId));
 
         if (sgRows.length > 0) {
+          // Derive a per-meal carb ceiling for diabetic users from the user's
+          // persisted daily carb target (already fetched above). Divide by 3
+          // as a conservative meal-count estimate. Falls back to 45g — the
+          // standard clinical guidance for a 3-meal diabetic day — when no
+          // daily carb target is on file.
+          let diabeticCarbCeiling: number | null = null;
+          if (groceryEnvelope.hasDiabetes) {
+            const dailyCarbs = userRow?.dailyCarbsTarget;
+            diabeticCarbCeiling = dailyCarbs && dailyCarbs > 0
+              ? Math.round(dailyCarbs / 3)
+              : 45;
+          }
+
+          // Extract ingredients from productMeta (scanner saves extractedIngredients there)
+          // so allergen/avoidance matching can check actual ingredients, not just name/brand.
+          const itemsWithIngredients = sgRows.map((row) => {
+            const meta = row.productMeta as Record<string, unknown> | null;
+            const ingredients = Array.isArray(meta?.ingredients)
+              ? (meta!.ingredients as string[]).filter((i) => typeof i === "string")
+              : null;
+            return { ...row, ingredients };
+          });
+
           const { compliant } = filterSavedGroceriesForCompliance(
-            sgRows as any,
+            itemsWithIngredients as any,
             groceryEnvelope,
             {
               glp1Targets: groceryGlp1Targets,
-              isDiabetic: !!groceryEnvelope.diabeticGuidance,
+              isDiabetic: groceryEnvelope.hasDiabetes,
+              diabeticCarbCeiling,
             },
           );
           savedGroceriesBlock = buildSavedGroceriesPromptBlock(compliant);
