@@ -35,6 +35,8 @@ function detectMealType(message: string): "breakfast" | "lunch" | "dinner" | "sn
 router.post("/recommend", async (req, res) => {
   try {
     const userId = resolveUserId(req);
+
+    const { ingredients: rawIngredients, store: rawStore } = req.body;
     const { message, conversationHistory = [], servingCount } = req.body;
 
     if (!message || typeof message !== "string") {
@@ -49,7 +51,12 @@ router.post("/recommend", async (req, res) => {
     const finalServingCount = Math.max(1, Math.min(12, Number(servingCount) || 1));
 
     const detectedMealType = detectMealType(message);
-    let protocolContext = "";
+    const protocolContext = userId
+      ? enforceBeforeGenerate(
+          await loadUserProtocolEnvelope(userId).catch(() => null) ?? buildGuestEnvelope(),
+          { generatorName: "product_advisor" }
+        ).combined
+      : "";
     let macroContext = "";
     let groceryEnvelope = buildGuestEnvelope();
     let glp1RecommendationBlock = "";
@@ -105,6 +112,7 @@ router.post("/recommend", async (req, res) => {
           category: userSavedGroceryItems.category,
           productKey: userSavedGroceryItems.productKey,
           nutritionJson: userSavedGroceryItems.nutritionJson,
+          productMeta: userSavedGroceryItems.productMeta,
           savedAt: userSavedGroceryItems.savedAt,
         })
         .from(userSavedGroceryItems)
@@ -181,10 +189,11 @@ router.post("/recommend", async (req, res) => {
         .filter((m: any) => m.role === "assistant" && typeof m.content === "string" && m.content.startsWith("Recommended: "))
         .map((m: any) => (m.content as string).replace("Recommended: ", "").trim());
 
-      const allAvoidNames = [
-        ...dbHistory.map((e) => e.mealName),
-        ...sessionNames,
-      ].filter(Boolean);
+      const allAvoidNames = Array.from(
+        new Set(
+          [...dbHistory.map((e) => e.mealName), ...sessionNames].filter(Boolean)
+        )
+      );
 
       if (allAvoidNames.length > 0) {
         const avoidList = allAvoidNames.slice(0, 20).map((n) => `- ${n}`).join("\n");
@@ -284,7 +293,7 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
     });
 
     const raw = completion.choices[0]?.message?.content ?? "{}";
-    let result: any;
+    const result = await finalizeMealCard({ recommendation, userId: userId! });
     try {
       result = JSON.parse(raw);
     } catch {
@@ -529,13 +538,9 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
 router.post("/product-advisor", async (req, res) => {
   try {
     const userId = resolveUserId(req);
-    if (!userId) return res.status(401).json({ error: "Not authenticated" });
 
-    const { ingredients, store } = req.body;
-    if (!Array.isArray(ingredients) || ingredients.length === 0) {
-      return res.status(400).json({ error: "ingredients array is required" });
-    }
-
+    const { ingredients: rawIngredients, store: rawStore } = req.body;
+    const { ingredients: rawIngredients, store: rawStore } = req.body;
     const engine = getProductAdvisorEngine();
     const protocolContext = userId
       ? enforceBeforeGenerate(
@@ -543,7 +548,7 @@ router.post("/product-advisor", async (req, res) => {
           { generatorName: "product_advisor" }
         ).combined
       : "";
-    const result = await engine.buildCartRecommendations(ingredients, protocolContext, store ?? "");
+    const result = await finalizeMealCard({ recommendation, userId: userId! });
 
     return res.json(result);
   } catch (err: any) {
@@ -561,6 +566,8 @@ router.post("/product-advisor", async (req, res) => {
 router.post("/swap-ingredient", async (req, res) => {
   try {
     const userId = resolveUserId(req);
+
+    const { ingredients: rawIngredients, store: rawStore } = req.body;
     if (!userId) return res.status(401).json({ error: "Not authenticated" });
 
     const {
@@ -656,6 +663,7 @@ router.post("/swap-ingredient", async (req, res) => {
           category: userSavedGroceryItems.category,
           productKey: userSavedGroceryItems.productKey,
           nutritionJson: userSavedGroceryItems.nutritionJson,
+          productMeta: userSavedGroceryItems.productMeta,
           savedAt: userSavedGroceryItems.savedAt,
         })
         .from(userSavedGroceryItems)
@@ -826,6 +834,8 @@ router.post("/swap-ingredient", async (req, res) => {
 router.post("/finalize-card", async (req, res) => {
   try {
     const userId = resolveUserId(req);
+
+    const { ingredients: rawIngredients, store: rawStore } = req.body;
     const { recommendation } = req.body;
     if (!recommendation?.meal?.name) {
       return res.status(400).json({ status: "failed", id: null, reason: "recommendation is required" });
@@ -840,3 +850,11 @@ router.post("/finalize-card", async (req, res) => {
 });
 
 export default router;
+
+    const ingredients: string[] = rawIngredients
+      .slice(0, 20)
+      .map((x: unknown) => String(x).trim())
+      .filter(Boolean);
+
+    const store: string | undefined =
+      typeof rawStore === "string" && rawStore.trim() ? rawStore.trim() : undefined;
