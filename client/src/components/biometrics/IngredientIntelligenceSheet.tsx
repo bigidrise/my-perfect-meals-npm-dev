@@ -618,7 +618,7 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
                     {companionName ? 'Companion Product Scan' : 'Ingredient Intelligence'}
                   </p>
                   <h2 className="text-white font-bold text-base leading-tight">
-                    {result.productName || 'Full Analysis'}
+                    {result.productName || 'Product not identified'}
                   </h2>
                   {companionName ? (
                     <div className="mt-1 inline-flex items-center gap-1 bg-orange-600/20 border border-orange-500/30 rounded-full px-2 py-0.5">

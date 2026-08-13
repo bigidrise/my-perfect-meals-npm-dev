@@ -1149,7 +1149,7 @@ export default function ShoppingListMasterView() {
                         },
                       ) as { ok: boolean; result: IngredientScanResult; resolvedFromDb: boolean; resolvedName: string };
 
-                      if (data?.ok && data?.result) {
+                      if (data?.ok && data?.result && data.result.productName?.trim()) {
                         // Stamp the barcode so the sheet uses it as the save key
                         const resultWithBarcode: IngredientScanResult = {
                           ...data.result,
@@ -1167,7 +1167,7 @@ export default function ShoppingListMasterView() {
                           }));
                         }, 300);
                       } else {
-                        // Product unknown — fall back to adding by barcode note
+                        // Product unknown or name empty — fall back to adding by barcode note
                         addItem({
                           name: "Scanned Product",
                           quantity: 1,
