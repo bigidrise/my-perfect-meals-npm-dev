@@ -495,11 +495,15 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
         onClick={() => onOpenChange(false)}
       />
 
-      {/* Panel */}
+      {/* Panel — backdrop is full-viewport; panel is centered to the app's 896px column */}
       <div
         style={{
           position: "fixed",
-          left: 0, right: 0, bottom: 0,
+          bottom: 0,
+          left: "50%",
+          transform: "translateX(-50%)",
+          width: "100%",
+          maxWidth: 896,
           zIndex: 9999,
           maxHeight: "92dvh",
           display: "flex",
