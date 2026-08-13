@@ -265,12 +265,24 @@ router.post("/guide", async (req, res) => {
       `✅ [Guide] Engine resolved ${items.length} items for "${identity.displayName}" via source="${source}"`
     );
 
-    // ── Step 3: Nutrition context (protocol + active builder) ─────────────────
-    const guideContext = await getActiveNutritionContext(userId);
+    // ── Step 3: Nutrition context (protocol + active builder) + GLP-1 ────────
+    const todayISO = new Date().toISOString().slice(0, 10);
+    const [guideContext, guideGlp1Ctx] = await Promise.all([
+      getActiveNutritionContext(userId),
+      resolveGLP1GlobalContext(userId, todayISO).catch(() => null),
+    ]);
+    const guideGlp1Block = guideGlp1Ctx ? buildGLP1RecommendationBlock(guideGlp1Ctx) : "";
     console.log(
       `🔒 [Guide] Nutrition context: diet=[${guideContext.diet.join(",")}] ` +
-      `medical=[${guideContext.medical.length} flags] builder=${guideContext.builder ?? "none"}`
+      `medical=[${guideContext.medical.length} flags] builder=${guideContext.builder ?? "none"} ` +
+      `glp1=${guideGlp1Ctx?.isActive ? `ACTIVE[${guideGlp1Ctx.activationSources.join(",")}]` : "inactive"}`
     );
+
+    // Combine protocol block with GLP-1 recommendation guidance
+    const guideProtocolBlock = [
+      guideContext.combinedBlock,
+      guideGlp1Block,
+    ].filter(Boolean).join("\n\n") || guideContext.combinedBlock;
 
     // ── Step 4: AI reasons over verified items ─────────────────────────────────
     const aiUser = bodyDiet.length > 0
@@ -286,7 +298,7 @@ router.post("/guide", async (req, res) => {
       menuLastVerifiedAt,
       craving,
       user: aiUser,
-      protocolBlock: guideContext.combinedBlock,
+      protocolBlock: guideProtocolBlock,
       protocolEnvelope: guideContext.envelope,
       builderBlock: guideContext.builderBlock || undefined,
     });
