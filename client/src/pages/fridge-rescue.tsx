@@ -41,6 +41,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
 import AlphaGalBadge from "@/components/AlphaGalBadge";
+import ProtocolStatusBadge from "@/components/ProtocolStatusBadge";
 import { useLocation } from "wouter";
 import { queryClient } from "@/lib/queryClient";
 import { useLogMacros } from "@/hooks/useLogMacros";
@@ -802,10 +803,13 @@ const FridgeRescuePage = () => {
             </button>
           )}
           {/* Hub Intro — matches Pairings Hub pattern */}
-          <div className="text-center mb-6 max-w-2xl mx-auto">
+          <div className="text-center mb-4 max-w-2xl mx-auto">
             <h2 className="text-2xl font-bold text-white mb-2">Cook What You Have</h2>
             <p className="text-sm text-white/70">Turn the ingredients already in your kitchen into perfectly matched meals.</p>
           </div>
+
+          {/* Server-resolved protocol indicator — shows when GLP-1 or Performance overlay is active */}
+          <ProtocolStatusBadge className="mb-4" />
 
           {/* Create with Chef Entry Point — Studio hidden */}
           <div className="relative mb-4 max-w-2xl mx-auto hidden">
