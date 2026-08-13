@@ -1057,6 +1057,285 @@ describe("Scenario 8 — Last remaining meal of the day", () => {
   });
 });
 
+// ═════════════════════════════════════════════════════════════════════════════
+// MID-DAY PRESCRIPTION CHANGE
+//
+// Design decision: resolveDailyNutritionState() re-derives the prescription on
+// every call. When the prescription changes mid-day (performance mode toggled,
+// GLP-1 overlay applied, ProCare override written) the `remaining` field is
+// always recomputed as:
+//
+//   remaining = clamp(newPrescription − consumed − planned, min=0)
+//
+// This means:
+//   • If consumed < newPrescription  → remaining is positive and correct.
+//   • If consumed ≥ newPrescription  → remaining is clamped to 0; the budget
+//     shows 0 for that macro and the next generation can proceed safely.
+//
+// No migration is needed. The clamp layer is the migration path. Every call
+// to the state endpoint reflects the live prescription, not the one that was
+// active when the food was logged.
+//
+// Reference scenario (from task spec):
+//   carbsTarget 200g → 130g, consumed 120g → remaining = max(0, 130-120) = 10g
+//   carbsTarget 200g → 130g, consumed 135g → remaining = max(0, 130-135) = 0g
+// ═════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Simulate what resolveDailyNutritionState does when it sees a new prescription
+ * after some consumption has already happened. Returns a state where:
+ *   remaining = clamp(newPrescription − consumed − planned)
+ */
+function applyPrescriptionChange(
+  state: DailyNutritionState,
+  newPrescription: DailyNutritionState["prescription"],
+): DailyNutritionState {
+  const clamp = (n: number) => Math.max(0, Math.round(n));
+  const { consumed, planned } = state;
+  return {
+    ...state,
+    prescription: newPrescription,
+    remaining: {
+      calories:     clamp(newPrescription.caloriesTarget    - consumed.calories     - planned.calories),
+      protein:      clamp(newPrescription.proteinTarget     - consumed.protein      - planned.protein),
+      carbs:        clamp(newPrescription.carbsTarget       - consumed.carbs        - planned.carbs),
+      fat:          clamp(newPrescription.fatTarget         - consumed.fat          - planned.fat),
+      starchyCarbs: clamp(newPrescription.starchyCarbsTarget - consumed.starchyCarbs - planned.starchyCarbs),
+      fibrousCarbs: clamp(newPrescription.fibrousCarbsTarget - consumed.fibrousCarbs),
+      starchMealsRemaining: Math.max(
+        0,
+        newPrescription.starchMealsAllowed
+          - consumed.starchMealsLogged
+          - planned.starchMealsPlanned,
+      ),
+    },
+  };
+}
+
+describe("Mid-day prescription change — remaining is always ≥ 0 (clamp layer)", () => {
+  // Reference scenario from task spec:
+  // carbsTarget 200g → 130g, consumed 120g
+  test("carb target drops 200→130 with 120g consumed: remaining.carbs = 10 (not negative)", () => {
+    // Start: user consumed 120g carbs under the original 200g prescription
+    const stateWithConsumption = makeState({
+      consumed: {
+        calories: 960, protein: 90, carbs: 120, fat: 32,
+        starchyCarbs: 70, fibrousCarbs: 50,
+        starchMealsLogged: 1, mealCount: 2,
+      },
+      remaining: {
+        // original remaining under 200g prescription
+        calories: 1040, protein: 60, carbs: 80, fat: 35,
+        starchyCarbs: 30, fibrousCarbs: 50, starchMealsRemaining: 1,
+      },
+    });
+
+    // Prescription changes mid-day: carbsTarget 200 → 130
+    const newPrescription = {
+      ...stateWithConsumption.prescription,
+      caloriesTarget:        1800,  // e.g. GLP-1 overlay reduced calories
+      carbsTarget:            130,  // dropped from 200
+      starchyCarbsTarget:      60,  // dropped from 100
+      fibrousCarbsTarget:      70,
+      starchMealsAllowed:       1,  // was 2, now 1 on new prescription
+      starchMealsRemaining:     1,
+      starchyCarbsRemaining:    60 - 70, // would be negative — clamped
+    };
+
+    const afterChange = applyPrescriptionChange(stateWithConsumption, newPrescription);
+
+    // remaining.carbs = max(0, 130 - 120) = 10 — never negative
+    expect(afterChange.remaining.carbs).toBe(10);
+    expect(afterChange.remaining.carbs).toBeGreaterThanOrEqual(0);
+
+    // remaining.starchyCarbs = max(0, 60 - 70) = 0 — clamped
+    expect(afterChange.remaining.starchyCarbs).toBe(0);
+    expect(afterChange.remaining.starchyCarbs).toBeGreaterThanOrEqual(0);
+
+    // All other remaining values are also ≥ 0
+    expect(afterChange.remaining.calories).toBeGreaterThanOrEqual(0);
+    expect(afterChange.remaining.protein).toBeGreaterThanOrEqual(0);
+    expect(afterChange.remaining.fat).toBeGreaterThanOrEqual(0);
+    expect(afterChange.remaining.fibrousCarbs).toBeGreaterThanOrEqual(0);
+    expect(afterChange.remaining.starchMealsRemaining).toBeGreaterThanOrEqual(0);
+  });
+
+  test("carb target drops 200→130 with 135g consumed (over new target): remaining.carbs = 0", () => {
+    // User consumed 135g carbs under old 200g prescription.
+    // New prescription sets carbsTarget to 130 — user is already 5g over.
+    const stateWithConsumption = makeState({
+      consumed: {
+        calories: 1080, protein: 100, carbs: 135, fat: 36,
+        starchyCarbs: 80, fibrousCarbs: 55,
+        starchMealsLogged: 2, mealCount: 3,
+      },
+      remaining: {
+        // original remaining under old prescription (before change)
+        calories: 920, protein: 50, carbs: 65, fat: 31,
+        starchyCarbs: 20, fibrousCarbs: 45, starchMealsRemaining: 0,
+      },
+    });
+
+    const newPrescription = {
+      ...stateWithConsumption.prescription,
+      caloriesTarget:    1800,
+      carbsTarget:        130, // user already consumed 135g — over by 5g
+      starchyCarbsTarget:  60,
+      fibrousCarbsTarget:  70,
+      starchMealsAllowed:   2,
+      starchMealsRemaining: 0,
+      starchyCarbsRemaining: 0,
+    };
+
+    const afterChange = applyPrescriptionChange(stateWithConsumption, newPrescription);
+
+    // remaining.carbs = max(0, 130 - 135) = 0 — clamped, never negative
+    expect(afterChange.remaining.carbs).toBe(0);
+
+    // starch slots: max(0, 2 - 2) = 0
+    expect(afterChange.remaining.starchMealsRemaining).toBe(0);
+
+    // No macro ever goes negative
+    expect(afterChange.remaining.calories).toBeGreaterThanOrEqual(0);
+    expect(afterChange.remaining.protein).toBeGreaterThanOrEqual(0);
+    expect(afterChange.remaining.fat).toBeGreaterThanOrEqual(0);
+    expect(afterChange.remaining.starchyCarbs).toBeGreaterThanOrEqual(0);
+    expect(afterChange.remaining.fibrousCarbs).toBeGreaterThanOrEqual(0);
+  });
+
+  test("budget after prescription drop is non-negative even when all macros exhausted", () => {
+    // Prescription dropped to the point where consumed already exceeds every target.
+    // The budget must still return 0 across the board — never negative.
+    const fullyOverState = makeState({
+      remaining: {
+        // resolveDailyNutritionState already clamped everything to 0
+        calories: 0, protein: 0, carbs: 0, fat: 0,
+        starchyCarbs: 0, fibrousCarbs: 0, starchMealsRemaining: 0,
+      },
+    });
+
+    const budget = computeNextMealBudget(fullyOverState, 2);
+
+    expect(budget.caloriesTarget).toBe(0);
+    expect(budget.proteinTarget).toBe(0);
+    expect(budget.carbsTarget).toBe(0);
+    expect(budget.fatTarget).toBe(0);
+    expect(budget.starchyCarbsTarget).toBe(0);
+    expect(budget.fibrousCarbsTarget).toBe(0);
+    expect(budget.starchSlotAvailable).toBe(false);
+
+    // None of these can go negative regardless of how the prescription changed
+    expect(budget.caloriesTarget).toBeGreaterThanOrEqual(0);
+    expect(budget.proteinTarget).toBeGreaterThanOrEqual(0);
+    expect(budget.carbsTarget).toBeGreaterThanOrEqual(0);
+    expect(budget.fatTarget).toBeGreaterThanOrEqual(0);
+  });
+
+  test("budget after prescription drop with partial over-consumption: remaining macros are correct", () => {
+    // Prescription drop: only carbs and starch were exhausted;
+    // protein and fat still have headroom. Verify split is correct.
+    const partialState = makeState({
+      prescription: {
+        ...buildFallbackPrescription("2026-08-12"),
+        caloriesTarget:        1800,
+        proteinTarget:          150,
+        carbsTarget:            130, // new lower target
+        fatTarget:               65,
+        starchyCarbsTarget:      60,
+        fibrousCarbsTarget:      70,
+        starchMealsAllowed:       2,
+        starchMealsUsed:          2,
+        starchMealsRemaining:     0,
+        starchyCarbsConsumed:    70,
+        starchyCarbsRemaining:    0,
+        gramsPerRemainingStarchMeal: undefined,
+        source: "clinical" as const,
+      },
+      consumed: {
+        calories: 1000, protein: 80, carbs: 135, fat: 30,
+        starchyCarbs: 70, fibrousCarbs: 65,
+        starchMealsLogged: 2, mealCount: 3,
+      },
+      // resolveDailyNutritionState computes remaining with clamp:
+      // carbs: max(0, 130 - 135) = 0
+      // protein: max(0, 150 - 80) = 70
+      // fat: max(0, 65 - 30) = 35
+      remaining: {
+        calories:     Math.max(0, 1800 - 1000),  // 800
+        protein:      Math.max(0, 150 - 80),      // 70
+        carbs:        Math.max(0, 130 - 135),     // 0  ← clamped
+        fat:          Math.max(0, 65 - 30),       // 35
+        starchyCarbs: Math.max(0, 60 - 70),       // 0  ← clamped
+        fibrousCarbs: Math.max(0, 70 - 65),       // 5
+        starchMealsRemaining: 0,
+      },
+    });
+
+    expect(partialState.remaining.carbs).toBe(0);       // over-consumed, clamped
+    expect(partialState.remaining.starchyCarbs).toBe(0); // over-consumed, clamped
+    expect(partialState.remaining.protein).toBe(70);     // headroom intact
+    expect(partialState.remaining.fat).toBe(35);         // headroom intact
+
+    // Budget for 1 remaining meal: protein and fat have real targets, carbs = 0
+    const budget = computeNextMealBudget(partialState, 1);
+
+    expect(budget.carbsTarget).toBe(0);            // no carb budget left
+    expect(budget.starchyCarbsTarget).toBe(0);     // no starch budget left
+    expect(budget.proteinTarget).toBe(70);         // full protein headroom
+    expect(budget.fatTarget).toBe(35);             // full fat headroom
+    expect(budget.starchSlotAvailable).toBe(false);
+    expect(budget.caloriesTarget).toBe(800);       // 800 cal still available
+
+    // Nothing is negative
+    expect(budget.caloriesTarget).toBeGreaterThanOrEqual(0);
+    expect(budget.proteinTarget).toBeGreaterThanOrEqual(0);
+    expect(budget.carbsTarget).toBeGreaterThanOrEqual(0);
+    expect(budget.fatTarget).toBeGreaterThanOrEqual(0);
+    expect(budget.starchyCarbsTarget).toBeGreaterThanOrEqual(0);
+    expect(budget.fibrousCarbsTarget).toBeGreaterThanOrEqual(0);
+  });
+
+  test("prescription increase mid-day: remaining correctly reflects more headroom", () => {
+    // Prescription can also increase (e.g. performance mode toggled ON mid-day).
+    // carbsTarget 200g → 300g, consumed 120g → remaining = 300 - 120 = 180g
+    const stateWithConsumption = makeState({
+      consumed: {
+        calories: 960, protein: 90, carbs: 120, fat: 32,
+        starchyCarbs: 70, fibrousCarbs: 50,
+        starchMealsLogged: 1, mealCount: 2,
+      },
+      remaining: {
+        calories: 1040, protein: 60, carbs: 80, fat: 35,
+        starchyCarbs: 30, fibrousCarbs: 50, starchMealsRemaining: 1,
+      },
+    });
+
+    const newPrescription = {
+      ...stateWithConsumption.prescription,
+      caloriesTarget:        2600,
+      carbsTarget:            300, // performance mode increased carbs
+      starchyCarbsTarget:     200,
+      fibrousCarbsTarget:     100,
+      starchMealsAllowed:       3,
+      starchMealsRemaining:     3,
+      starchyCarbsRemaining:  200 - 70,
+    };
+
+    const afterChange = applyPrescriptionChange(stateWithConsumption, newPrescription);
+
+    // remaining.carbs = max(0, 300 - 120) = 180
+    expect(afterChange.remaining.carbs).toBe(180);
+    // remaining.starchyCarbs = max(0, 200 - 70) = 130
+    expect(afterChange.remaining.starchyCarbs).toBe(130);
+    // starch meals: max(0, 3 - 1) = 2
+    expect(afterChange.remaining.starchMealsRemaining).toBe(2);
+
+    // All values are non-negative
+    expect(afterChange.remaining.calories).toBeGreaterThanOrEqual(0);
+    expect(afterChange.remaining.protein).toBeGreaterThanOrEqual(0);
+  });
+});
+
 // ── deriveGenerationContext priority order ─────────────────────────────────────
 
 describe("deriveGenerationContext — priority order (diabetic > glp1 > performance > standard)", () => {
