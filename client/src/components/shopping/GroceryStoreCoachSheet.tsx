@@ -20,6 +20,7 @@ import {
   BookmarkCheck,
   Bookmark,
   AlertTriangle,
+  ArrowLeftRight,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
@@ -88,6 +89,20 @@ interface ProductAdviceResult {
   advice: IngredientAdvice[];
   profileUsed: string[];
   store?: string;
+}
+
+interface SwapSuggestion {
+  item: string;
+  reason: string;
+  quantity?: string;
+  unit?: string;
+}
+
+interface SwapResult {
+  coachSuggestion: SwapSuggestion;
+  savedOption: SwapSuggestion | null;
+  alternatives: SwapSuggestion[];
+  protocolNote: string | null;
 }
 
 interface Props {
@@ -167,6 +182,16 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   const [savingKey, setSavingKey] = useState<string | null>(null);
   // Smart Cart "show saved only" toggle
   const [showSavedOnly, setShowSavedOnly] = useState(false);
+  // Count of top-brand picks added so the "View List" banner shows the right number
+  const [brandsAddedCount, setBrandsAddedCount] = useState(0);
+  // Per-ingredient swap state
+  const [swapTarget, setSwapTarget] = useState<ShoppingListItem | null>(null);
+  const [swapResult, setSwapResult] = useState<SwapResult | null>(null);
+  const [swapLoading, setSwapLoading] = useState(false);
+  const [swapCustom, setSwapCustom] = useState("");
+  const [swapCustomLoading, setSwapCustomLoading] = useState(false);
+  const [swapSelected, setSwapSelected] = useState<SwapSuggestion | null>(null);
+  const [swapError, setSwapError] = useState<string | null>(null);
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const loadingInterval = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -188,6 +213,14 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       setSavedProductKeys(new Set());
       setSavingKey(null);
       setShowSavedOnly(false);
+      setBrandsAddedCount(0);
+      setSwapTarget(null);
+      setSwapResult(null);
+      setSwapLoading(false);
+      setSwapCustom("");
+      setSwapCustomLoading(false);
+      setSwapSelected(null);
+      setSwapError(null);
       if (loadingInterval.current) clearInterval(loadingInterval.current);
     }
   }, [open]);
@@ -358,6 +391,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     if (items.length) {
       addItems(items);
       setBrandsAdded(true);
+      setBrandsAddedCount(items.length);
       toast({ title: "Top picks added!", description: `${items.length} brand recommendation${items.length !== 1 ? "s" : ""} added to your list.` });
     }
   }, [productAdvice, result, addItems, toast]);
@@ -386,6 +420,76 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   const handleGenerateAnother = useCallback(() => {
     sendMessage("Give me a different option");
   }, [sendMessage]);
+
+  // ── Per-ingredient swap ───────────────────────────────────────────────────────
+  const handleSwapRequest = useCallback(async (item: ShoppingListItem, customRequest?: string) => {
+    setSwapTarget(item);
+    setSwapResult(null);
+    setSwapSelected(null);
+    setSwapError(null);
+    if (customRequest !== undefined) {
+      setSwapCustomLoading(true);
+    } else {
+      setSwapCustom("");
+      setSwapLoading(true);
+    }
+    try {
+      const remaining = result?.shoppingList
+        .filter((s) => s.item !== item.item)
+        .map((s) => s.item) ?? [];
+      const resp = await fetch("/api/grocery-coach/swap-ingredient", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          ingredientToReplace: item.item,
+          mealName: result?.meal?.name,
+          mealDescription: result?.meal?.description,
+          remainingIngredients: remaining,
+          ...(customRequest ? { userRequest: customRequest } : {}),
+        }),
+      });
+      if (!resp.ok) {
+        const errData = await resp.json().catch(() => ({}));
+        throw new Error((errData as any).error || "Swap unavailable");
+      }
+      const data: SwapResult = await resp.json();
+      setSwapResult(data);
+      setSwapSelected(data.coachSuggestion);
+    } catch (err: any) {
+      setSwapError(err?.message || "Could not get suggestions. Please try again.");
+    } finally {
+      setSwapLoading(false);
+      setSwapCustomLoading(false);
+    }
+  }, [result]);
+
+  const handleConfirmSwap = useCallback(() => {
+    if (!swapTarget || !swapSelected) return;
+    setResult((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        shoppingList: prev.shoppingList.map((s) =>
+          s.item === swapTarget.item && s.category === swapTarget.category
+            ? {
+                ...s,
+                item: swapSelected.item,
+                quantity: swapSelected.quantity ?? s.quantity,
+                unit: swapSelected.unit ?? s.unit,
+              }
+            : s
+        ),
+      };
+    });
+    const replaced = swapTarget.item;
+    const chosen = swapSelected.item;
+    setSwapTarget(null);
+    setSwapResult(null);
+    setSwapSelected(null);
+    setSwapCustom("");
+    toast({ title: "Ingredient replaced!", description: `${replaced} → ${chosen}` });
+  }, [swapTarget, swapSelected, toast]);
 
   const handleSubmit = useCallback(() => {
     sendMessage(input);
@@ -685,9 +789,26 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                                 </div>
                                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                                   {groupedList[cat].map((s, i) => (
-                                    <div key={i} style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, fontSize: 14 }}>
-                                      <span style={{ color: "rgba(255,255,255,0.85)", lineHeight: 1.3 }}>{s.item}</span>
-                                      <span style={{ color: "rgba(255,255,255,0.45)", fontSize: 12, flexShrink: 0 }}>{s.quantity} {s.unit}</span>
+                                    <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, fontSize: 14, padding: "2px 0" }}>
+                                      <span style={{ color: "rgba(255,255,255,0.85)", lineHeight: 1.3, flex: 1, minWidth: 0 }}>{s.item}</span>
+                                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                                        <span style={{ color: "rgba(255,255,255,0.45)", fontSize: 12 }}>{s.quantity} {s.unit}</span>
+                                        <button
+                                          onClick={() => handleSwapRequest(s)}
+                                          title={`Replace ${s.item}`}
+                                          style={{
+                                            display: "flex", alignItems: "center", gap: 4,
+                                            padding: "3px 8px", borderRadius: 999,
+                                            border: "1px solid rgba(255,255,255,0.12)",
+                                            background: "rgba(255,255,255,0.05)",
+                                            color: "rgba(255,255,255,0.4)",
+                                            fontSize: 11, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
+                                          }}
+                                        >
+                                          <ArrowLeftRight style={{ width: 10, height: 10 }} />
+                                          Replace
+                                        </button>
+                                      </div>
                                     </div>
                                   ))}
                                 </div>
@@ -873,6 +994,21 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                     </button>
                   )}
 
+                  {/* View Shopping List — confirmation banner shown after top picks are added */}
+                  {brandsAdded && brandsAddedCount > 0 && (
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "10px 14px", borderRadius: 10, background: "rgba(5,150,105,0.1)", border: "1px solid rgba(52,211,153,0.25)" }}>
+                      <span style={{ color: "#34d399", fontSize: 13, fontWeight: 600 }}>
+                        {brandsAddedCount} item{brandsAddedCount !== 1 ? "s" : ""} added to your Shopping List
+                      </span>
+                      <button
+                        onClick={() => onOpenChange(false)}
+                        style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 8, background: "rgba(52,211,153,0.15)", border: "1px solid rgba(52,211,153,0.3)", color: "#34d399", fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}
+                      >
+                        View List →
+                      </button>
+                    </div>
+                  )}
+
                   <button
                     onClick={handleGenerateAnother}
                     style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "14px 0", borderRadius: 12, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.7)", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
@@ -974,11 +1110,207 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
 
       </div>
 
+      {/* ── Ingredient Swap Modal ─────────────────────────────────────────────
+           Absolute overlay covering the full panel so the meal result stays
+           mounted underneath. Coach suggests; user taps "Use This" to confirm. */}
+      {swapTarget && (
+        <div style={{
+          position: "absolute", inset: 0, zIndex: 10,
+          background: "linear-gradient(to bottom, #0d0d0d, #111111)",
+          borderRadius: "16px 16px 0 0",
+          display: "flex", flexDirection: "column", overflow: "hidden",
+        }}>
+          {/* Header */}
+          <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 16px 12px", borderBottom: "1px solid rgba(255,255,255,0.08)", flexShrink: 0 }}>
+            <button
+              onClick={() => { setSwapTarget(null); setSwapResult(null); setSwapError(null); setSwapCustom(""); }}
+              style={{ padding: 8, borderRadius: 12, background: "rgba(255,255,255,0.05)", border: "none", color: "rgba(255,255,255,0.5)", cursor: "pointer", display: "flex" }}
+            >
+              <X style={{ width: 18, height: 18 }} />
+            </button>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ color: "white", fontWeight: 700, fontSize: 15 }}>Replace {swapTarget.item}</div>
+              <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>Coach keeps the rest of your meal</div>
+            </div>
+          </div>
+
+          {/* Scrollable content */}
+          <div style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 14 }}>
+            {swapLoading && (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: "48px 0", color: "rgba(255,255,255,0.5)" }}>
+                <Loader2 style={{ width: 28, height: 28, color: "#fb923c", animation: "spin 1s linear infinite" }} />
+                <span style={{ fontSize: 14 }}>Finding the best replacement…</span>
+              </div>
+            )}
+            {swapError && !swapLoading && (
+              <div style={{ padding: 14, borderRadius: 12, background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#f87171", fontSize: 14 }}>
+                {swapError}
+              </div>
+            )}
+            {swapResult && !swapLoading && (
+              <>
+                {swapResult.protocolNote && (
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "10px 12px", borderRadius: 10, background: "rgba(234,179,8,0.1)", border: "1px solid rgba(234,179,8,0.3)" }}>
+                    <AlertTriangle style={{ width: 14, height: 14, color: "#facc15", flexShrink: 0, marginTop: 2 }} />
+                    <span style={{ color: "#fef08a", fontSize: 12, lineHeight: 1.4 }}>{swapResult.protocolNote}</span>
+                  </div>
+                )}
+                <div>
+                  <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
+                    Coach's Best Pick
+                  </div>
+                  <SwapOptionCard
+                    suggestion={swapResult.coachSuggestion}
+                    selected={swapSelected?.item === swapResult.coachSuggestion.item}
+                    onSelect={() => setSwapSelected(swapResult!.coachSuggestion)}
+                    accent="#10b981"
+                  />
+                </div>
+                {swapResult.savedOption && (
+                  <div>
+                    <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
+                      ★ From Your Saved Groceries
+                    </div>
+                    <SwapOptionCard
+                      suggestion={swapResult.savedOption}
+                      selected={swapSelected?.item === swapResult.savedOption.item}
+                      onSelect={() => setSwapSelected(swapResult!.savedOption!)}
+                      accent="#f97316"
+                    />
+                  </div>
+                )}
+                {swapResult.alternatives.length > 0 && (
+                  <div>
+                    <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
+                      Other Options
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {swapResult.alternatives.map((alt) => (
+                        <SwapOptionCard
+                          key={alt.item}
+                          suggestion={alt}
+                          selected={swapSelected?.item === alt.item}
+                          onSelect={() => setSwapSelected(alt)}
+                          accent="rgba(255,255,255,0.3)"
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div>
+                  <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
+                    Or Type What You Want
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input
+                      value={swapCustom}
+                      onChange={(e) => setSwapCustom(e.target.value)}
+                      placeholder="e.g. brown rice, zucchini noodles…"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && swapCustom.trim()) {
+                          handleSwapRequest(swapTarget!, swapCustom.trim());
+                        }
+                      }}
+                      style={{
+                        flex: 1, padding: "10px 12px", borderRadius: 10,
+                        background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)",
+                        color: "white", fontSize: 14, outline: "none",
+                      }}
+                    />
+                    <button
+                      onClick={() => { if (swapCustom.trim()) handleSwapRequest(swapTarget!, swapCustom.trim()); }}
+                      disabled={!swapCustom.trim() || swapCustomLoading}
+                      style={{
+                        padding: "10px 14px", borderRadius: 10, border: "none",
+                        background: "rgba(249,115,22,0.8)", color: "white",
+                        fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center",
+                        cursor: (!swapCustom.trim() || swapCustomLoading) ? "not-allowed" : "pointer",
+                        opacity: (!swapCustom.trim() || swapCustomLoading) ? 0.5 : 1,
+                      }}
+                    >
+                      {swapCustomLoading
+                        ? <Loader2 style={{ width: 14, height: 14, animation: "spin 1s linear infinite" }} />
+                        : "Ask Coach"
+                      }
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Confirm/cancel footer */}
+          {(swapResult || swapError) && !swapLoading && (
+            <div style={{ padding: 16, borderTop: "1px solid rgba(255,255,255,0.08)", flexShrink: 0, display: "flex", gap: 8 }}>
+              <button
+                onClick={() => { setSwapTarget(null); setSwapResult(null); setSwapError(null); setSwapCustom(""); }}
+                style={{ flex: 1, padding: "14px 0", borderRadius: 12, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.6)", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
+              >
+                Cancel
+              </button>
+              {swapResult && (
+                <button
+                  onClick={handleConfirmSwap}
+                  disabled={!swapSelected}
+                  style={{
+                    flex: 2, padding: "14px 0", borderRadius: 12, border: "none",
+                    background: swapSelected ? "#ea580c" : "rgba(255,255,255,0.1)",
+                    color: swapSelected ? "white" : "rgba(255,255,255,0.3)",
+                    fontSize: 14, fontWeight: 700,
+                    cursor: swapSelected ? "pointer" : "default",
+                  }}
+                >
+                  Use This
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
     </>,
     document.body
+  );
+}
+
+// ── SwapOptionCard — selectable replacement card inside the swap modal ────────
+function SwapOptionCard({
+  suggestion, selected, onSelect, accent,
+}: {
+  suggestion: SwapSuggestion;
+  selected: boolean;
+  onSelect: () => void;
+  accent: string;
+}) {
+  return (
+    <button
+      onClick={onSelect}
+      style={{
+        width: "100%", textAlign: "left", padding: "12px 14px", borderRadius: 12, cursor: "pointer",
+        background: selected ? `${accent}18` : "rgba(255,255,255,0.04)",
+        border: selected ? `1px solid ${accent}55` : "1px solid rgba(255,255,255,0.08)",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+        <div style={{
+          width: 14, height: 14, borderRadius: "50%", flexShrink: 0,
+          border: `2px solid ${selected ? accent : "rgba(255,255,255,0.2)"}`,
+          background: selected ? accent : "transparent",
+        }} />
+        <span style={{ color: "white", fontWeight: 600, fontSize: 14 }}>{suggestion.item}</span>
+        {suggestion.quantity && (
+          <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>
+            · {suggestion.quantity}{suggestion.unit ? ` ${suggestion.unit}` : ""}
+          </span>
+        )}
+      </div>
+      <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, lineHeight: 1.4, paddingLeft: 22 }}>
+        {suggestion.reason}
+      </div>
+    </button>
   );
 }
 
@@ -1066,24 +1398,26 @@ export function SmartCartAdviceBody({
                     <div style={{ color: "rgba(255,255,255,0.55)", fontSize: 12, lineHeight: 1.4 }}>
                       {brand.reason}
                     </div>
+                    {/* Save Product — labeled pill button below the reason text */}
+                    <button
+                      onClick={() => onSave(a.ingredient, a.category, brand)}
+                      disabled={isSaved || isSaving}
+                      style={{
+                        display: "inline-flex", alignItems: "center", gap: 5,
+                        marginTop: 8, padding: "5px 10px", borderRadius: 999,
+                        border: isSaved ? "1px solid rgba(249,115,22,0.4)" : "1px solid rgba(255,255,255,0.12)",
+                        background: isSaved ? "rgba(249,115,22,0.12)" : "rgba(255,255,255,0.06)",
+                        color: isSaved ? "#fb923c" : "rgba(255,255,255,0.5)",
+                        fontSize: 11, fontWeight: 600, cursor: isSaved ? "default" : "pointer",
+                      }}
+                    >
+                      {isSaved ? (
+                        <><BookmarkCheck style={{ width: 12, height: 12 }} /> Saved to Groceries</>
+                      ) : (
+                        <><Bookmark style={{ width: 12, height: 12 }} /> {isSaving ? "Saving…" : "Save Product"}</>
+                      )}
+                    </button>
                   </div>
-                  {/* Save to Grocery Favorites */}
-                  <button
-                    onClick={() => onSave(a.ingredient, a.category, brand)}
-                    disabled={isSaved || isSaving}
-                    title={isSaved ? "Saved to Grocery Favorites" : "Save to Grocery Favorites"}
-                    style={{
-                      flexShrink: 0, display: "flex", alignItems: "center",
-                      justifyContent: "center", width: 28, height: 28,
-                      borderRadius: 6, border: "none", cursor: isSaved ? "default" : "pointer",
-                      background: isSaved ? "rgba(249,115,22,0.15)" : "rgba(255,255,255,0.05)",
-                    }}
-                  >
-                    {isSaved
-                      ? <BookmarkCheck style={{ width: 14, height: 14, color: "#f97316" }} />
-                      : <Bookmark style={{ width: 14, height: 14, color: "rgba(255,255,255,0.35)" }} />
-                    }
-                  </button>
                 </div>
               );
             })}
