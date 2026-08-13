@@ -74,18 +74,22 @@ export function RemainingMacrosFooter({
   // Dismiss state for the mid-day prescription changed banner
   const todayKey = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
   const storageKey = `mpm:prescriptionBannerDismissed:${todayKey}`;
+  // localStorage is intentional: survives a same-tab force-refresh AND a tab close,
+  // but the key includes the current date (YYYY-MM-DD) so the dismissal naturally
+  // expires at midnight when the key changes. sessionStorage would show the banner
+  // again on any hard reload, which is worse UX.
   const [bannerDismissed, setBannerDismissed] = useState(() => {
     try {
-      return sessionStorage.getItem(storageKey) === "1";
+      return localStorage.getItem(storageKey) === "1";
     } catch {
       return false;
     }
   });
   const dismissBanner = useCallback(() => {
     try {
-      sessionStorage.setItem(storageKey, "1");
+      localStorage.setItem(storageKey, "1");
     } catch {
-      // sessionStorage unavailable — suppress silently
+      // localStorage unavailable — suppress silently
     }
     setBannerDismissed(true);
   }, [storageKey]);
