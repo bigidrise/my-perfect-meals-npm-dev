@@ -10,6 +10,7 @@ import { selfHealProCareState } from "../services/procareActivation";
 import { checkLegalAcceptance } from "../services/legalCheck";
 import { logAudit, getClientIp } from "../lib/auditLog";
 import { emailServiceAvailable } from "../middleware/requireEmailService";
+import { sendTrialStartEmail } from "../services/emailService";
 
 const router = Router();
 
@@ -219,6 +220,20 @@ router.post("/api/auth/signup", async (req, res) => {
 
   console.log("✅ Created new user ID:", newUser.id);
   logAudit({ actor: newUser.id, action: "AUTH_SIGNUP", resourceType: "auth", route: "/api/auth/signup", ip: getClientIp(req as any), meta: { isProCare: newUser.isProCare || false } });
+
+    // Send trial-start confirmation email for standard consumer trial (non-fatal)
+    if (isNormalConsumer && trialNow && emailServiceAvailable()) {
+      const trialEndsAt = new Date(trialNow.getTime() + 7 * 24 * 60 * 60 * 1000);
+      sendTrialStartEmail({
+        to: newUser.email,
+        userName: newUser.username || newUser.email.split('@')[0],
+        trialSource: 'standard_signup',
+        durationDays: 7,
+        trialEndsAt,
+      }).catch((err) =>
+        console.error('[signup] Trial start email failed (non-fatal):', err)
+      );
+    }
 
     const inviteResult = await autoAcceptPendingInvites(newUser.id, newUser.email);
 
