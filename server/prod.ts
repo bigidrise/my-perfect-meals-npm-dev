@@ -983,6 +983,11 @@ async function initializeApp() {
     app.use("/api/meals", mealSharesRouter);
     app.use("/api/share", mealSharesRouter);
 
+    // Universal Meal Refinement — Stage 1: Weekly Meal Board replace_component
+    const refinementRouter = (await import("./routes/refinement")).default;
+    const { requireActiveAccess: rafRefineAccess } = await import("./middleware/requireActiveAccess");
+    app.use("/api/refinement", requireAuth, rafRefineAccess, refinementRouter);
+
     console.log("✅ [INIT] Parity routes mounted");
 
     // ── Org Config — PUBLIC endpoint, must be registered before requireAuth layers ──
@@ -1757,6 +1762,21 @@ async function initializeApp() {
           )
         `);
       });
+
+      // Universal Meal Refinement — original_meal_snapshot column (Stage 1)
+      setTimeout(async () => {
+        try {
+          const { db: database } = await import("./db");
+          const { sql: migSql } = await import("drizzle-orm");
+          await database.execute(migSql`
+            ALTER TABLE meal_board_items
+              ADD COLUMN IF NOT EXISTS original_meal_snapshot jsonb
+          `);
+          console.log("✅ [prod] meal_board_items.original_meal_snapshot migration complete");
+        } catch (err: any) {
+          console.error("❌ [prod] meal_board_items.original_meal_snapshot migration failed:", err.message);
+        }
+      }, 12500);
 
       // ── Coach Follow-up Cron (every 10 min) ──────────────────────────────────
       setTimeout(async () => {

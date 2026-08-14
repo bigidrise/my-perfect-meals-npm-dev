@@ -1499,6 +1499,10 @@ async function start() {
   const chefBudgetRoutes = (await import("./routes/chefBudget")).default;
   app.use("/api/meals/chef-budget", chefBudgetRoutes);
 
+  // Universal Meal Refinement — Stage 1: Weekly Meal Board replace_component
+  const refinementRouter = (await import("./routes/refinement")).default;
+  app.use("/api/refinement", requireAuth, requireActiveAccess, refinementRouter);
+
   // 🎯 CRITICAL: API routes FIRST to prevent Vite middleware interference
   await registerRoutes(app);
 
@@ -1806,6 +1810,23 @@ setTimeout(async () => {
     console.error("❌ Grocery Coach recommendation history migration failed:", err.message);
   }
 }, 6500);
+
+// Universal Meal Refinement — original_meal_snapshot column (Stage 1)
+// Adds the snapshot column to meal_board_items so the restore path can
+// recover the exact pre-swap state.  Idempotent: safe on every boot.
+setTimeout(async () => {
+  try {
+    const { db } = await import("./db");
+    const { sql } = await import("drizzle-orm");
+    await db.execute(sql`
+      ALTER TABLE meal_board_items
+        ADD COLUMN IF NOT EXISTS original_meal_snapshot jsonb
+    `);
+    console.log("✅ meal_board_items.original_meal_snapshot boot migration complete");
+  } catch (err: any) {
+    console.error("❌ meal_board_items.original_meal_snapshot migration failed:", err.message);
+  }
+}, 7000);
 
 process.on('uncaughtException', (error) => {
   console.error('🚨 Uncaught Exception:', error);

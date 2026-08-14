@@ -24,6 +24,7 @@ import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import ProtocolVisibilityPanel from "@/components/ProtocolVisibilityPanel";
 import { useAuth } from "@/contexts/AuthContext";
 import MealRefinementSheet from "@/components/MealRefinementSheet";
+import { MealRefinementPanel } from "@/components/MealRefinementPanel";
 
 // UUID v4 guard — used to validate savedMealId before hitting the translation endpoint
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -129,8 +130,12 @@ function MacroPill({ label, value, suffix = "" }: { label: string; value: number
   );
 }
 
+/** ISO date regex — used to distinguish "board" from real YYYY-MM-DD values. */
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
 export function MealCard({
   date, slot, meal, onUpdated, showStarchBadge = false, coachingLine, builderType, diabeticMemoryContext,
+  weekStartISO, onRefined,
 }: {
   date: string; // "board" or "YYYY-MM-DD"
   slot: Slot;
@@ -140,6 +145,13 @@ export function MealCard({
   coachingLine?: string; // Optional coaching confirmation line shown below the meal image
   builderType?: string; // Builder identity override — used by medical builders (e.g. "oncology-support")
   diabeticMemoryContext?: { generatedBglMgdl: number; glucoseContext: string; protocolTypeLabel: string; bglBucket: string; recommendedBglRange: string; generatedAt: string; source: string; };
+  /**
+   * When present (and `date` is a real YYYY-MM-DD, not "board"), shows the
+   * component-swap Refine panel. Identifies the weekly board for this meal.
+   */
+  weekStartISO?: string;
+  /** Called after a successful component swap so the board can be refreshed. */
+  onRefined?:   () => void;
 }) {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -617,6 +629,22 @@ export function MealCard({
         onUpdated({ ...meal, ...refined, name: refinedName, title: refinedName });
       }}
     />
+    {/* Component-swap panel: shown in Weekly Meal Board day mode only.
+        Requires weekStartISO (identifies the week) and a real YYYY-MM-DD date.
+        Only the 4 standard slots (breakfast/lunch/dinner/snacks) are supported —
+        meal4/meal5/meal6 would hit a Zod 400 at the API, so the panel is hidden
+        for those extra slots.  In week/board mode `date` is "board" so the panel
+        is also intentionally hidden. */}
+    {weekStartISO && ISO_DATE_RE.test(date) && meal.id &&
+     (["breakfast", "lunch", "dinner", "snacks"] as string[]).includes(slot) && (
+      <MealRefinementPanel
+        weekStartISO={weekStartISO}
+        dayISO={date}
+        slot={slot as "breakfast" | "lunch" | "dinner" | "snacks"}
+        mealId={meal.id}
+        onRefined={onRefined}
+      />
+    )}
     </>
   );
 }
