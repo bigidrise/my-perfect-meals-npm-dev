@@ -1,18 +1,18 @@
 {
   "step1A_summary": {
     "filesScanned": 690,
-    "filesUsingTranslation": 64,
-    "filesWithNoTranslation": 626,
-    "filesWithHardcodedStrings": 462,
-    "fullyUntranslatedSurfaces": 415,
-    "partiallyTranslatedSurfaces": 47,
-    "totalTCalls": 1600,
-    "totalHardcodedFindings": 7469,
-    "safeAutomation": 6505,
+    "filesUsingTranslation": 71,
+    "filesWithNoTranslation": 619,
+    "filesWithHardcodedStrings": 456,
+    "fullyUntranslatedSurfaces": 407,
+    "partiallyTranslatedSurfaces": 49,
+    "totalTCalls": 1665,
+    "totalHardcodedFindings": 7442,
+    "safeAutomation": 6479,
     "reviewRequired": 465,
-    "clinicalSafety": 499,
-    "inSharedComponents": 2176,
-    "sharedComponentFilesAffected": 262
+    "clinicalSafety": 498,
+    "inSharedComponents": 2150,
+    "sharedComponentFilesAffected": 256
   },
   "step1B_summary": {
     "totalFiles": 690,
@@ -26,10 +26,10 @@
   },
   "stringsByReachabilityClass": {
     "ACTIVE": {
-      "total": 1439,
-      "safe": 1198,
+      "total": 1446,
+      "safe": 1204,
       "review": 111,
-      "clinical": 130
+      "clinical": 131
     },
     "CONDITIONAL": {
       "total": 0,
@@ -56,19 +56,19 @@
       "clinical": 0
     },
     "UNKNOWN": {
-      "total": 517,
-      "safe": 479,
+      "total": 510,
+      "safe": 473,
       "review": 8,
-      "clinical": 30
+      "clinical": 29
     }
   },
   "localizationTarget": {
-    "total": 1439,
+    "total": 1446,
     "excludedDead": 0,
     "hiddenReserved": 44
   },
   "reachabilityDetail": {
-    "generatedAt": "2026-08-14T21:52:34.542Z",
+    "generatedAt": "2026-08-14T23:24:30.900Z",
     "summary": {
       "totalFiles": 690,
       "active": 452,

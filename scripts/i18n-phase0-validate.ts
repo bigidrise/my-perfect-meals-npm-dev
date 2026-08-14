@@ -18,6 +18,7 @@
 
 import fs from "fs";
 import path from "path";
+import { execSync } from "child_process";
 
 const CI_MODE = process.argv.includes("--ci");
 const LOCALES_DIR = path.resolve("client/src/i18n/locales");
@@ -247,6 +248,20 @@ if (!fs.existsSync(CLINICAL_REGISTRY)) {
 section("GATE_08 — Hardcoded String Baseline (ACTIVE surfaces)");
 
 const BASELINE_FILE = path.resolve("docs/localization/hardcoded-baseline.json");
+
+// Always regenerate the audit reports before reading them.
+// Reading stale cached reports means GATE_08 would trivially compare
+// old-count vs old-baseline and always show "stable" — the blind spot
+// this rescan prevents. Both scripts are read-only; they write only
+// their own JSON output files.
+console.log("  [GATE_08] Regenerating audit reports from source...");
+try {
+  execSync("npx tsx scripts/i18n-audit.ts", { stdio: "pipe" });
+  execSync("npx tsx scripts/i18n-reachability-audit.ts", { stdio: "pipe" });
+  console.log("  [GATE_08] Rescan complete — reading fresh reports.\n");
+} catch (err) {
+  warn("Audit rescan failed — GATE_08 will read the last cached reports. Run scripts/i18n-audit.ts manually to diagnose.");
+}
 
 if (fs.existsSync(REPORT_1A) && fs.existsSync(REPORT_1B)) {
   const report1A = JSON.parse(fs.readFileSync(REPORT_1A, "utf8"));
