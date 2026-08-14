@@ -38,7 +38,7 @@ export async function runTrialExpiryReminders(): Promise<void> {
       // Fetch users in the window whose trial is still active (FREE plan — no paid subscription)
       // and who have NOT yet received this milestone email.
       const candidates = await db
-        .select({ id: users.id, email: users.email, firstName: users.firstName, trialEndsAt: users.trialEndsAt, trialRemindersSent: users.trialRemindersSent, planLookupKey: users.planLookupKey })
+        .select({ id: users.id, email: users.email, firstName: users.firstName, trialEndsAt: users.trialEndsAt, trialRemindersSent: users.trialRemindersSent, planLookupKey: users.planLookupKey, trialSource: (users as any).trialSource })
         .from(users)
         .where(
           and(
@@ -63,6 +63,7 @@ export async function runTrialExpiryReminders(): Promise<void> {
             firstName: user.firstName || "there",
             daysRemaining,
             trialEndsAt: user.trialEndsAt!,
+            trialSource: user.trialSource ?? null,
           });
 
           // Mark milestone as sent

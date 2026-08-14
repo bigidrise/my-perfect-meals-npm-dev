@@ -2,6 +2,19 @@ import { Resend } from 'resend';
 
 const EMAIL_FROM = 'My Perfect Meals <noreply@mail.myperfectmeals.com>';
 
+/**
+ * Returns a human-readable label for a raw trialSource value.
+ * Mirrors the mapping used on the client-side TrialStatusCard.
+ */
+export function formatTrialSourceLabel(trialSource?: string | null): string {
+  switch (trialSource) {
+    case 'admin_grant':  return 'Admin Trial';
+    case 'clinic_grant': return 'Clinical Trial';
+    case 'promotion':    return 'Promotional Trial';
+    default:             return 'Free Trial';
+  }
+}
+
 let resend: Resend | null = null;
 
 if (process.env.RESEND_API_KEY) {
@@ -1188,11 +1201,13 @@ export async function sendTrialExpiryReminderEmail({
   firstName,
   daysRemaining,
   trialEndsAt,
+  trialSource,
 }: {
   to: string;
   firstName: string;
   daysRemaining: number;
   trialEndsAt: Date;
+  trialSource?: string | null;
 }) {
   if (!resend) {
     console.log('⚠️ Resend not available — skipping trial expiry reminder');
@@ -1202,6 +1217,7 @@ export async function sendTrialExpiryReminderEmail({
   const expiryStr = trialEndsAt.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
   const isLastDay = daysRemaining === 1;
   const urgencyColor = isLastDay ? "#dc2626" : daysRemaining <= 3 ? "#d97706" : "#2563eb";
+  const trialLabel = formatTrialSourceLabel(trialSource);
   const subjectLine = isLastDay
     ? `⏰ Last day of your My Perfect Meals trial`
     : `Your My Perfect Meals trial ends in ${daysRemaining} day${daysRemaining === 1 ? "" : "s"}`;
@@ -1230,8 +1246,8 @@ export async function sendTrialExpiryReminderEmail({
 
             <p style="color: #374151; font-size: 15px; line-height: 1.7; margin: 0 0 24px;">
               ${isLastDay
-                ? "Your free trial ends today. After today, your account will move to the Free tier — your data and meal history stay safe, but Pro features like personalized meal plans, clinical protocols, and coaching tools will lock."
-                : `You have <strong style="color: ${urgencyColor};">${daysRemaining} days</strong> left to experience everything My Perfect Meals has to offer. After your trial ends on ${expiryStr}, your account moves to the Free tier.`
+                ? `Your ${trialLabel.toLowerCase()} ends today. After today, your account will move to the Free tier — your data and meal history stay safe, but Pro features like personalized meal plans, clinical protocols, and coaching tools will lock.`
+                : `You have <strong style="color: ${urgencyColor};">${daysRemaining} days</strong> left to experience everything My Perfect Meals has to offer. After your ${trialLabel.toLowerCase()} ends on ${expiryStr}, your account moves to the Free tier.`
               }
             </p>
 
@@ -1264,7 +1280,7 @@ export async function sendTrialExpiryReminderEmail({
           <div style="background: #1f2937; padding: 20px 30px; border-radius: 0 0 12px 12px; text-align: center;">
             <p style="color: #6b7280; font-size: 12px; margin: 0;">
               My Perfect Meals &mdash; Clinical Nutrition Platform<br/>
-              <span style="color: #4b5563;">You're receiving this because your free trial is ending soon.</span>
+              <span style="color: #4b5563;">You're receiving this because your ${trialLabel.toLowerCase()} is ending soon.</span>
             </p>
           </div>
 

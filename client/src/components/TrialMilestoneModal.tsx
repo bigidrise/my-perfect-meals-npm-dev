@@ -167,8 +167,11 @@ export function TrialMilestoneModal() {
     markMilestoneSeen(user.id, user.trialEndsAt as string, bucket);
     setActiveBucket(bucket);
     setOpen(true);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, user?.trialEndsAt, (user as any)?.daysRemaining]);
+  // location is intentionally included: a user who lands on an excluded route
+  // (e.g. onboarding) then navigates to the dashboard needs a fresh evaluation.
+  // markMilestoneSeen() is called before setOpen(true), so the modal still fires
+  // at most once per bucket even if the effect re-runs on route change.
+  }, [user?.id, user?.trialEndsAt, (user as any)?.daysRemaining, location]);
 
   function handleClose() {
     setOpen(false);
