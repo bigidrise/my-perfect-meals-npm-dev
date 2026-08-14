@@ -989,7 +989,10 @@
     "noMealsTitle": "Walang mga Pagkain",
     "noSlotYet": "Wala pang {{slot}}",
     "snacks": "Mga Snack",
-    "whyWeeklyPlanning": "Bakit weekly planning?"
+    "whyWeeklyPlanning": "Bakit weekly planning?",
+    "savingPlan": "Nagsasave…",
+    "savedPlan": "Nai-save ✓",
+    "savePlan": "I-save ang Plano"
   },
   "coachCorner": {
     "title": "Sulok ng Coach",

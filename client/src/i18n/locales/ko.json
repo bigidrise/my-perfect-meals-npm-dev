@@ -989,7 +989,10 @@
     "noMealsTitle": "식사 없음",
     "noSlotYet": "아직 {{slot}} 없음",
     "snacks": "간식",
-    "whyWeeklyPlanning": "주간 계획이 필요한 이유?"
+    "whyWeeklyPlanning": "주간 계획이 필요한 이유?",
+    "savingPlan": "저장 중…",
+    "savedPlan": "저장됨 ✓",
+    "savePlan": "플랜 저장"
   },
   "coachCorner": {
     "title": "코치 코너",

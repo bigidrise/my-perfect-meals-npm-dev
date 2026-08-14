@@ -989,7 +989,10 @@
     "noMealsTitle": "食事なし",
     "noSlotYet": "まだ{{slot}}がありません",
     "snacks": "間食",
-    "whyWeeklyPlanning": "なぜ週間計画なのか？"
+    "whyWeeklyPlanning": "なぜ週間計画なのか？",
+    "savingPlan": "保存中…",
+    "savedPlan": "保存済み ✓",
+    "savePlan": "プランを保存"
   },
   "coachCorner": {
     "title": "コーチのコーナー",

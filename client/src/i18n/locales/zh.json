@@ -989,7 +989,10 @@
     "noMealsTitle": "暂无餐点",
     "noSlotYet": "暂无 {{slot}}",
     "snacks": "零食",
-    "whyWeeklyPlanning": "为什么需要周计划？"
+    "whyWeeklyPlanning": "为什么需要周计划？",
+    "savingPlan": "保存中…",
+    "savedPlan": "已保存 ✓",
+    "savePlan": "保存计划"
   },
   "coachCorner": {
     "title": "教练专区",

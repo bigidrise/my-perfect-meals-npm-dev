@@ -989,7 +989,10 @@
     "noMealsTitle": "Nessun Pasto",
     "noSlotYet": "Nessuno {{slot}} ancora",
     "snacks": "Snack",
-    "whyWeeklyPlanning": "Perché la pianificazione settimanale?"
+    "whyWeeklyPlanning": "Perché la pianificazione settimanale?",
+    "savingPlan": "Salvataggio…",
+    "savedPlan": "Salvato ✓",
+    "savePlan": "Salva piano"
   },
   "coachCorner": {
     "title": "Angolo del Coach",

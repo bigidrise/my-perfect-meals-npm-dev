@@ -989,7 +989,10 @@
     "noMealsTitle": "Không có bữa ăn",
     "noSlotYet": "Chưa có {{slot}}",
     "snacks": "Đồ ăn nhẹ",
-    "whyWeeklyPlanning": "Tại sao lại lập kế hoạch hàng tuần?"
+    "whyWeeklyPlanning": "Tại sao lại lập kế hoạch hàng tuần?",
+    "savingPlan": "Đang lưu…",
+    "savedPlan": "Đã lưu ✓",
+    "savePlan": "Lưu kế hoạch"
   },
   "coachCorner": {
     "title": "Góc Huấn Luyện Viên",
