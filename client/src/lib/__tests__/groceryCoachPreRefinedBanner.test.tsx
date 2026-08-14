@@ -915,3 +915,173 @@ describe('open=false cycle mid-logout — banner absent on reopen for new user',
     expect(screen.queryByText('Showing refined version')).not.toBeInTheDocument();
   });
 });
+
+// ── 9. Same-user open → close → reopen — banner survives ────────────────────
+//
+// When the same user closes and reopens the sheet without any auth change the
+// open=false effect must NOT clear preRefinedResult. The banner should still
+// be visible after reopening and the user should be able to dismiss it
+// normally via "Restore original".
+
+describe('Same-user open/close/open cycle — banner survives', () => {
+  it('banner remains visible after the same user closes and reopens the sheet mid-refinement', async () => {
+    const onOpenChange = jest.fn();
+    const { rerender } = render(
+      <GroceryStoreCoachSheet open={true} onOpenChange={onOpenChange} />,
+    );
+
+    // ── Step 1: generate a result ────────────────────────────────────────────
+    const chip = screen.getByText("What's for dinner tonight?");
+    await act(async () => {
+      fireEvent.click(chip);
+    });
+
+    await waitFor(
+      () => expect(screen.getByText('Grilled Chicken')).toBeInTheDocument(),
+      { timeout: 3000 },
+    );
+
+    // ── Step 2: refine the meal — banner must appear ─────────────────────────
+    const refineBtn = screen.getByText('Refine Meal');
+    await act(async () => {
+      fireEvent.click(refineBtn);
+    });
+    expect(capturedOnRefined).not.toBeNull();
+    await act(async () => {
+      capturedOnRefined!(REFINED_RESULT);
+    });
+
+    await waitFor(() =>
+      expect(screen.getByText('Restore original')).toBeInTheDocument(),
+    );
+    expect(screen.getByText('Showing refined version')).toBeInTheDocument();
+    expect(screen.getByText('Herb-Crusted Grilled Chicken')).toBeInTheDocument();
+
+    // ── Step 3: close the sheet (open=false) — same user, no auth change ────
+    // The open=false effect resets transient UI (input, card phase, etc.) but
+    // must leave preRefinedResult intact so the banner survives the reopen.
+    await act(async () => {
+      rerender(<GroceryStoreCoachSheet open={false} onOpenChange={onOpenChange} />);
+    });
+
+    // ── Step 4: reopen the sheet as the same user ────────────────────────────
+    await act(async () => {
+      rerender(<GroceryStoreCoachSheet open={true} onOpenChange={onOpenChange} />);
+    });
+
+    // The banner must still be visible — close did not clear preRefinedResult
+    await waitFor(() =>
+      expect(screen.getByText('Restore original')).toBeInTheDocument(),
+    );
+    expect(screen.getByText('Showing refined version')).toBeInTheDocument();
+    expect(screen.getByText('Herb-Crusted Grilled Chicken')).toBeInTheDocument();
+  });
+
+  it('banner can be dismissed normally via "Restore original" after a same-user reopen', async () => {
+    const onOpenChange = jest.fn();
+    const { rerender } = render(
+      <GroceryStoreCoachSheet open={true} onOpenChange={onOpenChange} />,
+    );
+
+    // ── Generate a result ────────────────────────────────────────────────────
+    const chip = screen.getByText("What's for dinner tonight?");
+    await act(async () => {
+      fireEvent.click(chip);
+    });
+
+    await waitFor(
+      () => expect(screen.getByText('Grilled Chicken')).toBeInTheDocument(),
+      { timeout: 3000 },
+    );
+
+    // ── Refine the meal ───────────────────────────────────────────────────────
+    const refineBtn = screen.getByText('Refine Meal');
+    await act(async () => {
+      fireEvent.click(refineBtn);
+    });
+    expect(capturedOnRefined).not.toBeNull();
+    await act(async () => {
+      capturedOnRefined!(REFINED_RESULT);
+    });
+
+    await waitFor(() =>
+      expect(screen.getByText('Restore original')).toBeInTheDocument(),
+    );
+
+    // ── Close and reopen (same user) ─────────────────────────────────────────
+    await act(async () => {
+      rerender(<GroceryStoreCoachSheet open={false} onOpenChange={onOpenChange} />);
+    });
+    await act(async () => {
+      rerender(<GroceryStoreCoachSheet open={true} onOpenChange={onOpenChange} />);
+    });
+
+    // Confirm banner is still present after reopen
+    await waitFor(() =>
+      expect(screen.getByText('Restore original')).toBeInTheDocument(),
+    );
+
+    // ── Dismiss via "Restore original" ───────────────────────────────────────
+    await act(async () => {
+      fireEvent.click(screen.getByText('Restore original'));
+    });
+
+    // Banner must be gone after dismissal
+    expect(screen.queryByText('Restore original')).not.toBeInTheDocument();
+    expect(screen.queryByText('Showing refined version')).not.toBeInTheDocument();
+
+    // The original meal name must be back
+    await waitFor(() =>
+      expect(screen.getByText('Grilled Chicken')).toBeInTheDocument(),
+    );
+    expect(screen.queryByText('Herb-Crusted Grilled Chicken')).not.toBeInTheDocument();
+  });
+
+  it('multiple rapid close/reopen cycles for the same user keep the banner alive each time', async () => {
+    const onOpenChange = jest.fn();
+    const { rerender } = render(
+      <GroceryStoreCoachSheet open={true} onOpenChange={onOpenChange} />,
+    );
+
+    // ── Generate and refine ───────────────────────────────────────────────────
+    const chip = screen.getByText("What's for dinner tonight?");
+    await act(async () => {
+      fireEvent.click(chip);
+    });
+
+    await waitFor(
+      () => expect(screen.getByText('Grilled Chicken')).toBeInTheDocument(),
+      { timeout: 3000 },
+    );
+
+    const refineBtn = screen.getByText('Refine Meal');
+    await act(async () => {
+      fireEvent.click(refineBtn);
+    });
+    expect(capturedOnRefined).not.toBeNull();
+    await act(async () => {
+      capturedOnRefined!(REFINED_RESULT);
+    });
+
+    await waitFor(() =>
+      expect(screen.getByText('Restore original')).toBeInTheDocument(),
+    );
+
+    // ── Three rapid close/reopen cycles ──────────────────────────────────────
+    for (let cycle = 0; cycle < 3; cycle++) {
+      await act(async () => {
+        rerender(<GroceryStoreCoachSheet open={false} onOpenChange={onOpenChange} />);
+      });
+      await act(async () => {
+        rerender(<GroceryStoreCoachSheet open={true} onOpenChange={onOpenChange} />);
+      });
+
+      // Banner must survive every cycle
+      // eslint-disable-next-line no-await-in-loop
+      await waitFor(() =>
+        expect(screen.getByText('Restore original')).toBeInTheDocument(),
+      );
+      expect(screen.getByText('Showing refined version')).toBeInTheDocument();
+    }
+  });
+});
