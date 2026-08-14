@@ -453,6 +453,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     setProductAdvice(null);
     setBrandsAdded(false);
     setShowSavedOnly(false);
+    setPreRefinedResult(null);
 
     const newConvo: ConversationMessage[] = [
       ...conversation,
