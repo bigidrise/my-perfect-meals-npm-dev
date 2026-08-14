@@ -15,6 +15,92 @@ export function formatTrialSourceLabel(trialSource?: string | null): string {
   }
 }
 
+// ─── TRIAL START EMAIL ────────────────────────────────────────────────────────
+
+export async function sendTrialStartEmail({
+  to,
+  userName,
+  trialSource,
+  durationDays,
+  trialEndsAt,
+}: {
+  to: string;
+  userName: string;
+  trialSource?: string | null;
+  durationDays: number;
+  trialEndsAt: Date;
+}): Promise<boolean> {
+  if (!resend) {
+    console.log('[TrialStart] Resend not available — skipping trial start email');
+    return false;
+  }
+
+  const trialLabel = formatTrialSourceLabel(trialSource);
+  const expiryStr = trialEndsAt.toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: EMAIL_FROM,
+      to: [to],
+      subject: `Your ${trialLabel} has started — My Perfect Meals`,
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(135deg, #6d28d9 0%, #8b5cf6 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 28px;">${trialLabel} Started</h1>
+            <p style="color: rgba(255,255,255,0.85); margin: 8px 0 0; font-size: 15px;">My Perfect Meals</p>
+          </div>
+
+          <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 12px 12px; border: 1px solid #e5e7eb; border-top: none;">
+            <h2 style="color: #111827; font-size: 22px; margin-top: 0;">Hi ${userName},</h2>
+
+            <p style="color: #374151; font-size: 16px; line-height: 1.6;">
+              Your <strong>${trialLabel}</strong> is now active. You have <strong>${durationDays} days</strong> of full access to My Perfect Meals — AI-powered personalized meal plans, macro tracking, clinical nutrition protocols, and more.
+            </p>
+
+            <div style="background: #f3f0ff; border-left: 4px solid #7c3aed; padding: 16px; margin: 24px 0; border-radius: 4px;">
+              <p style="color: #4c1d95; font-size: 15px; margin: 0; line-height: 1.6;">
+                <strong>Trial type:</strong> ${trialLabel}<br>
+                <strong>Trial length:</strong> ${durationDays} days<br>
+                <strong>Expires:</strong> ${expiryStr}
+              </p>
+            </div>
+
+            <p style="color: #374151; font-size: 15px; line-height: 1.6;">
+              Make the most of your trial by completing your nutrition profile and exploring personalized meal recommendations inside the app.
+            </p>
+
+            <div style="text-align: center; margin: 28px 0;">
+              <a href="https://app.myperfectmeals.ai" style="display: inline-block; background: #7c3aed; color: white; padding: 14px 36px; text-decoration: none; border-radius: 999px; font-weight: 600; font-size: 16px;">
+                Open My Perfect Meals →
+              </a>
+            </div>
+
+            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
+
+            <p style="color: #9ca3af; font-size: 12px; text-align: center; margin-bottom: 0;">
+              My Perfect Meals — Personalized Nutrition &amp; Meal Planning
+            </p>
+          </div>
+        </div>
+      `,
+    });
+
+    if (error) {
+      console.error('[TrialStart] Resend error:', error);
+      return false;
+    }
+    console.log('[TrialStart] Trial start email sent:', data?.id);
+    return true;
+  } catch (err) {
+    console.error('[TrialStart] Email failed (non-fatal):', err);
+    return false;
+  }
+}
+
 let resend: Resend | null = null;
 
 if (process.env.RESEND_API_KEY) {

@@ -25,6 +25,7 @@ import ProtocolVisibilityPanel from "@/components/ProtocolVisibilityPanel";
 import { useAuth } from "@/contexts/AuthContext";
 import MealRefinementSheet from "@/components/MealRefinementSheet";
 import { MealRefinementPanel } from "@/components/MealRefinementPanel";
+import { useTranslation } from "react-i18next";
 
 // UUID v4 guard — used to validate savedMealId before hitting the translation endpoint
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -73,51 +74,70 @@ export type Meal = {
 
 type Slot = "breakfast" | "lunch" | "dinner" | "snacks";
 
-function getProtocolBullets(ap: NonNullable<Meal["appliedProtocol"]>): string[] {
+// Explicit static mapping — unknown/future phases safely return no bullets rather than raw i18n keys.
+const COMP_PHASE_BULLET_KEYS: Partial<Record<string, [string, string]>> = {
+  fat_loss:            ["protocol_bullet_fat_loss_0",            "protocol_bullet_fat_loss_1"],
+  conditioning:        ["protocol_bullet_conditioning_0",        "protocol_bullet_conditioning_1"],
+  peak_prep:           ["protocol_bullet_peak_prep_0",           "protocol_bullet_peak_prep_1"],
+  peak_week:           ["protocol_bullet_peak_week_0",           "protocol_bullet_peak_week_1"],
+  show_day:            ["protocol_bullet_show_day_0",            "protocol_bullet_show_day_1"],
+  post_competition:    ["protocol_bullet_post_competition_0",    "protocol_bullet_post_competition_1"],
+  strength_building:   ["protocol_bullet_strength_building_0",   "protocol_bullet_strength_building_1"],
+  intensity_phase:     ["protocol_bullet_intensity_phase_0",     "protocol_bullet_intensity_phase_1"],
+  taper:               ["protocol_bullet_taper_0",               "protocol_bullet_taper_1"],
+  meet_week:           ["protocol_bullet_meet_week_0",           "protocol_bullet_meet_week_1"],
+  meet_day:            ["protocol_bullet_meet_day_0",            "protocol_bullet_meet_day_1"],
+  conditioning_combat: ["protocol_bullet_conditioning_combat_0", "protocol_bullet_conditioning_combat_1"],
+  fight_prep:          ["protocol_bullet_fight_prep_0",          "protocol_bullet_fight_prep_1"],
+  weight_cut:          ["protocol_bullet_weight_cut_0",          "protocol_bullet_weight_cut_1"],
+  fight_week:          ["protocol_bullet_fight_week_0",          "protocol_bullet_fight_week_1"],
+  fight_day:           ["protocol_bullet_fight_day_0",           "protocol_bullet_fight_day_1"],
+  pre_season:          ["protocol_bullet_pre_season_0",          "protocol_bullet_pre_season_1"],
+  in_season:           ["protocol_bullet_in_season_0",           "protocol_bullet_in_season_1"],
+  championship_week:   ["protocol_bullet_championship_week_0",   "protocol_bullet_championship_week_1"],
+  match_day:           ["protocol_bullet_match_day_0",           "protocol_bullet_match_day_1"],
+  off_season:          ["protocol_bullet_off_season_0",          "protocol_bullet_off_season_1"],
+  base_conditioning:   ["protocol_bullet_base_conditioning_0",   "protocol_bullet_base_conditioning_1"],
+  event_prep:          ["protocol_bullet_event_prep_0",          "protocol_bullet_event_prep_1"],
+  competition_week:    ["protocol_bullet_competition_week_0",    "protocol_bullet_competition_week_1"],
+  competition_day:     ["protocol_bullet_competition_day_0",     "protocol_bullet_competition_day_1"],
+  base_building:       ["protocol_bullet_base_building_0",       "protocol_bullet_base_building_1"],
+  build_phase:         ["protocol_bullet_build_phase_0",         "protocol_bullet_build_phase_1"],
+  race_prep:           ["protocol_bullet_race_prep_0",           "protocol_bullet_race_prep_1"],
+  race_day:            ["protocol_bullet_race_day_0",            "protocol_bullet_race_day_1"],
+  post_race:           ["protocol_bullet_post_race_0",           "protocol_bullet_post_race_1"],
+};
+
+function getProtocolBullets(ap: NonNullable<Meal["appliedProtocol"]>, t: (key: string, opts?: Record<string, unknown>) => string): string[] {
   if (ap.track === "competition") {
-    const phaseBullets: Record<string, string[]> = {
-      fat_loss: ["High Protein Target (≥2g/kg)", "Caloric Deficit Strategy"],
-      conditioning: ["Carb Timing — Pre/Post Training", "Anti-Inflammatory Recovery"],
-      peak_prep: ["Sodium Reduction Active", "Digestibility Priority"],
-      peak_week: ["Low Fiber Protocol Active", "Low Sodium — Water Control"],
-      show_day: ["Rapid Digestibility Protocol", "Carb Timing for Performance"],
-      meet_week: ["Carb Loading Protocol Active", "CNS Recovery Nutrients"],
-      meet_day: ["Pre-Meet Carb Protocol", "Digestibility First"],
-      weight_cut: ["Sodium Restriction Active", "Electrolyte Management"],
-      fight_week: ["Water Management Protocol", "Rehydration-Ready Meals"],
-      taper: ["Carb Loading (8–10g/kg)", "Fiber Reduction Active"],
-      race_day: ["Race-Day Carb Protocol", "Gut-Safe Nutrition"],
-      post_competition: ["Recovery Refeed Active", "Anti-Inflammatory Priority"],
-      post_race: ["Post-Race Recovery Nutrition", "Caloric Increase"],
-    };
+    const phase = ap.currentPhase ?? "";
+    const compType = ap.competitionType ?? "";
+    const bulletKeys = COMP_PHASE_BULLET_KEYS[phase];
+    const extra = bulletKeys ? [t(bulletKeys[0]), t(bulletKeys[1])] : [];
     const base = [
-      `Competition Prep — ${ap.competitionTypeLabel ?? ap.competitionType ?? ""}`,
-      `${ap.currentPhaseLabel ?? ""}${ap.weeksOut != null && ap.weeksOut > 0 ? ` · ${ap.weeksOut} Weeks Out` : ""}`,
+      t("protocol_competitionPrepLabel", { type: compType ? t(`protocol_comptype_${compType}` as any) : "" }),
+      `${phase ? t(`protocol_phaselabel_${phase}` as any) : ""}${ap.weeksOut != null && ap.weeksOut > 0 ? ` · ${t("weeksOut", { n: ap.weeksOut })}` : ""}`,
     ];
-    const extra = phaseBullets[ap.currentPhase ?? ""] ?? [];
     return [...base, ...extra];
   }
-  const typeLabels: Record<string, string> = {
-    strength: "Strength Training", hypertrophy: "Hypertrophy", powerlifting: "Powerlifting",
-    olympic_lifting: "Olympic Lifting", mma: "MMA", boxing: "Boxing", wrestling: "Wrestling",
-    bjj: "BJJ / Grappling", crossfit: "CrossFit", endurance_running: "Running",
-    cycling: "Cycling", triathlon: "Triathlon", tactical: "Tactical / Military",
-    general_fitness: "General Fitness",
-  };
-  const phaseLabels: Record<string, string> = {
-    off_season: "Off Season", pre_season: "Pre-Season", in_season: "In Season",
-    weight_cut: "Weight Cut Phase", recovery: "Recovery Phase",
-  };
+  const sportKey = `protocol_sport_${ap.trainingType ?? ""}` as const;
+  const sportLabel = (ap.trainingType && `protocol_sport_${ap.trainingType}`)
+    ? t(`protocol_sport_${ap.trainingType}`)
+    : t("sportFallback");
+  const phaseKey = `protocol_phase_${ap.trainingPhase ?? ""}`;
+  const phaseLabel = ap.trainingPhase
+    ? t(phaseKey)
+    : t("protocol_performancePhaseFallback");
   const goalLabel =
-    ap.primaryGoal === "fat_loss" ? "Fat Loss Priority" :
-    ap.primaryGoal === "muscle_gain" ? "Muscle Growth Priority" :
-    ap.primaryGoal === "strength" ? "Strength Priority" :
-    "Peak Performance Priority";
+    ap.primaryGoal === "fat_loss" ? t("protocol_goalFatLoss") :
+    ap.primaryGoal === "muscle_gain" ? t("protocol_goalMuscleGain") :
+    ap.primaryGoal === "strength" ? t("protocol_goalStrength") :
+    t("protocol_goalPeak");
   return [
-    `Athletic Performance — ${typeLabels[ap.trainingType ?? ""] ?? (ap.trainingType ?? "Sport")}`,
-    phaseLabels[ap.trainingPhase ?? ""] ?? "Performance Phase",
+    t("protocol_athleticPerfLabel", { sport: sportLabel }),
+    phaseLabel,
     goalLabel,
-    "Recovery Support Active",
+    t("protocol_recoverySupportActive"),
   ];
 }
 
@@ -153,6 +173,7 @@ export function MealCard({
   /** Called after a successful component swap so the board can be refreshed. */
   onRefined?:   () => void;
 }) {
+  const { t } = useTranslation("mealCard");
   const { toast } = useToast();
   const { user } = useAuth();
   const [macrosLogged, setMacrosLogged] = React.useState(false);
@@ -203,7 +224,7 @@ export function MealCard({
     });
   }, [translation]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const title = meal.title || meal.name || "Meal";
+  const title = meal.title || meal.name || t("mealFallback");
   const displayTitle = translatedContent.name ?? title;
   const displayDescription = translatedContent.description ?? (meal as any).description;
   const displayIngredients = translatedContent.ingredients ?? meal.ingredients;
@@ -220,7 +241,7 @@ export function MealCard({
     : deriveSplitCarbs(meal.ingredients ?? [], carbs);
   const hasStarchyFibrous = carbs > 0 || starchyCarbs > 0 || fibrousCarbs > 0;
 
-  const onDelete = () => { if (confirm("Remove this meal from the board?")) onUpdated(null); };
+  const onDelete = () => { if (confirm(t("removeFromBoard"))) onUpdated(null); };
 
   const handleLogMacros = async () => {
     try {
@@ -248,13 +269,13 @@ export function MealCard({
 
       setMacrosLogged(true);
       toast({
-        title: "Logged Successfully",
-        description: `${title} has been logged to your macros.`,
+        title: t("loggedSuccessfully"),
+        description: t("loggedDesc", { name: title }),
       });
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to log macros. Please try again.",
+        title: t("common:error", "Error"),
+        description: t("failedToLog"),
         variant: "destructive",
       });
     }
@@ -345,28 +366,28 @@ export function MealCard({
           </div>
           {diabeticMemoryContext && (
             <div className="mt-2 rounded-lg bg-lime-950/60 border border-lime-700/40 px-3 py-2 text-xs space-y-0.5">
-              <div className="text-lime-400 font-semibold tracking-wide uppercase text-[10px]">Diabetes Protocol</div>
-              <div className="text-white/80">Generated for BGL: <span className="text-white font-medium">{diabeticMemoryContext.generatedBglMgdl} mg/dL</span></div>
+              <div className="text-lime-400 font-semibold tracking-wide uppercase text-[10px]">{t("diabetesProtocol")}</div>
+              <div className="text-white/80">{t("generatedForBGL")} <span className="text-white font-medium">{diabeticMemoryContext.generatedBglMgdl} mg/dL</span></div>
               <div className="text-white/60">{diabeticMemoryContext.protocolTypeLabel}</div>
-              <div className="text-white/50 text-[10px]">Relevant range: {diabeticMemoryContext.recommendedBglRange}</div>
+              <div className="text-white/50 text-[10px]">{t("relevantRange")} {diabeticMemoryContext.recommendedBglRange}</div>
             </div>
           )}
 
           {meal.appliedProtocol && (
             <div className="mt-2 rounded-lg bg-orange-950/40 border border-orange-500/30 px-3 py-2 text-xs space-y-1.5">
               <div className="text-orange-400 font-semibold tracking-wide uppercase text-[10px]">
-                {meal.appliedProtocol.track === "competition" ? "🏆 Competition Prep Protocol Applied" : "⚡ Athletic Performance Protocol Applied"}
+                {meal.appliedProtocol.track === "competition" ? t("competitionPrepProtocol") : t("athleticPerformanceProtocol")}
               </div>
               <div className="text-white/80 font-medium text-[11px]">
                 {meal.appliedProtocol.track === "competition"
-                  ? `${meal.appliedProtocol.competitionTypeLabel ?? meal.appliedProtocol.competitionType} · ${meal.appliedProtocol.currentPhaseLabel}${meal.appliedProtocol.weeksOut != null && meal.appliedProtocol.weeksOut > 0 ? ` · ${meal.appliedProtocol.weeksOut} Weeks Out` : ""}`
-                  : `${(meal.appliedProtocol.trainingType ?? "").replace(/_/g, " ")} · ${meal.appliedProtocol.trainingFrequency} sessions/week`
+                  ? `${meal.appliedProtocol.competitionType ? t(`protocol_comptype_${meal.appliedProtocol.competitionType}` as any) : ""} · ${meal.appliedProtocol.currentPhase ? t(`protocol_phaselabel_${meal.appliedProtocol.currentPhase}` as any) : ""}${meal.appliedProtocol.weeksOut != null && meal.appliedProtocol.weeksOut > 0 ? ` · ${t("weeksOut", { n: meal.appliedProtocol.weeksOut })}` : ""}`
+                  : `${meal.appliedProtocol.trainingType ? t(`protocol_sport_${meal.appliedProtocol.trainingType}`) : ""} · ${t("sessionsPerWeek", { n: meal.appliedProtocol.trainingFrequency })}`
                 }
               </div>
               <div className="pt-1 border-t border-orange-500/20">
-                <div className="text-orange-300 font-semibold text-[10px] uppercase tracking-wide mb-1">Why This Meal Was Built</div>
+                <div className="text-orange-300 font-semibold text-[10px] uppercase tracking-wide mb-1">{t("whyThisMealWasBuilt")}</div>
                 <ul className="space-y-0.5">
-                  {getProtocolBullets(meal.appliedProtocol).map((bullet, i) => (
+                  {getProtocolBullets(meal.appliedProtocol, t).map((bullet, i) => (
                     <li key={i} className="text-white/70 text-[11px] flex items-start gap-1">
                       <span className="text-orange-400 leading-none mt-0.5">•</span>
                       <span>{bullet}</span>
@@ -400,7 +421,7 @@ export function MealCard({
                   {medicalBadges.length > 0 && (
                     <>
                       <HealthBadgesPopover badges={badgeIds} />
-                      <h3 className="font-semibold text-white text-sm">Medical Safety</h3>
+                      <h3 className="font-semibold text-white text-sm">{t("medicalSafety")}</h3>
                     </>
                   )}
                 </div>
@@ -408,10 +429,10 @@ export function MealCard({
                   <TrashButton
                     size="sm"
                     onClick={() => onUpdated(null)}
-                    ariaLabel="Delete meal"
-                    title="Delete meal"
+                    ariaLabel={t("deleteMeal")}
+                    title={t("deleteMeal")}
                     confirm={true}
-                    confirmMessage="Remove this meal from the board?"
+                    confirmMessage={t("removeFromBoard")}
                     className="touch-manipulation"
                   />
                 </div>
@@ -423,11 +444,11 @@ export function MealCard({
           <div className="mt-3 grid grid-cols-3 gap-2 text-center">
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-2 rounded-md">
               <div className="text-sm font-bold text-blue-400">{Math.round(protein)}g</div>
-              <div className="text-xs text-white/70">Protein</div>
+              <div className="text-xs text-white/70">{t("protein")}</div>
             </div>
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-2 rounded-md">
               <div className="text-sm font-bold text-amber-400">{Math.round(carbs)}g</div>
-              <div className="text-xs text-white/70">Carbs</div>
+              <div className="text-xs text-white/70">{t("carbs")}</div>
               {hasStarchyFibrous && (
                 <div className="text-xs text-white/80 mt-1 font-medium">
                   <span className="text-amber-300">{Math.round(starchyCarbs)}S</span>
@@ -438,7 +459,7 @@ export function MealCard({
             </div>
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-2 rounded-md">
               <div className="text-sm font-bold text-purple-400">{Math.round(fat)}g</div>
-              <div className="text-xs text-white/70">Fat</div>
+              <div className="text-xs text-white/70">{t("fat")}</div>
             </div>
           </div>
         
@@ -453,7 +474,7 @@ export function MealCard({
         {Array.isArray(displayIngredients) && displayIngredients.length > 0 && (
           <div className="mt-3 space-y-2">
             <h4 className="text-sm font-semibold text-white flex items-center gap-1.5">
-              Ingredients:
+              {t("ingredients")}
               {isTranslating && <Loader2 className="h-3 w-3 animate-spin text-white/40" />}
             </h4>
             <ul className="text-xs text-white/80 space-y-1">
@@ -466,7 +487,7 @@ export function MealCard({
                     </li>
                   );
                 }
-                const name = ing.name || ing.item || "Ingredient";
+                const name = ing.name || ing.item || t("ingredientFallback");
                 const qty = ing.quantity || ing.amount || "";
                 const unit = ing.unit || "";
                 
@@ -489,9 +510,9 @@ export function MealCard({
                   className="text-xs text-orange-400 cursor-pointer active:text-orange-300 select-none"
                   onClick={() => setIngredientsExpanded(!ingredientsExpanded)}
                 >
-                  {ingredientsExpanded 
-                    ? "Show less" 
-                    : `+ ${displayIngredients.length - 4} more...`}
+                  {ingredientsExpanded
+                    ? t("showLess")
+                    : t("moreIngredients", { count: displayIngredients.length - 4 })}
                 </li>
               )}
             </ul>
@@ -505,7 +526,7 @@ export function MealCard({
           const visibleSteps = instructionsExpanded ? steps : steps.slice(0, 3);
           return (
             <div className="mt-3">
-              <h4 className="text-sm font-semibold text-white mb-2">Instructions:</h4>
+              <h4 className="text-sm font-semibold text-white mb-2">{t("instructions")}</h4>
               <div className="space-y-2">
                 {visibleSteps.map((step, index) => (
                   <div
@@ -532,7 +553,7 @@ export function MealCard({
                     if (instructionsExpanded) setActiveStep(null);
                   }}
                 >
-                  {instructionsExpanded ? "Show less" : `Show all ${steps.length} steps`}
+                  {instructionsExpanded ? t("showLess") : t("showAllSteps", { count: steps.length })}
                 </button>
               )}
             </div>
@@ -554,7 +575,7 @@ export function MealCard({
           <div className="mt-3 flex items-center justify-between gap-2 rounded-lg bg-violet-950/40 border border-violet-500/30 px-3 py-2 text-xs">
             <div className="flex items-center gap-1.5 text-violet-300">
               <Wand2 className="h-3 w-3 shrink-0" />
-              <span>Showing refined version</span>
+              <span>{t("showingRefined")}</span>
             </div>
             <button
               className="flex items-center gap-1 text-violet-400 font-medium active:opacity-70"
@@ -564,7 +585,7 @@ export function MealCard({
               }}
             >
               <RotateCcw className="h-3 w-3" />
-              Restore original
+              {t("restoreOriginal")}
             </button>
           </div>
         )}
@@ -576,7 +597,7 @@ export function MealCard({
             onClick={() => setRefineOpen(true)}
           >
             <Wand2 className="h-4 w-4" />
-            Refine Meal
+            {t("refineMeal")}
           </button>
           {date !== "board" && (
             <MacroBridgeButton
@@ -591,7 +612,7 @@ export function MealCard({
                 mealSlot: slot,
                 servings: meal.servings || 1,
               }}
-              label="Add to Macros"
+              label={t("addToMacros", { defaultValue: "Add to Macros", ns: "savedMeals" })}
             />
           )}
           <AddToMealPlanButton

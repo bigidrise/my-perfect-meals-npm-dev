@@ -86,23 +86,14 @@ import { BuilderHeader } from "@/components/pro/BuilderHeader";
 import { getBuilderProtocolBadges } from "@/lib/nutritionPersonalization";
 
 import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
-
-const GENERAL_NUTRITION_TOUR_STEPS: TourStep[] = [
-  { icon: "1", title: "Build Client Meals", description: "Tap the + button on any meal card to add personalized recipes for your client." },
-  { icon: "2", title: "Set Coach Targets", description: "Macro targets are set from the Client Dashboard - view progress here." },
-  { icon: "3", title: "Day-by-Day Planning", description: "Use day chips to plan specific meals for each day of the week." },
-  { icon: "4", title: "Duplicate Days", description: "Copy a day's meals to other days for consistent eating patterns." },
-  { icon: "5", title: "Shopping List", description: "Export all ingredients for the week to create a shopping list." },
-  { icon: "6", title: "Track Progress & Save Day", description: "Review your color-coded progress at the bottom of the page, then tap Save Day to lock your plan into Biometrics." },
-  { icon: "🥔", title: "Watch Your Starch Slots", description: "The starch indicator shows your daily starch meal status. Green = slots available, Orange = all used, Red = over limit. Fibrous carbs are unlimited!" },
-  { icon: "*", title: "What the Asterisks Mean", description: "Protein and carbs are marked with asterisks (*) because they're the most important numbers to focus on when building your meals. Get those right first." }
-];
+import { useTranslation } from "react-i18next";
 
 // CHICAGO CALENDAR FIX v1.0: All date utilities now imported from midnight.ts
 // Using noon UTC anchor pattern to prevent day-shift bugs
 
 export default function WeeklyMealBoard() {
-  usePageTitle("General Nutrition Builder");
+  const { t } = useTranslation();
+  usePageTitle(t("generalNutritionBuilder.pageTitle"));
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const isDesktop = useIsDesktop();
@@ -112,6 +103,17 @@ export default function WeeklyMealBoard() {
 
 
   const quickTour = useQuickTour("general-nutrition-builder");
+
+  const GENERAL_NUTRITION_TOUR_STEPS = useMemo<TourStep[]>(() => [
+    { icon: "1", title: t("generalNutritionBuilder.tour1Title"), description: t("generalNutritionBuilder.tour1Desc") },
+    { icon: "2", title: t("generalNutritionBuilder.tour2Title"), description: t("generalNutritionBuilder.tour2Desc") },
+    { icon: "3", title: t("generalNutritionBuilder.tour3Title"), description: t("generalNutritionBuilder.tour3Desc") },
+    { icon: "4", title: t("generalNutritionBuilder.tour4Title"), description: t("generalNutritionBuilder.tour4Desc") },
+    { icon: "5", title: t("generalNutritionBuilder.tour5Title"), description: t("generalNutritionBuilder.tour5Desc") },
+    { icon: "6", title: t("generalNutritionBuilder.tour6Title"), description: t("generalNutritionBuilder.tour6Desc") },
+    { icon: "🥔", title: t("metabolicBuilder.tour7Title"), description: t("generalNutritionBuilder.tour7Desc") },
+    { icon: "*", title: t("metabolicBuilder.tour8Title"), description: t("metabolicBuilder.tour8Desc") },
+  ], [t]);
 
   const [, params] = useRoute("/pro/clients/:id/general-nutrition-builder");
   const proClientId = params?.id;
@@ -360,18 +362,17 @@ export default function WeeklyMealBoard() {
       window.dispatchEvent(new Event("macros:updated"));
       
       toast({
-        title: "Meal Added!",
-        description: `${meal.title || meal.name} added successfully`,
+        title: t("generalNutritionBuilder.mealAdded"),
+        description: t("generalNutritionBuilder.mealAddedDesc", { name: meal.title || meal.name }),
       });
     } catch (error) {
       console.error("Failed to add Create With Chef meal:", error);
       toast({
-        title: "Error",
-        description: "Failed to add meal. Please try again.",
+        title: t("metabolicBuilder.addMealError"),
         variant: "destructive"
       });
     }
-  }, [board, planningMode, activeDayISO, weekStartISO, saveBoard, toast]);
+  }, [board, planningMode, activeDayISO, weekStartISO, saveBoard, toast, t]);
 
   // Handler for snack selection from SnackCreatorModal
   const handleSnackSelect = useCallback(async (snack: any) => {
@@ -418,12 +419,11 @@ export default function WeeklyMealBoard() {
     } catch (error) {
       console.error("Failed to add snack:", error);
       toast({
-        title: "Error",
-        description: "Failed to add snack. Please try again.",
+        title: t("metabolicBuilder.addSnackError"),
         variant: "destructive"
       });
     }
-  }, [board, planningMode, activeDayISO, saveBoard, toast]);
+  }, [board, planningMode, activeDayISO, saveBoard, toast, t]);
 
   // Guided Tour state
   const [hasSeenInfo, setHasSeenInfo] = useState(false);
@@ -575,19 +575,19 @@ export default function WeeklyMealBoard() {
       }
 
       if (result.errors.length > 0) {
-        toast({ title: "Partial duplicate", description: `${result.currentWeekDayCount + result.otherWeeksSaved} of ${result.totalDays} days saved.`, variant: "destructive" });
+        toast({ title: t("metabolicBuilder.partialDuplicate"), description: t("metabolicBuilder.partialDuplicateDesc", { count: result.currentWeekDayCount + result.otherWeeksSaved, total: result.totalDays }), variant: "destructive" });
       } else if (result.otherWeeksSaved > 0 && result.currentWeekDayCount === 0) {
-        toast({ title: "Saved to future week", description: `Meals copied to ${result.otherWeeksSaved} day(s). Swipe forward to see them.` });
+        toast({ title: t("metabolicBuilder.savedFutureWeek"), description: t("metabolicBuilder.savedFutureWeekDesc", { count: result.otherWeeksSaved }) });
       } else if (result.otherWeeksSaved > 0) {
-        toast({ title: "Day duplicated", description: `${result.currentWeekDayCount} day(s) this week + ${result.otherWeeksSaved} day(s) in future weeks` });
+        toast({ title: t("metabolicBuilder.dayDuplicated"), description: t("metabolicBuilder.dayDuplicatedBoth", { thisWeek: result.currentWeekDayCount, future: result.otherWeeksSaved }) });
       } else {
-        toast({ title: "Day duplicated", description: `Copied to ${result.currentWeekDayCount} day(s)` });
+        toast({ title: t("metabolicBuilder.dayDuplicated"), description: t("metabolicBuilder.dayDuplicatedDesc", { count: result.currentWeekDayCount }) });
       }
     } catch (error) {
       console.error('Failed to duplicate day:', error);
-      toast({ title: "Failed to duplicate", description: "Please try again", variant: "destructive" });
+      toast({ title: t("metabolicBuilder.failedToDuplicate"), description: t("metabolicBuilder.tryAgain"), variant: "destructive" });
     }
-  }, [board, activeDayISO, weekStartISO, saveBoard, toast]);
+  }, [board, activeDayISO, weekStartISO, saveBoard, toast, t]);
 
 
   const profile = useOnboardingProfile();
@@ -776,10 +776,14 @@ export default function WeeklyMealBoard() {
   }
 
 
-  const lists: Array<["breakfast"|"lunch"|"dinner"|"meal4"|"meal5"|"meal6", string]> = [
-    ["breakfast","Meal 1"], ["lunch","Meal 2"], ["dinner","Meal 3"],
-    ["meal4","Meal 4"], ["meal5","Meal 5"], ["meal6","Meal 6"],
-  ];
+  const lists = useMemo<Array<["breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6", string]>>(() => [
+    ["breakfast", t("metabolicBuilder.meal1")],
+    ["lunch", t("metabolicBuilder.meal2")],
+    ["dinner", t("metabolicBuilder.meal3")],
+    ["meal4", t("metabolicBuilder.meal4")],
+    ["meal5", t("metabolicBuilder.meal5")],
+    ["meal6", t("metabolicBuilder.meal6")],
+  ], [t]);
 
   const handleLogAllMacros = useCallback(async () => {
     if (!board) return;
@@ -872,7 +876,7 @@ export default function WeeklyMealBoard() {
                 type="button"
                 onClick={onPrevWeek}
                 className="rounded-md px-2 py-1 border border-white/20 text-white/80 hover:bg-white/10 transition-colors"
-                aria-label="Previous week"
+                aria-label={t("metabolicBuilder.prevWeek")}
               >
                 ‹
               </button>
@@ -883,7 +887,7 @@ export default function WeeklyMealBoard() {
                 type="button"
                 onClick={onNextWeek}
                 className="rounded-md px-2 py-1 border border-white/20 text-white/80 hover:bg-white/10 transition-colors"
-                aria-label="Next week"
+                aria-label={t("metabolicBuilder.nextWeek")}
               >
                 ›
               </button>
@@ -997,7 +1001,7 @@ export default function WeeklyMealBoard() {
                 {justSaved ? <Check className="h-3 w-3" /> : <Save className="h-3 w-3" />}
               </PillButton>
               <span className="text-xs font-semibold text-white/70 tracking-wide">
-                {saving ? "Saving…" : justSaved ? "Saved ✓" : "Save Plan"}
+                {saving ? t("metabolicBuilder.savingPlan") : justSaved ? t("metabolicBuilder.savedPlan") : t("metabolicBuilder.savePlan")}
               </span>
             </div>
 
@@ -1013,7 +1017,7 @@ export default function WeeklyMealBoard() {
               >
                 <Calendar className="h-3 w-3" />
               </PillButton>
-              <span className="text-xs font-semibold text-white/70 tracking-wide">Duplicate</span>
+              <span className="text-xs font-semibold text-white/70 tracking-wide">{t("metabolicBuilder.duplicate")}</span>
             </div>
 
           </div>
@@ -1072,7 +1076,7 @@ export default function WeeklyMealBoard() {
                               setBoard(updatedBoard);
                               saveBoard(updatedBoard).catch((err) => {
                                 console.error("❌ Delete sync failed (Day mode):", err);
-                                toast({ title: "Sync pending", description: "Changes will sync automatically." });
+                                toast({ title: t("metabolicBuilder.syncPending"), description: t("metabolicBuilder.syncPendingDesc") });
                               });
                             } else {
                               const updatedDayLists = {
@@ -1089,8 +1093,8 @@ export default function WeeklyMealBoard() {
                       ))}
                       {dayLists[key as keyof typeof dayLists].length === 0 && (
                         <div className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm">
-                          <p className="mb-2">No {label.toLowerCase()} yet</p>
-                          <p className="text-xs text-white/40">Use "Create with Chef" or "+" to add meals</p>
+                          <p className="mb-2">{t("generalNutritionBuilder.noSlotYet", { slot: label.toLowerCase() })}</p>
+                          <p className="text-xs text-white/40">{t("metabolicBuilder.addChefOrPlusHint")}</p>
                         </div>
                       )}
                     </div>
@@ -1100,7 +1104,7 @@ export default function WeeklyMealBoard() {
                 {/* Snack Creator Section */}
                 <section className="rounded-2xl border border-zinc-800 bg-zinc-900/40 backdrop-blur p-4 col-span-full">
                   <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-white/90 text-lg font-medium">Snacks</h2>
+                    <h2 className="text-white/90 text-lg font-medium">{t("metabolicBuilder.snacks")}</h2>
                     <GlobalMealActionBar
                       slot="snacks"
                       onCreateWithAI={() => {}}
@@ -1130,7 +1134,7 @@ export default function WeeklyMealBoard() {
                               setBoard(updatedBoard);
                               saveBoard(updatedBoard).catch((err) => {
                                 console.error("❌ Delete sync failed (Day mode):", err);
-                                toast({ title: "Sync pending", description: "Changes will sync automatically." });
+                                toast({ title: t("metabolicBuilder.syncPending"), description: t("metabolicBuilder.syncPendingDesc") });
                               });
                             } else {
                               const updatedDayLists = {
@@ -1147,8 +1151,8 @@ export default function WeeklyMealBoard() {
                       ))}
                     {dayLists.snacks.length === 0 && (
                       <div className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm">
-                        <p className="mb-2">No snacks yet</p>
-                        <p className="text-xs text-white/40">Use "Create with Chef" to create snacks</p>
+                        <p className="mb-2">{t("generalNutritionBuilder.noSnacksYet")}</p>
+                        <p className="text-xs text-white/40">{t("metabolicBuilder.addChefOrPlusHint")}</p>
                       </div>
                     )}
                   </div>
@@ -1204,7 +1208,7 @@ export default function WeeklyMealBoard() {
                         setBoard(updatedBoard);
                         saveBoard(updatedBoard).catch((err) => {
                           console.error("❌ Delete sync failed (Board mode):", err);
-                          toast({ title: "Sync pending", description: "Changes will sync automatically." });
+                          toast({ title: t("metabolicBuilder.syncPending"), description: t("metabolicBuilder.syncPendingDesc") });
                         });
                       } else {
                         onItemUpdated(key, idx, m);
@@ -1214,8 +1218,8 @@ export default function WeeklyMealBoard() {
                 ))}
                 {board.lists[key].length === 0 && (
                   <div className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm">
-                    <p className="mb-2">No {label.toLowerCase()} yet</p>
-                    <p className="text-xs text-white/40">Use "Create with Chef" or "+" to add meals</p>
+                    <p className="mb-2">{t("generalNutritionBuilder.noSlotYet", { slot: label.toLowerCase() })}</p>
+                    <p className="text-xs text-white/40">{t("metabolicBuilder.addChefOrPlusHint")}</p>
                   </div>
                 )}
               </div>
@@ -1314,7 +1318,7 @@ export default function WeeklyMealBoard() {
                     
                     if (result.alreadyLocked) {
                       toast({
-                        title: "Already Locked",
+                        title: t("metabolicBuilder.alreadyLocked"),
                         description: result.message,
                         variant: "destructive",
                       });
@@ -1347,7 +1351,7 @@ export default function WeeklyMealBoard() {
                         dateISO: activeDayISO,
                       });
                       toast({
-                        title: "Day Saved to Coach Targets",
+                        title: t("generalNutritionBuilder.daySavedCoach"),
                         description: `${formatDateDisplay(activeDayISO, { weekday: 'long', month: 'short', day: 'numeric' })} has been locked.`,
                       });
                       setLocation(`/pro/clients/${clientId}/dashboard?tab=targets`);
@@ -1423,7 +1427,7 @@ export default function WeeklyMealBoard() {
         <WhyDrawer
           open={boardWhyOpen}
           onClose={() => setBoardWhyOpen(false)}
-          title="Why weekly planning?"
+          title={t("metabolicBuilder.whyWeeklyPlanning")}
           reasons={getWeeklyPlanningWhy()}
         />
       )}
@@ -1450,59 +1454,54 @@ export default function WeeklyMealBoard() {
           setHasSeenDailyTotalsInfo(true);
           localStorage.setItem("weekly-meal-board-daily-totals-info-seen", "true");
         }
-      }} className="bg-zinc-900/95 backdrop-blur-xl border-white/10 text-white max-w-md mx-auto rounded-2xl" title={<span className="flex items-center gap-2"><Sparkles className="h-6 w-6 text-orange-400" />Next Steps - Track Your Progress!</span>}>
+      }} className="bg-zinc-900/95 backdrop-blur-xl border-white/10 text-white max-w-md mx-auto rounded-2xl" title={<span className="flex items-center gap-2"><Sparkles className="h-6 w-6 text-orange-400" />{t("metabolicBuilder.nextStepsTitle")}</span>}>
           <div className="text-white/90 text-sm space-y-4">
             <p className="text-base font-semibold text-white">
-              Great job creating your meals! Here's what to do next:
+              {t("metabolicBuilder.nextStepsGreat")}
             </p>
 
             <div className="space-y-3">
               <div className="bg-black/30 p-3 rounded-lg border border-white/10">
                 <p className="font-semibold text-white mb-1 flex items-center gap-2">
                   <BarChart3 className="h-4 w-4 text-orange-400" />
-                  Option 1: Track Your Macros
+                  {t("metabolicBuilder.option1Title")}
                 </p>
                 <p className="text-white/70 text-xs">
-                  Send your day to the Macro Calculator to ensure you're hitting your nutrition targets.
-                  Look for the "Send to Macros" button below.
+                  {t("metabolicBuilder.option1Desc")}
                 </p>
               </div>
 
               <div className="bg-black/30 p-3 rounded-lg border border-white/10">
                 <p className="font-semibold text-white mb-1">
-                  Option 2: Plan Your Week
+                  {t("metabolicBuilder.option2Title")}
                 </p>
                 <p className="text-white/70 text-xs">
-                  Use the Day/Week toggle at the top to switch between planning a single day or your entire week.
-                  You can duplicate days or create each day individually.
+                  {t("metabolicBuilder.option2Desc")}
                 </p>
               </div>
 
               <div className="bg-black/30 p-3 rounded-lg border border-white/10">
                 <p className="font-semibold text-white mb-1">
-                  💡 Pro Tip: Macro Tracking
+                  {t("metabolicBuilder.proTipTitle")}
                 </p>
                 <p className="text-white/70 text-xs">
-                  Send just ONE day to macros at a time (not the whole week).
-                  This way, if you change meals on other days, you won't have outdated data.
+                  {t("metabolicBuilder.proTipDesc")}
                 </p>
               </div>
 
               <div className="bg-black/30 p-3 rounded-lg border border-white/10">
                 <p className="font-semibold text-white mb-1 flex items-center gap-2">
                   <ShoppingCart className="h-4 w-4 text-emerald-400" />
-                  Shopping List Ready
+                  {t("metabolicBuilder.shoppingListTitle")}
                 </p>
                 <p className="text-white/70 text-xs">
-                  You CAN send your entire week to the shopping list!
-                  This consolidates all ingredients for easy grocery shopping.
-                  Click "Send Entire Week" at the bottom.
+                  {t("metabolicBuilder.shoppingListDesc")}
                 </p>
               </div>
             </div>
 
             <p className="text-xs text-white/60 text-center pt-2 border-t border-white/10">
-              Next: Check out the Shopping List to learn how to use it effectively!
+              {t("metabolicBuilder.shoppingListNext")}
             </p>
           </div>
       </InformationModal>
@@ -1526,7 +1525,7 @@ export default function WeeklyMealBoard() {
       <QuickTourModal
         isOpen={quickTour.shouldShow}
         onClose={quickTour.closeTour}
-        title="General Nutrition Builder"
+        title={t("generalNutritionBuilder.tourTitle")}
         steps={GENERAL_NUTRITION_TOUR_STEPS}
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />

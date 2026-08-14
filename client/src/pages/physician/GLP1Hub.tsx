@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { PillButton } from "@/components/ui/pill-button";
@@ -31,39 +32,20 @@ import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import GLP1DailyCheckin from "@/components/glp1/GLP1DailyCheckin";
 import ProtocolStatusBadge from "@/components/ProtocolStatusBadge";
 
-const GLP1_TOUR_STEPS: TourStep[] = [
-  {
-    icon: "1",
-    title: "Choose Your Preset",
-    description:
-      "Select a starting point based on your medication or customize your own guardrails.",
-  },
-  {
-    icon: "2",
-    title: "Track Your Shots",
-    description:
-      "Log your medication injections to stay on schedule and monitor your progress.",
-  },
-  {
-    icon: "3",
-    title: "Set Meal Limits",
-    description:
-      "Configure maximum meal volume and macros to match your reduced appetite.",
-  },
-  {
-    icon: "4",
-    title: "Get Medication-Friendly Meals",
-    description:
-      "Browse meals designed for smaller portions with maximum nutrition.",
-  },
-];
-
 export default function GLP1Hub() {
+  const { t } = useTranslation();
   const [, setLocation] = useLocation();
   const [noteOpen, setNoteOpen] = useState(false);
   const [shotTrackerOpen, setShotTrackerOpen] = useState(false);
   const { user } = useAuth();
   const quickTour = useQuickTour("glp1-hub");
+
+  const GLP1_TOUR_STEPS = useMemo<TourStep[]>(() => [
+    { icon: "1", title: t("glp1Hub.tour1Title"), description: t("glp1Hub.tour1Desc") },
+    { icon: "2", title: t("glp1Hub.tour2Title"), description: t("glp1Hub.tour2Desc") },
+    { icon: "3", title: t("glp1Hub.tour3Title"), description: t("glp1Hub.tour3Desc") },
+    { icon: "4", title: t("glp1Hub.tour4Title"), description: t("glp1Hub.tour4Desc") },
+  ], [t]);
 
   // Fetch and mutate state for GLP-1 profile (local-first)
   const { data: profile, updateGuardrails, syncStatus } = useGLP1Profile();
@@ -102,7 +84,7 @@ export default function GLP1Hub() {
   const hasHydratedFromServer = useRef(false);
 
   useEffect(() => {
-    document.title = "Metabolic Medication Hub | My Perfect Meals";
+    document.title = `${t("glp1Hub.pageTitle")} | My Perfect Meals`;
     if (!localStorage.getItem("glp1-hub-info-seen")) {
       localStorage.setItem("glp1-hub-info-seen", "true");
     }
@@ -154,8 +136,8 @@ export default function GLP1Hub() {
     };
     saveMutation.mutate(sanitizedGuardrails);
     toast({
-      title: "Medication Profile Saved",
-      description: "Your guardrail settings have been updated.",
+      title: t("glp1Hub.toastSavedTitle"),
+      description: t("glp1Hub.toastSavedDesc"),
     });
   };
 
@@ -174,7 +156,7 @@ export default function GLP1Hub() {
           <Pill className="h-6 w-6 text-orange-500 flex-shrink-0" />
           {/* Title */}
           <h1 className="text-lg font-bold text-white truncate min-w-0">
-            Metabolic Medication Hub
+            {t("glp1Hub.pageTitle")}
           </h1>
 
           <div className="flex-grow" />
@@ -205,8 +187,8 @@ export default function GLP1Hub() {
           className="w-full flex items-center justify-between px-4 py-4 rounded-2xl bg-lime-600/20 border border-lime-500/30 text-white"
         >
           <div className="text-left">
-            <p className="font-bold text-sm">Launch Metabolic Builder</p>
-            <p className="text-white/80 text-xs mt-0.5">Small portions, protein-forward, medication-friendly</p>
+            <p className="font-bold text-sm">{t("glp1Hub.launchBuilder")}</p>
+            <p className="text-white/80 text-xs mt-0.5">{t("glp1Hub.launchBuilderSub")}</p>
           </div>
           <ChevronRight className="w-5 h-5 text-lime-400 flex-shrink-0" />
         </button>
@@ -220,8 +202,8 @@ export default function GLP1Hub() {
             <Dumbbell className="w-4 h-4 text-orange-400" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-sm text-white leading-tight">Training Nutrition Schedule</p>
-            <p className="text-white/40 text-xs mt-0.5">Adjust daily macro targets based on your workout schedule</p>
+            <p className="font-semibold text-sm text-white leading-tight">{t("glp1Hub.trainingTitle")}</p>
+            <p className="text-white/40 text-xs mt-0.5">{t("glp1Hub.trainingSub")}</p>
           </div>
           <ChevronRight className="w-4 h-4 text-white/30 group-hover:text-orange-400 transition-colors flex-shrink-0" />
         </button>
@@ -229,20 +211,20 @@ export default function GLP1Hub() {
         {/* ── Copilot Banner ── */}
         <div className="rounded-xl border-l-[3px] border-purple-500/60 bg-purple-500/5 px-4 py-3 space-y-1.5">
           <p className="text-sm text-white/80 leading-relaxed">
-            This hub makes sure every meal you get works with your metabolic medication — portion size, protein focus, and timing enforced automatically.
+            {t("glp1Hub.copilotText")}
           </p>
           <p className="text-sm text-white/50 leading-relaxed">
-            Expect smaller meals and steadier intake while your medication is active.
+            {t("glp1Hub.copilotSub")}
           </p>
           <div className="flex flex-wrap gap-2 pt-1">
-            {["Portion Control", "Shot Tracking", "Appetite Support"].map(chip => (
+            {[t("glp1Hub.chip1"), t("glp1Hub.chip2"), t("glp1Hub.chip3")].map(chip => (
               <span key={chip} className="text-[11px] font-medium px-2.5 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300">
                 {chip}
               </span>
             ))}
           </div>
           <p className="text-[11px] text-white/30 pt-0.5">
-            Your meal builders automatically use these settings.
+            {t("glp1Hub.autoSettings")}
           </p>
         </div>
 
@@ -253,9 +235,9 @@ export default function GLP1Hub() {
             className="w-full p-4 flex items-center justify-between text-white hover:bg-white/5 transition-colors"
           >
             <span className="font-medium">
-              <span className="text-emerald-400">Important:</span>{" "}
+              <span className="text-emerald-400">{t("glp1Hub.importantNote")}</span>{" "}
               <span className="text-md text-white">
-                How This App Supports Your Care
+                {t("glp1Hub.careTitle")}
               </span>
             </span>
             {noteOpen ? (
@@ -267,18 +249,7 @@ export default function GLP1Hub() {
           {noteOpen && (
             <div className="px-4 pb-4">
               <p className="text-md leading-relaxed text-white/90">
-                <span className="font-semibold text-emerald-400">
-                  Important:
-                </span>{" "}
-                My Perfect Meals is designed to work{" "}
-                <span className="font-semibold text-white">with</span> your
-                doctor, dietitian, or healthcare provider — never instead of
-                them. Use the information and tools here to stay consistent
-                between visits, to understand your body, and to make small,
-                confident choices that honor your professional guidance. Every
-                tracker, every meal, and every suggestion in this app is meant
-                to <span className="italic">support</span> your care plan, not
-                replace it.
+                {t("glp1Hub.careBody")}
               </p>
             </div>
           )}
@@ -287,7 +258,7 @@ export default function GLP1Hub() {
         {/* Shot Tracker - Database-backed */}
         <section className="bg-black/60 border border-purple-300/20 rounded-xl p-4 backdrop-blur">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg text-white font-bold">Medication Shot Tracker</h2>
+            <h2 className="text-lg text-white font-bold">{t("glp1Hub.shotTrackerTitle")}</h2>
             <div className="flex flex-col items-center gap-1">
               <PillButton
                 onClick={() => setShotTrackerOpen(!shotTrackerOpen)}
@@ -299,7 +270,7 @@ export default function GLP1Hub() {
                   : <ChevronDown className="w-3 h-3" />}
               </PillButton>
               <span className="text-[11px] text-white font-medium">
-                {shotTrackerOpen ? "Close Tracker" : "Open Tracker"}
+                {shotTrackerOpen ? t("glp1Hub.closeTracker") : t("glp1Hub.openTracker")}
               </span>
             </div>
           </div>
@@ -311,14 +282,13 @@ export default function GLP1Hub() {
                   onClose={() => setShotTrackerOpen(false)}
                 />
               ) : (
-                <p className="text-white/60 text-sm">Loading your shot history...</p>
+                <p className="text-white/60 text-sm">{t("glp1Hub.shotLoading")}</p>
               )}
             </div>
           )}
           {!shotTrackerOpen && (
             <p className="text-white/80 text-md">
-              Track your medication shots with date, dosage, injection site, and
-              notes. Click to manage your shot history.
+              {t("glp1Hub.shotTrackerDesc")}
             </p>
           )}
         </section>
@@ -326,21 +296,20 @@ export default function GLP1Hub() {
         {/* Doctor / Coach Guardrails */}
         <section className="bg-black/60 border border-purple-300/20 rounded-xl p-5 backdrop-blur shadow-lg">
           <h2 className="text-lg text-white font-bold mb-2">
-            Doctor / Coach Guardrails
+            {t("glp1Hub.guardrailsTitle")}
           </h2>
           <p className="text-white/80 text-md mb-4">
-            Set clinical meal guardrails for patients on metabolic medications (portion, macros,
-            hydration).
+            {t("glp1Hub.guardrailsDesc")}
           </p>
 
           {/* Preset Selector */}
           <div className="mb-4">
             <label className="text-white/90 text-md block mb-1">
-              Quick Start Preset
+              {t("glp1Hub.quickStartPreset")}
             </label>
             <Select value={selectedPreset} onValueChange={handlePresetSelect}>
               <SelectTrigger className="w-full bg-black/30 border-purple-300/30 text-white [&>span]:text-white">
-                <SelectValue placeholder="Choose a preset or customize below..." />
+                <SelectValue placeholder={t("glp1Hub.presetPlaceholder")} />
               </SelectTrigger>
               <SelectContent>
                 {glp1Presets.map((preset) => (
@@ -360,7 +329,7 @@ export default function GLP1Hub() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="text-white/90 text-md block mb-1">
-                Max Meal Volume (mL)
+                {t("glp1Hub.maxMealVolume")}
               </label>
               <input
                 type="number"
@@ -377,7 +346,7 @@ export default function GLP1Hub() {
 
             <div>
               <label className="text-white/90 text-md block mb-1">
-                Protein Min (g per meal)
+                {t("glp1Hub.proteinMin")}
               </label>
               <input
                 type="number"
@@ -394,7 +363,7 @@ export default function GLP1Hub() {
 
             <div>
               <label className="text-white/90 text-md block mb-1">
-                Fat Max (g per meal)
+                {t("glp1Hub.fatMax")}
               </label>
               <input
                 type="number"
@@ -411,7 +380,7 @@ export default function GLP1Hub() {
 
             <div>
               <label className="text-white/90 text-md block mb-1">
-                Fiber Min (g per day)
+                {t("glp1Hub.fiberMin")}
               </label>
               <input
                 type="number"
@@ -428,7 +397,7 @@ export default function GLP1Hub() {
 
             <div>
               <label className="text-white/90 text-md block mb-1">
-                Hydration Goal (mL per day)
+                {t("glp1Hub.hydrationGoal")}
               </label>
               <input
                 type="number"
@@ -445,7 +414,7 @@ export default function GLP1Hub() {
 
             <div>
               <label className="text-white/90 text-md block mb-1">
-                Meals per Day
+                {t("glp1Hub.mealsPerDay")}
               </label>
               <input
                 type="number"
@@ -462,7 +431,7 @@ export default function GLP1Hub() {
 
             <div className="flex items-center justify-between">
               <label className="text-white/90 text-md">
-                Slow-Digest Foods Only
+                {t("glp1Hub.slowDigestFoods")}
               </label>
               <input
                 type="checkbox"
@@ -473,7 +442,7 @@ export default function GLP1Hub() {
             </div>
 
             <div className="flex items-center justify-between">
-              <label className="text-white/90 text-md">Limit Carbonation</label>
+              <label className="text-white/90 text-md">{t("glp1Hub.limitCarbonation")}</label>
               <input
                 type="checkbox"
                 checked={limitCarbonation}
@@ -483,7 +452,7 @@ export default function GLP1Hub() {
             </div>
 
             <div className="flex items-center justify-between">
-              <label className="text-white/90 text-md">Limit Alcohol</label>
+              <label className="text-white/90 text-md">{t("glp1Hub.limitAlcohol")}</label>
               <input
                 type="checkbox"
                 checked={limitAlcohol}
@@ -498,17 +467,17 @@ export default function GLP1Hub() {
             disabled={saveMutation.isPending}
             className="bg-lime-600 text-md font-bold text-white w-full rounded-xl mt-4"
           >
-            {saveMutation.isPending ? "Saving..." : "Save Guardrails"}
+            {saveMutation.isPending ? t("glp1Hub.saving") : t("glp1Hub.saveGuardrails")}
           </Button>
         </section>
 
         {/* CTA → Meals */}
         <section className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-2xl p-4 shadow-xl">
           <h3 className="text-white font-bold text-lg mb-1">
-            Find Meals for Metabolic Med Users
+            {t("glp1Hub.ctaTitle")}
           </h3>
           <p className="text-white/90 text-md mb-3">
-            Small portions • Calorie-dense • Mixed cuisines.
+            {t("glp1Hub.ctaDesc")}
           </p>
           <button
             onClick={() => setLocation("/glp1-meal-builder")}
@@ -516,8 +485,8 @@ export default function GLP1Hub() {
             data-testid="button-go-to-glp1-meals"
           >
             <div className="text-left">
-              <p className="font-bold text-sm">Launch Metabolic Builder</p>
-              <p className="text-white/80 text-xs mt-0.5">Small portions, protein-forward, medication-friendly</p>
+              <p className="font-bold text-sm">{t("glp1Hub.launchBuilder")}</p>
+              <p className="text-white/80 text-xs mt-0.5">{t("glp1Hub.launchBuilderSub")}</p>
             </div>
             <ChevronRight className="w-5 h-5 text-lime-400 flex-shrink-0" />
           </button>
@@ -528,7 +497,7 @@ export default function GLP1Hub() {
       <QuickTourModal
         isOpen={quickTour.shouldShow}
         onClose={quickTour.closeTour}
-        title="How to Use Metabolic Medication Hub"
+        title={t("glp1Hub.tourTitle")}
         steps={GLP1_TOUR_STEPS}
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />

@@ -12,6 +12,7 @@ import { requireAuth, type AuthenticatedRequest } from "../middleware/requireAut
 import { requireAdmin } from "../middleware/requireAdmin";
 import { TRIAL_UNLOCKS_TIER } from "../../shared/planFeatures";
 import { logAudit } from "../lib/auditLog";
+import { sendTrialStartEmail } from "../services/emailService";
 
 const router = Router();
 
@@ -155,6 +156,28 @@ router.post("/admin/grant", requireAuth, requireAdmin, async (req, res) => {
       .from(users)
       .where(eq(users.id, userId))
       .limit(1);
+
+    // Send trial-start confirmation email (non-fatal — grant is already committed).
+    // Use the effective trialEndsAt from the DB (GREATEST may have preserved a
+    // later pre-existing end date), and compute days from now to that date.
+    if (targetUser.email && updated) {
+      const effectiveEndsAt: Date = (updated as any).trialEndsAt
+        ? new Date((updated as any).trialEndsAt)
+        : trialEndsAt;
+      const effectiveDays = Math.max(
+        1,
+        Math.ceil((effectiveEndsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+      );
+      sendTrialStartEmail({
+        to: targetUser.email,
+        userName: targetUser.email.split('@')[0],
+        trialSource,
+        durationDays: effectiveDays,
+        trialEndsAt: effectiveEndsAt,
+      }).catch((err) =>
+        console.error('[trial] Trial start email failed (non-fatal):', err)
+      );
+    }
 
     return res.json({
       success: true,

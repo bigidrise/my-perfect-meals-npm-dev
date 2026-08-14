@@ -10,9 +10,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "wouter";
 import { Sparkles, Clock, Shield } from "lucide-react";
 import { isInTrial } from "@/lib/subscriptionCheck";
+import { useTranslation } from "react-i18next";
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
+function formatDate(iso: string, locale: string): string {
+  return new Date(iso).toLocaleDateString(locale, {
     month: "long",
     day: "numeric",
     year: "numeric",
@@ -26,6 +27,7 @@ function getUrgencyLevel(daysRemaining: number): "normal" | "warning" | "urgent"
 }
 
 export function TrialStatusCard() {
+  const { t, i18n } = useTranslation("trialStatusCard");
   const { user } = useAuth();
   const [, setLocation] = useLocation();
 
@@ -44,16 +46,16 @@ export function TrialStatusCard() {
   const urgency = getUrgencyLevel(daysRemaining);
 
   const tierLabel = trialTier === "ultimate"
-    ? "Clinical · Ultimate"
+    ? t("clinicalUltimate")
     : trialTier
     ? trialTier.charAt(0).toUpperCase() + trialTier.slice(1)
-    : "Full";
+    : t("tierFull");
 
   const sourceLabel =
-    trialSource === "admin_grant" ? "Admin Trial" :
-    trialSource === "clinic_grant" ? "Clinical Trial" :
-    trialSource === "promotion" ? "Promotional Trial" :
-    "Free Trial";
+    trialSource === "admin_grant" ? t("adminTrial") :
+    trialSource === "clinic_grant" ? t("clinicalTrial") :
+    trialSource === "promotion" ? t("promotionalTrial") :
+    t("freeTrial");
 
   const totalDays: number = (() => {
     if (trialStartedAt && trialEndsAt) {
@@ -88,10 +90,10 @@ export function TrialStatusCard() {
 
   const headlineText =
     urgency === "urgent"
-      ? "Your trial ends today"
+      ? t("trialEndsToday")
       : urgency === "warning"
-      ? `${daysRemaining} days left in your trial`
-      : `${daysRemaining} of ${totalDays} days remaining`;
+      ? t("daysLeftInTrial", { count: daysRemaining })
+      : t("daysOfDaysRemaining", { count: daysRemaining, total: totalDays });
 
   return (
     <div className={`rounded-xl border px-4 py-3 mb-4 ${bgClass}`}>
@@ -110,8 +112,8 @@ export function TrialStatusCard() {
           {trialEndsAt && (
             <p className="text-xs text-white/50 mt-0.5">
               {urgency === "urgent"
-                ? "Your account moves to the Free plan tonight. All your data stays safe."
-                : `Trial expires ${formatDate(trialEndsAt)}`}
+                ? t("accountMovesFree")
+                : t("trialExpires", { date: formatDate(trialEndsAt, i18n.language) })}
             </p>
           )}
 
@@ -139,7 +141,7 @@ export function TrialStatusCard() {
                     : "bg-orange-600 hover:bg-orange-500 active:bg-orange-700"
                 }`}
               >
-                Keep full access →
+                {t("keepFullAccess")}
               </button>
             </div>
           )}
