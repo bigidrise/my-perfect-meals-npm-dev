@@ -163,3 +163,13 @@ else
   echo -e "${GREEN}  ✅ All drift checks passed — safe to push${NC}"
   exit 0
 fi
+
+# ──────────────────────────────────────────────────
+header "6. Localization Gate (Phase 0)"
+if npx tsx scripts/i18n-phase0-validate.ts --ci 2>&1 | tee /tmp/i18n-gate.out | grep -q "ALL GATES PASS"; then
+  pass "Localization Phase 0 — all gates pass"
+elif grep -q "WARNINGS PRESENT" /tmp/i18n-gate.out; then
+  warn "Localization Phase 0 — warnings present (review before push)"
+else
+  fail "Localization Phase 0 — gate failures detected (see output above)"
+fi
