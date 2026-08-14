@@ -642,3 +642,126 @@ describe('Session reset — banner absent after full session reset (new user ID)
     expect(screen.queryByText('Showing refined version')).not.toBeInTheDocument();
   });
 });
+
+// ── 7. Inline logout/login — banner hidden when auth cycles without unmount ────
+//
+// Covers the case where the sheet stays mounted through a full auth cycle:
+// UserA (logged in) → null (logged out) → UserB (new login).
+// The SESSION_KEY changes twice in the same component lifetime. A stale
+// closure or missing effect dependency could leak UserA's preRefinedResult
+// into UserB's view.
+
+describe('Inline logout/login without unmount', () => {
+  it('banner is absent after auth cycles null → UserB without unmounting the sheet', async () => {
+    const USER_A = 'test-inline-auth-user-a';
+    const USER_B = 'test-inline-auth-user-b';
+
+    // ── Step 1: mount as User A and get a result ─────────────────────────────
+    (useAuth as jest.Mock).mockImplementation(() => ({ user: { id: USER_A } }));
+
+    const onOpenChange = jest.fn();
+    const { rerender } = render(
+      <GroceryStoreCoachSheet open={true} onOpenChange={onOpenChange} />,
+    );
+
+    const chip = screen.getByText("What's for dinner tonight?");
+    await act(async () => {
+      fireEvent.click(chip);
+    });
+
+    await waitFor(
+      () => expect(screen.getByText('Grilled Chicken')).toBeInTheDocument(),
+      { timeout: 3000 },
+    );
+
+    // ── Step 2: refine the meal — banner must appear ──────────────────────────
+    const refineBtn = screen.getByText('Refine Meal');
+    await act(async () => {
+      fireEvent.click(refineBtn);
+    });
+    expect(capturedOnRefined).not.toBeNull();
+    await act(async () => {
+      capturedOnRefined!(REFINED_RESULT);
+    });
+
+    await waitFor(() =>
+      expect(screen.getByText('Restore original')).toBeInTheDocument(),
+    );
+
+    // ── Step 3: simulate logout — useAuth returns null, SESSION_KEY → "guest" ─
+    // Changing the mock alone doesn't re-render; rerender() forces the component
+    // to call useAuth() again, which changes SESSION_KEY and fires the effect.
+    (useAuth as jest.Mock).mockImplementation(() => ({ user: null }));
+    await act(async () => {
+      rerender(<GroceryStoreCoachSheet open={true} onOpenChange={onOpenChange} />);
+    });
+
+    // The SESSION_KEY effect resets state; banner must clear
+    await waitFor(() =>
+      expect(screen.queryByText('Restore original')).not.toBeInTheDocument(),
+    );
+
+    // ── Step 4: simulate login as User B — SESSION_KEY changes again ──────────
+    // User B has no saved session in localStorage, so preRefinedResult should
+    // remain absent after the restore effect runs.
+    (useAuth as jest.Mock).mockImplementation(() => ({ user: { id: USER_B } }));
+    await act(async () => {
+      rerender(<GroceryStoreCoachSheet open={true} onOpenChange={onOpenChange} />);
+    });
+
+    // After User B's SESSION_KEY settles the restore effect runs (no saved
+    // session → result stays null, preRefinedResult stays null).
+    // The banner must not appear.
+    await waitFor(() =>
+      expect(screen.queryByText('Restore original')).not.toBeInTheDocument(),
+    );
+    expect(screen.queryByText('Showing refined version')).not.toBeInTheDocument();
+  });
+
+  it('banner stays hidden for UserB even when UserA left a persisted refinement in localStorage', async () => {
+    const USER_A = 'test-inline-auth-user-a3';
+    const USER_B = 'test-inline-auth-user-b3';
+
+    // Pre-seed User A's localStorage with an active refinement
+    localStorage.setItem(
+      `grocery-coach-session:${USER_A}`,
+      JSON.stringify({
+        result: REFINED_RESULT,
+        preRefinedResult: FIRST_RESULT,
+        conversation: [],
+        savedAt: Date.now(),
+      }),
+    );
+
+    // ── Mount as User A so the persisted refinement is restored ──────────────
+    (useAuth as jest.Mock).mockImplementation(() => ({ user: { id: USER_A } }));
+
+    const onOpenChange = jest.fn();
+    const { rerender } = render(
+      <GroceryStoreCoachSheet open={true} onOpenChange={onOpenChange} />,
+    );
+
+    // The restored session includes preRefinedResult, so banner should show
+    await waitFor(() =>
+      expect(screen.getByText('Restore original')).toBeInTheDocument(),
+    );
+
+    // ── Logout (null) — rerender so the component picks up null user ──────────
+    (useAuth as jest.Mock).mockImplementation(() => ({ user: null }));
+    await act(async () => {
+      rerender(<GroceryStoreCoachSheet open={true} onOpenChange={onOpenChange} />);
+    });
+
+    // ── Login as User B — rerender again so SESSION_KEY flips to User B ───────
+    (useAuth as jest.Mock).mockImplementation(() => ({ user: { id: USER_B } }));
+    await act(async () => {
+      rerender(<GroceryStoreCoachSheet open={true} onOpenChange={onOpenChange} />);
+    });
+
+    // User B has no session; banner must be absent
+    await waitFor(() =>
+      expect(screen.queryByText('Restore original')).not.toBeInTheDocument(),
+    );
+    expect(screen.queryByText('Showing refined version')).not.toBeInTheDocument();
+  });
+});
