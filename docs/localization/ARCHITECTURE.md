@@ -77,26 +77,37 @@ client/src/i18n/locales/
 
 This change can be done incrementally: the existing single-file structure stays until a namespace is migrated.
 
-### 3. RTL — global application-level, not per-component fixes
+### 3. RTL — global application-level using what we already have
 
-**Current:** `document.documentElement.dir = "rtl"` is set on language change — this is correct. But there is no Tailwind RTL plugin, no `rtl:` variants, no CSS `[dir=rtl]` rules. Arabic users get the `dir` attribute but layouts do not respond to it.
+**Current:** `document.documentElement.dir = "rtl"` is set on language change — this is correct. The `<html dir>` attribute is the right hook.
 
-**Fix (two-layer):**
+**RTL capability audit result (no new dependency needed):**
 
-**Layer 1 — Tailwind RTL plugin:**
-```bash
-npm install tailwindcss-rtl
-# tailwind.config.ts
-plugins: [require('tailwindcss-rtl')]
+Tailwind v3.4.19 ships `rtl:` and `ltr:` variants **natively** — no plugin required:
+```tsx
+// Works today without any plugin:
+<div className="ml-4 rtl:ml-0 rtl:mr-4">
 ```
-This enables `rtl:ml-4` → `mr-4` in Arabic automatically.
 
-**Layer 2 — CSS logical properties for new components:**
+Additionally, `tailwindcss-rtl` is already installed in `node_modules/`. It is not needed and should not be added to `tailwind.config.ts` — Tailwind's built-in `rtl:` variant is the correct solution for v3.
+
+**Two-layer approach using only what already exists:**
+
+**Layer 1 — Tailwind `rtl:` variants (already available):**
+```tsx
+// Directional spacing — use rtl: to flip
+<div className="ml-4 rtl:ml-0 rtl:mr-4">
+<button className="pl-3 rtl:pl-0 rtl:pr-3">
+```
+
+**Layer 2 — CSS logical properties for new components (no Tailwind needed):**
 ```css
-/* Use logical properties — work in both LTR and RTL */
+/* Preferred for new components — automatically correct in both directions */
 margin-inline-start: 1rem;   /* not margin-left */
 padding-inline-end: 0.5rem;  /* not padding-right */
 ```
+
+**Migration rule:** Existing components get `rtl:` variants added during Batch A/B migration. New components use CSS logical properties from day one.
 
 **What NOT to do:** Per-component `if (lang === 'ar')` conditionals. RTL must be declarative at the CSS level.
 
@@ -250,29 +261,58 @@ export function MyNewComponent() {
 
 ---
 
-## Pseudo-localization Testing
+## Responsive Localization Test Matrix
 
-Pseudo-localization intentionally expands English strings by 30–50% and surrounds them with unusual characters to expose layouts that were accidentally designed around English text length.
+A component is not localization-complete when its translations are correct. It is complete when it passes the full test matrix below.
+
+### Supported Viewport Matrix
+
+| Viewport | Width | Representative Device | Purpose |
+|---|---|---|---|
+| Small mobile | 375px | iPhone SE, budget Android | Smallest common size — worst case for text expansion |
+| Standard mobile | 390px | iPhone 14 / Pixel 7 | Most common iOS size |
+| Large mobile | 430px | iPhone 14 Plus / Pro Max | Large-phone baseline |
+| Tablet portrait | 768px | iPad Mini / 8" Android | Shared-component tablet behavior |
+| Desktop (secondary) | 1280px | Browser / web users | Layout regression only |
+
+### Locale Test Suite per Component
+
+| Test condition | Locale / Setting | What it catches |
+|---|---|---|
+| English baseline | `en` | Regression anchor |
+| Pseudo-expanded text (+40%) | Synthetic pseudo-locale | Fixed-height containers, buttons that assume English length |
+| Real long-text locale | `de` or `tl` | Actual translated word length breaking layouts |
+| Arabic RTL | `ar` | Direction flip, icon mirroring, flex order, text alignment |
+| Accessibility scaling | System text size XL | Long translated text + enlarged font = most damaging combination |
+
+### Accessibility / Dynamic Text Scaling
+
+Browser `font-size` and OS accessibility text scaling interact with translated text length. A component that passes at default size may fail at 125% or 150% text scaling.
+
+Implementation: Playwright tests set `page.emulateMedia` with `--force-prefers-reduced-motion` and inject a CSS `font-size` multiplier at the root. Run at 100% and 130%.
+
+### Failure Criteria
+
+A component **fails** the matrix if at any viewport + locale combination:
+- Any user-facing string is clipped (`overflow: hidden` cutting off text)
+- Any interactive control is inaccessible (button too small, hidden, or overlapped)
+- Navigation labels overflow their container without graceful wrapping or truncation
+- Text becomes unreadable (below 12px effective size due to container shrinkage)
+- RTL layout has LTR directional artifacts (wrong icon orientation, reversed padding)
+
+### Pseudo-localization Generator
 
 ```ts
-// scripts/pseudo-locale-gen.ts
-// Transforms en.json → pseudo locale for testing
+// scripts/pseudo-locale-gen.ts — generates xq.json for test suite
 function pseudoLocalize(str: string): string {
-  return `[Ħ${str.replace(/[aeiou]/gi, c => ({ a:"á",e:"é",i:"í",o:"ó",u:"ú" })[c.toLowerCase()] ?? c)} — expanded copy for layout testing ÐÐÐ]`;
+  const expanded = str.replace(/[aeiou]/gi, c =>
+    ({ a:"áa",e:"éé",i:"íi",o:"ôo",u:"üu" }[c.toLowerCase()] ?? c)
+  );
+  return `[Ħ${expanded} — ÐÐÐ]`; // ~40% longer, visually distinct
 }
 ```
 
-**Required test matrix for shared components:**
-
-| Test | Purpose |
-|---|---|
-| English baseline | Regression anchor |
-| Pseudo-locale (en + 40% expansion) | Expose fixed-dimension layouts |
-| German or Tagalog | Real long-text locale |
-| Arabic | RTL layout correctness |
-| 375px viewport | Smallest common iPhone |
-
-A component fails the test matrix if any string clips, any button becomes inaccessible, or navigation breaks at any of these five conditions.
+Run as `npx tsx scripts/pseudo-locale-gen.ts` to emit `client/src/i18n/locales/xq.json` for use in Playwright tests.
 
 ---
 
