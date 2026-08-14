@@ -20,9 +20,9 @@
     "conditional": 0,
     "hiddenReserved": 31,
     "quarantined": 6,
-    "orphanDead": 201,
+    "orphanDead": 0,
     "localizationTarget": 483,
-    "excludedFromMigration": 207
+    "excludedFromMigration": 6
   },
   "stringsByReachabilityClass": {
     "ACTIVE": {
@@ -50,34 +50,34 @@
       "clinical": 0
     },
     "ORPHAN_DEAD": {
-      "total": 517,
-      "safe": 479,
-      "review": 8,
-      "clinical": 30
-    },
-    "UNKNOWN": {
       "total": 0,
       "safe": 0,
       "review": 0,
       "clinical": 0
+    },
+    "UNKNOWN": {
+      "total": 517,
+      "safe": 479,
+      "review": 8,
+      "clinical": 30
     }
   },
   "localizationTarget": {
     "total": 1439,
-    "excludedDead": 517,
+    "excludedDead": 0,
     "hiddenReserved": 44
   },
   "reachabilityDetail": {
-    "generatedAt": "2026-08-14T21:37:25.391Z",
+    "generatedAt": "2026-08-14T21:52:34.542Z",
     "summary": {
       "totalFiles": 690,
       "active": 452,
       "conditional": 0,
       "hiddenReserved": 31,
       "quarantined": 6,
-      "orphanDead": 201,
+      "orphanDead": 0,
       "localizationTarget": 483,
-      "excludedFromMigration": 207
+      "excludedFromMigration": 6
     },
     "files": [
       {
@@ -113,9 +113,9 @@
       {
         "file": "/home/runner/workspace/client/src/addons/capture/CaptureMount.tsx",
         "relPath": "client/src/addons/capture/CaptureMount.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 2
@@ -123,9 +123,9 @@
       {
         "file": "/home/runner/workspace/client/src/addons/capture/IngredientCapture.tsx",
         "relPath": "client/src/addons/capture/IngredientCapture.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 2
@@ -153,9 +153,9 @@
       {
         "file": "/home/runner/workspace/client/src/audio/AudioTestPanel.tsx",
         "relPath": "client/src/audio/AudioTestPanel.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -163,9 +163,9 @@
       {
         "file": "/home/runner/workspace/client/src/chef/ChefNavigationExample.tsx",
         "relPath": "client/src/chef/ChefNavigationExample.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -173,9 +173,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/AccountabilityChip.tsx",
         "relPath": "client/src/components/AccountabilityChip.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -193,9 +193,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/AddToBoardButton.tsx",
         "relPath": "client/src/components/AddToBoardButton.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -233,9 +233,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/AffiliateJoinCard.tsx",
         "relPath": "client/src/components/AffiliateJoinCard.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 2
@@ -253,9 +253,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/AlcoholLoggerWireup.tsx",
         "relPath": "client/src/components/AlcoholLoggerWireup.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -273,9 +273,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/AlcoholTrackerCard.tsx",
         "relPath": "client/src/components/AlcoholTrackerCard.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -313,9 +313,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/AthleteModeCard.tsx",
         "relPath": "client/src/components/AthleteModeCard.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -353,9 +353,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/BadgeToast.tsx",
         "relPath": "client/src/components/BadgeToast.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 2
@@ -363,9 +363,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/BirthdayGreeting.tsx",
         "relPath": "client/src/components/BirthdayGreeting.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 2
@@ -383,9 +383,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/BrandTileIcon.tsx",
         "relPath": "client/src/components/BrandTileIcon.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -423,9 +423,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/BuilderDayBoard.tsx",
         "relPath": "client/src/components/BuilderDayBoard.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 6
@@ -473,9 +473,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/ChefAssistant.tsx",
         "relPath": "client/src/components/ChefAssistant.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -493,9 +493,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/ChefMotivationCard.tsx",
         "relPath": "client/src/components/ChefMotivationCard.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -533,9 +533,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/ConfirmEntriesModal.tsx",
         "relPath": "client/src/components/ConfirmEntriesModal.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -553,9 +553,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/CookingInstructionsModal.tsx",
         "relPath": "client/src/components/CookingInstructionsModal.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 2
@@ -563,9 +563,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/CookingTutorialCard.tsx",
         "relPath": "client/src/components/CookingTutorialCard.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 3
@@ -573,9 +573,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/CopyRecipeButton.tsx",
         "relPath": "client/src/components/CopyRecipeButton.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -583,9 +583,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/CravingPicker.tsx",
         "relPath": "client/src/components/CravingPicker.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 2
@@ -593,9 +593,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/CreateRecipeForm.tsx",
         "relPath": "client/src/components/CreateRecipeForm.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 5
@@ -623,9 +623,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/CulturalRecipeEditor.tsx",
         "relPath": "client/src/components/CulturalRecipeEditor.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 8
@@ -643,9 +643,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/CultureOverridePanel.tsx",
         "relPath": "client/src/components/CultureOverridePanel.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -653,9 +653,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/CycleSyncingCard.tsx",
         "relPath": "client/src/components/CycleSyncingCard.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -663,9 +663,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/DailiesGlucoseCard.tsx",
         "relPath": "client/src/components/DailiesGlucoseCard.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -683,9 +683,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/DailyMotivation.tsx",
         "relPath": "client/src/components/DailyMotivation.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 2
@@ -693,9 +693,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/DailyNutritionTracker.tsx",
         "relPath": "client/src/components/DailyNutritionTracker.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 2
@@ -713,9 +713,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/DateSlotPicker.tsx",
         "relPath": "client/src/components/DateSlotPicker.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 2
@@ -723,9 +723,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/DayByDayMealBoard.tsx",
         "relPath": "client/src/components/DayByDayMealBoard.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 5
@@ -743,9 +743,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/DayWeekToggle.tsx",
         "relPath": "client/src/components/DayWeekToggle.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -773,9 +773,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/DiabetesSupport.tsx",
         "relPath": "client/src/components/DiabetesSupport.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 6
@@ -823,9 +823,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/EmbeddedAskAIButton.tsx",
         "relPath": "client/src/components/EmbeddedAskAIButton.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 4
@@ -843,9 +843,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/EmotionalGate.tsx",
         "relPath": "client/src/components/EmotionalGate.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -853,9 +853,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/EnhancedMealCard.tsx",
         "relPath": "client/src/components/EnhancedMealCard.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 2
@@ -873,9 +873,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/ExportPhysicianReportButton.tsx",
         "relPath": "client/src/components/ExportPhysicianReportButton.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 3
@@ -883,9 +883,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/FamilyRecipeEditor.tsx",
         "relPath": "client/src/components/FamilyRecipeEditor.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 8
@@ -903,9 +903,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/FavoritesPickerModal.tsx",
         "relPath": "client/src/components/FavoritesPickerModal.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 3
@@ -913,9 +913,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/FeatureDisabledNotice.tsx",
         "relPath": "client/src/components/FeatureDisabledNotice.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -923,9 +923,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/FeatureGate.tsx",
         "relPath": "client/src/components/FeatureGate.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 3
@@ -933,9 +933,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/FeatureInstructions.tsx",
         "relPath": "client/src/components/FeatureInstructions.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 2
@@ -963,9 +963,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/FixedMenuPicker.tsx",
         "relPath": "client/src/components/FixedMenuPicker.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 3
@@ -983,9 +983,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/FoodDeliveryCard.tsx",
         "relPath": "client/src/components/FoodDeliveryCard.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -993,9 +993,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/FoodSelector.tsx",
         "relPath": "client/src/components/FoodSelector.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 3
@@ -1003,9 +1003,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/FridgeRescueCard.tsx",
         "relPath": "client/src/components/FridgeRescueCard.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -1033,9 +1033,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/GlobalGuestBanner.tsx",
         "relPath": "client/src/components/GlobalGuestBanner.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -1053,9 +1053,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/GlobalMealSearchIntegration.tsx",
         "relPath": "client/src/components/GlobalMealSearchIntegration.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 4
@@ -1063,9 +1063,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/GlucoseGuardBanner.tsx",
         "relPath": "client/src/components/GlucoseGuardBanner.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -1093,9 +1093,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/GroceryDashboardCard.tsx",
         "relPath": "client/src/components/GroceryDashboardCard.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 3
@@ -1103,9 +1103,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/GuestAccountPrompt.tsx",
         "relPath": "client/src/components/GuestAccountPrompt.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 2
@@ -1123,9 +1123,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/GuestModeGuard.tsx",
         "relPath": "client/src/components/GuestModeGuard.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 4
@@ -1133,9 +1133,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/HealthBadges.tsx",
         "relPath": "client/src/components/HealthBadges.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -1143,9 +1143,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/HolidayFeastCard.tsx",
         "relPath": "client/src/components/HolidayFeastCard.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -1163,9 +1163,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/IngredientSelectionButton.tsx",
         "relPath": "client/src/components/IngredientSelectionButton.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -1173,9 +1173,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/IngredientSwapControls.tsx",
         "relPath": "client/src/components/IngredientSwapControls.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 3
@@ -1193,9 +1193,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/IntelligentGrouping.tsx",
         "relPath": "client/src/components/IntelligentGrouping.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 2
@@ -1233,9 +1233,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/LabValueSupportCard.tsx",
         "relPath": "client/src/components/LabValueSupportCard.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -1243,9 +1243,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/LatestRecipesStrip.tsx",
         "relPath": "client/src/components/LatestRecipesStrip.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -1253,9 +1253,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/LogToMacrosButton.tsx",
         "relPath": "client/src/components/LogToMacrosButton.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -1263,9 +1263,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/MacroAggregateBar.tsx",
         "relPath": "client/src/components/MacroAggregateBar.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -1273,9 +1273,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/MacroCounter/EntryRow.tsx",
         "relPath": "client/src/components/MacroCounter/EntryRow.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -1283,9 +1283,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/MacroCounter/PresetButton.tsx",
         "relPath": "client/src/components/MacroCounter/PresetButton.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -1293,9 +1293,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/MacroCounter/StatCard.tsx",
         "relPath": "client/src/components/MacroCounter/StatCard.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -1303,9 +1303,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/MacroFixCoach.tsx",
         "relPath": "client/src/components/MacroFixCoach.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -1323,9 +1323,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/MacroSummaryButton.tsx",
         "relPath": "client/src/components/MacroSummaryButton.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 2
@@ -1353,9 +1353,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/MealCardDynamic.tsx",
         "relPath": "client/src/components/MealCardDynamic.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 3
@@ -1363,9 +1363,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/MealCardFooter.tsx",
         "relPath": "client/src/components/MealCardFooter.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 3
@@ -1393,9 +1393,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/MealIngredientPicker.tsx",
         "relPath": "client/src/components/MealIngredientPicker.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 2
@@ -1403,9 +1403,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/MealJournalCalendar.tsx",
         "relPath": "client/src/components/MealJournalCalendar.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -1413,9 +1413,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/MealReadySheet.tsx",
         "relPath": "client/src/components/MealReadySheet.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -1443,9 +1443,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/MealReminderStatus.tsx",
         "relPath": "client/src/components/MealReminderStatus.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 3
@@ -1463,9 +1463,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/MealReplacementModal.tsx",
         "relPath": "client/src/components/MealReplacementModal.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 2
@@ -1473,9 +1473,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/MealTimePresets.tsx",
         "relPath": "client/src/components/MealTimePresets.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -1483,9 +1483,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/MealTypeTiles.tsx",
         "relPath": "client/src/components/MealTypeTiles.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -1493,9 +1493,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/MedicalBadges.tsx",
         "relPath": "client/src/components/MedicalBadges.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -1553,9 +1553,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/MobileVoiceHandler.tsx",
         "relPath": "client/src/components/MobileVoiceHandler.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -1563,9 +1563,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/MobileVoiceRecorder.tsx",
         "relPath": "client/src/components/MobileVoiceRecorder.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 2
@@ -1583,9 +1583,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/NewLogToMacrosButton.tsx",
         "relPath": "client/src/components/NewLogToMacrosButton.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -1593,9 +1593,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/NextReminderBanner.tsx",
         "relPath": "client/src/components/NextReminderBanner.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -1613,9 +1613,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/ObjectUploader.tsx",
         "relPath": "client/src/components/ObjectUploader.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -1623,9 +1623,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/OnboardingFooter.tsx",
         "relPath": "client/src/components/OnboardingFooter.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -1633,9 +1633,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/OrgFeatureGate.tsx",
         "relPath": "client/src/components/OrgFeatureGate.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -1643,9 +1643,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/OrgLogo.tsx",
         "relPath": "client/src/components/OrgLogo.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -1663,9 +1663,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/PageGuard.tsx",
         "relPath": "client/src/components/PageGuard.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -1673,9 +1673,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/PageShell.tsx",
         "relPath": "client/src/components/PageShell.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -1683,9 +1683,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/PageTransition.tsx",
         "relPath": "client/src/components/PageTransition.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -1713,9 +1713,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/PlanBoardDock.tsx",
         "relPath": "client/src/components/PlanBoardDock.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -1723,9 +1723,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/PlanBuilderHub.tsx",
         "relPath": "client/src/components/PlanBuilderHub.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 2
@@ -1733,9 +1733,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/PostComments.tsx",
         "relPath": "client/src/components/PostComments.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -1743,9 +1743,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/PostToFacebookButton.tsx",
         "relPath": "client/src/components/PostToFacebookButton.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -1813,9 +1813,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/ProteinGuidelinesCards.tsx",
         "relPath": "client/src/components/ProteinGuidelinesCards.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 10
@@ -1843,9 +1843,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/PushNotificationButton.tsx",
         "relPath": "client/src/components/PushNotificationButton.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -1853,9 +1853,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/QuickAddMacros.tsx",
         "relPath": "client/src/components/QuickAddMacros.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 2
@@ -1863,9 +1863,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/QuickNotes.tsx",
         "relPath": "client/src/components/QuickNotes.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -1883,9 +1883,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/RecipeEditorPro.tsx",
         "relPath": "client/src/components/RecipeEditorPro.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 8
@@ -1903,9 +1903,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/ReplaceMealMenu.tsx",
         "relPath": "client/src/components/ReplaceMealMenu.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 7
@@ -1923,9 +1923,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/RestaurantGuideCard.tsx",
         "relPath": "client/src/components/RestaurantGuideCard.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -1943,9 +1943,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/SafePageContainer.tsx",
         "relPath": "client/src/components/SafePageContainer.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -1973,9 +1973,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/SafetyPinModal.tsx",
         "relPath": "client/src/components/SafetyPinModal.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 3
@@ -1993,9 +1993,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/SaveButton.tsx",
         "relPath": "client/src/components/SaveButton.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -2013,9 +2013,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/ScanConfirmModal.tsx",
         "relPath": "client/src/components/ScanConfirmModal.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 3
@@ -2033,9 +2033,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/ScrollNavigation.tsx",
         "relPath": "client/src/components/ScrollNavigation.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -2083,9 +2083,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/ShareToCommunityButton.tsx",
         "relPath": "client/src/components/ShareToCommunityButton.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -2113,9 +2113,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/ShoppingListSummaryButton.tsx",
         "relPath": "client/src/components/ShoppingListSummaryButton.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 3
@@ -2123,9 +2123,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/SimpleVoiceRecorder.tsx",
         "relPath": "client/src/components/SimpleVoiceRecorder.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 2
@@ -2133,9 +2133,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/SmartAddComponent.tsx",
         "relPath": "client/src/components/SmartAddComponent.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 4
@@ -2143,9 +2143,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/SmartAvatarConcierge.tsx",
         "relPath": "client/src/components/SmartAvatarConcierge.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -2183,9 +2183,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/StarchCoachingNudge.tsx",
         "relPath": "client/src/components/StarchCoachingNudge.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -2193,9 +2193,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/StarchGuardBanner.tsx",
         "relPath": "client/src/components/StarchGuardBanner.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -2233,9 +2233,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/StreakCard.tsx",
         "relPath": "client/src/components/StreakCard.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 2
@@ -2253,9 +2253,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/TargetsBar.tsx",
         "relPath": "client/src/components/TargetsBar.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 6
@@ -2263,9 +2263,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/TempDietOverrides.tsx",
         "relPath": "client/src/components/TempDietOverrides.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -2273,9 +2273,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/TemplateMealCard.tsx",
         "relPath": "client/src/components/TemplateMealCard.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 2
@@ -2283,9 +2283,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/TestimonialForm.tsx",
         "relPath": "client/src/components/TestimonialForm.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -2323,9 +2323,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/TourHighlight.tsx",
         "relPath": "client/src/components/TourHighlight.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -2353,9 +2353,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/TrialExpiredModal.tsx",
         "relPath": "client/src/components/TrialExpiredModal.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -2383,9 +2383,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/TutorialViewer.tsx",
         "relPath": "client/src/components/TutorialViewer.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 3
@@ -2393,9 +2393,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/UniversalMealCardFooter.tsx",
         "relPath": "client/src/components/UniversalMealCardFooter.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 3
@@ -2413,9 +2413,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/VariantSelector.tsx",
         "relPath": "client/src/components/VariantSelector.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 2
@@ -2423,9 +2423,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/VoiceAddModal.tsx",
         "relPath": "client/src/components/VoiceAddModal.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -2463,9 +2463,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/VoiceControlButton.tsx",
         "relPath": "client/src/components/VoiceControlButton.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 2
@@ -2483,9 +2483,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/VoiceInputHandler.tsx",
         "relPath": "client/src/components/VoiceInputHandler.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -2493,9 +2493,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/VoiceRecorder.tsx",
         "relPath": "client/src/components/VoiceRecorder.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 2
@@ -2503,9 +2503,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/WeeklyMealCard.tsx",
         "relPath": "client/src/components/WeeklyMealCard.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 7
@@ -2613,9 +2613,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/badges/HealthBadgePopup.tsx",
         "relPath": "client/src/components/badges/HealthBadgePopup.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -2633,9 +2633,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/beta-name-editor.tsx",
         "relPath": "client/src/components/beta-name-editor.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 3
@@ -2713,9 +2713,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/biometrics/QuickLogMacrosButton.tsx",
         "relPath": "client/src/components/biometrics/QuickLogMacrosButton.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -2853,9 +2853,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/copilot/CopilotBrain.tsx",
         "relPath": "client/src/components/copilot/CopilotBrain.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -2893,9 +2893,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/copilot/CopilotInputBar.tsx",
         "relPath": "client/src/components/copilot/CopilotInputBar.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -2923,9 +2923,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/copilot/packs/basePacks.tsx",
         "relPath": "client/src/components/copilot/packs/basePacks.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -2973,9 +2973,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/glass/GlassButton.tsx",
         "relPath": "client/src/components/glass/GlassButton.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -2993,9 +2993,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/glass/GlassHeader.tsx",
         "relPath": "client/src/components/glass/GlassHeader.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -3013,9 +3013,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/graphs/CalorieTrendGraph.tsx",
         "relPath": "client/src/components/graphs/CalorieTrendGraph.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -3023,9 +3023,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/graphs/StepsTrendGraph.tsx",
         "relPath": "client/src/components/graphs/StepsTrendGraph.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -3093,9 +3093,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/ios/IOSMealReminders.tsx",
         "relPath": "client/src/components/ios/IOSMealReminders.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -3243,9 +3243,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/meal-card/MealReminderToggle.tsx",
         "relPath": "client/src/components/meal-card/MealReminderToggle.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -3253,9 +3253,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/meal-cards/MealCard.tsx",
         "relPath": "client/src/components/meal-cards/MealCard.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 3
@@ -3263,9 +3263,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/mealCreatorSteps/Step1.tsx",
         "relPath": "client/src/components/mealCreatorSteps/Step1.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -3273,9 +3273,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/mealCreatorSteps/Step2.tsx",
         "relPath": "client/src/components/mealCreatorSteps/Step2.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -3283,9 +3283,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/mealCreatorSteps/Step3.tsx",
         "relPath": "client/src/components/mealCreatorSteps/Step3.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -3293,9 +3293,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/mealCreatorSteps/Step4.tsx",
         "relPath": "client/src/components/mealCreatorSteps/Step4.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -3303,9 +3303,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/mealCreatorSteps/Step5.tsx",
         "relPath": "client/src/components/mealCreatorSteps/Step5.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -3343,9 +3343,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/modals/PasteMacrosModal.tsx",
         "relPath": "client/src/components/modals/PasteMacrosModal.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 3
@@ -3353,9 +3353,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/modals/QuickAddMacrosModal.tsx",
         "relPath": "client/src/components/modals/QuickAddMacrosModal.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 5
@@ -3383,9 +3383,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/obsidian.tsx",
         "relPath": "client/src/components/obsidian.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 2
@@ -3393,9 +3393,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/onboarding/AutoSaveWrapper.tsx",
         "relPath": "client/src/components/onboarding/AutoSaveWrapper.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -3503,9 +3503,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/pickers/SnackPickerDrawer.tsx",
         "relPath": "client/src/components/pickers/SnackPickerDrawer.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 6
@@ -3583,9 +3583,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/pro/NutritionStrategyCard.tsx",
         "relPath": "client/src/components/pro/NutritionStrategyCard.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -3603,9 +3603,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/pro/PendingCoachInvites.tsx",
         "relPath": "client/src/components/pro/PendingCoachInvites.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -3743,9 +3743,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/progress-dashboard.tsx",
         "relPath": "client/src/components/progress-dashboard.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 2
@@ -3783,9 +3783,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/shared/MacroDisplay.tsx",
         "relPath": "client/src/components/shared/MacroDisplay.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -3793,9 +3793,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/shopping/BarcodeScanButton.tsx",
         "relPath": "client/src/components/shopping/BarcodeScanButton.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 2
@@ -3823,9 +3823,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/shopping/MyListCard.tsx",
         "relPath": "client/src/components/shopping/MyListCard.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -3853,9 +3853,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/shopping/ScanNameModal.tsx",
         "relPath": "client/src/components/shopping/ScanNameModal.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -3863,9 +3863,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/shopping/ScannedItemsCard.tsx",
         "relPath": "client/src/components/shopping/ScannedItemsCard.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -3883,9 +3883,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/shopping/VoiceToShoppingPadButton.tsx",
         "relPath": "client/src/components/shopping/VoiceToShoppingPadButton.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -3903,9 +3903,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/system/UpdateBanner.tsx",
         "relPath": "client/src/components/system/UpdateBanner.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -3913,9 +3913,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/ui/AccentPrimitives.tsx",
         "relPath": "client/src/components/ui/AccentPrimitives.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -3943,9 +3943,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/ui/BadgeGroup.tsx",
         "relPath": "client/src/components/ui/BadgeGroup.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 3
@@ -3983,9 +3983,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/ui/BadgeSystem.tsx",
         "relPath": "client/src/components/ui/BadgeSystem.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -4053,9 +4053,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/ui/MedicalBadgeButton.tsx",
         "relPath": "client/src/components/ui/MedicalBadgeButton.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -4063,9 +4063,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/ui/MedicalBadgeCard.tsx",
         "relPath": "client/src/components/ui/MedicalBadgeCard.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -4083,9 +4083,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/ui/accordion.tsx",
         "relPath": "client/src/components/ui/accordion.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -4113,9 +4113,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/ui/aspect-ratio.tsx",
         "relPath": "client/src/components/ui/aspect-ratio.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -4143,9 +4143,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/ui/breadcrumb.tsx",
         "relPath": "client/src/components/ui/breadcrumb.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -4183,9 +4183,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/ui/carousel.tsx",
         "relPath": "client/src/components/ui/carousel.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -4193,9 +4193,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/ui/chart.tsx",
         "relPath": "client/src/components/ui/chart.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -4223,9 +4223,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/ui/command.tsx",
         "relPath": "client/src/components/ui/command.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -4233,9 +4233,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/ui/context-menu.tsx",
         "relPath": "client/src/components/ui/context-menu.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -4293,9 +4293,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/ui/hover-card.tsx",
         "relPath": "client/src/components/ui/hover-card.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -4303,9 +4303,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/ui/input-otp.tsx",
         "relPath": "client/src/components/ui/input-otp.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -4333,9 +4333,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/ui/meal-card.tsx",
         "relPath": "client/src/components/ui/meal-card.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 5
@@ -4343,9 +4343,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/ui/menubar.tsx",
         "relPath": "client/src/components/ui/menubar.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -4353,9 +4353,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/ui/navigation-menu.tsx",
         "relPath": "client/src/components/ui/navigation-menu.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -4373,9 +4373,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/ui/nutrition-summary.tsx",
         "relPath": "client/src/components/ui/nutrition-summary.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 3
@@ -4383,9 +4383,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/ui/pagination.tsx",
         "relPath": "client/src/components/ui/pagination.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -4433,9 +4433,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/ui/resizable.tsx",
         "relPath": "client/src/components/ui/resizable.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -4483,9 +4483,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/ui/sidebar.tsx",
         "relPath": "client/src/components/ui/sidebar.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 7
@@ -4523,9 +4523,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/ui/table.tsx",
         "relPath": "client/src/components/ui/table.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -4573,9 +4573,9 @@
       {
         "file": "/home/runner/workspace/client/src/components/ui/toggle-group.tsx",
         "relPath": "client/src/components/ui/toggle-group.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -4743,9 +4743,9 @@
       {
         "file": "/home/runner/workspace/client/src/contexts/TourContext.tsx",
         "relPath": "client/src/contexts/TourContext.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -4773,9 +4773,9 @@
       {
         "file": "/home/runner/workspace/client/src/features/breakfast/BreakfastMealsHub.tsx",
         "relPath": "client/src/features/breakfast/BreakfastMealsHub.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 6
@@ -4793,9 +4793,9 @@
       {
         "file": "/home/runner/workspace/client/src/games/LeaderboardCard.tsx",
         "relPath": "client/src/games/LeaderboardCard.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -4813,9 +4813,9 @@
       {
         "file": "/home/runner/workspace/client/src/hooks/useAvatarContext.tsx",
         "relPath": "client/src/hooks/useAvatarContext.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -4943,9 +4943,9 @@
       {
         "file": "/home/runner/workspace/client/src/modules/founders/FoundersModule.tsx",
         "relPath": "client/src/modules/founders/FoundersModule.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 7
@@ -4953,9 +4953,9 @@
       {
         "file": "/home/runner/workspace/client/src/modules/founders/FoundersTeaser.tsx",
         "relPath": "client/src/modules/founders/FoundersTeaser.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 2
@@ -5223,9 +5223,9 @@
       {
         "file": "/home/runner/workspace/client/src/pages/CoachCornerHome.tsx",
         "relPath": "client/src/pages/CoachCornerHome.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -5273,9 +5273,9 @@
       {
         "file": "/home/runner/workspace/client/src/pages/CoachQueue.tsx",
         "relPath": "client/src/pages/CoachQueue.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 0
@@ -5683,9 +5683,9 @@
       {
         "file": "/home/runner/workspace/client/src/pages/Planner.tsx",
         "relPath": "client/src/pages/Planner.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 2
@@ -5743,9 +5743,9 @@
       {
         "file": "/home/runner/workspace/client/src/pages/ProcareTraining.tsx",
         "relPath": "client/src/pages/ProcareTraining.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 2
@@ -5753,9 +5753,9 @@
       {
         "file": "/home/runner/workspace/client/src/pages/ProfessionalLaunchpad.tsx",
         "relPath": "client/src/pages/ProfessionalLaunchpad.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 2
@@ -5873,9 +5873,9 @@
       {
         "file": "/home/runner/workspace/client/src/pages/SupplementHubLanding.tsx",
         "relPath": "client/src/pages/SupplementHubLanding.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 2
@@ -5963,9 +5963,9 @@
       {
         "file": "/home/runner/workspace/client/src/pages/_future/Paywall.tsx",
         "relPath": "client/src/pages/_future/Paywall.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -5973,9 +5973,9 @@
       {
         "file": "/home/runner/workspace/client/src/pages/_future/affiliates.tsx",
         "relPath": "client/src/pages/_future/affiliates.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 4
@@ -5983,9 +5983,9 @@
       {
         "file": "/home/runner/workspace/client/src/pages/_future/potluck-planner.tsx",
         "relPath": "client/src/pages/_future/potluck-planner.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 8
@@ -5993,9 +5993,9 @@
       {
         "file": "/home/runner/workspace/client/src/pages/_future/voice-settings.tsx",
         "relPath": "client/src/pages/_future/voice-settings.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 1
@@ -6093,9 +6093,9 @@
       {
         "file": "/home/runner/workspace/client/src/pages/beer-pairing.tsx",
         "relPath": "client/src/pages/beer-pairing.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 7
@@ -6123,9 +6123,9 @@
       {
         "file": "/home/runner/workspace/client/src/pages/bourbon-spirits.tsx",
         "relPath": "client/src/pages/bourbon-spirits.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 9
@@ -6563,9 +6563,9 @@
       {
         "file": "/home/runner/workspace/client/src/pages/meal-pairing-ai.tsx",
         "relPath": "client/src/pages/meal-pairing-ai.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 5
@@ -6603,9 +6603,9 @@
       {
         "file": "/home/runner/workspace/client/src/pages/onboarding-standalone.tsx",
         "relPath": "client/src/pages/onboarding-standalone.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 12
@@ -6963,9 +6963,9 @@
       {
         "file": "/home/runner/workspace/client/src/pages/wine-pairing.tsx",
         "relPath": "client/src/pages/wine-pairing.tsx",
-        "classification": "ORPHAN_DEAD",
-        "confidence": "high",
-        "reason": "No route registration, no static imports, no dynamic references found",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
         "importedCount": 8
@@ -6981,1013 +6981,7 @@
         "importedCount": 0
       }
     ],
-    "orphanDeadFiles": [
-      {
-        "relPath": "client/src/addons/capture/CaptureMount.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/addons/capture/IngredientCapture.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/audio/AudioTestPanel.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/chef/ChefNavigationExample.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/AccountabilityChip.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/AddToBoardButton.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/AffiliateJoinCard.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/AlcoholLoggerWireup.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/AlcoholTrackerCard.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/AthleteModeCard.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/BadgeToast.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/BirthdayGreeting.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/BrandTileIcon.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/BuilderDayBoard.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/ChefAssistant.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/ChefMotivationCard.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/ConfirmEntriesModal.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/CookingInstructionsModal.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/CookingTutorialCard.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/CopyRecipeButton.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/CravingPicker.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/CreateRecipeForm.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/CulturalRecipeEditor.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/CultureOverridePanel.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/CycleSyncingCard.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/DailiesGlucoseCard.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/DailyMotivation.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/DailyNutritionTracker.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/DateSlotPicker.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/DayByDayMealBoard.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/DayWeekToggle.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/DiabetesSupport.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/EmbeddedAskAIButton.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/EmotionalGate.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/EnhancedMealCard.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/ExportPhysicianReportButton.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/FamilyRecipeEditor.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/FavoritesPickerModal.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/FeatureDisabledNotice.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/FeatureGate.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/FeatureInstructions.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/FixedMenuPicker.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/FoodDeliveryCard.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/FoodSelector.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/FridgeRescueCard.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/GlobalGuestBanner.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/GlobalMealSearchIntegration.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/GlucoseGuardBanner.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/GroceryDashboardCard.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/GuestAccountPrompt.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/GuestModeGuard.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/HealthBadges.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/HolidayFeastCard.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/IngredientSelectionButton.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/IngredientSwapControls.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/IntelligentGrouping.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/LabValueSupportCard.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/LatestRecipesStrip.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/LogToMacrosButton.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/MacroAggregateBar.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/MacroCounter/EntryRow.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/MacroCounter/PresetButton.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/MacroCounter/StatCard.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/MacroFixCoach.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/MacroSummaryButton.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/MealCardDynamic.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/MealCardFooter.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/MealIngredientPicker.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/MealJournalCalendar.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/MealReadySheet.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/MealReminderStatus.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/MealReplacementModal.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/MealTimePresets.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/MealTypeTiles.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/MedicalBadges.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/MobileVoiceHandler.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/MobileVoiceRecorder.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/NewLogToMacrosButton.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/NextReminderBanner.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/ObjectUploader.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/OnboardingFooter.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/OrgFeatureGate.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/OrgLogo.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/PageGuard.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/PageShell.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/PageTransition.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/PlanBoardDock.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/PlanBuilderHub.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/PostComments.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/PostToFacebookButton.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/ProteinGuidelinesCards.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/PushNotificationButton.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/QuickAddMacros.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/QuickNotes.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/RecipeEditorPro.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/ReplaceMealMenu.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/RestaurantGuideCard.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/SafePageContainer.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/SafetyPinModal.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/SaveButton.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/ScanConfirmModal.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/ScrollNavigation.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/ShareToCommunityButton.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/ShoppingListSummaryButton.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/SimpleVoiceRecorder.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/SmartAddComponent.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/SmartAvatarConcierge.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/StarchCoachingNudge.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/StarchGuardBanner.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/StreakCard.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/TargetsBar.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/TempDietOverrides.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/TemplateMealCard.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/TestimonialForm.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/TourHighlight.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/TrialExpiredModal.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/TutorialViewer.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/UniversalMealCardFooter.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/VariantSelector.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/VoiceAddModal.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/VoiceControlButton.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/VoiceInputHandler.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/VoiceRecorder.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/WeeklyMealCard.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/badges/HealthBadgePopup.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/beta-name-editor.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/biometrics/QuickLogMacrosButton.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/copilot/CopilotBrain.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/copilot/CopilotInputBar.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/copilot/packs/basePacks.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/glass/GlassButton.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/glass/GlassHeader.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/graphs/CalorieTrendGraph.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/graphs/StepsTrendGraph.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/ios/IOSMealReminders.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/meal-card/MealReminderToggle.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/meal-cards/MealCard.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/mealCreatorSteps/Step1.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/mealCreatorSteps/Step2.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/mealCreatorSteps/Step3.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/mealCreatorSteps/Step4.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/mealCreatorSteps/Step5.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/modals/PasteMacrosModal.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/modals/QuickAddMacrosModal.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/obsidian.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/onboarding/AutoSaveWrapper.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/pickers/SnackPickerDrawer.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/pro/NutritionStrategyCard.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/pro/PendingCoachInvites.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/progress-dashboard.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/shared/MacroDisplay.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/shopping/BarcodeScanButton.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/shopping/MyListCard.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/shopping/ScanNameModal.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/shopping/ScannedItemsCard.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/shopping/VoiceToShoppingPadButton.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/system/UpdateBanner.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/ui/AccentPrimitives.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/ui/BadgeGroup.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/ui/BadgeSystem.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/ui/MedicalBadgeButton.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/ui/MedicalBadgeCard.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/ui/accordion.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/ui/aspect-ratio.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/ui/breadcrumb.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/ui/carousel.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/ui/chart.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/ui/command.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/ui/context-menu.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/ui/hover-card.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/ui/input-otp.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/ui/meal-card.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/ui/menubar.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/ui/navigation-menu.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/ui/nutrition-summary.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/ui/pagination.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/ui/resizable.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/ui/sidebar.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/ui/table.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/components/ui/toggle-group.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/contexts/TourContext.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/features/breakfast/BreakfastMealsHub.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/games/LeaderboardCard.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/hooks/useAvatarContext.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/modules/founders/FoundersModule.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/modules/founders/FoundersTeaser.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/pages/CoachCornerHome.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/pages/CoachQueue.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/pages/Planner.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/pages/ProcareTraining.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/pages/ProfessionalLaunchpad.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/pages/SupplementHubLanding.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/pages/_future/Paywall.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/pages/_future/affiliates.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/pages/_future/potluck-planner.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/pages/_future/voice-settings.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/pages/beer-pairing.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/pages/bourbon-spirits.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/pages/meal-pairing-ai.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/pages/onboarding-standalone.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      },
-      {
-        "relPath": "client/src/pages/wine-pairing.tsx",
-        "reason": "No route registration, no static imports, no dynamic references found",
-        "confidence": "high"
-      }
-    ],
+    "orphanDeadFiles": [],
     "quarantinedFiles": [
       {
         "relPath": "client/src/legacy/Profile.tsx",
