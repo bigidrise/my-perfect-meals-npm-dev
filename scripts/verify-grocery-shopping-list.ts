@@ -24,6 +24,14 @@
  *   no unclaimed substantive items may bleed into ownedIngredients; and
  *   shoppingList must still contain at least one substantive (non-pantry) item.
  *
+ * --quad-ownership — Task 933: Quad-ownership mode
+ *   Verifies the model correctly splits ingredients when the user explicitly
+ *   claims FOUR items. ALL four claimed items must land in ownedIngredients;
+ *   no unclaimed substantive items may bleed into ownedIngredients; and
+ *   shoppingList is EITHER non-empty (remaining ingredients to purchase) OR
+ *   gracefully empty/pantry-only when all recipe ingredients are accounted for
+ *   by the four claimed items.
+ *
  * --multi-turn-ownership — Task 934: Multi-turn ownership mode
  *   Verifies that ownership claims spread across MULTIPLE conversation turns
  *   are all honoured. Claims from prior turns must land in ownedIngredients
@@ -42,6 +50,7 @@
  *   npx tsx scripts/verify-grocery-shopping-list.ts --partial-ownership
  *   npx tsx scripts/verify-grocery-shopping-list.ts --multi-ownership
  *   npx tsx scripts/verify-grocery-shopping-list.ts --triple-ownership
+ *   npx tsx scripts/verify-grocery-shopping-list.ts --quad-ownership
  *   npx tsx scripts/verify-grocery-shopping-list.ts --multi-turn-ownership
  *   npx tsx scripts/verify-grocery-shopping-list.ts --phrasing-variants
  */
@@ -1761,10 +1770,192 @@ async function runTripleOwnershipMode(): Promise<void> {
   process.exit(process.exitCode ?? 0);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MULTI-TURN OWNERSHIP MODE (Task 934)
-// ─────────────────────────────────────────────────────────────────────────────
+/**
+ * Extended prompt type for quad-ownership scenarios.
+ *
+ * `allIngredientsClaimed` is the key discriminator for Check C:
+ *
+ *   true  — The four claimed items are expected to cover ALL substantive
+ *            recipe ingredients (protein + starch + produce).  An empty or
+ *            pantry-only shoppingList is a VALID outcome — but ONLY when
+ *            Check A also passes (all four keywords landed in ownedIngredients).
+ *            If Check A fails here, Check C also fails: the graceful-empty
+ *            outcome is not justified because some claims were missed.
+ *
+ *   false — The four claimed items leave at least one substantive unclaimed
+ *            ingredient in the recipe.  shoppingList MUST contain ≥1
+ *            Meat/Produce/Grains/etc item.  An empty or pantry-only
+ *            shoppingList is a FAIL — it means the model dropped an unclaimed
+ *            ingredient.
+ *
+ * This flag makes the graceful-empty predicate deterministic and falsifiable:
+ * both the PASS boundary and the FAIL boundary are tested by the prompt set.
+ */
+interface QuadOwnershipPrompt extends PartialOwnershipPrompt {
+  allIngredientsClaimed: boolean;
+}
+/**
+ * Four live scenarios — two with allIngredientsClaimed=true (graceful empty
+ * expected) and two with allIngredientsClaimed=false (shoppingList must be
+ * substantive).  This exercises both branches of quadShoppingPass().
+ *
+ *   Rounds 1–2 (allIngredientsClaimed=true):
+ *     The user claims a complete protein + starch + produce set.  The coach
+ *     should put all four in ownedIngredients and, if nothing substantive
+ *     remains to buy, leave shoppingList empty or pantry-only.
+ *
+ *   Rounds 3–4 (allIngredientsClaimed=false):
+ *     The user claims four produce/aromatics only — no protein or starch.
+ *     The coach MUST add a protein (and likely a starch) to shoppingList.
+ *     An empty or pantry-only list means the model dropped those ingredients.
+ */
+const QUAD_OWNERSHIP_PROMPTS: QuadOwnershipPrompt[] = [
+  // ── allIngredientsClaimed=true ──────────────────────────────────────────────
+  {
+    label: "All-claimed: protein + starch + 2 produce (chicken + rice + broccoli + garlic)",
+    message:
+      "I already have chicken breast, brown rice, broccoli, and garlic at home. What else, if anything, do I need to grab from the store to make a complete healthy dinner tonight?",
+    claimedKeywords: ["chicken", "brown rice", "broccoli", "garlic"],
+    allIngredientsClaimed: true,
+  },
+  {
+    label: "All-claimed: protein + starch + produce + fat (turkey + sweet potato + kale + olive oil)",
+    message:
+      "I have ground turkey, sweet potatoes, kale, and olive oil at home already. What, if anything, am I still missing from the store to put together a balanced meal?",
+    claimedKeywords: ["turkey", "sweet potato", "kale", "olive oil"],
+    allIngredientsClaimed: true,
+  },
 
+  // ── allIngredientsClaimed=false ─────────────────────────────────────────────
+  {
+    label: "Unclaimed-remain: 4 produce/aromatics only (broccoli + bell pepper + garlic + onion)",
+    message:
+      "I already have broccoli, bell pepper, garlic, and onion at home. What protein and any other ingredients do I need to pick up for a complete dinner tonight?",
+    claimedKeywords: ["broccoli", "bell pepper", "garlic", "onion"],
+    allIngredientsClaimed: false,
+  },
+  {
+    label: "Unclaimed-remain: 4 salad produce only (spinach + tomato + cucumber + lemon)",
+    message:
+      "I have fresh spinach, cherry tomatoes, cucumber, and lemon at home. What do I still need to buy to make a complete, protein-rich balanced meal?",
+    claimedKeywords: ["spinach", "tomato", "cucumber", "lemon"],
+    allIngredientsClaimed: false,
+  },
+];
+
+function printQuadRoundReport(
+  r: MultiOwnershipRoundResult,
+  prompt: QuadOwnershipPrompt,
+  idx: number,
+  total: number
+): void {
+  console.log(`\n${"─".repeat(68)}`);
+  console.log(`Round ${idx}/${total} — ${r.label}`);
+  console.log(`  Prompt     : "${r.message}"`);
+  console.log(`  Claimed    : ${r.claimedKeywords.map((k) => `"${k}"`).join(", ")}`);
+  console.log(`  Mode       : allIngredientsClaimed=${prompt.allIngredientsClaimed}`);
+  console.log(`  Meal       : ${r.mealName}`);
+
+  // Print ownedIngredients
+  console.log(`  Owned (${r.ownedIngredients.length}): ${
+    r.ownedIngredients.length === 0
+      ? "(none)"
+      : r.ownedIngredients.map((o) => `${o.item} [${o.quantity} ${o.unit}]`).join(", ")
+  }`);
+
+  // Print shoppingList by category
+  console.log(`  Shopping (${r.shoppingList.length} items):`);
+  if (r.shoppingList.length > 0) {
+    const byCategory: Record<string, string[]> = {};
+    for (const item of r.shoppingList) {
+      const cat = item.category || "Other";
+      if (!byCategory[cat]) byCategory[cat] = [];
+      byCategory[cat].push(item.item);
+    }
+    for (const [cat, items] of Object.entries(byCategory)) {
+      const tag = SUBSTANTIVE_CATEGORIES.has(cat) ? " ✅" : " (pantry)";
+      console.log(`    ${cat}${tag}: ${items.join(", ")}`);
+    }
+  } else {
+    if (prompt.allIngredientsClaimed) {
+      console.log(`    (empty — expected for all-claimed scenario when all four anchors land)`);
+    } else {
+      console.log(`    (empty — UNEXPECTED: unclaimed protein/starch should appear here)`);
+    }
+  }
+
+  // Check A — all four claimed keywords must appear in ownedIngredients
+  if (r.bothClaimedPresentPass) {
+    console.log(
+      `  ✅ CHECK A — ALL four claimed items appear in ownedIngredients: ` +
+      r.matchedOwned.map((o) => `"${o.item}"`).join(", ")
+    );
+  } else {
+    const missing = r.claimedKeywords.filter((kw) => !r.perKeywordHit.get(kw));
+    console.log(
+      `  ❌ CHECK A — NOT all claimed items appear in ownedIngredients.` +
+      ` Missing keyword(s): ${missing.map((k) => `"${k}"`).join(", ")}.` +
+      ` ownedIngredients is: ${
+        r.ownedIngredients.length === 0
+          ? "(empty)"
+          : r.ownedIngredients.map((o) => `"${o.item}"`).join(", ")
+      }`
+    );
+  }
+
+  // Check B — no unclaimed items in ownedIngredients
+  if (r.noUnclaimedSubstantivePass) {
+    console.log(`  ✅ CHECK B — no unclaimed items in ownedIngredients (model did not over-extend ownership)`);
+  } else {
+    console.log(
+      `  ❌ CHECK B — unclaimed item(s) leaked into ownedIngredients: ` +
+      r.unclaimedOwned.map((o) => `"${o.item}"`).join(", ")
+    );
+    console.log(`               The user never claimed these — they must appear in shoppingList.`);
+  }
+
+  // Check C
+  const cPass = quadShoppingPass(r, prompt);
+  if (cPass) {
+    if (r.hasSubstantiveInShoppingPass) {
+      console.log(
+        `  ✅ CHECK C — shoppingList has ${r.substantiveShoppingItems.length} substantive item(s): ` +
+        r.substantiveShoppingItems.slice(0, 5).map((i) => `${i.item} [${i.category}]`).join(", ") +
+        (r.substantiveShoppingItems.length > 5 ? "…" : "")
+      );
+    } else {
+      // allIngredientsClaimed=true and all 4 anchors landed
+      console.log(
+        `  ✅ CHECK C — shoppingList is gracefully empty/pantry-only ` +
+        `(all four claimed items cover the recipe; nothing substantive left to buy — correct for this scenario)`
+      );
+    }
+  } else {
+    const cats = r.categoriesFound.join(", ") || "(none)";
+    if (prompt.allIngredientsClaimed) {
+      // allIngredientsClaimed=true but NOT all claims landed → graceful-empty unjustified
+      console.log(
+        `  ❌ CHECK C — shoppingList is empty/pantry-only but NOT all four claimed items ` +
+        `landed in ownedIngredients. Graceful-empty is only valid when all four anchors are ` +
+        `honoured. Categories in shoppingList: ${cats}`
+      );
+    } else {
+      // allIngredientsClaimed=false → substantive item required but missing
+      console.log(
+        `  ❌ CHECK C — shoppingList has ONLY pantry/Other items but unclaimed ` +
+        `substantive ingredients (protein/starch) are expected. ` +
+        `The model dropped them from both lists. Categories found: ${cats}`
+      );
+    }
+  }
+
+  // Check D
+  if (r.nonEmptyPass) {
+    console.log(`  ✅ CHECK D — combined ingredient list is non-empty`);
+  } else {
+    console.log(`  ❌ CHECK D — both shoppingList and ownedIngredients are completely empty`);
+  }
+}
 /**
  * A multi-turn scenario: a sequence of prior messages (conversationHistory)
  * followed by a final user message.  The evaluation checks:
@@ -2142,11 +2333,14 @@ async function main(): Promise<void> {
   const isPartialOwnership   = args.includes("--partial-ownership");
   const isMultiOwnership     = args.includes("--multi-ownership");
   const isTripleOwnership    = args.includes("--triple-ownership");
+  const isQuadOwnership      = args.includes("--quad-ownership");
   const isMultiTurnOwnership = args.includes("--multi-turn-ownership");
   const isPhrasingVariants   = args.includes("--phrasing-variants");
 
   if (isPhrasingVariants) {
     await runPhrasingVariantsMode();
+  } else if (isQuadOwnership) {
+    await runQuadOwnershipMode();
   } else if (isTripleOwnership) {
     await runTripleOwnershipMode();
   } else if (isMultiOwnership) {
@@ -2158,6 +2352,171 @@ async function main(): Promise<void> {
   } else {
     await runZeroOwnershipMode();
   }
+}
+
+async function runQuadOwnershipMode(): Promise<void> {
+  const total = QUAD_OWNERSHIP_PROMPTS.length;
+
+  console.log("=".repeat(70));
+  console.log("Grocery Coach Quad-Ownership Verification — Task 933");
+  console.log("Validates : when the user claims FOUR ingredients explicitly,");
+  console.log("  A. ALL four claimed items land in ownedIngredients,");
+  console.log("  B. no unclaimed items bleed into ownedIngredients,");
+  console.log("  C. shoppingList is non-empty when unclaimed ingredients remain");
+  console.log("     (allIngredientsClaimed=false), OR gracefully empty/pantry-only");
+  console.log("     when the four claims cover the full recipe AND all four anchors");
+  console.log("     were honoured (allIngredientsClaimed=true + Check A passes).");
+  console.log(`Rounds    : ${total} scenarios — 2 all-claimed (graceful empty valid),`);
+  console.log("           2 produce-only claims (protein/starch must appear in shoppingList)");
+  console.log("=".repeat(70));
+
+  // ── Deterministic predicate tests first (no API) ──────────────────────────
+  const predicateOk = runQuadDeterministicTests();
+  if (!predicateOk) {
+    console.error("\n❌ Deterministic predicate tests FAILED — aborting live rounds.");
+    process.exit(1);
+  }
+
+  const rounds: MultiOwnershipRoundResult[] = [];
+  const roundPrompts: QuadOwnershipPrompt[] = [];
+
+  for (let i = 0; i < QUAD_OWNERSHIP_PROMPTS.length; i++) {
+    const prompt = QUAD_OWNERSHIP_PROMPTS[i];
+    process.stdout.write(`\nRound ${i + 1}/${total} — ${prompt.label} — calling AI...`);
+
+    const raw = await callGroceryCoach(prompt.message);
+    if (!raw) {
+      console.error(`\n❌ Round ${i + 1} (${prompt.label}): AI returned unparseable response — aborting.`);
+      process.exit(1);
+    }
+    console.log(" ✓");
+
+    const r = evaluateMultiRound(prompt, raw);
+    printQuadRoundReport(r, prompt, i + 1, total);
+    rounds.push(r);
+    roundPrompts.push(prompt);
+  }
+
+  // ── Summary table ────────────────────────────────────────────────────────────
+  console.log("\n" + "=".repeat(70));
+  console.log("RESULTS SUMMARY — Quad-Ownership Mode");
+  console.log("=".repeat(70));
+
+  const col1 = 56;
+  const col2 = 10;
+  console.log(
+    `${"Round".padEnd(col1)} ${"AllOwned".padEnd(col2)} ${"NoUnclaimed".padEnd(col2 + 2)} ${"Shopping".padEnd(col2)} Overall`
+  );
+  console.log("-".repeat(94));
+
+  let allPassed = true;
+  const failedRounds: string[] = [];
+
+  for (let i = 0; i < rounds.length; i++) {
+    const r = rounds[i];
+    const prompt = roundPrompts[i];
+    const cPass = quadShoppingPass(r, prompt);
+    const roundPassed =
+      r.bothClaimedPresentPass &&
+      r.noUnclaimedSubstantivePass &&
+      cPass &&
+      r.nonEmptyPass;
+    if (!roundPassed) {
+      allPassed = false;
+      failedRounds.push(r.label);
+    }
+
+    const a = r.bothClaimedPresentPass     ? "✅ PASS" : "❌ FAIL";
+    const b = r.noUnclaimedSubstantivePass ? "✅ PASS" : "❌ FAIL";
+    const c = cPass                        ? "✅ PASS" : "❌ FAIL";
+    const overall = roundPassed            ? "✅ PASS" : "❌ FAIL";
+    console.log(
+      `${r.label.padEnd(col1)} ${a.padEnd(col2)} ${b.padEnd(col2 + 2)} ${c.padEnd(col2)} ${overall}`
+    );
+  }
+
+  // ── Failure detail ───────────────────────────────────────────────────────────
+  if (!allPassed) {
+    console.log("\nFAILURE DETAIL");
+    console.log("-".repeat(70));
+
+    for (let i = 0; i < rounds.length; i++) {
+      const r = rounds[i];
+      const prompt = roundPrompts[i];
+
+      if (!r.bothClaimedPresentPass) {
+        const missing = r.claimedKeywords.filter((kw) => !r.perKeywordHit.get(kw));
+        console.error(
+          `❌ [${r.label}] One or more of the four claimed keywords were NOT placed in ownedIngredients.\n` +
+          `   Missing: ${missing.map((k) => `"${k}"`).join(", ")}\n` +
+          `   ownedIngredients contains: ${
+            r.ownedIngredients.length === 0
+              ? "(nothing)"
+              : r.ownedIngredients.map((o) => `"${o.item}"`).join(", ")
+          }\n` +
+          `   FIX: The model missed one or more of the four explicit ownership claims. ` +
+          `Check the CRITICAL ownedIngredients rule in server/routes/groceryCoach.ts — ` +
+          `it must honour ALL explicitly stated ingredients, not just the first two or three.`
+        );
+      }
+      if (!r.noUnclaimedSubstantivePass) {
+        console.error(
+          `❌ [${r.label}] Unclaimed item(s) leaked into ownedIngredients:\n` +
+          r.unclaimedOwned.map((o) => `   - "${o.item}"`).join("\n") + "\n" +
+          `   These ingredients were NOT mentioned by the user as already owned.\n` +
+          `   FIX: The model over-extended ownership — it inferred ownership from the\n` +
+          `   meal name or description. Check the CRITICAL ownedIngredients rule in\n` +
+          `   server/routes/groceryCoach.ts.`
+        );
+      }
+      if (!quadShoppingPass(r, prompt)) {
+        const cats = r.categoriesFound.join(", ") || "(none)";
+        if (prompt.allIngredientsClaimed) {
+          console.error(
+            `❌ [${r.label}] allIngredientsClaimed=true but not all four anchors landed.\n` +
+            `   shoppingList is empty/pantry-only (${cats}) yet the graceful-empty path\n` +
+            `   requires Check A to pass first. Review Check A failure above for details.`
+          );
+        } else {
+          console.error(
+            `❌ [${r.label}] allIngredientsClaimed=false but shoppingList has no substantive items.\n` +
+            `   Categories in shoppingList: ${cats}\n` +
+            `   The model silently dropped the unclaimed protein/starch from both lists.\n` +
+            `   FIX: Review the CRITICAL ownedIngredients rule in server/routes/groceryCoach.ts:\n` +
+            `   "Every ingredient required to cook the recommended meal that the user did not\n` +
+            `   explicitly claim to already own MUST appear in shoppingList."`
+          );
+        }
+      }
+      if (!r.nonEmptyPass) {
+        console.error(
+          `❌ [${r.label}] Both shoppingList and ownedIngredients are completely empty.`
+        );
+      }
+    }
+  }
+
+  // ── Verdict ──────────────────────────────────────────────────────────────────
+  console.log("\n" + "=".repeat(70));
+  if (allPassed) {
+    console.log(`🎉 VERDICT: PASS — all ${total} quad-ownership rounds are correct.`);
+    console.log("   All four claimed ingredients landed in ownedIngredients,");
+    console.log("   no unclaimed items bled in, and shoppingList was either");
+    console.log("   non-empty (remaining items to buy) or gracefully empty");
+    console.log("   (all recipe ingredients accounted for by the four claims).");
+  } else {
+    console.log("❌ VERDICT: FAIL — quad-ownership ingredient handling is broken.");
+    console.log(`   Failed rounds: ${failedRounds.join(", ")}`);
+    console.log("   The model either missed a claimed item in ownedIngredients,");
+    console.log("   over-extended ownership to unclaimed ingredients, or silently");
+    console.log("   dropped unclaimed substantive ingredients from shoppingList.");
+    console.log("   Root cause: review the CRITICAL ownedIngredients rule in");
+    console.log("   server/routes/groceryCoach.ts.");
+    process.exitCode = 1;
+  }
+  console.log("=".repeat(70) + "\n");
+
+  process.exit(process.exitCode ?? 0);
 }
 
 async function runPhrasingVariantsMode(): Promise<void> {
@@ -2456,3 +2815,218 @@ const PHRASING_VARIANT_PROMPTS: PhrasingVariantPrompt[] = [
     claimedKeywords: ["ground beef", "black bean"],
   },
 ];
+
+/**
+ * Check C predicate for quad-ownership.
+ *
+ * When allIngredientsClaimed=true:
+ *   PASS iff allClaimedPresent (Check A).  All four claims were honoured,
+ *   meaning all recipe ingredients are accounted for, so an empty/pantry
+ *   shoppingList is valid.  If ANY claim was missed, we cannot trust that
+ *   the model accounted for all recipe ingredients — FAIL.
+ *
+ * When allIngredientsClaimed=false:
+ *   PASS iff shoppingList has ≥1 substantive item.  Empty/pantry-only means
+ *   an unclaimed ingredient was dropped — FAIL.
+ */
+function quadShoppingPass(
+  r: MultiOwnershipRoundResult,
+  prompt: QuadOwnershipPrompt
+): boolean {
+  if (prompt.allIngredientsClaimed) {
+    // Graceful empty/pantry-only is valid ONLY when all four anchors landed.
+    // (hasSubstantiveInShoppingPass is also fine — extra items don't hurt.)
+    return r.bothClaimedPresentPass;
+  }
+  // Unclaimed ingredients remain — shoppingList must be substantive.
+  return r.hasSubstantiveInShoppingPass;
+}
+
+/**
+ * Verifies quadShoppingPass() produces the correct result for known mock
+ * responses.  Runs entirely against local data — no API calls.
+ *
+ * Four fixtures cover the boundary:
+ *   T1: allIngredientsClaimed=true,  empty shopping,     all claims land  → PASS
+ *   T2: allIngredientsClaimed=false, empty shopping,     all claims land  → FAIL
+ *   T3: allIngredientsClaimed=false, substantive shopping, all claims land → PASS
+ *   T4: allIngredientsClaimed=true,  empty shopping,     one claim missed → FAIL
+ */
+function runQuadDeterministicTests(): boolean {
+  console.log("\n" + "─".repeat(68));
+  console.log("Deterministic predicate tests for quadShoppingPass()");
+  console.log("─".repeat(68));
+
+  let allOk = true;
+
+  function makeResult(opts: {
+    claimedKeywords: string[];
+    ownedItems: string[];       // owned ingredient names
+    shoppingItems: Array<{ item: string; category: string }>;
+  }): MultiOwnershipRoundResult {
+    const ownedIngredients: OwnedIngredient[] = opts.ownedItems.map((item) => ({
+      item,
+      quantity: "1",
+      unit: "unit",
+    }));
+    const shoppingList: ShoppingListItem[] = opts.shoppingItems.map((s) => ({
+      item: s.item,
+      quantity: "1",
+      unit: "unit",
+      category: s.category,
+      reason: "",
+    }));
+
+    const perKeywordHit = new Map<string, boolean>();
+    for (const kw of opts.claimedKeywords) {
+      perKeywordHit.set(
+        kw,
+        ownedIngredients.some((o) => o.item.toLowerCase().includes(kw.toLowerCase()))
+      );
+    }
+    const bothClaimedPresentPass = [...perKeywordHit.values()].every(Boolean);
+
+    const matchedOwned = ownedIngredients.filter((o) =>
+      opts.claimedKeywords.some((kw) => o.item.toLowerCase().includes(kw.toLowerCase()))
+    );
+    const unclaimedOwned = ownedIngredients.filter(
+      (o) => !opts.claimedKeywords.some((kw) => o.item.toLowerCase().includes(kw.toLowerCase()))
+    );
+    const noUnclaimedSubstantivePass = unclaimedOwned.length === 0;
+
+    const substantiveShoppingItems = shoppingList.filter((i) =>
+      SUBSTANTIVE_CATEGORIES.has(i.category ?? "Other")
+    );
+    const hasSubstantiveInShoppingPass = substantiveShoppingItems.length > 0;
+
+    const categoriesFound = [...new Set(shoppingList.map((i) => i.category ?? "Other"))];
+    const nonEmptyPass = shoppingList.length + ownedIngredients.length > 0;
+
+    return {
+      label: "",
+      message: "",
+      claimedKeywords: opts.claimedKeywords,
+      mealName: "Mock Meal",
+      shoppingList,
+      ownedIngredients,
+      ownedEmptyPass: ownedIngredients.length === 0,
+      ownedContainsClaimedPass: matchedOwned.length > 0,
+      noUnclaimedSubstantivePass,
+      hasSubstantiveInShoppingPass,
+      nonEmptyPass,
+      matchedOwned,
+      unclaimedOwned,
+      substantiveShoppingItems,
+      categoriesFound,
+      substantiveItems: substantiveShoppingItems,
+      pantryOnlyItems: shoppingList.filter(
+        (i) => !SUBSTANTIVE_CATEGORIES.has(i.category ?? "Other")
+      ),
+      perKeywordHit,
+      bothClaimedPresentPass,
+    };
+  }
+
+  function check(
+    label: string,
+    r: MultiOwnershipRoundResult,
+    prompt: QuadOwnershipPrompt,
+    expected: boolean
+  ): void {
+    const actual = quadShoppingPass(r, prompt);
+    const ok = actual === expected;
+    allOk = allOk && ok;
+    console.log(
+      `  ${ok ? "✅" : "❌"} ${label}: expected ${expected ? "PASS" : "FAIL"}, got ${actual ? "PASS" : "FAIL"}`
+    );
+    if (!ok) {
+      console.error(
+        `     PREDICATE BUG: quadShoppingPass() returned the wrong value for this fixture.\n` +
+        `     Fix the predicate in runQuadOwnershipMode before running live rounds.`
+      );
+    }
+  }
+
+  const CLAIMS_ALL = ["chicken", "brown rice", "broccoli", "garlic"];
+  const CLAIMS_PRODUCE = ["broccoli", "bell pepper", "garlic", "onion"];
+
+  // T1: allIngredientsClaimed=true, empty shopping, all 4 claims land → PASS
+  check(
+    "T1: all-claimed=true, empty shoppingList, all claims in owned",
+    makeResult({
+      claimedKeywords: CLAIMS_ALL,
+      ownedItems: ["chicken breast", "brown rice", "broccoli", "garlic"],
+      shoppingItems: [],
+    }),
+    {
+      label: "",
+      message: "",
+      claimedKeywords: CLAIMS_ALL,
+      allIngredientsClaimed: true,
+    },
+    true
+  );
+
+  // T2: allIngredientsClaimed=false, empty shopping, all 4 claims land → FAIL
+  // (unclaimed protein/starch was dropped)
+  check(
+    "T2: all-claimed=false, empty shoppingList (unclaimed ingredient dropped)",
+    makeResult({
+      claimedKeywords: CLAIMS_PRODUCE,
+      ownedItems: ["broccoli", "bell pepper", "garlic", "onion"],
+      shoppingItems: [],
+    }),
+    {
+      label: "",
+      message: "",
+      claimedKeywords: CLAIMS_PRODUCE,
+      allIngredientsClaimed: false,
+    },
+    false
+  );
+
+  // T3: allIngredientsClaimed=false, substantive shoppingList → PASS
+  check(
+    "T3: all-claimed=false, substantive shoppingList (protein + starch present)",
+    makeResult({
+      claimedKeywords: CLAIMS_PRODUCE,
+      ownedItems: ["broccoli", "bell pepper", "garlic", "onion"],
+      shoppingItems: [
+        { item: "chicken breast", category: "Meat" },
+        { item: "brown rice",     category: "Grains & Packaged" },
+      ],
+    }),
+    {
+      label: "",
+      message: "",
+      claimedKeywords: CLAIMS_PRODUCE,
+      allIngredientsClaimed: false,
+    },
+    true
+  );
+
+  // T4: allIngredientsClaimed=true, empty shopping, but one claim MISSED → FAIL
+  // (graceful-empty is not justified — the model didn't honour all four anchors)
+  check(
+    "T4: all-claimed=true, empty shoppingList, one claim missed in owned",
+    makeResult({
+      claimedKeywords: CLAIMS_ALL,
+      ownedItems: ["chicken breast", "broccoli", "garlic"],  // brown rice missing
+      shoppingItems: [],
+    }),
+    {
+      label: "",
+      message: "",
+      claimedKeywords: CLAIMS_ALL,
+      allIngredientsClaimed: true,
+    },
+    false
+  );
+
+  if (allOk) {
+    console.log("  ✅ All 4 predicate fixtures pass — quadShoppingPass() is correct.");
+  } else {
+    console.error("  ❌ One or more predicate fixtures FAILED. Fix quadShoppingPass() before running live rounds.");
+  }
+  return allOk;
+}
