@@ -271,6 +271,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     sessionGenRef.current += 1; // invalidate all in-flight async requests for the old key
     setResultOwnerKey(null); // ← clear before state so save effect detects transition
     setResult(null);
+    setPreRefinedResult(null);
     setConversation([]);
     setProductAdvice(null); // clear prior user's advice alongside result/conversation
     setPhase("idle");
@@ -279,6 +280,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       if (!raw) return;
       const session = JSON.parse(raw) as {
         result?: CoachResult;
+        preRefinedResult?: CoachResult;
         conversation?: ConversationMessage[];
         productAdvice?: ProductAdviceResult;
         savedAt?: number;
@@ -290,6 +292,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       }
       if (session.result) {
         setResult(session.result);
+        if (session.preRefinedResult) setPreRefinedResult(session.preRefinedResult);
         setResultOwnerKey(SESSION_KEY); // result now belongs to this user's key
         setPhase("result");
 
@@ -323,13 +326,14 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       try {
         localStorage.setItem(SESSION_KEY, JSON.stringify({
           result,
+          preRefinedResult: preRefinedResult ?? undefined,
           conversation,
           productAdvice: productAdvice ?? undefined,
           savedAt: Date.now(),
         }));
       } catch {}
     }
-  }, [result, conversation, productAdvice, SESSION_KEY, resultOwnerKey]);
+  }, [result, preRefinedResult, conversation, productAdvice, SESSION_KEY, resultOwnerKey]);
 
   useEffect(() => {
     if (!open) {
@@ -506,6 +510,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     try { localStorage.removeItem(SESSION_KEY); } catch {}
     setPhase("idle");
     setResult(null);
+    setPreRefinedResult(null);
     setResultOwnerKey(null);
     setConversation([]);
     setInput("");
