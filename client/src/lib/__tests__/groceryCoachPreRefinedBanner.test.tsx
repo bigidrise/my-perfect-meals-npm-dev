@@ -765,3 +765,153 @@ describe('Inline logout/login without unmount', () => {
     expect(screen.queryByText('Showing refined version')).not.toBeInTheDocument();
   });
 });
+
+// ── 8. open=false cycle mid-logout — banner absent when sheet reopens ─────────
+//
+// Edge case: the sheet closes (open=false) while User A's refinement is active,
+// then auth changes to User B while the drawer is still hidden, and then the
+// sheet reopens (open=true). Because the component never fully unmounts, the
+// SESSION_KEY effect fires while open=false. The banner must stay absent when
+// the sheet becomes visible again for User B.
+
+describe('open=false cycle mid-logout — banner absent on reopen for new user', () => {
+  it('banner is absent when the sheet reopens after closing mid-refinement and switching users', async () => {
+    const USER_A = 'test-open-cycle-user-a';
+    const USER_B = 'test-open-cycle-user-b';
+
+    // ── Step 1: mount as User A with sheet open, generate a result ────────────
+    (useAuth as jest.Mock).mockImplementation(() => ({ user: { id: USER_A } }));
+
+    const onOpenChange = jest.fn();
+    const { rerender } = render(
+      <GroceryStoreCoachSheet open={true} onOpenChange={onOpenChange} />,
+    );
+
+    const chip = screen.getByText("What's for dinner tonight?");
+    await act(async () => {
+      fireEvent.click(chip);
+    });
+
+    await waitFor(
+      () => expect(screen.getByText('Grilled Chicken')).toBeInTheDocument(),
+      { timeout: 3000 },
+    );
+
+    // ── Step 2: refine the meal — banner must appear ──────────────────────────
+    const refineBtn = screen.getByText('Refine Meal');
+    await act(async () => {
+      fireEvent.click(refineBtn);
+    });
+    expect(capturedOnRefined).not.toBeNull();
+    await act(async () => {
+      capturedOnRefined!(REFINED_RESULT);
+    });
+
+    await waitFor(() =>
+      expect(screen.getByText('Restore original')).toBeInTheDocument(),
+    );
+
+    // ── Step 3: close the sheet (open=false) — component stays mounted ────────
+    // The open=false effect resets transient UI state but leaves
+    // result / preRefinedResult in memory (so the user returns to their meal
+    // when they reopen it for the same session).
+    await act(async () => {
+      rerender(<GroceryStoreCoachSheet open={false} onOpenChange={onOpenChange} />);
+    });
+
+    // ── Step 4: switch auth to User B while the sheet is still closed ─────────
+    // SESSION_KEY changes → the restore effect fires → preRefinedResult is
+    // cleared even though open=false, because the effect is keyed on
+    // SESSION_KEY, not on `open`.
+    (useAuth as jest.Mock).mockImplementation(() => ({ user: { id: USER_B } }));
+    await act(async () => {
+      rerender(<GroceryStoreCoachSheet open={false} onOpenChange={onOpenChange} />);
+    });
+
+    // ── Step 5: reopen the sheet as User B ───────────────────────────────────
+    // The SESSION_KEY effect has already run (clearing preRefinedResult), so
+    // the banner must not reappear when the sheet becomes visible again.
+    await act(async () => {
+      rerender(<GroceryStoreCoachSheet open={true} onOpenChange={onOpenChange} />);
+    });
+
+    // Banner must be absent — User B's session has no preRefinedResult
+    await waitFor(() =>
+      expect(screen.queryByText('Restore original')).not.toBeInTheDocument(),
+    );
+    expect(screen.queryByText('Showing refined version')).not.toBeInTheDocument();
+  });
+
+  it('banner absent on reopen even when User B has a non-refined session in localStorage', async () => {
+    const USER_A = 'test-open-cycle-user-a2';
+    const USER_B = 'test-open-cycle-user-b2';
+
+    // Pre-seed User B with a clean session (no preRefinedResult)
+    localStorage.setItem(
+      `grocery-coach-session:${USER_B}`,
+      JSON.stringify({
+        result: SECOND_RESULT,
+        // preRefinedResult absent
+        conversation: [{ role: 'user', content: 'Salmon please' }],
+        savedAt: Date.now(),
+      }),
+    );
+
+    // ── Mount as User A, generate result, refine ──────────────────────────────
+    (useAuth as jest.Mock).mockImplementation(() => ({ user: { id: USER_A } }));
+
+    const onOpenChange = jest.fn();
+    const { rerender } = render(
+      <GroceryStoreCoachSheet open={true} onOpenChange={onOpenChange} />,
+    );
+
+    const chip = screen.getByText("What's for dinner tonight?");
+    await act(async () => {
+      fireEvent.click(chip);
+    });
+
+    await waitFor(
+      () => expect(screen.getByText('Grilled Chicken')).toBeInTheDocument(),
+      { timeout: 3000 },
+    );
+
+    const refineBtn = screen.getByText('Refine Meal');
+    await act(async () => {
+      fireEvent.click(refineBtn);
+    });
+    expect(capturedOnRefined).not.toBeNull();
+    await act(async () => {
+      capturedOnRefined!(REFINED_RESULT);
+    });
+
+    await waitFor(() =>
+      expect(screen.getByText('Restore original')).toBeInTheDocument(),
+    );
+
+    // ── Close the sheet ───────────────────────────────────────────────────────
+    await act(async () => {
+      rerender(<GroceryStoreCoachSheet open={false} onOpenChange={onOpenChange} />);
+    });
+
+    // ── Switch to User B while closed ────────────────────────────────────────
+    (useAuth as jest.Mock).mockImplementation(() => ({ user: { id: USER_B } }));
+    await act(async () => {
+      rerender(<GroceryStoreCoachSheet open={false} onOpenChange={onOpenChange} />);
+    });
+
+    // ── Reopen for User B ─────────────────────────────────────────────────────
+    await act(async () => {
+      rerender(<GroceryStoreCoachSheet open={true} onOpenChange={onOpenChange} />);
+    });
+
+    // User B's session has a result (Salmon Bowl) but no preRefinedResult
+    await waitFor(
+      () => expect(screen.getByText('Salmon Bowl')).toBeInTheDocument(),
+      { timeout: 3000 },
+    );
+
+    // Banner must not appear — User B's persisted session had no refinement
+    expect(screen.queryByText('Restore original')).not.toBeInTheDocument();
+    expect(screen.queryByText('Showing refined version')).not.toBeInTheDocument();
+  });
+});
