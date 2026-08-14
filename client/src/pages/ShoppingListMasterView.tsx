@@ -10,6 +10,7 @@ import {
   Mic,
   ListPlus,
   ExternalLink,
+  ScanLine,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import TrashButton from "@/components/ui/TrashButton";
@@ -22,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import {
   Select,
   SelectContent,
@@ -40,10 +42,13 @@ import { convertServingDisplay } from "@shared/units";
 import { useAuth } from "@/contexts/AuthContext";
 import { isGuestMode, markStepCompleted } from "@/lib/guestMode";
 import type { IngredientScanResult } from "@/lib/photoIngredientCapture";
+import { apiRequest } from "@/lib/queryClient";
 import InspirationCaptureModal from "@/components/InspirationCaptureModal";
 import GroceryStoreCoachSheet from "@/components/shopping/GroceryStoreCoachSheet";
+import SavedGroceriesSheet from "@/components/shopping/SavedGroceriesSheet";
 import { IngredientIntelligenceSheet } from "@/components/biometrics/IngredientIntelligenceSheet";
 import VoiceShoppingModal from "@/components/shopping/VoiceShoppingModal";
+import MobileBarcodeCamera from "@/components/MobileBarcodeCamera";
 
 import { saveProductScan, clearExpiredShoppingScans } from "@/lib/shoppingScanStorage";
 import RecentScans from "@/components/shopping/RecentScans";
@@ -155,9 +160,12 @@ export default function ShoppingListMasterView() {
   const [addOtherPrefill, setAddOtherPrefill] = useState<string | undefined>(undefined);
   const [scanModalOpen, setScanModalOpen] = useState(false);
   const [groceryCoachOpen, setGroceryCoachOpen] = useState(false);
+  const [savedGroceriesOpen, setSavedGroceriesOpen] = useState(false);
   const [scanRefreshKey, setScanRefreshKey] = useState(0);
   const [bulkText, setBulkText] = useState("");
   const [barcodeText, setBarcodeText] = useState("");
+  const [barcodeLoading, setBarcodeLoading] = useState(false);
+  const [barcodeScanMode, setBarcodeScanMode] = useState<"manual" | "camera">("manual");
 
   const persistScan = useCallback((result: IngredientScanResult) => {
     try { localStorage.setItem('mpm.shopping.activeScan', JSON.stringify(result)); } catch {}
@@ -168,6 +176,102 @@ export default function ShoppingListMasterView() {
     try { localStorage.removeItem('mpm.shopping.activeScan'); } catch {}
     setShoppingSheetResult(null);
   }, []);
+
+  /**
+   * Shared barcode lookup used by BOTH the manual-entry path and the camera-scan
+   * path.  Stamps `barcode`, `resolvedFromDb`, and `resolvedName` onto the result
+   * before handing it to the intelligence sheet so BarcodeDatabaseBadge always
+   * has the data it needs regardless of how the barcode was captured.
+   */
+  const lookupAndOpenBarcode = useCallback(async (barcode: string) => {
+    if (!barcode || barcodeLoading) return;
+    setBarcodeLoading(true);
+    try {
+      const data = await apiRequest(
+        "/api/biometrics/ingredient-scan-by-barcode",
+        {
+          method: "POST",
+          body: JSON.stringify({ barcode }),
+          headers: { "Content-Type": "application/json" },
+        },
+      ) as { ok: boolean; result: IngredientScanResult; resolvedFromDb: boolean; resolvedName: string };
+
+      if (data?.ok && data?.result && data.result.productName?.trim()) {
+        // Stamp barcode + DB-resolution metadata so BarcodeDatabaseBadge renders
+        // correctly regardless of whether the user typed or camera-scanned the code.
+        const resultWithBarcode: IngredientScanResult = {
+          ...data.result,
+          barcode,
+          resolvedFromDb: data.resolvedFromDb,
+          resolvedName: data.resolvedName,
+        };
+        persistScan(resultWithBarcode);
+        setBarcodeModalOpen(false);
+        setBarcodeText("");
+        setBarcodeScanMode("manual");
+        setShoppingSheetOpen(true);
+        setScanRefreshKey((k) => k + 1);
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent("walkthrough:event", {
+            detail: { testId: "shopping-list-interacted", event: "interacted" },
+          }));
+        }, 300);
+      } else {
+        // Product unknown — fall back to adding by barcode note with a clear label
+        addItem({
+          name: `Unknown product — Barcode: ${barcode}`,
+          quantity: 1,
+          unit: "",
+          notes: `Barcode: ${barcode}`,
+        });
+        setBarcodeText("");
+        setBarcodeModalOpen(false);
+        setBarcodeScanMode("manual");
+        toast({
+          title: `Barcode ${barcode} not found`,
+          description: "This product isn't in our database. Try scanning the label for a photo-based lookup.",
+          action: (
+            <ToastAction
+              altText="Scan label"
+              onClick={() => setScanModalOpen(true)}
+            >
+              Scan label
+            </ToastAction>
+          ),
+        });
+      }
+    } catch {
+      // Network / server error — fall back gracefully
+      addItem({
+        name: `Unknown product — Barcode: ${barcode}`,
+        quantity: 1,
+        unit: "",
+        notes: `Barcode: ${barcode}`,
+      });
+      setBarcodeText("");
+      setBarcodeModalOpen(false);
+      setBarcodeScanMode("manual");
+      toast({
+        title: "Couldn't look up product",
+        description: "Added to your list. Check your connection and try again.",
+      });
+    } finally {
+      setBarcodeLoading(false);
+    }
+  }, [barcodeLoading, persistScan, addItem, toast]);
+
+  /**
+   * Test hook — allows Playwright to simulate a camera barcode scan without
+   * real hardware or the BarcodeDetector API.  Wires into lookupAndOpenBarcode
+   * (the same function MobileBarcodeCamera's onBarcode callback invokes) so
+   * badge rendering and all downstream logic are exercised identically.
+   * Only exposed when navigator.webdriver === true (Playwright automation flag).
+   */
+  useEffect(() => {
+    if (typeof window === 'undefined' || !navigator.webdriver) return;
+    (window as any).__mpmFireCameraBarcode = (code: string) => lookupAndOpenBarcode(code);
+    return () => { delete (window as any).__mpmFireCameraBarcode; };
+  }, [lookupAndOpenBarcode]);
 
   type ShoppingOpts = typeof opts;
   
@@ -496,7 +600,16 @@ export default function ShoppingListMasterView() {
             data-testid="shopping-add-buttons"
             className="mt-4 flex flex-wrap gap-2"
           >
-            {/* Barcode button hidden - feature not working */}
+            <Button
+              data-wt="msl-barcode-scan-button"
+              onClick={() => { setBarcodeScanMode("manual"); setBarcodeModalOpen(true); }}
+              className="bg-black/60 border border-white/20 text-white hover:bg-black/70 text-sm"
+              size="sm"
+              data-testid="button-barcode-scan"
+            >
+              <ScanLine className="h-4 w-4 mr-2" />
+              Scan Barcode
+            </Button>
             <Button
               data-wt="msl-voice-add-button"
               onClick={() => setVoiceModalOpen(true)}
@@ -536,6 +649,21 @@ export default function ShoppingListMasterView() {
               </span>
               <span className="bg-orange-500/20 border border-orange-400/20 rounded-lg px-2 py-0.5 text-[10px] text-orange-300 font-semibold uppercase tracking-wide flex-shrink-0">
                 {hasGroceryCoachAccess ? "Pro" : "🔒 Pro"}
+              </span>
+            </Button>
+          </div>
+
+          {/* Saved Groceries */}
+          <div className="relative mt-2">
+            <Button
+              onClick={() => setSavedGroceriesOpen(true)}
+              className="relative w-full flex items-center gap-3 bg-gradient-to-r from-orange-900/40 to-black/60 rounded-2xl py-3 h-auto border border-orange-500/20 text-left"
+              data-testid="button-saved-groceries"
+            >
+              <span className="text-xl">🔖</span>
+              <span className="flex-1 min-w-0">
+                <span className="block text-white font-semibold text-sm leading-tight">Saved Groceries</span>
+                <span className="block text-orange-300/50 text-xs mt-0.5">Products you've saved — Coach remembers these</span>
               </span>
             </Button>
           </div>
@@ -1005,6 +1133,12 @@ export default function ShoppingListMasterView() {
           onOpenChange={setGroceryCoachOpen}
         />
 
+        {/* Saved Groceries */}
+        <SavedGroceriesSheet
+          open={savedGroceriesOpen}
+          onOpenChange={setSavedGroceriesOpen}
+        />
+
         {/* Smart Scan — Ingredient Intake Modal */}
         <InspirationCaptureModal
           open={scanModalOpen}
@@ -1070,82 +1204,112 @@ export default function ShoppingListMasterView() {
             onClose={() => setGroceryExportOpen(false)}
           />
         )}
-        {/* Barcode Manual Entry Modal */}
+        {/* Barcode Scan Modal — camera + manual entry, both paths stamp resolvedFromDb/resolvedName */}
         {barcodeModalOpen && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
             <div className="bg-black/90 border border-white/20 rounded-2xl p-6 w-full max-w-sm space-y-4">
-              <h3 className="text-white text-xl font-semibold">
-                Enter Barcode
-              </h3>
-              <Input
-                value={barcodeText}
-                onChange={(e) => setBarcodeText(e.target.value)}
-                placeholder="Type barcode number..."
-                className="bg-black/40 border-white/30 text-white placeholder:text-white/40"
-                data-testid="input-barcode"
-              />
+              <h3 className="text-white text-xl font-semibold">Scan Barcode</h3>
+              <p className="text-white/50 text-sm -mt-2">
+                We'll look up the product and show you a full ingredient analysis.
+              </p>
+
+              {/* Mode toggle */}
+              <div className="flex rounded-xl overflow-hidden border border-white/15">
+                <button
+                  onClick={() => setBarcodeScanMode("camera")}
+                  className={`flex-1 py-2 text-sm font-semibold transition-colors ${
+                    barcodeScanMode === "camera"
+                      ? "bg-orange-600/70 text-white"
+                      : "bg-white/5 text-white/50"
+                  }`}
+                >
+                  <ScanLine className="inline h-3.5 w-3.5 mr-1.5 -mt-0.5" />
+                  Camera
+                </button>
+                <button
+                  onClick={() => setBarcodeScanMode("manual")}
+                  className={`flex-1 py-2 text-sm font-semibold transition-colors ${
+                    barcodeScanMode === "manual"
+                      ? "bg-orange-600/70 text-white"
+                      : "bg-white/5 text-white/50"
+                  }`}
+                >
+                  Type Manually
+                </button>
+              </div>
+
+              {/* Camera scan mode — MobileBarcodeCamera fires onBarcode which goes
+                  through the same lookupAndOpenBarcode path as manual entry, so
+                  resolvedFromDb + resolvedName are always stamped on the result. */}
+              {barcodeScanMode === "camera" && (
+                <div className="space-y-2">
+                  <MobileBarcodeCamera
+                    onBarcode={(code) => {
+                      // Camera detected a barcode — run the shared lookup so the
+                      // BarcodeDatabaseBadge gets the metadata it needs.
+                      lookupAndOpenBarcode(code);
+                    }}
+                    scanIntervalMs={250}
+                  />
+                  {barcodeLoading && (
+                    <div className="flex items-center justify-center gap-2 py-2 text-sm text-white/60">
+                      <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Looking up barcode…
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Manual entry mode */}
+              {barcodeScanMode === "manual" && (
+                <Input
+                  value={barcodeText}
+                  onChange={(e) => setBarcodeText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && barcodeText.trim() && !barcodeLoading) {
+                      e.currentTarget.blur();
+                      lookupAndOpenBarcode(barcodeText.trim());
+                    }
+                  }}
+                  placeholder="Type barcode number..."
+                  className="bg-black/40 border-white/30 text-white placeholder:text-white/40"
+                  data-testid="input-barcode"
+                  disabled={barcodeLoading}
+                  autoFocus
+                />
+              )}
 
               <div className="flex justify-end gap-3">
                 <Button
                   onClick={() => {
+                    if (barcodeLoading) return;
                     setBarcodeModalOpen(false);
                     setBarcodeText("");
+                    setBarcodeScanMode("manual");
                   }}
                   className="bg-white/10 border border-white/20 text-white"
+                  disabled={barcodeLoading}
                 >
                   Cancel
                 </Button>
 
-                <Button
-                  onClick={() => {
-                    if (barcodeText.trim()) {
-                      // Dispatch "interacted" event
-                      setTimeout(() => {
-                        const interactedEvent = new CustomEvent(
-                          "walkthrough:event",
-                          {
-                            detail: {
-                              testId: "shopping-list-interacted",
-                              event: "interacted",
-                            },
-                          },
-                        );
-                        window.dispatchEvent(interactedEvent);
-                      }, 300);
-
-                      addItem({
-                        name: "Unknown Item",
-                        quantity: 1,
-                        unit: "",
-                        notes: `Barcode: ${barcodeText.trim()}`,
-                      });
-                      setBarcodeText("");
-                      setBarcodeModalOpen(false);
-                      toast({
-                        title: "Item added",
-                        description: `Barcode ${barcodeText.trim()} added`,
-                      });
-
-                      // Dispatch "completed" event
-                      setTimeout(() => {
-                        const completedEvent = new CustomEvent(
-                          "walkthrough:event",
-                          {
-                            detail: {
-                              testId: "shopping-list-completed",
-                              event: "completed",
-                            },
-                          },
-                        );
-                        window.dispatchEvent(completedEvent);
-                      }, 500);
-                    }
-                  }}
-                  className="bg-blue-600/40 border border-blue-300/40 text-blue-100 hover:bg-blue-600/50"
-                  data-testid="button-add-barcode"
-                >
-                  Add
-                </Button>
+                {barcodeScanMode === "manual" && (
+                  <Button
+                    onClick={() => lookupAndOpenBarcode(barcodeText.trim())}
+                    className="bg-orange-600/60 border border-orange-400/40 text-white hover:bg-orange-600/70 disabled:opacity-50"
+                    data-testid="button-add-barcode"
+                    disabled={!barcodeText.trim() || barcodeLoading}
+                  >
+                    {barcodeLoading ? (
+                      <span className="flex items-center gap-2">
+                        <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Looking up…
+                      </span>
+                    ) : (
+                      "Look Up"
+                    )}
+                  </Button>
+                )}
               </div>
             </div>
           </div>

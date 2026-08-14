@@ -55,10 +55,28 @@ export async function generateMealV2(opts: {
   variation?: number;
 }): Promise<Meal> {
   const constraints = mapOnboardingToConstraints(opts.onboarding);
-  
+
+  // ── GLP-1 constraint injection — MEALGEN V2 ───────────────────────────────
+  // generateMealV2 calls callCravingCreator via an internal server-to-server
+  // HTTP fetch with no session cookie, so serverAuthUserId in the craving-creator
+  // handler resolves to undefined and GLP-1 is not applied automatically.
+  // Inject the personalized GLP-1 constraint text directly into cravingInput so
+  // the AI prompt carries the fat ceiling, calorie cap, and protein floor even
+  // on this path. Fields were added to onboarding by the routes.ts GLP-1 block.
+  const ob = opts.onboarding as any;
+  let glp1V2Block = "";
+  if (ob.glp1Active && ob.glp1CalorieCeiling) {
+    glp1V2Block = [
+      ` GLP-1 PROTOCOL (HARD CONSTRAINTS — MUST COMPLY):`,
+      ` Calories ≤${ob.glp1CalorieCeiling}kcal, Fat ≤${ob.glp1FatCeiling}g, Protein ≥${ob.glp1ProteinFloor}g.`,
+      ` NO fried, cream sauces, heavy butter, or full-fat dairy. Small portions only.`,
+    ].join("");
+    console.log(`💊 [GLP-1/MealGenV2] Injecting constraint into prompt — ceil:${ob.glp1CalorieCeiling}kcal fat:${ob.glp1FatCeiling}g prot:${ob.glp1ProteinFloor}g`);
+  }
+
   const raw = await callCravingCreator({
     targetMealType: opts.courseStyle.toLowerCase(),
-    cravingInput: `${opts.courseStyle} ${opts.variation ? `variation ${opts.variation}` : ''}`,
+    cravingInput: `${opts.courseStyle} ${opts.variation ? `variation ${opts.variation}` : ''}${glp1V2Block}`,
     userId: opts.userId,
     dietaryRestrictions: constraints.allergies || [],
     allergies: constraints.allergies || [],
@@ -217,7 +235,8 @@ async function callCravingCreator(body: any) {
     }
     
     const data = await res.json();
-    return data.meal || data;
+    // craving-creator returns { meals: [...] }; fall back to .meal then bare object
+    return data.meals?.[0] ?? data.meal ?? data;
   } finally {
     clearTimeout(timeout);
   }

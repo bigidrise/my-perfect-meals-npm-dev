@@ -759,6 +759,24 @@ setTimeout(async () => {
         user_agent text
       )
     `);
+    // Saved Groceries — persistent grocery preference library
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS user_saved_grocery_items (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id varchar NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        product_name text NOT NULL,
+        brand text,
+        barcode text,
+        product_key text NOT NULL,
+        category text,
+        source text NOT NULL DEFAULT 'manual',
+        nutrition_json jsonb,
+        product_meta jsonb,
+        image_url text,
+        saved_at timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT uniq_saved_grocery_user_product_key UNIQUE (user_id, product_key)
+      )
+    `);
     // Grandfather existing certified professionals — Phase 2 gate protection
     // Sets procare_training_completed=true for professionals who completed Phase 1
     // BEFORE Phase 2 training existed (cutoff: 2026-07-01).
@@ -1481,6 +1499,10 @@ async function start() {
   const chefBudgetRoutes = (await import("./routes/chefBudget")).default;
   app.use("/api/meals/chef-budget", chefBudgetRoutes);
 
+  // Universal Meal Refinement — Stage 1: Weekly Meal Board replace_component
+  const refinementRouter = (await import("./routes/refinement")).default;
+  app.use("/api/refinement", requireAuth, requireActiveAccess, refinementRouter);
+
   // 🎯 CRITICAL: API routes FIRST to prevent Vite middleware interference
   await registerRoutes(app);
 
@@ -1750,6 +1772,61 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('🚨 Unhandled Rejection at:', promise, 'reason:', reason);
   // Don't exit - log and continue for stability
 });
+
+// ── Grocery Coach recommendation history (variety memory) ─────────────────────
+// Non-critical — variety enforcement degrades gracefully if this migration fails.
+setTimeout(async () => {
+  try {
+    const { db } = await import("./db");
+    const { sql } = await import("drizzle-orm");
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS grocery_coach_recommendation_history (
+        id          serial PRIMARY KEY,
+        user_id     text        NOT NULL,
+        meal_name   text        NOT NULL,
+        primary_protein text,
+        cuisine_style   text,
+        major_starch    text,
+        cooking_method  text,
+        created_at  timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+    await db.execute(sql`
+      CREATE INDEX IF NOT EXISTS idx_gcr_history_user_date
+        ON grocery_coach_recommendation_history (user_id, created_at DESC)
+    `);
+    await db.execute(sql`
+      ALTER TABLE grocery_coach_recommendation_history
+        ADD COLUMN IF NOT EXISTS meal_type text
+    `);
+    // Task 903: tag rows with the dietary identity active at recommendation time
+    // so that switching diets (e.g. vegan → omnivore) flushes the avoid-list.
+    await db.execute(sql`
+      ALTER TABLE grocery_coach_recommendation_history
+        ADD COLUMN IF NOT EXISTS dietary_identity_tag text NOT NULL DEFAULT 'omnivore'
+    `);
+    console.log("✅ Grocery Coach recommendation history boot migration complete");
+  } catch (err: any) {
+    console.error("❌ Grocery Coach recommendation history migration failed:", err.message);
+  }
+}, 6500);
+
+// Universal Meal Refinement — original_meal_snapshot column (Stage 1)
+// Adds the snapshot column to meal_board_items so the restore path can
+// recover the exact pre-swap state.  Idempotent: safe on every boot.
+setTimeout(async () => {
+  try {
+    const { db } = await import("./db");
+    const { sql } = await import("drizzle-orm");
+    await db.execute(sql`
+      ALTER TABLE meal_board_items
+        ADD COLUMN IF NOT EXISTS original_meal_snapshot jsonb
+    `);
+    console.log("✅ meal_board_items.original_meal_snapshot boot migration complete");
+  } catch (err: any) {
+    console.error("❌ meal_board_items.original_meal_snapshot migration failed:", err.message);
+  }
+}, 7000);
 
 process.on('uncaughtException', (error) => {
   console.error('🚨 Uncaught Exception:', error);

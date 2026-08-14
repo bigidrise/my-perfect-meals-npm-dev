@@ -2,7 +2,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { X, ChevronDown, ChevronUp, ScanLine, ShoppingBag, Bookmark, ShoppingCart, Check } from 'lucide-react';
 import type { IngredientScanResult, ScoreVerdict, OutcomeVerdict, BetterAlternative } from '@/lib/photoIngredientCapture';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, queryClient } from '@/lib/queryClient';
+import { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 
 interface Props {
@@ -353,7 +354,32 @@ function hasLabRelevantCondition(items: string[]): boolean {
   return LAB_CONDITION_KEYWORDS.some((kw) => joined.includes(kw));
 }
 
-// ── Confidence Tier Badge ──────────────────────────────────────────────────────
+function BarcodeDatabaseBadge({ resolvedFromDb, resolvedName }: { resolvedFromDb: boolean; resolvedName?: string }) {
+  if (resolvedFromDb) {
+    return (
+      <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/8 px-3.5 py-2.5 mb-4 flex items-center gap-2.5">
+        <span className="text-emerald-400 text-base shrink-0">✓</span>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-bold text-emerald-300">Database match · Open Food Facts</p>
+          {resolvedName && (
+            <p className="text-[11px] text-white/40 leading-tight truncate">{resolvedName}</p>
+          )}
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-xl border border-amber-500/25 bg-amber-500/8 px-3.5 py-2.5 mb-4 flex items-center gap-2.5">
+      <span className="text-amber-400 text-base shrink-0">≈</span>
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-bold text-amber-300">Not in database · AI estimate</p>
+        <p className="text-[11px] text-white/40 leading-tight">
+          Barcode not found — analysis based on AI product knowledge
+        </p>
+      </div>
+    </div>
+  );
+}
 type AnalysisMethod = 'by_name' | 'by_label' | 'full_product_advisor';
 const TIER_CONFIG: Record<AnalysisMethod, { label: string; dot: string; border: string; bg: string; text: string }> = {
   by_name:             { label: 'Quick Analysis',          dot: 'bg-amber-400',   border: 'border-amber-500/25',   bg: 'bg-amber-500/8',   text: 'text-amber-300' },
@@ -472,11 +498,121 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
   const { toast } = useToast();
   const [byNameLoading, setByNameLoading] = useState(false);
   const [byNameResult, setByNameResult] = useState<IngredientScanResult | null>(null);
+  const [savedGroceryId, setSavedGroceryId] = useState<string | null>(null);
+  const [savingGrocery, setSavingGrocery] = useState(false);
 
   useEffect(() => {
     setByNameResult(null);
     setByNameLoading(false);
   }, [result]);
+
+  // Fetch the full saved-groceries list via React Query so any invalidation
+  // (e.g. a delete from the Saved Groceries page) is picked up immediately.
+  const { data: savedGroceriesData } = useQuery<{ items: any[] }>({
+    queryKey: ['/api/saved-groceries'],
+    enabled: open && !!result?.productName,
+    staleTime: 0,
+  });
+
+  // Derive savedGroceryId from the cached list whenever the result or list changes
+  useEffect(() => {
+    const items = savedGroceriesData?.items ?? [];
+    const barcode = result?.barcode?.trim();
+    const match = items.find((item: any) => {
+      if (barcode && item.barcode === barcode) return true;
+      return item.productName?.toLowerCase() === result?.productName?.toLowerCase();
+    });
+    setSavedGroceryId(match ? match.id : null);
+  }, [savedGroceriesData, result?.productName, result?.barcode]);
+
+  // Invalidate saved-groceries when this tab regains visibility so a cross-tab
+  // save is reflected as soon as the user switches back (recovery path).
+  useEffect(() => {
+    if (!open || !result?.productName) return;
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        queryClient.invalidateQueries({ queryKey: ['/api/saved-groceries'] });
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [open, result?.productName]);
+
+  // Listen for saves/unsaves broadcast from other tabs via BroadcastChannel and
+  // invalidate the React Query cache so this tab updates immediately.
+  useEffect(() => {
+    if (!open || !result?.productName) return;
+    if (typeof BroadcastChannel === 'undefined') return;
+    const channel = new BroadcastChannel('mpm:grocery-saved');
+    channel.onmessage = () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/saved-groceries'] });
+    };
+    return () => channel.close();
+  }, [open, result?.productName]);
+
+  async function handleSaveToGroceries() {
+    if (!activeResult?.productName || savingGrocery) return;
+    setSavingGrocery(true);
+
+    // If already saved, unsave it
+    if (savedGroceryId) {
+      try {
+        await apiRequest(`/api/saved-groceries/${savedGroceryId}`, { method: 'DELETE' });
+        queryClient.invalidateQueries({ queryKey: ['/api/saved-groceries'] });
+        try { new BroadcastChannel('mpm:grocery-saved').postMessage(null); } catch { /* unavailable */ }
+        toast({
+          title: 'Removed from Groceries',
+          description: `${activeResult.productName} has been removed from your bookmarks.`,
+        });
+      } catch {
+        toast({ title: 'Could not remove', description: 'Please try again.', variant: 'destructive' });
+      } finally {
+        setSavingGrocery(false);
+      }
+      return;
+    }
+
+    try {
+      const barcode = result?.barcode?.trim() || undefined;
+      const data = await apiRequest('/api/saved-groceries', {
+        method: 'POST',
+        body: JSON.stringify({
+          productName: activeResult.productName,
+          source: 'scanner',
+          barcode: barcode || undefined,
+          nutritionJson: activeResult.scoreCards
+            ? { scoreCards: activeResult.scoreCards, outcomeCards: activeResult.outcomeCards }
+            : undefined,
+          productMeta: {
+            alignmentGrade: activeResult.alignmentGrade,
+            verdictLevel: activeResult.verdictLevel,
+            analysisMethod: activeResult.analysisMethod,
+            // Persist extracted ingredients so the server-side compliance filter
+            // can perform allergen/avoidance matching against actual ingredients,
+            // not just product name and brand.
+            ingredients: activeResult.extractedIngredients?.length
+              ? activeResult.extractedIngredients
+              : undefined,
+            // Persist barcode DB resolution metadata so the badge is available
+            // when a saved grocery is reopened in the sheet without a fresh scan.
+            resolvedFromDb: activeResult.resolvedFromDb,
+            resolvedName: activeResult.resolvedName ?? undefined,
+          },
+        }),
+        headers: { 'Content-Type': 'application/json' },
+      }) as { item?: { id: string }; created?: boolean };
+      queryClient.invalidateQueries({ queryKey: ['/api/saved-groceries'] });
+      try { new BroadcastChannel('mpm:grocery-saved').postMessage(null); } catch { /* unavailable */ }
+      toast({
+        title: data?.created === false ? 'Already saved' : 'Saved to Groceries',
+        description: `${activeResult.productName} is in your grocery bookmarks.`,
+      });
+    } catch {
+      toast({ title: 'Could not save', description: 'Please try again.', variant: 'destructive' });
+    } finally {
+      setSavingGrocery(false);
+    }
+  }
 
   function handleAddProduct(name: string) {
     if (!onAddProduct) return;
@@ -544,7 +680,7 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
                     {companionName ? 'Companion Product Scan' : 'Ingredient Intelligence'}
                   </p>
                   <h2 className="text-white font-bold text-base leading-tight">
-                    {result.productName || 'Full Analysis'}
+                    {result.productName || 'Product not identified'}
                   </h2>
                   {companionName ? (
                     <div className="mt-1 inline-flex items-center gap-1 bg-orange-600/20 border border-orange-500/30 rounded-full px-2 py-0.5">
@@ -622,6 +758,15 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
                     productNameMissing={activeResult.productNameMissing}
                     onScanLabel={onRescan}
                   />
+
+                  {/* Barcode database source badge — shown for barcode scans and saved
+                      groceries whose productMeta preserved resolvedFromDb */}
+                  {activeResult.resolvedFromDb !== undefined && (
+                    <BarcodeDatabaseBadge
+                      resolvedFromDb={activeResult.resolvedFromDb}
+                      resolvedName={activeResult.resolvedName}
+                    />
+                  )}
 
                   {/* By-name accuracy banner */}
                   {isByName && (
@@ -801,6 +946,27 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
                           Save Scan
                         </button>
                       )}
+                    </div>
+                  )}
+
+                  {/* Save to Groceries */}
+                  {activeResult.productName && (
+                    <div className="mt-2 mb-4">
+                      <button
+                        onClick={handleSaveToGroceries}
+                        disabled={savingGrocery}
+                        className={`w-full flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold border transition-all active:scale-[.98] ${
+                          savedGroceryId
+                            ? 'bg-orange-500/15 border-orange-500/30 text-orange-300'
+                            : 'bg-white/6 border-white/12 text-white/60 hover:border-white/20 hover:text-white/80'
+                        } ${savingGrocery ? 'opacity-60 pointer-events-none' : ''}`}
+                      >
+                        <Bookmark
+                          className="w-4 h-4"
+                          fill={savedGroceryId ? 'currentColor' : 'none'}
+                        />
+                        {savedGroceryId ? 'Saved to Groceries' : 'Save to Groceries'}
+                      </button>
                     </div>
                   )}
 

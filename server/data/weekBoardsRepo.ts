@@ -69,6 +69,44 @@ export async function upsertWeekBoard(userId: string, weekStartISO: string, boar
   }
 }
 
+/**
+ * Version-conditional board update (CAS pattern).
+ *
+ * Only updates the board if the stored board's `version` field in JSONB equals
+ * `expectedVersion`.  Returns `{ updated: true }` on success, `{ updated: false }`
+ * when the version was stale (concurrent edit — caller should return 409).
+ *
+ * This prevents the classic read-modify-write race: if two preview/confirm flows
+ * race each other, only the first one wins; the second gets a 409 and must
+ * re-preview against the new board state.
+ */
+export async function conditionalUpdateWeekBoard(
+  userId:          string,
+  weekStartISO:    string,
+  board:           any,
+  expectedVersion: number,
+  builderType:     string = "",
+): Promise<{ updated: boolean }> {
+  try {
+    const { sql: sqlTag, and: andCond, eq: eqCond } = await import("drizzle-orm");
+    const result = await db
+      .update(weekBoards)
+      .set({ boardJSON: board, updatedAt: new Date() })
+      .where(andCond(
+        eqCond(weekBoards.userId,       userId),
+        eqCond(weekBoards.weekStartISO, weekStartISO),
+        eqCond(weekBoards.builderType,  builderType),
+        // JSONB cast: compare the stored board version to the expected value
+        sqlTag`(${weekBoards.boardJSON}->>'version')::int = ${expectedVersion}`,
+      ))
+      .returning({ userId: weekBoards.userId });
+    return { updated: result.length > 0 };
+  } catch (error) {
+    console.error("Error in conditionalUpdateWeekBoard:", error);
+    throw error;
+  }
+}
+
 // Custom error class for auth failures - allows routes to catch and return 401
 export class AuthenticationRequiredError extends Error {
   constructor(message: string = 'Authentication required: No user ID found in request') {

@@ -108,6 +108,50 @@ router.post('/generate', requireAuth, async (req, res) => {
       }
     }
 
+    // ── GLP-1 pre-generation context ─────────────────────────────────────────
+    // Resolve canonical GLP-1 context BEFORE calling generateCravingMeal so
+    // the personalized targets can constrain the generation prompt.
+    // The internal hub-coupling path detects GLP-1 from the user profile but
+    // does not receive the canonical resolved targets (personalized calorie,
+    // protein, fat-ceiling). Passing them via macroTargets bridges that gap.
+    const normalizedMealType = (
+      mealType === "breakfast" || mealType === "lunch" ||
+      mealType === "dinner" || mealType === "snack"
+    ) ? mealType as "breakfast" | "lunch" | "dinner" | "snack" : "lunch";
+    let glp1CravingCtx: Awaited<ReturnType<typeof import("../services/glp1/resolveGLP1GlobalContext").resolveGLP1GlobalContext>> | null = null;
+    let glp1CravingTargets: import("../services/glp1/resolveGLP1MealTargets").ResolvedGLP1Targets | null = null;
+    if (userId && userId !== "1") {
+      try {
+        const { resolveGLP1GlobalContext } = await import("../services/glp1/resolveGLP1GlobalContext");
+        const dateISO = new Date().toISOString().split("T")[0];
+        glp1CravingCtx = await resolveGLP1GlobalContext(userId, dateISO, normalizedMealType);
+        if (glp1CravingCtx.isActive) {
+          glp1CravingTargets = glp1CravingCtx.resolvedTargets;
+          console.log(
+            `💊 [GLP-1/CravingCreator] Active — sources=[${glp1CravingCtx.activationSources.join(",")}]` +
+            (glp1CravingTargets
+              ? ` [${glp1CravingTargets.resolvedMealCalories}kcal / ` +
+                `${glp1CravingTargets.targetProteinGrams}g prot / ` +
+                `${glp1CravingTargets.maximumToleratedFatGrams}g fat-ceiling]`
+              : " [baseline targets]"),
+          );
+        }
+      } catch (err) {
+        console.warn("⚠️ [GLP-1/CravingCreator] Could not resolve context before generation:", err);
+      }
+    }
+
+    // Build effective macroTargets: GLP-1 targets take precedence over client-
+    // supplied values when the user is on GLP-1 medication, ensuring the AI
+    // generator receives personalized calorie and macro ceilings.
+    const effectiveMacroTargets = glp1CravingTargets
+      ? {
+          fat_g: glp1CravingTargets.maximumToleratedFatGrams,
+          protein_g: glp1CravingTargets.targetProteinGrams,
+          calories_target: glp1CravingTargets.resolvedMealCalories,
+        }
+      : (macroTargets || undefined);
+
     // Generate the meal using AI (include servings in the craving text for scaling)
     const cravingWithServings = servings > 1 
       ? `${craving} (for ${servings} servings)` 
@@ -122,7 +166,7 @@ router.post('/generate', requireAuth, async (req, res) => {
         allergies: user?.allergies || [],
         avoidIngredients: [...(user?.dislikedFoods || []), ...(user?.avoidedFoods || [])],
         medicalFlags: user?.healthConditions || [],
-        macroTargets: macroTargets || undefined
+        macroTargets: effectiveMacroTargets
       } as any
     );
 
@@ -171,6 +215,49 @@ router.post('/generate', requireAuth, async (req, res) => {
       if (sanitized !== generatedMeal.name) {
         console.log(`✏️ [NameSanitizer] "${generatedMeal.name}" → "${sanitized}" (diet: ${userDiet})`);
         (generatedMeal as any).name = sanitized;
+      }
+    }
+
+    // ── GLP-1 post-generation validation ─────────────────────────────────────
+    // Reuse the already-resolved glp1CravingCtx from the pre-generation step.
+    // No second resolver call needed — validates the final output against the
+    // same personalized targets that constrained generation.
+    if (glp1CravingCtx?.isActive) {
+      try {
+        const { validateMealForDiet } = await import("../services/guardrails/index");
+        const ingList = (generatedMeal.ingredients || []).map((i: any) => ({
+          name: typeof i === "string" ? i : (i?.name ?? ""),
+          quantity: typeof i === "string" ? undefined : i?.quantity,
+          unit: typeof i === "string" ? undefined : i?.unit,
+        }));
+        const mealMacros = generatedMeal.nutrition
+          ? {
+              calories: generatedMeal.nutrition.calories,
+              protein: generatedMeal.nutrition.protein,
+              fat: generatedMeal.nutrition.fat,
+              carbs: generatedMeal.nutrition.carbs,
+            }
+          : undefined;
+        const vr = validateMealForDiet(
+          { name: generatedMeal.name, ingredients: ingList, instructions: generatedMeal.instructions, macros: mealMacros },
+          "glp1",
+          undefined,
+          normalizedMealType === "snack",
+          glp1CravingTargets ?? undefined,
+        );
+        if (!vr.isValid) {
+          console.warn(
+            `💊 [GLP-1/CravingCreator] Violations for "${generatedMeal.name}":`,
+            vr.violations,
+          );
+        } else {
+          console.log(`💊 [GLP-1/CravingCreator] "${generatedMeal.name}" passed GLP-1 validation.`);
+        }
+        if (glp1CravingCtx.compositionNote) {
+          console.log(`💊 [GLP-1/CravingCreator] Composition: ${glp1CravingCtx.compositionNote}`);
+        }
+      } catch (err) {
+        console.warn("⚠️ [GLP-1/CravingCreator] Post-generation validation error:", err);
       }
     }
 

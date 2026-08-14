@@ -120,6 +120,12 @@ export async function resolveGLP1GlobalContext(
   userId: string,
   dateISO: string,
   mealType: "breakfast" | "lunch" | "dinner" | "snack" = "lunch",
+  /**
+   * Exclude this board item ID from daily nutrition state consumption counts.
+   * Used by the meal refinement flow so the item being replaced is not counted
+   * against its own replacement budget when computing remaining macros.
+   */
+  excludeItemId?: string,
 ): Promise<GLP1GlobalContext> {
   // ── 1. Load user row ─────────────────────────────────────────────────────
   let userRow: any = null;
@@ -131,7 +137,13 @@ export async function resolveGLP1GlobalContext(
       .limit(1);
     userRow = found ?? null;
   } catch (err) {
-    console.warn("[GLP1Context] Could not load user row:", err);
+    // Propagate: without the user row we cannot determine GLP-1 status.
+    // Callers that use .catch(() => null) will get null and return 503 (fail closed).
+    // This prevents silently serving an unguarded recommendation to a GLP-1 patient
+    // during DB degradation.
+    throw new Error(
+      `[GLP1Context] User row lookup failed — GLP-1 status indeterminate: ${err instanceof Error ? err.message : String(err)}`
+    );
   }
 
   // ── 2. Detect activation from every possible source ──────────────────────
@@ -183,9 +195,13 @@ export async function resolveGLP1GlobalContext(
   }
 
   // ── 6. Load resolved targets + DailyNutritionState in parallel ───────────
+  // Pass userId as a string — users.id and glp1_profile.user_id are TEXT/varchar.
+  // Number(userId) converts UUIDs to NaN and matches nothing in the DB.
   const [firstPassTargets, dailyNutritionState] = await Promise.all([
     (async (): Promise<ResolvedGLP1Targets | null> => {
       try {
+        // Pass userId as-is — UUID strings are valid for the DB queries.
+        // Do NOT convert to Number(): UUID→NaN breaks all profile lookups.
         return await loadGLP1ResolvedTargets(userId, { mealType });
       } catch (err) {
         console.warn("[GLP1Context] Initial target resolution failed — using static baselines:", err);
@@ -194,7 +210,7 @@ export async function resolveGLP1GlobalContext(
     })(),
     (async (): Promise<DailyNutritionState | null> => {
       try {
-        return await resolveDailyNutritionState(userId, dateISO);
+        return await resolveDailyNutritionState(userId, dateISO, excludeItemId);
       } catch (err) {
         console.warn("[GLP1Context] DailyNutritionState unavailable:", err);
         return null;

@@ -15,8 +15,9 @@ import { getAuthHeaders } from "@/lib/auth";
 import { isFreeTier } from "@/lib/subscriptionCheck";
 import { useFreeLock } from "@/hooks/useFreeLock";
 import { UpgradeLockModal } from "@/components/upgrade/UpgradeLockModal";
-import { Lock } from "lucide-react";
+import { Lock, Wand2, RotateCcw } from "lucide-react";
 import { isFeatureEnabled } from "@/lib/productionGates";
+import MealRefinementSheet from "@/components/MealRefinementSheet";
 import {
   ArrowLeft,
   RefreshCw,
@@ -201,6 +202,8 @@ const FridgeRescuePage = () => {
   }
   const [ingredients, setIngredients] = useState("");
   const [meals, setMeals] = useState<MealData[]>([]);
+  const [refineIndex, setRefineIndex] = useState<number | null>(null);
+  const [preRefinedMealsByIndex, setPreRefinedMealsByIndex] = useState<Record<number, MealData>>({});
   const { loadingImages, hydrateImages } = useMealImages(setMeals, { mealType: "dinner" });
   const [isLoading, setIsLoading] = useState(false);
   const [servings, setServings] = useState(2);
@@ -1189,6 +1192,40 @@ const FridgeRescuePage = () => {
                           mealData={meal}
                         />
                       </div>
+                      {/* Refine Meal button */}
+                      <button
+                        onClick={() => setRefineIndex(index)}
+                        className="mt-2 w-full flex items-center justify-center gap-2 rounded-xl border border-violet-500/40 bg-violet-950/30 py-2.5 text-sm font-semibold text-violet-300 active:bg-violet-900/40 transition-colors"
+                      >
+                        <Wand2 className="h-4 w-4" />
+                        Refine Meal
+                      </button>
+                      {/* Undo refinement banner */}
+                      {preRefinedMealsByIndex[index] && (
+                        <div className="mt-2 flex items-center justify-between gap-2 rounded-lg bg-violet-950/40 border border-violet-500/30 px-3 py-2 text-xs">
+                          <span className="flex items-center gap-1.5 text-violet-300">
+                            <Wand2 className="h-3 w-3 shrink-0" />
+                            Showing refined version
+                          </span>
+                          <button
+                            className="flex items-center gap-1 text-violet-400 font-medium active:opacity-70"
+                            onClick={() => {
+                              const orig = preRefinedMealsByIndex[index];
+                              setMeals((prev) =>
+                                prev.map((m, i) => (i === index ? orig : m))
+                              );
+                              setPreRefinedMealsByIndex((prev) => {
+                                const next = { ...prev };
+                                delete next[index];
+                                return next;
+                              });
+                            }}
+                          >
+                            <RotateCcw className="h-3 w-3" />
+                            Restore original
+                          </button>
+                        </div>
+                      )}
                       <div className="flex flex-wrap items-center gap-2 mt-1">
                         <DietStyleBadge />
                         <MealClassificationPill dietClassification={meal.dietClassification} />
@@ -1665,6 +1702,29 @@ const FridgeRescuePage = () => {
           message={lockMessage}
         />
       </motion.div>
+
+      {/* Meal refinement sheet */}
+      <MealRefinementSheet
+        open={refineIndex !== null}
+        onOpenChange={(v) => { if (!v) setRefineIndex(null); }}
+        meal={refineIndex !== null ? (meals[refineIndex] ?? null) : null}
+        builderType="fridge-rescue"
+        onRefined={(refined) => {
+          if (refineIndex === null) return;
+          const idx = refineIndex;
+          setPreRefinedMealsByIndex((prev) => ({
+            ...prev,
+            // Preserve the FIRST original only — never overwrite with an intermediate version
+            [idx]: prev[idx] ?? meals[idx],
+          }));
+          setMeals((prev) =>
+            prev.map((m, i) =>
+              i === idx ? { ...m, ...refined, name: refined.name ?? m.name } : m
+            )
+          );
+          setRefineIndex(null);
+        }}
+      />
     </PhaseGate>
   );
 };

@@ -29,6 +29,7 @@ import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import GLP1DailyCheckin from "@/components/glp1/GLP1DailyCheckin";
+import ProtocolStatusBadge from "@/components/ProtocolStatusBadge";
 
 const GLP1_TOUR_STEPS: TourStep[] = [
   {
@@ -192,6 +193,9 @@ export default function GLP1Hub() {
         className="max-w-2xl mx-auto px-4 space-y-6 pb-16"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
+        {/* ── Protocol Status ── */}
+        <ProtocolStatusBadge className="mb-2" />
+
         {/* ── Daily Symptom Check-In ── */}
         <GLP1DailyCheckin />
 

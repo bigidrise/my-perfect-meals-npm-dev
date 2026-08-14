@@ -983,6 +983,11 @@ async function initializeApp() {
     app.use("/api/meals", mealSharesRouter);
     app.use("/api/share", mealSharesRouter);
 
+    // Universal Meal Refinement — Stage 1: Weekly Meal Board replace_component
+    const refinementRouter = (await import("./routes/refinement")).default;
+    const { requireActiveAccess: rafRefineAccess } = await import("./middleware/requireActiveAccess");
+    app.use("/api/refinement", requireAuth, rafRefineAccess, refinementRouter);
+
     console.log("✅ [INIT] Parity routes mounted");
 
     // ── Org Config — PUBLIC endpoint, must be registered before requireAuth layers ──
@@ -1602,6 +1607,43 @@ async function initializeApp() {
         }
       }, 7000);
 
+      // ── Grocery Coach recommendation history (variety memory) ────────────────
+      setTimeout(async () => {
+        try {
+          const { db: dbGcr } = await import("./db");
+          const { sql: sqlGcr } = await import("drizzle-orm");
+          await dbGcr.execute(sqlGcr`
+            CREATE TABLE IF NOT EXISTS grocery_coach_recommendation_history (
+              id              serial PRIMARY KEY,
+              user_id         text        NOT NULL,
+              meal_name       text        NOT NULL,
+              primary_protein text,
+              cuisine_style   text,
+              major_starch    text,
+              cooking_method  text,
+              created_at      timestamptz NOT NULL DEFAULT now()
+            )
+          `);
+          await dbGcr.execute(sqlGcr`
+            CREATE INDEX IF NOT EXISTS idx_gcr_history_user_date
+              ON grocery_coach_recommendation_history (user_id, created_at DESC)
+          `);
+          await dbGcr.execute(sqlGcr`
+            ALTER TABLE grocery_coach_recommendation_history
+              ADD COLUMN IF NOT EXISTS meal_type text
+          `);
+          // Task 903: tag rows with the dietary identity active at recommendation time
+          // so that switching diets (e.g. vegan → omnivore) flushes the avoid-list.
+          await dbGcr.execute(sqlGcr`
+            ALTER TABLE grocery_coach_recommendation_history
+              ADD COLUMN IF NOT EXISTS dietary_identity_tag text NOT NULL DEFAULT 'omnivore'
+          `);
+          console.log("✅ [prod] Grocery Coach recommendation history boot migration complete");
+        } catch (err: any) {
+          console.error("❌ [prod] Grocery Coach recommendation history migration failed:", err.message);
+        }
+      }, 7500);
+
       // ── Shared retry helper for coaching boot migrations ─────────────────────
       // A transient DB connection timeout on any coaching migration would leave
       // the engine in a partially-migrated state with no recovery path without
@@ -1696,6 +1738,44 @@ async function initializeApp() {
           const { runPhase5Migration } = await import("./db/migrations/runPhase5Migration");
           await runPhase5Migration(dbP5);
         });
+      }, 12500);
+
+      // ── Saved Groceries — boot migration ─────────────────────────────────────
+      await withBootRetry("Saved Groceries boot migration", async () => {
+        const { db: dbSg } = await import("./db");
+        const { sql: sqlSg } = await import("drizzle-orm");
+        await dbSg.execute(sqlSg`
+          CREATE TABLE IF NOT EXISTS user_saved_grocery_items (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id varchar NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            product_name text NOT NULL,
+            brand text,
+            barcode text,
+            product_key text NOT NULL,
+            category text,
+            source text NOT NULL DEFAULT 'manual',
+            nutrition_json jsonb,
+            product_meta jsonb,
+            image_url text,
+            saved_at timestamptz NOT NULL DEFAULT now(),
+            CONSTRAINT uniq_saved_grocery_user_product_key UNIQUE (user_id, product_key)
+          )
+        `);
+      });
+
+      // Universal Meal Refinement — original_meal_snapshot column (Stage 1)
+      setTimeout(async () => {
+        try {
+          const { db: database } = await import("./db");
+          const { sql: migSql } = await import("drizzle-orm");
+          await database.execute(migSql`
+            ALTER TABLE meal_board_items
+              ADD COLUMN IF NOT EXISTS original_meal_snapshot jsonb
+          `);
+          console.log("✅ [prod] meal_board_items.original_meal_snapshot migration complete");
+        } catch (err: any) {
+          console.error("❌ [prod] meal_board_items.original_meal_snapshot migration failed:", err.message);
+        }
       }, 12500);
 
       // ── Coach Follow-up Cron (every 10 min) ──────────────────────────────────
