@@ -62,4 +62,5 @@
 - [Meal Share System](meal-share-system.md) — public share links at /m/:token; affiliate ?via=TOKEN travels through Rewardful cookie to checkout; AppRouter publicRoutes must include /m.
 - [Daily Prescription Hierarchy](daily-prescription-hierarchy.md) — one endpoint owns all macro targets; GLP-1 overlay before Performance; Performance baseline must use adjusted values not raw; DailyMacroTotalsRow shared across all 6 builders; Biometrics uses /api/prescription/:dateISO.
 - [Saved-meals DB pool contention](saved-meals-pool-fix.md) — slow Favorites = pool exhaustion from dashboard polling burst (not query time); fix: min:3/max:20 pool + strip base64 imageUrl before localStorage writes.
+- [Clinical Translation Controlled Review](clinical-translation-workflow.md) — GATE_07 layers: verbatim source-integrity for hardcoded strings, unique key identity, approved manifest match per locale.
 - [Canonical Media Asset Architecture — Step 4](media-asset-architecture.md) — media_assets table, paginated /api/saved-meals, lifecycle gates on familyRecipes+mealShares, Object Storage API casts, Jest ESM stub pattern for tests.
