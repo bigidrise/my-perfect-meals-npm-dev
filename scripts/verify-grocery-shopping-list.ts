@@ -24,11 +24,18 @@
  *   no unclaimed substantive items may bleed into ownedIngredients; and
  *   shoppingList must still contain at least one substantive (non-pantry) item.
  *
+ * --multi-turn-ownership — Task 934: Multi-turn ownership mode
+ *   Verifies that ownership claims spread across MULTIPLE conversation turns
+ *   are all honoured. Claims from prior turns must land in ownedIngredients
+ *   just as reliably as claims made in the current message. shoppingList must
+ *   still contain at least one unclaimed substantive ingredient.
+ *
  * Usage:
  *   npx tsx scripts/verify-grocery-shopping-list.ts
  *   npx tsx scripts/verify-grocery-shopping-list.ts --partial-ownership
  *   npx tsx scripts/verify-grocery-shopping-list.ts --multi-ownership
  *   npx tsx scripts/verify-grocery-shopping-list.ts --triple-ownership
+ *   npx tsx scripts/verify-grocery-shopping-list.ts --multi-turn-ownership
  */
 
 import OpenAI from "openai";
@@ -1726,12 +1733,388 @@ async function runTripleOwnershipMode(): Promise<void> {
   process.exit(process.exitCode ?? 0);
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// MULTI-TURN OWNERSHIP MODE (Task 934)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * A multi-turn scenario: a sequence of prior messages (conversationHistory)
+ * followed by a final user message.  The evaluation checks:
+ *
+ *   A. allClaimedPresent  — every keyword in claimedKeywords has at least one
+ *      matching item in ownedIngredients (honouring claims from ALL prior turns).
+ *   B. noUnclaimedBleed   — every item in ownedIngredients fuzzy-matches one of
+ *      the claimed keywords (model did not infer extra ownership).
+ *   C. shoppingListHasSubstantive — shoppingList contains at least one item in
+ *      a substantive category (the unclaimed recipe complement is still listed).
+ */
+interface MultiTurnScenario {
+  label: string;
+  /** Conversation turns BEFORE the final user message */
+  history: Array<{ role: "user" | "assistant"; content: string }>;
+  /** Final user message that triggers the recommendation */
+  finalMessage: string;
+  /** Lower-cased keywords that MUST appear somewhere in ownedIngredients */
+  claimedKeywords: string[];
+  /** Lower-cased keywords that must NOT appear in ownedIngredients (sanity) */
+  forbiddenInOwned?: string[];
+}
+
+/**
+ * Call the model with a full conversation history.
+ * The system prompt is prepended; history entries are passed verbatim in order;
+ * the finalMessage is appended as the last user turn.
+ */
+async function callGroceryCoachMultiTurn(
+  history: Array<{ role: "user" | "assistant"; content: string }>,
+  finalMessage: string,
+  systemPrompt?: string,
+  temperature: number = 0.75,
+): Promise<any | null> {
+  const messages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
+    { role: "system", content: systemPrompt ?? SYSTEM_PROMPT },
+    ...history.map((m) => ({ role: m.role, content: m.content })),
+    { role: "user", content: finalMessage },
+  ];
+
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages,
+    response_format: { type: "json_object" },
+    temperature,
+    max_tokens: 1400,
+  });
+
+  const raw = completion.choices[0]?.message?.content ?? "{}";
+  try {
+    return JSON.parse(raw);
+  } catch {
+    console.error("  ❌ Failed to parse JSON response");
+    return null;
+  }
+}
+
+/**
+ * Checks whether any item in `list` fuzzy-matches `keyword`.
+ * Guards against empty/non-string item names so that a blank `item` field
+ * never accidentally satisfies a keyword check (every string includes "").
+ */
+function ownedContainsKeyword(list: any[], keyword: string): boolean {
+  const kw = keyword.toLowerCase();
+  return list.some((o: any) => {
+    const name = typeof o.item === "string" ? o.item.trim().toLowerCase() : "";
+    if (!name) return false; // blank/missing item must never count as a match
+    return name.includes(kw) || kw.includes(name.split(" ")[0]);
+  });
+}
+
+/**
+ * Validate that a model response has the minimum required structure before
+ * any ownership checks run.  Returns a human-readable error string on failure,
+ * or null when the shape is acceptable.
+ */
+function validateMultiTurnResponse(r: any): string | null {
+  if (!r || typeof r !== "object")               return "response is not an object";
+  if (!r.meal || typeof r.meal !== "object")     return "missing meal object";
+  if (typeof r.meal.name !== "string" || !r.meal.name.trim()) return "missing meal.name";
+  if (!Array.isArray(r.ownedIngredients))        return "missing ownedIngredients array";
+  if (!Array.isArray(r.shoppingList))            return "missing shoppingList array";
+  for (let idx = 0; idx < r.ownedIngredients.length; idx++) {
+    const o = r.ownedIngredients[idx];
+    if (!o || typeof o !== "object")             return `ownedIngredients[${idx}] is not an object`;
+    if (typeof o.item !== "string" || !o.item.trim())
+                                                 return `ownedIngredients[${idx}] has empty/missing item`;
+  }
+  for (let idx = 0; idx < r.shoppingList.length; idx++) {
+    const s = r.shoppingList[idx];
+    if (!s || typeof s !== "object")             return `shoppingList[${idx}] is not an object`;
+    if (typeof s.item !== "string" || !s.item.trim())
+                                                 return `shoppingList[${idx}] has empty/missing item`;
+  }
+  return null;
+}
+
+const MULTI_TURN_SCENARIOS: MultiTurnScenario[] = [
+  // ── Scenario 1: ALL claims in a SINGLE prior turn ────────────────────────
+  // The user stated both ingredients in one earlier message.  The final
+  // message contains no new claims — the model must still honour the prior turn.
+  {
+    label: "Single prior turn — two claims, then ask for recommendation",
+    history: [
+      {
+        role: "user",
+        content:
+          "Hey, I have salmon fillets and sweet potatoes at home already. " +
+          "What should I make for dinner?",
+      },
+      {
+        role: "assistant",
+        content:
+          '{"meal":{"name":"Baked Salmon with Sweet Potato","description":"Placeholder prior response.","prepTime":"30 minutes","servings":1},' +
+          '"reasoning":["Salmon is rich in omega-3s","Sweet potato provides complex carbs","Great combo for a balanced meal"],' +
+          '"macros":{"calories":550,"protein":42,"carbs":45,"fat":16},' +
+          '"ownedIngredients":[{"item":"salmon fillets","quantity":"6","unit":"oz"},{"item":"sweet potatoes","quantity":"1","unit":"medium"}],' +
+          '"shoppingList":[{"item":"broccoli","quantity":"1","unit":"head","category":"Produce"}]}',
+      },
+    ],
+    finalMessage:
+      "Actually, can you finalize that meal plan and give me the full shopping list?",
+    claimedKeywords: ["salmon", "sweet potato"],
+    forbiddenInOwned: ["broccoli"],
+  },
+
+  // ── Scenario 2: Claims SPREAD across 2 turns ─────────────────────────────
+  // Turn 1: user mentions chicken breast.
+  // Turn 2: user adds brown rice.
+  // Final message: asks what to make — model must honour BOTH prior claims.
+  {
+    label: "Two turns — chicken claim in turn 1, brown rice claim in turn 2",
+    history: [
+      {
+        role: "user",
+        content: "I have chicken breast at home. Any ideas for dinner?",
+      },
+      {
+        role: "assistant",
+        content:
+          "Chicken breast is a great base! Do you have any grains or vegetables on hand?",
+      },
+      {
+        role: "user",
+        content: "I also have brown rice. I just need to know what vegetables to buy.",
+      },
+      {
+        role: "assistant",
+        content:
+          "Perfect — chicken and brown rice is a great foundation. I'll build a meal around those and tell you exactly which vegetables to pick up.",
+      },
+    ],
+    finalMessage: "Great, go ahead and give me the full recommendation with the shopping list.",
+    claimedKeywords: ["chicken", "brown rice"],
+  },
+
+  // ── Scenario 3: Claims SPREAD across 3 turns ─────────────────────────────
+  // Each turn adds one new owned ingredient.  The final ask is short and
+  // contains no new claims.  All three must land in ownedIngredients.
+  {
+    label: "Three turns — one new claim per turn (turkey, black beans, bell peppers)",
+    history: [
+      {
+        role: "user",
+        content: "I have ground turkey at home.",
+      },
+      {
+        role: "assistant",
+        content: "Nice — ground turkey is lean and versatile. Do you have anything else?",
+      },
+      {
+        role: "user",
+        content: "I also have a can of black beans.",
+      },
+      {
+        role: "assistant",
+        content:
+          "Great combo! Anything else in the fridge or pantry I should know about?",
+      },
+      {
+        role: "user",
+        content: "And I have bell peppers too.",
+      },
+      {
+        role: "assistant",
+        content:
+          "Perfect — turkey, black beans, and bell peppers. I'll build a complete meal around those and tell you what else to grab.",
+      },
+    ],
+    finalMessage: "What should I make? Give me the full recommendation and shopping list.",
+    claimedKeywords: ["turkey", "black bean", "bell pepper"],
+  },
+];
+
+async function runMultiTurnOwnershipMode(): Promise<void> {
+  const total = MULTI_TURN_SCENARIOS.length;
+  console.log("\n" + "=".repeat(70));
+  console.log("Grocery Coach Multi-Turn Ownership Verification — Task 934");
+  console.log(
+    "  Checks that ownership claims spread across MULTIPLE conversation turns",
+  );
+  console.log(
+    "  are all honoured: claimed items → ownedIngredients, unclaimed items → shoppingList.",
+  );
+  console.log("=".repeat(70) + "\n");
+
+  let allPassed = true;
+  const failedRounds: number[] = [];
+
+  for (let i = 0; i < MULTI_TURN_SCENARIOS.length; i++) {
+    const scenario = MULTI_TURN_SCENARIOS[i];
+    console.log(`Round ${i + 1}/${total} — ${scenario.label}`);
+    console.log(`  Prior turns  : ${scenario.history.length}`);
+    console.log(`  Claims       : ${scenario.claimedKeywords.join(", ")}`);
+    process.stdout.write("  Calling AI...");
+
+    const result = await callGroceryCoachMultiTurn(
+      scenario.history,
+      scenario.finalMessage,
+    );
+
+    if (!result) {
+      console.log("\n  ❌ No response — skipping round.");
+      allPassed = false;
+      failedRounds.push(i + 1);
+      continue;
+    }
+
+    // ── Schema validation — must pass before any ownership checks ────────────
+    const schemaError = validateMultiTurnResponse(result);
+    if (schemaError) {
+      console.log(`\n  ❌ Invalid response schema: ${schemaError}`);
+      allPassed = false;
+      failedRounds.push(i + 1);
+      console.log();
+      continue;
+    }
+
+    console.log(`\n  Meal: ${result.meal.name}`);
+
+    const owned: any[]    = result.ownedIngredients as any[];
+    const shopping: any[] = result.shoppingList as any[];
+
+    // ── CHECK A: all claimed keywords appear in ownedIngredients ─────────────
+    let checkA = true;
+    const missingClaims: string[] = [];
+    for (const kw of scenario.claimedKeywords) {
+      if (!ownedContainsKeyword(owned, kw)) {
+        checkA = false;
+        missingClaims.push(kw);
+      }
+    }
+
+    if (checkA) {
+      console.log(
+        `  ✅ CHECK A — all ${scenario.claimedKeywords.length} prior-turn claims honoured in ownedIngredients`,
+      );
+    } else {
+      console.log(
+        `  ❌ CHECK A — missing claimed items in ownedIngredients: ${missingClaims.join(", ")}`,
+      );
+    }
+
+    // ── CHECK B: no unclaimed items bled into ownedIngredients ───────────────
+    // Entries without a valid non-empty item string are already rejected by
+    // validateMultiTurnResponse, so we only need to check for keyword matches.
+    let checkB = true;
+    const bleedItems: string[] = [];
+    for (const o of owned) {
+      const name = (o.item as string).trim().toLowerCase();
+      const matchesAClaim = scenario.claimedKeywords.some(
+        (kw) => name.includes(kw) || kw.includes(name.split(" ")[0]),
+      );
+      if (!matchesAClaim) {
+        checkB = false;
+        bleedItems.push(o.item as string);
+      }
+    }
+
+    if (checkB) {
+      console.log(`  ✅ CHECK B — no unclaimed items bled into ownedIngredients`);
+    } else {
+      console.log(
+        `  ❌ CHECK B — unclaimed items leaked into ownedIngredients: ${bleedItems.join(", ")}`,
+      );
+    }
+
+    // ── CHECK C: shoppingList has at least one substantive item ──────────────
+    // Each scenario intentionally provides only a SUBSET of a meal's ingredients,
+    // so the model must always list unclaimed substantive items in shoppingList.
+    // An empty shoppingList is never acceptable here — it means the model either
+    // inferred all ingredients were owned (incorrect) or forgot to list them.
+    const hasSubstantive = shopping.some((s: any) =>
+      SUBSTANTIVE_CATEGORIES.has(s.category ?? ""),
+    );
+    let checkC = true;
+
+    if (hasSubstantive) {
+      console.log(
+        `  ✅ CHECK C — shoppingList contains at least one substantive (non-pantry) ingredient`,
+      );
+    } else {
+      checkC = false;
+      if (shopping.length === 0) {
+        console.log(
+          `  ❌ CHECK C — shoppingList is empty; model did not list unclaimed recipe ingredients`,
+        );
+      } else {
+        console.log(
+          `  ❌ CHECK C — shoppingList has no substantive items (only pantry/condiments listed)`,
+        );
+      }
+    }
+
+    const roundPassed = checkA && checkB && checkC;
+    if (!roundPassed) {
+      allPassed = false;
+      failedRounds.push(i + 1);
+
+      if (!checkA) {
+        console.error(
+          `\n   FIX (CHECK A): The model failed to honour ownership claims from a prior conversation turn.\n` +
+          `   Missing: ${missingClaims.join(", ")}.\n` +
+          `   The system prompt in server/routes/groceryCoach.ts must explicitly instruct the\n` +
+          `   model to scan the ENTIRE conversationHistory for ownership claims, not just the\n` +
+          `   current message.  Verify that prior-turn claims are injected into the system\n` +
+          `   prompt or that the model is directed to treat them as ownedIngredients.`,
+        );
+      }
+      if (!checkB) {
+        console.error(
+          `\n   FIX (CHECK B): The model over-extended ownership across conversation turns.\n` +
+          `   "${bleedItems.join('", "')}" appeared in ownedIngredients but were NOT claimed.\n` +
+          `   The system prompt must emphasize that ONLY explicitly stated claims count.`,
+        );
+      }
+      if (!checkC) {
+        console.error(
+          `\n   FIX (CHECK C): The model produced no substantive shopping-list items.\n` +
+          `   Each scenario supplies only a subset of ingredients; the model must include\n` +
+          `   the unclaimed complement in shoppingList.  Review the CRITICAL ownedIngredients\n` +
+          `   rule in server/routes/groceryCoach.ts — every ingredient NOT explicitly claimed\n` +
+          `   must appear in shoppingList.`,
+        );
+      }
+    }
+
+    console.log();
+  }
+
+  // ── Verdict ──────────────────────────────────────────────────────────────────
+  console.log("=".repeat(70));
+  if (allPassed) {
+    console.log(`🎉 VERDICT: PASS — all ${total} multi-turn ownership rounds are correct.`);
+    console.log("   Ownership claims from prior turns were honoured in ownedIngredients,");
+    console.log("   no unclaimed items bled in, and shoppingList still contained");
+    console.log("   at least one substantive (non-pantry) recipe ingredient.");
+  } else {
+    console.log("❌ VERDICT: FAIL — multi-turn ownership ingredient handling is broken.");
+    console.log(`   Failed rounds: ${failedRounds.join(", ")}`);
+    console.log("   The model either missed a claimed item from a prior turn,");
+    console.log("   over-extended ownership, or dropped unclaimed items from shoppingList.");
+    console.log("   Root cause: review the conversationHistory ownership extraction in");
+    console.log("   server/routes/groceryCoach.ts.");
+    process.exitCode = 1;
+  }
+  console.log("=".repeat(70) + "\n");
+
+  process.exit(process.exitCode ?? 0);
+}
+
 // ── Entry point ───────────────────────────────────────────────────────────────
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
-  const isPartialOwnership = args.includes("--partial-ownership");
-  const isMultiOwnership   = args.includes("--multi-ownership");
-  const isTripleOwnership  = args.includes("--triple-ownership");
+  const isPartialOwnership   = args.includes("--partial-ownership");
+  const isMultiOwnership     = args.includes("--multi-ownership");
+  const isTripleOwnership    = args.includes("--triple-ownership");
+  const isMultiTurnOwnership = args.includes("--multi-turn-ownership");
 
   if (isTripleOwnership) {
     await runTripleOwnershipMode();
@@ -1739,6 +2122,8 @@ async function main(): Promise<void> {
     await runMultiOwnershipMode();
   } else if (isPartialOwnership) {
     await runPartialOwnershipMode();
+  } else if (isMultiTurnOwnership) {
+    await runMultiTurnOwnershipMode();
   } else {
     await runZeroOwnershipMode();
   }
