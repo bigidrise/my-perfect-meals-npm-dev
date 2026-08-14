@@ -53,12 +53,26 @@ interface RefinedMealPreview {
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  /** Current meal object — sent as-is to the API */
+  /** Current meal object — sent as-is to the standard /api/meal-refinement/refine API */
   meal: any;
   /** Optional builder type hint for the prompt */
   builderType?: string;
   /** Called when the user accepts the refined version */
   onRefined: (refinedMeal: any) => void;
+  /**
+   * When provided, the sheet calls this endpoint instead of the default
+   * /api/meal-refinement/refine endpoint. The body sent is:
+   *   { existingMeal, changeInstruction, mealType }
+   * The response must contain { updatedMeal, changesSummary, protocolNote }.
+   */
+  freeformEndpoint?: string;
+  /**
+   * Full context object to pass as `existingMeal` when using freeformEndpoint.
+   * If omitted, `meal` is used.
+   */
+  existingMeal?: any;
+  /** Meal type hint passed to the freeform endpoint. Default: "lunch". */
+  mealType?: "breakfast" | "lunch" | "dinner" | "snack";
 }
 
 export default function MealRefinementSheet({
@@ -67,6 +81,9 @@ export default function MealRefinementSheet({
   meal,
   builderType,
   onRefined,
+  freeformEndpoint,
+  existingMeal,
+  mealType,
 }: Props) {
   const [phase, setPhase] = useState<Phase>("idle");
   const [input, setInput] = useState("");
@@ -107,22 +124,37 @@ export default function MealRefinementSheet({
     setError(null);
 
     try {
-      const data = await post("/api/meal-refinement/refine", {
-        meal,
-        request,
-        builderType,
-      });
+      let data: any;
 
-      if (data?.error) throw new Error(data.error);
+      if (freeformEndpoint) {
+        // Freeform path — full existingMeal context, calls refineMeal() engine
+        data = await post(freeformEndpoint, {
+          existingMeal: existingMeal ?? meal,
+          changeInstruction: request,
+          mealType: mealType ?? "lunch",
+        });
+        if (data?.error) throw new Error(data.error);
+        // freeform-preview returns { updatedMeal, changesSummary, protocolNote }
+        setRefinedMeal(data.updatedMeal ?? data);
+        setRefinementLabel(data.changesSummary ?? request);
+      } else {
+        // Standard path — simplified meal object
+        data = await post("/api/meal-refinement/refine", {
+          meal,
+          request,
+          builderType,
+        });
+        if (data?.error) throw new Error(data.error);
+        setRefinedMeal(data.meal);
+        setRefinementLabel(data.refinementApplied ?? request);
+      }
 
-      setRefinedMeal(data.meal);
-      setRefinementLabel(data.refinementApplied ?? request);
       setPhase("preview");
     } catch (err: any) {
       setError(err?.message || "Refinement failed. Please try again.");
       setPhase("idle");
     }
-  }, [meal, builderType, selectedChip, input]);
+  }, [meal, builderType, selectedChip, input, freeformEndpoint, existingMeal, mealType]);
 
   const handleAccept = useCallback(() => {
     if (!refinedMeal) return;
@@ -142,11 +174,16 @@ export default function MealRefinementSheet({
   const canSubmit =
     phase === "idle" && !!(selectedChip || input.trim());
 
+  // Handle both standard-meal shape and CoachResult shape (freeform endpoint).
   const preview: RefinedMealPreview | null = refinedMeal
     ? {
-        name: refinedMeal.name ?? refinedMeal.title ?? "Refined Meal",
-        description: refinedMeal.description,
-        nutrition: refinedMeal.nutrition ?? {
+        name:
+          refinedMeal.name ??
+          refinedMeal.title ??
+          refinedMeal.meal?.name ??
+          "Refined Meal",
+        description: refinedMeal.description ?? refinedMeal.meal?.description,
+        nutrition: refinedMeal.nutrition ?? refinedMeal.macros ?? {
           calories: refinedMeal.calories,
           protein: refinedMeal.protein,
           carbs: refinedMeal.carbs,

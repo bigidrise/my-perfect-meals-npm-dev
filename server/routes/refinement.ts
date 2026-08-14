@@ -35,7 +35,7 @@ import { db } from "../db";
 import { lockedDays } from "../../shared/biometricsSchema";
 import { getWeekBoard, upsertWeekBoard, conditionalUpdateWeekBoard } from "../data/weekBoardsRepo";
 import { resolveSlotContext } from "../services/slotContextResolver";
-import { getMealRefinementEngine, MealRefinementRetryableError } from "../services/mealRefinementEngine";
+import { getMealRefinementEngine, MealRefinementRetryableError, refineMeal } from "../services/mealRefinementEngine";
 import { encodeToken, decodeToken, expireInMinutes } from "../lib/refinementToken";
 import { findMealInSlot, replaceMealInBoard } from "./refinement-helpers";
 import type {
@@ -404,6 +404,52 @@ router.post("/restore", async (req, res) => {
     const status = (err as any).statusCode ?? 500;
     console.error("[Refinement/restore]", err?.message);
     return res.status(status).json({ error: err.message ?? "Restore failed." });
+  }
+});
+
+// ── POST /freeform-preview ────────────────────────────────────────────────────
+//
+// Stateless refinement for Grocery Coach and any other surface that does not
+// have a Weekly Board slot. No tokens, no CAS — the client applies the result.
+//
+// Body: { existingMeal, changeInstruction, mealType? }
+// Response: { updatedMeal, changesSummary, protocolNote }
+
+const FreeformPreviewBodySchema = z.object({
+  existingMeal:      z.record(z.unknown()),
+  changeInstruction: z.string().min(1).max(600),
+  mealType:          z.enum(["breakfast", "lunch", "dinner", "snack"]).optional(),
+});
+
+router.post("/freeform-preview", async (req, res) => {
+  try {
+    const userId = authUserId(req);
+    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+    const parsed = FreeformPreviewBodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Invalid request", details: parsed.error.flatten() });
+    }
+
+    const { existingMeal, changeInstruction, mealType } = parsed.data;
+
+    const result = await refineMeal({
+      userId,
+      existingMeal,
+      changeInstruction,
+      mealType: mealType ?? "lunch",
+      generatorName: "grocery_coach_refinement",
+    });
+
+    return res.json(result);
+  } catch (err: any) {
+    const isRetryable = err instanceof MealRefinementRetryableError;
+    const status = isRetryable ? 503 : err.message?.startsWith("PROTOCOL_VIOLATION") ? 422 : 500;
+    console.error("[Refinement/freeform-preview]", err?.message);
+    return res.status(status).json({
+      error: err.message ?? "Refinement failed. Please try again.",
+      retryable: isRetryable,
+    });
   }
 });
 

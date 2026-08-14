@@ -1533,29 +1533,45 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
             servings: result.servingCount || result.meal?.servings || 1,
             prepTime: result.meal?.prepTime,
           }}
+          existingMeal={result}
+          freeformEndpoint="/api/refinement/freeform-preview"
           builderType="grocery-coach"
           onRefined={(refined) => {
             if (!preRefinedResult) setPreRefinedResult(result);
-            setResult((prev) => {
-              if (!prev) return prev;
-              return {
-                ...prev,
-                meal: {
-                  ...prev.meal,
-                  name: refined.name ?? prev.meal.name,
-                  description: refined.description ?? prev.meal.description,
-                },
-                macros: refined.nutrition ?? prev.macros,
-                shoppingList: Array.isArray(refined.ingredients)
-                  ? refined.ingredients.map((i: any) => ({
-                      item: typeof i === "string" ? i : (i.name ?? i.item ?? ""),
-                      quantity: typeof i === "string" ? "1" : String(i.quantity ?? i.amount ?? "1"),
-                      unit: typeof i === "string" ? "" : (i.unit ?? ""),
-                      category: typeof i === "string" ? "Other" : (i.category ?? "Other"),
-                    }))
-                  : prev.shoppingList,
-              };
-            });
+            // The freeform endpoint returns updatedMeal in the same CoachResult shape.
+            // If it has the Grocery Coach fields (shoppingList + meal), apply them directly.
+            if (refined && (refined.shoppingList !== undefined || refined.meal !== undefined)) {
+              setResult((prev) => {
+                if (!prev) return prev;
+                return {
+                  ...prev,
+                  ...(refined as Partial<CoachResult>),
+                  // Always preserve the owner key
+                };
+              });
+            } else {
+              // Fallback: standard meal shape from the old endpoint
+              setResult((prev) => {
+                if (!prev) return prev;
+                return {
+                  ...prev,
+                  meal: {
+                    ...prev.meal,
+                    name: refined.name ?? prev.meal.name,
+                    description: refined.description ?? prev.meal.description,
+                  },
+                  macros: refined.nutrition ?? prev.macros,
+                  shoppingList: Array.isArray(refined.ingredients)
+                    ? refined.ingredients.map((i: any) => ({
+                        item: typeof i === "string" ? i : (i.name ?? i.item ?? ""),
+                        quantity: typeof i === "string" ? "1" : String(i.quantity ?? i.amount ?? "1"),
+                        unit: typeof i === "string" ? "" : (i.unit ?? ""),
+                        category: typeof i === "string" ? "Other" : (i.category ?? "Other"),
+                      }))
+                    : prev.shoppingList,
+                };
+              });
+            }
             setResultOwnerKey(SESSION_KEY); // refined result still belongs to this user
           }}
         />

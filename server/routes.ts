@@ -662,6 +662,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api", inspirationRouter);
   app.use("/api/grocery-coach", requireAuth, requireProAccess, groceryCoachRouter);
   app.use("/api/meal-refinement", requireAuth, requireActiveAccess, mealRefinementRouter);
+
+  // Universal Meal Refinement — stateless freeform endpoint (Grocery Coach + others)
+  const { default: refinementRouter } = await import("./routes/refinement");
+  app.use("/api/refinement", requireAuth, requireActiveAccess, refinementRouter);
   app.use("/api/saved-groceries", requireAuth, savedGroceriesRouter);
   app.use("/api/pregnancy", requireAuth, requireClinicalAccess, pregnancyCoachRouter);
   app.use("/api/coach", coachingEngineRouter);
