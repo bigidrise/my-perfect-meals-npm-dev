@@ -154,7 +154,7 @@
     "physicianPortal": "Портал врача",
     "physicianWelcome": "Добро пожаловать, врач",
     "planner": "Планировщик",
-    "pregnancy": "My Perfect Pregnancy",
+    "pregnancy": "Моя идеальная беременность",
     "proLaunchpad": "Панель профессионала",
     "proPortal": "Pro Portal",
     "procareCertified": "ProCare Certified",
@@ -1750,7 +1750,7 @@
   "diabeticBuilder": {
     "backLabel": "Хаб диабета",
     "coachingLine": "Создано для удержания вас в целевом диапазоне глюкозы.",
-    "pageTitle": "Diabetic Builder",
+    "pageTitle": "Конструктор для диабетиков",
     "tour1Desc": "Нажмите кнопку + на любой карточке приема пищи, чтобы добавить диабетические рецепты.",
     "tour1Title": "Добавляйте приемы пищи",
     "tour2Desc": "Все блюда оптимизированы для стабильного сахара в крови с использованием ингредиентов с низким гликемическим индексом.",
@@ -2061,7 +2061,6 @@
     "viewFullList": "Смотреть полный список",
     "noItems": "Ваш список покупок пуст. Добавьте продукты из вашего плана питания."
   },
-
   "physicianCareTeam": {
     "availability": {
       "available": "Доступен",

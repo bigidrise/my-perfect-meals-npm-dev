@@ -154,7 +154,7 @@
     "physicianPortal": "Portal Médico",
     "physicianWelcome": "Boas-vindas ao Médico",
     "planner": "Planejador",
-    "pregnancy": "My Perfect Pregnancy",
+    "pregnancy": "Minha Gravidez Perfeita",
     "proLaunchpad": "Painel Profissional",
     "proPortal": "Portal Pro",
     "procareCertified": "ProCare Certified",
@@ -2307,7 +2307,6 @@
     "viewFullList": "Ver lista completa",
     "noItems": "Sua lista de compras está vazia. Adicione itens do seu plano de refeições."
   },
-
   "physicianCareTeam": {
     "availability": {
       "available": "Disponível",

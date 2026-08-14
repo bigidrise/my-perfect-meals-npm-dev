@@ -154,7 +154,7 @@
     "physicianPortal": "医师门户",
     "physicianWelcome": "医师欢迎页面",
     "planner": "计划表",
-    "pregnancy": "My Perfect Pregnancy",
+    "pregnancy": "我的完美孕期",
     "proLaunchpad": "专业仪表板",
     "proPortal": "Pro 门户",
     "procareCertified": "ProCare Certified",
@@ -1781,8 +1781,6 @@
     "protocol_bullet_race_prep_0": "巅峰训练碳水方案",
     "protocol_bullet_race_prep_1": "耐力补给优化"
   },
-
-
   "glp1Hub": {
     "autoSettings": "您的餐点构建器会自动使用这些设置。",
     "careBody": "My Perfect Meals 旨在与您的医生、营养师或医疗保健提供者配合使用，而非替代他们。利用此处的信息和工具在就诊间隙保持一致，了解您的身体，并做出微小且自信的选择，以尊重大专家的指导。此应用程序中的每一项追踪、每一顿餐点和每一个建议都旨在支持您的护理计划，而不是取代它。",
@@ -2052,7 +2050,6 @@
     "tierFull": "完整",
     "keepFullAccess": "保留完整访问权 →"
   },
-
   "groceryDashCard": {
     "title": "每周购物清单",
     "description": "根据膳食计划制定的个性化购物清单",
@@ -2064,7 +2061,6 @@
     "viewFullList": "查看完整清单",
     "noItems": "您的购物清单为空。请从您的饮食计划中添加食物项目。"
   },
-
   "physicianCareTeam": {
     "availability": {
       "available": "有空",
