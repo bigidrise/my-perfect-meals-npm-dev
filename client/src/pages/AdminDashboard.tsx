@@ -649,7 +649,12 @@ function GrantTrialPanel() {
               <span className="text-xs text-white/40">Tier</span>
               <span className="text-xs text-white/80">{grantResult.trialTier ?? "—"}</span>
               <span className="text-xs text-white/40">Source</span>
-              <span className="text-xs text-white/80">{grantResult.trialSource ?? "—"}</span>
+              <span className="text-xs text-white/80">
+                {grantResult.trialSource === "admin_grant" ? "Admin Trial" :
+                 grantResult.trialSource === "clinic_grant" ? "Clinical Trial" :
+                 grantResult.trialSource === "promotion" ? "Promotional Trial" :
+                 grantResult.trialSource ? "Free Trial" : "—"}
+              </span>
             </div>
             <button
               onClick={() => { setGrantResult(null); setFoundUser(null); setEmailQuery(""); setNotes(""); setDurationDays(30); setTrialSource("admin_grant"); }}
