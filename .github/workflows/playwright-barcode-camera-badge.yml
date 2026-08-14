@@ -34,11 +34,25 @@ jobs:
           node-version: "20"
           cache: "npm"
 
-      - name: Check lockfile for Replit-only package URLs
+      - name: Rewrite Replit-internal registry URLs for GitHub runners
         run: |
-          if grep -n "package-firewall.replit.local" package-lock.json | head -20; then
-            echo "::warning::package-lock.json contains Replit-internal package URLs — npm ci may be unreliable on GitHub runners"
+          # package-lock.json may contain resolved URLs pointing at Replit's
+          # internal package proxy (package-firewall.replit.local). Those are
+          # unreachable outside Replit. Rewrite them to the public npm registry
+          # before npm ci tries to download anything.
+          BEFORE=$(grep -c "package-firewall.replit.local" package-lock.json || true)
+          if [ "$BEFORE" -gt 0 ]; then
+            sed -i \
+              's|http://package-firewall.replit.local/npm/|https://registry.npmjs.org/|g' \
+              package-lock.json
+            AFTER=$(grep -c "package-firewall.replit.local" package-lock.json || true)
+            echo "Rewrote $BEFORE Replit-internal URL(s) → $AFTER remaining"
+          else
+            echo "No Replit-internal URLs found — lockfile is already clean"
           fi
+          # Also point npm itself at the public registry so any on-the-fly
+          # resolutions during install use the correct source.
+          npm config set registry https://registry.npmjs.org
 
       - name: Install dependencies
         run: |
