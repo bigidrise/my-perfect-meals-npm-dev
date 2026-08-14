@@ -167,6 +167,7 @@ router.post("/preview", async (req, res) => {
       mealType,
       glp1Targets,
       glp1Block,
+      preferredLanguage: (req as any).authUser?.preferredLanguage,
     });
 
     const updatedMeal = (result as any).updatedMeal as Record<string, unknown>;
@@ -450,6 +451,7 @@ router.post("/freeform-preview", async (req, res) => {
       changeInstruction,
       mealType: mealType ?? "lunch",
       generatorName: "grocery_coach_refinement",
+      preferredLanguage: (req as any).authUser?.preferredLanguage,
     });
 
     return res.json(result);

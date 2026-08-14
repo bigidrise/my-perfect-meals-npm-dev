@@ -12,6 +12,7 @@
 
 import express from "express";
 import OpenAI from "openai";
+import { getLanguageInstruction } from "../utils/languageInstruction";
 import { db } from "../db";
 import { users } from "@shared/schema";
 import { coachingProfiles } from "../db/schema/ace";
@@ -431,7 +432,9 @@ router.post("/ask", async (req, res) => {
       }
     }
 
-    const systemPrompt = `You are the Pregnancy Coach for My Perfect Pregnancy — a warm, knowledgeable nutrition companion built into the My Perfect Meals app. You specialize in pregnancy nutrition, food safety, and wellness support throughout every stage of pregnancy and postpartum.
+    const rawLang = (req as any).authUser?.preferredLanguage || "auto";
+    const langInstruction = getLanguageInstruction(rawLang);
+    let systemPrompt = `You are the Pregnancy Coach for My Perfect Pregnancy — a warm, knowledgeable nutrition companion built into the My Perfect Meals app. You specialize in pregnancy nutrition, food safety, and wellness support throughout every stage of pregnancy and postpartum.
 
 ABOUT THIS USER:
 ${pregnancyContext ? `• ${pregnancyContext}` : `• Pregnancy stage: ${stageDisplay}${weekDisplay}`}
@@ -504,6 +507,7 @@ You MUST respond with a JSON object:
 }
 
 "suggestedMealActions": Include ONLY when your reply addresses a concrete food, meal, snack, or drink question that has a buildable solution. Leave as [] for symptom questions without a direct meal answer, medical referrals, supplement questions, or general safety warnings. Maximum 2 actions. "actionType" must always be exactly "create_pregnancy_meal".`;
+    if (langInstruction) systemPrompt = `${langInstruction}\n\n${systemPrompt}`;
 
     // ── Load conversation history from DB (authoritative) ─────────────────────
     const dbHistory = await getConversation(userId);
