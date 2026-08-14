@@ -163,6 +163,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           performanceProtocolConfig: userData.performanceProtocolConfig ?? null,
           performanceModeEnabled: (userData as any).performanceModeEnabled ?? false,
           trialEndsAt: userData.trialEndsAt ?? null,
+          trialStartedAt: (userData as any).trialStartedAt ?? null,
           trialSource: (userData as any).trialSource ?? null,
           isTrialActive: (userData as any).isTrialActive ?? false,
           daysRemaining: (userData as any).daysRemaining ?? 0,

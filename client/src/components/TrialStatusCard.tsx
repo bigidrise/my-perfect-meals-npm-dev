@@ -40,6 +40,7 @@ export function TrialStatusCard() {
 
   const trialSource: string | null = (user as any)?.trialSource ?? null;
   const trialTier: string | null = (user as any)?.trialTier ?? null;
+  const trialStartedAt: string | null = (user as any)?.trialStartedAt ?? null;
   const urgency = getUrgencyLevel(daysRemaining);
 
   const tierLabel = trialTier === "ultimate"
@@ -54,7 +55,15 @@ export function TrialStatusCard() {
     trialSource === "promotion" ? "Promotional Trial" :
     "Free Trial";
 
-  const totalDays = trialSource && trialSource !== "standard_signup" ? 30 : 7;
+  const totalDays: number = (() => {
+    if (trialStartedAt && trialEndsAt) {
+      const ms = new Date(trialEndsAt).getTime() - new Date(trialStartedAt).getTime();
+      const days = Math.round(ms / (1000 * 60 * 60 * 24));
+      if (days > 0) return days;
+    }
+    // Fallback for legacy accounts without start date
+    return trialSource && trialSource !== "standard_signup" ? 30 : 7;
+  })();
 
   const bgClass =
     urgency === "urgent"

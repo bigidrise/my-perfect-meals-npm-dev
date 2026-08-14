@@ -163,4 +163,34 @@ router.post("/admin/grant", requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
+// ── GET /api/admin/users/:id/trial-grants ──────────────────────────────────
+
+router.get("/admin/users/:id/trial-grants", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id) return res.status(400).json({ error: "User id is required" });
+
+    const rows = await db.execute(sql`
+      SELECT
+        tg.id,
+        tg.granted_at,
+        tg.trial_source,
+        tg.trial_tier,
+        tg.trial_ends_at,
+        tg.notes,
+        tg.is_superseded,
+        granter.email AS granted_by_email
+      FROM trial_grants tg
+      LEFT JOIN users granter ON granter.id = tg.granted_by_user_id
+      WHERE tg.user_id = ${id}
+      ORDER BY tg.granted_at DESC
+    `);
+
+    return res.json({ grants: rows.rows });
+  } catch (err) {
+    console.error("[trial] GET /admin/users/:id/trial-grants error:", err);
+    return res.status(500).json({ error: "Failed to fetch trial grant history" });
+  }
+});
+
 export default router;
