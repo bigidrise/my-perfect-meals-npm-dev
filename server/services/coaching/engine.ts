@@ -17,6 +17,7 @@
 
 import OpenAI from "openai";
 import { db } from "../../db";
+import { getLanguageInstruction } from "../../utils/languageInstruction";
 import { sql } from "drizzle-orm";
 import { ReasoningResultSchema, CoachResponseSchema } from "../../../shared/coaching/schemas";
 import { runSafetyGate, buildSafetyResponse } from "./safety";
@@ -410,6 +411,7 @@ async function runReasoningPass(params: {
   history: Array<{ role: string; content: string }>;
   rollingContext?: string;
   specialization: string;
+  preferredLanguage?: string;
 }): Promise<any> {
   const openai = getOpenAI();
 
@@ -442,8 +444,10 @@ async function runReasoningPass(params: {
   // For the universal engine, all turns are in the 'corner' surface.
   // Pregnancy Coach and Parent's Corner inject this directly into their own system prompts.
   const doctrineSectionForReasoning = generateDoctrineSystemPromptSection("corner");
+  const reasoningLangInstruction = getLanguageInstruction(params.preferredLanguage);
 
   const systemPrompt = [
+    ...(reasoningLangInstruction ? [reasoningLangInstruction, ""] : []),
     "You are the REASONING LAYER of the MPM Coaching Engine.",
     "Your job: reason from the sealed evidence block and propose coaching hypotheses.",
     "",
@@ -678,6 +682,7 @@ async function runRenderingPass(params: {
   additionalContext: Record<string, unknown>;
   availableTools: Array<{ id: string; label: string; featureTarget: string; description: string }>;
   specialization: string;
+  preferredLanguage?: string;
 }): Promise<CoachResponse> {
   const openai = getOpenAI();
 
@@ -698,8 +703,10 @@ async function runRenderingPass(params: {
 
   // Inject the Supportive Accountability & Reinforcement Doctrine into the rendering pass.
   const doctrineSectionForRendering = generateDoctrineSystemPromptSection("corner");
+  const renderingLangInstruction = getLanguageInstruction(params.preferredLanguage);
 
   const systemPrompt = [
+    ...(renderingLangInstruction ? [renderingLangInstruction, ""] : []),
     "You are the LANGUAGE LAYER of the MPM Coaching Engine.",
     "The coaching decision has been made. Your job: express it as natural, helpful conversation.",
     "",
@@ -1161,6 +1168,7 @@ export class CoachingEngine {
         history,
         rollingContext: rollingContext ?? undefined,
         specialization,
+        preferredLanguage: (req as any).authUser?.preferredLanguage,
       });
     } catch (reasoningErr: any) {
       console.warn(`[Engine] Reasoning pass failed (${reasoningErr.message}) — using synthetic reasoning fallback`);
@@ -1213,6 +1221,7 @@ export class CoachingEngine {
       additionalContext,
       availableTools: adapter.availableTools,
       specialization,
+      preferredLanguage: (req as any).authUser?.preferredLanguage,
     });
 
     // 16. Persist conversation, investigation, plan, items, follow-up record

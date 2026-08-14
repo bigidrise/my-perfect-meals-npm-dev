@@ -22,6 +22,7 @@
 
 import { Router } from "express";
 import OpenAI from "openai";
+import { getLanguageInstruction } from "../utils/languageInstruction";
 import { requireAuth } from "../middleware/requireAuth";
 import { requireActiveAccess } from "../middleware/requireActiveAccess";
 import {
@@ -330,6 +331,8 @@ router.post("/refine", requireAuth, requireActiveAccess, async (req: any, res: a
     }
 
     // ── 4. Build prompt ─────────────────────────────────────────────────────
+    const rawLang = (req as any).authUser?.preferredLanguage || "auto";
+    const langInstruction = getLanguageInstruction(rawLang);
     const name = meal.name ?? meal.title ?? "Unknown Meal";
     const description = meal.description ?? "";
     const ingredients = summarizeIngredients(meal.ingredients ?? []);
@@ -343,7 +346,7 @@ router.post("/refine", requireAuth, requireActiveAccess, async (req: any, res: a
     const genName = builderType ? `meal_refinement_${builderType}` : "meal_refinement";
 
     const buildSystemPrompt = (extraConstraint = "") =>
-      `You are a precision nutrition coach refining an existing meal based on a user's request. Make the minimum change needed to honour the request while keeping the spirit of the original dish. Return a complete, improved meal.
+      `${langInstruction ? langInstruction + "\n\n" : ""}You are a precision nutrition coach refining an existing meal based on a user's request. Make the minimum change needed to honour the request while keeping the spirit of the original dish. Return a complete, improved meal.
 
 ACTIVE PROTOCOL CONSTRAINTS (non-negotiable — never violate even if the user asks):
 ${protocolContext || "No special dietary restrictions on file — apply general healthy eating principles."}

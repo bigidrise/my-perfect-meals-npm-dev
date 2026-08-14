@@ -24,6 +24,7 @@ import {
 } from "../services/guardrails/beverageMedicalRules";
 import { buildAcePromptBlock } from "../services/ace/buildAcePromptBlock";
 import { resolveGLP1GlobalContext } from "../services/glp1/resolveGLP1GlobalContext";
+import { getLanguageInstruction } from "../utils/languageInstruction";
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -423,7 +424,10 @@ beverageCreatorRouter.post("/", async (req, res) => {
       }
     }
 
-    const prompt = `
+    const rawLang = (req as any).authUser?.preferredLanguage || "auto";
+    const langInstruction = getLanguageInstruction(rawLang);
+    const beverageLangPrefix = langInstruction ? `${langInstruction}\n\n` : "";
+    const prompt = `${beverageLangPrefix}
 You are a professional mixologist, nutritionist, and beverage chef inside the My Perfect Meals system.
 Generate a FULL structured beverage recipe.
 ${beverageProtocolBlock ? `\n${beverageProtocolBlock}\n` : ""}${medicalBeverageBlock}${glp1CanonicalBlock}${cuisineOverrideBlock}${beverageBehavioralMemorySection ? `\n${beverageBehavioralMemorySection}\n` : ""}${dietCategoryStrategy.coachingBlock ? `\n${dietCategoryStrategy.coachingBlock}\n` : ""}${softOverrideBlock}${aceBlock}

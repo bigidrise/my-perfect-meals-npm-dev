@@ -2,6 +2,7 @@ import { Router } from "express";
 import OpenAI from "openai";
 import { requireAuth } from "../middleware/requireAuth";
 import type { AuthenticatedRequest } from "../middleware/requireAuth";
+import { getLanguageInstruction } from "../utils/languageInstruction";
 import { db } from "../db";
 import { sql } from "drizzle-orm";
 import { processMealImageForSave } from "../services/imageLifecycle";
@@ -1128,9 +1129,12 @@ router.post("/create-dish", requireAuth, async (req, res) => {
       resolverCtx = null;
     }
 
-    const systemPrompt = resolverCtx
+    const rawLang = (req as AuthenticatedRequest).authUser?.preferredLanguage || "auto";
+    const langInstruction = getLanguageInstruction(rawLang);
+    let systemPrompt = resolverCtx
       ? buildSystemPromptWithResolver(ageStage, resolverCtx)
       : buildSystemPrompt(ageStage, allergies, parentPrefsWithKitchen, conditionGuidanceBlocks, stageDRIBlock);
+    if (langInstruction) systemPrompt = `${langInstruction}\n\n${systemPrompt}`;
 
     const userMessage = buildUserMessage(
       foodRequest,

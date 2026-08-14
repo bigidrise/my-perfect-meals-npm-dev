@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { getLanguageInstruction } from '../utils/languageInstruction';
 import { getMeasurementPromptBlock } from '../../shared/units';
 import { deriveCarbSplit } from './generators/macros/carbSplit';
 import { convertStructuredIngredients } from '../utils/unitConverter';
@@ -121,6 +122,7 @@ interface FridgeRescueMeal {
 
 interface FridgeRescueRequest {
   fridgeItems: string[];
+  preferredLanguage?: string;
   user?: any;
   servings?: number;
   macroTargets?: {
@@ -314,7 +316,8 @@ This is for athlete meal planning - precision is critical for contest preparatio
     }
   }
 
-  const prompt = `You are a creative chef helping someone make meals with limited ingredients from their fridge.
+  const fridgeLangInstruction = getLanguageInstruction(request.preferredLanguage);
+  const prompt = `${fridgeLangInstruction ? fridgeLangInstruction + "\n\n" : ""}You are a creative chef helping someone make meals with limited ingredients from their fridge.
 ${fridgeEnforcementBlock ? `\n${fridgeEnforcementBlock}\n` : ""}${fridgeBehavioralMemorySection ? `\n${fridgeBehavioralMemorySection}\n` : ""}${strictMode ? `\n${buildStrictModeBlock(fridgeItems.join(", "))}\n` : ""}
 TASK: Create 3 different, realistic meals using ONLY these ingredients: ${fridgeItems.join(', ')}
 Each meal should be portioned for ${servings} serving${servings > 1 ? 's' : ''}. Scale all ingredient quantities and nutritional values accordingly.

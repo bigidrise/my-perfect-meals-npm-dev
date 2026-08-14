@@ -25,6 +25,7 @@
 
 import OpenAI from "openai";
 import { db } from "../db";
+import { getLanguageInstruction } from "../utils/languageInstruction";
 import { userSavedGroceryItems } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import {
@@ -55,6 +56,8 @@ export interface ReplaceIngredientRequest {
   changeType: "replace_ingredient";
   /** ID of the authenticated user requesting the refinement. */
   userId: string;
+  /** User's preferred language code (BCP-47). Passed to getLanguageInstruction. */
+  preferredLanguage?: string;
   /** The ingredient name to replace (as it appears in the meal). */
   ingredientToReplace: string;
   /** Name of the meal being refined — adds context for the LLM. */
@@ -75,6 +78,8 @@ export interface AdjustMacrosRequest {
   changeType: "adjust_macros";
   /** ID of the authenticated user requesting the refinement. */
   userId: string;
+  /** User's preferred language code (BCP-47). Passed to getLanguageInstruction. */
+  preferredLanguage?: string;
   /**
    * Plain-language macro goal, e.g. "more protein", "lower carbs",
    * "reduce fat", "fewer calories".
@@ -93,6 +98,8 @@ export interface ReplaceComponentRequest {
   changeType: "replace_component";
   /** ID of the authenticated user requesting the refinement. */
   userId: string;
+  /** User's preferred language code (BCP-47). Passed to getLanguageInstruction. */
+  preferredLanguage?: string;
   /**
    * The full existing meal as stored on the board item (macros + ingredients + title).
    * The engine rebuilds a full meal representation from this before calling the LLM.
@@ -488,10 +495,12 @@ export class MealRefinementEngine {
   // ── replace_ingredient ────────────────────────────────────────────────────
 
   private async _replaceIngredient(req: ReplaceIngredientRequest): Promise<SwapRefinementResult> {
-    const { userId, ingredientToReplace, mealName, mealDescription, remainingIngredients, userRequest } = req;
+    const { userId, ingredientToReplace, mealName, mealDescription, remainingIngredients, userRequest, preferredLanguage } = req;
 
     const { envelope, protocolContext, glp1Block, glp1Targets, savedBlock } =
       await loadProtocolContext(userId);
+
+    const langInstruction = getLanguageInstruction(preferredLanguage);
 
     // ── Build system prompt ────────────────────────────────────────────────────
     const remaining =
@@ -499,7 +508,7 @@ export class MealRefinementEngine {
         ? remainingIngredients.join(", ")
         : "the other meal ingredients";
 
-    const systemPrompt = `You are a Grocery Store Coach. A user wants to replace ONE ingredient in their planned meal while keeping everything else.
+    let systemPrompt = `${langInstruction ? langInstruction + "\n\n" : ""}You are a Grocery Store Coach. A user wants to replace ONE ingredient in their planned meal while keeping everything else.
 
 USER HEALTH PROFILE:
 ${protocolContext || "No dietary restrictions on file — apply general healthy eating principles."}
@@ -705,8 +714,9 @@ ${correctionNote} Set fat_grams to a realistic finite number in the JSON respons
             .join(", ")
         : null;
 
+    const adjustLangInstruction = getLanguageInstruction(req.preferredLanguage);
     const buildSystemPrompt = (extraInstruction = "") =>
-      `You are a Macro Adjustment Coach. The user wants to adjust the macronutrient profile of an existing meal without completely rebuilding it.
+      `${adjustLangInstruction ? adjustLangInstruction + "\n\n" : ""}You are a Macro Adjustment Coach. The user wants to adjust the macronutrient profile of an existing meal without completely rebuilding it.
 
 USER HEALTH PROFILE:
 ${protocolContext || "No dietary restrictions on file — apply general healthy eating principles."}
@@ -1162,7 +1172,8 @@ Respond ONLY with valid JSON:
       ingredients: existingMeal.ingredients,
     }, null, 2);
 
-    const systemPrompt = `You are a clinical nutrition AI refining a board meal for a user.
+    const componentLangInstruction = getLanguageInstruction(req.preferredLanguage);
+    const systemPrompt = `${componentLangInstruction ? componentLangInstruction + "\n\n" : ""}You are a clinical nutrition AI refining a board meal for a user.
 
 USER HEALTH PROFILE:
 ${protocolContext || "No dietary restrictions on file — apply general healthy eating principles."}
@@ -1305,6 +1316,8 @@ export function getMealRefinementEngine(): MealRefinementEngine {
 export interface MealRefinementRequest {
   /** Authenticated user ID. */
   userId: string;
+  /** User's preferred language code (BCP-47). Passed to getLanguageInstruction. */
+  preferredLanguage?: string;
   /**
    * The full existing meal JSON — whatever schema the originating builder returned.
    * Grocery Coach: { meal, shoppingList, ownedIngredients, macros, reasoning, ... }
@@ -1567,6 +1580,7 @@ export async function refineMeal(request: MealRefinementRequest): Promise<Refine
     changeInstruction,
     mealType = "lunch",
     generatorName = "meal_refinement",
+    preferredLanguage,
   } = request;
 
   // ── 1. Load protocol envelope ─────────────────────────────────────────────
@@ -1656,7 +1670,8 @@ export async function refineMeal(request: MealRefinementRequest): Promise<Refine
   // ── 4. Build system prompt ────────────────────────────────────────────────
   const existingMealJson = JSON.stringify(existingMeal, null, 2);
 
-  const systemPrompt = `You are a clinical nutrition AI that modifies existing meals on behalf of a user.
+  const refineLangInstruction = getLanguageInstruction(preferredLanguage);
+  const systemPrompt = `${refineLangInstruction ? refineLangInstruction + "\n\n" : ""}You are a clinical nutrition AI that modifies existing meals on behalf of a user.
 
 USER HEALTH PROFILE AND PROTOCOL CONSTRAINTS:
 ${protocolContext || "No dietary restrictions on file — apply general healthy eating principles."}

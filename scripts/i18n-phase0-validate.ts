@@ -141,7 +141,6 @@ if (!fs.existsSync(CLINICAL_REGISTRY)) {
   const count = registry.totalClinicalStrings ?? 0;
   pass(`Clinical registry loaded — ${count} protected strings on ${registry.filesWithClinicalStrings ?? "?"} active surfaces`);
   pass("Automated migration cannot alter CLINICAL_SAFETY strings (checked by migration engine, not this gate)");
-  
   // Check that clinical strings haven't been removed from locale files without annotation
   // (In future: check git diff for changes to clinical keys)
   pass("GATE_07 baseline established — clinical registry is the protected set reference");

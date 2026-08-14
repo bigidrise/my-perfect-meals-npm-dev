@@ -26,6 +26,7 @@ import type {
   TiredTiming,
 } from "../../shared/coachCornerTypes";
 import type { CoachingProfile } from "../db/schema/ace";
+import { getLanguageInstruction } from "../utils/languageInstruction";
 
 // ─── OpenAI client ────────────────────────────────────────────────────────────
 
@@ -166,7 +167,8 @@ interface GenerateCoachResult {
 async function generateCoachMessage(
   aceResponse: CoachResponse,
   contextBlock: string,
-  situationLabel: string
+  situationLabel: string,
+  preferredLanguage?: string
 ): Promise<GenerateCoachResult> {
   const intentExplanations: Record<string, string> = {
     reassure: "The user needs reassurance — stay the course, don't add pressure or introduce doubt.",
@@ -175,7 +177,8 @@ async function generateCoachMessage(
   };
   const intentExplanation = intentExplanations[aceResponse.intent] ?? aceResponse.intent;
 
-  const systemPrompt = `You are a nutrition and wellness coach inside My Perfect Meals — Coach's Corner.
+  const langInstruction = getLanguageInstruction(preferredLanguage);
+  let systemPrompt = `You are a nutrition and wellness coach inside My Perfect Meals — Coach's Corner.
 
 The coaching engine has already analyzed this user's situation and determined a coaching strategy. Your job is to deliver that strategy as a natural, human coaching message AND optionally suggest an immediate meal action button.
 
@@ -221,6 +224,7 @@ Rules for suggestedMealActions:
 • For progress-slowed situations, only suggest if the recommendation explicitly mentions eating differently
 
 Respond ONLY with valid JSON. No preamble, no markdown fences.`;
+  if (langInstruction) systemPrompt = `${langInstruction}\n\n${systemPrompt}`;
 
   const completion = await getOpenAI().chat.completions.create({
     model: "gpt-4o",
@@ -672,7 +676,7 @@ router.post("/situations/progress-slowed/resolve", requireAuth, async (req, res)
     let suggestedMealActions: CoachMealAction[] | undefined;
     try {
       const contextBlock = await buildCoachContextBlock(userId, profile ?? null);
-      const llmResult = await generateCoachMessage(response, contextBlock, "My progress has slowed");
+      const llmResult = await generateCoachMessage(response, contextBlock, "My progress has slowed", authReq.authUser?.preferredLanguage);
       coachMessage = llmResult.coachMessage;
       suggestedMealActions = llmResult.suggestedMealActions;
     } catch (llmErr: any) {
@@ -768,7 +772,7 @@ router.post("/situations/tired/resolve", requireAuth, async (req, res) => {
     let suggestedMealActions: CoachMealAction[] | undefined;
     try {
       const contextBlock = await buildCoachContextBlock(userId, profile ?? null);
-      const llmResult = await generateCoachMessage(response, contextBlock, "I'm feeling tired");
+      const llmResult = await generateCoachMessage(response, contextBlock, "I'm feeling tired", authReq.authUser?.preferredLanguage);
       coachMessage = llmResult.coachMessage;
       suggestedMealActions = llmResult.suggestedMealActions;
     } catch (llmErr: any) {
