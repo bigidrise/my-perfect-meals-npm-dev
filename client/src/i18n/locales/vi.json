@@ -154,7 +154,7 @@
     "physicianPortal": "Cổng thông tin Bác sĩ",
     "physicianWelcome": "Chào mừng Bác sĩ",
     "planner": "Công cụ Lập kế hoạch",
-    "pregnancy": "My Perfect Pregnancy",
+    "pregnancy": "Thai Kỳ Hoàn Hảo Của Tôi",
     "proLaunchpad": "Bảng điều khiển Chuyên nghiệp",
     "proPortal": "Cổng thông tin Pro",
     "procareCertified": "ProCare Certified",
@@ -1789,8 +1789,6 @@
     "protocol_bullet_race_prep_0": "Giao thức carb luyện tập đỉnh",
     "protocol_bullet_race_prep_1": "Tối ưu hóa nhiên liệu sức bền"
   },
-
-
   "glp1Hub": {
     "autoSettings": "Các trình xây dựng bữa ăn của bạn tự động sử dụng các cài đặt này.",
     "careBody": "My Perfect Meals được thiết kế để hoạt động cùng bác sĩ, chuyên gia dinh dưỡng hoặc nhà cung cấp dịch vụ chăm sóc sức khỏe của bạn — không bao giờ thay thế họ. Sử dụng thông tin và công cụ tại đây để duy trì sự nhất quán giữa các lần khám, để hiểu cơ thể bạn và đưa ra những lựa chọn nhỏ, tự tin nhằm tôn trọng sự hướng dẫn chuyên môn. Mọi công cụ theo dõi, mọi bữa ăn và mọi gợi ý trong ứng dụng này nhằm mục đích hỗ trợ kế hoạch chăm sóc của bạn, không thay thế nó.",
@@ -2060,7 +2058,6 @@
     "tierFull": "Đầy đủ",
     "keepFullAccess": "Giữ quyền truy cập đầy đủ →"
   },
-
   "groceryDashCard": {
     "title": "Danh sách mua sắm hàng tuần",
     "description": "Danh sách mua sắm được cá nhân hóa dựa trên kế hoạch bữa ăn",
@@ -2072,7 +2069,6 @@
     "viewFullList": "Xem danh sách đầy đủ",
     "noItems": "Danh sách mua sắm của bạn trống. Thêm các mặt hàng từ kế hoạch ăn uống để bắt đầu."
   },
-
   "physicianCareTeam": {
     "availability": {
       "available": "Sẵn sàng",

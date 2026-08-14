@@ -154,7 +154,7 @@
     "physicianPortal": "Portail du médecin",
     "physicianWelcome": "Bienvenue médecin",
     "planner": "Planificateur",
-    "pregnancy": "My Perfect Pregnancy",
+    "pregnancy": "Ma grossesse parfaite",
     "proLaunchpad": "Tableau de bord professionnel",
     "proPortal": "Portail pro",
     "procareCertified": "ProCare Certified",
@@ -2027,7 +2027,6 @@
     "protocol_bullet_race_prep_0": "Protocole glucides entraînement pic",
     "protocol_bullet_race_prep_1": "Optimisation carburant endurance"
   },
-
   "glp1Hub": {
     "autoSettings": "Vos constructeurs de repas utilisent automatiquement ces paramètres.",
     "careBody": "My Perfect Meals est conçu pour fonctionner avec votre médecin, diététicien ou prestataire de soins — jamais à leur place. Utilisez les informations et les outils ici pour rester cohérent entre les visites, pour comprendre votre corps et pour faire des choix petits et confiants qui honorent vos conseils professionnels. Chaque suivi, chaque repas et chaque suggestion dans cette application est destiné à soutenir votre plan de soins, pas à le remplacer.",
@@ -2297,7 +2296,6 @@
     "tierFull": "Complet",
     "keepFullAccess": "Garder l'accès complet →"
   },
-
   "groceryDashCard": {
     "title": "Liste de courses hebdomadaire",
     "description": "Votre liste de courses personnalisée basée sur les plans de repas",
@@ -2309,7 +2307,6 @@
     "viewFullList": "Voir la liste complète",
     "noItems": "Votre liste de courses est vide. Ajoutez des articles depuis votre plan de repas."
   },
-
   "physicianCareTeam": {
     "availability": {
       "available": "Disponible",

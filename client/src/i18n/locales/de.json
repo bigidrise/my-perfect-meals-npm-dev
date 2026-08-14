@@ -154,7 +154,7 @@
     "physicianPortal": "Ärzteportal",
     "physicianWelcome": "Willkommen beim Arzt",
     "planner": "Planer",
-    "pregnancy": "My Perfect Pregnancy",
+    "pregnancy": "Meine perfekte Schwangerschaft",
     "proLaunchpad": "Professional Dashboard",
     "proPortal": "Pro Portal",
     "procareCertified": "ProCare Certified",
@@ -1068,7 +1068,7 @@
     "pageTitle": "Metabolischer Medikamenten-Builder",
     "tourTitle": "Leitfaden für den Metabolischen Medikamenten-Builder",
     "loadingBoard": "Mahlzeitentafel wird geladen...",
-    "glp1Hub": "GLP-1 Hub",
+    "glp1Hub": "GLP-1-Zentrum",
     "activeClinical": "Aktive klinische Unterstützungen:",
     "hormonalMetabolic": "Hormonal & Metabolisch:",
     "clinicalAntiInflam": "Entzündungshemmend",
@@ -2127,7 +2127,6 @@
     "viewFullList": "Vollständige Liste anzeigen",
     "noItems": "Ihre Einkaufsliste ist leer. Fügen Sie Artikel aus Ihrem Mahlzeitenplan hinzu."
   },
-
   "physicianCareTeam": {
     "availability": {
       "available": "Verfügbar",

@@ -141,21 +141,42 @@ if [ "$AUTH_VIOLATIONS" -eq 0 ]; then
 fi
 
 # ──────────────────────────────────────────────────
-header "Step 4 of 5: Translation Interpolation Quality"
-echo "  Running i18n value quality scan (checks {{variable}} mismatches across all locales)..."
+header "Step 4 of 5: Translation Quality"
+echo "  Running i18n value quality scan..."
+echo "    • Gate A: {{variable}} interpolation mismatches (hard fail — runtime bugs)"
+echo "    • Gate B: identical-to-English values  (warn >15%, hard fail >40% per locale)"
 echo ""
 
 I18N_LOG=$(mktemp /tmp/mpm-i18n-XXXXXX.log)
-if npx tsx scripts/i18n-value-quality-scan.ts >"$I18N_LOG" 2>&1; then
-  pass "i18n interpolation gate: no {{variable}} mismatches found"
+if npx tsx scripts/i18n-value-quality-scan.ts --warn-identical-above=15 --fail-identical-above=40 >"$I18N_LOG" 2>&1; then
+  # Check for warnings even on success
+  if grep -q "IDENTICAL-TO-ENGLISH WARNING" "$I18N_LOG"; then
+    WARN_LOCALES=$(grep "IDENTICAL-TO-ENGLISH WARNING" "$I18N_LOG" | grep -oP '\w+ \(\d+\.\d+%\)' | tr '\n' ' ' || echo "see report")
+    warn "i18n identical gate: locale(s) above 15% warn threshold — ${WARN_LOCALES}"
+    echo -e "${YELLOW}  Run: npm run validate:i18n   to see the full report${NC}"
+    echo ""
+  else
+    pass "i18n interpolation gate: no {{variable}} mismatches found"
+    pass "i18n identical-to-English gate: all locales within acceptable thresholds"
+  fi
 else
-  # Extract mismatch count from output
-  MISMATCH_COUNT=$(grep -oP '\d+ interpolation mismatch' "$I18N_LOG" | grep -oP '^\d+' || echo "?")
-  fail "i18n interpolation gate: ${MISMATCH_COUNT} mismatch(es) found — {{variable}} bugs will break the UI at runtime"
-  echo ""
-  echo -e "${RED}  Interpolation mismatch details (first 20 lines):${NC}"
-  grep -A2 "Interp mismatch\|INTERPOLATION GATE" "$I18N_LOG" | head -20 | sed 's/^/    /'
-  echo ""
+  # Interpolation failure
+  if grep -q "INTERPOLATION GATE FAILED" "$I18N_LOG"; then
+    MISMATCH_COUNT=$(grep -oP '\d+ interpolation mismatch' "$I18N_LOG" | grep -oP '^\d+' || echo "?")
+    fail "i18n interpolation gate: ${MISMATCH_COUNT} mismatch(es) found — {{variable}} bugs will break the UI at runtime"
+    echo ""
+    echo -e "${RED}  Interpolation mismatch details (first 20 lines):${NC}"
+    grep -A2 "Interp mismatch\|INTERPOLATION GATE" "$I18N_LOG" | head -20 | sed 's/^/    /'
+    echo ""
+  fi
+  # Identical-to-English failure
+  if grep -q "IDENTICAL-TO-ENGLISH GATE FAILED" "$I18N_LOG"; then
+    FAIL_LOCALES=$(grep -A1 "IDENTICAL-TO-ENGLISH GATE FAILED" "$I18N_LOG" | grep -oP '\w+ \(\d+\.\d+%\)' | tr '\n' ' ' || echo "see report")
+    fail "i18n identical gate: locale(s) exceed 40% identical-to-English — half-translated locale must not ship: ${FAIL_LOCALES}"
+    echo ""
+    echo -e "${RED}  Translate the flagged strings or remove the locale before pushing.${NC}"
+    echo ""
+  fi
   echo -e "${YELLOW}  Run: npm run validate:i18n   to see the full report${NC}"
   echo ""
 fi
