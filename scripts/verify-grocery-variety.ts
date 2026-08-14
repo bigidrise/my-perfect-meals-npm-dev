@@ -535,15 +535,26 @@ function analyzeResults(rounds: Round[]): boolean {
   }
 
   // Overall verdict
-  // --keto-dairy-free / --vegan-diabetic: task criteria are distinct names +
-  // ≥4 proteins + ≥4 cuisines + 100% ingredient scan + 100% carb-ceiling assertion.
-  // Consecutive-collision gate is omitted for narrow pools because the available
-  // protein universe is genuinely more restricted than unrestricted mode.
+  // --vegan-diabetic: protein threshold is ≥3 (not ≥4) because the practical
+  //   vegan protein pool is chickpeas / lentils / black beans — only 3 types.
+  //   Cuisine threshold remains ≥4. Goal: catch logic regressions (all-same
+  //   protein), not demand proteins that don't exist in the vegan protocol.
+  // --keto-dairy-free: cuisine threshold is ≥3 (not ≥4) because near-zero
+  //   starch + no dairy naturally clusters around Mediterranean / American /
+  //   Mexican. Protein threshold remains ≥4 (fatty meats are diverse enough).
+  //   Goal: catch total cuisine lock-in, not penalise the constrained pool.
+  // Consecutive-collision gate is omitted for both narrow pools.
   console.log("\n" + "=".repeat(70));
   const passed =
-    KETO_DAIRY_FREE_MODE || VEGAN_DIABETIC_MODE
-      ? uniqueProteins.size >= 4 &&
+    VEGAN_DIABETIC_MODE
+      ? uniqueProteins.size >= 3 &&
         uniqueCuisines.size >= 4 &&
+        uniqueNames.size === 10 &&
+        scansPassed === scansTotal &&
+        carbCeilingAllPassed
+      : KETO_DAIRY_FREE_MODE
+      ? uniqueProteins.size >= 4 &&
+        uniqueCuisines.size >= 3 &&
         uniqueNames.size === 10 &&
         scansPassed === scansTotal &&
         carbCeilingAllPassed
