@@ -22,9 +22,16 @@ const LOCALES_DIR = path.resolve("client/src/i18n/locales");
 const OUT_DIR = path.resolve("docs/localization");
 const OUT_JSON = path.join(OUT_DIR, "value-quality-report.json");
 
-fs.mkdirSync(OUT_DIR, { recursive: true });
-
-// ── Helpers ────────────────────────────────────────────────────────────────
+function parseThresholdFlag(flag: string, defaultValue: number): number {
+  const arg = process.argv.find(a => a.startsWith(`--${flag}=`));
+  if (!arg) return defaultValue;
+  const val = parseFloat(arg.split("=")[1]);
+  if (isNaN(val) || val < 0 || val > 100) {
+    console.error(`  ⚠️  Invalid value for --${flag}: "${arg.split("=")[1]}". Using default ${defaultValue}.`);
+    return defaultValue;
+  }
+  return val;
+}
 function flattenEntries(obj: unknown, prefix = ""): Array<[string, string]> {
   const results: Array<[string, string]> = [];
   if (typeof obj === "object" && obj !== null && !Array.isArray(obj)) {
@@ -227,14 +234,15 @@ console.log(`\n  Report written → ${OUT_JSON}`);
 console.log("  Zero production files modified.\n");
 
 // ── Exit-code gate ─────────────────────────────────────────────────────────
-// Count total interpolation mismatches across all locales.
+// Gate 1 — Interpolation mismatches
 // Any mismatch means a {{variable}} is missing (or extra) in a translated
 // string — that is a runtime bug that breaks the UI for real users.
-// Exit non-zero so CI and `npm run validate` treat this as a hard failure.
 
 const totalInterpMismatches = Object.values(allResults).reduce(
   (sum, r) => sum + r.interpolationMismatches, 0
 );
+
+const identicalWarnLocales: string[] = [];
 
 let exitCode = 0;
 
@@ -294,6 +302,46 @@ if (clinicalViolations.length > 0) {
   exitCode = 1;
 } else {
   console.log("  ✅ Clinical string gate passed — no clinical strings left in English for translated locales.\n");
+}
+
+// Gate 2 — Identical-to-English threshold
+// Locales with too many values still in English indicate a half-translated
+// file reaching users. Two levels:
+//   WARN  (warn-identical-above, default 15%) — printed but not a hard fail.
+//   FAIL  (fail-identical-above, default 40%) — exits non-zero, blocks release.
+
+const FAIL_IDENTICAL_ABOVE = parseThresholdFlag("fail-identical-above", 40);
+const WARN_IDENTICAL_ABOVE = parseThresholdFlag("warn-identical-above", 15);
+
+console.log(`  Identical-to-English thresholds: warn >${WARN_IDENTICAL_ABOVE}%  fail >${FAIL_IDENTICAL_ABOVE}%\n`);
+
+const identicalFailLocales: string[] = [];
+
+for (const r of Object.values(allResults)) {
+  const pct = parseFloat(r.identicalToEnglishPct);
+  if (pct > FAIL_IDENTICAL_ABOVE) {
+    identicalFailLocales.push(`${r.locale} (${r.identicalToEnglishPct}%)`);
+  } else if (pct > WARN_IDENTICAL_ABOVE) {
+    identicalWarnLocales.push(`${r.locale} (${r.identicalToEnglishPct}%)`);
+  }
+}
+
+if (identicalWarnLocales.length > 0) {
+  console.warn(
+    `  ⚠️  IDENTICAL-TO-ENGLISH WARNING — the following locale(s) exceed ${WARN_IDENTICAL_ABOVE}% identical values:\n` +
+    `     ${identicalWarnLocales.join(", ")}\n` +
+    `     These locales may be partially translated. Review before shipping.\n`
+  );
+}
+
+if (identicalFailLocales.length > 0) {
+  console.error(
+    `  ❌ IDENTICAL-TO-ENGLISH GATE FAILED — the following locale(s) exceed ${FAIL_IDENTICAL_ABOVE}% identical values:\n` +
+    `     ${identicalFailLocales.join(", ")}\n` +
+    `     A locale this far from translated must not reach users. Translate the\n` +
+    `     flagged strings or remove the locale before pushing.\n`
+  );
+  exitCode = 1;
 }
 
 process.exit(exitCode);

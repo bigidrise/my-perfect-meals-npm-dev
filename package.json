@@ -25,7 +25,7 @@
     "db:push": "drizzle-kit push",
     "push": "git add -A && (git commit -m \"snapshot $(date -u +'%Y-%m-%dT%H:%M:%SZ')\" || echo 'nothing to commit') && git push -u origin main",
     "validate": "bash scripts/validate.sh",
-    "validate:i18n": "tsx scripts/i18n-value-quality-scan.ts",
+    "validate:i18n": "tsx scripts/i18n-value-quality-scan.ts --warn-identical-above=15 --fail-identical-above=40",
     "validate:i18n:phase0": "tsx scripts/i18n-phase0-validate.ts --ci",
     "validate:i18n:clinical": "tsx scripts/i18n-clinical-registry.ts",
     "validate:i18n:fallback": "tsx scripts/i18n-fallback-detect.ts",
