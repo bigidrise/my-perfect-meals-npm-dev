@@ -28,6 +28,8 @@
     "verify:grocery-variety-constrained": "npx tsx scripts/verify-grocery-variety.ts --constrained",
     "verify:grocery-variety-vegan-diabetic": "npx tsx scripts/verify-grocery-variety.ts --vegan-diabetic",
     "verify:grocery-variety-keto-dairy-free": "npx tsx scripts/verify-grocery-variety.ts --keto-dairy-free",
+    "verify:grocery-variety-overlap": "npx tsx scripts/verify-grocery-variety.ts --overlap",
+    "verify:grocery-variety-diet-switch": "npx tsx scripts/verify-grocery-variety.ts --diet-switch",
     "drift-check": "bash scripts/prepush-check.sh",
     "release-check": "bash scripts/release-check.sh",
     "postinstall": "npx patch-package && bash scripts/install-hooks.sh",
