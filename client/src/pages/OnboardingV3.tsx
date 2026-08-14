@@ -1375,32 +1375,56 @@ export default function OnboardingV3() {
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
       {/* Trial welcome modal — shown immediately after onboarding completes */}
-      {showTrialModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 px-6">
-          <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center space-y-5 shadow-2xl">
-            <div className="text-5xl">🎉</div>
-            <h2 className="text-2xl font-bold text-gray-900">Your 7-Day Free Trial Has Started!</h2>
-            <p className="text-gray-500 text-sm leading-relaxed">
-              You have full access to everything in MPM through{" "}
-              <span className="font-semibold text-gray-800">
-                {trialEndsAt
-                  ? new Date(trialEndsAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
-                  : "the next 7 days"}
-              </span>
-              . No credit card required to start.
-            </p>
-            <Button
-              className="w-full bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-semibold"
-              onClick={() => {
-                setShowTrialModal(false);
-                setLocation("/macro-counter?from=onboarding");
-              }}
-            >
-              Let's Go →
-            </Button>
+      {showTrialModal && (() => {
+        // Compute the actual trial duration so admin-granted 30-day trials
+        // never display "7-Day". Priority: start→end diff, then days-remaining
+        // from user context, then raw end-from-now, then safe fallback.
+        const startStr = (user as any)?.trialStartedAt as string | null;
+        const actualDays = (() => {
+          if (startStr && trialEndsAt) {
+            const ms = new Date(trialEndsAt).getTime() - new Date(startStr).getTime();
+            const d = Math.round(ms / (1000 * 60 * 60 * 24));
+            if (d > 0) return d;
+          }
+          const serverDays = (user as any)?.daysRemaining as number | undefined;
+          if (typeof serverDays === "number" && serverDays > 0) return serverDays;
+          if (trialEndsAt) {
+            const ms = new Date(trialEndsAt).getTime() - Date.now();
+            const d = Math.ceil(ms / (1000 * 60 * 60 * 24));
+            if (d > 0) return d;
+          }
+          return 7;
+        })();
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 px-6">
+            <div className="bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl p-8 max-w-sm w-full text-center space-y-5 shadow-2xl">
+              <div className="text-5xl">🎉</div>
+              <h2 className="text-2xl font-bold text-white">
+                Your {actualDays}-Day Trial Has Started!
+              </h2>
+              <p className="text-white/60 text-sm leading-relaxed">
+                You have full access to everything in MPM through{" "}
+                <span className="font-semibold text-white">
+                  {trialEndsAt
+                    ? new Date(trialEndsAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+                    : `the next ${actualDays} days`}
+                </span>
+                . No credit card required to start.
+              </p>
+              <Button
+                className="w-full bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-semibold"
+                onClick={() => {
+                  setShowTrialModal(false);
+                  setLocation("/macro-counter?from=onboarding");
+                }}
+              >
+                Let's Go →
+              </Button>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       <div className="sticky top-0 z-10 bg-black/90 backdrop-blur-sm px-4 pb-4 pt-[max(1rem,env(safe-area-inset-top))] space-y-2">
         <div className="flex items-center justify-between text-xs text-white/50">
