@@ -1538,29 +1538,25 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
           builderType="grocery-coach"
           onRefined={(refined) => {
             if (!preRefinedResult) setPreRefinedResult(result);
+            // Compute the merged result upfront so we can pass it to finalizeCard.
             // The freeform endpoint returns updatedMeal in the same CoachResult shape.
             // If it has the Grocery Coach fields (shoppingList + meal), apply them directly.
+            let mergedResult: CoachResult | null = null;
             if (refined && (refined.shoppingList !== undefined || refined.meal !== undefined)) {
-              setResult((prev) => {
-                if (!prev) return prev;
-                return {
-                  ...prev,
-                  ...(refined as Partial<CoachResult>),
-                  // Always preserve the owner key
-                };
-              });
+              mergedResult = result
+                ? { ...result, ...(refined as Partial<CoachResult>) }
+                : null;
             } else {
               // Fallback: standard meal shape from the old endpoint
-              setResult((prev) => {
-                if (!prev) return prev;
-                return {
-                  ...prev,
+              if (result) {
+                mergedResult = {
+                  ...result,
                   meal: {
-                    ...prev.meal,
-                    name: refined.name ?? prev.meal.name,
-                    description: refined.description ?? prev.meal.description,
+                    ...result.meal,
+                    name: refined.name ?? result.meal.name,
+                    description: refined.description ?? result.meal.description,
                   },
-                  macros: refined.nutrition ?? prev.macros,
+                  macros: refined.nutrition ?? result.macros,
                   shoppingList: Array.isArray(refined.ingredients)
                     ? refined.ingredients.map((i: any) => ({
                         item: typeof i === "string" ? i : (i.name ?? i.item ?? ""),
@@ -1568,11 +1564,20 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                         unit: typeof i === "string" ? "" : (i.unit ?? ""),
                         category: typeof i === "string" ? "Other" : (i.category ?? "Other"),
                       }))
-                    : prev.shoppingList,
+                    : result.shoppingList,
                 };
-              });
+              }
             }
-            setResultOwnerKey(SESSION_KEY); // refined result still belongs to this user
+            if (mergedResult) {
+              setResult(mergedResult);
+              setResultOwnerKey(SESSION_KEY); // refined result still belongs to this user
+              // Regenerate the Favorites card with the refined meal data so the
+              // saved card reflects the updated name, description, ingredients,
+              // and macros — not the original pre-refinement version.
+              setCardPhase("generating");
+              setMealCard(null);
+              finalizeCard(mergedResult);
+            }
           }}
         />
       )}
