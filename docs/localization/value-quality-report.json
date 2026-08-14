@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-14T22:12:07.498Z",
+  "generatedAt": "2026-08-14T22:16:51.256Z",
   "baseline": {
     "totalEnglishKeys": 1920
   },
@@ -330,6 +330,23 @@
       ],
       "completenessScore": "96%",
       "verdict": "✅ APPEARS TRANSLATED — low identical/empty/placeholder rate"
+    },
+    "xq": {
+      "locale": "xq",
+      "totalKeys": 1925,
+      "identicalToEnglish": 0,
+      "identicalToEnglishPct": "0.0",
+      "identicalSamples": [],
+      "emptyValues": 0,
+      "placeholderValues": 1919,
+      "interpolationMismatches": 0,
+      "interpolationMismatchSamples": [],
+      "pluralizationMismatches": 0,
+      "clinicalStrings": 1,
+      "clinicalIdenticalToEn": 0,
+      "clinicalIdenticalKeys": [],
+      "completenessScore": "0%",
+      "verdict": "⚠️  GAPS — empty or placeholder values present"
     },
     "zh": {
       "locale": "zh",
