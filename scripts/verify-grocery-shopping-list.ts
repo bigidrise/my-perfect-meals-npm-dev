@@ -1,7 +1,7 @@
 /**
  * Grocery Coach Shopping-List Completeness Verification
  *
- * Two modes selectable via CLI flag:
+ * Three modes selectable via CLI flag:
  *
  * (default / no flag) — Task 916: Zero-ownership mode
  *   Verifies shoppingList always contains the full recipe (protein + produce +
@@ -12,9 +12,16 @@
  *   claims ONE item. The claimed item must land in ownedIngredients; every
  *   other substantive ingredient must remain in shoppingList.
  *
+ * --multi-ownership — Task 926: Multi-ownership mode
+ *   Verifies the model correctly splits ingredients when the user explicitly
+ *   claims TWO items. BOTH claimed items must land in ownedIngredients; no
+ *   unclaimed items may bleed in; shoppingList must still contain at least one
+ *   substantive (non-pantry) item representing the unclaimed recipe complement.
+ *
  * Usage:
  *   npx tsx scripts/verify-grocery-shopping-list.ts
  *   npx tsx scripts/verify-grocery-shopping-list.ts --partial-ownership
+ *   npx tsx scripts/verify-grocery-shopping-list.ts --multi-ownership
  */
 
 import OpenAI from "openai";
@@ -720,12 +727,316 @@ async function callGroceryCoach(message: string): Promise<any | null> {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// MULTI-OWNERSHIP MODE (Task 926)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Each entry claims EXACTLY 2 ingredients. The evaluation checks:
+ *   A. bothClaimedPresent — BOTH claimed keywords appear in ownedIngredients
+ *      (at least one owned item must match each keyword).
+ *   B. noUnclaimedSubstantive — every item in ownedIngredients matches one of
+ *      the two claimed keywords; no other ingredients leak into ownedIngredients.
+ *   C. hasSubstantiveInShopping — shoppingList still has ≥1 Meat/Produce/Grains/etc
+ *      item (the unclaimed recipe complement must still be purchasable).
+ *   D. nonEmpty — combined list is non-empty.
+ *
+ * Re-uses PartialOwnershipPrompt / PartialRoundResult / evaluatePartialRound —
+ * those are already multi-keyword-aware via matchesClaimed().
+ * The only additional check is that EVERY keyword is individually represented.
+ */
+interface MultiOwnershipRoundResult extends PartialRoundResult {
+  /** For each claimed keyword, whether at least one owned item matched it. */
+  perKeywordHit: Map<string, boolean>;
+  /** true iff every keyword has at least one owned-item match */
+  bothClaimedPresentPass: boolean;
+}
+
+function evaluateMultiRound(
+  prompt: PartialOwnershipPrompt,
+  result: any
+): MultiOwnershipRoundResult {
+  // Run the base partial evaluation (covers B, C, D, and the union A check).
+  const base = evaluatePartialRound(prompt, result);
+
+  // Additional check: every keyword must have at least one matching owned item.
+  const ownedIngredients = base.ownedIngredients;
+  const perKeywordHit = new Map<string, boolean>();
+  for (const kw of prompt.claimedKeywords) {
+    const hit = ownedIngredients.some((o) =>
+      o.item.toLowerCase().includes(kw.toLowerCase())
+    );
+    perKeywordHit.set(kw, hit);
+  }
+  const bothClaimedPresentPass = [...perKeywordHit.values()].every(Boolean);
+
+  return {
+    ...base,
+    perKeywordHit,
+    bothClaimedPresentPass,
+  };
+}
+
+const MULTI_OWNERSHIP_PROMPTS: PartialOwnershipPrompt[] = [
+  {
+    label: "Protein + starch (chicken + rice)",
+    message:
+      "I have chicken breast and rice at home — what else do I need to buy to make a complete dinner tonight?",
+    claimedKeywords: ["chicken", "rice"],
+  },
+  {
+    label: "Protein + produce (salmon + broccoli)",
+    message:
+      "I already have salmon and broccoli in my fridge. What else should I grab from the store to round out the meal?",
+    claimedKeywords: ["salmon", "broccoli"],
+  },
+  {
+    label: "Starch + produce (sweet potato + spinach)",
+    message:
+      "I bought sweet potatoes and spinach earlier — what protein and anything else do I still need to buy?",
+    claimedKeywords: ["sweet potato", "spinach"],
+  },
+  {
+    label: "Two proteins (ground beef + black beans)",
+    message:
+      "I have ground beef and black beans at home. What vegetables and other items do I need to pick up for a healthy dinner?",
+    claimedKeywords: ["ground beef", "black bean"],
+  },
+];
+
+function printMultiRoundReport(r: MultiOwnershipRoundResult, idx: number, total: number): void {
+  console.log(`\n${"─".repeat(68)}`);
+  console.log(`Round ${idx}/${total} — ${r.label}`);
+  console.log(`  Prompt     : "${r.message}"`);
+  console.log(`  Claimed    : ${r.claimedKeywords.map((k) => `"${k}"`).join(", ")}`);
+  console.log(`  Meal       : ${r.mealName}`);
+
+  // Print ownedIngredients
+  console.log(`  Owned (${r.ownedIngredients.length}): ${
+    r.ownedIngredients.length === 0
+      ? "(none)"
+      : r.ownedIngredients.map((o) => `${o.item} [${o.quantity} ${o.unit}]`).join(", ")
+  }`);
+
+  // Print shoppingList by category
+  console.log(`  Shopping (${r.shoppingList.length} items):`);
+  if (r.shoppingList.length > 0) {
+    const byCategory: Record<string, string[]> = {};
+    for (const item of r.shoppingList) {
+      const cat = item.category || "Other";
+      if (!byCategory[cat]) byCategory[cat] = [];
+      byCategory[cat].push(item.item);
+    }
+    for (const [cat, items] of Object.entries(byCategory)) {
+      const tag = SUBSTANTIVE_CATEGORIES.has(cat) ? " ✅" : " (pantry)";
+      console.log(`    ${cat}${tag}: ${items.join(", ")}`);
+    }
+  }
+
+  // Check A — both claimed keywords must appear in ownedIngredients
+  if (r.bothClaimedPresentPass) {
+    console.log(
+      `  ✅ CHECK A — BOTH claimed items appear in ownedIngredients: ` +
+      r.matchedOwned.map((o) => `"${o.item}"`).join(", ")
+    );
+  } else {
+    const missing = r.claimedKeywords.filter((kw) => !r.perKeywordHit.get(kw));
+    console.log(
+      `  ❌ CHECK A — NOT all claimed items appear in ownedIngredients.` +
+      ` Missing keyword(s): ${missing.map((k) => `"${k}"`).join(", ")}.` +
+      ` ownedIngredients is: ${
+        r.ownedIngredients.length === 0
+          ? "(empty)"
+          : r.ownedIngredients.map((o) => `"${o.item}"`).join(", ")
+      }`
+    );
+  }
+
+  // Check B — no unclaimed items in ownedIngredients
+  if (r.noUnclaimedSubstantivePass) {
+    console.log(`  ✅ CHECK B — no unclaimed items in ownedIngredients (model did not over-extend ownership)`);
+  } else {
+    console.log(
+      `  ❌ CHECK B — unclaimed item(s) leaked into ownedIngredients: ` +
+      r.unclaimedOwned.map((o) => `"${o.item}"`).join(", ")
+    );
+    console.log(`               The user never claimed these — they must appear in shoppingList.`);
+  }
+
+  // Check C — shoppingList still has substantive items
+  if (r.hasSubstantiveInShoppingPass) {
+    console.log(
+      `  ✅ CHECK C — shoppingList has ${r.substantiveShoppingItems.length} substantive item(s): ` +
+      r.substantiveShoppingItems.slice(0, 5).map((i) => `${i.item} [${i.category}]`).join(", ") +
+      (r.substantiveShoppingItems.length > 5 ? "…" : "")
+    );
+  } else {
+    const cats = r.categoriesFound.join(", ") || "(none)";
+    console.log(
+      `  ❌ CHECK C — shoppingList has ONLY pantry/Other items. ` +
+      `Both claimed items were owned, but the remaining main ingredients ` +
+      `(produce, sauce, starch, etc.) are MISSING. Categories found: ${cats}`
+    );
+  }
+
+  // Check D
+  if (r.nonEmptyPass) {
+    console.log(`  ✅ CHECK D — combined ingredient list is non-empty`);
+  } else {
+    console.log(`  ❌ CHECK D — both shoppingList and ownedIngredients are completely empty`);
+  }
+}
+
+async function runMultiOwnershipMode(): Promise<void> {
+  const total = MULTI_OWNERSHIP_PROMPTS.length;
+
+  console.log("=".repeat(70));
+  console.log("Grocery Coach Multi-Ownership Verification — Task 926");
+  console.log("Validates : when the user claims TWO ingredients explicitly,");
+  console.log("  A. BOTH claimed items land in ownedIngredients,");
+  console.log("  B. no unclaimed items bleed into ownedIngredients,");
+  console.log("  C. shoppingList still contains the remaining substantive");
+  console.log("     ingredients (produce, sauce, etc.) for the meal.");
+  console.log(`Rounds    : ${total} scenarios (protein+starch, protein+produce,`);
+  console.log("           starch+produce, two-protein)");
+  console.log("=".repeat(70));
+
+  const rounds: MultiOwnershipRoundResult[] = [];
+
+  for (let i = 0; i < MULTI_OWNERSHIP_PROMPTS.length; i++) {
+    const prompt = MULTI_OWNERSHIP_PROMPTS[i];
+    process.stdout.write(`\nRound ${i + 1}/${total} — ${prompt.label} — calling AI...`);
+
+    const raw = await callGroceryCoach(prompt.message);
+    if (!raw) {
+      console.error(`\n❌ Round ${i + 1} (${prompt.label}): AI returned unparseable response — aborting.`);
+      process.exit(1);
+    }
+    console.log(" ✓");
+
+    const r = evaluateMultiRound(prompt, raw);
+    printMultiRoundReport(r, i + 1, total);
+    rounds.push(r);
+  }
+
+  // ── Summary table ────────────────────────────────────────────────────────────
+  console.log("\n" + "=".repeat(70));
+  console.log("RESULTS SUMMARY — Multi-Ownership Mode");
+  console.log("=".repeat(70));
+
+  const col1 = 36;
+  const col2 = 10;
+  console.log(
+    `${"Round".padEnd(col1)} ${"BothOwned".padEnd(col2 + 2)} ${"NoUnclaimed".padEnd(col2 + 2)} ${"HasSubst".padEnd(col2)} Overall`
+  );
+  console.log("-".repeat(70));
+
+  let allPassed = true;
+  const failedRounds: string[] = [];
+
+  for (const r of rounds) {
+    const roundPassed =
+      r.bothClaimedPresentPass &&
+      r.noUnclaimedSubstantivePass &&
+      r.hasSubstantiveInShoppingPass &&
+      r.nonEmptyPass;
+    if (!roundPassed) {
+      allPassed = false;
+      failedRounds.push(r.label);
+    }
+
+    const a = r.bothClaimedPresentPass      ? "✅ PASS" : "❌ FAIL";
+    const b = r.noUnclaimedSubstantivePass  ? "✅ PASS" : "❌ FAIL";
+    const c = r.hasSubstantiveInShoppingPass ? "✅ PASS" : "❌ FAIL";
+    const overall = roundPassed             ? "✅ PASS" : "❌ FAIL";
+    console.log(
+      `${r.label.padEnd(col1)} ${a.padEnd(col2 + 2)} ${b.padEnd(col2 + 2)} ${c.padEnd(col2)} ${overall}`
+    );
+  }
+
+  // ── Failure detail ───────────────────────────────────────────────────────────
+  if (!allPassed) {
+    console.log("\nFAILURE DETAIL");
+    console.log("-".repeat(70));
+
+    for (const r of rounds) {
+      if (!r.bothClaimedPresentPass) {
+        const missing = r.claimedKeywords.filter((kw) => !r.perKeywordHit.get(kw));
+        console.error(
+          `❌ [${r.label}] One or more claimed keywords were NOT placed in ownedIngredients.\n` +
+          `   Missing: ${missing.map((k) => `"${k}"`).join(", ")}\n` +
+          `   ownedIngredients contains: ${
+            r.ownedIngredients.length === 0
+              ? "(nothing)"
+              : r.ownedIngredients.map((o) => `"${o.item}"`).join(", ")
+          }\n` +
+          `   FIX: The model missed one of the two explicit ownership claims. ` +
+          `Check the CRITICAL ownedIngredients rule in server/routes/groceryCoach.ts — ` +
+          `it must honour ALL explicitly stated ingredients, not just the first one.`
+        );
+      }
+      if (!r.noUnclaimedSubstantivePass) {
+        console.error(
+          `❌ [${r.label}] Unclaimed item(s) leaked into ownedIngredients:\n` +
+          r.unclaimedOwned.map((o) => `   - "${o.item}"`).join("\n") + "\n" +
+          `   These ingredients were NOT mentioned by the user as already owned.\n` +
+          `   FIX: The model over-extended ownership — it inferred ownership from the\n` +
+          `   meal name or description. Check the CRITICAL ownedIngredients rule in\n` +
+          `   server/routes/groceryCoach.ts.`
+        );
+      }
+      if (!r.hasSubstantiveInShoppingPass) {
+        const cats = r.categoriesFound.join(", ") || "(none)";
+        console.error(
+          `❌ [${r.label}] shoppingList contains ONLY pantry/condiment items.\n` +
+          `   Both claimed items were placed in ownedIngredients, but the remaining\n` +
+          `   main recipe ingredients are missing from shoppingList.\n` +
+          `   Categories returned: ${cats}\n` +
+          `   FIX: After anchoring the two owned items, the model dropped the rest of\n` +
+          `   the recipe from shoppingList. Review the system prompt in groceryCoach.ts —\n` +
+          `   "Every ingredient required to cook the recommended meal that the user did\n` +
+          `   not explicitly claim to already own MUST appear in shoppingList."`
+        );
+      }
+      if (!r.nonEmptyPass) {
+        console.error(
+          `❌ [${r.label}] Both shoppingList and ownedIngredients are completely empty.`
+        );
+      }
+    }
+  }
+
+  // ── Verdict ──────────────────────────────────────────────────────────────────
+  console.log("\n" + "=".repeat(70));
+  if (allPassed) {
+    console.log(`🎉 VERDICT: PASS — all ${total} multi-ownership rounds are correct.`);
+    console.log("   Both claimed ingredients landed in ownedIngredients,");
+    console.log("   no unclaimed items bled in, and shoppingList still contained");
+    console.log("   the remaining substantive recipe ingredients.");
+  } else {
+    console.log("❌ VERDICT: FAIL — multi-ownership ingredient handling is broken.");
+    console.log(`   Failed rounds: ${failedRounds.join(", ")}`);
+    console.log("   The model either missed a claimed item in ownedIngredients,");
+    console.log("   over-extended ownership to unclaimed ingredients, or");
+    console.log("   dropped remaining recipe ingredients from shoppingList.");
+    console.log("   Root cause: review the CRITICAL ownedIngredients rule in");
+    console.log("   server/routes/groceryCoach.ts.");
+    process.exitCode = 1;
+  }
+  console.log("=".repeat(70) + "\n");
+
+  process.exit(process.exitCode ?? 0);
+}
+
 // ── Entry point ───────────────────────────────────────────────────────────────
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const isPartialOwnership = args.includes("--partial-ownership");
+  const isMultiOwnership   = args.includes("--multi-ownership");
 
-  if (isPartialOwnership) {
+  if (isMultiOwnership) {
+    await runMultiOwnershipMode();
+  } else if (isPartialOwnership) {
     await runPartialOwnershipMode();
   } else {
     await runZeroOwnershipMode();
