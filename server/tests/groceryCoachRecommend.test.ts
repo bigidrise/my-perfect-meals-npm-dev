@@ -612,4 +612,228 @@ describe("POST /api/grocery-coach/recommend — protocol scan + GLP-1 validation
       },
     );
   });
+
+  // ── 4. Session rejection avoidance ────────────────────────────────────────
+  //
+  // Verifies that when the current `message` or a user turn in conversationHistory
+  // contains a rejection signal, only the meal recommended in the immediately
+  // preceding assistant turn is added to the avoid-list — not all session meals.
+  describe("session rejection avoidance", () => {
+    /** Build an assistant turn whose content is a valid JSON recommendation. */
+    function makeAssistantTurn(mealName: string): { role: string; content: string } {
+      return {
+        role: "assistant",
+        content: JSON.stringify(
+          makeValidCoachResult({
+            meal: {
+              name: mealName,
+              description: "A tasty option.",
+              prepTime: "20 minutes",
+              servings: 1,
+            },
+          }),
+        ),
+      };
+    }
+
+    test(
+      "current message is a rejection — last recommended meal added to avoid-list in system prompt",
+      async () => {
+        openAIResponseQueue.push(() =>
+          makeValidCoachResult({
+            meal: { name: "Chicken Stir-fry", description: "Quick stir-fry.", prepTime: "15 min", servings: 1 },
+          })
+        );
+
+        const res = await request(app)
+          .post("/api/grocery-coach/recommend")
+          .send({
+            message: "No, I don't want that. Suggest something else.",
+            conversationHistory: [
+              { role: "user", content: "What should I make for dinner?" },
+              makeAssistantTurn("Grilled Salmon"),
+            ],
+            servingCount: 1,
+          });
+
+        expect(res.status).toBe(200);
+        expect(capturedCalls).toHaveLength(1);
+
+        const systemPrompt = capturedCalls[0].systemContent;
+        // The rejected meal name must appear in the avoid section.
+        expect(systemPrompt).toContain("Grilled Salmon");
+        // The explicit rejection note must be present.
+        expect(systemPrompt).toContain("EXPLICITLY REJECTED");
+      },
+    );
+
+    test(
+      "rejection in history pairs with the immediately preceding assistant recommendation only",
+      async () => {
+        openAIResponseQueue.push(() => makeValidCoachResult());
+
+        const res = await request(app)
+          .post("/api/grocery-coach/recommend")
+          .send({
+            message: "What about something with beef?",
+            conversationHistory: [
+              { role: "user", content: "What should I make for dinner?" },
+              makeAssistantTurn("Salmon Bowl"),
+              { role: "user", content: "No, I don't want fish. Something different." },
+              makeAssistantTurn("Chicken Tacos"),
+              { role: "user", content: "Not that either." },
+            ],
+            servingCount: 1,
+          });
+
+        expect(res.status).toBe(200);
+        const systemPrompt = capturedCalls[0].systemContent;
+        // Both meals that were rejected in history must appear.
+        expect(systemPrompt).toContain("Salmon Bowl");
+        expect(systemPrompt).toContain("Chicken Tacos");
+      },
+    );
+
+    test(
+      "non-rejection message — no session rejection note injected into system prompt",
+      async () => {
+        openAIResponseQueue.push(() => makeValidCoachResult());
+
+        const res = await request(app)
+          .post("/api/grocery-coach/recommend")
+          .send({
+            message: "What should I make for dinner tonight?",
+            conversationHistory: [
+              { role: "user", content: "Hello!" },
+              makeAssistantTurn("Grilled Salmon"),
+            ],
+            servingCount: 1,
+          });
+
+        expect(res.status).toBe(200);
+        const systemPrompt = capturedCalls[0].systemContent;
+        // No rejection was made, so the explicit rejection note must NOT appear.
+        expect(systemPrompt).not.toContain("EXPLICITLY REJECTED");
+      },
+    );
+
+    test(
+      "rejection with no prior assistant turns — no crash, no meal in avoid-list",
+      async () => {
+        openAIResponseQueue.push(() => makeValidCoachResult());
+
+        const res = await request(app)
+          .post("/api/grocery-coach/recommend")
+          .send({
+            message: "No, something different please.",
+            conversationHistory: [],
+            servingCount: 1,
+          });
+
+        expect(res.status).toBe(200);
+        expect(capturedCalls).toHaveLength(1);
+        // No prior recommendations to reject, so the rejection note must NOT appear.
+        const systemPrompt = capturedCalls[0].systemContent;
+        expect(systemPrompt).not.toContain("EXPLICITLY REJECTED");
+      },
+    );
+
+    test(
+      "omitted conversationHistory — no crash, treated as empty",
+      async () => {
+        openAIResponseQueue.push(() => makeValidCoachResult());
+
+        const res = await request(app)
+          .post("/api/grocery-coach/recommend")
+          .send({ message: "What should I make for dinner?", servingCount: 1 });
+
+        expect(res.status).toBe(200);
+        expect(capturedCalls).toHaveLength(1);
+      },
+    );
+
+    test(
+      "conversationHistory is null — no crash, treated as empty",
+      async () => {
+        openAIResponseQueue.push(() => makeValidCoachResult());
+
+        const res = await request(app)
+          .post("/api/grocery-coach/recommend")
+          .send({
+            message: "What should I make for dinner?",
+            conversationHistory: null,
+            servingCount: 1,
+          });
+
+        expect(res.status).toBe(200);
+        expect(capturedCalls).toHaveLength(1);
+      },
+    );
+
+    test(
+      "conversationHistory is a non-array object — no crash, treated as empty",
+      async () => {
+        openAIResponseQueue.push(() => makeValidCoachResult());
+
+        const res = await request(app)
+          .post("/api/grocery-coach/recommend")
+          .send({
+            message: "What should I make for dinner?",
+            conversationHistory: { role: "user", content: "hello" },
+            servingCount: 1,
+          });
+
+        expect(res.status).toBe(200);
+        expect(capturedCalls).toHaveLength(1);
+      },
+    );
+
+    test(
+      "conversationHistory contains null entries — null entries are skipped, valid turns processed",
+      async () => {
+        openAIResponseQueue.push(() => makeValidCoachResult());
+
+        const res = await request(app)
+          .post("/api/grocery-coach/recommend")
+          .send({
+            message: "No, something different please.",
+            conversationHistory: [
+              null,
+              { role: "user", content: "What should I make?" },
+              null,
+              makeAssistantTurn("Grilled Salmon"),
+              null,
+            ],
+            servingCount: 1,
+          });
+
+        expect(res.status).toBe(200);
+        expect(capturedCalls).toHaveLength(1);
+        // Valid assistant turn was parsed; rejection note must appear.
+        expect(capturedCalls[0].systemContent).toContain("Grilled Salmon");
+      },
+    );
+
+    test(
+      "conversationHistory entries with non-string role/content — safely skipped or normalized",
+      async () => {
+        openAIResponseQueue.push(() => makeValidCoachResult());
+
+        const res = await request(app)
+          .post("/api/grocery-coach/recommend")
+          .send({
+            message: "What should I make for dinner?",
+            conversationHistory: [
+              { role: 42, content: "hello" },          // non-string role
+              { role: "user", content: ["array"] },    // non-string content
+              {},                                       // missing both fields
+            ],
+            servingCount: 1,
+          });
+
+        expect(res.status).toBe(200);
+        expect(capturedCalls).toHaveLength(1);
+      },
+    );
+  });
 });

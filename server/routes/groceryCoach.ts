@@ -36,7 +36,19 @@ router.post("/recommend", async (req, res) => {
   try {
     const userId = resolveUserId(req);
 
-    const { message, conversationHistory = [], servingCount } = req.body;
+    const { message, conversationHistory: rawHistory, servingCount } = req.body;
+    // Normalize conversationHistory: must be an array of objects with string role/content.
+    // Accepts missing, null, non-array, and entries that are null or non-objects.
+    const conversationHistory: Array<{ role: string; content: string }> = (() => {
+      if (!Array.isArray(rawHistory)) return [];
+      return rawHistory
+        .filter((m): m is Record<string, unknown> => m !== null && typeof m === "object")
+        .map((m) => ({
+          role: typeof m.role === "string" ? m.role : "",
+          content: typeof m.content === "string" ? m.content : "",
+        }))
+        .filter((m) => m.role !== "");
+    })();
 
     if (!message || typeof message !== "string") {
       return res.status(400).json({ error: "Message is required." });
@@ -145,6 +157,111 @@ router.post("/recommend", async (req, res) => {
     const dietaryIdentityTag = groceryEnvelope.dietaryIdentity?.length
       ? [...groceryEnvelope.dietaryIdentity].sort().join(",").toLowerCase()
       : "omnivore";
+
+    // ── Session rejection detection ────────────────────────────────────────────
+    // Inspect both conversationHistory and the current message for explicit user
+    // rejection signals. When found, extract only the meal that was being rejected
+    // (the assistant turn immediately before each rejection) and add those names to
+    // the variety avoid-list for this request.
+    const REJECTION_PATTERNS = [
+      /\bno\b/i,
+      /\bdifferent\b/i,
+      /\bsomething else\b/i,
+      /\bi don'?t want\b/i,
+      /\bnot that\b/i,
+      /\bdon'?t like\b/i,
+      /\bchange it\b/i,
+      /\bsuggest (another|a different|something else)\b/i,
+      /\btry (again|another|something)\b/i,
+      /\bnot (interested|into|feeling)\b/i,
+      /\bpass\b/i,
+      /\bskip\b/i,
+    ];
+
+    function isRejectionText(text: string): boolean {
+      return REJECTION_PATTERNS.some((re) => re.test(text));
+    }
+
+    function hasRejectionSignal(history: any[], currentMsg: string): boolean {
+      // Check the current message first — this is the most common rejection path.
+      if (isRejectionText(currentMsg)) return true;
+      // Also scan the recent user turns in history (covers multi-turn sessions).
+      return history
+        .filter((m: any) => m.role === "user")
+        .slice(-10)
+        .some((m: any) => isRejectionText(typeof m.content === "string" ? m.content : ""));
+    }
+
+    /** Parse a meal name from an assistant JSON turn; returns null on failure. */
+    function parseMealNameFromAssistantTurn(turn: any): string | null {
+      if (!turn || turn.role !== "assistant") return null;
+      try {
+        const parsed = typeof turn.content === "string" ? JSON.parse(turn.content) : turn.content;
+        const name = parsed?.meal?.name;
+        return typeof name === "string" && name.trim() ? name.trim() : null;
+      } catch {
+        return null;
+      }
+    }
+
+    /**
+     * For each rejection signal (current message + user turns in history),
+     * extract the meal name from the assistant turn immediately before that
+     * rejection. This associates only the rejected meal with the signal rather
+     * than every meal in the session.
+     */
+    function extractRejectedMealNames(history: any[], currentMsg: string): string[] {
+      const rejected: string[] = [];
+      const seen = new Set<string>();
+
+      function add(name: string | null) {
+        if (name && !seen.has(name.toLowerCase())) {
+          seen.add(name.toLowerCase());
+          rejected.push(name);
+        }
+      }
+
+      // If the current message is a rejection, pair it with the last assistant turn in history.
+      if (isRejectionText(currentMsg)) {
+        for (let i = history.length - 1; i >= 0; i--) {
+          if (history[i].role === "assistant") {
+            add(parseMealNameFromAssistantTurn(history[i]));
+            break;
+          }
+        }
+      }
+
+      // Also scan history: each user rejection turn is paired with the assistant
+      // turn immediately before it.
+      for (let i = 0; i < history.length; i++) {
+        const turn = history[i];
+        if (
+          turn.role === "user" &&
+          isRejectionText(typeof turn.content === "string" ? turn.content : "")
+        ) {
+          for (let j = i - 1; j >= 0; j--) {
+            if (history[j].role === "assistant") {
+              add(parseMealNameFromAssistantTurn(history[j]));
+              break;
+            }
+          }
+        }
+      }
+
+      return rejected;
+    }
+
+    const sessionHasRejection = hasRejectionSignal(conversationHistory as any[], message);
+    const sessionRejectedMealNames = sessionHasRejection
+      ? extractRejectedMealNames(conversationHistory as any[], message)
+      : [];
+
+    if (sessionHasRejection && sessionRejectedMealNames.length > 0) {
+      console.log(
+        `[GroceryCoach] Session rejection detected — adding ${sessionRejectedMealNames.length} session meal(s) to avoid-list: ${sessionRejectedMealNames.join(", ")}`
+      );
+    }
+
     let varietyBlock = "";
     if (userId) {
       let dbHistory: Array<{ mealName: string; primaryProtein: string | null; cuisineStyle: string | null; majorStarch: string | null; cookingMethod: string | null }> = [];
@@ -173,7 +290,15 @@ router.post("/recommend", async (req, res) => {
       } catch (histErr: any) {
         console.warn("[GroceryCoach] Could not load variety history:", histErr?.message);
       }
-      const allAvoidNames = dbHistory.map((e) => e.mealName).filter(Boolean);
+
+      // Merge DB history names with session-rejected names (deduplicated).
+      const dbAvoidNames = dbHistory.map((e) => e.mealName).filter(Boolean);
+      const sessionAvoidSet = new Set(sessionRejectedMealNames.map((n) => n.toLowerCase()));
+      // Session-rejected meals come first so they are most prominent to the model.
+      const allAvoidNames = [
+        ...sessionRejectedMealNames,
+        ...dbAvoidNames.filter((n) => !sessionAvoidSet.has(n.toLowerCase())),
+      ];
 
       if (allAvoidNames.length > 0) {
         const avoidList = allAvoidNames.slice(0, 20).map((n) => `- ${n}`).join("\n");
@@ -182,18 +307,36 @@ router.post("/recommend", async (req, res) => {
           return dims.length ? `- ${e.mealName} (${dims.join(", ")})` : `- ${e.mealName}`;
         }).join("\n");
 
+        const sessionRejectionNote = sessionRejectedMealNames.length > 0
+          ? `\n- The user EXPLICITLY REJECTED the following meal(s) in this session — under no circumstances suggest them again: ${sessionRejectedMealNames.map((n) => `"${n}"`).join(", ")}.`
+          : "";
+
         varietyBlock = `
 
 VARIETY RULES:
 - NEVER recommend a meal whose name or core structure matches anything in the PREVIOUSLY RECOMMENDED list below.
 - Actively rotate: protein type, cuisine/regional style, major starch, and cooking method. If recent meals all used chicken, pick a different protein. If they all used Italian style, try another cuisine.
 - If the user explicitly names a food they want (e.g. "I want chicken pasta again"), honour that — explicit intent overrides variety.
-- Saved Groceries preferences may still guide product choices inside the new meal; variety applies to the meal structure, not saved product brands.
+- Saved Groceries preferences may still guide product choices inside the new meal; variety applies to the meal structure, not saved product brands.${sessionRejectionNote}
 
 PREVIOUSLY RECOMMENDED — DO NOT REPEAT:
 ${avoidList}${recentPatterns ? `\n\nRECENT PATTERNS TO ROTATE AWAY FROM:\n${recentPatterns}` : ""}`;
+      } else if (sessionRejectedMealNames.length > 0) {
+        // Rejections exist but no DB history — still surface the session block.
+        const sessionAvoidList = sessionRejectedMealNames.map((n) => `- ${n}`).join("\n");
+        varietyBlock = `
+
+VARIETY RULES:
+- The user EXPLICITLY REJECTED the following meal(s) in this session — under no circumstances suggest them again: ${sessionRejectedMealNames.map((n) => `"${n}"`).join(", ")}.
+- Actively rotate: protein type, cuisine/regional style, major starch, and cooking method.
+- If the user explicitly names a food they want, honour that — explicit intent overrides variety.
+
+PREVIOUSLY RECOMMENDED — DO NOT REPEAT:
+${sessionAvoidList}`;
       }
     }
+    // Note: session rejection logic only runs for authenticated users (route is
+    // auth-gated; guests receive 401 before reaching this code).
 
     const systemPrompt = `You are a Grocery Store Coach — a real, confident nutrition coach who helps users decide exactly what to make for dinner and what to buy at the grocery store. You are NOT a recipe generator or meal builder. You are a decision-making assistant.
 
