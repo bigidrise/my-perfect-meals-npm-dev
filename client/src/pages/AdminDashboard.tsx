@@ -4,7 +4,7 @@ import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
-import { Search, User, ShieldAlert, LogOut, RefreshCw, Ban, CheckCircle, RotateCcw, KeyRound, ChefHat, ArrowRight, Award, Users, Download, Mail, Bug, Gift } from "lucide-react";
+import { Search, User, ShieldAlert, LogOut, RefreshCw, Ban, CheckCircle, RotateCcw, KeyRound, ChefHat, ArrowRight, Award, Users, Download, Mail, Bug, Gift, Clock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const ENV = import.meta.env.MODE === "production" ? "PRODUCTION" : "DEVELOPMENT";
@@ -48,6 +48,17 @@ type AdminUser = {
   signupSource: string | null;
 };
 
+type TrialGrant = {
+  id: string;
+  granted_at: string;
+  trial_source: string;
+  trial_tier: string;
+  trial_ends_at: string;
+  notes: string | null;
+  is_superseded: boolean;
+  granted_by_email: string | null;
+};
+
 function useAdminAction() {
   const { toast } = useToast();
   const [loading, setLoading] = useState<string | null>(null);
@@ -85,6 +96,33 @@ function StatusPill({ value, truthy = true }: { value: unknown; truthy?: boolean
 function UserDetail({ user, onAction }: { user: AdminUser; onAction: (label: string, path: string, confirm?: string) => void }) {
   const { act, loading } = useAdminAction();
   const run = (label: string, path: string, confirm?: string) => act(label, user.id, `users/${user.id}/${path}`, confirm);
+  const { toast } = useToast();
+  const [grants, setGrants] = useState<TrialGrant[]>([]);
+  const [grantsLoading, setGrantsLoading] = useState(false);
+  const [grantsLoaded, setGrantsLoaded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setGrantsLoaded(false);
+    setGrants([]);
+    setGrantsLoading(true);
+    fetch(apiUrl(`/api/trial/admin/users/${user.id}/trial-grants`), { headers: getAuthHeaders() })
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancelled) return;
+        setGrants(data.grants ?? []);
+        setGrantsLoaded(true);
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        toast({ title: "Could not load trial grant history", description: e.message, variant: "destructive" });
+        setGrantsLoaded(true);
+      })
+      .finally(() => {
+        if (!cancelled) setGrantsLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [user.id]);
 
   const actions = [
     {
@@ -232,6 +270,64 @@ function UserDetail({ user, onAction }: { user: AdminUser; onAction: (label: str
               );
             })}
           </div>
+        </div>
+
+        {/* Trial Grant History */}
+        <div className="border-t border-white/10 pt-4">
+          <p className="text-xs text-white/30 mb-3 uppercase tracking-wide flex items-center gap-1.5">
+            <Clock className="h-3 w-3" />
+            Trial Grant History
+          </p>
+          {grantsLoading && <p className="text-xs text-white/40">Loading…</p>}
+          {grantsLoaded && grants.length === 0 && (
+            <p className="text-xs text-white/30 italic">No trial grants recorded for this user.</p>
+          )}
+          {grantsLoaded && grants.length > 0 && (
+            <div className="rounded-lg border border-white/10 overflow-hidden">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-white/5 text-white/40 text-left">
+                    <th className="px-3 py-2 font-medium">Granted At</th>
+                    <th className="px-3 py-2 font-medium">Granted By</th>
+                    <th className="px-3 py-2 font-medium">Source</th>
+                    <th className="px-3 py-2 font-medium">Expires</th>
+                    <th className="px-3 py-2 font-medium">Notes</th>
+                    <th className="px-3 py-2 font-medium">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {grants.map((g) => (
+                    <tr key={g.id} className="border-t border-white/5 hover:bg-white/5 transition">
+                      <td className="px-3 py-2 text-white/70 whitespace-nowrap">
+                        {new Date(g.granted_at).toLocaleString()}
+                      </td>
+                      <td className="px-3 py-2 text-white/60 max-w-[140px] truncate">
+                        {g.granted_by_email ?? <span className="text-white/30 italic">system</span>}
+                      </td>
+                      <td className="px-3 py-2">
+                        <span className="px-1.5 py-0.5 rounded bg-orange-600/20 text-orange-300">
+                          {g.trial_source}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-white/60 whitespace-nowrap">
+                        {new Date(g.trial_ends_at).toLocaleDateString()}
+                      </td>
+                      <td className="px-3 py-2 text-white/50 max-w-[160px] truncate">
+                        {g.notes ?? <span className="italic text-white/20">—</span>}
+                      </td>
+                      <td className="px-3 py-2">
+                        {g.is_superseded ? (
+                          <span className="px-1.5 py-0.5 rounded bg-white/10 text-white/30">superseded</span>
+                        ) : (
+                          <span className="px-1.5 py-0.5 rounded bg-green-600/20 text-green-400">active</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
