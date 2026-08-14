@@ -348,7 +348,83 @@ describe('"Try a Different Meal" (Generate Another) path', () => {
   });
 });
 
-// ── 4. Session persistence — cleared preRefinedResult is not rehydrated ───────
+// ── 4. "Restore original" button dismisses itself ────────────────────────────
+
+describe('"Restore original" button self-dismissal', () => {
+  it('tapping "Restore original" hides the banner and restores the original meal', async () => {
+    await renderAndGetFirstResult();
+    await refineCurrentMeal(REFINED_RESULT);
+
+    // Banner and refined meal name are visible
+    await waitFor(() =>
+      expect(screen.getByText('Restore original')).toBeInTheDocument(),
+    );
+    expect(screen.getByText('Herb-Crusted Grilled Chicken')).toBeInTheDocument();
+
+    // Tap "Restore original"
+    await act(async () => {
+      fireEvent.click(screen.getByText('Restore original'));
+    });
+
+    // Banner must be gone immediately
+    expect(screen.queryByText('Restore original')).not.toBeInTheDocument();
+    expect(screen.queryByText('Showing refined version')).not.toBeInTheDocument();
+
+    // The original meal name must be back
+    await waitFor(() =>
+      expect(screen.getByText('Grilled Chicken')).toBeInTheDocument(),
+    );
+    expect(screen.queryByText('Herb-Crusted Grilled Chicken')).not.toBeInTheDocument();
+  });
+
+  it('restoring mid-refinement-chain (double refinement) clears banner and shows first original', async () => {
+    const SECOND_REFINED_RESULT = {
+      ...FIRST_RESULT,
+      meal: {
+        ...FIRST_RESULT.meal,
+        name: 'Double-Refined Chicken',
+        description: 'Refined twice',
+      },
+    };
+
+    await renderAndGetFirstResult();
+
+    // First refinement: original → REFINED_RESULT
+    await refineCurrentMeal(REFINED_RESULT);
+    await waitFor(() =>
+      expect(screen.getByText('Restore original')).toBeInTheDocument(),
+    );
+    expect(screen.getByText('Herb-Crusted Grilled Chicken')).toBeInTheDocument();
+
+    // Second refinement: REFINED_RESULT → SECOND_REFINED_RESULT
+    // The component guards setPreRefinedResult so the FIRST original is preserved.
+    await refineCurrentMeal(SECOND_REFINED_RESULT);
+    await waitFor(() =>
+      expect(screen.getByText('Double-Refined Chicken')).toBeInTheDocument(),
+    );
+
+    // Banner still visible after second refinement
+    expect(screen.getByText('Restore original')).toBeInTheDocument();
+
+    // Tap restore — should jump back to the first original, not the intermediate
+    await act(async () => {
+      fireEvent.click(screen.getByText('Restore original'));
+    });
+
+    // Banner gone
+    expect(screen.queryByText('Restore original')).not.toBeInTheDocument();
+    expect(screen.queryByText('Showing refined version')).not.toBeInTheDocument();
+
+    // The very first result is back (not the intermediate REFINED_RESULT)
+    await waitFor(() =>
+      expect(screen.getByText('Grilled Chicken')).toBeInTheDocument(),
+    );
+    expect(screen.queryByText('Herb-Crusted Grilled Chicken')).not.toBeInTheDocument();
+    expect(screen.queryByText('Double-Refined Chicken')).not.toBeInTheDocument();
+  });
+});
+
+// ── 5. Session persistence — cleared preRefinedResult is not rehydrated ───────
 
 describe('Session persistence — preRefinedResult not rehydrated after sendMessage', () => {
   it('a page reload after sendMessage does not restore the Restore Original banner', async () => {
