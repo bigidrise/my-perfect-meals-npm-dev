@@ -2374,85 +2374,85 @@
   "sharedComponents": {
     "navigation": {
       "appName": "My Perfect Meals",
-      "features": "Features",
-      "howItWorks": "How It Works",
-      "pricing": "Pricing",
-      "signIn": "Sign In"
+      "features": "विशेषताएँ",
+      "howItWorks": "यह कैसे काम करता है",
+      "pricing": "मूल्य निर्धारण",
+      "signIn": "साइन इन करें"
     },
     "errorBoundary": {
-      "title": "Something went wrong",
-      "description": "We're having trouble loading this page. Please refresh and try again.",
-      "refresh": "Refresh Page"
+      "title": "कुछ गलत हो गया",
+      "description": "इस पृष्ठ को लोड करने में समस्या हो रही है। कृपया रीफ्रेश करें और पुनः प्रयास करें।",
+      "refresh": "पृष्ठ रीफ्रेश करें"
     },
     "dateSlotPicker": {
-      "placeholder": "Select meal slot"
+      "placeholder": "भोजन स्लॉट चुनें"
     },
     "mealSlots": {
-      "breakfast": "Breakfast",
-      "lunch": "Lunch",
-      "dinner": "Dinner",
-      "snack": "Snack"
+      "breakfast": "नाश्ता",
+      "lunch": "दोपहर का भोजन",
+      "dinner": "रात का खाना",
+      "snack": "स्नैक"
     },
     "dailyNutritionTracker": {
-      "title": "Daily Nutrition Progress",
-      "description": "Track your daily nutritional intake",
-      "calories": "Calories",
-      "protein": "Protein",
-      "carbohydrates": "Carbohydrates",
-      "fat": "Fat",
-      "onTrack": "On track with your daily goals!"
+      "title": "दैनिक पोषण प्रगति",
+      "description": "अपने दैनिक पोषण सेवन को ट्रैक करें",
+      "calories": "कैलोरी",
+      "protein": "प्रोटीन",
+      "carbohydrates": "कार्बोहाइड्रेट",
+      "fat": "वसा",
+      "onTrack": "आप अपने दैनिक लक्ष्यों की ओर सही रास्ते पर हैं!"
     },
     "pagination": {
-      "label": "pagination",
-      "previousPage": "Go to previous page",
-      "previous": "Previous",
-      "nextPage": "Go to next page",
-      "next": "Next",
-      "morePages": "More pages"
+      "label": "पृष्ठ नेविगेशन",
+      "previousPage": "पिछले पृष्ठ पर जाएँ",
+      "previous": "पिछला",
+      "nextPage": "अगले पृष्ठ पर जाएँ",
+      "next": "अगला",
+      "morePages": "अधिक पृष्ठ"
     },
     "enhancedMealCard": {
-      "replace": "Replace",
-      "replacing": "Replacing...",
-      "replaceTitle": "Replace with a completely new meal recipe",
-      "replacingTitle": "Replacing meal...",
-      "portionGuide": "Portion Guide:",
-      "ingredients": "Ingredients:",
-      "instructions": "Instructions:",
-      "medicalSafety": "Medical Safety:",
-      "error": "Error:"
+      "replace": "बदलें",
+      "replacing": "बदला जा रहा है...",
+      "replaceTitle": "एक बिल्कुल नई भोजन रेसिपी से बदलें",
+      "replacingTitle": "भोजन बदला जा रहा है...",
+      "portionGuide": "हिस्से की मार्गदर्शिका:",
+      "ingredients": "सामग्री:",
+      "instructions": "निर्देश:",
+      "medicalSafety": "चिकित्सा सुरक्षा:",
+      "error": "त्रुटि:"
     },
     "mealCard": {
-      "noRecipe": "No recipe",
-      "addMeal": "Add a meal",
-      "serving": "Serving:",
-      "ingredients": "Ingredients:",
-      "cookingInstructions": "Cooking Instructions:",
-      "protein": "Protein",
-      "carbs": "Carbs",
-      "fat": "Fat"
+      "noRecipe": "कोई रेसिपी नहीं",
+      "addMeal": "भोजन जोड़ें",
+      "serving": "परोसना:",
+      "ingredients": "सामग्री:",
+      "cookingInstructions": "खाना पकाने के निर्देश:",
+      "protein": "प्रोटीन",
+      "carbs": "कार्बोहाइड्रेट",
+      "fat": "वसा"
     },
     "nutritionSummary": {
-      "title": "Nutrition Summary",
-      "empty": "Generate a meal plan to see your nutrition summary",
-      "weeklyOverview": "Weekly Overview",
-      "totalCalories": "Total Calories",
-      "dailyAverage": "Daily Average",
-      "totalProtein": "Total Protein",
-      "daysPlanned": "Days Planned",
-      "dailyTargets": "Daily Targets",
-      "calories": "Calories",
-      "protein": "Protein",
-      "carbohydrates": "Carbohydrates",
-      "fat": "Fat",
-      "targetMet": "Target met",
-      "goalProgress": "Goal Progress",
-      "fitnessGoal": "Fitness Goal",
-      "activityLevel": "Activity Level",
-      "dietaryPreferences": "Dietary Preferences",
-      "balanceScore": "Balance Score",
-      "percentOfTarget": "{{n}}% of target",
-      "remainingCal": "{{n}} remaining",
-      "remainingG": "{{n}}g remaining"
+      "title": "पोषण सारांश",
+      "empty": "अपना पोषण सारांश देखने के लिए भोजन योजना बनाएँ",
+      "weeklyOverview": "साप्ताहिक अवलोकन",
+      "totalCalories": "कुल कैलोरी",
+      "dailyAverage": "दैनिक औसत",
+      "totalProtein": "कुल प्रोटीन",
+      "daysPlanned": "नियोजित दिन",
+      "dailyTargets": "दैनिक लक्ष्य",
+      "calories": "कैलोरी",
+      "protein": "प्रोटीन",
+      "carbohydrates": "कार्बोहाइड्रेट",
+      "fat": "वसा",
+      "targetMet": "लक्ष्य पूरा हुआ",
+      "goalProgress": "लक्ष्य प्रगति",
+      "fitnessGoal": "फिटनेस लक्ष्य",
+      "activityLevel": "गतिविधि स्तर",
+      "dietaryPreferences": "आहार संबंधी प्राथमिकताएँ",
+      "balanceScore": "संतुलन स्कोर",
+      "percentOfTarget": "लक्ष्य का {{n}}%",
+      "remainingCal": "{{n}} शेष",
+      "remainingG": "{{n}}ग्रा शेष"
     }
   }
 }

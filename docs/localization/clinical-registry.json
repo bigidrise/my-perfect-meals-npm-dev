@@ -1,15 +1,15 @@
 {
   "_meta": {
     "description": "Protected clinical/safety string registry. Strings here cannot be auto-migrated. Require qualified medical translator + clinical review.",
-    "generatedAt": "2026-08-14T22:57:35.487Z",
+    "generatedAt": "2026-08-14T23:33:18.179Z",
     "basedOn": "Step 1A audit (CLINICAL_SAFETY class) × Step 1B reachability (ACTIVE/CONDITIONAL surfaces only)",
     "governanceRule": "Any change to these strings in any locale file requires a [clinical-translation] PR annotation and clinical reviewer sign-off."
   },
-  "totalClinicalStrings": 138,
+  "totalClinicalStrings": 139,
   "filesWithClinicalStrings": 21,
   "byCategory": {
     "allergy_safety": 18,
-    "general_clinical": 49,
+    "general_clinical": 50,
     "diabetes_glp1": 40,
     "medication": 8,
     "lab_biometric": 19,
@@ -884,6 +884,12 @@
         "text": "Messages are a shared conversation — your client can read them and reply. Provider Notes are internal only and are never visible to the client. Use notes for clinical observations, progress documentation, or anything that should stay in your professional records.",
         "category": "general_clinical",
         "proposedKey": "proclientfoldermodal.messages_are_a_shared"
+      },
+      {
+        "line": 820,
+        "text": "Active Clinical Supports:",
+        "category": "general_clinical",
+        "proposedKey": "proclientfoldermodal.active_clinical_supports_2"
       }
     ]
   },
@@ -1853,6 +1859,13 @@
       "text": "Messages are a shared conversation — your client can read them and reply. Provider Notes are internal only and are never visible to the client. Use notes for clinical observations, progress documentation, or anything that should stay in your professional records.",
       "category": "general_clinical",
       "proposedKey": "proclientfoldermodal.messages_are_a_shared"
+    },
+    {
+      "file": "client/src/components/pro/ProClientFolderModal.tsx",
+      "line": 820,
+      "text": "Active Clinical Supports:",
+      "category": "general_clinical",
+      "proposedKey": "proclientfoldermodal.active_clinical_supports_2"
     }
   ]
 }

@@ -2194,85 +2194,85 @@
   "sharedComponents": {
     "navigation": {
       "appName": "My Perfect Meals",
-      "features": "Features",
-      "howItWorks": "How It Works",
-      "pricing": "Pricing",
-      "signIn": "Sign In"
+      "features": "Funktionen",
+      "howItWorks": "So funktioniert es",
+      "pricing": "Preise",
+      "signIn": "Anmelden"
     },
     "errorBoundary": {
-      "title": "Something went wrong",
-      "description": "We're having trouble loading this page. Please refresh and try again.",
-      "refresh": "Refresh Page"
+      "title": "Etwas ist schiefgelaufen",
+      "description": "Diese Seite kann gerade nicht geladen werden. Bitte aktualisieren Sie und versuchen Sie es erneut.",
+      "refresh": "Seite aktualisieren"
     },
     "dateSlotPicker": {
-      "placeholder": "Select meal slot"
+      "placeholder": "Mahlzeitslot auswählen"
     },
     "mealSlots": {
-      "breakfast": "Breakfast",
-      "lunch": "Lunch",
-      "dinner": "Dinner",
+      "breakfast": "Frühstück",
+      "lunch": "Mittagessen",
+      "dinner": "Abendessen",
       "snack": "Snack"
     },
     "dailyNutritionTracker": {
-      "title": "Daily Nutrition Progress",
-      "description": "Track your daily nutritional intake",
-      "calories": "Calories",
-      "protein": "Protein",
-      "carbohydrates": "Carbohydrates",
-      "fat": "Fat",
-      "onTrack": "On track with your daily goals!"
+      "title": "Täglicher Ernährungsfortschritt",
+      "description": "Verfolgen Sie Ihre tägliche Nährstoffaufnahme",
+      "calories": "Kalorien",
+      "protein": "Eiweiß",
+      "carbohydrates": "Kohlenhydrate",
+      "fat": "Fett",
+      "onTrack": "Auf dem richtigen Weg zu Ihren Tageszielen!"
     },
     "pagination": {
-      "label": "pagination",
-      "previousPage": "Go to previous page",
-      "previous": "Previous",
-      "nextPage": "Go to next page",
-      "next": "Next",
-      "morePages": "More pages"
+      "label": "Seitennavigation",
+      "previousPage": "Zur vorherigen Seite",
+      "previous": "Zurück",
+      "nextPage": "Zur nächsten Seite",
+      "next": "Weiter",
+      "morePages": "Weitere Seiten"
     },
     "enhancedMealCard": {
-      "replace": "Replace",
-      "replacing": "Replacing...",
-      "replaceTitle": "Replace with a completely new meal recipe",
-      "replacingTitle": "Replacing meal...",
-      "portionGuide": "Portion Guide:",
-      "ingredients": "Ingredients:",
-      "instructions": "Instructions:",
-      "medicalSafety": "Medical Safety:",
-      "error": "Error:"
+      "replace": "Ersetzen",
+      "replacing": "Wird ersetzt...",
+      "replaceTitle": "Durch ein völlig neues Mahlzeitrezept ersetzen",
+      "replacingTitle": "Mahlzeit wird ersetzt...",
+      "portionGuide": "Portionsleitfaden:",
+      "ingredients": "Zutaten:",
+      "instructions": "Anleitung:",
+      "medicalSafety": "Medizinische Sicherheit:",
+      "error": "Fehler:"
     },
     "mealCard": {
-      "noRecipe": "No recipe",
-      "addMeal": "Add a meal",
-      "serving": "Serving:",
-      "ingredients": "Ingredients:",
-      "cookingInstructions": "Cooking Instructions:",
-      "protein": "Protein",
-      "carbs": "Carbs",
-      "fat": "Fat"
+      "noRecipe": "Kein Rezept",
+      "addMeal": "Mahlzeit hinzufügen",
+      "serving": "Portion:",
+      "ingredients": "Zutaten:",
+      "cookingInstructions": "Kochanleitung:",
+      "protein": "Eiweiß",
+      "carbs": "Kohlenhydrate",
+      "fat": "Fett"
     },
     "nutritionSummary": {
-      "title": "Nutrition Summary",
-      "empty": "Generate a meal plan to see your nutrition summary",
-      "weeklyOverview": "Weekly Overview",
-      "totalCalories": "Total Calories",
-      "dailyAverage": "Daily Average",
-      "totalProtein": "Total Protein",
-      "daysPlanned": "Days Planned",
-      "dailyTargets": "Daily Targets",
-      "calories": "Calories",
-      "protein": "Protein",
-      "carbohydrates": "Carbohydrates",
-      "fat": "Fat",
-      "targetMet": "Target met",
-      "goalProgress": "Goal Progress",
-      "fitnessGoal": "Fitness Goal",
-      "activityLevel": "Activity Level",
-      "dietaryPreferences": "Dietary Preferences",
-      "balanceScore": "Balance Score",
-      "percentOfTarget": "{{n}}% of target",
-      "remainingCal": "{{n}} remaining",
-      "remainingG": "{{n}}g remaining"
+      "title": "Ernährungsübersicht",
+      "empty": "Erstellen Sie einen Ernährungsplan, um Ihre Nährwertübersicht zu sehen",
+      "weeklyOverview": "Wochenübersicht",
+      "totalCalories": "Gesamtkalorien",
+      "dailyAverage": "Tagesdurchschnitt",
+      "totalProtein": "Gesamteiweiß",
+      "daysPlanned": "Geplante Tage",
+      "dailyTargets": "Tagesziele",
+      "calories": "Kalorien",
+      "protein": "Eiweiß",
+      "carbohydrates": "Kohlenhydrate",
+      "fat": "Fett",
+      "targetMet": "Ziel erreicht",
+      "goalProgress": "Zielfortschritt",
+      "fitnessGoal": "Fitnessziel",
+      "activityLevel": "Aktivitätsniveau",
+      "dietaryPreferences": "Ernährungspräferenzen",
+      "balanceScore": "Gleichgewichtspunktzahl",
+      "percentOfTarget": "{{n}}% des Ziels",
+      "remainingCal": "{{n}} verbleibend",
+      "remainingG": "{{n}}g verbleibend"
     }
   }
 }

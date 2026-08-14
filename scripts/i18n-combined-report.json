@@ -16,12 +16,12 @@
   },
   "step1B_summary": {
     "totalFiles": 690,
-    "active": 487,
+    "active": 452,
     "conditional": 0,
-    "hiddenReserved": 27,
+    "hiddenReserved": 31,
     "quarantined": 6,
     "orphanDead": 0,
-    "localizationTarget": 514,
+    "localizationTarget": 483,
     "excludedFromMigration": 6
   },
   "stringsByReachabilityClass": {
@@ -38,10 +38,10 @@
       "clinical": 0
     },
     "HIDDEN_RESERVED": {
-      "total": 72,
-      "safe": 59,
+      "total": 44,
+      "safe": 33,
       "review": 3,
-      "clinical": 10
+      "clinical": 8
     },
     "QUARANTINED": {
       "total": 0,
@@ -56,27 +56,27 @@
       "clinical": 0
     },
     "UNKNOWN": {
-      "total": 482,
-      "safe": 447,
+      "total": 510,
+      "safe": 473,
       "review": 8,
-      "clinical": 27
+      "clinical": 29
     }
   },
   "localizationTarget": {
     "total": 1446,
     "excludedDead": 0,
-    "hiddenReserved": 72
+    "hiddenReserved": 44
   },
   "reachabilityDetail": {
-    "generatedAt": "2026-08-14T23:44:25.916Z",
+    "generatedAt": "2026-08-14T23:33:17.779Z",
     "summary": {
       "totalFiles": 690,
-      "active": 487,
+      "active": 452,
       "conditional": 0,
-      "hiddenReserved": 27,
+      "hiddenReserved": 31,
       "quarantined": 6,
       "orphanDead": 0,
-      "localizationTarget": 514,
+      "localizationTarget": 483,
       "excludedFromMigration": 6
     },
     "files": [
@@ -88,7 +88,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 36
+        "importedCount": 29
       },
       {
         "file": "/home/runner/workspace/client/src/addons/capture/CaptureBar.tsx",
@@ -108,7 +108,7 @@
         "reason": "Has importers but no active route — likely modal child, sheet, or future feature",
         "gate": "",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/addons/capture/CaptureMount.tsx",
@@ -128,7 +128,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 3
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/app-entry.tsx",
@@ -138,7 +138,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 0,
-        "importedCount": 4
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/audio/AudioProvider.tsx",
@@ -147,8 +147,8 @@
         "confidence": "high",
         "reason": "Reachable from an ungated route",
         "gate": "none",
-        "importerCount": 3,
-        "importedCount": 1
+        "importerCount": 2,
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/audio/AudioTestPanel.tsx",
@@ -158,7 +158,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/chef/ChefNavigationExample.tsx",
@@ -168,7 +168,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/AccountabilityChip.tsx",
@@ -178,7 +178,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/AddOtherItems.tsx",
@@ -188,7 +188,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 5
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/components/AddToBoardButton.tsx",
@@ -198,7 +198,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 3
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/AddToBoardModal.tsx",
@@ -208,7 +208,7 @@
         "reason": "Has importers but no active route — likely modal child, sheet, or future feature",
         "gate": "",
         "importerCount": 1,
-        "importedCount": 4
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/AddToCalendarButtons.tsx",
@@ -218,7 +218,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 2,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/AddToMealPlanButton.tsx",
@@ -228,7 +228,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 15,
-        "importedCount": 9
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/components/AffiliateJoinCard.tsx",
@@ -258,7 +258,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 4
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/AlcoholRecommendationCard.tsx",
@@ -268,7 +268,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 3
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/components/AlcoholTrackerCard.tsx",
@@ -308,7 +308,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 5
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/components/AthleteModeCard.tsx",
@@ -328,7 +328,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 2,
-        "importedCount": 8
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/components/AvatarSettingsPanel.tsx",
@@ -338,7 +338,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 2,
-        "importedCount": 3
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/AvatarSpeechBubble.tsx",
@@ -378,7 +378,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 3,
-        "importedCount": 6
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/components/BrandTileIcon.tsx",
@@ -418,7 +418,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 5
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/components/BuilderDayBoard.tsx",
@@ -428,7 +428,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 7
+        "importedCount": 6
       },
       {
         "file": "/home/runner/workspace/client/src/components/BuilderShoppingBar.tsx",
@@ -438,7 +438,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 7,
-        "importedCount": 12
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/BuilderSourcePill.tsx",
@@ -488,7 +488,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 3,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ChefMotivationCard.tsx",
@@ -508,7 +508,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/CometBar.tsx",
@@ -558,7 +558,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 4
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/components/CookingTutorialCard.tsx",
@@ -588,7 +588,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 3
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/components/CreateRecipeForm.tsx",
@@ -598,7 +598,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 7
+        "importedCount": 5
       },
       {
         "file": "/home/runner/workspace/client/src/components/CreateWithChefButton.tsx",
@@ -618,7 +618,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 7,
-        "importedCount": 25
+        "importedCount": 14
       },
       {
         "file": "/home/runner/workspace/client/src/components/CulturalRecipeEditor.tsx",
@@ -628,7 +628,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 10
+        "importedCount": 8
       },
       {
         "file": "/home/runner/workspace/client/src/components/CultureBadge.tsx",
@@ -668,7 +668,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 3
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/DailyMacroTotalsRow.tsx",
@@ -708,7 +708,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 7,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/DateSlotPicker.tsx",
@@ -728,7 +728,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 11
+        "importedCount": 5
       },
       {
         "file": "/home/runner/workspace/client/src/components/DayChips.tsx",
@@ -738,7 +738,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 8,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/DayWeekToggle.tsx",
@@ -768,7 +768,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 4
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/DiabetesSupport.tsx",
@@ -778,7 +778,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 8
+        "importedCount": 6
       },
       {
         "file": "/home/runner/workspace/client/src/components/DietGuardIntercept.tsx",
@@ -788,7 +788,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 11,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/DietStyleBadge.tsx",
@@ -818,7 +818,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 7,
-        "importedCount": 5
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/components/EmbeddedAskAIButton.tsx",
@@ -828,7 +828,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 5
+        "importedCount": 4
       },
       {
         "file": "/home/runner/workspace/client/src/components/EmotionAIFooter.tsx",
@@ -858,7 +858,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 3
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/components/ErrorBoundary.tsx",
@@ -878,7 +878,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 5
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/components/FamilyRecipeEditor.tsx",
@@ -888,7 +888,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 10
+        "importedCount": 8
       },
       {
         "file": "/home/runner/workspace/client/src/components/FavoriteButton.tsx",
@@ -898,7 +898,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 18,
-        "importedCount": 5
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/components/FavoritesPickerModal.tsx",
@@ -908,7 +908,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 5
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/components/FeatureDisabledNotice.tsx",
@@ -928,7 +928,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 7
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/components/FeatureInstructions.tsx",
@@ -958,7 +958,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/FixedMenuPicker.tsx",
@@ -968,7 +968,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 4
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/components/FlavorToggle.tsx",
@@ -998,7 +998,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 4
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/components/FridgeRescueCard.tsx",
@@ -1008,7 +1008,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/GatedRoute.tsx",
@@ -1018,7 +1018,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 3
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/components/GlobalErrorBoundary.tsx",
@@ -1028,7 +1028,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/GlobalGuestBanner.tsx",
@@ -1038,7 +1038,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/GlobalMealActionBar.tsx",
@@ -1048,7 +1048,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 7,
-        "importedCount": 6
+        "importedCount": 5
       },
       {
         "file": "/home/runner/workspace/client/src/components/GlobalMealSearchIntegration.tsx",
@@ -1058,7 +1058,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 8
+        "importedCount": 4
       },
       {
         "file": "/home/runner/workspace/client/src/components/GlucoseGuardBanner.tsx",
@@ -1078,7 +1078,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 3
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/GlucoseGuardToggle.tsx",
@@ -1088,7 +1088,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 15,
-        "importedCount": 3
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/components/GroceryDashboardCard.tsx",
@@ -1108,7 +1108,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 3
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/components/GuestModeBanner.tsx",
@@ -1118,7 +1118,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 3,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/GuestModeGuard.tsx",
@@ -1128,7 +1128,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 5
+        "importedCount": 4
       },
       {
         "file": "/home/runner/workspace/client/src/components/HealthBadges.tsx",
@@ -1158,7 +1158,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 5
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/IngredientSelectionButton.tsx",
@@ -1178,7 +1178,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 7
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/components/InspirationCaptureModal.tsx",
@@ -1188,7 +1188,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 3,
-        "importedCount": 12
+        "importedCount": 7
       },
       {
         "file": "/home/runner/workspace/client/src/components/IntelligentGrouping.tsx",
@@ -1208,7 +1208,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 2,
-        "importedCount": 3
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/KeepItSimpleToggle.tsx",
@@ -1228,7 +1228,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 10,
-        "importedCount": 3
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/components/LabValueSupportCard.tsx",
@@ -1248,7 +1248,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/LogToMacrosButton.tsx",
@@ -1258,7 +1258,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 4
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/MacroAggregateBar.tsx",
@@ -1268,36 +1268,36 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/MacroCounter/EntryRow.tsx",
         "relPath": "client/src/components/MacroCounter/EntryRow.tsx",
-        "classification": "HIDDEN_RESERVED",
+        "classification": "UNKNOWN_REVIEW",
         "confidence": "medium",
-        "reason": "Has importers but no active route — likely modal child, sheet, or future feature",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
-        "importerCount": 1,
-        "importedCount": 2
+        "importerCount": 0,
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/MacroCounter/PresetButton.tsx",
         "relPath": "client/src/components/MacroCounter/PresetButton.tsx",
-        "classification": "HIDDEN_RESERVED",
+        "classification": "UNKNOWN_REVIEW",
         "confidence": "medium",
-        "reason": "Has importers but no active route — likely modal child, sheet, or future feature",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
-        "importerCount": 1,
-        "importedCount": 2
+        "importerCount": 0,
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/MacroCounter/StatCard.tsx",
         "relPath": "client/src/components/MacroCounter/StatCard.tsx",
-        "classification": "HIDDEN_RESERVED",
+        "classification": "UNKNOWN_REVIEW",
         "confidence": "medium",
-        "reason": "Has importers but no active route — likely modal child, sheet, or future feature",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
-        "importerCount": 1,
+        "importerCount": 0,
         "importedCount": 0
       },
       {
@@ -1318,7 +1318,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 2,
-        "importedCount": 5
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/components/MacroSummaryButton.tsx",
@@ -1328,7 +1328,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 3
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/components/MealCard.tsx",
@@ -1337,8 +1337,8 @@
         "confidence": "high",
         "reason": "Reachable from an ungated route",
         "gate": "none",
-        "importerCount": 22,
-        "importedCount": 24
+        "importerCount": 14,
+        "importedCount": 15
       },
       {
         "file": "/home/runner/workspace/client/src/components/MealCardActions.tsx",
@@ -1348,7 +1348,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 2,
-        "importedCount": 4
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/components/MealCardDynamic.tsx",
@@ -1358,7 +1358,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 5
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/components/MealCardFooter.tsx",
@@ -1368,7 +1368,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 8
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/components/MealCardFull.tsx",
@@ -1378,7 +1378,7 @@
         "reason": "Has importers but no active route — likely modal child, sheet, or future feature",
         "gate": "",
         "importerCount": 1,
-        "importedCount": 5
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/components/MealClassificationPill.tsx",
@@ -1428,7 +1428,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 2,
-        "importedCount": 4
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/components/MealRefinementSheet.tsx",
@@ -1458,7 +1458,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/MealReplacementModal.tsx",
@@ -1468,7 +1468,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 3
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/components/MealTimePresets.tsx",
@@ -1498,7 +1498,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/MedicalInfoBubble.tsx",
@@ -1528,7 +1528,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/MfaSetupSection.tsx",
@@ -1538,7 +1538,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/MobileBarcodeCamera.tsx",
@@ -1568,7 +1568,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 3
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/components/NarrationBar.tsx",
@@ -1578,7 +1578,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 5,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/NewLogToMacrosButton.tsx",
@@ -1588,7 +1588,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/NextReminderBanner.tsx",
@@ -1598,7 +1598,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/NutritionBudgetBanner.tsx",
@@ -1608,7 +1608,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 7,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ObjectUploader.tsx",
@@ -1668,7 +1668,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/PageShell.tsx",
@@ -1698,7 +1698,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 3
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/PhaseGate.tsx",
@@ -1708,7 +1708,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 13,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/PlanBoardDock.tsx",
@@ -1718,7 +1718,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/PlanBuilderHub.tsx",
@@ -1738,7 +1738,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/PostToFacebookButton.tsx",
@@ -1748,7 +1748,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/PregnancySupportSetupModal.tsx",
@@ -1758,7 +1758,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 3
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/components/PreparationModal.tsx",
@@ -1778,7 +1778,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 4,
-        "importedCount": 3
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/ProDietaryDirectives.tsx",
@@ -1788,7 +1788,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 2,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ProTipCard.tsx",
@@ -1798,7 +1798,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 7,
-        "importedCount": 3
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/ProfileSheet.tsx",
@@ -1808,7 +1808,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 2,
-        "importedCount": 15
+        "importedCount": 10
       },
       {
         "file": "/home/runner/workspace/client/src/components/ProteinGuidelinesCards.tsx",
@@ -1818,7 +1818,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 13
+        "importedCount": 10
       },
       {
         "file": "/home/runner/workspace/client/src/components/ProtocolStatusBadge.tsx",
@@ -1828,7 +1828,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 3,
-        "importedCount": 2
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ProtocolVisibilityPanel.tsx",
@@ -1838,7 +1838,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 4,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/PushNotificationButton.tsx",
@@ -1848,7 +1848,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 3
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/QuickAddMacros.tsx",
@@ -1858,7 +1858,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 3
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/components/QuickNotes.tsx",
@@ -1888,7 +1888,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 9
+        "importedCount": 8
       },
       {
         "file": "/home/runner/workspace/client/src/components/RecipeQuickActions.tsx",
@@ -1898,7 +1898,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 6
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/components/ReplaceMealMenu.tsx",
@@ -1908,7 +1908,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 9
+        "importedCount": 7
       },
       {
         "file": "/home/runner/workspace/client/src/components/ReplacePicker.tsx",
@@ -1918,7 +1918,7 @@
         "reason": "Has importers but no active route — likely modal child, sheet, or future feature",
         "gate": "",
         "importerCount": 1,
-        "importedCount": 6
+        "importedCount": 4
       },
       {
         "file": "/home/runner/workspace/client/src/components/RestaurantGuideCard.tsx",
@@ -1928,7 +1928,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/Router.tsx",
@@ -1938,7 +1938,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 202
+        "importedCount": 195
       },
       {
         "file": "/home/runner/workspace/client/src/components/SafePageContainer.tsx",
@@ -1957,7 +1957,7 @@
         "confidence": "high",
         "reason": "Reachable from an ungated route",
         "gate": "none",
-        "importerCount": 17,
+        "importerCount": 16,
         "importedCount": 0
       },
       {
@@ -1968,7 +1968,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 15,
-        "importedCount": 3
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/SafetyPinModal.tsx",
@@ -1978,7 +1978,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 5
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/components/SafetyPinSettings.tsx",
@@ -1988,7 +1988,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 2,
-        "importedCount": 6
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/components/SaveButton.tsx",
@@ -2008,7 +2008,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 8
+        "importedCount": 4
       },
       {
         "file": "/home/runner/workspace/client/src/components/ScanConfirmModal.tsx",
@@ -2028,7 +2028,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ScrollNavigation.tsx",
@@ -2058,7 +2058,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 7,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/SharePanel.tsx",
@@ -2078,7 +2078,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 12,
-        "importedCount": 6
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/components/ShareToCommunityButton.tsx",
@@ -2088,7 +2088,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 4
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/ShoppingAggregateBar.tsx",
@@ -2098,7 +2098,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 10,
-        "importedCount": 4
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/ShoppingListPreviewModal.tsx",
@@ -2108,7 +2108,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 7,
-        "importedCount": 4
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/components/ShoppingListSummaryButton.tsx",
@@ -2118,7 +2118,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 6
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/components/SimpleVoiceRecorder.tsx",
@@ -2128,7 +2128,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 3
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/components/SmartAddComponent.tsx",
@@ -2138,7 +2138,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 5
+        "importedCount": 4
       },
       {
         "file": "/home/runner/workspace/client/src/components/SmartAvatarConcierge.tsx",
@@ -2148,7 +2148,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 3
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/SnackCreatorButton.tsx",
@@ -2168,7 +2168,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 7,
-        "importedCount": 21
+        "importedCount": 13
       },
       {
         "file": "/home/runner/workspace/client/src/components/SponsorEndedBanner.tsx",
@@ -2178,7 +2178,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 3
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/StarchCoachingNudge.tsx",
@@ -2198,7 +2198,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/StarchGuardIntercept.tsx",
@@ -2208,7 +2208,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 7,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/StarchMealBadge.tsx",
@@ -2218,7 +2218,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/StarchOverrideToggle.tsx",
@@ -2248,7 +2248,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 2,
-        "importedCount": 4
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/components/TargetsBar.tsx",
@@ -2258,7 +2258,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 7
+        "importedCount": 6
       },
       {
         "file": "/home/runner/workspace/client/src/components/TempDietOverrides.tsx",
@@ -2278,7 +2278,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 4
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/components/TestimonialForm.tsx",
@@ -2288,7 +2288,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/ThinkingDots.tsx",
@@ -2308,7 +2308,7 @@
         "reason": "Has importers but no active route — likely modal child, sheet, or future feature",
         "gate": "",
         "importerCount": 3,
-        "importedCount": 4
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/components/TipsBanner.tsx",
@@ -2338,7 +2338,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 14,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/TrialBanner.tsx",
@@ -2348,7 +2348,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/TrialExpiredModal.tsx",
@@ -2368,7 +2368,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 3
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/components/TrialStatusCard.tsx",
@@ -2378,7 +2378,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/TutorialViewer.tsx",
@@ -2398,7 +2398,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 6
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/components/UpdateBanner.tsx",
@@ -2408,7 +2408,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/VariantSelector.tsx",
@@ -2458,7 +2458,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 3
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/components/VoiceControlButton.tsx",
@@ -2478,7 +2478,7 @@
         "reason": "Has importers but no active route — likely modal child, sheet, or future feature",
         "gate": "",
         "importerCount": 1,
-        "importedCount": 6
+        "importedCount": 5
       },
       {
         "file": "/home/runner/workspace/client/src/components/VoiceInputHandler.tsx",
@@ -2498,7 +2498,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 3
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/components/WeeklyMealCard.tsx",
@@ -2508,7 +2508,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 10
+        "importedCount": 7
       },
       {
         "file": "/home/runner/workspace/client/src/components/WeeklyOverviewModal.tsx",
@@ -2518,7 +2518,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 7,
-        "importedCount": 2
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/WelcomeGate.tsx",
@@ -2538,7 +2538,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/WhyChip.tsx",
@@ -2568,7 +2568,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 4,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/ace/CoachCornerCard.tsx",
@@ -2588,7 +2588,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/away-from-home/AwayFromHomeMealCard.tsx",
@@ -2598,7 +2598,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 2,
-        "importedCount": 6
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/away-from-home/MacroConfirmSheet.tsx",
@@ -2608,7 +2608,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 9
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/badges/HealthBadgePopup.tsx",
@@ -2628,7 +2628,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 15,
-        "importedCount": 3
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/components/beta-name-editor.tsx",
@@ -2648,7 +2648,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 10
+        "importedCount": 6
       },
       {
         "file": "/home/runner/workspace/client/src/components/biometrics/DailyTargetsCard.tsx",
@@ -2658,7 +2658,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 6,
-        "importedCount": 3
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/components/biometrics/IngredientIntelligenceSheet.tsx",
@@ -2668,7 +2668,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 4,
-        "importedCount": 3
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/biometrics/LockedDayDialog.tsx",
@@ -2678,7 +2678,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 5,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/biometrics/MacroBridgeButton.tsx",
@@ -2688,7 +2688,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 2,
-        "importedCount": 4
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/biometrics/MacroBridgeFooter.tsx",
@@ -2698,7 +2698,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 3,
-        "importedCount": 2
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/biometrics/MacroConsistencyTimeline.tsx",
@@ -2718,7 +2718,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 3
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/biometrics/RemainingMacrosFooter.tsx",
@@ -2727,8 +2727,8 @@
         "confidence": "high",
         "reason": "Reachable from an ungated route",
         "gate": "none",
-        "importerCount": 8,
-        "importedCount": 6
+        "importerCount": 7,
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/components/biometrics/TherapeuticNutritionCard.tsx",
@@ -2738,7 +2738,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 7
+        "importedCount": 4
       },
       {
         "file": "/home/runner/workspace/client/src/components/biometrics/TherapeuticProtocolModal.tsx",
@@ -2758,7 +2758,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/cards/GeneratedCardShell.tsx",
@@ -2798,7 +2798,7 @@
         "reason": "Has importers but no active route — likely modal child, sheet, or future feature",
         "gate": "",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/chefs-kitchen/KitchenStepCard.tsx",
@@ -2818,7 +2818,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 5
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/components/clinical/ProtocolRecommendationModal.tsx",
@@ -2828,7 +2828,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 6
+        "importedCount": 4
       },
       {
         "file": "/home/runner/workspace/client/src/components/clinical/ThyroidRecommendationModal.tsx",
@@ -2838,7 +2838,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 6
+        "importedCount": 4
       },
       {
         "file": "/home/runner/workspace/client/src/components/copilot/ChefCapIcon.tsx",
@@ -2858,7 +2858,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/copilot/CopilotButton.tsx",
@@ -2868,7 +2868,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 5
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/components/copilot/CopilotContext.tsx",
@@ -2877,7 +2877,7 @@
         "confidence": "high",
         "reason": "Reachable from an ungated route",
         "gate": "none",
-        "importerCount": 24,
+        "importerCount": 20,
         "importedCount": 0
       },
       {
@@ -2898,7 +2898,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/copilot/CopilotSheet.tsx",
@@ -2908,7 +2908,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 6
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/components/copilot/CopilotSystem.tsx",
@@ -2918,16 +2918,16 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 6
+        "importedCount": 4
       },
       {
         "file": "/home/runner/workspace/client/src/components/copilot/packs/basePacks.tsx",
         "relPath": "client/src/components/copilot/packs/basePacks.tsx",
-        "classification": "HIDDEN_RESERVED",
+        "classification": "UNKNOWN_REVIEW",
         "confidence": "medium",
-        "reason": "Has importers but no active route — likely modal child, sheet, or future feature",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
-        "importerCount": 1,
+        "importerCount": 0,
         "importedCount": 1
       },
       {
@@ -2938,7 +2938,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/dashboard/TodaysPrescriptionCard.tsx",
@@ -2948,7 +2948,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/diabetic/GLP1CompanionModal.tsx",
@@ -2958,7 +2958,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 4
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/components/diabetic/GlycemicSettingsModal.tsx",
@@ -2968,17 +2968,17 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 5
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/components/glass/GlassButton.tsx",
         "relPath": "client/src/components/glass/GlassButton.tsx",
-        "classification": "HIDDEN_RESERVED",
+        "classification": "UNKNOWN_REVIEW",
         "confidence": "medium",
-        "reason": "Has importers but no active route — likely modal child, sheet, or future feature",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
-        "importerCount": 1,
-        "importedCount": 1
+        "importerCount": 0,
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/glass/GlassCard.tsx",
@@ -2987,18 +2987,18 @@
         "confidence": "high",
         "reason": "Reachable from an ungated route",
         "gate": "none",
-        "importerCount": 6,
-        "importedCount": 2
+        "importerCount": 5,
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/glass/GlassHeader.tsx",
         "relPath": "client/src/components/glass/GlassHeader.tsx",
-        "classification": "HIDDEN_RESERVED",
+        "classification": "UNKNOWN_REVIEW",
         "confidence": "medium",
-        "reason": "Has importers but no active route — likely modal child, sheet, or future feature",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
-        "importerCount": 1,
-        "importedCount": 1
+        "importerCount": 0,
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/glp1/GLP1DailyCheckin.tsx",
@@ -3008,26 +3008,26 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 3
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/components/graphs/CalorieTrendGraph.tsx",
         "relPath": "client/src/components/graphs/CalorieTrendGraph.tsx",
-        "classification": "HIDDEN_RESERVED",
+        "classification": "UNKNOWN_REVIEW",
         "confidence": "medium",
-        "reason": "Has importers but no active route — likely modal child, sheet, or future feature",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
-        "importerCount": 1,
+        "importerCount": 0,
         "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/graphs/StepsTrendGraph.tsx",
         "relPath": "client/src/components/graphs/StepsTrendGraph.tsx",
-        "classification": "HIDDEN_RESERVED",
+        "classification": "UNKNOWN_REVIEW",
         "confidence": "medium",
-        "reason": "Has importers but no active route — likely modal child, sheet, or future feature",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
-        "importerCount": 1,
+        "importerCount": 0,
         "importedCount": 0
       },
       {
@@ -3038,7 +3038,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 3,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/guided/MealProgressCoach.tsx",
@@ -3048,7 +3048,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/guided/QuickTourButton.tsx",
@@ -3108,7 +3108,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/kitchen/ContactPartnershipsModal.tsx",
@@ -3118,7 +3118,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/kitchen/KitchenPartnerIntakeModal.tsx",
@@ -3128,7 +3128,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/layout/MobileHeaderGuard.tsx",
@@ -3138,7 +3138,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 63,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/macro-targeting/BodyCompositionSection.tsx",
@@ -3148,7 +3148,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 8
+        "importedCount": 4
       },
       {
         "file": "/home/runner/workspace/client/src/components/macro-targeting/BodyCompositionSheet.tsx",
@@ -3158,7 +3158,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 7
+        "importedCount": 4
       },
       {
         "file": "/home/runner/workspace/client/src/components/macro-targeting/MacroTargetingControls.tsx",
@@ -3168,7 +3168,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 3
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/components/macro-targeting/MetabolicConsiderations.tsx",
@@ -3178,7 +3178,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 7
+        "importedCount": 4
       },
       {
         "file": "/home/runner/workspace/client/src/components/macro-targeting/WaistRiskSection.tsx",
@@ -3188,7 +3188,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 4
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/components/meal/BuilderOverrideDialog.tsx",
@@ -3198,7 +3198,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 2,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/meal/DietBadge.tsx",
@@ -3208,7 +3208,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 3,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/meal/GeneratedMealCard.tsx",
@@ -3218,7 +3218,7 @@
         "reason": "Has importers but no active route — likely modal child, sheet, or future feature",
         "gate": "",
         "importerCount": 1,
-        "importedCount": 17
+        "importedCount": 11
       },
       {
         "file": "/home/runner/workspace/client/src/components/meal/MedicalBadges.tsx",
@@ -3228,7 +3228,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 4
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/components/meal-calendar/MealCardButtons.tsx",
@@ -3238,7 +3238,7 @@
         "reason": "Has importers but no active route — likely modal child, sheet, or future feature",
         "gate": "",
         "importerCount": 1,
-        "importedCount": 4
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/components/meal-card/MealReminderToggle.tsx",
@@ -3248,7 +3248,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/meal-cards/MealCard.tsx",
@@ -3318,7 +3318,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 5,
-        "importedCount": 6
+        "importedCount": 5
       },
       {
         "file": "/home/runner/workspace/client/src/components/modals/FeatureUpgradeModal.tsx",
@@ -3338,7 +3338,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 4
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/components/modals/PasteMacrosModal.tsx",
@@ -3348,7 +3348,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 5
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/components/modals/QuickAddMacrosModal.tsx",
@@ -3358,7 +3358,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 8
+        "importedCount": 5
       },
       {
         "file": "/home/runner/workspace/client/src/components/modals/TierUpgradeModal.tsx",
@@ -3398,7 +3398,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 3
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/pairings/PairingResultCard.tsx",
@@ -3428,7 +3428,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/partner-center/ReferralTools.tsx",
@@ -3438,7 +3438,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 3
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/performance/PerformanceNutritionSetupForm.tsx",
@@ -3448,7 +3448,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 7
+        "importedCount": 4
       },
       {
         "file": "/home/runner/workspace/client/src/components/pickers/AddOwnMealButton.tsx",
@@ -3458,7 +3458,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 7,
-        "importedCount": 8
+        "importedCount": 4
       },
       {
         "file": "/home/runner/workspace/client/src/components/pickers/AthleteMealPickerDrawer.tsx",
@@ -3468,7 +3468,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 9
+        "importedCount": 6
       },
       {
         "file": "/home/runner/workspace/client/src/components/pickers/CompetitionMealPickerDrawer.tsx",
@@ -3478,7 +3478,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 7
+        "importedCount": 5
       },
       {
         "file": "/home/runner/workspace/client/src/components/pickers/MealPickerDrawer.tsx",
@@ -3488,7 +3488,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 5,
-        "importedCount": 11
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/components/pickers/MealPremadePicker.tsx",
@@ -3498,7 +3498,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 6,
-        "importedCount": 21
+        "importedCount": 10
       },
       {
         "file": "/home/runner/workspace/client/src/components/pickers/SnackPickerDrawer.tsx",
@@ -3508,7 +3508,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 13
+        "importedCount": 6
       },
       {
         "file": "/home/runner/workspace/client/src/components/pro/BuilderHeader.tsx",
@@ -3528,7 +3528,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 3
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/pro/CheckInOverviewPanel.tsx",
@@ -3538,7 +3538,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 3
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/pro/ClientLegalModal.tsx",
@@ -3548,7 +3548,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 10
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/pro/ClinicalAdvisoryDrawer.tsx",
@@ -3558,7 +3558,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 2,
-        "importedCount": 5
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/components/pro/ClinicalInterventionPanel.tsx",
@@ -3568,7 +3568,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/pro/CycleProtocolControl.tsx",
@@ -3578,7 +3578,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/pro/NutritionStrategyCard.tsx",
@@ -3588,7 +3588,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 2
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/pro/PendingActivationQueue.tsx",
@@ -3598,7 +3598,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/pro/PendingCoachInvites.tsx",
@@ -3608,7 +3608,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 3
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/pro/ProClientBanner.tsx",
@@ -3628,7 +3628,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 3,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/pro/ProClientFolderModal.tsx",
@@ -3638,7 +3638,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 18
+        "importedCount": 13
       },
       {
         "file": "/home/runner/workspace/client/src/components/pro/ProClientLabsSnapshot.tsx",
@@ -3648,7 +3648,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 3
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/pro/ProClientProgramHistory.tsx",
@@ -3658,7 +3658,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/pro/ProClientWeightSnapshot.tsx",
@@ -3668,7 +3668,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/pro/ProNutritionStrategyCard.tsx",
@@ -3678,7 +3678,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 2,
-        "importedCount": 2
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/pro/ProfessionalIntroOverlay.tsx",
@@ -3688,7 +3688,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 2,
-        "importedCount": 4
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/components/pro/ProfessionalLegalModal.tsx",
@@ -3698,7 +3698,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 9
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/pro/StudioBottomNav.tsx",
@@ -3708,7 +3708,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 3
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/components/pro/StudioMetricsSnapshot.tsx",
@@ -3718,7 +3718,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 3
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/pro/WeeklyWeightTrendCard.tsx",
@@ -3728,7 +3728,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 3,
-        "importedCount": 2
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/pro/WorkspaceSelectionModal.tsx",
@@ -3738,7 +3738,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 4
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/components/progress-dashboard.tsx",
@@ -3758,7 +3758,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 4
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/protocol/NutritionPersonalizationSummaryCard.tsx",
@@ -3768,7 +3768,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 4,
-        "importedCount": 2
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/protocol/ProtocolStatusBar.tsx",
@@ -3798,7 +3798,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 3
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/components/shopping/GroceryExportModal.tsx",
@@ -3808,7 +3808,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 4
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/shopping/GroceryStoreCoachSheet.tsx",
@@ -3818,7 +3818,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 5
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/components/shopping/MyListCard.tsx",
@@ -3828,7 +3828,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/shopping/RecentScans.tsx",
@@ -3838,7 +3838,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 3
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/shopping/SavedGroceriesSheet.tsx",
@@ -3848,7 +3848,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 5
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/shopping/ScanNameModal.tsx",
@@ -3868,7 +3868,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/shopping/VoiceShoppingModal.tsx",
@@ -3878,7 +3878,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/shopping/VoiceToShoppingPadButton.tsx",
@@ -3888,7 +3888,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 6
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/studio-wizard/StudioWizard.tsx",
@@ -3898,7 +3898,7 @@
         "reason": "Has importers but no active route — likely modal child, sheet, or future feature",
         "gate": "",
         "importerCount": 2,
-        "importedCount": 14
+        "importedCount": 8
       },
       {
         "file": "/home/runner/workspace/client/src/components/system/UpdateBanner.tsx",
@@ -3913,90 +3913,90 @@
       {
         "file": "/home/runner/workspace/client/src/components/ui/AccentPrimitives.tsx",
         "relPath": "client/src/components/ui/AccentPrimitives.tsx",
-        "classification": "ACTIVE",
-        "confidence": "high",
-        "reason": "Reachable from an ungated route",
-        "gate": "none",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
+        "gate": "",
         "importerCount": 0,
-        "importedCount": 3
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/BadgeDescription.tsx",
         "relPath": "client/src/components/ui/BadgeDescription.tsx",
-        "classification": "ACTIVE",
-        "confidence": "high",
-        "reason": "Reachable from an ungated route",
-        "gate": "none",
+        "classification": "HIDDEN_RESERVED",
+        "confidence": "medium",
+        "reason": "Has importers but no active route — likely modal child, sheet, or future feature",
+        "gate": "",
         "importerCount": 1,
         "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/BadgeDot.tsx",
         "relPath": "client/src/components/ui/BadgeDot.tsx",
-        "classification": "ACTIVE",
-        "confidence": "high",
-        "reason": "Reachable from an ungated route",
-        "gate": "none",
+        "classification": "HIDDEN_RESERVED",
+        "confidence": "medium",
+        "reason": "Has importers but no active route — likely modal child, sheet, or future feature",
+        "gate": "",
         "importerCount": 2,
         "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/BadgeGroup.tsx",
         "relPath": "client/src/components/ui/BadgeGroup.tsx",
-        "classification": "ACTIVE",
-        "confidence": "high",
-        "reason": "Reachable from an ungated route",
-        "gate": "none",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
+        "gate": "",
         "importerCount": 0,
         "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/BadgeIcon.tsx",
         "relPath": "client/src/components/ui/BadgeIcon.tsx",
-        "classification": "ACTIVE",
-        "confidence": "high",
-        "reason": "Reachable from an ungated route",
-        "gate": "none",
+        "classification": "HIDDEN_RESERVED",
+        "confidence": "medium",
+        "reason": "Has importers but no active route — likely modal child, sheet, or future feature",
+        "gate": "",
         "importerCount": 1,
         "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/BadgeRegistry.tsx",
         "relPath": "client/src/components/ui/BadgeRegistry.tsx",
-        "classification": "ACTIVE",
-        "confidence": "high",
-        "reason": "Reachable from an ungated route",
-        "gate": "none",
+        "classification": "HIDDEN_RESERVED",
+        "confidence": "medium",
+        "reason": "Has importers but no active route — likely modal child, sheet, or future feature",
+        "gate": "",
         "importerCount": 2,
         "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/BadgeRow.tsx",
         "relPath": "client/src/components/ui/BadgeRow.tsx",
-        "classification": "ACTIVE",
-        "confidence": "high",
-        "reason": "Reachable from an ungated route",
-        "gate": "none",
+        "classification": "HIDDEN_RESERVED",
+        "confidence": "medium",
+        "reason": "Has importers but no active route — likely modal child, sheet, or future feature",
+        "gate": "",
         "importerCount": 1,
         "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/BadgeSystem.tsx",
         "relPath": "client/src/components/ui/BadgeSystem.tsx",
-        "classification": "ACTIVE",
-        "confidence": "high",
-        "reason": "Reachable from an ungated route",
-        "gate": "none",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
+        "gate": "",
         "importerCount": 0,
         "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/BadgeTitle.tsx",
         "relPath": "client/src/components/ui/BadgeTitle.tsx",
-        "classification": "ACTIVE",
-        "confidence": "high",
-        "reason": "Reachable from an ungated route",
-        "gate": "none",
+        "classification": "HIDDEN_RESERVED",
+        "confidence": "medium",
+        "reason": "Has importers but no active route — likely modal child, sheet, or future feature",
+        "gate": "",
         "importerCount": 1,
         "importedCount": 0
       },
@@ -4008,7 +4008,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 2,
-        "importedCount": 3
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/DietCuisineControlRow.tsx",
@@ -4028,7 +4028,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 3
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/HowThisWorksLink.tsx",
@@ -4053,20 +4053,20 @@
       {
         "file": "/home/runner/workspace/client/src/components/ui/MedicalBadgeButton.tsx",
         "relPath": "client/src/components/ui/MedicalBadgeButton.tsx",
-        "classification": "ACTIVE",
-        "confidence": "high",
-        "reason": "Reachable from an ungated route",
-        "gate": "none",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
+        "gate": "",
         "importerCount": 0,
         "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/MedicalBadgeCard.tsx",
         "relPath": "client/src/components/ui/MedicalBadgeCard.tsx",
-        "classification": "ACTIVE",
-        "confidence": "high",
-        "reason": "Reachable from an ungated route",
-        "gate": "none",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
+        "gate": "",
         "importerCount": 0,
         "importedCount": 0
       },
@@ -4083,12 +4083,12 @@
       {
         "file": "/home/runner/workspace/client/src/components/ui/accordion.tsx",
         "relPath": "client/src/components/ui/accordion.tsx",
-        "classification": "ACTIVE",
-        "confidence": "high",
-        "reason": "Reachable from an ungated route",
-        "gate": "none",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
+        "gate": "",
         "importerCount": 0,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/alert-dialog.tsx",
@@ -4098,7 +4098,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 12,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/alert.tsx",
@@ -4108,27 +4108,27 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/aspect-ratio.tsx",
         "relPath": "client/src/components/ui/aspect-ratio.tsx",
-        "classification": "ACTIVE",
-        "confidence": "high",
-        "reason": "Reachable from an ungated route",
-        "gate": "none",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
+        "gate": "",
         "importerCount": 0,
         "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/avatar.tsx",
         "relPath": "client/src/components/ui/avatar.tsx",
-        "classification": "ACTIVE",
-        "confidence": "high",
-        "reason": "Reachable from an ungated route",
-        "gate": "none",
+        "classification": "HIDDEN_RESERVED",
+        "confidence": "medium",
+        "reason": "Has importers but no active route — likely modal child, sheet, or future feature",
+        "gate": "",
         "importerCount": 1,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/badge.tsx",
@@ -4138,17 +4138,17 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 48,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/breadcrumb.tsx",
         "relPath": "client/src/components/ui/breadcrumb.tsx",
-        "classification": "ACTIVE",
-        "confidence": "high",
-        "reason": "Reachable from an ungated route",
-        "gate": "none",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
+        "gate": "",
         "importerCount": 0,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/button.tsx",
@@ -4158,7 +4158,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 228,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/calendar.tsx",
@@ -4168,7 +4168,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/card.tsx",
@@ -4178,27 +4178,27 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 131,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/carousel.tsx",
         "relPath": "client/src/components/ui/carousel.tsx",
-        "classification": "ACTIVE",
-        "confidence": "high",
-        "reason": "Reachable from an ungated route",
-        "gate": "none",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
+        "gate": "",
         "importerCount": 0,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/chart.tsx",
         "relPath": "client/src/components/ui/chart.tsx",
-        "classification": "ACTIVE",
-        "confidence": "high",
-        "reason": "Reachable from an ungated route",
-        "gate": "none",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
+        "gate": "",
         "importerCount": 0,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/checkbox.tsx",
@@ -4208,7 +4208,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 9,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/collapsible.tsx",
@@ -4223,22 +4223,22 @@
       {
         "file": "/home/runner/workspace/client/src/components/ui/command.tsx",
         "relPath": "client/src/components/ui/command.tsx",
-        "classification": "ACTIVE",
-        "confidence": "high",
-        "reason": "Reachable from an ungated route",
-        "gate": "none",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
+        "gate": "",
         "importerCount": 0,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/context-menu.tsx",
         "relPath": "client/src/components/ui/context-menu.tsx",
-        "classification": "ACTIVE",
-        "confidence": "high",
-        "reason": "Reachable from an ungated route",
-        "gate": "none",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
+        "gate": "",
         "importerCount": 0,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/dialog.tsx",
@@ -4248,7 +4248,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 28,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/drawer.tsx",
@@ -4258,17 +4258,17 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 4,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/dropdown-menu.tsx",
         "relPath": "client/src/components/ui/dropdown-menu.tsx",
-        "classification": "ACTIVE",
-        "confidence": "high",
-        "reason": "Reachable from an ungated route",
-        "gate": "none",
+        "classification": "HIDDEN_RESERVED",
+        "confidence": "medium",
+        "reason": "Has importers but no active route — likely modal child, sheet, or future feature",
+        "gate": "",
         "importerCount": 1,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/form.tsx",
@@ -4278,37 +4278,37 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 2,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/glass-button.tsx",
         "relPath": "client/src/components/ui/glass-button.tsx",
-        "classification": "ACTIVE",
-        "confidence": "high",
-        "reason": "Reachable from an ungated route",
-        "gate": "none",
+        "classification": "HIDDEN_RESERVED",
+        "confidence": "medium",
+        "reason": "Has importers but no active route — likely modal child, sheet, or future feature",
+        "gate": "",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/hover-card.tsx",
         "relPath": "client/src/components/ui/hover-card.tsx",
-        "classification": "ACTIVE",
-        "confidence": "high",
-        "reason": "Reachable from an ungated route",
-        "gate": "none",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
+        "gate": "",
         "importerCount": 0,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/input-otp.tsx",
         "relPath": "client/src/components/ui/input-otp.tsx",
-        "classification": "ACTIVE",
-        "confidence": "high",
-        "reason": "Reachable from an ungated route",
-        "gate": "none",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
+        "gate": "",
         "importerCount": 0,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/input.tsx",
@@ -4318,7 +4318,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 65,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/label.tsx",
@@ -4328,37 +4328,37 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 27,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/meal-card.tsx",
         "relPath": "client/src/components/ui/meal-card.tsx",
-        "classification": "ACTIVE",
-        "confidence": "high",
-        "reason": "Reachable from an ungated route",
-        "gate": "none",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
+        "gate": "",
         "importerCount": 0,
-        "importedCount": 8
+        "importedCount": 5
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/menubar.tsx",
         "relPath": "client/src/components/ui/menubar.tsx",
-        "classification": "ACTIVE",
-        "confidence": "high",
-        "reason": "Reachable from an ungated route",
-        "gate": "none",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
+        "gate": "",
         "importerCount": 0,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/navigation-menu.tsx",
         "relPath": "client/src/components/ui/navigation-menu.tsx",
-        "classification": "ACTIVE",
-        "confidence": "high",
-        "reason": "Reachable from an ungated route",
-        "gate": "none",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
+        "gate": "",
         "importerCount": 0,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/navigation.tsx",
@@ -4373,22 +4373,22 @@
       {
         "file": "/home/runner/workspace/client/src/components/ui/nutrition-summary.tsx",
         "relPath": "client/src/components/ui/nutrition-summary.tsx",
-        "classification": "ACTIVE",
-        "confidence": "high",
-        "reason": "Reachable from an ungated route",
-        "gate": "none",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
+        "gate": "",
         "importerCount": 0,
         "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/pagination.tsx",
         "relPath": "client/src/components/ui/pagination.tsx",
-        "classification": "ACTIVE",
-        "confidence": "high",
-        "reason": "Reachable from an ungated route",
-        "gate": "none",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
+        "gate": "",
         "importerCount": 0,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/pill-button.tsx",
@@ -4398,7 +4398,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 91,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/popover.tsx",
@@ -4408,7 +4408,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 5,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/progress.tsx",
@@ -4418,7 +4418,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 22,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/radio-group.tsx",
@@ -4428,17 +4428,17 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 3,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/resizable.tsx",
         "relPath": "client/src/components/ui/resizable.tsx",
-        "classification": "ACTIVE",
-        "confidence": "high",
-        "reason": "Reachable from an ungated route",
-        "gate": "none",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
+        "gate": "",
         "importerCount": 0,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/scroll-area.tsx",
@@ -4448,7 +4448,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 2,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/select.tsx",
@@ -4458,7 +4458,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 34,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/separator.tsx",
@@ -4468,7 +4468,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 5,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/sheet.tsx",
@@ -4478,37 +4478,37 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 11,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/sidebar.tsx",
         "relPath": "client/src/components/ui/sidebar.tsx",
-        "classification": "ACTIVE",
-        "confidence": "high",
-        "reason": "Reachable from an ungated route",
-        "gate": "none",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
+        "gate": "",
         "importerCount": 0,
-        "importedCount": 8
+        "importedCount": 7
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/skeleton.tsx",
         "relPath": "client/src/components/ui/skeleton.tsx",
-        "classification": "ACTIVE",
-        "confidence": "high",
-        "reason": "Reachable from an ungated route",
-        "gate": "none",
+        "classification": "HIDDEN_RESERVED",
+        "confidence": "medium",
+        "reason": "Has importers but no active route — likely modal child, sheet, or future feature",
+        "gate": "",
         "importerCount": 1,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/slider.tsx",
         "relPath": "client/src/components/ui/slider.tsx",
-        "classification": "ACTIVE",
-        "confidence": "high",
-        "reason": "Reachable from an ungated route",
-        "gate": "none",
+        "classification": "HIDDEN_RESERVED",
+        "confidence": "medium",
+        "reason": "Has importers but no active route — likely modal child, sheet, or future feature",
+        "gate": "",
         "importerCount": 1,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/switch.tsx",
@@ -4518,17 +4518,17 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 2,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/table.tsx",
         "relPath": "client/src/components/ui/table.tsx",
-        "classification": "ACTIVE",
-        "confidence": "high",
-        "reason": "Reachable from an ungated route",
-        "gate": "none",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
+        "gate": "",
         "importerCount": 0,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/tabs.tsx",
@@ -4538,7 +4538,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 3,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/textarea.tsx",
@@ -4548,7 +4548,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 16,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/toast.tsx",
@@ -4557,8 +4557,8 @@
         "confidence": "high",
         "reason": "Reachable from an ungated route",
         "gate": "none",
-        "importerCount": 3,
-        "importedCount": 1
+        "importerCount": 2,
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/toaster.tsx",
@@ -4568,27 +4568,27 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/toggle-group.tsx",
         "relPath": "client/src/components/ui/toggle-group.tsx",
-        "classification": "ACTIVE",
-        "confidence": "high",
-        "reason": "Reachable from an ungated route",
-        "gate": "none",
+        "classification": "UNKNOWN_REVIEW",
+        "confidence": "medium",
+        "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
+        "gate": "",
         "importerCount": 0,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/toggle.tsx",
         "relPath": "client/src/components/ui/toggle.tsx",
-        "classification": "ACTIVE",
-        "confidence": "high",
-        "reason": "Reachable from an ungated route",
-        "gate": "none",
+        "classification": "HIDDEN_RESERVED",
+        "confidence": "medium",
+        "reason": "Has importers but no active route — likely modal child, sheet, or future feature",
+        "gate": "",
         "importerCount": 1,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/tooltip.tsx",
@@ -4598,7 +4598,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 4,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/components/ui/universal-modal.tsx",
@@ -4608,7 +4608,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 46,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/components/upgrade/LockedBuilderCard.tsx",
@@ -4667,8 +4667,8 @@
         "confidence": "high",
         "reason": "Reachable from an ungated route",
         "gate": "none",
-        "importerCount": 150,
-        "importedCount": 5
+        "importerCount": 142,
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/contexts/DesktopLayoutContext.tsx",
@@ -4688,7 +4688,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 2,
-        "importedCount": 3
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/contexts/HouseholdContext.tsx",
@@ -4698,7 +4698,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 2,
-        "importedCount": 3
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/contexts/NarrationSpeedContext.tsx",
@@ -4707,8 +4707,8 @@
         "confidence": "high",
         "reason": "Reachable from an ungated route",
         "gate": "none",
-        "importerCount": 3,
-        "importedCount": 3
+        "importerCount": 2,
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/contexts/OrgContext.tsx",
@@ -4717,8 +4717,8 @@
         "confidence": "high",
         "reason": "Reachable from an ungated route",
         "gate": "none",
-        "importerCount": 12,
-        "importedCount": 1
+        "importerCount": 10,
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/contexts/PageTitleContext.tsx",
@@ -4738,7 +4738,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 6,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/contexts/TourContext.tsx",
@@ -4758,7 +4758,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 2,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/contexts/UpgradeModalContext.tsx",
@@ -4778,7 +4778,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 8
+        "importedCount": 6
       },
       {
         "file": "/home/runner/workspace/client/src/features/meals/MealHubFactory.tsx",
@@ -4787,8 +4787,8 @@
         "confidence": "high",
         "reason": "Reachable from an ungated route",
         "gate": "none",
-        "importerCount": 3,
-        "importedCount": 18
+        "importerCount": 2,
+        "importedCount": 9
       },
       {
         "file": "/home/runner/workspace/client/src/games/LeaderboardCard.tsx",
@@ -4798,7 +4798,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/hooks/use-mobile.tsx",
@@ -4818,7 +4818,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/layout/AppLayout.tsx",
@@ -4828,7 +4828,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 4
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/layout/DesktopHeader.tsx",
@@ -4838,7 +4838,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 6
+        "importedCount": 5
       },
       {
         "file": "/home/runner/workspace/client/src/layout/DesktopLayout.tsx",
@@ -4848,7 +4848,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 9
+        "importedCount": 5
       },
       {
         "file": "/home/runner/workspace/client/src/layout/MobileLayout.tsx",
@@ -4878,7 +4878,7 @@
         "reason": "In client/src/legacy/ directory",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 9
+        "importedCount": 6
       },
       {
         "file": "/home/runner/workspace/client/src/legacy/ace-checkin-v1/DailyCheckinCard.tsx",
@@ -4888,7 +4888,7 @@
         "reason": "In client/src/legacy/ directory",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 6
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/legacy/ace-checkin-v1/DailyCheckinModal.tsx",
@@ -4898,7 +4898,7 @@
         "reason": "In client/src/legacy/ directory",
         "gate": "",
         "importerCount": 1,
-        "importedCount": 4
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/legacy/studio-retired/RETIRED_CravingStudio.tsx",
@@ -4908,7 +4908,7 @@
         "reason": "RETIRED_ prefix — explicitly decommissioned",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 22
+        "importedCount": 16
       },
       {
         "file": "/home/runner/workspace/client/src/legacy/studio-retired/RETIRED_DessertStudio.tsx",
@@ -4938,7 +4938,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 0,
-        "importedCount": 2
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/modules/founders/FoundersModule.tsx",
@@ -4948,7 +4948,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 9
+        "importedCount": 7
       },
       {
         "file": "/home/runner/workspace/client/src/modules/founders/FoundersTeaser.tsx",
@@ -4968,7 +4968,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 3
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/pages/AcademyLandingPage.tsx",
@@ -4978,7 +4978,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 4
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/pages/AceProfilePage.tsx",
@@ -4988,7 +4988,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/pages/AdminDashboard.tsx",
@@ -4998,7 +4998,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 5
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/pages/AffiliateDashboard.tsx",
@@ -5008,7 +5008,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 7
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/pages/AffiliateOpportunities.tsx",
@@ -5018,7 +5018,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/pages/AffiliatePathPage.tsx",
@@ -5038,7 +5038,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 6
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/pages/AntiInflammatoryTrainingPage.tsx",
@@ -5058,7 +5058,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 8
+        "importedCount": 4
       },
       {
         "file": "/home/runner/workspace/client/src/pages/AthleteBeverageCreator.tsx",
@@ -5068,7 +5068,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 41
+        "importedCount": 26
       },
       {
         "file": "/home/runner/workspace/client/src/pages/Auth.tsx",
@@ -5078,7 +5078,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 5
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/pages/BeachBodyMealBoard.tsx",
@@ -5088,7 +5088,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 61
+        "importedCount": 32
       },
       {
         "file": "/home/runner/workspace/client/src/pages/BeverageCreator.tsx",
@@ -5098,7 +5098,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 43
+        "importedCount": 29
       },
       {
         "file": "/home/runner/workspace/client/src/pages/BeverageCreatorHub.tsx",
@@ -5108,7 +5108,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 5
+        "importedCount": 4
       },
       {
         "file": "/home/runner/workspace/client/src/pages/Builders.tsx",
@@ -5118,7 +5118,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 5
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/pages/BusinessCenter.tsx",
@@ -5128,7 +5128,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 4
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/pages/BusinessCenterSection.tsx",
@@ -5148,7 +5148,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 11
+        "importedCount": 8
       },
       {
         "file": "/home/runner/workspace/client/src/pages/BusinessInviteAccept.tsx",
@@ -5158,7 +5158,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 3
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/pages/BusinessSetup.tsx",
@@ -5168,7 +5168,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/pages/BusinessStart.tsx",
@@ -5188,7 +5188,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 14
+        "importedCount": 11
       },
       {
         "file": "/home/runner/workspace/client/src/pages/CheckoutSuccess.tsx",
@@ -5198,7 +5198,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 5
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/pages/ChefPairings.tsx",
@@ -5208,7 +5208,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 17
+        "importedCount": 12
       },
       {
         "file": "/home/runner/workspace/client/src/pages/CoachCornerComplete.tsx",
@@ -5238,7 +5238,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/pages/CoachCornerProgressSlowed.tsx",
@@ -5248,7 +5248,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/pages/CoachCornerTired.tsx",
@@ -5258,7 +5258,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/pages/CoachCornerWelcome.tsx",
@@ -5268,7 +5268,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/pages/CoachQueue.tsx",
@@ -5288,7 +5288,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 5
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/pages/CoachsCorner.tsx",
@@ -5298,7 +5298,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 4
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/pages/ComingSoon.tsx",
@@ -5318,7 +5318,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 2,
-        "importedCount": 15
+        "importedCount": 8
       },
       {
         "file": "/home/runner/workspace/client/src/pages/ConsumerWelcome.tsx",
@@ -5338,7 +5338,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 4
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/pages/CravingDessertCreator.tsx",
@@ -5348,7 +5348,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 43
+        "importedCount": 30
       },
       {
         "file": "/home/runner/workspace/client/src/pages/DashboardNew.tsx",
@@ -5358,7 +5358,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 29
+        "importedCount": 22
       },
       {
         "file": "/home/runner/workspace/client/src/pages/DeleteAccount.tsx",
@@ -5368,7 +5368,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 3
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/pages/DiabeticTrainingPage.tsx",
@@ -5398,7 +5398,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 27
+        "importedCount": 15
       },
       {
         "file": "/home/runner/workspace/client/src/pages/ForgotPassword.tsx",
@@ -5408,7 +5408,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 4
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/pages/Founders.tsx",
@@ -5418,7 +5418,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 3
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/pages/FoundingAffiliatePage.tsx",
@@ -5428,7 +5428,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 3
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/pages/FoundingPartnerProgram.tsx",
@@ -5438,7 +5438,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/pages/GLP1MealsTracking.tsx",
@@ -5478,7 +5478,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 3
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/pages/GuestBuilder.tsx",
@@ -5488,7 +5488,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 16
+        "importedCount": 8
       },
       {
         "file": "/home/runner/workspace/client/src/pages/HouseholdProfilesPage.tsx",
@@ -5498,7 +5498,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 9
+        "importedCount": 8
       },
       {
         "file": "/home/runner/workspace/client/src/pages/HowPartnershipsWork.tsx",
@@ -5508,7 +5508,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/pages/IndustryPartnerships.tsx",
@@ -5518,7 +5518,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/pages/Learn.tsx",
@@ -5528,7 +5528,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 4
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/pages/LifestyleLandingPage.tsx",
@@ -5538,7 +5538,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 7
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/pages/MacroCalculator.tsx",
@@ -5548,7 +5548,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 32
+        "importedCount": 18
       },
       {
         "file": "/home/runner/workspace/client/src/pages/MealBuilderSelection.tsx",
@@ -5558,7 +5558,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 7
+        "importedCount": 4
       },
       {
         "file": "/home/runner/workspace/client/src/pages/More.tsx",
@@ -5568,7 +5568,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 18
+        "importedCount": 11
       },
       {
         "file": "/home/runner/workspace/client/src/pages/MyPerfectBeginningParentsCorner.tsx",
@@ -5578,7 +5578,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 5
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/pages/MyPerfectBuffetPage.tsx",
@@ -5588,7 +5588,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 6
+        "importedCount": 4
       },
       {
         "file": "/home/runner/workspace/client/src/pages/MyPerfectPregnancyPage.tsx",
@@ -5598,7 +5598,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 7
+        "importedCount": 4
       },
       {
         "file": "/home/runner/workspace/client/src/pages/OnboardingV3.tsx",
@@ -5608,7 +5608,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 10
+        "importedCount": 6
       },
       {
         "file": "/home/runner/workspace/client/src/pages/OrganizationSuccessCenter.tsx",
@@ -5618,7 +5618,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 4
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/pages/PartnerCenter.tsx",
@@ -5628,7 +5628,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 5
+        "importedCount": 4
       },
       {
         "file": "/home/runner/workspace/client/src/pages/PartnerManagement.tsx",
@@ -5638,7 +5638,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 5
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/pages/PartnerProgramsHub.tsx",
@@ -5648,7 +5648,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 3
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/pages/PerformanceNutritionSetupPage.tsx",
@@ -5678,7 +5678,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/pages/Planner.tsx",
@@ -5688,7 +5688,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 5
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/pages/PricingPage.tsx",
@@ -5698,7 +5698,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 17
+        "importedCount": 8
       },
       {
         "file": "/home/runner/workspace/client/src/pages/PrivacyPolicy.tsx",
@@ -5728,7 +5728,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 4
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/pages/ProPortal.tsx",
@@ -5738,7 +5738,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 6
+        "importedCount": 5
       },
       {
         "file": "/home/runner/workspace/client/src/pages/ProcareTraining.tsx",
@@ -5748,7 +5748,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 3
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/pages/ProfessionalLaunchpad.tsx",
@@ -5758,7 +5758,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 3
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/pages/PromoRedemption.tsx",
@@ -5768,7 +5768,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/pages/PublicHealthcarePartnerships.tsx",
@@ -5778,7 +5778,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/pages/PublicPartnersHub.tsx",
@@ -5798,7 +5798,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 4
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/pages/RestaurantFinderPage.tsx",
@@ -5808,7 +5808,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 9
+        "importedCount": 5
       },
       {
         "file": "/home/runner/workspace/client/src/pages/SavedMeals.tsx",
@@ -5818,7 +5818,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 6
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/pages/SharedMealPage.tsx",
@@ -5828,7 +5828,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 3
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/pages/ShoppingListMasterView.tsx",
@@ -5838,7 +5838,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 33
+        "importedCount": 17
       },
       {
         "file": "/home/runner/workspace/client/src/pages/SocialFindMeals.tsx",
@@ -5848,7 +5848,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 29
+        "importedCount": 15
       },
       {
         "file": "/home/runner/workspace/client/src/pages/SocialRestaurantGuide.tsx",
@@ -5858,7 +5858,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 26
+        "importedCount": 14
       },
       {
         "file": "/home/runner/workspace/client/src/pages/SocializingHub.tsx",
@@ -5868,7 +5868,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 4
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/pages/SupplementHubLanding.tsx",
@@ -5888,7 +5888,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 47
+        "importedCount": 31
       },
       {
         "file": "/home/runner/workspace/client/src/pages/TermsOfService.tsx",
@@ -5918,7 +5918,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 5,
-        "importedCount": 7
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/pages/TutorialHub.tsx",
@@ -5938,7 +5938,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 66
+        "importedCount": 33
       },
       {
         "file": "/home/runner/workspace/client/src/pages/Welcome.tsx",
@@ -5948,7 +5948,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 4
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/pages/WhiteLabelSolutions.tsx",
@@ -6008,7 +6008,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 3
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/pages/academy/LessonReader.tsx",
@@ -6018,7 +6018,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 7
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/pages/academy/PlatformMasteryComplete.tsx",
@@ -6028,7 +6028,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/pages/academy/PlatformMasteryDashboard.tsx",
@@ -6038,7 +6038,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 3
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/pages/admin/AdminCampaignManager.tsx",
@@ -6048,7 +6048,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 1
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/pages/admin/AdminCertifications.tsx",
@@ -6058,7 +6058,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/pages/admin/BugReportsDashboard.tsx",
@@ -6068,7 +6068,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/pages/admin/ChefKitchensAdmin.tsx",
@@ -6078,7 +6078,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 5
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/pages/admin-moderation.tsx",
@@ -6088,7 +6088,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 3
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/pages/beer-pairing.tsx",
@@ -6098,7 +6098,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 9
+        "importedCount": 7
       },
       {
         "file": "/home/runner/workspace/client/src/pages/biometrics/body-composition.tsx",
@@ -6108,7 +6108,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 7
+        "importedCount": 4
       },
       {
         "file": "/home/runner/workspace/client/src/pages/biometrics/sleep.tsx",
@@ -6128,7 +6128,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 13
+        "importedCount": 9
       },
       {
         "file": "/home/runner/workspace/client/src/pages/business/PromotionsHub.tsx",
@@ -6138,7 +6138,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 0
       },
       {
         "file": "/home/runner/workspace/client/src/pages/care-team/PhysicianCareTeam.tsx",
@@ -6148,7 +6148,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 14
+        "importedCount": 11
       },
       {
         "file": "/home/runner/workspace/client/src/pages/care-team/TrainerCareTeam.tsx",
@@ -6158,7 +6158,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 15
+        "importedCount": 12
       },
       {
         "file": "/home/runner/workspace/client/src/pages/certification/CertificationCertificateView.tsx",
@@ -6168,7 +6168,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/pages/certification/CertificationComplete.tsx",
@@ -6178,7 +6178,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/pages/certification/CertificationDashboard.tsx",
@@ -6188,7 +6188,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 4
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/pages/certification/CertificationLesson.tsx",
@@ -6198,7 +6198,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 4
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/pages/certification/CertificationQuiz.tsx",
@@ -6208,7 +6208,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 3
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/pages/companion/CatIngredientScanner.tsx",
@@ -6218,7 +6218,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 7
+        "importedCount": 4
       },
       {
         "file": "/home/runner/workspace/client/src/pages/companion/CatNutritionHub.tsx",
@@ -6228,7 +6228,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 9
+        "importedCount": 5
       },
       {
         "file": "/home/runner/workspace/client/src/pages/companion/CatProfileSetup.tsx",
@@ -6238,7 +6238,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 6
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/pages/companion/CompanionMealGenerator.tsx",
@@ -6248,7 +6248,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 9
+        "importedCount": 6
       },
       {
         "file": "/home/runner/workspace/client/src/pages/companion/DogIngredientScanner.tsx",
@@ -6258,7 +6258,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 7
+        "importedCount": 4
       },
       {
         "file": "/home/runner/workspace/client/src/pages/companion/DogProfileSetup.tsx",
@@ -6268,7 +6268,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 6
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/pages/craving-creator.tsx",
@@ -6278,7 +6278,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 51
+        "importedCount": 35
       },
       {
         "file": "/home/runner/workspace/client/src/pages/creator/CreatorSetupPage.tsx",
@@ -6288,7 +6288,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 3
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/pages/creator/CreatorStartPage.tsx",
@@ -6318,7 +6318,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 3
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/pages/fridge-rescue.tsx",
@@ -6328,7 +6328,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 59
+        "importedCount": 38
       },
       {
         "file": "/home/runner/workspace/client/src/pages/glp1/ShotTrackerPanel.tsx",
@@ -6338,7 +6338,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 2,
-        "importedCount": 4
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/pages/home.tsx",
@@ -6348,7 +6348,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 7
+        "importedCount": 6
       },
       {
         "file": "/home/runner/workspace/client/src/pages/kitchen/SignatureKitchenHubPage.tsx",
@@ -6358,7 +6358,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 5
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/pages/kitchen/SignatureKitchenPage.tsx",
@@ -6368,7 +6368,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 3
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/pages/learning/LearningHub.tsx",
@@ -6378,7 +6378,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 3
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/pages/learning/PlatformCertComplete.tsx",
@@ -6388,7 +6388,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/pages/learning/PlatformCertDashboard.tsx",
@@ -6398,7 +6398,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 5
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/pages/learning/PlatformCertQuiz.tsx",
@@ -6408,7 +6408,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/pages/learning/PlatformCertVideo.tsx",
@@ -6418,7 +6418,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/pages/learning/UpdatesInbox.tsx",
@@ -6428,7 +6428,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 3
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/pages/lifestyle/ChefsKitchenPage.tsx",
@@ -6438,7 +6438,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 34
+        "importedCount": 19
       },
       {
         "file": "/home/runner/workspace/client/src/pages/lifestyle/CreateDishPage.tsx",
@@ -6448,7 +6448,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 45
+        "importedCount": 30
       },
       {
         "file": "/home/runner/workspace/client/src/pages/lifestyle/GatheringsPage.tsx",
@@ -6458,7 +6458,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 42
+        "importedCount": 26
       },
       {
         "file": "/home/runner/workspace/client/src/pages/lifestyle/MyPerfectBeginning.tsx",
@@ -6468,7 +6468,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 4
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/pages/lifestyle/MyPerfectBeginningCreateMealPage.tsx",
@@ -6478,7 +6478,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 12
+        "importedCount": 9
       },
       {
         "file": "/home/runner/workspace/client/src/pages/lifestyle/MyPerfectBeginningPage.tsx",
@@ -6488,7 +6488,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 4
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/pages/lifestyle/MyPerfectBeginningProfilePage.tsx",
@@ -6498,7 +6498,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 5
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/pages/lifestyle/MyPerfectBeginningStub.tsx",
@@ -6508,7 +6508,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/pages/lifestyle/MyPerfectGetaway.tsx",
@@ -6518,7 +6518,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 8
+        "importedCount": 4
       },
       {
         "file": "/home/runner/workspace/client/src/pages/lifestyle/PairingsAI.tsx",
@@ -6528,7 +6528,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 18
+        "importedCount": 11
       },
       {
         "file": "/home/runner/workspace/client/src/pages/lifestyle/PairingsHub.tsx",
@@ -6538,7 +6538,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 5
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/pages/lifestyle/ReduceDrinkingPlan.tsx",
@@ -6548,7 +6548,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 9
+        "importedCount": 4
       },
       {
         "file": "/home/runner/workspace/client/src/pages/lifestyle/WineListHelper.tsx",
@@ -6558,7 +6558,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 14
+        "importedCount": 8
       },
       {
         "file": "/home/runner/workspace/client/src/pages/meal-pairing-ai.tsx",
@@ -6568,7 +6568,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 7
+        "importedCount": 5
       },
       {
         "file": "/home/runner/workspace/client/src/pages/my-biometrics.tsx",
@@ -6578,7 +6578,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 42
+        "importedCount": 20
       },
       {
         "file": "/home/runner/workspace/client/src/pages/not-found.tsx",
@@ -6598,7 +6598,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 7
+        "importedCount": 4
       },
       {
         "file": "/home/runner/workspace/client/src/pages/onboarding-standalone.tsx",
@@ -6608,7 +6608,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 16
+        "importedCount": 12
       },
       {
         "file": "/home/runner/workspace/client/src/pages/physician/AntiInflammatoryBuilderEntry.tsx",
@@ -6618,7 +6618,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/pages/physician/AntiInflammatoryMenuBuilder.tsx",
@@ -6628,7 +6628,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 67
+        "importedCount": 33
       },
       {
         "file": "/home/runner/workspace/client/src/pages/physician/DiabetesSupportPage.tsx",
@@ -6648,7 +6648,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/pages/physician/DiabeticHub.tsx",
@@ -6658,7 +6658,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 16
+        "importedCount": 11
       },
       {
         "file": "/home/runner/workspace/client/src/pages/physician/DiabeticMenuBuilder.tsx",
@@ -6668,7 +6668,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 68
+        "importedCount": 33
       },
       {
         "file": "/home/runner/workspace/client/src/pages/physician/GLP1BuilderEntry.tsx",
@@ -6678,7 +6678,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/pages/physician/GLP1Hub.tsx",
@@ -6688,7 +6688,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 15
+        "importedCount": 11
       },
       {
         "file": "/home/runner/workspace/client/src/pages/physician/GLP1MealBuilder.tsx",
@@ -6698,7 +6698,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 66
+        "importedCount": 34
       },
       {
         "file": "/home/runner/workspace/client/src/pages/privacy.tsx",
@@ -6718,7 +6718,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 25
+        "importedCount": 16
       },
       {
         "file": "/home/runner/workspace/client/src/pages/pro/GeneralNutritionBuilder.tsx",
@@ -6728,7 +6728,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 60
+        "importedCount": 29
       },
       {
         "file": "/home/runner/workspace/client/src/pages/pro/GeneralNutritionBuilderEntry.tsx",
@@ -6738,7 +6738,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/pages/pro/PerformanceCompetitionBuilder.tsx",
@@ -6748,7 +6748,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 58
+        "importedCount": 30
       },
       {
         "file": "/home/runner/workspace/client/src/pages/pro/PhysicianPortal.tsx",
@@ -6758,7 +6758,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 6
+        "importedCount": 5
       },
       {
         "file": "/home/runner/workspace/client/src/pages/pro/ProBoardViewer.tsx",
@@ -6768,7 +6768,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 7
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/pages/pro/ProClientDashboard.tsx",
@@ -6778,7 +6778,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 17
+        "importedCount": 11
       },
       {
         "file": "/home/runner/workspace/client/src/pages/pro/ProClients.tsx",
@@ -6788,7 +6788,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 2,
-        "importedCount": 17
+        "importedCount": 12
       },
       {
         "file": "/home/runner/workspace/client/src/pages/pro/ProClientsPhysician.tsx",
@@ -6808,7 +6808,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 22
+        "importedCount": 13
       },
       {
         "file": "/home/runner/workspace/client/src/pages/pro/WorkspaceShell.tsx",
@@ -6818,7 +6818,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 3
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/pages/procare/CertifiedProfessionalUnlock.tsx",
@@ -6828,7 +6828,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 3
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/pages/procare/ProCareAttestation.tsx",
@@ -6838,7 +6838,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 5
+        "importedCount": 3
       },
       {
         "file": "/home/runner/workspace/client/src/pages/procare/ProCareIdentity.tsx",
@@ -6868,7 +6868,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 4
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/pages/procare/ProCareWelcome.tsx",
@@ -6878,7 +6878,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 3
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/pages/procare/ProLaunchpad.tsx",
@@ -6888,7 +6888,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 4
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/pages/procare/ProfessionalOnboardingBridge.tsx",
@@ -6898,7 +6898,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 2
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/pages/profile/CoachingPreferencesPage.tsx",
@@ -6908,7 +6908,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 6
+        "importedCount": 2
       },
       {
         "file": "/home/runner/workspace/client/src/pages/profile/EditProfilePage.tsx",
@@ -6918,7 +6918,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 19
+        "importedCount": 9
       },
       {
         "file": "/home/runner/workspace/client/src/pages/profile/LanguagePreferencesPage.tsx",
@@ -6928,7 +6928,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 3
+        "importedCount": 1
       },
       {
         "file": "/home/runner/workspace/client/src/pages/supplement-education.tsx",
@@ -6938,7 +6938,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 6
+        "importedCount": 4
       },
       {
         "file": "/home/runner/workspace/client/src/pages/supplement-hub.tsx",
@@ -6968,7 +6968,7 @@
         "reason": "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
         "gate": "",
         "importerCount": 0,
-        "importedCount": 11
+        "importedCount": 8
       },
       {
         "file": "/home/runner/workspace/client/src/voice/VoiceProvider.tsx",
@@ -6978,7 +6978,7 @@
         "reason": "Reachable from an ungated route",
         "gate": "none",
         "importerCount": 1,
-        "importedCount": 1
+        "importedCount": 0
       }
     ],
     "orphanDeadFiles": [],

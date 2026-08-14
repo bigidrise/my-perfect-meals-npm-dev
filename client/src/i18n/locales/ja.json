@@ -2194,85 +2194,85 @@
   "sharedComponents": {
     "navigation": {
       "appName": "My Perfect Meals",
-      "features": "Features",
-      "howItWorks": "How It Works",
-      "pricing": "Pricing",
-      "signIn": "Sign In"
+      "features": "機能",
+      "howItWorks": "仕組み",
+      "pricing": "料金",
+      "signIn": "サインイン"
     },
     "errorBoundary": {
-      "title": "Something went wrong",
-      "description": "We're having trouble loading this page. Please refresh and try again.",
-      "refresh": "Refresh Page"
+      "title": "エラーが発生しました",
+      "description": "このページの読み込みに問題が発生しています。更新して再試行してください。",
+      "refresh": "ページを更新"
     },
     "dateSlotPicker": {
-      "placeholder": "Select meal slot"
+      "placeholder": "食事スロットを選択"
     },
     "mealSlots": {
-      "breakfast": "Breakfast",
-      "lunch": "Lunch",
-      "dinner": "Dinner",
-      "snack": "Snack"
+      "breakfast": "朝食",
+      "lunch": "昼食",
+      "dinner": "夕食",
+      "snack": "おやつ"
     },
     "dailyNutritionTracker": {
-      "title": "Daily Nutrition Progress",
-      "description": "Track your daily nutritional intake",
-      "calories": "Calories",
-      "protein": "Protein",
-      "carbohydrates": "Carbohydrates",
-      "fat": "Fat",
-      "onTrack": "On track with your daily goals!"
+      "title": "1日の栄養進捗",
+      "description": "毎日の栄養摂取量を記録する",
+      "calories": "カロリー",
+      "protein": "タンパク質",
+      "carbohydrates": "炭水化物",
+      "fat": "脂質",
+      "onTrack": "毎日の目標に向けて順調に進んでいます！"
     },
     "pagination": {
-      "label": "pagination",
-      "previousPage": "Go to previous page",
-      "previous": "Previous",
-      "nextPage": "Go to next page",
-      "next": "Next",
-      "morePages": "More pages"
+      "label": "ページナビゲーション",
+      "previousPage": "前のページへ",
+      "previous": "前へ",
+      "nextPage": "次のページへ",
+      "next": "次へ",
+      "morePages": "さらにページ"
     },
     "enhancedMealCard": {
-      "replace": "Replace",
-      "replacing": "Replacing...",
-      "replaceTitle": "Replace with a completely new meal recipe",
-      "replacingTitle": "Replacing meal...",
-      "portionGuide": "Portion Guide:",
-      "ingredients": "Ingredients:",
-      "instructions": "Instructions:",
-      "medicalSafety": "Medical Safety:",
-      "error": "Error:"
+      "replace": "置き換え",
+      "replacing": "置き換え中...",
+      "replaceTitle": "全く新しい食事レシピに置き換える",
+      "replacingTitle": "食事を置き換え中...",
+      "portionGuide": "ポーションガイド：",
+      "ingredients": "材料：",
+      "instructions": "手順：",
+      "medicalSafety": "医療安全性：",
+      "error": "エラー："
     },
     "mealCard": {
-      "noRecipe": "No recipe",
-      "addMeal": "Add a meal",
-      "serving": "Serving:",
-      "ingredients": "Ingredients:",
-      "cookingInstructions": "Cooking Instructions:",
-      "protein": "Protein",
-      "carbs": "Carbs",
-      "fat": "Fat"
+      "noRecipe": "レシピなし",
+      "addMeal": "食事を追加",
+      "serving": "サービング：",
+      "ingredients": "材料：",
+      "cookingInstructions": "調理手順：",
+      "protein": "タンパク質",
+      "carbs": "炭水化物",
+      "fat": "脂質"
     },
     "nutritionSummary": {
-      "title": "Nutrition Summary",
-      "empty": "Generate a meal plan to see your nutrition summary",
-      "weeklyOverview": "Weekly Overview",
-      "totalCalories": "Total Calories",
-      "dailyAverage": "Daily Average",
-      "totalProtein": "Total Protein",
-      "daysPlanned": "Days Planned",
-      "dailyTargets": "Daily Targets",
-      "calories": "Calories",
-      "protein": "Protein",
-      "carbohydrates": "Carbohydrates",
-      "fat": "Fat",
-      "targetMet": "Target met",
-      "goalProgress": "Goal Progress",
-      "fitnessGoal": "Fitness Goal",
-      "activityLevel": "Activity Level",
-      "dietaryPreferences": "Dietary Preferences",
-      "balanceScore": "Balance Score",
-      "percentOfTarget": "{{n}}% of target",
-      "remainingCal": "{{n}} remaining",
-      "remainingG": "{{n}}g remaining"
+      "title": "栄養サマリー",
+      "empty": "食事プランを生成して栄養サマリーを確認してください",
+      "weeklyOverview": "週間概要",
+      "totalCalories": "総カロリー",
+      "dailyAverage": "1日の平均",
+      "totalProtein": "総タンパク質",
+      "daysPlanned": "計画した日数",
+      "dailyTargets": "1日の目標",
+      "calories": "カロリー",
+      "protein": "タンパク質",
+      "carbohydrates": "炭水化物",
+      "fat": "脂質",
+      "targetMet": "目標達成",
+      "goalProgress": "目標進捗",
+      "fitnessGoal": "フィットネス目標",
+      "activityLevel": "活動レベル",
+      "dietaryPreferences": "食事の好み",
+      "balanceScore": "バランススコア",
+      "percentOfTarget": "目標の{{n}}%",
+      "remainingCal": "{{n}} 残り",
+      "remainingG": "{{n}}g 残り"
     }
   }
 }

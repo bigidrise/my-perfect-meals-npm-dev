@@ -2128,85 +2128,85 @@
   "sharedComponents": {
     "navigation": {
       "appName": "My Perfect Meals",
-      "features": "Features",
-      "howItWorks": "How It Works",
-      "pricing": "Pricing",
-      "signIn": "Sign In"
+      "features": "功能特点",
+      "howItWorks": "工作原理",
+      "pricing": "定价",
+      "signIn": "登录"
     },
     "errorBoundary": {
-      "title": "Something went wrong",
-      "description": "We're having trouble loading this page. Please refresh and try again.",
-      "refresh": "Refresh Page"
+      "title": "出现了问题",
+      "description": "我们在加载此页面时遇到了问题。请刷新并重试。",
+      "refresh": "刷新页面"
     },
     "dateSlotPicker": {
-      "placeholder": "Select meal slot"
+      "placeholder": "选择餐食时段"
     },
     "mealSlots": {
-      "breakfast": "Breakfast",
-      "lunch": "Lunch",
-      "dinner": "Dinner",
-      "snack": "Snack"
+      "breakfast": "早餐",
+      "lunch": "午餐",
+      "dinner": "晚餐",
+      "snack": "零食"
     },
     "dailyNutritionTracker": {
-      "title": "Daily Nutrition Progress",
-      "description": "Track your daily nutritional intake",
-      "calories": "Calories",
-      "protein": "Protein",
-      "carbohydrates": "Carbohydrates",
-      "fat": "Fat",
-      "onTrack": "On track with your daily goals!"
+      "title": "每日营养进度",
+      "description": "追踪您的每日营养摄入",
+      "calories": "卡路里",
+      "protein": "蛋白质",
+      "carbohydrates": "碳水化合物",
+      "fat": "脂肪",
+      "onTrack": "您正在朝着每日目标稳步前进！"
     },
     "pagination": {
-      "label": "pagination",
-      "previousPage": "Go to previous page",
-      "previous": "Previous",
-      "nextPage": "Go to next page",
-      "next": "Next",
-      "morePages": "More pages"
+      "label": "分页",
+      "previousPage": "转到上一页",
+      "previous": "上一页",
+      "nextPage": "转到下一页",
+      "next": "下一页",
+      "morePages": "更多页面"
     },
     "enhancedMealCard": {
-      "replace": "Replace",
-      "replacing": "Replacing...",
-      "replaceTitle": "Replace with a completely new meal recipe",
-      "replacingTitle": "Replacing meal...",
-      "portionGuide": "Portion Guide:",
-      "ingredients": "Ingredients:",
-      "instructions": "Instructions:",
-      "medicalSafety": "Medical Safety:",
-      "error": "Error:"
+      "replace": "替换",
+      "replacing": "替换中...",
+      "replaceTitle": "用全新的餐食食谱替换",
+      "replacingTitle": "替换餐食中...",
+      "portionGuide": "份量指南：",
+      "ingredients": "食材：",
+      "instructions": "步骤：",
+      "medicalSafety": "医疗安全：",
+      "error": "错误："
     },
     "mealCard": {
-      "noRecipe": "No recipe",
-      "addMeal": "Add a meal",
-      "serving": "Serving:",
-      "ingredients": "Ingredients:",
-      "cookingInstructions": "Cooking Instructions:",
-      "protein": "Protein",
-      "carbs": "Carbs",
-      "fat": "Fat"
+      "noRecipe": "无食谱",
+      "addMeal": "添加餐食",
+      "serving": "份量：",
+      "ingredients": "食材：",
+      "cookingInstructions": "烹饪说明：",
+      "protein": "蛋白质",
+      "carbs": "碳水化合物",
+      "fat": "脂肪"
     },
     "nutritionSummary": {
-      "title": "Nutrition Summary",
-      "empty": "Generate a meal plan to see your nutrition summary",
-      "weeklyOverview": "Weekly Overview",
-      "totalCalories": "Total Calories",
-      "dailyAverage": "Daily Average",
-      "totalProtein": "Total Protein",
-      "daysPlanned": "Days Planned",
-      "dailyTargets": "Daily Targets",
-      "calories": "Calories",
-      "protein": "Protein",
-      "carbohydrates": "Carbohydrates",
-      "fat": "Fat",
-      "targetMet": "Target met",
-      "goalProgress": "Goal Progress",
-      "fitnessGoal": "Fitness Goal",
-      "activityLevel": "Activity Level",
-      "dietaryPreferences": "Dietary Preferences",
-      "balanceScore": "Balance Score",
-      "percentOfTarget": "{{n}}% of target",
-      "remainingCal": "{{n}} remaining",
-      "remainingG": "{{n}}g remaining"
+      "title": "营养摘要",
+      "empty": "生成餐食计划以查看您的营养摘要",
+      "weeklyOverview": "每周概览",
+      "totalCalories": "总卡路里",
+      "dailyAverage": "每日平均",
+      "totalProtein": "总蛋白质",
+      "daysPlanned": "计划天数",
+      "dailyTargets": "每日目标",
+      "calories": "卡路里",
+      "protein": "蛋白质",
+      "carbohydrates": "碳水化合物",
+      "fat": "脂肪",
+      "targetMet": "已达目标",
+      "goalProgress": "目标进度",
+      "fitnessGoal": "健身目标",
+      "activityLevel": "活动水平",
+      "dietaryPreferences": "饮食偏好",
+      "balanceScore": "均衡评分",
+      "percentOfTarget": "目标的{{n}}%",
+      "remainingCal": "还剩{{n}}",
+      "remainingG": "还剩{{n}}g"
     }
   }
 }

@@ -2374,85 +2374,85 @@
   "sharedComponents": {
     "navigation": {
       "appName": "My Perfect Meals",
-      "features": "Features",
-      "howItWorks": "How It Works",
-      "pricing": "Pricing",
-      "signIn": "Sign In"
+      "features": "Mga Tampok",
+      "howItWorks": "Paano Ito Gumagana",
+      "pricing": "Pagpepresyo",
+      "signIn": "Mag-sign In"
     },
     "errorBoundary": {
-      "title": "Something went wrong",
-      "description": "We're having trouble loading this page. Please refresh and try again.",
-      "refresh": "Refresh Page"
+      "title": "May naganap na mali",
+      "description": "Nagkakaroon kami ng problema sa pag-load ng pahinang ito. Mangyaring i-refresh at subukan muli.",
+      "refresh": "I-refresh ang Pahina"
     },
     "dateSlotPicker": {
-      "placeholder": "Select meal slot"
+      "placeholder": "Pumili ng slot ng pagkain"
     },
     "mealSlots": {
-      "breakfast": "Breakfast",
-      "lunch": "Lunch",
-      "dinner": "Dinner",
-      "snack": "Snack"
+      "breakfast": "Almusal",
+      "lunch": "Tanghalian",
+      "dinner": "Hapunan",
+      "snack": "Meryenda"
     },
     "dailyNutritionTracker": {
-      "title": "Daily Nutrition Progress",
-      "description": "Track your daily nutritional intake",
-      "calories": "Calories",
-      "protein": "Protein",
-      "carbohydrates": "Carbohydrates",
-      "fat": "Fat",
-      "onTrack": "On track with your daily goals!"
+      "title": "Pang-araw-araw na Progreso sa Nutrisyon",
+      "description": "Subaybayan ang iyong pang-araw-araw na pagsasabuhay ng nutrisyon",
+      "calories": "Mga Calorie",
+      "protein": "Protina",
+      "carbohydrates": "Mga Karbohidrato",
+      "fat": "Taba",
+      "onTrack": "Nasa tamang landas ka patungo sa iyong mga pang-araw-araw na layunin!"
     },
     "pagination": {
-      "label": "pagination",
-      "previousPage": "Go to previous page",
-      "previous": "Previous",
-      "nextPage": "Go to next page",
-      "next": "Next",
-      "morePages": "More pages"
+      "label": "pahina-pahina",
+      "previousPage": "Pumunta sa nakaraang pahina",
+      "previous": "Nakaraan",
+      "nextPage": "Pumunta sa susunod na pahina",
+      "next": "Susunod",
+      "morePages": "Marami pang pahina"
     },
     "enhancedMealCard": {
-      "replace": "Replace",
-      "replacing": "Replacing...",
-      "replaceTitle": "Replace with a completely new meal recipe",
-      "replacingTitle": "Replacing meal...",
-      "portionGuide": "Portion Guide:",
-      "ingredients": "Ingredients:",
-      "instructions": "Instructions:",
-      "medicalSafety": "Medical Safety:",
-      "error": "Error:"
+      "replace": "Palitan",
+      "replacing": "Pinapalitan...",
+      "replaceTitle": "Palitan ng ganap na bagong recipe ng pagkain",
+      "replacingTitle": "Pinapalitan ang pagkain...",
+      "portionGuide": "Gabay sa Sukat ng Pagkain:",
+      "ingredients": "Mga Sangkap:",
+      "instructions": "Mga Tagubilin:",
+      "medicalSafety": "Medikal na Kaligtasan:",
+      "error": "Pagkakamali:"
     },
     "mealCard": {
-      "noRecipe": "No recipe",
-      "addMeal": "Add a meal",
-      "serving": "Serving:",
-      "ingredients": "Ingredients:",
-      "cookingInstructions": "Cooking Instructions:",
-      "protein": "Protein",
-      "carbs": "Carbs",
-      "fat": "Fat"
+      "noRecipe": "Walang recipe",
+      "addMeal": "Magdagdag ng pagkain",
+      "serving": "Sukat ng Pagkain:",
+      "ingredients": "Mga Sangkap:",
+      "cookingInstructions": "Mga Tagubilin sa Pagluluto:",
+      "protein": "Protina",
+      "carbs": "Mga Karbohidrato",
+      "fat": "Taba"
     },
     "nutritionSummary": {
-      "title": "Nutrition Summary",
-      "empty": "Generate a meal plan to see your nutrition summary",
-      "weeklyOverview": "Weekly Overview",
-      "totalCalories": "Total Calories",
-      "dailyAverage": "Daily Average",
-      "totalProtein": "Total Protein",
-      "daysPlanned": "Days Planned",
-      "dailyTargets": "Daily Targets",
-      "calories": "Calories",
-      "protein": "Protein",
-      "carbohydrates": "Carbohydrates",
-      "fat": "Fat",
-      "targetMet": "Target met",
-      "goalProgress": "Goal Progress",
-      "fitnessGoal": "Fitness Goal",
-      "activityLevel": "Activity Level",
-      "dietaryPreferences": "Dietary Preferences",
-      "balanceScore": "Balance Score",
-      "percentOfTarget": "{{n}}% of target",
-      "remainingCal": "{{n}} remaining",
-      "remainingG": "{{n}}g remaining"
+      "title": "Buod ng Nutrisyon",
+      "empty": "Gumawa ng plano sa pagkain upang makita ang iyong buod ng nutrisyon",
+      "weeklyOverview": "Lingguhang Pangkalahatang-tanaw",
+      "totalCalories": "Kabuuang Mga Calorie",
+      "dailyAverage": "Pang-araw-araw na Average",
+      "totalProtein": "Kabuuang Protina",
+      "daysPlanned": "Mga Araw na Pinlano",
+      "dailyTargets": "Pang-araw-araw na Mga Target",
+      "calories": "Mga Calorie",
+      "protein": "Protina",
+      "carbohydrates": "Mga Karbohidrato",
+      "fat": "Taba",
+      "targetMet": "Naabot ang target",
+      "goalProgress": "Progreso sa Layunin",
+      "fitnessGoal": "Layunin sa Fitness",
+      "activityLevel": "Antas ng Aktibidad",
+      "dietaryPreferences": "Mga Kagustuhan sa Pagkain",
+      "balanceScore": "Marka ng Balanse",
+      "percentOfTarget": "{{n}}% ng target",
+      "remainingCal": "{{n}} natitira",
+      "remainingG": "{{n}}g natitira"
     }
   }
 }

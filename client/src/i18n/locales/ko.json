@@ -2138,85 +2138,85 @@
   "sharedComponents": {
     "navigation": {
       "appName": "My Perfect Meals",
-      "features": "Features",
-      "howItWorks": "How It Works",
-      "pricing": "Pricing",
-      "signIn": "Sign In"
+      "features": "기능",
+      "howItWorks": "사용 방법",
+      "pricing": "가격",
+      "signIn": "로그인"
     },
     "errorBoundary": {
-      "title": "Something went wrong",
-      "description": "We're having trouble loading this page. Please refresh and try again.",
-      "refresh": "Refresh Page"
+      "title": "문제가 발생했습니다",
+      "description": "이 페이지를 로드하는 데 문제가 있습니다. 새로 고침 후 다시 시도해 주세요.",
+      "refresh": "페이지 새로 고침"
     },
     "dateSlotPicker": {
-      "placeholder": "Select meal slot"
+      "placeholder": "식사 슬롯 선택"
     },
     "mealSlots": {
-      "breakfast": "Breakfast",
-      "lunch": "Lunch",
-      "dinner": "Dinner",
-      "snack": "Snack"
+      "breakfast": "아침 식사",
+      "lunch": "점심 식사",
+      "dinner": "저녁 식사",
+      "snack": "간식"
     },
     "dailyNutritionTracker": {
-      "title": "Daily Nutrition Progress",
-      "description": "Track your daily nutritional intake",
-      "calories": "Calories",
-      "protein": "Protein",
-      "carbohydrates": "Carbohydrates",
-      "fat": "Fat",
-      "onTrack": "On track with your daily goals!"
+      "title": "일일 영양 진행 상황",
+      "description": "일일 영양 섭취량을 추적하세요",
+      "calories": "칼로리",
+      "protein": "단백질",
+      "carbohydrates": "탄수화물",
+      "fat": "지방",
+      "onTrack": "일일 목표를 향해 순조롭게 진행 중입니다!"
     },
     "pagination": {
-      "label": "pagination",
-      "previousPage": "Go to previous page",
-      "previous": "Previous",
-      "nextPage": "Go to next page",
-      "next": "Next",
-      "morePages": "More pages"
+      "label": "페이지 탐색",
+      "previousPage": "이전 페이지로 이동",
+      "previous": "이전",
+      "nextPage": "다음 페이지로 이동",
+      "next": "다음",
+      "morePages": "더 많은 페이지"
     },
     "enhancedMealCard": {
-      "replace": "Replace",
-      "replacing": "Replacing...",
-      "replaceTitle": "Replace with a completely new meal recipe",
-      "replacingTitle": "Replacing meal...",
-      "portionGuide": "Portion Guide:",
-      "ingredients": "Ingredients:",
-      "instructions": "Instructions:",
-      "medicalSafety": "Medical Safety:",
-      "error": "Error:"
+      "replace": "교체",
+      "replacing": "교체 중...",
+      "replaceTitle": "완전히 새로운 식사 레시피로 교체",
+      "replacingTitle": "식사 교체 중...",
+      "portionGuide": "1인분 가이드:",
+      "ingredients": "재료:",
+      "instructions": "조리법:",
+      "medicalSafety": "의료 안전성:",
+      "error": "오류:"
     },
     "mealCard": {
-      "noRecipe": "No recipe",
-      "addMeal": "Add a meal",
-      "serving": "Serving:",
-      "ingredients": "Ingredients:",
-      "cookingInstructions": "Cooking Instructions:",
-      "protein": "Protein",
-      "carbs": "Carbs",
-      "fat": "Fat"
+      "noRecipe": "레시피 없음",
+      "addMeal": "식사 추가",
+      "serving": "1인분:",
+      "ingredients": "재료:",
+      "cookingInstructions": "조리 방법:",
+      "protein": "단백질",
+      "carbs": "탄수화물",
+      "fat": "지방"
     },
     "nutritionSummary": {
-      "title": "Nutrition Summary",
-      "empty": "Generate a meal plan to see your nutrition summary",
-      "weeklyOverview": "Weekly Overview",
-      "totalCalories": "Total Calories",
-      "dailyAverage": "Daily Average",
-      "totalProtein": "Total Protein",
-      "daysPlanned": "Days Planned",
-      "dailyTargets": "Daily Targets",
-      "calories": "Calories",
-      "protein": "Protein",
-      "carbohydrates": "Carbohydrates",
-      "fat": "Fat",
-      "targetMet": "Target met",
-      "goalProgress": "Goal Progress",
-      "fitnessGoal": "Fitness Goal",
-      "activityLevel": "Activity Level",
-      "dietaryPreferences": "Dietary Preferences",
-      "balanceScore": "Balance Score",
-      "percentOfTarget": "{{n}}% of target",
-      "remainingCal": "{{n}} remaining",
-      "remainingG": "{{n}}g remaining"
+      "title": "영양 요약",
+      "empty": "영양 요약을 보려면 식사 계획을 생성하세요",
+      "weeklyOverview": "주간 개요",
+      "totalCalories": "총 칼로리",
+      "dailyAverage": "일일 평균",
+      "totalProtein": "총 단백질",
+      "daysPlanned": "계획된 일수",
+      "dailyTargets": "일일 목표",
+      "calories": "칼로리",
+      "protein": "단백질",
+      "carbohydrates": "탄수화물",
+      "fat": "지방",
+      "targetMet": "목표 달성",
+      "goalProgress": "목표 진행 상황",
+      "fitnessGoal": "피트니스 목표",
+      "activityLevel": "활동 수준",
+      "dietaryPreferences": "식이 선호도",
+      "balanceScore": "균형 점수",
+      "percentOfTarget": "목표의 {{n}}%",
+      "remainingCal": "{{n}} 남음",
+      "remainingG": "{{n}}g 남음"
     }
   }
 }

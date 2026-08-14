@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-08-14T23:35:10.832Z",
-  "enKeyCount": 1990,
+  "generatedAt": "2026-08-14T23:33:18.558Z",
+  "enKeyCount": 1984,
   "locales": {
     "ar": {
       "missingKeys": 0,
-      "suspiciousIdentical": 104,
-      "totalFallbacks": 104,
-      "fallbackRate": "5.2%",
+      "suspiciousIdentical": 41,
+      "totalFallbacks": 41,
+      "fallbackRate": "2.1%",
       "sampleMissing": [],
       "sampleIdentical": [
         "routeTitles.beverageCreator: \"Beverage Creator\"",
@@ -16,9 +16,9 @@
     },
     "de": {
       "missingKeys": 0,
-      "suspiciousIdentical": 174,
-      "totalFallbacks": 174,
-      "fallbackRate": "8.7%",
+      "suspiciousIdentical": 112,
+      "totalFallbacks": 112,
+      "fallbackRate": "5.6%",
       "sampleMissing": [],
       "sampleIdentical": [
         "menu.teamMPM: \"Team My Perfect Meals\"",
@@ -28,9 +28,9 @@
     },
     "es": {
       "missingKeys": 0,
-      "suspiciousIdentical": 125,
-      "totalFallbacks": 125,
-      "fallbackRate": "6.3%",
+      "suspiciousIdentical": 63,
+      "totalFallbacks": 63,
+      "fallbackRate": "3.2%",
       "sampleMissing": [],
       "sampleIdentical": [
         "routeTitles.creatorBrandStudio: \"Creator & Brand Studio\"",
@@ -40,9 +40,9 @@
     },
     "fr": {
       "missingKeys": 0,
-      "suspiciousIdentical": 148,
-      "totalFallbacks": 148,
-      "fallbackRate": "7.4%",
+      "suspiciousIdentical": 88,
+      "totalFallbacks": 88,
+      "fallbackRate": "4.4%",
       "sampleMissing": [],
       "sampleIdentical": [
         "routeTitles.beverageCreator: \"Beverage Creator\"",
@@ -52,9 +52,9 @@
     },
     "hi": {
       "missingKeys": 0,
-      "suspiciousIdentical": 135,
-      "totalFallbacks": 135,
-      "fallbackRate": "6.8%",
+      "suspiciousIdentical": 72,
+      "totalFallbacks": 72,
+      "fallbackRate": "3.6%",
       "sampleMissing": [],
       "sampleIdentical": [
         "routeTitles.academy: \"Academy\"",
@@ -64,9 +64,9 @@
     },
     "it": {
       "missingKeys": 0,
-      "suspiciousIdentical": 154,
-      "totalFallbacks": 154,
-      "fallbackRate": "7.7%",
+      "suspiciousIdentical": 91,
+      "totalFallbacks": 91,
+      "fallbackRate": "4.6%",
       "sampleMissing": [],
       "sampleIdentical": [
         "menu.teamMPM: \"Team My Perfect Meals\"",
@@ -76,9 +76,9 @@
     },
     "ja": {
       "missingKeys": 0,
-      "suspiciousIdentical": 108,
-      "totalFallbacks": 108,
-      "fallbackRate": "5.4%",
+      "suspiciousIdentical": 45,
+      "totalFallbacks": 45,
+      "fallbackRate": "2.3%",
       "sampleMissing": [],
       "sampleIdentical": [
         "routeTitles.beverageCreator: \"Beverage Creator\"",
@@ -88,9 +88,9 @@
     },
     "ko": {
       "missingKeys": 0,
-      "suspiciousIdentical": 112,
-      "totalFallbacks": 112,
-      "fallbackRate": "5.6%",
+      "suspiciousIdentical": 49,
+      "totalFallbacks": 49,
+      "fallbackRate": "2.5%",
       "sampleMissing": [],
       "sampleIdentical": [
         "routeTitles.beverageCreator: \"Beverage Creator\"",
@@ -100,9 +100,9 @@
     },
     "pt": {
       "missingKeys": 0,
-      "suspiciousIdentical": 131,
-      "totalFallbacks": 131,
-      "fallbackRate": "6.6%",
+      "suspiciousIdentical": 68,
+      "totalFallbacks": 68,
+      "fallbackRate": "3.4%",
       "sampleMissing": [],
       "sampleIdentical": [
         "routeTitles.beverageCreator: \"Beverage Creator\"",
@@ -112,9 +112,9 @@
     },
     "ru": {
       "missingKeys": 0,
-      "suspiciousIdentical": 112,
-      "totalFallbacks": 112,
-      "fallbackRate": "5.6%",
+      "suspiciousIdentical": 49,
+      "totalFallbacks": 49,
+      "fallbackRate": "2.5%",
       "sampleMissing": [],
       "sampleIdentical": [
         "routeTitles.beverageCreator: \"Beverage Creator\"",
@@ -124,9 +124,9 @@
     },
     "tl": {
       "missingKeys": 0,
-      "suspiciousIdentical": 291,
-      "totalFallbacks": 291,
-      "fallbackRate": "14.6%",
+      "suspiciousIdentical": 228,
+      "totalFallbacks": 228,
+      "fallbackRate": "11.5%",
       "sampleMissing": [],
       "sampleIdentical": [
         "menu.subscription: \"Subscription\"",
@@ -136,9 +136,9 @@
     },
     "vi": {
       "missingKeys": 0,
-      "suspiciousIdentical": 141,
-      "totalFallbacks": 141,
-      "fallbackRate": "7.1%",
+      "suspiciousIdentical": 81,
+      "totalFallbacks": 81,
+      "fallbackRate": "4.1%",
       "sampleMissing": [],
       "sampleIdentical": [
         "routeTitles.beverageCreator: \"Beverage Creator\"",
@@ -148,9 +148,9 @@
     },
     "zh": {
       "missingKeys": 0,
-      "suspiciousIdentical": 115,
-      "totalFallbacks": 115,
-      "fallbackRate": "5.8%",
+      "suspiciousIdentical": 52,
+      "totalFallbacks": 52,
+      "fallbackRate": "2.6%",
       "sampleMissing": [],
       "sampleIdentical": [
         "routeTitles.beverageCreator: \"Beverage Creator\"",
