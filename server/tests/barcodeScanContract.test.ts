@@ -19,6 +19,18 @@
 
 // ── Mock declarations (hoisted before imports) ────────────────────────────────
 
+// Mock the database module so the test truly runs without a database.
+// biometricsRoutes imports db at module load time; without this mock the
+// DB initialisation throws before any test code runs (no DATABASE_URL in CI).
+jest.mock("../db", () => ({
+  db: {
+    insert: jest.fn(),
+    select: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  },
+}));
+
 jest.mock("../middleware/requireAuth", () => ({
   requireAuth: (req: any, _res: any, next: any) => {
     req.authUser = { id: "contract-test-user", planLookupKey: "mpm_premium" };
