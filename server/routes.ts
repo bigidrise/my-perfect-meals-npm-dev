@@ -3279,6 +3279,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         performanceModeEnabled: (user as any).performanceModeEnabled ?? false,
         alphaGalProfile: (user as any).alphaGalProfile ?? null,
         trialEndsAt: user.trialEndsAt?.toISOString() ?? null,
+        trialStartedAt: (user as any).trialStartedAt?.toISOString?.() ?? (user as any).trialStartedAt ?? null,
         trialSource: (user as any).trialSource ?? null,
         isTrialActive: !!(user.trialEndsAt && !user.planLookupKey && user.trialEndsAt > new Date()),
         daysRemaining: (() => {
