@@ -132,10 +132,13 @@ router.post("/api/auth/signup", async (req, res) => {
     // Build user values with optional ProCare professional fields
     const isBusinessAccount = req.body.businessAccount === true;
 
-    // Trial is NOT started at signup — it is stamped when the user completes
-    // onboarding (/api/user/complete-onboarding). This prevents penalising users
-    // who sign up and return days later to finish setup.
-    // Tester accounts (internal) still get immediate full access via planLookupKey.
+    // Tester accounts get immediate full access via planLookupKey.
+    // Normal consumer accounts get a 7-day trial that starts at account creation —
+    // not at onboarding completion.  Starting at creation prevents the loophole
+    // where someone creates an account and returns months later expecting a fresh trial.
+    // ProCare accounts get their plan directly; they do not receive a trial.
+    const isNormalConsumer = !isTester && !req.body.procare?.professionalCategory;
+    const trialNow = isNormalConsumer ? new Date() : null;
     const userValues: any = {
       email,
       username: email.split("@")[0],
@@ -146,6 +149,11 @@ router.post("/api/auth/signup", async (req, res) => {
       isAdmin,
       isFounder: isTester, // tester-allowlisted signups are founder/partner accounts
       ...(isTester ? { planLookupKey: 'mpm_ultimate_monthly' } : {}),
+      ...(trialNow ? {
+        trialStartedAt: trialNow,
+        trialEndsAt: new Date(trialNow.getTime() + 7 * 24 * 60 * 60 * 1000),
+        trialSource: 'standard_signup',
+      } : {}),
     };
 
     // Business / Organization account — not a ProCare practitioner.

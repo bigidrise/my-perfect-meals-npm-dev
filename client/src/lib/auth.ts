@@ -279,8 +279,17 @@ export interface User {
 
   mfaEnabled?: boolean;
   // Trial access window
-
   trialEndsAt?: string | null;
+  /** ISO timestamp when the trial began */
+  trialStartedAt?: string | null;
+  /** standard_signup | admin_grant | clinic_grant | promotion */
+  trialSource?: string | null;
+  /** True when trialEndsAt is in the future and no paid plan is active */
+  isTrialActive?: boolean;
+  /** Server-computed days remaining (0 when expired or not in trial) */
+  daysRemaining?: number;
+  /** The tier the trial grants (e.g. 'ultimate') — null when not in trial */
+  trialTier?: string | null;
   // Business sponsorship (populated from effectiveAccess per-request)
 
   sponsoredByBusinessId?: string | null;

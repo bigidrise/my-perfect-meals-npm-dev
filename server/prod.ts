@@ -985,8 +985,10 @@ async function initializeApp() {
 
     // Universal Meal Refinement — Stage 1: Weekly Meal Board replace_component
     const refinementRouter = (await import("./routes/refinement")).default;
+    const trialRouter = (await import("./routes/trial")).default;
     const { requireActiveAccess: rafRefineAccess } = await import("./middleware/requireActiveAccess");
     app.use("/api/refinement", requireAuth, rafRefineAccess, refinementRouter);
+    app.use("/api/trial", trialRouter);
 
     console.log("✅ [INIT] Parity routes mounted");
 
@@ -1737,6 +1739,12 @@ async function initializeApp() {
           const { db: dbP5 } = await import("./db");
           const { runPhase5Migration } = await import("./db/migrations/runPhase5Migration");
           await runPhase5Migration(dbP5);
+        });
+
+        await withBootRetry("Trial grants migration", async () => {
+          const { db: dbTg } = await import("./db");
+          const { runTrialGrantsMigration } = await import("./db/migrations/runTrialGrantsMigration");
+          await runTrialGrantsMigration(dbTg);
         });
       }, 12500);
 

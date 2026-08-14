@@ -1755,6 +1755,12 @@ setTimeout(async () => {
     const { runPhase5Migration } = await import("./db/migrations/runPhase5Migration");
     await runPhase5Migration(db);
   });
+
+  await withBootRetry("Trial grants migration", async () => {
+    const { db } = await import("./db");
+    const { runTrialGrantsMigration } = await import("./db/migrations/runTrialGrantsMigration");
+    await runTrialGrantsMigration(db);
+  });
 }, 9500);
 
 // ── Coach Follow-up Cron (every 10 min) ─────────────────────────────────────
