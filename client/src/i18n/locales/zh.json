@@ -1497,6 +1497,7 @@
     "protocol_sport_triathlon": "铁人三项",
     "protocol_sport_tactical": "战术 / 军事",
     "protocol_sport_general_fitness": "综合健身",
+    "protocol_sport_other": "其他运动",
     "protocol_phase_off_season": "休赛期",
     "protocol_phase_pre_season": "季前赛",
     "protocol_phase_in_season": "赛季中",
@@ -1576,6 +1577,7 @@
     "protocol_comptype_marathon": "马拉松",
     "protocol_comptype_triathlon_race": "铁人三项",
     "protocol_comptype_spartan_race": "斯巴达障碍赛",
+    "protocol_comptype_other": "其他",
     "protocol_bullet_strength_building_0": "力量构建阶段热量支持",
     "protocol_bullet_strength_building_1": "渐进超负荷营养补给",
     "protocol_bullet_intensity_phase_0": "强化碳水时机",
@@ -1612,19 +1614,7 @@
     "protocol_bullet_race_prep_1": "耐力补给优化"
   },
 
-  "trialStatusCard": {
-    "adminTrial": "管理员试用",
-    "clinicalTrial": "临床试用",
-    "promotionalTrial": "推广试用",
-    "freeTrial": "免费试用",
-    "clinicalUltimate": "临床 · 至尊",
-    "trialEndsToday": "您的试用期今天到期",
-    "daysLeftInTrial": "试用期还剩{{count}}天",
-    "daysOfDaysRemaining": "{{total}}天中还剩{{count}}天",
-    "accountMovesFree": "您的账户将于今晚切换至免费计划。您的所有数据仍安全保留。",
-    "trialExpires": "试用期到期日：{{date}}",
-    "keepFullAccess": "保留完整访问权 →"
-  },
+
   "glp1Hub": {
     "autoSettings": "您的餐点构建器会自动使用这些设置。",
     "careBody": "My Perfect Meals 旨在与您的医生、营养师或医疗保健提供者配合使用，而非替代他们。利用此处的信息和工具在就诊间隙保持一致，了解您的身体，并做出微小且自信的选择，以尊重大专家的指导。此应用程序中的每一项追踪、每一顿餐点和每一个建议都旨在支持您的护理计划，而不是取代它。",
@@ -1893,6 +1883,7 @@
     "daysOfDaysRemaining": "{{total}}天中还剩{{count}}天",
     "accountMovesFree": "您的账户将于今晚切换至免费计划。您的所有数据仍安全保留。",
     "trialExpires": "试用期到期日：{{date}}",
+    "tierFull": "完整",
     "keepFullAccess": "保留完整访问权 →"
   },
 

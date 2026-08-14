@@ -1497,6 +1497,7 @@
     "protocol_sport_triathlon": "트라이애슬론",
     "protocol_sport_tactical": "전술 / 군사",
     "protocol_sport_general_fitness": "일반 피트니스",
+    "protocol_sport_other": "기타 스포츠",
     "protocol_phase_off_season": "비시즌",
     "protocol_phase_pre_season": "프리시즌",
     "protocol_phase_in_season": "시즌 중",
@@ -1576,6 +1577,7 @@
     "protocol_comptype_marathon": "마라톤",
     "protocol_comptype_triathlon_race": "트라이애슬론",
     "protocol_comptype_spartan_race": "스파르탄 레이스",
+    "protocol_comptype_other": "기타",
     "protocol_bullet_strength_building_0": "구축 단계 칼로리 지원",
     "protocol_bullet_strength_building_1": "점진적 과부하 연료",
     "protocol_bullet_intensity_phase_0": "강화된 탄수화물 타이밍",
@@ -1612,19 +1614,7 @@
     "protocol_bullet_race_prep_1": "지구력 연료 최적화"
   },
 
-  "trialStatusCard": {
-    "adminTrial": "관리자 체험판",
-    "clinicalTrial": "임상 체험판",
-    "promotionalTrial": "프로모션 체험판",
-    "freeTrial": "무료 체험판",
-    "clinicalUltimate": "임상 · 얼티밋",
-    "trialEndsToday": "오늘 체험판이 종료됩니다",
-    "daysLeftInTrial": "체험판 {{count}}일 남음",
-    "daysOfDaysRemaining": "{{total}}일 중 {{count}}일 남음",
-    "accountMovesFree": "계정이 오늘 밤 무료 플랜으로 전환됩니다. 모든 데이터는 안전하게 보관됩니다.",
-    "trialExpires": "체험판 만료일: {{date}}",
-    "keepFullAccess": "전체 접근 유지하기 →"
-  },
+
   "glp1Hub": {
     "autoSettings": "식사 빌더가 이 설정을 자동으로 사용합니다.",
     "careBody": "My Perfect Meals는 담당 의사, 영양사 또는 의료 전문가의 치료를 보조하기 위해 설계되었으며, 결코 그들을 대체하지 않습니다. 제공된 정보와 도구를 사용하여 방문 사이사이에 일관성을 유지하고, 신체를 이해하며, 전문가의 지침을 존중하는 작지만 확신 있는 선택을 하세요. 이 앱의 모든 추적기, 식사 및 제안은 귀하의 치료 계획을 지원하기 위한 것이지 대체하기 위한 것이 아닙니다.",
@@ -1893,6 +1883,7 @@
     "daysOfDaysRemaining": "{{total}}일 중 {{count}}일 남음",
     "accountMovesFree": "계정이 오늘 밤 무료 플랜으로 전환됩니다. 모든 데이터는 안전하게 보관됩니다.",
     "trialExpires": "체험판 만료일: {{date}}",
+    "tierFull": "전체",
     "keepFullAccess": "전체 접근 유지하기 →"
   },
 

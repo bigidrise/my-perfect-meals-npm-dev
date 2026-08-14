@@ -1497,6 +1497,7 @@
     "protocol_sport_triathlon": "Ba môn phối hợp",
     "protocol_sport_tactical": "Chiến thuật / Quân sự",
     "protocol_sport_general_fitness": "Thể hình chung",
+    "protocol_sport_other": "Môn thể thao khác",
     "protocol_phase_off_season": "Mùa nghỉ",
     "protocol_phase_pre_season": "Tiền mùa giải",
     "protocol_phase_in_season": "Trong mùa giải",
@@ -1576,6 +1577,7 @@
     "protocol_comptype_marathon": "Marathon",
     "protocol_comptype_triathlon_race": "Ba môn phối hợp",
     "protocol_comptype_spartan_race": "Spartan Race",
+    "protocol_comptype_other": "Khác",
     "protocol_bullet_strength_building_0": "Hỗ trợ calo giai đoạn xây dựng",
     "protocol_bullet_strength_building_1": "Nhiên liệu tải trọng tăng dần",
     "protocol_bullet_intensity_phase_0": "Thời điểm carb cường độ cao",
@@ -1612,19 +1614,7 @@
     "protocol_bullet_race_prep_1": "Tối ưu hóa nhiên liệu sức bền"
   },
 
-  "trialStatusCard": {
-    "adminTrial": "Dùng thử quản trị",
-    "clinicalTrial": "Dùng thử lâm sàng",
-    "promotionalTrial": "Dùng thử khuyến mãi",
-    "freeTrial": "Dùng thử miễn phí",
-    "clinicalUltimate": "Lâm sàng · Tối thượng",
-    "trialEndsToday": "Dùng thử của bạn kết thúc hôm nay",
-    "daysLeftInTrial": "Còn {{count}} ngày trong kỳ dùng thử",
-    "daysOfDaysRemaining": "Còn {{count}} trong {{total}} ngày",
-    "accountMovesFree": "Tài khoản của bạn sẽ chuyển sang gói miễn phí tối nay. Tất cả dữ liệu của bạn vẫn an toàn.",
-    "trialExpires": "Dùng thử hết hạn vào {{date}}",
-    "keepFullAccess": "Giữ quyền truy cập đầy đủ →"
-  },
+
   "glp1Hub": {
     "autoSettings": "Các trình xây dựng bữa ăn của bạn tự động sử dụng các cài đặt này.",
     "careBody": "My Perfect Meals được thiết kế để hoạt động cùng bác sĩ, chuyên gia dinh dưỡng hoặc nhà cung cấp dịch vụ chăm sóc sức khỏe của bạn — không bao giờ thay thế họ. Sử dụng thông tin và công cụ tại đây để duy trì sự nhất quán giữa các lần khám, để hiểu cơ thể bạn và đưa ra những lựa chọn nhỏ, tự tin nhằm tôn trọng sự hướng dẫn chuyên môn. Mọi công cụ theo dõi, mọi bữa ăn và mọi gợi ý trong ứng dụng này nhằm mục đích hỗ trợ kế hoạch chăm sóc của bạn, không thay thế nó.",
@@ -1893,6 +1883,7 @@
     "daysOfDaysRemaining": "Còn {{count}} trong {{total}} ngày",
     "accountMovesFree": "Tài khoản của bạn sẽ chuyển sang gói miễn phí tối nay. Tất cả dữ liệu của bạn vẫn an toàn.",
     "trialExpires": "Dùng thử hết hạn vào {{date}}",
+    "tierFull": "Đầy đủ",
     "keepFullAccess": "Giữ quyền truy cập đầy đủ →"
   },
 

@@ -258,7 +258,7 @@ export default function GLP1Hub() {
         {/* Shot Tracker - Database-backed */}
         <section className="bg-black/60 border border-purple-300/20 rounded-xl p-4 backdrop-blur">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg text-white font-bold">{t("glp1Hub.shotTrackerTitle")}</h2>
+            <h2 className="text-lg text-white font-bold min-w-0 break-words">{t("glp1Hub.shotTrackerTitle")}</h2>
             <div className="flex flex-col items-center gap-1">
               <PillButton
                 onClick={() => setShotTrackerOpen(!shotTrackerOpen)}
