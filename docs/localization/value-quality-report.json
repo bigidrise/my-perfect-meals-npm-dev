@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-14T22:16:51.256Z",
+  "generatedAt": "2026-08-14T22:19:49.034Z",
   "baseline": {
     "totalEnglishKeys": 1920
   },
@@ -106,8 +106,8 @@
     "hi": {
       "locale": "hi",
       "totalKeys": 2104,
-      "identicalToEnglish": 80,
-      "identicalToEnglishPct": "4.2",
+      "identicalToEnglish": 72,
+      "identicalToEnglishPct": "3.8",
       "identicalSamples": [
         "routeTitles.academy: \"Academy\"",
         "routeTitles.antiInflammatoryBuilder: \"Anti-Inflammatory Builder\"",
@@ -120,19 +120,10 @@
       "interpolationMismatches": 0,
       "interpolationMismatchSamples": [],
       "pluralizationMismatches": 0,
-      "clinicalStrings": 12,
-      "clinicalIdenticalToEn": 8,
-      "clinicalIdenticalKeys": [
-        "routeTitles.diabetesHub",
-        "routeTitles.diabetesSupport",
-        "routeTitles.diabeticBuilder",
-        "routeTitles.diabeticHub",
-        "routeTitles.metabolicBuilder",
-        "routeTitles.metabolicHub",
-        "routeTitles.metabolicTracking",
-        "routeTitles.pregnancy"
-      ],
-      "completenessScore": "105%",
+      "clinicalStrings": 4,
+      "clinicalIdenticalToEn": 0,
+      "clinicalIdenticalKeys": [],
+      "completenessScore": "106%",
       "verdict": "✅ APPEARS TRANSLATED — low identical/empty/placeholder rate"
     },
     "it": {
@@ -264,46 +255,30 @@
     "tl": {
       "locale": "tl",
       "totalKeys": 2104,
-      "identicalToEnglish": 357,
-      "identicalToEnglishPct": "18.6",
+      "identicalToEnglish": 170,
+      "identicalToEnglishPct": "8.9",
       "identicalSamples": [
         "menu.subscription: \"Subscription\"",
-        "routeTitles.macroCalculator: \"Macro Calculator\"",
         "routeTitles.fridgeRescue: \"Fridge Rescue\"",
-        "routeTitles.careTeam: \"Care Team\"",
-        "routeTitles.lifestyle: \"Lifestyle Hub\""
+        "routeTitles.beverageCreator: \"Beverage Creator\"",
+        "routeTitles.cravingCreator: \"Craving Creator\"",
+        "routeTitles.dessertCreator: \"Dessert Creator\""
       ],
       "emptyValues": 0,
       "placeholderValues": 0,
       "interpolationMismatches": 0,
       "interpolationMismatchSamples": [],
       "pluralizationMismatches": 0,
-      "clinicalStrings": 60,
-      "clinicalIdenticalToEn": 21,
+      "clinicalStrings": 55,
+      "clinicalIdenticalToEn": 5,
       "clinicalIdenticalKeys": [
-        "routeTitles.diabetesHub",
-        "routeTitles.diabetesSupport",
-        "routeTitles.diabeticBuilder",
-        "routeTitles.diabeticHub",
-        "routeTitles.metabolicBuilder",
-        "routeTitles.metabolicHub",
-        "routeTitles.metabolicTracking",
         "routeTitles.pregnancy",
         "metabolicBuilder.glp1Hub",
         "metabolicBuilder.hormonalHypothyroid",
         "metabolicBuilder.hormonalHyperthyroid",
-        "mealCard.diabetesProtocol",
-        "glp1Hub.pageTitle",
-        "glp1Hub.shotTrackerTitle",
-        "diabeticHub.chip2",
-        "diabeticHub.glucoseReadingLabel",
-        "diabeticHub.pageTitle",
-        "diabeticHub.typePreD",
-        "diabeticBuilder.backLabel",
-        "diabeticBuilder.pageTitle",
-        "antiInflammatoryBuilder.backLabel"
+        "diabeticHub.typePreD"
       ],
-      "completenessScore": "91%",
+      "completenessScore": "101%",
       "verdict": "✅ APPEARS TRANSLATED — low identical/empty/placeholder rate"
     },
     "vi": {
