@@ -39,6 +39,7 @@ import { getMealRefinementEngine, MealRefinementRetryableError, refineMeal } fro
 import { encodeToken, decodeToken, expireInMinutes } from "../lib/refinementToken";
 import { findMealInSlot, replaceMealInBoard } from "./refinement-helpers";
 import type {
+  SlotContext,
   ConfirmTokenPayload,
   RestoreTokenPayload,
   RefinementPreviewResponse,
@@ -130,7 +131,17 @@ router.post("/preview", async (req, res) => {
     if (await assertDayNotLocked(userId, slotContext.dayISO, res)) return;
 
     // ── 1. Resolve slot — loads board, verifies meal exists, GLP-1 fail-closed ──
-    const resolved = await resolveSlotContext(userId, slotContext);
+    // Explicitly construct SlotContext so TypeScript can verify all required
+    // fields are present (the Zod parse above already guarantees them, but the
+    // server tsconfig infers the shape as all-optional without this step).
+    const { weekStartISO, dayISO, slot, mealId } = slotContext;
+    if (!weekStartISO || !dayISO || !slot || !mealId) {
+      return res.status(400).json({
+        error: "weekStartISO, dayISO, slot, and mealId are all required for slot-aware meal refinement.",
+      });
+    }
+    const typedSlotContext: SlotContext = { weekStartISO, dayISO, slot, mealId };
+    const resolved = await resolveSlotContext(userId, typedSlotContext);
     const { meal: originalMeal, glp1Targets, glp1Block, mealType, dateISO, boardVersion } = resolved;
 
     // Extract existing meal fields for the engine
