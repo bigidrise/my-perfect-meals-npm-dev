@@ -7,7 +7,7 @@
 import { Router } from "express";
 import { db } from "../db";
 import { users } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { requireAuth, type AuthenticatedRequest } from "../middleware/requireAuth";
 import { requireAdmin } from "../middleware/requireAdmin";
 import { TRIAL_UNLOCKS_TIER } from "../../shared/planFeatures";
@@ -111,32 +111,25 @@ router.post("/admin/grant", requireAuth, requireAdmin, async (req, res) => {
     const now = new Date();
     const trialEndsAt = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000);
 
-    // Update user trial fields — only if this extends beyond any existing trial
-    await db.execute(`
+    // Update user trial fields — only if this extends beyond any existing trial.
+    // Never touch plan_lookup_key or subscription_status: a paid subscription must
+    // remain intact. The trial is superseded by an active plan in computeTrialStatus.
+    await db.execute(sql`
       UPDATE users
          SET trial_started_at = COALESCE(trial_started_at, now()),
-             trial_ends_at    = GREATEST(COALESCE(trial_ends_at, '1970-01-01'), $1::timestamptz),
-             trial_source     = $2,
-             plan_lookup_key  = NULL,
-             subscription_status = 'active'
-       WHERE id = $3
-    ` as any, [trialEndsAt.toISOString(), trialSource, userId]);
+             trial_ends_at    = GREATEST(COALESCE(trial_ends_at, '1970-01-01'::timestamptz), ${trialEndsAt}),
+             trial_source     = ${trialSource}
+       WHERE id = ${userId}
+    `);
 
     // Insert audit record in trial_grants
-    await db.execute(`
+    await db.execute(sql`
       INSERT INTO trial_grants
         (user_id, granted_by_user_id, trial_source, trial_tier, expires_to_tier,
          trial_started_at, trial_ends_at, granted_at, notes)
-      VALUES ($1, $2, $3, $4, $5, now(), $6::timestamptz, now(), $7)
-    ` as any, [
-      userId,
-      grantedBy,
-      trialSource,
-      trialTier,
-      expiresToTier,
-      trialEndsAt.toISOString(),
-      notes ?? null,
-    ]);
+      VALUES (${userId}, ${grantedBy}, ${trialSource}, ${trialTier}, ${expiresToTier},
+              now(), ${trialEndsAt}, now(), ${notes ?? null})
+    `);
 
     // Audit log
     logAudit({
