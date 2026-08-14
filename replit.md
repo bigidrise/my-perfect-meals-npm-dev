@@ -18,6 +18,8 @@ MyPerfectMeals is a full-stack TypeScript application providing AI-powered meal 
 - `npm run build`: Builds the application for production.
 - `npm run typecheck`: Runs TypeScript type checking.
 - `drizzle-kit push:pg`: Pushes Drizzle schema changes to PostgreSQL.
+- `npm run validate`: Full pre-push validation (TypeScript, core files, auth safety, i18n interpolation, server boot).
+- `npm run validate:i18n`: Standalone translation interpolation quality scan — checks every locale for `{{variable}}` mismatches against the English baseline. Exits non-zero if any mismatch is found; run before every release to prevent interpolation bugs from shipping. Report written to `docs/localization/value-quality-report.json`.
 
 ## Stack
 

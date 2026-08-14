@@ -1,0 +1,162 @@
+{
+  "generatedAt": "2026-08-14T22:13:41.067Z",
+  "enKeyCount": 1920,
+  "locales": {
+    "ar": {
+      "missingKeys": 0,
+      "suspiciousIdentical": 42,
+      "totalFallbacks": 42,
+      "fallbackRate": "2.2%",
+      "sampleMissing": [],
+      "sampleIdentical": [
+        "routeTitles.beverageCreator: \"Beverage Creator\"",
+        "routeTitles.cravingCreator: \"Craving Creator\"",
+        "routeTitles.createDish: \"Create a Dish\""
+      ]
+    },
+    "de": {
+      "missingKeys": 0,
+      "suspiciousIdentical": 113,
+      "totalFallbacks": 113,
+      "fallbackRate": "5.9%",
+      "sampleMissing": [],
+      "sampleIdentical": [
+        "menu.teamMPM: \"Team My Perfect Meals\"",
+        "common.upgrade: \"Upgrade\"",
+        "routeTitles.beverageCreator: \"Beverage Creator\""
+      ]
+    },
+    "es": {
+      "missingKeys": 0,
+      "suspiciousIdentical": 62,
+      "totalFallbacks": 62,
+      "fallbackRate": "3.2%",
+      "sampleMissing": [],
+      "sampleIdentical": [
+        "routeTitles.creatorBrandStudio: \"Creator & Brand Studio\"",
+        "routeTitles.myPerfectBeginning: \"My Perfect Beginnings\"",
+        "routeTitles.myPerfectPets: \"My Perfect Pets\""
+      ]
+    },
+    "fr": {
+      "missingKeys": 0,
+      "suspiciousIdentical": 86,
+      "totalFallbacks": 86,
+      "fallbackRate": "4.5%",
+      "sampleMissing": [],
+      "sampleIdentical": [
+        "routeTitles.beverageCreator: \"Beverage Creator\"",
+        "routeTitles.cravingCreator: \"Craving Creator\"",
+        "routeTitles.createDish: \"Create a Dish\""
+      ]
+    },
+    "hi": {
+      "missingKeys": 0,
+      "suspiciousIdentical": 80,
+      "totalFallbacks": 80,
+      "fallbackRate": "4.2%",
+      "sampleMissing": [],
+      "sampleIdentical": [
+        "routeTitles.academy: \"Academy\"",
+        "routeTitles.antiInflammatoryBuilder: \"Anti-Inflammatory Builder\"",
+        "routeTitles.applyGuidance: \"Apply Guidance\""
+      ]
+    },
+    "it": {
+      "missingKeys": 0,
+      "suspiciousIdentical": 92,
+      "totalFallbacks": 92,
+      "fallbackRate": "4.8%",
+      "sampleMissing": [],
+      "sampleIdentical": [
+        "menu.teamMPM: \"Team My Perfect Meals\"",
+        "routeTitles.beverageCreator: \"Beverage Creator\"",
+        "routeTitles.cravingCreator: \"Craving Creator\""
+      ]
+    },
+    "ja": {
+      "missingKeys": 0,
+      "suspiciousIdentical": 46,
+      "totalFallbacks": 46,
+      "fallbackRate": "2.4%",
+      "sampleMissing": [],
+      "sampleIdentical": [
+        "routeTitles.beverageCreator: \"Beverage Creator\"",
+        "routeTitles.cravingCreator: \"Craving Creator\"",
+        "routeTitles.createDish: \"Create a Dish\""
+      ]
+    },
+    "ko": {
+      "missingKeys": 0,
+      "suspiciousIdentical": 50,
+      "totalFallbacks": 50,
+      "fallbackRate": "2.6%",
+      "sampleMissing": [],
+      "sampleIdentical": [
+        "routeTitles.beverageCreator: \"Beverage Creator\"",
+        "routeTitles.cravingCreator: \"Craving Creator\"",
+        "routeTitles.createDish: \"Create a Dish\""
+      ]
+    },
+    "pt": {
+      "missingKeys": 0,
+      "suspiciousIdentical": 69,
+      "totalFallbacks": 69,
+      "fallbackRate": "3.6%",
+      "sampleMissing": [],
+      "sampleIdentical": [
+        "routeTitles.beverageCreator: \"Beverage Creator\"",
+        "routeTitles.cravingCreator: \"Craving Creator\"",
+        "routeTitles.createDish: \"Create a Dish\""
+      ]
+    },
+    "ru": {
+      "missingKeys": 0,
+      "suspiciousIdentical": 51,
+      "totalFallbacks": 51,
+      "fallbackRate": "2.7%",
+      "sampleMissing": [],
+      "sampleIdentical": [
+        "routeTitles.beverageCreator: \"Beverage Creator\"",
+        "routeTitles.cravingCreator: \"Craving Creator\"",
+        "routeTitles.createDish: \"Create a Dish\""
+      ]
+    },
+    "tl": {
+      "missingKeys": 0,
+      "suspiciousIdentical": 357,
+      "totalFallbacks": 357,
+      "fallbackRate": "18.6%",
+      "sampleMissing": [],
+      "sampleIdentical": [
+        "menu.subscription: \"Subscription\"",
+        "routeTitles.macroCalculator: \"Macro Calculator\"",
+        "routeTitles.fridgeRescue: \"Fridge Rescue\""
+      ]
+    },
+    "vi": {
+      "missingKeys": 0,
+      "suspiciousIdentical": 79,
+      "totalFallbacks": 79,
+      "fallbackRate": "4.1%",
+      "sampleMissing": [],
+      "sampleIdentical": [
+        "routeTitles.beverageCreator: \"Beverage Creator\"",
+        "routeTitles.cravingCreator: \"Craving Creator\"",
+        "routeTitles.createDish: \"Create a Dish\""
+      ]
+    },
+    "zh": {
+      "missingKeys": 0,
+      "suspiciousIdentical": 53,
+      "totalFallbacks": 53,
+      "fallbackRate": "2.8%",
+      "sampleMissing": [],
+      "sampleIdentical": [
+        "routeTitles.beverageCreator: \"Beverage Creator\"",
+        "routeTitles.cravingCreator: \"Craving Creator\"",
+        "routeTitles.createDish: \"Create a Dish\""
+      ]
+    }
+  }
+}

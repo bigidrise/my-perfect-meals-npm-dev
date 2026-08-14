@@ -1,0 +1,1858 @@
+{
+  "_meta": {
+    "description": "Protected clinical/safety string registry. Strings here cannot be auto-migrated. Require qualified medical translator + clinical review.",
+    "generatedAt": "2026-08-14T22:13:40.349Z",
+    "basedOn": "Step 1A audit (CLINICAL_SAFETY class) × Step 1B reachability (ACTIVE/CONDITIONAL surfaces only)",
+    "governanceRule": "Any change to these strings in any locale file requires a [clinical-translation] PR annotation and clinical reviewer sign-off."
+  },
+  "totalClinicalStrings": 138,
+  "filesWithClinicalStrings": 21,
+  "byCategory": {
+    "allergy_safety": 18,
+    "general_clinical": 49,
+    "diabetes_glp1": 40,
+    "medication": 8,
+    "lab_biometric": 19,
+    "pregnancy_pediatric": 4
+  },
+  "byFile": {
+    "client/src/components/CreateWithChefModal.tsx": [
+      {
+        "line": 247,
+        "text": "⚠️ Allergy Alert",
+        "category": "allergy_safety",
+        "proposedKey": "createwithchefmodal.allergy_alert"
+      }
+    ],
+    "client/src/components/DevNavigator.tsx": [
+      {
+        "line": 30,
+        "text": "Physician Welcome",
+        "category": "general_clinical",
+        "proposedKey": "devnavigator.physician_welcome"
+      },
+      {
+        "line": 64,
+        "text": "Diabetic Builder",
+        "category": "diabetes_glp1",
+        "proposedKey": "devnavigator.diabetic_builder"
+      },
+      {
+        "line": 86,
+        "text": "Physician Hub",
+        "category": "general_clinical",
+        "proposedKey": "devnavigator.physician_hub"
+      },
+      {
+        "line": 88,
+        "text": "Diabetic Hub",
+        "category": "diabetes_glp1",
+        "proposedKey": "devnavigator.diabetic_hub"
+      },
+      {
+        "line": 89,
+        "text": "Diabetes Support",
+        "category": "diabetes_glp1",
+        "proposedKey": "devnavigator.diabetes_support"
+      },
+      {
+        "line": 103,
+        "text": "Physician Care Team",
+        "category": "general_clinical",
+        "proposedKey": "devnavigator.physician_care_team"
+      },
+      {
+        "line": 112,
+        "text": "Pro Clients (Physician)",
+        "category": "general_clinical",
+        "proposedKey": "devnavigator.pro_clients_physician"
+      },
+      {
+        "line": 113,
+        "text": "Physician Portal",
+        "category": "general_clinical",
+        "proposedKey": "devnavigator.physician_portal"
+      },
+      {
+        "line": 158,
+        "text": "Healthcare Partnerships",
+        "category": "general_clinical",
+        "proposedKey": "devnavigator.healthcare_partnerships"
+      },
+      {
+        "line": 369,
+        "text": "Clients (Physician)",
+        "category": "general_clinical",
+        "proposedKey": "devnavigator.clients_physician"
+      },
+      {
+        "line": 370,
+        "text": "Physician Portal",
+        "category": "general_clinical",
+        "proposedKey": "devnavigator.physician_portal"
+      },
+      {
+        "line": 539,
+        "text": "Physician · Trainer",
+        "category": "general_clinical",
+        "proposedKey": "devnavigator.physician_trainer"
+      }
+    ],
+    "client/src/components/DietStyleBadge.tsx": [
+      {
+        "line": 23,
+        "text": "Gluten-Free ✓",
+        "category": "general_clinical",
+        "proposedKey": "dietstylebadge.glutenfree"
+      }
+    ],
+    "client/src/components/DisclaimerModal.tsx": [
+      {
+        "line": 101,
+        "text": "Medical safety",
+        "category": "general_clinical",
+        "proposedKey": "disclaimermodal.medical_safety"
+      },
+      {
+        "line": 101,
+        "text": "— Diabetes, renal, cardiac, metabolic medication, oncology, and allergies are enforced first. These are not suggestions.",
+        "category": "diabetes_glp1",
+        "proposedKey": "disclaimermodal.diabetes_renal_cardiac_metabolic"
+      },
+      {
+        "line": 105,
+        "text": "— Vegan, vegetarian, pescatarian, kosher, halal. These are never broken, even when adapting for medical needs.",
+        "category": "general_clinical",
+        "proposedKey": "disclaimermodal.vegan_vegetarian_pescatarian_kosher"
+      },
+      {
+        "line": 109,
+        "text": "— Korean, Vietnamese, Ethiopian, Japanese, Mexican, and more. The system preserves your cultural dish structure and flavor identity inside your medical and diet rules — not by replacing your food with Western alternatives.",
+        "category": "general_clinical",
+        "proposedKey": "disclaimermodal.korean_vietnamese_ethiopian_japanese"
+      },
+      {
+        "line": 193,
+        "text": "This app does not provide medical advice or treatment",
+        "category": "medication",
+        "proposedKey": "disclaimermodal.this_app_does_not"
+      }
+    ],
+    "client/src/components/GlucoseGuardExplainerModal.tsx": [
+      {
+        "line": 41,
+        "text": "Balanced diabetic-friendly meal. Moderate, quality complex carbohydrates to maintain good control.",
+        "category": "diabetes_glp1",
+        "proposedKey": "glucoseguardexplainermodal.balanced_diabeticfriendly_meal_moderate"
+      },
+      {
+        "line": 207,
+        "text": "most recent blood glucose reading",
+        "category": "diabetes_glp1",
+        "proposedKey": "glucoseguardexplainermodal.most_recent_blood_glucose"
+      }
+    ],
+    "client/src/components/MealCardFull.tsx": [
+      {
+        "line": 256,
+        "text": "Allergy Safe",
+        "category": "allergy_safety",
+        "proposedKey": "mealcardfull.allergy_safe"
+      },
+      {
+        "line": 260,
+        "text": "Medical Safe",
+        "category": "general_clinical",
+        "proposedKey": "mealcardfull.medical_safe"
+      }
+    ],
+    "client/src/components/MedicalInfoBubble.tsx": [
+      {
+        "line": 65,
+        "text": "View health and medical tags",
+        "category": "general_clinical",
+        "proposedKey": "medicalinfobubble.view_health_and_medical"
+      }
+    ],
+    "client/src/components/MedicalSourcesInfo.tsx": [
+      {
+        "line": 84,
+        "text": "Clinical Background",
+        "category": "general_clinical",
+        "proposedKey": "medicalsourcesinfo.clinical_background"
+      },
+      {
+        "line": 87,
+        "text": "Commins, S.P. & Platts-Mills, T.A.E. — Tick Bites and Red Meat Allergy (PMID 22466475)",
+        "category": "allergy_safety",
+        "proposedKey": "medicalsourcesinfo.commins_sp_plattsmills_tae"
+      },
+      {
+        "line": 88,
+        "text": "Peer-reviewed paper establishing the causal link between Lone Star tick bites and delayed IgE-mediated anaphylaxis to alpha-gal in mammalian meat. The clinical basis for treating AGS as an anaphylaxis-risk allergy, not a food preference. Current Allergy and Asthma Reports, 2013.",
+        "category": "allergy_safety",
+        "proposedKey": "medicalsourcesinfo.peerreviewed_paper_establishing_the"
+      },
+      {
+        "line": 92,
+        "text": "Platts-Mills, T.A.E. et al. — Alpha-gal and Delayed Anaphylaxis (PMID 25956016)",
+        "category": "allergy_safety",
+        "proposedKey": "medicalsourcesinfo.plattsmills_tae_et_al"
+      },
+      {
+        "line": 101,
+        "text": "National Institute of Allergy and Infectious Diseases overview of AGS diagnosis, management, and dietary avoidance. The primary institutional source for the blocked-ingredient taxonomy used by the platform.",
+        "category": "allergy_safety",
+        "proposedKey": "medicalsourcesinfo.national_institute_of_allergy"
+      },
+      {
+        "line": 110,
+        "text": "American Academy of Allergy, Asthma & Immunology (AAAAI) — Alpha-gal Allergy",
+        "category": "allergy_safety",
+        "proposedKey": "medicalsourcesinfo.american_academy_of_allergy"
+      },
+      {
+        "line": 111,
+        "text": "AAAAI clinical resource covering ingredient avoidance, hidden sources (gelatin capsules, certain vaccines), and management strategies for patients with confirmed AGS.",
+        "category": "general_clinical",
+        "proposedKey": "medicalsourcesinfo.aaaai_clinical_resource_covering"
+      },
+      {
+        "line": 145,
+        "text": "FDA — Semaglutide (Ozempic / Wegovy) Prescribing Information, 2025",
+        "category": "diabetes_glp1",
+        "proposedKey": "medicalsourcesinfo.fda_semaglutide_ozempic_wegovy"
+      },
+      {
+        "line": 146,
+        "text": "Official FDA prescribing information identifying nausea, vomiting, diarrhea, constipation, abdominal pain, and dyspepsia as common adverse reactions (§6.1), and documenting dehydration and acute kidney injury risk from persistent GI effects (§5.1). The basis for symptom recognition and escalation triggers.",
+        "category": "general_clinical",
+        "proposedKey": "medicalsourcesinfo.official_fda_prescribing_information"
+      },
+      {
+        "line": 151,
+        "text": "Official FDA prescribing information for the GIP/GLP-1 dual agonist tirzepatide, documenting the same GI adverse reaction profile and dehydration risk. Applies to users on Mounjaro or Zepbound.",
+        "category": "diabetes_glp1",
+        "proposedKey": "medicalsourcesinfo.official_fda_prescribing_information"
+      },
+      {
+        "line": 162,
+        "text": "Clinical Recommendations to Manage GI Adverse Events in GLP-1 RA Patients — Gut (BMJ), 2023",
+        "category": "diabetes_glp1",
+        "proposedKey": "medicalsourcesinfo.clinical_recommendations_to_manage"
+      },
+      {
+        "line": 163,
+        "text": "Peer-reviewed consensus paper (PMID 36614945) providing clinical dietary recommendations for managing GLP-1 gastrointestinal side effects. Supports smaller meals, lower-fat foods, neutral flavors, avoidance of carbonated beverages, and protein priority for lean mass preservation.",
+        "category": "diabetes_glp1",
+        "proposedKey": "medicalsourcesinfo.peerreviewed_consensus_paper_pmid"
+      },
+      {
+        "line": 168,
+        "text": "Evidence-based nutrition practice guidance for metabolic medication users, including protein and fiber recommendations during appetite suppression, and hydration paired with fiber for constipation management.",
+        "category": "medication",
+        "proposedKey": "medicalsourcesinfo.evidencebased_nutrition_practice_guidance"
+      },
+      {
+        "line": 180,
+        "text": "FDA labeling for both semaglutide and tirzepatide explicitly warns that GI adverse effects can lead to dehydration and acute kidney injury. This is the primary basis for making hydration a first-class daily behavioral signal for metabolic medication users.",
+        "category": "diabetes_glp1",
+        "proposedKey": "medicalsourcesinfo.fda_labeling_for_both"
+      },
+      {
+        "line": 185,
+        "text": "National Institute of Diabetes and Digestive and Kidney Diseases guidance on delayed gastric emptying — a documented pharmacological effect of GLP-1 medications. Supports avoidance of raw cruciferous vegetables and high insoluble fiber foods; supports hydration emphasis and smaller, softer meals.",
+        "category": "diabetes_glp1",
+        "proposedKey": "medicalsourcesinfo.national_institute_of_diabetes"
+      },
+      {
+        "line": 190,
+        "text": "GI Symptom Management — Reflux &amp; Diarrhea",
+        "category": "general_clinical",
+        "proposedKey": "medicalsourcesinfo.gi_symptom_management_reflux"
+      },
+      {
+        "line": 196,
+        "text": "American Gastroenterological Association (AGA) — GI Symptom Dietary Guidance",
+        "category": "general_clinical",
+        "proposedKey": "medicalsourcesinfo.american_gastroenterological_association_aga"
+      },
+      {
+        "line": 197,
+        "text": "AGA clinical dietary guidance for reflux, dyspepsia, and diarrhea management — the basis for acidic food avoidance when reflux is reported, and reduced insoluble fiber when diarrhea is active.",
+        "category": "general_clinical",
+        "proposedKey": "medicalsourcesinfo.aga_clinical_dietary_guidance"
+      },
+      {
+        "line": 209,
+        "text": "FDA labeling explicitly states that persistent vomiting can cause dehydration and acute kidney injury requiring medical attention. This is the clinical basis for the escalation message displayed to users who report vomiting or significant difficulty staying hydrated.",
+        "category": "lab_biometric",
+        "proposedKey": "medicalsourcesinfo.fda_labeling_explicitly_states"
+      },
+      {
+        "line": 261,
+        "text": "American Diabetes Association (ADA)",
+        "category": "diabetes_glp1",
+        "proposedKey": "medicalsourcesinfo.american_diabetes_association_ada"
+      },
+      {
+        "line": 262,
+        "text": "Nutrition guidance for diabetic-friendly options",
+        "category": "diabetes_glp1",
+        "proposedKey": "medicalsourcesinfo.nutrition_guidance_for_diabeticfriendly"
+      },
+      {
+        "line": 286,
+        "text": "Clinical guidelines for nutritional biomarkers including prealbumin (transthyretin) as a marker of nutritional status and acute-phase response in clinical nutrition assessment",
+        "category": "general_clinical",
+        "proposedKey": "medicalsourcesinfo.clinical_guidelines_for_nutritional"
+      },
+      {
+        "line": 291,
+        "text": "Reference ranges, interpretation guidance, and clinical context for common laboratory markers including metabolic panels, lipid panels, liver function, and kidney function tests",
+        "category": "lab_biometric",
+        "proposedKey": "medicalsourcesinfo.reference_ranges_interpretation_guidance"
+      },
+      {
+        "line": 295,
+        "text": "American Heart Association (AHA) — Cholesterol & Lipid Guidelines",
+        "category": "lab_biometric",
+        "proposedKey": "medicalsourcesinfo.american_heart_association_aha"
+      },
+      {
+        "line": 296,
+        "text": "Evidence-based reference ranges for LDL, HDL, total cholesterol, and triglycerides; clinical thresholds for cardiovascular risk stratification",
+        "category": "lab_biometric",
+        "proposedKey": "medicalsourcesinfo.evidencebased_reference_ranges_for"
+      },
+      {
+        "line": 300,
+        "text": "American Diabetes Association (ADA) — Standards of Care",
+        "category": "diabetes_glp1",
+        "proposedKey": "medicalsourcesinfo.american_diabetes_association_ada"
+      },
+      {
+        "line": 301,
+        "text": "Clinical reference ranges for fasting blood glucose, HbA1c, and postprandial glucose; thresholds for prediabetes and diabetes classification",
+        "category": "diabetes_glp1",
+        "proposedKey": "medicalsourcesinfo.clinical_reference_ranges_for"
+      },
+      {
+        "line": 306,
+        "text": "Clinical reference thresholds for creatinine, BUN, eGFR, and kidney disease staging used to inform renal protocol activation",
+        "category": "lab_biometric",
+        "proposedKey": "medicalsourcesinfo.clinical_reference_thresholds_for"
+      },
+      {
+        "line": 316,
+        "text": "Clinical reference ranges for TSH, Free T4, Free T3, and Reverse T3 (rT3) used to support thyroid protocol detection, subtype classification (hypothyroid, hyperthyroid, Hashimoto",
+        "category": "lab_biometric",
+        "proposedKey": "medicalsourcesinfo.clinical_reference_ranges_for"
+      },
+      {
+        "line": 343,
+        "text": "Clinical guidance for menopause transition, perimenopause staging, hormone reference ranges, and nutritional considerations during the reproductive-to-menopause transition",
+        "category": "lab_biometric",
+        "proposedKey": "medicalsourcesinfo.clinical_guidance_for_menopause"
+      },
+      {
+        "line": 348,
+        "text": "Evidence-based thresholds for Total Testosterone and Free Testosterone used to inform Hormone Optimization protocol activation; clinical reference for low testosterone and nutritional support strategies",
+        "category": "lab_biometric",
+        "proposedKey": "medicalsourcesinfo.evidencebased_thresholds_for_total"
+      },
+      {
+        "line": 352,
+        "text": "Endocrine Society — Hormone Clinical Practice Guidelines",
+        "category": "lab_biometric",
+        "proposedKey": "medicalsourcesinfo.endocrine_society_hormone_clinical"
+      },
+      {
+        "line": 353,
+        "text": "Clinical practice guidelines for testosterone deficiency, DHEA-S reference ranges, menopause hormone thresholds, and endocrine nutrition interactions used in hormone protocol design",
+        "category": "lab_biometric",
+        "proposedKey": "medicalsourcesinfo.clinical_practice_guidelines_for"
+      },
+      {
+        "line": 384,
+        "text": "Cancer nutrition, treatment side effects, supportive eating strategies, and patient education",
+        "category": "medication",
+        "proposedKey": "medicalsourcesinfo.cancer_nutrition_treatment_side"
+      },
+      {
+        "line": 389,
+        "text": "Nutrition and physical activity guidance for people during and after cancer treatment",
+        "category": "medication",
+        "proposedKey": "medicalsourcesinfo.nutrition_and_physical_activity"
+      },
+      {
+        "line": 398,
+        "text": "American Society of Clinical Oncology (ASCO)",
+        "category": "general_clinical",
+        "proposedKey": "medicalsourcesinfo.american_society_of_clinical"
+      },
+      {
+        "line": 404,
+        "text": "Supportive care and oncology-related clinical guidance frameworks",
+        "category": "general_clinical",
+        "proposedKey": "medicalsourcesinfo.supportive_care_and_oncologyrelated"
+      },
+      {
+        "line": 423,
+        "text": "Clinical practice guidelines for hypothyroidism, Hashimoto",
+        "category": "lab_biometric",
+        "proposedKey": "medicalsourcesinfo.clinical_practice_guidelines_for"
+      },
+      {
+        "line": 427,
+        "text": "American Association of Clinical Endocrinology (AACE)",
+        "category": "general_clinical",
+        "proposedKey": "medicalsourcesinfo.american_association_of_clinical"
+      },
+      {
+        "line": 428,
+        "text": "Evidence-based clinical endocrinology guidelines including thyroid function reference ranges",
+        "category": "lab_biometric",
+        "proposedKey": "medicalsourcesinfo.evidencebased_clinical_endocrinology_guidelines"
+      },
+      {
+        "line": 433,
+        "text": "Clinical practice guidelines for thyroid disorders, autoimmune thyroid disease, and nutrition interactions",
+        "category": "lab_biometric",
+        "proposedKey": "medicalsourcesinfo.clinical_practice_guidelines_for"
+      },
+      {
+        "line": 500,
+        "text": "FDA Food Allergen Labeling (FALCPA)",
+        "category": "allergy_safety",
+        "proposedKey": "medicalsourcesinfo.fda_food_allergen_labeling"
+      },
+      {
+        "line": 501,
+        "text": "Major food allergen identification and labeling requirements",
+        "category": "allergy_safety",
+        "proposedKey": "medicalsourcesinfo.major_food_allergen_identification"
+      },
+      {
+        "line": 505,
+        "text": "Food Allergy Research & Education (FARE)",
+        "category": "allergy_safety",
+        "proposedKey": "medicalsourcesinfo.food_allergy_research_education"
+      },
+      {
+        "line": 506,
+        "text": "Allergen taxonomy, cross-contamination guidance, and safe alternatives",
+        "category": "allergy_safety",
+        "proposedKey": "medicalsourcesinfo.allergen_taxonomy_crosscontamination_guidance"
+      },
+      {
+        "line": 510,
+        "text": "American College of Allergy, Asthma & Immunology",
+        "category": "allergy_safety",
+        "proposedKey": "medicalsourcesinfo.american_college_of_allergy"
+      },
+      {
+        "line": 511,
+        "text": "Clinical allergen classification and derivative identification",
+        "category": "allergy_safety",
+        "proposedKey": "medicalsourcesinfo.clinical_allergen_classification_and"
+      },
+      {
+        "line": 515,
+        "text": "USDA FSIS Allergen Guidelines",
+        "category": "allergy_safety",
+        "proposedKey": "medicalsourcesinfo.usda_fsis_allergen_guidelines"
+      },
+      {
+        "line": 601,
+        "text": "Tufts Cummings School of Veterinary Medicine — Clinical Nutrition Service",
+        "category": "general_clinical",
+        "proposedKey": "medicalsourcesinfo.tufts_cummings_school_of"
+      },
+      {
+        "line": 616,
+        "text": "AAHA Diabetes Management Guidelines for Dogs and Cats",
+        "category": "diabetes_glp1",
+        "proposedKey": "medicalsourcesinfo.aaha_diabetes_management_guidelines"
+      },
+      {
+        "line": 617,
+        "text": "Evidence-based nutritional management of diabetes mellitus in dogs and cats — including species-specific differences: very low carbohydrate is the primary feline intervention; fiber-based management for dogs",
+        "category": "diabetes_glp1",
+        "proposedKey": "medicalsourcesinfo.evidencebased_nutritional_management_of"
+      },
+      {
+        "line": 621,
+        "text": "AVMA — American Veterinary Medical Association",
+        "category": "general_clinical",
+        "proposedKey": "medicalsourcesinfo.avma_american_veterinary_medical"
+      },
+      {
+        "line": 713,
+        "text": "Clinical guidance for prenatal nutrition, gestational weight gain, nutrient requirements by trimester, and postpartum dietary recommendations",
+        "category": "pregnancy_pediatric",
+        "proposedKey": "medicalsourcesinfo.clinical_guidance_for_prenatal"
+      },
+      {
+        "line": 718,
+        "text": "Evidence-based guidelines for high-risk pregnancy nutrition, gestational diabetes management, and fetal growth nutrition considerations",
+        "category": "diabetes_glp1",
+        "proposedKey": "medicalsourcesinfo.evidencebased_guidelines_for_highrisk"
+      },
+      {
+        "line": 791,
+        "text": "FDA — Semaglutide (Ozempic / Wegovy) Prescribing Information, 2025",
+        "category": "diabetes_glp1",
+        "proposedKey": "medicalsourcesinfo.fda_semaglutide_ozempic_wegovy"
+      },
+      {
+        "line": 792,
+        "text": "Official FDA prescribing information identifying nausea, vomiting, diarrhea, constipation, abdominal pain, and dyspepsia as common adverse reactions (§6.1), and documenting dehydration and acute kidney injury risk from persistent GI effects (§5.1). The basis for symptom recognition and escalation triggers.",
+        "category": "general_clinical",
+        "proposedKey": "medicalsourcesinfo.official_fda_prescribing_information"
+      },
+      {
+        "line": 797,
+        "text": "Official FDA prescribing information for the GIP/GLP-1 dual agonist tirzepatide, documenting the same GI adverse reaction profile and dehydration risk. Applies to users on Mounjaro or Zepbound.",
+        "category": "diabetes_glp1",
+        "proposedKey": "medicalsourcesinfo.official_fda_prescribing_information"
+      },
+      {
+        "line": 808,
+        "text": "Clinical Recommendations to Manage GI Adverse Events in GLP-1 RA Patients — Gut (BMJ), 2023",
+        "category": "diabetes_glp1",
+        "proposedKey": "medicalsourcesinfo.clinical_recommendations_to_manage"
+      },
+      {
+        "line": 809,
+        "text": "Peer-reviewed consensus paper (PMID 36614945) providing clinical dietary recommendations for managing GLP-1 gastrointestinal side effects. Supports smaller meals, lower-fat foods, neutral flavors, avoidance of carbonated beverages, and protein priority for lean mass preservation.",
+        "category": "diabetes_glp1",
+        "proposedKey": "medicalsourcesinfo.peerreviewed_consensus_paper_pmid"
+      },
+      {
+        "line": 814,
+        "text": "Evidence-based nutrition practice guidance for metabolic medication users, including protein and fiber recommendations during appetite suppression, and hydration paired with fiber for constipation management.",
+        "category": "medication",
+        "proposedKey": "medicalsourcesinfo.evidencebased_nutrition_practice_guidance"
+      },
+      {
+        "line": 826,
+        "text": "FDA labeling for both semaglutide and tirzepatide explicitly warns that GI adverse effects can lead to dehydration and acute kidney injury. This is the primary basis for making hydration a first-class daily behavioral signal for metabolic medication users.",
+        "category": "diabetes_glp1",
+        "proposedKey": "medicalsourcesinfo.fda_labeling_for_both"
+      },
+      {
+        "line": 831,
+        "text": "National Institute of Diabetes and Digestive and Kidney Diseases guidance on delayed gastric emptying — a documented pharmacological effect of GLP-1 medications. Supports avoidance of raw cruciferous vegetables and high insoluble fiber foods; supports hydration emphasis and smaller, softer meals.",
+        "category": "diabetes_glp1",
+        "proposedKey": "medicalsourcesinfo.national_institute_of_diabetes"
+      },
+      {
+        "line": 836,
+        "text": "GI Symptom Management — Reflux &amp; Diarrhea",
+        "category": "general_clinical",
+        "proposedKey": "medicalsourcesinfo.gi_symptom_management_reflux"
+      },
+      {
+        "line": 842,
+        "text": "American Gastroenterological Association (AGA) — GI Symptom Dietary Guidance",
+        "category": "general_clinical",
+        "proposedKey": "medicalsourcesinfo.american_gastroenterological_association_aga"
+      },
+      {
+        "line": 843,
+        "text": "AGA clinical dietary guidance for reflux, dyspepsia, and diarrhea management — the basis for acidic food avoidance when reflux is reported, and reduced insoluble fiber when diarrhea is active.",
+        "category": "general_clinical",
+        "proposedKey": "medicalsourcesinfo.aga_clinical_dietary_guidance"
+      },
+      {
+        "line": 855,
+        "text": "FDA labeling explicitly states that persistent vomiting can cause dehydration and acute kidney injury requiring medical attention. This is the clinical basis for the escalation message displayed to users who report vomiting or significant difficulty staying hydrated.",
+        "category": "lab_biometric",
+        "proposedKey": "medicalsourcesinfo.fda_labeling_explicitly_states"
+      },
+      {
+        "line": 882,
+        "text": "Clinical Safety",
+        "category": "general_clinical",
+        "proposedKey": "medicalsourcesinfo.clinical_safety"
+      },
+      {
+        "line": 883,
+        "text": "Medical Hard Limits",
+        "category": "general_clinical",
+        "proposedKey": "medicalsourcesinfo.medical_hard_limits"
+      },
+      {
+        "line": 900,
+        "text": "American Diabetes Association (ADA)",
+        "category": "diabetes_glp1",
+        "proposedKey": "medicalsourcesinfo.american_diabetes_association_ada"
+      },
+      {
+        "line": 901,
+        "text": "Evidence-based standards of medical care in diabetes — the clinical foundation for blood glucose management and carbohydrate guidance",
+        "category": "diabetes_glp1",
+        "proposedKey": "medicalsourcesinfo.evidencebased_standards_of_medical"
+      },
+      {
+        "line": 911,
+        "text": "Clinical practice guidelines for nutrition in chronic kidney disease — potassium, phosphorus, and protein limits",
+        "category": "general_clinical",
+        "proposedKey": "medicalsourcesinfo.clinical_practice_guidelines_for"
+      },
+      {
+        "line": 921,
+        "text": "Clinical guidelines for thyroid disease management — medication timing, selenium, iodine, and goitrogen considerations",
+        "category": "medication",
+        "proposedKey": "medicalsourcesinfo.clinical_guidelines_for_thyroid"
+      },
+      {
+        "line": 926,
+        "text": "Clinical practice guidelines for hormone optimization, menopause, and metabolic health — the basis for hormone-balancing nutrition",
+        "category": "lab_biometric",
+        "proposedKey": "medicalsourcesinfo.clinical_practice_guidelines_for"
+      },
+      {
+        "line": 930,
+        "text": "American Society of Clinical Oncology (ASCO)",
+        "category": "general_clinical",
+        "proposedKey": "medicalsourcesinfo.american_society_of_clinical"
+      },
+      {
+        "line": 931,
+        "text": "Oncology nutrition guidance — nutrient density, immune support, and symptom-aware meal planning for cancer support",
+        "category": "general_clinical",
+        "proposedKey": "medicalsourcesinfo.oncology_nutrition_guidance_nutrient"
+      },
+      {
+        "line": 987,
+        "text": "Prochaska, J.O. & DiClemente, C.C. — Stages and Processes of Self-Change (Journal of Consulting and Clinical Psychology, 1983, PMID 6863699)",
+        "category": "general_clinical",
+        "proposedKey": "medicalsourcesinfo.prochaska_jo_diclemente_cc"
+      },
+      {
+        "line": 1028,
+        "text": "Norcross, J.C. et al. — In Session: Psychotherapy in Practice — Stages of Change (Journal of Clinical Psychology, 2011, PMID 21188747)",
+        "category": "general_clinical",
+        "proposedKey": "medicalsourcesinfo.norcross_jc_et_al"
+      },
+      {
+        "line": 1064,
+        "text": "American College of Obstetricians and Gynecologists clinical guidance establishing the blocked-food list: raw or undercooked fish and shellfish (listeria, toxoplasma risk), deli meats and hot dogs unless heated to steaming (listeria risk), unpasteurized soft cheeses (listeria risk), raw or soft-boiled eggs (salmonella risk), and alcohol (no safe level established). Every blocked ingredient in the pregnancy protocol traces directly to ACOG or FDA guidance.",
+        "category": "pregnancy_pediatric",
+        "proposedKey": "medicalsourcesinfo.american_college_of_obstetricians"
+      },
+      {
+        "line": 1086,
+        "text": "Symptom-Responsive Ingredient Adjustments",
+        "category": "general_clinical",
+        "proposedKey": "medicalsourcesinfo.symptomresponsive_ingredient_adjustments"
+      },
+      {
+        "line": 1093,
+        "text": "ACOG clinical guidance establishing ginger, vitamin B6, and small frequent bland meals as first-line dietary interventions for nausea in pregnancy. The basis for the nausea symptom adjustments in every meal generator.",
+        "category": "pregnancy_pediatric",
+        "proposedKey": "medicalsourcesinfo.acog_clinical_guidance_establishing"
+      },
+      {
+        "line": 1162,
+        "text": "Allergen Introduction",
+        "category": "allergy_safety",
+        "proposedKey": "medicalsourcesinfo.allergen_introduction"
+      },
+      {
+        "line": 1168,
+        "text": "NIAID — Addendum Guidelines for Prevention of Peanut Allergy in the United States (Journal of Allergy and Clinical Immunology, 2017, PMID 28065278)",
+        "category": "allergy_safety",
+        "proposedKey": "medicalsourcesinfo.niaid_addendum_guidelines_for"
+      },
+      {
+        "line": 1169,
+        "text": "National Institute of Allergy and Infectious Diseases clinical guidelines establishing early peanut introduction (4–6 months for high-risk infants with eczema or egg allergy) as protective against peanut allergy. The basis for the platform",
+        "category": "pregnancy_pediatric",
+        "proposedKey": "medicalsourcesinfo.national_institute_of_allergy"
+      }
+    ],
+    "client/src/components/SafetyGuardToggle.tsx": [
+      {
+        "line": 62,
+        "text": "Allergy protection disabled for this meal only.",
+        "category": "allergy_safety",
+        "proposedKey": "safetyguardtoggle.allergy_protection_disabled_for"
+      },
+      {
+        "line": 103,
+        "text": "Allergy Protection",
+        "category": "allergy_safety",
+        "proposedKey": "safetyguardtoggle.allergy_protection"
+      }
+    ],
+    "client/src/components/ace/CoachingProfileSetup.tsx": [
+      {
+        "line": 28,
+        "text": "Medical Condition",
+        "category": "general_clinical",
+        "proposedKey": "coachingprofilesetup.medical_condition"
+      }
+    ],
+    "client/src/components/biometrics/ClinicalLabsCard.tsx": [
+      {
+        "line": 427,
+        "text": "Clinical Labs Saved",
+        "category": "lab_biometric",
+        "proposedKey": "clinicallabscard.clinical_labs_saved"
+      },
+      {
+        "line": 498,
+        "text": "Clinical Labs Saved",
+        "category": "lab_biometric",
+        "proposedKey": "clinicallabscard.clinical_labs_saved"
+      },
+      {
+        "line": 545,
+        "text": "Clinical Labs Saved",
+        "category": "lab_biometric",
+        "proposedKey": "clinicallabscard.clinical_labs_saved"
+      },
+      {
+        "line": 614,
+        "text": "Diabetes & Insulin",
+        "category": "diabetes_glp1",
+        "proposedKey": "clinicallabscard.diabetes_insulin"
+      },
+      {
+        "line": 625,
+        "text": "Fasting Glucose",
+        "category": "diabetes_glp1",
+        "proposedKey": "clinicallabscard.fasting_glucose"
+      },
+      {
+        "line": 626,
+        "text": "Fasting Insulin",
+        "category": "diabetes_glp1",
+        "proposedKey": "clinicallabscard.fasting_insulin"
+      },
+      {
+        "line": 829,
+        "text": "Physician-guided protocol active",
+        "category": "general_clinical",
+        "proposedKey": "clinicallabscard.physicianguided_protocol_active"
+      }
+    ],
+    "client/src/components/biometrics/TherapeuticNutritionCard.tsx": [
+      {
+        "line": 84,
+        "text": "Semaglutide (Ozempic / Wegovy)",
+        "category": "diabetes_glp1",
+        "proposedKey": "therapeuticnutritioncard.semaglutide_ozempic_wegovy"
+      }
+    ],
+    "client/src/components/dashboard/TodaysPrescriptionCard.tsx": [
+      {
+        "line": 102,
+        "text": "Today's Nutrition Prescription",
+        "category": "medication",
+        "proposedKey": "todaysprescriptioncard.todays_nutrition_prescription"
+      }
+    ],
+    "client/src/components/diabetic/GLP1CompanionModal.tsx": [
+      {
+        "line": 38,
+        "text": "Active alongside your diabetic protocol",
+        "category": "diabetes_glp1",
+        "proposedKey": "glp1companionmodal.active_alongside_your_diabetic"
+      },
+      {
+        "line": 83,
+        "text": "Metabolic Medication Guardrails",
+        "category": "medication",
+        "proposedKey": "glp1companionmodal.metabolic_medication_guardrails"
+      }
+    ],
+    "client/src/components/diabetic/GlycemicSettingsModal.tsx": [
+      {
+        "line": 43,
+        "text": "Glucose carb preferences saved",
+        "category": "diabetes_glp1",
+        "proposedKey": "glycemicsettingsmodal.glucose_carb_preferences_saved"
+      },
+      {
+        "line": 76,
+        "text": "Glucose-Based Carb Choices",
+        "category": "diabetes_glp1",
+        "proposedKey": "glycemicsettingsmodal.glucosebased_carb_choices"
+      },
+      {
+        "line": 86,
+        "text": "How Glucose-Based Food Choices Work",
+        "category": "diabetes_glp1",
+        "proposedKey": "glycemicsettingsmodal.how_glucosebased_food_choices"
+      },
+      {
+        "line": 93,
+        "text": "When your glucose is",
+        "category": "diabetes_glp1",
+        "proposedKey": "glycemicsettingsmodal.when_your_glucose_is"
+      },
+      {
+        "line": 97,
+        "text": "When your glucose is",
+        "category": "diabetes_glp1",
+        "proposedKey": "glycemicsettingsmodal.when_your_glucose_is"
+      },
+      {
+        "line": 101,
+        "text": "When your glucose is",
+        "category": "diabetes_glp1",
+        "proposedKey": "glycemicsettingsmodal.when_your_glucose_is"
+      }
+    ],
+    "client/src/components/glp1/GLP1DailyCheckin.tsx": [
+      {
+        "line": 191,
+        "text": "Contact your healthcare provider",
+        "category": "general_clinical",
+        "proposedKey": "glp1dailycheckin.contact_your_healthcare_provider"
+      },
+      {
+        "line": 339,
+        "text": "Contact your healthcare provider",
+        "category": "general_clinical",
+        "proposedKey": "glp1dailycheckin.contact_your_healthcare_provider"
+      },
+      {
+        "line": 533,
+        "text": "Notify my physician",
+        "category": "general_clinical",
+        "proposedKey": "glp1dailycheckin.notify_my_physician"
+      }
+    ],
+    "client/src/components/meal/MedicalBadges.tsx": [
+      {
+        "line": 53,
+        "text": "Show medical badges",
+        "category": "general_clinical",
+        "proposedKey": "medicalbadges.show_medical_badges"
+      }
+    ],
+    "client/src/components/modals/TierUpgradeModal.tsx": [
+      {
+        "line": 49,
+        "text": "Essential, Pro & Clinical",
+        "category": "general_clinical",
+        "proposedKey": "tierupgrademodal.essential_pro_clinical"
+      }
+    ],
+    "client/src/components/pro/ClinicalAdvisoryDrawer.tsx": [
+      {
+        "line": 43,
+        "text": "Suspected Insulin Resistance",
+        "category": "diabetes_glp1",
+        "proposedKey": "clinicaladvisorydrawer.suspected_insulin_resistance"
+      },
+      {
+        "line": 44,
+        "text": "Metabolic indicators suggest reduced insulin sensitivity",
+        "category": "diabetes_glp1",
+        "proposedKey": "clinicaladvisorydrawer.metabolic_indicators_suggest_reduced"
+      }
+    ],
+    "client/src/components/pro/ClinicalInterventionPanel.tsx": [
+      {
+        "line": 174,
+        "text": "Clinical Adjustments",
+        "category": "general_clinical",
+        "proposedKey": "clinicalinterventionpanel.clinical_adjustments"
+      }
+    ],
+    "client/src/components/pro/ProClientFolderModal.tsx": [
+      {
+        "line": 31,
+        "text": "Active Clinical Supports",
+        "category": "general_clinical",
+        "proposedKey": "proclientfoldermodal.active_clinical_supports"
+      },
+      {
+        "line": 32,
+        "text": "The colored dots show which clinical protocols are active for this client. A glowing dot means that protocol is shaping every meal the AI generates. Tap any dot to see exactly what it does. Dots activate from your settings, physician assignment, or automatically when lab values cross clinical thresholds.",
+        "category": "lab_biometric",
+        "proposedKey": "proclientfoldermodal.the_colored_dots_show"
+      },
+      {
+        "line": 37,
+        "text": "Messages are a shared conversation — your client can read them and reply. Provider Notes are internal only and are never visible to the client. Use notes for clinical observations, progress documentation, or anything that should stay in your professional records.",
+        "category": "general_clinical",
+        "proposedKey": "proclientfoldermodal.messages_are_a_shared"
+      }
+    ]
+  },
+  "allStrings": [
+    {
+      "file": "client/src/components/CreateWithChefModal.tsx",
+      "line": 247,
+      "text": "⚠️ Allergy Alert",
+      "category": "allergy_safety",
+      "proposedKey": "createwithchefmodal.allergy_alert"
+    },
+    {
+      "file": "client/src/components/DevNavigator.tsx",
+      "line": 30,
+      "text": "Physician Welcome",
+      "category": "general_clinical",
+      "proposedKey": "devnavigator.physician_welcome"
+    },
+    {
+      "file": "client/src/components/DevNavigator.tsx",
+      "line": 64,
+      "text": "Diabetic Builder",
+      "category": "diabetes_glp1",
+      "proposedKey": "devnavigator.diabetic_builder"
+    },
+    {
+      "file": "client/src/components/DevNavigator.tsx",
+      "line": 86,
+      "text": "Physician Hub",
+      "category": "general_clinical",
+      "proposedKey": "devnavigator.physician_hub"
+    },
+    {
+      "file": "client/src/components/DevNavigator.tsx",
+      "line": 88,
+      "text": "Diabetic Hub",
+      "category": "diabetes_glp1",
+      "proposedKey": "devnavigator.diabetic_hub"
+    },
+    {
+      "file": "client/src/components/DevNavigator.tsx",
+      "line": 89,
+      "text": "Diabetes Support",
+      "category": "diabetes_glp1",
+      "proposedKey": "devnavigator.diabetes_support"
+    },
+    {
+      "file": "client/src/components/DevNavigator.tsx",
+      "line": 103,
+      "text": "Physician Care Team",
+      "category": "general_clinical",
+      "proposedKey": "devnavigator.physician_care_team"
+    },
+    {
+      "file": "client/src/components/DevNavigator.tsx",
+      "line": 112,
+      "text": "Pro Clients (Physician)",
+      "category": "general_clinical",
+      "proposedKey": "devnavigator.pro_clients_physician"
+    },
+    {
+      "file": "client/src/components/DevNavigator.tsx",
+      "line": 113,
+      "text": "Physician Portal",
+      "category": "general_clinical",
+      "proposedKey": "devnavigator.physician_portal"
+    },
+    {
+      "file": "client/src/components/DevNavigator.tsx",
+      "line": 158,
+      "text": "Healthcare Partnerships",
+      "category": "general_clinical",
+      "proposedKey": "devnavigator.healthcare_partnerships"
+    },
+    {
+      "file": "client/src/components/DevNavigator.tsx",
+      "line": 369,
+      "text": "Clients (Physician)",
+      "category": "general_clinical",
+      "proposedKey": "devnavigator.clients_physician"
+    },
+    {
+      "file": "client/src/components/DevNavigator.tsx",
+      "line": 370,
+      "text": "Physician Portal",
+      "category": "general_clinical",
+      "proposedKey": "devnavigator.physician_portal"
+    },
+    {
+      "file": "client/src/components/DevNavigator.tsx",
+      "line": 539,
+      "text": "Physician · Trainer",
+      "category": "general_clinical",
+      "proposedKey": "devnavigator.physician_trainer"
+    },
+    {
+      "file": "client/src/components/DietStyleBadge.tsx",
+      "line": 23,
+      "text": "Gluten-Free ✓",
+      "category": "general_clinical",
+      "proposedKey": "dietstylebadge.glutenfree"
+    },
+    {
+      "file": "client/src/components/DisclaimerModal.tsx",
+      "line": 101,
+      "text": "Medical safety",
+      "category": "general_clinical",
+      "proposedKey": "disclaimermodal.medical_safety"
+    },
+    {
+      "file": "client/src/components/DisclaimerModal.tsx",
+      "line": 101,
+      "text": "— Diabetes, renal, cardiac, metabolic medication, oncology, and allergies are enforced first. These are not suggestions.",
+      "category": "diabetes_glp1",
+      "proposedKey": "disclaimermodal.diabetes_renal_cardiac_metabolic"
+    },
+    {
+      "file": "client/src/components/DisclaimerModal.tsx",
+      "line": 105,
+      "text": "— Vegan, vegetarian, pescatarian, kosher, halal. These are never broken, even when adapting for medical needs.",
+      "category": "general_clinical",
+      "proposedKey": "disclaimermodal.vegan_vegetarian_pescatarian_kosher"
+    },
+    {
+      "file": "client/src/components/DisclaimerModal.tsx",
+      "line": 109,
+      "text": "— Korean, Vietnamese, Ethiopian, Japanese, Mexican, and more. The system preserves your cultural dish structure and flavor identity inside your medical and diet rules — not by replacing your food with Western alternatives.",
+      "category": "general_clinical",
+      "proposedKey": "disclaimermodal.korean_vietnamese_ethiopian_japanese"
+    },
+    {
+      "file": "client/src/components/DisclaimerModal.tsx",
+      "line": 193,
+      "text": "This app does not provide medical advice or treatment",
+      "category": "medication",
+      "proposedKey": "disclaimermodal.this_app_does_not"
+    },
+    {
+      "file": "client/src/components/GlucoseGuardExplainerModal.tsx",
+      "line": 41,
+      "text": "Balanced diabetic-friendly meal. Moderate, quality complex carbohydrates to maintain good control.",
+      "category": "diabetes_glp1",
+      "proposedKey": "glucoseguardexplainermodal.balanced_diabeticfriendly_meal_moderate"
+    },
+    {
+      "file": "client/src/components/GlucoseGuardExplainerModal.tsx",
+      "line": 207,
+      "text": "most recent blood glucose reading",
+      "category": "diabetes_glp1",
+      "proposedKey": "glucoseguardexplainermodal.most_recent_blood_glucose"
+    },
+    {
+      "file": "client/src/components/MealCardFull.tsx",
+      "line": 256,
+      "text": "Allergy Safe",
+      "category": "allergy_safety",
+      "proposedKey": "mealcardfull.allergy_safe"
+    },
+    {
+      "file": "client/src/components/MealCardFull.tsx",
+      "line": 260,
+      "text": "Medical Safe",
+      "category": "general_clinical",
+      "proposedKey": "mealcardfull.medical_safe"
+    },
+    {
+      "file": "client/src/components/MedicalInfoBubble.tsx",
+      "line": 65,
+      "text": "View health and medical tags",
+      "category": "general_clinical",
+      "proposedKey": "medicalinfobubble.view_health_and_medical"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 84,
+      "text": "Clinical Background",
+      "category": "general_clinical",
+      "proposedKey": "medicalsourcesinfo.clinical_background"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 87,
+      "text": "Commins, S.P. & Platts-Mills, T.A.E. — Tick Bites and Red Meat Allergy (PMID 22466475)",
+      "category": "allergy_safety",
+      "proposedKey": "medicalsourcesinfo.commins_sp_plattsmills_tae"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 88,
+      "text": "Peer-reviewed paper establishing the causal link between Lone Star tick bites and delayed IgE-mediated anaphylaxis to alpha-gal in mammalian meat. The clinical basis for treating AGS as an anaphylaxis-risk allergy, not a food preference. Current Allergy and Asthma Reports, 2013.",
+      "category": "allergy_safety",
+      "proposedKey": "medicalsourcesinfo.peerreviewed_paper_establishing_the"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 92,
+      "text": "Platts-Mills, T.A.E. et al. — Alpha-gal and Delayed Anaphylaxis (PMID 25956016)",
+      "category": "allergy_safety",
+      "proposedKey": "medicalsourcesinfo.plattsmills_tae_et_al"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 101,
+      "text": "National Institute of Allergy and Infectious Diseases overview of AGS diagnosis, management, and dietary avoidance. The primary institutional source for the blocked-ingredient taxonomy used by the platform.",
+      "category": "allergy_safety",
+      "proposedKey": "medicalsourcesinfo.national_institute_of_allergy"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 110,
+      "text": "American Academy of Allergy, Asthma & Immunology (AAAAI) — Alpha-gal Allergy",
+      "category": "allergy_safety",
+      "proposedKey": "medicalsourcesinfo.american_academy_of_allergy"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 111,
+      "text": "AAAAI clinical resource covering ingredient avoidance, hidden sources (gelatin capsules, certain vaccines), and management strategies for patients with confirmed AGS.",
+      "category": "general_clinical",
+      "proposedKey": "medicalsourcesinfo.aaaai_clinical_resource_covering"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 145,
+      "text": "FDA — Semaglutide (Ozempic / Wegovy) Prescribing Information, 2025",
+      "category": "diabetes_glp1",
+      "proposedKey": "medicalsourcesinfo.fda_semaglutide_ozempic_wegovy"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 146,
+      "text": "Official FDA prescribing information identifying nausea, vomiting, diarrhea, constipation, abdominal pain, and dyspepsia as common adverse reactions (§6.1), and documenting dehydration and acute kidney injury risk from persistent GI effects (§5.1). The basis for symptom recognition and escalation triggers.",
+      "category": "general_clinical",
+      "proposedKey": "medicalsourcesinfo.official_fda_prescribing_information"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 151,
+      "text": "Official FDA prescribing information for the GIP/GLP-1 dual agonist tirzepatide, documenting the same GI adverse reaction profile and dehydration risk. Applies to users on Mounjaro or Zepbound.",
+      "category": "diabetes_glp1",
+      "proposedKey": "medicalsourcesinfo.official_fda_prescribing_information"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 162,
+      "text": "Clinical Recommendations to Manage GI Adverse Events in GLP-1 RA Patients — Gut (BMJ), 2023",
+      "category": "diabetes_glp1",
+      "proposedKey": "medicalsourcesinfo.clinical_recommendations_to_manage"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 163,
+      "text": "Peer-reviewed consensus paper (PMID 36614945) providing clinical dietary recommendations for managing GLP-1 gastrointestinal side effects. Supports smaller meals, lower-fat foods, neutral flavors, avoidance of carbonated beverages, and protein priority for lean mass preservation.",
+      "category": "diabetes_glp1",
+      "proposedKey": "medicalsourcesinfo.peerreviewed_consensus_paper_pmid"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 168,
+      "text": "Evidence-based nutrition practice guidance for metabolic medication users, including protein and fiber recommendations during appetite suppression, and hydration paired with fiber for constipation management.",
+      "category": "medication",
+      "proposedKey": "medicalsourcesinfo.evidencebased_nutrition_practice_guidance"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 180,
+      "text": "FDA labeling for both semaglutide and tirzepatide explicitly warns that GI adverse effects can lead to dehydration and acute kidney injury. This is the primary basis for making hydration a first-class daily behavioral signal for metabolic medication users.",
+      "category": "diabetes_glp1",
+      "proposedKey": "medicalsourcesinfo.fda_labeling_for_both"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 185,
+      "text": "National Institute of Diabetes and Digestive and Kidney Diseases guidance on delayed gastric emptying — a documented pharmacological effect of GLP-1 medications. Supports avoidance of raw cruciferous vegetables and high insoluble fiber foods; supports hydration emphasis and smaller, softer meals.",
+      "category": "diabetes_glp1",
+      "proposedKey": "medicalsourcesinfo.national_institute_of_diabetes"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 190,
+      "text": "GI Symptom Management — Reflux &amp; Diarrhea",
+      "category": "general_clinical",
+      "proposedKey": "medicalsourcesinfo.gi_symptom_management_reflux"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 196,
+      "text": "American Gastroenterological Association (AGA) — GI Symptom Dietary Guidance",
+      "category": "general_clinical",
+      "proposedKey": "medicalsourcesinfo.american_gastroenterological_association_aga"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 197,
+      "text": "AGA clinical dietary guidance for reflux, dyspepsia, and diarrhea management — the basis for acidic food avoidance when reflux is reported, and reduced insoluble fiber when diarrhea is active.",
+      "category": "general_clinical",
+      "proposedKey": "medicalsourcesinfo.aga_clinical_dietary_guidance"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 209,
+      "text": "FDA labeling explicitly states that persistent vomiting can cause dehydration and acute kidney injury requiring medical attention. This is the clinical basis for the escalation message displayed to users who report vomiting or significant difficulty staying hydrated.",
+      "category": "lab_biometric",
+      "proposedKey": "medicalsourcesinfo.fda_labeling_explicitly_states"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 261,
+      "text": "American Diabetes Association (ADA)",
+      "category": "diabetes_glp1",
+      "proposedKey": "medicalsourcesinfo.american_diabetes_association_ada"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 262,
+      "text": "Nutrition guidance for diabetic-friendly options",
+      "category": "diabetes_glp1",
+      "proposedKey": "medicalsourcesinfo.nutrition_guidance_for_diabeticfriendly"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 286,
+      "text": "Clinical guidelines for nutritional biomarkers including prealbumin (transthyretin) as a marker of nutritional status and acute-phase response in clinical nutrition assessment",
+      "category": "general_clinical",
+      "proposedKey": "medicalsourcesinfo.clinical_guidelines_for_nutritional"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 291,
+      "text": "Reference ranges, interpretation guidance, and clinical context for common laboratory markers including metabolic panels, lipid panels, liver function, and kidney function tests",
+      "category": "lab_biometric",
+      "proposedKey": "medicalsourcesinfo.reference_ranges_interpretation_guidance"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 295,
+      "text": "American Heart Association (AHA) — Cholesterol & Lipid Guidelines",
+      "category": "lab_biometric",
+      "proposedKey": "medicalsourcesinfo.american_heart_association_aha"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 296,
+      "text": "Evidence-based reference ranges for LDL, HDL, total cholesterol, and triglycerides; clinical thresholds for cardiovascular risk stratification",
+      "category": "lab_biometric",
+      "proposedKey": "medicalsourcesinfo.evidencebased_reference_ranges_for"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 300,
+      "text": "American Diabetes Association (ADA) — Standards of Care",
+      "category": "diabetes_glp1",
+      "proposedKey": "medicalsourcesinfo.american_diabetes_association_ada"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 301,
+      "text": "Clinical reference ranges for fasting blood glucose, HbA1c, and postprandial glucose; thresholds for prediabetes and diabetes classification",
+      "category": "diabetes_glp1",
+      "proposedKey": "medicalsourcesinfo.clinical_reference_ranges_for"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 306,
+      "text": "Clinical reference thresholds for creatinine, BUN, eGFR, and kidney disease staging used to inform renal protocol activation",
+      "category": "lab_biometric",
+      "proposedKey": "medicalsourcesinfo.clinical_reference_thresholds_for"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 316,
+      "text": "Clinical reference ranges for TSH, Free T4, Free T3, and Reverse T3 (rT3) used to support thyroid protocol detection, subtype classification (hypothyroid, hyperthyroid, Hashimoto",
+      "category": "lab_biometric",
+      "proposedKey": "medicalsourcesinfo.clinical_reference_ranges_for"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 343,
+      "text": "Clinical guidance for menopause transition, perimenopause staging, hormone reference ranges, and nutritional considerations during the reproductive-to-menopause transition",
+      "category": "lab_biometric",
+      "proposedKey": "medicalsourcesinfo.clinical_guidance_for_menopause"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 348,
+      "text": "Evidence-based thresholds for Total Testosterone and Free Testosterone used to inform Hormone Optimization protocol activation; clinical reference for low testosterone and nutritional support strategies",
+      "category": "lab_biometric",
+      "proposedKey": "medicalsourcesinfo.evidencebased_thresholds_for_total"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 352,
+      "text": "Endocrine Society — Hormone Clinical Practice Guidelines",
+      "category": "lab_biometric",
+      "proposedKey": "medicalsourcesinfo.endocrine_society_hormone_clinical"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 353,
+      "text": "Clinical practice guidelines for testosterone deficiency, DHEA-S reference ranges, menopause hormone thresholds, and endocrine nutrition interactions used in hormone protocol design",
+      "category": "lab_biometric",
+      "proposedKey": "medicalsourcesinfo.clinical_practice_guidelines_for"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 384,
+      "text": "Cancer nutrition, treatment side effects, supportive eating strategies, and patient education",
+      "category": "medication",
+      "proposedKey": "medicalsourcesinfo.cancer_nutrition_treatment_side"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 389,
+      "text": "Nutrition and physical activity guidance for people during and after cancer treatment",
+      "category": "medication",
+      "proposedKey": "medicalsourcesinfo.nutrition_and_physical_activity"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 398,
+      "text": "American Society of Clinical Oncology (ASCO)",
+      "category": "general_clinical",
+      "proposedKey": "medicalsourcesinfo.american_society_of_clinical"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 404,
+      "text": "Supportive care and oncology-related clinical guidance frameworks",
+      "category": "general_clinical",
+      "proposedKey": "medicalsourcesinfo.supportive_care_and_oncologyrelated"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 423,
+      "text": "Clinical practice guidelines for hypothyroidism, Hashimoto",
+      "category": "lab_biometric",
+      "proposedKey": "medicalsourcesinfo.clinical_practice_guidelines_for"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 427,
+      "text": "American Association of Clinical Endocrinology (AACE)",
+      "category": "general_clinical",
+      "proposedKey": "medicalsourcesinfo.american_association_of_clinical"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 428,
+      "text": "Evidence-based clinical endocrinology guidelines including thyroid function reference ranges",
+      "category": "lab_biometric",
+      "proposedKey": "medicalsourcesinfo.evidencebased_clinical_endocrinology_guidelines"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 433,
+      "text": "Clinical practice guidelines for thyroid disorders, autoimmune thyroid disease, and nutrition interactions",
+      "category": "lab_biometric",
+      "proposedKey": "medicalsourcesinfo.clinical_practice_guidelines_for"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 500,
+      "text": "FDA Food Allergen Labeling (FALCPA)",
+      "category": "allergy_safety",
+      "proposedKey": "medicalsourcesinfo.fda_food_allergen_labeling"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 501,
+      "text": "Major food allergen identification and labeling requirements",
+      "category": "allergy_safety",
+      "proposedKey": "medicalsourcesinfo.major_food_allergen_identification"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 505,
+      "text": "Food Allergy Research & Education (FARE)",
+      "category": "allergy_safety",
+      "proposedKey": "medicalsourcesinfo.food_allergy_research_education"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 506,
+      "text": "Allergen taxonomy, cross-contamination guidance, and safe alternatives",
+      "category": "allergy_safety",
+      "proposedKey": "medicalsourcesinfo.allergen_taxonomy_crosscontamination_guidance"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 510,
+      "text": "American College of Allergy, Asthma & Immunology",
+      "category": "allergy_safety",
+      "proposedKey": "medicalsourcesinfo.american_college_of_allergy"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 511,
+      "text": "Clinical allergen classification and derivative identification",
+      "category": "allergy_safety",
+      "proposedKey": "medicalsourcesinfo.clinical_allergen_classification_and"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 515,
+      "text": "USDA FSIS Allergen Guidelines",
+      "category": "allergy_safety",
+      "proposedKey": "medicalsourcesinfo.usda_fsis_allergen_guidelines"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 601,
+      "text": "Tufts Cummings School of Veterinary Medicine — Clinical Nutrition Service",
+      "category": "general_clinical",
+      "proposedKey": "medicalsourcesinfo.tufts_cummings_school_of"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 616,
+      "text": "AAHA Diabetes Management Guidelines for Dogs and Cats",
+      "category": "diabetes_glp1",
+      "proposedKey": "medicalsourcesinfo.aaha_diabetes_management_guidelines"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 617,
+      "text": "Evidence-based nutritional management of diabetes mellitus in dogs and cats — including species-specific differences: very low carbohydrate is the primary feline intervention; fiber-based management for dogs",
+      "category": "diabetes_glp1",
+      "proposedKey": "medicalsourcesinfo.evidencebased_nutritional_management_of"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 621,
+      "text": "AVMA — American Veterinary Medical Association",
+      "category": "general_clinical",
+      "proposedKey": "medicalsourcesinfo.avma_american_veterinary_medical"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 713,
+      "text": "Clinical guidance for prenatal nutrition, gestational weight gain, nutrient requirements by trimester, and postpartum dietary recommendations",
+      "category": "pregnancy_pediatric",
+      "proposedKey": "medicalsourcesinfo.clinical_guidance_for_prenatal"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 718,
+      "text": "Evidence-based guidelines for high-risk pregnancy nutrition, gestational diabetes management, and fetal growth nutrition considerations",
+      "category": "diabetes_glp1",
+      "proposedKey": "medicalsourcesinfo.evidencebased_guidelines_for_highrisk"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 791,
+      "text": "FDA — Semaglutide (Ozempic / Wegovy) Prescribing Information, 2025",
+      "category": "diabetes_glp1",
+      "proposedKey": "medicalsourcesinfo.fda_semaglutide_ozempic_wegovy"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 792,
+      "text": "Official FDA prescribing information identifying nausea, vomiting, diarrhea, constipation, abdominal pain, and dyspepsia as common adverse reactions (§6.1), and documenting dehydration and acute kidney injury risk from persistent GI effects (§5.1). The basis for symptom recognition and escalation triggers.",
+      "category": "general_clinical",
+      "proposedKey": "medicalsourcesinfo.official_fda_prescribing_information"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 797,
+      "text": "Official FDA prescribing information for the GIP/GLP-1 dual agonist tirzepatide, documenting the same GI adverse reaction profile and dehydration risk. Applies to users on Mounjaro or Zepbound.",
+      "category": "diabetes_glp1",
+      "proposedKey": "medicalsourcesinfo.official_fda_prescribing_information"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 808,
+      "text": "Clinical Recommendations to Manage GI Adverse Events in GLP-1 RA Patients — Gut (BMJ), 2023",
+      "category": "diabetes_glp1",
+      "proposedKey": "medicalsourcesinfo.clinical_recommendations_to_manage"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 809,
+      "text": "Peer-reviewed consensus paper (PMID 36614945) providing clinical dietary recommendations for managing GLP-1 gastrointestinal side effects. Supports smaller meals, lower-fat foods, neutral flavors, avoidance of carbonated beverages, and protein priority for lean mass preservation.",
+      "category": "diabetes_glp1",
+      "proposedKey": "medicalsourcesinfo.peerreviewed_consensus_paper_pmid"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 814,
+      "text": "Evidence-based nutrition practice guidance for metabolic medication users, including protein and fiber recommendations during appetite suppression, and hydration paired with fiber for constipation management.",
+      "category": "medication",
+      "proposedKey": "medicalsourcesinfo.evidencebased_nutrition_practice_guidance"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 826,
+      "text": "FDA labeling for both semaglutide and tirzepatide explicitly warns that GI adverse effects can lead to dehydration and acute kidney injury. This is the primary basis for making hydration a first-class daily behavioral signal for metabolic medication users.",
+      "category": "diabetes_glp1",
+      "proposedKey": "medicalsourcesinfo.fda_labeling_for_both"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 831,
+      "text": "National Institute of Diabetes and Digestive and Kidney Diseases guidance on delayed gastric emptying — a documented pharmacological effect of GLP-1 medications. Supports avoidance of raw cruciferous vegetables and high insoluble fiber foods; supports hydration emphasis and smaller, softer meals.",
+      "category": "diabetes_glp1",
+      "proposedKey": "medicalsourcesinfo.national_institute_of_diabetes"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 836,
+      "text": "GI Symptom Management — Reflux &amp; Diarrhea",
+      "category": "general_clinical",
+      "proposedKey": "medicalsourcesinfo.gi_symptom_management_reflux"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 842,
+      "text": "American Gastroenterological Association (AGA) — GI Symptom Dietary Guidance",
+      "category": "general_clinical",
+      "proposedKey": "medicalsourcesinfo.american_gastroenterological_association_aga"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 843,
+      "text": "AGA clinical dietary guidance for reflux, dyspepsia, and diarrhea management — the basis for acidic food avoidance when reflux is reported, and reduced insoluble fiber when diarrhea is active.",
+      "category": "general_clinical",
+      "proposedKey": "medicalsourcesinfo.aga_clinical_dietary_guidance"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 855,
+      "text": "FDA labeling explicitly states that persistent vomiting can cause dehydration and acute kidney injury requiring medical attention. This is the clinical basis for the escalation message displayed to users who report vomiting or significant difficulty staying hydrated.",
+      "category": "lab_biometric",
+      "proposedKey": "medicalsourcesinfo.fda_labeling_explicitly_states"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 882,
+      "text": "Clinical Safety",
+      "category": "general_clinical",
+      "proposedKey": "medicalsourcesinfo.clinical_safety"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 883,
+      "text": "Medical Hard Limits",
+      "category": "general_clinical",
+      "proposedKey": "medicalsourcesinfo.medical_hard_limits"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 900,
+      "text": "American Diabetes Association (ADA)",
+      "category": "diabetes_glp1",
+      "proposedKey": "medicalsourcesinfo.american_diabetes_association_ada"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 901,
+      "text": "Evidence-based standards of medical care in diabetes — the clinical foundation for blood glucose management and carbohydrate guidance",
+      "category": "diabetes_glp1",
+      "proposedKey": "medicalsourcesinfo.evidencebased_standards_of_medical"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 911,
+      "text": "Clinical practice guidelines for nutrition in chronic kidney disease — potassium, phosphorus, and protein limits",
+      "category": "general_clinical",
+      "proposedKey": "medicalsourcesinfo.clinical_practice_guidelines_for"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 921,
+      "text": "Clinical guidelines for thyroid disease management — medication timing, selenium, iodine, and goitrogen considerations",
+      "category": "medication",
+      "proposedKey": "medicalsourcesinfo.clinical_guidelines_for_thyroid"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 926,
+      "text": "Clinical practice guidelines for hormone optimization, menopause, and metabolic health — the basis for hormone-balancing nutrition",
+      "category": "lab_biometric",
+      "proposedKey": "medicalsourcesinfo.clinical_practice_guidelines_for"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 930,
+      "text": "American Society of Clinical Oncology (ASCO)",
+      "category": "general_clinical",
+      "proposedKey": "medicalsourcesinfo.american_society_of_clinical"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 931,
+      "text": "Oncology nutrition guidance — nutrient density, immune support, and symptom-aware meal planning for cancer support",
+      "category": "general_clinical",
+      "proposedKey": "medicalsourcesinfo.oncology_nutrition_guidance_nutrient"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 987,
+      "text": "Prochaska, J.O. & DiClemente, C.C. — Stages and Processes of Self-Change (Journal of Consulting and Clinical Psychology, 1983, PMID 6863699)",
+      "category": "general_clinical",
+      "proposedKey": "medicalsourcesinfo.prochaska_jo_diclemente_cc"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 1028,
+      "text": "Norcross, J.C. et al. — In Session: Psychotherapy in Practice — Stages of Change (Journal of Clinical Psychology, 2011, PMID 21188747)",
+      "category": "general_clinical",
+      "proposedKey": "medicalsourcesinfo.norcross_jc_et_al"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 1064,
+      "text": "American College of Obstetricians and Gynecologists clinical guidance establishing the blocked-food list: raw or undercooked fish and shellfish (listeria, toxoplasma risk), deli meats and hot dogs unless heated to steaming (listeria risk), unpasteurized soft cheeses (listeria risk), raw or soft-boiled eggs (salmonella risk), and alcohol (no safe level established). Every blocked ingredient in the pregnancy protocol traces directly to ACOG or FDA guidance.",
+      "category": "pregnancy_pediatric",
+      "proposedKey": "medicalsourcesinfo.american_college_of_obstetricians"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 1086,
+      "text": "Symptom-Responsive Ingredient Adjustments",
+      "category": "general_clinical",
+      "proposedKey": "medicalsourcesinfo.symptomresponsive_ingredient_adjustments"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 1093,
+      "text": "ACOG clinical guidance establishing ginger, vitamin B6, and small frequent bland meals as first-line dietary interventions for nausea in pregnancy. The basis for the nausea symptom adjustments in every meal generator.",
+      "category": "pregnancy_pediatric",
+      "proposedKey": "medicalsourcesinfo.acog_clinical_guidance_establishing"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 1162,
+      "text": "Allergen Introduction",
+      "category": "allergy_safety",
+      "proposedKey": "medicalsourcesinfo.allergen_introduction"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 1168,
+      "text": "NIAID — Addendum Guidelines for Prevention of Peanut Allergy in the United States (Journal of Allergy and Clinical Immunology, 2017, PMID 28065278)",
+      "category": "allergy_safety",
+      "proposedKey": "medicalsourcesinfo.niaid_addendum_guidelines_for"
+    },
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "line": 1169,
+      "text": "National Institute of Allergy and Infectious Diseases clinical guidelines establishing early peanut introduction (4–6 months for high-risk infants with eczema or egg allergy) as protective against peanut allergy. The basis for the platform",
+      "category": "pregnancy_pediatric",
+      "proposedKey": "medicalsourcesinfo.national_institute_of_allergy"
+    },
+    {
+      "file": "client/src/components/SafetyGuardToggle.tsx",
+      "line": 62,
+      "text": "Allergy protection disabled for this meal only.",
+      "category": "allergy_safety",
+      "proposedKey": "safetyguardtoggle.allergy_protection_disabled_for"
+    },
+    {
+      "file": "client/src/components/SafetyGuardToggle.tsx",
+      "line": 103,
+      "text": "Allergy Protection",
+      "category": "allergy_safety",
+      "proposedKey": "safetyguardtoggle.allergy_protection"
+    },
+    {
+      "file": "client/src/components/ace/CoachingProfileSetup.tsx",
+      "line": 28,
+      "text": "Medical Condition",
+      "category": "general_clinical",
+      "proposedKey": "coachingprofilesetup.medical_condition"
+    },
+    {
+      "file": "client/src/components/biometrics/ClinicalLabsCard.tsx",
+      "line": 427,
+      "text": "Clinical Labs Saved",
+      "category": "lab_biometric",
+      "proposedKey": "clinicallabscard.clinical_labs_saved"
+    },
+    {
+      "file": "client/src/components/biometrics/ClinicalLabsCard.tsx",
+      "line": 498,
+      "text": "Clinical Labs Saved",
+      "category": "lab_biometric",
+      "proposedKey": "clinicallabscard.clinical_labs_saved"
+    },
+    {
+      "file": "client/src/components/biometrics/ClinicalLabsCard.tsx",
+      "line": 545,
+      "text": "Clinical Labs Saved",
+      "category": "lab_biometric",
+      "proposedKey": "clinicallabscard.clinical_labs_saved"
+    },
+    {
+      "file": "client/src/components/biometrics/ClinicalLabsCard.tsx",
+      "line": 614,
+      "text": "Diabetes & Insulin",
+      "category": "diabetes_glp1",
+      "proposedKey": "clinicallabscard.diabetes_insulin"
+    },
+    {
+      "file": "client/src/components/biometrics/ClinicalLabsCard.tsx",
+      "line": 625,
+      "text": "Fasting Glucose",
+      "category": "diabetes_glp1",
+      "proposedKey": "clinicallabscard.fasting_glucose"
+    },
+    {
+      "file": "client/src/components/biometrics/ClinicalLabsCard.tsx",
+      "line": 626,
+      "text": "Fasting Insulin",
+      "category": "diabetes_glp1",
+      "proposedKey": "clinicallabscard.fasting_insulin"
+    },
+    {
+      "file": "client/src/components/biometrics/ClinicalLabsCard.tsx",
+      "line": 829,
+      "text": "Physician-guided protocol active",
+      "category": "general_clinical",
+      "proposedKey": "clinicallabscard.physicianguided_protocol_active"
+    },
+    {
+      "file": "client/src/components/biometrics/TherapeuticNutritionCard.tsx",
+      "line": 84,
+      "text": "Semaglutide (Ozempic / Wegovy)",
+      "category": "diabetes_glp1",
+      "proposedKey": "therapeuticnutritioncard.semaglutide_ozempic_wegovy"
+    },
+    {
+      "file": "client/src/components/dashboard/TodaysPrescriptionCard.tsx",
+      "line": 102,
+      "text": "Today's Nutrition Prescription",
+      "category": "medication",
+      "proposedKey": "todaysprescriptioncard.todays_nutrition_prescription"
+    },
+    {
+      "file": "client/src/components/diabetic/GLP1CompanionModal.tsx",
+      "line": 38,
+      "text": "Active alongside your diabetic protocol",
+      "category": "diabetes_glp1",
+      "proposedKey": "glp1companionmodal.active_alongside_your_diabetic"
+    },
+    {
+      "file": "client/src/components/diabetic/GLP1CompanionModal.tsx",
+      "line": 83,
+      "text": "Metabolic Medication Guardrails",
+      "category": "medication",
+      "proposedKey": "glp1companionmodal.metabolic_medication_guardrails"
+    },
+    {
+      "file": "client/src/components/diabetic/GlycemicSettingsModal.tsx",
+      "line": 43,
+      "text": "Glucose carb preferences saved",
+      "category": "diabetes_glp1",
+      "proposedKey": "glycemicsettingsmodal.glucose_carb_preferences_saved"
+    },
+    {
+      "file": "client/src/components/diabetic/GlycemicSettingsModal.tsx",
+      "line": 76,
+      "text": "Glucose-Based Carb Choices",
+      "category": "diabetes_glp1",
+      "proposedKey": "glycemicsettingsmodal.glucosebased_carb_choices"
+    },
+    {
+      "file": "client/src/components/diabetic/GlycemicSettingsModal.tsx",
+      "line": 86,
+      "text": "How Glucose-Based Food Choices Work",
+      "category": "diabetes_glp1",
+      "proposedKey": "glycemicsettingsmodal.how_glucosebased_food_choices"
+    },
+    {
+      "file": "client/src/components/diabetic/GlycemicSettingsModal.tsx",
+      "line": 93,
+      "text": "When your glucose is",
+      "category": "diabetes_glp1",
+      "proposedKey": "glycemicsettingsmodal.when_your_glucose_is"
+    },
+    {
+      "file": "client/src/components/diabetic/GlycemicSettingsModal.tsx",
+      "line": 97,
+      "text": "When your glucose is",
+      "category": "diabetes_glp1",
+      "proposedKey": "glycemicsettingsmodal.when_your_glucose_is"
+    },
+    {
+      "file": "client/src/components/diabetic/GlycemicSettingsModal.tsx",
+      "line": 101,
+      "text": "When your glucose is",
+      "category": "diabetes_glp1",
+      "proposedKey": "glycemicsettingsmodal.when_your_glucose_is"
+    },
+    {
+      "file": "client/src/components/glp1/GLP1DailyCheckin.tsx",
+      "line": 191,
+      "text": "Contact your healthcare provider",
+      "category": "general_clinical",
+      "proposedKey": "glp1dailycheckin.contact_your_healthcare_provider"
+    },
+    {
+      "file": "client/src/components/glp1/GLP1DailyCheckin.tsx",
+      "line": 339,
+      "text": "Contact your healthcare provider",
+      "category": "general_clinical",
+      "proposedKey": "glp1dailycheckin.contact_your_healthcare_provider"
+    },
+    {
+      "file": "client/src/components/glp1/GLP1DailyCheckin.tsx",
+      "line": 533,
+      "text": "Notify my physician",
+      "category": "general_clinical",
+      "proposedKey": "glp1dailycheckin.notify_my_physician"
+    },
+    {
+      "file": "client/src/components/meal/MedicalBadges.tsx",
+      "line": 53,
+      "text": "Show medical badges",
+      "category": "general_clinical",
+      "proposedKey": "medicalbadges.show_medical_badges"
+    },
+    {
+      "file": "client/src/components/modals/TierUpgradeModal.tsx",
+      "line": 49,
+      "text": "Essential, Pro & Clinical",
+      "category": "general_clinical",
+      "proposedKey": "tierupgrademodal.essential_pro_clinical"
+    },
+    {
+      "file": "client/src/components/pro/ClinicalAdvisoryDrawer.tsx",
+      "line": 43,
+      "text": "Suspected Insulin Resistance",
+      "category": "diabetes_glp1",
+      "proposedKey": "clinicaladvisorydrawer.suspected_insulin_resistance"
+    },
+    {
+      "file": "client/src/components/pro/ClinicalAdvisoryDrawer.tsx",
+      "line": 44,
+      "text": "Metabolic indicators suggest reduced insulin sensitivity",
+      "category": "diabetes_glp1",
+      "proposedKey": "clinicaladvisorydrawer.metabolic_indicators_suggest_reduced"
+    },
+    {
+      "file": "client/src/components/pro/ClinicalInterventionPanel.tsx",
+      "line": 174,
+      "text": "Clinical Adjustments",
+      "category": "general_clinical",
+      "proposedKey": "clinicalinterventionpanel.clinical_adjustments"
+    },
+    {
+      "file": "client/src/components/pro/ProClientFolderModal.tsx",
+      "line": 31,
+      "text": "Active Clinical Supports",
+      "category": "general_clinical",
+      "proposedKey": "proclientfoldermodal.active_clinical_supports"
+    },
+    {
+      "file": "client/src/components/pro/ProClientFolderModal.tsx",
+      "line": 32,
+      "text": "The colored dots show which clinical protocols are active for this client. A glowing dot means that protocol is shaping every meal the AI generates. Tap any dot to see exactly what it does. Dots activate from your settings, physician assignment, or automatically when lab values cross clinical thresholds.",
+      "category": "lab_biometric",
+      "proposedKey": "proclientfoldermodal.the_colored_dots_show"
+    },
+    {
+      "file": "client/src/components/pro/ProClientFolderModal.tsx",
+      "line": 37,
+      "text": "Messages are a shared conversation — your client can read them and reply. Provider Notes are internal only and are never visible to the client. Use notes for clinical observations, progress documentation, or anything that should stay in your professional records.",
+      "category": "general_clinical",
+      "proposedKey": "proclientfoldermodal.messages_are_a_shared"
+    }
+  ]
+}
