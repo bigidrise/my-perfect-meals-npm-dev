@@ -216,3 +216,24 @@ fs.writeFileSync(OUT_JSON, JSON.stringify({ generatedAt: new Date().toISOString(
 
 console.log(`\n  Report written → ${OUT_JSON}`);
 console.log("  Zero production files modified.\n");
+
+// ── Exit-code gate ─────────────────────────────────────────────────────────
+// Count total interpolation mismatches across all locales.
+// Any mismatch means a {{variable}} is missing (or extra) in a translated
+// string — that is a runtime bug that breaks the UI for real users.
+// Exit non-zero so CI and `npm run validate` treat this as a hard failure.
+
+const totalInterpMismatches = Object.values(allResults).reduce(
+  (sum, r) => sum + r.interpolationMismatches, 0
+);
+
+if (totalInterpMismatches > 0) {
+  console.error(
+    `  ❌ INTERPOLATION GATE FAILED — ${totalInterpMismatches} interpolation mismatch(es) found across all locales.\n` +
+    `     Fix the missing/extra {{variables}} listed above, then re-run this scan.\n`
+  );
+  process.exit(1);
+} else {
+  console.log("  ✅ Interpolation gate passed — no {{variable}} mismatches found.\n");
+  process.exit(0);
+}

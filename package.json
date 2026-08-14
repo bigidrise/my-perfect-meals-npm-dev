@@ -25,6 +25,7 @@
     "db:push": "drizzle-kit push",
     "push": "git add -A && (git commit -m \"snapshot $(date -u +'%Y-%m-%dT%H:%M:%SZ')\" || echo 'nothing to commit') && git push -u origin main",
     "validate": "bash scripts/validate.sh",
+    "validate:i18n": "tsx scripts/i18n-value-quality-scan.ts",
     "verify:grocery-variety-constrained": "npx tsx scripts/verify-grocery-variety.ts --constrained",
     "verify:grocery-variety-vegan-diabetic": "npx tsx scripts/verify-grocery-variety.ts --vegan-diabetic",
     "verify:grocery-variety-keto-dairy-free": "npx tsx scripts/verify-grocery-variety.ts --keto-dairy-free",
