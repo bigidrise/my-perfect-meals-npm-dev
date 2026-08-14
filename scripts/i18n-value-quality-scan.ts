@@ -101,6 +101,7 @@ const allResults: Record<string, {
   pluralizationMismatches: number;
   clinicalStrings: number;
   clinicalIdenticalToEn: number;
+  clinicalIdenticalKeys: string[];
   completenessScore: string;
   verdict: string;
 }> = {};
@@ -161,6 +162,7 @@ for (const locale of locales) {
   // 6. Clinical strings
   const clinicalEntries = entries.filter(([, v]) => isClinical(v));
   const clinicalIdentical = clinicalEntries.filter(([k, v]) => enMap.get(k) === v);
+  const clinicalIdenticalKeys = clinicalIdentical.map(([k]) => k);
 
   // Completeness score
   const translatedCount = entries.length - suspiciousIdentical.length - emptyKeys.length - placeholderKeys.length;
@@ -193,6 +195,7 @@ for (const locale of locales) {
     pluralizationMismatches: pluralMismatches,
     clinicalStrings: clinicalEntries.length,
     clinicalIdenticalToEn: clinicalIdentical.length,
+    clinicalIdenticalKeys,
     completenessScore: `${score}%`,
     verdict,
   };
@@ -208,6 +211,12 @@ for (const locale of locales) {
   if (r.interpolationMismatchSamples.length > 0) {
     const s = r.interpolationMismatchSamples[0];
     console.log(`        Interp mismatch ex: [${s.key}] en="${s.en}" → ${locale}="${s.locale}"`);
+  }
+  if (r.clinicalIdenticalKeys.length > 0 && !r.verdict.startsWith("❌ LIKELY UNTRANSLATED")) {
+    console.warn(`        ⚠️  CLINICAL STRINGS LEFT IN ENGLISH (${r.clinicalIdenticalKeys.length} key(s)):`);
+    for (const key of r.clinicalIdenticalKeys) {
+      console.warn(`             • ${key}: "${localeMap.get(key)}"`);
+    }
   }
   console.log("");
 }
@@ -227,13 +236,64 @@ const totalInterpMismatches = Object.values(allResults).reduce(
   (sum, r) => sum + r.interpolationMismatches, 0
 );
 
+let exitCode = 0;
+
 if (totalInterpMismatches > 0) {
   console.error(
     `  ❌ INTERPOLATION GATE FAILED — ${totalInterpMismatches} interpolation mismatch(es) found across all locales.\n` +
     `     Fix the missing/extra {{variables}} listed above, then re-run this scan.\n`
   );
-  process.exit(1);
+  exitCode = 1;
 } else {
   console.log("  ✅ Interpolation gate passed — no {{variable}} mismatches found.\n");
-  process.exit(0);
 }
+
+// ── Clinical-string gate ───────────────────────────────────────────────────
+// Clinical strings (dosage instructions, GLP-1 guidance, pregnancy warnings,
+// allergy information, etc.) that remain in English for non-English users are
+// a SAFETY and TRUST risk, not just a UX gap.
+//
+// A locale is "considered translated" when fewer than 50 % of its keys are
+// identical to English (i.e. not the ❌ LIKELY UNTRANSLATED verdict).
+// For those locales, any clinical key that still matches English verbatim
+// triggers a hard failure so the problem surfaces in CI before it ships.
+
+const clinicalViolations: Array<{ locale: string; key: string; value: string }> = [];
+
+for (const r of Object.values(allResults)) {
+  // Skip locales flagged as almost entirely untranslated — clinical check
+  // would be noise there; the overall untranslated verdict is the real issue.
+  if (r.verdict.startsWith("❌ LIKELY UNTRANSLATED")) continue;
+
+  for (const key of r.clinicalIdenticalKeys) {
+    const raw = JSON.parse(fs.readFileSync(path.join(LOCALES_DIR, `${r.locale}.json`), "utf8"));
+    const localeMap = new Map(flattenEntries(raw));
+    clinicalViolations.push({ locale: r.locale, key, value: localeMap.get(key) ?? "" });
+  }
+}
+
+if (clinicalViolations.length > 0) {
+  console.error("  ❌ CLINICAL STRING GATE FAILED — the following clinical keys are still in English");
+  console.error("     for locales that are otherwise considered translated.");
+  console.error("     Clinical strings (dosage, GLP-1, pregnancy, allergy guidance) MUST be");
+  console.error("     translated before shipping — leaving them in English is a safety risk.\n");
+
+  // Group by locale for readability
+  const byLocale: Record<string, Array<{ key: string; value: string }>> = {};
+  for (const { locale, key, value } of clinicalViolations) {
+    (byLocale[locale] ??= []).push({ key, value });
+  }
+  for (const [locale, items] of Object.entries(byLocale)) {
+    console.error(`     Locale: ${locale}  (${items.length} untranslated clinical key(s))`);
+    for (const { key, value } of items) {
+      console.error(`       • ${key}: "${value}"`);
+    }
+    console.error("");
+  }
+  console.error(`     Total: ${clinicalViolations.length} clinical string(s) left in English across ${Object.keys(byLocale).length} locale(s).\n`);
+  exitCode = 1;
+} else {
+  console.log("  ✅ Clinical string gate passed — no clinical strings left in English for translated locales.\n");
+}
+
+process.exit(exitCode);

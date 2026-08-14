@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-14T22:07:23.977Z",
+  "generatedAt": "2026-08-14T22:12:07.498Z",
   "baseline": {
     "totalEnglishKeys": 1920
   },
@@ -23,6 +23,9 @@
       "pluralizationMismatches": 0,
       "clinicalStrings": 5,
       "clinicalIdenticalToEn": 1,
+      "clinicalIdenticalKeys": [
+        "routeTitles.pregnancy"
+      ],
       "completenessScore": "98%",
       "verdict": "✅ APPEARS TRANSLATED — low identical/empty/placeholder rate"
     },
@@ -45,6 +48,10 @@
       "pluralizationMismatches": 0,
       "clinicalStrings": 31,
       "clinicalIdenticalToEn": 2,
+      "clinicalIdenticalKeys": [
+        "routeTitles.pregnancy",
+        "metabolicBuilder.glp1Hub"
+      ],
       "completenessScore": "97%",
       "verdict": "✅ APPEARS TRANSLATED — low identical/empty/placeholder rate"
     },
@@ -67,6 +74,7 @@
       "pluralizationMismatches": 0,
       "clinicalStrings": 10,
       "clinicalIdenticalToEn": 0,
+      "clinicalIdenticalKeys": [],
       "completenessScore": "106%",
       "verdict": "✅ APPEARS TRANSLATED — low identical/empty/placeholder rate"
     },
@@ -89,6 +97,9 @@
       "pluralizationMismatches": 0,
       "clinicalStrings": 16,
       "clinicalIdenticalToEn": 1,
+      "clinicalIdenticalKeys": [
+        "routeTitles.pregnancy"
+      ],
       "completenessScore": "105%",
       "verdict": "✅ APPEARS TRANSLATED — low identical/empty/placeholder rate"
     },
@@ -111,6 +122,16 @@
       "pluralizationMismatches": 0,
       "clinicalStrings": 12,
       "clinicalIdenticalToEn": 8,
+      "clinicalIdenticalKeys": [
+        "routeTitles.diabetesHub",
+        "routeTitles.diabetesSupport",
+        "routeTitles.diabeticBuilder",
+        "routeTitles.diabeticHub",
+        "routeTitles.metabolicBuilder",
+        "routeTitles.metabolicHub",
+        "routeTitles.metabolicTracking",
+        "routeTitles.pregnancy"
+      ],
       "completenessScore": "105%",
       "verdict": "✅ APPEARS TRANSLATED — low identical/empty/placeholder rate"
     },
@@ -133,6 +154,9 @@
       "pluralizationMismatches": 0,
       "clinicalStrings": 31,
       "clinicalIdenticalToEn": 1,
+      "clinicalIdenticalKeys": [
+        "routeTitles.pregnancy"
+      ],
       "completenessScore": "105%",
       "verdict": "✅ APPEARS TRANSLATED — low identical/empty/placeholder rate"
     },
@@ -155,6 +179,9 @@
       "pluralizationMismatches": 0,
       "clinicalStrings": 5,
       "clinicalIdenticalToEn": 1,
+      "clinicalIdenticalKeys": [
+        "routeTitles.pregnancy"
+      ],
       "completenessScore": "100%",
       "verdict": "✅ APPEARS TRANSLATED — low identical/empty/placeholder rate"
     },
@@ -177,6 +204,9 @@
       "pluralizationMismatches": 0,
       "clinicalStrings": 5,
       "clinicalIdenticalToEn": 1,
+      "clinicalIdenticalKeys": [
+        "routeTitles.pregnancy"
+      ],
       "completenessScore": "98%",
       "verdict": "✅ APPEARS TRANSLATED — low identical/empty/placeholder rate"
     },
@@ -199,6 +229,9 @@
       "pluralizationMismatches": 0,
       "clinicalStrings": 12,
       "clinicalIdenticalToEn": 1,
+      "clinicalIdenticalKeys": [
+        "routeTitles.pregnancy"
+      ],
       "completenessScore": "106%",
       "verdict": "✅ APPEARS TRANSLATED — low identical/empty/placeholder rate"
     },
@@ -221,6 +254,10 @@
       "pluralizationMismatches": 0,
       "clinicalStrings": 7,
       "clinicalIdenticalToEn": 2,
+      "clinicalIdenticalKeys": [
+        "routeTitles.pregnancy",
+        "diabeticBuilder.pageTitle"
+      ],
       "completenessScore": "97%",
       "verdict": "✅ APPEARS TRANSLATED — low identical/empty/placeholder rate"
     },
@@ -243,6 +280,29 @@
       "pluralizationMismatches": 0,
       "clinicalStrings": 60,
       "clinicalIdenticalToEn": 21,
+      "clinicalIdenticalKeys": [
+        "routeTitles.diabetesHub",
+        "routeTitles.diabetesSupport",
+        "routeTitles.diabeticBuilder",
+        "routeTitles.diabeticHub",
+        "routeTitles.metabolicBuilder",
+        "routeTitles.metabolicHub",
+        "routeTitles.metabolicTracking",
+        "routeTitles.pregnancy",
+        "metabolicBuilder.glp1Hub",
+        "metabolicBuilder.hormonalHypothyroid",
+        "metabolicBuilder.hormonalHyperthyroid",
+        "mealCard.diabetesProtocol",
+        "glp1Hub.pageTitle",
+        "glp1Hub.shotTrackerTitle",
+        "diabeticHub.chip2",
+        "diabeticHub.glucoseReadingLabel",
+        "diabeticHub.pageTitle",
+        "diabeticHub.typePreD",
+        "diabeticBuilder.backLabel",
+        "diabeticBuilder.pageTitle",
+        "antiInflammatoryBuilder.backLabel"
+      ],
       "completenessScore": "91%",
       "verdict": "✅ APPEARS TRANSLATED — low identical/empty/placeholder rate"
     },
@@ -265,6 +325,9 @@
       "pluralizationMismatches": 0,
       "clinicalStrings": 5,
       "clinicalIdenticalToEn": 1,
+      "clinicalIdenticalKeys": [
+        "routeTitles.pregnancy"
+      ],
       "completenessScore": "96%",
       "verdict": "✅ APPEARS TRANSLATED — low identical/empty/placeholder rate"
     },
@@ -287,6 +350,9 @@
       "pluralizationMismatches": 0,
       "clinicalStrings": 5,
       "clinicalIdenticalToEn": 1,
+      "clinicalIdenticalKeys": [
+        "routeTitles.pregnancy"
+      ],
       "completenessScore": "97%",
       "verdict": "✅ APPEARS TRANSLATED — low identical/empty/placeholder rate"
     }
