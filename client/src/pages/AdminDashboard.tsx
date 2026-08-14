@@ -4,7 +4,7 @@ import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
-import { Search, User, ShieldAlert, LogOut, RefreshCw, Ban, CheckCircle, RotateCcw, KeyRound, ChefHat, ArrowRight, Award, Users, Download, Mail, Bug } from "lucide-react";
+import { Search, User, ShieldAlert, LogOut, RefreshCw, Ban, CheckCircle, RotateCcw, KeyRound, ChefHat, ArrowRight, Award, Users, Download, Mail, Bug, Gift, Clock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const ENV = import.meta.env.MODE === "production" ? "PRODUCTION" : "DEVELOPMENT";
@@ -48,6 +48,17 @@ type AdminUser = {
   signupSource: string | null;
 };
 
+type TrialGrant = {
+  id: string;
+  granted_at: string;
+  trial_source: string;
+  trial_tier: string;
+  trial_ends_at: string;
+  notes: string | null;
+  is_superseded: boolean;
+  granted_by_email: string | null;
+};
+
 function useAdminAction() {
   const { toast } = useToast();
   const [loading, setLoading] = useState<string | null>(null);
@@ -85,6 +96,33 @@ function StatusPill({ value, truthy = true }: { value: unknown; truthy?: boolean
 function UserDetail({ user, onAction }: { user: AdminUser; onAction: (label: string, path: string, confirm?: string) => void }) {
   const { act, loading } = useAdminAction();
   const run = (label: string, path: string, confirm?: string) => act(label, user.id, `users/${user.id}/${path}`, confirm);
+  const { toast } = useToast();
+  const [grants, setGrants] = useState<TrialGrant[]>([]);
+  const [grantsLoading, setGrantsLoading] = useState(false);
+  const [grantsLoaded, setGrantsLoaded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setGrantsLoaded(false);
+    setGrants([]);
+    setGrantsLoading(true);
+    fetch(apiUrl(`/api/trial/admin/users/${user.id}/trial-grants`), { headers: getAuthHeaders() })
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancelled) return;
+        setGrants(data.grants ?? []);
+        setGrantsLoaded(true);
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        toast({ title: "Could not load trial grant history", description: e.message, variant: "destructive" });
+        setGrantsLoaded(true);
+      })
+      .finally(() => {
+        if (!cancelled) setGrantsLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [user.id]);
 
   const actions = [
     {
@@ -232,6 +270,64 @@ function UserDetail({ user, onAction }: { user: AdminUser; onAction: (label: str
               );
             })}
           </div>
+        </div>
+
+        {/* Trial Grant History */}
+        <div className="border-t border-white/10 pt-4">
+          <p className="text-xs text-white/30 mb-3 uppercase tracking-wide flex items-center gap-1.5">
+            <Clock className="h-3 w-3" />
+            Trial Grant History
+          </p>
+          {grantsLoading && <p className="text-xs text-white/40">Loading…</p>}
+          {grantsLoaded && grants.length === 0 && (
+            <p className="text-xs text-white/30 italic">No trial grants recorded for this user.</p>
+          )}
+          {grantsLoaded && grants.length > 0 && (
+            <div className="rounded-lg border border-white/10 overflow-hidden">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-white/5 text-white/40 text-left">
+                    <th className="px-3 py-2 font-medium">Granted At</th>
+                    <th className="px-3 py-2 font-medium">Granted By</th>
+                    <th className="px-3 py-2 font-medium">Source</th>
+                    <th className="px-3 py-2 font-medium">Expires</th>
+                    <th className="px-3 py-2 font-medium">Notes</th>
+                    <th className="px-3 py-2 font-medium">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {grants.map((g) => (
+                    <tr key={g.id} className="border-t border-white/5 hover:bg-white/5 transition">
+                      <td className="px-3 py-2 text-white/70 whitespace-nowrap">
+                        {new Date(g.granted_at).toLocaleString()}
+                      </td>
+                      <td className="px-3 py-2 text-white/60 max-w-[140px] truncate">
+                        {g.granted_by_email ?? <span className="text-white/30 italic">system</span>}
+                      </td>
+                      <td className="px-3 py-2">
+                        <span className="px-1.5 py-0.5 rounded bg-orange-600/20 text-orange-300">
+                          {g.trial_source}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-white/60 whitespace-nowrap">
+                        {new Date(g.trial_ends_at).toLocaleDateString()}
+                      </td>
+                      <td className="px-3 py-2 text-white/50 max-w-[160px] truncate">
+                        {g.notes ?? <span className="italic text-white/20">—</span>}
+                      </td>
+                      <td className="px-3 py-2">
+                        {g.is_superseded ? (
+                          <span className="px-1.5 py-0.5 rounded bg-white/10 text-white/30">superseded</span>
+                        ) : (
+                          <span className="px-1.5 py-0.5 rounded bg-green-600/20 text-green-400">active</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -407,6 +503,268 @@ function GrandfatherStatusPanel() {
   );
 }
 
+type TrialGrantResult = {
+  success: boolean;
+  grantedTo: string;
+  isTrialActive: boolean;
+  trialStartedAt: string | null;
+  trialEndsAt: string | null;
+  daysRemaining: number;
+  trialSource: string | null;
+  trialTier: string | null;
+};
+
+function GrantTrialPanel() {
+  const { toast } = useToast();
+  const [emailQuery, setEmailQuery] = useState("");
+  const [lookingUp, setLookingUp] = useState(false);
+  const [foundUser, setFoundUser] = useState<AdminUser | null>(null);
+  const [durationDays, setDurationDays] = useState(30);
+  const [trialSource, setTrialSource] = useState<"admin_grant" | "clinic_grant" | "promotion">("admin_grant");
+  const [notes, setNotes] = useState("");
+  const [granting, setGranting] = useState(false);
+  const [grantResult, setGrantResult] = useState<TrialGrantResult | null>(null);
+
+  const lookupUser = async () => {
+    const q = emailQuery.trim();
+    if (!q || q.length < 2) return;
+    setLookingUp(true);
+    setFoundUser(null);
+    setGrantResult(null);
+    try {
+      const res = await fetch(apiUrl(`/api/admin/users/search?q=${encodeURIComponent(q)}`), {
+        headers: getAuthHeaders(),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Search failed");
+      const users: AdminUser[] = data.users || [];
+      if (users.length === 0) {
+        toast({ title: "No user found", description: `No account matched "${q}"`, variant: "destructive" });
+      } else if (users.length === 1) {
+        setFoundUser(users[0]);
+      } else {
+        // Pick the closest exact email match first, then first result
+        const exact = users.find((u) => u.email.toLowerCase() === q.toLowerCase());
+        setFoundUser(exact ?? users[0]);
+        if (!exact) {
+          toast({ title: "Multiple matches", description: `Showing closest match. Refine your search if needed.` });
+        }
+      }
+    } catch (e: any) {
+      toast({ title: "Lookup failed", description: e.message, variant: "destructive" });
+    } finally {
+      setLookingUp(false);
+    }
+  };
+
+  const grantTrial = async () => {
+    if (!foundUser) return;
+    if (!window.confirm(`Grant a ${durationDays}-day trial to ${foundUser.email}?`)) return;
+    setGranting(true);
+    setGrantResult(null);
+    try {
+      const res = await fetch(apiUrl("/api/trial/admin/grant"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        body: JSON.stringify({
+          userId: foundUser.id,
+          durationDays,
+          trialSource,
+          notes: notes.trim() || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Grant failed");
+      setGrantResult(data as TrialGrantResult);
+      toast({ title: "Trial granted", description: `${foundUser.email} now has access until ${data.trialEndsAt ? new Date(data.trialEndsAt).toLocaleDateString() : "—"}` });
+    } catch (e: any) {
+      toast({ title: "Grant failed", description: e.message, variant: "destructive" });
+    } finally {
+      setGranting(false);
+    }
+  };
+
+  const isTrialCurrentlyActive =
+    foundUser?.trialEndsAt &&
+    !foundUser?.planLookupKey &&
+    new Date(foundUser.trialEndsAt) > new Date();
+
+  const trialDaysRemaining = isTrialCurrentlyActive
+    ? Math.ceil((new Date(foundUser!.trialEndsAt!).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    : 0;
+
+  return (
+    <Card className="bg-black/40 border border-white/10 rounded-2xl">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-white text-base flex items-center gap-2">
+          <Gift className="h-4 w-4 text-orange-400" />
+          Grant Trial Access
+        </CardTitle>
+        <p className="text-xs text-white/40 mt-0.5">
+          Look up a user by email, verify their current trial status, then grant an extended trial.
+          All grants are audit-logged.
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Email lookup */}
+        <div className="space-y-2">
+          <label className="text-xs text-white/40 uppercase tracking-wide">User email</label>
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" />
+              <input
+                className="w-full bg-white/5 border border-white/10 rounded-lg pl-9 pr-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-orange-500/50"
+                placeholder="user@example.com"
+                value={emailQuery}
+                onChange={(e) => { setEmailQuery(e.target.value); setFoundUser(null); setGrantResult(null); }}
+                onKeyDown={(e) => e.key === "Enter" && lookupUser()}
+              />
+            </div>
+            <button
+              onClick={lookupUser}
+              disabled={lookingUp || !emailQuery.trim()}
+              className="px-4 py-2.5 bg-white/10 hover:bg-white/20 disabled:opacity-50 rounded-lg text-sm font-medium text-white transition"
+            >
+              {lookingUp ? "Looking up…" : "Look up"}
+            </button>
+          </div>
+        </div>
+
+        {/* Found user info + current trial status */}
+        {foundUser && !grantResult && (
+          <div className="rounded-lg bg-white/5 border border-white/10 p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <User className="h-4 w-4 text-orange-400 flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-sm text-white font-medium truncate">{foundUser.email}</p>
+                <p className="text-xs text-white/40">@{foundUser.username} · {foundUser.plan}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-x-6 gap-y-1.5">
+              <span className="text-xs text-white/40">Trial status</span>
+              <span className={`text-xs font-medium ${isTrialCurrentlyActive ? "text-green-400" : "text-white/50"}`}>
+                {isTrialCurrentlyActive ? `Active — ${trialDaysRemaining}d remaining` : "No active trial"}
+              </span>
+
+              {foundUser.trialStartedAt && (
+                <>
+                  <span className="text-xs text-white/40">Trial started</span>
+                  <span className="text-xs text-white/70">{new Date(foundUser.trialStartedAt).toLocaleDateString()}</span>
+                </>
+              )}
+
+              {foundUser.trialEndsAt && (
+                <>
+                  <span className="text-xs text-white/40">Trial ends</span>
+                  <span className="text-xs text-white/70">{new Date(foundUser.trialEndsAt).toLocaleDateString()}</span>
+                </>
+              )}
+
+              {foundUser.planLookupKey && (
+                <>
+                  <span className="text-xs text-white/40">Paid plan</span>
+                  <span className="text-xs text-amber-400">{foundUser.planLookupKey} (trial would be superseded)</span>
+                </>
+              )}
+            </div>
+
+            {/* Grant form */}
+            <div className="border-t border-white/10 pt-3 space-y-3">
+              <p className="text-xs text-white/30 uppercase tracking-wide">Grant options</p>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs text-white/40">Duration (days)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={365}
+                    value={durationDays}
+                    onChange={(e) => setDurationDays(Math.max(1, Math.min(365, parseInt(e.target.value) || 30)))}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-orange-500/50"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs text-white/40">Source</label>
+                  <select
+                    value={trialSource}
+                    onChange={(e) => setTrialSource(e.target.value as typeof trialSource)}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-orange-500/50"
+                  >
+                    <option value="admin_grant">admin_grant</option>
+                    <option value="clinic_grant">clinic_grant</option>
+                    <option value="promotion">promotion</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs text-white/40">Notes (optional)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Dr. Amy clinic pilot, Feb 2026"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-orange-500/50"
+                />
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
+                <p className="text-xs text-white/30">
+                  Grants access through {new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000).toLocaleDateString()}
+                </p>
+                <button
+                  onClick={grantTrial}
+                  disabled={granting}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 rounded-lg text-sm font-medium text-white transition"
+                >
+                  {granting ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Gift className="h-3.5 w-3.5" />}
+                  {granting ? "Granting…" : "Grant Trial"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Confirmation after successful grant */}
+        {grantResult && (
+          <div className="rounded-lg bg-green-900/20 border border-green-500/30 p-4 space-y-2">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-green-400 flex-shrink-0" />
+              <p className="text-sm font-medium text-green-300">Trial granted successfully</p>
+            </div>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 mt-2">
+              <span className="text-xs text-white/40">Expires</span>
+              <span className="text-xs text-white/80">
+                {grantResult.trialEndsAt ? new Date(grantResult.trialEndsAt).toLocaleDateString() : "—"}
+              </span>
+              <span className="text-xs text-white/40">Days remaining</span>
+              <span className="text-xs text-white/80">{grantResult.daysRemaining}</span>
+              <span className="text-xs text-white/40">Tier</span>
+              <span className="text-xs text-white/80">{grantResult.trialTier ?? "—"}</span>
+              <span className="text-xs text-white/40">Source</span>
+              <span className="text-xs text-white/80">
+                {grantResult.trialSource === "admin_grant" ? "Admin Trial" :
+                 grantResult.trialSource === "clinic_grant" ? "Clinical Trial" :
+                 grantResult.trialSource === "promotion" ? "Promotional Trial" :
+                 grantResult.trialSource ? "Free Trial" : "—"}
+              </span>
+            </div>
+            <button
+              onClick={() => { setGrantResult(null); setFoundUser(null); setEmailQuery(""); setNotes(""); setDurationDays(30); setTrialSource("admin_grant"); }}
+              className="text-xs text-orange-400 underline mt-2 block"
+            >
+              Grant another trial
+            </button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function AdminDashboard() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
@@ -566,6 +924,9 @@ export default function AdminDashboard() {
             <ArrowRight className="h-4 w-4 text-orange-400 flex-shrink-0" />
           </CardContent>
         </Card>
+
+        {/* Grant Trial Access */}
+        <GrantTrialPanel />
 
         {/* Grandfather Migration Status */}
         <GrandfatherStatusPanel />

@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/apiRequest";
+import i18n, { resolveI18nLang } from "@/i18n";
 import { Globe, ChevronLeft, Loader2, Check } from "lucide-react";
 
 const LANGUAGES = [
@@ -21,7 +22,7 @@ const LANGUAGES = [
   { code: "pt", label: "Portuguese", native: "Português", description: "Todo o conteúdo gerado por IA em português." },
   { code: "zh", label: "Chinese", native: "中文", description: "所有AI生成的内容均以中文（简体）呈现。" },
   { code: "ja", label: "Japanese", native: "日本語", description: "すべてのAI生成コンテンツが日本語で表示されます。" },
-  { code: "ko", label: "Korean", native: "한국어", description: "모든 AI 생성 콘텐츠가 한국어로 제공됩니다." },
+  { code: "ko", label: "Korean", native: "한국어", description: "모든 AI 생성 콘텐츠가 한국어로 제공됩니다。" },
   { code: "ar", label: "Arabic", native: "العربية", description: "جميع المحتوى الذي ينتجه الذكاء الاصطناعي باللغة العربية." },
   { code: "hi", label: "Hindi", native: "हिन्दी", description: "सभी AI-जनित सामग्री हिंदी में।" },
   { code: "ru", label: "Russian", native: "Русский", description: "Весь контент, созданный ИИ, на русском языке." },
@@ -34,7 +35,7 @@ type LanguageCode = typeof LANGUAGES[number]["code"];
 export default function LanguagePreferencesPage() {
   const [, setLocation] = useLocation();
   const { t } = useTranslation();
-  const { user, refreshUser } = useAuth();
+  const { user, setUser } = useAuth();
   const { toast } = useToast();
 
   const [selected, setSelected] = useState<LanguageCode>("auto");
@@ -49,15 +50,27 @@ export default function LanguagePreferencesPage() {
   }, [user]);
 
   const handleSelect = async (code: LanguageCode) => {
-    if (code === selected) return;
+    if (code === selected || saving) return;
+
+    // Capture rollback state before any mutations.
+    const previousCode = selected;
+    const previousI18nLang = i18n.language;
+
+    // ── Optimistic: update everything immediately ──────────────────────────
     setSelected(code);
+    const nextLang = resolveI18nLang(code);
+    i18n.changeLanguage(nextLang);
+    if (user) {
+      setUser({ ...user, preferredLanguage: code });
+    }
+
     setSaving(true);
     try {
       await apiRequest("/api/user/preferences", {
         method: "PATCH",
         body: JSON.stringify({ preferredLanguage: code }),
       });
-      await refreshUser?.();
+      // Success — i18n, selected, and local user state are already correct.
       const lang = LANGUAGES.find((l) => l.code === code);
       toast({
         title: t("language.saved"),
@@ -66,9 +79,17 @@ export default function LanguagePreferencesPage() {
           : t("language.savedLangDesc", { language: lang?.label ?? code }),
       });
     } catch {
-      toast({ title: t("language.errorSave"), description: t("language.errorSaveDesc"), variant: "destructive" });
-      const lang = (user as any).preferredLanguage as LanguageCode | null | undefined;
-      setSelected(lang && lang !== "null" ? lang : "auto");
+      // ── Rollback all three layers ──────────────────────────────────────
+      setSelected(previousCode);
+      i18n.changeLanguage(previousI18nLang);
+      if (user) {
+        setUser({ ...user, preferredLanguage: previousCode });
+      }
+      toast({
+        title: t("language.errorSave"),
+        description: t("language.errorSaveDesc"),
+        variant: "destructive",
+      });
     } finally {
       setSaving(false);
     }
@@ -85,7 +106,10 @@ export default function LanguagePreferencesPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-orange-950/10 to-black pb-24">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-black/80 backdrop-blur-lg border-b border-white/10 px-4 py-3 flex items-center gap-3">
+      <div
+        className="sticky top-0 z-10 bg-black/80 backdrop-blur-lg border-b border-white/10 px-4 py-3 flex items-center gap-3"
+        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
+      >
         <button
           onClick={() => setLocation("/dashboard")}
           className="p-1.5 rounded-lg bg-white/5 text-white/60 active:bg-white/10"
@@ -115,8 +139,10 @@ export default function LanguagePreferencesPage() {
               <button
                 key={lang.code}
                 onClick={() => handleSelect(lang.code)}
+                disabled={saving}
                 className={[
                   "w-full text-left rounded-xl border px-4 py-3 transition-colors flex items-start justify-between gap-3",
+                  saving ? "opacity-60 cursor-not-allowed" : "",
                   isActive
                     ? "border-orange-500/50 bg-orange-950/40"
                     : "border-white/10 bg-white/5 active:bg-white/10",

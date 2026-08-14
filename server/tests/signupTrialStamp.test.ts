@@ -15,7 +15,11 @@ import * as path from "path";
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
-// ─── Mirror of auth.session.ts userValues — trial fields ABSENT ──────────────
+// ─── Mirror of auth.session.ts userValues — trial stamped for normal consumers ─
+//
+// As of the trial-at-signup change, auth.session.ts stamps trialStartedAt and
+// trialEndsAt immediately for normal consumer accounts (isNormalConsumer = true).
+// ProCare accounts receive a paid plan directly and do NOT get a trial stamp.
 
 function buildSignupUserValues(opts: {
   isBusinessAccount?: boolean;
@@ -23,17 +27,28 @@ function buildSignupUserValues(opts: {
     professionalRole: string;
     professionalCategory: string;
   };
-}): { trialStartedAt?: Date; trialEndsAt?: Date; professionalRole?: string; role?: string; isProCare?: boolean; planLookupKey?: string } {
-  // Base values — no trial fields (mirrors current auth.session.ts)
-  const base: any = {};
+  now?: Date;
+}): { trialStartedAt?: Date; trialEndsAt?: Date; trialSource?: string; professionalRole?: string; role?: string; isProCare?: boolean; planLookupKey?: string } {
+  const isProCare = !!opts.procare?.professionalCategory;
+  // Normal consumer = not ProCare (business accounts still get a trial)
+  const isNormalConsumer = !isProCare;
+  const trialNow = isNormalConsumer ? (opts.now ?? new Date()) : null;
+
+  const base: any = {
+    ...(trialNow ? {
+      trialStartedAt: trialNow,
+      trialEndsAt: new Date(trialNow.getTime() + SEVEN_DAYS_MS),
+      trialSource: "standard_signup",
+    } : {}),
+  };
 
   if (opts.isBusinessAccount) {
     base.professionalRole = "business";
   }
-  if (opts.procare?.professionalCategory) {
+  if (isProCare) {
     base.role = "coach";
     base.isProCare = true;
-    base.professionalRole = opts.procare.professionalRole;
+    base.professionalRole = opts.procare!.professionalRole;
     base.planLookupKey = "mpm_procare_monthly";
   }
   return base;
@@ -53,37 +68,47 @@ function applyOnboardingTrialStamp(existingUser: {
 
 const FIXED_NOW = new Date("2025-06-15T12:00:00Z");
 
-// ─── 1. Signup does NOT stamp a trial ────────────────────────────────────────
+// ─── 1. Signup stamps a trial for normal consumers; ProCare gets a plan instead ─
 
-describe("Signup — no trial stamp on account creation", () => {
-  it("personal signup: trialStartedAt is not set", () => {
-    const v = buildSignupUserValues({});
-    expect(v.trialStartedAt).toBeUndefined();
+describe("Signup — trial stamp behavior at account creation", () => {
+  it("personal signup: trialStartedAt is set immediately", () => {
+    const v = buildSignupUserValues({ now: FIXED_NOW });
+    expect(v.trialStartedAt).toEqual(FIXED_NOW);
   });
 
-  it("personal signup: trialEndsAt is not set", () => {
-    const v = buildSignupUserValues({});
-    expect(v.trialEndsAt).toBeUndefined();
+  it("personal signup: trialEndsAt is 7 days after account creation", () => {
+    const v = buildSignupUserValues({ now: FIXED_NOW });
+    expect(v.trialEndsAt).toEqual(new Date(FIXED_NOW.getTime() + SEVEN_DAYS_MS));
   });
 
-  it("business signup: trialStartedAt is not set", () => {
-    const v = buildSignupUserValues({ isBusinessAccount: true });
-    expect(v.trialStartedAt).toBeUndefined();
+  it("personal signup: trialSource is standard_signup", () => {
+    const v = buildSignupUserValues({ now: FIXED_NOW });
+    expect(v.trialSource).toBe("standard_signup");
   });
 
-  it("business signup: trialEndsAt is not set", () => {
-    const v = buildSignupUserValues({ isBusinessAccount: true });
-    expect(v.trialEndsAt).toBeUndefined();
+  it("business signup: trialStartedAt is set (business accounts are normal consumers)", () => {
+    const v = buildSignupUserValues({ isBusinessAccount: true, now: FIXED_NOW });
+    expect(v.trialStartedAt).toEqual(FIXED_NOW);
   });
 
-  it("ProCare signup: trialStartedAt is not set", () => {
+  it("business signup: trialEndsAt is 7 days after account creation", () => {
+    const v = buildSignupUserValues({ isBusinessAccount: true, now: FIXED_NOW });
+    expect(v.trialEndsAt).toEqual(new Date(FIXED_NOW.getTime() + SEVEN_DAYS_MS));
+  });
+
+  it("ProCare signup: trialStartedAt is NOT set (receives paid plan instead)", () => {
     const v = buildSignupUserValues({ procare: { professionalRole: "trainer", professionalCategory: "certified" } });
     expect(v.trialStartedAt).toBeUndefined();
   });
 
-  it("ProCare signup: trialEndsAt is not set", () => {
+  it("ProCare signup: trialEndsAt is NOT set (receives paid plan instead)", () => {
     const v = buildSignupUserValues({ procare: { professionalRole: "trainer", professionalCategory: "certified" } });
     expect(v.trialEndsAt).toBeUndefined();
+  });
+
+  it("ProCare signup: planLookupKey is set to procare plan", () => {
+    const v = buildSignupUserValues({ procare: { professionalRole: "trainer", professionalCategory: "certified" } });
+    expect(v.planLookupKey).toBe("mpm_procare_monthly");
   });
 });
 
@@ -196,9 +221,16 @@ describe("resolveAccessTier with BILLING_ENFORCED=true — trial scenarios", () 
   });
 });
 
-// ─── 5. Source scan — auth.session.ts must NOT stamp trial ───────────────────
+// ─── 5. Source scan — auth.session.ts stamps trial conditionally at signup ────
+//
+// Normal consumers get trialStartedAt/trialEndsAt immediately on account creation.
+// The stamp is guarded by isNormalConsumer so ProCare accounts are excluded.
 
-describe("auth.session.ts source scan — no trial fields in userValues", () => {
+describe("auth.session.ts source scan — trial conditionally stamped in userValues", () => {
+  // Trials are stamped at account-creation time (signup) for normal consumers.
+  // The stamp is guarded by isNormalConsumer so ProCare accounts are excluded.
+  // The onboarding handler retains a guard-clause fallback for accounts created
+  // before this change.
   const signupFilePath = path.resolve(__dirname, "../routes/auth.session.ts");
   let source: string;
 
@@ -206,21 +238,28 @@ describe("auth.session.ts source scan — no trial fields in userValues", () => 
     source = fs.readFileSync(signupFilePath, "utf-8");
   });
 
-  it("trialStartedAt is NOT assigned in the signup userValues object", () => {
-    // The userValues literal block runs from "const userValues: any = {" to its closing "}"
-    // We verify the field is absent by checking it doesn't appear before the isBusinessAccount branch
+  it("trialStartedAt IS assigned in the signup userValues object (conditional spread)", () => {
     const userValuesStart = source.indexOf("const userValues: any = {");
     const businessBranchIdx = source.indexOf("if (isBusinessAccount)");
     expect(userValuesStart).toBeGreaterThan(0);
     const userValuesBlock = source.slice(userValuesStart, businessBranchIdx);
-    expect(userValuesBlock).not.toContain("trialStartedAt:");
+    expect(userValuesBlock).toContain("trialStartedAt:");
   });
 
-  it("trialEndsAt is NOT assigned in the signup userValues object", () => {
+  it("trialEndsAt IS assigned in the signup userValues object (conditional spread)", () => {
     const userValuesStart = source.indexOf("const userValues: any = {");
     const businessBranchIdx = source.indexOf("if (isBusinessAccount)");
     const userValuesBlock = source.slice(userValuesStart, businessBranchIdx);
-    expect(userValuesBlock).not.toContain("trialEndsAt:");
+    expect(userValuesBlock).toContain("trialEndsAt:");
+  });
+
+  it("the trial stamp is conditional (guarded by isNormalConsumer / trialNow)", () => {
+    // The stamp must be inside a conditional so ProCare accounts are excluded
+    const userValuesStart = source.indexOf("const userValues: any = {");
+    const businessBranchIdx = source.indexOf("if (isBusinessAccount)");
+    const userValuesBlock = source.slice(userValuesStart, businessBranchIdx);
+    const hasGuard = userValuesBlock.includes("isNormalConsumer") || userValuesBlock.includes("trialNow");
+    expect(hasGuard).toBe(true);
   });
 });
 

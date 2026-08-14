@@ -125,7 +125,10 @@ export default function CoachingPreferencesPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-orange-950/10 to-black pb-24">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-black/80 backdrop-blur-lg border-b border-white/10 px-4 py-3 flex items-center gap-3">
+      <div
+        className="sticky top-0 z-10 bg-black/80 backdrop-blur-lg border-b border-white/10 px-4 py-3 flex items-center gap-3"
+        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
+      >
         <button
           onClick={() => setLocation("/dashboard")}
           className="p-1.5 rounded-lg bg-white/5 text-white/60 active:bg-white/10"

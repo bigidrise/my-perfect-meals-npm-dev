@@ -46,7 +46,8 @@ export type AuditAction =
   | "MFA_CHALLENGE_FAILED"  // Bad TOTP or backup code attempt during login
   | "MFA_BACKUP_USED"       // Backup code consumed (one less remaining)
   | "ORG_VIOLATION"         // Cross-org access attempt (blocked)
-  | "AI_PROMPT_PHI";        // T1/T2 health fields embedded into an AI prompt context
+  | "AI_PROMPT_PHI"         // T1/T2 health fields embedded into an AI prompt context
+  | "TRIAL_GRANT";          // Admin/clinic granted an extended trial to a user
 
 export interface AuditEntry {
   actor: string;               // actorUserId — the authenticated caller

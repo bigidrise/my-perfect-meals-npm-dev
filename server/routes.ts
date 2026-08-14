@@ -28,7 +28,7 @@ import { requireProCareAccess } from "./middleware/requireProCareAccess";
 import { requireMonetizationAccess } from "./middleware/requireMonetizationAccess";
 import { requireMacroProfile } from "./middleware/requireMacroProfile";
 import { insertUserSchema, insertMealPlanSchema, insertMealLogSchema, insertMealReminderSchema, insertUserGlycemicSettingsSchema, aiMealPlanArchive, barcodes, mealLogsEnhanced, mealLog, userMealPrefs, insertUserMealPrefsSchema, meals, users, mealPlans, shoppingListItems, savedMeals as savedMealsTable, creators } from "@shared/schema";
-import { getTierForLookupKey, getEntitlementsForTier, isProCarePlanKey } from "@shared/planFeatures";
+import { getTierForLookupKey, getEntitlementsForTier, isProCarePlanKey, TRIAL_UNLOCKS_TIER } from "@shared/planFeatures";
 import { studioMemberships, studios } from "./db/schema/studio";
 import { mealImageCache } from "./db/schema/mealImageCache";
 import { companionProfileImages } from "./db/schema/companionProfiles";
@@ -77,6 +77,7 @@ import pushNotificationsRouter from './routes/pushNotifications';
 import remindersRouter from './routes/reminders';
 import mealPlanReplaceRouter from './routes/meal-plan-replace';
 import authSessionRouter from './routes/auth.session';
+import trialRouter from './routes/trial';
 import mfaRoutes from './routes/auth.mfa';
 import { requireMfa } from './middleware/requireMfa';
 import { MealEngineService } from "./services/mealEngineService";
@@ -666,6 +667,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Universal Meal Refinement — stateless freeform endpoint (Grocery Coach + others)
   const { default: refinementRouter } = await import("./routes/refinement");
   app.use("/api/refinement", requireAuth, requireActiveAccess, refinementRouter);
+  // Trial status + admin grant (no requireActiveAccess — trial status is needed even on free/expired)
+  app.use("/api/trial", trialRouter);
   app.use("/api/saved-groceries", requireAuth, savedGroceriesRouter);
   app.use("/api/pregnancy", requireAuth, requireClinicalAccess, pregnancyCoachRouter);
   app.use("/api/coach", coachingEngineRouter);
@@ -3276,6 +3279,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         performanceModeEnabled: (user as any).performanceModeEnabled ?? false,
         alphaGalProfile: (user as any).alphaGalProfile ?? null,
         trialEndsAt: user.trialEndsAt?.toISOString() ?? null,
+        trialStartedAt: (user as any).trialStartedAt?.toISOString?.() ?? (user as any).trialStartedAt ?? null,
+        trialSource: (user as any).trialSource ?? null,
+        isTrialActive: !!(user.trialEndsAt && !user.planLookupKey && user.trialEndsAt > new Date()),
+        daysRemaining: (() => {
+          if (!user.trialEndsAt || user.planLookupKey) return 0;
+          const ms = user.trialEndsAt.getTime() - Date.now();
+          return Math.max(0, Math.ceil(ms / (1000 * 60 * 60 * 24)));
+        })(),
+        trialTier: (user.trialEndsAt && !user.planLookupKey && user.trialEndsAt > new Date())
+          ? TRIAL_UNLOCKS_TIER : null,
         // Business sponsorship — from middleware (not cached), always fresh
         sponsoredByBusinessId,
         sponsoredByBusinessName: authReq.authUser.sponsoredByBusinessName ?? null,
@@ -4285,17 +4298,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? (onboardingMode as 'independent' | 'procare')
         : 'independent';
       
-      // Stamp the 7-day free trial at onboarding completion — not at signup.
-      // This ensures users who sign up and return later don't lose trial time.
-      // Never overwrite an existing trial (business invite or promotion may have
-      // already granted a longer window — always keep the later expiry).
+      // Backward-compat trial stamp: new accounts already have trial dates from signup.
+      // This path fires only for existing accounts created before trial-at-signup was
+      // introduced, or for any account that somehow missed stamping at signup.
+      // Never overwrite an existing trial — a longer admin/clinic grant must be preserved.
+      // Never stamp a trial for ProCare, paid, or internal accounts.
       const now = new Date();
       const trialUpdates: Record<string, any> = {};
-      if (!existingUser.trialStartedAt) {
+      const canReceiveTrial = !existingUser.planLookupKey && !existingUser.isFounder && !existingUser.isTester;
+      if (canReceiveTrial && !existingUser.trialStartedAt) {
         trialUpdates.trialStartedAt = now;
       }
-      if (!existingUser.trialEndsAt) {
+      if (canReceiveTrial && !existingUser.trialEndsAt) {
         trialUpdates.trialEndsAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+        trialUpdates.trialSource = 'standard_signup';
       }
 
       const [user] = await db.update(users)

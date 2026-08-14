@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import {
   Activity,
@@ -40,29 +41,6 @@ import { GlycemicSettingsModal } from "@/components/diabetic/GlycemicSettingsMod
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { GLP1CompanionModal } from "@/components/diabetic/GLP1CompanionModal";
 
-const DIABETIC_TOUR_STEPS: TourStep[] = [
-  {
-    icon: "1",
-    title: "Set Your Guardrails",
-    description: "Choose a clinical preset or customize your glucose targets, carb limits, and fiber goals."
-  },
-  {
-    icon: "2",
-    title: "Log Your Readings",
-    description: "Track your glucose readings before and after meals to monitor your progress."
-  },
-  {
-    icon: "3",
-    title: "View Your Analytics",
-    description: "See your 7-day trends and time-in-range percentage at a glance."
-  },
-  {
-    icon: "4",
-    title: "Get Smart Snacks",
-    description: "Browse diabetic-friendly snacks designed to keep your blood sugar stable."
-  }
-];
-
 function getDeviceId(): string {
   let deviceId = localStorage.getItem("deviceId");
   if (!deviceId) {
@@ -73,11 +51,19 @@ function getDeviceId(): string {
 }
 
 export default function DiabeticHub() {
+  const { t } = useTranslation();
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
   const userId = user?.id?.toString() || getDeviceId();
   const quickTour = useQuickTour("diabetic-hub");
+
+  const DIABETIC_TOUR_STEPS = useMemo<TourStep[]>(() => [
+    { icon: "1", title: t("diabeticHub.tour1Title"), description: t("diabeticHub.tour1Desc") },
+    { icon: "2", title: t("diabeticHub.tour2Title"), description: t("diabeticHub.tour2Desc") },
+    { icon: "3", title: t("diabeticHub.tour3Title"), description: t("diabeticHub.tour3Desc") },
+    { icon: "4", title: t("diabeticHub.tour4Title"), description: t("diabeticHub.tour4Desc") },
+  ], [t]);
 
   // Hooks
   const saveMutation = useSaveDiabetesProfile();
@@ -181,19 +167,19 @@ export default function DiabeticHub() {
     const postMaxNum = parseInt(postMealMax);
 
     if (!carbNum || carbNum < 30 || carbNum > 400) {
-      toast({ title: "Daily carb limit must be between 30–400g", variant: "destructive" });
+      toast({ title: t("diabeticHub.validCarbLimit"), variant: "destructive" });
       return;
     }
     if (!freqNum || freqNum < 2 || freqNum > 8) {
-      toast({ title: "Meal frequency must be 2–8 per day", variant: "destructive" });
+      toast({ title: t("diabeticHub.validMealFreq"), variant: "destructive" });
       return;
     }
     if (!fastMinNum || !fastMaxNum || fastMinNum >= fastMaxNum) {
-      toast({ title: "Fasting range: min must be less than max", variant: "destructive" });
+      toast({ title: t("diabeticHub.validFastingRange"), variant: "destructive" });
       return;
     }
     if (!postMaxNum || postMaxNum < fastMaxNum) {
-      toast({ title: "Post-meal max must be greater than fasting max", variant: "destructive" });
+      toast({ title: t("diabeticHub.validPostMeal"), variant: "destructive" });
       return;
     }
 
@@ -215,15 +201,15 @@ export default function DiabeticHub() {
       });
       setSelectedPreset("");
       setHasCustomizedGuardrails(true);
-      toast({ title: "Guardrails saved successfully" });
+      toast({ title: t("diabeticHub.guardrailsSaved") });
     } catch (error) {
-      toast({ title: "Failed to save guardrails", variant: "destructive" });
+      toast({ title: t("diabeticHub.guardrailsFailed"), variant: "destructive" });
     }
   };
 
   const handleLogGlucose = async () => {
     if (!glucoseReading) {
-      toast({ title: "Please enter a reading", variant: "destructive" });
+      toast({ title: t("diabeticHub.pleaseEnterReading"), variant: "destructive" });
       return;
     }
 
@@ -241,12 +227,12 @@ export default function DiabeticHub() {
         recordedAt: new Date().toISOString(),
       });
       setGlucoseReading("");
-      toast({ title: "Reading logged successfully" });
+      toast({ title: t("diabeticHub.readingLogged") });
     } catch (error: any) {
       console.error("[GlucoseLog] Failed to log reading:", error);
       const errorMsg = error?.message || error?.body || "Unknown error";
       toast({ 
-        title: "Failed to log reading", 
+        title: t("diabeticHub.readingLogFailed"), 
         description: errorMsg.slice(0, 100),
         variant: "destructive" 
       });
@@ -267,7 +253,7 @@ export default function DiabeticHub() {
     setSelectedPreset(presetId);
 
     toast({
-      title: `Applied ${preset.name}`,
+      title: t("diabeticHub.appliedPreset", { name: preset.name }),
       description: preset.description,
     });
   };
@@ -291,7 +277,7 @@ export default function DiabeticHub() {
             <Activity className="h-6 w-6 text-orange-500" />
 
             {/* Title */}
-            <h1 className="text-lg font-bold text-white">Diabetic Hub</h1>
+            <h1 className="text-lg font-bold text-white">{t("diabeticHub.pageTitle")}</h1>
 
             <div className="flex-grow" />
 
@@ -315,8 +301,8 @@ export default function DiabeticHub() {
             className="w-full flex items-center justify-between px-4 py-4 rounded-2xl bg-lime-600/20 border border-lime-500/30 text-white"
           >
             <div className="text-left">
-              <p className="font-bold text-sm">Launch Diabetic Builder</p>
-              <p className="text-white/80 text-xs mt-0.5">Low-GI meals built for your glucose guardrails</p>
+              <p className="font-bold text-sm">{t("diabeticHub.launchBuilder")}</p>
+              <p className="text-white/80 text-xs mt-0.5">{t("diabeticHub.launchBuilderSub")}</p>
             </div>
             <ChevronRight className="w-5 h-5 text-lime-400 flex-shrink-0" />
           </button>
@@ -330,8 +316,8 @@ export default function DiabeticHub() {
               <Dumbbell className="w-4 h-4 text-orange-400" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-semibold text-sm text-white leading-tight">Training Nutrition Schedule</p>
-              <p className="text-white/40 text-xs mt-0.5">Adjust daily macro targets based on your workout schedule</p>
+              <p className="font-semibold text-sm text-white leading-tight">{t("diabeticHub.trainingTitle")}</p>
+              <p className="text-white/40 text-xs mt-0.5">{t("diabeticHub.trainingSub")}</p>
             </div>
             <ChevronRight className="w-4 h-4 text-white/30 group-hover:text-orange-400 transition-colors flex-shrink-0" />
           </button>
@@ -339,46 +325,46 @@ export default function DiabeticHub() {
           {/* ── Copilot Banner — adapts to diabetes type ── */}
           <div className="rounded-xl border-l-[3px] border-teal-500/60 bg-teal-500/5 px-4 py-3 space-y-1.5">
             <p className="text-sm text-white/80 leading-relaxed">
-              This hub makes sure every meal you get is safe for your goals — carb limits, glucose patterns, and safe ranges applied automatically.
+              {t("diabeticHub.copilotText")}
             </p>
             <p className="text-sm text-white/50 leading-relaxed">
               {diabetesType === "T1D"
-                ? "Focus on consistency above all. Even small carb swings can affect your range — your meals are built to minimize variability."
+                ? t("diabeticHub.copilotT1D")
                 : diabetesType === "T2D"
-                ? "Your meals are built around controlled carb reduction. Steady patterns over time are what move the needle."
+                ? t("diabeticHub.copilotT2D")
                 : diabetesType === "PRE_D"
-                ? "You're in prevention mode. Your meals are designed to keep blood sugar stable and reduce long-term risk."
-                : "Stay consistent with your logs. The system adjusts your meals to keep your blood sugar stable."}
+                ? t("diabeticHub.copilotPreD")
+                : t("diabeticHub.copilotDefault")}
             </p>
             <div className="flex flex-wrap gap-2 pt-1">
-              {["Carb Guardrails", "Glucose Trends", "Meal Decisions"].map(chip => (
+              {[t("diabeticHub.chip1"), t("diabeticHub.chip2"), t("diabeticHub.chip3")].map(chip => (
                 <span key={chip} className="text-[11px] font-medium px-2.5 py-1 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-300">
                   {chip}
                 </span>
               ))}
               {isGlp1Active && (
                 <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-orange-500/20 border border-orange-500/40 text-orange-300">
-                  Metabolic Med Active
+                  {t("diabeticHub.metabolicMedActive")}
                 </span>
               )}
             </div>
             {isGlp1Active && (
               <div className="flex items-center gap-3 pt-1.5">
                 <p className="text-[11px] text-orange-400/70 leading-relaxed">
-                  Metabolic Med guardrails (portion caps, protein floors, nausea-safe ingredients) are stacked with your diabetic protocol.
+                  {t("diabeticHub.metabolicMedStacked")}
                 </p>
                 <div className="shrink-0">
                   <PillButton
                     onClick={() => setShowGlp1Companion(true)}
                     variant="default"
                   >
-                    Manage Metabolic Med
+                    {t("diabeticHub.manageMetabolicMed")}
                   </PillButton>
                 </div>
               </div>
             )}
             <p className="text-[11px] text-white/30 pt-0.5">
-              Your meal builders automatically use these settings.
+              {t("diabeticHub.autoSettings")}
             </p>
           </div>
 
@@ -388,16 +374,16 @@ export default function DiabeticHub() {
               <span className="text-orange-400 text-base mt-0.5 shrink-0">💉</span>
               <div className="flex-1 min-w-0">
                 <p className="text-[13px] font-semibold text-orange-300 mb-0.5">
-                  Using a metabolic medication like Ozempic, Wegovy, or Mounjaro?
+                  {t("diabeticHub.glp1NudgeTitle")}
                 </p>
                 <p className="text-[11px] text-white/50 leading-relaxed mb-2">
-                  Enable Metabolic Med in your profile to personalize meal sizing, protein targeting, and nausea-friendly meal support — stacked with your diabetic protocol.
+                  {t("diabeticHub.glp1NudgeDesc")}
                 </p>
                 <PillButton
                   onClick={() => setLocation("/profile/edit")}
                   variant="default"
                 >
-                  Enable Metabolic Med in Profile
+                  {t("diabeticHub.enableMetabolicMed")}
                 </PillButton>
               </div>
             </div>
@@ -409,10 +395,10 @@ export default function DiabeticHub() {
             <div className="flex items-center gap-4 mb-6 relative z-10">
               <div>
                 <h2 className="text-lg font-bold text-white">
-                  Doctor / Coach Guardrails
+                  {t("diabeticHub.guardrailsTitle")}
                 </h2>
                 <p className="text-white/80 text-md">
-                  Set your clinical targets and constraints
+                  {t("diabeticHub.guardrailsDesc")}
                 </p>
               </div>
             </div>
@@ -420,30 +406,30 @@ export default function DiabeticHub() {
             {/* ── Phase 3: Diabetes Type Selector ── */}
             <div className="mb-6 relative z-10">
               <label className="block text-sm font-semibold text-white/80 mb-3">
-                Diabetes Type
+                {t("diabeticHub.diabetesType")}
               </label>
               <div className="flex gap-2 flex-wrap">
-                {(["T1D", "T2D", "PRE_D"] as const).map((t) => {
-                  const labels: Record<string, string> = { T1D: "Type 1", T2D: "Type 2", PRE_D: "Pre-Diabetes" };
-                  const active = diabetesType === t;
+                {(["T1D", "T2D", "PRE_D"] as const).map((typeCode) => {
+                  const labels: Record<string, string> = { T1D: t("diabeticHub.typeT1D"), T2D: t("diabeticHub.typeT2D"), PRE_D: t("diabeticHub.typePreD") };
+                  const active = diabetesType === typeCode;
                   return (
                     <button
-                      key={t}
-                      onClick={() => handleTypeChange(t)}
+                      key={typeCode}
+                      onClick={() => handleTypeChange(typeCode)}
                       className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all border ${
                         active
                           ? "bg-teal-500/25 border-teal-500/60 text-teal-300"
                           : "bg-white/8 border-white/20 text-white/50 hover:bg-white/15 hover:text-white/80"
                       }`}
                     >
-                      {labels[t]}
+                      {labels[typeCode]}
                     </button>
                   );
                 })}
               </div>
               {diabetesType !== "NONE" && !hasCustomizedGuardrails && (
                 <p className="text-[11px] text-teal-400/60 mt-2">
-                  Default guardrails for {diabetesType === "PRE_D" ? "Pre-Diabetes" : diabetesType} applied — customize below, then save.
+                  {t("diabeticHub.defaultGuardrailsHint", { type: diabetesType === "PRE_D" ? t("diabeticHub.typePreD") : diabetesType })}
                 </p>
               )}
             </div>
@@ -452,7 +438,7 @@ export default function DiabeticHub() {
             <div className="mb-6 relative z-10 grid md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-semibold text-white/80 mb-1.5">
-                  A1C (optional)
+                  {t("diabeticHub.a1cLabel")}
                 </label>
                 <input
                   type="number"
@@ -465,12 +451,12 @@ export default function DiabeticHub() {
                   className="w-full px-3 py-2 rounded-xl bg-white/20 border border-white/40 text-white placeholder-white/40 focus:outline-none focus:border-teal-400/60"
                 />
                 <p className="text-[11px] text-white/35 mt-1">
-                  If you know your A1C, you can enter it here. This helps personalize your plan.
+                  {t("diabeticHub.a1cHint")}
                 </p>
               </div>
               <div className="flex flex-col justify-start pt-1">
                 <label className="block text-sm font-semibold text-white/80 mb-3">
-                  Low Blood Sugar Risk
+                  {t("diabeticHub.hypoRiskLabel")}
                 </label>
                 <button
                   onClick={() => setHypoRisk(!hypoRisk)}
@@ -485,11 +471,11 @@ export default function DiabeticHub() {
                   }`}>
                     {hypoRisk && <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                   </div>
-                  History of low blood sugar (hypoglycemia)
+                  {t("diabeticHub.hypoRiskCheck")}
                 </button>
                 {hypoRisk && (
                   <p className="text-[11px] text-amber-400/60 mt-1.5 px-1">
-                    Meals will include a minimum carb floor to reduce hypoglycemia risk.
+                    {t("diabeticHub.hypoRiskHint")}
                   </p>
                 )}
               </div>
@@ -497,11 +483,11 @@ export default function DiabeticHub() {
 
             <div className="mb-6 relative z-10">
               <label className="block text-md text-white mb-2">
-                Apply Clinical Preset
+                {t("diabeticHub.applyClinicalPreset")}
               </label>
               <Select value={selectedPreset} onValueChange={handleApplyPreset}>
                 <SelectTrigger className="w-full bg-white/20 border-white/40 text-white [&>span]:text-white">
-                  <SelectValue placeholder="Choose a preset or customize below..." />
+                  <SelectValue placeholder={t("diabeticHub.presetPlaceholder")} />
                 </SelectTrigger>
                 <SelectContent>
                   {DIABETIC_PRESETS.map((preset) => (
@@ -524,7 +510,7 @@ export default function DiabeticHub() {
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 relative z-10 mb-6">
               <div>
                 <label className="block text-md text-white mb-2">
-                  Fasting Range (mg/dL)
+                  {t("diabeticHub.fastingRange")}
                 </label>
                 <div className="flex gap-2">
                   <input
@@ -546,7 +532,7 @@ export default function DiabeticHub() {
 
               <div>
                 <label className="block text-md text-white mb-2">
-                  Post-Meal Max (mg/dL)
+                  {t("diabeticHub.postMealMax")}
                 </label>
                 <input
                   type="number"
@@ -558,7 +544,7 @@ export default function DiabeticHub() {
 
               <div>
                 <label className="block text-md text-white mb-2">
-                  Daily Carb Limit (g)
+                  {t("diabeticHub.dailyCarbLimit")}
                 </label>
                 <input
                   type="number"
@@ -570,7 +556,7 @@ export default function DiabeticHub() {
 
               <div>
                 <label className="block text-md text-white mb-2">
-                  Fiber Minimum (g)
+                  {t("diabeticHub.fiberMinimum")}
                 </label>
                 <input
                   type="number"
@@ -582,7 +568,7 @@ export default function DiabeticHub() {
 
               <div>
                 <label className="block text-md text-white mb-2">
-                  GI Cap (Max)
+                  {t("diabeticHub.giCap")}
                 </label>
                 <input
                   type="number"
@@ -594,7 +580,7 @@ export default function DiabeticHub() {
 
               <div>
                 <label className="block text-md text-white mb-2">
-                  Meal Frequency (per day)
+                  {t("diabeticHub.mealFrequency")}
                 </label>
                 <input
                   type="number"
@@ -612,7 +598,7 @@ export default function DiabeticHub() {
             >
               <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-transparent to-white/5 pointer-events-none" />
               <span className="relative z-10">
-                {saveMutation.isPending ? "Saving..." : "Save Guardrails"}
+                {saveMutation.isPending ? t("diabeticHub.saving") : t("diabeticHub.saveGuardrails")}
               </span>
             </button>
 
@@ -623,7 +609,7 @@ export default function DiabeticHub() {
               <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-transparent to-white/5 pointer-events-none" />
               <span className="relative z-10 flex items-center justify-center gap-2">
                 <Leaf className="h-4 w-4 text-green-400" />
-                Manage Glycemic Preferences
+                {t("diabeticHub.manageGlycemic")}
               </span>
             </button>
           </section>
@@ -636,7 +622,7 @@ export default function DiabeticHub() {
                 <Activity className="h-6 w-6" />
               </div>
               <h2 className="text-lg font-bold text-white">
-                Blood Sugar Tracker
+                {t("diabeticHub.bloodSugarTracker")}
               </h2>
             </div>
 
@@ -644,20 +630,20 @@ export default function DiabeticHub() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-md text-white mb-2">
-                    Glucose Reading (mg/dL)
+                    {t("diabeticHub.glucoseReadingLabel")}
                   </label>
                   <input
                     type="number"
                     value={glucoseReading}
                     onChange={(e) => setGlucoseReading(e.target.value)}
-                    placeholder="Enter reading..."
+                    placeholder={t("diabeticHub.enterReading")}
                     className="w-full px-4 py-3 rounded-xl bg-white/20 border border-white/40 text-white placeholder-white/60 focus:outline-none focus:border-orange-300"
                   />
                 </div>
 
                 <div>
                   <label className="block text-md text-white mb-2">
-                    Context
+                    {t("diabeticHub.contextLabel")}
                   </label>
                   <Select
                     value={glucoseContext}
@@ -669,9 +655,9 @@ export default function DiabeticHub() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="FASTED">Fasting</SelectItem>
-                      <SelectItem value="PRE_MEAL">Pre-Meal</SelectItem>
-                      <SelectItem value="POST_MEAL_1H">Post-Meal</SelectItem>
+                      <SelectItem value="FASTED">{t("diabeticHub.fasting")}</SelectItem>
+                      <SelectItem value="PRE_MEAL">{t("diabeticHub.preMeal")}</SelectItem>
+                      <SelectItem value="POST_MEAL_1H">{t("diabeticHub.postMeal1H")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -683,28 +669,28 @@ export default function DiabeticHub() {
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-transparent to-white/5 pointer-events-none" />
                   <span className="relative z-10">
-                    {logMutation.isPending ? "Logging..." : "Log Reading"}
+                    {logMutation.isPending ? t("diabeticHub.logging") : t("diabeticHub.logReading")}
                   </span>
                 </button>
               </div>
 
               <div className="bg-orange-500/20 backdrop-blur-sm rounded-xl p-6 border border-orange-400/30">
                 <div className="text-white font-medium text-md mb-2">
-                  Last Reading
+                  {t("diabeticHub.lastReading")}
                 </div>
                 <div className="text-xl font-medium text-white mb-2">
-                  {latestReading ? `${lastValue} mg/dL` : "No readings yet"}
+                  {latestReading ? `${lastValue} mg/dL` : t("diabeticHub.noReadingsYet")}
                 </div>
                 {latestReading && (
                   <>
                     <div
                       className={`text-md mb-3 ${inRange ? "text-green-200" : "text-yellow-200"}`}
                     >
-                      {inRange ? "✅ In Target Range" : "⚠️ Outside Target"}
+                      {inRange ? t("diabeticHub.inTargetRange") : t("diabeticHub.outsideTarget")}
                     </div>
                     {glucoseLogs?.data && glucoseLogs.data.length > 1 && (
                       <div className="text-white/80 text-md mb-2">
-                        7-Day Avg:{" "}
+                        {t("diabeticHub.sevenDayAvg")}{" "}
                         {Math.round(
                           glucoseLogs.data
                             .slice(0, 7)
@@ -719,18 +705,18 @@ export default function DiabeticHub() {
                   </>
                 )}
                 <div className="text-white/80 text-base mt-2">
-                  Target: {targetMin}-{targetMax} mg/dL
+                  {t("diabeticHub.targetLabel")} {targetMin}-{targetMax} mg/dL
                 </div>
                 <div className="mt-3 pt-3 border-t border-white/10">
                   <div className="flex items-center justify-between">
                     <span className="text-white/60 text-xs">
-                      GlucoseGuard™ adjusts meals to this reading
+                      {t("diabeticHub.glucoseGuardNote")}
                     </span>
                     <PillButton
                       onClick={() => setShowGlucoseExplainer(true)}
                       variant="amber"
                     >
-                      How It Works
+                      {t("diabeticHub.howItWorks")}
                     </PillButton>
                   </div>
                 </div>
@@ -748,7 +734,7 @@ export default function DiabeticHub() {
                 <TrendingUp className="h-6 w-6" />
               </div>
               <h2 className="text-lg font-bold text-white">
-                7-Day Glucose Trend
+                {t("diabeticHub.sevenDayTrend")}
               </h2>
             </div>
 
@@ -944,7 +930,7 @@ export default function DiabeticHub() {
         <QuickTourModal
           isOpen={quickTour.shouldShow}
           onClose={quickTour.closeTour}
-          title="How to Use Diabetic Hub"
+          title={t("diabeticHub.tourTitle")}
           steps={DIABETIC_TOUR_STEPS}
           onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
         />

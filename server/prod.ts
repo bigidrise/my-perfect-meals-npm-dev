@@ -71,6 +71,9 @@ app.get("/api/health", (_req, res) => {
     hasDatabase: !!process.env.DATABASE_URL,
     hasOpenAI: !!process.env.OPENAI_API_KEY,
     isDeployment: process.env.REPLIT_DEPLOYMENT === "1",
+    // Must be true before real users onboard. When false/unset every user gets
+    // PAID_FULL regardless of plan — a complete paywall bypass.
+    billingEnforced: process.env.BILLING_ENFORCED === "true",
   });
 });
 
@@ -618,6 +621,14 @@ async function initializeApp() {
               WHERE status = 'active'
           `);
           console.log("✅ [INIT] business_members active uniqueness index ensured");
+
+          // Trial grants schema — must run inside schemaMigPromise (not a deferred
+          // setTimeout) so trial_source column and trial_grants table exist before
+          // any signup request writes trial_source. Uses IF NOT EXISTS throughout
+          // so it is a no-op on an already-migrated database.
+          const { runTrialGrantsMigration } = await import("./db/migrations/runTrialGrantsMigration");
+          await runTrialGrantsMigration(database as any);
+          console.log("✅ [INIT] Trial grants schema ensured");
       })();
 
       // Race the schema migration promise against a 6-second boot timeout.
@@ -985,8 +996,10 @@ async function initializeApp() {
 
     // Universal Meal Refinement — Stage 1: Weekly Meal Board replace_component
     const refinementRouter = (await import("./routes/refinement")).default;
+    const trialRouter = (await import("./routes/trial")).default;
     const { requireActiveAccess: rafRefineAccess } = await import("./middleware/requireActiveAccess");
     app.use("/api/refinement", requireAuth, rafRefineAccess, refinementRouter);
+    app.use("/api/trial", trialRouter);
 
     console.log("✅ [INIT] Parity routes mounted");
 
@@ -1738,6 +1751,7 @@ async function initializeApp() {
           const { runPhase5Migration } = await import("./db/migrations/runPhase5Migration");
           await runPhase5Migration(dbP5);
         });
+
       }, 12500);
 
       // ── Saved Groceries — boot migration ─────────────────────────────────────

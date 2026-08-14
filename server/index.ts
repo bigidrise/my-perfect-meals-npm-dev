@@ -218,7 +218,10 @@ app.get("/api/health", (_req, res) => {
       fallbacksUsed: fallbackStats.totalFallbacksUsed,
       lastFallback: fallbackStats.lastFallbackTime,
       healthy: fallbackStats.aiHealthy
-    }
+    },
+    // Must be true before real users onboard. When false/unset every user gets
+    // PAID_FULL regardless of plan — a complete paywall bypass.
+    billingEnforced: process.env.BILLING_ENFORCED === "true",
   });
 });
 
@@ -1503,6 +1506,15 @@ async function start() {
   const refinementRouter = (await import("./routes/refinement")).default;
   app.use("/api/refinement", requireAuth, requireActiveAccess, refinementRouter);
 
+  // Ensure trial_source column + trial_grants table exist before routes accept
+  // signup requests that write trial_source. Must run synchronously here, not in
+  // a deferred setTimeout, or the column may not exist during early boot traffic.
+  await withBootRetry("Trial grants migration", async () => {
+    const { db: dbTg } = await import("./db");
+    const { runTrialGrantsMigration } = await import("./db/migrations/runTrialGrantsMigration");
+    await runTrialGrantsMigration(dbTg);
+  });
+
   // 🎯 CRITICAL: API routes FIRST to prevent Vite middleware interference
   await registerRoutes(app);
 
@@ -1755,6 +1767,7 @@ setTimeout(async () => {
     const { runPhase5Migration } = await import("./db/migrations/runPhase5Migration");
     await runPhase5Migration(db);
   });
+
 }, 9500);
 
 // ── Coach Follow-up Cron (every 10 min) ─────────────────────────────────────
