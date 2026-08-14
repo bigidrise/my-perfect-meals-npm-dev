@@ -100,7 +100,78 @@
     "founders": "创始人",
     "restaurant": "餐厅助手",
     "weeklyBuilder": "每周构建器",
-    "mealsAwayFromHome": "外出就餐"
+    "mealsAwayFromHome": "外出就餐",
+    "academy": "学院",
+    "antiInflammatoryBuilder": "抗炎饮食构建器",
+    "appName": "My Perfect Meals",
+    "applyGuidance": "应用指导",
+    "beverageCreator": "Beverage Creator",
+    "boardView": "看板视图",
+    "bodyComposition": "身体成分",
+    "businessCenter": "商务中心",
+    "chefPairings": "主厨搭配",
+    "clientDashboard": "客户仪表板",
+    "cravingCreator": "Craving Creator",
+    "createDish": "Create a Dish",
+    "creatorBrandStudio": "创作者与品牌工作室",
+    "dailyJournal": "每日日志与灵感",
+    "dessertCreator": "Dessert Creator",
+    "diabetesHub": "糖尿病中心",
+    "diabetesSupport": "糖尿病支持",
+    "diabeticBuilder": "糖尿病饮食构建器",
+    "diabeticHub": "糖尿病中心",
+    "drinkPairings": "饮品搭配",
+    "editProfile": "编辑个人资料",
+    "findMeals": "查找餐点",
+    "foundingPartnerProgram": "创始合作伙伴计划",
+    "fridgeRescueStudio": "Fridge Rescue Studio",
+    "gatherings": "My Perfect Gatherings",
+    "generalNutritionBuilder": "常规营养构建器",
+    "healthcarePartnerships": "医疗与临床合作伙伴关系",
+    "howPartnershipsWork": "合作运作方式",
+    "industryPartnerships": "行业合作伙伴关系",
+    "kitchenNetwork": "厨房网络",
+    "mealBuilder": "餐点构建器",
+    "mealBuilderExchange": "餐点构建器交换",
+    "metabolicBuilder": "代谢药物构建器",
+    "metabolicHub": "代谢中心",
+    "metabolicHubBack": "代谢中心",
+    "metabolicTracking": "代谢药物追踪",
+    "myPerfectBeginning": "My Perfect Beginnings",
+    "myPerfectPets": "My Perfect Pets",
+    "organizationDashboard": "组织仪表板",
+    "organizationSuccessCenter": "组织成功中心",
+    "pairingsHub": "搭配中心",
+    "partnerCenter": "合作伙伴中心",
+    "partnerManagement": "合作伙伴管理",
+    "partnerProgram": "合作伙伴计划",
+    "partnerPrograms": "合作伙伴计划",
+    "partnerRevenueCenter": "合作伙伴与收益中心",
+    "patientDashboard": "患者仪表板",
+    "performanceBuilder": "运动表现营养生成器",
+    "performanceHub": "运动表现中心",
+    "physicianClients": "医师客户",
+    "physicianPortal": "医师门户",
+    "physicianWelcome": "医师欢迎页面",
+    "planner": "计划表",
+    "pregnancy": "My Perfect Pregnancy",
+    "proLaunchpad": "专业仪表板",
+    "proPortal": "Pro 门户",
+    "procareCertified": "ProCare Certified",
+    "procareTraining": "ProCare 培训",
+    "procareWelcome": "ProCare 欢迎页面",
+    "professionalWorkspace": "专业工作区",
+    "promotions": "促销活动",
+    "reduceDrinking": "减酒计划",
+    "restaurantGuide": "餐厅助手",
+    "signatureKitchen": "招牌厨房",
+    "sleepTracker": "睡眠追踪器",
+    "supplementHub": "补剂中心",
+    "trainerWelcome": "教练欢迎页面",
+    "tutorialHub": "教程中心",
+    "weaningOff": "戒断工具",
+    "whiteLabelSolutions": "白标解决方案",
+    "wineListHelper": "酒单助手"
   },
   "dashboard": {
     "professionalBadge": "专业版",
@@ -218,7 +289,13 @@
     "badgeClinical": "临床",
     "badgePro": "专业",
     "badgeCurrent": "当前",
-    "badgeBehavioral": "行为AI™"
+    "badgeBehavioral": "行为AI™",
+    "badgeProCare": "ProCare",
+    "performanceCompDesc": "教练指导的精英运动员备赛、巅峰表现及恢复膳食规划",
+    "performanceCompTitle": "表现与竞技构建器",
+    "plannerTitle": "规划器",
+    "weeklyDesc": "由AI生成的膳食计划，专为希望以自己的方式吃得更健康的用户设计",
+    "weeklyTitle": "My Weekly Meal Builder"
   },
   "createDish": {
     "pageTitle": "创建菜肴",
@@ -242,7 +319,11 @@
     "errorMissing": "缺少信息",
     "errorDescribe": "请描述您想要创建的菜肴！",
     "errorFailed": "无法创建菜肴。请重试。",
-    "allergyAlert": "过敏警告"
+    "allergyAlert": "过敏警告",
+    "label": "你想创建什么菜肴？",
+    "notes": "可选备注",
+    "notesPlaceholder": "例如：无乳制品、特辣、低钠、用于备餐……",
+    "servings": "份数 (1–12)"
   },
   "snack": {
     "pageTitle": "零食创建器",
@@ -340,7 +421,29 @@
     "catPantry": "储藏室",
     "catFrozen": "冷冻食品",
     "catBakery": "烘焙",
-    "catOther": "其他"
+    "catOther": "其他",
+    "addItemsBtn": "添加项目",
+    "addedToList": "已添加到购物清单",
+    "barcodePlaceholder": "输入条形码编号...",
+    "bulkInstructions": "输入或粘贴，每行一个项目，或使用逗号分隔：",
+    "bulkPlaceholder": "牛奶\n鸡蛋\n鸡胸肉\n菠菜\n糙米",
+    "bulkTitle": "批量添加项目",
+    "checked": "已勾选",
+    "chefBuy": "大厨建议：选购吧！",
+    "chefCaution": "大厨提醒：注意一下……",
+    "chefSkip": "大厨建议：三思而后行",
+    "continueToBiometrics": "继续至生物指标",
+    "emptyList": "您的购物清单是空的",
+    "emptyListHint": "粘贴项目或快速添加以开始",
+    "enterBarcode": "输入条形码",
+    "items": "个项目",
+    "itemsAddedDesc": "已将 {{count}} 个项目添加到您的购物清单。",
+    "itemsCopied": "已复制 {{count}} 个项目",
+    "proLabel": "Pro",
+    "savedForReview": "已保存待审阅",
+    "savedForReviewDesc": "您可以随时从本页面重新查看此扫描记录。",
+    "scannedProduct": "已扫描产品",
+    "tapView": "点击查看 →"
   },
   "restaurant": {
     "pageTitle": "餐厅助手",
@@ -357,7 +460,36 @@
     "errorZipDesc": "请输入有效的5位邮编。",
     "errorLocationDenied": "位置访问被拒绝",
     "errorLocationDesc": "请在浏览器设置中启用位置访问，或手动输入您的邮编。",
-    "generationFailed": "生成失败"
+    "generationFailed": "生成失败",
+    "addressCopied": "地址已复制",
+    "askFor": "询问：",
+    "cannotDetectZip": "无法检测到 ZIP 邮编",
+    "cannotDetectZipDesc": "已找到位置，但无法确定您的 ZIP 邮编。请手动输入。",
+    "copyFailed": "复制失败",
+    "copyManually": "请手动复制。",
+    "entryDesc": "告诉我您在哪里用餐以及想吃什么，我将为您展示该餐厅菜单中的最佳选择。",
+    "entryTitle": "餐厅助手",
+    "findDishes": "查找菜肴",
+    "findingDishes": "正在查找您的完美菜肴...",
+    "howToUseTitle": "如何使用餐厅助手",
+    "letsFindDishes": "开始查找菜肴",
+    "locationFound": "已找到位置",
+    "pasteHint": "粘贴到地图或 Waze 中。",
+    "recommendedAt": "推荐餐点于",
+    "scanningMenu": "正在扫描菜单…",
+    "searchAgain": "重新搜索",
+    "searchingFor": "正在搜索 {{restaurant}} 以获取 {{craving}} 的选项",
+    "step1": "第 1 步",
+    "step1Placeholder": "例如：鸡肉、三文鱼、意大利面、牛排",
+    "step1Question": "您想吃什么菜肴或类型的食物？",
+    "step2": "第 2 步",
+    "step2Placeholder": "例如：Cheesecake Factory, P.F. Chang's, Chipotle",
+    "step2Question": "您在哪里用餐？请输入餐厅名称。",
+    "step3": "第 3 步",
+    "step3Placeholder": "例如：30303, 90210, 10001",
+    "step3Question": "输入您的 ZIP 邮编，以便我找到最近的地点。",
+    "translationFailed": "翻译失败",
+    "whyHealthy": "健康原因："
   },
   "upgrade": {
     "viewPlans": "查看计划",
@@ -369,7 +501,23 @@
     "essentialTagline": "完整的餐食构建工具包，围绕您的个人档案构建。",
     "proTagline": "扩展的创建工具和现实世界饮食，完全符合方案。",
     "clinicalTagline": "医疗级营养工具，用于严肃的健康成果。",
-    "proPromo": "专业版是我们最受欢迎的计划 — 解锁所有创建器。"
+    "proPromo": "专业版是我们最受欢迎的计划 — 解锁所有创建器。",
+    "availableOn": "适用于 {{plan}}",
+    "buildersBenefit1": "Craving Creator, Beverage Creator, Dessert Creator & Sushi Creator",
+    "buildersBenefit2": "膳食生成器交换 — 随目标演变随时切换生成器",
+    "buildersBenefit3": "餐厅助手, My Perfect Gatherings 及更多生活方式工具",
+    "buildersBenefit4": "Essential 助您起步 · Clinical 提供医疗级营养工具",
+    "clinicalBenefit1": "临床实验室集成 — 根据您的血液检测结果制定膳食方案",
+    "clinicalBenefit2": "护理团队接入 — 在应用内联系医师或教练",
+    "clinicalBenefit3": "运动表现营养、备赛与运动员专用生成器",
+    "essentialBenefit1": "Create a Dish — AI 膳食根据您的营养方案量身定制",
+    "essentialBenefit2": "购物清单、已保存膳食与每周膳食计划表",
+    "essentialBenefit3": "食谱制作器、零食生成器与无限次 Fridge Rescue",
+    "featurePartOf": "{{feature}} 包含在 {{plan}} 中",
+    "planBadge": "{{label}} 计划",
+    "proBenefit1": "Craving Creator, Beverage Creator & Sushi Creator",
+    "proBenefit2": "餐厅助手 — 在任何餐厅都能遵循协议的订餐指南",
+    "proBenefit3": "My Perfect Gatherings 与 My Perfect Pets 营养计划"
   },
   "pricing": {
     "pageTitle": "订阅",
@@ -448,7 +596,10 @@
     "dietVegan": "纯素",
     "dietVegetarian": "素食",
     "dietPescatarian": "鱼素",
-    "dietCarnivore": "肉食"
+    "dietCarnivore": "肉食",
+    "back": "返回",
+    "next": "下一步",
+    "selectPath": "选择上方的路径"
   },
   "findMeals": {
     "pageTitle": "查找附近餐厅",
@@ -992,7 +1143,25 @@
     "whyWeeklyPlanning": "为什么需要周计划？",
     "savingPlan": "保存中…",
     "savedPlan": "已保存 ✓",
-    "savePlan": "保存计划"
+    "savePlan": "保存计划",
+    "addMealsHint": "使用“+”添加餐点",
+    "dayDuplicated": "日期已复制",
+    "dayDuplicatedBoth": "本周 {{thisWeek}} 天 + 未来周 {{future}} 天",
+    "dayDuplicatedDesc": "已复制到 {{count}} 天",
+    "duplicate": "复制",
+    "failedToDuplicate": "复制失败",
+    "nextWeek": "下一周",
+    "noSlotMealsYet": "还没有 {{slot}} 的餐点",
+    "partialDuplicate": "部分复制",
+    "partialDuplicateDesc": "已保存 {{count}} 天中的 {{total}} 天。",
+    "prevWeek": "上一周",
+    "savedFutureWeek": "已保存至未来周",
+    "savedFutureWeekDesc": "餐点已复制到 {{count}} 天。向右滑动即可查看。",
+    "shoppingListDesc": "您可以将整个星期的餐点发送到购物清单！这会合并所有食材，方便采购。点击底部的“发送整个星期”。",
+    "shoppingListNext": "下一步：查看购物清单，了解如何有效使用它！",
+    "shoppingListTitle": "购物清单已就绪",
+    "syncPending": "等待同步",
+    "tryAgain": "请重试"
   },
   "coachCorner": {
     "title": "教练专区",
@@ -1447,7 +1616,6 @@
       "revokeConfirm": "撤销访问权限"
     }
   },
-
   "mealCard": {
     "protein": "蛋白质",
     "carbs": "碳水",
@@ -1856,7 +2024,6 @@
     "tour8Title": "星号的含义",
     "tourTitle": "一般营养构建器"
   },
-
   "trialBanner": {
     "lastDayTitle": "您的免费Pro访问权今天到期",
     "lastDayBody": "您的账户将于今晚切换至免费计划。",
@@ -1871,7 +2038,6 @@
     "clinicalAccess": "临床访问",
     "fullAccess": "完整访问权"
   },
-
   "trialStatusCard": {
     "adminTrial": "管理员试用",
     "clinicalTrial": "临床试用",
@@ -1897,5 +2063,64 @@
     "addItem": "添加商品",
     "viewFullList": "查看完整清单",
     "noItems": "您的购物清单为空。请从您的饮食计划中添加食物项目。"
+  },
+
+  "physicianCareTeam": {
+    "availability": {
+      "available": "有空",
+      "away": "离开",
+      "from": "从",
+      "offline": "离线",
+      "saved": "已保存",
+      "saving": "正在保存…",
+      "title": "可用状态",
+      "until": "直到"
+    },
+    "clinic": {
+      "activePatients": "活跃患者",
+      "portalButton": "打开医师门户",
+      "viewAndManage": "在医师门户中查看并管理您的患者。"
+    },
+    "errors": {
+      "availabilityFailed": "更新可用状态失败。",
+      "emailRequired": "需要提供电子邮件。",
+      "inviteFailed": "发送邀请失败。",
+      "loadFailed": "加载护理团队失败。",
+      "saveDatesFailed": "保存日期失败。"
+    },
+    "invite": {
+      "emailLabel": "患者邮箱",
+      "emailPlaceholder": "patient@example.com",
+      "roleLabel": "专业角色",
+      "rolePlaceholder": "选择一个角色",
+      "sendInvite": "发送邀请",
+      "title": "邀请患者"
+    },
+    "platform": {
+      "button": "探索功能",
+      "description": "了解平台如何帮助您支持患者。",
+      "explore": "探索平台"
+    },
+    "roles": {
+      "dietitian": "营养师",
+      "doctor": "医生",
+      "np": "Nurse Practitioner",
+      "nutritionist": "营养学家",
+      "pa": "Physician Assistant",
+      "rn": "RN"
+    },
+    "title": "医师护理团队",
+    "toast": {
+      "invitationSent": "已向 {{email}} 发送邀请"
+    },
+    "tour": {
+      "invitePatients": "邀请患者",
+      "invitePatientsDesc": "邀请患者与您联系并获得支持。",
+      "physicianPortal": "使用医师门户",
+      "physicianPortalDesc": "打开医师门户以查看和管理您的患者。",
+      "setAvailability": "设置您的可用状态",
+      "setAvailabilityDesc": "让患者了解您何时有空、离开或离线。"
+    },
+    "tourTitle": "医师护理团队"
   }
 }
