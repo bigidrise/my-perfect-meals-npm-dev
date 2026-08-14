@@ -227,6 +227,10 @@ describe("resolveAccessTier with BILLING_ENFORCED=true — trial scenarios", () 
 // The stamp is guarded by isNormalConsumer so ProCare accounts are excluded.
 
 describe("auth.session.ts source scan — trial conditionally stamped in userValues", () => {
+  // Trials are stamped at account-creation time (signup) for normal consumers.
+  // The stamp is guarded by isNormalConsumer so ProCare accounts are excluded.
+  // The onboarding handler retains a guard-clause fallback for accounts created
+  // before this change.
   const signupFilePath = path.resolve(__dirname, "../routes/auth.session.ts");
   let source: string;
 

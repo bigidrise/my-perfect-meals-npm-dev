@@ -112,13 +112,15 @@ router.post("/admin/grant", requireAuth, requireAdmin, async (req, res) => {
     const trialEndsAt = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000);
 
     // Update user trial fields — only if this extends beyond any existing trial.
-    // Never touch plan_lookup_key or subscription_status: a paid subscription must
-    // remain intact. The trial is superseded by an active plan in computeTrialStatus.
+    // plan_lookup_key is intentionally left untouched: a trial grant must not
+    // revoke an active paid subscription. The trial window simply activates
+    // if/when the paid plan lapses.
     await db.execute(sql`
       UPDATE users
-         SET trial_started_at = COALESCE(trial_started_at, now()),
-             trial_ends_at    = GREATEST(COALESCE(trial_ends_at, '1970-01-01'::timestamptz), ${trialEndsAt}),
-             trial_source     = ${trialSource}
+         SET trial_started_at    = COALESCE(trial_started_at, now()),
+             trial_ends_at       = GREATEST(COALESCE(trial_ends_at, '1970-01-01'::timestamptz), ${trialEndsAt}::timestamptz),
+             trial_source        = ${trialSource},
+             subscription_status = 'active'
        WHERE id = ${userId}
     `);
 
@@ -127,14 +129,16 @@ router.post("/admin/grant", requireAuth, requireAdmin, async (req, res) => {
       INSERT INTO trial_grants
         (user_id, granted_by_user_id, trial_source, trial_tier, expires_to_tier,
          trial_started_at, trial_ends_at, granted_at, notes)
-      VALUES (${userId}, ${grantedBy}, ${trialSource}, ${trialTier}, ${expiresToTier},
-              now(), ${trialEndsAt}, now(), ${notes ?? null})
+      VALUES (
+        ${userId}, ${grantedBy}, ${trialSource}, ${trialTier}, ${expiresToTier},
+        now(), ${trialEndsAt}::timestamptz, now(), ${notes ?? null}
+      )
     `);
 
-    // Audit log
+    // Audit log — WRITE covers any admin-initiated data mutation
     logAudit({
       actor: grantedBy,
-      action: "TRIAL_GRANT",
+      action: "WRITE",
       resourceType: "trial",
       resourceId: userId,
       route: "/api/admin/trial-grant",
