@@ -271,6 +271,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     sessionGenRef.current += 1; // invalidate all in-flight async requests for the old key
     setResultOwnerKey(null); // ← clear before state so save effect detects transition
     setResult(null);
+    setPreRefinedResult(null);
     setConversation([]);
     setProductAdvice(null); // clear prior user's advice alongside result/conversation
     setPhase("idle");
@@ -279,6 +280,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       if (!raw) return;
       const session = JSON.parse(raw) as {
         result?: CoachResult;
+        preRefinedResult?: CoachResult;
         conversation?: ConversationMessage[];
         productAdvice?: ProductAdviceResult;
         savedAt?: number;
@@ -290,6 +292,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       }
       if (session.result) {
         setResult(session.result);
+        if (session.preRefinedResult) setPreRefinedResult(session.preRefinedResult);
         setResultOwnerKey(SESSION_KEY); // result now belongs to this user's key
         setPhase("result");
 
@@ -323,13 +326,14 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       try {
         localStorage.setItem(SESSION_KEY, JSON.stringify({
           result,
+          preRefinedResult: preRefinedResult ?? undefined,
           conversation,
           productAdvice: productAdvice ?? undefined,
           savedAt: Date.now(),
         }));
       } catch {}
     }
-  }, [result, conversation, productAdvice, SESSION_KEY, resultOwnerKey]);
+  }, [result, preRefinedResult, conversation, productAdvice, SESSION_KEY, resultOwnerKey]);
 
   useEffect(() => {
     if (!open) {
@@ -449,6 +453,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     setProductAdvice(null);
     setBrandsAdded(false);
     setShowSavedOnly(false);
+    setPreRefinedResult(null);
 
     const newConvo: ConversationMessage[] = [
       ...conversation,
@@ -506,6 +511,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     try { localStorage.removeItem(SESSION_KEY); } catch {}
     setPhase("idle");
     setResult(null);
+    setPreRefinedResult(null);
     setResultOwnerKey(null);
     setConversation([]);
     setInput("");
@@ -1538,29 +1544,25 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
           builderType="grocery-coach"
           onRefined={(refined) => {
             if (!preRefinedResult) setPreRefinedResult(result);
+            // Compute the merged result upfront so we can pass it to finalizeCard.
             // The freeform endpoint returns updatedMeal in the same CoachResult shape.
             // If it has the Grocery Coach fields (shoppingList + meal), apply them directly.
+            let mergedResult: CoachResult | null = null;
             if (refined && (refined.shoppingList !== undefined || refined.meal !== undefined)) {
-              setResult((prev) => {
-                if (!prev) return prev;
-                return {
-                  ...prev,
-                  ...(refined as Partial<CoachResult>),
-                  // Always preserve the owner key
-                };
-              });
+              mergedResult = result
+                ? { ...result, ...(refined as Partial<CoachResult>) }
+                : null;
             } else {
               // Fallback: standard meal shape from the old endpoint
-              setResult((prev) => {
-                if (!prev) return prev;
-                return {
-                  ...prev,
+              if (result) {
+                mergedResult = {
+                  ...result,
                   meal: {
-                    ...prev.meal,
-                    name: refined.name ?? prev.meal.name,
-                    description: refined.description ?? prev.meal.description,
+                    ...result.meal,
+                    name: refined.name ?? result.meal.name,
+                    description: refined.description ?? result.meal.description,
                   },
-                  macros: refined.nutrition ?? prev.macros,
+                  macros: refined.nutrition ?? result.macros,
                   shoppingList: Array.isArray(refined.ingredients)
                     ? refined.ingredients.map((i: any) => ({
                         item: typeof i === "string" ? i : (i.name ?? i.item ?? ""),
@@ -1568,11 +1570,20 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                         unit: typeof i === "string" ? "" : (i.unit ?? ""),
                         category: typeof i === "string" ? "Other" : (i.category ?? "Other"),
                       }))
-                    : prev.shoppingList,
+                    : result.shoppingList,
                 };
-              });
+              }
             }
-            setResultOwnerKey(SESSION_KEY); // refined result still belongs to this user
+            if (mergedResult) {
+              setResult(mergedResult);
+              setResultOwnerKey(SESSION_KEY); // refined result still belongs to this user
+              // Regenerate the Favorites card with the refined meal data so the
+              // saved card reflects the updated name, description, ingredients,
+              // and macros — not the original pre-refinement version.
+              setCardPhase("generating");
+              setMealCard(null);
+              finalizeCard(mergedResult);
+            }
           }}
         />
       )}
