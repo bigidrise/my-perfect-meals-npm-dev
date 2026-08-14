@@ -1,4 +1,5 @@
 {
-  "activeHardcodedStrings": 1439,
-  "generatedAt": "2026-08-14T22:13:39.605Z"
+  "activeHardcodedStrings": 1446,
+  "generatedAt": "2026-08-14T23:24:19.212Z",
+  "note": "Corrected from 1439 on first live rescan. Previous baseline read stale cached reports; this is the accurate live count from which the ratchet now runs."
 }
