@@ -67,7 +67,12 @@
     "translate": "ترجمة",
     "share": "مشاركة",
     "log": "تسجيل",
-    "logMeal": "تسجيل الوجبة"
+    "logMeal": "تسجيل الوجبة",
+    "addToCalendar": "إضافة إلى التقويم",
+    "bringBackChef": "إعادة الطاهي",
+    "comingSoon": "قريباً",
+    "withChef": "مع الطاهي",
+    "today": "اليوم:"
   },
   "language": {
     "pageTitle": "اللغة",
@@ -390,7 +395,8 @@
     "servings": "حصص",
     "ingredientsServes": "المكونات (تكفي {{count}})",
     "noIngredients": "لم يتم توفير المكونات",
-    "noInstructions": "لم تتوفر تعليمات"
+    "noInstructions": "لم تتوفر تعليمات",
+    "couldNotUpdateFavorites": "تعذّر تحديث المفضلة. حاول مجدداً."
   },
   "shopping": {
     "pageTitle": "قائمة التسوق الذكية",

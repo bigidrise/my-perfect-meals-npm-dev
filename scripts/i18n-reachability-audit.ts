@@ -150,6 +150,38 @@ function getAllTsxFiles(dir: string): string[] {
   return results;
 }
 
+/**
+ * Returns ALL source files (.ts + .tsx, excluding tests) for import-graph
+ * building.  Including .ts files as intermediate graph nodes lets the BFS
+ * traverse chains like:
+ *   ActivePage.tsx  →  useHook.ts  →  SharedComponent.tsx
+ * Without this, any component imported only via a .ts utility/hook would be
+ * invisible to the reachability audit and mis-classified as UNKNOWN_REVIEW.
+ */
+function getAllSourceFiles(dir: string): string[] {
+  const results: string[] = [];
+  function walk(current: string) {
+    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+      const full = path.join(current, entry.name);
+      if (entry.isDirectory()) {
+        if (["node_modules", "__tests__", "test", ".vite", "dist"].includes(entry.name)) continue;
+        walk(full);
+      } else if (entry.isFile()) {
+        const n = entry.name;
+        if (
+          (n.endsWith(".tsx") || n.endsWith(".ts")) &&
+          !n.endsWith(".test.tsx") && !n.endsWith(".spec.tsx") &&
+          !n.endsWith(".test.ts")  && !n.endsWith(".spec.ts")
+        ) {
+          results.push(full);
+        }
+      }
+    }
+  }
+  walk(dir);
+  return results;
+}
+
 // Resolve a relative/aliased import to an absolute path
 const ALIAS_PREFIX = "@/";
 function resolveImport(fromFile: string, importPath: string): string | null {
@@ -341,11 +373,16 @@ async function main() {
   console.log("  Read-only scan. Zero production files modified.");
   console.log("═══════════════════════════════════════════════════════════\n");
 
+  // allFiles — the .tsx files we report on and classify
   const allFiles = getAllTsxFiles(CLIENT_SRC);
-  console.log(`  Scanning ${allFiles.length} .tsx files...`);
+  // graphFiles — .ts + .tsx files used as nodes in the import graph so that
+  // chains like  ActivePage.tsx → hook.ts → SharedComponent.tsx  are captured
+  const graphFiles = getAllSourceFiles(CLIENT_SRC);
+  console.log(`  Scanning ${allFiles.length} .tsx files (${graphFiles.length} total source files for transitive-import graph)...`);
 
-  // Build import graph
-  const { forward, reverse } = buildImportGraph(allFiles);
+  // Build import graph over ALL source files (.ts + .tsx) so .ts intermediate
+  // nodes don't break transitive reachability chains.
+  const { forward, reverse } = buildImportGraph(graphFiles);
 
   // Identify entry point files
   const entryFiles = [
@@ -356,8 +393,22 @@ async function main() {
     path.join(CLIENT_SRC, "components/AppRouter.tsx"),
   ].filter(fs.existsSync);
 
-  // Determine which files are reachable from router at all
+  // Determine which files are reachable from router via transitive BFS.
+  // Because graphFiles includes .ts nodes, the BFS now follows the full
+  // import chain through TypeScript utilities and hooks.
   const reachableFromRouter = bfsReachable(entryFiles, forward);
+
+  // ── Library convention: components/ui/ ────────────────────────────────────
+  // Files in client/src/components/ui/ are the shared shadcn/ui design-system
+  // primitives.  They are intentionally reachable from any active surface; the
+  // import graph cannot enumerate all future consumers.  Mark every non-dead
+  // file in this directory as reachable so GATE_08 always covers them.
+  const UI_LIB_PREFIX = path.join(CLIENT_SRC, "components", "ui") + path.sep;
+  for (const file of allFiles) {
+    if (file.startsWith(UI_LIB_PREFIX)) {
+      reachableFromRouter.add(file);
+    }
+  }
 
   // Extract route info from Router.tsx for gate classification
   const routerPath = path.join(CLIENT_SRC, "components/Router.tsx");

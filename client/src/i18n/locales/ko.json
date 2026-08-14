@@ -67,7 +67,12 @@
     "translate": "번역",
     "share": "공유",
     "log": "기록",
-    "logMeal": "식사 기록"
+    "logMeal": "식사 기록",
+    "addToCalendar": "캘린더에 추가",
+    "bringBackChef": "셰프 다시 불러오기",
+    "comingSoon": "곧 출시",
+    "withChef": "셰프와 함께",
+    "today": "오늘:"
   },
   "language": {
     "pageTitle": "언어",
@@ -390,7 +395,8 @@
     "servings": "인분",
     "ingredientsServes": "재료 ({{count}}인분)",
     "noIngredients": "재료가 제공되지 않았습니다",
-    "noInstructions": "지침이 제공되지 않았습니다"
+    "noInstructions": "지침이 제공되지 않았습니다",
+    "couldNotUpdateFavorites": "즐겨찾기를 업데이트할 수 없습니다. 다시 시도하세요."
   },
   "shopping": {
     "pageTitle": "스마트 쇼핑 목록",

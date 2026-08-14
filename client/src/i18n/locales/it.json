@@ -67,7 +67,12 @@
     "translate": "Traduci",
     "share": "Condividi",
     "log": "Registra",
-    "logMeal": "Registra Pasto"
+    "logMeal": "Registra Pasto",
+    "addToCalendar": "Aggiungi al calendario",
+    "bringBackChef": "Riporta il tuo chef",
+    "comingSoon": "Prossimamente",
+    "withChef": "Con lo Chef",
+    "today": "Oggi:"
   },
   "language": {
     "pageTitle": "Lingua",
@@ -390,7 +395,8 @@
     "servings": "porzioni",
     "ingredientsServes": "Ingredienti (per {{count}})",
     "noIngredients": "Nessun ingrediente fornito",
-    "noInstructions": "Nessuna istruzione fornita"
+    "noInstructions": "Nessuna istruzione fornita",
+    "couldNotUpdateFavorites": "Impossibile aggiornare i preferiti. Riprova."
   },
   "shopping": {
     "pageTitle": "Lista della Spesa Intelligente",

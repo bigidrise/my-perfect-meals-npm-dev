@@ -67,7 +67,12 @@
     "translate": "翻訳",
     "share": "共有",
     "log": "記録",
-    "logMeal": "食事を記録"
+    "logMeal": "食事を記録",
+    "addToCalendar": "カレンダーに追加",
+    "bringBackChef": "シェフを戻す",
+    "comingSoon": "近日公開",
+    "withChef": "シェフと一緒に",
+    "today": "今日："
   },
   "language": {
     "pageTitle": "言語",
@@ -390,7 +395,8 @@
     "servings": "人前",
     "ingredientsServes": "材料（{{count}}人前）",
     "noIngredients": "食材が提供されていません",
-    "noInstructions": "手順が提供されていません"
+    "noInstructions": "手順が提供されていません",
+    "couldNotUpdateFavorites": "お気に入りを更新できませんでした。もう一度お試しください。"
   },
   "shopping": {
     "pageTitle": "スマート買い物リスト",

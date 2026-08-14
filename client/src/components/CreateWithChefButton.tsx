@@ -1,4 +1,5 @@
 import { ChefHat } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { PillButton } from "@/components/ui/pill-button";
 
 interface CreateWithChefButtonProps {
@@ -8,12 +9,13 @@ interface CreateWithChefButtonProps {
 }
 
 export function CreateWithChefButton({ onClick, disabled, className }: CreateWithChefButtonProps) {
+  const { t } = useTranslation();
   return (
     <div className={`inline-flex flex-col items-center gap-1 ${className || ""}`}>
       <PillButton onClick={onClick} disabled={disabled} active={true} variant="amber" className="px-3">
         <ChefHat className="h-3 w-3" />
       </PillButton>
-      <span className="text-xs font-semibold text-white/70 tracking-wide whitespace-nowrap">With Chef</span>
+      <span className="text-xs font-semibold text-white/70 tracking-wide whitespace-nowrap">{t("common.withChef")}</span>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Hammer, Clock } from "lucide-react";
 import { useLocation } from "wouter";
+import { useTranslation } from "react-i18next";
 
 type Props = {
   title: string;
@@ -18,6 +19,7 @@ export default function ComingSoonCard({
   ctaHref = "/weekly-meal-board",
 }: Props) {
   const [, setLocation] = useLocation();
+  const { t } = useTranslation();
 
   return (
     <div className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-xl rounded-2xl p-6 text-white/90">
@@ -27,7 +29,7 @@ export default function ComingSoonCard({
         </div>
         <div>
           <h3 className="text-xl font-bold text-white">{title}</h3>
-          <p className="text-sm text-amber-400">Coming Soon</p>
+          <p className="text-sm text-amber-400">{t("common.comingSoon")}</p>
         </div>
       </div>
       

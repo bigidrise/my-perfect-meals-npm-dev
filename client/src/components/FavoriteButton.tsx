@@ -1,4 +1,5 @@
 import { Heart, Lock } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useToggleSavedMeal, useSavedMealsCheck, isMealSaved } from "@/hooks/useSavedMeals";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
@@ -15,6 +16,7 @@ interface FavoriteButtonProps {
 }
 
 export default function FavoriteButton({ title, sourceType, mealData, className = "", size = 20 }: FavoriteButtonProps) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { user } = useAuth();
   const { requestUpgrade } = useUpgradeModal();
@@ -53,7 +55,7 @@ export default function FavoriteButton({ title, sourceType, mealData, className 
         },
         onError: () => {
           setOptimisticSaved(null);
-          toast({ title: "Error", description: "Could not update favorites. Try again." });
+          toast({ title: t("common.error"), description: t("savedMeals.couldNotUpdateFavorites") });
         },
       }
     );

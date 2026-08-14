@@ -67,7 +67,12 @@
     "translate": "Dịch",
     "share": "Chia sẻ",
     "log": "Ghi nhật ký",
-    "logMeal": "Ghi nhật ký bữa ăn"
+    "logMeal": "Ghi nhật ký bữa ăn",
+    "addToCalendar": "Thêm vào lịch",
+    "bringBackChef": "Gọi lại đầu bếp",
+    "comingSoon": "Sắp ra mắt",
+    "withChef": "Cùng với Đầu bếp",
+    "today": "Hôm nay:"
   },
   "language": {
     "pageTitle": "Ngôn ngữ",
@@ -390,7 +395,8 @@
     "servings": "khẩu phần",
     "ingredientsServes": "Nguyên liệu (phục vụ {{count}})",
     "noIngredients": "Không có nguyên liệu được cung cấp",
-    "noInstructions": "Không có hướng dẫn được cung cấp"
+    "noInstructions": "Không có hướng dẫn được cung cấp",
+    "couldNotUpdateFavorites": "Không thể cập nhật mục yêu thích. Thử lại."
   },
   "shopping": {
     "pageTitle": "Danh sách mua sắm thông minh",

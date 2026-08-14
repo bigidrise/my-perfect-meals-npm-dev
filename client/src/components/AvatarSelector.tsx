@@ -1,5 +1,6 @@
 // ✅ FINAL FIXED VERSION - AvatarSelector.tsx
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { apiUrl } from '@/lib/resolveApiBase';
 import { ChefHat, Mic, MicOff } from 'lucide-react';
 import { useLocation } from 'wouter';
@@ -18,6 +19,7 @@ export const AvatarSelector = () => {
     return null;
   }
   
+  const { t } = useTranslation();
   const [, setLocation] = useLocation();
   const [selectedAvatar, setSelectedAvatar] = useState(() => {
     return localStorage.getItem('selectedAvatar') || 'blackMale';
@@ -486,7 +488,7 @@ export const AvatarSelector = () => {
           <button
             className="chef-hat-shortcut"
             onClick={showChef}
-            title="Bring back your chef"
+            title={t("common.bringBackChef")}
             style={{
               backgroundColor: 'transparent',       // was rgba(...)
               backdropFilter: 'none',                // was blur(12px)

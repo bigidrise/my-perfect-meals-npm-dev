@@ -1,3 +1,5 @@
+import { useTranslation } from "react-i18next";
+
 /**
  * DailyMacroTotalsRow
  *
@@ -49,6 +51,7 @@ function macroColor(value: number, target: number): string {
 }
 
 export function DailyMacroTotalsRow({ totals, prescription, activeDayISO, fallbackTargets }: Props) {
+  const { t } = useTranslation();
   if (!activeDayISO) return null;
 
   // Prefer the server-resolved prescription; fall back to local targets when
@@ -84,7 +87,7 @@ export function DailyMacroTotalsRow({ totals, prescription, activeDayISO, fallba
 
   return (
     <div className="flex flex-wrap items-center gap-1.5 px-1">
-      <span className="text-white/40 text-xs font-medium shrink-0">Today:</span>
+      <span className="text-white/40 text-xs font-medium shrink-0">{t("common.today")}</span>
       {hasTargets ? (
         <>
           <span
