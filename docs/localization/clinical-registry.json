@@ -1,7 +1,7 @@
 {
   "_meta": {
     "description": "Protected clinical/safety string registry. Strings here cannot be auto-migrated. Require qualified medical translator + clinical review.",
-    "generatedAt": "2026-08-14T22:13:40.349Z",
+    "generatedAt": "2026-08-14T22:57:35.487Z",
     "basedOn": "Step 1A audit (CLINICAL_SAFETY class) × Step 1B reachability (ACTIVE/CONDITIONAL surfaces only)",
     "governanceRule": "Any change to these strings in any locale file requires a [clinical-translation] PR annotation and clinical reviewer sign-off."
   },
@@ -233,7 +233,7 @@
         "line": 151,
         "text": "Official FDA prescribing information for the GIP/GLP-1 dual agonist tirzepatide, documenting the same GI adverse reaction profile and dehydration risk. Applies to users on Mounjaro or Zepbound.",
         "category": "diabetes_glp1",
-        "proposedKey": "medicalsourcesinfo.official_fda_prescribing_information"
+        "proposedKey": "medicalsourcesinfo.official_fda_prescribing_information_2"
       },
       {
         "line": 162,
@@ -329,7 +329,7 @@
         "line": 300,
         "text": "American Diabetes Association (ADA) — Standards of Care",
         "category": "diabetes_glp1",
-        "proposedKey": "medicalsourcesinfo.american_diabetes_association_ada"
+        "proposedKey": "medicalsourcesinfo.american_diabetes_association_ada_2"
       },
       {
         "line": 301,
@@ -347,7 +347,7 @@
         "line": 316,
         "text": "Clinical reference ranges for TSH, Free T4, Free T3, and Reverse T3 (rT3) used to support thyroid protocol detection, subtype classification (hypothyroid, hyperthyroid, Hashimoto",
         "category": "lab_biometric",
-        "proposedKey": "medicalsourcesinfo.clinical_reference_ranges_for"
+        "proposedKey": "medicalsourcesinfo.clinical_reference_ranges_for_2"
       },
       {
         "line": 343,
@@ -401,7 +401,7 @@
         "line": 423,
         "text": "Clinical practice guidelines for hypothyroidism, Hashimoto",
         "category": "lab_biometric",
-        "proposedKey": "medicalsourcesinfo.clinical_practice_guidelines_for"
+        "proposedKey": "medicalsourcesinfo.clinical_practice_guidelines_for_2"
       },
       {
         "line": 427,
@@ -419,7 +419,7 @@
         "line": 433,
         "text": "Clinical practice guidelines for thyroid disorders, autoimmune thyroid disease, and nutrition interactions",
         "category": "lab_biometric",
-        "proposedKey": "medicalsourcesinfo.clinical_practice_guidelines_for"
+        "proposedKey": "medicalsourcesinfo.clinical_practice_guidelines_for_3"
       },
       {
         "line": 500,
@@ -515,7 +515,7 @@
         "line": 797,
         "text": "Official FDA prescribing information for the GIP/GLP-1 dual agonist tirzepatide, documenting the same GI adverse reaction profile and dehydration risk. Applies to users on Mounjaro or Zepbound.",
         "category": "diabetes_glp1",
-        "proposedKey": "medicalsourcesinfo.official_fda_prescribing_information"
+        "proposedKey": "medicalsourcesinfo.official_fda_prescribing_information_2"
       },
       {
         "line": 808,
@@ -599,7 +599,7 @@
         "line": 911,
         "text": "Clinical practice guidelines for nutrition in chronic kidney disease — potassium, phosphorus, and protein limits",
         "category": "general_clinical",
-        "proposedKey": "medicalsourcesinfo.clinical_practice_guidelines_for"
+        "proposedKey": "medicalsourcesinfo.clinical_practice_guidelines_for_4"
       },
       {
         "line": 921,
@@ -611,7 +611,7 @@
         "line": 926,
         "text": "Clinical practice guidelines for hormone optimization, menopause, and metabolic health — the basis for hormone-balancing nutrition",
         "category": "lab_biometric",
-        "proposedKey": "medicalsourcesinfo.clinical_practice_guidelines_for"
+        "proposedKey": "medicalsourcesinfo.clinical_practice_guidelines_for_5"
       },
       {
         "line": 930,
@@ -671,7 +671,7 @@
         "line": 1169,
         "text": "National Institute of Allergy and Infectious Diseases clinical guidelines establishing early peanut introduction (4–6 months for high-risk infants with eczema or egg allergy) as protective against peanut allergy. The basis for the platform",
         "category": "pregnancy_pediatric",
-        "proposedKey": "medicalsourcesinfo.national_institute_of_allergy"
+        "proposedKey": "medicalsourcesinfo.national_institute_of_allergy_2"
       }
     ],
     "client/src/components/SafetyGuardToggle.tsx": [
@@ -1124,7 +1124,7 @@
       "line": 151,
       "text": "Official FDA prescribing information for the GIP/GLP-1 dual agonist tirzepatide, documenting the same GI adverse reaction profile and dehydration risk. Applies to users on Mounjaro or Zepbound.",
       "category": "diabetes_glp1",
-      "proposedKey": "medicalsourcesinfo.official_fda_prescribing_information"
+      "proposedKey": "medicalsourcesinfo.official_fda_prescribing_information_2"
     },
     {
       "file": "client/src/components/MedicalSourcesInfo.tsx",
@@ -1236,7 +1236,7 @@
       "line": 300,
       "text": "American Diabetes Association (ADA) — Standards of Care",
       "category": "diabetes_glp1",
-      "proposedKey": "medicalsourcesinfo.american_diabetes_association_ada"
+      "proposedKey": "medicalsourcesinfo.american_diabetes_association_ada_2"
     },
     {
       "file": "client/src/components/MedicalSourcesInfo.tsx",
@@ -1257,7 +1257,7 @@
       "line": 316,
       "text": "Clinical reference ranges for TSH, Free T4, Free T3, and Reverse T3 (rT3) used to support thyroid protocol detection, subtype classification (hypothyroid, hyperthyroid, Hashimoto",
       "category": "lab_biometric",
-      "proposedKey": "medicalsourcesinfo.clinical_reference_ranges_for"
+      "proposedKey": "medicalsourcesinfo.clinical_reference_ranges_for_2"
     },
     {
       "file": "client/src/components/MedicalSourcesInfo.tsx",
@@ -1320,7 +1320,7 @@
       "line": 423,
       "text": "Clinical practice guidelines for hypothyroidism, Hashimoto",
       "category": "lab_biometric",
-      "proposedKey": "medicalsourcesinfo.clinical_practice_guidelines_for"
+      "proposedKey": "medicalsourcesinfo.clinical_practice_guidelines_for_2"
     },
     {
       "file": "client/src/components/MedicalSourcesInfo.tsx",
@@ -1341,7 +1341,7 @@
       "line": 433,
       "text": "Clinical practice guidelines for thyroid disorders, autoimmune thyroid disease, and nutrition interactions",
       "category": "lab_biometric",
-      "proposedKey": "medicalsourcesinfo.clinical_practice_guidelines_for"
+      "proposedKey": "medicalsourcesinfo.clinical_practice_guidelines_for_3"
     },
     {
       "file": "client/src/components/MedicalSourcesInfo.tsx",
@@ -1453,7 +1453,7 @@
       "line": 797,
       "text": "Official FDA prescribing information for the GIP/GLP-1 dual agonist tirzepatide, documenting the same GI adverse reaction profile and dehydration risk. Applies to users on Mounjaro or Zepbound.",
       "category": "diabetes_glp1",
-      "proposedKey": "medicalsourcesinfo.official_fda_prescribing_information"
+      "proposedKey": "medicalsourcesinfo.official_fda_prescribing_information_2"
     },
     {
       "file": "client/src/components/MedicalSourcesInfo.tsx",
@@ -1551,7 +1551,7 @@
       "line": 911,
       "text": "Clinical practice guidelines for nutrition in chronic kidney disease — potassium, phosphorus, and protein limits",
       "category": "general_clinical",
-      "proposedKey": "medicalsourcesinfo.clinical_practice_guidelines_for"
+      "proposedKey": "medicalsourcesinfo.clinical_practice_guidelines_for_4"
     },
     {
       "file": "client/src/components/MedicalSourcesInfo.tsx",
@@ -1565,7 +1565,7 @@
       "line": 926,
       "text": "Clinical practice guidelines for hormone optimization, menopause, and metabolic health — the basis for hormone-balancing nutrition",
       "category": "lab_biometric",
-      "proposedKey": "medicalsourcesinfo.clinical_practice_guidelines_for"
+      "proposedKey": "medicalsourcesinfo.clinical_practice_guidelines_for_5"
     },
     {
       "file": "client/src/components/MedicalSourcesInfo.tsx",
@@ -1635,7 +1635,7 @@
       "line": 1169,
       "text": "National Institute of Allergy and Infectious Diseases clinical guidelines establishing early peanut introduction (4–6 months for high-risk infants with eczema or egg allergy) as protective against peanut allergy. The basis for the platform",
       "category": "pregnancy_pediatric",
-      "proposedKey": "medicalsourcesinfo.national_institute_of_allergy"
+      "proposedKey": "medicalsourcesinfo.national_institute_of_allergy_2"
     },
     {
       "file": "client/src/components/SafetyGuardToggle.tsx",

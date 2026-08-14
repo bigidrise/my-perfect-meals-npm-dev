@@ -36,6 +36,39 @@ const clinicalFindings = (report1A.findings ?? []).filter(
     ["ACTIVE", "CONDITIONAL", "HIDDEN_RESERVED"].includes(reachMap.get(f.relPath) ?? "")
 );
 
+// ── Enforce unique key identity ────────────────────────────────────────────
+// proposedKey must be a stable, unique identity: one key ↔ one source text.
+// Same key + same text (string repeated on multiple lines) shares the key.
+// Same key + different text gets a numeric suffix (_2, _3, …).
+{
+  const keyToText = new Map<string, string>();   // assigned key -> text
+  const textToKey = new Map<string, string>();   // "baseKey\u0000text" -> assigned key
+  for (const f of clinicalFindings) {
+    const base = f.proposedKey;
+    const composite = `${base}\u0000${f.original}`;
+    const already = textToKey.get(composite);
+    if (already) { f.proposedKey = already; continue; }
+    let candidate = base;
+    let n = 2;
+    while (keyToText.has(candidate) && keyToText.get(candidate) !== f.original) {
+      candidate = `${base}_${n++}`;
+    }
+    keyToText.set(candidate, f.original);
+    textToKey.set(composite, candidate);
+    f.proposedKey = candidate;
+  }
+  // Hard guarantee: reject any remaining duplicate identity.
+  const seen = new Map<string, string>();
+  for (const f of clinicalFindings) {
+    const prev = seen.get(f.proposedKey);
+    if (prev !== undefined && prev !== f.original) {
+      console.error(`FATAL: duplicate clinical key "${f.proposedKey}" maps to different source texts.`);
+      process.exit(1);
+    }
+    seen.set(f.proposedKey, f.original);
+  }
+}
+
 // Group by file
 const byFile = new Map<string, typeof clinicalFindings>();
 for (const f of clinicalFindings) {

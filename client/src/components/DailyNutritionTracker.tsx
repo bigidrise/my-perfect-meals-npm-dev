@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { TrendingUp, Target, Apple } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface NutritionData {
   calories: { current: number; target: number };
@@ -15,6 +16,7 @@ interface DailyNutritionTrackerProps {
 }
 
 export const DailyNutritionTracker = ({ userId, data }: DailyNutritionTrackerProps) => {
+  const { t } = useTranslation();
   // Mock data for demonstration
   const nutritionData: NutritionData = data || {
     calories: { current: 1650, target: 2000 },
@@ -31,17 +33,17 @@ export const DailyNutritionTracker = ({ userId, data }: DailyNutritionTrackerPro
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Apple className="w-5 h-5 text-green-500" />
-          Daily Nutrition Progress
+          {t("sharedComponents.dailyNutritionTracker.title")}
         </CardTitle>
         <CardDescription>
-          Track your daily nutritional intake
+          {t("sharedComponents.dailyNutritionTracker.description")}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Calories */}
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="font-medium">Calories</span>
+            <span className="font-medium">{t("sharedComponents.dailyNutritionTracker.calories")}</span>
             <span className="text-gray-600">
               {nutritionData.calories.current} / {nutritionData.calories.target} kcal
             </span>
@@ -55,7 +57,7 @@ export const DailyNutritionTracker = ({ userId, data }: DailyNutritionTrackerPro
         {/* Protein */}
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="font-medium">Protein</span>
+            <span className="font-medium">{t("sharedComponents.dailyNutritionTracker.protein")}</span>
             <span className="text-gray-600">
               {nutritionData.protein.current} / {nutritionData.protein.target} g
             </span>
@@ -69,7 +71,7 @@ export const DailyNutritionTracker = ({ userId, data }: DailyNutritionTrackerPro
         {/* Carbs */}
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="font-medium">Carbohydrates</span>
+            <span className="font-medium">{t("sharedComponents.dailyNutritionTracker.carbohydrates")}</span>
             <span className="text-gray-600">
               {nutritionData.carbs.current} / {nutritionData.carbs.target} g
             </span>
@@ -83,7 +85,7 @@ export const DailyNutritionTracker = ({ userId, data }: DailyNutritionTrackerPro
         {/* Fat */}
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="font-medium">Fat</span>
+            <span className="font-medium">{t("sharedComponents.dailyNutritionTracker.fat")}</span>
             <span className="text-gray-600">
               {nutritionData.fat.current} / {nutritionData.fat.target} g
             </span>
@@ -97,7 +99,7 @@ export const DailyNutritionTracker = ({ userId, data }: DailyNutritionTrackerPro
         <div className="pt-2 border-t">
           <div className="flex items-center gap-2 text-sm text-green-600">
             <TrendingUp className="w-4 h-4" />
-            <span>On track with your daily goals!</span>
+            <span>{t("sharedComponents.dailyNutritionTracker.onTrack")}</span>
           </div>
         </div>
       </CardContent>

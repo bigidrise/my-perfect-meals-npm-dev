@@ -3,6 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, AlertTriangle, Loader2 } from "lucide-react";
 import { formatIngredientWithGrams } from "@/utils/unitConversions";
+import { useTranslation } from "react-i18next";
 
 // User profile interface (from onboarding data)
 interface UserProfile {
@@ -126,6 +127,7 @@ const generateMedicalBadges = (meal: Meal, userProfile?: UserProfile) => {
 };
 
 export default function EnhancedMealCard({ meal, userProfile, onReplace, isReplacing, errorMessage }: MealCardProps) {
+  const { t } = useTranslation();
   // Generate the medical badges dynamically based on the meal and user profile
   const medicalBadges = generateMedicalBadges(meal, userProfile);
 
@@ -140,15 +142,15 @@ export default function EnhancedMealCard({ meal, userProfile, onReplace, isRepla
           }`} 
           onClick={() => !isReplacing && onReplace()}
           disabled={isReplacing}
-          title={isReplacing ? "Replacing meal..." : "Replace with a completely new meal recipe"}
+          title={isReplacing ? t("sharedComponents.enhancedMealCard.replacingTitle") : t("sharedComponents.enhancedMealCard.replaceTitle")}
         >
           {isReplacing ? (
             <>
               <Loader2 className="w-3 h-3 animate-spin" />
-              Replacing...
+              {t("sharedComponents.enhancedMealCard.replacing")}
             </>
           ) : (
-            "Replace"
+            t("sharedComponents.enhancedMealCard.replace")
           )}
         </button>
       )}
@@ -186,7 +188,7 @@ export default function EnhancedMealCard({ meal, userProfile, onReplace, isRepla
         {/* Portion Guide */}
         {meal.portionGuide && (
           <div>
-            <h3 className="text-md font-semibold text-gray-800 dark:text-gray-200 mb-1">Portion Guide:</h3>
+            <h3 className="text-md font-semibold text-gray-800 dark:text-gray-200 mb-1">{t("sharedComponents.enhancedMealCard.portionGuide")}</h3>
             <p className="text-gray-700 dark:text-gray-300 italic text-sm">{meal.portionGuide}</p>
           </div>
         )}
@@ -194,7 +196,7 @@ export default function EnhancedMealCard({ meal, userProfile, onReplace, isRepla
         {/* Ingredients */}
         {meal.ingredients && meal.ingredients.length > 0 && (
           <div>
-            <h3 className="text-md font-semibold text-gray-800 dark:text-gray-200 mb-1">Ingredients:</h3>
+            <h3 className="text-md font-semibold text-gray-800 dark:text-gray-200 mb-1">{t("sharedComponents.enhancedMealCard.ingredients")}</h3>
             <ul className="list-disc list-inside text-gray-700 dark:text-gray-300 space-y-1">
               {meal.ingredients.map((ingredient, index) => (
                 <li key={index} className="text-sm">
@@ -209,7 +211,7 @@ export default function EnhancedMealCard({ meal, userProfile, onReplace, isRepla
         {/* Instructions */}
         {meal.instructions && meal.instructions.length > 0 && (
           <div>
-            <h3 className="text-md font-semibold text-gray-800 dark:text-gray-200 mb-1">Instructions:</h3>
+            <h3 className="text-md font-semibold text-gray-800 dark:text-gray-200 mb-1">{t("sharedComponents.enhancedMealCard.instructions")}</h3>
             <ol className="list-decimal list-inside text-gray-700 dark:text-gray-300 space-y-1">
               {meal.instructions.map((step, index) => (
                 <li key={index} className="text-sm">{step}</li>
@@ -228,7 +230,7 @@ export default function EnhancedMealCard({ meal, userProfile, onReplace, isRepla
 
         {/* Medical Badges */}
         <div className="space-y-2">
-          <h3 className="text-md font-semibold text-gray-800 dark:text-gray-200">Medical Safety:</h3>
+          <h3 className="text-md font-semibold text-gray-800 dark:text-gray-200">{t("sharedComponents.enhancedMealCard.medicalSafety")}</h3>
           <div className="flex flex-wrap gap-2">
             {medicalBadges.map((badgeData, index) => (
               <div key={index} className="group relative">
@@ -257,7 +259,7 @@ export default function EnhancedMealCard({ meal, userProfile, onReplace, isRepla
         {errorMessage && (
           <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
             <p className="text-sm text-red-700 dark:text-red-300">
-              <strong>Error:</strong> {errorMessage}
+              <strong>{t("sharedComponents.enhancedMealCard.error")}</strong> {errorMessage}
             </p>
           </div>
         )}

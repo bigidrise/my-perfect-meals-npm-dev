@@ -2296,7 +2296,6 @@
     "tierFull": "Completo",
     "keepFullAccess": "Mantener acceso completo →"
   },
-
   "groceryDashCard": {
     "title": "Lista de compras semanal",
     "description": "Tu lista de compras personalizada basada en planes de comidas",
@@ -2308,7 +2307,6 @@
     "viewFullList": "Ver lista completa",
     "noItems": "Tu lista de compras está vacía. Añade artículos desde tu plan de comidas."
   },
-
   "physicianCareTeam": {
     "availability": {
       "available": "Disponible",
@@ -2366,5 +2364,89 @@
       "setAvailabilityDesc": "Informa a los pacientes cuándo estás disponible, ausente o desconectado."
     },
     "tourTitle": "Equipo de atención médica"
+  },
+  "sharedComponents": {
+    "navigation": {
+      "appName": "My Perfect Meals",
+      "features": "Features",
+      "howItWorks": "How It Works",
+      "pricing": "Pricing",
+      "signIn": "Sign In"
+    },
+    "errorBoundary": {
+      "title": "Something went wrong",
+      "description": "We're having trouble loading this page. Please refresh and try again.",
+      "refresh": "Refresh Page"
+    },
+    "dateSlotPicker": {
+      "placeholder": "Select meal slot"
+    },
+    "mealSlots": {
+      "breakfast": "Breakfast",
+      "lunch": "Lunch",
+      "dinner": "Dinner",
+      "snack": "Snack"
+    },
+    "dailyNutritionTracker": {
+      "title": "Daily Nutrition Progress",
+      "description": "Track your daily nutritional intake",
+      "calories": "Calories",
+      "protein": "Protein",
+      "carbohydrates": "Carbohydrates",
+      "fat": "Fat",
+      "onTrack": "On track with your daily goals!"
+    },
+    "pagination": {
+      "label": "pagination",
+      "previousPage": "Go to previous page",
+      "previous": "Previous",
+      "nextPage": "Go to next page",
+      "next": "Next",
+      "morePages": "More pages"
+    },
+    "enhancedMealCard": {
+      "replace": "Replace",
+      "replacing": "Replacing...",
+      "replaceTitle": "Replace with a completely new meal recipe",
+      "replacingTitle": "Replacing meal...",
+      "portionGuide": "Portion Guide:",
+      "ingredients": "Ingredients:",
+      "instructions": "Instructions:",
+      "medicalSafety": "Medical Safety:",
+      "error": "Error:"
+    },
+    "mealCard": {
+      "noRecipe": "No recipe",
+      "addMeal": "Add a meal",
+      "serving": "Serving:",
+      "ingredients": "Ingredients:",
+      "cookingInstructions": "Cooking Instructions:",
+      "protein": "Protein",
+      "carbs": "Carbs",
+      "fat": "Fat"
+    },
+    "nutritionSummary": {
+      "title": "Nutrition Summary",
+      "empty": "Generate a meal plan to see your nutrition summary",
+      "weeklyOverview": "Weekly Overview",
+      "totalCalories": "Total Calories",
+      "dailyAverage": "Daily Average",
+      "totalProtein": "Total Protein",
+      "daysPlanned": "Days Planned",
+      "dailyTargets": "Daily Targets",
+      "calories": "Calories",
+      "protein": "Protein",
+      "carbohydrates": "Carbohydrates",
+      "fat": "Fat",
+      "targetMet": "Target met",
+      "goalProgress": "Goal Progress",
+      "fitnessGoal": "Fitness Goal",
+      "activityLevel": "Activity Level",
+      "dietaryPreferences": "Dietary Preferences",
+      "balanceScore": "Balance Score",
+      "percentOfTarget": "{{n}}% of target",
+      "remainingCal": "{{n}} remaining",
+      "remainingG": "{{n}}g remaining"
+    }
   }
 }
