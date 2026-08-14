@@ -1499,7 +1499,7 @@
   "diabeticHub": {
     "a1cHint": "إذا كنت تعرف A1C الخاص بك، يمكنك إدخاله هنا. هذا يساعد في تخصيص خطتك.",
     "a1cLabel": "A1C (اختياري)",
-    "appliedPreset": "تم تطبيق {{name}}",
+    "appliedPreset": "تم تطبيق \u2068{{name}}\u2069",
     "applyClinicalPreset": "تطبيق الإعداد السريري المسبق",
     "autoSettings": "تستخدم أدوات بناء الوجبات لديك هذه الإعدادات تلقائيًا.",
     "bloodSugarTracker": "متتبع سكر الدم",
