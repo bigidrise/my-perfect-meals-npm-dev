@@ -1,7 +1,7 @@
 /**
  * Grocery Coach Shopping-List Completeness Verification
  *
- * Three modes selectable via CLI flag:
+ * Six modes selectable via CLI flag:
  *
  * (default / no flag) — Task 916: Zero-ownership mode
  *   Verifies shoppingList always contains the full recipe (protein + produce +
@@ -30,15 +30,24 @@
  *   just as reliably as claims made in the current message. shoppingList must
  *   still contain at least one unclaimed substantive ingredient.
  *
+ * --phrasing-variants — Task 929: Phrasing-variants mode
+ *   Verifies that informal ownership phrasing ("Got some…", "There's X in my
+ *   fridge", "I picked up Y earlier", "Found some Z at home") is recognised
+ *   the same way as formal phrasing ("I have X", "I already bought Y").
+ *   Covers 4 single-ingredient and 4 multi-ingredient informal scenarios.
+ *   Same A/B/C/D assertions as partial/multi-ownership modes.
+ *
  * Usage:
  *   npx tsx scripts/verify-grocery-shopping-list.ts
  *   npx tsx scripts/verify-grocery-shopping-list.ts --partial-ownership
  *   npx tsx scripts/verify-grocery-shopping-list.ts --multi-ownership
  *   npx tsx scripts/verify-grocery-shopping-list.ts --triple-ownership
  *   npx tsx scripts/verify-grocery-shopping-list.ts --multi-turn-ownership
+ *   npx tsx scripts/verify-grocery-shopping-list.ts --phrasing-variants
  */
 
 import OpenAI from "openai";
+
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -73,7 +82,7 @@ COACHING RULES:
 - MOST IMPORTANT: If the user mentions ingredients they already bought or have at home, BUILD THE MEAL AROUND THOSE INGREDIENTS. They are the anchor. Only add to the shopping list what is genuinely missing to complete the dish. Never suggest a meal that ignores or sidelines what the user says they already have.
 - Recommend ONE specific, confident meal (may have 2-3 components, e.g., protein + starch + vegetable).
 - The shopping list must be practical and grocery-store ready — include realistic quantities with units (e.g., "2 lbs", "1 bunch", "1 can"). Do NOT list ingredients the user said they already have — they already own those.
-- CRITICAL — ownedIngredients vs shoppingList: ownedIngredients MUST ONLY contain ingredients the user EXPLICITLY said they already have (e.g., "I have salmon at home", "I already bought sweet potatoes"). Do NOT infer ownership from the meal name, meal description, or any other context. If the user asked for "salmon with collard greens" but did NOT say they have those items, salmon and collard greens belong in shoppingList — they need to buy them. Every ingredient required to cook the recommended meal that the user did not explicitly claim to already own MUST appear in shoppingList with a quantity, unit, and category.
+- CRITICAL — ownedIngredients vs shoppingList: ownedIngredients MUST ONLY contain ingredients the user EXPLICITLY said they already have. Explicit ownership includes both formal and informal phrasing — e.g., "I have salmon at home", "I already bought sweet potatoes", "Got some chicken", "There's salmon in my fridge", "I picked up rice earlier", "Found some broccoli at home", "I grabbed quinoa yesterday", "There's ground beef in my freezer". Any phrasing that indicates the user currently possesses or has already acquired the ingredient counts as an explicit ownership claim. Do NOT infer ownership from the meal name, meal description, or any other context. If the user asked for "salmon with collard greens" but did NOT say they have those items, salmon and collard greens belong in shoppingList — they need to buy them. Every ingredient required to cook the recommended meal that the user did not explicitly claim to already own MUST appear in shoppingList with a quantity, unit, and category.
 - The reasoning bullets must directly reference THIS user's conditions, goals, allergies, or macros — not generic health claims.
 - Never include ingredients the user is allergic to or avoids.
 - Be concise, warm, and coach-like — not clinical, not robotic.
@@ -1462,10 +1471,29 @@ async function runMultiOwnershipMode(): Promise<void> {
   process.exit(process.exitCode ?? 0);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// TRIPLE-OWNERSHIP MODE (Task 928)
-// ─────────────────────────────────────────────────────────────────────────────
+/**
+ * Tests that the coach recognises informal / colloquial ownership phrasing
+ * ("Got some…", "There's X in my fridge", "I picked up Y earlier") the same
+ * way it recognises formal phrasing ("I have X at home", "I already bought Y").
+ *
+ * Two sub-groups:
+ *   SINGLE — one ingredient claimed using informal language (4 scenarios)
+ *   MULTI  — two ingredients claimed using informal language (4 scenarios)
+ *
+ * Checks per round (identical to partial/multi-ownership modes):
+ *   A. claimed item(s) land in ownedIngredients
+ *   B. no unclaimed items bleed into ownedIngredients
+ *   C. shoppingList still has ≥1 substantive (non-pantry) item
+ *   D. combined list is non-empty
+ *
+ * For SINGLE scenarios A is "ownedContainsClaimedPass" (≥1 match).
+ * For MULTI  scenarios A is "bothClaimedPresentPass"   (every keyword matched).
+ */
 
+interface PhrasingVariantPrompt extends PartialOwnershipPrompt {
+  /** "single" = one claimed ingredient; "multi" = two or more */
+  ownershipStyle: "single" | "multi";
+}
 /**
  * Each entry claims EXACTLY 3 ingredients. The evaluation checks:
  *   A. allClaimedPresent — ALL THREE claimed keywords appear in ownedIngredients
@@ -2115,8 +2143,11 @@ async function main(): Promise<void> {
   const isMultiOwnership     = args.includes("--multi-ownership");
   const isTripleOwnership    = args.includes("--triple-ownership");
   const isMultiTurnOwnership = args.includes("--multi-turn-ownership");
+  const isPhrasingVariants   = args.includes("--phrasing-variants");
 
-  if (isTripleOwnership) {
+  if (isPhrasingVariants) {
+    await runPhrasingVariantsMode();
+  } else if (isTripleOwnership) {
     await runTripleOwnershipMode();
   } else if (isMultiOwnership) {
     await runMultiOwnershipMode();
@@ -2129,7 +2160,299 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((err) => {
-  console.error("Fatal error:", err);
-  process.exit(1);
-});
+async function runPhrasingVariantsMode(): Promise<void> {
+  const total = PHRASING_VARIANT_PROMPTS.length;
+
+  console.log("=".repeat(70));
+  console.log("Grocery Coach Phrasing-Variants Verification — Task 929");
+  console.log("Validates : informal ownership phrasing is recognised the same");
+  console.log("  way as formal phrasing (\"I have X\", \"I already bought Y\").");
+  console.log("  Informal examples: \"Got some…\", \"There's X in my fridge\",");
+  console.log("  \"I picked up Y earlier\", \"Found some Z at home\".");
+  console.log("  A. claimed item(s) land in ownedIngredients,");
+  console.log("  B. no unclaimed items bleed into ownedIngredients,");
+  console.log("  C. shoppingList still contains remaining substantive items,");
+  console.log("  D. combined list is non-empty.");
+  console.log(`Rounds    : ${total} (4 single-ownership + 4 multi-ownership informal)`);
+  console.log("=".repeat(70));
+
+  const rounds: Array<{ r: MultiOwnershipRoundResult; style: "single" | "multi" }> = [];
+
+  for (let i = 0; i < PHRASING_VARIANT_PROMPTS.length; i++) {
+    const prompt = PHRASING_VARIANT_PROMPTS[i];
+    process.stdout.write(`\nRound ${i + 1}/${total} — ${prompt.label} — calling AI...`);
+
+    const raw = await callGroceryCoach(prompt.message);
+    if (!raw) {
+      console.error(`\n❌ Round ${i + 1} (${prompt.label}): AI returned unparseable response — aborting.`);
+      process.exit(1);
+    }
+    console.log(" ✓");
+
+    const r = evaluateMultiRound(prompt, raw);
+    printPhrasingVariantReport(r, prompt.ownershipStyle, i + 1, total);
+    rounds.push({ r, style: prompt.ownershipStyle });
+  }
+
+  // ── Summary table ─────────────────────────────────────────────────────────
+  console.log("\n" + "=".repeat(70));
+  console.log("RESULTS SUMMARY — Phrasing-Variants Mode");
+  console.log("=".repeat(70));
+
+  const col1 = 46;
+  const col2 = 10;
+  console.log(
+    `${"Round".padEnd(col1)} ${"OwnedOK".padEnd(col2)} ${"NoUnclaimed".padEnd(col2 + 2)} ${"HasSubst".padEnd(col2)} Overall`
+  );
+  console.log("-".repeat(70));
+
+  let allPassed = true;
+  const failedRounds: string[] = [];
+
+  for (const { r, style } of rounds) {
+    const aPass = style === "multi" ? r.bothClaimedPresentPass : r.ownedContainsClaimedPass;
+    const roundPassed =
+      aPass &&
+      r.noUnclaimedSubstantivePass &&
+      r.hasSubstantiveInShoppingPass &&
+      r.nonEmptyPass;
+    if (!roundPassed) {
+      allPassed = false;
+      failedRounds.push(r.label);
+    }
+
+    const a = aPass                           ? "✅ PASS" : "❌ FAIL";
+    const b = r.noUnclaimedSubstantivePass    ? "✅ PASS" : "❌ FAIL";
+    const c = r.hasSubstantiveInShoppingPass  ? "✅ PASS" : "❌ FAIL";
+    const overall = roundPassed               ? "✅ PASS" : "❌ FAIL";
+    console.log(
+      `${r.label.padEnd(col1)} ${a.padEnd(col2)} ${b.padEnd(col2 + 2)} ${c.padEnd(col2)} ${overall}`
+    );
+  }
+
+  // ── Failure detail ────────────────────────────────────────────────────────
+  if (!allPassed) {
+    console.log("\nFAILURE DETAIL");
+    console.log("-".repeat(70));
+
+    for (const { r, style } of rounds) {
+      const aPass = style === "multi" ? r.bothClaimedPresentPass : r.ownedContainsClaimedPass;
+      if (!aPass) {
+        const missing =
+          style === "multi"
+            ? r.claimedKeywords.filter((kw) => !r.perKeywordHit.get(kw))
+            : r.claimedKeywords;
+        console.error(
+          `❌ [${r.label}] Informal ownership phrasing was NOT recognised.\n` +
+          `   Missing keyword(s): ${missing.map((k) => `"${k}"`).join(", ")}\n` +
+          `   ownedIngredients contains: ${
+            r.ownedIngredients.length === 0
+              ? "(nothing)"
+              : r.ownedIngredients.map((o) => `"${o.item}"`).join(", ")
+          }\n` +
+          `   FIX: The model did not recognise informal phrasing as an ownership claim.\n` +
+          `   Update the CRITICAL ownedIngredients rule in server/routes/groceryCoach.ts\n` +
+          `   to include informal examples: "Got some…", "There's X in my fridge",\n` +
+          `   "I picked up Y earlier", "Found some Z at home".`
+        );
+      }
+      if (!r.noUnclaimedSubstantivePass) {
+        console.error(
+          `❌ [${r.label}] Unclaimed item(s) leaked into ownedIngredients:\n` +
+          r.unclaimedOwned.map((o) => `   - "${o.item}"`).join("\n") + "\n" +
+          `   These ingredients were NOT mentioned by the user as already owned.\n` +
+          `   FIX: The model over-extended ownership — check the CRITICAL ownedIngredients\n` +
+          `   rule in server/routes/groceryCoach.ts.`
+        );
+      }
+      if (!r.hasSubstantiveInShoppingPass) {
+        const cats = r.categoriesFound.join(", ") || "(none)";
+        console.error(
+          `❌ [${r.label}] shoppingList contains ONLY pantry/condiment items.\n` +
+          `   Claimed item(s) were placed in ownedIngredients, but the remaining\n` +
+          `   main recipe ingredients are missing from shoppingList.\n` +
+          `   Categories returned: ${cats}\n` +
+          `   FIX: Review "Every ingredient required to cook the recommended meal that\n` +
+          `   the user did not explicitly claim to already own MUST appear in shoppingList."\n` +
+          `   in server/routes/groceryCoach.ts.`
+        );
+      }
+      if (!r.nonEmptyPass) {
+        console.error(
+          `❌ [${r.label}] Both shoppingList and ownedIngredients are completely empty.`
+        );
+      }
+    }
+  }
+
+  // ── Verdict ───────────────────────────────────────────────────────────────
+  console.log("\n" + "=".repeat(70));
+  if (allPassed) {
+    console.log(`🎉 VERDICT: PASS — all ${total} phrasing-variant rounds are correct.`);
+    console.log("   Informal ownership phrasing is recognised correctly:");
+    console.log("   claimed items land in ownedIngredients, no unclaimed items");
+    console.log("   bleed in, and shoppingList retains the remaining recipe items.");
+  } else {
+    console.log("❌ VERDICT: FAIL — informal ownership phrasing is not reliably recognised.");
+    console.log(`   Failed rounds: ${failedRounds.join(", ")}`);
+    console.log("   The model is treating informal ownership signals as non-ownership,");
+    console.log("   placing claimed items in shoppingList instead of ownedIngredients.");
+    console.log("   Root cause: update the CRITICAL ownedIngredients rule examples in");
+    console.log("   server/routes/groceryCoach.ts to include informal phrasings.");
+    process.exitCode = 1;
+  }
+  console.log("=".repeat(70) + "\n");
+
+  process.exit(process.exitCode ?? 0);
+}
+
+function printPhrasingVariantReport(
+  r: MultiOwnershipRoundResult,
+  style: "single" | "multi",
+  idx: number,
+  total: number
+): void {
+  console.log(`\n${"─".repeat(68)}`);
+  console.log(`Round ${idx}/${total} — ${r.label} [${style}]`);
+  console.log(`  Prompt     : "${r.message}"`);
+  console.log(`  Claimed    : ${r.claimedKeywords.map((k) => `"${k}"`).join(", ")}`);
+  console.log(`  Meal       : ${r.mealName}`);
+
+  console.log(`  Owned (${r.ownedIngredients.length}): ${
+    r.ownedIngredients.length === 0
+      ? "(none)"
+      : r.ownedIngredients.map((o) => `${o.item} [${o.quantity} ${o.unit}]`).join(", ")
+  }`);
+
+  console.log(`  Shopping (${r.shoppingList.length} items):`);
+  if (r.shoppingList.length > 0) {
+    const byCategory: Record<string, string[]> = {};
+    for (const item of r.shoppingList) {
+      const cat = item.category || "Other";
+      if (!byCategory[cat]) byCategory[cat] = [];
+      byCategory[cat].push(item.item);
+    }
+    for (const [cat, items] of Object.entries(byCategory)) {
+      const tag = SUBSTANTIVE_CATEGORIES.has(cat) ? " ✅" : " (pantry)";
+      console.log(`    ${cat}${tag}: ${items.join(", ")}`);
+    }
+  }
+
+  // Check A — claimed item(s) must be in ownedIngredients
+  const aPass = style === "multi" ? r.bothClaimedPresentPass : r.ownedContainsClaimedPass;
+  if (aPass) {
+    console.log(
+      `  ✅ CHECK A — claimed item(s) appear in ownedIngredients: ` +
+      r.matchedOwned.map((o) => `"${o.item}"`).join(", ")
+    );
+  } else {
+    const missing =
+      style === "multi"
+        ? r.claimedKeywords.filter((kw) => !r.perKeywordHit.get(kw))
+        : r.claimedKeywords;
+    console.log(
+      `  ❌ CHECK A — informal ownership NOT recognised. Missing keyword(s): ` +
+      missing.map((k) => `"${k}"`).join(", ") +
+      `. ownedIngredients is: ${
+        r.ownedIngredients.length === 0
+          ? "(empty)"
+          : r.ownedIngredients.map((o) => `"${o.item}"`).join(", ")
+      }`
+    );
+  }
+
+  // Check B — no unclaimed items in ownedIngredients
+  if (r.noUnclaimedSubstantivePass) {
+    console.log(`  ✅ CHECK B — no unclaimed items in ownedIngredients`);
+  } else {
+    console.log(
+      `  ❌ CHECK B — unclaimed item(s) leaked into ownedIngredients: ` +
+      r.unclaimedOwned.map((o) => `"${o.item}"`).join(", ")
+    );
+    console.log(`               The user never claimed these — they must appear in shoppingList.`);
+  }
+
+  // Check C — shoppingList still has substantive items
+  if (r.hasSubstantiveInShoppingPass) {
+    console.log(
+      `  ✅ CHECK C — shoppingList has ${r.substantiveShoppingItems.length} substantive item(s): ` +
+      r.substantiveShoppingItems.slice(0, 5).map((i) => `${i.item} [${i.category}]`).join(", ") +
+      (r.substantiveShoppingItems.length > 5 ? "…" : "")
+    );
+  } else {
+    const cats = r.categoriesFound.join(", ") || "(none)";
+    console.log(
+      `  ❌ CHECK C — shoppingList has ONLY pantry/Other items. ` +
+      `Claimed item(s) were owned, but remaining main ingredients are MISSING. ` +
+      `Categories found: ${cats}`
+    );
+  }
+
+  // Check D — combined list non-empty
+  if (r.nonEmptyPass) {
+    console.log(`  ✅ CHECK D — combined ingredient list is non-empty`);
+  } else {
+    console.log(`  ❌ CHECK D — both shoppingList and ownedIngredients are completely empty`);
+  }
+}
+
+const PHRASING_VARIANT_PROMPTS: PhrasingVariantPrompt[] = [
+  // ── Single-ingredient informal phrasings ─────────────────────────────────
+  {
+    ownershipStyle: "single",
+    label: "Informal single — 'Got some' (chicken)",
+    message:
+      "Got some chicken in the fridge — what else do I need to buy for a complete dinner tonight?",
+    claimedKeywords: ["chicken"],
+  },
+  {
+    ownershipStyle: "single",
+    label: "Informal single — 'There's X in my fridge' (salmon)",
+    message:
+      "There's salmon in my fridge. What should I grab at the store to round out the meal?",
+    claimedKeywords: ["salmon"],
+  },
+  {
+    ownershipStyle: "single",
+    label: "Informal single — 'I picked up' (sweet potato)",
+    message:
+      "I picked up sweet potatoes earlier today. What protein and vegetables should I still buy?",
+    claimedKeywords: ["sweet potato", "sweet potatoes"],
+  },
+  {
+    ownershipStyle: "single",
+    label: "Informal single — 'Found some' (quinoa)",
+    message:
+      "Found some quinoa at home. Help me build a balanced dinner around it — what do I still need from the store?",
+    claimedKeywords: ["quinoa"],
+  },
+  // ── Multi-ingredient informal phrasings ──────────────────────────────────
+  {
+    ownershipStyle: "multi",
+    label: "Informal multi — 'Got some' (chicken + rice)",
+    message:
+      "Got some chicken and rice at home — what else do I need to pick up for a complete dinner?",
+    claimedKeywords: ["chicken", "rice"],
+  },
+  {
+    ownershipStyle: "multi",
+    label: "Informal multi — 'There's X in my fridge' (salmon + broccoli)",
+    message:
+      "There's salmon and broccoli in my fridge. What do I still need to buy to make a full meal?",
+    claimedKeywords: ["salmon", "broccoli"],
+  },
+  {
+    ownershipStyle: "multi",
+    label: "Informal multi — 'I picked up' (sweet potato + spinach)",
+    message:
+      "I picked up sweet potatoes and spinach earlier. What protein and anything else should I grab?",
+    claimedKeywords: ["sweet potato", "spinach"],
+  },
+  {
+    ownershipStyle: "multi",
+    label: "Informal multi — 'Found some' (ground beef + black beans)",
+    message:
+      "Found some ground beef and black beans in my kitchen. What vegetables and other things do I need to buy?",
+    claimedKeywords: ["ground beef", "black bean"],
+  },
+];
