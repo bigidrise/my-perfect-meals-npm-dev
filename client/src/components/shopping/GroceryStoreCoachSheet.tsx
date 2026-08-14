@@ -1032,17 +1032,23 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                 )}
 
                 {/* ── Owned / Already-have ingredients ── */}
-                {/* These are items the AI was told the user explicitly said they already own.
-                    Shown separately so the user can verify the coach heard them correctly,
-                    and so nothing disappears silently from the full ingredient picture. */}
+                {/* Only rendered when the user explicitly told the coach they already own
+                    these items. The prompt instructs the AI never to assume ownership — so
+                    this section should only appear when the user said e.g. "I have salmon
+                    at home already". If no owned items were mentioned, this block is hidden. */}
                 {result.ownedIngredients?.length > 0 && (
                   <div style={{ borderRadius: 12, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", overflow: "hidden" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-                      <CheckCircle2 style={{ width: 15, height: 15, color: "rgba(255,255,255,0.35)", flexShrink: 0 }} />
-                      <span style={{ color: "rgba(255,255,255,0.5)", fontWeight: 600, fontSize: 13 }}>
-                        You mentioned having
-                      </span>
-                      <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 12 }}>({result.ownedIngredients.length} item{result.ownedIngredients.length !== 1 ? "s" : ""})</span>
+                    <div style={{ padding: "12px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <CheckCircle2 style={{ width: 15, height: 15, color: "rgba(255,255,255,0.35)", flexShrink: 0 }} />
+                        <span style={{ color: "rgba(255,255,255,0.5)", fontWeight: 600, fontSize: 13 }}>
+                          You mentioned having
+                        </span>
+                        <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 12 }}>({result.ownedIngredients.length} item{result.ownedIngredients.length !== 1 ? "s" : ""})</span>
+                      </div>
+                      <p style={{ margin: "4px 0 0 23px", color: "rgba(255,255,255,0.28)", fontSize: 11, lineHeight: 1.4 }}>
+                        These are ingredients you told the coach you already have at home — they won't be added to your shopping list.
+                      </p>
                     </div>
                     <div style={{ padding: "10px 16px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
                       {result.ownedIngredients.map((o, i) => (
