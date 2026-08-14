@@ -2128,85 +2128,85 @@
   "sharedComponents": {
     "navigation": {
       "appName": "My Perfect Meals",
-      "features": "Features",
-      "howItWorks": "How It Works",
-      "pricing": "Pricing",
-      "signIn": "Sign In"
+      "features": "Возможности",
+      "howItWorks": "Как это работает",
+      "pricing": "Цены",
+      "signIn": "Войти"
     },
     "errorBoundary": {
-      "title": "Something went wrong",
-      "description": "We're having trouble loading this page. Please refresh and try again.",
-      "refresh": "Refresh Page"
+      "title": "Что-то пошло не так",
+      "description": "У нас возникли проблемы с загрузкой этой страницы. Пожалуйста, обновите и попробуйте снова.",
+      "refresh": "Обновить страницу"
     },
     "dateSlotPicker": {
-      "placeholder": "Select meal slot"
+      "placeholder": "Выберите слот для приёма пищи"
     },
     "mealSlots": {
-      "breakfast": "Breakfast",
-      "lunch": "Lunch",
-      "dinner": "Dinner",
-      "snack": "Snack"
+      "breakfast": "Завтрак",
+      "lunch": "Обед",
+      "dinner": "Ужин",
+      "snack": "Перекус"
     },
     "dailyNutritionTracker": {
-      "title": "Daily Nutrition Progress",
-      "description": "Track your daily nutritional intake",
-      "calories": "Calories",
-      "protein": "Protein",
-      "carbohydrates": "Carbohydrates",
-      "fat": "Fat",
-      "onTrack": "On track with your daily goals!"
+      "title": "Ежедневный прогресс питания",
+      "description": "Отслеживайте ежедневное потребление питательных веществ",
+      "calories": "Калории",
+      "protein": "Белки",
+      "carbohydrates": "Углеводы",
+      "fat": "Жиры",
+      "onTrack": "Вы на верном пути к достижению ежедневных целей!"
     },
     "pagination": {
-      "label": "pagination",
-      "previousPage": "Go to previous page",
-      "previous": "Previous",
-      "nextPage": "Go to next page",
-      "next": "Next",
-      "morePages": "More pages"
+      "label": "навигация по страницам",
+      "previousPage": "Перейти на предыдущую страницу",
+      "previous": "Назад",
+      "nextPage": "Перейти на следующую страницу",
+      "next": "Далее",
+      "morePages": "Больше страниц"
     },
     "enhancedMealCard": {
-      "replace": "Replace",
-      "replacing": "Replacing...",
-      "replaceTitle": "Replace with a completely new meal recipe",
-      "replacingTitle": "Replacing meal...",
-      "portionGuide": "Portion Guide:",
-      "ingredients": "Ingredients:",
-      "instructions": "Instructions:",
-      "medicalSafety": "Medical Safety:",
-      "error": "Error:"
+      "replace": "Заменить",
+      "replacing": "Замена...",
+      "replaceTitle": "Заменить совершенно новым рецептом блюда",
+      "replacingTitle": "Блюдо заменяется...",
+      "portionGuide": "Руководство по порциям:",
+      "ingredients": "Ингредиенты:",
+      "instructions": "Инструкции:",
+      "medicalSafety": "Медицинская безопасность:",
+      "error": "Ошибка:"
     },
     "mealCard": {
-      "noRecipe": "No recipe",
-      "addMeal": "Add a meal",
-      "serving": "Serving:",
-      "ingredients": "Ingredients:",
-      "cookingInstructions": "Cooking Instructions:",
-      "protein": "Protein",
-      "carbs": "Carbs",
-      "fat": "Fat"
+      "noRecipe": "Нет рецепта",
+      "addMeal": "Добавить блюдо",
+      "serving": "Порция:",
+      "ingredients": "Ингредиенты:",
+      "cookingInstructions": "Инструкции по приготовлению:",
+      "protein": "Белки",
+      "carbs": "Углеводы",
+      "fat": "Жиры"
     },
     "nutritionSummary": {
-      "title": "Nutrition Summary",
-      "empty": "Generate a meal plan to see your nutrition summary",
-      "weeklyOverview": "Weekly Overview",
-      "totalCalories": "Total Calories",
-      "dailyAverage": "Daily Average",
-      "totalProtein": "Total Protein",
-      "daysPlanned": "Days Planned",
-      "dailyTargets": "Daily Targets",
-      "calories": "Calories",
-      "protein": "Protein",
-      "carbohydrates": "Carbohydrates",
-      "fat": "Fat",
-      "targetMet": "Target met",
-      "goalProgress": "Goal Progress",
-      "fitnessGoal": "Fitness Goal",
-      "activityLevel": "Activity Level",
-      "dietaryPreferences": "Dietary Preferences",
-      "balanceScore": "Balance Score",
-      "percentOfTarget": "{{n}}% of target",
-      "remainingCal": "{{n}} remaining",
-      "remainingG": "{{n}}g remaining"
+      "title": "Сводка по питанию",
+      "empty": "Создайте план питания, чтобы увидеть сводку по питанию",
+      "weeklyOverview": "Еженедельный обзор",
+      "totalCalories": "Всего калорий",
+      "dailyAverage": "Ежедневное среднее",
+      "totalProtein": "Всего белков",
+      "daysPlanned": "Запланировано дней",
+      "dailyTargets": "Ежедневные цели",
+      "calories": "Калории",
+      "protein": "Белки",
+      "carbohydrates": "Углеводы",
+      "fat": "Жиры",
+      "targetMet": "Цель достигнута",
+      "goalProgress": "Прогресс к цели",
+      "fitnessGoal": "Цель фитнеса",
+      "activityLevel": "Уровень активности",
+      "dietaryPreferences": "Пищевые предпочтения",
+      "balanceScore": "Оценка баланса",
+      "percentOfTarget": "{{n}}% от цели",
+      "remainingCal": "{{n}} осталось",
+      "remainingG": "{{n}}г осталось"
     }
   }
 }

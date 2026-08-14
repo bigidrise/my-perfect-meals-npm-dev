@@ -2139,85 +2139,85 @@
   "sharedComponents": {
     "navigation": {
       "appName": "My Perfect Meals",
-      "features": "Features",
-      "howItWorks": "How It Works",
-      "pricing": "Pricing",
-      "signIn": "Sign In"
+      "features": "Tính năng",
+      "howItWorks": "Cách hoạt động",
+      "pricing": "Bảng giá",
+      "signIn": "Đăng nhập"
     },
     "errorBoundary": {
-      "title": "Something went wrong",
-      "description": "We're having trouble loading this page. Please refresh and try again.",
-      "refresh": "Refresh Page"
+      "title": "Đã xảy ra lỗi",
+      "description": "Chúng tôi gặp sự cố khi tải trang này. Vui lòng làm mới và thử lại.",
+      "refresh": "Làm mới trang"
     },
     "dateSlotPicker": {
-      "placeholder": "Select meal slot"
+      "placeholder": "Chọn khung giờ bữa ăn"
     },
     "mealSlots": {
-      "breakfast": "Breakfast",
-      "lunch": "Lunch",
-      "dinner": "Dinner",
-      "snack": "Snack"
+      "breakfast": "Bữa sáng",
+      "lunch": "Bữa trưa",
+      "dinner": "Bữa tối",
+      "snack": "Bữa phụ"
     },
     "dailyNutritionTracker": {
-      "title": "Daily Nutrition Progress",
-      "description": "Track your daily nutritional intake",
-      "calories": "Calories",
+      "title": "Tiến độ Dinh dưỡng Hàng ngày",
+      "description": "Theo dõi lượng dinh dưỡng hàng ngày của bạn",
+      "calories": "Calo",
       "protein": "Protein",
-      "carbohydrates": "Carbohydrates",
-      "fat": "Fat",
-      "onTrack": "On track with your daily goals!"
+      "carbohydrates": "Carbohydrate",
+      "fat": "Chất béo",
+      "onTrack": "Bạn đang đi đúng hướng để đạt mục tiêu hàng ngày!"
     },
     "pagination": {
-      "label": "pagination",
-      "previousPage": "Go to previous page",
-      "previous": "Previous",
-      "nextPage": "Go to next page",
-      "next": "Next",
-      "morePages": "More pages"
+      "label": "phân trang",
+      "previousPage": "Đến trang trước",
+      "previous": "Trước",
+      "nextPage": "Đến trang tiếp theo",
+      "next": "Tiếp theo",
+      "morePages": "Nhiều trang hơn"
     },
     "enhancedMealCard": {
-      "replace": "Replace",
-      "replacing": "Replacing...",
-      "replaceTitle": "Replace with a completely new meal recipe",
-      "replacingTitle": "Replacing meal...",
-      "portionGuide": "Portion Guide:",
-      "ingredients": "Ingredients:",
-      "instructions": "Instructions:",
-      "medicalSafety": "Medical Safety:",
-      "error": "Error:"
+      "replace": "Thay thế",
+      "replacing": "Đang thay thế...",
+      "replaceTitle": "Thay thế bằng công thức bữa ăn hoàn toàn mới",
+      "replacingTitle": "Đang thay thế bữa ăn...",
+      "portionGuide": "Hướng dẫn khẩu phần:",
+      "ingredients": "Nguyên liệu:",
+      "instructions": "Hướng dẫn:",
+      "medicalSafety": "An toàn y tế:",
+      "error": "Lỗi:"
     },
     "mealCard": {
-      "noRecipe": "No recipe",
-      "addMeal": "Add a meal",
-      "serving": "Serving:",
-      "ingredients": "Ingredients:",
-      "cookingInstructions": "Cooking Instructions:",
+      "noRecipe": "Không có công thức",
+      "addMeal": "Thêm bữa ăn",
+      "serving": "Khẩu phần:",
+      "ingredients": "Nguyên liệu:",
+      "cookingInstructions": "Hướng dẫn nấu ăn:",
       "protein": "Protein",
-      "carbs": "Carbs",
-      "fat": "Fat"
+      "carbs": "Carbohydrate",
+      "fat": "Chất béo"
     },
     "nutritionSummary": {
-      "title": "Nutrition Summary",
-      "empty": "Generate a meal plan to see your nutrition summary",
-      "weeklyOverview": "Weekly Overview",
-      "totalCalories": "Total Calories",
-      "dailyAverage": "Daily Average",
-      "totalProtein": "Total Protein",
-      "daysPlanned": "Days Planned",
-      "dailyTargets": "Daily Targets",
-      "calories": "Calories",
+      "title": "Tóm tắt Dinh dưỡng",
+      "empty": "Tạo kế hoạch bữa ăn để xem tóm tắt dinh dưỡng của bạn",
+      "weeklyOverview": "Tổng quan Hàng tuần",
+      "totalCalories": "Tổng Calo",
+      "dailyAverage": "Trung bình Hàng ngày",
+      "totalProtein": "Tổng Protein",
+      "daysPlanned": "Ngày đã lên kế hoạch",
+      "dailyTargets": "Mục tiêu Hàng ngày",
+      "calories": "Calo",
       "protein": "Protein",
-      "carbohydrates": "Carbohydrates",
-      "fat": "Fat",
-      "targetMet": "Target met",
-      "goalProgress": "Goal Progress",
-      "fitnessGoal": "Fitness Goal",
-      "activityLevel": "Activity Level",
-      "dietaryPreferences": "Dietary Preferences",
-      "balanceScore": "Balance Score",
-      "percentOfTarget": "{{n}}% of target",
-      "remainingCal": "{{n}} remaining",
-      "remainingG": "{{n}}g remaining"
+      "carbohydrates": "Carbohydrate",
+      "fat": "Chất béo",
+      "targetMet": "Đạt mục tiêu",
+      "goalProgress": "Tiến độ mục tiêu",
+      "fitnessGoal": "Mục tiêu thể dục",
+      "activityLevel": "Mức độ hoạt động",
+      "dietaryPreferences": "Sở thích ăn uống",
+      "balanceScore": "Điểm cân bằng",
+      "percentOfTarget": "{{n}}% mục tiêu",
+      "remainingCal": "Còn {{n}}",
+      "remainingG": "Còn {{n}}g"
     }
   }
 }

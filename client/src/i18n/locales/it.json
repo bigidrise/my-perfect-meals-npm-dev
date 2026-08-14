@@ -2374,85 +2374,85 @@
   "sharedComponents": {
     "navigation": {
       "appName": "My Perfect Meals",
-      "features": "Features",
-      "howItWorks": "How It Works",
-      "pricing": "Pricing",
-      "signIn": "Sign In"
+      "features": "Funzionalità",
+      "howItWorks": "Come Funziona",
+      "pricing": "Prezzi",
+      "signIn": "Accedi"
     },
     "errorBoundary": {
-      "title": "Something went wrong",
-      "description": "We're having trouble loading this page. Please refresh and try again.",
-      "refresh": "Refresh Page"
+      "title": "Qualcosa è andato storto",
+      "description": "Stiamo avendo problemi a caricare questa pagina. Aggiorna e riprova.",
+      "refresh": "Aggiorna la pagina"
     },
     "dateSlotPicker": {
-      "placeholder": "Select meal slot"
+      "placeholder": "Seleziona slot pasto"
     },
     "mealSlots": {
-      "breakfast": "Breakfast",
-      "lunch": "Lunch",
-      "dinner": "Dinner",
-      "snack": "Snack"
+      "breakfast": "Colazione",
+      "lunch": "Pranzo",
+      "dinner": "Cena",
+      "snack": "Spuntino"
     },
     "dailyNutritionTracker": {
-      "title": "Daily Nutrition Progress",
-      "description": "Track your daily nutritional intake",
-      "calories": "Calories",
-      "protein": "Protein",
-      "carbohydrates": "Carbohydrates",
-      "fat": "Fat",
-      "onTrack": "On track with your daily goals!"
+      "title": "Progresso Nutrizionale Giornaliero",
+      "description": "Monitora il tuo apporto nutrizionale giornaliero",
+      "calories": "Calorie",
+      "protein": "Proteine",
+      "carbohydrates": "Carboidrati",
+      "fat": "Grassi",
+      "onTrack": "Sei sulla buona strada per i tuoi obiettivi giornalieri!"
     },
     "pagination": {
-      "label": "pagination",
-      "previousPage": "Go to previous page",
-      "previous": "Previous",
-      "nextPage": "Go to next page",
-      "next": "Next",
-      "morePages": "More pages"
+      "label": "paginazione",
+      "previousPage": "Vai alla pagina precedente",
+      "previous": "Precedente",
+      "nextPage": "Vai alla pagina successiva",
+      "next": "Successivo",
+      "morePages": "Altre pagine"
     },
     "enhancedMealCard": {
-      "replace": "Replace",
-      "replacing": "Replacing...",
-      "replaceTitle": "Replace with a completely new meal recipe",
-      "replacingTitle": "Replacing meal...",
-      "portionGuide": "Portion Guide:",
-      "ingredients": "Ingredients:",
-      "instructions": "Instructions:",
-      "medicalSafety": "Medical Safety:",
-      "error": "Error:"
+      "replace": "Sostituisci",
+      "replacing": "Sostituzione in corso...",
+      "replaceTitle": "Sostituisci con una ricetta completamente nuova",
+      "replacingTitle": "Sostituzione del pasto...",
+      "portionGuide": "Guida alle porzioni:",
+      "ingredients": "Ingredienti:",
+      "instructions": "Istruzioni:",
+      "medicalSafety": "Sicurezza medica:",
+      "error": "Errore:"
     },
     "mealCard": {
-      "noRecipe": "No recipe",
-      "addMeal": "Add a meal",
-      "serving": "Serving:",
-      "ingredients": "Ingredients:",
-      "cookingInstructions": "Cooking Instructions:",
-      "protein": "Protein",
-      "carbs": "Carbs",
-      "fat": "Fat"
+      "noRecipe": "Nessuna ricetta",
+      "addMeal": "Aggiungi un pasto",
+      "serving": "Porzione:",
+      "ingredients": "Ingredienti:",
+      "cookingInstructions": "Istruzioni di cottura:",
+      "protein": "Proteine",
+      "carbs": "Carboidrati",
+      "fat": "Grassi"
     },
     "nutritionSummary": {
-      "title": "Nutrition Summary",
-      "empty": "Generate a meal plan to see your nutrition summary",
-      "weeklyOverview": "Weekly Overview",
-      "totalCalories": "Total Calories",
-      "dailyAverage": "Daily Average",
-      "totalProtein": "Total Protein",
-      "daysPlanned": "Days Planned",
-      "dailyTargets": "Daily Targets",
-      "calories": "Calories",
-      "protein": "Protein",
-      "carbohydrates": "Carbohydrates",
-      "fat": "Fat",
-      "targetMet": "Target met",
-      "goalProgress": "Goal Progress",
-      "fitnessGoal": "Fitness Goal",
-      "activityLevel": "Activity Level",
-      "dietaryPreferences": "Dietary Preferences",
-      "balanceScore": "Balance Score",
-      "percentOfTarget": "{{n}}% of target",
-      "remainingCal": "{{n}} remaining",
-      "remainingG": "{{n}}g remaining"
+      "title": "Riepilogo Nutrizionale",
+      "empty": "Genera un piano pasti per vedere il tuo riepilogo nutrizionale",
+      "weeklyOverview": "Panoramica Settimanale",
+      "totalCalories": "Calorie Totali",
+      "dailyAverage": "Media Giornaliera",
+      "totalProtein": "Proteine Totali",
+      "daysPlanned": "Giorni Pianificati",
+      "dailyTargets": "Obiettivi Giornalieri",
+      "calories": "Calorie",
+      "protein": "Proteine",
+      "carbohydrates": "Carboidrati",
+      "fat": "Grassi",
+      "targetMet": "Obiettivo raggiunto",
+      "goalProgress": "Progresso degli Obiettivi",
+      "fitnessGoal": "Obiettivo Fitness",
+      "activityLevel": "Livello di Attività",
+      "dietaryPreferences": "Preferenze Alimentari",
+      "balanceScore": "Punteggio di Equilibrio",
+      "percentOfTarget": "{{n}}% dell'obiettivo",
+      "remainingCal": "{{n}} rimanenti",
+      "remainingG": "{{n}}g rimanenti"
     }
   }
 }

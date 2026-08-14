@@ -2128,85 +2128,85 @@
   "sharedComponents": {
     "navigation": {
       "appName": "My Perfect Meals",
-      "features": "Features",
-      "howItWorks": "How It Works",
-      "pricing": "Pricing",
-      "signIn": "Sign In"
+      "features": "الميزات",
+      "howItWorks": "كيف يعمل",
+      "pricing": "الأسعار",
+      "signIn": "تسجيل الدخول"
     },
     "errorBoundary": {
-      "title": "Something went wrong",
-      "description": "We're having trouble loading this page. Please refresh and try again.",
-      "refresh": "Refresh Page"
+      "title": "حدث خطأ ما",
+      "description": "نواجه مشكلة في تحميل هذه الصفحة. يرجى التحديث والمحاولة مرة أخرى.",
+      "refresh": "تحديث الصفحة"
     },
     "dateSlotPicker": {
-      "placeholder": "Select meal slot"
+      "placeholder": "اختر وقت الوجبة"
     },
     "mealSlots": {
-      "breakfast": "Breakfast",
-      "lunch": "Lunch",
-      "dinner": "Dinner",
-      "snack": "Snack"
+      "breakfast": "الإفطار",
+      "lunch": "الغداء",
+      "dinner": "العشاء",
+      "snack": "وجبة خفيفة"
     },
     "dailyNutritionTracker": {
-      "title": "Daily Nutrition Progress",
-      "description": "Track your daily nutritional intake",
-      "calories": "Calories",
-      "protein": "Protein",
-      "carbohydrates": "Carbohydrates",
-      "fat": "Fat",
-      "onTrack": "On track with your daily goals!"
+      "title": "تقدم التغذية اليومية",
+      "description": "تتبع مدخولك الغذائي اليومي",
+      "calories": "السعرات الحرارية",
+      "protein": "البروتين",
+      "carbohydrates": "الكربوهيدرات",
+      "fat": "الدهون",
+      "onTrack": "أنت على المسار الصحيح نحو أهدافك اليومية!"
     },
     "pagination": {
-      "label": "pagination",
-      "previousPage": "Go to previous page",
-      "previous": "Previous",
-      "nextPage": "Go to next page",
-      "next": "Next",
-      "morePages": "More pages"
+      "label": "ترقيم الصفحات",
+      "previousPage": "الانتقال إلى الصفحة السابقة",
+      "previous": "السابق",
+      "nextPage": "الانتقال إلى الصفحة التالية",
+      "next": "التالي",
+      "morePages": "المزيد من الصفحات"
     },
     "enhancedMealCard": {
-      "replace": "Replace",
-      "replacing": "Replacing...",
-      "replaceTitle": "Replace with a completely new meal recipe",
-      "replacingTitle": "Replacing meal...",
-      "portionGuide": "Portion Guide:",
-      "ingredients": "Ingredients:",
-      "instructions": "Instructions:",
-      "medicalSafety": "Medical Safety:",
-      "error": "Error:"
+      "replace": "استبدال",
+      "replacing": "جارٍ الاستبدال...",
+      "replaceTitle": "استبدل بوصفة وجبة جديدة تمامًا",
+      "replacingTitle": "جارٍ استبدال الوجبة...",
+      "portionGuide": "دليل الحصص:",
+      "ingredients": "المكونات:",
+      "instructions": "التعليمات:",
+      "medicalSafety": "السلامة الطبية:",
+      "error": "خطأ:"
     },
     "mealCard": {
-      "noRecipe": "No recipe",
-      "addMeal": "Add a meal",
-      "serving": "Serving:",
-      "ingredients": "Ingredients:",
-      "cookingInstructions": "Cooking Instructions:",
-      "protein": "Protein",
-      "carbs": "Carbs",
-      "fat": "Fat"
+      "noRecipe": "لا توجد وصفة",
+      "addMeal": "إضافة وجبة",
+      "serving": "الحصة:",
+      "ingredients": "المكونات:",
+      "cookingInstructions": "تعليمات الطهي:",
+      "protein": "البروتين",
+      "carbs": "الكربوهيدرات",
+      "fat": "الدهون"
     },
     "nutritionSummary": {
-      "title": "Nutrition Summary",
-      "empty": "Generate a meal plan to see your nutrition summary",
-      "weeklyOverview": "Weekly Overview",
-      "totalCalories": "Total Calories",
-      "dailyAverage": "Daily Average",
-      "totalProtein": "Total Protein",
-      "daysPlanned": "Days Planned",
-      "dailyTargets": "Daily Targets",
-      "calories": "Calories",
-      "protein": "Protein",
-      "carbohydrates": "Carbohydrates",
-      "fat": "Fat",
-      "targetMet": "Target met",
-      "goalProgress": "Goal Progress",
-      "fitnessGoal": "Fitness Goal",
-      "activityLevel": "Activity Level",
-      "dietaryPreferences": "Dietary Preferences",
-      "balanceScore": "Balance Score",
-      "percentOfTarget": "{{n}}% of target",
-      "remainingCal": "{{n}} remaining",
-      "remainingG": "{{n}}g remaining"
+      "title": "ملخص التغذية",
+      "empty": "أنشئ خطة وجبات لعرض ملخص التغذية",
+      "weeklyOverview": "نظرة عامة أسبوعية",
+      "totalCalories": "إجمالي السعرات الحرارية",
+      "dailyAverage": "المتوسط اليومي",
+      "totalProtein": "إجمالي البروتين",
+      "daysPlanned": "الأيام المخططة",
+      "dailyTargets": "الأهداف اليومية",
+      "calories": "السعرات الحرارية",
+      "protein": "البروتين",
+      "carbohydrates": "الكربوهيدرات",
+      "fat": "الدهون",
+      "targetMet": "تم تحقيق الهدف",
+      "goalProgress": "تقدم الهدف",
+      "fitnessGoal": "هدف اللياقة البدنية",
+      "activityLevel": "مستوى النشاط",
+      "dietaryPreferences": "التفضيلات الغذائية",
+      "balanceScore": "درجة التوازن",
+      "percentOfTarget": "{{n}}% من الهدف",
+      "remainingCal": "{{n}} متبقية",
+      "remainingG": "{{n}}غ متبقية"
     }
   }
 }
