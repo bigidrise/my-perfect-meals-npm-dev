@@ -401,7 +401,7 @@ export default function Welcome() {
       <div className="relative min-h-screen bg-black text-white flex flex-col items-center justify-center px-6">
         {renderModal()}
 
-        <div className="mb-4">
+        <div className="mb-1">
           <img
             src="/icons/ChefMPMLogo-v2.png"
             alt="My Perfect Meals"
@@ -413,8 +413,12 @@ export default function Welcome() {
           My Perfect Meals
         </h1>
 
-        <p className="text-md md:text-xl text-white/80 text-center mb-6 max-w-md">
+        <p className="text-md md:text-xl text-white/80 text-center mb-1 max-w-md">
           Adaptive AI Nutrition Platform
+        </p>
+
+        <p className="text-base text-white/60 text-center mb-6 max-w-md tracking-wide">
+          Coach in your pocket.™
         </p>
 
         <div className="mb-12 flex flex-col items-center gap-2">

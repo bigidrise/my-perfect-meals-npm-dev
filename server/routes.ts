@@ -4330,6 +4330,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         onboardingMode: user.onboardingMode,
         preferredBuilder: user.preferredBuilder,
         trialEndsAt: user.trialEndsAt?.toISOString() ?? null,
+        trialStartedAt: user.trialStartedAt?.toISOString() ?? null,
+        trialSource: user.trialSource ?? null,
       });
     } catch (error: any) {
       console.error("Error completing onboarding:", error);

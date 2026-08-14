@@ -152,6 +152,7 @@ export default function OnboardingV3() {
   const [saving, setSaving] = useState(false);
   const [showTrialModal, setShowTrialModal] = useState(false);
   const [trialEndsAt, setTrialEndsAt] = useState<string | null>(null);
+  const [trialStartedAtFromResponse, setTrialStartedAtFromResponse] = useState<string | null>(null);
   const restoredRef = useRef(false);
 
   const [firstName, setFirstName] = useState("");
@@ -533,6 +534,9 @@ export default function OnboardingV3() {
       // Show trial welcome modal if the server confirmed a trial was stamped
       if (completionData.trialEndsAt) {
         setTrialEndsAt(completionData.trialEndsAt);
+        if (completionData.trialStartedAt) {
+          setTrialStartedAtFromResponse(completionData.trialStartedAt);
+        }
         setShowTrialModal(true);
       } else {
         setLocation("/macro-counter?from=onboarding");
@@ -1377,9 +1381,15 @@ export default function OnboardingV3() {
       {/* Trial welcome modal — shown immediately after onboarding completes */}
       {showTrialModal && (() => {
         // Compute the actual trial duration so admin-granted 30-day trials
-        // never display "7-Day". Priority: start→end diff, then days-remaining
-        // from user context, then raw end-from-now, then safe fallback.
-        const startStr = (user as any)?.trialStartedAt as string | null;
+        // never display "7-Day". Priority:
+        //   1. trialStartedAt from the completion response (most reliable — avoids
+        //      the race where refreshUser() hasn't resolved yet)
+        //   2. trialStartedAt from the auth context (available after refreshUser())
+        //   3. daysRemaining from user context
+        //   4. raw end-from-now calculation
+        //   5. safe fallback of 7
+        const startStr: string | null =
+          trialStartedAtFromResponse ?? ((user as any)?.trialStartedAt as string | null) ?? null;
         const actualDays = (() => {
           if (startStr && trialEndsAt) {
             const ms = new Date(trialEndsAt).getTime() - new Date(startStr).getTime();
