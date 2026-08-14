@@ -1031,6 +1031,30 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                   </div>
                 )}
 
+                {/* ── Owned / Already-have ingredients ── */}
+                {/* These are items the AI was told the user explicitly said they already own.
+                    Shown separately so the user can verify the coach heard them correctly,
+                    and so nothing disappears silently from the full ingredient picture. */}
+                {result.ownedIngredients?.length > 0 && (
+                  <div style={{ borderRadius: 12, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", overflow: "hidden" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                      <CheckCircle2 style={{ width: 15, height: 15, color: "rgba(255,255,255,0.35)", flexShrink: 0 }} />
+                      <span style={{ color: "rgba(255,255,255,0.5)", fontWeight: 600, fontSize: 13 }}>
+                        You mentioned having
+                      </span>
+                      <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 12 }}>({result.ownedIngredients.length} item{result.ownedIngredients.length !== 1 ? "s" : ""})</span>
+                    </div>
+                    <div style={{ padding: "10px 16px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
+                      {result.ownedIngredients.map((o, i) => (
+                        <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, fontSize: 13 }}>
+                          <span style={{ color: "rgba(255,255,255,0.55)", lineHeight: 1.3 }}>{o.item}</span>
+                          <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, flexShrink: 0 }}>{o.quantity} {o.unit}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* ── Product Advisor / Smart Cart ── */}
                 {(advisorLoading || hasAdvice) && (
                   <div style={{ borderRadius: 12, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(249,115,22,0.2)", overflow: "hidden" }}>
