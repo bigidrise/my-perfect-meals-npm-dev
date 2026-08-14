@@ -9,7 +9,8 @@
  *   CONDITIONAL      — reachable only through a subscription/role/admin/feature-flag gate
  *   HIDDEN_RESERVED  — has importers but no active route (e.g. future feature, modal child)
  *   QUARANTINED      — explicitly in legacy/ directory or RETIRED_ prefix
- *   ORPHAN_DEAD      — no route + no static importers + no dynamic reference found (high-confidence dead)
+ *   UNKNOWN_REVIEW   — no route + no static importers, but no explicit decommission signal; needs human verification
+ *   ORPHAN_DEAD      — no route + no static importers + explicit dead signal (RETIRED_ prefix, in legacy/, or deprecated comment)
  *
  * Output:
  *   scripts/i18n-reachability-report.json   (machine)
@@ -257,7 +258,24 @@ function bfsReachable(
 }
 
 // ── Classification logic ──────────────────────────────────────────────────────
-type Reachability = "ACTIVE" | "CONDITIONAL" | "HIDDEN_RESERVED" | "QUARANTINED" | "ORPHAN_DEAD";
+type Reachability = "ACTIVE" | "CONDITIONAL" | "HIDDEN_RESERVED" | "QUARANTINED" | "UNKNOWN_REVIEW" | "ORPHAN_DEAD";
+
+// Patterns that indicate a file is explicitly decommissioned — ORPHAN_DEAD
+const DEAD_CODE_PATTERNS = [
+  /RETIRED_/i,
+  /deprecated/i,
+  /_old\./i,
+  /_legacy\./i,
+  /_backup\./i,
+  /_unused\./i,
+];
+
+function hasExplicitDeadSignal(file: string, source?: string): boolean {
+  const filename = path.basename(file);
+  if (DEAD_CODE_PATTERNS.some(p => p.test(filename))) return true;
+  if (source && /\/\*[\s\S]*?deprecated[\s\S]*?\*\//i.test(source.slice(0, 500))) return true;
+  return false;
+}
 
 function classifyFile(
   file: string,
@@ -276,10 +294,19 @@ function classifyFile(
   }
 
   if (!reachableFromRouter && !hasImporters) {
+    // Split ORPHAN_DEAD into high-confidence dead vs UNKNOWN_REVIEW
+    const explicitlyDead = hasExplicitDeadSignal(file);
+    if (explicitlyDead) {
+      return {
+        classification: "ORPHAN_DEAD",
+        confidence: "high",
+        reason: "No route, no importers, AND explicit decommission signal (name/comment)",
+      };
+    }
     return {
-      classification: "ORPHAN_DEAD",
-      confidence: "high",
-      reason: "No route registration, no static imports, no dynamic references found",
+      classification: "UNKNOWN_REVIEW",
+      confidence: "medium",
+      reason: "No route registration, no static imports found — but no explicit dead signal. May be dynamically loaded, config-referenced, or a future feature. Human review required before any cleanup action.",
     };
   }
 
@@ -446,6 +473,7 @@ async function main() {
     CONDITIONAL: [],
     HIDDEN_RESERVED: [],
     QUARANTINED: [],
+    UNKNOWN_REVIEW: [],
     ORPHAN_DEAD: [],
   };
   for (const r of results) {
@@ -454,6 +482,7 @@ async function main() {
 
   const localizationTargets = byClass.ACTIVE.length + byClass.CONDITIONAL.length + byClass.HIDDEN_RESERVED.length;
   const excluded = byClass.QUARANTINED.length + byClass.ORPHAN_DEAD.length;
+  const needsReview = byClass.UNKNOWN_REVIEW.length;
 
   console.log("\n── Results ─────────────────────────────────────────────────");
   console.log(`\n  Total files: ${allFiles.length}`);
@@ -461,9 +490,11 @@ async function main() {
   console.log(`  CONDITIONAL:      ${byClass.CONDITIONAL.length.toString().padStart(4)} (subscription/role/admin/feature-flag gated)`);
   console.log(`  HIDDEN_RESERVED:  ${byClass.HIDDEN_RESERVED.length.toString().padStart(4)} (has importers but no active route)`);
   console.log(`  QUARANTINED:      ${byClass.QUARANTINED.length.toString().padStart(4)} (legacy/ directory or RETIRED_ prefix)`);
-  console.log(`  ORPHAN_DEAD:      ${byClass.ORPHAN_DEAD.length.toString().padStart(4)} (no route + no importers — high confidence dead)`);
+  console.log(`  UNKNOWN_REVIEW:   ${byClass.UNKNOWN_REVIEW.length.toString().padStart(4)} (no route + no importers, no dead signal — human review required)`);
+  console.log(`  ORPHAN_DEAD:      ${byClass.ORPHAN_DEAD.length.toString().padStart(4)} (no route + no importers + explicit dead signal)`);
   console.log(`\n  Localization target: ${localizationTargets}`);
   console.log(`  Excluded from migration: ${excluded}`);
+  console.log(`  Pending human review (UNKNOWN_REVIEW): ${needsReview}`);
 
   console.log("\n  TOP ORPHAN_DEAD FILES (high-confidence dead — candidate for deletion, not translation):");
   for (const r of byClass.ORPHAN_DEAD.slice(0, 25)) {
