@@ -67,7 +67,12 @@
     "translate": "Traduire",
     "share": "Partager",
     "log": "Enregistrer",
-    "logMeal": "Enregistrer le Repas"
+    "logMeal": "Enregistrer le Repas",
+    "addToCalendar": "Ajouter au calendrier",
+    "bringBackChef": "Faire revenir le chef",
+    "comingSoon": "Bientôt disponible",
+    "withChef": "Avec le Chef",
+    "today": "Aujourd'hui :"
   },
   "language": {
     "pageTitle": "Langue",
@@ -390,7 +395,8 @@
     "servings": "portions",
     "ingredientsServes": "Ingrédients (pour {{count}})",
     "noIngredients": "Aucun ingrédient fourni",
-    "noInstructions": "Aucune instruction fournie"
+    "noInstructions": "Aucune instruction fournie",
+    "couldNotUpdateFavorites": "Impossible de mettre à jour les favoris. Réessayez."
   },
   "shopping": {
     "pageTitle": "Liste de Courses Intelligente",

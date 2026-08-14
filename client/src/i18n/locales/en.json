@@ -67,7 +67,12 @@
     "translate": "Translate",
     "share": "Share",
     "log": "Log",
-    "logMeal": "Log Meal"
+    "logMeal": "Log Meal",
+    "addToCalendar": "Add to calendar",
+    "bringBackChef": "Bring back your chef",
+    "comingSoon": "Coming Soon",
+    "withChef": "With Chef",
+    "today": "Today:"
   },
   "language": {
     "pageTitle": "Language",
@@ -458,7 +463,8 @@
     "servings": "servings",
     "ingredientsServes": "Ingredients (serves {{count}})",
     "noIngredients": "No ingredients provided",
-    "noInstructions": "No instructions provided"
+    "noInstructions": "No instructions provided",
+    "couldNotUpdateFavorites": "Could not update favorites. Try again."
   },
   "shopping": {
     "pageTitle": "Smart Grocery List",

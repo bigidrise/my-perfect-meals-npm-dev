@@ -67,7 +67,12 @@
     "translate": "Перевести",
     "share": "Поделиться",
     "log": "Записать",
-    "logMeal": "Записать приём пищи"
+    "logMeal": "Записать приём пищи",
+    "addToCalendar": "Добавить в календарь",
+    "bringBackChef": "Вернуть шеф-повара",
+    "comingSoon": "Скоро",
+    "withChef": "С шефом",
+    "today": "Сегодня:"
   },
   "language": {
     "pageTitle": "Язык",
@@ -390,7 +395,8 @@
     "servings": "порции",
     "ingredientsServes": "Ингредиенты (на {{count}} порции)",
     "noIngredients": "Ингредиенты не указаны",
-    "noInstructions": "Инструкции не указаны"
+    "noInstructions": "Инструкции не указаны",
+    "couldNotUpdateFavorites": "Не удалось обновить избранное. Попробуйте снова."
   },
   "shopping": {
     "pageTitle": "Умный список покупок",

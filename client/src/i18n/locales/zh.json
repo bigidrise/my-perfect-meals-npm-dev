@@ -67,7 +67,12 @@
     "translate": "翻译",
     "share": "分享",
     "log": "记录",
-    "logMeal": "记录餐食"
+    "logMeal": "记录餐食",
+    "addToCalendar": "添加到日历",
+    "bringBackChef": "唤回厨师",
+    "comingSoon": "即将推出",
+    "withChef": "与厨师一起",
+    "today": "今天："
   },
   "language": {
     "pageTitle": "语言",
@@ -390,7 +395,8 @@
     "servings": "份",
     "ingredientsServes": "食材（供{{count}}人份）",
     "noIngredients": "未提供食材",
-    "noInstructions": "未提供说明"
+    "noInstructions": "未提供说明",
+    "couldNotUpdateFavorites": "无法更新收藏。请重试。"
   },
   "shopping": {
     "pageTitle": "智能购物清单",

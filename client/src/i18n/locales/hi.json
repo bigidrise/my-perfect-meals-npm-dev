@@ -67,7 +67,12 @@
     "translate": "अनुवाद करें",
     "share": "साझा करें",
     "log": "लॉग करें",
-    "logMeal": "भोजन लॉग करें"
+    "logMeal": "भोजन लॉग करें",
+    "addToCalendar": "कैलेंडर में जोड़ें",
+    "bringBackChef": "शेफ को वापस लाएं",
+    "comingSoon": "जल्द आ रहा है",
+    "withChef": "शेफ के साथ",
+    "today": "आज:"
   },
   "language": {
     "pageTitle": "भाषा",
@@ -390,7 +395,8 @@
     "servings": "सर्विंग",
     "ingredientsServes": "सामग्री ({{count}} के लिए)",
     "noIngredients": "कोई सामग्री प्रदान नहीं की गई",
-    "noInstructions": "कोई निर्देश नहीं दिया गया"
+    "noInstructions": "कोई निर्देश नहीं दिया गया",
+    "couldNotUpdateFavorites": "पसंदीदा अपडेट नहीं हो सके। पुनः प्रयास करें।"
   },
   "shopping": {
     "pageTitle": "स्मार्ट किराना सूची",

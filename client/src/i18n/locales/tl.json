@@ -67,7 +67,12 @@
     "translate": "Isalin",
     "share": "Ibahagi",
     "log": "I-log",
-    "logMeal": "I-log ang Pagkain"
+    "logMeal": "I-log ang Pagkain",
+    "addToCalendar": "Idagdag sa kalendaryo",
+    "bringBackChef": "Ibalik ang iyong chef",
+    "comingSoon": "Malapit nang dumating",
+    "withChef": "Kasama ang Chef",
+    "today": "Ngayon:"
   },
   "language": {
     "pageTitle": "Wika",
@@ -390,7 +395,8 @@
     "servings": "mga serving",
     "ingredientsServes": "Mga Sangkap (para sa {{count}})",
     "noIngredients": "Walang ibinigay na mga sangkap",
-    "noInstructions": "Walang ibinigay na mga tagubilin"
+    "noInstructions": "Walang ibinigay na mga tagubilin",
+    "couldNotUpdateFavorites": "Hindi ma-update ang mga paborito. Subukang muli."
   },
   "shopping": {
     "pageTitle": "Matalinong Listahan ng Pamimili",

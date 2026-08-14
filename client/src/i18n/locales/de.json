@@ -67,7 +67,12 @@
     "translate": "Übersetzen",
     "share": "Teilen",
     "log": "Erfassen",
-    "logMeal": "Mahlzeit erfassen"
+    "logMeal": "Mahlzeit erfassen",
+    "addToCalendar": "Zum Kalender hinzufügen",
+    "bringBackChef": "Chef zurückbringen",
+    "comingSoon": "Demnächst",
+    "withChef": "Mit Chef",
+    "today": "Heute:"
   },
   "language": {
     "pageTitle": "Sprache",
@@ -390,7 +395,8 @@
     "servings": "Portionen",
     "ingredientsServes": "Zutaten (für {{count}})",
     "noIngredients": "Keine Zutaten angegeben",
-    "noInstructions": "Keine Anweisungen angegeben"
+    "noInstructions": "Keine Anweisungen angegeben",
+    "couldNotUpdateFavorites": "Favoriten konnten nicht aktualisiert werden. Erneut versuchen."
   },
   "shopping": {
     "pageTitle": "Intelligente Einkaufsliste",
