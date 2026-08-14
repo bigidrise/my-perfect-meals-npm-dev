@@ -424,7 +424,81 @@ describe('"Restore original" button self-dismissal', () => {
   });
 });
 
-// ── 5. Session persistence — cleared preRefinedResult is not rehydrated ───────
+// ── 5. Session persistence after Restore Original ────────────────────────────
+
+describe('Session persistence after "Restore original"', () => {
+  it('a page reload after restoring shows the original meal and no banner', async () => {
+    const SESSION_KEY = 'grocery-coach-session:test-user-banner';
+
+    // Step 1 – render, get the first result, then refine it.
+    const { unmount } = render(
+      <GroceryStoreCoachSheet open={true} onOpenChange={jest.fn()} />,
+    );
+
+    const chip = screen.getByText("What's for dinner tonight?");
+    await act(async () => { fireEvent.click(chip); });
+    await waitFor(
+      () => expect(screen.getByText('Grilled Chicken')).toBeInTheDocument(),
+      { timeout: 3000 },
+    );
+
+    // Refine the meal
+    const refineBtn = screen.getByText('Refine Meal');
+    await act(async () => { fireEvent.click(refineBtn); });
+    expect(capturedOnRefined).not.toBeNull();
+    await act(async () => { capturedOnRefined!(REFINED_RESULT); });
+
+    // Confirm the refined meal and banner are showing
+    await waitFor(() =>
+      expect(screen.getByText('Restore original')).toBeInTheDocument(),
+    );
+    expect(screen.getByText('Herb-Crusted Grilled Chicken')).toBeInTheDocument();
+
+    // Step 2 – tap "Restore original"
+    await act(async () => {
+      fireEvent.click(screen.getByText('Restore original'));
+    });
+
+    // Banner gone, original meal restored in the UI
+    expect(screen.queryByText('Restore original')).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByText('Grilled Chicken')).toBeInTheDocument(),
+    );
+
+    // Step 3 – wait for the save effect to flush the post-restore state to
+    // localStorage (result = FIRST_RESULT, preRefinedResult absent).
+    await waitFor(() => {
+      const raw = localStorage.getItem(SESSION_KEY);
+      expect(raw).not.toBeNull();
+      const session = JSON.parse(raw!);
+      // The persisted result must be the original, not the refined version
+      expect(session.result?.meal?.name).toBe('Grilled Chicken');
+      // preRefinedResult must be absent so reload can't restore the banner
+      expect(session.preRefinedResult).toBeUndefined();
+    });
+
+    // Step 4 – simulate a page reload by unmounting and re-rendering while
+    // localStorage still holds the post-restore session.
+    unmount();
+
+    render(<GroceryStoreCoachSheet open={true} onOpenChange={jest.fn()} />);
+
+    // The original meal should appear from localStorage
+    await waitFor(() =>
+      expect(screen.getByText('Grilled Chicken')).toBeInTheDocument(),
+      { timeout: 3000 },
+    );
+
+    // The "Restore original" banner must NOT appear — it was not persisted
+    expect(screen.queryByText('Restore original')).not.toBeInTheDocument();
+    expect(screen.queryByText('Showing refined version')).not.toBeInTheDocument();
+
+    // The refined meal name must not be visible
+    expect(screen.queryByText('Herb-Crusted Grilled Chicken')).not.toBeInTheDocument();
+  });
+});
+
+// ── 6. Session persistence — cleared preRefinedResult is not rehydrated ───────
 
 describe('Session persistence — preRefinedResult not rehydrated after sendMessage', () => {
   it('a page reload after sendMessage does not restore the Restore Original banner', async () => {
