@@ -375,6 +375,7 @@ export const users = pgTable("users", {
   // Trial + Meal Builder Selection (Paywall system)
   trialStartedAt: timestamp("trial_started_at", { withTimezone: true }),
   trialEndsAt: timestamp("trial_ends_at", { withTimezone: true }),
+  trialSource: varchar("trial_source", { length: 50 }), // standard_signup | admin_grant | clinic_grant | promotion
   trialRemindersSent: text("trial_reminders_sent").array().default([]), // milestones sent: ["day_6","day_5","day_3","day_1"]
   selectedMealBuilder: text("selected_meal_builder"), // weekly, diabetic, glp1, anti_inflammatory
   // Builder Switch Controls (Beta)

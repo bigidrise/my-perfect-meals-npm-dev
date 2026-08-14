@@ -98,6 +98,7 @@ async function buildAuthUserWithEffectiveAccess(user: any): Promise<Authenticate
       isSandbox: user.isSandbox,
       isFounder: user.isFounder,
       isTester: user.isTester,
+      trialEndsAt: user.trialEndsAt,
     });
 
     const now = new Date();

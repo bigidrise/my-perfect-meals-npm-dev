@@ -65,6 +65,7 @@ import MacroScanModal from "@/components/MacroScanModal";
 import { NutritionPersonalizationSummaryCard } from "@/components/protocol/NutritionPersonalizationSummaryCard";
 import { TodaysPrescriptionCard } from "@/components/dashboard/TodaysPrescriptionCard";
 import { WhatsNewCard } from "@/components/WhatsNewCard";
+import { TrialStatusCard } from "@/components/TrialStatusCard";
 import CoachCornerCard from "@/components/ace/CoachCornerCard";
 import { COACHES_CORNER_ENABLED } from "@/features/coachCornerFlag";
 
@@ -829,6 +830,7 @@ export default function DashboardNew() {
       >
         <PatternAlertBanner />
         <TipsBanner />
+        <TrialStatusCard />
 
         <WhatsNewCard />
 

@@ -53,9 +53,11 @@ export function TrialBanner() {
   // Only show while the user is actively in their trial window
   if (!isInTrial(user)) return null;
 
-  const daysLeft = getDaysRemaining(user!.trialEndsAt as string);
-  // Only show when 1–6 days remain
-  if (daysLeft <= 0 || daysLeft > 6) return null;
+  // Prefer server-authoritative daysRemaining; fall back to local computation
+  const serverDays = (user as any)?.daysRemaining as number | undefined;
+  const daysLeft = typeof serverDays === "number" ? serverDays : getDaysRemaining(user!.trialEndsAt as string);
+  // Show when 1–7 days remain (full final week); TrialStatusCard handles earlier days on dashboard
+  if (daysLeft <= 0 || daysLeft > 7) return null;
 
   // Don't show if already dismissed for this trial window
   if (dismissed) return null;
@@ -68,7 +70,10 @@ export function TrialBanner() {
   }
 
   const isLastDay = daysLeft === 1;
+  const isUrgent = daysLeft <= 3;
   const dayLabel = isLastDay ? "1 day" : `${daysLeft} days`;
+  const trialTier = (user as any)?.trialTier ?? null;
+  const tierLabel = trialTier === "ultimate" ? "Clinical access" : "full access";
 
   return (
     <div
@@ -118,8 +123,8 @@ export function TrialBanner() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-white leading-tight mb-0.5">
-                  <span className="text-orange-400">{dayLabel} left</span>{" "}
-                  to experience every My Perfect Meals feature.
+                  <span className={isUrgent ? "text-red-400" : "text-orange-400"}>{dayLabel} left</span>{" "}
+                  in your trial — {tierLabel} ends soon.
                 </p>
                 <div className="flex items-center gap-3 mt-2">
                   <button

@@ -19,6 +19,7 @@ import { eq, and } from "drizzle-orm";
 import {
   getTierForLookupKey,
   getEntitlementsForTier,
+  TRIAL_UNLOCKS_TIER,
   type PlanTier,
 } from "../../shared/planFeatures";
 
@@ -40,6 +41,8 @@ interface UserSnapshot {
   isSandbox?: boolean | null;
   isFounder?: boolean | null;
   isTester?: boolean | null;
+  /** ISO string or Date — used to grant TRIAL_UNLOCKS_TIER entitlements during active trial */
+  trialEndsAt?: Date | string | null;
 }
 
 export async function computeEffectiveAccess(
@@ -104,11 +107,22 @@ export async function computeEffectiveAccess(
 
   const effectiveLookupKey =
     user.personalPlanLookupKey ?? user.planLookupKey ?? null;
-  const tier = getTierForLookupKey(effectiveLookupKey);
+  const baseTier = getTierForLookupKey(effectiveLookupKey);
+
+  // Active trial with no paid plan → elevate entitlements to TRIAL_UNLOCKS_TIER.
+  // resolveAccessTier already returns PAID_FULL for active trial; this fixes
+  // the split-brain where accessTier=PAID_FULL but entitlements=free.
+  const now = new Date();
+  const trialEnd = user.trialEndsAt
+    ? (user.trialEndsAt instanceof Date ? user.trialEndsAt : new Date(user.trialEndsAt as string))
+    : null;
+  const hasActiveTrial = !effectiveLookupKey && trialEnd != null && trialEnd > now;
+  const effectiveTier: PlanTier = hasActiveTrial ? TRIAL_UNLOCKS_TIER : baseTier;
+
   return {
     planLookupKey: effectiveLookupKey,
-    entitlements: getEntitlementsForTier(tier) as string[],
-    tier,
+    entitlements: getEntitlementsForTier(effectiveTier) as string[],
+    tier: effectiveTier,
     sponsoredByBusinessId: null,
     sponsoredByBusinessName: null,
   };
