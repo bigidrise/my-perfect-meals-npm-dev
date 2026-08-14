@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { PillButton } from "@/components/ui/pill-button";
 import { captureException } from "@/lib/sentry";
 import { useTranslation } from "react-i18next";
+import { computeTrialDays } from "@shared/trialDays";
 
 const RESUME_STEP_KEY = "mpm.onboarding.resumeStep";
 
@@ -1380,31 +1381,17 @@ export default function OnboardingV3() {
     <div className="min-h-screen bg-black text-white flex flex-col">
       {/* Trial welcome modal — shown immediately after onboarding completes */}
       {showTrialModal && (() => {
-        // Compute the actual trial duration so admin-granted 30-day trials
-        // never display "7-Day". Priority:
-        //   1. trialStartedAt from the completion response (most reliable — avoids
-        //      the race where refreshUser() hasn't resolved yet)
-        //   2. trialStartedAt from the auth context (available after refreshUser())
-        //   3. daysRemaining from user context
-        //   4. raw end-from-now calculation
-        //   5. safe fallback of 7
+        // Priority for trialStartedAt:
+        //   1. Value captured directly from the completion response (avoids the
+        //      race where refreshUser() hasn't resolved yet)
+        //   2. Value from the auth context (available after refreshUser())
         const startStr: string | null =
           trialStartedAtFromResponse ?? ((user as any)?.trialStartedAt as string | null) ?? null;
-        const actualDays = (() => {
-          if (startStr && trialEndsAt) {
-            const ms = new Date(trialEndsAt).getTime() - new Date(startStr).getTime();
-            const d = Math.round(ms / (1000 * 60 * 60 * 24));
-            if (d > 0) return d;
-          }
-          const serverDays = (user as any)?.daysRemaining as number | undefined;
-          if (typeof serverDays === "number" && serverDays > 0) return serverDays;
-          if (trialEndsAt) {
-            const ms = new Date(trialEndsAt).getTime() - Date.now();
-            const d = Math.ceil(ms / (1000 * 60 * 60 * 24));
-            if (d > 0) return d;
-          }
-          return 7;
-        })();
+        const actualDays = computeTrialDays({
+          trialStartedAt: startStr,
+          trialEndsAt,
+          daysRemaining: (user as any)?.daysRemaining as number | undefined,
+        });
 
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 px-6">
