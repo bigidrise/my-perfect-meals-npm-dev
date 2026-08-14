@@ -989,7 +989,10 @@
     "noMealsTitle": "لا توجد وجبات",
     "noSlotYet": "لا يوجد {{slot}} بعد",
     "snacks": "وجبات خفيفة",
-    "whyWeeklyPlanning": "لماذا التخطيط الأسبوعي؟"
+    "whyWeeklyPlanning": "لماذا التخطيط الأسبوعي؟",
+    "savingPlan": "جارٍ الحفظ…",
+    "savedPlan": "تم الحفظ ✓",
+    "savePlan": "حفظ الخطة"
   },
   "coachCorner": {
     "title": "ركن المدرب",

@@ -989,7 +989,10 @@
     "noMealsTitle": "कोई भोजन नहीं",
     "noSlotYet": "अभी तक कोई {{slot}} नहीं",
     "snacks": "स्नैक्स",
-    "whyWeeklyPlanning": "साप्ताहिक योजना क्यों?"
+    "whyWeeklyPlanning": "साप्ताहिक योजना क्यों?",
+    "savingPlan": "सहेजा जा रहा है…",
+    "savedPlan": "सहेजा गया ✓",
+    "savePlan": "योजना सहेजें"
   },
   "coachCorner": {
     "title": "कोच का कोना",

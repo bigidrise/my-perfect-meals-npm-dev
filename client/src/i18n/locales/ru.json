@@ -989,7 +989,10 @@
     "noMealsTitle": "Нет приемов пищи",
     "noSlotYet": "{{slot}} еще не добавлен",
     "snacks": "Перекусы",
-    "whyWeeklyPlanning": "Зачем нужно планирование на неделю?"
+    "whyWeeklyPlanning": "Зачем нужно планирование на неделю?",
+    "savingPlan": "Сохранение…",
+    "savedPlan": "Сохранено ✓",
+    "savePlan": "Сохранить план"
   },
   "coachCorner": {
     "title": "Уголок тренера",

@@ -989,7 +989,10 @@
     "noMealsTitle": "Pas de repas",
     "noSlotYet": "Pas encore de {{slot}}",
     "snacks": "Collations",
-    "whyWeeklyPlanning": "Pourquoi la planification hebdomadaire ?"
+    "whyWeeklyPlanning": "Pourquoi la planification hebdomadaire ?",
+    "savingPlan": "Enregistrement…",
+    "savedPlan": "Enregistré ✓",
+    "savePlan": "Enregistrer le plan"
   },
   "coachCorner": {
     "title": "Coin du Coach",

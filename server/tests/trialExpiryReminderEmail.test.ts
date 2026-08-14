@@ -129,10 +129,7 @@ describe("sendTrialExpiryReminderEmail — rendered HTML contains the correct la
 // ─── 3. runTrialExpiryReminders — selects trialSource and passes it ──────────
 
 describe("runTrialExpiryReminders — trialSource threading", () => {
-  const emailCalls: Array<{
-    to: string;
-    trialSource: string | null | undefined;
-  }> = [];
+  const emailCalls: Array<{ to: string; trialSource?: string | null }> = [];
 
   // Fake DB user with trialSource set to clinic_grant
   const fakeUser = {
@@ -171,7 +168,7 @@ describe("runTrialExpiryReminders — trialSource threading", () => {
       formatTrialSourceLabel: jest.fn(),
     }));
 
-    const mod = await import("../cron/trialReminders");
+      const mod = await import("../cron/trialReminders");
     await mod.runTrialExpiryReminders();
   });
 
@@ -283,19 +280,14 @@ describe("runTrialExpiryReminders — paid-plan guard", () => {
       jest.restoreAllMocks();
     });
 
-    it("calls where() at least once (one call per milestone)", () => {
-      // runTrialExpiryReminders iterates 4 milestones → 4 where() calls
-      expect(capturedSqlFragments.length).toBeGreaterThan(0);
-    });
-
-    it("the WHERE clause references plan_lookup_key", () => {
-      const combined = capturedSqlFragments.join(" ");
-      expect(combined).toMatch(/plan_lookup_key/i);
-    });
-
-    it("the WHERE clause contains an IS NULL check", () => {
+    it("the query contains the planLookupKey IS NULL guard that excludes paid users", () => {
       const combined = capturedSqlFragments.join(" ");
       expect(combined).toMatch(/IS NULL/i);
+    });
+
+    it("the WHERE clause contains a plan_lookup_key column reference", () => {
+      const combined = capturedSqlFragments.join(" ");
+      expect(combined).toMatch(/plan_lookup_key/i);
     });
 
     it("the WHERE clause contains an empty-string check (= '')", () => {
@@ -436,5 +428,175 @@ describe("runTrialExpiryReminders — paid-plan guard", () => {
       const calls = emailCallsFree.filter((c) => c.to === freeUser.email);
       expect(calls.length).toBeGreaterThan(0);
     });
+  });
+});
+
+// ─── 5. runTrialExpiryReminders — deduplication (idempotency) ────────────────
+//
+// Two-part test:
+//
+//   A) The WHERE clause contains the NOT (trial_reminders_sent @> ARRAY[key])
+//      predicate.  This assertion FAILS if that predicate is removed from
+//      trialReminders.ts, which is the key invariant we are guarding.
+//
+//   B) When the dedup filter correctly excludes all candidates (DB returns []),
+//      sendTrialExpiryReminderEmail is never called — even when the cron fires
+//      twice in the same day.
+
+describe("runTrialExpiryReminders — deduplication guard", () => {
+  // Captures the flattened SQL passed to every where() call across both cron runs
+  const capturedWhereSql: string[] = [];
+  const emailCalls: Array<{ to: string }> = [];
+  const executeArgs: unknown[] = [];
+
+  beforeAll(async () => {
+    jest.resetModules();
+
+    jest.mock("../db", () => ({
+      db: {
+        select: jest.fn().mockReturnValue({
+          from: jest.fn().mockReturnValue({
+            where: jest.fn().mockImplementation((condition: unknown) => {
+              // Capture and flatten the Drizzle SQL AST so we can assert the
+              // trial_reminders_sent dedup predicate is expressed in the query.
+              capturedWhereSql.push(flattenSql(condition));
+              // Simulate what the real DB does when the dedup predicate is
+              // active: already-notified users are excluded → empty result.
+              return Promise.resolve([]);
+            }),
+          }),
+        }),
+        execute: async (sqlArg: unknown) => {
+          executeArgs.push(sqlArg);
+        },
+      },
+    }));
+
+    jest.mock("../services/emailService", () => ({
+      sendTrialExpiryReminderEmail: jest.fn().mockImplementation(
+        async (args: { to: string }) => {
+          emailCalls.push({ to: args.to });
+          return { id: "mock-id" };
+        }
+      ),
+      formatTrialSourceLabel: jest.fn(),
+    }));
+
+    const mod = await import("../cron/trialReminders");
+    // Simulate the cron firing twice — the dedup predicate must exclude already-
+    // notified users on both runs.
+    await mod.runTrialExpiryReminders();
+    await mod.runTrialExpiryReminders();
+  });
+
+  afterAll(() => {
+    jest.restoreAllMocks();
+  });
+
+  // ── A: guard is expressed in the SQL ──────────────────────────────────────
+  it("the WHERE clause includes the trial_reminders_sent exclusion predicate", () => {
+    // This assertion fails if the NOT (trial_reminders_sent @> ARRAY[key])
+    // predicate is removed from trialReminders.ts.
+    const combined = capturedWhereSql.join(" ");
+    expect(combined).toMatch(/trial_reminders_sent/i);
+  });
+
+  it("the WHERE clause uses NOT to invert the array-contains check", () => {
+    const combined = capturedWhereSql.join(" ");
+    expect(combined).toMatch(/NOT/);
+  });
+
+  // ── B: no send when dedup filter is active ────────────────────────────────
+  it("does not call sendTrialExpiryReminderEmail when the dedup filter excludes all candidates", () => {
+    // Both cron runs returned zero candidates → zero email calls
+    expect(emailCalls).toHaveLength(0);
+  });
+
+  it("does not call db.execute when no email was sent", () => {
+    expect(executeArgs).toHaveLength(0);
+  });
+});
+
+// ─── 6. runTrialExpiryReminders — update called exactly once per user ─────────
+//
+// When a candidate IS found and the email is sent successfully, the milestone
+// key must be appended to trial_reminders_sent exactly one time — no double-
+// write even if the loop somehow iterates twice.
+
+describe("runTrialExpiryReminders — db.execute called exactly once per user per milestone", () => {
+  const emailCalls: Array<{ to: string }> = [];
+  // Plain array captured in the describe closure — the mock factory pushes
+  // each sql argument into it, sidestepping jest.fn() identity issues caused
+  // by module-cache mismatches between the cron and test file import paths.
+  const executeSqlArgs: unknown[] = [];
+
+  const freshUser = {
+    id: 77,
+    email: "fresh@example.com",
+    firstName: "Carol",
+    trialEndsAt: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
+    trialRemindersSent: [],
+    planLookupKey: null,
+    trialSource: null,
+  };
+
+  beforeAll(async () => {
+    jest.resetModules();
+
+    // The select mock returns the fresh user for exactly ONE milestone bucket
+    // (day_5) and empty for the rest — matching what the real DB would do when
+    // only one milestone window contains this user.
+    let whereCallCount = 0;
+    jest.mock("../db", () => ({
+      db: {
+        select: jest.fn().mockReturnValue({
+          from: jest.fn().mockReturnValue({
+            where: jest.fn().mockImplementation(() => {
+              whereCallCount += 1;
+              // Milestones iterated: day_6 (1), day_5 (2), day_3 (3), day_1 (4)
+              // Return the fresh user only for the day_5 bucket.
+              return Promise.resolve(whereCallCount === 2 ? [freshUser] : []);
+            }),
+          }),
+        }),
+        // Push the SQL argument into the describe-scoped array so tests can
+        // inspect it without relying on jest.fn() call tracking.
+        execute: async (sqlArg: unknown) => {
+          executeSqlArgs.push(sqlArg);
+        },
+      },
+    }));
+
+    jest.mock("../services/emailService", () => ({
+      sendTrialExpiryReminderEmail: jest.fn().mockImplementation(
+        async (args: { to: string }) => {
+          emailCalls.push({ to: args.to });
+          return { id: "mock-id" };
+        }
+      ),
+      formatTrialSourceLabel: jest.fn(),
+    }));
+
+    const mod = await import("../cron/trialReminders");
+    await mod.runTrialExpiryReminders();
+  });
+
+  afterAll(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("sends exactly one email to the candidate user", () => {
+    const callsForUser = emailCalls.filter((c) => c.to === freshUser.email);
+    expect(callsForUser).toHaveLength(1);
+  });
+
+  it("calls db.execute exactly once to append the milestone key", () => {
+    // One email sent → one array_append UPDATE
+    expect(executeSqlArgs).toHaveLength(1);
+  });
+
+  it("passes an SQL UPDATE containing array_append to db.execute", () => {
+    const sqlText = JSON.stringify(executeSqlArgs[0]);
+    expect(sqlText.toLowerCase()).toContain("array_append");
   });
 });

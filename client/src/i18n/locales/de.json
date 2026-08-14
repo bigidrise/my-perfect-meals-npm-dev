@@ -989,7 +989,10 @@
     "noMealsTitle": "Keine Mahlzeiten",
     "noSlotYet": "Noch kein {{slot}}",
     "snacks": "Snacks",
-    "whyWeeklyPlanning": "Warum Wochenplanung?"
+    "whyWeeklyPlanning": "Warum Wochenplanung?",
+    "savingPlan": "Wird gespeichert…",
+    "savedPlan": "Gespeichert ✓",
+    "savePlan": "Plan speichern"
   },
   "coachCorner": {
     "title": "Coaches Ecke",

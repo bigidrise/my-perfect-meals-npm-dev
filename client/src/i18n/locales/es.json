@@ -1115,7 +1115,10 @@
     "noMealsTitle": "Sin comidas",
     "noSlotYet": "Aún no hay {{slot}}",
     "snacks": "Snacks",
-    "whyWeeklyPlanning": "¿Por qué planificación semanal?"
+    "whyWeeklyPlanning": "¿Por qué planificación semanal?",
+    "savingPlan": "Guardando…",
+    "savedPlan": "Guardado ✓",
+    "savePlan": "Guardar plan"
   },
   "coachCorner": {
     "title": "Rincón del Coach",
