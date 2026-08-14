@@ -173,10 +173,10 @@ if (fs.existsSync(REPORT_1A) && fs.existsSync(REPORT_1B)) {
   if (fs.existsSync(BASELINE_FILE)) {
     const saved = JSON.parse(fs.readFileSync(BASELINE_FILE, "utf8"));
     const diff = activeFindings.length - saved.activeHardcodedStrings;
-    if (diff > 10) {
-      fail(`Hardcoded-string count on ACTIVE surfaces increased by ${diff} (${saved.activeHardcodedStrings} → ${activeFindings.length}). New strings must use t() keys.`);
-    } else if (diff > 0) {
-      warn(`Hardcoded-string count increased by ${diff} on ACTIVE surfaces — review new strings`);
+    if (diff > 0) {
+      // GATE_08 is a strict ratchet — baseline may only stay the same or decrease.
+      // Any increase means a new hardcoded string was added to an ACTIVE surface.
+      fail(`Hardcoded-string count on ACTIVE surfaces increased by ${diff} (${saved.activeHardcodedStrings} → ${activeFindings.length}). New user-facing strings must use t() keys. This gate is a ratchet — it never goes up.`);
     } else if (diff < 0) {
       pass(`Hardcoded-string count decreased by ${Math.abs(diff)} — migration progress ✓`);
     } else {
