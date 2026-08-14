@@ -2094,9 +2094,7 @@
     "tour8Desc": "Ang protein at carb ay may markang asterisk (*) dahil ang mga ito ang pinakamahalagang numero na dapat pagtuunan ng pansin kapag bumubuo ng iyong mga pagkain. Unahin ang mga iyon.",
     "tour8Title": "Ano ang Kahulugan ng mga Asterisk",
     "tourTitle": "General Nutrition Builder"
-  }
-}
-
+  },
   "trialStatusCard": {
     "adminTrial": "Admin Trial",
     "clinicalTrial": "Clinical Trial",
@@ -2138,3 +2136,4 @@
     "viewFullList": "Tingnan ang Buong Listahan",
     "noItems": "Walang laman ang iyong listahan ng grocery. Magdagdag ng mga item mula sa iyong meal plan."
   }
+}

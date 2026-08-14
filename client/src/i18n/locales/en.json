@@ -2078,9 +2078,7 @@
     "mealAddedDesc": "{{name}} added successfully",
     "noSlotYet": "No {{slot}} yet",
     "noSnacksYet": "No snacks yet"
-  }
-}
-
+  },
   "trialStatusCard": {
     "adminTrial": "Admin Trial",
     "clinicalTrial": "Clinical Trial",
@@ -2122,3 +2120,4 @@
     "viewFullList": "View Full List",
     "noItems": "Your grocery list is empty. Add items from your meal plan to get started."
   }
+}
