@@ -1084,4 +1084,87 @@ describe('Same-user open/close/open cycle — banner survives', () => {
       expect(screen.getByText('Showing refined version')).toBeInTheDocument();
     }
   });
+
+  it('localStorage still holds preRefinedResult after multiple close/reopen cycles, and a page reload restores the banner', async () => {
+    const SESSION_KEY = 'grocery-coach-session:test-user-banner';
+
+    const onOpenChange = jest.fn();
+    const { rerender, unmount } = render(
+      <GroceryStoreCoachSheet open={true} onOpenChange={onOpenChange} />,
+    );
+
+    // ── Step 1: generate a result ─────────────────────────────────────────────
+    const chip = screen.getByText("What's for dinner tonight?");
+    await act(async () => {
+      fireEvent.click(chip);
+    });
+
+    await waitFor(
+      () => expect(screen.getByText('Grilled Chicken')).toBeInTheDocument(),
+      { timeout: 3000 },
+    );
+
+    // ── Step 2: refine the meal — banner must appear ──────────────────────────
+    const refineBtn = screen.getByText('Refine Meal');
+    await act(async () => {
+      fireEvent.click(refineBtn);
+    });
+    expect(capturedOnRefined).not.toBeNull();
+    await act(async () => {
+      capturedOnRefined!(REFINED_RESULT);
+    });
+
+    await waitFor(() =>
+      expect(screen.getByText('Restore original')).toBeInTheDocument(),
+    );
+
+    // ── Step 3: two close/reopen cycles for the same user ────────────────────
+    for (let cycle = 0; cycle < 2; cycle++) {
+      // eslint-disable-next-line no-await-in-loop
+      await act(async () => {
+        rerender(<GroceryStoreCoachSheet open={false} onOpenChange={onOpenChange} />);
+      });
+      // eslint-disable-next-line no-await-in-loop
+      await act(async () => {
+        rerender(<GroceryStoreCoachSheet open={true} onOpenChange={onOpenChange} />);
+      });
+
+      // Banner must survive every cycle
+      // eslint-disable-next-line no-await-in-loop
+      await waitFor(() =>
+        expect(screen.getByText('Restore original')).toBeInTheDocument(),
+      );
+    }
+
+    // ── Step 4: confirm localStorage was updated by the save effect and still
+    //   holds preRefinedResult after all those cycles ──────────────────────────
+    await waitFor(() => {
+      const raw = localStorage.getItem(SESSION_KEY);
+      expect(raw).not.toBeNull();
+      const session = JSON.parse(raw!);
+      // The current (refined) result must be persisted
+      expect(session.result?.meal?.name).toBe('Herb-Crusted Grilled Chicken');
+      // preRefinedResult must still be present so a page reload can restore the banner
+      expect(session.preRefinedResult?.meal?.name).toBe('Grilled Chicken');
+    });
+
+    // ── Step 5: simulate a page reload by unmounting and remounting while
+    //   localStorage still holds the mid-refinement session ───────────────────
+    unmount();
+
+    render(<GroceryStoreCoachSheet open={true} onOpenChange={jest.fn()} />);
+
+    // The refined meal name must be rehydrated from localStorage
+    await waitFor(
+      () => expect(screen.getByText('Herb-Crusted Grilled Chicken')).toBeInTheDocument(),
+      { timeout: 3000 },
+    );
+
+    // The "Restore original" banner must appear because preRefinedResult was
+    // persisted across all the close/reopen cycles
+    await waitFor(() =>
+      expect(screen.getByText('Restore original')).toBeInTheDocument(),
+    );
+    expect(screen.getByText('Showing refined version')).toBeInTheDocument();
+  });
 });
