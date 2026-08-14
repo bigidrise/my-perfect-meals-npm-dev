@@ -100,7 +100,78 @@
     "founders": "Mga Tagapagtatag",
     "restaurant": "Restaurant Assistant",
     "weeklyBuilder": "Lingguhang Builder",
-    "mealsAwayFromHome": "Mga Pagkain sa Labas ng Bahay"
+    "mealsAwayFromHome": "Mga Pagkain sa Labas ng Bahay",
+    "academy": "Academy",
+    "antiInflammatoryBuilder": "Anti-Inflammatory Builder",
+    "appName": "My Perfect Meals",
+    "applyGuidance": "Ilapat ang Gabay",
+    "beverageCreator": "Beverage Creator",
+    "boardView": "Board View",
+    "bodyComposition": "Body Composition",
+    "businessCenter": "Business Center",
+    "chefPairings": "Chef Pairings",
+    "clientDashboard": "Client Dashboard",
+    "cravingCreator": "Craving Creator",
+    "createDish": "Create a Dish",
+    "creatorBrandStudio": "Creator & Brand Studio",
+    "dailyJournal": "Daily Journal & Inspiration",
+    "dessertCreator": "Dessert Creator",
+    "diabetesHub": "Diabetes Hub",
+    "diabetesSupport": "Diabetes Support",
+    "diabeticBuilder": "Diabetic Builder",
+    "diabeticHub": "Diabetic Hub",
+    "drinkPairings": "Drink Pairings",
+    "editProfile": "I-edit ang Profile",
+    "findMeals": "Maghanap ng Pagkain",
+    "foundingPartnerProgram": "Founding Partner Program",
+    "fridgeRescueStudio": "Fridge Rescue Studio",
+    "gatherings": "My Perfect Gatherings",
+    "generalNutritionBuilder": "General Nutrition Builder",
+    "healthcarePartnerships": "Healthcare & Clinical Partnerships",
+    "howPartnershipsWork": "Paano Gumagana ang Partnerships",
+    "industryPartnerships": "Industry Partnerships",
+    "kitchenNetwork": "The Kitchen Network",
+    "mealBuilder": "Meal Builder",
+    "mealBuilderExchange": "Meal Builder Exchange",
+    "metabolicBuilder": "Metabolic Medication Builder",
+    "metabolicHub": "Metabolic Medication Hub",
+    "metabolicHubBack": "Metabolic Hub",
+    "metabolicTracking": "Metabolic Medication Tracking",
+    "myPerfectBeginning": "My Perfect Beginnings",
+    "myPerfectPets": "My Perfect Pets",
+    "organizationDashboard": "Organization Dashboard",
+    "organizationSuccessCenter": "Organization Success Center",
+    "pairingsHub": "Pairings Hub",
+    "partnerCenter": "Partner Center",
+    "partnerManagement": "Pamamahala ng Partner",
+    "partnerProgram": "Partner Program",
+    "partnerPrograms": "Mga Partner Program",
+    "partnerRevenueCenter": "Partner & Revenue Center",
+    "patientDashboard": "Dashboard ng Pasyente",
+    "performanceBuilder": "Performance Nutrition Builder",
+    "performanceHub": "Performance Hub",
+    "physicianClients": "Mga Kliyenteng Manggagamot",
+    "physicianPortal": "Portal ng Manggagamot",
+    "physicianWelcome": "Pagbati sa Manggagamot",
+    "planner": "Planner",
+    "pregnancy": "My Perfect Pregnancy",
+    "proLaunchpad": "Dashboard ng Propesyonal",
+    "proPortal": "Pro Portal",
+    "procareCertified": "ProCare Certified",
+    "procareTraining": "Pagsasanay sa ProCare",
+    "procareWelcome": "Pagbati sa ProCare",
+    "professionalWorkspace": "Workspace ng Propesyonal",
+    "promotions": "Mga Promosyon",
+    "reduceDrinking": "Planong Bawasan ang Pag-inom",
+    "restaurantGuide": "Restaurant Assistant",
+    "signatureKitchen": "Signature Kitchen",
+    "sleepTracker": "Sleep Tracker",
+    "supplementHub": "Supplement Hub",
+    "trainerWelcome": "Pagbati sa Trainer",
+    "tutorialHub": "Tutorial Hub",
+    "weaningOff": "Tool sa Pag-wean Off",
+    "whiteLabelSolutions": "White Label Solutions",
+    "wineListHelper": "Wine List Helper"
   },
   "dashboard": {
     "professionalBadge": "Propesyonal",
@@ -218,7 +289,13 @@
     "badgeClinical": "Klinikal",
     "badgePro": "Pro",
     "badgeCurrent": "Kasalukuyan",
-    "badgeBehavioral": "Behavioral AI™"
+    "badgeBehavioral": "Behavioral AI™",
+    "badgeProCare": "ProCare",
+    "performanceCompDesc": "Pagpaplano ng pagkain na ginabayan ng coach para sa mga elite athlete para sa paghahanda sa kompetisyon, peak performance, at recovery",
+    "performanceCompTitle": "Performance & Competition Builder",
+    "plannerTitle": "Planner",
+    "weeklyDesc": "Mga meal plan na gawa ng AI para sa mga gustong kumain nang mas malusog ayon sa kanilang sariling paraan",
+    "weeklyTitle": "My Weekly Meal Builder"
   },
   "createDish": {
     "pageTitle": "Lumikha ng Putahe",
@@ -242,7 +319,11 @@
     "errorMissing": "Kulang ang Impormasyon",
     "errorDescribe": "Mangyaring ilarawan ang putaheng nais mong likhain!",
     "errorFailed": "Hindi malikha ang putahe. Mangyaring subukang muli.",
-    "allergyAlert": "Babala sa Allergy"
+    "allergyAlert": "Babala sa Allergy",
+    "label": "Anong putahe ang gusto mong gawin?",
+    "notes": "Opsyonal na mga Tala",
+    "notesPlaceholder": "halimbawa: walang dairy, extra spicy, low sodium, para sa meal prep...",
+    "servings": "Servings (1–12)"
   },
   "snack": {
     "pageTitle": "Snack Creator",
@@ -340,7 +421,29 @@
     "catPantry": "Pantry",
     "catFrozen": "Frozen",
     "catBakery": "Panaderia",
-    "catOther": "Iba pa"
+    "catOther": "Iba pa",
+    "addItemsBtn": "Magdagdag ng Item",
+    "addedToList": "Idinagdag sa listahan ng pamimili",
+    "barcodePlaceholder": "I-type ang barcode number...",
+    "bulkInstructions": "I-type o i-paste ang isang item bawat linya, o paghiwalayin ang mga item gamit ang mga kuwit:",
+    "bulkPlaceholder": "gatas\nitlog\nchicken breast\nspinach\nbrown rice",
+    "bulkTitle": "Maramihang Pagdagdag ng Item",
+    "checked": "naka-check",
+    "chefBuy": "Sabi ng Chef: Ituloy mo!",
+    "chefCaution": "Sabi ng Chef: Paalala lang…",
+    "chefSkip": "Sabi ng Chef: Pag-isipan muna nang mabuti",
+    "continueToBiometrics": "Magpatuloy sa Biometrics",
+    "emptyList": "Walang laman ang iyong listahan ng pamimili",
+    "emptyListHint": "Mag-paste ng mga item o magdagdag agad para magsimula",
+    "enterBarcode": "Ilagay ang Barcode",
+    "items": "mga item",
+    "itemsAddedDesc": "{{count}} na item ang idinagdag sa iyong listahan ng pamimili.",
+    "itemsCopied": "{{count}} na item ang kinopya",
+    "proLabel": "Pro",
+    "savedForReview": "Naka-save para suriin",
+    "savedForReviewDesc": "Maaari mong balikan ang scan na ito anumang oras mula sa pahinang ito.",
+    "scannedProduct": "Na-scan na Produkto",
+    "tapView": "I-tap para tingnan →"
   },
   "restaurant": {
     "pageTitle": "Katulong sa Restaurant",
@@ -357,7 +460,36 @@
     "errorZipDesc": "Mangyaring ilagay ang wastong 5-digit na ZIP code.",
     "errorLocationDenied": "Tinanggihan ang Access sa Lokasyon",
     "errorLocationDesc": "Mangyaring paganahin ang access sa lokasyon sa mga setting ng browser, o ilagay ang iyong ZIP nang manu-mano.",
-    "generationFailed": "Nabigo ang Paggawa"
+    "generationFailed": "Nabigo ang Paggawa",
+    "addressCopied": "Nakopya na ang address",
+    "askFor": "Itanong para sa:",
+    "cannotDetectZip": "Hindi ma-detect ang ZIP Code",
+    "cannotDetectZipDesc": "Nahanap ang lokasyon pero hindi namin matukoy ang iyong ZIP. Pakilagay ito nang manu-mano.",
+    "copyFailed": "Nabigong kopyahin",
+    "copyManually": "Pakikopya nang manu-mano.",
+    "entryDesc": "Sabihin sa akin kung saan ka kakain at kung ano ang iyong hinahanap, at ipapakita ko sa iyo ang mga pinakamagandang opsyon mula sa kanilang menu.",
+    "entryTitle": "Restaurant Assistant",
+    "findDishes": "Maghanap ng Pagkain",
+    "findingDishes": "Hinahanap ang iyong mga Perfect Dishes...",
+    "howToUseTitle": "Paano Gamitin ang Restaurant Assistant",
+    "letsFindDishes": "Maghanap Tayo ng Pagkain",
+    "locationFound": "Nahanap ang Lokasyon",
+    "pasteHint": "I-paste sa Maps o Waze.",
+    "recommendedAt": "Mga Inirerekomendang Pagkain sa",
+    "scanningMenu": "Ini-scan ang menu...",
+    "searchAgain": "Maghanap Ulit",
+    "searchingFor": "Hinahanap ang {{restaurant}} para sa mga opsyon ng {{craving}}",
+    "step1": "Hakbang 1",
+    "step1Placeholder": "hal. manok, salmon, pasta, steak",
+    "step1Question": "Anong pagkain o uri ng pagkain ang hinahanap mo?",
+    "step2": "Hakbang 2",
+    "step2Placeholder": "hal. Cheesecake Factory, P.F. Chang's, Chipotle",
+    "step2Question": "Saan ka kakain? Ilagay ang pangalan ng restaurant.",
+    "step3": "Hakbang 3",
+    "step3Placeholder": "hal. 30303, 90210, 10001",
+    "step3Question": "Ilagay ang iyong ZIP code para mahanap ko ang pinakamalapit na branch.",
+    "translationFailed": "Nabigo ang pagsasalin",
+    "whyHealthy": "Bakit ito Healthy:"
   },
   "upgrade": {
     "viewPlans": "Tingnan ang mga Plano",
@@ -369,7 +501,23 @@
     "essentialTagline": "Ang kumpletong toolkit sa pagbuo ng pagkain, na itinayo sa paligid ng iyong profile.",
     "proTagline": "Pinalawak na mga creator at tunay na pagkain, ganap na sumusunod sa protocol.",
     "clinicalTagline": "Mga tool sa nutrisyon na may kalidad na medikal para sa seryosong mga resulta sa kalusugan.",
-    "proPromo": "Ang Pro ang aming pinakasikat na plano — i-unlock ang lahat ng creator."
+    "proPromo": "Ang Pro ang aming pinakasikat na plano — i-unlock ang lahat ng creator.",
+    "availableOn": "Available sa {{plan}}",
+    "buildersBenefit1": "Craving Creator, Beverage Creator, Dessert Creator & Sushi Creator",
+    "buildersBenefit2": "Meal Builder Exchange — lumipat ng builder anumang oras habang nagbabago ang iyong mga layunin",
+    "buildersBenefit3": "Restaurant Assistant, My Perfect Gatherings & iba pang tool sa pamumuhay",
+    "buildersBenefit4": "Ang Essential ay panimula · Ang Clinical ay nagdaragdag ng mga tool sa nutrisyon na medical-grade",
+    "clinicalBenefit1": "Clinical Lab Integration — ang resulta ng iyong blood work ang humuhubog sa iyong meal protocol",
+    "clinicalBenefit2": "Care Team Access — kumonekta sa isang manggagamot o trainer sa loob ng app",
+    "clinicalBenefit3": "Performance Nutrition, Competition Prep & Athlete Builders",
+    "essentialBenefit1": "Create a Dish — AI meals na iniangkop sa iyong mismong nutritional protocol",
+    "essentialBenefit2": "Shopping List, Saved Meals & Weekly Meal Planner",
+    "essentialBenefit3": "Recipe Maker, Snack Creator & Unlimited Fridge Rescue",
+    "featurePartOf": "Ang {{feature}} ay bahagi ng {{plan}}",
+    "planBadge": "Planong {{label}}",
+    "proBenefit1": "Craving Creator, Beverage Creator & Sushi Creator",
+    "proBenefit2": "Restaurant Assistant — protocol-aware na pag-order sa anumang restaurant",
+    "proBenefit3": "My Perfect Gatherings & My Perfect Pets nutrition plans"
   },
   "pricing": {
     "pageTitle": "Subscription",
@@ -448,7 +596,10 @@
     "dietVegan": "Vegan",
     "dietVegetarian": "Vegetarian",
     "dietPescatarian": "Pescatarian",
-    "dietCarnivore": "Carnivore"
+    "dietCarnivore": "Carnivore",
+    "back": "Bumalik",
+    "next": "Susunod",
+    "selectPath": "Pumili ng path sa itaas"
   },
   "findMeals": {
     "pageTitle": "Hanapin ang Pagkain Malapit sa Akin",
@@ -992,7 +1143,25 @@
     "whyWeeklyPlanning": "Bakit weekly planning?",
     "savingPlan": "Nagsasave…",
     "savedPlan": "Nai-save ✓",
-    "savePlan": "I-save ang Plano"
+    "savePlan": "I-save ang Plano",
+    "addMealsHint": "Gamitin ang \"+\" para magdagdag ng mga pagkain",
+    "dayDuplicated": "Nadoble ang araw",
+    "dayDuplicatedBoth": "{{thisWeek}} araw ngayong linggo + {{future}} araw sa mga susunod na linggo",
+    "dayDuplicatedDesc": "Kinopya sa {{count}} na araw",
+    "duplicate": "I-duplicate",
+    "failedToDuplicate": "Hindi na-duplicate",
+    "nextWeek": "Susunod na linggo",
+    "noSlotMealsYet": "Wala pang {{slot}} na pagkain",
+    "partialDuplicate": "Bahagyang na-duplicate",
+    "partialDuplicateDesc": "{{count}} mula sa {{total}} na araw ang na-save.",
+    "prevWeek": "Nakaraang linggo",
+    "savedFutureWeek": "Na-save sa susunod na linggo",
+    "savedFutureWeekDesc": "Ang mga pagkain ay kinopya sa {{count}} na araw. Mag-swipe pasulong para makita ang mga ito.",
+    "shoppingListDesc": "MAAARI mong ipadala ang iyong buong linggo sa shopping list! Pinagsasama-sama nito ang lahat ng sangkap para sa madaling pamamalengke. I-click ang \"Send Entire Week\" sa ibaba.",
+    "shoppingListNext": "Susunod: Tingnan ang Shopping List para matutunan kung paano ito gamitin nang epektibo!",
+    "shoppingListTitle": "Handa na ang Shopping List",
+    "syncPending": "Naghihintay ng sync",
+    "tryAgain": "Pakisubukang muli"
   },
   "coachCorner": {
     "title": "Sulok ng Coach",
@@ -1693,7 +1862,6 @@
       "revokeConfirm": "Bawiin ang access"
     }
   },
-
   "mealCard": {
     "protein": "Protina",
     "carbs": "Karbohidrato",
@@ -2114,7 +2282,6 @@
     "keepFullAccess": "Panatilihin ang buong access →",
     "tierFull": "Buo"
   },
-
   "trialBanner": {
     "lastDayTitle": "Matatapos ang iyong libreng Pro access ngayon",
     "lastDayBody": "Ang iyong account ay lilipat sa libreng plano ngayong gabi.",
@@ -2129,7 +2296,6 @@
     "clinicalAccess": "Clinical access",
     "fullAccess": "buong access"
   },
-
   "groceryDashCard": {
     "title": "Lingguhang Listahan ng Grocery",
     "description": "Ang iyong personalized na listahan ng pamimili batay sa mga plano ng pagkain",
@@ -2140,5 +2306,64 @@
     "addItem": "Magdagdag ng Item",
     "viewFullList": "Tingnan ang Buong Listahan",
     "noItems": "Walang laman ang iyong listahan ng grocery. Magdagdag ng mga item mula sa iyong meal plan."
+  },
+
+  "physicianCareTeam": {
+    "availability": {
+      "available": "Available",
+      "away": "Wala sa puwesto",
+      "from": "Mula",
+      "offline": "Offline",
+      "saved": "Na-save",
+      "saving": "Nagse-save…",
+      "title": "Status ng availability",
+      "until": "Hanggang"
+    },
+    "clinic": {
+      "activePatients": "Mga aktibong pasyente",
+      "portalButton": "Buksan ang physician portal",
+      "viewAndManage": "Tingnan at pamahalaan ang iyong mga pasyente sa physician portal."
+    },
+    "errors": {
+      "availabilityFailed": "Hindi na-update ang availability.",
+      "emailRequired": "Kinakailangan ang email.",
+      "inviteFailed": "Hindi naipadala ang paanyaya.",
+      "loadFailed": "Hindi na-load ang care team.",
+      "saveDatesFailed": "Hindi na-save ang mga petsa."
+    },
+    "invite": {
+      "emailLabel": "Email ng pasyente",
+      "emailPlaceholder": "patient@example.com",
+      "roleLabel": "Propesyonal na tungkulin",
+      "rolePlaceholder": "Pumili ng tungkulin",
+      "sendInvite": "Ipadala ang paanyaya",
+      "title": "Mag-imbita ng Pasyente"
+    },
+    "platform": {
+      "button": "I-explore ang mga feature",
+      "description": "Alamin kung paano ka matutulungan ng platform sa pagsuporta sa iyong mga pasyente.",
+      "explore": "I-explore ang platform"
+    },
+    "roles": {
+      "dietitian": "Dietitian",
+      "doctor": "Physician",
+      "np": "Nurse Practitioner",
+      "nutritionist": "Nutritionist",
+      "pa": "Physician Assistant",
+      "rn": "RN"
+    },
+    "title": "Physician Care Team",
+    "toast": {
+      "invitationSent": "Naipadala ang paanyaya sa {{email}}"
+    },
+    "tour": {
+      "invitePatients": "Mag-imbita ng mga pasyente",
+      "invitePatientsDesc": "Mag-imbita ng mga pasyente para kumonekta sa iyo at makatanggap ng suporta.",
+      "physicianPortal": "Gamitin ang physician portal",
+      "physicianPortalDesc": "Buksan ang physician portal para tingnan at pamahalaan ang iyong mga pasyente.",
+      "setAvailability": "Itakda ang iyong availability",
+      "setAvailabilityDesc": "Ipaalam sa mga pasyente kung ikaw ay available, wala sa puwesto, o offline."
+    },
+    "tourTitle": "Physician Care Team"
   }
 }

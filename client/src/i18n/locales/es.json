@@ -146,7 +146,32 @@
     "appName": "My Perfect Meals",
     "performanceHub": "Centro de Rendimiento",
     "diabetesHub": "Centro de Diabetes",
-    "metabolicHubBack": "Centro Metabólico"
+    "metabolicHubBack": "Centro Metabólico",
+    "academy": "Academia",
+    "businessCenter": "Centro de negocios",
+    "creatorBrandStudio": "Creator & Brand Studio",
+    "foundingPartnerProgram": "Programa de socios fundadores",
+    "generalNutritionBuilder": "Constructor de nutrición general",
+    "healthcarePartnerships": "Asociaciones de salud y clínicas",
+    "howPartnershipsWork": "Cómo funcionan las asociaciones",
+    "industryPartnerships": "Asociaciones industriales",
+    "myPerfectBeginning": "My Perfect Beginnings",
+    "myPerfectPets": "My Perfect Pets",
+    "organizationDashboard": "Panel de la organización",
+    "organizationSuccessCenter": "Centro de éxito de la organización",
+    "partnerCenter": "Centro de socios",
+    "partnerManagement": "Gestión de socios",
+    "partnerProgram": "Programa de socios",
+    "partnerPrograms": "Programas de socios",
+    "partnerRevenueCenter": "Centro de socios e ingresos",
+    "physicianWelcome": "Bienvenida al médico",
+    "proLaunchpad": "Panel de control profesional",
+    "procareCertified": "ProCare Certified",
+    "procareTraining": "Capacitación de ProCare",
+    "procareWelcome": "Bienvenida a ProCare",
+    "promotions": "Promociones",
+    "trainerWelcome": "Bienvenida al entrenador",
+    "whiteLabelSolutions": "Soluciones de marca blanca"
   },
   "dashboard": {
     "professionalBadge": "Profesional",
@@ -1118,7 +1143,25 @@
     "whyWeeklyPlanning": "¿Por qué planificación semanal?",
     "savingPlan": "Guardando…",
     "savedPlan": "Guardado ✓",
-    "savePlan": "Guardar plan"
+    "savePlan": "Guardar plan",
+    "addMealsHint": "Usa \"+\" para añadir comidas",
+    "dayDuplicated": "Día duplicado",
+    "dayDuplicatedBoth": "{{thisWeek}} día(s) esta semana + {{future}} día(s) en semanas futuras",
+    "dayDuplicatedDesc": "Copiado a {{count}} día(s)",
+    "duplicate": "Duplicar",
+    "failedToDuplicate": "No se pudo duplicar",
+    "nextWeek": "Próxima semana",
+    "noSlotMealsYet": "Aún no hay comidas para {{slot}}",
+    "partialDuplicate": "Duplicado parcial",
+    "partialDuplicateDesc": "{{count}} de {{total}} días guardados.",
+    "prevWeek": "Semana anterior",
+    "savedFutureWeek": "Guardado en la semana futura",
+    "savedFutureWeekDesc": "Comidas copiadas a {{count}} día(s). Desliza hacia adelante para verlas.",
+    "shoppingListDesc": "¡PUEDES enviar toda tu semana a la lista de compras! Esto consolida todos los ingredientes para hacer las compras fácilmente. Haz clic en \"Enviar toda la semana\" en la parte inferior.",
+    "shoppingListNext": "Siguiente: ¡Consulta la lista de compras para aprender a usarla eficazmente!",
+    "shoppingListTitle": "Lista de compras lista",
+    "syncPending": "Sincronización pendiente",
+    "tryAgain": "Por favor, inténtalo de nuevo"
   },
   "coachCorner": {
     "title": "Rincón del Coach",
@@ -1819,7 +1862,6 @@
       "revokeConfirm": "Revocar acceso"
     }
   },
-
   "mealCard": {
     "protein": "Proteína",
     "carbs": "Carbohidratos",
@@ -2226,7 +2268,6 @@
     "tour8Title": "Qué significan los asteriscos",
     "tourTitle": "Creador de nutrición general"
   },
-
   "trialBanner": {
     "lastDayTitle": "Tu acceso Pro gratuito termina hoy",
     "lastDayBody": "Tu cuenta pasa al plan gratuito esta noche.",
@@ -2241,7 +2282,6 @@
     "clinicalAccess": "Acceso clínico",
     "fullAccess": "acceso completo"
   },
-
   "trialStatusCard": {
     "adminTrial": "Prueba de administrador",
     "clinicalTrial": "Prueba clínica",
@@ -2267,5 +2307,64 @@
     "addItem": "Agregar artículo",
     "viewFullList": "Ver lista completa",
     "noItems": "Tu lista de compras está vacía. Añade artículos desde tu plan de comidas."
+  },
+
+  "physicianCareTeam": {
+    "availability": {
+      "available": "Disponible",
+      "away": "Ausente",
+      "from": "Desde",
+      "offline": "Desconectado",
+      "saved": "Guardado",
+      "saving": "Guardando…",
+      "title": "Estado de disponibilidad",
+      "until": "Hasta"
+    },
+    "clinic": {
+      "activePatients": "Pacientes activos",
+      "portalButton": "Abrir portal médico",
+      "viewAndManage": "Ve y gestiona a tus pacientes en el portal médico."
+    },
+    "errors": {
+      "availabilityFailed": "No se pudo actualizar la disponibilidad.",
+      "emailRequired": "El correo electrónico es obligatorio.",
+      "inviteFailed": "No se pudo enviar la invitación.",
+      "loadFailed": "No se pudo cargar el equipo de atención.",
+      "saveDatesFailed": "No se pudieron guardar las fechas."
+    },
+    "invite": {
+      "emailLabel": "Correo electrónico del paciente",
+      "emailPlaceholder": "paciente@ejemplo.com",
+      "roleLabel": "Rol profesional",
+      "rolePlaceholder": "Elige un rol",
+      "sendInvite": "Enviar invitación",
+      "title": "Invitar a un paciente"
+    },
+    "platform": {
+      "button": "Explorar funciones",
+      "description": "Aprende cómo la plataforma puede ayudarte a apoyar a tus pacientes.",
+      "explore": "Explorar la plataforma"
+    },
+    "roles": {
+      "dietitian": "Dietista",
+      "doctor": "Médico",
+      "np": "Nurse Practitioner",
+      "nutritionist": "Nutricionista",
+      "pa": "Physician Assistant",
+      "rn": "RN"
+    },
+    "title": "Equipo de atención médica",
+    "toast": {
+      "invitationSent": "Invitación enviada a {{email}}"
+    },
+    "tour": {
+      "invitePatients": "Invitar pacientes",
+      "invitePatientsDesc": "Invita a los pacientes a conectar contigo y recibir apoyo.",
+      "physicianPortal": "Usa el portal médico",
+      "physicianPortalDesc": "Abre el portal médico para ver y gestionar a tus pacientes.",
+      "setAvailability": "Define tu disponibilidad",
+      "setAvailabilityDesc": "Informa a los pacientes cuándo estás disponible, ausente o desconectado."
+    },
+    "tourTitle": "Equipo de atención médica"
   }
 }

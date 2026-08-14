@@ -100,7 +100,78 @@
     "founders": "창립자",
     "restaurant": "레스토랑 어시스턴트",
     "weeklyBuilder": "주간 빌더",
-    "mealsAwayFromHome": "외식"
+    "mealsAwayFromHome": "외식",
+    "academy": "아카데미",
+    "antiInflammatoryBuilder": "항염증 빌더",
+    "appName": "My Perfect Meals",
+    "applyGuidance": "가이드 적용",
+    "beverageCreator": "Beverage Creator",
+    "boardView": "보드 뷰",
+    "bodyComposition": "신체 구성",
+    "businessCenter": "비즈니스 센터",
+    "chefPairings": "셰프 페어링",
+    "clientDashboard": "클라이언트 대시보드",
+    "cravingCreator": "Craving Creator",
+    "createDish": "Create a Dish",
+    "creatorBrandStudio": "Creator & Brand Studio",
+    "dailyJournal": "데일리 저널 및 영감",
+    "dessertCreator": "Dessert Creator",
+    "diabetesHub": "당뇨 허브",
+    "diabetesSupport": "당뇨 지원",
+    "diabeticBuilder": "당뇨 빌더",
+    "diabeticHub": "당뇨 허브",
+    "drinkPairings": "음료 페어링",
+    "editProfile": "프로필 편집",
+    "findMeals": "식사 찾기",
+    "foundingPartnerProgram": "창립 파트너 프로그램",
+    "fridgeRescueStudio": "Fridge Rescue Studio",
+    "gatherings": "My Perfect Gatherings",
+    "generalNutritionBuilder": "일반 영양 빌더",
+    "healthcarePartnerships": "의료 및 임상 파트너십",
+    "howPartnershipsWork": "파트너십 운영 방식",
+    "industryPartnerships": "산업 파트너십",
+    "kitchenNetwork": "The Kitchen Network",
+    "mealBuilder": "식단 빌더",
+    "mealBuilderExchange": "식단 빌더 교환",
+    "metabolicBuilder": "대사 관리제 빌더",
+    "metabolicHub": "대사 관리제 허브",
+    "metabolicHubBack": "대사 허브",
+    "metabolicTracking": "대사 관리제 추적",
+    "myPerfectBeginning": "My Perfect Beginnings",
+    "myPerfectPets": "My Perfect Pets",
+    "organizationDashboard": "기관 대시보드",
+    "organizationSuccessCenter": "기관 성공 센터",
+    "pairingsHub": "페어링 허브",
+    "partnerCenter": "파트너 센터",
+    "partnerManagement": "파트너 관리",
+    "partnerProgram": "파트너 프로그램",
+    "partnerPrograms": "파트너 프로그램들",
+    "partnerRevenueCenter": "파트너 및 수익 센터",
+    "patientDashboard": "환자 대시보드",
+    "performanceBuilder": "성능 영양 빌더",
+    "performanceHub": "성능 허브",
+    "physicianClients": "의사 고객",
+    "physicianPortal": "의사 포털",
+    "physicianWelcome": "의사 환영 메시지",
+    "planner": "플래너",
+    "pregnancy": "My Perfect Pregnancy",
+    "proLaunchpad": "전문가 대시보드",
+    "proPortal": "Pro 포털",
+    "procareCertified": "ProCare Certified",
+    "procareTraining": "ProCare 교육",
+    "procareWelcome": "ProCare 환영 메시지",
+    "professionalWorkspace": "전문가 작업 공간",
+    "promotions": "프로모션",
+    "reduceDrinking": "음주 감소 플랜",
+    "restaurantGuide": "레스토랑 어시스턴트",
+    "signatureKitchen": "시그니처 키친",
+    "sleepTracker": "수면 추적기",
+    "supplementHub": "보충제 허브",
+    "trainerWelcome": "트레이너 환영 메시지",
+    "tutorialHub": "튜토리얼 허브",
+    "weaningOff": "중단 보조 도구",
+    "whiteLabelSolutions": "화이트 라벨 솔루션",
+    "wineListHelper": "와인 리스트 도우미"
   },
   "dashboard": {
     "professionalBadge": "프로페셔널",
@@ -218,7 +289,13 @@
     "badgeClinical": "클리니컬",
     "badgePro": "프로",
     "badgeCurrent": "현재",
-    "badgeBehavioral": "행동 AI™"
+    "badgeBehavioral": "행동 AI™",
+    "badgeProCare": "ProCare",
+    "performanceCompDesc": "엘리트 운동선수의 대회 준비, 최고 기량 발휘 및 회복을 위한 코치 가이드 식단 플랜",
+    "performanceCompTitle": "Performance & Competition Builder",
+    "plannerTitle": "플래너",
+    "weeklyDesc": "건강한 식단을 자신만의 방식으로 즐기고 싶은 사용자를 위한 AI 생성 식단 플랜",
+    "weeklyTitle": "My Weekly Meal Builder"
   },
   "createDish": {
     "pageTitle": "요리 만들기",
@@ -242,7 +319,11 @@
     "errorMissing": "정보 누락",
     "errorDescribe": "만들고 싶은 요리를 설명해 주세요!",
     "errorFailed": "요리를 만들 수 없습니다. 다시 시도해 주세요.",
-    "allergyAlert": "알레르기 경고"
+    "allergyAlert": "알레르기 경고",
+    "label": "어떤 요리를 만들고 싶으신가요?",
+    "notes": "기타 참고 사항",
+    "notesPlaceholder": "예: 유제품 제외, 매우 맵게, 저염, 식단 준비용 등...",
+    "servings": "인분 (1–12)"
   },
   "snack": {
     "pageTitle": "스낵 메이커",
@@ -340,7 +421,29 @@
     "catPantry": "식료품 창고",
     "catFrozen": "냉동식품",
     "catBakery": "베이커리",
-    "catOther": "기타"
+    "catOther": "기타",
+    "addItemsBtn": "항목 추가",
+    "addedToList": "쇼핑 목록에 추가됨",
+    "barcodePlaceholder": "바코드 번호 입력...",
+    "bulkInstructions": "항목을 한 줄에 하나씩 입력하거나 붙여넣고, 쉼표로 구분하세요:",
+    "bulkPlaceholder": "우유\\n계란\\n닭가슴살\\n시금치\\n현미",
+    "bulkTitle": "대량 항목 추가",
+    "checked": "확인됨",
+    "chefBuy": "셰프의 추천: 선택하세요!",
+    "chefCaution": "셰프의 조언: 주의하세요...",
+    "chefSkip": "셰프의 조언: 다시 한번 생각해보세요",
+    "continueToBiometrics": "생체 인식으로 계속",
+    "emptyList": "쇼핑 목록이 비어 있습니다",
+    "emptyListHint": "항목을 붙여넣거나 빠르게 추가하여 시작하세요",
+    "enterBarcode": "바코드 입력",
+    "items": "항목",
+    "itemsAddedDesc": "{{count}}개의 항목이 쇼핑 목록에 추가되었습니다.",
+    "itemsCopied": "{{count}}개의 항목이 복사되었습니다",
+    "proLabel": "Pro",
+    "savedForReview": "검토를 위해 저장됨",
+    "savedForReviewDesc": "이 페이지에서 언제든지 스캔 내용을 다시 확인할 수 있습니다.",
+    "scannedProduct": "스캔된 제품",
+    "tapView": "탭하여 보기 →"
   },
   "restaurant": {
     "pageTitle": "레스토랑 어시스턴트",
@@ -357,7 +460,36 @@
     "errorZipDesc": "유효한 5자리 우편번호를 입력해 주세요.",
     "errorLocationDenied": "위치 액세스 거부됨",
     "errorLocationDesc": "브라우저 설정에서 위치 액세스를 활성화하거나 우편번호를 수동으로 입력하세요.",
-    "generationFailed": "생성 실패"
+    "generationFailed": "생성 실패",
+    "addressCopied": "주소가 복사되었습니다",
+    "askFor": "요청 사항:",
+    "cannotDetectZip": "ZIP 코드를 감지할 수 없습니다",
+    "cannotDetectZipDesc": "위치는 확인되었으나 ZIP 코드를 확인할 수 없습니다. 수동으로 입력해 주세요.",
+    "copyFailed": "복사 실패",
+    "copyManually": "수동으로 복사해 주세요.",
+    "entryDesc": "식사 장소와 원하는 메뉴를 알려주시면 메뉴에서 가장 적합한 옵션을 찾아드립니다.",
+    "entryTitle": "Restaurant Assistant",
+    "findDishes": "요리 찾기",
+    "findingDishes": "완벽한 요리를 찾는 중...",
+    "howToUseTitle": "Restaurant Assistant 사용 방법",
+    "letsFindDishes": "요리 찾기 시작",
+    "locationFound": "위치 확인됨",
+    "pasteHint": "Maps 또는 Waze에 붙여넣으세요.",
+    "recommendedAt": "추천 메뉴:",
+    "scanningMenu": "메뉴 스캔 중...",
+    "searchAgain": "다시 검색",
+    "searchingFor": "{{restaurant}}에서 {{craving}} 옵션을 검색하는 중",
+    "step1": "1단계",
+    "step1Placeholder": "예: 치킨, 연어, 파스타, 스테이크",
+    "step1Question": "어떤 요리나 음식이 당기시나요?",
+    "step2": "2단계",
+    "step2Placeholder": "예: Cheesecake Factory, P.F. Chang's, Chipotle",
+    "step2Question": "어디에서 식사하시나요? 레스토랑 이름을 입력하세요.",
+    "step3": "3단계",
+    "step3Placeholder": "예: 30303, 90210, 10001",
+    "step3Question": "가장 가까운 지점을 찾을 수 있도록 ZIP 코드를 입력하세요.",
+    "translationFailed": "번역 실패",
+    "whyHealthy": "이 메뉴가 건강한 이유:"
   },
   "upgrade": {
     "viewPlans": "플랜 보기",
@@ -369,7 +501,23 @@
     "essentialTagline": "프로필을 중심으로 구축된 완전한 식사 구성 툴킷.",
     "proTagline": "확장된 크리에이터와 실제 식사, 프로토콜 완전 준수.",
     "clinicalTagline": "심각한 건강 결과를 위한 의료급 영양 도구.",
-    "proPromo": "프로는 가장 인기 있는 플랜입니다 — 모든 크리에이터를 잠금 해제하세요."
+    "proPromo": "프로는 가장 인기 있는 플랜입니다 — 모든 크리에이터를 잠금 해제하세요.",
+    "availableOn": "{{plan}}에서 이용 가능",
+    "buildersBenefit1": "Craving Creator, Beverage Creator, Dessert Creator 및 Sushi Creator",
+    "buildersBenefit2": "Meal Builder Exchange — 목표가 변화함에 따라 언제든 빌더를 전환하세요",
+    "buildersBenefit3": "Restaurant Assistant, My Perfect Gatherings 및 확장된 라이프스타일 도구",
+    "buildersBenefit4": "Essential 플랜으로 시작하고 · Clinical 플랜으로 의료 등급 영양 도구를 추가하세요",
+    "clinicalBenefit1": "임상 실험실 통합 — 혈액 검사 결과에 따른 맞춤형 식단 프로토콜 제공",
+    "clinicalBenefit2": "Care Team Access — 앱 내에서 의사나 트레이너와 상담하세요",
+    "clinicalBenefit3": "퍼포먼스 영양, 대회 준비 및 선수용 식단",
+    "essentialBenefit1": "Create a Dish — 당신의 정확한 영양 프로토콜에 맞춘 AI 식단",
+    "essentialBenefit2": "쇼핑 리스트, 저장된 식단 및 주간 식단 플래너",
+    "essentialBenefit3": "레시피 메이커, Snack Creator 및 무제한 Fridge Rescue",
+    "featurePartOf": "{{feature}}은(는) {{plan}}에 포함되어 있습니다",
+    "planBadge": "{{label}} 플랜",
+    "proBenefit1": "Craving Creator, Beverage Creator 및 Sushi Creator",
+    "proBenefit2": "Restaurant Assistant — 모든 식당에서 프로토콜을 준수하는 주문",
+    "proBenefit3": "My Perfect Gatherings 및 My Perfect Pets 영양 플랜"
   },
   "pricing": {
     "pageTitle": "구독",
@@ -448,7 +596,10 @@
     "dietVegan": "비건",
     "dietVegetarian": "채식",
     "dietPescatarian": "페스카타리안",
-    "dietCarnivore": "육식"
+    "dietCarnivore": "육식",
+    "back": "뒤로",
+    "next": "다음",
+    "selectPath": "위 경로 중 하나를 선택하세요"
   },
   "findMeals": {
     "pageTitle": "근처 식사 찾기",
@@ -992,7 +1143,25 @@
     "whyWeeklyPlanning": "주간 계획이 필요한 이유?",
     "savingPlan": "저장 중…",
     "savedPlan": "저장됨 ✓",
-    "savePlan": "플랜 저장"
+    "savePlan": "플랜 저장",
+    "addMealsHint": "식사를 추가하려면 \"+\"를 사용하세요",
+    "dayDuplicated": "일정이 복사되었습니다",
+    "dayDuplicatedBoth": "이번 주 {{thisWeek}}일 + 향후 주차 {{future}}일",
+    "dayDuplicatedDesc": "{{count}}일 분량으로 복사됨",
+    "duplicate": "복사",
+    "failedToDuplicate": "복사 실패",
+    "nextWeek": "다음 주",
+    "noSlotMealsYet": "아직 {{slot}} 식사가 없습니다",
+    "partialDuplicate": "부분 복사",
+    "partialDuplicateDesc": "총 {{total}}일 중 {{count}}일이 저장되었습니다.",
+    "prevWeek": "지난 주",
+    "savedFutureWeek": "향후 주차에 저장됨",
+    "savedFutureWeekDesc": "{{count}}일 분량의 식사가 복사되었습니다. 옆으로 밀어 확인해 보세요.",
+    "shoppingListDesc": "전체 주간 식단을 장보기 목록으로 보낼 수 있습니다! 모든 재료를 하나로 합쳐 간편하게 장을 볼 수 있습니다. 하단의 \"전체 주간 보내기\"를 클릭하세요.",
+    "shoppingListNext": "다음 단계: 장보기 목록을 효과적으로 사용하는 방법을 확인해 보세요!",
+    "shoppingListTitle": "장보기 목록 준비 완료",
+    "syncPending": "동기화 대기 중",
+    "tryAgain": "다시 시도해 주세요"
   },
   "coachCorner": {
     "title": "코치 코너",
@@ -1067,7 +1236,15 @@
         "step5Desc": "클라이언트의 체크인, 체중 변화 및 영양 진행 상황을 모니터링하세요.",
         "step6Title": "변경사항 저장",
         "step6Desc": "업데이트를 저장하여 클라이언트 환경에 반영하세요."
-      }
+      },
+      "activeOnClient": "이 클라이언트에서 활성화됨",
+      "bodyComposition": "신체 구성",
+      "bodyFat": "체지방",
+      "fibrousCarbs": "섬유질 탄수화물",
+      "method": "방법",
+      "physicianAuthRequired": "의사 승인 필요",
+      "source": "출처",
+      "targetBodyFat": "목표 체지방"
     },
     "fibrousCarbs": "식이섬유 탄수화물",
     "bodyComposition": "체성분",
@@ -1447,7 +1624,6 @@
       "revokeConfirm": "액세스 취소"
     }
   },
-
   "mealCard": {
     "protein": "단백질",
     "carbs": "탄수화물",
@@ -1766,7 +1942,9 @@
     "tour7Title": "전분 슬롯 확인",
     "tour8Desc": "단백질과 탄수화물은 식사 구성 시 가장 중요한 숫자이므로 별표(*)로 표시됩니다. 이를 먼저 맞추는 데 집중하세요.",
     "tour8Title": "별표(*)의 의미",
-    "tourTitle": "당뇨 식사 빌더 가이드"
+    "tourTitle": "당뇨 식사 빌더 가이드",
+    "tour9Desc": "단백질과 탄수화물은 식단 구성 시 가장 중요하게 고려해야 할 수치이므로 별표(*)로 표시되어 있습니다. 이 수치부터 먼저 맞춰보세요.",
+    "tour9Title": "별표의 의미"
   },
   "antiInflammatoryBuilder": {
     "backLabel": "당뇨 허브",
@@ -1856,7 +2034,6 @@
     "tour8Title": "별표(*)의 의미",
     "tourTitle": "일반 영양 빌더"
   },
-
   "trialBanner": {
     "lastDayTitle": "무료 Pro 접근이 오늘 종료됩니다",
     "lastDayBody": "계정이 오늘 밤 무료 플랜으로 전환됩니다.",
@@ -1871,7 +2048,6 @@
     "clinicalAccess": "임상 접근",
     "fullAccess": "전체 접근"
   },
-
   "trialStatusCard": {
     "adminTrial": "관리자 체험판",
     "clinicalTrial": "임상 체험판",
@@ -1897,5 +2073,64 @@
     "addItem": "항목 추가",
     "viewFullList": "전체 목록 보기",
     "noItems": "장바구니가 비어 있습니다. 식단 계획에서 항목을 추가하세요."
+  },
+
+  "physicianCareTeam": {
+    "availability": {
+      "available": "활동 중",
+      "away": "자리 비움",
+      "from": "시작",
+      "offline": "오프라인",
+      "saved": "저장됨",
+      "saving": "저장 중…",
+      "title": "활동 상태",
+      "until": "종료"
+    },
+    "clinic": {
+      "activePatients": "현재 진료 중인 환자",
+      "portalButton": "의사 포털 열기",
+      "viewAndManage": "의사 포털에서 환자를 확인하고 관리하세요."
+    },
+    "errors": {
+      "availabilityFailed": "활동 상태 업데이트에 실패했습니다.",
+      "emailRequired": "이메일 주소가 필요합니다.",
+      "inviteFailed": "초대장 발송에 실패했습니다.",
+      "loadFailed": "케어 팀 정보를 불러오지 못했습니다.",
+      "saveDatesFailed": "날짜 저장에 실패했습니다."
+    },
+    "invite": {
+      "emailLabel": "환자 이메일",
+      "emailPlaceholder": "patient@example.com",
+      "roleLabel": "전문 분야",
+      "rolePlaceholder": "역할 선택",
+      "sendInvite": "초대장 발송",
+      "title": "환자 초대"
+    },
+    "platform": {
+      "button": "기능 살펴보기",
+      "description": "본 플랫폼이 환자 지원에 어떻게 도움이 되는지 알아보세요.",
+      "explore": "플랫폼 살펴보기"
+    },
+    "roles": {
+      "dietitian": "영양사",
+      "doctor": "의사",
+      "np": "NP",
+      "nutritionist": "영양 전문가",
+      "pa": "PA",
+      "rn": "RN"
+    },
+    "title": "의사 케어팀",
+    "toast": {
+      "invitationSent": "{{email}} 님께 초대장이 발송되었습니다"
+    },
+    "tour": {
+      "invitePatients": "환자 초대",
+      "invitePatientsDesc": "환자를 초대하여 연결하고 지원을 제공하세요.",
+      "physicianPortal": "의사 포털 사용",
+      "physicianPortalDesc": "의사 포털을 열어 환자를 확인하고 관리하세요.",
+      "setAvailability": "가용 시간 설정",
+      "setAvailabilityDesc": "환자에게 사용 가능, 부재중 또는 오프라인 상태임을 알리세요."
+    },
+    "tourTitle": "Physician Care Team"
   }
 }

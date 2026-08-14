@@ -100,7 +100,78 @@
     "founders": "Người sáng lập",
     "restaurant": "Trợ lý nhà hàng",
     "weeklyBuilder": "Trình tạo hàng tuần",
-    "mealsAwayFromHome": "Bữa ăn ngoài nhà"
+    "mealsAwayFromHome": "Bữa ăn ngoài nhà",
+    "academy": "Học viện",
+    "antiInflammatoryBuilder": "Công cụ xây dựng chế độ chống viêm",
+    "appName": "My Perfect Meals",
+    "applyGuidance": "Áp dụng hướng dẫn",
+    "beverageCreator": "Beverage Creator",
+    "boardView": "Chế độ xem bảng",
+    "bodyComposition": "Thành phần cơ thể",
+    "businessCenter": "Trung tâm doanh nghiệp",
+    "chefPairings": "Kết hợp cùng đầu bếp",
+    "clientDashboard": "Bảng điều khiển khách hàng",
+    "cravingCreator": "Craving Creator",
+    "createDish": "Create a Dish",
+    "creatorBrandStudio": "Studio Thương hiệu & Sáng tạo",
+    "dailyJournal": "Nhật ký & Cảm hứng hàng ngày",
+    "dessertCreator": "Dessert Creator",
+    "diabetesHub": "Trung tâm Bệnh tiểu đường",
+    "diabetesSupport": "Hỗ trợ bệnh tiểu đường",
+    "diabeticBuilder": "Công cụ xây dựng chế độ cho người tiểu đường",
+    "diabeticHub": "Trung tâm Bệnh tiểu đường",
+    "drinkPairings": "Kết hợp đồ uống",
+    "editProfile": "Chỉnh sửa hồ sơ",
+    "findMeals": "Tìm bữa ăn",
+    "foundingPartnerProgram": "Chương trình Đối tác sáng lập",
+    "fridgeRescueStudio": "Fridge Rescue Studio",
+    "gatherings": "My Perfect Gatherings",
+    "generalNutritionBuilder": "Công cụ xây dựng dinh dưỡng tổng quát",
+    "healthcarePartnerships": "Quan hệ đối tác Chăm sóc sức khỏe & Lâm sàng",
+    "howPartnershipsWork": "Cách thức hoạt động của đối tác",
+    "industryPartnerships": "Quan hệ đối tác ngành",
+    "kitchenNetwork": "Mạng lưới nhà bếp",
+    "mealBuilder": "Công cụ xây dựng bữa ăn",
+    "mealBuilderExchange": "Trao đổi công cụ xây dựng bữa ăn",
+    "metabolicBuilder": "Trình Xây dựng Thuốc Chuyển hóa",
+    "metabolicHub": "Trung tâm Thuốc Chuyển hóa",
+    "metabolicHubBack": "Trung tâm Chuyển hóa",
+    "metabolicTracking": "Theo dõi Thuốc Chuyển hóa",
+    "myPerfectBeginning": "My Perfect Beginnings",
+    "myPerfectPets": "My Perfect Pets",
+    "organizationDashboard": "Bảng điều khiển Tổ chức",
+    "organizationSuccessCenter": "Trung tâm Thành công Tổ chức",
+    "pairingsHub": "Trung tâm Kết hợp",
+    "partnerCenter": "Trung tâm Đối tác",
+    "partnerManagement": "Quản lý Đối tác",
+    "partnerProgram": "Chương trình Đối tác",
+    "partnerPrograms": "Các Chương trình Đối tác",
+    "partnerRevenueCenter": "Trung tâm Đối tác & Doanh thu",
+    "patientDashboard": "Bảng điều khiển Bệnh nhân",
+    "performanceBuilder": "Trình Xây dựng Dinh dưỡng Hiệu suất",
+    "performanceHub": "Trung tâm Hiệu suất",
+    "physicianClients": "Khách hàng của Bác sĩ",
+    "physicianPortal": "Cổng thông tin Bác sĩ",
+    "physicianWelcome": "Chào mừng Bác sĩ",
+    "planner": "Công cụ Lập kế hoạch",
+    "pregnancy": "My Perfect Pregnancy",
+    "proLaunchpad": "Bảng điều khiển Chuyên nghiệp",
+    "proPortal": "Cổng thông tin Pro",
+    "procareCertified": "ProCare Certified",
+    "procareTraining": "Đào tạo ProCare",
+    "procareWelcome": "Chào mừng ProCare",
+    "professionalWorkspace": "Không gian làm việc Chuyên nghiệp",
+    "promotions": "Khuyến mãi",
+    "reduceDrinking": "Kế hoạch Giảm uống rượu",
+    "restaurantGuide": "Trợ lý Nhà hàng",
+    "signatureKitchen": "Signature Kitchen",
+    "sleepTracker": "Trình theo dõi Giấc ngủ",
+    "supplementHub": "Trung tâm Thực phẩm bổ sung",
+    "trainerWelcome": "Chào mừng Huấn luyện viên",
+    "tutorialHub": "Trung tâm Hướng dẫn",
+    "weaningOff": "Công cụ Cai thuốc/Giảm dần",
+    "whiteLabelSolutions": "Giải pháp White Label",
+    "wineListHelper": "Trợ lý Danh mục Rượu"
   },
   "dashboard": {
     "professionalBadge": "Chuyên nghiệp",
@@ -218,7 +289,13 @@
     "badgeClinical": "Lâm sàng",
     "badgePro": "Pro",
     "badgeCurrent": "Hiện tại",
-    "badgeBehavioral": "AI hành vi™"
+    "badgeBehavioral": "AI hành vi™",
+    "badgeProCare": "ProCare",
+    "performanceCompDesc": "Lập kế hoạch bữa ăn cho vận động viên chuyên nghiệp dưới sự hướng dẫn của huấn luyện viên nhằm chuẩn bị thi đấu, đạt hiệu suất tối đa và phục hồi",
+    "performanceCompTitle": "Công cụ xây dựng Lịch trình thi đấu & Hiệu suất",
+    "plannerTitle": "Công cụ lập kế hoạch",
+    "weeklyDesc": "Các kế hoạch bữa ăn được AI tạo ra dành cho những người muốn ăn uống lành mạnh theo cách riêng của mình",
+    "weeklyTitle": "Công cụ xây dựng Bữa ăn hàng tuần"
   },
   "createDish": {
     "pageTitle": "Tạo món ăn",
@@ -242,7 +319,11 @@
     "errorMissing": "Thiếu thông tin",
     "errorDescribe": "Vui lòng mô tả món ăn bạn muốn tạo!",
     "errorFailed": "Không thể tạo món ăn. Vui lòng thử lại.",
-    "allergyAlert": "Cảnh báo dị ứng"
+    "allergyAlert": "Cảnh báo dị ứng",
+    "label": "Bạn muốn tạo món ăn nào?",
+    "notes": "Ghi chú tùy chọn",
+    "notesPlaceholder": "ví dụ: không sữa, siêu cay, ít muối, để chuẩn bị bữa ăn...",
+    "servings": "Số phần ăn (1–12)"
   },
   "snack": {
     "pageTitle": "Trình tạo đồ ăn vặt",
@@ -340,7 +421,29 @@
     "catPantry": "Tủ đồ ăn",
     "catFrozen": "Đồ đông lạnh",
     "catBakery": "Bánh mì",
-    "catOther": "Khác"
+    "catOther": "Khác",
+    "addItemsBtn": "Thêm mục",
+    "addedToList": "Đã thêm vào danh sách mua sắm",
+    "barcodePlaceholder": "Nhập mã vạch...",
+    "bulkInstructions": "Nhập hoặc dán mỗi mục trên một dòng, hoặc phân tách bằng dấu phẩy:",
+    "bulkPlaceholder": "sữa\ntrứng\nức gà\nrau chân vịt\ngạo lứt",
+    "bulkTitle": "Thêm mục hàng loạt",
+    "checked": "đã chọn",
+    "chefBuy": "Đầu bếp nói: Hãy mua đi!",
+    "chefCaution": "Đầu bếp nói: Cẩn thận chút nhé...",
+    "chefSkip": "Đầu bếp nói: Nên cân nhắc kỹ",
+    "continueToBiometrics": "Tiếp tục đến Chỉ số Sinh học",
+    "emptyList": "Danh sách mua sắm của bạn đang trống",
+    "emptyListHint": "Dán các mục hoặc thêm nhanh để bắt đầu",
+    "enterBarcode": "Nhập mã vạch",
+    "items": "mục",
+    "itemsAddedDesc": "Đã thêm {{count}} mục vào danh sách mua sắm của bạn.",
+    "itemsCopied": "Đã sao chép {{count}} mục",
+    "proLabel": "Pro",
+    "savedForReview": "Đã lưu để xem lại",
+    "savedForReviewDesc": "Bạn có thể xem lại bản quét này bất cứ lúc nào từ trang này.",
+    "scannedProduct": "Sản phẩm đã quét",
+    "tapView": "Chạm để xem →"
   },
   "restaurant": {
     "pageTitle": "Trợ lý nhà hàng",
@@ -357,7 +460,36 @@
     "errorZipDesc": "Vui lòng nhập mã bưu chính hợp lệ 5 chữ số.",
     "errorLocationDenied": "Quyền truy cập vị trí bị từ chối",
     "errorLocationDesc": "Vui lòng bật quyền truy cập vị trí trong cài đặt trình duyệt, hoặc nhập mã bưu chính thủ công.",
-    "generationFailed": "Tạo thất bại"
+    "generationFailed": "Tạo thất bại",
+    "addressCopied": "Đã sao chép địa chỉ",
+    "askFor": "Yêu cầu:",
+    "cannotDetectZip": "Không thể xác định mã ZIP",
+    "cannotDetectZipDesc": "Đã tìm thấy vị trí nhưng chúng tôi không thể xác định mã ZIP của bạn. Vui lòng nhập thủ công.",
+    "copyFailed": "Sao chép thất bại",
+    "copyManually": "Vui lòng sao chép thủ công.",
+    "entryDesc": "Hãy cho tôi biết bạn đang ăn ở đâu và bạn muốn dùng gì, tôi sẽ hiển thị cho bạn những lựa chọn tốt nhất từ thực đơn của họ.",
+    "entryTitle": "Trợ lý Nhà hàng",
+    "findDishes": "Tìm món ăn",
+    "findingDishes": "Đang tìm các món ăn hoàn hảo cho bạn...",
+    "howToUseTitle": "Cách sử dụng Trợ lý Nhà hàng",
+    "letsFindDishes": "Cùng tìm món ăn nào",
+    "locationFound": "Đã tìm thấy vị trí",
+    "pasteHint": "Dán vào Maps hoặc Waze.",
+    "recommendedAt": "Các bữa ăn được đề xuất tại",
+    "scanningMenu": "Đang quét thực đơn...",
+    "searchAgain": "Tìm kiếm lại",
+    "searchingFor": "Đang tìm kiếm {{restaurant}} cho các lựa chọn {{craving}}",
+    "step1": "Bước 1",
+    "step1Placeholder": "ví dụ: gà, cá hồi, mì ý, bít tết",
+    "step1Question": "Bạn đang thèm món ăn hay loại thực phẩm nào?",
+    "step2": "Bước 2",
+    "step2Placeholder": "ví dụ: Cheesecake Factory, P.F. Chang's, Chipotle",
+    "step2Question": "Bạn đang ăn ở đâu? Nhập tên nhà hàng.",
+    "step3": "Bước 3",
+    "step3Placeholder": "ví dụ: 30303, 90210, 10001",
+    "step3Question": "Nhập mã ZIP của bạn để tôi tìm địa điểm gần nhất.",
+    "translationFailed": "Dịch thất bại",
+    "whyHealthy": "Tại sao món này tốt cho sức khỏe:"
   },
   "upgrade": {
     "viewPlans": "Xem các gói",
@@ -369,7 +501,23 @@
     "essentialTagline": "Bộ công cụ tạo bữa ăn đầy đủ, được xây dựng xung quanh hồ sơ của bạn.",
     "proTagline": "Trình tạo mở rộng và ăn uống thực tế, tuân thủ giao thức đầy đủ.",
     "clinicalTagline": "Công cụ dinh dưỡng cấp y tế cho kết quả sức khỏe nghiêm túc.",
-    "proPromo": "Pro là gói phổ biến nhất của chúng tôi — mở khóa tất cả trình tạo."
+    "proPromo": "Pro là gói phổ biến nhất của chúng tôi — mở khóa tất cả trình tạo.",
+    "availableOn": "Có sẵn trên {{plan}}",
+    "buildersBenefit1": "Craving Creator, Beverage Creator, Dessert Creator & Sushi Creator",
+    "buildersBenefit2": "Trao đổi Meal Builder — chuyển đổi trình xây dựng bất cứ lúc nào khi mục tiêu của bạn thay đổi",
+    "buildersBenefit3": "Trợ lý Nhà hàng, My Perfect Gatherings & các công cụ phong cách sống mở rộng",
+    "buildersBenefit4": "Essential giúp bạn bắt đầu · Clinical thêm các công cụ dinh dưỡng cấp độ y tế",
+    "clinicalBenefit1": "Tích hợp Xét nghiệm Lâm sàng — kết quả xét nghiệm máu giúp định hình chế độ ăn uống của bạn",
+    "clinicalBenefit2": "Quyền truy cập Đội ngũ Chăm sóc — kết nối với bác sĩ hoặc huấn luyện viên ngay trong ứng dụng",
+    "clinicalBenefit3": "Dinh dưỡng Hiệu suất, Chuẩn bị Thi đấu & Trình xây dựng cho Vận động viên",
+    "essentialBenefit1": "Create a Dish — Các bữa ăn bằng AI được tùy chỉnh theo đúng phác đồ dinh dưỡng của bạn",
+    "essentialBenefit2": "Danh sách mua sắm, Bữa ăn đã lưu & Lập kế hoạch bữa ăn hàng tuần",
+    "essentialBenefit3": "Công cụ làm công thức, Trình tạo đồ ăn nhẹ & Fridge Rescue không giới hạn",
+    "featurePartOf": "{{feature}} là một phần của {{plan}}",
+    "planBadge": "Gói {{label}}",
+    "proBenefit1": "Craving Creator, Beverage Creator & Sushi Creator",
+    "proBenefit2": "Restaurant Assistant — đặt món tại bất kỳ {{restaurant}} nào dựa trên phác đồ của bạn",
+    "proBenefit3": "Các kế hoạch dinh dưỡng My Perfect Gatherings & My Perfect Pets"
   },
   "pricing": {
     "pageTitle": "Đăng ký",
@@ -448,7 +596,10 @@
     "dietVegan": "Thuần chay",
     "dietVegetarian": "Chay",
     "dietPescatarian": "Pescatarian",
-    "dietCarnivore": "Ăn thịt"
+    "dietCarnivore": "Ăn thịt",
+    "back": "Quay lại",
+    "next": "Tiếp theo",
+    "selectPath": "Chọn lộ trình bên trên"
   },
   "findMeals": {
     "pageTitle": "Tìm Bữa Ăn Gần Đây",
@@ -992,7 +1143,25 @@
     "whyWeeklyPlanning": "Tại sao lại lập kế hoạch hàng tuần?",
     "savingPlan": "Đang lưu…",
     "savedPlan": "Đã lưu ✓",
-    "savePlan": "Lưu kế hoạch"
+    "savePlan": "Lưu kế hoạch",
+    "addMealsHint": "Sử dụng \"+\" để thêm bữa ăn",
+    "dayDuplicated": "Ngày đã được sao chép",
+    "dayDuplicatedBoth": "{{thisWeek}} ngày trong tuần này + {{future}} ngày trong các tuần tới",
+    "dayDuplicatedDesc": "Đã sao chép sang {{count}} ngày",
+    "duplicate": "Sao chép",
+    "failedToDuplicate": "Không thể sao chép",
+    "nextWeek": "Tuần sau",
+    "noSlotMealsYet": "Chưa có bữa ăn {{slot}}",
+    "partialDuplicate": "Sao chép một phần",
+    "partialDuplicateDesc": "Đã lưu {{count}} trong tổng số {{total}} ngày.",
+    "prevWeek": "Tuần trước",
+    "savedFutureWeek": "Đã lưu vào tuần sau",
+    "savedFutureWeekDesc": "Các bữa ăn đã được sao chép sang {{count}} ngày. Vuốt sang để xem.",
+    "shoppingListDesc": "Bạn CÓ THỂ gửi toàn bộ thực đơn trong tuần của mình vào danh sách mua sắm! Điều này giúp tổng hợp tất cả nguyên liệu để việc đi chợ trở nên dễ dàng. Hãy nhấp vào \"Gửi cả tuần\" ở dưới cùng.",
+    "shoppingListNext": "Tiếp theo: Kiểm tra Danh sách mua sắm để tìm hiểu cách sử dụng hiệu quả!",
+    "shoppingListTitle": "Danh sách mua sắm đã sẵn sàng",
+    "syncPending": "Đang chờ đồng bộ",
+    "tryAgain": "Vui lòng thử lại"
   },
   "coachCorner": {
     "title": "Góc Huấn Luyện Viên",
@@ -1067,7 +1236,15 @@
         "step5Desc": "Theo dõi các buổi check-in, xu hướng cân nặng và tiến độ dinh dưỡng của khách hàng.",
         "step6Title": "Lưu Thay đổi",
         "step6Desc": "Lưu các cập nhật của bạn để chúng được áp dụng trong trải nghiệm của khách hàng."
-      }
+      },
+      "activeOnClient": "Đang hoạt động trên khách hàng này",
+      "bodyComposition": "Thành phần cơ thể",
+      "bodyFat": "Mỡ cơ thể",
+      "fibrousCarbs": "Carb xơ",
+      "method": "Phương pháp",
+      "physicianAuthRequired": "Yêu cầu ủy quyền của bác sĩ",
+      "source": "Nguồn",
+      "targetBodyFat": "Mục tiêu mỡ cơ thể"
     },
     "fibrousCarbs": "Carbs xơ",
     "bodyComposition": "Thành phần cơ thể",
@@ -1447,7 +1624,6 @@
       "revokeConfirm": "Thu hồi quyền truy cập"
     }
   },
-
   "mealCard": {
     "protein": "Protein",
     "carbs": "Tinh bột",
@@ -1856,7 +2032,6 @@
     "tour8Title": "Ý nghĩa của dấu hoa thị",
     "tourTitle": "Trình xây dựng Dinh dưỡng Tổng quát"
   },
-
   "trialBanner": {
     "lastDayTitle": "Quyền truy cập Pro miễn phí của bạn kết thúc hôm nay",
     "lastDayBody": "Tài khoản của bạn sẽ chuyển sang gói miễn phí tối nay.",
@@ -1871,7 +2046,6 @@
     "clinicalAccess": "Quyền truy cập lâm sàng",
     "fullAccess": "truy cập đầy đủ"
   },
-
   "trialStatusCard": {
     "adminTrial": "Dùng thử quản trị",
     "clinicalTrial": "Dùng thử lâm sàng",
@@ -1897,5 +2071,67 @@
     "addItem": "Thêm mặt hàng",
     "viewFullList": "Xem danh sách đầy đủ",
     "noItems": "Danh sách mua sắm của bạn trống. Thêm các mặt hàng từ kế hoạch ăn uống để bắt đầu."
+  },
+
+  "physicianCareTeam": {
+    "availability": {
+      "available": "Sẵn sàng",
+      "away": "Đi vắng",
+      "from": "Từ",
+      "offline": "Ngoại tuyến",
+      "saved": "Đã lưu",
+      "saving": "Đang lưu…",
+      "title": "Trạng thái sẵn sàng",
+      "until": "Đến"
+    },
+    "clinic": {
+      "activePatients": "Bệnh nhân đang điều trị",
+      "portalButton": "Mở cổng thông tin bác sĩ",
+      "viewAndManage": "Xem và quản lý bệnh nhân của bạn trong cổng thông tin bác sĩ."
+    },
+    "errors": {
+      "availabilityFailed": "Không thể cập nhật trạng thái sẵn sàng.",
+      "emailRequired": "Yêu cầu nhập email.",
+      "inviteFailed": "Không thể gửi lời mời.",
+      "loadFailed": "Không thể tải nhóm chăm sóc.",
+      "saveDatesFailed": "Không thể lưu ngày."
+    },
+    "invite": {
+      "emailLabel": "Email bệnh nhân",
+      "emailPlaceholder": "patient@example.com",
+      "roleLabel": "Vai trò chuyên môn",
+      "rolePlaceholder": "Chọn một vai trò",
+      "sendInvite": "Gửi lời mời",
+      "title": "Mời bệnh nhân"
+    },
+    "physicianCareTeam": {
+      "title": "Nhóm chăm sóc y tế"
+    },
+    "platform": {
+      "button": "Khám phá các tính năng",
+      "description": "Tìm hiểu cách nền tảng có thể giúp bạn hỗ trợ bệnh nhân của mình.",
+      "explore": "Khám phá nền tảng"
+    },
+    "roles": {
+      "dietitian": "Chuyên gia dinh dưỡng",
+      "doctor": "Bác sĩ",
+      "np": "Nurse Practitioner",
+      "nutritionist": "Chuyên viên dinh dưỡng",
+      "pa": "Physician Assistant",
+      "rn": "RN"
+    },
+    "toast": {
+      "invitationSent": "Đã gửi lời mời đến {{email}}"
+    },
+    "tour": {
+      "invitePatients": "Mời bệnh nhân",
+      "invitePatientsDesc": "Mời bệnh nhân kết nối với bạn để nhận hỗ trợ.",
+      "physicianPortal": "Sử dụng cổng thông tin bác sĩ",
+      "physicianPortalDesc": "Mở cổng thông tin bác sĩ để xem và quản lý bệnh nhân của bạn.",
+      "setAvailability": "Đặt trạng thái sẵn sàng",
+      "setAvailabilityDesc": "Cho bệnh nhân biết khi nào bạn sẵn sàng, đi vắng hoặc ngoại tuyến."
+    },
+    "tourTitle": "Nhóm Chăm sóc Y tế",
+    "title": "Nhóm Chăm sóc Bác sĩ"
   }
 }

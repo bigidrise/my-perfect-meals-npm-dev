@@ -100,7 +100,78 @@
     "founders": "Fondateurs",
     "restaurant": "Assistant Restaurant",
     "weeklyBuilder": "Constructeur Hebdomadaire",
-    "mealsAwayFromHome": "Repas Hors Domicile"
+    "mealsAwayFromHome": "Repas Hors Domicile",
+    "academy": "Académie",
+    "antiInflammatoryBuilder": "Générateur anti-inflammatoire",
+    "appName": "My Perfect Meals",
+    "applyGuidance": "Appliquer les conseils",
+    "beverageCreator": "Beverage Creator",
+    "boardView": "Vue tableau",
+    "bodyComposition": "Composition corporelle",
+    "businessCenter": "Centre d'affaires",
+    "chefPairings": "Accords du chef",
+    "clientDashboard": "Tableau de bord client",
+    "cravingCreator": "Craving Creator",
+    "createDish": "Create a Dish",
+    "creatorBrandStudio": "Studio des créateurs et marques",
+    "dailyJournal": "Journal quotidien et inspiration",
+    "dessertCreator": "Dessert Creator",
+    "diabetesHub": "Hub diabète",
+    "diabetesSupport": "Support diabète",
+    "diabeticBuilder": "Générateur pour diabétiques",
+    "diabeticHub": "Hub pour diabétiques",
+    "drinkPairings": "Accords de boissons",
+    "editProfile": "Modifier le profil",
+    "findMeals": "Trouver des repas",
+    "foundingPartnerProgram": "Programme des partenaires fondateurs",
+    "fridgeRescueStudio": "Fridge Rescue Studio",
+    "gatherings": "My Perfect Gatherings",
+    "generalNutritionBuilder": "Générateur de nutrition générale",
+    "healthcarePartnerships": "Partenariats cliniques et de santé",
+    "howPartnershipsWork": "Comment fonctionnent les partenariats",
+    "industryPartnerships": "Partenariats industriels",
+    "kitchenNetwork": "Le réseau de cuisine",
+    "mealBuilder": "Générateur de repas",
+    "mealBuilderExchange": "Échange du générateur de repas",
+    "metabolicBuilder": "Générateur de médicaments métaboliques",
+    "metabolicHub": "Hub de médicaments métaboliques",
+    "metabolicHubBack": "Hub métabolique",
+    "metabolicTracking": "Suivi des médicaments métaboliques",
+    "myPerfectBeginning": "My Perfect Beginnings",
+    "myPerfectPets": "My Perfect Pets",
+    "organizationDashboard": "Tableau de bord de l'organisation",
+    "organizationSuccessCenter": "Centre de réussite de l'organisation",
+    "pairingsHub": "Hub des accords",
+    "partnerCenter": "Centre des partenaires",
+    "partnerManagement": "Gestion des partenaires",
+    "partnerProgram": "Programme de partenariat",
+    "partnerPrograms": "Programmes de partenariat",
+    "partnerRevenueCenter": "Centre des partenaires et revenus",
+    "patientDashboard": "Tableau de bord patient",
+    "performanceBuilder": "Constructeur de nutrition de performance",
+    "performanceHub": "Hub de performance",
+    "physicianClients": "Clients du médecin",
+    "physicianPortal": "Portail du médecin",
+    "physicianWelcome": "Bienvenue médecin",
+    "planner": "Planificateur",
+    "pregnancy": "My Perfect Pregnancy",
+    "proLaunchpad": "Tableau de bord professionnel",
+    "proPortal": "Portail pro",
+    "procareCertified": "ProCare Certified",
+    "procareTraining": "Formation ProCare",
+    "procareWelcome": "Bienvenue ProCare",
+    "professionalWorkspace": "Espace de travail professionnel",
+    "promotions": "Promotions",
+    "reduceDrinking": "Plan de réduction de consommation d'alcool",
+    "restaurantGuide": "Assistant restaurant",
+    "signatureKitchen": "Signature Kitchen",
+    "sleepTracker": "Suivi du sommeil",
+    "supplementHub": "Hub des compléments",
+    "trainerWelcome": "Bienvenue coach",
+    "tutorialHub": "Hub des tutoriels",
+    "weaningOff": "Outil de sevrage",
+    "whiteLabelSolutions": "Solutions en marque blanche",
+    "wineListHelper": "Assistant carte des vins"
   },
   "dashboard": {
     "professionalBadge": "Professionnel",
@@ -218,7 +289,13 @@
     "badgeClinical": "Clinique",
     "badgePro": "Pro",
     "badgeCurrent": "Actuel",
-    "badgeBehavioral": "IA Comportementale™"
+    "badgeBehavioral": "IA Comportementale™",
+    "badgeProCare": "ProCare",
+    "performanceCompDesc": "Planification de repas guidée par un coach pour les athlètes d'élite, axée sur la préparation aux compétitions, la performance maximale et la récupération",
+    "performanceCompTitle": "Constructeur de Performance & Compétition",
+    "plannerTitle": "Planificateur",
+    "weeklyDesc": "Plans de repas générés par AI pour ceux qui souhaitent manger plus sainement à leur façon",
+    "weeklyTitle": "Mon constructeur de repas hebdomadaire"
   },
   "createDish": {
     "pageTitle": "Créer un Plat",
@@ -242,7 +319,11 @@
     "errorMissing": "Information manquante",
     "errorDescribe": "Veuillez décrire le plat que vous souhaitez créer !",
     "errorFailed": "Impossible de créer le plat. Veuillez réessayer.",
-    "allergyAlert": "Alerte allergie"
+    "allergyAlert": "Alerte allergie",
+    "label": "Quel plat souhaitez-vous créer ?",
+    "notes": "Notes facultatives",
+    "notesPlaceholder": "ex. : sans produits laitiers, très épicé, faible teneur en sel, pour la préparation des repas...",
+    "servings": "Portions (1–12)"
   },
   "snack": {
     "pageTitle": "Créateur de Collations",
@@ -340,7 +421,29 @@
     "catPantry": "Garde-manger",
     "catFrozen": "Surgelés",
     "catBakery": "Boulangerie",
-    "catOther": "Autres"
+    "catOther": "Autres",
+    "addItemsBtn": "Ajouter des articles",
+    "addedToList": "Ajouté à la liste d'achats",
+    "barcodePlaceholder": "Saisissez le code-barres...",
+    "bulkInstructions": "Saisissez ou collez un article par ligne, ou séparez les articles par des virgules :",
+    "bulkPlaceholder": "lait\\noeufs\\nblanc de poulet\\népinards\\nriz complet",
+    "bulkTitle": "Ajout en masse",
+    "checked": "coché",
+    "chefBuy": "Le chef dit : Allez-y !",
+    "chefCaution": "Le chef dit : Soyez vigilant...",
+    "chefSkip": "Le chef dit : Réfléchissez-y à deux fois",
+    "continueToBiometrics": "Continuer vers la biométrie",
+    "emptyList": "Votre liste d'achats est vide",
+    "emptyListHint": "Collez des articles ou utilisez l'ajout rapide pour commencer",
+    "enterBarcode": "Saisir le code-barres",
+    "items": "articles",
+    "itemsAddedDesc": "{{count}} articles ajoutés à votre liste d'achats.",
+    "itemsCopied": "{{count}} articles copiés",
+    "proLabel": "Pro",
+    "savedForReview": "Enregistré pour examen",
+    "savedForReviewDesc": "Vous pouvez revoir cette analyse à tout moment depuis cette page.",
+    "scannedProduct": "Produit scanné",
+    "tapView": "Appuyez pour voir →"
   },
   "restaurant": {
     "pageTitle": "Assistant Restaurant",
@@ -357,7 +460,36 @@
     "errorZipDesc": "Veuillez entrer un code postal valide à 5 chiffres.",
     "errorLocationDenied": "Accès à la localisation refusé",
     "errorLocationDesc": "Activez la localisation dans les paramètres de votre navigateur, ou entrez votre code postal manuellement.",
-    "generationFailed": "Échec de la génération"
+    "generationFailed": "Échec de la génération",
+    "addressCopied": "Adresse copiée",
+    "askFor": "Demander :",
+    "cannotDetectZip": "Impossible de détecter le code ZIP",
+    "cannotDetectZipDesc": "L'emplacement a été trouvé mais nous n'avons pas pu déterminer votre ZIP. Veuillez le saisir manuellement.",
+    "copyFailed": "Échec de la copie",
+    "copyManually": "Veuillez copier manuellement.",
+    "entryDesc": "Dites-moi où vous mangez et ce dont vous avez envie, et je vous montrerai les meilleures options de leur menu.",
+    "entryTitle": "Assistant de restaurant",
+    "findDishes": "Trouver des plats",
+    "findingDishes": "Recherche de vos plats parfaits...",
+    "howToUseTitle": "Comment utiliser l'assistant de restaurant",
+    "letsFindDishes": "Trouvons des plats",
+    "locationFound": "Emplacement trouvé",
+    "pasteHint": "Collez dans Maps ou Waze.",
+    "recommendedAt": "Repas recommandés chez",
+    "scanningMenu": "Analyse du menu...",
+    "searchAgain": "Rechercher à nouveau",
+    "searchingFor": "Recherche d'options {{craving}} au restaurant {{restaurant}}",
+    "step1": "Étape 1",
+    "step1Placeholder": "ex. poulet, saumon, pâtes, steak",
+    "step1Question": "Quel plat ou type de cuisine recherchez-vous ?",
+    "step2": "Étape 2",
+    "step2Placeholder": "ex. Cheesecake Factory, P.F. Chang's, Chipotle",
+    "step2Question": "Où mangez-vous ? Entrez le nom du restaurant.",
+    "step3": "Étape 3",
+    "step3Placeholder": "ex. 30303, 90210, 10001",
+    "step3Question": "Entrez votre code ZIP pour que je puisse trouver l'emplacement le plus proche.",
+    "translationFailed": "Échec de la traduction",
+    "whyHealthy": "Pourquoi est-ce sain :"
   },
   "upgrade": {
     "viewPlans": "Voir les plans",
@@ -369,7 +501,23 @@
     "essentialTagline": "La boîte à outils complète de construction de repas, construite autour de votre profil.",
     "proTagline": "Créateurs étendus et alimentation réelle, entièrement conscients du protocole.",
     "clinicalTagline": "Outils nutritionnels de qualité médicale pour des résultats de santé sérieux.",
-    "proPromo": "Pro est notre plan le plus populaire — débloquez tous les créateurs et allez plus loin."
+    "proPromo": "Pro est notre plan le plus populaire — débloquez tous les créateurs et allez plus loin.",
+    "availableOn": "Disponible sur {{plan}}",
+    "buildersBenefit1": "Craving Creator, Beverage Creator, Dessert Creator & Sushi Creator",
+    "buildersBenefit2": "Échange de constructeur de repas — changez de constructeur à tout moment selon l'évolution de vos objectifs",
+    "buildersBenefit3": "Assistant restaurant, My Perfect Gatherings & outils de style de vie élargis",
+    "buildersBenefit4": "Essential pour débuter · Clinical pour ajouter des outils nutritionnels de niveau médical",
+    "clinicalBenefit1": "Intégration des analyses cliniques — vos analyses de sang adaptent vos protocoles de repas",
+    "clinicalBenefit2": "Accès à l'équipe de soins — connectez-vous avec un médecin ou un coach dans l'application",
+    "clinicalBenefit3": "Nutrition de performance, préparation de compétition & constructeurs pour athlètes",
+    "essentialBenefit1": "Create a Dish — repas AI adaptés à vos protocoles nutritionnels précis",
+    "essentialBenefit2": "Liste d'achats, repas enregistrés & planificateur de repas hebdomadaire",
+    "essentialBenefit3": "Créateur de recettes, Snack Creator & Fridge Rescue illimité",
+    "featurePartOf": "{{feature}} fait partie de {{plan}}",
+    "planBadge": "Plan {{label}}",
+    "proBenefit1": "Craving Creator, Beverage Creator & Sushi Creator",
+    "proBenefit2": "Assistant restaurant — commande adaptée à votre protocole dans n'importe quel restaurant",
+    "proBenefit3": "Plans nutritionnels My Perfect Gatherings & My Perfect Pets"
   },
   "pricing": {
     "pageTitle": "Abonnement",
@@ -448,7 +596,10 @@
     "dietVegan": "Végétalien",
     "dietVegetarian": "Végétarien",
     "dietPescatarian": "Pescétarien",
-    "dietCarnivore": "Carnivore"
+    "dietCarnivore": "Carnivore",
+    "back": "Retour",
+    "next": "Suivant",
+    "selectPath": "Sélectionnez un parcours ci-dessus"
   },
   "findMeals": {
     "pageTitle": "Trouver des Repas Près de Moi",
@@ -992,7 +1143,25 @@
     "whyWeeklyPlanning": "Pourquoi la planification hebdomadaire ?",
     "savingPlan": "Enregistrement…",
     "savedPlan": "Enregistré ✓",
-    "savePlan": "Enregistrer le plan"
+    "savePlan": "Enregistrer le plan",
+    "addMealsHint": "Utilisez « + » pour ajouter des repas",
+    "dayDuplicated": "Journée dupliquée",
+    "dayDuplicatedBoth": "{{thisWeek}} jour(s) cette semaine + {{future}} jour(s) les semaines futures",
+    "dayDuplicatedDesc": "Copié sur {{count}} jour(s)",
+    "duplicate": "Dupliquer",
+    "failedToDuplicate": "Échec de la duplication",
+    "nextWeek": "Semaine suivante",
+    "noSlotMealsYet": "Aucun repas pour {{slot}} pour le moment",
+    "partialDuplicate": "Duplication partielle",
+    "partialDuplicateDesc": "{{count}} sur {{total}} jours enregistrés.",
+    "prevWeek": "Semaine précédente",
+    "savedFutureWeek": "Enregistré pour une semaine future",
+    "savedFutureWeekDesc": "Repas copiés sur {{count}} jour(s). Balayez vers l'avant pour les voir.",
+    "shoppingListDesc": "Vous POUVEZ envoyer toute votre semaine vers la liste de courses ! Cela consolide tous les ingrédients pour faciliter vos achats. Cliquez sur « Envoyer toute la semaine » en bas.",
+    "shoppingListNext": "Suivant : Consultez la liste de courses pour savoir comment l'utiliser efficacement !",
+    "shoppingListTitle": "Liste de courses prête",
+    "syncPending": "Synchronisation en attente",
+    "tryAgain": "Veuillez réessayer"
   },
   "coachCorner": {
     "title": "Coin du Coach",
@@ -1693,7 +1862,6 @@
       "revokeConfirm": "Révoquer l'accès"
     }
   },
-
   "mealCard": {
     "protein": "Protéines",
     "carbs": "Glucides",
@@ -2101,7 +2269,6 @@
     "tour8Title": "Ce que signifient les astérisques",
     "tourTitle": "Constructeur de nutrition générale"
   },
-
   "trialBanner": {
     "lastDayTitle": "Votre accès Pro gratuit se termine aujourd'hui",
     "lastDayBody": "Votre compte passe au plan gratuit ce soir.",
@@ -2116,7 +2283,6 @@
     "clinicalAccess": "Accès clinique",
     "fullAccess": "accès complet"
   },
-
   "trialStatusCard": {
     "adminTrial": "Essai administrateur",
     "clinicalTrial": "Essai clinique",
@@ -2142,5 +2308,64 @@
     "addItem": "Ajouter un article",
     "viewFullList": "Voir la liste complète",
     "noItems": "Votre liste de courses est vide. Ajoutez des articles depuis votre plan de repas."
+  },
+
+  "physicianCareTeam": {
+    "availability": {
+      "available": "Disponible",
+      "away": "Absent",
+      "from": "À partir de",
+      "offline": "Hors ligne",
+      "saved": "Enregistré",
+      "saving": "Enregistrement…",
+      "title": "Statut de disponibilité",
+      "until": "Jusqu'au"
+    },
+    "clinic": {
+      "activePatients": "Patients actifs",
+      "portalButton": "Ouvrir le portail médecin",
+      "viewAndManage": "Consultez et gérez vos patients dans le portail médecin."
+    },
+    "errors": {
+      "availabilityFailed": "Échec de la mise à jour de la disponibilité.",
+      "emailRequired": "L'email est requis.",
+      "inviteFailed": "Échec de l'envoi de l'invitation.",
+      "loadFailed": "Échec du chargement de l'équipe de soins.",
+      "saveDatesFailed": "Échec de l'enregistrement des dates."
+    },
+    "invite": {
+      "emailLabel": "Email du patient",
+      "emailPlaceholder": "patient@example.com",
+      "roleLabel": "Rôle professionnel",
+      "rolePlaceholder": "Choisir un rôle",
+      "sendInvite": "Envoyer l'invitation",
+      "title": "Inviter un patient"
+    },
+    "platform": {
+      "button": "Explorer les fonctionnalités",
+      "description": "Découvrez comment la plateforme peut vous aider à soutenir vos patients.",
+      "explore": "Explorer la plateforme"
+    },
+    "roles": {
+      "dietitian": "Diététicien(ne)",
+      "doctor": "Médecin",
+      "np": "Infirmier(ère) praticien(ne) (NP)",
+      "nutritionist": "Nutritionniste",
+      "pa": "Assistant(e) médical(e) (PA)",
+      "rn": "RN"
+    },
+    "title": "Équipe de soins médicaux",
+    "toast": {
+      "invitationSent": "Invitation envoyée à {{email}}"
+    },
+    "tour": {
+      "invitePatients": "Inviter des patients",
+      "invitePatientsDesc": "Invitez vos patients à se connecter avec vous pour recevoir du soutien.",
+      "physicianPortal": "Utiliser le portail médecin",
+      "physicianPortalDesc": "Ouvrez le portail médecin pour consulter et gérer vos patients.",
+      "setAvailability": "Définir votre disponibilité",
+      "setAvailabilityDesc": "Indiquez à vos patients quand vous êtes disponible, absent ou hors ligne."
+    },
+    "tourTitle": "Équipe de soins médicaux"
   }
 }
