@@ -23,7 +23,7 @@
 
 import { db } from "../db";
 import { macroLogs } from "../../shared/schema";
-import { sql } from "drizzle-orm";
+import { sql, and } from "drizzle-orm";
 import {
   resolveTodayTargets,
   SessionType,
@@ -73,6 +73,16 @@ export interface DailyStateInput {
   timezone: string;
   performanceActive: boolean;
   now?: Date;
+  /**
+   * When set, the macro_log row whose board_item_reference equals this ID
+   * is excluded from the consumed-carb totals.
+   *
+   * Use this for the meal-refinement preview path: the item being replaced
+   * has already been logged, so its macros would otherwise count against
+   * its own replacement budget.  Passing its ID here removes it from the
+   * aggregation so the replacement receives a fair budget.
+   */
+  excludeItemId?: string;
 }
 
 /** Shape of the aggregated macro_logs row for today. */
@@ -395,6 +405,19 @@ export async function resolveDailyNutritionState(
   // Timezone-correct UTC bounds for the user's local day.
   const { start: logStart, end: logEnd } = localDayUTCBounds(localDateStr, timezone);
 
+  // Build the WHERE predicate. When excludeItemId is provided, omit any
+  // macro_log row whose board_item_reference matches that board item so its
+  // macros are not counted against the replacement's own budget.
+  const baseWhere = sql`${macroLogs.userId} = ${input.userId}
+    AND ${macroLogs.at} >= ${logStart.toISOString()}
+    AND ${macroLogs.at} <= ${logEnd.toISOString()}`;
+
+  const whereClause = input.excludeItemId
+    ? sql`${baseWhere}
+        AND (${macroLogs.boardItemReference} IS NULL
+             OR ${macroLogs.boardItemReference} != ${input.excludeItemId})`
+    : baseWhere;
+
   const [logged] = await db
     .select({
       starchyCarbsG:  sql<number>`COALESCE(SUM(${macroLogs.starchyCarbs}::numeric), 0)`,
@@ -404,11 +427,7 @@ export async function resolveDailyNutritionState(
       nonZeroStarchy: sql<number>`COUNT(*) FILTER (WHERE ${macroLogs.starchyCarbs}::numeric > 0)`,
     })
     .from(macroLogs)
-    .where(
-      sql`${macroLogs.userId} = ${input.userId}
-        AND ${macroLogs.at} >= ${logStart.toISOString()}
-        AND ${macroLogs.at} <= ${logEnd.toISOString()}`
-    );
+    .where(whereClause);
 
   const logData: DailyLogSummary = {
     rowCount:       Number(logged?.rowCount       ?? 0),

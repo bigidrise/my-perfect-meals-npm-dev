@@ -32,6 +32,12 @@ import type {
 export async function resolveDailyNutritionState(
   userId: string,
   dateISO: string,
+  /**
+   * Exclude this board item ID from both consumed (macro_logs) and planned
+   * (meal_board_items) counts.  Used by the meal refinement flow so the item
+   * being replaced is not counted against its own replacement budget.
+   */
+  excludeItemId?: string,
 ): Promise<DailyNutritionState> {
   // ── Read stored prescription source BEFORE resolving ─────────────────────
   // The prescriptionResolver fire-and-forgets an upsert that overwrites this
@@ -76,6 +82,8 @@ export async function resolveDailyNutritionState(
     FROM macro_logs
     WHERE user_id = ${userId}
       AND (at AT TIME ZONE ${tz})::date = ${dateISO}::date
+      AND (${excludeItemId ?? null}::text IS NULL
+           OR board_item_reference IS DISTINCT FROM ${excludeItemId ?? null}::text)
   `);
 
   const cr = (consumedRows.rows?.[0] ?? {}) as Record<string, unknown>;
@@ -117,6 +125,8 @@ export async function resolveDailyNutritionState(
         SELECT 1 FROM macro_logs ml
         WHERE ml.board_item_reference = mbi.id::text
       )
+      AND (${excludeItemId ?? null}::text IS NULL
+           OR mbi.id::text != ${excludeItemId ?? null}::text)
   `);
 
   const pr = (plannedRows.rows?.[0] ?? {}) as Record<string, unknown>;

@@ -120,6 +120,12 @@ export async function resolveGLP1GlobalContext(
   userId: string,
   dateISO: string,
   mealType: "breakfast" | "lunch" | "dinner" | "snack" = "lunch",
+  /**
+   * Exclude this board item ID from daily nutrition state consumption counts.
+   * Used by the meal refinement flow so the item being replaced is not counted
+   * against its own replacement budget when computing remaining macros.
+   */
+  excludeItemId?: string,
 ): Promise<GLP1GlobalContext> {
   // ── 1. Load user row ─────────────────────────────────────────────────────
   let userRow: any = null;
@@ -204,7 +210,7 @@ export async function resolveGLP1GlobalContext(
     })(),
     (async (): Promise<DailyNutritionState | null> => {
       try {
-        return await resolveDailyNutritionState(userId, dateISO);
+        return await resolveDailyNutritionState(userId, dateISO, excludeItemId);
       } catch (err) {
         console.warn("[GLP1Context] DailyNutritionState unavailable:", err);
         return null;

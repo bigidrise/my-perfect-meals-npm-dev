@@ -1502,6 +1502,8 @@ export default function WeeklyMealBoard() {
                             meal={meal}
                             showStarchBadge={true}
                             data-wt="wmb-meal-card"
+                            weekStartISO={!proClientId && !isDayLocked(activeDayISO, effectiveUserId) ? weekStartISO : undefined}
+                            onRefined={!proClientId && !isDayLocked(activeDayISO, effectiveUserId) ? () => refreshBoard() : undefined}
                             onUpdated={(m) => {
                               if (m === null) {
                                 if (checkLockedDay()) return;
@@ -1549,6 +1551,8 @@ export default function WeeklyMealBoard() {
                     <div className="space-y-3">
                       {dayLists.snacks.map((meal: Meal) => (
                         <MealCard key={meal.id} date={activeDayISO} slot="snacks" meal={meal} showStarchBadge={true}
+                          weekStartISO={!proClientId && !isDayLocked(activeDayISO, effectiveUserId) ? weekStartISO : undefined}
+                          onRefined={!proClientId && !isDayLocked(activeDayISO, effectiveUserId) ? () => refreshBoard() : undefined}
                           onUpdated={(m) => {
                             if (m === null) {
                               if (checkLockedDay()) return;

@@ -662,6 +662,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api", inspirationRouter);
   app.use("/api/grocery-coach", requireAuth, requireProAccess, groceryCoachRouter);
   app.use("/api/meal-refinement", requireAuth, requireActiveAccess, mealRefinementRouter);
+
+  // Universal Meal Refinement — stateless freeform endpoint (Grocery Coach + others)
+  const { default: refinementRouter } = await import("./routes/refinement");
+  app.use("/api/refinement", requireAuth, requireActiveAccess, refinementRouter);
   app.use("/api/saved-groceries", requireAuth, savedGroceriesRouter);
   app.use("/api/pregnancy", requireAuth, requireClinicalAccess, pregnancyCoachRouter);
   app.use("/api/coach", coachingEngineRouter);
@@ -1054,7 +1058,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             serverGlp1Targets = glp1Ctx.resolvedTargets ?? undefined;
             // Override dietType to 'glp1' unless the user is on a clinical protocol
             // (procare) or competition diet (beachbody) whose rules own macro targets.
-            const GLP1_OVERRIDE_BLOCKLIST = new Set(['procare', 'beachbody']);
+            // 'diabetic' is intentionally excluded from the override: a diabetic
+            // user must keep dietType='diabetic' so the 35g-per-meal carb cap and
+            // BGL starch gate remain active. glp1Targets is still passed through
+            // to generateMealUnified, so the GLP-1 fat ceiling is enforced via
+            // post-gen validateMealForDiet — both constraints apply simultaneously.
+            const GLP1_OVERRIDE_BLOCKLIST = new Set(['procare', 'beachbody', 'diabetic']);
             if (!effectiveDietType || !GLP1_OVERRIDE_BLOCKLIST.has(effectiveDietType)) {
               effectiveDietType = 'glp1';
             }

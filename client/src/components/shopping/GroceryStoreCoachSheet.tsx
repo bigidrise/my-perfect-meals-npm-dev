@@ -1031,6 +1031,36 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                   </div>
                 )}
 
+                {/* ── Owned / Already-have ingredients ── */}
+                {/* Only rendered when the user explicitly told the coach they already own
+                    these items. The prompt instructs the AI never to assume ownership — so
+                    this section should only appear when the user said e.g. "I have salmon
+                    at home already". If no owned items were mentioned, this block is hidden. */}
+                {result.ownedIngredients?.length > 0 && (
+                  <div style={{ borderRadius: 12, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", overflow: "hidden" }}>
+                    <div style={{ padding: "12px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <CheckCircle2 style={{ width: 15, height: 15, color: "rgba(255,255,255,0.35)", flexShrink: 0 }} />
+                        <span style={{ color: "rgba(255,255,255,0.5)", fontWeight: 600, fontSize: 13 }}>
+                          You mentioned having
+                        </span>
+                        <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 12 }}>({result.ownedIngredients.length} item{result.ownedIngredients.length !== 1 ? "s" : ""})</span>
+                      </div>
+                      <p style={{ margin: "4px 0 0 23px", color: "rgba(255,255,255,0.28)", fontSize: 11, lineHeight: 1.4 }}>
+                        These are ingredients you told the coach you already have at home — they won't be added to your shopping list.
+                      </p>
+                    </div>
+                    <div style={{ padding: "10px 16px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
+                      {result.ownedIngredients.map((o, i) => (
+                        <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, fontSize: 13 }}>
+                          <span style={{ color: "rgba(255,255,255,0.55)", lineHeight: 1.3 }}>{o.item}</span>
+                          <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, flexShrink: 0 }}>{o.quantity} {o.unit}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* ── Product Advisor / Smart Cart ── */}
                 {(advisorLoading || hasAdvice) && (
                   <div style={{ borderRadius: 12, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(249,115,22,0.2)", overflow: "hidden" }}>
@@ -1503,29 +1533,45 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
             servings: result.servingCount || result.meal?.servings || 1,
             prepTime: result.meal?.prepTime,
           }}
+          existingMeal={result}
+          freeformEndpoint="/api/refinement/freeform-preview"
           builderType="grocery-coach"
           onRefined={(refined) => {
             if (!preRefinedResult) setPreRefinedResult(result);
-            setResult((prev) => {
-              if (!prev) return prev;
-              return {
-                ...prev,
-                meal: {
-                  ...prev.meal,
-                  name: refined.name ?? prev.meal.name,
-                  description: refined.description ?? prev.meal.description,
-                },
-                macros: refined.nutrition ?? prev.macros,
-                shoppingList: Array.isArray(refined.ingredients)
-                  ? refined.ingredients.map((i: any) => ({
-                      item: typeof i === "string" ? i : (i.name ?? i.item ?? ""),
-                      quantity: typeof i === "string" ? "1" : String(i.quantity ?? i.amount ?? "1"),
-                      unit: typeof i === "string" ? "" : (i.unit ?? ""),
-                      category: typeof i === "string" ? "Other" : (i.category ?? "Other"),
-                    }))
-                  : prev.shoppingList,
-              };
-            });
+            // The freeform endpoint returns updatedMeal in the same CoachResult shape.
+            // If it has the Grocery Coach fields (shoppingList + meal), apply them directly.
+            if (refined && (refined.shoppingList !== undefined || refined.meal !== undefined)) {
+              setResult((prev) => {
+                if (!prev) return prev;
+                return {
+                  ...prev,
+                  ...(refined as Partial<CoachResult>),
+                  // Always preserve the owner key
+                };
+              });
+            } else {
+              // Fallback: standard meal shape from the old endpoint
+              setResult((prev) => {
+                if (!prev) return prev;
+                return {
+                  ...prev,
+                  meal: {
+                    ...prev.meal,
+                    name: refined.name ?? prev.meal.name,
+                    description: refined.description ?? prev.meal.description,
+                  },
+                  macros: refined.nutrition ?? prev.macros,
+                  shoppingList: Array.isArray(refined.ingredients)
+                    ? refined.ingredients.map((i: any) => ({
+                        item: typeof i === "string" ? i : (i.name ?? i.item ?? ""),
+                        quantity: typeof i === "string" ? "1" : String(i.quantity ?? i.amount ?? "1"),
+                        unit: typeof i === "string" ? "" : (i.unit ?? ""),
+                        category: typeof i === "string" ? "Other" : (i.category ?? "Other"),
+                      }))
+                    : prev.shoppingList,
+                };
+              });
+            }
             setResultOwnerKey(SESSION_KEY); // refined result still belongs to this user
           }}
         />

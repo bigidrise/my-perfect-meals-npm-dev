@@ -89,10 +89,36 @@ export interface AdjustMacrosRequest {
   /** Current estimated macros for the meal (used to anchor the adjustment). */
   currentMacros?: { calories?: number; protein?: number; carbs?: number; fat?: number };
 }
+export interface ReplaceComponentRequest {
+  changeType: "replace_component";
+  /** ID of the authenticated user requesting the refinement. */
+  userId: string;
+  /**
+   * The full existing meal as stored on the board item (macros + ingredients + title).
+   * The engine rebuilds a full meal representation from this before calling the LLM.
+   */
+  existingMeal: {
+    title:       string;
+    macros:      Record<string, unknown>;
+    ingredients: Array<{ name: string; qty: string }>;
+  };
+  /** Which component to replace — all others are preserved verbatim. */
+  componentTarget: "protein" | "starch" | "vegetable" | "sauce" | "side";
+  /** Natural-language request, e.g. "something lighter" or "a different starch". */
+  userInstruction: string;
+  /** Meal slot — used by the GLP-1 resolver for per-meal targets. Default: "lunch". */
+  mealType?: "breakfast" | "lunch" | "dinner" | "snack";
+  /** Pre-loaded GLP-1 targets (from slotContextResolver). Skip internal resolution when provided. */
+  glp1Targets?: import("./glp1/resolveGLP1MealTargets").ResolvedGLP1Targets | null;
+  /** Pre-built GLP-1 recommendation block (from slotContextResolver). */
+  glp1Block?: string;
+}
+
 export type RefinementRequest =
   | ReplaceIngredientRequest
   | AdjustMacrosRequest
-  | ChangeCookingMethodRequest;
+  | ChangeCookingMethodRequest
+  | ReplaceComponentRequest;
 
 // ── Result types ──────────────────────────────────────────────────────────────
 
@@ -124,7 +150,8 @@ export interface AdjustedIngredient {
 export type RefinementResult =
   | SwapRefinementResult
   | MacroAdjustmentResult
-  | CookingMethodResult;
+  | CookingMethodResult
+  | RefinedMeal;
 
 // ── Retryable error marker ────────────────────────────────────────────────────
 
@@ -134,6 +161,31 @@ export class MealRefinementRetryableError extends Error {
     super(message);
     this.name = "MealRefinementRetryableError";
   }
+}
+
+// ── Shared GLP-1 fat compliance helper ───────────────────────────────────────
+
+/**
+ * Validates a fat gram value against the active GLP-1 fat ceiling.
+ *
+ * Shared by all refinement handlers (_replaceIngredient, _replaceComponent,
+ * and any future handlers) so clinical fat-ceiling logic lives in one place.
+ *
+ * @param fatGrams  Fat grams to check (null = unverified / absent from response).
+ * @param fatCeiling Maximum fat grams allowed per meal under the active GLP-1 target.
+ * @returns         { compliant, exceeded, unverified }
+ *   - compliant: true when fat is present and within ceiling.
+ *   - exceeded:  true when fat is present and above ceiling.
+ *   - unverified: true when fat is absent/null — cannot confirm compliance.
+ */
+export function validateGLP1FatCompliance(
+  fatGrams: number | null,
+  fatCeiling: number,
+): { compliant: boolean; exceeded: boolean; unverified: boolean } {
+  const exceeded    = fatGrams !== null && Number.isFinite(fatGrams) && fatGrams > fatCeiling;
+  const unverified  = fatGrams === null || !Number.isFinite(fatGrams as number);
+  const compliant   = !exceeded && !unverified;
+  return { compliant, exceeded, unverified };
 }
 
 // ─── OpenAI singleton ─────────────────────────────────────────────────────────
@@ -425,6 +477,8 @@ export class MealRefinementEngine {
         return this._adjustMacros(request);
       case "change_cooking_method":
         return this._changeCookingMethod(request);
+      case "replace_component":
+        return this._replaceComponent(request);
       default: {
         throw new Error(`Unsupported refinement changeType: ${(request as any).changeType}`);
       }
@@ -1023,6 +1077,215 @@ Respond ONLY with valid JSON:
         data.estimatedMealFatGrams != null && Number.isFinite(Number(data.estimatedMealFatGrams))
           ? Number(data.estimatedMealFatGrams)
           : null,
+    };
+  }
+
+  // ── replace_component ─────────────────────────────────────────────────────
+  //
+  // Replaces ONE named component (starch, protein, vegetable, sauce, or side)
+  // while preserving all other components verbatim.  Used by the Weekly Meal
+  // Board refinement flow where the user taps "give me a different starch."
+  //
+  // GLP-1 FAIL-CLOSED: if glp1Targets are passed in (from slotContextResolver)
+  // they are used directly; otherwise the resolver is called internally.
+  // Either way, a resolver failure throws MealRefinementRetryableError (503).
+
+  async _replaceComponent(req: ReplaceComponentRequest): Promise<RefinedMeal> {
+    const {
+      userId,
+      existingMeal,
+      componentTarget,
+      userInstruction,
+      mealType = "lunch",
+    } = req;
+
+    // ── 1. Protocol envelope ────────────────────────────────────────────────
+    let envelope: import("./protocolEnvelope").UserProtocolEnvelope =
+      (await import("./protocolEnvelope")).buildGuestEnvelope();
+    let protocolContext = "";
+
+    try {
+      const { loadUserProtocolEnvelope, enforceBeforeGenerate, buildGuestEnvelope } =
+        await import("./protocolEnvelope");
+      const loaded = await loadUserProtocolEnvelope(userId).catch(() => null);
+      envelope       = loaded ?? buildGuestEnvelope();
+      protocolContext = enforceBeforeGenerate(envelope, { generatorName: "replace_component" }).combined;
+    } catch {
+      /* non-fatal — proceed with guest envelope */
+    }
+
+    // ── 2. GLP-1 context — prefer pre-resolved targets, fall-close on failure ─
+    let glp1Targets: import("./glp1/resolveGLP1MealTargets").ResolvedGLP1Targets | null =
+      req.glp1Targets !== undefined ? req.glp1Targets : null;
+    let glp1Block = req.glp1Block ?? "";
+
+    if (req.glp1Targets === undefined) {
+      // Not pre-resolved — resolve internally, fail-closed.
+      const todayISO = new Date().toISOString().slice(0, 10);
+      let glp1Ctx: Awaited<ReturnType<typeof resolveGLP1GlobalContext>> | null = null;
+      try {
+        glp1Ctx = await resolveGLP1GlobalContext(userId, todayISO, mealType).catch(() => null);
+      } catch {
+        glp1Ctx = null;
+      }
+      if (glp1Ctx === null) {
+        throw new MealRefinementRetryableError(
+          "Clinical guidance temporarily unavailable. Please try again.",
+        );
+      }
+      if (glp1Ctx.isActive && !glp1Ctx.resolvedTargets) {
+        throw new MealRefinementRetryableError(
+          "GLP-1 clinical targets temporarily unavailable. Please try again.",
+        );
+      }
+      if (glp1Ctx.isActive) {
+        glp1Block   = buildGLP1RecommendationBlock(glp1Ctx);
+        glp1Targets = glp1Ctx.resolvedTargets ?? null;
+      }
+    }
+
+    // ── 3. Build component-preservation prompt ──────────────────────────────
+    const COMPONENT_DESCRIPTIONS: Record<string, string> = {
+      protein:   "the protein source (meat, fish, poultry, beans, tofu, etc.)",
+      starch:    "the starchy carbohydrate component (rice, bread, potato, pasta, grains, etc.)",
+      vegetable: "the vegetable component (excluding starchy carbohydrates)",
+      sauce:     "the sauce, dressing, or flavoring component",
+      side:      "the side dish component",
+    };
+
+    const componentDesc = COMPONENT_DESCRIPTIONS[componentTarget] ?? componentTarget;
+
+    // Represent existing meal as compact JSON for the LLM.
+    const existingMealSummary = JSON.stringify({
+      title:       existingMeal.title,
+      macros:      existingMeal.macros,
+      ingredients: existingMeal.ingredients,
+    }, null, 2);
+
+    const systemPrompt = `You are a clinical nutrition AI refining a board meal for a user.
+
+USER HEALTH PROFILE:
+${protocolContext || "No dietary restrictions on file — apply general healthy eating principles."}
+${glp1Block ? `\n${glp1Block}` : ""}
+
+EXISTING MEAL:
+${existingMealSummary}
+
+TASK: Replace ONLY ${componentDesc}. Keep all other components (${Object.keys(COMPONENT_DESCRIPTIONS).filter(k => k !== componentTarget).join(", ")}) exactly the same.
+
+The user requests: "${userInstruction}"
+
+RULES:
+1. Change only the ${componentTarget}. Every other ingredient stays the same.
+2. Recalculate macros (calories, protein, carbs, fat) to reflect the actual swap.
+3. Never introduce anything that violates the user's allergies or medical protocol.
+4. If GLP-1 is active, ensure fat stays within the fat ceiling after the swap.
+5. Return fat_grams for the new ${componentTarget} so the clinical gate can verify.
+
+Respond ONLY with valid JSON:
+{
+  "title": "string — same meal title with minor update if needed",
+  "macros": { "calories": number, "protein": number, "carbs": number, "fat": number },
+  "ingredients": [{ "name": "string", "qty": "string" }],
+  "changesSummary": "string — 1-2 sentences explaining what changed and why",
+  "protocolNote": "string | null",
+  "new_component_fat_grams": number | null
+}`;
+
+    const callLLM = async (extra?: string): Promise<Record<string, unknown>> => {
+      const completion = await getOpenAI().chat.completions.create({
+        model:  "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt + (extra ?? "") },
+          { role: "user",   content: `Replace the ${componentTarget}. User says: "${userInstruction}"` },
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.65,
+        max_tokens:  900,
+      });
+      const raw = completion.choices[0]?.message?.content ?? "{}";
+      try { return JSON.parse(raw) as Record<string, unknown>; }
+      catch { throw new Error("Could not parse replace_component LLM response."); }
+    };
+
+    // ── 4. First call ───────────────────────────────────────────────────────
+    let data = await callLLM();
+
+    // ── 5. GLP-1 fat ceiling gate — uses the shared validateGLP1FatCompliance ─
+    const fatCeiling = glp1Targets?.maximumToleratedFatGrams ?? null;
+
+    if (fatCeiling !== null) {
+      // Check the full-meal fat (macros.fat) — more accurate than per-component.
+      const mealFat = typeof data.macros === "object" && data.macros !== null
+        ? (typeof (data.macros as any).fat === "number" ? (data.macros as any).fat as number : null)
+        : null;
+
+      const { compliant } = validateGLP1FatCompliance(mealFat, fatCeiling);
+      if (!compliant) {
+        const correction =
+          mealFat === null
+            ? `CRITICAL: GLP-1 is active. Include numeric "macros.fat" in your response ` +
+              `and ensure it is ≤${fatCeiling}g.`
+            : `CRITICAL: Meal fat (${mealFat}g) exceeds the GLP-1 ceiling (${fatCeiling}g). ` +
+              `Swap the ${componentTarget} for a lower-fat option so total meal fat is ≤${fatCeiling}g.`;
+
+        try {
+          data = await callLLM(`\n\n${correction}`);
+        } catch {
+          /* retry failed — keep original data and surface protocol note below */
+        }
+
+        const retryFat = typeof data.macros === "object" && data.macros !== null
+          ? (typeof (data.macros as any).fat === "number" ? (data.macros as any).fat as number : null)
+          : null;
+
+        const { compliant: retryOk } = validateGLP1FatCompliance(retryFat, fatCeiling);
+        if (!retryOk) {
+          // Fail closed — never serve a clinically non-compliant component swap.
+          const reason =
+            retryFat === null
+              ? `GLP-1 fat compliance could not be verified: fat_grams absent from LLM response after retry. Cannot confirm swap.`
+              : `GLP-1 fat ceiling exceeded after retry: ${retryFat}g fat (limit ${fatCeiling}g). Choose a lower-fat component or adjust your instruction.`;
+          throw new Error(reason);
+        }
+      }
+    }
+
+    // ── 6. NDE scan — non-fatal, appends protocol note ─────────────────────
+    try {
+      const { scanGeneratedOutput } = await import("./protocolEnvelope");
+      const ingredientNames = Array.isArray(data.ingredients)
+        ? (data.ingredients as any[]).map((i: any) => ({ name: typeof i.name === "string" ? i.name : "" }))
+        : [];
+      const scan = scanGeneratedOutput(
+        { name: String(data.title ?? existingMeal.title), ingredients: ingredientNames },
+        envelope,
+        { generatorName: "replace_component", skipAdaptableConflicts: true },
+      );
+      if (!scan.passed) {
+        const existing = typeof data.protocolNote === "string" ? `${data.protocolNote} ` : "";
+        data = {
+          ...data,
+          protocolNote: `${existing}Note: this swap may conflict with your protocol — ${scan.message}. Review before confirming.`,
+        };
+      }
+    } catch {
+      /* scan errors are non-fatal for component replacement */
+    }
+
+    // ── 7. Build RefinedMeal result ─────────────────────────────────────────
+    const changesSummary =
+      typeof data.changesSummary === "string" && data.changesSummary.trim()
+        ? data.changesSummary.trim()
+        : `Replaced the ${componentTarget} as requested.`;
+
+    // Merge: non-schema fields from existing meal are preserved.
+    const { changesSummary: _cs, new_component_fat_grams: _nf, ...mealFields } = data;
+
+    return {
+      updatedMeal:    mealFields as Record<string, unknown>,
+      changesSummary,
+      protocolNote:   typeof data.protocolNote === "string" ? data.protocolNote : null,
     };
   }
 }

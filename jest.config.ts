@@ -31,6 +31,8 @@ const config: Config = {
       }
     }]
   },
-  extensionsToTreatAsEsm: [".ts", ".tsx"]
+  extensionsToTreatAsEsm: [".ts", ".tsx"],
+  // uuid v9+ ships only ESM; transform it instead of skipping it.
+  transformIgnorePatterns: ["/node_modules/(?!(uuid)/)"],
 };
 export default config;

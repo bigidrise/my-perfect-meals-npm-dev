@@ -145,6 +145,20 @@ header "Step 4 of 4: Server Startup Verification"
 echo "  Starting server in background to verify clean boot..."
 echo ""
 
+# When running as a git pre-push hook (GIT_DIR is set by git), skip the boot
+# test. Killing the dev server from inside a git hook disconnects the Replit
+# shell session mid-push. Steps 1-3 already gate code quality; the boot test
+# is redundant here because it passed in the most recent standalone validate run.
+# When running as a git pre-push hook (GIT_DIR is set by git), skip the boot
+# test entirely. Killing the dev server from inside a git hook disconnects the
+# Replit shell session mid-push. Steps 1–3 already gate code quality; the boot
+# test is redundant here because it passed in the most recent standalone run.
+if [ -n "$GIT_DIR" ]; then
+  echo -e "${CYAN}  ℹ️  Running as git hook — boot test skipped to preserve session stability.${NC}"
+  echo -e "${CYAN}     Run 'npm run validate' standalone to include the full boot test.${NC}"
+  echo ""
+else
+
 # Detect port 5000 occupancy before starting the test server.
 # - If it's our own MPM dev server (tsx server/index.ts): stop it temporarily,
 #   run the boot test, then restart it automatically.
@@ -269,6 +283,8 @@ if [ -z "$PORT_PID" ] || [ "$DEV_SERVER_RESTARTED" = true ]; then
     echo -e "${GREEN}  MPM dev server restarted in background.${NC}"
   fi
 fi
+
+fi  # end of: if [ -z "$GIT_DIR" ] ... else ... fi  (git-hook boot-test guard)
 
 # ──────────────────────────────────────────────────
 echo ""

@@ -983,6 +983,11 @@ async function initializeApp() {
     app.use("/api/meals", mealSharesRouter);
     app.use("/api/share", mealSharesRouter);
 
+    // Universal Meal Refinement — Stage 1: Weekly Meal Board replace_component
+    const refinementRouter = (await import("./routes/refinement")).default;
+    const { requireActiveAccess: rafRefineAccess } = await import("./middleware/requireActiveAccess");
+    app.use("/api/refinement", requireAuth, rafRefineAccess, refinementRouter);
+
     console.log("✅ [INIT] Parity routes mounted");
 
     // ── Org Config — PUBLIC endpoint, must be registered before requireAuth layers ──
@@ -1627,6 +1632,12 @@ async function initializeApp() {
             ALTER TABLE grocery_coach_recommendation_history
               ADD COLUMN IF NOT EXISTS meal_type text
           `);
+          // Task 903: tag rows with the dietary identity active at recommendation time
+          // so that switching diets (e.g. vegan → omnivore) flushes the avoid-list.
+          await dbGcr.execute(sqlGcr`
+            ALTER TABLE grocery_coach_recommendation_history
+              ADD COLUMN IF NOT EXISTS dietary_identity_tag text NOT NULL DEFAULT 'omnivore'
+          `);
           console.log("✅ [prod] Grocery Coach recommendation history boot migration complete");
         } catch (err: any) {
           console.error("❌ [prod] Grocery Coach recommendation history migration failed:", err.message);
@@ -1751,6 +1762,21 @@ async function initializeApp() {
           )
         `);
       });
+
+      // Universal Meal Refinement — original_meal_snapshot column (Stage 1)
+      setTimeout(async () => {
+        try {
+          const { db: database } = await import("./db");
+          const { sql: migSql } = await import("drizzle-orm");
+          await database.execute(migSql`
+            ALTER TABLE meal_board_items
+              ADD COLUMN IF NOT EXISTS original_meal_snapshot jsonb
+          `);
+          console.log("✅ [prod] meal_board_items.original_meal_snapshot migration complete");
+        } catch (err: any) {
+          console.error("❌ [prod] meal_board_items.original_meal_snapshot migration failed:", err.message);
+        }
+      }, 12500);
 
       // ── Coach Follow-up Cron (every 10 min) ──────────────────────────────────
       setTimeout(async () => {

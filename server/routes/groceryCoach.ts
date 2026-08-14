@@ -36,7 +36,6 @@ router.post("/recommend", async (req, res) => {
   try {
     const userId = resolveUserId(req);
 
-    const { ingredients: rawIngredients, store: rawStore } = req.body;
     const { message, conversationHistory = [], servingCount } = req.body;
 
     if (!message || typeof message !== "string") {
@@ -143,9 +142,9 @@ router.post("/recommend", async (req, res) => {
       }
     }
 
-    // ── Recommendation history — variety memory ───────────────────────────────
-    // Load the last 20 DB entries + any session recommendations from conversation
-    // history, then build a "do not repeat" block for the system prompt.
+    const dietaryIdentityTag = groceryEnvelope.dietaryIdentity?.length
+      ? [...groceryEnvelope.dietaryIdentity].sort().join(",").toLowerCase()
+      : "omnivore";
     let varietyBlock = "";
     if (userId) {
       let dbHistory: Array<{ mealName: string; primaryProtein: string | null; cuisineStyle: string | null; majorStarch: string | null; cookingMethod: string | null }> = [];
@@ -156,6 +155,7 @@ router.post("/recommend", async (req, res) => {
                 SELECT meal_name, primary_protein, cuisine_style, major_starch, cooking_method
                 FROM grocery_coach_recommendation_history
                 WHERE user_id = ${userId}
+                  AND dietary_identity_tag = ${dietaryIdentityTag}
                   AND (meal_type = ${detectedMealType} OR meal_type IS NULL)
                 ORDER BY created_at DESC
                 LIMIT 20
@@ -164,31 +164,16 @@ router.post("/recommend", async (req, res) => {
                 SELECT meal_name, primary_protein, cuisine_style, major_starch, cooking_method
                 FROM grocery_coach_recommendation_history
                 WHERE user_id = ${userId}
+                  AND dietary_identity_tag = ${dietaryIdentityTag}
                 ORDER BY created_at DESC
                 LIMIT 20
               `
         );
-        dbHistory = (histRows.rows as any[]).map((r: any) => ({
-          mealName: r.meal_name,
-          primaryProtein: r.primary_protein ?? null,
-          cuisineStyle: r.cuisine_style ?? null,
-          majorStarch: r.major_starch ?? null,
-          cookingMethod: r.cooking_method ?? null,
-        }));
-      } catch {
-        // Non-fatal — variety enforcement degrades gracefully if history is unavailable
+        dbHistory = (histRows.rows ?? histRows) as typeof dbHistory;
+      } catch (histErr: any) {
+        console.warn("[GroceryCoach] Could not load variety history:", histErr?.message);
       }
-
-      // Also pull meal names from the current session conversation
-      const sessionNames = (conversationHistory as any[])
-        .filter((m: any) => m.role === "assistant" && typeof m.content === "string" && m.content.startsWith("Recommended: "))
-        .map((m: any) => (m.content as string).replace("Recommended: ", "").trim());
-
-      const allAvoidNames = Array.from(
-        new Set(
-          [...dbHistory.map((e) => e.mealName), ...sessionNames].filter(Boolean)
-        )
-      );
+      const allAvoidNames = dbHistory.map((e) => e.mealName).filter(Boolean);
 
       if (allAvoidNames.length > 0) {
         const avoidList = allAvoidNames.slice(0, 20).map((n) => `- ${n}`).join("\n");
@@ -226,6 +211,7 @@ COACHING RULES:
 - MOST IMPORTANT: If the user mentions ingredients they already bought or have at home, BUILD THE MEAL AROUND THOSE INGREDIENTS. They are the anchor. Only add to the shopping list what is genuinely missing to complete the dish. Never suggest a meal that ignores or sidelines what the user says they already have. Exception: if using a stated ingredient would violate a safety, allergy, clinical, dietary, or protocol constraint, explain the conflict clearly and offer the closest safe alternative — do not silently swap it out.
 - Recommend ONE specific, confident meal (may have 2-3 components, e.g., protein + starch + vegetable).
 - The shopping list must be practical and grocery-store ready — include realistic quantities with units (e.g., "2 lbs", "1 bunch", "1 can"). Do NOT list ingredients the user said they already have — they already own those.
+- CRITICAL — ownedIngredients vs shoppingList: ownedIngredients MUST ONLY contain ingredients the user EXPLICITLY said they already have (e.g., "I have salmon at home", "I already bought sweet potatoes"). Do NOT infer ownership from the meal name, meal description, or any other context. If the user asked for "salmon with collard greens" but did NOT say they have those items, salmon and collard greens belong in shoppingList — they need to buy them. Every ingredient required to cook the recommended meal that the user did not explicitly claim to already own MUST appear in shoppingList with a quantity, unit, and category.
 - The reasoning bullets must directly reference THIS user's conditions, goals, allergies, or macros — not generic health claims.
 - Never include ingredients the user is allergic to or avoids.
 - If the user asks for a refinement ("make it cheaper", "more protein", "faster", "vegetarian", etc.) — adjust accordingly.
@@ -415,19 +401,24 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
       Promise.resolve().then(() =>
         db.execute(sql`
           INSERT INTO grocery_coach_recommendation_history
-            (user_id, meal_name, primary_protein, cuisine_style, major_starch, cooking_method)
+            (user_id, meal_name, primary_protein, cuisine_style, major_starch, cooking_method, dietary_identity_tag, meal_type)
           VALUES
             (${uid}, ${meal.name as string},
              ${vm?.primaryProtein ?? null}, ${vm?.cuisineStyle ?? null},
-             ${vm?.majorStarch ?? null}, ${vm?.cookingMethod ?? null})
+             ${vm?.majorStarch ?? null}, ${vm?.cookingMethod ?? null},
+             ${dietaryIdentityTag}, ${detectedMealType ?? null})
         `)
       ).then(() =>
+        // Prune to 20 rows scoped by (user_id, dietary_identity_tag) so history
+        // for one diet identity never evicts history from another identity.
         db.execute(sql`
           DELETE FROM grocery_coach_recommendation_history
           WHERE user_id = ${uid}
+            AND dietary_identity_tag = ${dietaryIdentityTag}
             AND id NOT IN (
               SELECT id FROM grocery_coach_recommendation_history
               WHERE user_id = ${uid}
+                AND dietary_identity_tag = ${dietaryIdentityTag}
               ORDER BY created_at DESC
               LIMIT 20
             )
@@ -536,13 +527,15 @@ router.post("/product-advisor", async (req, res) => {
   try {
     const userId = resolveUserId(req);
 
-    const { ingredients: rawIngredients, store: rawStore } = req.body;
-    if (!Array.isArray(rawIngredients) || rawIngredients.length === 0) {
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
+    const { ingredients, store } = req.body;
+    if (!Array.isArray(ingredients) || ingredients.length === 0) {
       return res.status(400).json({ error: "ingredients array is required" });
     }
 
     const engine = getProductAdvisorEngine();
-    const result = await engine.buildCartRecommendations(userId!, rawIngredients as string[], rawStore);
+    const result = await engine.buildCartRecommendations(userId!, ingredients as string[], store);
 
     return res.json(result);
   } catch (err: any) {
@@ -560,6 +553,8 @@ router.post("/product-advisor", async (req, res) => {
 router.post("/swap-ingredient", async (req, res) => {
   try {
     const userId = resolveUserId(req);
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
     const {
       ingredientToReplace, mealName, mealDescription,
       shoppingList, ownedIngredients, macros, reasoning,
@@ -825,7 +820,6 @@ router.post("/finalize-card", async (req, res) => {
   try {
     const userId = resolveUserId(req);
 
-    const { ingredients: rawIngredients, store: rawStore } = req.body;
     const { recommendation } = req.body;
     if (!recommendation?.meal?.name) {
       return res.status(400).json({ status: "failed", id: null, reason: "recommendation is required" });

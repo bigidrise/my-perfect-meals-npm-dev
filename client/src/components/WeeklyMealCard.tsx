@@ -11,6 +11,7 @@ import { formatIngredientWithGrams } from "@/utils/unitConversions";
 import DietStyleBadge from "@/components/DietStyleBadge";
 import BuilderSourcePill from "@/components/BuilderSourcePill";
 import { getClinicalCoachingLine } from "@/utils/clinicalCoachingLine";
+import { MealRefinementPanel } from "@/components/MealRefinementPanel";
 
 interface WeeklyMealCardProps {
   dateISO: string;
@@ -19,6 +20,13 @@ interface WeeklyMealCardProps {
   time?: string;
   onRegenerate?: (slot: string, mealType: string) => Promise<void>;
   builderType?: string;
+  /**
+   * When provided (along with dayISO as a real YYYY-MM-DD), shows the
+   * component-swap Refine panel. Identifies the weekly board for this meal.
+   */
+  weekStartISO?: string;
+  /** Called after a successful component swap so the board can be refreshed. */
+  onRefined?: () => void;
 }
 
 function convertToAmericanUnits(
@@ -91,7 +99,16 @@ function convertToAmericanUnits(
   return { quantity: String(quantity), unit };
 }
 
-export default function WeeklyMealCard({ dateISO, slot, meal, time, onRegenerate, builderType }: WeeklyMealCardProps) {
+export default function WeeklyMealCard({
+  dateISO,
+  slot,
+  meal,
+  time,
+  onRegenerate,
+  builderType,
+  weekStartISO,
+  onRefined,
+}: WeeklyMealCardProps) {
   const [regenerating, setRegenerating] = useState(false);
   const [instructionsExpanded, setInstructionsExpanded] = useState(false);
   
@@ -320,6 +337,19 @@ export default function WeeklyMealCard({ dateISO, slot, meal, time, onRegenerate
             <RefreshCw className={`h-3 w-3 mr-2 ${regenerating ? 'animate-spin' : ''}`} />
             {regenerating ? 'Regenerating...' : 'Regenerate Meal'}
           </Button>
+        )}
+
+        {/* Refinement Panel — shown in day mode when weekStartISO is supplied.
+            dateISO must be a real YYYY-MM-DD (not "board") for refinement to be
+            available; slot coords resolved server-side from the weekly board. */}
+        {weekStartISO && /^\d{4}-\d{2}-\d{2}$/.test(dateISO) && (
+          <MealRefinementPanel
+            weekStartISO={weekStartISO}
+            dayISO={dateISO}
+            slot={slot === "snack" ? "snacks" : slot}
+            mealId={String(meal?.id ?? "")}
+            onRefined={onRefined}
+          />
         )}
       </CardContent>
     </Card>

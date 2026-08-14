@@ -31,6 +31,13 @@
  *       the near-zero starch pool forces repeated fatty-meat selections, and
  *       that scanGeneratedOutput passes 100% of rounds (no dairy or carb-ceiling
  *       violations).
+ *
+ *   npx tsx scripts/verify-grocery-variety.ts --diet-switch
+ *     → Task 903 isolation test: confirms that switching dietary identity
+ *       (vegan → omnivore) resets the avoid-list.
+ *       Seeds 5 rows tagged "vegan", queries as "omnivore" — expects 0 rows.
+ *       Seeds 5 rows tagged "omnivore", queries as "vegan" — expects 0 rows.
+ *       No OpenAI calls are made; this is a pure DB isolation check.
  */
 import OpenAI from "openai";
 import { db } from "../server/db";
@@ -49,6 +56,8 @@ const CONSTRAINED_MODE = process.argv.includes("--constrained");
 const OVERLAP_MODE = process.argv.includes("--overlap");
 const VEGAN_DIABETIC_MODE = process.argv.includes("--vegan-diabetic");
 
+const DIET_SWITCH_MODE = process.argv.includes("--diet-switch");
+
 const KETO_DAIRY_FREE_MODE = process.argv.includes("--keto-dairy-free");
 const TEST_USER_ID = KETO_DAIRY_FREE_MODE
   ? "verify-variety-902-keto-dairy-free"
@@ -58,6 +67,8 @@ const TEST_USER_ID = KETO_DAIRY_FREE_MODE
   ? "verify-variety-899-vegan-diabetic"
   : CONSTRAINED_MODE
   ? "verify-variety-895-constrained"
+  : DIET_SWITCH_MODE
+  ? "verify-variety-903-diet-switch"
   : "verify-variety-892";
 
 const MEAL_REQUEST = "give me dinner";
@@ -225,8 +236,20 @@ PREVIOUSLY RECOMMENDED — DO NOT REPEAT:
 ${avoidList}${recentPatterns ? `\n\nRECENT PATTERNS TO ROTATE AWAY FROM:\n${recentPatterns}` : ""}`;
 }
 
-// ── DB history helpers (mirror the route exactly) ─────────────────────────────
-async function loadHistory(): Promise<
+/**
+ * Compute the dietary identity tag from a dietaryIdentity array.
+ * Mirrors the logic in groceryCoach.ts so tests stay in sync.
+ */
+function computeIdentityTag(dietaryIdentity: string[]): string {
+  return dietaryIdentity.length
+    ? [...dietaryIdentity].sort().join(",").toLowerCase()
+    : "omnivore";
+}
+async function loadHistory(
+  identityTag: string = computeIdentityTag(
+    VEGAN_DIABETIC_MODE ? ["vegan"] : CONSTRAINED_MODE ? ["gluten-free"] : []
+  )
+): Promise<
   Array<{
     mealName: string;
     primaryProtein: string | null;
@@ -239,6 +262,7 @@ async function loadHistory(): Promise<
     SELECT meal_name, primary_protein, cuisine_style, major_starch, cooking_method
     FROM grocery_coach_recommendation_history
     WHERE user_id = ${TEST_USER_ID}
+      AND dietary_identity_tag = ${identityTag}
     ORDER BY created_at DESC
     LIMIT 20
   `);
@@ -251,21 +275,29 @@ async function loadHistory(): Promise<
   }));
 }
 
-async function saveHistory(mealName: string, meta: VarietyMeta): Promise<void> {
+async function saveHistory(
+  mealName: string,
+  meta: VarietyMeta,
+  identityTag: string = computeIdentityTag(
+    VEGAN_DIABETIC_MODE ? ["vegan"] : CONSTRAINED_MODE ? ["gluten-free"] : []
+  )
+): Promise<void> {
   await db.execute(sql`
     INSERT INTO grocery_coach_recommendation_history
-      (user_id, meal_name, primary_protein, cuisine_style, major_starch, cooking_method)
+      (user_id, meal_name, primary_protein, cuisine_style, major_starch, cooking_method, dietary_identity_tag)
     VALUES
       (${TEST_USER_ID}, ${mealName}, ${meta.primaryProtein}, ${meta.cuisineStyle},
-       ${meta.majorStarch}, ${meta.cookingMethod})
+       ${meta.majorStarch}, ${meta.cookingMethod}, ${identityTag})
   `);
-  // Keep last 20 only (mirrors route behaviour)
+  // Keep last 20 per identity tag only (mirrors route behaviour)
   await db.execute(sql`
     DELETE FROM grocery_coach_recommendation_history
     WHERE user_id = ${TEST_USER_ID}
+      AND dietary_identity_tag = ${identityTag}
       AND id NOT IN (
         SELECT id FROM grocery_coach_recommendation_history
         WHERE user_id = ${TEST_USER_ID}
+          AND dietary_identity_tag = ${identityTag}
         ORDER BY created_at DESC
         LIMIT 20
       )
@@ -559,6 +591,141 @@ function analyzeResults(rounds: Round[]): boolean {
 }
 
 /**
+ * Pure DB test — no OpenAI calls.
+ *
+ * Verifies that dietary_identity_tag isolates history across diet switches:
+ *   Phase A: seed 5 vegan rows → query as omnivore → expect 0 rows returned
+ *   Phase B: seed 5 omnivore rows → query as vegan → expect 0 rows returned
+ *   Phase C: query as vegan → expect only the 5 vegan rows returned
+ *
+ * This mirrors the behaviour a real user would experience when switching from
+ * vegan to omnivore mid-session: the avoid-list starts fresh, preventing old
+ * vegan meal names from blocking valid omnivore recommendations.
+ */
+async function mainDietSwitch(): Promise<void> {
+  const TAG_VEGAN = "vegan";
+  const TAG_OMNI = "omnivore";
+
+  console.log("=".repeat(70));
+  console.log("Grocery Coach Variety — Diet-Switch Isolation Test (Task 903)");
+  console.log("Mode        : DB isolation check (no AI calls)");
+  console.log(`User ID     : ${TEST_USER_ID}`);
+  console.log("=".repeat(70) + "\n");
+
+  // Clean up from any prior run
+  await db.execute(sql`
+    DELETE FROM grocery_coach_recommendation_history WHERE user_id = ${TEST_USER_ID}
+  `);
+
+  const dummyMeta: VarietyMeta = {
+    primaryProtein: "tofu",
+    cuisineStyle: "Asian",
+    majorStarch: "rice",
+    cookingMethod: "stir-fry",
+  };
+
+  // ── Phase A: seed vegan rows, query as omnivore ───────────────────────────
+  console.log("Phase A — seed 5 vegan rows, then query as omnivore:");
+  for (let i = 1; i <= 5; i++) {
+    await saveHistory(`Vegan Meal ${i}`, dummyMeta, TAG_VEGAN);
+  }
+  const omniSeeingVeganRows = await loadHistory(TAG_OMNI);
+  const phaseAPassed = omniSeeingVeganRows.length === 0;
+  if (phaseAPassed) {
+    console.log("  ✅ PASS — omnivore query returns 0 rows (vegan history is isolated)");
+  } else {
+    console.error(`  ❌ FAIL — omnivore query returned ${omniSeeingVeganRows.length} row(s) from vegan history`);
+    for (const r of omniSeeingVeganRows) {
+      console.error(`     Leaked row: ${r.mealName}`);
+    }
+  }
+
+  // ── Phase B: seed omnivore rows, query as vegan ───────────────────────────
+  console.log("\nPhase B — seed 5 omnivore rows, then query as vegan:");
+  for (let i = 1; i <= 5; i++) {
+    await saveHistory(`Omnivore Meal ${i}`, { ...dummyMeta, primaryProtein: "chicken" }, TAG_OMNI);
+  }
+  const veganSeeingOmniRows = await loadHistory(TAG_VEGAN);
+  // vegan query should only return the 5 vegan rows from Phase A — not the omnivore rows
+  const phaseBPassed = veganSeeingOmniRows.length === 5 &&
+    veganSeeingOmniRows.every((r) => r.mealName.startsWith("Vegan Meal"));
+  if (phaseBPassed) {
+    console.log("  ✅ PASS — vegan query returns only the 5 vegan rows (omnivore history is isolated)");
+  } else {
+    console.error(`  ❌ FAIL — vegan query returned ${veganSeeingOmniRows.length} row(s) (expected 5 vegan-only rows)`);
+    for (const r of veganSeeingOmniRows) {
+      console.error(`     Row: ${r.mealName}`);
+    }
+  }
+
+  // ── Phase C: omnivore query should return only the 5 omnivore rows ─────────
+  console.log("\nPhase C — query as omnivore (should return exactly the 5 omnivore rows):");
+  const omniRows = await loadHistory(TAG_OMNI);
+  const phaseCPassed = omniRows.length === 5 &&
+    omniRows.every((r) => r.mealName.startsWith("Omnivore Meal"));
+  if (phaseCPassed) {
+    console.log("  ✅ PASS — omnivore query returns exactly 5 omnivore rows");
+  } else {
+    console.error(`  ❌ FAIL — omnivore query returned ${omniRows.length} row(s) (expected 5 omnivore-only rows)`);
+    for (const r of omniRows) {
+      console.error(`     Row: ${r.mealName}`);
+    }
+  }
+
+  // ── Phase D: retention pruning is identity-scoped ─────────────────────────
+  // Seeds 16 more vegan rows (total 21). saveHistory() prunes to 20 per
+  // identity tag, so vegan should end up with 20. Omnivore (currently 5)
+  // must remain untouched by the vegan prune.
+  console.log("\nPhase D — add 16 more vegan rows (total 21) to trigger pruning:");
+  for (let i = 6; i <= 21; i++) {
+    await saveHistory(`Vegan Meal ${i}`, dummyMeta, TAG_VEGAN);
+  }
+  const veganAfterPrune = await loadHistory(TAG_VEGAN);
+  const omniAfterPrune = await loadHistory(TAG_OMNI);
+  const phaseDVeganPassed = veganAfterPrune.length === 20;
+  const phaseDOmniPassed = omniAfterPrune.length === 5;
+  const phaseDPassed = phaseDVeganPassed && phaseDOmniPassed;
+  if (phaseDVeganPassed) {
+    console.log(`  ✅ PASS — vegan history pruned to exactly 20 rows (oldest removed)`);
+  } else {
+    console.error(`  ❌ FAIL — vegan history has ${veganAfterPrune.length} rows (expected 20 after pruning 21)`);
+  }
+  if (phaseDOmniPassed) {
+    console.log(`  ✅ PASS — omnivore history still has 5 rows (vegan pruning did not touch it)`);
+  } else {
+    console.error(`  ❌ FAIL — omnivore history has ${omniAfterPrune.length} rows (expected 5, vegan pruning leaked)`);
+    for (const r of omniAfterPrune) {
+      console.error(`     Row: ${r.mealName}`);
+    }
+  }
+
+  // ── Cleanup ────────────────────────────────────────────────────────────────
+  await db.execute(sql`
+    DELETE FROM grocery_coach_recommendation_history WHERE user_id = ${TEST_USER_ID}
+  `);
+
+  // ── Verdict ────────────────────────────────────────────────────────────────
+  console.log("\n" + "=".repeat(70));
+  const overallPassed = phaseAPassed && phaseBPassed && phaseCPassed && phaseDPassed;
+  if (overallPassed) {
+    console.log("🎉 VERDICT: PASS — dietary_identity_tag correctly isolates variety history.");
+    console.log("   Switching diet (vegan → omnivore) resets the avoid-list.");
+    console.log("   Old vegan meal names cannot block omnivore recommendations.");
+    console.log("   Retention pruning is scoped per identity — no cross-identity eviction.");
+  } else {
+    console.log("❌ VERDICT: FAIL — dietary identity isolation is broken.");
+    if (!phaseAPassed || !phaseBPassed || !phaseCPassed) {
+      console.log("   Switching diets may let stale meal names pollute the avoid-list.");
+    }
+    if (!phaseDPassed) {
+      console.log("   Retention pruning evicts rows from the wrong identity.");
+    }
+    process.exitCode = 1;
+  }
+  console.log("=".repeat(70) + "\n");
+  process.exit(process.exitCode ?? 0);
+}
+/**
  * Build a variety block that mirrors the route's exact merge logic:
  *   allAvoidNames = [...new Set([...dbNames, ...sessionNames].filter(Boolean))]
  * This is the post-fix version — duplicates are removed.
@@ -602,6 +769,11 @@ ${avoidList}${recentPatterns ? `\n\nRECENT PATTERNS TO ROTATE AWAY FROM:\n${rece
 async function main(): Promise<void> {
   if (OVERLAP_MODE) {
     return runOverlapMode();
+  }
+
+  // Diet-switch isolation test — pure DB check, no OpenAI calls
+  if (DIET_SWITCH_MODE) {
+    return mainDietSwitch();
   }
 
   console.log("=".repeat(70));
