@@ -1869,6 +1869,7 @@
     "protocol_sport_triathlon": "Triatlón",
     "protocol_sport_tactical": "Táctico / Militar",
     "protocol_sport_general_fitness": "Fitness general",
+    "protocol_sport_other": "Otro deporte",
     "protocol_phase_off_season": "Fuera de temporada",
     "protocol_phase_pre_season": "Pretemporada",
     "protocol_phase_in_season": "Temporada",
@@ -1948,6 +1949,7 @@
     "protocol_comptype_marathon": "Maratón",
     "protocol_comptype_triathlon_race": "Triatlón",
     "protocol_comptype_spartan_race": "Spartan Race",
+    "protocol_comptype_other": "Otro",
     "protocol_bullet_strength_building_0": "Soporte calórico fase de construcción",
     "protocol_bullet_strength_building_1": "Alimentación de sobrecarga progresiva",
     "protocol_bullet_intensity_phase_0": "Timing intensificado de carbohidratos",
@@ -1982,20 +1984,6 @@
     "protocol_bullet_build_phase_1": "Periodización de carbohidratos activa",
     "protocol_bullet_race_prep_0": "Protocolo de carbohidratos de entrenamiento pico",
     "protocol_bullet_race_prep_1": "Optimización de combustible de resistencia"
-  },
-
-  "trialStatusCard": {
-    "adminTrial": "Prueba de administrador",
-    "clinicalTrial": "Prueba clínica",
-    "promotionalTrial": "Prueba promocional",
-    "freeTrial": "Prueba gratuita",
-    "clinicalUltimate": "Clínico · Ultimate",
-    "trialEndsToday": "Tu prueba termina hoy",
-    "daysLeftInTrial": "{{count}} días restantes en tu prueba",
-    "daysOfDaysRemaining": "{{count}} de {{total}} días restantes",
-    "accountMovesFree": "Tu cuenta pasará al plan gratuito esta noche. Todos tus datos quedan seguros.",
-    "trialExpires": "La prueba expira el {{date}}",
-    "keepFullAccess": "Mantener acceso completo →"
   },
   "glp1Hub": {
     "autoSettings": "Tus creadores de comidas utilizan automáticamente esta configuración.",
@@ -2265,6 +2253,7 @@
     "daysOfDaysRemaining": "{{count}} de {{total}} días restantes",
     "accountMovesFree": "Tu cuenta pasará al plan gratuito esta noche. Todos tus datos quedan seguros.",
     "trialExpires": "La prueba expira el {{date}}",
+    "tierFull": "Completo",
     "keepFullAccess": "Mantener acceso completo →"
   },
 

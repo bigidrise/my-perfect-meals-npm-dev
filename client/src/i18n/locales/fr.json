@@ -1743,6 +1743,7 @@
     "protocol_sport_triathlon": "Triathlon",
     "protocol_sport_tactical": "Tactique / Militaire",
     "protocol_sport_general_fitness": "Fitness général",
+    "protocol_sport_other": "Autre sport",
     "protocol_phase_off_season": "Hors saison",
     "protocol_phase_pre_season": "Pré-saison",
     "protocol_phase_in_season": "En saison",
@@ -1822,6 +1823,7 @@
     "protocol_comptype_marathon": "Marathon",
     "protocol_comptype_triathlon_race": "Triathlon",
     "protocol_comptype_spartan_race": "Spartan Race",
+    "protocol_comptype_other": "Autre",
     "protocol_bullet_strength_building_0": "Soutien calorique phase de construction",
     "protocol_bullet_strength_building_1": "Alimentation surcharge progressive",
     "protocol_bullet_intensity_phase_0": "Timing glucidique intensifié",
@@ -1858,19 +1860,6 @@
     "protocol_bullet_race_prep_1": "Optimisation carburant endurance"
   },
 
-  "trialStatusCard": {
-    "adminTrial": "Essai administrateur",
-    "clinicalTrial": "Essai clinique",
-    "promotionalTrial": "Essai promotionnel",
-    "freeTrial": "Essai gratuit",
-    "clinicalUltimate": "Clinique · Ultime",
-    "trialEndsToday": "Votre essai se termine aujourd'hui",
-    "daysLeftInTrial": "{{count}} jours restants dans votre essai",
-    "daysOfDaysRemaining": "{{count}} sur {{total}} jours restants",
-    "accountMovesFree": "Votre compte passe au plan gratuit ce soir. Toutes vos données restent en sécurité.",
-    "trialExpires": "L'essai expire le {{date}}",
-    "keepFullAccess": "Garder l'accès complet →"
-  },
   "glp1Hub": {
     "autoSettings": "Vos constructeurs de repas utilisent automatiquement ces paramètres.",
     "careBody": "My Perfect Meals est conçu pour fonctionner avec votre médecin, diététicien ou prestataire de soins — jamais à leur place. Utilisez les informations et les outils ici pour rester cohérent entre les visites, pour comprendre votre corps et pour faire des choix petits et confiants qui honorent vos conseils professionnels. Chaque suivi, chaque repas et chaque suggestion dans cette application est destiné à soutenir votre plan de soins, pas à le remplacer.",
@@ -2139,6 +2128,7 @@
     "daysOfDaysRemaining": "{{count}} sur {{total}} jours restants",
     "accountMovesFree": "Votre compte passe au plan gratuit ce soir. Toutes vos données restent en sécurité.",
     "trialExpires": "L'essai expire le {{date}}",
+    "tierFull": "Complet",
     "keepFullAccess": "Garder l'accès complet →"
   },
 

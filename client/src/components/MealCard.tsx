@@ -108,21 +108,38 @@ const COMP_PHASE_BULLET_KEYS: Partial<Record<string, [string, string]>> = {
   post_race:           ["protocol_bullet_post_race_0",           "protocol_bullet_post_race_1"],
 };
 
+// Safe dynamic-key lookup: if i18next finds no translation it echoes the key back.
+// Fall back to the supplied display label (from server) or a generic fallback string.
+function tProtocolLabel(
+  t: (key: string, opts?: Record<string, unknown>) => string,
+  key: string,
+  displayLabelFallback?: string,
+  genericFallback?: string,
+): string {
+  const result = t(key as any);
+  if (result === key) {
+    return displayLabelFallback || genericFallback || result;
+  }
+  return result;
+}
+
 function getProtocolBullets(ap: NonNullable<Meal["appliedProtocol"]>, t: (key: string, opts?: Record<string, unknown>) => string): string[] {
   if (ap.track === "competition") {
     const phase = ap.currentPhase ?? "";
     const compType = ap.competitionType ?? "";
     const bulletKeys = COMP_PHASE_BULLET_KEYS[phase];
     const extra = bulletKeys ? [t(bulletKeys[0]), t(bulletKeys[1])] : [];
+    const compTypeLabel = compType
+      ? tProtocolLabel(t, `protocol_comptype_${compType}`, ap.competitionTypeLabel, compType)
+      : "";
     const base = [
-      t("protocol_competitionPrepLabel", { type: compType ? t(`protocol_comptype_${compType}` as any) : "" }),
-      `${phase ? t(`protocol_phaselabel_${phase}` as any) : ""}${ap.weeksOut != null && ap.weeksOut > 0 ? ` · ${t("weeksOut", { n: ap.weeksOut })}` : ""}`,
+      t("protocol_competitionPrepLabel", { type: compTypeLabel }),
+      `${phase ? tProtocolLabel(t, `protocol_phaselabel_${phase}`, ap.currentPhaseLabel, phase) : ""}${ap.weeksOut != null && ap.weeksOut > 0 ? ` · ${t("weeksOut", { n: ap.weeksOut })}` : ""}`,
     ];
     return [...base, ...extra];
   }
-  const sportKey = `protocol_sport_${ap.trainingType ?? ""}` as const;
-  const sportLabel = (ap.trainingType && `protocol_sport_${ap.trainingType}`)
-    ? t(`protocol_sport_${ap.trainingType}`)
+  const sportLabel = ap.trainingType
+    ? tProtocolLabel(t, `protocol_sport_${ap.trainingType}`, ap.trainingType)
     : t("sportFallback");
   const phaseKey = `protocol_phase_${ap.trainingPhase ?? ""}`;
   const phaseLabel = ap.trainingPhase
@@ -380,8 +397,8 @@ export function MealCard({
               </div>
               <div className="text-white/80 font-medium text-[11px]">
                 {meal.appliedProtocol.track === "competition"
-                  ? `${meal.appliedProtocol.competitionType ? t(`protocol_comptype_${meal.appliedProtocol.competitionType}` as any) : ""} · ${meal.appliedProtocol.currentPhase ? t(`protocol_phaselabel_${meal.appliedProtocol.currentPhase}` as any) : ""}${meal.appliedProtocol.weeksOut != null && meal.appliedProtocol.weeksOut > 0 ? ` · ${t("weeksOut", { n: meal.appliedProtocol.weeksOut })}` : ""}`
-                  : `${meal.appliedProtocol.trainingType ? t(`protocol_sport_${meal.appliedProtocol.trainingType}`) : ""} · ${t("sessionsPerWeek", { n: meal.appliedProtocol.trainingFrequency })}`
+                  ? `${meal.appliedProtocol.competitionType ? tProtocolLabel(t, `protocol_comptype_${meal.appliedProtocol.competitionType}`, meal.appliedProtocol.competitionTypeLabel, meal.appliedProtocol.competitionType) : ""} · ${meal.appliedProtocol.currentPhase ? tProtocolLabel(t, `protocol_phaselabel_${meal.appliedProtocol.currentPhase}`, meal.appliedProtocol.currentPhaseLabel, meal.appliedProtocol.currentPhase) : ""}${meal.appliedProtocol.weeksOut != null && meal.appliedProtocol.weeksOut > 0 ? ` · ${t("weeksOut", { n: meal.appliedProtocol.weeksOut })}` : ""}`
+                  : `${meal.appliedProtocol.trainingType ? tProtocolLabel(t, `protocol_sport_${meal.appliedProtocol.trainingType}`, meal.appliedProtocol.trainingType) : ""} · ${t("sessionsPerWeek", { n: meal.appliedProtocol.trainingFrequency })}`
                 }
               </div>
               <div className="pt-1 border-t border-orange-500/20">
