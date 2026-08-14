@@ -455,10 +455,40 @@ router.post("/freeform-preview", async (req, res) => {
     return res.json(result);
   } catch (err: any) {
     const isRetryable = err instanceof MealRefinementRetryableError;
-    const status = isRetryable ? 503 : err.message?.startsWith("PROTOCOL_VIOLATION") ? 422 : 500;
+    const isProtocolViolation = err.message?.startsWith("PROTOCOL_VIOLATION");
+    const status = isRetryable ? 503 : isProtocolViolation ? 422 : 500;
     console.error("[Refinement/freeform-preview]", err?.message);
+
+    // Translate raw engine errors into patient-friendly messages.
+    // PROTOCOL_VIOLATION is a shared prefix — distinguish by the specific
+    // substring the engine embeds so each condition gets the right guidance.
+    const isGlp1FatViolation      = isProtocolViolation && err.message.includes("GLP-1 fat limit");
+    const isDiabeticStarchViolation = isProtocolViolation && err.message.includes("diabetic starch limit");
+
+    let userMessage: string;
+    let code: string | undefined;
+    if (isRetryable) {
+      userMessage = "The coach couldn't apply that change right now — please try again in a moment.";
+      code = "REFINEMENT_UNAVAILABLE";
+    } else if (isGlp1FatViolation) {
+      userMessage =
+        "This change couldn't be applied within your GLP-1 fat limit — try a lower-fat option or a different ingredient swap.";
+      code = "GLP1_FAT_LIMIT";
+    } else if (isDiabeticStarchViolation) {
+      userMessage =
+        "This change couldn't be applied within your diabetic carb limit — try requesting a lower-carb modification.";
+      code = "DIABETIC_STARCH_LIMIT";
+    } else if (isProtocolViolation) {
+      userMessage =
+        "This change conflicts with your active health protocol and couldn't be applied — please try a different modification.";
+      code = "PROTOCOL_VIOLATION";
+    } else {
+      userMessage = err.message ?? "Refinement failed. Please try again.";
+    }
+
     return res.status(status).json({
-      error: err.message ?? "Refinement failed. Please try again.",
+      error: userMessage,
+      code,
       retryable: isRetryable,
     });
   }

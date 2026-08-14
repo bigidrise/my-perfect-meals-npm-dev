@@ -68,9 +68,14 @@ jest.mock("../services/slotContextResolver", () => ({
   resolveSlotContext: (...a: any[]) => mockResolveSlotContext(...a),
 }));
 
+const mockRefineMeal = jest.fn();
+
 jest.mock("../services/mealRefinementEngine", () => ({
-  getMealRefinementEngine:     () => ({ refine: mockEngineRefine }),
-  MealRefinementRetryableError: class extends Error {},
+  getMealRefinementEngine:      () => ({ refine: mockEngineRefine }),
+  MealRefinementRetryableError: class MealRefinementRetryableError extends Error {
+    constructor(msg: string) { super(msg); this.name = "MealRefinementRetryableError"; }
+  },
+  refineMeal: (...a: any[]) => mockRefineMeal(...a),
 }));
 
 // ── Imports that depend on mocks ──────────────────────────────────────────────
@@ -179,6 +184,7 @@ beforeEach(() => {
   mockConditionalUpdate.mockReset();
   mockResolveSlotContext.mockReset();
   mockEngineRefine.mockReset();
+  mockRefineMeal.mockReset();
   mockDbSelect.mockReset();
   dbNotLocked(); // default: day not locked
 });
@@ -401,5 +407,115 @@ describe("POST /api/refinement/restore — success", () => {
     const writtenBoard = mockConditionalUpdate.mock.calls[0][2];
     expect(writtenBoard.days[DAY].breakfast[0].id).toBe(MEAL_ORIGINAL.id);
     expect(writtenBoard.days[DAY].dinner[0].id).toBe(DINNER_MEAL.id);
+  });
+});
+
+// ── § 10: freeform-preview — error translation ────────────────────────────────
+//
+// These tests exercise the error-classification logic added to the
+// POST /api/refinement/freeform-preview catch block.  Each clinical violation
+// must produce the correct HTTP status, `code`, and a patient-readable `error`
+// message — not the raw engine string.
+
+const EXISTING_MEAL = { title: "Test Meal", macros: { calories: 400, protein: 30, carbs: 40, fat: 18 }, ingredients: [] };
+
+describe("POST /api/refinement/freeform-preview — GLP-1 fat limit violation", () => {
+  it("422 with code GLP1_FAT_LIMIT and friendly message when engine throws GLP-1 fat-limit PROTOCOL_VIOLATION", async () => {
+    mockRefineMeal.mockRejectedValue(
+      new Error('PROTOCOL_VIOLATION: Could not apply "add butter" within your GLP-1 fat limit (15g). Try a lighter modification.')
+    );
+    const app = await buildApp(USER_A);
+    const res = await request(app)
+      .post("/api/refinement/freeform-preview")
+      .send({ existingMeal: EXISTING_MEAL, changeInstruction: "add butter" });
+
+    expect(res.status).toBe(422);
+    expect(res.body.code).toBe("GLP1_FAT_LIMIT");
+    expect(res.body.error).toMatch(/GLP-1 fat limit/i);
+    expect(res.body.error).toMatch(/lower-fat/i);
+    // Must NOT expose internal PROTOCOL_VIOLATION prefix to the patient
+    expect(res.body.error).not.toMatch(/^PROTOCOL_VIOLATION/);
+  });
+});
+
+describe("POST /api/refinement/freeform-preview — diabetic starch limit violation", () => {
+  it("422 with code DIABETIC_STARCH_LIMIT and starch-specific message when engine throws diabetic starch PROTOCOL_VIOLATION", async () => {
+    mockRefineMeal.mockRejectedValue(
+      new Error('PROTOCOL_VIOLATION: Could not apply "add rice" within your diabetic starch limit. Try requesting a lower-carb modification.')
+    );
+    const app = await buildApp(USER_A);
+    const res = await request(app)
+      .post("/api/refinement/freeform-preview")
+      .send({ existingMeal: EXISTING_MEAL, changeInstruction: "add rice" });
+
+    expect(res.status).toBe(422);
+    expect(res.body.code).toBe("DIABETIC_STARCH_LIMIT");
+    expect(res.body.error).toMatch(/diabetic carb limit/i);
+    // Must NOT claim this is a GLP-1 fat limit — different clinical condition
+    expect(res.body.error).not.toMatch(/GLP-1/i);
+    expect(res.body.error).not.toMatch(/^PROTOCOL_VIOLATION/);
+  });
+});
+
+describe("POST /api/refinement/freeform-preview — generic protocol violation", () => {
+  it("422 with code PROTOCOL_VIOLATION and generic message for other PROTOCOL_VIOLATION errors", async () => {
+    mockRefineMeal.mockRejectedValue(
+      new Error("PROTOCOL_VIOLATION: Some other constraint was violated.")
+    );
+    const app = await buildApp(USER_A);
+    const res = await request(app)
+      .post("/api/refinement/freeform-preview")
+      .send({ existingMeal: EXISTING_MEAL, changeInstruction: "some change" });
+
+    expect(res.status).toBe(422);
+    expect(res.body.code).toBe("PROTOCOL_VIOLATION");
+    // Must NOT claim GLP-1 or diabetic starch specifically
+    expect(res.body.error).not.toMatch(/GLP-1/i);
+    expect(res.body.error).not.toMatch(/diabetic/i);
+    expect(res.body.error).not.toMatch(/^PROTOCOL_VIOLATION/);
+  });
+});
+
+describe("POST /api/refinement/freeform-preview — retryable failure", () => {
+  it("503 with code REFINEMENT_UNAVAILABLE and retry message when engine throws MealRefinementRetryableError", async () => {
+    const { MealRefinementRetryableError } = await import("../services/mealRefinementEngine");
+    mockRefineMeal.mockRejectedValue(
+      new MealRefinementRetryableError("Clinical guidance temporarily unavailable. Please try again.")
+    );
+    const app = await buildApp(USER_A);
+    const res = await request(app)
+      .post("/api/refinement/freeform-preview")
+      .send({ existingMeal: EXISTING_MEAL, changeInstruction: "lighter sauce" });
+
+    expect(res.status).toBe(503);
+    expect(res.body.code).toBe("REFINEMENT_UNAVAILABLE");
+    expect(res.body.retryable).toBe(true);
+    expect(res.body.error).toMatch(/try again/i);
+  });
+});
+
+describe("POST /api/refinement/freeform-preview — success", () => {
+  it("200 with updatedMeal when refineMeal resolves", async () => {
+    const updatedMeal = { title: "Lighter Meal", macros: { calories: 350, protein: 30, carbs: 38, fat: 10 }, ingredients: [] };
+    mockRefineMeal.mockResolvedValue({ updatedMeal, changesSummary: "Reduced fat content", protocolNote: null });
+    const app = await buildApp(USER_A);
+    const res = await request(app)
+      .post("/api/refinement/freeform-preview")
+      .send({ existingMeal: EXISTING_MEAL, changeInstruction: "reduce fat" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.updatedMeal).toMatchObject({ title: "Lighter Meal" });
+    expect(res.body.changesSummary).toBe("Reduced fat content");
+  });
+});
+
+describe("POST /api/refinement/freeform-preview — auth", () => {
+  it("401 when no auth user", async () => {
+    const app = await buildApp(null);
+    const res = await request(app)
+      .post("/api/refinement/freeform-preview")
+      .send({ existingMeal: EXISTING_MEAL, changeInstruction: "lighter" });
+    expect(res.status).toBe(401);
+    expect(mockRefineMeal).not.toHaveBeenCalled();
   });
 });

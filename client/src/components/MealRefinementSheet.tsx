@@ -20,7 +20,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
-import { post } from "@/lib/api";
+import { post, ApiError } from "@/lib/api";
 
 // ── Quick-action chips ────────────────────────────────────────────────────────
 const QUICK_CHIPS = [
@@ -151,7 +151,20 @@ export default function MealRefinementSheet({
 
       setPhase("preview");
     } catch (err: any) {
-      setError(err?.message || "Refinement failed. Please try again.");
+      // ApiError carries the raw response body — parse it to extract a
+      // user-friendly message and optional code (e.g. GLP1_FAT_LIMIT).
+      let errorMessage = "Refinement failed. Please try again.";
+      if (err instanceof ApiError && err.body) {
+        try {
+          const parsed = JSON.parse(err.body);
+          if (parsed?.error) errorMessage = parsed.error;
+        } catch {
+          // body wasn't JSON — fall through to default
+        }
+      } else if (err?.message) {
+        errorMessage = err.message;
+      }
+      setError(errorMessage);
       setPhase("idle");
     }
   }, [meal, builderType, selectedChip, input, freeformEndpoint, existingMeal, mealType]);
