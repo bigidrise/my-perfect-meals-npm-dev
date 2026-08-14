@@ -121,69 +121,37 @@ import { getBuilderProtocolBadges } from "@/lib/nutritionPersonalization";
 
 import { useGlucoseLogs } from "@/hooks/useDiabetes";
 import { buildDiabeticMemory } from "@/lib/diabeticMemory";
-
-const DIABETIC_BUILDER_TOUR_STEPS: TourStep[] = [
-  {
-    icon: "1",
-    title: "Add Your Meals",
-    description:
-      "Tap the + button on any meal card to add diabetic-friendly recipes.",
-  },
-  {
-    icon: "2",
-    title: "Low-GI Focused",
-    description:
-      "All meals are optimized for stable blood sugar with low glycemic ingredients.",
-  },
-  {
-    icon: "3",
-    title: "Duplicate Days",
-    description:
-      "Copy your meal plan to other days for consistent eating patterns.",
-  },
-  {
-    icon: "+",
-    title: "Clinical Conditions Stack Here Too",
-    description:
-      "If you have cardiac, renal, thyroid, oncology, or other conditions set in your profile, those clinical protocols are active on top of this builder right now — automatically. Every meal generated here follows all your active clinical rules at once. Update your conditions anytime in Edit Profile.",
-  },
-  {
-    icon: "4",
-    title: "Track Macros",
-    description:
-      "Send meals to the Macro Calculator to monitor carbs and nutrition.",
-  },
-  {
-    icon: "5",
-    title: "Shopping List",
-    description:
-      "Export ingredients for easy diabetic-friendly grocery shopping.",
-  },
-  {
-    icon: "6",
-    title: "Track Progress at Bottom",
-    description:
-      "The bottom bar shows color-coded progress: green = on track, yellow = close, red = over. Tap 'Save Day' to lock your day to Biometrics.",
-  },
-  {
-    icon: "🥔",
-    title: "Watch Your Starch Slots",
-    description:
-      "The starch indicator helps you manage starchy carbs. Green = slots available, Orange = all used, Red = over limit. Fibrous carbs are unlimited!",
-  },
-  {
-    icon: "*",
-    title: "What the Asterisks Mean",
-    description:
-      "Protein and carbs are marked with asterisks (*) because they're the most important numbers to focus on when building your meals. Get those right first.",
-  },
-];
+import { useTranslation } from "react-i18next";
 
 // CHICAGO CALENDAR FIX v1.0: All date utilities now imported from midnight.ts
 // Using noon UTC anchor pattern to prevent day-shift bugs
 
 export default function DiabeticMenuBuilder() {
-  usePageTitle("Diabetic Builder");
+  const { user } = useAuth();
+  const { t } = useTranslation();
+
+  const DIABETIC_BUILDER_TOUR_STEPS = useMemo<TourStep[]>(() => [
+    { icon: "1", title: t("diabeticBuilder.tour1Title"), description: t("diabeticBuilder.tour1Desc") },
+    { icon: "2", title: t("diabeticBuilder.tour2Title"), description: t("diabeticBuilder.tour2Desc") },
+    { icon: "3", title: t("diabeticBuilder.tour3Title"), description: t("diabeticBuilder.tour3Desc") },
+    { icon: "+", title: t("metabolicBuilder.tour9Title"), description: t("metabolicBuilder.tour9Desc") },
+    { icon: "4", title: t("diabeticBuilder.tour5Title"), description: t("diabeticBuilder.tour5Desc") },
+    { icon: "5", title: t("diabeticBuilder.tour6Title"), description: t("diabeticBuilder.tour6Desc") },
+    { icon: "6", title: t("diabeticBuilder.tour7Title"), description: t("diabeticBuilder.tour7Desc") },
+    { icon: "🥔", title: t("metabolicBuilder.tour7Title"), description: t("diabeticBuilder.tour8Desc") },
+    { icon: "*", title: t("metabolicBuilder.tour8Title"), description: t("metabolicBuilder.tour8Desc") },
+  ], [t]);
+
+  const lists = useMemo<Array<["breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6", string]>>(() => [
+    ["breakfast", t("metabolicBuilder.meal1")],
+    ["lunch", t("metabolicBuilder.meal2")],
+    ["dinner", t("metabolicBuilder.meal3")],
+    ["meal4", t("metabolicBuilder.meal4")],
+    ["meal5", t("metabolicBuilder.meal5")],
+    ["meal6", t("metabolicBuilder.meal6")],
+  ], [t]);
+
+  usePageTitle(t("diabeticBuilder.pageTitle"));
   const quickTour = useQuickTour("diabetic-menu-builder");
   const [, setLocation] = useLocation();
 
@@ -194,7 +162,6 @@ export default function DiabeticMenuBuilder() {
   const { toast } = useToast();
   const isDesktop = useIsDesktop();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
 
   const effectiveUserId = proClientId || user?.id;
 
@@ -550,8 +517,7 @@ export default function DiabeticMenuBuilder() {
       } catch (error) {
         console.error("Failed to add snack:", error);
         toast({
-          title: "Error",
-          description: "Failed to add snack. Please try again.",
+          title: t("metabolicBuilder.addSnackError"),
           variant: "destructive",
         });
       }
@@ -613,8 +579,7 @@ export default function DiabeticMenuBuilder() {
       } catch (error) {
         console.error("Failed to add premade meal:", error);
         toast({
-          title: "Error",
-          description: "Failed to add meal. Please try again.",
+          title: t("metabolicBuilder.addMealError"),
           variant: "destructive",
         });
       }
@@ -824,8 +789,8 @@ export default function DiabeticMenuBuilder() {
 
         if (result.errors.length > 0) {
           toast({
-            title: "Partial duplicate",
-            description: `${result.currentWeekDayCount + result.otherWeeksSaved} of ${result.totalDays} days saved.`,
+            title: t("metabolicBuilder.partialDuplicate"),
+            description: t("metabolicBuilder.partialDuplicateDesc", { count: result.currentWeekDayCount + result.otherWeeksSaved, total: result.totalDays }),
             variant: "destructive",
           });
         } else if (
@@ -833,25 +798,25 @@ export default function DiabeticMenuBuilder() {
           result.currentWeekDayCount === 0
         ) {
           toast({
-            title: "Saved to future week",
-            description: `Meals copied to ${result.otherWeeksSaved} day(s). Swipe forward to see them.`,
+            title: t("metabolicBuilder.savedFutureWeek"),
+            description: t("metabolicBuilder.savedFutureWeekDesc", { count: result.otherWeeksSaved }),
           });
         } else if (result.otherWeeksSaved > 0) {
           toast({
-            title: "Day duplicated",
-            description: `${result.currentWeekDayCount} day(s) this week + ${result.otherWeeksSaved} day(s) in future weeks`,
+            title: t("metabolicBuilder.dayDuplicated"),
+            description: t("metabolicBuilder.dayDuplicatedBoth", { thisWeek: result.currentWeekDayCount, future: result.otherWeeksSaved }),
           });
         } else {
           toast({
-            title: "Day duplicated",
-            description: `Copied to ${result.currentWeekDayCount} day(s)`,
+            title: t("metabolicBuilder.dayDuplicated"),
+            description: t("metabolicBuilder.dayDuplicatedDesc", { count: result.currentWeekDayCount }),
           });
         }
       } catch (error) {
         console.error("Failed to duplicate day:", error);
         toast({
-          title: "Failed to duplicate",
-          description: "Please try again",
+          title: t("metabolicBuilder.failedToDuplicate"),
+          description: t("metabolicBuilder.tryAgain"),
           variant: "destructive",
         });
       }
@@ -926,7 +891,7 @@ export default function DiabeticMenuBuilder() {
       }
 
       toast({
-        title: "AI Meal Created!",
+        title: t("metabolicBuilder.aiMealCreated"),
         description: `${generatedMeal.name} saved to your ${slot}`,
       });
     },
@@ -1151,15 +1116,6 @@ export default function DiabeticMenuBuilder() {
   }
 
 
-  const lists: Array<["breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6", string]> = [
-    ["breakfast", "Meal 1"],
-    ["lunch", "Meal 2"],
-    ["dinner", "Meal 3"],
-    ["meal4", "Meal 4"],
-    ["meal5", "Meal 5"],
-    ["meal6", "Meal 6"],
-  ];
-
   const handleLogAllMacros = useCallback(async () => {
     if (!board) return;
 
@@ -1173,8 +1129,8 @@ export default function DiabeticMenuBuilder() {
 
       if (allMeals.length === 0) {
         toast({
-          title: "No Meals",
-          description: "Add some meals to your board first.",
+          title: t("metabolicBuilder.noMealsTitle"),
+          description: t("metabolicBuilder.noMealsDesc"),
           variant: "destructive",
         });
         return;
@@ -1214,13 +1170,13 @@ export default function DiabeticMenuBuilder() {
       window.dispatchEvent(new Event("macros:updated"));
 
       toast({
-        title: "All Meals Logged!",
+        title: t("metabolicBuilder.allMealsLoggedTitle"),
         description: `Successfully logged ${successCount} meal(s) to your macros.`,
       });
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to log meals. Please try again.",
+        description: t("metabolicBuilder.errorLogMeals"),
         variant: "destructive",
       });
     }
@@ -1242,7 +1198,7 @@ export default function DiabeticMenuBuilder() {
       transition={{ duration: 0.6 }}
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-36"
     >
-      <BuilderHeader title="Diabetic Meal Builder" onOpenTour={quickTour.openTour} clientId={proClientId} backTo="/diabetic-hub" backLabel="Diabetes Hub" protocols={getBuilderProtocolBadges(user)} />
+      <BuilderHeader title={t("diabeticBuilder.pageTitle")} onOpenTour={quickTour.openTour} clientId={proClientId} backTo="/diabetic-hub" backLabel={t("diabeticBuilder.backLabel")} protocols={getBuilderProtocolBadges(user)} />
 
 
       {/* Main Content */}
@@ -1271,7 +1227,7 @@ export default function DiabeticMenuBuilder() {
                   type="button"
                   onClick={onPrevWeek}
                   className="rounded-md px-2 py-1 border border-white/20 text-white/80 hover:bg-white/10 transition-colors"
-                  aria-label="Previous week"
+                  aria-label={t("metabolicBuilder.prevWeek")}
                 >
                   ‹
                 </button>
@@ -1284,7 +1240,7 @@ export default function DiabeticMenuBuilder() {
                   type="button"
                   onClick={onNextWeek}
                   className="rounded-md px-2 py-1 border border-white/20 text-white/80 hover:bg-white/10 transition-colors"
-                  aria-label="Next week"
+                  aria-label={t("metabolicBuilder.nextWeek")}
                 >
                   ›
                 </button>
@@ -1393,7 +1349,7 @@ export default function DiabeticMenuBuilder() {
                   {justSaved ? <Check className="h-3 w-3" /> : <Save className="h-3 w-3" />}
                 </PillButton>
                 <span className="text-xs font-semibold text-white/70 tracking-wide">
-                  {saving ? "Saving…" : justSaved ? "Saved ✓" : "Save Plan"}
+                  {saving ? t("metabolicBuilder.savingPlan") : justSaved ? t("metabolicBuilder.savedPlan") : t("metabolicBuilder.savePlan")}
                 </span>
               </div>
 
@@ -1410,7 +1366,7 @@ export default function DiabeticMenuBuilder() {
                 >
                   <Calendar className="h-3 w-3" />
                 </PillButton>
-                <span className="text-xs font-semibold text-white/70 tracking-wide">Duplicate</span>
+                <span className="text-xs font-semibold text-white/70 tracking-wide">{t("metabolicBuilder.duplicate")}</span>
               </div>
 
             </div>
@@ -1465,7 +1421,7 @@ export default function DiabeticMenuBuilder() {
                             meal={meal}
                             showStarchBadge={true}
                             builderType="diabetic"
-                            coachingLine="Built to keep you within your glucose target range."
+                            coachingLine={t("diabeticBuilder.coachingLine")}
                             diabeticMemoryContext={meal.diabeticMemory ?? undefined}
                             data-wt="wmb-meal-card"
                             onUpdated={(m) => {
@@ -1481,7 +1437,7 @@ export default function DiabeticMenuBuilder() {
                                   .then(({ week }) => { if (week) setBoard(week); })
                                   .catch((err) => {
                                     console.error("❌ Delete sync failed (Day mode):", err);
-                                    toast({ title: "Sync pending", description: "Changes will sync automatically." });
+                                    toast({ title: t("metabolicBuilder.syncPending"), description: t("metabolicBuilder.syncPendingDesc") });
                                   });
                               } else {
                                 const updatedDayLists = {
@@ -1496,8 +1452,8 @@ export default function DiabeticMenuBuilder() {
                         ))}
                         {dayLists[key as keyof typeof dayLists].length === 0 && (
                           <div className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm">
-                            <p className="mb-2">No {label.toLowerCase()} yet</p>
-                            <p className="text-xs text-white/40">Use "Create with Chef" or "+" to add meals</p>
+                            <p className="mb-2">{t("metabolicBuilder.noSlotMealsYet", { slot: label.toLowerCase() })}</p>
+                            <p className="text-xs text-white/40">{t("metabolicBuilder.addMealsHint")}</p>
                           </div>
                         )}
                       </div>
@@ -1521,7 +1477,7 @@ export default function DiabeticMenuBuilder() {
                     <div className="space-y-3">
                       {dayLists.snacks.map((meal: Meal) => (
                         <MealCard key={meal.id} date={activeDayISO} slot="snacks" meal={meal} showStarchBadge={true} builderType="diabetic"
-                                coachingLine="Built to keep you within your glucose target range."
+                                coachingLine={t("diabeticBuilder.coachingLine")}
                                 diabeticMemoryContext={meal.diabeticMemory ?? undefined}
                           onUpdated={(m) => {
                             if (m === null) {
@@ -1530,7 +1486,7 @@ export default function DiabeticMenuBuilder() {
                               setBoard(updatedBoard);
                               saveBoard(updatedBoard).catch((err) => {
                                 console.error("❌ Delete sync failed:", err);
-                                toast({ title: "Sync pending", description: "Changes will sync automatically." });
+                                toast({ title: t("metabolicBuilder.syncPending"), description: t("metabolicBuilder.syncPendingDesc") });
                               });
                             } else {
                               const updatedDayLists = { ...dayLists, snacks: dayLists.snacks.map((e) => e.id === meal.id ? m : e) };
@@ -1542,8 +1498,8 @@ export default function DiabeticMenuBuilder() {
                       ))}
                       {dayLists.snacks.length === 0 && (
                         <div className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm">
-                          <p className="mb-2">No snacks yet</p>
-                          <p className="text-xs text-white/40">Use "Create with Chef" to create snacks</p>
+                          <p className="mb-2">{t("metabolicBuilder.noSnacksYet")}</p>
+                          <p className="text-xs text-white/40">{t("metabolicBuilder.noSnacksHint")}</p>
                         </div>
                       )}
                     </div>
@@ -1573,7 +1529,7 @@ export default function DiabeticMenuBuilder() {
                       meal={meal}
                       showStarchBadge={true}
                       builderType="diabetic"
-                      coachingLine="Built to keep you within your glucose target range."
+                      coachingLine={t("diabeticBuilder.coachingLine")}
                       diabeticMemoryContext={meal.diabeticMemory ?? undefined}
                       onUpdated={(m) => {
                         if (m === null) {
@@ -1587,7 +1543,7 @@ export default function DiabeticMenuBuilder() {
                           setBoard(updatedBoard);
                           saveBoard(updatedBoard).catch((err) => {
                             console.error("❌ Delete sync failed (Board mode):", err);
-                            toast({ title: "Sync pending", description: "Changes will sync automatically." });
+                            toast({ title: t("metabolicBuilder.syncPending"), description: t("metabolicBuilder.syncPendingDesc") });
                           });
                         } else {
                           onItemUpdated(key, idx, m);
@@ -1597,8 +1553,8 @@ export default function DiabeticMenuBuilder() {
                   ))}
                   {board.lists[key].length === 0 && (
                     <div className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm">
-                      <p className="mb-2">No {label.toLowerCase()} yet</p>
-                      <p className="text-xs text-white/40">Use "Create with Chef" or "+" to add meals</p>
+                      <p className="mb-2">{t("metabolicBuilder.noSlotMealsYet", { slot: label.toLowerCase() })}</p>
+                      <p className="text-xs text-white/40">{t("metabolicBuilder.addMealsHint")}</p>
                     </div>
                   )}
                 </div>
@@ -1727,7 +1683,7 @@ export default function DiabeticMenuBuilder() {
 
                     if (result.alreadyLocked) {
                       toast({
-                        title: "Already Locked",
+                        title: t("metabolicBuilder.alreadyLocked"),
                         description: result.message,
                         variant: "destructive",
                       });
@@ -1762,7 +1718,7 @@ export default function DiabeticMenuBuilder() {
                         dateISO: activeDayISO,
                       });
                       toast({
-                        title: "Day Saved to Biometrics",
+                        title: t("metabolicBuilder.daySaved"),
                         description: `${formatDateDisplay(activeDayISO, { weekday: "long", month: "short", day: "numeric" })} has been locked.`,
                       });
                       setLocation("/my-biometrics");
@@ -1831,7 +1787,7 @@ export default function DiabeticMenuBuilder() {
         <WhyDrawer
           open={boardWhyOpen}
           onClose={() => setBoardWhyOpen(false)}
-          title="Why weekly planning?"
+          title={t("metabolicBuilder.whyWeeklyPlanning")}
           reasons={getWeeklyPlanningWhy()}
         />
       )}
@@ -1893,63 +1849,54 @@ export default function DiabeticMenuBuilder() {
               "true",
             );
           }
-        }} className="bg-zinc-900/95 backdrop-blur-xl border-white/10 text-white max-w-md mx-auto rounded-2xl" title={<span className="flex items-center gap-2"><Sparkles className="h-6 w-6 text-orange-400" />Next Steps - Track Your Progress!</span>}>
+        }} className="bg-zinc-900/95 backdrop-blur-xl border-white/10 text-white max-w-md mx-auto rounded-2xl" title={<span className="flex items-center gap-2"><Sparkles className="h-6 w-6 text-orange-400" />{t("metabolicBuilder.nextStepsTitle")}</span>}>
           <div className="text-white/90 text-sm space-y-4">
             <p className="text-base font-semibold text-white">
-              Great job creating your meals! Here's what to do next:
+              {t("metabolicBuilder.nextStepsGreat")}
             </p>
 
             <div className="space-y-3">
               <div className="bg-black/30 p-3 rounded-lg border border-white/10">
                 <p className="font-semibold text-white mb-1 flex items-center gap-2">
                   <BarChart3 className="h-4 w-4 text-orange-400" />
-                  Option 1: Track Your Macros
+                  {t("metabolicBuilder.option1Title")}
                 </p>
                 <p className="text-white/70 text-xs">
-                  Send your day to the Macro Calculator to ensure you're hitting
-                  your nutrition targets. Look for the "Send to Macros" button
-                  below.
+                  {t("metabolicBuilder.option1Desc")}
                 </p>
               </div>
 
               <div className="bg-black/30 p-3 rounded-lg border border-white/10">
                 <p className="font-semibold text-white mb-1">
-                  Option 2: Plan Your Week
+                  {t("metabolicBuilder.option2Title")}
                 </p>
                 <p className="text-white/70 text-xs">
-                  Use the Day/Week toggle at the top to switch between planning
-                  a single day or your entire week. You can duplicate days or
-                  create each day individually.
+                  {t("metabolicBuilder.option2Desc")}
                 </p>
               </div>
 
               <div className="bg-black/30 p-3 rounded-lg border border-white/10">
                 <p className="font-semibold text-white mb-1">
-                  💡 Pro Tip: Macro Tracking
+                  {t("metabolicBuilder.proTipTitle")}
                 </p>
                 <p className="text-white/70 text-xs">
-                  Send just ONE day to macros at a time (not the whole week).
-                  This way, if you change meals on other days, you won't have
-                  outdated data.
+                  {t("metabolicBuilder.proTipDesc")}
                 </p>
               </div>
 
               <div className="bg-black/30 p-3 rounded-lg border border-white/10">
                 <p className="font-semibold text-white mb-1 flex items-center gap-2">
                   <ShoppingCart className="h-4 w-4 text-emerald-400" />
-                  Shopping List Ready
+                  {t("metabolicBuilder.shoppingListTitle")}
                 </p>
                 <p className="text-white/70 text-xs">
-                  You CAN send your entire week to the shopping list! This
-                  consolidates all ingredients for easy grocery shopping. Click
-                  "Send Entire Week" at the bottom.
+                  {t("metabolicBuilder.shoppingListDesc")}
                 </p>
               </div>
             </div>
 
             <p className="text-xs text-white/60 text-center pt-2 border-t border-white/10">
-              Next: Check out the Shopping List to learn how to use it
-              effectively!
+              {t("metabolicBuilder.shoppingListNext")}
             </p>
           </div>
       </InformationModal>
@@ -1958,7 +1905,7 @@ export default function DiabeticMenuBuilder() {
       <QuickTourModal
         isOpen={quickTour.shouldShow}
         onClose={quickTour.closeTour}
-        title="Diabetic Meal Builder Guide"
+        title={t("diabeticBuilder.tourTitle")}
         steps={DIABETIC_BUILDER_TOUR_STEPS}
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />

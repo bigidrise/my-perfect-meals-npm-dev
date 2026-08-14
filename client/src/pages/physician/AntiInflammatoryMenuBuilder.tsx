@@ -125,24 +125,12 @@ import type { ProtocolBadge } from "@shared/clinical/clinicalModeResolver";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { apiRequest } from "@/lib/apiRequest";
-
-const ANTI_INFLAMMATORY_TOUR_STEPS: TourStep[] = [
-  { icon: "1", title: "Healing Foods", description: "All meals feature anti-inflammatory ingredients like leafy greens and omega-3s." },
-  { icon: "2", title: "Add Your Meals", description: "Tap + on any meal card to add inflammation-fighting recipes." },
-  { icon: "3", title: "Duplicate Days", description: "Copy your anti-inflammatory meal plan to other days." },
-  { icon: "4", title: "Track Macros", description: "Send meals to the Macro Calculator for balanced nutrition." },
-  { icon: "5", title: "Shopping List", description: "Export ingredients for healing-focused grocery shopping." },
-  { icon: "6", title: "Track Progress at Bottom", description: "The bottom bar shows color-coded progress: green = on track, yellow = close, red = over. Tap 'Save Day' to lock your day to Biometrics." },
-  { icon: "🥔", title: "Watch Your Starch Slots", description: "The starch indicator shows your daily starch meal status. Green = slots available, Orange = all used, Red = over limit. Fibrous carbs are unlimited!" },
-  { icon: "*", title: "What the Asterisks Mean", description: "Protein and carbs are marked with asterisks (*) because they're the most important numbers to focus on when building your meals. Get those right first." },
-  { icon: "+", title: "Clinical Conditions Stack Here Too", description: "If you have cardiac, renal, thyroid, oncology, or other conditions set in your profile, those clinical protocols are active on top of this builder right now — automatically. Every meal generated here follows all your active clinical rules at once. Update your conditions anytime in Edit Profile." }
-];
+import { useTranslation } from "react-i18next";
 
 // CHICAGO CALENDAR FIX v1.0: All date utilities now imported from midnight.ts
 // Using noon UTC anchor pattern to prevent day-shift bugs
 
 export default function AntiInflammatoryMenuBuilder() {
-  usePageTitle("Anti-Inflammatory Builder");
   const quickTour = useQuickTour("anti-inflammatory-menu-builder");
   const [, setLocation] = useLocation();
   
@@ -158,6 +146,20 @@ export default function AntiInflammatoryMenuBuilder() {
   const isDesktop = useIsDesktop();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { t } = useTranslation();
+  usePageTitle(t("antiInflammatoryBuilder.pageTitle"));
+
+  const ANTI_INFLAMMATORY_TOUR_STEPS = useMemo<TourStep[]>(() => [
+    { icon: "1", title: t("antiInflammatoryBuilder.tour1Title"), description: t("antiInflammatoryBuilder.tour1Desc") },
+    { icon: "2", title: t("antiInflammatoryBuilder.tour2Title"), description: t("antiInflammatoryBuilder.tour2Desc") },
+    { icon: "3", title: t("antiInflammatoryBuilder.tour3Title"), description: t("antiInflammatoryBuilder.tour3Desc") },
+    { icon: "4", title: t("antiInflammatoryBuilder.tour4Title"), description: t("antiInflammatoryBuilder.tour4Desc") },
+    { icon: "5", title: t("antiInflammatoryBuilder.tour5Title"), description: t("antiInflammatoryBuilder.tour5Desc") },
+    { icon: "6", title: t("antiInflammatoryBuilder.tour6Title"), description: t("antiInflammatoryBuilder.tour6Desc") },
+    { icon: "🥔", title: t("metabolicBuilder.tour7Title"), description: t("antiInflammatoryBuilder.tour7Desc") },
+    { icon: "*", title: t("metabolicBuilder.tour8Title"), description: t("metabolicBuilder.tour8Desc") },
+    { icon: "+", title: t("metabolicBuilder.tour9Title"), description: t("metabolicBuilder.tour9Desc") },
+  ], [t]);
 
   const effectiveUserId = proClientId || user?.id;
 
@@ -662,8 +664,7 @@ export default function AntiInflammatoryMenuBuilder() {
       } catch (error) {
         console.error("Failed to add snack:", error);
         toast({
-          title: "Error",
-          description: "Failed to add snack. Please try again.",
+          title: t("metabolicBuilder.addSnackError"),
           variant: "destructive",
         });
       }
@@ -722,8 +723,7 @@ export default function AntiInflammatoryMenuBuilder() {
       } catch (error) {
         console.error("Failed to add premade meal:", error);
         toast({
-          title: "Error",
-          description: "Failed to add meal. Please try again.",
+          title: t("metabolicBuilder.addMealError"),
           variant: "destructive",
         });
       }
@@ -948,17 +948,17 @@ export default function AntiInflammatoryMenuBuilder() {
         }
 
         if (result.errors.length > 0) {
-          toast({ title: "Partial duplicate", description: `${result.currentWeekDayCount + result.otherWeeksSaved} of ${result.totalDays} days saved.`, variant: "destructive" });
+          toast({ title: t("metabolicBuilder.partialDuplicate"), description: t("metabolicBuilder.partialDuplicateDesc", { count: result.currentWeekDayCount + result.otherWeeksSaved, total: result.totalDays }), variant: "destructive" });
         } else if (result.otherWeeksSaved > 0 && result.currentWeekDayCount === 0) {
-          toast({ title: "Saved to future week", description: `Meals copied to ${result.otherWeeksSaved} day(s). Swipe forward to see them.` });
+          toast({ title: t("metabolicBuilder.savedFutureWeek"), description: t("metabolicBuilder.savedFutureWeekDesc", { count: result.otherWeeksSaved }) });
         } else if (result.otherWeeksSaved > 0) {
-          toast({ title: "Day duplicated", description: `${result.currentWeekDayCount} day(s) this week + ${result.otherWeeksSaved} day(s) in future weeks` });
+          toast({ title: t("metabolicBuilder.dayDuplicated"), description: t("metabolicBuilder.dayDuplicatedBoth", { thisWeek: result.currentWeekDayCount, future: result.otherWeeksSaved }) });
         } else {
-          toast({ title: "Day duplicated", description: `Copied to ${result.currentWeekDayCount} day(s)` });
+          toast({ title: t("metabolicBuilder.dayDuplicated"), description: t("metabolicBuilder.dayDuplicatedDesc", { count: result.currentWeekDayCount }) });
         }
       } catch (error) {
         console.error("Failed to duplicate day:", error);
-        toast({ title: "Failed to duplicate", description: "Please try again", variant: "destructive" });
+        toast({ title: t("metabolicBuilder.failedToDuplicate"), description: t("metabolicBuilder.tryAgain"), variant: "destructive" });
       }
     },
     [board, activeDayISO, weekStartISO, saveBoard, toast],
@@ -1025,7 +1025,7 @@ export default function AntiInflammatoryMenuBuilder() {
       }
 
       toast({
-        title: "AI Meal Created!",
+        title: t("metabolicBuilder.aiMealCreated"),
         description: `${generatedMeal.name} saved to your ${slot}`,
       });
     },
@@ -1255,14 +1255,14 @@ export default function AntiInflammatoryMenuBuilder() {
     setPickerOpen(true);
   }
 
-  const lists: Array<["breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6", string]> = [
-    ["breakfast", "Meal 1"],
-    ["lunch", "Meal 2"],
-    ["dinner", "Meal 3"],
-    ["meal4", "Meal 4"],
-    ["meal5", "Meal 5"],
-    ["meal6", "Meal 6"],
-  ];
+  const lists = useMemo<Array<["breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6", string]>>(() => [
+    ["breakfast", t("metabolicBuilder.meal1")],
+    ["lunch", t("metabolicBuilder.meal2")],
+    ["dinner", t("metabolicBuilder.meal3")],
+    ["meal4", t("metabolicBuilder.meal4")],
+    ["meal5", t("metabolicBuilder.meal5")],
+    ["meal6", t("metabolicBuilder.meal6")],
+  ], [t]);
 
   const handleLogAllMacros = useCallback(async () => {
     if (!board) return;
@@ -1277,8 +1277,8 @@ export default function AntiInflammatoryMenuBuilder() {
 
       if (allMeals.length === 0) {
         toast({
-          title: "No Meals",
-          description: "Add some meals to your board first.",
+          title: t("metabolicBuilder.noMealsTitle"),
+          description: t("metabolicBuilder.noMealsDesc"),
           variant: "destructive",
         });
         return;
@@ -1312,13 +1312,12 @@ export default function AntiInflammatoryMenuBuilder() {
       window.dispatchEvent(new Event("macros:updated"));
 
       toast({
-        title: "All Meals Logged!",
+        title: t("metabolicBuilder.allMealsLoggedTitle"),
         description: `Successfully logged ${successCount} meal(s) to your macros.`,
       });
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to log meals. Please try again.",
+        title: t("metabolicBuilder.errorLogMeals"),
         variant: "destructive",
       });
     }
@@ -1336,11 +1335,11 @@ export default function AntiInflammatoryMenuBuilder() {
   return (
     <>
     <BuilderHeader
-      title="Anti-Inflammatory Meal Builder"
+      title={t("antiInflammatoryBuilder.pageTitle")}
       onOpenTour={quickTour.openTour}
       clientId={proClientId}
       backTo="/diabetic-hub"
-      backLabel="Diabetes Hub"
+      backLabel={t("antiInflammatoryBuilder.backLabel")}
       protocols={[
         activePrimaryBadge,
         ...resolvedProtocol.modifierBadges,
@@ -1388,7 +1387,7 @@ export default function AntiInflammatoryMenuBuilder() {
                   type="button"
                   onClick={onPrevWeek}
                   className="rounded-md px-2 py-1 border border-white/20 text-white/80 hover:bg-white/10 transition-colors"
-                  aria-label="Previous week"
+                  aria-label={t("metabolicBuilder.prevWeek")}
                 >
                   ‹
                 </button>
@@ -1401,7 +1400,7 @@ export default function AntiInflammatoryMenuBuilder() {
                   type="button"
                   onClick={onNextWeek}
                   className="rounded-md px-2 py-1 border border-white/20 text-white/80 hover:bg-white/10 transition-colors"
-                  aria-label="Next week"
+                  aria-label={t("metabolicBuilder.nextWeek")}
                 >
                   ›
                 </button>
@@ -1523,7 +1522,7 @@ export default function AntiInflammatoryMenuBuilder() {
                   {justSaved ? <Check className="h-3 w-3" /> : <Save className="h-3 w-3" />}
                 </PillButton>
                 <span className="text-xs font-semibold text-white/70 tracking-wide">
-                  {saving ? "Saving…" : justSaved ? "Saved ✓" : "Save Plan"}
+                  {saving ? t("metabolicBuilder.savingPlan") : justSaved ? t("metabolicBuilder.savedPlan") : t("metabolicBuilder.savePlan")}
                 </span>
               </div>
 
@@ -1539,7 +1538,7 @@ export default function AntiInflammatoryMenuBuilder() {
                 >
                   <Calendar className="h-3 w-3" />
                 </PillButton>
-                <span className="text-xs font-semibold text-white/70 tracking-wide">Duplicate</span>
+                <span className="text-xs font-semibold text-white/70 tracking-wide">{t("metabolicBuilder.duplicate")}</span>
               </div>
 
             </div>
@@ -1591,7 +1590,7 @@ export default function AntiInflammatoryMenuBuilder() {
                                     .then(({ week }) => { if (week) setBoard(week); })
                                     .catch((err) => {
                                       console.error("❌ Delete sync failed (Day mode):", err);
-                                      toast({ title: "Sync pending", description: "Changes will sync automatically." });
+                                      toast({ title: t("metabolicBuilder.syncPending"), description: t("metabolicBuilder.syncPendingDesc") });
                                     });
                                 } else {
                                   const updatedDayLists = { ...dayLists, [key]: dayLists[key as keyof typeof dayLists].map((e, i) => i === idx ? m : e) };
@@ -1603,8 +1602,8 @@ export default function AntiInflammatoryMenuBuilder() {
                           ))}
                           {dayLists[key as keyof typeof dayLists].length === 0 && (
                             <div className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm">
-                              <p className="mb-2">No {label.toLowerCase()} yet</p>
-                              <p className="text-xs text-white/40">Use "Create with Chef" or "+" to add meals</p>
+                              <p className="mb-2">{t("metabolicBuilder.noSlotMealsYet", { slot: label.toLowerCase() })}</p>
+                              <p className="text-xs text-white/40">{t("metabolicBuilder.addMealsHint")}</p>
                             </div>
                           )}
                         </div>
@@ -1635,7 +1634,7 @@ export default function AntiInflammatoryMenuBuilder() {
                                 setBoard(updatedBoard);
                                 saveBoard(updatedBoard).catch((err) => {
                                   console.error("❌ Delete sync failed:", err);
-                                  toast({ title: "Sync pending", description: "Changes will sync automatically." });
+                                  toast({ title: t("metabolicBuilder.syncPending"), description: t("metabolicBuilder.syncPendingDesc") });
                                 });
                               } else {
                                 const updatedDayLists = { ...dayLists, snacks: dayLists.snacks.map((e) => e.id === meal.id ? m : e) };
@@ -1647,8 +1646,8 @@ export default function AntiInflammatoryMenuBuilder() {
                         ))}
                         {dayLists.snacks.length === 0 && (
                           <div className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm">
-                            <p className="mb-2">No snacks yet</p>
-                            <p className="text-xs text-white/40">Use "Create with Chef" to create snacks</p>
+                            <p className="mb-2">{t("metabolicBuilder.noSnacksYet")}</p>
+                            <p className="text-xs text-white/40">{t("metabolicBuilder.noSnacksHint")}</p>
                           </div>
                         )}
                       </div>
@@ -1680,7 +1679,7 @@ export default function AntiInflammatoryMenuBuilder() {
                             setBoard(updatedBoard);
                             saveBoard(updatedBoard).catch((err) => {
                               console.error("❌ Delete sync failed (Board mode):", err);
-                              toast({ title: "Sync pending", description: "Changes will sync automatically." });
+                              toast({ title: t("metabolicBuilder.syncPending"), description: t("metabolicBuilder.syncPendingDesc") });
                             });
                           } else {
                             onItemUpdated(key, idx, m);
@@ -1690,8 +1689,8 @@ export default function AntiInflammatoryMenuBuilder() {
                     ))}
                     {(board.lists[key] || []).length === 0 && (
                       <div className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm">
-                        <p className="mb-2">No {label.toLowerCase()} yet</p>
-                        <p className="text-xs text-white/40">Use "Create with Chef" or "+" to add meals</p>
+                        <p className="mb-2">{t("metabolicBuilder.noSlotMealsYet", { slot: label.toLowerCase() })}</p>
+                        <p className="text-xs text-white/40">{t("metabolicBuilder.addMealsHint")}</p>
                       </div>
                     )}
                   </div>
@@ -1786,7 +1785,7 @@ export default function AntiInflammatoryMenuBuilder() {
                       
                       if (result.alreadyLocked) {
                         toast({
-                          title: "Already Locked",
+                          title: t("metabolicBuilder.alreadyLocked"),
                           description: result.message,
                           variant: "destructive",
                         });
@@ -1821,7 +1820,7 @@ export default function AntiInflammatoryMenuBuilder() {
                           dateISO: activeDayISO,
                         });
                         toast({
-                          title: "Day Saved to Biometrics",
+                          title: t("metabolicBuilder.daySaved"),
                           description: `${formatDateDisplay(activeDayISO, { weekday: 'long', month: 'short', day: 'numeric' })} has been locked.`,
                         });
                         setLocation('/my-biometrics');
@@ -1890,7 +1889,7 @@ export default function AntiInflammatoryMenuBuilder() {
           <WhyDrawer
             open={boardWhyOpen}
             onClose={() => setBoardWhyOpen(false)}
-            title="Why weekly planning?"
+            title={t("metabolicBuilder.whyWeeklyPlanning")}
             reasons={getWeeklyPlanningWhy()}
           />
         )}
@@ -1946,7 +1945,7 @@ export default function AntiInflammatoryMenuBuilder() {
       <QuickTourModal
         isOpen={quickTour.shouldShow}
         onClose={quickTour.closeTour}
-        title="Anti-Inflammatory Builder Guide"
+        title={t("antiInflammatoryBuilder.tourTitle")}
         steps={ANTI_INFLAMMATORY_TOUR_STEPS}
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />

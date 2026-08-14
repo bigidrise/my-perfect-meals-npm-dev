@@ -110,80 +110,47 @@ import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
 import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
 import { useDailyNutritionState } from "@/hooks/useDailyNutritionState";
 import { prescriptionToTargetsOverride } from "@/lib/prescriptionAdapter";
+import { useTranslation } from "react-i18next";
 
-const PERFORMANCE_TOUR_STEPS: TourStep[] = [
-  {
-    icon: "1",
-    title: "Competition Prep",
-    description:
-      "Build precise meal plans for bodybuilding shows and athletic events.",
-  },
-  {
-    icon: "2",
-    title: "Exact Macros",
-    description:
-      "Hit your protein, carb, and fat targets with precision-calculated meals.",
-  },
-  {
-    icon: "3",
-    title: "Meal Timing",
-    description: "Add Meal 4+ for optimal nutrient timing around training.",
-  },
-  {
-    icon: "4",
-    title: "Copy Days",
-    description: "Duplicate meal plans for consistent prep week over week.",
-  },
-  {
-    icon: "5",
-    title: "Shopping List",
-    description: "Export ingredients for meal prep shopping runs.",
-  },
-  {
-    icon: "6",
-    title: "Track Progress & Save Day",
-    description: "Review your color-coded progress at the bottom of the page, then tap Save Day to lock your plan into Biometrics.",
-  },
-  {
-    icon: "🥔",
-    title: "Watch Your Starch Slots",
-    description:
-      "The starch indicator shows your daily starch meal status. Green = slots available, Orange = all used, Red = over limit. Fibrous carbs are unlimited!",
-  },
-  {
-    icon: "*",
-    title: "What the Asterisks Mean",
-    description:
-      "Protein and carbs are marked with asterisks (*) because they're the most important numbers to focus on when building your meals. Get those right first.",
-  },
-];
 
 // CHICAGO CALENDAR FIX v1.0: All date utilities now imported from midnight.ts
 // Using noon UTC anchor pattern to prevent day-shift bugs
 
-// Pro Care Meal Slots - 6 fixed meals for competition prep
-const lists: Array<["breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6", string]> = [
-  ["breakfast", "Meal 1"],
-  ["lunch", "Meal 2"],
-  ["dinner", "Meal 3"],
-  ["meal4", "Meal 4"],
-  ["meal5", "Meal 5"],
-  ["meal6", "Meal 6"],
-];
 
 interface AthleteBoardProps {
   mode?: "athlete" | "procare";
 }
 
 export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
-  usePageTitle("Performance & Competition Builder");
+  const { t } = useTranslation();
+  usePageTitle(t("performanceCompetitionBuilder.pageTitle"));
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const isDesktop = useIsDesktop();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const quickTour = useQuickTour("performance-competition-builder");
-  
+
+  const PERFORMANCE_TOUR_STEPS = useMemo<TourStep[]>(() => [
+    { icon: "1", title: t("performanceCompetitionBuilder.tour1Title"), description: t("performanceCompetitionBuilder.tour1Desc") },
+    { icon: "2", title: t("performanceCompetitionBuilder.tour2Title"), description: t("performanceCompetitionBuilder.tour2Desc") },
+    { icon: "3", title: t("performanceCompetitionBuilder.tour3Title"), description: t("performanceCompetitionBuilder.tour3Desc") },
+    { icon: "4", title: t("performanceCompetitionBuilder.tour4Title"), description: t("performanceCompetitionBuilder.tour4Desc") },
+    { icon: "5", title: t("performanceCompetitionBuilder.tour5Title"), description: t("performanceCompetitionBuilder.tour5Desc") },
+    { icon: "6", title: t("performanceCompetitionBuilder.tour6Title"), description: t("performanceCompetitionBuilder.tour6Desc") },
+    { icon: "🥔", title: t("metabolicBuilder.tour7Title"), description: t("performanceCompetitionBuilder.tour7Desc") },
+    { icon: "*", title: t("metabolicBuilder.tour8Title"), description: t("metabolicBuilder.tour8Desc") },
+  ], [t]);
+
+  const lists = useMemo<Array<["breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6", string]>>(() => [
+    ["breakfast", t("metabolicBuilder.meal1")],
+    ["lunch", t("metabolicBuilder.meal2")],
+    ["dinner", t("metabolicBuilder.meal3")],
+    ["meal4", t("metabolicBuilder.meal4")],
+    ["meal5", t("metabolicBuilder.meal5")],
+    ["meal6", t("metabolicBuilder.meal6")],
+  ], [t]);
+
   // Body fat-based starch slot adjustment (includes +1 bonus if below goal for performance builders)
   const bodyFatAdjustment = useBodyFatStarchAdjustment("performance_competition");
 
@@ -214,7 +181,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 flex items-center justify-center">
         <div className="text-white text-center">
-          <p>Missing client ID. Redirecting to dashboard...</p>
+          <p>{t("performanceCompetitionBuilder.missingClient")}</p>
         </div>
       </div>
     );
@@ -660,17 +627,17 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
         }
 
         if (result.errors.length > 0) {
-          toast({ title: "Partial duplicate", description: `${result.currentWeekDayCount + result.otherWeeksSaved} of ${result.totalDays} days saved.`, variant: "destructive" });
+          toast({ title: t("metabolicBuilder.partialDuplicate"), description: t("metabolicBuilder.partialDuplicateDesc", { count: result.currentWeekDayCount + result.otherWeeksSaved, total: result.totalDays }), variant: "destructive" });
         } else if (result.otherWeeksSaved > 0 && result.currentWeekDayCount === 0) {
-          toast({ title: "Saved to future week", description: `Meals copied to ${result.otherWeeksSaved} day(s). Swipe forward to see them.` });
+          toast({ title: t("metabolicBuilder.savedFutureWeek"), description: t("metabolicBuilder.savedFutureWeekDesc", { count: result.otherWeeksSaved }) });
         } else if (result.otherWeeksSaved > 0) {
-          toast({ title: "Day duplicated", description: `${result.currentWeekDayCount} day(s) this week + ${result.otherWeeksSaved} day(s) in future weeks` });
+          toast({ title: t("metabolicBuilder.dayDuplicated"), description: t("metabolicBuilder.dayDuplicatedBoth", { thisWeek: result.currentWeekDayCount, future: result.otherWeeksSaved }) });
         } else {
-          toast({ title: "Day duplicated", description: `Copied to ${result.currentWeekDayCount} day(s)` });
+          toast({ title: t("metabolicBuilder.dayDuplicated"), description: t("metabolicBuilder.dayDuplicatedDesc", { count: result.currentWeekDayCount }) });
         }
       } catch (error) {
         console.error("Failed to duplicate day:", error);
-        toast({ title: "Failed to duplicate", description: "Please try again", variant: "destructive" });
+        toast({ title: t("metabolicBuilder.failedToDuplicate"), description: t("metabolicBuilder.tryAgain"), variant: "destructive" });
       }
     },
     [board, activeDayISO, weekStartISO, saveBoard, toast],
@@ -799,7 +766,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
         console.error("Failed to add snack:", error);
         toast({
           title: "Failed to add snack",
-          description: "Please try again",
+          description: t("metabolicBuilder.tryAgain"),
           variant: "destructive",
         });
       }
@@ -883,8 +850,8 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   const handleSetMacrosToBiometrics = useCallback(() => {
     if (coachMacroTargets.calories < 100) {
       toast({
-        title: "Cannot Set Empty Macros",
-        description: "Please have your coach set macro targets first",
+        title: t("performanceCompetitionBuilder.cannotSetMacros"),
+        description: t("performanceCompetitionBuilder.setMacrosFirst"),
         variant: "destructive",
       });
       return;
@@ -905,8 +872,8 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     saveLastPerformanceClientId(clientId);
 
     toast({
-      title: "Macros Set to Biometrics!",
-      description: `${coachMacroTargets.calories} kcal coach-set targets saved`,
+      title: t("performanceCompetitionBuilder.macrosSetTitle"),
+      description: t("performanceCompetitionBuilder.macrosSetDesc", { calories: coachMacroTargets.calories }),
     });
 
     setLocation(
@@ -926,7 +893,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
       <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 flex items-center justify-center">
         <div className="text-white text-center">
           <div className="animate-spin rounded-2xl h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-          <p>Loading Performance & Competition Builder...</p>
+          <p>{t("performanceCompetitionBuilder.loading")}</p>
         </div>
       </div>
     );
@@ -936,7 +903,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 flex items-center justify-center">
         <div className="text-white text-center">
-          <p>Failed to load board</p>
+          <p>{t("performanceCompetitionBuilder.loadFailed")}</p>
         </div>
       </div>
     );
@@ -955,7 +922,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
       transition={{ duration: 0.6 }}
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-28"
     >
-      <BuilderHeader title="Performance Builder" onOpenTour={quickTour.openTour} clientId={mode === "procare" ? clientId : null} backTo="/performance" backLabel="Performance Hub" protocols={getBuilderProtocolBadges(user)} />
+      <BuilderHeader title={t("performanceCompetitionBuilder.pageTitle")} onOpenTour={quickTour.openTour} clientId={mode === "procare" ? clientId : null} backTo="/performance" backLabel={t("performanceCompetitionBuilder.backLabel")} protocols={getBuilderProtocolBadges(user)} />
 
       {/* Main Content Wrapper - padding pushes content below header while gradient shows through */}
       <div
@@ -973,7 +940,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                   type="button"
                   onClick={onPrevWeek}
                   className="rounded-md px-2 py-1 border border-white/20 text-white/80 hover:bg-white/10 transition-colors"
-                  aria-label="Previous week"
+                  aria-label={t("metabolicBuilder.prevWeek")}
                   data-testid="button-prev-week"
                 >
                   ‹
@@ -987,7 +954,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                   type="button"
                   onClick={onNextWeek}
                   className="rounded-md px-2 py-1 border border-white/20 text-white/80 hover:bg-white/10 transition-colors"
-                  aria-label="Next week"
+                  aria-label={t("metabolicBuilder.nextWeek")}
                   data-testid="button-next-week"
                 >
                   ›
@@ -1098,7 +1065,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                   {justSaved ? <Check className="h-3 w-3" /> : <Save className="h-3 w-3" />}
                 </PillButton>
                 <span className="text-xs font-semibold text-white/70 tracking-wide">
-                  {saving ? "Saving…" : justSaved ? "Saved ✓" : "Save Plan"}
+                  {saving ? t("metabolicBuilder.savingPlan") : justSaved ? t("metabolicBuilder.savedPlan") : t("metabolicBuilder.savePlan")}
                 </span>
               </div>
 
@@ -1114,7 +1081,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                 >
                   <Calendar className="h-3 w-3" />
                 </PillButton>
-                <span className="text-xs font-semibold text-white/70 tracking-wide">Duplicate</span>
+                <span className="text-xs font-semibold text-white/70 tracking-wide">{t("metabolicBuilder.duplicate")}</span>
               </div>
 
             </div>
@@ -1218,8 +1185,8 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                                       err,
                                     );
                                     toast({
-                                      title: "Sync pending",
-                                      description: "Changes will sync automatically.",
+                                      title: t("metabolicBuilder.syncPending"),
+                                      description: t("metabolicBuilder.syncPendingDesc"),
                                     });
                                   });
                                 } else {
@@ -1247,10 +1214,10 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                           0 && (
                           <div className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm">
                             <p className="mb-2">
-                              No {label.toLowerCase()} meals yet
+                              {t("metabolicBuilder.noSlotMealsYet", { slot: label.toLowerCase() })}
                             </p>
                             <p className="text-xs text-white/40">
-                              Use "+" to add meals
+                              {t("metabolicBuilder.addMealsHint")}
                             </p>
                           </div>
                         )}
@@ -1262,7 +1229,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                   <section className="rounded-2xl border border-zinc-800 bg-zinc-900/40 backdrop-blur p-4 col-span-full">
                     <div className="flex items-center justify-between mb-4">
                       <h2 className="text-white/90 text-lg font-medium">
-                        Snacks
+                        {t("performanceCompetitionBuilder.snacksLabel")}
                       </h2>
                       <GlobalMealActionBar
                         slot="snacks"
@@ -1305,8 +1272,8 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                                     err,
                                   );
                                   toast({
-                                    title: "Sync pending",
-                                    description: "Changes will sync automatically.",
+                                    title: t("metabolicBuilder.syncPending"),
+                                    description: t("metabolicBuilder.syncPendingDesc"),
                                   });
                                 });
                               } else {
@@ -1330,9 +1297,9 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                         ))}
                       {dayLists.snacks.length === 0 && (
                         <div className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm">
-                          <p className="mb-2">No snacks yet</p>
+                          <p className="mb-2">{t("metabolicBuilder.noSnacksYet")}</p>
                           <p className="text-xs text-white/40">
-                            Use "Create with Chef" to add competition-safe snacks
+                            {t("performanceCompetitionBuilder.noSnacksHint")}
                           </p>
                         </div>
                       )}
@@ -1431,8 +1398,8 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                                 err,
                               );
                               toast({
-                                title: "Sync pending",
-                                description: "Changes will sync automatically.",
+                                title: t("metabolicBuilder.syncPending"),
+                                description: t("metabolicBuilder.syncPendingDesc"),
                               });
                             });
                           } else {
@@ -1457,10 +1424,10 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                     {board.lists[key].length === 0 && (
                       <div className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm">
                         <p className="mb-2">
-                          No {label.toLowerCase()} meals yet
+                          {t("metabolicBuilder.noSlotMealsYet", { slot: label.toLowerCase() })}
                         </p>
                         <p className="text-xs text-white/40">
-                          Use "+" to add meals
+                          {t("metabolicBuilder.addMealsHint")}
                         </p>
                       </div>
                     )}
@@ -1560,7 +1527,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                       
                       if (result.alreadyLocked) {
                         toast({
-                          title: "Already Locked",
+                          title: t("metabolicBuilder.alreadyLocked"),
                           description: result.message,
                           variant: "destructive",
                         });
@@ -1586,7 +1553,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                         queryClient.invalidateQueries({ queryKey: ["/api/users", clientId, "macro-logs", "daily"] });
                         window.dispatchEvent(new Event("macros:updated"));
                         toast({
-                          title: "Day Saved to Coach Targets",
+                          title: t("performanceCompetitionBuilder.daySavedCoach"),
                           description: `${formatDateDisplay(activeDayISO, { weekday: 'long', month: 'short', day: 'numeric' })} has been locked.`,
                         });
                         setLocation(`/pro/clients/${clientId}/dashboard?tab=targets`);
@@ -1685,63 +1652,54 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
               "true",
             );
           }
-        }} className="bg-zinc-900/95 backdrop-blur-xl border-white/10 text-white max-w-md mx-auto rounded-2xl" title={<span className="flex items-center gap-2"><Sparkles className="h-6 w-6 text-orange-400" />Next Steps - Track Your Progress!</span>}>
+        }} className="bg-zinc-900/95 backdrop-blur-xl border-white/10 text-white max-w-md mx-auto rounded-2xl" title={<span className="flex items-center gap-2"><Sparkles className="h-6 w-6 text-orange-400" />{t("metabolicBuilder.nextStepsTitle")}</span>}>
           <div className="text-white/90 text-sm space-y-4">
             <p className="text-base font-semibold text-white">
-              Great job creating your meals! Here's what to do next:
+              {t("metabolicBuilder.nextStepsGreat")}
             </p>
 
             <div className="space-y-3">
               <div className="bg-black/30 p-3 rounded-lg border border-white/10">
                 <p className="font-semibold text-white mb-1 flex items-center gap-2">
                   <BarChart3 className="h-4 w-4 text-orange-400" />
-                  Option 1: Track Your Macros
+                  {t("metabolicBuilder.option1Title")}
                 </p>
                 <p className="text-white/70 text-xs">
-                  Send your day to the Macro Calculator to ensure you're hitting
-                  your nutrition targets. Look for the "Send to Macros" button
-                  below.
+                  {t("metabolicBuilder.option1Desc")}
                 </p>
               </div>
 
               <div className="bg-black/30 p-3 rounded-lg border border-white/10">
                 <p className="font-semibold text-white mb-1">
-                  Option 2: Plan Your Week
+                  {t("metabolicBuilder.option2Title")}
                 </p>
                 <p className="text-white/70 text-xs">
-                  Use the Day/Week toggle at the top to switch between planning
-                  a single day or your entire week. You can duplicate days or
-                  create each day individually.
+                  {t("metabolicBuilder.option2Desc")}
                 </p>
               </div>
 
               <div className="bg-black/30 p-3 rounded-lg border border-white/10">
                 <p className="font-semibold text-white mb-1">
-                  💡 Pro Tip: Macro Tracking
+                  {t("metabolicBuilder.proTipTitle")}
                 </p>
                 <p className="text-white/70 text-xs">
-                  Send just ONE day to macros at a time (not the whole week).
-                  This way, if you change meals on other days, you won't have
-                  outdated data.
+                  {t("metabolicBuilder.proTipDesc")}
                 </p>
               </div>
 
               <div className="bg-black/30 p-3 rounded-lg border border-white/10">
                 <p className="font-semibold text-white mb-1 flex items-center gap-2">
                   <ShoppingCart className="h-4 w-4 text-emerald-400" />
-                  Shopping List Ready
+                  {t("metabolicBuilder.shoppingListTitle")}
                 </p>
                 <p className="text-white/70 text-xs">
-                  You CAN send your entire week to the shopping list! This
-                  consolidates all ingredients for easy grocery shopping. Click
-                  "Send Entire Week" at the bottom.
+                  {t("metabolicBuilder.shoppingListDesc")}
                 </p>
               </div>
             </div>
 
             <p className="text-xs text-white/60 text-center pt-2 border-t border-white/10">
-              Next: Check out the Shopping List to learn how to use it
-              effectively!
+              {t("metabolicBuilder.shoppingListNext")}
             </p>
           </div>
       </InformationModal>
@@ -1750,7 +1708,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
       <QuickTourModal
         isOpen={quickTour.shouldShow}
         onClose={quickTour.closeTour}
-        title="Performance & Competition Builder Guide"
+        title={t("performanceCompetitionBuilder.tourTitle")}
         steps={PERFORMANCE_TOUR_STEPS}
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />

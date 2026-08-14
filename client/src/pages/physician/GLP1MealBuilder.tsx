@@ -472,8 +472,7 @@ export default function GLP1MealBuilder() {
     } catch (error) {
       console.error("Failed to add snack:", error);
       toast({
-        title: "Error",
-        description: "Failed to add snack. Please try again.",
+        title: t("metabolicBuilder.addSnackError"),
         variant: "destructive"
       });
     }
@@ -520,8 +519,7 @@ export default function GLP1MealBuilder() {
     } catch (error) {
       console.error("Failed to add premade meal:", error);
       toast({
-        title: "Error",
-        description: "Failed to add meal. Please try again.",
+        title: t("metabolicBuilder.addMealError"),
         variant: "destructive"
       });
     }
@@ -1046,8 +1044,8 @@ export default function GLP1MealBuilder() {
 
       if (allMeals.length === 0) {
         toast({
-          title: "No Meals",
-          description: "Add some meals to your board first.",
+          title: t("metabolicBuilder.noMealsTitle"),
+          description: t("metabolicBuilder.noMealsDesc"),
           variant: "destructive",
         });
         return;
@@ -1086,8 +1084,7 @@ export default function GLP1MealBuilder() {
       });
     } catch (error) {
       toast({
-        title: "Error",
-        description: t("metabolicBuilder.errorLogMeals"),
+        title: t("metabolicBuilder.errorLogMeals"),
         variant: "destructive",
       });
     }
@@ -1256,7 +1253,7 @@ export default function GLP1MealBuilder() {
                 {justSaved ? <Check className="h-3 w-3" /> : <Save className="h-3 w-3" />}
               </PillButton>
               <span className="text-xs font-semibold text-white/70 tracking-wide">
-                {saving ? "Saving…" : justSaved ? "Saved ✓" : "Save Plan"}
+                {saving ? t("metabolicBuilder.savingPlan") : justSaved ? t("metabolicBuilder.savedPlan") : t("metabolicBuilder.savePlan")}
               </span>
             </div>
 
@@ -1664,7 +1661,7 @@ export default function GLP1MealBuilder() {
         <WhyDrawer
           open={boardWhyOpen}
           onClose={() => setBoardWhyOpen(false)}
-          title="Why weekly planning?"
+          title={t("metabolicBuilder.whyWeeklyPlanning")}
           reasons={getWeeklyPlanningWhy()}
         />
       )}
@@ -1726,63 +1723,54 @@ export default function GLP1MealBuilder() {
               "true",
             );
           }
-        }} className="bg-zinc-900/95 backdrop-blur-xl border-white/10 text-white max-w-md mx-auto rounded-2xl" title={<span className="flex items-center gap-2"><Sparkles className="h-6 w-6 text-orange-400" />Next Steps - Track Your Progress!</span>}>
+        }} className="bg-zinc-900/95 backdrop-blur-xl border-white/10 text-white max-w-md mx-auto rounded-2xl" title={<span className="flex items-center gap-2"><Sparkles className="h-6 w-6 text-orange-400" />{t("metabolicBuilder.nextStepsTitle")}</span>}>
           <div className="text-white/90 text-sm space-y-4">
             <p className="text-base font-semibold text-white">
-              Great job creating your meals! Here's what to do next:
+              {t("metabolicBuilder.nextStepsGreat")}
             </p>
 
             <div className="space-y-3">
               <div className="bg-black/30 p-3 rounded-lg border border-white/10">
                 <p className="font-semibold text-white mb-1 flex items-center gap-2">
                   <BarChart3 className="h-4 w-4 text-orange-400" />
-                  Option 1: Track Your Macros
+                  {t("metabolicBuilder.option1Title")}
                 </p>
                 <p className="text-white/70 text-xs">
-                  Send your day to the Macro Calculator to ensure you're hitting
-                  your nutrition targets. Look for the "Send to Macros" button
-                  below.
+                  {t("metabolicBuilder.option1Desc")}
                 </p>
               </div>
 
               <div className="bg-black/30 p-3 rounded-lg border border-white/10">
                 <p className="font-semibold text-white mb-1">
-                  Option 2: Plan Your Week
+                  {t("metabolicBuilder.option2Title")}
                 </p>
                 <p className="text-white/70 text-xs">
-                  Use the Day/Week toggle at the top to switch between planning
-                  a single day or your entire week. You can duplicate days or
-                  create each day individually.
+                  {t("metabolicBuilder.option2Desc")}
                 </p>
               </div>
 
               <div className="bg-black/30 p-3 rounded-lg border border-white/10">
                 <p className="font-semibold text-white mb-1">
-                  💡 Pro Tip: Macro Tracking
+                  {t("metabolicBuilder.proTipTitle")}
                 </p>
                 <p className="text-white/70 text-xs">
-                  Send just ONE day to macros at a time (not the whole week).
-                  This way, if you change meals on other days, you won't have
-                  outdated data.
+                  {t("metabolicBuilder.proTipDesc")}
                 </p>
               </div>
 
               <div className="bg-black/30 p-3 rounded-lg border border-white/10">
                 <p className="font-semibold text-white mb-1 flex items-center gap-2">
                   <ShoppingCart className="h-4 w-4 text-emerald-400" />
-                  Shopping List Ready
+                  {t("metabolicBuilder.shoppingListTitle")}
                 </p>
                 <p className="text-white/70 text-xs">
-                  You CAN send your entire week to the shopping list! This
-                  consolidates all ingredients for easy grocery shopping. Click
-                  "Send Entire Week" at the bottom.
+                  {t("metabolicBuilder.shoppingListDesc")}
                 </p>
               </div>
             </div>
 
             <p className="text-xs text-white/60 text-center pt-2 border-t border-white/10">
-              Next: Check out the Shopping List to learn how to use it
-              effectively!
+              {t("metabolicBuilder.shoppingListNext")}
             </p>
           </div>
       </InformationModal>
