@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-14T21:59:45.744Z",
+  "generatedAt": "2026-08-14T22:04:42.592Z",
   "baseline": {
     "totalEnglishKeys": 1920
   },
@@ -260,14 +260,8 @@
       ],
       "emptyValues": 0,
       "placeholderValues": 0,
-      "interpolationMismatches": 1,
-      "interpolationMismatchSamples": [
-        {
-          "key": "upgrade.proBenefit2",
-          "en": "Restaurant Assistant — protocol-aware ordering at any restaurant",
-          "locale": "Restaurant Assistant — đặt món tại bất kỳ {{restaurant}} nào dựa trên phác đồ của bạn"
-        }
-      ],
+      "interpolationMismatches": 0,
+      "interpolationMismatchSamples": [],
       "pluralizationMismatches": 0,
       "clinicalStrings": 5,
       "clinicalIdenticalToEn": 1,
