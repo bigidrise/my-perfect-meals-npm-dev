@@ -69,10 +69,10 @@
     "log": "記録",
     "logMeal": "食事を記録",
     "addToCalendar": "カレンダーに追加",
-    "bringBackChef": "シェフを戻す",
+    "bringBackChef": "シェフを呼び戻す",
     "comingSoon": "近日公開",
-    "withChef": "シェフと一緒に",
-    "today": "今日："
+    "today": "今日：",
+    "withChef": "シェフと一緒に"
   },
   "language": {
     "pageTitle": "言語",
@@ -396,7 +396,7 @@
     "ingredientsServes": "材料（{{count}}人前）",
     "noIngredients": "食材が提供されていません",
     "noInstructions": "手順が提供されていません",
-    "couldNotUpdateFavorites": "お気に入りを更新できませんでした。もう一度お試しください。"
+    "couldNotUpdateFavorites": "お気に入りを更新できませんでした。再試行してください。"
   },
   "shopping": {
     "pageTitle": "スマート買い物リスト",
@@ -454,22 +454,22 @@
       "tabBuildMeal": "食事を作る",
       "tabFindProduct": "商品を探す",
       "inputLabel": "何をお探しですか？",
-      "inputPlaceholder": "例：パスタソース、プロテインバー、牛乳…",
-      "voiceStart": "音声で入力",
-      "voiceStop": "音声入力を停止",
+      "inputPlaceholder": "例：スパゲッティソース、プロテインバー、牛乳...",
+      "voiceStart": "リクエストを話す",
+      "voiceStop": "聴き取りを停止",
       "voiceUnsupported": "このデバイスでは音声入力はサポートされていません",
-      "searching": "あなたに最適な商品を探しています…",
-      "resultsFor": "「{{query}}」のおすすめ",
-      "usualPick": "いつものお気に入り",
-      "alternatives": "その他の選択肢",
+      "searching": "最適な商品を検索中…",
+      "resultsFor": "「{{query}}」のおすすめ商品",
+      "usualPick": "いつもの選択",
+      "alternatives": "代替品",
       "save": "保存",
       "saved": "保存済み ✓",
       "saving": "保存中…",
       "addToList": "買い物リストに追加",
       "added": "追加しました！",
-      "compareAnother": "別の商品を比較",
-      "errorGeneric": "現在、商品のアドバイスを取得できません。もう一度お試しください。",
-      "noResults": "この商品のブランド情報が見つかりませんでした。より具体的な包装商品でお試しください。",
+      "compareAnother": "別の商品と比較",
+      "errorGeneric": "現在、商品アドバイスを取得できません。もう一度お試しください。",
+      "noResults": "その商品のブランドアドバイスは利用できません。より具体的なパッケージ商品をお試しください。",
       "avoid": "避ける"
     }
   },
@@ -1482,7 +1482,15 @@
       "step3Desc": "トレーニングが完了しました。プロフェッショナルスタジオを有効化して、クライアントとの仕事を始めましょう。",
       "step3Phase2Title": "フェーズ2：高度なツール",
       "step3Phase2Desc": "より深いクライアントサポートのための高度な臨床およびコーチングツールをアンロックします。",
-      "step3Button": "スタジオを有効化"
+      "step3Button": "スタジオを有効化",
+      "personalProfileStep": "あなたの個人栄養プロフィールを設定する",
+      "firstMealPlan": "最初のAI駆動の食事プランを生成する",
+      "learningItems": {
+        "clientMgmt": "クライアントとケアプランの管理",
+        "questionnaires": "プロフェッショナルな質問票",
+        "communication": "スタジオとクライアントのコミュニケーション",
+        "revenue": "定期的な収益の構築"
+      }
     },
     "launchpad": {
       "certifiedBadge": "認定済み",
@@ -1491,7 +1499,52 @@
       "enterStudio": "スタジオに入る",
       "quickLinks": "クイックリンク",
       "resumeCertification": "認定を再開",
-      "resumePhase2": "フェーズ2を再開"
+      "resumePhase2": "フェーズ2を再開",
+      "gridCards": {
+        "clientStudio": {
+          "label": "クライアントスタジオ",
+          "sub": "クライアントと食事プランを管理する"
+        },
+        "businessCenter": {
+          "label": "ビジネスセンター",
+          "sub": "アフィリエイト、アカデミー、パートナー"
+        },
+        "certifications": {
+          "label": "認証",
+          "sub": "トレーニングを表示・拡張する"
+        },
+        "affiliateProgram": {
+          "label": "アフィリエイトプログラム",
+          "sub": "紹介ごとに25%を獲得"
+        }
+      },
+      "quickLink": {
+        "questionnaires": "質問票",
+        "businessCenter": "ビジネスセンター",
+        "certifications": "私の認証",
+        "affiliate": "アフィリエイトダッシュボード"
+      },
+      "stepRow": {
+        "personalProfile": {
+          "label": "個人プロフィール",
+          "sub": "ユーザーとしてMPMを体験する"
+        },
+        "phase1": {
+          "label": "フェーズ1 — プラットフォームの基本",
+          "sub": "すべてのプラットフォーム機能をマスターする"
+        },
+        "phase2": {
+          "label": "フェーズ2 — ビジネスとProCareの成功",
+          "sub": "あなたの実践を構築し成長させる"
+        }
+      },
+      "personalProfileSetup": "個人プロフィールの設定",
+      "phase1Label": "フェーズ1 — プラットフォームの基本",
+      "welcomeBack": "お帰りなさい",
+      "percentComplete": "{{pct}}% 完了",
+      "stepOf": "ステップ {{completed}} / {{total}}",
+      "current": "現在の",
+      "backToBC": "ビジネスセンター"
     },
     "welcome": {
       "back": "戻る",
@@ -1503,7 +1556,56 @@
       "completeUnlock": "完了してアンロック",
       "continueButton": "続行",
       "phase2Label": "フェーズ2",
-      "progress": "進捗"
+      "progress": "進捗",
+      "sections": {
+        "overview": {
+          "title": "ProCareへようこそ",
+          "subtitle": "プラットフォームでのあなたの役割",
+          "highlight": "ProCareはあなたの実践を拡張するツールであり、臨床トレーニングの代替ではありません。",
+          "b1": "ProCareは、クライアントを管理し、個別の食事プランを構築し、進捗を監視するための専用作業スペースを提供します — すべてMy Perfect Meals内で。",
+          "b2": "ProCareの専門家として、あなたは構造化された階層内で運営します：医療要件が常に優先され、その後に食事のアイデンティティ、文化的な好み、行動の好みが続きます。",
+          "b3": "あなたが提供する指導に対して責任があります。プラットフォームはあなたの専門知識を強化します — あなたの専門的判断を置き換えるものではありません。",
+          "b4": "あなたのクライアントは、あなたが設定したプロトコルに合わせた食事プラン、食事の追跡、AI生成の料理を見ることができます。あなたの仕事は、それらのプロトコルを正確に設定し、クライアントのニーズが進化するにつれて更新することです。"
+        },
+        "clients": {
+          "title": "クライアント管理",
+          "subtitle": "オンボーディングと継続的なケア",
+          "highlight": "クライアントプロフィールを最新の状態に保つ。古いプロトコルは、AI生成の食事の不一致を引き起こします。",
+          "b1": "クライアントはスタジオからあなたの名簿に追加されます。メールで招待したり、食事ビルダーを割り当てたり、ProCareダッシュボードから彼らの食事プロフィールを設定することができます。",
+          "b2": "各クライアントには、カロリーとマクロの目標、食事制限、臨床モード（該当する場合）、料理の好みを設定するための個別のプロトコルカードがあります。",
+          "b3": "食事ボードを使用して、クライアントのために食事を事前に構築または承認できます。クライアントは、アプリ内で承認された食事を直接表示し、記録することができます。",
+          "b4": "プラットフォーム内でクライアントとコミュニケーションを取るためにメッセージ機能を使用してください。タブレットノートは、クライアントの進捗と観察を文書化するためのプライベートスペースを提供します。",
+          "b5": "クライアントデータ — バイオメトリクス、食事ログ、進捗ノートを含む — は、あなたとクライアントのみに表示されます。他の専門家や第三者と共有されることはありません。"
+        },
+        "safety": {
+          "title": "安全性とプロトコルガードレール",
+          "subtitle": "プラットフォームがクライアントを保護する方法",
+          "highlight": "疑わしい場合は、より制限的な設定を選択してください。クライアントは、フォローアップセッションでより柔軟性を要求することができます。",
+          "b1": "4層の制約階層は、すべてのAI食事生成を支配します：（1）医療要件は絶対的です。（2）食事のアイデンティティは強制されます。（3）文化的および料理の好みが出力を形成します。（4）行動の好みが最後に適用されます。",
+          "b2": "マクロ値はAIによって作成されることはありません。マクロが不明な場合は、nullのままにされます — 推定や埋め込みは行われません。",
+          "b3": "臨床的に敏感なモード — 例えば、腫瘍学サポートや抗炎症プロトコル — は、生成レベルで厳格な成分制限を強制します。これらはクライアントによって無効にすることはできません。",
+          "b4": "医療状態が特定の入力を安全でなくする場合、熱、スパイス、テクスチャの好みは臨床安全ルールによって上書きされることがあります。",
+          "b5": "臨床プロトコルを割り当てる場合は、それを行うための専門的な根拠があることを確認してください。医師レベルのプロトコルには医師役割のアクセスが必要です。"
+        },
+        "standards": {
+          "title": "専門的基準",
+          "subtitle": "倫理、説明責任、ベストプラクティス",
+          "highlight": "あなたの専門的な評判は、ProCareの実践において最も重要な資産です。このプラットフォームはあなたを反映しています。",
+          "b1": "サインアップ時に、あなたの専門的な資格の正確性を証明しました。資格の虚偽表示は、プラットフォームからの即時削除の理由となります。",
+          "b2": "ProCareを使用して医療状態を診断、治療、または治癒することは決してしないでください。栄養ガイダンスはサポート的であり、治癒的ではありません。",
+          "b3": "正確で最新のクライアントプロファイルを維持してください。クライアントの医療状況、目標、または食事のアイデンティティが変化した場合は、変更を文書化してください。",
+          "b4": "クライアントの自律性を尊重してください。ProCareは推奨と制限を行うことを許可しますが、クライアントは臨床的に強制されたガードレールの外で自分の食事の決定を行う権利を保持します。",
+          "b5": "クライアントが医療危機にあると疑う場合は、直ちに緊急サービスに連絡するよう指示してください。このプラットフォームは危機介入ツールではありません。"
+        },
+        "complete": {
+          "title": "あなたは準備ができています",
+          "subtitle": "最終確認",
+          "highlight": "ProCareへようこそ。あなたのクライアントはあなたを頼りにしています。",
+          "b1": "あなたはProCareの基本的な運営原則、クライアント管理ワークフロー、安全ガードレール、専門的基準を確認しました。",
+          "b2": "このトレーニングを完了することで、あなたはProCareの専門家としての責任を理解し、これらの原則に従ってプラットフォームを使用することを認めます。",
+          "b3": "このトレーニングを完了すると、あなたのスタジオはすぐにアンロックされます。クライアントを追加し、食事プランを構築し、クライアントプロトコルをすぐに設定することができます。"
+        }
+      }
     },
     "rewards": {
       "back": "戻る",
@@ -1527,7 +1629,25 @@
       "nextStepsTitle": "次のステップ",
       "subtitle": "ProCare認定を完了し、プロフェッショナルスタジオへのフルアクセスをアンロックしました。",
       "title": "認定完了",
-      "unlockedTitle": "スタジオアンロック済み"
+      "unlockedTitle": "スタジオアンロック済み",
+      "features": {
+        "studio": "プロフェッショナルスタジオ",
+        "clientMgmt": "クライアント管理",
+        "carePlans": "ケアプラン",
+        "questionnaires": "プロフェッショナルアンケート",
+        "businessCenter": "ビジネスセンター",
+        "affiliateResources": "アフィリエイトリソース",
+        "marketing": "マーケティング資料",
+        "education": "継続教育"
+      },
+      "nextStep": {
+        "profile": "あなたの専門的なプロフィールを完成させる",
+        "firstClient": "最初のクライアントを作成する",
+        "inviteClient": "最初のクライアントをプラットフォームに招待する",
+        "mealPlan": "最初の食事プランを構築する",
+        "affiliate": "アフィリエイトアカウントを設定して手数料を得る",
+        "businessCenter": "ビジネスセンターを探索する"
+      }
     }
   },
   "trainerCareTeam": {
@@ -2217,73 +2337,40 @@
     "navigation": {
       "appName": "My Perfect Meals",
       "features": "機能",
-      "howItWorks": "仕組み",
-      "pricing": "料金",
+      "howItWorks": "使い方",
+      "pricing": "価格",
       "signIn": "サインイン"
     },
     "errorBoundary": {
-      "title": "エラーが発生しました",
-      "description": "このページの読み込みに問題が発生しています。更新して再試行してください。",
+      "title": "何かがうまくいきませんでした",
+      "description": "このページの読み込みに問題があります。ページを更新して再試行してください。",
       "refresh": "ページを更新"
     },
     "dateSlotPicker": {
-      "placeholder": "食事スロットを選択"
+      "placeholder": "食事のスロットを選択"
     },
     "mealSlots": {
       "breakfast": "朝食",
       "lunch": "昼食",
       "dinner": "夕食",
-      "snack": "おやつ"
+      "snack": "スナック"
     },
     "dailyNutritionTracker": {
-      "title": "1日の栄養進捗",
-      "description": "毎日の栄養摂取量を記録する",
+      "title": "日々の栄養進捗",
+      "description": "日々の栄養摂取を追跡",
       "calories": "カロリー",
       "protein": "タンパク質",
       "carbohydrates": "炭水化物",
-      "fat": "脂質",
-      "onTrack": "毎日の目標に向けて順調に進んでいます！"
+      "fat": "脂肪",
+      "onTrack": "日々の目標に沿っています！"
     },
     "pagination": {
-      "label": "ページナビゲーション",
-      "previousPage": "前のページへ",
+      "label": "ページネーション",
+      "previousPage": "前のページに移動",
       "previous": "前へ",
-      "nextPage": "次のページへ",
+      "nextPage": "次のページに移動",
       "next": "次へ",
       "morePages": "さらにページ"
-    },
-    "mealCard": {
-      "noRecipe": "レシピなし",
-      "addMeal": "食事を追加",
-      "serving": "サービング：",
-      "ingredients": "材料：",
-      "cookingInstructions": "調理手順：",
-      "protein": "タンパク質",
-      "carbs": "炭水化物",
-      "fat": "脂質"
-    },
-    "nutritionSummary": {
-      "title": "栄養サマリー",
-      "empty": "食事プランを生成して栄養サマリーを確認してください",
-      "weeklyOverview": "週間概要",
-      "totalCalories": "総カロリー",
-      "dailyAverage": "1日の平均",
-      "totalProtein": "総タンパク質",
-      "daysPlanned": "計画した日数",
-      "dailyTargets": "1日の目標",
-      "calories": "カロリー",
-      "protein": "タンパク質",
-      "carbohydrates": "炭水化物",
-      "fat": "脂質",
-      "targetMet": "目標達成",
-      "goalProgress": "目標進捗",
-      "fitnessGoal": "フィットネス目標",
-      "activityLevel": "活動レベル",
-      "dietaryPreferences": "食事の好み",
-      "balanceScore": "バランススコア",
-      "percentOfTarget": "目標の{{n}}%",
-      "remainingCal": "{{n}} 残り",
-      "remainingG": "{{n}}g 残り"
     },
     "enhancedMealCard": {
       "replace": "置き換え",
@@ -2295,6 +2382,39 @@
       "instructions": "手順：",
       "medicalSafety": "医療安全性：",
       "error": "エラー："
+    },
+    "mealCard": {
+      "noRecipe": "レシピなし",
+      "addMeal": "食事を追加",
+      "serving": "サービング:",
+      "ingredients": "材料:",
+      "cookingInstructions": "料理手順:",
+      "protein": "タンパク質",
+      "carbs": "炭水化物",
+      "fat": "脂肪"
+    },
+    "nutritionSummary": {
+      "title": "栄養サマリー",
+      "empty": "栄養サマリーを見るために食事プランを生成してください",
+      "weeklyOverview": "週間概要",
+      "totalCalories": "総カロリー",
+      "dailyAverage": "日々の平均",
+      "totalProtein": "総タンパク質",
+      "daysPlanned": "計画された日数",
+      "dailyTargets": "日々の目標",
+      "calories": "カロリー",
+      "protein": "タンパク質",
+      "carbohydrates": "炭水化物",
+      "fat": "脂肪",
+      "targetMet": "目標達成",
+      "goalProgress": "目標進捗",
+      "fitnessGoal": "フィットネス目標",
+      "activityLevel": "活動レベル",
+      "dietaryPreferences": "食事の好み",
+      "balanceScore": "バランススコア",
+      "percentOfTarget": "{{n}}% の目標",
+      "remainingCal": "{{n}} 残り",
+      "remainingG": "{{n}}g 残り"
     }
   },
   "remainingMacros": {
@@ -3812,6 +3932,79 @@
     "errorLoadDetails": "Could not load invitation details. Please try again.",
     "errorLoadDetailsNetwork": "Could not load invitation details. Please check your connection and try again.",
     "errorConnectionIssue": "Connection error. Please check your connection and try again.",
-    "errorGenericFallback": "Something went wrong. Please try again."
+    "errorGenericFallback": "Something went wrong. Please try again.",
+    "connecting": "スタジオに接続しています…",
+    "tokenNotFound": "招待トークンが見つかりません。招待メールのリンクを使用してください。",
+    "notFound": "この招待状は見つかりませんでした。期限が切れたか、すでに使用された可能性があります。",
+    "loadError": "招待の詳細を読み込めませんでした。もう一度お試しください。",
+    "loadErrorRetry": "招待の詳細を読み込めませんでした。接続を確認して、もう一度お試しください。",
+    "connectionError": "接続エラー。接続を確認して、もう一度お試しください。",
+    "defaultError": "何かがうまくいきませんでした。もう一度お試しください。",
+    "invitationTitle": "ProCare 招待",
+    "invitedBy": "{{proName}} があなたを ProCare {{spaceLabel}} に招待しました。",
+    "sentTo": "この招待状は {{email}} に送信されました。そのアカウントでサインインしていることを確認してください。",
+    "joinNote": "接続されると、あなたの {{roleLabel}} がプラットフォームを通じて栄養と進捗をガイドできます。",
+    "successMessage": "あなたは {{studioName}} に正常に参加しました。あなたのトレーナーはプラットフォームを通じてあなたと一緒に作業できま。",
+    "wrongAccountMessage": "この招待状は {{email}} に送信されました。現在、別のアカウントでサインインしています。",
+    "wrongAccountNote": "サインアウトして正しいメールアドレスでサインインし、再度招待リンクをクリックしてください。",
+    "expiredMessage": "この招待は期限切れです。トレーナーに新しいものを送信するように頼んでください。すぐにできます。",
+    "backupCodeNote": "アプリ設定でバックアップコードを手動で入力することもできます。",
+    "alreadyAcceptedTitle": "すでに接続されています",
+    "alreadyAcceptedMessage": "この招待はすでに使用されています。トレーナースタジオが表示されない場合は、アプリを更新してみてください。",
+    "subscriptionRequiredMessage": "ProCare プロバイダーとの接続には、クリニカルサブスクリプションが必要です。",
+    "trainerNotSubscribedMessage": "あなたのトレーナーの ProCare サブスクリプションは現在アクティブではありません。彼らに知らせて、解決したら再招待をお願いしてください。",
+    "spaceLabel": {
+      "studio": "スタジオ",
+      "clinic": "クリニック"
+    },
+    "roleLabel": {
+      "trainer": "トレーナー",
+      "doctor": "医者"
+    },
+    "anotherAddress": "別の住所",
+    "labelStudio": "スタジオ",
+    "labelClinic": "クリニック",
+    "roleTrainer": "トレーナー",
+    "roleDoctor": "ドクター"
+  },
+  "businessCenterSection": {
+    "backBtn": "ビジネススイート",
+    "affiliate": {
+      "title": "アフィリエイトの機会",
+      "description": "アフィリエイトプログラムと認証が最終調整中です。開始されると、手数料を得たり、マーケティング資産にアクセスしたり、紹介を追跡したりできるようになります — すべてMy Perfect Meals内で。",
+      "eta": "アフィリエイト認証と共に開始"
+    },
+    "academy": {
+      "title": "ビジネス成功アカデミー",
+      "description": "My Perfect Mealsプラットフォームを使用して栄養コーチングビジネスを構築し、スケールアップするための完全なカリキュラム。コース、評価、資格 — 近日公開。",
+      "eta": "プラットフォーム認証と共に開始"
+    },
+    "industry": {
+      "title": "業界および戦略的パートナーシップ",
+      "description": "私たちは、サプリメント会社、栄養ブランド、フィットネス組織、認証機関、ソフトウェアプラットフォームと提携し、意味のある統合と共同ブランドの機会を構築しています。",
+      "eta": "戦略的パートナーシップを探るためにお問い合わせください"
+    },
+    "whiteLabel": {
+      "title": "ホワイトラベルの機会",
+      "description": "あなたの組織やブランドのためにMy Perfect Mealsプラットフォームのライセンスに興味がありますか？お話しできることを楽しみにしています。ホワイトラベルのパートナーシップは個別に対応します — 下記からご連絡ください。",
+      "eta": "会話を始めるためにお問い合わせください"
+    },
+    "partnerships": {
+      "title": "医療および臨床パートナーシップ",
+      "description": "私たちは、医師、登録栄養士、クリニック、病院、患者ケア組織と協力して、My Perfect Mealsを臨床およびケアワークフローに統合しています。",
+      "eta": "臨床パートナーシップのオプションを探るためにお問い合わせください"
+    }
+  },
+  "procareInfo": {
+    "title": "ProCareコーチング",
+    "back": "バック",
+    "backToPlans": "プランに戻る",
+    "description": "時には栄養に関する最も難しい部分は、その瞬間にどの決定を下すべきかを知ることです。ProCareは、My Perfect Mealsシステム内のプロのコーチとあなたをつなげます。",
+    "bullets": {
+      "messaging": "コーチとのダイレクトメッセージ",
+      "guidance": "構造化された意思決定ガイダンス",
+      "macros": "食事とマクロの調整を手助け",
+      "support": "現実が複雑になるときのサポート"
+    }
   }
 }

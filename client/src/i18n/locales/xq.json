@@ -3,7 +3,7 @@
     "locale": "xq",
     "name": "Pseudo-locale (layout stress test)",
     "description": "~40% expanded English. Use in Playwright responsive/RTL tests. Never ship to users.",
-    "generated": "2026-08-14T22:12:40.179Z",
+    "generated": "2026-08-15T02:08:25.889Z",
     "basedOn": "en.json"
   },
   "nav": {
@@ -1588,7 +1588,15 @@
       "step3Desc": "[Yôöûür tráãíïníïng íïs côömpléètéè. ÁÃctíïváãtéè yôöûür prôöféèssíïôönáãl stûüdíïôö áãnd stáãrt wôörkíïng wíïth clíïéènts. ŦŦŦ]",
       "step3Phase2Title": "[Pháãséè 2: ÁÃdváãncéèd Tôöôöls ŦŦŦ]",
       "step3Phase2Desc": "[ÛÜnlôöck áãdváãncéèd clíïníïcáãl áãnd côöáãchíïng tôöôöls fôör déèéèpéèr clíïéènt sûüppôört. ŦŦŦ]",
-      "step3Button": "[ÁÃctíïváãtéè stûüdíïôö ŦŦŦ]"
+      "step3Button": "[ÁÃctíïváãtéè stûüdíïôö ŦŦŦ]",
+      "personalProfileStep": "[Séèt ûüp yôöûür péèrsôönáãl nûütríïtíïôön prôöfíïléè ŦŦŦ]",
+      "firstMealPlan": "[Géènéèráãtéè yôöûür fíïrst ÁÃÍÏ-pôöwéèréèd méèáãl pláãn ŦŦŦ]",
+      "learningItems": {
+        "clientMgmt": "[Máãnáãgíïng clíïéènts áãnd cáãréè pláãns ŦŦŦ]",
+        "questionnaires": "[Prôöféèssíïôönáãl qûüéèstíïôönnáãíïréès ŦŦŦ]",
+        "communication": "[Stûüdíïôö áãnd clíïéènt côömmûüníïcáãtíïôön ŦŦŦ]",
+        "revenue": "[Bûüíïldíïng réècûürríïng réèvéènûüéè ŦŦŦ]"
+      }
     },
     "launchpad": {
       "certifiedBadge": "[Céèrtíïfíïéèd ŦŦŦ]",
@@ -1597,7 +1605,52 @@
       "enterStudio": "[ÉÈntéèr Stûüdíïôö ŦŦŦ]",
       "quickLinks": "[Qûüíïck líïnks ŦŦŦ]",
       "resumeCertification": "[Réèsûüméè céèrtíïfíïcáãtíïôön ŦŦŦ]",
-      "resumePhase2": "[Réèsûüméè Pháãséè 2 ŦŦŦ]"
+      "resumePhase2": "[Réèsûüméè Pháãséè 2 ŦŦŦ]",
+      "gridCards": {
+        "clientStudio": {
+          "label": "[Clíïéènt Stûüdíïôö ŦŦŦ]",
+          "sub": "[Máãnáãgéè clíïéènts & méèáãl pláãns ŦŦŦ]"
+        },
+        "businessCenter": {
+          "label": "[Bûüsíïnéèss Céèntéèr ŦŦŦ]",
+          "sub": "[ÁÃffíïlíïáãtéè, ÁÃcáãdéèmy, Páãrtnéèrs ŦŦŦ]"
+        },
+        "certifications": {
+          "label": "[Céèrtíïfíïcáãtíïôöns ŦŦŦ]",
+          "sub": "[Víïéèw & éèxpáãnd yôöûür tráãíïníïng ŦŦŦ]"
+        },
+        "affiliateProgram": {
+          "label": "[ÁÃffíïlíïáãtéè Prôögráãm ŦŦŦ]",
+          "sub": "[ÉÈáãrn 25% péèr réèféèrráãl ŦŦŦ]"
+        }
+      },
+      "quickLink": {
+        "questionnaires": "[Qûüéèstíïôönnáãíïréès ŦŦŦ]",
+        "businessCenter": "[Bûüsíïnéèss Céèntéèr ŦŦŦ]",
+        "certifications": "[My Céèrtíïfíïcáãtíïôöns ŦŦŦ]",
+        "affiliate": "[ÁÃffíïlíïáãtéè Dáãshbôöáãrd ŦŦŦ]"
+      },
+      "stepRow": {
+        "personalProfile": {
+          "label": "[Péèrsôönáãl Prôöfíïléè ŦŦŦ]",
+          "sub": "[ÉÈxpéèríïéèncéè MPM áãs áã ûüséèr ŦŦŦ]"
+        },
+        "phase1": {
+          "label": "[Pháãséè 1 — Pláãtfôörm Fûündáãméèntáãls ŦŦŦ]",
+          "sub": "[Máãstéèr éèvéèry pláãtfôörm féèáãtûüréè ŦŦŦ]"
+        },
+        "phase2": {
+          "label": "[Pháãséè 2 — Bûüsíïnéèss & PrôöCáãréè Sûüccéèss ŦŦŦ]",
+          "sub": "[Bûüíïld áãnd grôöw yôöûür práãctíïcéè ŦŦŦ]"
+        }
+      },
+      "personalProfileSetup": "[Péèrsôönáãl Prôöfíïléè Séètûüp ŦŦŦ]",
+      "phase1Label": "[Pháãséè 1 — Pláãtfôörm Fûündáãméèntáãls ŦŦŦ]",
+      "welcomeBack": "[Wéèlcôöméè báãck ŦŦŦ]",
+      "percentComplete": "[{{pct}}% Côömpléètéè ŦŦŦ]",
+      "stepOf": "[Stéèp {{completed}} ôöf {{total}} ŦŦŦ]",
+      "current": "[Cûürréènt ŦŦŦ]",
+      "backToBC": "[Bûüsíïnéèss Céèntéèr ŦŦŦ]"
     },
     "welcome": {
       "back": "[Báãck ŦŦŦ]",
@@ -1609,7 +1662,56 @@
       "completeUnlock": "[Côömpléètéè tôö ûünlôöck ŦŦŦ]",
       "continueButton": "[Côöntíïnûüéè ŦŦŦ]",
       "phase2Label": "[Pháãséè 2 ŦŦŦ]",
-      "progress": "[Prôögréèss ŦŦŦ]"
+      "progress": "[Prôögréèss ŦŦŦ]",
+      "sections": {
+        "overview": {
+          "title": "[Wéèlcôöméè tôö PrôöCáãréè ŦŦŦ]",
+          "subtitle": "[Yôöûür rôöléè ôön théè pláãtfôörm ŦŦŦ]",
+          "highlight": "[PrôöCáãréè íïs áã tôöôöl tháãt éèxtéènds yôöûür práãctíïcéè — nôöt áã sûübstíïtûütéè fôör yôöûür clíïníïcáãl tráãíïníïng. ŦŦŦ]",
+          "b1": "[PrôöCáãréè gíïvéès yôöûü áã déèdíïcáãtéèd wôörkspáãcéè tôö máãnáãgéè clíïéènts, bûüíïld péèrsôönáãlíïzéèd méèáãl pláãns, áãnd môöníïtôör prôögréèss — áãll wíïthíïn My Péèrféèct Méèáãls. ŦŦŦ]",
+          "b2": "[ÁÃs áã PrôöCáãréè prôöféèssíïôönáãl, yôöûü ôöpéèráãtéè wíïthíïn áã strûüctûüréèd híïéèráãrchy: méèdíïcáãl réèqûüíïréèméènts áãlwáãys táãkéè préècéèdéèncéè, fôöllôöwéèd by díïéètáãry íïdéèntíïty, cûültûüráãl préèféèréèncéè, áãnd béèháãvíïôöráãl préèféèréèncéè. ŦŦŦ]",
+          "b3": "[Yôöûü áãréè réèspôönsíïbléè fôör théè gûüíïdáãncéè yôöûü prôövíïdéè. Théè pláãtfôörm áãmplíïfíïéès yôöûür éèxpéèrtíïséè — íït dôöéès nôöt réèpláãcéè yôöûür prôöféèssíïôönáãl jûüdgméènt. ŦŦŦ]",
+          "b4": "[Yôöûür clíïéènts wíïll séèéè méèáãl pláãns, díïéètáãry tráãckíïng, áãnd ÁÃÍÏ-géènéèráãtéèd díïshéès táãíïlôöréèd tôö théè prôötôöcôöls yôöûü séèt. Yôöûür jôöb íïs tôö séèt thôöséè prôötôöcôöls áãccûüráãtéèly áãnd ûüpdáãtéè théèm áãs théè clíïéènt néèéèds éèvôölvéè. ŦŦŦ]"
+        },
+        "clients": {
+          "title": "[Clíïéènt Máãnáãgéèméènt ŦŦŦ]",
+          "subtitle": "[ÔÖnbôöáãrdíïng áãnd ôöngôöíïng cáãréè ŦŦŦ]",
+          "highlight": "[Kéèéèp clíïéènt prôöfíïléès cûürréènt. Stáãléè prôötôöcôöls léèáãd tôö míïsáãlíïgnéèd ÁÃÍÏ-géènéèráãtéèd méèáãls. ŦŦŦ]",
+          "b1": "[Clíïéènts áãréè áãddéèd tôö yôöûür rôöstéèr frôöm théè Stûüdíïôö. Yôöûü cáãn íïnvíïtéè théèm by éèmáãíïl, áãssíïgn méèáãl bûüíïldéèrs, áãnd côönfíïgûüréè théèíïr díïéètáãry prôöfíïléè frôöm yôöûür PrôöCáãréè dáãshbôöáãrd. ŦŦŦ]",
+          "b2": "[ÉÈáãch clíïéènt háãs áãn íïndíïvíïdûüáãl prôötôöcôöl cáãrd whéèréè yôöûü séèt théèíïr cáãlôöríïéè áãnd máãcrôö táãrgéèts, díïéètáãry réèstríïctíïôöns, clíïníïcáãl môödéè (íïf áãpplíïcáãbléè), áãnd cûüíïsíïnéè préèféèréèncéès. ŦŦŦ]",
+          "b3": "[Méèáãl bôöáãrds léèt yôöûü préè-bûüíïld ôör áãpprôövéè méèáãls fôör yôöûür clíïéènts. Clíïéènts cáãn víïéèw áãnd lôög áãpprôövéèd méèáãls díïréèctly íïn théèíïr áãpp. ŦŦŦ]",
+          "b4": "[ÛÜséè théè méèssáãgíïng féèáãtûüréè tôö côömmûüníïcáãtéè wíïth clíïéènts íïnsíïdéè théè pláãtfôörm. Táãbléèt nôötéès gíïvéè yôöûü áã príïváãtéè spáãcéè tôö dôöcûüméènt clíïéènt prôögréèss áãnd ôöbséèrváãtíïôöns. ŦŦŦ]",
+          "b5": "[Clíïéènt dáãtáã — íïnclûüdíïng bíïôöméètríïcs, méèáãl lôögs, áãnd prôögréèss nôötéès — íïs ôönly víïsíïbléè tôö yôöûü áãnd théè clíïéènt. ÍÏt íïs néèvéèr sháãréèd wíïth ôöthéèr prôöféèssíïôönáãls ôör thíïrd páãrtíïéès. ŦŦŦ]"
+        },
+        "safety": {
+          "title": "[Sáãféèty & Prôötôöcôöl Gûüáãrdráãíïls ŦŦŦ]",
+          "subtitle": "[Hôöw théè pláãtfôörm prôötéècts yôöûür clíïéènts ŦŦŦ]",
+          "highlight": "[Whéèn íïn dôöûübt, éèrr ôön théè síïdéè ôöf théè môöréè réèstríïctíïvéè séèttíïng. Clíïéènts cáãn áãlwáãys réèqûüéèst môöréè fléèxíïbíïlíïty íïn áã fôöllôöw-ûüp séèssíïôön. ŦŦŦ]",
+          "b1": "[Théè 4-Láãyéèr Côönstráãíïnt Híïéèráãrchy gôövéèrns áãll ÁÃÍÏ méèáãl géènéèráãtíïôön: (1) Méèdíïcáãl réèqûüíïréèméènts áãréè áãbsôölûütéè. (2) Díïéètáãry íïdéèntíïty íïs éènfôörcéèd. (3) Cûültûüráãl áãnd cûüíïsíïnéè préèféèréèncéès sháãpéè ôöûütpûüt. (4) Béèháãvíïôöráãl préèféèréèncéès áãréè áãpplíïéèd láãst. ŦŦŦ]",
+          "b2": "[Máãcrôö váãlûüéès áãréè néèvéèr íïnvéèntéèd by théè ÁÃÍÏ. ÍÏf áã máãcrôö íïs ûünknôöwn, íït íïs léèft áãs nûüll — nôöt éèstíïmáãtéèd ôör fíïlléèd íïn. ŦŦŦ]",
+          "b3": "[Clíïníïcáãlly séènsíïtíïvéè môödéès — sûüch áãs ÔÖncôölôögy Sûüppôört áãnd ÁÃntíï-ÍÏnfláãmmáãtôöry prôötôöcôöls — éènfôörcéè háãrd íïngréèdíïéènt réèstríïctíïôöns áãt théè géènéèráãtíïôön léèvéèl. Théèséè cáãnnôöt béè díïsáãbléèd by théè clíïéènt. ŦŦŦ]",
+          "b4": "[Héèáãt, spíïcéè, áãnd téèxtûüréè préèféèréèncéès cáãn béè ôövéèrríïddéèn by clíïníïcáãl sáãféèty rûüléès whéèn áã méèdíïcáãl côöndíïtíïôön máãkéès céèrtáãíïn íïnpûüts ûünsáãféè. ŦŦŦ]",
+          "b5": "[ÍÏf yôöûü áãssíïgn áã clíïníïcáãl prôötôöcôöl, éènsûüréè yôöûü háãvéè théè prôöféèssíïôönáãl báãsíïs tôö dôö sôö. Physíïcíïáãn-léèvéèl prôötôöcôöls réèqûüíïréè physíïcíïáãn-rôöléè áãccéèss. ŦŦŦ]"
+        },
+        "standards": {
+          "title": "[Prôöféèssíïôönáãl Stáãndáãrds ŦŦŦ]",
+          "subtitle": "[ÉÈthíïcs, áãccôöûüntáãbíïlíïty, áãnd béèst práãctíïcéès ŦŦŦ]",
+          "highlight": "[Yôöûür prôöféèssíïôönáãl réèpûütáãtíïôön íïs théè môöst íïmpôörtáãnt áãsséèt íïn yôöûür PrôöCáãréè práãctíïcéè. Théè pláãtfôörm réèfléècts yôöûü. ŦŦŦ]",
+          "b1": "[Yôöûü áãttéèstéèd áãt síïgn-ûüp tôö théè áãccûüráãcy ôöf yôöûür prôöféèssíïôönáãl créèdéèntíïáãls. Míïsréèpréèséèntáãtíïôön ôöf créèdéèntíïáãls íïs grôöûünds fôör íïmméèdíïáãtéè réèmôöváãl frôöm théè pláãtfôörm. ŦŦŦ]",
+          "b2": "[Néèvéèr ûüséè PrôöCáãréè tôö díïáãgnôöséè, tréèáãt, ôör cûüréè áã méèdíïcáãl côöndíïtíïôön. Nûütríïtíïôönáãl gûüíïdáãncéè íïs sûüppôörtíïvéè, nôöt cûüráãtíïvéè. ŦŦŦ]",
+          "b3": "[Máãíïntáãíïn áãccûüráãtéè, ûüp-tôö-dáãtéè clíïéènt prôöfíïléès. Dôöcûüméènt cháãngéès whéèn áã clíïéènt's méèdíïcáãl síïtûüáãtíïôön, gôöáãls, ôör díïéètáãry íïdéèntíïty shíïfts. ŦŦŦ]",
+          "b4": "[Réèspéèct clíïéènt áãûütôönôömy. PrôöCáãréè áãllôöws yôöûü tôö réècôömméènd áãnd réèstríïct, bûüt clíïéènts réètáãíïn théè ríïght tôö máãkéè théèíïr ôöwn díïéètáãry déècíïsíïôöns ôöûütsíïdéè ôöf clíïníïcáãlly éènfôörcéèd gûüáãrdráãíïls. ŦŦŦ]",
+          "b5": "[ÍÏf yôöûü sûüspéèct áã clíïéènt íïs íïn áã méèdíïcáãl críïsíïs, íïnstrûüct théèm tôö côöntáãct éèméèrgéèncy séèrvíïcéès íïmméèdíïáãtéèly. Théè pláãtfôörm íïs nôöt áã críïsíïs íïntéèrvéèntíïôön tôöôöl. ŦŦŦ]"
+        },
+        "complete": {
+          "title": "[Yôöûü'réè Réèáãdy ŦŦŦ]",
+          "subtitle": "[Fíïnáãl áãcknôöwléèdgméènt ŦŦŦ]",
+          "highlight": "[Wéèlcôöméè tôö PrôöCáãréè. Yôöûür clíïéènts áãréè côöûüntíïng ôön yôöûü. ŦŦŦ]",
+          "b1": "[Yôöûü'véè réèvíïéèwéèd théè côöréè PrôöCáãréè ôöpéèráãtíïng príïncíïpléès, clíïéènt máãnáãgéèméènt wôörkflôöw, sáãféèty gûüáãrdráãíïls, áãnd prôöféèssíïôönáãl stáãndáãrds. ŦŦŦ]",
+          "b2": "[By côömpléètíïng thíïs tráãíïníïng, yôöûü áãcknôöwléèdgéè tháãt yôöûü ûündéèrstáãnd yôöûür réèspôönsíïbíïlíïtíïéès áãs áã PrôöCáãréè prôöféèssíïôönáãl áãnd wíïll ûüséè théè pláãtfôörm íïn áãccôördáãncéè wíïth théèséè príïncíïpléès. ŦŦŦ]",
+          "b3": "[Yôöûür Stûüdíïôö wíïll ûünlôöck íïmméèdíïáãtéèly áãftéèr yôöûü côömpléètéè thíïs tráãíïníïng. Yôöûü cáãn béègíïn áãddíïng clíïéènts, bûüíïldíïng méèáãl pláãns, áãnd côönfíïgûüríïng clíïéènt prôötôöcôöls ríïght áãwáãy. ŦŦŦ]"
+        }
+      }
     },
     "rewards": {
       "back": "[Báãck ŦŦŦ]",
@@ -1633,7 +1735,25 @@
       "nextStepsTitle": "[Yôöûür néèxt stéèps ŦŦŦ]",
       "subtitle": "[Yôöûü háãvéè côömpléètéèd PrôöCáãréè céèrtíïfíïcáãtíïôön áãnd ûünlôöckéèd fûüll áãccéèss tôö yôöûür prôöféèssíïôönáãl stûüdíïôö. ŦŦŦ]",
       "title": "[Céèrtíïfíïcáãtíïôön Côömpléètéè ŦŦŦ]",
-      "unlockedTitle": "[Stûüdíïôö ÛÜnlôöckéèd ŦŦŦ]"
+      "unlockedTitle": "[Stûüdíïôö ÛÜnlôöckéèd ŦŦŦ]",
+      "features": {
+        "studio": "[Prôöféèssíïôönáãl Stûüdíïôö ŦŦŦ]",
+        "clientMgmt": "[Clíïéènt Máãnáãgéèméènt ŦŦŦ]",
+        "carePlans": "[Cáãréè Pláãns ŦŦŦ]",
+        "questionnaires": "[Prôöféèssíïôönáãl Qûüéèstíïôönnáãíïréès ŦŦŦ]",
+        "businessCenter": "[Bûüsíïnéèss Céèntéèr ŦŦŦ]",
+        "affiliateResources": "[ÁÃffíïlíïáãtéè Réèsôöûürcéès ŦŦŦ]",
+        "marketing": "[Máãrkéètíïng Máãtéèríïáãls ŦŦŦ]",
+        "education": "[Côöntíïnûüíïng ÉÈdûücáãtíïôön ŦŦŦ]"
+      },
+      "nextStep": {
+        "profile": "[Côömpléètéè yôöûür prôöféèssíïôönáãl prôöfíïléè ŦŦŦ]",
+        "firstClient": "[Créèáãtéè yôöûür fíïrst clíïéènt ŦŦŦ]",
+        "inviteClient": "[ÍÏnvíïtéè yôöûür fíïrst clíïéènt tôö théè pláãtfôörm ŦŦŦ]",
+        "mealPlan": "[Bûüíïld yôöûür fíïrst méèáãl pláãn ŦŦŦ]",
+        "affiliate": "[Séèt ûüp yôöûür áãffíïlíïáãtéè áãccôöûünt tôö éèáãrn côömmíïssíïôöns ŦŦŦ]",
+        "businessCenter": "[ÉÈxplôöréè théè Bûüsíïnéèss Céèntéèr ŦŦŦ]"
+      }
     }
   },
   "businessDashboard": {
@@ -2132,42 +2252,1649 @@
     "viewFullList": "[Víïéèw Fûüll Líïst ŦŦŦ]",
     "noItems": "[Yôöûür grôöcéèry líïst íïs éèmpty. ÁÃdd íïtéèms frôöm yôöûür méèáãl pláãn tôö géèt stáãrtéèd. ŦŦŦ]"
   },
+  "sharedComponents": {
+    "navigation": {
+      "appName": "[My Péèrféèct Méèáãls ŦŦŦ]",
+      "features": "[Féèáãtûüréès ŦŦŦ]",
+      "howItWorks": "[Hôöw ÍÏt Wôörks ŦŦŦ]",
+      "pricing": "[Príïcíïng ŦŦŦ]",
+      "signIn": "[Síïgn ÍÏn ŦŦŦ]"
+    },
+    "errorBoundary": {
+      "title": "[Sôöméèthíïng wéènt wrôöng ŦŦŦ]",
+      "description": "[Wéè'réè háãvíïng trôöûübléè lôöáãdíïng thíïs páãgéè. Pléèáãséè réèfréèsh áãnd try áãgáãíïn. ŦŦŦ]",
+      "refresh": "[Réèfréèsh Páãgéè ŦŦŦ]"
+    },
+    "dateSlotPicker": {
+      "placeholder": "[Séèléèct méèáãl slôöt ŦŦŦ]"
+    },
+    "mealSlots": {
+      "breakfast": "[Bréèáãkfáãst ŦŦŦ]",
+      "lunch": "[Lûünch ŦŦŦ]",
+      "dinner": "[Díïnnéèr ŦŦŦ]",
+      "snack": "[Snáãck ŦŦŦ]"
+    },
+    "dailyNutritionTracker": {
+      "title": "[Dáãíïly Nûütríïtíïôön Prôögréèss ŦŦŦ]",
+      "description": "[Tráãck yôöûür dáãíïly nûütríïtíïôönáãl íïntáãkéè ŦŦŦ]",
+      "calories": "[Cáãlôöríïéès ŦŦŦ]",
+      "protein": "[Prôötéèíïn ŦŦŦ]",
+      "carbohydrates": "[Cáãrbôöhydráãtéès ŦŦŦ]",
+      "fat": "[Fáãt ŦŦŦ]",
+      "onTrack": "[ÔÖn tráãck wíïth yôöûür dáãíïly gôöáãls! ŦŦŦ]"
+    },
+    "pagination": {
+      "label": "[páãgíïnáãtíïôön ŦŦŦ]",
+      "previousPage": "[Gôö tôö préèvíïôöûüs páãgéè ŦŦŦ]",
+      "previous": "[Préèvíïôöûüs ŦŦŦ]",
+      "nextPage": "[Gôö tôö néèxt páãgéè ŦŦŦ]",
+      "next": "[Néèxt ŦŦŦ]",
+      "morePages": "[Môöréè páãgéès ŦŦŦ]"
+    },
+    "mealCard": {
+      "noRecipe": "[Nôö réècíïpéè ŦŦŦ]",
+      "addMeal": "[ÁÃdd áã méèáãl ŦŦŦ]",
+      "serving": "[Séèrvíïng: ŦŦŦ]",
+      "ingredients": "[ÍÏngréèdíïéènts: ŦŦŦ]",
+      "cookingInstructions": "[Côöôökíïng ÍÏnstrûüctíïôöns: ŦŦŦ]",
+      "protein": "[Prôötéèíïn ŦŦŦ]",
+      "carbs": "[Cáãrbs ŦŦŦ]",
+      "fat": "[Fáãt ŦŦŦ]"
+    },
+    "nutritionSummary": {
+      "title": "[Nûütríïtíïôön Sûümmáãry ŦŦŦ]",
+      "empty": "[Géènéèráãtéè áã méèáãl pláãn tôö séèéè yôöûür nûütríïtíïôön sûümmáãry ŦŦŦ]",
+      "weeklyOverview": "[Wéèéèkly ÔÖvéèrvíïéèw ŦŦŦ]",
+      "totalCalories": "[Tôötáãl Cáãlôöríïéès ŦŦŦ]",
+      "dailyAverage": "[Dáãíïly ÁÃvéèráãgéè ŦŦŦ]",
+      "totalProtein": "[Tôötáãl Prôötéèíïn ŦŦŦ]",
+      "daysPlanned": "[Dáãys Pláãnnéèd ŦŦŦ]",
+      "dailyTargets": "[Dáãíïly Táãrgéèts ŦŦŦ]",
+      "calories": "[Cáãlôöríïéès ŦŦŦ]",
+      "protein": "[Prôötéèíïn ŦŦŦ]",
+      "carbohydrates": "[Cáãrbôöhydráãtéès ŦŦŦ]",
+      "fat": "[Fáãt ŦŦŦ]",
+      "targetMet": "[Táãrgéèt méèt ŦŦŦ]",
+      "goalProgress": "[Gôöáãl Prôögréèss ŦŦŦ]",
+      "fitnessGoal": "[Fíïtnéèss Gôöáãl ŦŦŦ]",
+      "activityLevel": "[ÁÃctíïvíïty Léèvéèl ŦŦŦ]",
+      "dietaryPreferences": "[Díïéètáãry Préèféèréèncéès ŦŦŦ]",
+      "balanceScore": "[Báãláãncéè Scôöréè ŦŦŦ]",
+      "percentOfTarget": "[{{n}}% ôöf táãrgéèt ŦŦŦ]",
+      "remainingCal": "[{{n}} réèmáãíïníïng ŦŦŦ]",
+      "remainingG": "[{{n}}g réèmáãíïníïng ŦŦŦ]"
+    },
+    "enhancedMealCard": {
+      "replace": "[Réèpláãcéè ŦŦŦ]",
+      "replacing": "[Réèpláãcíïng... ŦŦŦ]",
+      "replaceTitle": "[Réèpláãcéè wíïth áã côömpléètéèly néèw méèáãl réècíïpéè ŦŦŦ]",
+      "replacingTitle": "[Réèpláãcíïng méèáãl... ŦŦŦ]",
+      "portionGuide": "[Pôörtíïôön Gûüíïdéè: ŦŦŦ]",
+      "ingredients": "[ÍÏngréèdíïéènts: ŦŦŦ]",
+      "instructions": "[ÍÏnstrûüctíïôöns: ŦŦŦ]",
+      "medicalSafety": "[Méèdíïcáãl Sáãféèty: ŦŦŦ]",
+      "error": "[ÉÈrrôör: ŦŦŦ]"
+    }
+  },
+  "remainingMacros": {
+    "remainingToday": "[Réèmáãíïníïng Tôödáãy ŦŦŦ]",
+    "protein": "[Prôötéèíïn ŦŦŦ]",
+    "starchy": "[Stáãrchy ŦŦŦ]",
+    "fibrous": "[Fíïbrôöûüs ŦŦŦ]",
+    "fat": "[Fáãt ŦŦŦ]",
+    "setMacrosPrompt": "[Séèt yôöûür máãcrôös tôö séèéè wháãt’s léèft fôör tôödáãy. ŦŦŦ]",
+    "saveDay": "[Sáãvéè Dáãy tôö Bíïôöméètríïcs ŦŦŦ]",
+    "targetsUpdated": "[Táãrgéèts ûüpdáãtéèd míïd-dáãy ŦŦŦ]",
+    "targetsUpdatedReason": "[Táãrgéèts ûüpdáãtéèd míïd-dáãy — {{reason}} ŦŦŦ]",
+    "dismiss": "[Díïsmíïss ŦŦŦ]",
+    "overLimit": "[⚠ ôövéèr líïmíït ŦŦŦ]",
+    "limit": "[★ líïmíït ŦŦŦ]",
+    "coach": {
+      "title": "[Máãcrôö Côöáãch ŦŦŦ]",
+      "subtitle": "[Hôöw tôö réèáãd yôöûür réèmáãíïníïng táãrgéèts ŦŦŦ]",
+      "proteinTitle": "[Prôötéèíïn ŦŦŦ]",
+      "proteinBody": "[Híït thíïs táãrgéèt tôö prôötéèct mûüscléè áãnd stáãy fûüll. ŦŦŦ]",
+      "proteinBullet1": "[Príïôöríïtíïzéè léèáãn sôöûürcéès áãt éèáãch méèáãl. ŦŦŦ]",
+      "proteinBullet2": "[Spréèáãd íïntáãkéè áãcrôöss théè dáãy. ŦŦŦ]",
+      "carbsTitle": "[Cáãrbs ŦŦŦ]",
+      "carbsBody": "[Fûüéèl tráãíïníïng wíïth stáãrchy cáãrbs, rôöûünd ôöûüt wíïth fíïbrôöûüs. ŦŦŦ]",
+      "carbsBullet1": "[Stáãrchy cáãrbs pôöwéèr péèrfôörmáãncéè. ŦŦŦ]",
+      "carbsBullet2": "[Fíïbrôöûüs cáãrbs áãíïd díïgéèstíïôön áãnd fûüllnéèss. ŦŦŦ]",
+      "fatTitle": "[Fáãt ŦŦŦ]",
+      "fatBody": "[Kéèéèp fáãts môödéèráãtéè tôö báãláãncéè éènéèrgy áãnd hôörmôönéès. ŦŦŦ]",
+      "fatBullet1": "[Fáãvôör héèáãlthy fáãts. ŦŦŦ]",
+      "fatBullet2": "[Wáãtch pôörtíïôöns — fáãt íïs cáãlôöríïéè-déènséè. ŦŦŦ]",
+      "closingTitle": "[Stáãy fléèxíïbléè ŦŦŦ]",
+      "closingBody": "[Táãrgéèts áãdáãpt tôö yôöûür dáãy — géèt clôöséè áãnd stáãy côönsíïstéènt. ŦŦŦ]",
+      "infoAria": "[Wháãt dôö théèséè nûümbéèrs méèáãn? ŦŦŦ]",
+      "info": "[ÍÏnfôö ŦŦŦ]",
+      "starchyTitle": "[Stáãrchy Cáãrbs — Yôöûür Máãíïn Táãrgéèt ŦŦŦ]",
+      "starchy1": "[Stáãy áãt ôör ûündéèr yôöûür dáãíïly cáãp. ŦŦŦ]",
+      "starchy2": "[Gôöíïng ôövéèr slôöws yôöûür prôögréèss — thíïs ôönéè máãttéèrs. ŦŦŦ]",
+      "starchy3": "[Béèíïng ûündéèr íïs côömpléètéèly fíïnéè. Dôön't fôörcéè íït. ŦŦŦ]",
+      "flexTitle": "[Prôötéèíïn & Fíïbéèr — Stáãy Fléèxíïbléè ŦŦŦ]",
+      "flex1": "[ÁÃ líïttléè híïgh ôör lôöw dôöéèsn't bréèáãk áãnythíïng. ŦŦŦ]",
+      "flex2": "[Dôön't cháãséè péèrféèctíïôön ôön théèséè twôö. ŦŦŦ]",
+      "fat1": "[Fáãt ríïséès náãtûüráãlly wíïth yôöûür fôöôöd chôöíïcéès. ŦŦŦ]",
+      "fat2": "[Díïéètáãry fáãt íïs nôöt théè dríïvéèr ôöf fáãt gáãíïn — dôön't fíïxáãtéè ôön íït. ŦŦŦ]",
+      "closing1": "[Fôöcûüs ôön stáãyíïng wíïthíïn yôöûür stáãrch táãrgéèt áãnd léèt théè réèst fáãll íïntôö pláãcéè. ŦŦŦ]",
+      "closing2": "[Yôöûü dôön't néèéèd tôö béè péèrféèct. Yôöûü néèéèd tôö béè côönsíïstéènt. ŦŦŦ]"
+    }
+  },
+  "performanceSetup": {
+    "toast": {
+      "compSaved": "[Côömpéètíïtíïôön préèp prôötôöcôöl sáãvéèd. ŦŦŦ]",
+      "athleticSaved": "[ÁÃthléètíïc péèrfôörmáãncéè prôötôöcôöl sáãvéèd. ŦŦŦ]",
+      "activated": "[Prôötôöcôöl áãctíïváãtéèd ŦŦŦ]",
+      "errorTitle": "[ÉÈrrôör ŦŦŦ]",
+      "errorDesc": "[Côöûüld nôöt sáãvéè. Pléèáãséè try áãgáãíïn. ŦŦŦ]"
+    },
+    "stepCount": "[Stéèp {{current}} ôöf {{total}} ŦŦŦ]",
+    "back": "[Báãck ŦŦŦ]",
+    "next": "[Néèxt ŦŦŦ]",
+    "saving": "[Sáãvíïng... ŦŦŦ]",
+    "activateProtocol": "[ÁÃctíïváãtéè Prôötôöcôöl ŦŦŦ]",
+    "optional": "[(ôöptíïôönáãl) ŦŦŦ]",
+    "track": {
+      "title": "[Wháãt déèscríïbéès yôöûür gôöáãl? ŦŦŦ]",
+      "subtitle": "[ÉÈáãch tráãck ûüséès áã côömpléètéèly díïfféèréènt prôötôöcôöl éèngíïnéè. ŦŦŦ]",
+      "athleticTitle": "[ÁÃthléètíïc Péèrfôörmáãncéè ŦŦŦ]",
+      "athleticDesc": "[MMÁÃ, bôöxíïng, wréèstlíïng, fôöôötbáãll, CrôössFíït, éèndûüráãncéè, táãctíïcáãl. Gôöáãl íïs péèrfôörmáãncéè — fûüéèlíïng, réècôövéèry, áãdáãptáãtíïôön. ŦŦŦ]",
+      "compTitle": "[Côömpéètíïtíïôön Préèp ŦŦŦ]",
+      "compDesc": "[Bôödybûüíïldíïng, physíïqûüéè, pôöwéèrlíïftíïng méèéèt, fíïght cáãmp, wréèstlíïng séèáãsôön. Yôöûür éèvéènt dáãtéè dríïvéès éèvéèry pháãséè áãûütôömáãtíïcáãlly. ŦŦŦ]"
+    },
+    "goals": {
+      "title": "[Wháãt's yôöûür príïmáãry gôöáãl? ŦŦŦ]",
+      "subtitle": "[Thíïs sháãpéès máãcrôö príïôöríïtíïéès áãnd méèáãl éènéèrgy déènsíïty. ŦŦŦ]",
+      "fatLoss": {
+        "label": "[Fáãt Lôöss ŦŦŦ]",
+        "desc": "[Léèáãn ôöûüt whíïléè préèséèrvíïng péèrfôörmáãncéè ŦŦŦ]"
+      },
+      "muscleGain": {
+        "label": "[Mûüscléè Gáãíïn ŦŦŦ]",
+        "desc": "[Hypéèrtrôöphy áãnd áãnáãbôölíïsm ŦŦŦ]"
+      },
+      "maintenance": {
+        "label": "[Máãíïntéènáãncéè ŦŦŦ]",
+        "desc": "[Bôödy côömpôösíïtíïôön stáãbíïlíïty ŦŦŦ]"
+      },
+      "performance": {
+        "label": "[Péèáãk Péèrfôörmáãncéè ŦŦŦ]",
+        "desc": "[ÔÖûütpûüt, spéèéèd, áãnd pôöwéèr ŦŦŦ]"
+      }
+    },
+    "trainingType": {
+      "title": "[Wháãt typéè ôöf tráãíïníïng dôö yôöûü dôö? ŦŦŦ]",
+      "subtitle": "[Séèléèct yôöûür príïmáãry spôört ôör díïscíïplíïnéè. ŦŦŦ]",
+      "otherPlaceholder": "[ÔÖthéèr {{group}} spôört… ŦŦŦ]"
+    },
+    "trainingTypes": {
+      "strength": "[Stréèngth ŦŦŦ]",
+      "hypertrophy": "[Hypéèrtrôöphy ŦŦŦ]",
+      "powerlifting": "[Pôöwéèrlíïftíïng ŦŦŦ]",
+      "olympicLifting": "[ÔÖlympíïc Líïftíïng ŦŦŦ]",
+      "mma": "[MMÁÃ ŦŦŦ]",
+      "boxing": "[Bôöxíïng ŦŦŦ]",
+      "wrestling": "[Wréèstlíïng ŦŦŦ]",
+      "bjj": "[BJJ ŦŦŦ]",
+      "crossfit": "[CrôössFíït ŦŦŦ]",
+      "running": "[Rûünníïng ŦŦŦ]",
+      "cycling": "[Cyclíïng ŦŦŦ]",
+      "triathlon": "[Tríïáãthlôön ŦŦŦ]",
+      "tactical": "[Táãctíïcáãl / Míïlíïtáãry ŦŦŦ]",
+      "generalFitness": "[Géènéèráãl Fíïtnéèss ŦŦŦ]"
+    },
+    "athleticGroups": {
+      "iron": "[ÍÏrôön Spôörts ŦŦŦ]",
+      "combat": "[Côömbáãt Spôörts ŦŦŦ]",
+      "mixed": "[Míïxéèd ŦŦŦ]",
+      "endurance": "[ÉÈndûüráãncéè ŦŦŦ]",
+      "other": "[ÔÖthéèr ŦŦŦ]"
+    },
+    "frequency": {
+      "title": "[Hôöw ôöftéèn dôö yôöûü tráãíïn? ŦŦŦ]",
+      "subtitle": "[Wéèéèkly tráãíïníïng séèssíïôöns (nôöt côöûüntíïng réèst dáãys). ŦŦŦ]",
+      "twoADayQuestion": "[Dôö yôöûü tráãíïn twíïcéè péèr dáãy? ŦŦŦ]",
+      "twoADayDesc": "[ÉÈnáãbléès réècôövéèry méèáãl gûüíïdáãncéè béètwéèéèn séèssíïôöns ŦŦŦ]",
+      "yes": "[Yéès ŦŦŦ]",
+      "no": "[Nôö ŦŦŦ]"
+    },
+    "freqs": {
+      "oneTwo": "[1–2 dáãys ŦŦŦ]",
+      "threeFour": "[3–4 dáãys ŦŦŦ]",
+      "fiveSix": "[5–6 dáãys ŦŦŦ]",
+      "sevenPlus": "[7+ (dáãíïly) ŦŦŦ]"
+    },
+    "cardio": {
+      "title": "[Wháãt's yôöûür cáãrdíïôö fôöcûüs? ŦŦŦ]",
+      "subtitle": "[Déètéèrmíïnéès cáãrb tíïmíïng áãnd glycôölytíïc fûüéèl néèéèds. ŦŦŦ]",
+      "none": {
+        "label": "[Nôö Cáãrdíïôö ŦŦŦ]",
+        "desc": "[Pûüréè stréèngth ôör skíïll fôöcûüs — nôö cáãrdíïôöváãscûüláãr wôörk ŦŦŦ]"
+      },
+      "recovery": {
+        "label": "[Wáãlkíïng / Réècôövéèry ŦŦŦ]",
+        "desc": "[Líïght môövéèméènt ôönly — wáãlks, stréètchíïng, éèáãsy bíïkéè ŦŦŦ]"
+      },
+      "zone2": {
+        "label": "[ÉÈáãsy Cáãrdíïôö ŦŦŦ]",
+        "desc": "[Côömfôörtáãbléè páãcéè yôöûü cáãn hôöld áã côönvéèrsáãtíïôön — bûüíïlds áãéèrôöbíïc báãséè ŦŦŦ]"
+      },
+      "tempo": {
+        "label": "[Môödéèráãtéè Cáãrdíïôö ŦŦŦ]",
+        "desc": "[Stéèáãdy, cháãlléèngíïng éèffôört — bréèáãthíïng háãrd bûüt sûüstáãíïnáãbléè ŦŦŦ]"
+      },
+      "threshold": {
+        "label": "[Háãrd Cáãrdíïôö ŦŦŦ]",
+        "desc": "[Híïgh-íïntéènsíïty sûüstáãíïnéèd éèffôört — néèáãr yôöûür líïmíït ŦŦŦ]"
+      },
+      "hiit": {
+        "label": "[Spríïnt ÍÏntéèrváãls ŦŦŦ]",
+        "desc": "[Shôört áãll-ôöûüt bûürsts wíïth réèst péèríïôöds — máãx éèffôört ŦŦŦ]"
+      },
+      "mixed": {
+        "label": "[Míïxéèd Cáãrdíïôö ŦŦŦ]",
+        "desc": "[Váãríïéès by séèssíïôön — sôöméè éèáãsy dáãys, sôöméè háãrd dáãys ŦŦŦ]"
+      }
+    },
+    "phase": {
+      "title": "[Whéèréè áãréè yôöûü íïn yôöûür tráãíïníïng cycléè? ŦŦŦ]",
+      "subtitle": "[Yôöûür pháãséè cáãlíïbráãtéès máãcrôö táãrgéèts áãnd fôöôöd chôöíïcéès. ŦŦŦ]"
+    },
+    "phases": {
+      "offSeason": {
+        "label": "[ÔÖff Séèáãsôön ŦŦŦ]",
+        "desc": "[Vôölûüméè fôöcûüs, bûüíïld báãséè ŦŦŦ]"
+      },
+      "preSeason": {
+        "label": "[Préè-Séèáãsôön ŦŦŦ]",
+        "desc": "[Côöndíïtíïôöníïng ráãmp-ûüp ŦŦŦ]"
+      },
+      "inSeason": {
+        "label": "[ÍÏn Séèáãsôön ŦŦŦ]",
+        "desc": "[Péèrfôörmáãncéè máãíïntéènáãncéè ŦŦŦ]"
+      },
+      "weightCut": {
+        "label": "[Wéèíïght Cûüt ŦŦŦ]",
+        "desc": "[Shôört-téèrm déèfíïcíït + réèhydráãtíïôön ŦŦŦ]"
+      },
+      "recovery": {
+        "label": "[Réècôövéèry ŦŦŦ]",
+        "desc": "[ÁÃntíï-íïnfláãmmáãtôöry, réèpáãíïr príïôöríïty ŦŦŦ]"
+      }
+    },
+    "duration": {
+      "title": "[Hôöw lôöng áãréè yôöûür typíïcáãl séèssíïôöns? ŦŦŦ]",
+      "subtitle": "[ÛÜséèd tôö cáãlcûüláãtéè glycôögéèn éèxpéèndíïtûüréè áãnd réècôövéèry nûütríïtíïôön néèéèds. ŦŦŦ]"
+    },
+    "durations": {
+      "under30": {
+        "label": "[ÛÜndéèr 30 míïn ŦŦŦ]",
+        "desc": "[Shôört / áãccéèssôöry séèssíïôöns ŦŦŦ]"
+      },
+      "thirtySixty": {
+        "label": "[30–60 míïn ŦŦŦ]",
+        "desc": "[Stáãndáãrd tráãíïníïng blôöck ŦŦŦ]"
+      },
+      "sixtyNinety": {
+        "label": "[60–90 míïn ŦŦŦ]",
+        "desc": "[Fûüll séèssíïôön wíïth wáãrm-ûüp & côöôöl-dôöwn ŦŦŦ]"
+      },
+      "ninetyPlus": {
+        "label": "[90 míïn+ ŦŦŦ]",
+        "desc": "[Híïgh-vôölûüméè ôör mûültíï-díïscíïplíïnéè séèssíïôöns ŦŦŦ]"
+      }
+    },
+    "recoveryStep": {
+      "title": "[Hôöw íïs yôöûür réècôövéèry ríïght nôöw? ŦŦŦ]",
+      "subtitle": "[Yôöûür cûürréènt réècôövéèry stáãtéè sháãpéès prôötéèíïn tíïmíïng, áãntíï-íïnfláãmmáãtôöry príïôöríïtíïéès, áãnd cáãlôöríïéè déènsíïty. ŦŦŦ]"
+    },
+    "recovery": {
+      "good": {
+        "label": "[Gôöôöd ŦŦŦ]",
+        "desc": "[Sléèéèpíïng wéèll, lôöw sôöréènéèss, híïgh éènéèrgy ŦŦŦ]"
+      },
+      "average": {
+        "label": "[ÁÃvéèráãgéè ŦŦŦ]",
+        "desc": "[Sôöméè fáãtíïgûüéè bûüt máãnáãgéèáãbléè ŦŦŦ]"
+      },
+      "poor": {
+        "label": "[Pôöôör ŦŦŦ]",
+        "desc": "[Fáãtíïgûüéèd, híïgh sôöréènéèss, sléèéèp-déèpríïvéèd ŦŦŦ]"
+      }
+    },
+    "adaptationStep": {
+      "title": "[Wháãt's yôöûür áãthléètíïc fôöcûüs? ŦŦŦ]",
+      "subtitle": "[Píïck wháãt yôöûü'réè tráãíïníïng fôör — thíïs cáãlíïbráãtéès cáãrb tíïmíïng, éènéèrgy systéèm sûüppôört, áãnd méèáãl côömpôösíïtíïôön. ŦŦŦ]"
+    },
+    "adaptation": {
+      "endurance": {
+        "label": "[ÉÈndûüráãncéè ŦŦŦ]",
+        "desc": "[Bûüíïld yôöûür áãéèrôöbíïc éèngíïnéè — lôöngéèr éèffôörts, béèttéèr stáãmíïnáã ŦŦŦ]"
+      },
+      "conditioning": {
+        "label": "[Côöndíïtíïôöníïng ŦŦŦ]",
+        "desc": "[ÁÃll-áãrôöûünd fíïtnéèss áãcrôöss mûültíïpléè éènéèrgy systéèms ŦŦŦ]"
+      },
+      "speed": {
+        "label": "[Spéèéèd ŦŦŦ]",
+        "desc": "[Spríïnt fáãstéèr — éèxplôösíïvéè, fáãst-twíïtch tráãíïníïng fôöcûüs ŦŦŦ]"
+      },
+      "power": {
+        "label": "[Pôöwéèr ŦŦŦ]",
+        "desc": "[Môövéè héèáãvy thíïngs fáãst — stréèngth méèéèts éèxplôösíïvéènéèss ŦŦŦ]"
+      },
+      "workCapacity": {
+        "label": "[Wôörk Cáãpáãcíïty ŦŦŦ]",
+        "desc": "[Dôö môöréè, réècôövéèr fáãstéèr — háãndléè híïgh tráãíïníïng vôölûüméès ŦŦŦ]"
+      },
+      "activeRecovery": {
+        "label": "[ÁÃctíïvéè Réècôövéèry ŦŦŦ]",
+        "desc": "[Réèpáãíïr áãnd réècháãrgéè — áãntíï-íïnfláãmmáãtôöry, CNS réèséèt ŦŦŦ]"
+      }
+    },
+    "schedule": {
+      "title": "[Séèt yôöûür wéèéèkly tráãíïníïng schéèdûüléè ŦŦŦ]",
+      "subtitle": "[Yôöûür nûütríïtíïôön áãûütôömáãtíïcáãlly áãdjûüsts éèáãch dáãy báãséèd ôön wháãt yôöûü'réè tráãíïníïng. ÉÈvéèry séèssíïôön typéè shíïfts yôöûür cáãrbôöhydráãtéès, cáãlôöríïéès, áãnd prôötéèíïn táãrgéèts. ŦŦŦ]",
+      "trainingPhase": "[Tráãíïníïng Pháãséè ŦŦŦ]",
+      "weekSchedule": "[Wéèéèk Schéèdûüléè ŦŦŦ]",
+      "howItWorksTitle": "[Hôöw thíïs wôörks ŦŦŦ]",
+      "howItWorksBody": "[MPM réèáãds yôöûür schéèdûüléè éèvéèry môörníïng áãnd áãûütôömáãtíïcáãlly áãdjûüsts yôöûür máãcrôö táãrgéèts. Pôöwéèr dáãys áãdd cáãrbôöhydráãtéès. Réècôövéèry dáãys réèdûücéè théèm. Nôö máãnûüáãl áãdjûüstméènts néèéèdéèd. ŦŦŦ]"
+    },
+    "sessionTypes": {
+      "strength": {
+        "label": "[Stréèngth ŦŦŦ]",
+        "short": "[Str ŦŦŦ]",
+        "desc": "[Réèsíïstáãncéè tráãíïníïng — môödéèráãtéè cáãrbôöhydráãtéè sûüppôört ŦŦŦ]"
+      },
+      "power": {
+        "label": "[Pôöwéèr ŦŦŦ]",
+        "short": "[Pwr ŦŦŦ]",
+        "desc": "[ÉÈxplôösíïvéè ôöûütpûüt — áãddíïtíïôönáãl cáãrbs áãnd prôötéèíïn áãctíïvéè ŦŦŦ]"
+      },
+      "endurance": {
+        "label": "[ÉÈndûüráãncéè ŦŦŦ]",
+        "short": "[ÉÈnd ŦŦŦ]",
+        "desc": "[ÁÃéèrôöbíïc fûüéèl príïôöríïty — éèléèváãtéèd cáãrbôöhydráãtéè áãváãíïláãbíïlíïty ŦŦŦ]"
+      },
+      "sportPractice": {
+        "label": "[Spôört Práãctíïcéè ŦŦŦ]",
+        "short": "[Spôört ŦŦŦ]",
+        "desc": "[Míïxéèd déèmáãnds — môödéèráãtéè cáãrbôöhydráãtéè sûüppôört ŦŦŦ]"
+      },
+      "competition": {
+        "label": "[Côömpéètíïtíïôön ŦŦŦ]",
+        "short": "[Côömp ŦŦŦ]",
+        "desc": "[Gáãméè dáãy fûüéèlíïng — máãxíïmûüm cáãrbôöhydráãtéè áãváãíïláãbíïlíïty ŦŦŦ]"
+      },
+      "recovery": {
+        "label": "[Réècôövéèry ŦŦŦ]",
+        "short": "[Réèc ŦŦŦ]",
+        "desc": "[Réèpáãíïr éèmpháãsíïs — réèdûücéèd cáãrbs, áãntíï-íïnfláãmmáãtôöry príïôöríïty ŦŦŦ]"
+      },
+      "off": {
+        "label": "[Réèst Dáãy ŦŦŦ]",
+        "short": "[ÔÖff ŦŦŦ]",
+        "desc": "[Côömpléètéè réèst — réèdûücéèd cáãlôöríïc táãrgéèts ŦŦŦ]"
+      }
+    },
+    "apnPhases": {
+      "stabilization": {
+        "label": "[Stáãbíïlíïzáãtíïôön ŦŦŦ]",
+        "desc": "[Fôöûündáãtíïôön pháãséè — môövéèméènt qûüáãlíïty, côöréè stáãbíïlíïty ŦŦŦ]"
+      },
+      "strength": {
+        "label": "[Stréèngth ŦŦŦ]",
+        "desc": "[Bûüíïldíïng máãxíïmáãl fôörcéè cáãpáãcíïty ŦŦŦ]"
+      },
+      "power": {
+        "label": "[Pôöwéèr ŦŦŦ]",
+        "desc": "[ÉÈxplôösíïvéè ôöûütpûüt — fôörcéè tíïméès véèlôöcíïty ŦŦŦ]"
+      },
+      "peaking": {
+        "label": "[Péèáãkíïng ŦŦŦ]",
+        "desc": "[Préè-côömpéètíïtíïôön sháãrpéèníïng — íïntéènsíïty ûüp, vôölûüméè dôöwn ŦŦŦ]"
+      },
+      "inSeason": {
+        "label": "[ÍÏn-Séèáãsôön ŦŦŦ]",
+        "desc": "[Máãíïntáãíïníïng péèrfôörmáãncéè thrôöûügh côömpéètíïtíïôön cáãléèndáãr ŦŦŦ]"
+      },
+      "offSeason": {
+        "label": "[ÔÖff-Séèáãsôön ŦŦŦ]",
+        "desc": "[Báãséè bûüíïldíïng áãnd réècôövéèry béètwéèéèn séèáãsôöns ŦŦŦ]"
+      }
+    },
+    "days": {
+      "mon": "[Môön ŦŦŦ]",
+      "tue": "[Tûüéè ŦŦŦ]",
+      "wed": "[Wéèd ŦŦŦ]",
+      "thu": "[Thûü ŦŦŦ]",
+      "fri": "[Fríï ŦŦŦ]",
+      "sat": "[Sáãt ŦŦŦ]",
+      "sun": "[Sûün ŦŦŦ]"
+    },
+    "compGroups": {
+      "physique": "[Physíïqûüéè ŦŦŦ]",
+      "strength": "[Stréèngth Spôörts ŦŦŦ]",
+      "combat": "[Côömbáãt Spôörts ŦŦŦ]",
+      "functional": "[Fûünctíïôönáãl / Míïxéèd ŦŦŦ]",
+      "endurance": "[ÉÈndûüráãncéè ŦŦŦ]"
+    },
+    "compTypeStep": {
+      "title": "[Wháãt typéè ôöf côömpéètíïtíïôön? ŦŦŦ]",
+      "subtitle": "[ÉÈáãch côömpéètíïtíïôön typéè ûüséès áã díïfféèréènt préèp tíïméèlíïnéè áãnd péèáãk wéèéèk prôötôöcôöl. ŦŦŦ]"
+    },
+    "compTypes": {
+      "bodybuilding": "[Bôödybûüíïldíïng ŦŦŦ]",
+      "mensPhysique": "[Méèn's Physíïqûüéè ŦŦŦ]",
+      "classicPhysique": "[Cláãssíïc Physíïqûüéè ŦŦŦ]",
+      "figure": "[Fíïgûüréè ŦŦŦ]",
+      "bikini": "[Bíïkíïníï ŦŦŦ]",
+      "wellness": "[Wéèllnéèss ŦŦŦ]",
+      "powerliftingMeet": "[Pôöwéèrlíïftíïng Méèéèt ŦŦŦ]",
+      "strongman": "[Strôöngmáãn ŦŦŦ]",
+      "olympicWeightlifting": "[ÔÖlympíïc Wéèíïghtlíïftíïng ŦŦŦ]",
+      "fightCamp": "[Fíïght Cáãmp ŦŦŦ]",
+      "wrestlingSeason": "[Wréèstlíïng Séèáãsôön ŦŦŦ]",
+      "crossfitCompetition": "[CrôössFíït Côömpéètíïtíïôön ŦŦŦ]",
+      "hyrox": "[Hyrôöx ŦŦŦ]",
+      "marathon": "[Máãráãthôön ŦŦŦ]",
+      "triathlon": "[Tríïáãthlôön ŦŦŦ]",
+      "spartanRace": "[Spáãrtáãn Ráãcéè ŦŦŦ]"
+    },
+    "eventStep": {
+      "title": "[Whéèn íïs yôöûür éèvéènt? ŦŦŦ]",
+      "subtitle": "[Yôöûür éèvéènt dáãtéè dríïvéès éèvéèry pháãséè áãûütôömáãtíïcáãlly — nôö gûüéèssíïng. ŦŦŦ]",
+      "eventDate": "[ÉÈvéènt Dáãtéè ŦŦŦ]",
+      "pickDate": "[Píïck éèvéènt dáãtéè ŦŦŦ]",
+      "weeksOut": "[{{count}} wéèéèks ôöûüt ŦŦŦ]",
+      "division": "[Díïvíïsíïôön ŦŦŦ]",
+      "divisionPlaceholder": "[éè.g. ÔÖpéèn, Máãstéèrs 35+, 93kg cláãss... ŦŦŦ]"
+    },
+    "weightStep": {
+      "title": "[Wéèíïght íïnfôörmáãtíïôön ŦŦŦ]",
+      "subtitle": "[ÔÖptíïôönáãl — héèlps yôöûür prôötôöcôöl gíïvéè préècíïséè gûüíïdáãncéè ôön cûüt stráãtéègy áãnd cáãlôöríïéè táãrgéèts. ŦŦŦ]",
+      "currentWeight": "[Cûürréènt Wéèíïght ŦŦŦ]",
+      "currentPlaceholder": "[éè.g. 185 lbs, 84 kg... ŦŦŦ]",
+      "targetWeight": "[Táãrgéèt Wéèíïght / Cláãss ŦŦŦ]",
+      "targetPlaceholder": "[éè.g. 175 lbs, 83kg cláãss, stáãgéè réèáãdy... ŦŦŦ]",
+      "howItWorksTitle": "[Hôöw thíïs wôörks ŦŦŦ]",
+      "howItWorksBody": "[MPM cáãlcûüláãtéès yôöûür cûürréènt pháãséè frôöm yôöûür éèvéènt dáãtéè áãûütôömáãtíïcáãlly. ÁÃs yôöûür éèvéènt áãpprôöáãchéès, prôötôöcôöls shíïft. Théè cáãléèndáãr déècíïdéès — nôöt ÁÃÍÏ. ŦŦŦ]"
+    }
+  },
+  "therapeuticCard": {
+    "title": "[Théèráãpéèûütíïc Nûütríïtíïôön ÍÏntéèllíïgéèncéè ŦŦŦ]",
+    "active": "[ÁÃctíïvéè ŦŦŦ]",
+    "last": "[Láãst: {{date}} ŦŦŦ]",
+    "intro": "[ÉÈntéèr yôöûür dôöséè fôör áãnythíïng áãctíïvéè. Dôösáãgéè máãttéèrs — théè systéèm ûüséès íït tôö bûüíïld côöntéèxt áãrôöûünd yôöûür prôötôöcôöl. Léèáãvéè bláãnk íïf nôöt áãpplíïcáãbléè. ŦŦŦ]",
+    "activeCount": "[{{count}} áãctíïvéè ŦŦŦ]",
+    "namePlaceholder": "[Náãméè... ŦŦŦ]",
+    "dosePlaceholder": "[Dôöséè ŦŦŦ]",
+    "unitPlaceholder": "[ûüníït ŦŦŦ]",
+    "sections": {
+      "peptides": "[Péèptíïdéès ŦŦŦ]",
+      "hormones": "[Hôörmôönéès ŦŦŦ]",
+      "medications": "[Méèdíïcáãtíïôöns ÍÏmpáãctíïng Nûütríïtíïôön ŦŦŦ]",
+      "therapies": "[Théèráãpíïéès ŦŦŦ]",
+      "recovery": "[Réècôövéèry Gôöáãls ŦŦŦ]"
+    },
+    "addPeptide": "[ÁÃdd cûüstôöm péèptíïdéè ŦŦŦ]",
+    "addHormone": "[ÁÃdd cûüstôöm hôörmôönéè ŦŦŦ]",
+    "addMedication": "[ÁÃdd cûüstôöm méèdíïcáãtíïôön ŦŦŦ]",
+    "therapiesHint": "[Séèléèct áãll tháãt áãpply tôö yôöûür cûürréènt prôötôöcôöl. ŦŦŦ]",
+    "recoveryHint": "[Séèléèct yôöûür cûürréènt réècôövéèry ôöbjéèctíïvéès. ŦŦŦ]",
+    "saveProtocol": "[Sáãvéè Prôötôöcôöl ŦŦŦ]",
+    "saving": "[Sáãvíïng… ŦŦŦ]",
+    "cancel": "[Cáãncéèl ŦŦŦ]",
+    "footerNote": "[Clíïníïcáãl sáãféèty áãlwáãys táãkéès príïôöríïty. Séèléèctíïôöns íïnfôörm méèáãl géènéèráãtíïôön ôönly — nôöt méèdíïcáãl áãdvíïcéè. ŦŦŦ]",
+    "therapyOptions": {
+      "connectiveTissue": "[Côönnéèctíïvéè Tíïssûüéè Réècôövéèry ŦŦŦ]",
+      "gutSupport": "[Gûüt Sûüppôört ŦŦŦ]",
+      "redLight": "[Réèd Líïght Théèráãpy ŦŦŦ]",
+      "sauna": "[Sáãûünáã / Héèáãt Réècôövéèry ŦŦŦ]",
+      "cold": "[Côöld Théèráãpy / ÍÏcéè Báãth ŦŦŦ]",
+      "iv": "[ÍÏV Nûütríïéènt Théèráãpy ŦŦŦ]"
+    },
+    "recoveryGoals": {
+      "joint": "[Jôöíïnt Réècôövéèry ŦŦŦ]",
+      "muscle": "[Mûüscléè Réècôövéèry ŦŦŦ]",
+      "sleep": "[Sléèéèp ÔÖptíïmíïzáãtíïôön ŦŦŦ]",
+      "inflammation": "[ÍÏnfláãmmáãtíïôön Réèdûüctíïôön ŦŦŦ]",
+      "gutHealing": "[Gûüt Héèáãlíïng ŦŦŦ]",
+      "stress": "[Stréèss & ÁÃdréènáãl Réècôövéèry ŦŦŦ]"
+    },
+    "toast": {
+      "savedTitle": "[Théèráãpéèûütíïc Prôötôöcôöl Sáãvéèd ŦŦŦ]",
+      "savedDesc": "[Côöntéèxt ûüpdáãtéèd. ÁÃll bûüíïldéèrs wíïll hôönôör yôöûür prôötôöcôöl. ŦŦŦ]",
+      "errorTitle": "[ÉÈrrôör ŦŦŦ]",
+      "errorDesc": "[Côöûüld nôöt sáãvéè. Pléèáãséè try áãgáãíïn. ŦŦŦ]"
+    }
+  },
+  "clinicalLabs": {
+    "title": "[Clíïníïcáãl Láãbs ŦŦŦ]",
+    "last": "[Láãst: {{date}} ŦŦŦ]",
+    "lastSaved": "[Láãst sáãvéèd: {{date}} ŦŦŦ]",
+    "labDate": "[Láãb Dáãtéè ŦŦŦ]",
+    "notes": "[Nôötéès ŦŦŦ]",
+    "notesPlaceholder": "[ÔÖptíïôönáãl prôövíïdéèr nôötéès... ŦŦŦ]",
+    "saveButton": "[Sáãvéè Láãb Váãlûüéès ŦŦŦ]",
+    "savedSuccess": "[Láãb váãlûüéès sáãvéèd sûüccéèssfûülly ŦŦŦ]",
+    "normal": "[Nôörmáãl ŦŦŦ]",
+    "elevated": "[ÉÈléèváãtéèd ŦŦŦ]",
+    "active": "[ÁÃctíïvéè ŦŦŦ]",
+    "menopausePanel": "[Méènôöpáãûüséè / Péèríïméènôöpáãûüséè Páãnéèl ŦŦŦ]",
+    "status": {
+      "normal": "[Nôörmáãl ŦŦŦ]",
+      "needsReview": "[Néèéèds réèvíïéèw ŦŦŦ]",
+      "elevated": "[{{count}} éèléèváãtéèd ŦŦŦ]"
+    },
+    "sections": {
+      "cardiac": "[Cáãrdíïáãc & Méètáãbôölíïc ŦŦŦ]",
+      "hormonal": "[Hôörmôönáãl / Stréèss & Séèx Hôörmôönéès ŦŦŦ]",
+      "liver": "[Líïvéèr Páãnéèl ŦŦŦ]",
+      "thyroid": "[Thyrôöíïd Páãnéèl ŦŦŦ]",
+      "kidney": "[Kíïdnéèy / Réènáãl ŦŦŦ]",
+      "inflammation": "[ÍÏnfláãmmáãtíïôön & Réècôövéèry ŦŦŦ]",
+      "oncology": "[ÔÖncôölôögy & Réècôövéèry ŦŦŦ]"
+    },
+    "fields": {
+      "ldl": "[LDL ŦŦŦ]",
+      "hdl": "[HDL ŦŦŦ]",
+      "triglycerides": "[Tríïglycéèríïdéès ŦŦŦ]",
+      "tgHdlRatio": "[TG/HDL Ráãtíïôö ŦŦŦ]",
+      "bloodPressure": "[Blôöôöd Préèssûüréè ŦŦŦ]",
+      "sys": "[Sys ŦŦŦ]",
+      "dia": "[Díïáã ŦŦŦ]",
+      "ejectionFraction": "[ÉÈjéèctíïôön Fráãctíïôön ŦŦŦ]",
+      "a1c": "[ÁÃ1C ŦŦŦ]"
+    },
+    "oncology": {
+      "needsAttention": "[Néèéèds áãttéèntíïôön ŦŦŦ]",
+      "physicianGuided": "[Physíïcíïáãn-gûüíïdéèd ŦŦŦ]"
+    },
+    "toast": {
+      "enterOne": "[ÉÈntéèr áãt léèáãst ôönéè láãb váãlûüéè béèfôöréè sáãvíïng ŦŦŦ]",
+      "failed": "[Fáãíïléèd tôö sáãvéè láãbs ŦŦŦ]"
+    }
+  },
+  "ingredientSheet": {
+    "grade": {
+      "a": "[ÉÈxcéèlléènt ÁÃlíïgnméènt ŦŦŦ]",
+      "b": "[Gôöôöd ÁÃlíïgnméènt ŦŦŦ]",
+      "c": "[Sôöméè Côönsíïdéèráãtíïôöns ŦŦŦ]",
+      "d": "[Nôötáãbléè Côönflíïcts ŦŦŦ]"
+    },
+    "verdict": {
+      "buy": "[Chéèf sáãys: Gôö fôör íït! ŦŦŦ]",
+      "caution": "[Chéèf sáãys: Jûüst áã héèáãds ûüp... ŦŦŦ]",
+      "skip": "[Chéèf sáãys: Máãybéè thíïnk twíïcéè ŦŦŦ]"
+    },
+    "decoder": {
+      "title": "[Pláãíïn ÉÈnglíïsh Déècôödéèr ŦŦŦ]",
+      "legend": "[🟢 Géènéèráãlly sáãféè · 🟡 Wôörth knôöwíïng · 🔴 Côönflíïcts wíïth yôöûür prôöfíïléè ŦŦŦ]"
+    },
+    "alignsWith": "[ÁÃlíïgns wíïth yôöûür gôöáãls ŦŦŦ]",
+    "watchFor": "[Wáãtch fôör ŦŦŦ]",
+    "howItScores": "[Hôöw íït scôöréès fôör yôöûür prôötôöcôöls ŦŦŦ]",
+    "howItScoresForYou": "[Hôöw íït scôöréès fôör yôöûü ŦŦŦ]",
+    "add": "[ÁÃdd ŦŦŦ]",
+    "added": "[ÁÃddéèd ŦŦŦ]",
+    "alternatives": {
+      "alsoWorthKnowing": "[ÁÃlsôö Wôörth Knôöwíïng ŦŦŦ]",
+      "evenBetter": "[ÉÈvéèn Béèttéèr ÔÖptíïôöns ŦŦŦ]",
+      "betterOptions": "[Béèttéèr Prôödûüct ÔÖptíïôöns Fôör Yôöûü ŦŦŦ]",
+      "profileMatched": "[Prôöfíïléè-máãtchéèd ŦŦŦ]",
+      "brandedNote": "[Báãséèd ôön prôödûüct knôöwléèdgéè — fôörmûüláãs áãnd áãváãíïláãbíïlíïty cáãn cháãngéè. ŦŦŦ]",
+      "categoryNote": "[Cáãtéègôöry gûüíïdáãncéè báãséèd ôön yôöûür héèáãlth prôöfíïléè — lôöôök fôör théèséè cháãráãctéèríïstíïcs ôön láãbéèls. ŦŦŦ]"
+    },
+    "profileFactorsHeading": "[Prôöfíïléè Fáãctôörs Dríïvíïng Thíïs ÁÃnáãlysíïs ŦŦŦ]",
+    "scoreCards": {
+      "kids": "[Kíïds ŦŦŦ]",
+      "adults": "[ÁÃdûülts ŦŦŦ]",
+      "diet": "[Yôöûür Díïéèt ŦŦŦ]",
+      "goal": "[Yôöûür Gôöáãl ŦŦŦ]"
+    },
+    "barcode": {
+      "dbMatch": "[Dáãtáãbáãséè máãtch · ÔÖpéèn Fôöôöd Fáãcts ŦŦŦ]",
+      "notInDb": "[Nôöt íïn dáãtáãbáãséè · ÁÃÍÏ éèstíïmáãtéè ŦŦŦ]",
+      "notFound": "[Báãrcôödéè nôöt fôöûünd — áãnáãlysíïs báãséèd ôön ÁÃÍÏ prôödûüct knôöwléèdgéè ŦŦŦ]"
+    },
+    "tier": {
+      "quick": "[Qûüíïck ÁÃnáãlysíïs ŦŦŦ]",
+      "verified": "[Véèríïfíïéèd Láãbéèl ÁÃnáãlysíïs ŦŦŦ]",
+      "full": "[Fûüll Prôödûüct ÁÃdvíïsôör ŦŦŦ]",
+      "subKnowledge": "[Knôöwléèdgéè-báãséèd · Nôö láãbéèl scáãn ŦŦŦ]",
+      "subLabelScanned": "[Láãbéèl scáãnnéèd · {{name}} ŦŦŦ]",
+      "subProductUnknown": "[Láãbéèl scáãnnéèd · Prôödûüct ûünknôöwn ŦŦŦ]",
+      "subLabel": "[Láãbéèl scáãnnéèd ŦŦŦ]",
+      "subFull": "[Prôödûüct + Láãbéèl + Prôöfíïléè ŦŦŦ]"
+    },
+    "scanLabelUp": "[Scáãn láãbéèl ↑ ŦŦŦ]",
+    "highestConfidence": "[Híïghéèst côönfíïdéèncéè ŦŦŦ]",
+    "whatMattersMost": "[Wháãt Máãttéèrs Môöst Fôör Yôöûü ŦŦŦ]",
+    "analysisProfile": {
+      "heading": "[Yôöûür ÁÃnáãlysíïs Prôöfíïléè ŦŦŦ]",
+      "basedOn": "[Thíïs réècôömméèndáãtíïôön íïs báãséèd ôön: ŦŦŦ]",
+      "deeperTitle": "[Wáãnt déèéèpéèr péèrsôönáãlíïzáãtíïôön? ŦŦŦ]",
+      "deeperBody": "[ÁÃdd láãb váãlûüéès sûüch áãs ÁÃ1C, fáãstíïng glûücôöséè, chôöléèstéèrôöl, tríïglycéèríïdéès, kíïdnéèy máãrkéèrs, ôör íïnfláãmmáãtíïôön máãrkéèrs. ŦŦŦ]",
+      "updateProfile": "[ÛÜpdáãtéè Héèáãlth Prôöfíïléè → ŦŦŦ]",
+      "disclaimer": "[Réècôömméèndáãtíïôöns áãréè géènéèráãtéèd frôöm íïngréèdíïéènt côömpôösíïtíïôön, nûütríïtíïôön fáãcts, áãnd yôöûür héèáãlth prôöfíïléè. MPM dôöéès nôöt réècéèíïvéè côömpéènsáãtíïôön frôöm fôöôöd máãnûüfáãctûüréèrs áãnd réècôömméèndáãtíïôöns áãréè néèvéèr íïnflûüéèncéèd by bráãnd páãrtnéèrshíïps. ŦŦŦ]",
+      "emptyState": "[ÁÃdd héèáãlth gôöáãls áãnd côöndíïtíïôöns íïn yôöûür prôöfíïléè tôö géèt áã fûülly péèrsôönáãlíïzéèd áãnáãlysíïs. ŦŦŦ]"
+    },
+    "header": {
+      "companionScan": "[Côömpáãníïôön Prôödûüct Scáãn ŦŦŦ]",
+      "intelligence": "[ÍÏngréèdíïéènt ÍÏntéèllíïgéèncéè ŦŦŦ]",
+      "notIdentified": "[Prôödûüct nôöt íïdéèntíïfíïéèd ŦŦŦ]",
+      "scanningFor": "[Scáãnníïng fôör {{name}} ŦŦŦ]",
+      "frontLabelDetected": "[Frôönt Láãbéèl Déètéèctéèd ŦŦŦ]",
+      "byNameAnalysis": "[By-Náãméè ÁÃnáãlysíïs ŦŦŦ]",
+      "fullAnalysis": "[Fûüll ÁÃnáãlysíïs ŦŦŦ]"
+    },
+    "analyzeThisProduct": "[ÁÃnáãlyzéè Thíïs Prôödûüct ŦŦŦ]",
+    "scanIngredientsLabel": "[Scáãn ÍÏngréèdíïéènts / Nûütríïtíïôön Láãbéèl ŦŦŦ]",
+    "analyzeDisclaimer": "[\"ÁÃnáãlyzéè Thíïs Prôödûüct\" ûüséès ÁÃÍÏ knôöwléèdgéè ôöf thíïs prôödûüct — nôöt áã líïvéè láãbéèl scáãn. Prôödûüct fôörmûüláãs cáãn cháãngéè. Scáãn théè íïngréèdíïéènts páãnéèl fôör áã véèríïfíïéèd réèsûült. ŦŦŦ]",
+    "analyzing": "[ÁÃnáãlyzíïng {{name}}… ŦŦŦ]",
+    "checkingProfile": "[Chéèckíïng áãgáãíïnst yôöûür héèáãlth prôöfíïléè ŦŦŦ]",
+    "byNameBanner": {
+      "title": "[Qûüíïck ÁÃnáãlysíïs — Nôöt áã Véèríïfíïéèd Láãbéèl Scáãn ŦŦŦ]",
+      "body": "[Báãséèd ôön prôödûüct knôöwléèdgéè áãs ôöf tráãíïníïng dáãtáã. Prôödûüct fôörmûüláãs cáãn cháãngéè. ŦŦŦ]",
+      "scanLink": "[Scáãn théè láãbéèl fôör áã véèríïfíïéèd réèsûült. ŦŦŦ]"
+    },
+    "lowQuality": {
+      "title": "[ÍÏmáãgéè qûüáãlíïty wáãs lôöw ŦŦŦ]",
+      "body": "[Réètáãkéè wíïth théè fûüll íïngréèdíïéènts páãnéèl víïsíïbléè, íïn fôöcûüs, áãnd wéèll-líït fôör áã môöréè áãccûüráãtéè áãnáãlysíïs. ŦŦŦ]"
+    },
+    "labelFound": {
+      "title": "[Nûütríïtíïôön láãbéèl fôöûünd ŦŦŦ]",
+      "body": "[Sáãy ôör typéè théè prôödûüct náãméè tôö réècéèíïvéè bráãndéèd áãltéèrnáãtíïvéès péèrsôönáãlíïzéèd tôö yôöûür prôöfíïléè. ŦŦŦ]"
+    },
+    "incomplete": {
+      "title": "[ÁÃnáãlysíïs íïncôömpléètéè ŦŦŦ]",
+      "lowImage": "[Théè íïmáãgéè wáãsn't cléèáãr éènôöûügh tôö scôöréè. Máãkéè sûüréè théè fûüll íïngréèdíïéènts páãnéèl íïs víïsíïbléè áãnd wéèll-líït, théèn try áãgáãíïn. ŦŦŦ]",
+      "needMore": "[Môöréè íïnfôörmáãtíïôön íïs néèéèdéèd tôö géènéèráãtéè áã gráãdéè. Try scáãnníïng théè íïngréèdíïéènts páãnéèl ôör ûüséè Prôödûüct Lôöôökûüp. ŦŦŦ]"
+    },
+    "personalized": "[Péèrsôönáãlíïzéèd tôö yôöûür héèáãlth prôöfíïléè ŦŦŦ]",
+    "generalAnalysis": "[Géènéèráãl áãnáãlysíïs — áãdd héèáãlth gôöáãls fôör péèrsôönáãlíïzéèd réèsûülts ŦŦŦ]",
+    "sections": {
+      "considerations": "[ÍÏngréèdíïéènt Côönsíïdéèráãtíïôöns ŦŦŦ]",
+      "mayNotAlign": "[Máãy Nôöt ÁÃlíïgn Wíïth Yôöûür Gôöáãls ŦŦŦ]",
+      "worksWellFor": "[Wôörks Wéèll Fôör ŦŦŦ]",
+      "familyNotes": "[Fáãmíïly Nôötéès ŦŦŦ]"
+    },
+    "detectedIngredients": "[Déètéèctéèd ÍÏngréèdíïéènts ŦŦŦ]",
+    "scanForVerified": "[Scáãn Láãbéèl fôör Véèríïfíïéèd Láãbéèl ÁÃnáãlysíïs ŦŦŦ]",
+    "addNamedToList": "[ÁÃdd {{name}} tôö Líïst ŦŦŦ]",
+    "addToList": "[ÁÃdd tôö Líïst ŦŦŦ]",
+    "saveScan": "[Sáãvéè Scáãn ŦŦŦ]",
+    "saveToGroceries": "[Sáãvéè tôö Grôöcéèríïéès ŦŦŦ]",
+    "savedToGroceries": "[Sáãvéèd tôö Grôöcéèríïéès ŦŦŦ]",
+    "toast": {
+      "removedTitle": "[Réèmôövéèd frôöm Grôöcéèríïéès ŦŦŦ]",
+      "removedDesc": "[{{name}} háãs béèéèn réèmôövéèd frôöm yôöûür bôöôökmáãrks. ŦŦŦ]",
+      "removeFailTitle": "[Côöûüld nôöt réèmôövéè ŦŦŦ]",
+      "tryAgain": "[Pléèáãséè try áãgáãíïn. ŦŦŦ]",
+      "alreadySaved": "[ÁÃlréèáãdy sáãvéèd ŦŦŦ]",
+      "savedTitle": "[Sáãvéèd tôö Grôöcéèríïéès ŦŦŦ]",
+      "savedDesc": "[{{name}} íïs íïn yôöûür grôöcéèry bôöôökmáãrks. ŦŦŦ]",
+      "saveFailTitle": "[Côöûüld nôöt sáãvéè ŦŦŦ]",
+      "addedToList": "[ÁÃddéèd tôö yôöûür grôöcéèry líïst ŦŦŦ]"
+    }
+  },
+  "athletePicker": {
+    "added": "[ÁÃddéèd! ŦŦŦ]",
+    "addedCount": "[{{count}} áãddéèd ŦŦŦ]",
+    "addingTo": "[ÁÃddíïng tôö: ŦŦŦ]",
+    "categories": {
+      "eggsShakes": "[ÉÈggs & Sháãkéès ŦŦŦ]",
+      "fish": "[Fíïlléèt Fíïsh ŦŦŦ]",
+      "poultry": "[Chíïckéèn & Tûürkéèy ŦŦŦ]",
+      "redmeat": "[Réèd Méèáãt ŦŦŦ]"
+    },
+    "copied": "[Côöpíïéèd! ŦŦŦ]",
+    "copy": "[Côöpy ŦŦŦ]",
+    "copyMealAria": "[Côöpy méèáãl déètáãíïls ŦŦŦ]",
+    "copySessionAria": "[Côöpy séèssíïôön sûümmáãry tôö clíïpbôöáãrd ŦŦŦ]",
+    "done": "[Dôönéè ŦŦŦ]",
+    "errorShort": "[ÉÈrrôör ŦŦŦ]",
+    "fibrousNote": "[Fíïbrôöûüs véègéètáãbléès áãréè ûünréèstríïctéèd — stáãrch ôönly (ríïcéè, ôöáãts, pôötáãtôöéès) ŦŦŦ]",
+    "gotIt": "[gôöt íït! ŦŦŦ]",
+    "headerTitle": "[Préèmáãdéè ÁÃthléètéè Méèáãls — {{slot}} ŦŦŦ]",
+    "hiddenCount_one": "[{{count}} méèáãl híïddéèn — stáãrch wôöûüld éèxcéèéèd {{cap}}g ŦŦŦ]",
+    "hiddenCount_other": "[{{count}} méèáãls híïddéèn — stáãrch wôöûüld éèxcéèéèd {{cap}}g ŦŦŦ]",
+    "howToAria": "[Hôöw tôö ûüséè ÁÃthléètéè Méèáãl Bûüíïldéèr ŦŦŦ]",
+    "info": {
+      "intro": "[Préè-déèsíïgnéèd méèáãls ôöptíïmíïzéèd fôör áãthléètíïc péèrfôörmáãncéè áãnd mûüscléè bûüíïldíïng. ŦŦŦ]",
+      "step1Label": "[Séèléèct yôöûür prôötéèíïn cáãtéègôöry ŦŦŦ]",
+      "step1Text": "[(Chíïckéèn, Réèd Méèáãt, Fíïsh, ÉÈggs) ŦŦŦ]",
+      "step2After": "[íïs prôötéèíïn + fíïbrôöûüs véègéètáãbléès ôönly ŦŦŦ]",
+      "step2Mid": "[méèáãls íïnclûüdéè ríïcéè, ôöáãts, ôör pôötáãtôöéès. ŦŦŦ]",
+      "step3Label": "[Clíïck áãny méèáãl ŦŦŦ]",
+      "step3Text": "[tôö áãdd íït tôö yôöûür bôöáãrd íïnstáãntly ŦŦŦ]",
+      "step4Label": "[ÁÃll máãcrôös ŦŦŦ]",
+      "step4Text": "[áãréè préè-cáãlcûüláãtéèd áãnd réèáãdy tôö tráãck ŦŦŦ]",
+      "stepsLabel": "[Stéèps: ŦŦŦ]",
+      "tipAfter": "[méèáãls. Fíïbrôöûüs véègéètáãbléès áãréè áãlwáãys ûünlíïmíïtéèd. ŦŦŦ]",
+      "tipBefore": "[ÔÖn lôöw-stáãrch dáãys, ûüséè ŦŦŦ]",
+      "tipLabel": "[💡 Tíïp: ŦŦŦ]",
+      "tipMid": "[méèáãls. ÔÖn réèféèéèd dáãys, áãdd ŦŦŦ]",
+      "title": "[Hôöw tôö ÛÜséè ÁÃthléètéè Méèáãl Bûüíïldéèr ŦŦŦ]"
+    },
+    "lowStarchDay": "[Lôöw-Stáãrch Dáãy ŦŦŦ]",
+    "mealCopyText": "[{{title}} — {{cals}} cáãl · P {{protein}}g · S {{starch}}g · F {{fat}}g ŦŦŦ]",
+    "noCoachConnection": "[Nôö áãctíïvéè côöáãch côönnéèctíïôön ŦŦŦ]",
+    "noteDesc": "[Préè-déèsíïgnéèd méèáãls ôöptíïmíïzéèd fôör áãthléètíïc péèrfôörmáãncéè áãnd mûüscléè bûüíïldíïng. ŦŦŦ]",
+    "noteStep1": "[Séèléèct yôöûür prôötéèíïn cáãtéègôöry (Chíïckéèn, Réèd Méèáãt, Fíïsh, ÉÈggs) ŦŦŦ]",
+    "noteStep2After": "[íïs prôötéèíïn + fíïbrôöûüs véègéètáãbléès ôönly ŦŦŦ]",
+    "noteStep2Before": "[Méèáãls táãggéèd ŦŦŦ]",
+    "noteStep2Mid": "[íïnclûüdéè ríïcéè, ôöáãts, ôör pôötáãtôöéès — ŦŦŦ]",
+    "noteStep3": "[Clíïck áãny méèáãl tôö áãdd íït tôö yôöûür bôöáãrd íïnstáãntly ŦŦŦ]",
+    "noteStep4": "[ÁÃll máãcrôös áãréè préè-cáãlcûüláãtéèd áãnd réèáãdy tôö tráãck ŦŦŦ]",
+    "noteTitle": "[Préèmáãdéè ÁÃthléètéè Méèáãls ŦŦŦ]",
+    "refeedDay": "[Réèféèéèd Dáãy ŦŦŦ]",
+    "selectCategory": "[Séèléèct Prôötéèíïn Cáãtéègôöry: ŦŦŦ]",
+    "selectCategoryShort": "[Séèléèct Cáãtéègôöry ŦŦŦ]",
+    "sendCoachAria": "[Séènd séèssíïôön sûümmáãry tôö côöáãch ŦŦŦ]",
+    "sendFailed": "[Fáãíïléèd tôö séènd — try áãgáãíïn ŦŦŦ]",
+    "sendToCoach": "[Séènd tôö Côöáãch ŦŦŦ]",
+    "sending": "[Séèndíïng… ŦŦŦ]",
+    "sent": "[Séènt! ŦŦŦ]",
+    "sessionTotal": "[Séèssíïôön tôötáãl: ŦŦŦ]",
+    "slots": {
+      "breakfast": "[Bréèáãkfáãst ŦŦŦ]",
+      "dinner": "[Díïnnéèr ŦŦŦ]",
+      "lunch": "[Lûünch ŦŦŦ]",
+      "meal4": "[Méèáãl 4 ŦŦŦ]",
+      "meal5": "[Méèáãl 5 ŦŦŦ]",
+      "meal6": "[Méèáãl 6 ŦŦŦ]",
+      "snacks": "[Snáãcks ŦŦŦ]"
+    },
+    "starch": "[Stáãrch ŦŦŦ]",
+    "starchAllocation": "[Stáãrch ÁÃllôöcáãtíïôön ŦŦŦ]",
+    "starchCap": "[{{cap}}g stáãrch cáãp ŦŦŦ]",
+    "starchUsage": "[{{used}}g / {{cap}}g stáãrch ŦŦŦ]",
+    "summaryText_one": "[{{count}} méèáãl áãddéèd — {{cals}} cáãl · P {{protein}}g · C {{carbs}}g · F {{fat}}g ŦŦŦ]",
+    "summaryText_other": "[{{count}} méèáãls áãddéèd — {{cals}} cáãl · P {{protein}}g · C {{carbs}}g · F {{fat}}g ŦŦŦ]",
+    "viewChatAria": "[Víïéèw méèssáãgéè íïn côöáãch cháãt ŦŦŦ]",
+    "viewInChat": "[Víïéèw íïn Cháãt ŦŦŦ]"
+  },
+  "coachingSetup": {
+    "accountability": {
+      "encourage": {
+        "desc": "[Chéèéèr méè ôön whéèn ÍÏ slíïp ŦŦŦ]",
+        "label": "[ÉÈncôöûüráãgéè Méè ŦŦŦ]"
+      },
+      "pushHard": {
+        "desc": "[Hôöld méè áãccôöûüntáãbléè stríïctly ŦŦŦ]",
+        "label": "[Pûüsh Méè Háãrd ŦŦŦ]"
+      },
+      "remind": {
+        "desc": "[Géèntléè nûüdgéès áãréè éènôöûügh ŦŦŦ]",
+        "label": "[Jûüst Réèmíïnd Méè ŦŦŦ]"
+      },
+      "selfDirected": {
+        "desc": "[ÍÏ môötíïváãtéè myséèlf ŦŦŦ]",
+        "label": "[Séèlf-Díïréèctéèd ŦŦŦ]"
+      }
+    },
+    "back": "[Báãck ŦŦŦ]",
+    "challenges": {
+      "consistency": "[Stáãyíïng Côönsíïstéènt ŦŦŦ]",
+      "cravings": "[Cráãvíïngs ŦŦŦ]",
+      "emotionalEating": "[ÉÈmôötíïôönáãl ÉÈáãtíïng ŦŦŦ]",
+      "knowledge": "[Knôöwíïng Wháãt tôö ÉÈáãt ŦŦŦ]",
+      "mealPrep": "[Méèáãl Préèp ŦŦŦ]",
+      "motivation": "[Môötíïváãtíïôön ŦŦŦ]",
+      "socialPressure": "[Sôöcíïáãl Préèssûüréè ŦŦŦ]",
+      "time": "[Nôöt ÉÈnôöûügh Tíïméè ŦŦŦ]"
+    },
+    "error": "[Sôöméèthíïng wéènt wrôöng. Pléèáãséè try áãgáãíïn. ŦŦŦ]",
+    "lifestyle": {
+      "budgetConscious": "[Bûüdgéèt-Côönscíïôöûüs ŦŦŦ]",
+      "busySchedule": "[Bûüsy Schéèdûüléè ŦŦŦ]",
+      "frequentTravel": "[Fréèqûüéènt Tráãvéèl ŦŦŦ]",
+      "parent": "[Páãréènt / Cáãréègíïvéèr ŦŦŦ]",
+      "pickyEater": "[Píïcky ÉÈáãtéèr ŦŦŦ]",
+      "shiftWorker": "[Shíïft Wôörkéèr ŦŦŦ]",
+      "socialEater": "[Sôöcíïáãl ÉÈáãtéèr ŦŦŦ]",
+      "stressEater": "[Stréèss ÉÈáãtéèr ŦŦŦ]"
+    },
+    "loading": "[Lôöáãdíïng yôöûür prôöfíïléè... ŦŦŦ]",
+    "motivations": {
+      "athletic": "[ÁÃthléètíïc Péèrfôörmáãncéè ŦŦŦ]",
+      "confidence": "[Féèéèl Côönfíïdéènt ŦŦŦ]",
+      "energy": "[Môöréè ÉÈnéèrgy ŦŦŦ]",
+      "family": "[Fáãmíïly Héèáãlth ŦŦŦ]",
+      "longevity": "[Lôöngéèvíïty ŦŦŦ]",
+      "mentalClarity": "[Méèntáãl Cláãríïty ŦŦŦ]",
+      "weightLoss": "[Wéèíïght Lôöss ŦŦŦ]"
+    },
+    "next": "[Néèxt ŦŦŦ]",
+    "saveProfile": "[Sáãvéè Prôöfíïléè ŦŦŦ]",
+    "savedDesc": "[Yôöûür côöáãchíïng prôöfíïléè íïs réèáãdy. ŦŦŦ]",
+    "savedTitle": "[Prôöfíïléè sáãvéèd! ŦŦŦ]",
+    "saving": "[Sáãvíïng... ŦŦŦ]",
+    "steps": {
+      "accountability": {
+        "subtitle": "[Píïck wháãt môötíïváãtéès yôöûü môöst ŦŦŦ]",
+        "title": "[Hôöw shôöûüld wéè hôöld yôöûü áãccôöûüntáãbléè? ŦŦŦ]"
+      },
+      "challenges": {
+        "subtitle": "[Béè hôönéèst — thíïs héèlps ûüs fôöcûüs ôön wháãt áãctûüáãlly máãttéèrs ŦŦŦ]",
+        "title": "[Wháãt áãréè yôöûür bíïggéèst cháãlléèngéès? ŦŦŦ]"
+      },
+      "lifestyle": {
+        "subtitle": "[Séèléèct áãll tháãt áãpply — wéè'll táãíïlôör áãdvíïcéè áãrôöûünd théèséè ŦŦŦ]",
+        "title": "[Whíïch déèscríïbéè yôöûür líïféèstyléè? ŦŦŦ]"
+      },
+      "motivations": {
+        "subtitle": "[Séèléèct áãll tháãt áãpply ŦŦŦ]",
+        "title": "[Wháãt dríïvéès yôöûü? ŦŦŦ]"
+      },
+      "style": {
+        "subtitle": "[Chôöôöséè théè côömmûüníïcáãtíïôön styléè tháãt féèéèls ríïght fôör yôöûü ŦŦŦ]",
+        "title": "[Hôöw wôöûüld yôöûü líïkéè tôö béè côöáãchéèd? ŦŦŦ]"
+      }
+    },
+    "styles": {
+      "balanced": {
+        "desc": "[Míïx ôöf áãll áãpprôöáãchéès ŦŦŦ]",
+        "label": "[Báãláãncéèd ŦŦŦ]"
+      },
+      "direct": {
+        "desc": "[Téèll méè wháãt tôö dôö — nôö flûüff ŦŦŦ]",
+        "label": "[Díïréèct ŦŦŦ]"
+      },
+      "educational": {
+        "desc": "[ÉÈxpláãíïn théè why béèhíïnd éèvéèry chôöíïcéè ŦŦŦ]",
+        "label": "[ÉÈdûücáãtíïôönáãl ŦŦŦ]"
+      },
+      "encouraging": {
+        "desc": "[Pôösíïtíïvéè réèíïnfôörcéèméènt áãnd sûüppôört ŦŦŦ]",
+        "label": "[ÉÈncôöûüráãgíïng ŦŦŦ]"
+      }
+    }
+  },
+  "competitionPicker": {
+    "badgeCarbs": "[Cáãrbs ŦŦŦ]",
+    "categories": {
+      "eggsShakes": "[ÉÈggs & Sháãkéès ŦŦŦ]",
+      "fish": "[Fíïlléèt Fíïsh ŦŦŦ]",
+      "poultry": "[Chíïckéèn & Tûürkéèy ŦŦŦ]",
+      "redmeat": "[Réèd Méèáãt ŦŦŦ]"
+    },
+    "gotIt": "[gôöt íït! ŦŦŦ]",
+    "headerAddTo": "[Côömpéètíïtíïôön Préèp Méèáãls - ÁÃdd tôö {{slot}} ŦŦŦ]",
+    "howToAria": "[Hôöw tôö ûüséè Péèrfôörmáãncéè & Côömpéètíïtíïôön Bûüíïldéèr ŦŦŦ]",
+    "info": {
+      "intro": "[Préè-déèsíïgnéèd áãthléètéè méèáãls ôöptíïmíïzéèd fôör léèáãn mûüscléè bûüíïldíïng áãnd péèrfôörmáãncéè. ŦŦŦ]",
+      "step1Label": "[Séèléèct yôöûür prôötéèíïn cáãtéègôöry ŦŦŦ]",
+      "step1Text": "[(Chíïckéèn, Réèd Méèáãt, Fíïsh, ÉÈggs) ŦŦŦ]",
+      "step2Label": "[Méèáãls áãréè táãggéèd ŦŦŦ]",
+      "step2Text": "[wíïth \"Cáãrbs\" ôör \"P+V\" (Prôötéèíïn + Véèggíïéès) ŦŦŦ]",
+      "step3Label": "[Clíïck áãny méèáãl ŦŦŦ]",
+      "step3Text": "[tôö áãdd íït tôö yôöûür bôöáãrd íïnstáãntly ŦŦŦ]",
+      "step4Label": "[ÁÃll máãcrôös ŦŦŦ]",
+      "step4Text": "[áãréè préè-cáãlcûüláãtéèd áãnd réèáãdy tôö tráãck ŦŦŦ]",
+      "stepsLabel": "[Stéèps: ŦŦŦ]",
+      "tipLabel": "[💡 Tíïp: ŦŦŦ]",
+      "tipText": "[Chôöôöséè méèáãls báãséèd ôön yôöûür dáãíïly cáãrb táãrgéèts - ûüséè \"Cáãrbs\" méèáãls whéèn yôöûü néèéèd éènéèrgy, áãnd \"P+V\" méèáãls fôör lôöwéèr-cáãrb dáãys! ŦŦŦ]",
+      "title": "[Hôöw tôö ÛÜséè Péèrfôörmáãncéè & Côömpéètíïtíïôön Bûüíïldéèr ŦŦŦ]"
+    },
+    "noteDesc": "[Préè-déèsíïgnéèd áãthléètéè méèáãls ôöptíïmíïzéèd fôör léèáãn mûüscléè bûüíïldíïng áãnd péèrfôörmáãncéè. ŦŦŦ]",
+    "noteStep1": "[Séèléèct yôöûür prôötéèíïn cáãtéègôöry (Chíïckéèn, Réèd Méèáãt, Fíïsh, ÉÈggs) ŦŦŦ]",
+    "noteStep2": "[Méèáãls áãréè táãggéèd wíïth \"Cáãrbs\" ôör \"P+V\" (Prôötéèíïn + Véèggíïéès) ŦŦŦ]",
+    "noteStep3": "[Clíïck áãny méèáãl tôö áãdd íït tôö yôöûür bôöáãrd íïnstáãntly ŦŦŦ]",
+    "noteStep4": "[ÁÃll máãcrôös áãréè préè-cáãlcûüláãtéèd áãnd réèáãdy tôö tráãck ŦŦŦ]",
+    "noteTitle": "[Côömpéètíïtíïôön Préèp Méèáãls ŦŦŦ]",
+    "selectCategory": "[Séèléèct Prôötéèíïn Cáãtéègôöry: ŦŦŦ]",
+    "selectCategoryShort": "[Séèléèct Cáãtéègôöry ŦŦŦ]"
+  },
+  "complianceCard": {
+    "biggestOpportunity": "[Bíïggéèst ÔÖppôörtûüníïty ŦŦŦ]",
+    "breakfastLogged": "[Bréèáãkfáãst lôöggéèd ŦŦŦ]",
+    "caloriesOnTarget": "[Cáãlôöríïéès ôön táãrgéèt ŦŦŦ]",
+    "consistencyScore": "[Côönsíïstéèncy Scôöréè ŦŦŦ]",
+    "days": "[dáãys ŦŦŦ]",
+    "dinnerLogged": "[Díïnnéèr lôöggéèd ŦŦŦ]",
+    "last7Days": "[Láãst 7 dáãys ŦŦŦ]",
+    "lastNDays": "[Láãst {{count}} dáãys ŦŦŦ]",
+    "loggedMeals": "[Lôöggéèd méèáãls ŦŦŦ]",
+    "lunchLogged": "[Lûünch lôöggéèd ŦŦŦ]",
+    "noActivity": "[Nôö nûütríïtíïôön áãctíïvíïty réècôördéèd yéèt. Stáãrt lôöggíïng méèáãls tôö séèéè yôöûür péèrsôönáãlíïzéèd áãctíïvíïty sûümmáãry héèréè. ŦŦŦ]",
+    "noMeals": "[Nôö méèáãls lôöggéèd yéèt. Stáãrt réècôördíïng yôöûür méèáãls tôö séèéè yôöûür áãctíïvíïty sûümmáãry. ŦŦŦ]",
+    "ofDays": "[{{value}} ôöf {{total}} ŦŦŦ]",
+    "proteinGoalMet": "[Prôötéèíïn gôöáãl méèt ŦŦŦ]",
+    "setTargets": "[Séèt yôöûür máãcrôö táãrgéèts tôö áãctíïváãtéè fûüll nûütríïtíïôön tráãckíïng. ŦŦŦ]",
+    "title": "[Nûütríïtíïôön ÁÃctíïvíïty Sûümmáãry ŦŦŦ]"
+  },
+  "mealPicker": {
+    "addTo": "[ÁÃdd tôö {{slot}} ŦŦŦ]",
+    "cafeteria": "[Cáãféètéèríïáã ŦŦŦ]",
+    "categories": {
+      "fats": "[Fáãts ŦŦŦ]",
+      "fibrousCarbs": "[Fíïbrôöûüs Cáãrbs ŦŦŦ]",
+      "fruit": "[Frûüíït ŦŦŦ]",
+      "proteins": "[Prôötéèíïns ŦŦŦ]",
+      "starchyCarbs": "[Stáãrchy Cáãrbs ŦŦŦ]"
+    },
+    "close": "[Clôöséè ŦŦŦ]",
+    "generate": "[Géènéèráãtéè ŦŦŦ]",
+    "generateCount": "[Géènéèráãtéè ({{count}}) ŦŦŦ]",
+    "generating": "[Géènéèráãtíïng… ŦŦŦ]",
+    "gotIt": "[gôöt íït! ŦŦŦ]",
+    "howToAria": "[Hôöw tôö ûüséè Méèáãl Píïckéèr ŦŦŦ]",
+    "info": {
+      "addLabel": "[Clíïck tôö áãdd: ŦŦŦ]",
+      "addText": "[Táãp áãny méèáãl cáãrd tôö áãdd íït íïnstáãntly tôö yôöûür {{slot}} slôöt ŦŦŦ]",
+      "browseLabel": "[Brôöwséè méèáãls: ŦŦŦ]",
+      "browseText": "[Scrôöll thrôöûügh ôöûür cûüráãtéèd méèáãl téèmpláãtéès ŦŦŦ]",
+      "cafeteriaLabel": "[Cáãféètéèríïáã ôöptíïôön: ŦŦŦ]",
+      "cafeteriaText": "[Clíïck \"Cáãféètéèríïáã\" fôör áã qûüíïck ráãndôöm méèáãl sûüggéèstíïôön ŦŦŦ]",
+      "intro": "[Qûüíïck áãnd éèáãsy wáãy tôö áãdd préè-máãdéè méèáãls tôö yôöûür pláãn. ŦŦŦ]",
+      "personalizedLabel": "[Péèrsôönáãlíïzéèd: ŦŦŦ]",
+      "personalizedText": "[Méèáãls áãréè fíïltéèréèd báãséèd ôön yôöûür áãlléèrgíïéès áãnd préèféèréèncéès ŦŦŦ]",
+      "tipLabel": "[💡 Tíïp: ŦŦŦ]",
+      "tipText": "[ÛÜséè théè Cáãféètéèríïáã bûüttôön whéèn yôöûü wáãnt áã qûüíïck héèáãlthy sûüggéèstíïôön wíïthôöûüt brôöwsíïng! ŦŦŦ]",
+      "title": "[Hôöw tôö ÛÜséè Méèáãl Píïckéèr ŦŦŦ]"
+    },
+    "lowerGlycemic": "[Lôöwéèr glycéèmíïc íïmpáãct ŦŦŦ]",
+    "quickMeal": "[Qûüíïck {{slot}} Méèáãl ŦŦŦ]",
+    "regularGi": "[Réègûüláãr GÍÏ ŦŦŦ]"
+  },
+  "mealReminders": {
+    "addReminder": "[ÁÃdd méèáãl réèmíïndéèr ŦŦŦ]",
+    "checkAgain": "[Chéèck áãgáãíïn ŦŦŦ]",
+    "checking": "[Chéèckíïng… ŦŦŦ]",
+    "connectionDiagnostics": "[Côönnéèctíïôön díïáãgnôöstíïcs ŦŦŦ]",
+    "footerBlocked": "[Séèt ûüp tíïméès nôöw — nôötíïfíïcáãtíïôöns wíïll áãctíïváãtéè ôöncéè péèrmíïssíïôöns áãréè gráãntéèd. ŦŦŦ]",
+    "footerDefault": "[ÛÜp tôö 6 réèmíïndéèrs. Táãp áã láãbéèl tôö réènáãméè. ŦŦŦ]",
+    "footerEnabled": "[Kéèéèp yôöûür brôöwséèr ôöpéèn fôör réèlíïáãbléè déèlíïvéèry. ŦŦŦ]",
+    "footerNative": "[Táãp áã láãbéèl tôö réènáãméè íït. Réèmíïndéèrs áãréè déèlíïvéèréèd thrôöûügh théè íïÔÖS áãpp. ŦŦŦ]",
+    "mealN": "[Méèáãl {{n}} ŦŦŦ]",
+    "nativeDelivery": "[Náãtíïvéè íïÔÖS déèlíïvéèry ŦŦŦ]",
+    "saving": "[Sáãvíïng… ŦŦŦ]",
+    "statusBlocked": "[Nôötíïfíïcáãtíïôöns blôöckéèd íïn brôöwséèr ŦŦŦ]",
+    "statusConnected": "[Nôötíïfíïcáãtíïôöns côönnéèctéèd ŦŦŦ]",
+    "statusPartial": "[Nôöt fûülly côönnéèctéèd — tôöggléè áã slôöt tôö fíïníïsh séètûüp ŦŦŦ]",
+    "statusPending": "[Tôöggléè áã slôöt tôö éènáãbléè nôötíïfíïcáãtíïôöns ŦŦŦ]",
+    "statusUnsupported": "[Nôöt sûüppôörtéèd by thíïs brôöwséèr ŦŦŦ]",
+    "title": "[Méèáãl Réèmíïndéèrs ŦŦŦ]",
+    "toUnblock": "[Tôö ûünblôöck: ŦŦŦ]",
+    "toastBlockedIosDesc": "[Gôö tôö íïPhôönéè Séèttíïngs › My Péèrféèct Méèáãls › ÁÃllôöw Nôötíïfíïcáãtíïôöns ŦŦŦ]",
+    "toastBlockedTitle": "[Nôötíïfíïcáãtíïôöns blôöckéèd ŦŦŦ]",
+    "toastBlockedWebDesc": "[ÁÃllôöw nôötíïfíïcáãtíïôöns víïáã théè lôöck íïcôön íïn yôöûür áãddréèss báãr, théèn táãp Chéèck áãgáãíïn. ŦŦŦ]",
+    "toastEnableFailedTitle": "[Côöûüldn't éènáãbléè nôötíïfíïcáãtíïôöns ŦŦŦ]",
+    "toastNotSupportedDesc": "[Thíïs brôöwséèr dôöéèsn't sûüppôört pûüsh nôötíïfíïcáãtíïôöns. ŦŦŦ]",
+    "toastNotSupportedTitle": "[Nôöt sûüppôörtéèd ŦŦŦ]",
+    "toastPermissionDenied": "[Péèrmíïssíïôön déèníïéèd. ŦŦŦ]",
+    "toastSaveFailed": "[Côöûüldn't sáãvéè réèmíïndéèrs ŦŦŦ]",
+    "toastTryAgain": "[Try áãgáãíïn íïn áã môöméènt. ŦŦŦ]",
+    "unblockAllow": "[ÁÃllôöw ŦŦŦ]",
+    "unblockLock": "[🔒 lôöck ŦŦŦ]",
+    "unblockNotifications": "[Nôötíïfíïcáãtíïôöns ŦŦŦ]",
+    "unblockStep1After": "[íïn yôöûür brôöwséèr's áãddréèss báãr ŦŦŦ]",
+    "unblockStep1Before": "[Clíïck théè ŦŦŦ]",
+    "unblockStep2Before": "[Séèt ŦŦŦ]",
+    "unblockStep2Mid": "[tôö ŦŦŦ]",
+    "unblockStep3After": "[béèlôöw ŦŦŦ]",
+    "unblockStep3Before": "[Táãp ŦŦŦ]",
+    "unsupportedHint": "[Try Chrôöméè ôör ÉÈdgéè ôön déèsktôöp. Sáãfáãríï ôön íïÔÖS réèqûüíïréès théè áãpp íïnstéèáãd. ŦŦŦ]",
+    "webDelivery": "[Wéèb pûüsh déèlíïvéèry ŦŦŦ]"
+  },
+  "kitchenPartner": {
+    "optSignatureLabel": "[Síïgnáãtûüréè Kíïtchéèn ŦŦŦ]",
+    "optSignatureDesc": "[Yôöûür péèrsôönáãl bráãndéèd kíïtchéèn íïnsíïdéè théè pláãtfôörm ŦŦŦ]",
+    "optProductLabel": "[Prôödûüct ÍÏntéègráãtíïôön ŦŦŦ]",
+    "optProductDesc": "[ÍÏntéègráãtéè yôöûür bráãnd, prôödûücts, ôör sûüppléèméènts ŦŦŦ]",
+    "optWhiteLabelLabel": "[Whíïtéè Láãbéèl ŦŦŦ]",
+    "optWhiteLabelDesc": "[ÁÃ fûülly bráãndéèd pláãtfôörm éèxpéèríïéèncéè ŦŦŦ]",
+    "optRestaurantLabel": "[Réèstáãûüráãnt Grôöûüp ŦŦŦ]",
+    "optRestaurantDesc": "[Mûültíï-lôöcáãtíïôön ôör fráãnchíïséè páãrtnéèrshíïp ŦŦŦ]",
+    "optAthleteLabel": "[ÁÃthléètéè Kíïtchéèn ŦŦŦ]",
+    "optAthleteDesc": "[Péèrfôörmáãncéè áãnd spôört-spéècíïfíïc cûülíïnáãry íïdéèntíïty ŦŦŦ]",
+    "stepIdentity": "[ÍÏdéèntíïty ŦŦŦ]",
+    "stepCulinary": "[Cûülíïnáãry ÍÏdéèntíïty ŦŦŦ]",
+    "stepPlatform": "[Pláãtfôörm ŦŦŦ]",
+    "stepInterest": "[ÍÏntéèréèst ŦŦŦ]",
+    "stepSubmit": "[Sûübmíït ŦŦŦ]",
+    "partnershipReview": "[Páãrtnéèrshíïp Réèvíïéèw ŦŦŦ]",
+    "errorGeneric": "[Sôöméèthíïng wéènt wrôöng. Pléèáãséè try áãgáãíïn. ŦŦŦ]",
+    "errorConnection": "[ÛÜnáãbléè tôö sûübmíït. Pléèáãséè chéèck yôöûür côönnéèctíïôön áãnd try áãgáãíïn. ŦŦŦ]",
+    "identityHeading": "[Téèll ûüs áãbôöûüt yôöûürséèlf. ŦŦŦ]",
+    "identitySub": "[Báãsíïc íïdéèntíïty áãnd côöntáãct íïnfôörmáãtíïôön. ŦŦŦ]",
+    "fullNameLabel": "[Fûüll Náãméè ŦŦŦ]",
+    "fullNamePlaceholder": "[Yôöûür fûüll náãméè ŦŦŦ]",
+    "brandLabel": "[Chéèf / Bráãnd Náãméè ŦŦŦ]",
+    "brandPlaceholder": "[Yôöûür pûüblíïc cûülíïnáãry bráãnd ŦŦŦ]",
+    "emailLabel": "[ÉÈmáãíïl ŦŦŦ]",
+    "phoneLabel": "[Phôönéè ŦŦŦ]",
+    "locationLabel": "[Lôöcáãtíïôön ŦŦŦ]",
+    "locationPlaceholder": "[Cíïty, Stáãtéè / Côöûüntry ŦŦŦ]",
+    "culinaryHeading": "[Yôöûür cûülíïnáãry íïdéèntíïty. ŦŦŦ]",
+    "culinarySub": "[Thíïs sháãpéès hôöw yôöûür kíïtchéèn íïs bûüíïlt íïnsíïdéè théè pláãtfôörm. ŦŦŦ]",
+    "cuisineFocusLabel": "[Cûüíïsíïnéè Fôöcûüs ŦŦŦ]",
+    "cuisineFocusPlaceholder": "[éè.g. Sôöûüthéèrn, Jáãpáãnéèséè, Méèdíïtéèrráãnéèáãn ŦŦŦ]",
+    "cookingPhilosophyLabel": "[Côöôökíïng Phíïlôösôöphy ŦŦŦ]",
+    "cookingPhilosophyPlaceholder": "[Hôöw wôöûüld yôöûü déèscríïbéè yôöûür áãpprôöáãch tôö fôöôöd? ŦŦŦ]",
+    "signatureStylesLabel": "[Síïgnáãtûüréè Styléès ŦŦŦ]",
+    "signatureStylesPlaceholder": "[éè.g. híïgh-prôötéèíïn, côömfôört fôöôöd, pláãnt-fôörwáãrd ŦŦŦ]",
+    "wellnessPhilosophyLabel": "[Wéèllnéèss Phíïlôösôöphy ŦŦŦ]",
+    "wellnessPhilosophyPlaceholder": "[Hôöw dôöéès héèáãlth áãnd nûütríïtíïôön fáãctôör íïntôö yôöûür côöôökíïng? ŦŦŦ]",
+    "platformHeading": "[Whéèréè íïs yôöûür áãûüdíïéèncéè? ŦŦŦ]",
+    "platformSub": "[Sháãréè yôöûür sôöcíïáãl áãnd wéèb préèséèncéè. ÁÃll fíïéèlds ôöptíïôönáãl. ŦŦŦ]",
+    "websiteLabel": "[Wéèbsíïtéè ŦŦŦ]",
+    "interestHeading": "[Wháãt íïntéèréèsts yôöûü? ŦŦŦ]",
+    "interestSub": "[Séèléèct áãll tháãt áãpply. Yôöûü cáãn háãvéè môöréè tháãn ôönéè. ŦŦŦ]",
+    "readyHeading": "[Réèáãdy tôö sûübmíït. ŦŦŦ]",
+    "readySub": "[ÔÖûür páãrtnéèrshíïps téèáãm réèvíïéèws éèvéèry áãpplíïcáãtíïôön péèrsôönáãlly. Yôöûü'll héèáãr frôöm ûüs wíïthíïn 3–5 bûüsíïnéèss dáãys. ŦŦŦ]",
+    "summaryHeading": "[ÁÃpplíïcáãtíïôön Sûümmáãry ŦŦŦ]",
+    "summaryName": "[Náãméè ŦŦŦ]",
+    "summaryBrand": "[Bráãnd ŦŦŦ]",
+    "summaryEmail": "[ÉÈmáãíïl ŦŦŦ]",
+    "summaryCuisine": "[Cûüíïsíïnéè ŦŦŦ]",
+    "summaryInterest": "[ÍÏntéèréèst ŦŦŦ]",
+    "consentText": "[By sûübmíïttíïng, yôöûü áãgréèéè tháãt My Péèrféèct Méèáãls máãy ûüséè théè íïnfôörmáãtíïôön yôöûü'véè prôövíïdéèd tôö éèváãlûüáãtéè yôöûür páãrtnéèrshíïp áãpplíïcáãtíïôön. Nôö côömmíïtméènts áãréè máãdéè ûüntíïl áã fôörmáãl áãgréèéèméènt íïs síïgnéèd. ŦŦŦ]",
+    "submitting": "[Sûübmíïttíïng… ŦŦŦ]",
+    "requestReview": "[Réèqûüéèst Páãrtnéèrshíïp Réèvíïéèw ŦŦŦ]",
+    "successHeading": "[ÁÃpplíïcáãtíïôön Réècéèíïvéèd. ŦŦŦ]",
+    "successSub": "[ÔÖûür páãrtnéèrshíïps téèáãm wíïll réèvíïéèw yôöûür áãpplíïcáãtíïôön áãnd réèáãch ôöûüt wíïthíïn 3–5 bûüsíïnéèss dáãys. Wéè réèvíïéèw éèvéèry áãpplíïcáãtíïôön péèrsôönáãlly. ŦŦŦ]",
+    "contactAt": "[Wéè'll côöntáãct yôöûü áãt ŦŦŦ]",
+    "done": "[Dôönéè ŦŦŦ]",
+    "back": "[Báãck ŦŦŦ]",
+    "next": "[Néèxt ŦŦŦ]"
+  },
+  "safetyPin": {
+    "title": "[Sáãféèty PÍÏN ŦŦŦ]",
+    "sessionExpired": "[Séèssíïôön éèxpíïréèd - pléèáãséè lôög ôöûüt áãnd báãck íïn tôö máãnáãgéè yôöûür PÍÏN ŦŦŦ]",
+    "statusSet": "[PÍÏN íïs séèt - éèxtráã prôötéèctíïôön éènáãbléèd ŦŦŦ]",
+    "statusUnset": "[Nôö PÍÏN séèt - séèt ôönéè fôör éèxtráã prôötéèctíïôön ŦŦŦ]",
+    "changePin": "[Cháãngéè PÍÏN ŦŦŦ]",
+    "removePin": "[Réèmôövéè PÍÏN ŦŦŦ]",
+    "setPin": "[Séèt Sáãféèty PÍÏN ŦŦŦ]",
+    "enterPin": "[ÉÈntéèr PÍÏN ŦŦŦ]",
+    "confirmPin": "[Côönfíïrm PÍÏN ŦŦŦ]",
+    "currentPin": "[Cûürréènt PÍÏN ŦŦŦ]",
+    "newPin": "[Néèw PÍÏN ŦŦŦ]",
+    "confirmNewPin": "[Côönfíïrm Néèw PÍÏN ŦŦŦ]",
+    "removePrompt": "[ÉÈntéèr yôöûür cûürréènt PÍÏN tôö réèmôövéè íït. ŦŦŦ]",
+    "fourDigits": "[4 díïgíïts ŦŦŦ]",
+    "hidePin": "[Híïdéè PÍÏN ŦŦŦ]",
+    "showPin": "[Shôöw PÍÏN ŦŦŦ]",
+    "cancel": "[Cáãncéèl ŦŦŦ]",
+    "setPinBtn": "[Séèt PÍÏN ŦŦŦ]",
+    "changePinBtn": "[Cháãngéè PÍÏN ŦŦŦ]",
+    "removePinBtn": "[Réèmôövéè PÍÏN ŦŦŦ]",
+    "errorFourDigits": "[PÍÏN mûüst béè éèxáãctly 4 díïgíïts ŦŦŦ]",
+    "errorNoMatch": "[PÍÏNs dôö nôöt máãtch ŦŦŦ]",
+    "errorNewFourDigits": "[Néèw PÍÏN mûüst béè éèxáãctly 4 díïgíïts ŦŦŦ]",
+    "errorNewNoMatch": "[Néèw PÍÏNs dôö nôöt máãtch ŦŦŦ]",
+    "errorSetFailed": "[Fáãíïléèd tôö séèt PÍÏN ŦŦŦ]",
+    "errorSetRetry": "[Côöûüld nôöt séèt PÍÏN. Pléèáãséè try áãgáãíïn. ŦŦŦ]",
+    "errorChangeFailed": "[Fáãíïléèd tôö cháãngéè PÍÏN ŦŦŦ]",
+    "errorChangeRetry": "[Côöûüld nôöt cháãngéè PÍÏN. Pléèáãséè try áãgáãíïn. ŦŦŦ]",
+    "errorRemoveFailed": "[Fáãíïléèd tôö réèmôövéè PÍÏN ŦŦŦ]",
+    "errorRemoveRetry": "[Côöûüld nôöt réèmôövéè PÍÏN. Pléèáãséè try áãgáãíïn. ŦŦŦ]",
+    "setToastTitle": "[Sáãféèty PÍÏN Séèt ŦŦŦ]",
+    "setToastDesc": "[Yôöûür Sáãféèty PÍÏN háãs béèéèn créèáãtéèd. ŦŦŦ]",
+    "changeToastTitle": "[PÍÏN Cháãngéèd ŦŦŦ]",
+    "changeToastDesc": "[Yôöûür Sáãféèty PÍÏN háãs béèéèn ûüpdáãtéèd. ŦŦŦ]",
+    "removeToastTitle": "[PÍÏN Réèmôövéèd ŦŦŦ]",
+    "removeToastDesc": "[Yôöûür Sáãféèty PÍÏN háãs béèéèn réèmôövéèd. ŦŦŦ]"
+  },
+  "mfa": {
+    "errorStartSetup": "[Fáãíïléèd tôö stáãrt séètûüp. Pléèáãséè try áãgáãíïn. ŦŦŦ]",
+    "errorInvalidCode": "[ÍÏnváãlíïd côödéè. Try áãgáãíïn. ŦŦŦ]",
+    "errorDisableInvalid": "[ÍÏnváãlíïd côödéè. MFÁÃ nôöt díïsáãbléèd. ŦŦŦ]",
+    "loading": "[Lôöáãdíïng… ŦŦŦ]",
+    "enabledTitle": "[Twôö-fáãctôör áãûüthéèntíïcáãtíïôön éènáãbléèd ŦŦŦ]",
+    "saveBackupPrompt": "[Sáãvéè yôöûür báãckûüp côödéès béèfôöréè clôösíïng thíïs páãgéè. ŦŦŦ]",
+    "backupCodesHeading": "[Báãckûüp Côödéès — sáãvéè théèséè nôöw ŦŦŦ]",
+    "copied": "[Côöpíïéèd! ŦŦŦ]",
+    "copyAllCodes": "[Côöpy áãll côödéès ŦŦŦ]",
+    "backupCodesNote": "[ÉÈáãch côödéè cáãn ôönly béè ûüséèd ôöncéè. Stôöréè théèm sôöméèwhéèréè sáãféè. ÍÏf yôöûü lôöséè áãccéèss tôö yôöûür áãûüthéèntíïcáãtôör áãpp, yôöûü'll néèéèd ôönéè ôöf théèséè tôö síïgn íïn. ŦŦŦ]",
+    "savedBackupBtn": "[ÍÏ'véè sáãvéèd my báãckûüp côödéès ŦŦŦ]",
+    "onTitle": "[Twôö-fáãctôör áãûüthéèntíïcáãtíïôön íïs ôön ŦŦŦ]",
+    "enabledOn": "[ÉÈnáãbléèd {{date}} ŦŦŦ]",
+    "disable2fa": "[Díïsáãbléè 2FÁÃ ŦŦŦ]",
+    "disableTitle": "[Díïsáãbléè twôö-fáãctôör áãûüthéèntíïcáãtíïôön ŦŦŦ]",
+    "disablePrompt": "[ÉÈntéèr yôöûür cûürréènt áãûüthéèntíïcáãtôör côödéè tôö côönfíïrm. ŦŦŦ]",
+    "cancel": "[Cáãncéèl ŦŦŦ]",
+    "disabling": "[Díïsáãblíïng… ŦŦŦ]",
+    "scanTitle": "[Scáãn wíïth yôöûür áãûüthéèntíïcáãtôör áãpp ŦŦŦ]",
+    "scanApps": "[Gôöôögléè ÁÃûüthéèntíïcáãtôör, ÁÃûüthy, ôör 1Páãsswôörd wôörk gréèáãt. ŦŦŦ]",
+    "qrAlt": "[Scáãn thíïs QR côödéè wíïth yôöûür áãûüthéèntíïcáãtôör áãpp ŦŦŦ]",
+    "manualKeyPrompt": "[Cáãn't scáãn? ÉÈntéèr thíïs kéèy máãnûüáãlly: ŦŦŦ]",
+    "addedAccountNext": "[ÍÏ'véè áãddéèd théè áãccôöûünt — néèxt ŦŦŦ]",
+    "confirmTitle": "[Côönfíïrm yôöûür áãûüthéèntíïcáãtôör côödéè ŦŦŦ]",
+    "confirmPrompt": "[ÉÈntéèr théè 6-díïgíït côödéè frôöm yôöûür áãpp tôö áãctíïváãtéè 2FÁÃ. ŦŦŦ]",
+    "activating": "[ÁÃctíïváãtíïng… ŦŦŦ]",
+    "activate2fa": "[ÁÃctíïváãtéè 2FÁÃ ŦŦŦ]",
+    "back": "[Báãck ŦŦŦ]",
+    "defaultTitle": "[Twôö-fáãctôör áãûüthéèntíïcáãtíïôön ŦŦŦ]",
+    "defaultSubtitle": "[ÁÃdd áã séècôönd láãyéèr ôöf séècûüríïty tôö yôöûür áãccôöûünt. ŦŦŦ]",
+    "settingUp": "[Séèttíïng ûüp… ŦŦŦ]",
+    "enable2fa": "[ÉÈnáãbléè 2FÁÃ ŦŦŦ]"
+  },
+  "createWithChef": {
+    "mealCreatedTitle": "[Méèáãl Créèáãtéèd! ŦŦŦ]",
+    "mealCreatedDesc": "[{{name}} íïs réèáãdy fôör yôöûü ŦŦŦ]",
+    "generationFailedTitle": "[Géènéèráãtíïôön Fáãíïléèd ŦŦŦ]",
+    "signInTitle": "[Pléèáãséè síïgn íïn ŦŦŦ]",
+    "signInDesc": "[Yôöûü néèéèd tôö béè síïgnéèd íïn tôö créèáãtéè méèáãls ŦŦŦ]",
+    "guestLimitTitle": "[Gûüéèst líïmíït réèáãchéèd ŦŦŦ]",
+    "guestLimitDesc": "[Créèáãtéè áã fréèéè áãccôöûünt tôö côöntíïnûüéè géènéèráãtíïng méèáãls ŦŦŦ]",
+    "describeMealTitle": "[Pléèáãséè déèscríïbéè yôöûür méèáãl ŦŦŦ]",
+    "describeMealDesc": "[Téèll théè Chéèf wháãt yôöûü'réè íïn théè môöôöd fôör ŦŦŦ]",
+    "enterAlternativeTitle": "[Pléèáãséè éèntéèr áãn áãltéèrnáãtíïvéè ŦŦŦ]",
+    "enterAlternativeDesc": "[Téèll ûüs wháãt yôöûü'd líïkéè íïnstéèáãd ŦŦŦ]",
+    "placeholderBreakfast": "[éè.g., 'prôötéèíïn páãncáãkéès,' 'swéèéèt éèggs wíïth frûüíït,' 'lôöw-cáãrb ôöméèléèttéè' ŦŦŦ]",
+    "placeholderLunch": "[éè.g., 'gríïlléèd chíïckéèn sáãláãd,' 'híïgh-prôötéèíïn wráãp,' 'Méèdíïtéèrráãnéèáãn bôöwl' ŦŦŦ]",
+    "placeholderDinner": "[éè.g., 'lôöw-cáãrb táãcôös,' 'stéèáãk wíïth véègéètáãbléès,' 'sáãlmôön wíïth ríïcéè' ŦŦŦ]",
+    "placeholderDefault": "[éè.g., 'sôöméèthíïng líïght áãnd héèáãlthy,' 'híïgh-prôötéèíïn méèáãl' ŦŦŦ]",
+    "title": "[Créèáãtéè wíïth ÁÃÍÏ Chéèf ŦŦŦ]",
+    "subtitle": "[Téèll théè Chéèf wháãt yôöûü wáãnt fôör {{mealType}} ŦŦŦ]",
+    "starchLimitTitle": "[Stáãrchy Cáãrbs Líïmíït Réèáãchéèd ŦŦŦ]",
+    "starchUsedSingular": "[Yôöûü'véè áãlréèáãdy ûüséèd yôöûür stáãrch méèáãl fôör tôödáãy ({{used}} ôöf {{max}}). ŦŦŦ]",
+    "starchUsedPlural": "[Yôöûü'véè áãlréèáãdy ûüséèd yôöûür stáãrch méèáãls fôör tôödáãy ({{used}} ôöf {{max}}). ŦŦŦ]",
+    "youRequested": "[Yôöûü réèqûüéèstéèd: ŦŦŦ]",
+    "fibrousPrefix": "[Wôöûüld yôöûü líïkéè tôö píïck áã ŦŦŦ]",
+    "fibrousCarb": "[fíïbrôöûüs cáãrb ŦŦŦ]",
+    "fibrousSuffix": "[íïnstéèáãd, ôör léèt théè Chéèf chôöôöséè fôör yôöûü? ŦŦŦ]",
+    "fibrousPlaceholder": "[éè.g., brôöccôölíï, áãspáãráãgûüs, cáãûülíïflôöwéèr... ŦŦŦ]",
+    "generating": "[Géènéèráãtíïng... ŦŦŦ]",
+    "useMyChoice": "[ÛÜséè My Chôöíïcéè ŦŦŦ]",
+    "or": "[ôör ŦŦŦ]",
+    "chefsChoice": "[Chéèf's Chôöíïcéè - Píïck Fôör Méè ŦŦŦ]",
+    "chefSubstituteHint": "[Chéèf wíïll sûübstíïtûütéè wíïth áã déèlíïcíïôöûüs fíïbrôöûüs cáãrb ôöptíïôön ŦŦŦ]",
+    "inputHint": "[Déèscríïbéè wháãt yôöûü'réè cráãvíïng áãnd théè Chéèf wíïll créèáãtéè áã péèrsôönáãlíïzéèd méèáãl fôör yôöûü ŦŦŦ]",
+    "orbCheckingSafety": "[Chéèckíïng sáãféèty prôöfíïléè… ŦŦŦ]",
+    "orbFinishing": "[ÁÃddíïng fíïníïshíïng tôöûüchéès… ŦŦŦ]",
+    "orbPreparing": "[Chéèf íïs préèpáãríïng yôöûür méèáãl… ŦŦŦ]",
+    "mealSafety": "[Méèáãl Sáãféèty ŦŦŦ]",
+    "ingredientControl": "[ÍÏngréèdíïéènt Côöntrôöl ŦŦŦ]",
+    "todaysStarchMeals": "[Tôödáãy's Stáãrch Méèáãls: ŦŦŦ]",
+    "starchUsedCount": "[{{used}} / {{max}} ûüséèd ŦŦŦ]",
+    "generateBtn": "[Géènéèráãtéè ÁÃÍÏ Méèáãl ŦŦŦ]",
+    "stop": "[Stôöp ŦŦŦ]",
+    "cancel": "[Cáãncéèl ŦŦŦ]"
+  },
+  "profileSheet": {
+    "invalidFileTitle": "[ÍÏnváãlíïd fíïléè ŦŦŦ]",
+    "invalidFileDesc": "[Pléèáãséè séèléèct áãn íïmáãgéè fíïléè. ŦŦŦ]",
+    "fileTooLargeTitle": "[Fíïléè tôöôö láãrgéè ŦŦŦ]",
+    "fileTooLargeDesc": "[Pléèáãséè séèléèct áãn íïmáãgéè ûündéèr 5MB. ŦŦŦ]",
+    "photoUpdatedTitle": "[Phôötôö ûüpdáãtéèd ŦŦŦ]",
+    "photoUpdatedDesc": "[Yôöûür prôöfíïléè phôötôö háãs béèéèn ûüpdáãtéèd. ŦŦŦ]",
+    "uploadFailedTitle": "[ÛÜplôöáãd fáãíïléèd ŦŦŦ]",
+    "uploadFailedDesc": "[Fáãíïléèd tôö ûüplôöáãd phôötôö. ŦŦŦ]",
+    "cameraErrorTitle": "[Cáãméèráã éèrrôör ŦŦŦ]",
+    "cameraErrorDesc": "[Côöûüld nôöt áãccéèss cáãméèráã ôör phôötôös. ŦŦŦ]",
+    "restoringTitle": "[Réèstôöríïng Pûürcháãséès... ŦŦŦ]",
+    "restoringDesc": "[Lôöôökíïng fôör áãctíïvéè sûübscríïptíïôöns... ŦŦŦ]",
+    "restoredTitle": "[Pûürcháãséès Réèstôöréèd ŦŦŦ]",
+    "restoredDesc": "[Yôöûür sûübscríïptíïôön háãs béèéèn réèstôöréèd sûüccéèssfûülly. ŦŦŦ]",
+    "restoreCompleteTitle": "[Réèstôöréè Côömpléètéè ŦŦŦ]",
+    "restoreCompleteDesc": "[Nôö áãctíïvéè sûübscríïptíïôön fôöûünd. ÍÏf yôöûü béèlíïéèvéè thíïs íïs áãn éèrrôör, pléèáãséè côöntáãct sûüppôört. ŦŦŦ]",
+    "restoreFailedTitle": "[Réèstôöréè Fáãíïléèd ŦŦŦ]",
+    "restoreFailedDesc": "[ÛÜnáãbléè tôö réèstôöréè pûürcháãséès. Pléèáãséè try áãgáãíïn. ŦŦŦ]",
+    "accountDeletedTitle": "[ÁÃccôöûünt Déèléètéèd ŦŦŦ]",
+    "accountDeletedDesc": "[Yôöûür áãccôöûünt áãnd áãll dáãtáã háãvéè béèéèn péèrmáãnéèntly déèléètéèd. ŦŦŦ]",
+    "deleteFailedDesc": "[Fáãíïléèd tôö déèléètéè áãccôöûünt. Pléèáãséè try áãgáãíïn. ŦŦŦ]",
+    "deleteAccount": "[Déèléètéè ÁÃccôöûünt ŦŦŦ]",
+    "deleteDialogTitle": "[Déèléètéè ÁÃccôöûünt Péèrmáãnéèntly? ŦŦŦ]",
+    "deleteDialogIntro": "[Thíïs áãctíïôön cáãnnôöt béè ûündôönéè. Thíïs wíïll péèrmáãnéèntly déèléètéè: ŦŦŦ]",
+    "deleteItemAccount": "[Yôöûür áãccôöûünt áãnd prôöfíïléè íïnfôörmáãtíïôön ŦŦŦ]",
+    "deleteItemMeals": "[ÁÃll méèáãl pláãns áãnd sáãvéèd réècíïpéès ŦŦŦ]",
+    "deleteItemBiometrics": "[Bíïôöméètríïcs áãnd héèáãlth tráãckíïng dáãtáã ŦŦŦ]",
+    "deleteItemBilling": "[Sûübscríïptíïôön áãnd páãyméènt híïstôöry ŦŦŦ]",
+    "deleting": "[Déèléètíïng... ŦŦŦ]",
+    "deleteMyAccount": "[Déèléètéè My ÁÃccôöûünt ŦŦŦ]"
+  },
+  "inspiration": {
+    "servingsJustMe": "[Jûüst Méè ŦŦŦ]",
+    "servings2": "[2 Péèôöpléè ŦŦŦ]",
+    "servings3": "[3 Péèôöpléè ŦŦŦ]",
+    "servingsFamily": "[Fáãmíïly (4) ŦŦŦ]",
+    "servingsMealPrep": "[Méèáãl Préèp (6) ŦŦŦ]",
+    "copilotTitle": "[Réècíïpéè Máãkéèr ŦŦŦ]",
+    "copilotDescription": "[Séèéè íït. Sáãy íït. Séènd íït. Wéè'll máãkéè íït yôöûürs. ŦŦŦ]",
+    "copilotSpokenText": "[Réècíïpéè Máãkéèr íïs ôönéè ôöf théè môöst pôöwéèrfûül tôöôöls íïn théè áãpp. Théè íïdéèáã íïs síïmpléè: yôöûü séèéè fôöôöd sôöméèwhéèréè — áã TíïkTôök, áãn ÍÏnstáãgráãm sáãvéè, áã côöôökbôöôök, áã méènûü, ôör éèvéèn jûüst sôöméèthíïng íïn yôöûür íïmáãgíïnáãtíïôön — áãnd íïnstéèáãd ôöf léèttíïng tháãt môöméènt páãss, yôöûü bríïng íït héèréè áãnd wéè bûüíïld íït fôör yôöûü. Yôöûü háãvéè fôöûür wáãys tôö bríïng íïn yôöûür íïdéèáã. Chôöôöséè Phôötôö léèts yôöûü píïck áãny scréèéènshôöt ôör sáãvéèd fôöôöd íïmáãgéè frôöm yôöûür gáãlléèry — tháãt côövéèrs TíïkTôök scréèéènshôöts, ÍÏnstáãgráãm sáãvéès, Píïntéèréèst bôöáãrds, Fáãcéèbôöôök réècíïpéès, áãnythíïng áãlréèáãdy ôön yôöûür déèvíïcéè. Cáãméèráã ôöpéèns yôöûür déèvíïcéè líïvéè sôö yôöûü cáãn pôöíïnt íït áãt áã côöôökbôöôök, áã méènûü, ôör áã scréèéèn. Spéèáãk léèts yôöûü déèscríïbéè théè méèáãl ôöûüt lôöûüd, éèxáãctly théè wáãy yôöûü wôöûüld téèll áã fríïéènd áãbôöûüt íït. Typéè léèts yôöûü páãstéè áã déèscríïptíïôön ôör wríïtéè ôöûüt wháãt yôöûü háãvéè íïn míïnd. Héèréè íïs wháãt máãkéès Réècíïpéè Máãkéèr díïfféèréènt: yôöûü dôö nôöt néèéèd théè réècíïpéè. ÍÏf yôöûü cáãn shôöw íït ôör déèscríïbéè íït, wéè cáãn créèáãtéè íït. ÔÖncéè yôöûü sûübmíït yôöûür íïdéèáã, Réècíïpéè Máãkéèr dôöéès nôöt gíïvéè yôöûü ôönéè réèsûült. ÍÏt bûüíïlds thréèéè côömpléètéèly péèrsôönáãlíïzéèd véèrsíïôöns ôöf yôöûür íïdéèáã áãt théè sáãméè tíïméè — sáãméè díïsh, thréèéè díïfféèréènt íïntéèrpréètáãtíïôöns — éèáãch ôönéè fûülly bûüíïlt áãrôöûünd yôöûür máãcrôö táãrgéèts, áãlléèrgíïéès, díïéètáãry íïdéèntíïty, áãnd éèvéèry áãctíïvéè héèáãlth prôötôöcôöl ôön yôöûür áãccôöûünt. Yôöûü séèéè áãll thréèéè, yôöûü cáãn sáãvéè áãny ôör áãll ôöf théèm, áãnd yôöûür chôöíïcéès stáãy ôön théè dáãshbôöáãrd ûüntíïl yôöûü déècíïdéè tôö cléèáãr théèm. Théè áãpp néèvéèr réèmôövéès théèm áãûütôömáãtíïcáãlly. ŦŦŦ]",
+    "hintAuthentic": "[Kéèéèp théè ôöríïgíïnáãl fláãvôörs áãnd íïngréèdíïéènts áãs clôöséè áãs pôössíïbléè. ŦŦŦ]",
+    "hintBalanced": "[Péèrsôönáãlíïzéè tôö yôöûür prôöfíïléè whíïléè préèséèrvíïng théè spíïríït ôöf théè díïsh. ŦŦŦ]",
+    "hintHealthier": "[ÔÖptíïmíïzéè áãggréèssíïvéèly fôör nûütríïtíïôön whíïléè kéèéèpíïng théè díïsh réècôögníïzáãbléè. ŦŦŦ]",
+    "analysisFailed": "[ÁÃnáãlysíïs fáãíïléèd ŦŦŦ]",
+    "analyzeFailedMsg": "[Fáãíïléèd tôö áãnáãlyzéè íïngréèdíïéènts. ŦŦŦ]",
+    "imageReadError": "[Côöûüld nôöt réèáãd théè íïmáãgéè. Pléèáãséè try áãgáãíïn. ŦŦŦ]",
+    "voiceNotSupportedTitle": "[Vôöíïcéè nôöt sûüppôörtéèd ŦŦŦ]",
+    "voiceNotSupportedDesc": "[Yôöûür brôöwséèr dôöéèsn't sûüppôört vôöíïcéè íïnpûüt. Try typíïng íïnstéèáãd. ŦŦŦ]",
+    "micErrorTitle": "[Míïcrôöphôönéè éèrrôör ŦŦŦ]",
+    "micErrorDesc": "[Pléèáãséè try áãgáãíïn. ŦŦŦ]",
+    "somethingWrong": "[Sôöméèthíïng wéènt wrôöng ŦŦŦ]",
+    "createFailedMsg": "[Fáãíïléèd tôö créèáãtéè yôöûür péèrsôönáãlíïzéèd méèáãl. ŦŦŦ]",
+    "saveFailedError": "[Fáãíïléèd tôö sáãvéè ŦŦŦ]",
+    "savedTitle": "[Sáãvéèd! ŦŦŦ]",
+    "savedDesc": "[ÁÃddéèd tôö yôöûür Réècíïpéè Máãkéèr sáãvéès íïn Fáãvôöríïtéès. ŦŦŦ]",
+    "saveFailedTitle": "[Sáãvéè fáãíïléèd ŦŦŦ]",
+    "scanFoodFor": "[Scáãn Fôöôöd Fôör {{name}} ŦŦŦ]",
+    "productScan": "[Prôödûüct Scáãn ŦŦŦ]",
+    "customizeMeal": "[Cûüstôömíïzéè Yôöûür Méèáãl ŦŦŦ]",
+    "recipeMaker": "[Réècíïpéè Máãkéèr ŦŦŦ]",
+    "analyzeForCompanion": "[ÁÃnáãlyzéè íïngréèdíïéènts fôör {{name}} ŦŦŦ]",
+    "analyzeBeforeBuy": "[ÁÃnáãlyzéè íïngréèdíïéènts béèfôöréè yôöûü bûüy ŦŦŦ]",
+    "optionsSubtitle": "[ÁÃdjûüst théèséè béèfôöréè wéè géènéèráãtéè yôöûür péèrsôönáãlíïzéèd véèrsíïôön. ŦŦŦ]",
+    "captureSubtitle": "[Scáãn áãny méèáãl íïdéèáã áãnd wéè'll péèrsôönáãlíïzéè íït fôör yôöûü. ŦŦŦ]",
+    "choosePhoto": "[Chôöôöséè Phôötôö ŦŦŦ]",
+    "cameraPill": "[Cáãméèráã ŦŦŦ]",
+    "speakPill": "[Spéèáãk ŦŦŦ]",
+    "typePill": "[Typéè ŦŦŦ]",
+    "uploadHint": "[Píïck áã scréèéènshôöt, sáãvéèd fôöôöd phôötôö, ôör íïmáãgéè frôöm yôöûür cáãméèráã rôöll ôör gáãlléèry. ŦŦŦ]",
+    "chooseFromGallery": "[Chôöôöséè frôöm Gáãlléèry ŦŦŦ]",
+    "galleryHint": "[Scréèéènshôöts, sáãvéèd phôötôös, áãny fôöôöd íïmáãgéè ŦŦŦ]",
+    "cameraHint": "[Pôöíïnt yôöûür cáãméèráã áãt áãny réècíïpéè, méènûü, scréèéèn, ôör fôöôöd phôötôö. ŦŦŦ]",
+    "openCamera": "[ÔÖpéèn Cáãméèráã ŦŦŦ]",
+    "cameraSubHint": "[Táãkéè áã líïvéè phôötôö ôöf áãny fôöôöd íïdéèáã ŦŦŦ]",
+    "voiceHint": "[Déèscríïbéè théè méèáãl ôöûüt lôöûüd — íïngréèdíïéènts, styléè, áãnythíïng yôöûü réèméèmbéèr. ŦŦŦ]",
+    "tapToStop": "[Táãp tôö stôöp ŦŦŦ]",
+    "tapToSpeak": "[Táãp tôö spéèáãk ŦŦŦ]",
+    "nextCustomize": "[Néèxt — Cûüstôömíïzéè → ŦŦŦ]",
+    "textHint": "[Typéè ôör páãstéè áã méèáãl íïdéèáã, réècíïpéè déèscríïptíïôön, ôör díïsh náãméè. ŦŦŦ]",
+    "textPlaceholder": "[éè.g. Lôöáãdéèd bûüffáãlôö chíïckéèn bôöwl wíïth ríïcéè, áãvôöcáãdôö, áãnd ráãnch… ŦŦŦ]",
+    "servingsHeading": "[Séèrvíïngs ŦŦŦ]",
+    "adaptationStyleHeading": "[ÁÃdáãptáãtíïôön Styléè ŦŦŦ]",
+    "authentic": "[ÁÃûüthéèntíïc ŦŦŦ]",
+    "balanced": "[Báãláãncéèd ŦŦŦ]",
+    "healthier": "[Héèáãlthíïéèr ŦŦŦ]",
+    "proteinLevelHeading": "[Prôötéèíïn Léèvéèl ŦŦŦ]",
+    "proteinStandard": "[Stáãndáãrd ŦŦŦ]",
+    "proteinHigh": "[Híïgh Prôötéèíïn ŦŦŦ]",
+    "proteinAthlete": "[ÁÃthléètéè ŦŦŦ]",
+    "prepStyleHeading": "[Préèp Styléè ŦŦŦ]",
+    "prepOriginal": "[ÔÖríïgíïnáãl Préèp ŦŦŦ]",
+    "prepEasy": "[ÉÈáãsy Préèp ŦŦŦ]",
+    "cuisineStyleHeading": "[Cûüíïsíïnéè Styléè ŦŦŦ]",
+    "generateMyVersion": "[Géènéèráãtéè My Véèrsíïôön ŦŦŦ]",
+    "analyzingIngredients": "[ÁÃnáãlyzíïng íïngréèdíïéènts… ŦŦŦ]",
+    "buildingVersion": "[Bûüíïldíïng yôöûür véèrsíïôön… ŦŦŦ]",
+    "checkingCompanionProfile": "[Chéèckíïng áãgáãíïnst {{name}}'s prôöfíïléè ŦŦŦ]",
+    "checkingYourProfile": "[Chéèckíïng áãgáãíïnst yôöûür prôöfíïléè ŦŦŦ]",
+    "adaptingProfile": "[ÁÃdáãptíïng tôö yôöûür nûütríïtíïôönáãl prôöfíïléè ŦŦŦ]",
+    "versionsReady": "[{{count}} véèrsíïôöns réèáãdy ŦŦŦ]",
+    "savedCount": "[ · {{count}} sáãvéèd ŦŦŦ]",
+    "deleteScan": "[Déèléètéè thíïs scáãn ŦŦŦ]",
+    "tapAnotherHint": "[Táãp áãnôöthéèr tôö sáãvéè íït tôöôö, ôör clôöséè áãnd côöméè báãck láãtéèr. ŦŦŦ]",
+    "tapSelectHint": "[Táãp ôönéè tôö séèléèct, théèn sáãvéè. Côöméè báãck áãnytíïméè — théèséè stáãy héèréè ûüntíïl yôöûü déèléètéè théèm. ŦŦŦ]",
+    "adaptedForStrategy": "[ÁÃdáãptéèd fôör Tôödáãy's Nûütríïtíïôön Stráãtéègy ŦŦŦ]",
+    "calValue": "[{{value}} cáãl ŦŦŦ]",
+    "proteinValue": "[{{value}}g prôötéèíïn ŦŦŦ]",
+    "carbsValue": "[{{value}}g cáãrbs ŦŦŦ]",
+    "saving": "[Sáãvíïng… ŦŦŦ]",
+    "saveAgain": "[Sáãvéè ÁÃgáãíïn ŦŦŦ]",
+    "saveThisVersion": "[Sáãvéè Thíïs Véèrsíïôön ŦŦŦ]",
+    "try3More": "[Try 3 Môöréè ŦŦŦ]",
+    "viewSavedMeals": "[Víïéèw sáãvéèd méèáãls íïn Fáãvôöríïtéès → ŦŦŦ]",
+    "personalizedReady": "[Yôöûür péèrsôönáãlíïzéèd véèrsíïôön íïs réèáãdy. ŦŦŦ]",
+    "macroCal": "[Cáãl ŦŦŦ]",
+    "macroProtein": "[Prôötéèíïn ŦŦŦ]",
+    "macroCarbs": "[Cáãrbs ŦŦŦ]",
+    "macroFat": "[Fáãt ŦŦŦ]",
+    "savedCheck": "[Sáãvéèd ✓ ŦŦŦ]",
+    "saveToFavorites": "[Sáãvéè tôö Fáãvôöríïtéès ŦŦŦ]",
+    "scanAnother": "[Scáãn ÁÃnôöthéèr ŦŦŦ]",
+    "viewInFavorites": "[Víïéèw íïn Fáãvôöríïtéès → ŦŦŦ]"
+  },
+  "parentsCorner": {
+    "title": "[Páãréènt's Côörnéèr ŦŦŦ]",
+    "yourChild": "[yôöûür chíïld ŦŦŦ]",
+    "helpingBuildHabits": "[Héèlpíïng {{name}} bûüíïld héèáãlthy háãbíïts ŦŦŦ]",
+    "backToBeginnings": "[Báãck tôö My Péèrféèct Béègíïnníïngs ŦŦŦ]",
+    "startFresh": "[Stáãrt fréèsh ŦŦŦ]",
+    "startNewConversation": "[Stáãrt áã néèw côönvéèrsáãtíïôön ŦŦŦ]",
+    "clearConfirm": "[Cléèáãr thíïs côönvéèrsáãtíïôön áãnd stáãrt fréèsh? ŦŦŦ]",
+    "clear": "[Cléèáãr ŦŦŦ]",
+    "cancel": "[Cáãncéèl ŦŦŦ]",
+    "dismiss": "[Díïsmíïss ŦŦŦ]",
+    "boundaryLanguage": "[ÍÏ cáãn sháãréè éèvíïdéèncéè-báãséèd nûütríïtíïôön gûüíïdáãncéè tôö sûüppôört yôöûür fáãmíïly. Fôör méèdíïcáãl côöncéèrns, yôöûür chíïld's péèdíïáãtríïcíïáãn ôör áã réègíïstéèréèd péèdíïáãtríïc díïéètíïtíïáãn íïs áãlwáãys théè ríïght néèxt stéèp — ÍÏ'll léèt yôöûü knôöw whéèn sôöméèthíïng sôöûünds líïkéè íït néèéèds tháãt côönvéèrsáãtíïôön. ŦŦŦ]",
+    "todaysTip": "[Tôödáãy's Tíïp ŦŦŦ]",
+    "loadingConversation": "[Lôöáãdíïng yôöûür côönvéèrsáãtíïôön… ŦŦŦ]",
+    "commonQuestions": "[Côömmôön qûüéèstíïôöns ŦŦŦ]",
+    "browseCommonQuestions": "[Brôöwséè côömmôön qûüéèstíïôöns ŦŦŦ]",
+    "followUp": "[Fôöllôöw-ûüp ŦŦŦ]",
+    "makeItNow": "[Máãkéè íït nôöw ŦŦŦ]",
+    "thinking": "[Thíïnkíïng… ŦŦŦ]",
+    "emptyPrompt": "[Táãp áã cáãrd áãbôövéè ôör áãsk áãnythíïng béèlôöw. ŦŦŦ]",
+    "askAnything": "[ÁÃsk áãnythíïng ŦŦŦ]",
+    "inputPlaceholder": "[Typéè yôöûür qûüéèstíïôön héèréè… ŦŦŦ]",
+    "send": "[Séènd ŦŦŦ]",
+    "noResponse": "[ÍÏ'm sôörry, ÍÏ díïdn't géèt áã réèspôönséè. Pléèáãséè try áãgáãíïn. ŦŦŦ]",
+    "connectionError": "[ÍÏ'm háãvíïng áã líïttléè trôöûübléè ríïght nôöw. Pléèáãséè chéèck yôöûür côönnéèctíïôön áãnd try áãgáãíïn. ŦŦŦ]",
+    "stage": {
+      "earlyInfant": "[ÉÈáãrly ÍÏnfáãnt ŦŦŦ]",
+      "beginningFoods": "[Béègíïnníïng Fôöôöds ŦŦŦ]",
+      "youngToddler": "[Yôöûüng Tôöddléèr ŦŦŦ]",
+      "toddler": "[Tôöddléèr ŦŦŦ]",
+      "preschool": "[Préèschôöôöl ŦŦŦ]",
+      "earlySchoolAge": "[ÉÈáãrly Schôöôöl ÁÃgéè ŦŦŦ]",
+      "growingChild": "[Grôöwíïng Chíïld ŦŦŦ]"
+    },
+    "cards": {
+      "babyWontEat": {
+        "label": "[My báãby wôön't éèáãt. ŦŦŦ]",
+        "question": "[My báãby wôön't éèáãt. Wháãt shôöûüld ÍÏ dôö? ŦŦŦ]"
+      },
+      "toddlerHatesVegetables": {
+        "label": "[My tôöddléèr háãtéès véègéètáãbléès. ŦŦŦ]",
+        "question": "[My tôöddléèr háãtéès véègéètáãbléès. Hôöw dôö ÍÏ géèt théèm tôö éèáãt môöréè? ŦŦŦ]"
+      },
+      "lunchPacking": {
+        "label": "[Wháãt shôöûüld ÍÏ páãck fôör lûünch? ŦŦŦ]",
+        "question": "[Wháãt áãréè sôöméè íïdéèáãs fôör páãckíïng áã héèáãlthy áãnd áãppéèáãlíïng lûünch? ŦŦŦ]"
+      },
+      "healthySnacks": {
+        "label": "[Héèáãlthy snáãcks áãftéèr schôöôöl. ŦŦŦ]",
+        "question": "[Wháãt áãréè sôöméè héèáãlthy snáãck íïdéèáãs fôör áãftéèr schôöôöl? ŦŦŦ]"
+      },
+      "calcium": {
+        "label": "[ÍÏs my chíïld géèttíïng éènôöûügh cáãlcíïûüm? ŦŦŦ]",
+        "question": "[ÍÏs my chíïld géèttíïng éènôöûügh cáãlcíïûüm? Hôöw dôö ÍÏ máãkéè sûüréè? ŦŦŦ]"
+      },
+      "introducingFoods": {
+        "label": "[Hôöw dôö ÍÏ íïntrôödûücéè néèw fôöôöds? ŦŦŦ]",
+        "question": "[Hôöw dôö ÍÏ íïntrôödûücéè néèw fôöôöds wíïthôöûüt íït béècôömíïng áã báãttléè? ŦŦŦ]"
+      },
+      "youngAthlete": {
+        "label": "[Wháãt shôöûüld my yôöûüng áãthléètéè éèáãt? ŦŦŦ]",
+        "question": "[My chíïld pláãys spôörts. Wháãt shôöûüld théèy éèáãt béèfôöréè áãnd áãftéèr práãctíïcéè? ŦŦŦ]"
+      },
+      "waterIntake": {
+        "label": "[Hôöw mûüch wáãtéèr dôöéès my chíïld néèéèd? ŦŦŦ]",
+        "question": "[Hôöw mûüch wáãtéèr shôöûüld my chíïld béè dríïnkíïng éèáãch dáãy? ŦŦŦ]"
+      },
+      "pizza": {
+        "label": "[Cáãn my chíïld stíïll háãvéè píïzzáã? ŦŦŦ]",
+        "question": "[Cáãn my chíïld stíïll háãvéè píïzzáã áãnd ôöthéèr fûün fôöôöds, ôör shôöûüld ÍÏ béè stríïctéèr? ŦŦŦ]"
+      }
+    }
+  },
+  "bodyComposition": {
+    "title": "[Réècôörd Bôödy Côömpôösíïtíïôön ŦŦŦ]",
+    "bodyFatPct": "[Bôödy Fáãt % ŦŦŦ]",
+    "bodyFatPlaceholder": "[éè.g. 18.5 ŦŦŦ]",
+    "goalBodyFatPct": "[Gôöáãl Bôödy Fáãt % (ôöptíïôönáãl) ŦŦŦ]",
+    "goalBodyFatPlaceholder": "[éè.g. 15 ŦŦŦ]",
+    "scanMethod": "[Scáãn Méèthôöd ŦŦŦ]",
+    "pickMethod": "[Píïck áã méèthôöd ŦŦŦ]",
+    "date": "[Dáãtéè ŦŦŦ]",
+    "save": "[Sáãvéè ŦŦŦ]",
+    "saving": "[Sáãvíïng... ŦŦŦ]",
+    "notLoggedIn": "[Nôöt lôöggéèd íïn ŦŦŦ]",
+    "notLoggedInDesc": "[Pléèáãséè lôög íïn tôö sáãvéè yôöûür bôödy côömpôösíïtíïôön dáãtáã. ŦŦŦ]",
+    "invalidBodyFat": "[ÍÏnváãlíïd bôödy fáãt ŦŦŦ]",
+    "invalidBodyFatDesc": "[Bôödy fáãt péèrcéèntáãgéè mûüst béè béètwéèéèn 1% áãnd 70%. ŦŦŦ]",
+    "saved": "[Sáãvéèd ŦŦŦ]",
+    "savedDesc": "[Bôödy côömpôösíïtíïôön réècôördéèd sûüccéèssfûülly. ŦŦŦ]",
+    "saveFailed": "[Sáãvéè fáãíïléèd ŦŦŦ]",
+    "saveFailedDesc": "[Côöûüld nôöt sáãvéè yôöûür bôödy côömpôösíïtíïôön dáãtáã. Pléèáãséè try áãgáãíïn. ŦŦŦ]"
+  },
+  "sponsorEnded": {
+    "launchProCare": "[Láãûünch yôöûür íïndéèpéèndéènt PrôöCáãréè áãccôöûünt ŦŦŦ]",
+    "openStudio": "[ÔÖpéèn yôöûür íïndéèpéèndéènt stûüdíïôö ŦŦŦ]",
+    "completeVerification": "[Côömpléètéè créèdéèntíïáãl véèríïfíïcáãtíïôön ŦŦŦ]",
+    "continueTraining": "[Côöntíïnûüéè Pláãtfôörm Máãstéèry tráãíïníïng ŦŦŦ]",
+    "startOwnPractice": "[Stáãrt My ÔÖwn Práãctíïcéè ŦŦŦ]",
+    "continueAsClient": "[Côöntíïnûüéè áãs áã Clíïéènt ŦŦŦ]",
+    "continueAsClientDesc": "[Kéèéèp ûüsíïng MPM áãs áãn íïndíïvíïdûüáãl méèmbéèr ŦŦŦ]",
+    "continueWithFree": "[Côöntíïnûüéè wíïth Fréèéè ŦŦŦ]",
+    "continueWithFreeDesc": "[Báãsíïc méèáãl géènéèráãtíïôön — áãlwáãys fréèéè ŦŦŦ]",
+    "joinAnotherOrg": "[Jôöíïn ÁÃnôöthéèr ÔÖrgáãníïzáãtíïôön ŦŦŦ]",
+    "joinAnotherOrgDesc": "[ÁÃccéèpt áãn íïnvíïtéè frôöm áã díïfféèréènt bûüsíïnéèss ŦŦŦ]",
+    "accessEnded": "[Yôöûür {{business}}-spôönsôöréèd áãccéèss háãs éèndéèd ŦŦŦ]",
+    "accessEndedBody": "[Yôöûür péèrsôönáãl áãccôöûünt, méèáãl híïstôöry, ÁÃcáãdéèmy prôögréèss, áãnd céèrtíïfíïcáãtíïôöns áãréè áãll stíïll héèréè. Chôöôöséè hôöw yôöûü'd líïkéè tôö côöntíïnûüéè. ŦŦŦ]"
+  },
+  "dietStyleBadge": {
+    "kosher": "[Kôöshéèr ✓ ŦŦŦ]",
+    "halal": "[Háãláãl ✓ ŦŦŦ]",
+    "vegan": "[Véègáãn ✓ ŦŦŦ]",
+    "vegetarian": "[Véègéètáãríïáãn ✓ ŦŦŦ]",
+    "pescatarian": "[Péèscáãtáãríïáãn ✓ ŦŦŦ]",
+    "mediterranean": "[Méèdíïtéèrráãnéèáãn ✓ ŦŦŦ]",
+    "paleo": "[Páãléèôö ✓ ŦŦŦ]",
+    "keto": "[Kéètôö ✓ ŦŦŦ]",
+    "carnivore": "[Cáãrníïvôöréè ✓ ŦŦŦ]",
+    "dairyFree": "[Dáãíïry-Fréèéè ✓ ŦŦŦ]",
+    "custom": "[Cûüstôöm Díïéèt ✓ ŦŦŦ]"
+  },
+  "pregnancySupport": {
+    "title": "[My Péèrféèct Préègnáãncy Séètûüp ŦŦŦ]",
+    "intro": "[Thíïs héèlps péèrsôönáãlíïzéè yôöûür nûütríïtíïôön gûüíïdáãncéè. Yôöûür íïnfôörmáãtíïôön stáãys príïváãtéè áãnd sháãpéès éèvéèry méèáãl sûüggéèstíïôön, fôöôöd sáãféèty chéèck, áãnd côöáãchíïng réèspôönséè. ŦŦŦ]",
+    "whereAreYou": "[Whéèréè áãréè yôöûü íïn yôöûür jôöûürnéèy? ŦŦŦ]",
+    "breastfeedingQuestion": "[ÁÃréè yôöûü cûürréèntly bréèáãstféèéèdíïng? ŦŦŦ]",
+    "breastfeedingHelp": "[Thíïs sháãpéès yôöûür nûütríïtíïôön tráãck. Bréèáãstféèéèdíïng áãnd pôöstpáãrtûüm réècôövéèry háãvéè díïfféèréènt príïôöríïtíïéès — wéè háãndléè théèm séèpáãráãtéèly. ŦŦŦ]",
+    "yesBreastfeeding": "[Yéès, bréèáãstféèéèdíïng ŦŦŦ]",
+    "noBreastfeeding": "[Nôö, nôöt bréèáãstféèéèdíïng ŦŦŦ]",
+    "breastfeedingNote": "[Yôöûü'll géèt míïlk-prôödûüctíïôön nûütríïtíïôön plûüs áã réècôövéèry láãyéèr fôör héèáãlíïng áãnd réèbûüíïldíïng. ŦŦŦ]",
+    "postpartumNote": "[Yôöûü'll géèt áã déèdíïcáãtéèd pôöstpáãrtûüm réècôövéèry prôötôöcôöl — fíïbéèr, áãntíï-íïnfláãmmáãtôöry éèáãtíïng, hôörmôönéè sûüppôört, áãnd bôödy réècôömpôösíïtíïôön. Nôö cráãsh díïéètíïng. ŦŦŦ]",
+    "trackByDueDate": "[Tráãck by dûüéè dáãtéè? ŦŦŦ]",
+    "trackByDueDateHelp": "[Whéèn yôöûü éèntéèr yôöûür dûüéè dáãtéè, yôöûür cûürréènt wéèéèk áãnd tríïméèstéèr ûüpdáãtéè áãûütôömáãtíïcáãlly. Yôöûü cáãn skíïp thíïs áãnd tráãck máãnûüáãlly. ŦŦŦ]",
+    "yesEnterDueDate": "[Yéès, éèntéèr dûüéè dáãtéè ŦŦŦ]",
+    "skipManual": "[Skíïp — máãnûüáãl stáãgéè ôönly ŦŦŦ]",
+    "dueDatePlaceholder": "[Dûüéè dáãtéè (YYYY-MM-DD) ŦŦŦ]",
+    "activeSymptoms": "[ÁÃny áãctíïvéè symptôöms? ŦŦŦ]",
+    "activeSymptomsHelp": "[Séèléèct áãll tháãt áãpply — yôöûür méèáãl sûüggéèstíïôöns wíïll áãdáãpt tôö sûüppôört théèm. ŦŦŦ]",
+    "disclaimerPart1": "[My Péèrféèct Préègnáãncy prôövíïdéès géènéèráãl nûütríïtíïôön éèdûücáãtíïôön áãnd fôöôöd-strûüctûüréè sûüppôört ôönly. ÍÏt íïs ŦŦŦ]",
+    "disclaimerNotSubstitute": "[nôöt áã sûübstíïtûütéè ŦŦŦ]",
+    "disclaimerPart2": "[fôör yôöûür ÔÖB/GYN, míïdwíïféè, ôör réègíïstéèréèd díïéètíïtíïáãn. ÁÃlwáãys fôöllôöw yôöûür héèáãlthcáãréè prôövíïdéèr's réècôömméèndáãtíïôöns fíïrst. ŦŦŦ]",
+    "saveButton": "[Sáãvéè My Préègnáãncy Séètûüp ŦŦŦ]",
+    "savingButton": "[Sáãvíïng… ŦŦŦ]",
+    "savedButton": "[✓ Sáãvéèd! ŦŦŦ]",
+    "turnOff": "[Tûürn ôöff préègnáãncy nûütríïtíïôön ŦŦŦ]",
+    "turnOffConfirm": "[Tûürn ôöff préègnáãncy nûütríïtíïôön? ŦŦŦ]",
+    "turnOffHelp": "[Thíïs wíïll réèmôövéè préègnáãncy-spéècíïfíïc gûüíïdáãncéè frôöm yôöûür méèáãls áãnd côöáãchíïng. Yôöûü cáãn tûürn íït báãck ôön whéènéèvéèr yôöûü'réè réèáãdy — nôö jûüdgméènt, nôö qûüéèstíïôöns. ŦŦŦ]",
+    "turningOff": "[Tûürníïng ôöff… ŦŦŦ]",
+    "yesTurnOff": "[Yéès, tûürn íït ôöff ŦŦŦ]",
+    "keepItOn": "[Kéèéèp íït ôön ŦŦŦ]",
+    "stage": {
+      "tryingToConceive": {
+        "label": "[Tryíïng tôö Côöncéèíïvéè ŦŦŦ]",
+        "desc": "[Préècôöncéèptíïôön nûütríïtíïôön ŦŦŦ]"
+      },
+      "trimester1": {
+        "label": "[Fíïrst Tríïméèstéèr ŦŦŦ]",
+        "desc": "[Wéèéèks 1–13 · Fôöláãtéè, náãûüséèáã sûüppôört ŦŦŦ]"
+      },
+      "trimester2": {
+        "label": "[Séècôönd Tríïméèstéèr ŦŦŦ]",
+        "desc": "[Wéèéèks 14–27 · Prôötéèíïn, cáãlcíïûüm, DHÁÃ ŦŦŦ]"
+      },
+      "trimester3": {
+        "label": "[Thíïrd Tríïméèstéèr ŦŦŦ]",
+        "desc": "[Wéèéèks 28–40 · ÍÏrôön, DHÁÃ, préèp fôör bíïrth ŦŦŦ]"
+      },
+      "breastfeeding": {
+        "label": "[Bréèáãstféèéèdíïng ŦŦŦ]",
+        "desc": "[Míïlk prôödûüctíïôön, DHÁÃ, íïôödíïnéè, cáãlcíïûüm ŦŦŦ]"
+      },
+      "postpartum": {
+        "label": "[Pôöstpáãrtûüm ŦŦŦ]",
+        "desc": "[Réècôövéèry, bôödy réècôömpôösíïtíïôön, hôörmôönéè sûüppôört, stréèngth ŦŦŦ]"
+      }
+    },
+    "symptom": {
+      "nausea": "[Náãûüséèáã ŦŦŦ]",
+      "heartburn": "[Héèáãrtbûürn ŦŦŦ]",
+      "constipation": "[Côönstíïpáãtíïôön ŦŦŦ]",
+      "fatigue": "[Fáãtíïgûüéè ŦŦŦ]",
+      "foodAversions": "[Fôöôöd ÁÃvéèrsíïôöns ŦŦŦ]",
+      "swelling": "[Swéèllíïng ŦŦŦ]",
+      "shortnessOfBreath": "[Shôörtnéèss ôöf Bréèáãth ŦŦŦ]",
+      "lowAppetite": "[Lôöw ÁÃppéètíïtéè ŦŦŦ]"
+    }
+  },
+  "glp1Checkin": {
+    "howFeeling": "[Hôöw áãréè yôöûü féèéèlíïng tôödáãy? ŦŦŦ]",
+    "noCheckinToday": "[Nôö symptôöm chéèck-íïn sûübmíïttéèd tôödáãy. Yôöûür méèáãls áãréè ûüsíïng yôöûür stáãndáãrd méèdíïcáãtíïôön prôöfíïléè. ŦŦŦ]",
+    "checkInPrompt": "[Chéèck íïn tôö áãdáãpt tôödáãy's méèáãls, sháãkéès, áãnd réèstáãûüráãnt sûüggéèstíïôöns. ŦŦŦ]",
+    "checkIn": "[Chéèck ÍÏn ŦŦŦ]",
+    "update": "[ÛÜpdáãtéè ŦŦŦ]",
+    "updated": "[ÛÜpdáãtéèd {{time}} ŦŦŦ]",
+    "escalationStatusBody": "[Théèséè symptôöms máãy réèqûüíïréè méèdíïcáãl éèváãlûüáãtíïôön. Côöntáãct yôöûür héèáãlthcáãréè prôövíïdéèr ôör cáãréè téèáãm prôömptly. ŦŦŦ]",
+    "mealsAdapting": "[Méèáãls áãdáãptíïng tôö tôödáãy's symptôöms ŦŦŦ]",
+    "updatedTapAdjustments": "[ÛÜpdáãtéèd {{time}} · Táãp tôö séèéè áãdjûüstméènts ŦŦŦ]",
+    "noSymptomsToday": "[Nôö symptôöms réèpôörtéèd tôödáãy ŦŦŦ]",
+    "updatedStandardProfile": "[ÛÜpdáãtéèd {{time}} · Stáãndáãrd méèdíïcáãtíïôön prôöfíïléè áãctíïvéè ŦŦŦ]",
+    "escalationCardBody": "[Théèséè symptôöms máãy réèqûüíïréè méèdíïcáãl éèváãlûüáãtíïôön. Pléèáãséè réèáãch ôöûüt tôö yôöûür cáãréè téèáãm. ŦŦŦ]",
+    "nutritionAdjustments": "[Tôödáãy's nûütríïtíïôön áãdjûüstméènts ({{count}}) ŦŦŦ]",
+    "reason": "[Réèáãsôön ŦŦŦ]",
+    "adaptation": "[ÁÃdáãptáãtíïôön ŦŦŦ]",
+    "evidence": "[ÉÈvíïdéèncéè ŦŦŦ]",
+    "justNow": "[jûüst nôöw ŦŦŦ]",
+    "minutesAgo": "[{{count}}m áãgôö ŦŦŦ]",
+    "hoursAgo": "[{{count}}h áãgôö ŦŦŦ]",
+    "giSymptomsHeader": "[GÍÏ Symptôöms — Hôöw séèvéèréè tôödáãy? ŦŦŦ]",
+    "otherSymptomsHeader": "[ÔÖthéèr Symptôöms ŦŦŦ]",
+    "vomitingHeader": "[Vôömíïtíïng Tôödáãy ŦŦŦ]",
+    "quickQuestionsHeader": "[ÁÃ Féèw Qûüíïck Qûüéèstíïôöns ŦŦŦ]",
+    "notifyHeader": "[Wôöûüld yôöûü líïkéè yôöûür cáãréè téèáãm tôö knôöw? ŦŦŦ]",
+    "notifyHelp": "[ÔÖptíïôönáãl — gíïvéès yôöûü côöntrôöl ôövéèr whôö íïs nôötíïfíïéèd tôödáãy. ŦŦŦ]",
+    "updatesThroughoutDay": "[Thíïs ûüpdáãtéès thrôöûüghôöûüt théè dáãy. ŦŦŦ]",
+    "updatesThroughoutDayBody": "[ÍÏf yôöûü féèéèl béèttéèr láãtéèr, côöméè báãck áãnd chéèck íïn áãgáãíïn — yôöûür méèáãls wíïll áãdáãpt íïmméèdíïáãtéèly. Yôöûür chéèck-íïn réèséèts éèáãch môörníïng. ŦŦŦ]",
+    "cancel": "[Cáãncéèl ŦŦŦ]",
+    "saving": "[Sáãvíïng… ŦŦŦ]",
+    "saveCheckIn": "[Sáãvéè Chéèck-ÍÏn ŦŦŦ]",
+    "severity": {
+      "none": "[Nôönéè ŦŦŦ]",
+      "mild": "[Míïld ŦŦŦ]",
+      "moderate": "[Môödéèráãtéè ŦŦŦ]",
+      "severe": "[Séèvéèréè ŦŦŦ]"
+    },
+    "symptom": {
+      "nausea": "[Náãûüséèáã ŦŦŦ]",
+      "constipation": "[Côönstíïpáãtíïôön ŦŦŦ]",
+      "diarrhea": "[Díïáãrrhéèáã ŦŦŦ]",
+      "reflux": "[Héèáãrtbûürn/Réèflûüx ŦŦŦ]",
+      "bloating": "[Blôöáãtíïng ŦŦŦ]",
+      "earlyFullness": "[ÉÈáãrly fûüllnéèss ŦŦŦ]",
+      "foodAversions": "[Fôöôöd áãvéèrsíïôöns ŦŦŦ]",
+      "fatigue": "[Fáãtíïgûüéè ŦŦŦ]",
+      "dizziness": "[Díïzzíïnéèss ŦŦŦ]",
+      "headache": "[Héèáãdáãchéè ŦŦŦ]"
+    },
+    "vomiting": {
+      "none": "[Nôönéè ŦŦŦ]",
+      "once": "[ÔÖncéè ŦŦŦ]",
+      "multiple": "[2–3 tíïméès ŦŦŦ]",
+      "cantKeepFluids": "[4+ / Cáãn't kéèéèp flûüíïds ŦŦŦ]"
+    },
+    "q": {
+      "keepFluids": "[Cáãn yôöûü kéèéèp flûüíïds dôöwn? ŦŦŦ]",
+      "eatWithoutWorsening": "[Cáãn yôöûü éèáãt wíïthôöûüt symptôöms wôörséèníïng? ŦŦŦ]",
+      "reducedUrination": "[ÍÏs yôöûür ûüríïnéè ôöûütpûüt mûüch léèss tháãn ûüsûüáãl? ŦŦŦ]",
+      "symptomTrend": "[Hôöw áãréè yôöûür symptôöms tréèndíïng? ŦŦŦ]",
+      "appetite": "[Hôöw íïs yôöûür áãppéètíïtéè tôödáãy? ŦŦŦ]"
+    },
+    "opt": {
+      "yes": "[Yéès ŦŦŦ]",
+      "no": "[Nôö ŦŦŦ]",
+      "withDifficulty": "[Wíïth díïffíïcûülty ŦŦŦ]",
+      "partially": "[Páãrtíïáãlly ŦŦŦ]"
+    },
+    "trend": {
+      "improving": "[ÍÏmprôövíïng ŦŦŦ]",
+      "same": "[Sáãméè ŦŦŦ]",
+      "worsening": "[Wôörséèníïng ŦŦŦ]",
+      "na": "[Nôöt sûüréè ŦŦŦ]"
+    },
+    "appetite": {
+      "suppressed": "[Nôö áãppéètíïtéè ŦŦŦ]",
+      "reduced": "[Réèdûücéèd ŦŦŦ]",
+      "normal": "[Nôörmáãl ŦŦŦ]",
+      "increased": "[ÍÏncréèáãséèd ŦŦŦ]"
+    },
+    "notify": {
+      "keepPrivate": "[Nôö, kéèéèp príïváãtéè ŦŦŦ]",
+      "coach": "[Nôötíïfy my côöáãch ŦŦŦ]",
+      "both": "[Nôötíïfy bôöth ŦŦŦ]"
+    }
+  },
   "joinStudio": {
-    "appName": "My Perfect Meals",
-    "loading": "Loading your invitation…",
-    "joining": "Connecting you to the studio…",
-    "inviteTitle": "ProCare Invitation",
-    "invitedBySuffix": " has invited you to join their ProCare {{spaceLabel}}.",
-    "inviteAddress": "This invitation was sent to",
-    "inviteAddressSuffix": "Make sure you’re signed in with that account.",
-    "joinButton": "Join {{spaceLabel}}",
-    "joinDisclaimer": "Once connected, your {{roleLabel}} can guide your nutrition and progress through the platform.",
-    "successTitle": "You’re Connected!",
-    "successBody": "You’ve successfully joined {{studioName}}. Your trainer can now work with you through the platform.",
-    "goToApp": "Go to My Perfect Meals",
-    "wrongAccountTitle": "Wrong Account",
-    "wrongAccountAddress": "This invitation was sent to",
-    "wrongAccountDiffAccount": "You’re currently signed in with a different account.",
-    "wrongAccountHint": "Sign out and sign in with the correct email address, then click the invitation link again.",
-    "backToApp": "Back to App",
-    "expiredTitle": "Invitation Expired",
-    "expiredBody": "This invitation has expired. Ask your trainer to send a new one — it only takes a moment.",
-    "backupCodeHint": "You can also enter your backup code manually:",
-    "backupCodePath": "More → Connect with Access Code",
-    "alreadyConnectedTitle": "Already Connected",
-    "alreadyConnectedBody": "This invitation has already been used. If you’re not seeing your trainer’s studio, try refreshing the app.",
-    "subscriptionRequiredTitle": "Subscription Required",
-    "subscriptionRequiredBody": "Connecting with a ProCare provider requires a Clinical (Ultimate) subscription.",
-    "viewPlans": "View Plans",
-    "trainerNotSubscribedTitle": "Trainer Not Subscribed",
-    "trainerNotSubscribedBody": "Your trainer’s ProCare subscription is not currently active. Let them know and ask them to re-invite you once it’s resolved.",
-    "errorTitle": "Something Went Wrong",
-    "errorFallback": "Please try again.",
-    "errorNoToken": "No invitation token found. Please use the link from your invitation email.",
-    "errorNotFound": "This invitation was not found. It may have expired or already been used.",
-    "errorLoadDetails": "Could not load invitation details. Please try again.",
-    "errorLoadDetailsNetwork": "Could not load invitation details. Please check your connection and try again.",
-    "errorConnectionIssue": "Connection error. Please check your connection and try again.",
-    "errorGenericFallback": "Something went wrong. Please try again."
+    "appName": "[My Péèrféèct Méèáãls ŦŦŦ]",
+    "loading": "[Lôöáãdíïng yôöûür íïnvíïtáãtíïôön… ŦŦŦ]",
+    "joining": "[Côönnéèctíïng yôöûü tôö théè stûüdíïôö… ŦŦŦ]",
+    "inviteTitle": "[PrôöCáãréè ÍÏnvíïtáãtíïôön ŦŦŦ]",
+    "invitedBySuffix": "[ háãs íïnvíïtéèd yôöûü tôö jôöíïn théèíïr PrôöCáãréè {{spaceLabel}}. ŦŦŦ]",
+    "inviteAddress": "[Thíïs íïnvíïtáãtíïôön wáãs séènt tôö ŦŦŦ]",
+    "inviteAddressSuffix": "[Máãkéè sûüréè yôöûü’réè síïgnéèd íïn wíïth tháãt áãccôöûünt. ŦŦŦ]",
+    "joinButton": "[Jôöíïn {{spaceLabel}} ŦŦŦ]",
+    "joinDisclaimer": "[ÔÖncéè côönnéèctéèd, yôöûür {{roleLabel}} cáãn gûüíïdéè yôöûür nûütríïtíïôön áãnd prôögréèss thrôöûügh théè pláãtfôörm. ŦŦŦ]",
+    "successTitle": "[Yôöûü’réè Côönnéèctéèd! ŦŦŦ]",
+    "successBody": "[Yôöûü’véè sûüccéèssfûülly jôöíïnéèd {{studioName}}. Yôöûür tráãíïnéèr cáãn nôöw wôörk wíïth yôöûü thrôöûügh théè pláãtfôörm. ŦŦŦ]",
+    "goToApp": "[Gôö tôö My Péèrféèct Méèáãls ŦŦŦ]",
+    "wrongAccountTitle": "[Wrôöng ÁÃccôöûünt ŦŦŦ]",
+    "wrongAccountAddress": "[Thíïs íïnvíïtáãtíïôön wáãs séènt tôö ŦŦŦ]",
+    "wrongAccountDiffAccount": "[Yôöûü’réè cûürréèntly síïgnéèd íïn wíïth áã díïfféèréènt áãccôöûünt. ŦŦŦ]",
+    "wrongAccountHint": "[Síïgn ôöûüt áãnd síïgn íïn wíïth théè côörréèct éèmáãíïl áãddréèss, théèn clíïck théè íïnvíïtáãtíïôön líïnk áãgáãíïn. ŦŦŦ]",
+    "backToApp": "[Báãck tôö ÁÃpp ŦŦŦ]",
+    "expiredTitle": "[ÍÏnvíïtáãtíïôön ÉÈxpíïréèd ŦŦŦ]",
+    "expiredBody": "[Thíïs íïnvíïtáãtíïôön háãs éèxpíïréèd. ÁÃsk yôöûür tráãíïnéèr tôö séènd áã néèw ôönéè — íït ôönly táãkéès áã môöméènt. ŦŦŦ]",
+    "backupCodeHint": "[Yôöûü cáãn áãlsôö éèntéèr yôöûür báãckûüp côödéè máãnûüáãlly: ŦŦŦ]",
+    "backupCodePath": "[Môöréè → Côönnéèct wíïth ÁÃccéèss Côödéè ŦŦŦ]",
+    "alreadyConnectedTitle": "[ÁÃlréèáãdy Côönnéèctéèd ŦŦŦ]",
+    "alreadyConnectedBody": "[Thíïs íïnvíïtáãtíïôön háãs áãlréèáãdy béèéèn ûüséèd. ÍÏf yôöûü’réè nôöt séèéèíïng yôöûür tráãíïnéèr’s stûüdíïôö, try réèfréèshíïng théè áãpp. ŦŦŦ]",
+    "subscriptionRequiredTitle": "[Sûübscríïptíïôön Réèqûüíïréèd ŦŦŦ]",
+    "subscriptionRequiredBody": "[Côönnéèctíïng wíïth áã PrôöCáãréè prôövíïdéèr réèqûüíïréès áã Clíïníïcáãl (ÛÜltíïmáãtéè) sûübscríïptíïôön. ŦŦŦ]",
+    "viewPlans": "[Víïéèw Pláãns ŦŦŦ]",
+    "trainerNotSubscribedTitle": "[Tráãíïnéèr Nôöt Sûübscríïbéèd ŦŦŦ]",
+    "trainerNotSubscribedBody": "[Yôöûür tráãíïnéèr’s PrôöCáãréè sûübscríïptíïôön íïs nôöt cûürréèntly áãctíïvéè. Léèt théèm knôöw áãnd áãsk théèm tôö réè-íïnvíïtéè yôöûü ôöncéè íït’s réèsôölvéèd. ŦŦŦ]",
+    "errorTitle": "[Sôöméèthíïng Wéènt Wrôöng ŦŦŦ]",
+    "errorFallback": "[Pléèáãséè try áãgáãíïn. ŦŦŦ]",
+    "errorNoToken": "[Nôö íïnvíïtáãtíïôön tôökéèn fôöûünd. Pléèáãséè ûüséè théè líïnk frôöm yôöûür íïnvíïtáãtíïôön éèmáãíïl. ŦŦŦ]",
+    "errorNotFound": "[Thíïs íïnvíïtáãtíïôön wáãs nôöt fôöûünd. ÍÏt máãy háãvéè éèxpíïréèd ôör áãlréèáãdy béèéèn ûüséèd. ŦŦŦ]",
+    "errorLoadDetails": "[Côöûüld nôöt lôöáãd íïnvíïtáãtíïôön déètáãíïls. Pléèáãséè try áãgáãíïn. ŦŦŦ]",
+    "errorLoadDetailsNetwork": "[Côöûüld nôöt lôöáãd íïnvíïtáãtíïôön déètáãíïls. Pléèáãséè chéèck yôöûür côönnéèctíïôön áãnd try áãgáãíïn. ŦŦŦ]",
+    "errorConnectionIssue": "[Côönnéèctíïôön éèrrôör. Pléèáãséè chéèck yôöûür côönnéèctíïôön áãnd try áãgáãíïn. ŦŦŦ]",
+    "errorGenericFallback": "[Sôöméèthíïng wéènt wrôöng. Pléèáãséè try áãgáãíïn. ŦŦŦ]",
+    "labelStudio": "[Stûüdíïôö ŦŦŦ]",
+    "labelClinic": "[Clíïníïc ŦŦŦ]",
+    "roleTrainer": "[tráãíïnéèr ŦŦŦ]",
+    "roleDoctor": "[dôöctôör ŦŦŦ]"
+  },
+  "businessCenterSection": {
+    "backBtn": "[Bûüsíïnéèss Sûüíïtéè ŦŦŦ]",
+    "affiliate": {
+      "title": "[ÁÃffíïlíïáãtéè ÔÖppôörtûüníïtíïéès ŦŦŦ]",
+      "description": "[Théè áãffíïlíïáãtéè prôögráãm áãnd céèrtíïfíïcáãtíïôön áãréè béèíïng fíïnáãlíïzéèd. ÔÖncéè láãûünchéèd, yôöûü'll béè áãbléè tôö éèáãrn côömmíïssíïôöns, áãccéèss máãrkéètíïng áãsséèts, áãnd tráãck yôöûür réèféèrráãls — áãll íïnsíïdéè My Péèrféèct Méèáãls. ŦŦŦ]",
+      "eta": "[Láãûünchíïng wíïth ÁÃffíïlíïáãtéè Céèrtíïfíïcáãtíïôön ŦŦŦ]"
+    },
+    "academy": {
+      "title": "[Bûüsíïnéèss Sûüccéèss ÁÃcáãdéèmy ŦŦŦ]",
+      "description": "[ÁÃ fûüll cûürríïcûülûüm fôör bûüíïldíïng áãnd scáãlíïng yôöûür nûütríïtíïôön côöáãchíïng bûüsíïnéèss ûüsíïng théè My Péèrféèct Méèáãls pláãtfôörm. Côöûürséès, áãsséèssméènts, áãnd créèdéèntíïáãls — côömíïng sôöôön. ŦŦŦ]",
+      "eta": "[Láãûünchíïng wíïth Pláãtfôörm Céèrtíïfíïcáãtíïôön ŦŦŦ]"
+    },
+    "industry": {
+      "title": "[ÍÏndûüstry & Stráãtéègíïc Páãrtnéèrshíïps ŦŦŦ]",
+      "description": "[Wéè páãrtnéèr wíïth sûüppléèméènt côömpáãníïéès, nûütríïtíïôön bráãnds, fíïtnéèss ôörgáãníïzáãtíïôöns, céèrtíïfíïcáãtíïôön bôödíïéès, áãnd sôöftwáãréè pláãtfôörms tôö bûüíïld méèáãníïngfûül íïntéègráãtíïôöns áãnd côö-bráãndéèd ôöppôörtûüníïtíïéès. ŦŦŦ]",
+      "eta": "[Côöntáãct ûüs tôö éèxplôöréè áã stráãtéègíïc páãrtnéèrshíïp ŦŦŦ]"
+    },
+    "whiteLabel": {
+      "title": "[Whíïtéè Láãbéèl ÔÖppôörtûüníïtíïéès ŦŦŦ]",
+      "description": "[ÍÏntéèréèstéèd íïn líïcéènsíïng théè My Péèrféèct Méèáãls pláãtfôörm fôör yôöûür ôörgáãníïzáãtíïôön ôör bráãnd? Wéè wôöûüld lôövéè tôö táãlk. Whíïtéè láãbéèl páãrtnéèrshíïps áãréè háãndléèd péèrsôönáãlly — réèáãch ôöûüt béèlôöw. ŦŦŦ]",
+      "eta": "[Côöntáãct ûüs tôö stáãrt áã côönvéèrsáãtíïôön ŦŦŦ]"
+    },
+    "partnerships": {
+      "title": "[Héèáãlthcáãréè & Clíïníïcáãl Páãrtnéèrshíïps ŦŦŦ]",
+      "description": "[Wéè wôörk wíïth physíïcíïáãns, réègíïstéèréèd díïéètíïtíïáãns, clíïníïcs, hôöspíïtáãls, áãnd páãtíïéènt-cáãréè ôörgáãníïzáãtíïôöns tôö íïntéègráãtéè My Péèrféèct Méèáãls íïntôö clíïníïcáãl áãnd cáãréè wôörkflôöws. ŦŦŦ]",
+      "eta": "[Côöntáãct ûüs tôö éèxplôöréè clíïníïcáãl páãrtnéèrshíïp ôöptíïôöns ŦŦŦ]"
+    }
+  },
+  "procareInfo": {
+    "title": "[PrôöCáãréè Côöáãchíïng ŦŦŦ]",
+    "back": "[Báãck ŦŦŦ]",
+    "backToPlans": "[Báãck tôö Pláãns ŦŦŦ]",
+    "description": "[Sôöméètíïméès théè háãrdéèst páãrt ôöf nûütríïtíïôön íïs knôöwíïng wháãt déècíïsíïôön tôö máãkéè íïn théè môöméènt. PrôöCáãréè côönnéècts yôöûü wíïth áã prôöféèssíïôönáãl côöáãch íïnsíïdéè théè My Péèrféèct Méèáãls systéèm. ŦŦŦ]",
+    "bullets": {
+      "messaging": "[Díïréèct méèssáãgíïng wíïth yôöûür côöáãch ŦŦŦ]",
+      "guidance": "[Strûüctûüréèd déècíïsíïôön gûüíïdáãncéè ŦŦŦ]",
+      "macros": "[Héèlp áãdjûüstíïng méèáãls áãnd máãcrôös ŦŦŦ]",
+      "support": "[Sûüppôört whéèn réèáãl líïféè géèts côömplíïcáãtéèd ŦŦŦ]"
+    }
   }
 }
