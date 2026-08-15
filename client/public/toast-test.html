@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Toast Alignment Test — items-start</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { background: #111; font-family: ui-sans-serif, system-ui, sans-serif; }
+  .section-label { color: #aaa; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+  .viewport-box { border: 1px solid #333; border-radius: 8px; padding: 24px; margin-bottom: 32px; position: relative; }
+  .viewport-label { color: #666; font-size: 11px; position: absolute; top: 6px; right: 10px; }
+</style>
+</head>
+<body class="p-8">
+
+<h1 style="color:#fff;font-size:20px;font-weight:700;margin-bottom:4px;">Toast alignment verification — <code style="font-size:14px;color:#f472b6">items-start</code></h1>
+<p style="color:#888;font-size:13px;margin-bottom:32px;">Close button is <code style="color:#fbbf24">absolute right-2 top-2</code> — not a flex child. Showing current production classes.</p>
+
+<!-- ─── DESKTOP 1280px ─── -->
+<div class="section-label">Desktop (1280 px)</div>
+<div class="viewport-box" style="width:420px;">
+  <div class="viewport-label">max-w-[420px]</div>
+
+  <!-- Short title-only toast -->
+  <div class="section-label" style="margin-top:0">Short: title only ("Saved!")</div>
+  <div class="group pointer-events-auto relative flex w-full items-start justify-between space-x-4 overflow-hidden rounded-md border p-6 pr-8 shadow-lg border-white/20 bg-black/80 backdrop-blur-xl text-white mb-4">
+    <div class="grid gap-1">
+      <div class="text-sm font-semibold">Saved!</div>
+    </div>
+    <!-- Absolute close button -->
+    <button class="absolute right-2 top-2 rounded-md p-1 text-white/50 opacity-100 transition-opacity hover:text-white">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+
+  <!-- Short title + description toast -->
+  <div class="section-label">Short: title + one-line description ("Copied!")</div>
+  <div class="group pointer-events-auto relative flex w-full items-start justify-between space-x-4 overflow-hidden rounded-md border p-6 pr-8 shadow-lg border-white/20 bg-black/80 backdrop-blur-xl text-white mb-4">
+    <div class="grid gap-1">
+      <div class="text-sm font-semibold">Copied!</div>
+      <div class="text-sm opacity-90 break-words">Link copied to clipboard.</div>
+    </div>
+    <button class="absolute right-2 top-2 rounded-md p-1 text-white/50 opacity-100 transition-opacity hover:text-white">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+
+  <!-- Multi-line toast (the case items-start was added for) -->
+  <div class="section-label">Multi-line: dish failure message</div>
+  <div class="group pointer-events-auto relative flex w-full items-start justify-between space-x-4 overflow-hidden rounded-md border p-6 pr-8 shadow-lg border-red-500/50 bg-red-950/80 backdrop-blur-xl text-white mb-4">
+    <div class="grid gap-1">
+      <div class="text-sm font-semibold">Dish not available</div>
+      <div class="text-sm opacity-90 break-words">We couldn't generate a compliant version of this dish for your dietary requirements. Please try a different meal or adjust your preferences.</div>
+    </div>
+    <button class="absolute right-2 top-2 rounded-md p-1 text-white/50 opacity-100 transition-opacity hover:text-white">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+
+  <!-- items-center comparison for reference -->
+  <div class="section-label" style="color:#6ee7b7">↓ items-CENTER reference (for comparison) — short title only</div>
+  <div class="group pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden rounded-md border p-6 pr-8 shadow-lg border-white/20 bg-black/80 backdrop-blur-xl text-white mb-4" style="outline:1px dashed #6ee7b7">
+    <div class="grid gap-1">
+      <div class="text-sm font-semibold">Saved!</div>
+    </div>
+    <button class="absolute right-2 top-2 rounded-md p-1 text-white/50 opacity-100 transition-opacity hover:text-white">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- ─── MOBILE 375px ─── -->
+<div class="section-label">Mobile (375 px)</div>
+<div class="viewport-box" style="width:375px;">
+  <div class="viewport-label">full-width mobile</div>
+
+  <div class="section-label" style="margin-top:0">Short: title only ("Saved!")</div>
+  <div class="group pointer-events-auto relative flex w-full items-start justify-between space-x-4 overflow-hidden rounded-md border p-6 pr-8 shadow-lg border-white/20 bg-black/80 backdrop-blur-xl text-white mb-4">
+    <div class="grid gap-1">
+      <div class="text-sm font-semibold">Saved!</div>
+    </div>
+    <button class="absolute right-2 top-2 rounded-md p-1 text-white/50 opacity-100 transition-opacity hover:text-white">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+
+  <div class="section-label">Short: title + description ("Copied!")</div>
+  <div class="group pointer-events-auto relative flex w-full items-start justify-between space-x-4 overflow-hidden rounded-md border p-6 pr-8 shadow-lg border-white/20 bg-black/80 backdrop-blur-xl text-white mb-4">
+    <div class="grid gap-1">
+      <div class="text-sm font-semibold">Copied!</div>
+      <div class="text-sm opacity-90 break-words">Link copied to clipboard.</div>
+    </div>
+    <button class="absolute right-2 top-2 rounded-md p-1 text-white/50 opacity-100 transition-opacity hover:text-white">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+
+  <div class="section-label">Multi-line: dish failure message</div>
+  <div class="group pointer-events-auto relative flex w-full items-start justify-between space-x-4 overflow-hidden rounded-md border p-6 pr-8 shadow-lg border-red-500/50 bg-red-950/80 backdrop-blur-xl text-white mb-4">
+    <div class="grid gap-1">
+      <div class="text-sm font-semibold">Dish not available</div>
+      <div class="text-sm opacity-90 break-words">We couldn't generate a compliant version of this dish for your dietary requirements. Please try a different meal or adjust your preferences.</div>
+    </div>
+    <button class="absolute right-2 top-2 rounded-md p-1 text-white/50 opacity-100 transition-opacity hover:text-white">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- Analysis box -->
+<div style="background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:20px;max-width:600px;margin-top:8px;">
+  <div style="color:#f472b6;font-weight:700;margin-bottom:8px;font-size:14px;">Layout Analysis</div>
+  <ul style="color:#ccc;font-size:13px;line-height:1.7;list-style:disc;padding-left:20px;">
+    <li><code style="color:#fbbf24">ToastClose</code> is <strong>absolute right-2 top-2</strong> — it is NOT a flex child and is unaffected by <code>items-start</code> vs <code>items-center</code>.</li>
+    <li>For short single-line toasts, the only flex child is the <code>.grid</code> div. With one flex child, <code>items-start</code> and <code>items-center</code> produce identical output (single item occupies the same position).</li>
+    <li>The <code>p-6 pr-8</code> padding ensures the close button (absolute top-right) never overlaps the text — <code>pr-8</code> (2rem) reserves space for the 2rem-wide close zone.</li>
+    <li><strong>Conclusion:</strong> <code>items-start</code> is visually equivalent to <code>items-center</code> for all short toasts. No fix needed.</li>
+  </ul>
+</div>
+
+</body>
+</html>
