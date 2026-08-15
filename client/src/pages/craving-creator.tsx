@@ -653,8 +653,26 @@ export default function CravingCreator() {
       clearSafetyAlert();
 
       if (!response.ok) {
+        stopProgressTicker();
+        setIsGenerating(false);
         if (data.error === "ALLERGY_SAFETY_BLOCK") {
           throw new Error(`🚨 Safety Alert: ${data.message}`);
+        }
+        if (data.dishIdentityFailure) {
+          toast({
+            title: "We couldn't adapt that dish",
+            description: data.message || "This dish can't be made compliant with your current settings. Try adjusting your request or safety settings.",
+            variant: "destructive",
+          });
+          return;
+        }
+        if (data.error === "AVOIDANCE_VIOLATION_ALL_OPTIONS") {
+          toast({
+            title: "No compliant options found",
+            description: data.message || "All generated options conflicted with your dietary protocol. Please try a different dish or adjust your craving description.",
+            variant: "destructive",
+          });
+          return;
         }
         throw new Error(data.message || "Failed to generate meal");
       }
@@ -722,10 +740,9 @@ export default function CravingCreator() {
         });
       } else {
         toast({
-          title: "⚠️ ALLERGY ALERT",
-          description:
-            "SafetyGuard™ detected a potential concern. Try a different meal or adjust your request.",
-          variant: "warning",
+          title: "Couldn't generate meal",
+          description: errorMsg || "Something went wrong. Please try again.",
+          variant: "destructive",
         });
       }
     } finally {
