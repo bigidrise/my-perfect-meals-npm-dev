@@ -675,6 +675,124 @@ describe("free-text allergen phrasings — cheesecake structural protection", ()
   });
 });
 
+// ── Gluten/wheat free-text allergy normalization ─────────────────────────────
+// Users frequently enter wheat/gluten allergies as "wheat flour intolerance",
+// "wheat/gluten", or "gluten intolerance".  The system must:
+//   1. normalizeAllergenKey() — map the phrase to a canonical ALLERGEN_SUBSTITUTES key
+//   2. buildGuardrailContext() — activate the "gluten-free" guardrail so the
+//      structural flour-substitution rules fire for baked-goods components.
+// The guardrail path (not the ALLERGEN_STRUCTURAL_RULES path) is what carries
+// the functional structure guidance for gluten, because ALLERGEN_STRUCTURAL_RULES
+// only defines dairy/egg rules; the full gluten structural rules live in the
+// "gluten-free" GuardrailSubstitutionProfile (FLOUR_TRIGGERS etc.).
+
+describe("normalizeAllergenKey — gluten/wheat free-text phrasings", () => {
+  test.each([
+    // Compound phrasing — "wheat flour" contains "wheat" (substring match)
+    { input: "wheat flour",         expected: "wheat"  },
+    // Slash-separated — normalizer collapses to "wheat gluten"; "gluten" wins (longer)
+    { input: "wheat/gluten",        expected: "gluten" },
+    { input: "wheat / gluten",      expected: "gluten" },
+    // Qualifier suffix — "gluten intolerance" contains "gluten"
+    { input: "gluten intolerance",  expected: "gluten" },
+    // Sensitivity phrasing
+    { input: "gluten sensitivity",  expected: "gluten" },
+    // Wheat variants
+    { input: "wheat allergy",       expected: "wheat"  },
+    { input: "wheat intolerance",   expected: "wheat"  },
+    // Celiac / celiac-adjacent phrasing still contains "gluten"
+    { input: "celiac — no gluten",  expected: "gluten" },
+  ])("'$input' → '$expected'", ({ input, expected }) => {
+    expect(normalizeAllergenKey(input)).toBe(expected);
+  });
+
+  test("returned key always exists in ALLERGEN_SUBSTITUTES or ALLERGEN_STRUCTURAL_RULES", () => {
+    // Whatever key is returned for a gluten/wheat phrase must be a key the
+    // lookup tables actually know — otherwise the substitution silently falls back.
+    const { ALLERGEN_SUBSTITUTES, ALLERGEN_STRUCTURAL_RULES } = require("../../shared/dishAdaptation/guardrailSubstitutionMap");
+    const knownKeys = new Set([
+      ...Object.keys(ALLERGEN_SUBSTITUTES),
+      ...Object.keys(ALLERGEN_STRUCTURAL_RULES),
+    ]);
+
+    const phrasings = [
+      "wheat flour", "wheat/gluten", "gluten intolerance",
+      "gluten sensitivity", "wheat allergy",
+    ];
+    for (const p of phrasings) {
+      const key = normalizeAllergenKey(p);
+      expect(key).toBeDefined();
+      expect(knownKeys.has(key!)).toBe(true);
+    }
+  });
+});
+
+describe("buildGuardrailContext — gluten-free guardrail activation from free-text phrasings", () => {
+  // The regex `/gluten|wheat/i` in buildGuardrailContext must catch every one of
+  // these user-entered strings and add the "gluten-free" guardrail profile, which
+  // carries the FLOUR_TRIGGERS structural substitution rules for baked goods.
+
+  test.each([
+    { label: "wheat flour",        allergy: "wheat flour"        },
+    { label: "wheat/gluten",       allergy: "wheat/gluten"       },
+    { label: "gluten intolerance", allergy: "gluten intolerance" },
+    { label: "gluten sensitivity", allergy: "gluten sensitivity" },
+    { label: "wheat allergy",      allergy: "wheat allergy"      },
+    { label: "wheat intolerance",  allergy: "wheat intolerance"  },
+    // Bare canonical forms must still work (regression guard)
+    { label: "gluten (canonical)", allergy: "gluten"             },
+    { label: "wheat (canonical)",  allergy: "wheat"              },
+  ])("'$label' activates the gluten-free guardrail", ({ allergy }) => {
+    const ctx = buildGuardrailContext({ allergies: [allergy] });
+    const guardrailIds = ctx.guardrails.map(g => g.id);
+    expect(guardrailIds).toContain("gluten-free");
+  });
+
+  test("gluten-free guardrail fires wheat-flour structural rule for a bread component", () => {
+    // A dish whose components include "flour" must get the gluten-free structural
+    // directive (rice/almond flour + binder note) when the user entered "wheat flour"
+    // as their allergy — not a silent no-op.
+    const ctx = buildGuardrailContext({ allergies: ["wheat flour intolerance"] });
+    expect(ctx.guardrails.map(g => g.id)).toContain("gluten-free");
+
+    const breadDecomposition = {
+      definingComponents: ["flour base", "yeast", "salt"],
+      adaptableComponents: ["whole wheat flour", "water", "olive oil"],
+      dishForm: "leavened bread loaf",
+    };
+    const conflicts = resolveConflicts("whole wheat bread", breadDecomposition, ctx);
+
+    // At least one conflict must reference the gluten-free flour substitution.
+    const flourConflicts = conflicts.filter(
+      c => /gluten/i.test(c.guardrail) && /rice flour|almond flour/i.test(c.directive),
+    );
+    expect(flourConflicts.length).toBeGreaterThan(0);
+
+    // The structural role (binder/setter or structure) must be present so the
+    // LLM is told about the xanthan/psyllium binding requirement.
+    const structuralConflicts = conflicts.filter(
+      c => /gluten/i.test(c.guardrail) && c.functionalRole != null,
+    );
+    expect(structuralConflicts.length).toBeGreaterThan(0);
+    for (const c of structuralConflicts) {
+      expect(c.roleRequirement).toMatch(/binder|xanthan|psyllium|flax/i);
+    }
+  });
+
+  test("wheat/gluten slash-phrasing activates gluten-free AND the allergen stays active", () => {
+    // The allergy string must also survive into ctx.activeAllergens so that the
+    // allergen-path substitution lookup also runs alongside the guardrail path.
+    const ctx = buildGuardrailContext({ allergies: ["wheat/gluten"] });
+    expect(ctx.guardrails.map(g => g.id)).toContain("gluten-free");
+    expect(ctx.activeAllergens).toContain("wheat/gluten");
+  });
+
+  test("gluten-free guardrail is NOT activated by an unrelated allergy", () => {
+    const ctx = buildGuardrailContext({ allergies: ["peanut"] });
+    expect(ctx.guardrails.map(g => g.id)).not.toContain("gluten-free");
+  });
+});
+
 // ── Score assertions ─────────────────────────────────────────────────────────
 
 describe("strawberry cheesecake — score correctness", () => {
