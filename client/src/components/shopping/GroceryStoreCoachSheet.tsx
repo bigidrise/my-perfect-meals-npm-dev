@@ -357,6 +357,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     setPreRefinedResult(null);
     setConversation([]);
     setProductAdvice(null); // clear prior user's advice alongside result/conversation
+    setPickedBrands(new Map()); // ← always clear picks; only restored below when this user's payload has entries
     setPhase("idle");
     try {
       const raw = localStorage.getItem(SESSION_KEY);
@@ -366,6 +367,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
         preRefinedResult?: CoachResult;
         conversation?: ConversationMessage[];
         productAdvice?: ProductAdviceResult;
+        pickedBrandsEntries?: Array<[string, BrandRecommendation]>;
         savedAt?: number;
       };
       // Expire after 24 h
@@ -376,6 +378,9 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       if (session.result) {
         setResult(session.result);
         if (session.preRefinedResult) setPreRefinedResult(session.preRefinedResult);
+        if (session.pickedBrandsEntries?.length) {
+          setPickedBrands(new Map(session.pickedBrandsEntries));
+        }
         setResultOwnerKey(SESSION_KEY); // result now belongs to this user's key
         setPhase("result");
 
@@ -412,11 +417,12 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
           preRefinedResult: preRefinedResult ?? undefined,
           conversation,
           productAdvice: productAdvice ?? undefined,
+          pickedBrandsEntries: pickedBrands.size > 0 ? Array.from(pickedBrands.entries()) : undefined,
           savedAt: Date.now(),
         }));
       } catch {}
     }
-  }, [result, preRefinedResult, conversation, productAdvice, SESSION_KEY, resultOwnerKey]);
+  }, [result, preRefinedResult, conversation, productAdvice, pickedBrands, SESSION_KEY, resultOwnerKey]);
 
   useEffect(() => {
     if (!open) {
@@ -431,7 +437,8 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       setMealCard(null);
       // productAdvice preserved intentionally — Smart Cart repopulates on reopen.
       setAdvisorLoading(false);
-      setPickedBrands(new Map());
+      // pickedBrands intentionally preserved — picks survive sheet close/reopen
+      // within the same session (persisted in localStorage alongside the result).
       setSavedProductKeys(new Set());
       setSavingKey(null);
       setShowSavedOnly(false);
@@ -1641,7 +1648,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
 
                   {/* Picked-brand summary — shown when the user has selected ≥1 brand */}
                   {pickedBrands.size > 0 && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 10, background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)" }}>
+                    <div data-testid="picked-brands-summary" style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 10, background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)" }}>
                       <CheckCircle2 style={{ width: 14, height: 14, color: "#34d399", flexShrink: 0 }} />
                       <span style={{ color: "#34d399", fontSize: 12, fontWeight: 600 }}>
                         {t("smartCart.brandsSummary", { count: pickedBrands.size })}

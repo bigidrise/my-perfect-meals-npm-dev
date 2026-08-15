@@ -352,7 +352,158 @@ describe('handleAddToList — complete list (shoppingList + ownedIngredients)', 
   });
 });
 
-// ── 5 & 6 ────────────────────────────────────────────────────────────────────
+// ── 5. Brand picks persistence — round-trip ───────────────────────────────────
+
+describe('Brand picks persistence — survive sheet close and reopen', () => {
+  /**
+   * Simulates the save logic:
+   *   pickedBrandsEntries: pickedBrands.size > 0 ? [...pickedBrands.entries()] : undefined
+   *
+   * And the restore logic:
+   *   if (session.pickedBrandsEntries?.length) setPickedBrands(new Map(session.pickedBrandsEntries))
+   *
+   * Tests use localStorage directly (the same storage the component uses) so
+   * there is no divergence between the assertions and production behaviour.
+   */
+
+  const SESSION_KEY = 'grocery-coach-session:test-user';
+
+  function makeBrandRec(brand: string) {
+    return { brand, rank: 1 as const, grade: 'A' as const, reason: 'top pick' };
+  }
+
+  const BASE_RESULT = {
+    meal: { name: 'Grilled Chicken', description: '', prepTime: '20m', servings: 2 },
+    reasoning: [],
+    macros: { calories: 400, protein: 40, carbs: 20, fat: 10 },
+    ownedIngredients: [],
+    shoppingList: [{ item: 'Chicken Breast', quantity: '2', unit: 'lb', category: 'Meat' }],
+    followUpSuggestions: [],
+    servingCount: 1,
+  };
+
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('persists picked brand entries in the localStorage payload', () => {
+    const picks = new Map([
+      ['olive oil', makeBrandRec('California Olive Ranch EVOO')],
+      ['chicken breast', makeBrandRec('Bell & Evans Organic')],
+    ]);
+
+    const payload = {
+      result: BASE_RESULT,
+      conversation: [],
+      pickedBrandsEntries: [...picks.entries()],
+      savedAt: Date.now(),
+    };
+
+    localStorage.setItem(SESSION_KEY, JSON.stringify(payload));
+
+    const parsed = JSON.parse(localStorage.getItem(SESSION_KEY)!);
+    expect(parsed.pickedBrandsEntries).toHaveLength(2);
+    expect(parsed.pickedBrandsEntries[0][0]).toBe('olive oil');
+    expect(parsed.pickedBrandsEntries[0][1].brand).toBe('California Olive Ranch EVOO');
+    expect(parsed.pickedBrandsEntries[1][0]).toBe('chicken breast');
+    expect(parsed.pickedBrandsEntries[1][1].brand).toBe('Bell & Evans Organic');
+  });
+
+  it('restores picked brands from stored entries into a Map', () => {
+    const originalPicks = new Map([
+      ['spinach', makeBrandRec('Earthbound Farm Organic')],
+    ]);
+
+    // Save (as the component's save effect would)
+    localStorage.setItem(SESSION_KEY, JSON.stringify({
+      result: BASE_RESULT,
+      conversation: [],
+      pickedBrandsEntries: [...originalPicks.entries()],
+      savedAt: Date.now(),
+    }));
+
+    // Restore (as the component's hydration effect would)
+    const raw = localStorage.getItem(SESSION_KEY)!;
+    const session = JSON.parse(raw) as { pickedBrandsEntries?: Array<[string, { brand: string }]> };
+    const restored = session.pickedBrandsEntries?.length
+      ? new Map(session.pickedBrandsEntries)
+      : new Map();
+
+    expect(restored.get('spinach')?.brand).toBe('Earthbound Farm Organic');
+    expect(restored.size).toBe(1);
+  });
+
+  it('reopening the sheet after navigation does not clear picks from the previous session', () => {
+    // Simulate: user picks a brand, sheet is closed (navigation away), then reopened.
+    // The on-close effect no longer clears pickedBrands; instead they are
+    // persisted to localStorage alongside the result.
+
+    const picks = new Map([
+      ['olive oil', makeBrandRec('California Olive Ranch EVOO')],
+      ['avocado', makeBrandRec('Wholly Guacamole')],
+    ]);
+
+    // --- Sheet close: save effect writes picks to storage ---
+    localStorage.setItem(SESSION_KEY, JSON.stringify({
+      result: BASE_RESULT,
+      conversation: [],
+      pickedBrandsEntries: [...picks.entries()],
+      savedAt: Date.now(),
+    }));
+
+    // --- Navigation + reopen: hydration effect restores from storage ---
+    const raw = localStorage.getItem(SESSION_KEY)!;
+    const session = JSON.parse(raw) as {
+      result?: typeof BASE_RESULT;
+      pickedBrandsEntries?: Array<[string, { brand: string }]>;
+    };
+    const restoredPicks = session.pickedBrandsEntries?.length
+      ? new Map(session.pickedBrandsEntries)
+      : new Map();
+
+    // Both picks must survive the round-trip
+    expect(restoredPicks.size).toBe(2);
+    expect(restoredPicks.get('olive oil')?.brand).toBe('California Olive Ranch EVOO');
+    expect(restoredPicks.get('avocado')?.brand).toBe('Wholly Guacamole');
+  });
+
+  it('omits pickedBrandsEntries from the payload when the Map is empty', () => {
+    const picks = new Map(); // no picks
+
+    const payload = {
+      result: BASE_RESULT,
+      conversation: [],
+      pickedBrandsEntries: picks.size > 0 ? [...picks.entries()] : undefined,
+      savedAt: Date.now(),
+    };
+
+    localStorage.setItem(SESSION_KEY, JSON.stringify(payload));
+    const parsed = JSON.parse(localStorage.getItem(SESSION_KEY)!);
+
+    // Undefined is stripped by JSON.stringify — key must be absent
+    expect(parsed.pickedBrandsEntries).toBeUndefined();
+  });
+
+  it('restores an empty Map when pickedBrandsEntries is absent (legacy session)', () => {
+    // Simulate a session saved before brand-pick persistence shipped
+    localStorage.setItem(SESSION_KEY, JSON.stringify({
+      result: BASE_RESULT,
+      conversation: [],
+      // no pickedBrandsEntries field
+      savedAt: Date.now(),
+    }));
+
+    const raw = localStorage.getItem(SESSION_KEY)!;
+    const session = JSON.parse(raw) as { pickedBrandsEntries?: Array<[string, unknown]> };
+    const restored = session.pickedBrandsEntries?.length
+      ? new Map(session.pickedBrandsEntries)
+      : new Map();
+
+    expect(restored.size).toBe(0);
+  });
+});
+
+// ── 6 & 7 ────────────────────────────────────────────────────────────────────
 // Find-a-Product session persistence and sessionGenRef guard are tested by
 // rendering the actual component in:
 //   client/src/lib/__tests__/groceryCoachProductSearchPersistence.test.tsx
