@@ -12,7 +12,8 @@
  */
 
 import { openai } from "../utils/openaiSafe";
-import { buildGroceryCoachContext, type GroceryCoachContext } from "./groceryCoachContext";
+import { buildGroceryCoachContext } from "./groceryCoachContext";
+import type { GroceryCoachContext } from "./groceryCoachContext";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -262,8 +263,51 @@ Respond ONLY with valid JSON — no markdown, no extra text:
 
 // ─── Product Advisor Engine ───────────────────────────────────────────────────
 
+// ─── Context Loader ───────────────────────────────────────────────────────────
+// Abstracted so tests can inject a mock without touching the module graph.
+// Default: buildGroceryCoachContext() — the full clinical stack including
+// GLP-1 resolved targets, diabetic constraints, and macro targets.
+
+export type ContextLoader = (userId: string) => Promise<GroceryCoachContext>;
+
+const defaultContextLoader: ContextLoader = (userId) =>
+  buildGroceryCoachContext(userId);
+
+// ─── Protocol Context Builder ─────────────────────────────────────────────────
+// Turns a GroceryCoachContext into the protocol string sent to the AI provider.
+// Centralised here so tests can assert on the same string the AI sees.
+
+export function buildProtocolContextString(ctx: GroceryCoachContext): string {
+  const parts: string[] = [];
+
+  // Base protocol context from enforceBeforeGenerate (allergy hard-stops,
+  // dietary identity, medical conditions, avoidances, fitness goal, clinical
+  // guidance blocks from conditionGuidanceBlocks[]).
+  if (ctx.protocolContext) {
+    parts.push(ctx.protocolContext);
+  }
+
+  // GLP-1 resolved targets — only present when the service is healthy AND
+  // the user is actively on GLP-1 medication.
+  if (ctx.glp1RecommendationBlock) {
+    parts.push(ctx.glp1RecommendationBlock);
+  }
+
+  // Macro targets (calories, protein, fat, carbs).
+  if (ctx.macroContext) {
+    parts.push(ctx.macroContext);
+  }
+
+  return parts.length
+    ? parts.join("\n\n")
+    : "No specific dietary or medical constraints on file — apply general healthy eating principles.";
+}
+
 export class ProductAdvisorEngine {
-  constructor(private readonly provider: BrandKnowledgeProvider) {}
+  constructor(
+    private readonly provider: BrandKnowledgeProvider,
+    private readonly contextLoader: ContextLoader = defaultContextLoader,
+  ) {}
 
   async buildCartRecommendations(
     userId: string,
@@ -273,7 +317,8 @@ export class ProductAdvisorEngine {
     // buildGroceryCoachContext is the SHARED personalization source for all
     // Grocery Coach product surfaces (Find a Product, Replace, meal-driven
     // Smart Cart) — never rebuild protocol context from the raw envelope here.
-    const ctx = await buildGroceryCoachContext(userId);
+    // contextLoader defaults to buildGroceryCoachContext; tests inject a mock.
+    const ctx = await this.contextLoader(userId);
     const protocolContext = buildProtocolContextString(ctx);
 
     return this.provider.getCartRecommendations(ingredients, protocolContext, store);
@@ -339,4 +384,15 @@ export function setProductAdvisorProvider(provider: BrandKnowledgeProvider): voi
 
 export function getProductAdvisorEngine(): ProductAdvisorEngine {
   return _engine;
+}
+
+/**
+ * For tests only — create an isolated engine with a custom context loader so
+ * tests don't need a running DB or real GLP-1 resolver.
+ */
+export function createProductAdvisorEngineForTest(
+  provider: BrandKnowledgeProvider,
+  contextLoader: ContextLoader,
+): ProductAdvisorEngine {
+  return new ProductAdvisorEngine(provider, contextLoader);
 }
