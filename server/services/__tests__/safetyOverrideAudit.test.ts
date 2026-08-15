@@ -17,7 +17,7 @@ import bcrypt from "bcryptjs";
 import { randomUUID } from "crypto";
 import { db } from "../../db";
 import { users, safetyOverrideAuditLogs } from "../../../shared/schema";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { verifyPinAndIssueOverrideToken } from "../safetyPinService";
 import { enforceSafetyProfile } from "../safetyProfileService";
 
@@ -65,18 +65,6 @@ async function cleanup() {
   } catch (err) {
     console.error("⚠️  Cleanup failed:", err);
   }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Schema guard — ensure correlation_id column exists before any test runs
-// ─────────────────────────────────────────────────────────────────────────────
-
-async function ensureCorrelationIdColumn() {
-  await db.execute(sql`
-    ALTER TABLE safety_override_audit_logs
-      ADD COLUMN IF NOT EXISTS correlation_id TEXT
-  `);
-  console.log("  🔧 Ensured correlation_id column exists in safety_override_audit_logs");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -256,7 +244,6 @@ async function main() {
   console.log(`   DB: ${process.env.DATABASE_URL ? "configured" : "⚠️ DATABASE_URL missing"}\n`);
 
   try {
-    await ensureCorrelationIdColumn();
     await testAuditRowWrittenWithCorrelationId();
     await testAuditRowNotWrittenOnInvalidToken();
   } finally {

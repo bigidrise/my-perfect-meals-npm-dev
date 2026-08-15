@@ -1541,6 +1541,29 @@ async function start() {
     await runSafetyOverrideCorrelationMigration(dbSoc);
   });
 
+  // ── Post-migration guard: verify correlation_id column is actually present ──
+  // If the migration silently failed or was rolled back, fail loudly here rather
+  // than letting logSafetyOverride produce a 500 at runtime.
+  {
+    const { db: dbGuard } = await import("./db");
+    const { sql: sqlGuard } = await import("drizzle-orm");
+    const guardResult = await dbGuard.execute(sqlGuard`
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_name = 'safety_override_audit_logs'
+        AND column_name = 'correlation_id'
+    `);
+    const rows = (guardResult as any).rows ?? guardResult;
+    if (!Array.isArray(rows) || rows.length === 0) {
+      throw new Error(
+        "🚨 STARTUP GUARD: safety_override_audit_logs.correlation_id column is missing. " +
+        "The boot migration (runSafetyOverrideCorrelationMigration) did not apply successfully. " +
+        "Safety PIN overrides will fail at runtime until this column exists."
+      );
+    }
+    console.log("✅ [guard] safety_override_audit_logs.correlation_id column confirmed present");
+  }
+
   // 🎯 CRITICAL: API routes FIRST to prevent Vite middleware interference
   await registerRoutes(app);
 
