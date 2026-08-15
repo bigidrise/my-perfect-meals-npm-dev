@@ -40,11 +40,20 @@ function tokenize(text: string): string[] {
     .filter(t => t.length >= 3 && !STOPWORDS.has(t));
 }
 
-/** Loose stem match: exact, or one contains the other's first 4+ chars. */
+/** Loose stem match: exact, or the haystack contains a word that starts with
+ *  the token's 4-char stem AND whose full length is within 1.2× the token's
+ *  length. The length guard prevents compound-word false positives such as
+ *  "cheese" (stem "chees") matching "cheesecake", or "crust" (stem "crus")
+ *  matching "crushed". */
 function tokenMatches(token: string, haystackTokens: Set<string>, haystackText: string): boolean {
   if (haystackTokens.has(token)) return true;
   const stem = token.slice(0, Math.max(4, token.length - 2));
-  if (stem.length >= 4 && haystackText.includes(stem)) return true;
+  if (stem.length >= 4) {
+    const maxMatchLen = Math.ceil(token.length * 1.2);
+    const wordPattern = new RegExp(`\\b${stem}[a-z]*`, "gi");
+    const matched = haystackText.match(wordPattern) ?? [];
+    if (matched.some(w => w.length <= maxMatchLen)) return true;
+  }
   return false;
 }
 
