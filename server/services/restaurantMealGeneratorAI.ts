@@ -4,8 +4,6 @@
 import { type User } from "@shared/schema";
 import type { DailyNutritionState } from "../../shared/dailyNutritionPrescription";
 import OpenAI from 'openai';
-// DO NOT call generateImage() from imageService directly.
-// Use generateMealImageUnified only.
 import { generateMealImageUnified } from './mealImageGenerator';
 import { generateRestaurantMeals as generateFallbackMeals } from './restaurantMealGenerator';
 import { enforceCarbs } from '../utils/carbClassifier';
