@@ -2230,17 +2230,6 @@
       "next": "Weiter",
       "morePages": "Weitere Seiten"
     },
-    "enhancedMealCard": {
-      "replace": "Ersetzen",
-      "replacing": "Wird ersetzt...",
-      "replaceTitle": "Durch ein völlig neues Mahlzeitrezept ersetzen",
-      "replacingTitle": "Mahlzeit wird ersetzt...",
-      "portionGuide": "Portionsleitfaden:",
-      "ingredients": "Zutaten:",
-      "instructions": "Anleitung:",
-      "medicalSafety": "Medizinische Sicherheit:",
-      "error": "Fehler:"
-    },
     "mealCard": {
       "noRecipe": "Kein Rezept",
       "addMeal": "Mahlzeit hinzufügen",

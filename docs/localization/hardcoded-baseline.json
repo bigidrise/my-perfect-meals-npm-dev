@@ -1,5 +1,5 @@
 {
-  "activeHardcodedStrings": 1446,
-  "generatedAt": "2026-08-14T23:24:19.212Z",
-  "note": "Corrected from 1439 on first live rescan. Previous baseline read stale cached reports; this is the accurate live count from which the ratchet now runs."
+  "activeHardcodedStrings": 1975,
+  "generatedAt": "2026-08-14T00:00:00.000Z",
+  "note": "Baseline updated after task-1046 extended the library-convention ratchet from components/ui/ to all of components/. UNKNOWN_REVIEW dropped from 170 to 25; 145 shared feature components (biometrics/, pro/, ace/, glp1/, mealCreatorSteps/, shopping/, and 120+ top-level components) are now ACTIVE and covered by the ratchet. Previous baseline was 1446 (only 487 ACTIVE files); this 1975 count is the accurate scope from which the ratchet now runs."
 }

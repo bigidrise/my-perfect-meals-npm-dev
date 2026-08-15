@@ -398,14 +398,27 @@ async function main() {
   // import chain through TypeScript utilities and hooks.
   const reachableFromRouter = bfsReachable(entryFiles, forward);
 
-  // ── Library convention: components/ui/ ────────────────────────────────────
-  // Files in client/src/components/ui/ are the shared shadcn/ui design-system
-  // primitives.  They are intentionally reachable from any active surface; the
-  // import graph cannot enumerate all future consumers.  Mark every non-dead
-  // file in this directory as reachable so GATE_08 always covers them.
-  const UI_LIB_PREFIX = path.join(CLIENT_SRC, "components", "ui") + path.sep;
+  // ── Library convention: all shared component directories ──────────────────
+  // All files under client/src/components/ are shared feature components or
+  // design-system primitives.  The static import graph cannot enumerate every
+  // consumer when components are referenced via dynamic import patterns,
+  // component-registry lookup, or composition patterns (e.g. render-prop
+  // factories, slot-based layouts).  Marking the entire components/ tree as
+  // reachable ensures GATE_08 covers them all and prevents regressions in any
+  // shared component from slipping past the ratchet.
+  //
+  // Sub-tree rationale:
+  //   components/ui/            — shadcn/ui design-system primitives
+  //   components/biometrics/    — biometrics feature shared components
+  //   components/pro/           — ProCare shared components
+  //   components/ace/           — ACE shared components
+  //   components/glp1/          — GLP-1 shared components
+  //   components/mealCreatorSteps/ — meal-builder step components
+  //   components/shopping/      — shopping list components
+  //   components/ (top-level)   — 150+ shared components used across active surfaces
+  const SHARED_COMPONENTS_PREFIX = path.join(CLIENT_SRC, "components") + path.sep;
   for (const file of allFiles) {
-    if (file.startsWith(UI_LIB_PREFIX)) {
+    if (file.startsWith(SHARED_COMPONENTS_PREFIX)) {
       reachableFromRouter.add(file);
     }
   }

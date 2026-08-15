@@ -2410,17 +2410,6 @@
       "next": "Susunod",
       "morePages": "Marami pang pahina"
     },
-    "enhancedMealCard": {
-      "replace": "Palitan",
-      "replacing": "Pinapalitan...",
-      "replaceTitle": "Palitan ng ganap na bagong recipe ng pagkain",
-      "replacingTitle": "Pinapalitan ang pagkain...",
-      "portionGuide": "Gabay sa Sukat ng Pagkain:",
-      "ingredients": "Mga Sangkap:",
-      "instructions": "Mga Tagubilin:",
-      "medicalSafety": "Medikal na Kaligtasan:",
-      "error": "Pagkakamali:"
-    },
     "mealCard": {
       "noRecipe": "Walang recipe",
       "addMeal": "Magdagdag ng pagkain",

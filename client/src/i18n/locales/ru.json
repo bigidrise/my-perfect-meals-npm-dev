@@ -2164,17 +2164,6 @@
       "next": "Далее",
       "morePages": "Больше страниц"
     },
-    "enhancedMealCard": {
-      "replace": "Заменить",
-      "replacing": "Замена...",
-      "replaceTitle": "Заменить совершенно новым рецептом блюда",
-      "replacingTitle": "Блюдо заменяется...",
-      "portionGuide": "Руководство по порциям:",
-      "ingredients": "Ингредиенты:",
-      "instructions": "Инструкции:",
-      "medicalSafety": "Медицинская безопасность:",
-      "error": "Ошибка:"
-    },
     "mealCard": {
       "noRecipe": "Нет рецепта",
       "addMeal": "Добавить блюдо",

@@ -2410,17 +2410,6 @@
       "next": "अगला",
       "morePages": "अधिक पृष्ठ"
     },
-    "enhancedMealCard": {
-      "replace": "बदलें",
-      "replacing": "बदला जा रहा है...",
-      "replaceTitle": "एक बिल्कुल नई भोजन रेसिपी से बदलें",
-      "replacingTitle": "भोजन बदला जा रहा है...",
-      "portionGuide": "हिस्से की मार्गदर्शिका:",
-      "ingredients": "सामग्री:",
-      "instructions": "निर्देश:",
-      "medicalSafety": "चिकित्सा सुरक्षा:",
-      "error": "त्रुटि:"
-    },
     "mealCard": {
       "noRecipe": "कोई रेसिपी नहीं",
       "addMeal": "भोजन जोड़ें",

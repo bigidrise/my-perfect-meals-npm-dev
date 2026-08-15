@@ -2175,17 +2175,6 @@
       "next": "Tiếp theo",
       "morePages": "Nhiều trang hơn"
     },
-    "enhancedMealCard": {
-      "replace": "Thay thế",
-      "replacing": "Đang thay thế...",
-      "replaceTitle": "Thay thế bằng công thức bữa ăn hoàn toàn mới",
-      "replacingTitle": "Đang thay thế bữa ăn...",
-      "portionGuide": "Hướng dẫn khẩu phần:",
-      "ingredients": "Nguyên liệu:",
-      "instructions": "Hướng dẫn:",
-      "medicalSafety": "An toàn y tế:",
-      "error": "Lỗi:"
-    },
     "mealCard": {
       "noRecipe": "Không có công thức",
       "addMeal": "Thêm bữa ăn",

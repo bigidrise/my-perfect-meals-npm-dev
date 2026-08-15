@@ -2174,17 +2174,6 @@
       "next": "다음",
       "morePages": "더 많은 페이지"
     },
-    "enhancedMealCard": {
-      "replace": "교체",
-      "replacing": "교체 중...",
-      "replaceTitle": "완전히 새로운 식사 레시피로 교체",
-      "replacingTitle": "식사 교체 중...",
-      "portionGuide": "1인분 가이드:",
-      "ingredients": "재료:",
-      "instructions": "조리법:",
-      "medicalSafety": "의료 안전성:",
-      "error": "오류:"
-    },
     "mealCard": {
       "noRecipe": "레시피 없음",
       "addMeal": "식사 추가",
