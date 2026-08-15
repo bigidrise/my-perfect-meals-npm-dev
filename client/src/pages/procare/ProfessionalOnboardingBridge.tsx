@@ -109,11 +109,10 @@ function PersonalOnboardingStep({ onStart }: { onStart: () => void }) {
         </div>
 
         <div className="space-y-3 mb-8">
-          {/* i18n: leave for content team */}
           {[
-            "Set up your personal nutrition profile",
+            t("procare.bridge.personalProfileStep"),
             "Define your goals and dietary preferences",
-            "Generate your first AI-powered meal plan",
+            t("procare.bridge.firstMealPlan"),
             "Explore the meal builders and tools",
             "Experience the app as your clients will",
           ].map((item, i) => (
@@ -245,12 +244,11 @@ function CertPhase2Step({ onStart }: { onStart: () => void }) {
             {t("procare.bridge.step3Phase2Desc")}
           </p>
           <div className="space-y-2">
-            {/* i18n: leave for content team */}
             {[
-              "Managing clients and care plans",
-              "Professional questionnaires",
-              "Studio and client communication",
-              "Building recurring revenue",
+              t("procare.bridge.learningItems.clientMgmt"),
+              t("procare.bridge.learningItems.questionnaires"),
+              t("procare.bridge.learningItems.communication"),
+              t("procare.bridge.learningItems.revenue"),
               "Affiliate program and Business Suite",
               "Client retention and best practices",
             ].map((item, i) => (
