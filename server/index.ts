@@ -1610,6 +1610,19 @@ async function start() {
     await dbPre.execute(sqlPre`ALTER TABLE users ADD COLUMN IF NOT EXISTS clinical_context_response text`);
     // Diabetic builder save flow (dev path only — prod.ts has this in schemaMigPromise)
     await dbPre.execute(sqlPre`ALTER TABLE saved_meals ADD COLUMN IF NOT EXISTS saved_from_diabetic_builder boolean NOT NULL DEFAULT false`);
+    // Safety override correlation ID — guard asserts this; this ALTER ensures
+    // the column exists even if the dedicated migration ran before the table existed
+    await dbPre.execute(sqlPre`ALTER TABLE safety_override_audit_logs ADD COLUMN IF NOT EXISTS correlation_id text`);
+    // Clinical Labs Phase 5 — hormone + thyroid panel columns
+    // Must mirror the same ALTERs in prod.ts so the guard fires consistently
+    // on both boot paths. Each statement is idempotent (IF NOT EXISTS).
+    await dbPre.execute(sqlPre`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS reverse_t3 numeric`);
+    await dbPre.execute(sqlPre`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS estradiol numeric`);
+    await dbPre.execute(sqlPre`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS progesterone numeric`);
+    await dbPre.execute(sqlPre`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS shbg numeric`);
+    await dbPre.execute(sqlPre`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS lh numeric`);
+    await dbPre.execute(sqlPre`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS fsh numeric`);
+    await dbPre.execute(sqlPre`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS dhea_s numeric`);
     console.log("✅ [guard-pre] Critical column pre-flight migrations complete");
   });
 

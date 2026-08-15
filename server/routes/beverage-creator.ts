@@ -134,6 +134,8 @@ beverageCreatorRouter.post("/", async (req, res) => {
 
     let dietAdapted = false;
     let dietNotice = "";
+    // Allergen-specific override for this request only. All other allergies remain enforced.
+    let _overriddenBeverageAllergens: string[] = [];
     if (userId) {
       const inputText = [customBeverageDescription, specificDrink, flavorFamily, beverageCategory].filter(Boolean).join(' ');
       const safetyCheck = await enforceSafetyProfile(userId, inputText, "beverage-creator", {
@@ -163,6 +165,10 @@ beverageCreatorRouter.post("/", async (req, res) => {
       if (safetyCheck.result === "DIET_ADAPT") {
         dietAdapted = true;
         dietNotice = safetyCheck.message;
+      }
+      if (safetyCheck.overriddenAllergen) {
+        _overriddenBeverageAllergens = [safetyCheck.overriddenAllergen];
+        console.log(`[AllergyOverride] Beverage-creator request-scoped override — allergen: ${safetyCheck.overriddenAllergen}`);
       }
     }
 
@@ -560,6 +566,7 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
       beverageScan = scanGeneratedOutput(meal, beverageEnvelope, {
         generatorName: 'beverage_creator',
         skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
+        overriddenAllergens: _overriddenBeverageAllergens.length > 0 ? _overriddenBeverageAllergens : undefined,
       });
 
       if (!beverageScan.passed) {

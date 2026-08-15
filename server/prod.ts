@@ -1881,6 +1881,19 @@ async function initializeApp() {
         await dbPre.execute(sqlPre`ALTER TABLE users ADD COLUMN IF NOT EXISTS clinical_context_response text`);
         // Diabetic builder save flow
         await dbPre.execute(sqlPre`ALTER TABLE saved_meals ADD COLUMN IF NOT EXISTS saved_from_diabetic_builder boolean NOT NULL DEFAULT false`);
+        // Safety override correlation ID — guard asserts this; this ALTER ensures
+        // the column exists even if the dedicated migration ran before the table existed
+        await dbPre.execute(sqlPre`ALTER TABLE safety_override_audit_logs ADD COLUMN IF NOT EXISTS correlation_id text`);
+        // Clinical Labs Phase 5 — hormone + thyroid panel columns
+        // These are asserted by the guard below; add them here so fresh deployments
+        // that haven't run the manual Phase 5 migration script still pass the guard.
+        await dbPre.execute(sqlPre`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS reverse_t3 numeric`);
+        await dbPre.execute(sqlPre`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS estradiol numeric`);
+        await dbPre.execute(sqlPre`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS progesterone numeric`);
+        await dbPre.execute(sqlPre`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS shbg numeric`);
+        await dbPre.execute(sqlPre`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS lh numeric`);
+        await dbPre.execute(sqlPre`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS fsh numeric`);
+        await dbPre.execute(sqlPre`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS dhea_s numeric`);
         console.log("✅ [guard-pre] Critical column pre-flight migrations complete");
       });
 
@@ -1890,9 +1903,17 @@ async function initializeApp() {
       // rather than as cryptic 500s or silent data loss at runtime.
       // NOTE: every column listed here MUST be migrated in the preflight block
       // above so this assertion never races with its own migration.
+      //
+      // IMPORTANT: this block runs inside a deferred setTimeout callback, so any
+      // unhandled error here becomes an unhandled rejection that is only logged —
+      // the server would keep serving with missing critical columns. We therefore
+      // catch ALL errors (including DB connection failures) and call process.exit(1)
+      // unconditionally to make any guard failure fatal, whether the root cause is
+      // a missing column or an unreachable database.
       {
         const { db: dbColGuard } = await import("./db");
         const { assertColumnsExist } = await import("./bootstrap/assertColumnsExist");
+        try {
         await assertColumnsExist(dbColGuard, [
           {
             table: "safety_override_audit_logs",
@@ -1965,6 +1986,13 @@ async function initializeApp() {
             hint: "Clinical Labs Phase 5 — hormone panel; missing column silently drops DHEA-S hormone-optimization trigger from lab results",
           },
         ]);
+        } catch (colGuardErr: any) {
+          // Fatal: a DB connection error OR a missing-column error both mean the
+          // server cannot serve safely. Exit immediately so the deployment fails
+          // visibly rather than silently serving broken or data-loss-prone endpoints.
+          console.error("🚨 [FATAL] Column guard failed — shutting down:", colGuardErr.message);
+          process.exit(1);
+        }
       }
 
       // Universal Meal Refinement — original_meal_snapshot column (Stage 1)
@@ -1996,12 +2024,12 @@ async function initializeApp() {
   } catch (error) {
     console.error("❌ [INIT] Initialization failed:", error);
     initError = error instanceof Error ? error : new Error(String(error));
-    // Column guard failures are fatal: serving traffic with missing critical
-    // columns causes silent data loss or 500s. Crash loudly so the deployment
+    // Any initialization failure — whether a missing column, a DB connection
+    // error (ECONNREFUSED, SSL failure, pool exhaustion), or any other boot
+    // error — is fatal. Serving traffic after a failed boot causes silent data
+    // loss, incorrect 500s, or security gaps. Crash loudly so the deployment
     // fails visibly instead of silently degrading.
-    if (initError.message.startsWith("🚨 STARTUP GUARD:")) {
-      console.error("🚨 [INIT] Critical column(s) missing — halting process to prevent data loss.");
-      process.exit(1);
-    }
+    console.error("🚨 [INIT] Boot failed — halting process to prevent serving broken state:", initError.message);
+    process.exit(1);
   }
 }

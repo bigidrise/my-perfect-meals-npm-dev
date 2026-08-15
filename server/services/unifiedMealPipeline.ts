@@ -2212,6 +2212,16 @@ export async function generateSingleCompliantFallback(
   cravingInput: string,
   mealType: string,
   dietaryIdentity: string[],
+  options?: {
+    /** Allergens the user has authenticated-overridden for this request.
+     *  These are removed from the allergy prohibition block so the fallback
+     *  does not re-block an ingredient the user explicitly unlocked. */
+    overriddenAllergens?: string[];
+    /** Full stored allergy list from the protocol envelope. Used to build an
+     *  explicit allergy block in the fallback prompt (the first-pass generator
+     *  builds this itself; the fallback must do the same). */
+    storedAllergies?: string[];
+  },
 ): Promise<UnifiedMeal | null> {
   const validMealType = normalizeMealType(mealType);
   const kosherIntent = detectKosherCategoryIntent(dietaryIdentity, cravingInput);
@@ -2227,9 +2237,20 @@ export async function generateSingleCompliantFallback(
     `✅ Every single ingredient must be dairy-free. No exceptions.`,
   ].join('\n') : '';
 
+  // Build an allergy block that respects any authenticated override for this request.
+  // Without this the fallback would silently re-block an ingredient the user unlocked.
+  const overridden = (options?.overriddenAllergens ?? []).map(a => a.toLowerCase());
+  const enforcedAllergies = (options?.storedAllergies ?? []).filter(
+    a => !overridden.some(o => o.includes(a.toLowerCase()) || a.toLowerCase().includes(o))
+  );
+  const allergyBlock = enforcedAllergies.length > 0
+    ? `ALLERGEN BLOCK — This user has confirmed allergies to: ${enforcedAllergies.join(', ')}. Do NOT include these ingredients or any derivative/hidden form in the meal.`
+    : '';
+
   const prompt = [
     `You are a precision dietary chef. Generate exactly ONE meal that strictly complies with all dietary rules below.`,
     dietBlock,
+    allergyBlock,
     kosherBlock,
     meatDairyGuard,
     `The meal must be: ${cravingInput}`,
