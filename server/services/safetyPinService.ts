@@ -89,6 +89,17 @@ function clearRateLimit(userId: string): void {
   delete pinRateLimits[userId];
 }
 
+/**
+ * Test-only: wipes all in-process token state to simulate a server restart.
+ * Never call this in production code.
+ * @internal
+ */
+export function _resetTokenStoreForTesting(): void {
+  for (const k of Object.keys(activeOverrideTokens)) delete activeOverrideTokens[k];
+  for (const k of Object.keys(reservedOverrideTokens)) delete reservedOverrideTokens[k];
+  for (const k of Object.keys(activeAllergyEditTokens)) delete activeAllergyEditTokens[k];
+}
+
 export type SafetyMode = "STRICT" | "CUSTOM" | "CUSTOM_AUTHENTICATED";
 
 export interface PinSetResult {

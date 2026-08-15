@@ -14,11 +14,11 @@
  */
 
 import bcrypt from "bcryptjs";
-import { randomUUID } from "crypto";
+import { randomUUID, randomBytes } from "crypto";
 import { db } from "../../db";
 import { users, safetyOverrideAuditLogs } from "../../../shared/schema";
-import { eq, desc } from "drizzle-orm";
-import { verifyPinAndIssueOverrideToken } from "../safetyPinService";
+import { eq, desc, sql } from "drizzle-orm";
+import { verifyPinAndIssueOverrideToken, _resetTokenStoreForTesting } from "../safetyPinService";
 import { enforceSafetyProfile } from "../safetyProfileService";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -235,10 +235,87 @@ async function testAuditRowNotWrittenOnInvalidToken() {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Runner
-// ─────────────────────────────────────────────────────────────────────────────
+async function testServerRestartTokenLoss() {
+  section("Server-restart token-loss: BLOCKED result, no audit row written");
 
+  /**
+   * ARCHITECTURE NOTE — in-process token store and server restarts
+   * ───────────────────────────────────────────────────────────────
+   * Override tokens are stored exclusively in the in-process object record
+   * `activeOverrideTokens` (server/services/safetyPinService.ts).
+   * They are never persisted to the database.
+   *
+   * If the server restarts between PIN entry (token issued) and meal
+   * generation (token consumed), the record is wiped and the token is
+   * gone.  The expected behaviour is BLOCKED — the user must re-enter
+   * their PIN.  This test verifies that behaviour by:
+   *   1. issuing a real token, then
+   *   2. wiping the in-process store via _resetTokenStoreForTesting()
+   *      (the same blank-slate state a fresh process would have), then
+   *   3. presenting that original token to enforceSafetyProfile.
+   */
+
+  if (!testUserId) {
+    console.log("  ⚠️  Skipping — no test user available");
+    return;
+  }
+
+  // Step 1 — issue a real override token.
+  const tokenResult = await verifyPinAndIssueOverrideToken(
+    testUserId,
+    "7391",      // same PIN used throughout this suite
+    "peanuts",
+    "peanut butter cookies"
+  );
+  assert(tokenResult.success, "Token issued successfully before simulated restart");
+  if (!tokenResult.overrideToken) {
+    console.log("  ⚠️  No token issued — aborting remaining assertions");
+    return;
+  }
+
+  const issuedToken = tokenResult.overrideToken;
+
+  // Step 2 — simulate a server restart by wiping the in-process token store.
+  // After this call the issued token no longer exists in activeOverrideTokens,
+  // which is exactly the state a freshly started process would be in.
+  _resetTokenStoreForTesting();
+
+  const beforeCount = (
+    await db
+      .select({ id: safetyOverrideAuditLogs.id })
+      .from(safetyOverrideAuditLogs)
+      .where(eq(safetyOverrideAuditLogs.userId, testUserId))
+  ).length;
+
+  // Step 3 — present the original issued token; the server no longer knows it.
+  const assessment = await enforceSafetyProfile(
+    testUserId,
+    "peanut butter cookies",
+    "craving-creator",
+    {
+      safetyMode: "CUSTOM_AUTHENTICATED",
+      overrideToken: issuedToken,
+      correlationId: "restart-loss-should-not-appear",
+    }
+  );
+
+  assert(
+    assessment.result === "BLOCKED",
+    "SafetyAssessment.result is BLOCKED when the token was lost on server restart"
+  );
+
+  const afterCount = (
+    await db
+      .select({ id: safetyOverrideAuditLogs.id })
+      .from(safetyOverrideAuditLogs)
+      .where(eq(safetyOverrideAuditLogs.userId, testUserId))
+  ).length;
+
+  assert(
+    afterCount === beforeCount,
+    "No audit row is written when the override token was lost on server restart"
+  );
+}
 async function main() {
   console.log("🔒 Safety Override Audit Row — Integration Tests");
   console.log(`   DB: ${process.env.DATABASE_URL ? "configured" : "⚠️ DATABASE_URL missing"}\n`);
@@ -246,6 +323,7 @@ async function main() {
   try {
     await testAuditRowWrittenWithCorrelationId();
     await testAuditRowNotWrittenOnInvalidToken();
+    await testServerRestartTokenLoss();
   } finally {
     await cleanup();
   }
