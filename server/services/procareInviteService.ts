@@ -78,10 +78,15 @@ export type AcceptError =
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function maskEmail(email: string): string {
-  const [local, domain] = email.split("@");
-  if (!domain || local.length <= 2) return email;
-  const visible = Math.min(local.length - 2, 4);
-  return `${local[0]}${"*".repeat(visible)}${local[local.length - 1]}@${domain}`;
+  const atIdx = email.indexOf("@");
+  // Malformed or no domain — never expose the raw value.
+  if (atIdx <= 0) return "****@****";
+  const local  = email.slice(0, atIdx);
+  const domain = email.slice(atIdx + 1);
+  // Short local part (≤ 2 chars) — hide it entirely rather than revealing it.
+  if (local.length <= 2) return `****@${domain}`;
+  const stars = Math.min(local.length - 2, 4);
+  return `${local[0]}${"*".repeat(stars)}${local[local.length - 1]}@${domain}`;
 }
 
 async function buildProName(proUserId: string): Promise<string> {

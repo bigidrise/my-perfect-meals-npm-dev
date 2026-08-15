@@ -22,7 +22,11 @@ router.get("/token/:token", async (req, res) => {
     if (!metadata) {
       return res.status(404).json({ error: "Invitation not found or has expired." });
     }
-    res.json(metadata);
+    // Strip the raw invited email — callers only need the masked form.
+    // Returning the full address from an unauthenticated endpoint would let
+    // anyone with the URL token enumerate account emails.
+    const { invitedEmail: _omit, ...publicMetadata } = metadata;
+    res.json(publicMetadata);
   } catch (err) {
     console.error("❌ [ProCareInvite] metadata lookup failed:", err);
     res.status(500).json({ error: "Failed to look up invitation." });

@@ -11,7 +11,7 @@ const PENDING_TOKEN_KEY = "mpm.pendingStudioInviteToken";
 interface InviteMetadata {
   studioName: string;
   proName: string;
-  invitedEmail: string;
+  // invitedEmail is intentionally omitted — the public endpoint only returns maskedEmail
   maskedEmail: string;
   studioType: "studio" | "clinic";
   expired: boolean;
