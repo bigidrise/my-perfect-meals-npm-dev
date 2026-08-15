@@ -581,12 +581,14 @@ const FridgeRescuePage = () => {
           title: "⚠️ ALLERGY ALERT",
           description: formatAllergyAlertDescription(errorMsg),
           variant: "warning",
+          duration: 10000,
         });
       } else {
         toast({
           title: "Generation Failed",
           description: "Failed to generate meals. Please try again.",
           variant: "destructive",
+          duration: 10000,
         });
       }
     } finally {

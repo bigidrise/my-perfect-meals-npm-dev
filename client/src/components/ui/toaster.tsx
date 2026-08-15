@@ -41,7 +41,7 @@ function ToasterInner() {
                 <ToastDescription>{description}</ToastDescription>
               )}
             </div>
-            {action}
+            {action && <div className="self-center">{action}</div>}
             <ToastClose />
           </Toast>
         )

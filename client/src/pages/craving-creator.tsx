@@ -739,6 +739,7 @@ export default function CravingCreator() {
           title: "⚠️ ALLERGY ALERT",
           description: formatAllergyAlertDescription(errorMsg),
           variant: "warning",
+          duration: 10000,
         });
       } else {
         toast({

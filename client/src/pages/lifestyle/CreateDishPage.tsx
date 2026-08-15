@@ -618,6 +618,7 @@ export default function CreateDishPage() {
           title: t("createDish.allergyAlert"),
           description: formatAllergyAlertDescription(errorMsg),
           variant: "warning",
+          duration: 10000,
         });
       } else {
         toast({

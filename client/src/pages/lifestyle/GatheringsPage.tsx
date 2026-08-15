@@ -591,6 +591,7 @@ export default function UltimateExperiencesPage() {
           title: "Allergy Alert",
           description: formatAllergyAlertDescription(errorMsg),
           variant: "warning",
+          duration: 10000,
         });
       } else {
         toast({

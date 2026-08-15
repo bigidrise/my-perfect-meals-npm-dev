@@ -20,3 +20,8 @@ Key design decisions (non-obvious):
 Proof matrix: `scripts/proof-dish-adaptation.ts` (7 scenarios + cache proof, live gpt-4o-mini; 35 assertions).
 
 Remaining phases (not shipped): Phase 5 (DAL on dessert/beverage/kids/restaurant/GLP-1 surfaces), Phase 6 (override threading on all surfaces).
+
+## Physical-form gate (dish-form collapse)
+The identity validator rejects a dish that keeps its name but arrives in a different physical format (cheesecake → parfait/bowl/mousse, stew → soup) — form mismatch is catastrophic even when name and defining components pass.
+**Why:** a model that can't solve a constraint escapes by converting the dish to another format while keeping the name.
+**How to apply:** form is judged from the generated meal's NAME only (descriptions/instructions legitimately mention "mixing bowl", bread, etc.), and a free-form dishForm string contributes only ONE primary allowed family — structural descriptors like "broth-based" must never whitelist a different presentation.

@@ -216,6 +216,7 @@ export default function GetInspiration() {
         description:
           "Your browser doesn't support voice input. Please type your entry.",
         variant: "destructive",
+        duration: 10000,
       });
       return;
     }
