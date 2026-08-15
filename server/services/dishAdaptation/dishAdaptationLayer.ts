@@ -124,7 +124,17 @@ Return JSON only:
 // ── Conflict resolution (cross-reference components × substitution map) ─────
 function componentMatchesTriggers(component: string, triggers: string[]): boolean {
   const c = component.toLowerCase();
-  return triggers.some(t => c.includes(t) || (t.length >= 4 && t.includes(c)));
+  return triggers.some(t => {
+    // Word-boundary match with optional trailing 's' for plurals.
+    // e.g. trigger "egg" matches "eggs" and "large eggs" but NOT "eggplant"
+    // (no word boundary between "egg" and "plant" inside the compound word).
+    const escaped = t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    if (new RegExp(`\\b${escaped}s?\\b`, "i").test(c)) return true;
+    // Reverse direction: trigger phrase contains the component as a substring
+    // (handles cases where the component name is more generic than the trigger).
+    if (t.length >= 4 && t.includes(c)) return true;
+    return false;
+  });
 }
 
 export function resolveConflicts(
@@ -152,7 +162,12 @@ export function resolveConflicts(
       // structural function (binder, setter, …), it wins over generic
       // substitutions for the same component — a functional substitute
       // preserves how the dish holds together, not just its compliance.
-      const matching = profile.rules.filter(rule => componentMatchesTriggers(c, rule.triggers));
+      // Build the dish context string once per component for dishContextPattern checks.
+      const dishContext = `${dishName} ${decomposition.dishForm ?? ""}`.toLowerCase();
+      const matching = profile.rules.filter(rule =>
+        componentMatchesTriggers(c, rule.triggers) &&
+        (rule.dishContextPattern == null || rule.dishContextPattern.test(dishContext)),
+      );
       const roleAware = matching.filter(rule => rule.functionalRole);
       const selected = roleAware.length > 0 ? roleAware : matching;
       for (const rule of selected) {

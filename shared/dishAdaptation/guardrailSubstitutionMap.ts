@@ -72,6 +72,13 @@ export interface SubstitutionRule {
    * Required whenever functionalRole is set.
    */
   roleRequirement?: string;
+  /**
+   * When set, this rule only fires if the combined dish name + dishForm
+   * string matches this pattern (case-insensitive). Use to scope rules to
+   * a specific dish category (e.g. baked goods) so generic triggers such as
+   * "egg" do not fire for unrelated dishes (omelets, quiches, eggplant).
+   */
+  dishContextPattern?: RegExp;
 }
 
 export interface GuardrailSubstitutionProfile {
@@ -242,12 +249,24 @@ export const GUARDRAIL_SUBSTITUTION_MAP: Record<GuardrailId, GuardrailSubstituti
       },
       // ── Leavening: eggs in a baked cake/muffin/quick bread trap air and expand
       // during baking; a plain flax egg replicates binding but not lift.
+      // Triggers include "egg" so this rule fires for common LLM component names
+      // ("eggs", "whole eggs", "2 eggs", "large eggs").  dishContextPattern
+      // gates the rule to baked-good dishes so it never fires for omelets,
+      // scrambles, quiches, frittatas, or dishes whose components include
+      // "eggplant".  The role-aware selector in dishAdaptationLayer still
+      // prefers this role-tagged rule over the generic egg rule when both
+      // trigger — but only after the dish-context guard passes.
       {
         blocked: "eggs as leavening in a baked cake, muffin, or quick bread",
-        triggers: ["leavening", "egg lift", "whipped egg", "beaten egg"],
-        substitute: "aquafaba (3 tbsp per egg, whipped to soft peaks for aeration) OR baking soda + apple cider vinegar (½ tsp soda + 1 tsp vinegar per egg for CO₂ lift)",
+        triggers: ["leavening", "egg lift", "whipped egg", "beaten egg", "egg"],
+        substitute: "aquafaba (3 tbsp per egg, whipped to soft peaks for aeration) OR baking soda + apple cider vinegar (½ tsp soda + 1 tsp vinegar per egg for CO₂ lift) — use alongside a flax egg for binding so the bake has both structure and lift",
         functionalRole: "leavening",
-        roleRequirement: "eggs were trapping air and providing CO₂ expansion during baking — aquafaba whipped to soft peaks replicates the air-trapping role; baking soda + vinegar supplies CO₂; a dense, flat result means the leavening substitute was insufficient — combine both methods for tall, airy bakes",
+        roleRequirement: "eggs were trapping air and providing CO₂ expansion during baking — aquafaba whipped to soft peaks replicates the air-trapping role; baking soda + vinegar supplies CO₂; a flax egg handles binding; a dense, flat result means the leavening substitute was insufficient — combine aquafaba + baking soda/vinegar for tall, airy bakes",
+        // \b prevents "cheesecake" from matching "cake" (no word boundary before
+        // the "c" inside "cheesecake"). Plurals handled via s? suffix.
+        // "batter" and "loaf" are intentionally excluded: "batter" also appears
+        // in savory battered/fried dishes; "loaf" also appears in meatloaf.
+        dishContextPattern: /\b(cakes?|muffins?|quick bread|brownies?|cupcakes?|coffee cake|pound cake|banana bread|zucchini bread|carrot cake|sponge cake|genoise)\b/i,
       },
     ],
   },
@@ -262,8 +281,11 @@ export const GUARDRAIL_SUBSTITUTION_MAP: Record<GuardrailId, GuardrailSubstituti
       { blocked: "animal stock / bone broth", triggers: ["stock", "broth"], substitute: "vegetable broth" },
       { blocked: "gelatin", triggers: ["gelatin"], substitute: "agar-agar", functionalRole: "setter", roleRequirement: "agar must be boiled to activate and sets firmer than gelatin — dose ~1 tsp powder per cup of liquid so the dish still sets and slices cleanly" },
       {
+        // Triggers are ingredient names only — "pastry", "pie crust", and
+        // "shortcrust" are removed so a compliant vegetarian pastry component
+        // that contains no lard/tallow/suet does not produce a false directive.
         blocked: "lard / tallow / suet in a pastry or crust",
-        triggers: ["lard", "tallow", "suet", "pastry", "pie crust", "shortcrust"],
+        triggers: ["lard", "tallow", "suet"],
         substitute: "plant-based shortening (Crisco or similar) or cold coconut oil",
         functionalRole: "fat/flakiness",
         roleRequirement: "lard's low melting point creates flakiness by staying solid during mixing and melting rapidly in the oven — substitute with solid plant-based shortening, kept cold, worked in quickly so fat pockets survive into the oven and produce distinct flaky layers rather than a dense crumb",
