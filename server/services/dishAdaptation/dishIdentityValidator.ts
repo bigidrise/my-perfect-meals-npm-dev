@@ -199,16 +199,31 @@ export function validateDishIdentity(
   // Allowed families: union from the requested dish NAME (legitimate hybrids
   // like "chicken soup bowl" keep both), plus at most ONE primary family from
   // the free-form dishForm — never every family whose descriptor it mentions.
+  //
+  // NATURALISTIC DISHFORM PROTECTION: When dishForm is provided but contains
+  // no recognized FORM_FAMILIES keyword (e.g. "crispy coated chicken pieces"
+  // or "spiced sauce with chicken over rice"), the allowed set is empty yet
+  // the form directive is still active. In that case the check runs in
+  // "open" mode: any form-family keyword found in the generated meal name is
+  // treated as a foreign escape, because the dish has no recognized format of
+  // its own that could overlap with it.
   const dishForm = directive?.dishForm;
   const allowedForms = detectFormFamilies(requestedDish);
   if (dishForm) {
     const primary = detectPrimaryFormFamily(dishForm);
     if (primary) allowedForms.add(primary);
   }
+  // Form check is active when there are explicit allowed forms OR when a
+  // dishForm directive is present (even if it maps to no recognized family).
+  const hasFormDirective = !!dishForm;
+  const formCheckActive = allowedForms.size > 0 || hasFormDirective;
   let formMismatch = false;
-  if (allowedForms.size > 0) {
+  if (formCheckActive) {
     const generatedForms = detectFormFamilies(mealName);
-    const foreign = Array.from(generatedForms).filter(f => !allowedForms.has(f));
+    // In open mode (no recognized allowed family) every generated form is foreign.
+    const foreign = allowedForms.size > 0
+      ? Array.from(generatedForms).filter(f => !allowedForms.has(f))
+      : Array.from(generatedForms);
     if (foreign.length > 0) {
       formMismatch = true;
       failures.push(
@@ -229,7 +244,7 @@ export function validateDishIdentity(
   // a preparation or serving note — not the food's own format — and is ignored.
   // This prevents false positives from descriptions like "Serve each slice in
   // a bowl with strawberries" or "Mix filling in a large bowl."
-  if (!formMismatch && allowedForms.size > 0 && meal.description) {
+  if (!formMismatch && formCheckActive && meal.description) {
     const lead = meal.description.slice(0, 80).toLowerCase();
     const leadFamilies = detectFormFamilies(lead);
     const foreignInLead = Array.from(leadFamilies).filter(f => !allowedForms.has(f));

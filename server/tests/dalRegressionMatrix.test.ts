@@ -529,3 +529,166 @@ describe("stacked constraints — brownies (vegan + gluten-free)", () => {
     expect(r.failures).toHaveLength(0);
   });
 });
+
+// ── Naturalistic dishForm protection ─────────────────────────────────────────
+// The form gate must fire even when dishForm contains NO recognized FORM_FAMILIES
+// keyword (e.g. "crispy coated chicken pieces" has no "crust", "bake", "stew",
+// etc.). Previously the allowed-forms set would stay empty and the check would be
+// silently skipped, letting salad/wrap escapes through as mere score failures
+// rather than catastrophic deviations. These tests use naturalistic dishForm
+// strings that a real LLM decomposition would plausibly produce.
+
+describe("naturalistic dishForm — fried chicken (no FORM_FAMILIES keyword in dishForm)", () => {
+  // "crispy coated chicken pieces" contains no recognized form keyword,
+  // so the old code would leave allowedForms empty and skip the form check.
+  const naturalisticDirective = directive({
+    identityAnchor: "This IS fried chicken.",
+    definingComponents: ["chicken pieces", "crispy coating", "seasoned crust"],
+    adaptableComponents: ["cooking method", "coating flour"],
+    dishForm: "crispy coated chicken pieces",  // deliberately no "crust"/"bake"/etc.
+    conflicts: [
+      { component: "deep frying", guardrail: "GLP-1: no heavy fried fats", directive: "Air-fry or oven-bake the coated chicken. The dish is still fried chicken." },
+      { component: "wheat flour coating", guardrail: "anti-inflammatory: limit refined wheat", directive: "Use almond-flour coating. The dish is still fried chicken." },
+    ],
+  });
+
+  it("salad escape is flagged as form mismatch and catastrophic", () => {
+    const r = validateDishIdentity("fried chicken", {
+      name: "Crispy Chicken Salad",
+      description: "Chopped chicken over greens with a light dressing.",
+      ingredients: [{ name: "chicken breast" }, { name: "mixed greens" }, { name: "vinaigrette" }],
+    }, naturalisticDirective);
+    expect(r.formMismatch).toBe(true);
+    expect(r.catastrophicDeviation).toBe(true);
+    expect(r.passed).toBe(false);
+  });
+
+  it("wrap escape is flagged as form mismatch and catastrophic", () => {
+    const r = validateDishIdentity("fried chicken", {
+      name: "Crispy Chicken Wrap",
+      description: "Chicken and greens rolled in a tortilla.",
+      ingredients: [{ name: "chicken" }, { name: "tortilla" }, { name: "greens" }],
+    }, naturalisticDirective);
+    expect(r.formMismatch).toBe(true);
+    expect(r.catastrophicDeviation).toBe(true);
+    expect(r.passed).toBe(false);
+  });
+
+  it("bowl escape is flagged as form mismatch and catastrophic", () => {
+    const r = validateDishIdentity("fried chicken", {
+      name: "Fried Chicken Rice Bowl",
+      description: "Fried chicken components served over rice in a bowl.",
+      ingredients: [{ name: "chicken" }, { name: "rice" }, { name: "sauce" }],
+    }, naturalisticDirective);
+    expect(r.formMismatch).toBe(true);
+    expect(r.catastrophicDeviation).toBe(true);
+    expect(r.passed).toBe(false);
+  });
+
+  it("correctly adapted oven-baked version still passes", () => {
+    const r = validateDishIdentity("fried chicken", {
+      name: "Oven-Baked Crispy Fried Chicken",
+      description: "Chicken pieces in a crispy almond-flour coating, air-fried until golden.",
+      ingredients: [{ name: "chicken thighs" }, { name: "almond flour coating" }, { name: "paprika" }],
+    }, naturalisticDirective);
+    expect(r.formMismatch).toBe(false);
+    expect(r.catastrophicDeviation).toBe(false);
+    expect(r.passed).toBe(true);
+  });
+});
+
+describe("naturalistic dishForm — chicken curry (no FORM_FAMILIES keyword in dishForm)", () => {
+  // "spiced sauce with chicken over rice" contains no "stew"/"broth" keyword,
+  // so previously the form check would be skipped entirely.
+  const naturalisticDirective = directive({
+    identityAnchor: "This IS chicken curry.",
+    definingComponents: ["chicken pieces", "spiced curry sauce", "aromatic base"],
+    adaptableComponents: ["cream base", "rice accompaniment"],
+    dishForm: "spiced sauce with chicken over rice",  // no "stew"/"broth" keyword
+    conflicts: [],
+  });
+
+  it("salad wrap escape is flagged as form mismatch and catastrophic", () => {
+    const r = validateDishIdentity("chicken curry", {
+      name: "Chicken Curry Salad Wrap",
+      description: "Curried chicken folded into a cold tortilla with greens.",
+      ingredients: [{ name: "chicken" }, { name: "curry mayo" }, { name: "tortilla" }],
+    }, naturalisticDirective);
+    expect(r.formMismatch).toBe(true);
+    expect(r.catastrophicDeviation).toBe(true);
+    expect(r.passed).toBe(false);
+  });
+
+  it("soup escape is flagged as form mismatch and catastrophic", () => {
+    const r = validateDishIdentity("chicken curry", {
+      name: "Chicken Curry Soup",
+      description: "A thin brothy curry ladled as soup.",
+      ingredients: [{ name: "chicken" }, { name: "curry broth" }, { name: "vegetables" }],
+    }, naturalisticDirective);
+    expect(r.formMismatch).toBe(true);
+    expect(r.catastrophicDeviation).toBe(true);
+    expect(r.passed).toBe(false);
+  });
+
+  it("correctly adapted coconut curry still passes", () => {
+    const r = validateDishIdentity("chicken curry", {
+      name: "Coconut Chicken Curry",
+      description: "Tender chicken pieces simmered in a spiced coconut curry sauce over an aromatic base.",
+      ingredients: [{ name: "chicken thighs" }, { name: "coconut milk curry sauce" }, { name: "aromatic base" }],
+    }, naturalisticDirective);
+    expect(r.formMismatch).toBe(false);
+    expect(r.catastrophicDeviation).toBe(false);
+    expect(r.passed).toBe(true);
+  });
+});
+
+describe("naturalistic dishForm — adobo (no FORM_FAMILIES keyword in dishForm)", () => {
+  const naturalisticDirective = directive({
+    identityAnchor: "This IS chicken adobo.",
+    definingComponents: ["chicken pieces", "vinegar-soy braising liquid", "garlic", "bay leaves"],
+    adaptableComponents: ["sodium level", "fat content"],
+    dishForm: "braised chicken pieces in tangy sauce",  // "braised" is in FORM_FAMILIES["stew"]
+    conflicts: [],
+  });
+
+  // "braised" maps to the "stew" family, so this tests the explicit-form path,
+  // confirming adobo-as-salad is still caught.
+  it("salad escape is flagged as form mismatch and catastrophic", () => {
+    const r = validateDishIdentity("chicken adobo", {
+      name: "Chicken Adobo Salad",
+      description: "Adobo-flavored chicken served cold over greens.",
+      ingredients: [{ name: "chicken" }, { name: "vinegar dressing" }, { name: "mixed greens" }],
+    }, naturalisticDirective);
+    expect(r.formMismatch).toBe(true);
+    expect(r.catastrophicDeviation).toBe(true);
+    expect(r.passed).toBe(false);
+  });
+});
+
+describe("naturalistic dishForm — no directive (no dishForm at all)", () => {
+  // When no directive is provided the form check is inactive (no dishForm to
+  // anchor against). This preserves backward-compatible behaviour for callers
+  // that don't yet have a DAL directive.
+  it("no form check fires when directive is absent — name score drives result", () => {
+    const r = validateDishIdentity("fried chicken", {
+      name: "Crispy Chicken Salad",
+      description: "Chicken over greens.",
+      ingredients: [{ name: "chicken" }, { name: "greens" }],
+    });  // no directive
+    // formMismatch cannot fire without a directive, but the name score may still fail
+    expect(r.formMismatch).toBe(false);
+  });
+
+  it("no form check fires when directive has no dishForm", () => {
+    const r = validateDishIdentity("fried chicken", {
+      name: "Crispy Chicken Salad",
+      description: "Chicken over greens.",
+      ingredients: [{ name: "chicken" }, { name: "greens" }],
+    }, directive({
+      definingComponents: ["chicken pieces", "crispy coating"],
+      adaptableComponents: ["cooking method"],
+      // dishForm intentionally omitted
+    }));
+    expect(r.formMismatch).toBe(false);
+  });
+});
