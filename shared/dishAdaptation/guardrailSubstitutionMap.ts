@@ -79,6 +79,16 @@ export interface SubstitutionRule {
    * "egg" do not fire for unrelated dishes (omelets, quiches, eggplant).
    */
   dishContextPattern?: RegExp;
+  /**
+   * When true, this rule always fires for a matching component even when
+   * role-aware (functionalRole) rules are also present.  Use for safety
+   * directives that address a *different* concern from the structural role —
+   * e.g. the oat cross-contamination rule must fire alongside a structural
+   * flour rule because they give independent guidance (structural substitute
+   * vs. cross-contamination label).  Without this flag, a role-aware rule
+   * suppresses all non-role-aware rules for the same component.
+   */
+  alwaysEmit?: boolean;
 }
 
 export interface GuardrailSubstitutionProfile {
@@ -175,6 +185,11 @@ export const GUARDRAIL_SUBSTITUTION_MAP: Record<GuardrailId, GuardrailSubstituti
         triggers: ["oat", "oatmeal", "granola", "rolled oat", "oat flour", "oat bran", "oat base", "oat crust"],
         substitute: "certified gluten-free oats",
         note: "standard oats are frequently cross-contaminated with wheat during farming and processing; only oats explicitly labelled certified gluten-free are safe for celiac users and those with oat/gluten cross-contamination concerns",
+        // alwaysEmit: this rule addresses cross-contamination labelling, a
+        // concern independent from any structural/flour role.  When "oat flour"
+        // matches both the FLOUR structural rule and this rule, both must fire
+        // so the LLM receives guidance on both structure AND labelling.
+        alwaysEmit: true,
       },
     ],
     generalDirectives: [
@@ -237,9 +252,12 @@ export const GUARDRAIL_SUBSTITUTION_MAP: Record<GuardrailId, GuardrailSubstituti
     rules: [
       { blocked: "cream cheese / dairy in a set filling or custard", triggers: ["cream cheese", "cheesecake", "cheese filling", "custard", "mousse", "panna cotta", "flan"], substitute: "a cashew-cream-cheese base (soaked cashews blended with coconut cream and lemon)", functionalRole: "binder/setter", roleRequirement: "the filling must set firm enough to slice — use agar or arrowroot as the setter, since removing the dairy also removes the protein network that made it set" },
       { blocked: "dairy (milk, cheese, butter, cream, yogurt)", triggers: ["milk", "cheese", "butter", "cream", "yogurt", "dairy"], substitute: "oat/almond milk, vegan cheese or nutritional yeast, vegan butter or coconut oil, coconut cream, coconut yogurt" },
-      // Generic egg substitute. Directive mentions both binding AND leavening compensation
-      // so a generator adapting a vegan cake knows flax eggs alone won't provide lift.
-      { blocked: "eggs", triggers: ["egg"], substitute: "flax eggs (1 tbsp ground flax + 3 tbsp water per egg, rested 5 min) for binding; for baked cakes, muffins, and quick breads also add ½ tsp baking soda + 1 tsp apple cider vinegar per egg to replace the lost lift so the result rises properly instead of coming out dense and flat" },
+      // Generic egg substitute — binding only. Leavening compensation (baking
+      // soda + apple cider vinegar) is handled by the dedicated leavening rule
+      // below, which is gated to baked-good dish contexts via dishContextPattern.
+      // Keeping this rule binding-only prevents "baking soda" from appearing in
+      // directives for omelets, quiches, frittatas, and other non-baked dishes.
+      { blocked: "eggs", triggers: ["egg"], substitute: "flax eggs (1 tbsp ground flax + 3 tbsp water per egg, rested 5 min) for binding" },
       { blocked: "eggs in a baked or set dish (binder/setter role)", triggers: ["egg custard", "egg binder", "egg wash", "meringue", "cheesecake", "custard", "quiche", "frittata"], substitute: "silken tofu or a cashew-cream base", functionalRole: "binder/setter", roleRequirement: "eggs were the setting agent — add agar (for a firm set) or arrowroot/cornstarch (for a soft set) so the dish holds its shape when portioned; do NOT use egg as the setter if eggs are also restricted" },
       { blocked: "meat / poultry / seafood", triggers: ["beef", "pork", "chicken", "fish", "shrimp", "seafood", "meat", "protein/seafood"], substitute: "tofu, tempeh, seitan, jackfruit, or portobello mushrooms" },
       { blocked: "gelatin", triggers: ["gelatin"], substitute: "agar-agar", functionalRole: "setter", roleRequirement: "agar sets firmer and less elastic than gelatin — use roughly 1 tsp agar powder per cup of liquid and boil to activate, so the dessert still sets and slices cleanly" },
