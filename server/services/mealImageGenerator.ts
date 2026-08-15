@@ -1019,7 +1019,7 @@ export function getImageCacheStats(): { size: number; entries: string[] } {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // UNIFIED ENTRY POINT — every feature must go through this function.
-// DO NOT call generateImage() from imageService directly.
+// DO NOT call generateImage() directly from any other module.
 // DO NOT pass raw AI descriptions as image prompts.
 // ─────────────────────────────────────────────────────────────────────────────
 
