@@ -1,50 +1,98 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { iosAudioSession } from '@/lib/iosAudioSession';
-type SpeechState = 'idle'|'listening'|'error'|'unsupported';
-export function useSpeechToText(){
-  const [state,setState]=useState<SpeechState>('idle');
-  const [text,setText]=useState('');
+
+type SpeechState = 'idle' | 'listening' | 'error' | 'unsupported';
+
+export function useSpeechToText() {
+  const [state, setState] = useState<SpeechState>('idle');
+  const [text, setText] = useState('');
   const recRef = useRef<any>(null);
+  // Track listening state via ref so onend/onerror callbacks always see the
+  // current value without a stale closure.
+  const stateRef = useRef<SpeechState>('idle');
 
-  useEffect(()=>{
-    const SpeechRec: any = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
-    if(!SpeechRec){ setState('unsupported'); return; }
+  // Keep the ref in sync with the state value on every render.
+  stateRef.current = state;
+
+  useEffect(() => {
+    const SpeechRec: any =
+      (window as any).webkitSpeechRecognition ||
+      (window as any).SpeechRecognition;
+    if (!SpeechRec) {
+      setState('unsupported');
+      return;
+    }
     const rec = new SpeechRec();
-    rec.lang='en-US'; rec.continuous=true; rec.interimResults=true;
-    rec.onresult=(e:any)=>{ let t=''; for(let i=e.resultIndex;i<e.results.length;i++){ t += e.results[i][0].transcript; } setText(t); };
-    rec.onerror=(event:any)=>{
-      console.log('Speech recognition error:', event.error);
-      setState('error');
-    };
-    rec.onend=()=>{ if(state==='listening') setState('idle'); };
-    recRef.current=rec;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[]);
+    rec.lang = 'en-US';
+    rec.continuous = true;
+    rec.interimResults = true;
 
-  const start=useCallback(async ()=>{ 
-    const rec=recRef.current; 
-    if(!rec){ setState('unsupported'); return; } 
-    try{ 
+    rec.onresult = (e: any) => {
+      let t = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        t += e.results[i][0].transcript;
+      }
+      setText(t);
+    };
+
+    rec.onerror = (event: any) => {
+      console.log('Speech recognition error:', event.error);
+      // Update the ref immediately so onend (which may fire synchronously from
+      // abort() in some environments) sees 'error' when it checks stateRef and
+      // can correctly reset back to 'idle'.
+      stateRef.current = 'error';
+      setState('error');
+      // Abort cleanly so onend fires and we don't leave a dangling session.
+      try { rec.abort(); } catch (_) {}
+    };
+
+    rec.onend = () => {
+      // Use the ref so we always read the *current* state, not the stale
+      // closure value from mount time.
+      // Reset to idle from either 'listening' (normal end) or 'error' (abort
+      // after recognition failure) so the mic button always recovers visually
+      // without requiring a page refresh.
+      if (stateRef.current === 'listening' || stateRef.current === 'error') {
+        setState('idle');
+      }
+    };
+
+    recRef.current = rec;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const start = useCallback(async () => {
+    const rec = recRef.current;
+    if (!rec) { setState('unsupported'); return; }
+    try {
       // iOS: Reset audio session to switch from output to input mode
       await iosAudioSession.resetForInput();
-      rec.start(); 
-      setState('listening'); 
-    }catch(error){ 
+      rec.start();
+      setState('listening');
+    } catch (error) {
       console.log('Speech start error:', error);
-      setState('error'); 
+      setState('error');
     }
-  },[]);
-  const stop=useCallback(()=>{ 
-    const rec=recRef.current; 
-    if(rec){ 
-      try{ 
-        rec.stop(); 
-      }catch(error){ 
+  }, []);
+
+  const stop = useCallback(() => {
+    const rec = recRef.current;
+    if (rec) {
+      try { rec.stop(); } catch (error) {
         console.log('Speech stop error:', error);
-      } 
-    } 
-    setState('idle'); 
-  },[]);
-  const reset=useCallback(()=>setText(''),[]);
-  return { state, text, start, stop, reset, supported: state!=='unsupported' };
+      }
+    }
+    setState('idle');
+  }, []);
+
+  const reset = useCallback(() => setText(''), []);
+
+  return {
+    state,
+    text,
+    start,
+    stop,
+    reset,
+    supported: state !== 'unsupported',
+  };
 }

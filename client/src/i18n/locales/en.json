@@ -517,7 +517,29 @@
     "continueToBiometrics": "Continue to Biometrics",
     "proLabel": "Pro",
     "emptyList": "Your shopping list is empty",
-    "emptyListHint": "Paste items or quick add to get started"
+    "emptyListHint": "Paste items or quick add to get started",
+    "findProduct": {
+      "tabBuildMeal": "Build a Meal",
+      "tabFindProduct": "Find a Product",
+      "inputLabel": "What are you shopping for?",
+      "inputPlaceholder": "e.g. spaghetti sauce, protein bars, milk…",
+      "voiceStart": "Speak your request",
+      "voiceStop": "Stop listening",
+      "voiceUnsupported": "Voice input isn't supported on this device",
+      "searching": "Finding the best products for you…",
+      "resultsFor": "Best picks for “{{query}}”",
+      "usualPick": "Your usual pick",
+      "alternatives": "Alternatives",
+      "save": "Save",
+      "saved": "Saved ✓",
+      "saving": "Saving…",
+      "addToList": "Add to Shopping List",
+      "added": "Added!",
+      "compareAnother": "Compare Another",
+      "errorGeneric": "Couldn't get product advice right now. Please try again.",
+      "noResults": "No brand advice available for that item — try a more specific packaged product.",
+      "avoid": "Avoid"
+    }
   },
   "restaurant": {
     "pageTitle": "Restaurant Assistant",
@@ -3808,7 +3830,6 @@
       "both": "Notify both"
     }
   },
-
   "joinStudio": {
     "appName": "My Perfect Meals",
     "loading": "Loading your invitation…",

@@ -24,7 +24,12 @@ import {
   ArrowLeftRight,
   Wand2,
   RotateCcw,
+  Mic,
+  MicOff,
+  PackageSearch,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { useSpeechToText } from "@/hooks/useSpeechToText";
 import MealRefinementSheet from "@/components/MealRefinementSheet";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
@@ -83,11 +88,18 @@ interface AvoidRecommendation {
   reason: string;
 }
 
+interface UsualPick {
+  brand: string;
+  reason: string;
+}
+
 interface IngredientAdvice {
   ingredient: string;
   category: string;
   recommended: BrandRecommendation[];
   avoid: AvoidRecommendation[];
+  /** Saved-grocery match in this category — pinned above alternatives. */
+  usualPick?: UsualPick | null;
 }
 
 interface ProductAdviceResult {
@@ -108,6 +120,15 @@ interface SwapResult {
   savedOption: SwapSuggestion | null;
   alternatives: SwapSuggestion[];
   protocolNote: string | null;
+}
+
+type CoachMode = "meal" | "product";
+type ProductPhase = "idle" | "loading" | "result";
+
+interface ProductSearchSession {
+  query: string;
+  advice: ProductAdviceResult;
+  savedAt: number;
 }
 
 interface Props {
@@ -178,6 +199,32 @@ export function buildAllIngredients(data: {
     })),
   ];
 }
+
+/**
+ * Pure swap transformation applied when the user taps "Use This".
+ *
+ * Replaces the targeted shopping-list item with the selected swap suggestion.
+ * All other items are returned unchanged. Nothing is mutated until this
+ * function is called — the overlay just selects; this commit makes it real.
+ *
+ * @internal exported for unit tests
+ */
+export function applySwapToShoppingList(
+  shoppingList: ShoppingListItem[],
+  target: Pick<ShoppingListItem, "item" | "category">,
+  selected: Pick<SwapSuggestion, "item" | "quantity" | "unit">,
+): ShoppingListItem[] {
+  return shoppingList.map((s) =>
+    s.item === target.item && s.category === target.category
+      ? {
+          ...s,
+          item: selected.item,
+          quantity: selected.quantity ?? s.quantity,
+          unit: selected.unit ?? s.unit,
+        }
+      : s,
+  );
+}
 const GRADE_COLOR: Record<string, string> = {
   A: "rgba(16,185,129,0.9)",
   B: "rgba(251,191,36,0.9)",
@@ -202,6 +249,7 @@ function groupByCategory(items: ShoppingListItem[]): Record<string, ShoppingList
 export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation("shopping");
   const addItems = useShoppingListStore((s) => s.addItems);
   const [, setLocation] = useLocation();
 
@@ -226,14 +274,14 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
 
   const [productAdvice, setProductAdvice] = useState<ProductAdviceResult | null>(null);
   const [advisorLoading, setAdvisorLoading] = useState(false);
-  const [brandsAdded, setBrandsAdded] = useState(false);
   // Saved groceries — keys of items the user has already saved
   const [savedProductKeys, setSavedProductKeys] = useState<Set<string>>(new Set());
   const [savingKey, setSavingKey] = useState<string | null>(null);
   // Smart Cart "show saved only" toggle
   const [showSavedOnly, setShowSavedOnly] = useState(false);
-  // Count of top-brand picks added so the "View List" banner shows the right number
-  const [brandsAddedCount, setBrandsAddedCount] = useState(0);
+  // Smart Cart picks — one brand selected per ingredient for this shopping trip
+  // key = ingredient name (lowercase), value = the chosen BrandRecommendation
+  const [pickedBrands, setPickedBrands] = useState<Map<string, BrandRecommendation>>(new Map());
   // Per-ingredient swap state
   const [swapTarget, setSwapTarget] = useState<ShoppingListItem | null>(null);
   const [swapResult, setSwapResult] = useState<SwapResult | null>(null);
@@ -245,6 +293,21 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   // Meal refinement state
   const [refineOpen, setRefineOpen] = useState(false);
   const [preRefinedResult, setPreRefinedResult] = useState<CoachResult | null>(null);
+
+  // ── Find a Product mode ──────────────────────────────────────────────────────
+  const [mode, setMode] = useState<CoachMode>("meal");
+  const [productPhase, setProductPhase] = useState<ProductPhase>("idle");
+  const [productQuery, setProductQuery] = useState("");
+  const [productSearch, setProductSearch] = useState<ProductSearchSession | null>(null);
+  const [productError, setProductError] = useState<string | null>(null);
+  const [productAddedKeys, setProductAddedKeys] = useState<Set<string>>(new Set());
+  const speech = useSpeechToText();
+
+  // Same session-restore pattern as the meal result, scoped per user.
+  const PRODUCT_SESSION_KEY = useMemo(
+    () => `grocery-coach-product-search:${user?.id ?? "guest"}`,
+    [user?.id]
+  );
 
   // Tracks which SESSION_KEY the current in-memory `result` was loaded under.
   // The save effect compares this to SESSION_KEY before writing; a mismatch means
@@ -295,7 +358,6 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
         if (session.preRefinedResult) setPreRefinedResult(session.preRefinedResult);
         setResultOwnerKey(SESSION_KEY); // result now belongs to this user's key
         setPhase("result");
-        onOpenChange(true); // active session restored — bring the sheet back up
 
         if (session.productAdvice?.advice?.length) {
           // Verify the saved advice still covers the same ingredients as the
@@ -349,11 +411,10 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       setMealCard(null);
       // productAdvice preserved intentionally — Smart Cart repopulates on reopen.
       setAdvisorLoading(false);
-      setBrandsAdded(false);
+      setPickedBrands(new Map());
       setSavedProductKeys(new Set());
       setSavingKey(null);
       setShowSavedOnly(false);
-      setBrandsAddedCount(0);
       setSwapTarget(null);
       setSwapResult(null);
       setSwapLoading(false);
@@ -361,8 +422,12 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       setSwapCustomLoading(false);
       setSwapSelected(null);
       setSwapError(null);
+      // Find a Product: stop any live mic; result state is preserved intentionally.
+      if (speech.state === "listening") speech.stop();
+      setProductError(null);
       if (loadingInterval.current) clearInterval(loadingInterval.current);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   useEffect(() => {
@@ -379,12 +444,116 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     return () => { if (loadingInterval.current) clearInterval(loadingInterval.current); };
   }, [phase]);
 
+  // Restore Find-a-Product session (same 24h pattern as meal results).
+  useEffect(() => {
+    setProductSearch(null);
+    setProductQuery("");
+    setProductError(null);
+    setProductAddedKeys(new Set());
+    setProductPhase("idle");
+    try {
+      const raw = localStorage.getItem(PRODUCT_SESSION_KEY);
+      if (!raw) return;
+      const session = JSON.parse(raw) as ProductSearchSession;
+      if (!session.savedAt || Date.now() - session.savedAt > 24 * 60 * 60 * 1000) {
+        localStorage.removeItem(PRODUCT_SESSION_KEY);
+        return;
+      }
+      if (session.advice?.advice?.length && session.query) {
+        setProductSearch(session);
+        setProductPhase("result");
+      }
+    } catch {}
+  }, [PRODUCT_SESSION_KEY]);
+
+  // Persist Find-a-Product session across navigation.
+  useEffect(() => {
+    if (productSearch) {
+      try {
+        localStorage.setItem(PRODUCT_SESSION_KEY, JSON.stringify(productSearch));
+      } catch {}
+    }
+  }, [productSearch, PRODUCT_SESSION_KEY]);
+
+  // Mirror live speech transcript into the product input while listening.
+  useEffect(() => {
+    if (speech.state === "listening" && speech.text) {
+      setProductQuery(speech.text);
+    }
+  }, [speech.text, speech.state]);
+
+  const handleProductVoiceToggle = useCallback(() => {
+    if (speech.state === "listening") {
+      speech.stop();
+      return;
+    }
+    if (!speech.supported) {
+      toast({ title: t("findProduct.voiceUnsupported"), variant: "destructive" });
+      return;
+    }
+    speech.reset();
+    speech.start();
+  }, [speech, toast, t]);
+
+  const handleProductSearch = useCallback(async (queryOverride?: string) => {
+    const query = (queryOverride ?? productQuery).trim();
+    if (!query) return;
+    if (speech.state === "listening") speech.stop();
+    const gen = sessionGenRef.current; // capture before first await
+    setProductPhase("loading");
+    setProductError(null);
+    setProductAddedKeys(new Set());
+    try {
+      const data = await post("/api/grocery-coach/product-advisor", { ingredients: [query] });
+      if (sessionGenRef.current !== gen) return; // identity changed — discard
+      if (data?.error) throw new Error(data.error);
+      if (data?.advice?.length) {
+        setProductSearch({ query, advice: data as ProductAdviceResult, savedAt: Date.now() });
+        setProductPhase("result");
+      } else {
+        setProductError(t("findProduct.noResults"));
+        setProductPhase("idle");
+      }
+    } catch (e: any) {
+      if (sessionGenRef.current !== gen) return;
+      // Surface server-provided messages (e.g. the retryable 503 when clinical
+      // GLP-1 targets are temporarily unavailable) over the generic fallback.
+      const serverMsg = typeof e?.message === "string" && e.message.trim() && !/failed to fetch/i.test(e.message)
+        ? e.message
+        : null;
+      setProductError(serverMsg ?? t("findProduct.errorGeneric"));
+      setProductPhase("idle");
+    }
+  }, [productQuery, speech, t]);
+
+  const handleCompareAnother = useCallback(() => {
+    try { localStorage.removeItem(PRODUCT_SESSION_KEY); } catch {}
+    setProductSearch(null);
+    setProductQuery("");
+    setProductError(null);
+    setProductAddedKeys(new Set());
+    setProductPhase("idle");
+  }, [PRODUCT_SESSION_KEY]);
+
+  const handleProductAddToList = useCallback((brand: string, ingredient: string) => {
+    const key = computeClientProductKey(brand, ingredient);
+    if (productAddedKeys.has(key)) return;
+    addItems([{
+      name: brand,
+      quantity: 1,
+      unit: "",
+      sourceMeals: [t("findProduct.tabFindProduct")],
+    }]);
+    setProductAddedKeys((prev) => new Set(Array.from(prev).concat(key)));
+    toast({ title: t("findProduct.added") });
+  }, [productAddedKeys, addItems, toast, t]);
+
   const fetchProductAdvice = useCallback(async (shoppingList: ShoppingListItem[]) => {
     if (!shoppingList.length) return;
     const gen = sessionGenRef.current; // capture before first await
     setAdvisorLoading(true);
     setProductAdvice(null);
-    setBrandsAdded(false);
+    setPickedBrands(new Map());
     try {
       const ingredients = shoppingList.map((s) => s.item);
       const data = await post("/api/grocery-coach/product-advisor", { ingredients });
@@ -411,8 +580,8 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
 
   // Refresh saved keys whenever product advice loads so bookmarks are accurate
   useEffect(() => {
-    if (productAdvice) fetchSavedKeys();
-  }, [productAdvice, fetchSavedKeys]);
+    if (productAdvice || productSearch) fetchSavedKeys();
+  }, [productAdvice, productSearch, fetchSavedKeys]);
 
   const handleSaveGrocery = useCallback(async (
     ingredient: string,
@@ -452,7 +621,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     setPhase("loading");
     setAddedToList(false);
     setProductAdvice(null);
-    setBrandsAdded(false);
+    setPickedBrands(new Map());
     setShowSavedOnly(false);
     setPreRefinedResult(null);
 
@@ -523,11 +692,10 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     setMealCard(null);
     setProductAdvice(null);
     setAdvisorLoading(false);
-    setBrandsAdded(false);
+    setPickedBrands(new Map());
     setSavedProductKeys(new Set());
     setSavingKey(null);
     setShowSavedOnly(false);
-    setBrandsAddedCount(0);
     setSwapTarget(null);
     setSwapResult(null);
     setSwapLoading(false);
@@ -537,48 +705,46 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     setSwapError(null);
   }, [SESSION_KEY]);
 
+  const handlePickBrand = useCallback((ingredient: string, brand: BrandRecommendation) => {
+    setPickedBrands((prev) => {
+      const next = new Map(prev);
+      const key = ingredient.toLowerCase();
+      // Toggle off if the same brand is tapped again
+      if (next.get(key)?.brand === brand.brand) {
+        next.delete(key);
+      } else {
+        next.set(key, brand);
+      }
+      return next;
+    });
+  }, []);
+
   const handleAddToList = useCallback(() => {
     if (!result?.shoppingList?.length) return;
-    // Include shoppingList (items to buy) AND ownedIngredients (recipe items the
-    // LLM assumed you already have) — this ensures the full ingredient list always
-    // reaches the shopping list, even if the model inferred some as "owned".
+    const mealName = result.meal?.name || "Grocery Coach";
+    // Build list — wherever the user picked a brand, substitute it for the generic.
     const toItems = (arr: Array<{ item: string; quantity: string; unit: string }>): UniversalIngredient[] =>
-      arr.map((s) => ({
-        name: s.item,
-        quantity: parseFloat(s.quantity) || 1,
-        unit: s.unit || "",
-        sourceMeals: [result.meal?.name || "Grocery Coach"],
-      }));
+      arr.map((s) => {
+        const pick = pickedBrands.get(s.item.toLowerCase());
+        return {
+          name: pick ? pick.brand : s.item,
+          quantity: parseFloat(s.quantity) || 1,
+          unit: s.unit || "",
+          sourceMeals: [mealName],
+        };
+      });
     const allItems = [
       ...toItems(result.shoppingList),
       ...toItems(result.ownedIngredients ?? []),
     ];
     addItems(allItems);
     setAddedToList(true);
-    toast({ title: "Added to shopping list!", description: `${allItems.length} items added.` });
-  }, [result, addItems, toast]);
-
-  const handleAddBrandsToList = useCallback(() => {
-    if (!productAdvice?.advice?.length || !result) return;
-    const items: UniversalIngredient[] = [];
-    for (const advice of productAdvice.advice) {
-      const top = advice.recommended.find((r) => r.rank === 1);
-      if (top) {
-        items.push({
-          name: top.brand,
-          quantity: 1,
-          unit: "",
-          sourceMeals: [result.meal?.name || "Grocery Coach"],
-        });
-      }
-    }
-    if (items.length) {
-      addItems(items);
-      setBrandsAdded(true);
-      setBrandsAddedCount(items.length);
-      toast({ title: "Top picks added!", description: `${items.length} brand recommendation${items.length !== 1 ? "s" : ""} added to your list.` });
-    }
-  }, [productAdvice, result, addItems, toast]);
+    const pickedCount = pickedBrands.size;
+    const desc = pickedCount > 0
+      ? `${allItems.length} items added — ${pickedCount} with your brand selection.`
+      : `${allItems.length} items added.`;
+    toast({ title: "Added to shopping list!", description: desc });
+  }, [result, pickedBrands, addItems, toast]);
 
   const finalizeCard = useCallback(async (coachResult: CoachResult) => {
     const gen = sessionGenRef.current; // capture before first await
@@ -652,16 +818,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       if (!prev) return prev;
       return {
         ...prev,
-        shoppingList: prev.shoppingList.map((s) =>
-          s.item === swapTarget.item && s.category === swapTarget.category
-            ? {
-                ...s,
-                item: swapSelected.item,
-                quantity: swapSelected.quantity ?? s.quantity,
-                unit: swapSelected.unit ?? s.unit,
-              }
-            : s
-        ),
+        shoppingList: applySwapToShoppingList(prev.shoppingList, swapTarget, swapSelected),
       };
     });
     setResultOwnerKey(SESSION_KEY); // result still belongs to this user's session
@@ -742,10 +899,253 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
 
         {/* ── Scrollable body ── */}
         <div style={{ flex: 1, overflowY: "auto", overscrollBehavior: "contain", minHeight: 0 }}>
+
+          {/* ── Mode tabs: Build a Meal | Find a Product ── */}
+          {/* Always visible so users can switch modes from any state —
+              meal state is preserved when toggling (sections are gated on `mode`). */}
+          {(
+            <div style={{ display: "flex", gap: 8, padding: "14px 16px 0" }}>
+              {([
+                { key: "meal" as CoachMode, label: t("findProduct.tabBuildMeal"), Icon: ChefHat },
+                { key: "product" as CoachMode, label: t("findProduct.tabFindProduct"), Icon: PackageSearch },
+              ]).map(({ key, label, Icon }) => (
+                <button
+                  key={key}
+                  onClick={() => setMode(key)}
+                  data-testid={`tab-${key === "meal" ? "build-meal" : "find-product"}`}
+                  style={{
+                    flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                    padding: "11px 0", borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: "pointer",
+                    background: mode === key ? "rgba(234,88,12,0.2)" : "rgba(255,255,255,0.04)",
+                    border: mode === key ? "1px solid rgba(249,115,22,0.5)" : "1px solid rgba(255,255,255,0.1)",
+                    color: mode === key ? "#fb923c" : "rgba(255,255,255,0.5)",
+                  }}
+                >
+                  <Icon style={{ width: 15, height: 15 }} />
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* ── FIND A PRODUCT mode ── */}
+          {mode === "product" && (
+            <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 16 }}>
+
+              {productPhase === "loading" && (
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, padding: "56px 0", color: "rgba(255,255,255,0.6)" }}>
+                  <Loader2 style={{ width: 28, height: 28, color: "#fb923c", animation: "spin 1s linear infinite" }} />
+                  <span style={{ fontSize: 14, fontWeight: 500 }}>{t("findProduct.searching")}</span>
+                </div>
+              )}
+
+              {productPhase !== "loading" && productPhase !== "result" && (
+                <>
+                  <div>
+                    <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
+                      {t("findProduct.inputLabel")}
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <input
+                        value={productQuery}
+                        onChange={(e) => setProductQuery(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleProductSearch(); } }}
+                        placeholder={t("findProduct.inputPlaceholder")}
+                        data-testid="input-find-product"
+                        style={{
+                          flex: 1, padding: "12px 14px", borderRadius: 12,
+                          background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
+                          color: "white", fontSize: 16, outline: "none",
+                        }}
+                      />
+                      <button
+                        onClick={handleProductVoiceToggle}
+                        title={speech.state === "listening" ? t("findProduct.voiceStop") : t("findProduct.voiceStart")}
+                        data-testid="button-product-voice"
+                        style={{
+                          padding: "0 14px", borderRadius: 12, flexShrink: 0,
+                          background: speech.state === "listening" ? "rgba(239,68,68,0.2)" : "rgba(255,255,255,0.05)",
+                          border: speech.state === "listening" ? "1px solid rgba(239,68,68,0.5)" : "1px solid rgba(255,255,255,0.1)",
+                          color: speech.state === "listening" ? "#f87171" : "rgba(255,255,255,0.6)",
+                          cursor: "pointer", display: "flex", alignItems: "center",
+                        }}
+                      >
+                        {speech.state === "listening"
+                          ? <MicOff style={{ width: 17, height: 17 }} />
+                          : <Mic style={{ width: 17, height: 17 }} />}
+                      </button>
+                      <button
+                        onClick={() => handleProductSearch()}
+                        disabled={!productQuery.trim()}
+                        data-testid="button-product-search"
+                        style={{
+                          padding: "0 16px", borderRadius: 12, border: "none", flexShrink: 0,
+                          background: productQuery.trim() ? "#ea580c" : "rgba(255,255,255,0.1)",
+                          color: productQuery.trim() ? "white" : "rgba(255,255,255,0.3)",
+                          cursor: productQuery.trim() ? "pointer" : "not-allowed",
+                          display: "flex", alignItems: "center",
+                        }}
+                      >
+                        <Send style={{ width: 16, height: 16 }} />
+                      </button>
+                    </div>
+                  </div>
+                  {productError && (
+                    <div style={{ padding: "12px 14px", borderRadius: 12, background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#f87171", fontSize: 13, lineHeight: 1.45 }}>
+                      {productError}
+                    </div>
+                  )}
+                </>
+              )}
+
+              {productPhase === "result" && productSearch && (
+                <>
+                  <div style={{ color: "#fb923c", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                    {t("findProduct.resultsFor", { query: productSearch.query })}
+                  </div>
+
+                  {/* Protocol badges */}
+                  {productSearch.advice.profileUsed.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                      {productSearch.advice.profileUsed.map((p) => (
+                        <span key={p} style={{ padding: "3px 10px", borderRadius: 999, background: "rgba(234,88,12,0.15)", border: "1px solid rgba(249,115,22,0.25)", color: "#fb923c", fontSize: 11, fontWeight: 600 }}>
+                          {p}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {productSearch.advice.advice.map((a) => (
+                    <div key={a.ingredient} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+
+                      {/* Your usual pick — pinned above alternatives */}
+                      {a.usualPick && (
+                        <div>
+                          <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
+                            ★ {t("findProduct.usualPick")}
+                          </div>
+                          <div
+                            data-testid="card-usual-pick"
+                            style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "12px 14px", borderRadius: 12, background: "rgba(249,115,22,0.1)", border: "1px solid rgba(249,115,22,0.4)" }}
+                          >
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ color: "white", fontWeight: 700, fontSize: 14, marginBottom: 3 }}>{a.usualPick.brand}</div>
+                              <div style={{ color: "rgba(255,255,255,0.55)", fontSize: 12, lineHeight: 1.4 }}>{a.usualPick.reason}</div>
+                            </div>
+                            <PillButton
+                              variant="amber"
+                              active={productAddedKeys.has(computeClientProductKey(a.usualPick.brand, a.ingredient))}
+                              onClick={() => handleProductAddToList(a.usualPick!.brand, a.ingredient)}
+                              style={{ flexShrink: 0, alignSelf: "flex-start", marginTop: 2 }}
+                            >
+                              {productAddedKeys.has(computeClientProductKey(a.usualPick.brand, a.ingredient))
+                                ? t("findProduct.added")
+                                : t("findProduct.addToList")}
+                            </PillButton>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Ranked alternatives */}
+                      <div>
+                        {a.usualPick && (
+                          <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
+                            {t("findProduct.alternatives")}
+                          </div>
+                        )}
+                        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                          {a.recommended.map((brand) => {
+                            const pKey = computeClientProductKey(brand.brand, a.ingredient);
+                            const isSaved = savedProductKeys.has(pKey);
+                            const isSaving = savingKey === pKey;
+                            const isAdded = productAddedKeys.has(pKey);
+                            return (
+                              <div
+                                key={brand.brand}
+                                style={{
+                                  display: "flex", alignItems: "flex-start", gap: 10,
+                                  padding: "10px 12px", borderRadius: 10,
+                                  background: brand.rank === 1 ? "rgba(16,185,129,0.08)" : "rgba(255,255,255,0.04)",
+                                  border: brand.rank === 1 ? "1px solid rgba(16,185,129,0.2)" : "1px solid rgba(255,255,255,0.07)",
+                                }}
+                              >
+                                <span style={{ fontSize: 16, lineHeight: 1, flexShrink: 0, marginTop: 1 }}>
+                                  {RANK_MEDAL[brand.rank] ?? "•"}
+                                </span>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3, flexWrap: "wrap" }}>
+                                    <span style={{ color: "white", fontWeight: 600, fontSize: 14 }}>{brand.brand}</span>
+                                    <span style={{
+                                      padding: "1px 7px", borderRadius: 999, fontSize: 11, fontWeight: 700,
+                                      background: `${GRADE_COLOR[brand.grade] ?? "rgba(249,115,22,0.9)"}22`,
+                                      color: GRADE_COLOR[brand.grade] ?? "#fb923c",
+                                      border: `1px solid ${GRADE_COLOR[brand.grade] ?? "#fb923c"}44`,
+                                    }}>
+                                      {brand.grade}
+                                    </span>
+                                  </div>
+                                  <div style={{ color: "rgba(255,255,255,0.55)", fontSize: 12, lineHeight: 1.4, marginBottom: 8 }}>
+                                    {brand.reason}
+                                  </div>
+                                  <div style={{ display: "flex", gap: 6 }}>
+                                    <PillButton
+                                      active={isSaved}
+                                      variant="amber"
+                                      onClick={() => handleSaveGrocery(a.ingredient, a.category, brand)}
+                                      disabled={isSaved || isSaving}
+                                    >
+                                      {isSaved ? t("findProduct.saved") : isSaving ? t("findProduct.saving") : t("findProduct.save")}
+                                    </PillButton>
+                                    <PillButton
+                                      active={isAdded}
+                                      variant="amber"
+                                      onClick={() => handleProductAddToList(brand.brand, a.ingredient)}
+                                      disabled={isAdded}
+                                    >
+                                      {isAdded ? t("findProduct.added") : t("findProduct.addToList")}
+                                    </PillButton>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Avoid */}
+                      {a.avoid.length > 0 && (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                          {a.avoid.map((av) => (
+                            <div key={av.brand} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "8px 12px", borderRadius: 10, background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.18)" }}>
+                              <XCircle style={{ width: 15, height: 15, color: "#ef4444", flexShrink: 0, marginTop: 1 }} />
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <span style={{ color: "rgba(255,255,255,0.8)", fontWeight: 600, fontSize: 13 }}>{av.brand}</span>
+                                <span style={{ color: "rgba(255,255,255,0.45)", fontSize: 12 }}> — {av.reason}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+
+                  <button
+                    onClick={handleCompareAnother}
+                    data-testid="button-compare-another"
+                    style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "14px 0", borderRadius: 12, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.7)", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
+                  >
+                    <RefreshCw style={{ width: 16, height: 16 }} />
+                    {t("findProduct.compareAnother")}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+
           <AnimatePresence mode="wait">
 
             {/* ── IDLE ── */}
-            {phase === "idle" && (
+            {mode === "meal" && phase === "idle" && (
               <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 style={{ padding: 16, display: "flex", flexDirection: "column", gap: 20, paddingBottom: 16 }}
               >
@@ -813,7 +1213,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
             )}
 
             {/* ── LOADING ── */}
-            {phase === "loading" && (
+            {mode === "meal" && phase === "loading" && (
               <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 16px", gap: 20 }}
               >
@@ -836,7 +1236,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
             )}
 
             {/* ── RESULT ── */}
-            {phase === "result" && result && (
+            {mode === "meal" && phase === "result" && result && (
               <motion.div key="result" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                 style={{ padding: 16, display: "flex", flexDirection: "column", gap: 16, paddingBottom: 16 }}
               >
@@ -1160,6 +1560,8 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                               savedProductKeys={savedProductKeys}
                               savingKey={savingKey}
                               onSave={handleSaveGrocery}
+                              pickedBrands={pickedBrands}
+                              onPick={handlePickBrand}
                             />
 
                             {/* Summary avoid block */}
@@ -1221,39 +1623,13 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                     )}
                   </button>
 
-                  {/* Add top brand picks */}
-                  {hasAdvice && (
-                    <button
-                      onClick={handleAddBrandsToList}
-                      disabled={brandsAdded}
-                      style={{
-                        width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                        padding: "14px 0", borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: brandsAdded ? "default" : "pointer",
-                        background: brandsAdded ? "rgba(5,150,105,0.15)" : "rgba(234,88,12,0.15)",
-                        border: brandsAdded ? "1px solid rgba(52,211,153,0.3)" : "1px solid rgba(249,115,22,0.35)",
-                        color: brandsAdded ? "#34d399" : "#fb923c",
-                      }}
-                    >
-                      {brandsAdded ? (
-                        <><CheckCircle2 style={{ width: 16, height: 16 }} /> Top Picks Added!</>
-                      ) : (
-                        <><Sparkles style={{ width: 16, height: 16 }} /> Add Top Brand Picks to List</>
-                      )}
-                    </button>
-                  )}
-
-                  {/* View Shopping List — confirmation banner shown after top picks are added */}
-                  {brandsAdded && brandsAddedCount > 0 && (
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "10px 14px", borderRadius: 10, background: "rgba(5,150,105,0.1)", border: "1px solid rgba(52,211,153,0.25)" }}>
-                      <span style={{ color: "#34d399", fontSize: 13, fontWeight: 600 }}>
-                        {brandsAddedCount} item{brandsAddedCount !== 1 ? "s" : ""} added to your Shopping List
+                  {/* Picked-brand summary — shown when the user has selected ≥1 brand */}
+                  {pickedBrands.size > 0 && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 10, background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)" }}>
+                      <CheckCircle2 style={{ width: 14, height: 14, color: "#34d399", flexShrink: 0 }} />
+                      <span style={{ color: "#34d399", fontSize: 12, fontWeight: 600 }}>
+                        {pickedBrands.size} brand{pickedBrands.size !== 1 ? "s" : ""} selected — tap "Add All" to include {pickedBrands.size !== 1 ? "them" : "it"} in your list
                       </span>
-                      <button
-                        onClick={() => onOpenChange(false)}
-                        style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 8, background: "rgba(52,211,153,0.15)", border: "1px solid rgba(52,211,153,0.3)", color: "#34d399", fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}
-                      >
-                        View List →
-                      </button>
                     </div>
                   )}
 
@@ -1291,8 +1667,8 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
           </AnimatePresence>
         </div>
 
-        {/* ── Sticky input footer ── */}
-        {phase !== "loading" && (
+        {/* ── Sticky input footer (meal mode only) ── */}
+        {mode === "meal" && phase !== "loading" && (
           <div style={{
             flexShrink: 0,
             borderTop: "1px solid rgba(255,255,255,0.08)",
@@ -1641,6 +2017,8 @@ export function SmartCartAdviceBody({
   savedProductKeys,
   savingKey,
   onSave,
+  pickedBrands,
+  onPick,
 }: SmartCartAdviceBodyProps) {
   const hasSavedItems = advice.some((a) =>
     a.recommended.some((b) => savedProductKeys.has(computeClientProductKey(b.brand, a.ingredient)))
@@ -1721,15 +2099,32 @@ export function SmartCartAdviceBody({
                       {brand.reason}
                     </div>
                   </div>
-                  <PillButton
-                    active={isSaved}
-                    variant="amber"
-                    onClick={() => onSave(a.ingredient, a.category, brand)}
-                    disabled={isSaved || isSaving}
-                    style={{ flexShrink: 0, alignSelf: "flex-start", marginTop: 2 }}
-                  >
-                    {isSaved ? "Saved ✓" : isSaving ? "Saving…" : "Save"}
-                  </PillButton>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0, alignSelf: "flex-start", marginTop: 2 }}>
+                    {/* Pick — selects this brand for the current shopping trip */}
+                    {(() => {
+                      const isPicked = pickedBrands.get(a.ingredient.toLowerCase())?.brand === brand.brand;
+                      return (
+                        <PillButton
+                          active={isPicked}
+                          variant="emerald"
+                          onClick={() => onPick(a.ingredient, brand)}
+                          style={{ minWidth: 72 }}
+                        >
+                          {isPicked ? "✓ Picked" : "Pick"}
+                        </PillButton>
+                      );
+                    })()}
+                    {/* Save — remembers this product in Saved Groceries for future sessions */}
+                    <PillButton
+                      active={isSaved}
+                      variant="amber"
+                      onClick={() => onSave(a.ingredient, a.category, brand)}
+                      disabled={isSaved || isSaving}
+                      style={{ minWidth: 72 }}
+                    >
+                      {isSaved ? "Saved ✓" : isSaving ? "Saving…" : "Save"}
+                    </PillButton>
+                  </div>
                 </div>
               );
             })}
@@ -1768,4 +2163,6 @@ interface SmartCartAdviceBodyProps {
   savedProductKeys: Set<string>;
   savingKey: string | null;
   onSave: (ingredient: string, category: string, brand: BrandRecommendation) => void;
+  pickedBrands: Map<string, BrandRecommendation>;
+  onPick: (ingredient: string, brand: BrandRecommendation) => void;
 }

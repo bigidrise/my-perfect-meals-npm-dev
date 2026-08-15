@@ -91,6 +91,61 @@ export function classifyNutritionalRole(itemName: string): NutritionalRole {
 }
 
 /**
+ * Role family groups — items within the same family are interchangeable.
+ *
+ * lean_protein, fatty_protein, and plant_protein all belong to "protein" so
+ * swapping chicken breast → salmon (fatty protein) or tofu (plant protein)
+ * is intentionally permitted. A swap from chicken breast → brown rice would
+ * be cross-family and is rejected by isRoleCompatible().
+ */
+export type RoleFamily =
+  | "protein"
+  | "fibrous_vegetable"
+  | "starchy_carb"
+  | "healthy_fat"
+  | "dairy"
+  | "fruit"
+  | "condiment"
+  | "other";
+
+export const ROLE_FAMILY: Record<NutritionalRole, RoleFamily> = {
+  lean_protein:      "protein",
+  fatty_protein:     "protein",
+  plant_protein:     "protein",
+  fibrous_vegetable: "fibrous_vegetable",
+  starchy_carb:      "starchy_carb",
+  healthy_fat:       "healthy_fat",
+  dairy:             "dairy",
+  fruit:             "fruit",
+  condiment:         "condiment",
+  other:             "other",
+};
+
+/**
+ * Returns true when the replacement item belongs to the same nutritional role
+ * family as the original ingredient's role, making the swap in-role.
+ *
+ * Two exceptions where the check is intentionally skipped:
+ *  • expectedRole === "other" — the original ingredient is unclassified; the
+ *    prompt already instructs the AI to match the meal role.
+ *  • replacementRole === "other" — the suggestion is unclassified; we allow it
+ *    rather than blocking a valid but unusual ingredient.
+ *
+ * Note: for clinical users (GLP-1 / diabetic) the swap route skips this check
+ * entirely because clinical constraints can mandate cross-role suggestions
+ * (e.g. cauliflower rice for brown rice on a diabetic protocol).
+ */
+export function isRoleCompatible(
+  replacementItem: string,
+  expectedRole: NutritionalRole,
+): boolean {
+  if (expectedRole === "other") return true;
+  const replacementRole = classifyNutritionalRole(replacementItem);
+  if (replacementRole === "other") return true;
+  return ROLE_FAMILY[replacementRole] === ROLE_FAMILY[expectedRole];
+}
+
+/**
  * Human-readable label used in AI prompts to communicate the role constraint.
  */
 export function nutritionalRoleLabel(role: NutritionalRole): string {

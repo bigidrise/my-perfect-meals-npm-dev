@@ -56,6 +56,9 @@ export interface GroceryCoachContext {
   savedGroceriesBlock: string;
   /** Raw rows for per-item nutrition validation */
   savedRows: SavedGroceryRow[];
+  /** Rows that passed protocol compliance filtering (subset of savedRows) —
+   * the only rows eligible to be surfaced as a "usual pick". */
+  compliantSavedRows: SavedGroceryRow[];
 
   // Derived convenience flags
   isClinical: boolean;
@@ -112,6 +115,7 @@ export async function buildGroceryCoachContext(userId: string): Promise<GroceryC
   // ── Saved groceries ─────────────────────────────────────────────────────────
   let savedGroceriesBlock = "";
   let savedRows: SavedGroceryRow[] = [];
+  let compliantSavedRows: SavedGroceryRow[] = [];
 
   try {
     const sgRows = await db
@@ -160,6 +164,12 @@ export async function buildGroceryCoachContext(userId: string): Promise<GroceryC
         },
       );
       savedGroceriesBlock = buildSavedGroceriesPromptBlock(compliant);
+      compliantSavedRows = (compliant as any[]).map((r) => ({
+        productName:  r.productName ?? null,
+        brand:        r.brand ?? null,
+        category:     r.category ?? null,
+        nutritionJson: r.nutritionJson ?? null,
+      }));
       if (compliant.length > 0) {
         console.log(
           `[GroceryCoachContext] ${compliant.length} saved grocery favorites loaded for user ${userId}`,
@@ -181,6 +191,7 @@ export async function buildGroceryCoachContext(userId: string): Promise<GroceryC
     dailyCarbsTarget,
     savedGroceriesBlock,
     savedRows,
+    compliantSavedRows,
     isClinical: glp1Targets !== null || (envelope.hasDiabetes ?? false),
     hasDiabetes: envelope.hasDiabetes ?? false,
   };

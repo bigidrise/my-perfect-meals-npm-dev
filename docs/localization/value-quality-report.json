@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-08-15T00:46:17.257Z",
+  "generatedAt": "2026-08-15T03:47:29.349Z",
   "baseline": {
-    "totalEnglishKeys": 3131
+    "totalEnglishKeys": 3293
   },
   "results": {
     "ar": {
       "locale": "ar",
-      "totalKeys": 3131,
-      "identicalToEnglish": 53,
-      "identicalToEnglishPct": "1.7",
+      "totalKeys": 3187,
+      "identicalToEnglish": 88,
+      "identicalToEnglishPct": "2.7",
       "identicalSamples": [
         "routeTitles.beverageCreator: \"Beverage Creator\"",
         "routeTitles.cravingCreator: \"Craving Creator\"",
@@ -24,14 +24,14 @@
       "clinicalStrings": 6,
       "clinicalIdenticalToEn": 0,
       "clinicalIdenticalKeys": [],
-      "completenessScore": "98%",
+      "completenessScore": "94%",
       "verdict": "✅ APPEARS TRANSLATED — low identical/empty/placeholder rate"
     },
     "de": {
       "locale": "de",
-      "totalKeys": 3179,
-      "identicalToEnglish": 161,
-      "identicalToEnglishPct": "5.1",
+      "totalKeys": 3235,
+      "identicalToEnglish": 196,
+      "identicalToEnglishPct": "6.0",
       "identicalSamples": [
         "menu.teamMPM: \"Team My Perfect Meals\"",
         "common.upgrade: \"Upgrade\"",
@@ -47,14 +47,14 @@
       "clinicalStrings": 44,
       "clinicalIdenticalToEn": 0,
       "clinicalIdenticalKeys": [],
-      "completenessScore": "96%",
+      "completenessScore": "92%",
       "verdict": "✅ APPEARS TRANSLATED — low identical/empty/placeholder rate"
     },
     "es": {
       "locale": "es",
-      "totalKeys": 3315,
-      "identicalToEnglish": 95,
-      "identicalToEnglishPct": "3.0",
+      "totalKeys": 3371,
+      "identicalToEnglish": 130,
+      "identicalToEnglishPct": "3.9",
       "identicalSamples": [
         "common.no: \"No\"",
         "routeTitles.creatorBrandStudio: \"Creator & Brand Studio\"",
@@ -70,14 +70,14 @@
       "clinicalStrings": 12,
       "clinicalIdenticalToEn": 0,
       "clinicalIdenticalKeys": [],
-      "completenessScore": "103%",
+      "completenessScore": "98%",
       "verdict": "✅ APPEARS TRANSLATED — low identical/empty/placeholder rate"
     },
     "fr": {
       "locale": "fr",
-      "totalKeys": 3315,
-      "identicalToEnglish": 141,
-      "identicalToEnglishPct": "4.5",
+      "totalKeys": 3371,
+      "identicalToEnglish": 177,
+      "identicalToEnglishPct": "5.4",
       "identicalSamples": [
         "routeTitles.beverageCreator: \"Beverage Creator\"",
         "routeTitles.cravingCreator: \"Craving Creator\"",
@@ -95,14 +95,14 @@
       "clinicalIdenticalKeys": [
         "therapeuticCard.sections.hormones"
       ],
-      "completenessScore": "101%",
+      "completenessScore": "97%",
       "verdict": "✅ APPEARS TRANSLATED — low identical/empty/placeholder rate"
     },
     "hi": {
       "locale": "hi",
-      "totalKeys": 3315,
-      "identicalToEnglish": 83,
-      "identicalToEnglishPct": "2.7",
+      "totalKeys": 3477,
+      "identicalToEnglish": 117,
+      "identicalToEnglishPct": "3.6",
       "identicalSamples": [
         "routeTitles.academy: \"Academy\"",
         "routeTitles.antiInflammatoryBuilder: \"Anti-Inflammatory Builder\"",
@@ -118,14 +118,14 @@
       "clinicalStrings": 6,
       "clinicalIdenticalToEn": 0,
       "clinicalIdenticalKeys": [],
-      "completenessScore": "103%",
+      "completenessScore": "102%",
       "verdict": "✅ APPEARS TRANSLATED — low identical/empty/placeholder rate"
     },
     "it": {
       "locale": "it",
-      "totalKeys": 3315,
-      "identicalToEnglish": 137,
-      "identicalToEnglishPct": "4.4",
+      "totalKeys": 3371,
+      "identicalToEnglish": 172,
+      "identicalToEnglishPct": "5.2",
       "identicalSamples": [
         "menu.teamMPM: \"Team My Perfect Meals\"",
         "common.no: \"No\"",
@@ -141,14 +141,14 @@
       "clinicalStrings": 35,
       "clinicalIdenticalToEn": 0,
       "clinicalIdenticalKeys": [],
-      "completenessScore": "102%",
+      "completenessScore": "97%",
       "verdict": "✅ APPEARS TRANSLATED — low identical/empty/placeholder rate"
     },
     "ja": {
       "locale": "ja",
-      "totalKeys": 3179,
-      "identicalToEnglish": 50,
-      "identicalToEnglishPct": "1.6",
+      "totalKeys": 3235,
+      "identicalToEnglish": 85,
+      "identicalToEnglishPct": "2.6",
       "identicalSamples": [
         "routeTitles.beverageCreator: \"Beverage Creator\"",
         "routeTitles.cravingCreator: \"Craving Creator\"",
@@ -164,14 +164,14 @@
       "clinicalStrings": 6,
       "clinicalIdenticalToEn": 0,
       "clinicalIdenticalKeys": [],
-      "completenessScore": "100%",
+      "completenessScore": "96%",
       "verdict": "✅ APPEARS TRANSLATED — low identical/empty/placeholder rate"
     },
     "ko": {
       "locale": "ko",
-      "totalKeys": 3141,
-      "identicalToEnglish": 54,
-      "identicalToEnglishPct": "1.7",
+      "totalKeys": 3197,
+      "identicalToEnglish": 89,
+      "identicalToEnglishPct": "2.7",
       "identicalSamples": [
         "routeTitles.beverageCreator: \"Beverage Creator\"",
         "routeTitles.cravingCreator: \"Craving Creator\"",
@@ -187,14 +187,14 @@
       "clinicalStrings": 6,
       "clinicalIdenticalToEn": 0,
       "clinicalIdenticalKeys": [],
-      "completenessScore": "99%",
+      "completenessScore": "94%",
       "verdict": "✅ APPEARS TRANSLATED — low identical/empty/placeholder rate"
     },
     "pt": {
       "locale": "pt",
-      "totalKeys": 3316,
-      "identicalToEnglish": 100,
-      "identicalToEnglishPct": "3.2",
+      "totalKeys": 3372,
+      "identicalToEnglish": 135,
+      "identicalToEnglishPct": "4.1",
       "identicalSamples": [
         "routeTitles.beverageCreator: \"Beverage Creator\"",
         "routeTitles.cravingCreator: \"Craving Creator\"",
@@ -210,14 +210,14 @@
       "clinicalStrings": 14,
       "clinicalIdenticalToEn": 0,
       "clinicalIdenticalKeys": [],
-      "completenessScore": "103%",
+      "completenessScore": "98%",
       "verdict": "✅ APPEARS TRANSLATED — low identical/empty/placeholder rate"
     },
     "ru": {
       "locale": "ru",
-      "totalKeys": 3131,
-      "identicalToEnglish": 60,
-      "identicalToEnglishPct": "1.9",
+      "totalKeys": 3187,
+      "identicalToEnglish": 95,
+      "identicalToEnglishPct": "2.9",
       "identicalSamples": [
         "routeTitles.beverageCreator: \"Beverage Creator\"",
         "routeTitles.cravingCreator: \"Craving Creator\"",
@@ -233,14 +233,14 @@
       "clinicalStrings": 7,
       "clinicalIdenticalToEn": 0,
       "clinicalIdenticalKeys": [],
-      "completenessScore": "98%",
+      "completenessScore": "94%",
       "verdict": "✅ APPEARS TRANSLATED — low identical/empty/placeholder rate"
     },
     "tl": {
       "locale": "tl",
-      "totalKeys": 3315,
-      "identicalToEnglish": 368,
-      "identicalToEnglishPct": "11.8",
+      "totalKeys": 3371,
+      "identicalToEnglish": 403,
+      "identicalToEnglishPct": "12.2",
       "identicalSamples": [
         "menu.subscription: \"Subscription\"",
         "routeTitles.macroCalculator: \"Macro Calculator\"",
@@ -265,14 +265,14 @@
         "clinicalLabs.fields.triglycerides",
         "parentsCorner.stage.toddler"
       ],
-      "completenessScore": "94%",
+      "completenessScore": "90%",
       "verdict": "✅ APPEARS TRANSLATED — low identical/empty/placeholder rate"
     },
     "vi": {
       "locale": "vi",
-      "totalKeys": 3140,
-      "identicalToEnglish": 110,
-      "identicalToEnglishPct": "3.5",
+      "totalKeys": 3196,
+      "identicalToEnglish": 145,
+      "identicalToEnglishPct": "4.4",
       "identicalSamples": [
         "routeTitles.beverageCreator: \"Beverage Creator\"",
         "routeTitles.cravingCreator: \"Craving Creator\"",
@@ -288,15 +288,21 @@
       "clinicalStrings": 12,
       "clinicalIdenticalToEn": 0,
       "clinicalIdenticalKeys": [],
-      "completenessScore": "97%",
+      "completenessScore": "93%",
       "verdict": "✅ APPEARS TRANSLATED — low identical/empty/placeholder rate"
     },
     "xq": {
       "locale": "xq",
-      "totalKeys": 1931,
-      "identicalToEnglish": 0,
-      "identicalToEnglishPct": "0.0",
-      "identicalSamples": [],
+      "totalKeys": 1967,
+      "identicalToEnglish": 35,
+      "identicalToEnglishPct": "1.1",
+      "identicalSamples": [
+        "joinStudio.loading: \"Loading your invitation…\"",
+        "joinStudio.joining: \"Connecting you to the studio…\"",
+        "joinStudio.inviteTitle: \"ProCare Invitation\"",
+        "joinStudio.invitedBySuffix: \" has invited you to join their ProCare {{spaceLabel}}.\"",
+        "joinStudio.inviteAddress: \"This invitation was sent to\""
+      ],
       "emptyValues": 0,
       "placeholderValues": 1925,
       "interpolationMismatches": 0,
@@ -310,9 +316,9 @@
     },
     "zh": {
       "locale": "zh",
-      "totalKeys": 3131,
-      "identicalToEnglish": 57,
-      "identicalToEnglishPct": "1.8",
+      "totalKeys": 3187,
+      "identicalToEnglish": 92,
+      "identicalToEnglishPct": "2.8",
       "identicalSamples": [
         "routeTitles.beverageCreator: \"Beverage Creator\"",
         "routeTitles.cravingCreator: \"Craving Creator\"",
@@ -328,7 +334,7 @@
       "clinicalStrings": 6,
       "clinicalIdenticalToEn": 0,
       "clinicalIdenticalKeys": [],
-      "completenessScore": "98%",
+      "completenessScore": "94%",
       "verdict": "✅ APPEARS TRANSLATED — low identical/empty/placeholder rate"
     }
   }

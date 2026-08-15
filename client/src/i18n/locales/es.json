@@ -490,7 +490,29 @@
     "continueToBiometrics": "Continuar a Biométricos",
     "proLabel": "Pro",
     "emptyList": "Tu lista de compras está vacía",
-    "emptyListHint": "Pega artículos o agrega rápido para comenzar"
+    "emptyListHint": "Pega artículos o agrega rápido para comenzar",
+    "findProduct": {
+      "tabBuildMeal": "Crear una comida",
+      "tabFindProduct": "Buscar un producto",
+      "inputLabel": "¿Qué estás buscando comprar?",
+      "inputPlaceholder": "p. ej. salsa de espagueti, barras de proteína, leche…",
+      "voiceStart": "Di tu solicitud",
+      "voiceStop": "Dejar de escuchar",
+      "voiceUnsupported": "La entrada de voz no es compatible con este dispositivo",
+      "searching": "Buscando los mejores productos para ti…",
+      "resultsFor": "Mejores opciones para “{{query}}”",
+      "usualPick": "Tu elección habitual",
+      "alternatives": "Alternativas",
+      "save": "Guardar",
+      "saved": "Guardado ✓",
+      "saving": "Guardando…",
+      "addToList": "Añadir a la lista de compras",
+      "added": "¡Añadido!",
+      "compareAnother": "Comparar otro",
+      "errorGeneric": "No se pudo obtener el consejo de productos. Inténtalo de nuevo.",
+      "noResults": "No hay consejos de marcas para ese artículo; prueba con un producto envasado más específico.",
+      "avoid": "Evitar"
+    }
   },
   "restaurant": {
     "pageTitle": "Asistente de Restaurantes",
