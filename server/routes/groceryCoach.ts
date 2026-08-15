@@ -10,7 +10,7 @@ import { finalizeMealCard } from "../services/mealCardFinalizer";
 import { filterSavedGroceriesForCompliance, buildSavedGroceriesPromptBlock } from "../services/savedGroceryCompliance";
 import { getLanguageInstruction } from "../utils/languageInstruction";
 import { buildGroceryCoachContext } from "../services/groceryCoachContext";
-import { classifyNutritionalRole, nutritionalRoleLabel } from "../services/groceryNutritionalRole";
+import { classifyNutritionalRole, nutritionalRoleLabel, isRoleCompatible } from "../services/groceryNutritionalRole";
 
 const router = express.Router();
 
@@ -782,7 +782,28 @@ Respond ONLY with valid JSON — no markdown, no extra text:
       });
     }
 
-    // ── NDE scan + variety dedup: alternatives ────────────────────────────────
+    // ── Role compatibility check: primary suggestion ──────────────────────────
+    // For non-clinical users, verify that the AI-returned coachSuggestion stays
+    // in the same nutritional role family as the original ingredient.
+    // lean/fatty/plant protein are all "protein" family and can swap freely.
+    // A cross-family suggestion (e.g. rice returned for chicken) is rejected.
+    //
+    // Clinical users (GLP-1 / diabetic) are exempt: their constraints explicitly
+    // produce cross-role suggestions (e.g. cauliflower rice for brown rice on a
+    // diabetic protocol) — the clinical constraint block in the prompt governs.
+    if (!isClinical && role !== "other") {
+      if (!isRoleCompatible(coachItem, role)) {
+        console.warn(
+          `[GroceryCoach/Swap] Role violation — "${coachItem}" is not in the "${role}" family. ` +
+          `Returning 422.`,
+        );
+        return res.status(422).json({
+          error: `The suggested replacement for "${ingredientToReplace}" is a different food type. Please request a specific ingredient.`,
+        });
+      }
+    }
+
+    // ── NDE scan + variety dedup + role filter: alternatives ─────────────────
     // For clinical users alternatives are omitted: we cannot verify fat/carb
     // compliance on LLM-generated items without nutritionJson. The NDE-cleared
     // primary suggestion is sufficient.
@@ -797,6 +818,13 @@ Respond ONLY with valid JSON — no markdown, no extra text:
         if (!alt?.item || typeof alt.item !== "string") continue;
         const altNorm = alt.item.toLowerCase().trim();
         if (seenNorm.has(altNorm)) continue;
+        // Role-family check — skip cross-role alternatives
+        if (role !== "other" && !isRoleCompatible(alt.item, role)) {
+          console.warn(
+            `[GroceryCoach/Swap] Alt role mismatch — "${alt.item}" filtered (expected family: ${role}).`,
+          );
+          continue;
+        }
         const altScan = scanGeneratedOutput(
           { name: alt.item, ingredients: [{ name: alt.item }] },
           envelope,
@@ -811,45 +839,59 @@ Respond ONLY with valid JSON — no markdown, no extra text:
       }
     }
 
-    // ── NDE scan + clinical nutrition gate: savedOption ───────────────────────
+    // ── NDE scan + role check + clinical nutrition gate: savedOption ─────────
+    // savedOption is selectable by the user via "Use This" — it must pass the
+    // same role-family enforcement as coachSuggestion and alternatives.
+    // Clinical users are exempt: their constraints override the role lock
+    // (e.g. a diabetic user's saved cauliflower rice is valid for brown rice).
     let savedOption: { item: string; quantity?: string; unit?: string; reason: string } | null = null;
     const savedItemName = swapData.savedOption?.item;
     if (savedItemName && typeof savedItemName === "string") {
-      const soScan = scanGeneratedOutput(
-        { name: savedItemName, ingredients: [{ name: savedItemName }] },
-        envelope,
-        { generatorName: "grocery_swap_saved", skipAdaptableConflicts: true },
-      );
-      if (soScan.passed) {
-        let savedOk = true;
-        if (isClinical) {
-          const matchedRow = savedRows.find(
-            (r) => r.productName?.toLowerCase().trim() === savedItemName.toLowerCase().trim(),
-          );
-          if (!matchedRow?.nutritionJson) {
-            console.warn(`[GroceryCoach/Swap] savedOption "${savedItemName}" rejected — no nutritionJson for clinical user`);
-            savedOk = false;
-          } else {
-            const nut   = matchedRow.nutritionJson as Record<string, unknown>;
-            const toN   = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : null; };
-            const fat   = toN(nut.fat ?? nut.total_fat ?? nut.fatGrams);
-            const kcal  = toN(nut.calories ?? nut.energy ?? nut.kcal);
-            const carbs = toN(nut.carbs ?? nut.total_carbohydrates ?? nut.carbGrams);
-            if (glp1Targets) {
-              if (fat === null || fat > glp1Targets.maximumToleratedFatGrams) savedOk = false;
-              if (savedOk && kcal !== null && kcal > glp1Targets.resolvedMealCalories) savedOk = false;
-            } else if (hasDiabetes) {
-              if (carbs === null || carbs > 45) savedOk = false;
+      // 1. Role-family check (non-clinical only)
+      const savedCrossRole = !isClinical && role !== "other" && !isRoleCompatible(savedItemName, role);
+      if (savedCrossRole) {
+        console.warn(
+          `[GroceryCoach/Swap] savedOption "${savedItemName}" rejected — cross-role (expected family: ${role}).`,
+        );
+      } else {
+        // 2. NDE protocol scan
+        const soScan = scanGeneratedOutput(
+          { name: savedItemName, ingredients: [{ name: savedItemName }] },
+          envelope,
+          { generatorName: "grocery_swap_saved", skipAdaptableConflicts: true },
+        );
+        if (soScan.passed) {
+          // 3. Clinical nutrition gate (fat/calorie/carb ceiling from nutritionJson)
+          let savedOk = true;
+          if (isClinical) {
+            const matchedRow = savedRows.find(
+              (r) => r.productName?.toLowerCase().trim() === savedItemName.toLowerCase().trim(),
+            );
+            if (!matchedRow?.nutritionJson) {
+              console.warn(`[GroceryCoach/Swap] savedOption "${savedItemName}" rejected — no nutritionJson for clinical user`);
+              savedOk = false;
+            } else {
+              const nut  = matchedRow.nutritionJson as Record<string, unknown>;
+              const toN  = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : null; };
+              const fat  = toN(nut.fat ?? nut.total_fat ?? nut.fatGrams);
+              const kcal = toN(nut.calories ?? nut.energy ?? nut.kcal);
+              const carbs = toN(nut.carbs ?? nut.total_carbohydrates ?? nut.carbGrams);
+              if (glp1Targets) {
+                if (fat === null || fat > glp1Targets.maximumToleratedFatGrams) savedOk = false;
+                if (savedOk && kcal !== null && kcal > glp1Targets.resolvedMealCalories) savedOk = false;
+              } else if (hasDiabetes) {
+                if (carbs === null || carbs > 45) savedOk = false;
+              }
             }
           }
-        }
-        if (savedOk) {
-          savedOption = {
-            item: savedItemName,
-            quantity: swapData.savedOption?.quantity ?? "",
-            unit: swapData.savedOption?.unit ?? "",
-            reason: swapData.savedOption?.reason ?? "From your saved products",
-          };
+          if (savedOk) {
+            savedOption = {
+              item:     savedItemName,
+              quantity: swapData.savedOption?.quantity ?? "",
+              unit:     swapData.savedOption?.unit ?? "",
+              reason:   swapData.savedOption?.reason ?? "From your saved products",
+            };
+          }
         }
       }
     }
