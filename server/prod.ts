@@ -1880,6 +1880,46 @@ async function initializeApp() {
             column: "clinical_context_response",
             hint: "Clinical context screening gate — missing column bypasses medication/hormone screening",
           },
+          // ── Clinical Labs Phase 5 columns ──────────────────────────────────────
+          // These columns were added in the Phase 5 migration. If absent the labs
+          // GET handler silently returns null for hormone/thyroid panels, breaking
+          // hormone-optimization, menopause, perimenopause, and thyroid subtype
+          // protocol resolution on the profile page.
+          {
+            table: "clinical_labs",
+            column: "reverse_t3",
+            hint: "Clinical Labs Phase 5 — thyroid panel; missing column silently drops T4→T3 conversion marker from lab results",
+          },
+          {
+            table: "clinical_labs",
+            column: "estradiol",
+            hint: "Clinical Labs Phase 5 — hormone panel; missing column silently drops menopause/perimenopause signal from lab results",
+          },
+          {
+            table: "clinical_labs",
+            column: "progesterone",
+            hint: "Clinical Labs Phase 5 — hormone panel; missing column silently drops luteal phase perimenopause marker from lab results",
+          },
+          {
+            table: "clinical_labs",
+            column: "shbg",
+            hint: "Clinical Labs Phase 5 — hormone panel; missing column silently drops sex hormone binding globulin from lab results",
+          },
+          {
+            table: "clinical_labs",
+            column: "lh",
+            hint: "Clinical Labs Phase 5 — hormone panel; missing column silently drops LH menopause marker from lab results",
+          },
+          {
+            table: "clinical_labs",
+            column: "fsh",
+            hint: "Clinical Labs Phase 5 — hormone panel; missing column silently drops FSH (primary menopause trigger) from lab results",
+          },
+          {
+            table: "clinical_labs",
+            column: "dhea_s",
+            hint: "Clinical Labs Phase 5 — hormone panel; missing column silently drops DHEA-S hormone-optimization trigger from lab results",
+          },
         ]);
       }
 
