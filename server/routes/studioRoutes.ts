@@ -351,16 +351,20 @@ router.post("/connect", async (req, res) => {
   try {
     const userId = await getUserId(req);
     if (!userId) return res.status(401).json({ error: "Authentication required" });
-    const { code } = req.body;
+    const { code, token } = req.body;
 
-    if (!code) {
-      return res.status(400).json({ error: "Code is required" });
+    if (!code && !token) {
+      return res.status(400).json({ error: "code or token is required" });
     }
 
     const [invite] = await db
       .select()
       .from(studioInvites)
-      .where(eq(studioInvites.inviteCode, code));
+      .where(
+        token
+          ? eq(studioInvites.urlToken, token)
+          : eq(studioInvites.inviteCode, code)
+      );
 
     if (!invite) {
       return res.status(404).json({ error: "Invalid invite code" });
