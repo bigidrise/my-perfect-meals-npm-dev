@@ -119,7 +119,7 @@ function componentMatchesTriggers(component: string, triggers: string[]): boolea
   return triggers.some(t => c.includes(t) || (t.length >= 4 && t.includes(c)));
 }
 
-function resolveConflicts(
+export function resolveConflicts(
   dishName: string,
   decomposition: DishDecomposition,
   ctx: GuardrailContext,
@@ -138,19 +138,31 @@ function resolveConflicts(
   for (const g of ctx.guardrails) {
     const profile = GUARDRAIL_SUBSTITUTION_MAP[g.id];
     if (!profile) continue;
-    for (const rule of profile.rules) {
-      for (const { c, defining } of allComponents) {
-        if (!componentMatchesTriggers(c, rule.triggers)) continue;
+    for (const { c, defining } of allComponents) {
+      // Collect every rule this component triggers, then bias toward
+      // role-aware rules: if any matching rule knows the ingredient's
+      // structural function (binder, setter, …), it wins over generic
+      // substitutions for the same component — a functional substitute
+      // preserves how the dish holds together, not just its compliance.
+      const matching = profile.rules.filter(rule => componentMatchesTriggers(c, rule.triggers));
+      const roleAware = matching.filter(rule => rule.functionalRole);
+      const selected = roleAware.length > 0 ? roleAware : matching;
+      for (const rule of selected) {
         const dedupeKey = `${g.id}|${rule.blocked}|${c}`;
         if (seen.has(dedupeKey)) continue;
         seen.add(dedupeKey);
         const preserve = defining
           ? ` Preserve the format and role of this component — adapt only its substrate.`
           : "";
+        const roleReq = rule.functionalRole && rule.roleRequirement
+          ? ` FUNCTIONAL REQUIREMENT (${rule.functionalRole}): ${rule.roleRequirement}.`
+          : "";
         conflicts.push({
           component: c,
           guardrail: `${profile.label}: no ${rule.blocked}`,
-          directive: `Use ${rule.substitute}.${rule.note ? ` (${rule.note})` : ""}${preserve} The dish is still ${dishName}.`,
+          directive: `Use ${rule.substitute}.${rule.note ? ` (${rule.note})` : ""}${roleReq}${preserve} The dish is still ${dishName}.`,
+          functionalRole: rule.functionalRole,
+          roleRequirement: rule.roleRequirement,
         });
       }
     }
@@ -182,7 +194,7 @@ function resolveConflicts(
 }
 
 // ── Adaptation block rendering ───────────────────────────────────────────────
-function renderAdaptationBlock(
+export function renderAdaptationBlock(
   dishName: string,
   decomposition: DishDecomposition,
   conflicts: ConflictResolution[],
@@ -202,6 +214,21 @@ function renderAdaptationBlock(
     for (const c of conflicts) {
       lines.push(`- ${c.component} → ${c.directive} [${c.guardrail}]`);
     }
+  }
+
+  // Structural integrity — when a substitution touches an ingredient with a
+  // known structural function, the substitute must perform the same function,
+  // not just satisfy the restriction.
+  const roleConflicts = conflicts.filter(c => c.functionalRole && c.roleRequirement);
+  if (roleConflicts.length > 0) {
+    lines.push(``, `STRUCTURAL INTEGRITY — the substitutes must perform the same function as what they replace:`);
+    for (const c of roleConflicts) {
+      lines.push(`- ${c.component} (${c.functionalRole}): ${c.roleRequirement}.`);
+    }
+    lines.push(
+      `Every structural substitute must ALSO comply with every other restriction and allergy listed above — never use an ingredient blocked by another rule to satisfy a structural role.`,
+      `A substitution that satisfies the restriction but breaks the dish's structure (a filling that doesn't set, a crust that crumbles) is a FAILED adaptation.`,
+    );
   }
 
   const generals = ctx.guardrails

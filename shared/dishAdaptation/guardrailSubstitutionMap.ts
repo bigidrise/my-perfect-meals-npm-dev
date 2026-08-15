@@ -32,6 +32,22 @@ export type GuardrailId =
   | "pescatarian"
   | "kosher-meat";
 
+/**
+ * Structural function an ingredient performs in the dish. Only set for
+ * structurally critical ingredients where a naive swap can break the dish
+ * (a filling that doesn't set, a crust that crumbles). When a role-tagged
+ * rule matches a component, the DAL prefers it over generic rules for the
+ * same component and injects the roleRequirement into the directive.
+ */
+export type FunctionalRole =
+  | "binder"
+  | "setter"
+  | "binder/setter"
+  | "structure"
+  | "sweetener"
+  | "fat/richness"
+  | "leavening";
+
 export interface SubstitutionRule {
   /** The blocked component/ingredient concept, e.g. "white rice". */
   blocked: string;
@@ -44,6 +60,17 @@ export interface SubstitutionRule {
   substitute: string;
   /** Optional preparation note. */
   note?: string;
+  /**
+   * Structural function this ingredient performs (binder, setter, etc.).
+   * Only for structurally critical ingredients.
+   */
+  functionalRole?: FunctionalRole;
+  /**
+   * The functional outcome the substitute must achieve, phrased for direct
+   * prompt injection — e.g. "the filling must set firm enough to slice".
+   * Required whenever functionalRole is set.
+   */
+  roleRequirement?: string;
 }
 
 export interface GuardrailSubstitutionProfile {
@@ -83,8 +110,8 @@ export const GUARDRAIL_SUBSTITUTION_MAP: Record<GuardrailId, GuardrailSubstituti
       { blocked: "regular pasta", triggers: PASTA_TRIGGERS, substitute: "zucchini noodles or chickpea pasta", note: "for layered pasta dishes use zucchini or eggplant sheets" },
       { blocked: "flour tortillas", triggers: TORTILLA_TRIGGERS, substitute: "low-carb tortillas (or lettuce wraps)" },
       { blocked: "potatoes", triggers: POTATO_TRIGGERS, substitute: "cauliflower mash" },
-      { blocked: "sugar / sweet sauces", triggers: SUGAR_TRIGGERS, substitute: "sugar-free sauces and sweeteners" },
-      { blocked: "white flour products", triggers: FLOUR_TRIGGERS, substitute: "almond flour or other low-GI flour base" },
+      { blocked: "sugar / sweet sauces", triggers: SUGAR_TRIGGERS, substitute: "sugar-free sauces and sweeteners", functionalRole: "sweetener", roleRequirement: "in baked or set desserts sugar also carries moisture and structure — pair the sugar-free sweetener with the recipe's existing binder so texture is preserved, don't just cut sweetness" },
+      { blocked: "white flour products", triggers: FLOUR_TRIGGERS, substitute: "almond flour or other low-GI flour base", functionalRole: "structure", roleRequirement: "the crust/dough must still bind and hold its shape — almond flour has no gluten, so add a binder compatible with this user's other restrictions (ground flax, psyllium, or xanthan gum; egg only where eggs are permitted) so it slices without crumbling" },
     ],
     generalDirectives: [
       "Controlled carbohydrates (20–35g, low-GI sources only). High fiber, moderate lean protein.",
@@ -98,7 +125,7 @@ export const GUARDRAIL_SUBSTITUTION_MAP: Record<GuardrailId, GuardrailSubstituti
     label: "lower-sugar",
     source: "server/services/guardrails/prompt/diabeticPromptBuilder.ts (sugar rules subset)",
     rules: [
-      { blocked: "sugar / honey / maple syrup", triggers: SUGAR_TRIGGERS, substitute: "sugar-free sweeteners; reduce total sweetener quantity" },
+      { blocked: "sugar / honey / maple syrup", triggers: SUGAR_TRIGGERS, substitute: "sugar-free sweeteners; reduce total sweetener quantity", functionalRole: "sweetener", roleRequirement: "in baked or set desserts sugar also carries moisture and structure — compensate with the recipe's binder or a small amount of fruit puree so texture is preserved" },
       { blocked: "sweetened yogurt", triggers: ["sweetened yogurt", "flavored yogurt"], substitute: "plain Greek yogurt with fresh berries" },
       { blocked: "milk chocolate", triggers: ["chocolate"], substitute: "dark chocolate (70%+ cacao, small portion)" },
     ],
@@ -131,7 +158,7 @@ export const GUARDRAIL_SUBSTITUTION_MAP: Record<GuardrailId, GuardrailSubstituti
     source: "server/services/allergyGuardrails.ts + server/services/protocolEnvelope.ts gluten-free guidance",
     rules: [
       { blocked: "wheat pasta", triggers: PASTA_TRIGGERS, substitute: "certified gluten-free pasta (rice, chickpea, or lentil pasta)" },
-      { blocked: "wheat flour / bread / breading", triggers: FLOUR_TRIGGERS, substitute: "rice flour or almond flour (gluten-free bread/breading)" },
+      { blocked: "wheat flour / bread / breading", triggers: FLOUR_TRIGGERS, substitute: "rice flour or almond flour (gluten-free bread/breading)", functionalRole: "structure", roleRequirement: "wheat gluten was the structural network — gluten-free flours need a binder compatible with this user's other restrictions (xanthan gum, psyllium, or ground flax; egg only where eggs are permitted) so the dough/crust holds together instead of crumbling" },
       { blocked: "soy sauce (contains wheat)", triggers: ["soy sauce", "soy"], substitute: "tamari or coconut aminos" },
       { blocked: "flour tortillas", triggers: TORTILLA_TRIGGERS, substitute: "corn or certified gluten-free tortillas" },
       { blocked: "wheat grain base", triggers: ["wheat", "couscous", "barley", "farro", "bulgur"], substitute: "rice or quinoa" },
@@ -193,10 +220,12 @@ export const GUARDRAIL_SUBSTITUTION_MAP: Record<GuardrailId, GuardrailSubstituti
     label: "vegan",
     source: "server/services/allergyGuardrails.ts VEGAN_SUBSTITUTION_MAP",
     rules: [
+      { blocked: "cream cheese / dairy in a set filling or custard", triggers: ["cream cheese", "cheesecake", "cheese filling", "custard", "mousse", "panna cotta", "flan"], substitute: "a cashew-cream-cheese base (soaked cashews blended with coconut cream and lemon)", functionalRole: "binder/setter", roleRequirement: "the filling must set firm enough to slice — use agar or arrowroot as the setter, since removing the dairy also removes the protein network that made it set" },
       { blocked: "dairy (milk, cheese, butter, cream, yogurt)", triggers: ["milk", "cheese", "butter", "cream", "yogurt", "dairy"], substitute: "oat/almond milk, vegan cheese or nutritional yeast, vegan butter or coconut oil, coconut cream, coconut yogurt" },
       { blocked: "eggs", triggers: ["egg"], substitute: "flax eggs or silken tofu" },
+      { blocked: "eggs in a baked or set dish (binder/setter role)", triggers: ["egg custard", "egg binder", "egg wash", "meringue", "cheesecake", "custard", "quiche", "frittata"], substitute: "silken tofu or a cashew-cream base", functionalRole: "binder/setter", roleRequirement: "eggs were the setting agent — add agar (for a firm set) or arrowroot/cornstarch (for a soft set) so the dish holds its shape when portioned" },
       { blocked: "meat / poultry / seafood", triggers: ["beef", "pork", "chicken", "fish", "shrimp", "seafood", "meat", "protein/seafood"], substitute: "tofu, tempeh, seitan, jackfruit, or portobello mushrooms" },
-      { blocked: "gelatin", triggers: ["gelatin"], substitute: "agar-agar" },
+      { blocked: "gelatin", triggers: ["gelatin"], substitute: "agar-agar", functionalRole: "setter", roleRequirement: "agar sets firmer and less elastic than gelatin — use roughly 1 tsp agar powder per cup of liquid and boil to activate, so the dessert still sets and slices cleanly" },
       { blocked: "animal stock", triggers: ["stock", "broth"], substitute: "vegetable broth" },
       { blocked: "mayonnaise / worcestershire", triggers: ["mayonnaise", "mayo", "worcestershire"], substitute: "vegan mayonnaise / vegan worcestershire sauce" },
     ],
@@ -210,7 +239,8 @@ export const GUARDRAIL_SUBSTITUTION_MAP: Record<GuardrailId, GuardrailSubstituti
     rules: [
       { blocked: "meat / poultry / seafood", triggers: ["beef", "pork", "chicken", "fish", "shrimp", "seafood", "meat", "protein/seafood"], substitute: "tofu, tempeh, eggs, legumes, or dairy-based protein" },
       { blocked: "animal stock / bone broth", triggers: ["stock", "broth"], substitute: "vegetable broth" },
-      { blocked: "gelatin / lard / tallow", triggers: ["gelatin", "lard", "tallow", "suet"], substitute: "agar-agar / plant-based shortening / coconut oil" },
+      { blocked: "gelatin", triggers: ["gelatin"], substitute: "agar-agar", functionalRole: "setter", roleRequirement: "agar must be boiled to activate and sets firmer than gelatin — dose ~1 tsp powder per cup of liquid so the dish still sets and slices cleanly" },
+      { blocked: "lard / tallow / suet", triggers: ["lard", "tallow", "suet"], substitute: "plant-based shortening or coconut oil" },
       { blocked: "fish sauce / anchovies", triggers: ["fish sauce", "anchov"], substitute: "soy sauce / capers" },
     ],
   },
@@ -235,6 +265,7 @@ export const GUARDRAIL_SUBSTITUTION_MAP: Record<GuardrailId, GuardrailSubstituti
     source: "server/services/unifiedMealPipeline.ts meatDairyGuard",
     rules: [
       { blocked: "dairy in a meat meal (butter, cream, cheese, milk, yogurt)", triggers: ["butter", "cream", "cheese", "milk", "yogurt", "dairy", "ghee"], substitute: "olive oil or avocado oil for fat; reduced meat stock, pureed vegetables, or tahini for creaminess" },
+      { blocked: "dairy in a set filling or custard (meat meal)", triggers: ["cream cheese", "cheesecake", "cheese filling", "custard", "mousse"], substitute: "a cashew-cream base (soaked cashews blended with coconut cream and lemon)", functionalRole: "binder/setter", roleRequirement: "the filling must set firm enough to slice — use agar or arrowroot as the setter to replace the dairy protein network" },
     ],
     generalDirectives: [
       "Every single ingredient must be dairy-free. No exceptions.",
