@@ -3,7 +3,7 @@
  * Architecture: docs/dish-adaptation-layer/ARCHITECTURE.md
  */
 
-import type { GuardrailId } from "../../../shared/dishAdaptation/guardrailSubstitutionMap";
+import type { FunctionalRole, GuardrailId } from "../../../shared/dishAdaptation/guardrailSubstitutionMap";
 
 export type CallContext = "first_pass" | "fallback";
 
@@ -29,6 +29,10 @@ export interface ConflictResolution {
   guardrail: string;
   /** e.g. "Use cauliflower rice. The dish is still gumbo." */
   directive: string;
+  /** Structural role the blocked ingredient performs, when known (binder, setter, …). */
+  functionalRole?: FunctionalRole;
+  /** The functional outcome the substitute must achieve, when known. */
+  roleRequirement?: string;
 }
 
 export interface DishAdaptationDirective {
