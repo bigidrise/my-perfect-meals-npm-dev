@@ -72,3 +72,15 @@ client/public/release-manifest.json
 scripts/i18n-audit-report.json
 scripts/i18n-combined-report.json
 scripts/i18n-reachability-report.json
+docs/localization/fallback-report.json
+
+# Auto-generated localization audit reports
+scripts/i18n-audit-report.json
+scripts/i18n-combined-report.json
+scripts/i18n-reachability-report.json
+docs/localization/fallback-report.json
+docs/localization/value-quality-report.json
+docs/localization/screenshots/
+
+# Playwright test artifacts
+test-results/
