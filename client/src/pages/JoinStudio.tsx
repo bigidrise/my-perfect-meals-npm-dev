@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, useSearch } from "wouter";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -32,7 +33,8 @@ type PageState =
 export default function JoinStudio() {
   const [, setLocation] = useLocation();
   const search = useSearch();
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const { t } = useTranslation();
   const [state, setState] = useState<PageState>({ kind: "loading" });
 
   // Step 1 — resolve the token from URL or sessionStorage
@@ -50,7 +52,7 @@ export default function JoinStudio() {
     if (authLoading) return;
 
     if (!token) {
-      setState({ kind: "error", message: "No invitation token found. Please use the link from your invitation email." });
+      setState({ kind: "error", message: t("joinStudio.errorNoToken") });
       return;
     }
 
@@ -67,11 +69,11 @@ export default function JoinStudio() {
           credentials: "include",
         });
         if (res.status === 404) {
-          setState({ kind: "error", message: "This invitation was not found. It may have expired or already been used." });
+          setState({ kind: "error", message: t("joinStudio.errorNotFound") });
           return;
         }
         if (!res.ok) {
-          setState({ kind: "error", message: "Could not load invitation details. Please try again." });
+          setState({ kind: "error", message: t("joinStudio.errorLoadDetails") });
           return;
         }
         const metadata: InviteMetadata = await res.json();
@@ -85,7 +87,7 @@ export default function JoinStudio() {
         }
         setState({ kind: "preview", metadata, token });
       } catch {
-        setState({ kind: "error", message: "Could not load invitation details. Please check your connection and try again." });
+        setState({ kind: "error", message: t("joinStudio.errorLoadDetailsNetwork") });
       }
     })();
   }, [authLoading, user, token, setLocation]);
@@ -124,10 +126,10 @@ export default function JoinStudio() {
           setState({ kind: "coach_not_subscribed" });
           break;
         default:
-          setState({ kind: "error", message: data.message ?? "Something went wrong. Please try again." });
+          setState({ kind: "error", message: data.message ?? t("joinStudio.errorGenericFallback") });
       }
     } catch {
-      setState({ kind: "error", message: "Connection error. Please check your connection and try again." });
+      setState({ kind: "error", message: t("joinStudio.errorConnectionIssue") });
     }
   }
 
@@ -139,10 +141,10 @@ export default function JoinStudio() {
         <div className="text-center mb-6">
           <img
             src="/icons/icon-192x192.png"
-            alt="My Perfect Meals"
+            alt={t("joinStudio.appName")}
             className="w-16 h-16 rounded-2xl mx-auto mb-3 shadow-lg"
           />
-          <p className="text-white/60 text-sm tracking-wide uppercase">My Perfect Meals</p>
+          <p className="text-white/60 text-sm tracking-wide uppercase">{t("joinStudio.appName")}</p>
         </div>
 
         <Card className="bg-gray-900 border-gray-800 shadow-2xl text-white">
@@ -150,7 +152,7 @@ export default function JoinStudio() {
             {/* Header varies by state */}
           </CardHeader>
           <CardContent className="pt-0">
-            <InviteBody state={state} onJoin={handleJoin} onGoHome={() => setLocation("/")} />
+            <InviteBody state={state} onJoin={handleJoin} onGoHome={() => setLocation("/")} t={t} />
           </CardContent>
         </Card>
       </div>
@@ -162,16 +164,18 @@ function InviteBody({
   state,
   onJoin,
   onGoHome,
+  t,
 }: {
   state: PageState;
   onJoin: () => void;
   onGoHome: () => void;
+  t: (key: string, opts?: Record<string, string>) => string;
 }) {
   if (state.kind === "loading") {
     return (
       <div className="flex flex-col items-center gap-4 py-10">
         <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
-        <p className="text-gray-400 text-sm">Loading your invitation…</p>
+        <p className="text-gray-400 text-sm">{t("joinStudio.loading")}</p>
       </div>
     );
   }
@@ -180,7 +184,7 @@ function InviteBody({
     return (
       <div className="flex flex-col items-center gap-4 py-10">
         <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
-        <p className="text-gray-400 text-sm">Connecting you to the studio…</p>
+        <p className="text-gray-400 text-sm">{t("joinStudio.joining")}</p>
       </div>
     );
   }
@@ -194,9 +198,10 @@ function InviteBody({
         {/* Invite card */}
         <div className="bg-gradient-to-br from-orange-600/20 to-orange-500/10 border border-orange-500/30 rounded-xl p-5 text-center">
           <ShieldCheck className="w-10 h-10 text-orange-400 mx-auto mb-3" />
-          <h2 className="text-xl font-bold text-white mb-1">ProCare Invitation</h2>
+          <h2 className="text-xl font-bold text-white mb-1">{t("joinStudio.inviteTitle")}</h2>
           <p className="text-gray-300 text-sm mb-3">
-            <span className="font-semibold text-white">{metadata.proName}</span> has invited you to join their ProCare {spaceLabel}.
+            <span className="font-semibold text-white">{metadata.proName}</span>
+            {t("joinStudio.invitedBySuffix", { spaceLabel })}
           </p>
           <div className="bg-black/30 rounded-lg px-4 py-2 inline-block">
             <p className="text-orange-300 text-xs uppercase tracking-wider mb-0.5">{spaceLabel}</p>
@@ -206,20 +211,20 @@ function InviteBody({
 
         {/* Invited address notice */}
         <p className="text-center text-gray-400 text-xs">
-          This invitation was sent to{" "}
-          <span className="text-white font-medium">{metadata.maskedEmail}</span>.
-          Make sure you're signed in with that account.
+          {t("joinStudio.inviteAddress")}{" "}
+          <span className="text-white font-medium">{metadata.maskedEmail}</span>.{" "}
+          {t("joinStudio.inviteAddressSuffix")}
         </p>
 
         <Button
           onClick={onJoin}
           className="w-full bg-orange-600 hover:bg-orange-500 text-white font-semibold py-3 rounded-full text-base"
         >
-          Join {spaceLabel}
+          {t("joinStudio.joinButton", { spaceLabel })}
         </Button>
 
         <p className="text-center text-gray-500 text-xs">
-          Once connected, your {roleLabel} can guide your nutrition and progress through the platform.
+          {t("joinStudio.joinDisclaimer", { roleLabel })}
         </p>
       </div>
     );
@@ -229,16 +234,13 @@ function InviteBody({
     return (
       <div className="flex flex-col items-center gap-4 py-8 text-center">
         <CheckCircle2 className="w-14 h-14 text-green-400" />
-        <h2 className="text-xl font-bold text-white">You're Connected!</h2>
-        <p className="text-gray-300 text-sm">
-          You've successfully joined <span className="text-white font-semibold">{state.studioName}</span>.
-          Your trainer can now work with you through the platform.
-        </p>
+        <h2 className="text-xl font-bold text-white">{t("joinStudio.successTitle")}</h2>
+        <p className="text-gray-300 text-sm">{t("joinStudio.successBody", { studioName: state.studioName })}</p>
         <Button
           onClick={onGoHome}
           className="w-full bg-orange-600 hover:bg-orange-500 text-white font-semibold rounded-full"
         >
-          Go to My Perfect Meals
+          {t("joinStudio.goToApp")}
         </Button>
       </div>
     );
@@ -248,21 +250,19 @@ function InviteBody({
     return (
       <div className="flex flex-col items-center gap-4 py-6 text-center">
         <UserX className="w-12 h-12 text-yellow-400" />
-        <h2 className="text-lg font-bold text-white">Wrong Account</h2>
+        <h2 className="text-lg font-bold text-white">{t("joinStudio.wrongAccountTitle")}</h2>
         <p className="text-gray-300 text-sm">
-          This invitation was sent to{" "}
-          <span className="text-white font-semibold">{state.maskedEmail}</span>.
-          You're currently signed in with a different account.
+          {t("joinStudio.wrongAccountAddress")}{" "}
+          <span className="text-white font-semibold">{state.maskedEmail}</span>.{" "}
+          {t("joinStudio.wrongAccountDiffAccount")}
         </p>
-        <p className="text-gray-400 text-xs">
-          Sign out and sign in with the correct email address, then click the invitation link again.
-        </p>
+        <p className="text-gray-400 text-xs">{t("joinStudio.wrongAccountHint")}</p>
         <Button
           onClick={onGoHome}
           variant="outline"
           className="w-full border-gray-700 text-gray-300 hover:bg-gray-800 rounded-full"
         >
-          Back to App
+          {t("joinStudio.backToApp")}
         </Button>
       </div>
     );
@@ -272,15 +272,13 @@ function InviteBody({
     return (
       <div className="flex flex-col items-center gap-4 py-6 text-center">
         <AlertTriangle className="w-12 h-12 text-yellow-400" />
-        <h2 className="text-lg font-bold text-white">Invitation Expired</h2>
-        <p className="text-gray-300 text-sm">
-          This invitation has expired. Ask your trainer to send a new one — it only takes a moment.
-        </p>
+        <h2 className="text-lg font-bold text-white">{t("joinStudio.expiredTitle")}</h2>
+        <p className="text-gray-300 text-sm">{t("joinStudio.expiredBody")}</p>
         <p className="text-gray-400 text-xs">
-          You can also enter your backup code manually: <strong>More → Connect with Access Code</strong>.
+          {t("joinStudio.backupCodeHint")} <strong>{t("joinStudio.backupCodePath")}</strong>
         </p>
         <Button onClick={onGoHome} variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800 rounded-full w-full">
-          Back to App
+          {t("joinStudio.backToApp")}
         </Button>
       </div>
     );
@@ -290,12 +288,10 @@ function InviteBody({
     return (
       <div className="flex flex-col items-center gap-4 py-6 text-center">
         <CheckCircle2 className="w-12 h-12 text-green-400" />
-        <h2 className="text-lg font-bold text-white">Already Connected</h2>
-        <p className="text-gray-300 text-sm">
-          This invitation has already been used. If you're not seeing your trainer's studio, try refreshing the app.
-        </p>
+        <h2 className="text-lg font-bold text-white">{t("joinStudio.alreadyConnectedTitle")}</h2>
+        <p className="text-gray-300 text-sm">{t("joinStudio.alreadyConnectedBody")}</p>
         <Button onClick={onGoHome} className="w-full bg-orange-600 hover:bg-orange-500 text-white rounded-full">
-          Go to My Perfect Meals
+          {t("joinStudio.goToApp")}
         </Button>
       </div>
     );
@@ -305,15 +301,13 @@ function InviteBody({
     return (
       <div className="flex flex-col items-center gap-4 py-6 text-center">
         <AlertTriangle className="w-12 h-12 text-orange-400" />
-        <h2 className="text-lg font-bold text-white">Subscription Required</h2>
-        <p className="text-gray-300 text-sm">
-          Connecting with a ProCare provider requires a <strong>Clinical (Ultimate)</strong> subscription.
-        </p>
+        <h2 className="text-lg font-bold text-white">{t("joinStudio.subscriptionRequiredTitle")}</h2>
+        <p className="text-gray-300 text-sm">{t("joinStudio.subscriptionRequiredBody")}</p>
         <Button onClick={() => window.location.href = "/pricing"} className="w-full bg-orange-600 hover:bg-orange-500 text-white rounded-full">
-          View Plans
+          {t("joinStudio.viewPlans")}
         </Button>
         <Button onClick={onGoHome} variant="ghost" className="text-gray-400 hover:text-white text-sm">
-          Back to App
+          {t("joinStudio.backToApp")}
         </Button>
       </div>
     );
@@ -323,12 +317,10 @@ function InviteBody({
     return (
       <div className="flex flex-col items-center gap-4 py-6 text-center">
         <AlertTriangle className="w-12 h-12 text-yellow-400" />
-        <h2 className="text-lg font-bold text-white">Trainer Not Subscribed</h2>
-        <p className="text-gray-300 text-sm">
-          Your trainer's ProCare subscription is not currently active. Let them know and ask them to re-invite you once it's resolved.
-        </p>
+        <h2 className="text-lg font-bold text-white">{t("joinStudio.trainerNotSubscribedTitle")}</h2>
+        <p className="text-gray-300 text-sm">{t("joinStudio.trainerNotSubscribedBody")}</p>
         <Button onClick={onGoHome} variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800 rounded-full w-full">
-          Back to App
+          {t("joinStudio.backToApp")}
         </Button>
       </div>
     );
@@ -338,13 +330,13 @@ function InviteBody({
   return (
     <div className="flex flex-col items-center gap-4 py-6 text-center">
       <AlertTriangle className="w-12 h-12 text-red-400" />
-      <h2 className="text-lg font-bold text-white">Something Went Wrong</h2>
-      <p className="text-gray-300 text-sm">{(state as any).message ?? "Please try again."}</p>
+      <h2 className="text-lg font-bold text-white">{t("joinStudio.errorTitle")}</h2>
+      <p className="text-gray-300 text-sm">{(state as any).message ?? t("joinStudio.errorFallback")}</p>
       <p className="text-gray-400 text-xs">
-        You can also enter your backup code manually: <strong>More → Connect with Access Code</strong>.
+        {t("joinStudio.backupCodeHint")} <strong>{t("joinStudio.backupCodePath")}</strong>
       </p>
       <Button onClick={onGoHome} variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800 rounded-full w-full">
-        Back to App
+        {t("joinStudio.backToApp")}
       </Button>
     </div>
   );

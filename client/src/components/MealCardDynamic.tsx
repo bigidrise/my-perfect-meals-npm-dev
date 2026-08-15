@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, AlertTriangle, RotateCcw, Plus, Clock, Users, Eye } from "lucide-react";
-import { Meal, UserProfile } from "@/services/mealEngineService";
+import { EngineMeal, UserProfile } from "@/services/mealEngineService";
 import TrashButton from "@/components/ui/TrashButton";
 import { formatIngredientWithGrams } from "@/utils/unitConversions";
 
@@ -13,7 +13,7 @@ interface MedicalBadge {
 }
 
 // Dynamic Medical Badge System - generates badges based on onboarding data
-function generateDynamicMedicalBadges(meal: Meal, userProfile: UserProfile): MedicalBadge[] {
+function generateDynamicMedicalBadges(meal: EngineMeal, userProfile: UserProfile): MedicalBadge[] {
   const badges: MedicalBadge[] = [];
 
   const allergies = userProfile?.allergies || [];
@@ -99,7 +99,7 @@ function generateDynamicMedicalBadges(meal: Meal, userProfile: UserProfile): Med
 }
 
 interface MealCardDynamicProps {
-  meal: Meal;
+  meal: EngineMeal;
   userProfile: UserProfile;
   onDelete: (mealId: string) => void;
   onReplace: (mealId: string) => void;
