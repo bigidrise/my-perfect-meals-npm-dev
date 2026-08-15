@@ -232,7 +232,7 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
             style={{
               position: "fixed", bottom: 0,
-              left: "50%", transform: "translateX(-50%)",
+              left: 0, right: 0, margin: "0 auto",
               width: "100%", maxWidth: 896,
               maxHeight: "88vh", overflowY: "auto",
               background: "linear-gradient(180deg, #1a1a2e 0%, #16213e 100%)",
