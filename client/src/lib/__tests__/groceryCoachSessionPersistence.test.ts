@@ -351,3 +351,9 @@ describe('handleAddToList — complete list (shoppingList + ownedIngredients)', 
     expect(items[1].quantity).toBe(1.5);
   });
 });
+
+// ── 5 & 6 ────────────────────────────────────────────────────────────────────
+// Find-a-Product session persistence and sessionGenRef guard are tested by
+// rendering the actual component in:
+//   client/src/lib/__tests__/groceryCoachProductSearchPersistence.test.tsx
+// ─────────────────────────────────────────────────────────────────────────────

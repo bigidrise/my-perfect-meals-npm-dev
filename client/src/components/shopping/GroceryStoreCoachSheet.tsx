@@ -314,6 +314,10 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   const [productPhase, setProductPhase] = useState<ProductPhase>("idle");
   const [productQuery, setProductQuery] = useState("");
   const [productSearch, setProductSearch] = useState<ProductSearchSession | null>(null);
+  // Tracks which PRODUCT_SESSION_KEY the current in-memory `productSearch` was loaded/created under.
+  // The persist effect checks this before writing so a mid-transition render can never write
+  // user A's productSearch under user B's key (mirrors the resultOwnerKey pattern for meals).
+  const [productSearchOwnerKey, setProductSearchOwnerKey] = useState<string | null>(null);
   const [productError, setProductError] = useState<string | null>(null);
   const [productAddedKeys, setProductAddedKeys] = useState<Set<string>>(new Set());
   const speech = useSpeechToText();
@@ -460,7 +464,11 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   }, [phase]);
 
   // Restore Find-a-Product session (same 24h pattern as meal results).
+  // productSearchOwnerKey is cleared FIRST so the persist effect below sees a mismatch
+  // (null !== PRODUCT_SESSION_KEY) in the same render cycle and refuses to write the
+  // prior account's productSearch under the new user's key.
   useEffect(() => {
+    setProductSearchOwnerKey(null); // ← clear before state so persist effect detects transition
     setProductSearch(null);
     setProductQuery("");
     setProductError(null);
@@ -476,19 +484,22 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       }
       if (session.advice?.advice?.length && session.query) {
         setProductSearch(session);
+        setProductSearchOwnerKey(PRODUCT_SESSION_KEY); // result now belongs to this user's key
         setProductPhase("result");
       }
     } catch {}
   }, [PRODUCT_SESSION_KEY]);
 
-  // Persist Find-a-Product session across navigation.
+  // Persist Find-a-Product session — ONLY when the result belongs to the current user's key.
+  // If productSearchOwnerKey !== PRODUCT_SESSION_KEY we are mid-transition; writing would
+  // persist a prior account's data under the new user's storage key.
   useEffect(() => {
-    if (productSearch) {
+    if (productSearch && productSearchOwnerKey === PRODUCT_SESSION_KEY) {
       try {
         localStorage.setItem(PRODUCT_SESSION_KEY, JSON.stringify(productSearch));
       } catch {}
     }
-  }, [productSearch, PRODUCT_SESSION_KEY]);
+  }, [productSearch, PRODUCT_SESSION_KEY, productSearchOwnerKey]);
 
   // Mirror live speech transcript into the product input while listening.
   useEffect(() => {
@@ -524,6 +535,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       if (data?.error) throw new Error(data.error);
       if (data?.advice?.length) {
         setProductSearch({ query, advice: data as ProductAdviceResult, savedAt: Date.now() });
+        setProductSearchOwnerKey(PRODUCT_SESSION_KEY); // stamp ownership so persist effect may write
         setProductPhase("result");
       } else {
         setProductError(t("findProduct.noResults"));
@@ -539,11 +551,12 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       setProductError(serverMsg ?? t("findProduct.errorGeneric"));
       setProductPhase("idle");
     }
-  }, [productQuery, speech, t]);
+  }, [productQuery, speech, t, PRODUCT_SESSION_KEY]);
 
   const handleCompareAnother = useCallback(() => {
     try { localStorage.removeItem(PRODUCT_SESSION_KEY); } catch {}
     setProductSearch(null);
+    setProductSearchOwnerKey(null); // clear ownership so persist effect doesn't write stale data
     setProductQuery("");
     setProductError(null);
     setProductAddedKeys(new Set());
