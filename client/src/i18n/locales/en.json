@@ -2164,17 +2164,6 @@
       "next": "Next",
       "morePages": "More pages"
     },
-    "enhancedMealCard": {
-      "replace": "Replace",
-      "replacing": "Replacing...",
-      "replaceTitle": "Replace with a completely new meal recipe",
-      "replacingTitle": "Replacing meal...",
-      "portionGuide": "Portion Guide:",
-      "ingredients": "Ingredients:",
-      "instructions": "Instructions:",
-      "medicalSafety": "Medical Safety:",
-      "error": "Error:"
-    },
     "mealCard": {
       "noRecipe": "No recipe",
       "addMeal": "Add a meal",

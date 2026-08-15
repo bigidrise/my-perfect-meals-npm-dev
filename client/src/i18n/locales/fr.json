@@ -2410,17 +2410,6 @@
       "next": "Suivant",
       "morePages": "Plus de pages"
     },
-    "enhancedMealCard": {
-      "replace": "Remplacer",
-      "replacing": "Remplacement en cours...",
-      "replaceTitle": "Remplacer par une toute nouvelle recette de repas",
-      "replacingTitle": "Remplacement du repas...",
-      "portionGuide": "Guide des portions :",
-      "ingredients": "Ingrédients :",
-      "instructions": "Instructions :",
-      "medicalSafety": "Sécurité médicale :",
-      "error": "Erreur :"
-    },
     "mealCard": {
       "noRecipe": "Aucune recette",
       "addMeal": "Ajouter un repas",

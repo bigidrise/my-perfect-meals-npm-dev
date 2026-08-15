@@ -1,17 +1,17 @@
 {
   "_meta": {
     "description": "Protected clinical/safety string registry. Strings here cannot be auto-migrated. Require qualified medical translator + clinical review.",
-    "generatedAt": "2026-08-14T23:33:18.179Z",
+    "generatedAt": "2026-08-15T00:01:13.611Z",
     "basedOn": "Step 1A audit (CLINICAL_SAFETY class) × Step 1B reachability (ACTIVE/CONDITIONAL surfaces only)",
     "governanceRule": "Any change to these strings in any locale file requires a [clinical-translation] PR annotation and clinical reviewer sign-off."
   },
-  "totalClinicalStrings": 139,
-  "filesWithClinicalStrings": 21,
+  "totalClinicalStrings": 141,
+  "filesWithClinicalStrings": 22,
   "byCategory": {
     "allergy_safety": 18,
     "general_clinical": 50,
-    "diabetes_glp1": 40,
-    "medication": 8,
+    "diabetes_glp1": 41,
+    "medication": 9,
     "lab_biometric": 19,
     "pregnancy_pediatric": 4
   },
@@ -746,6 +746,20 @@
         "text": "Semaglutide (Ozempic / Wegovy)",
         "category": "diabetes_glp1",
         "proposedKey": "therapeuticnutritioncard.semaglutide_ozempic_wegovy"
+      }
+    ],
+    "client/src/components/copilot/packs/basePacks.tsx": [
+      {
+        "line": 88,
+        "text": "Swap carb-heavy items for diabetic-safe options.",
+        "category": "diabetes_glp1",
+        "proposedKey": "basepacks.swap_carbheavy_items_for"
+      },
+      {
+        "line": 112,
+        "text": "Boost veggies and protein for metabolic medication satiety.",
+        "category": "medication",
+        "proposedKey": "basepacks.boost_veggies_and_protein"
       }
     ],
     "client/src/components/dashboard/TodaysPrescriptionCard.tsx": [
@@ -1719,6 +1733,20 @@
       "text": "Semaglutide (Ozempic / Wegovy)",
       "category": "diabetes_glp1",
       "proposedKey": "therapeuticnutritioncard.semaglutide_ozempic_wegovy"
+    },
+    {
+      "file": "client/src/components/copilot/packs/basePacks.tsx",
+      "line": 88,
+      "text": "Swap carb-heavy items for diabetic-safe options.",
+      "category": "diabetes_glp1",
+      "proposedKey": "basepacks.swap_carbheavy_items_for"
+    },
+    {
+      "file": "client/src/components/copilot/packs/basePacks.tsx",
+      "line": 112,
+      "text": "Boost veggies and protein for metabolic medication satiety.",
+      "category": "medication",
+      "proposedKey": "basepacks.boost_veggies_and_protein"
     },
     {
       "file": "client/src/components/dashboard/TodaysPrescriptionCard.tsx",

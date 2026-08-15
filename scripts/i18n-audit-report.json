@@ -1,19 +1,19 @@
 {
-  "generatedAt": "2026-08-14T23:33:17.062Z",
+  "generatedAt": "2026-08-15T00:01:21.688Z",
   "summary": {
     "filesScanned": 690,
-    "filesUsingTranslation": 71,
-    "filesWithNoTranslation": 619,
-    "filesWithHardcodedStrings": 456,
-    "fullyUntranslatedSurfaces": 407,
+    "filesUsingTranslation": 78,
+    "filesWithNoTranslation": 612,
+    "filesWithHardcodedStrings": 449,
+    "fullyUntranslatedSurfaces": 400,
     "partiallyTranslatedSurfaces": 49,
-    "totalTCalls": 1665,
-    "totalHardcodedFindings": 7442,
-    "safeAutomation": 6479,
-    "reviewRequired": 465,
+    "totalTCalls": 1673,
+    "totalHardcodedFindings": 7435,
+    "safeAutomation": 6473,
+    "reviewRequired": 464,
     "clinicalSafety": 498,
-    "inSharedComponents": 2150,
-    "sharedComponentFilesAffected": 256
+    "inSharedComponents": 2144,
+    "sharedComponentFilesAffected": 250
   },
   "localeParity": {
     "ar": {
@@ -77,7 +77,7 @@
       "extra": 9
     },
     "xq": {
-      "missing": 64,
+      "missing": 55,
       "missingKeys": [
         "sharedComponents.navigation.appName",
         "sharedComponents.navigation.features",
@@ -313,7 +313,6 @@
     ]
   ],
   "fullyUntranslatedFiles": [
-    "client/src/App.tsx",
     "client/src/addons/capture/CaptureBar.tsx",
     "client/src/addons/capture/CaptureInbox.tsx",
     "client/src/addons/capture/IngredientCapture.tsx",
@@ -322,7 +321,6 @@
     "client/src/components/AccountabilityChip.tsx",
     "client/src/components/AddOtherItems.tsx",
     "client/src/components/AddToBoardModal.tsx",
-    "client/src/components/AddToCalendarButtons.tsx",
     "client/src/components/AddToMealPlanButton.tsx",
     "client/src/components/AffiliateJoinCard.tsx",
     "client/src/components/AffiliateOnPricing.tsx",
@@ -331,7 +329,6 @@
     "client/src/components/AlcoholTrackerCard.tsx",
     "client/src/components/AlphaGalProfileModal.tsx",
     "client/src/components/AthleteModeCard.tsx",
-    "client/src/components/AvatarSelector.tsx",
     "client/src/components/AvatarSettingsPanel.tsx",
     "client/src/components/AvatarSpeechBubble.tsx",
     "client/src/components/BugReportButton.tsx",
@@ -341,19 +338,16 @@
     "client/src/components/BuilderSourcePill.tsx",
     "client/src/components/ChefAssistant.tsx",
     "client/src/components/ChefMotivationCard.tsx",
-    "client/src/components/ComingSoonCard.tsx",
     "client/src/components/ConfirmEntriesModal.tsx",
     "client/src/components/CookingTutorialCard.tsx",
     "client/src/components/CopyRecipeButton.tsx",
     "client/src/components/CravingPicker.tsx",
     "client/src/components/CreateRecipeForm.tsx",
-    "client/src/components/CreateWithChefButton.tsx",
     "client/src/components/CreateWithChefModal.tsx",
     "client/src/components/CulturalRecipeEditor.tsx",
     "client/src/components/CultureOverridePanel.tsx",
     "client/src/components/CycleSyncingCard.tsx",
     "client/src/components/DailiesGlucoseCard.tsx",
-    "client/src/components/DailyMacroTotalsRow.tsx",
     "client/src/components/DailyStarchIndicator.tsx",
     "client/src/components/DayByDayMealBoard.tsx",
     "client/src/components/DevNavigator.tsx",
@@ -366,7 +360,6 @@
     "client/src/components/EmotionalGate.tsx",
     "client/src/components/ExportPhysicianReportButton.tsx",
     "client/src/components/FamilyRecipeEditor.tsx",
-    "client/src/components/FavoriteButton.tsx",
     "client/src/components/FavoritesPickerModal.tsx",
     "client/src/components/FeatureGate.tsx",
     "client/src/components/FeatureInstructions.tsx",
@@ -722,18 +715,6 @@
     "client/src/pages/wine-pairing.tsx"
   ],
   "findings": [
-    {
-      "file": "/home/runner/workspace/client/src/App.tsx",
-      "relPath": "client/src/App.tsx",
-      "line": 175,
-      "original": "Loading...",
-      "classification": "SAFE_AUTOMATION",
-      "reason": "Static UI label — safe for mechanical extraction",
-      "proposedKey": "app.loading",
-      "isSharedComponent": false,
-      "inJSX": true,
-      "inConfig": false
-    },
     {
       "file": "/home/runner/workspace/client/src/addons/capture/CaptureBar.tsx",
       "relPath": "client/src/addons/capture/CaptureBar.tsx",
@@ -1191,18 +1172,6 @@
       "inConfig": false
     },
     {
-      "file": "/home/runner/workspace/client/src/components/AddToCalendarButtons.tsx",
-      "relPath": "client/src/components/AddToCalendarButtons.tsx",
-      "line": 15,
-      "original": "Add to calendar",
-      "classification": "REVIEW_REQUIRED",
-      "reason": "Interpolation, conditional, or complex copy",
-      "proposedKey": "addtocalendarbuttons.add_to_calendar",
-      "isSharedComponent": true,
-      "inJSX": true,
-      "inConfig": false
-    },
-    {
       "file": "/home/runner/workspace/client/src/components/AddToMealPlanButton.tsx",
       "relPath": "client/src/components/AddToMealPlanButton.tsx",
       "line": 32,
@@ -1618,18 +1587,6 @@
       "classification": "SAFE_AUTOMATION",
       "reason": "Static UI label — safe for mechanical extraction",
       "proposedKey": "athletemodecard.athlete_mode",
-      "isSharedComponent": true,
-      "inJSX": true,
-      "inConfig": false
-    },
-    {
-      "file": "/home/runner/workspace/client/src/components/AvatarSelector.tsx",
-      "relPath": "client/src/components/AvatarSelector.tsx",
-      "line": 489,
-      "original": "Bring back your chef",
-      "classification": "SAFE_AUTOMATION",
-      "reason": "Static UI label — safe for mechanical extraction",
-      "proposedKey": "avatarselector.bring_back_your_chef",
       "isSharedComponent": true,
       "inJSX": true,
       "inConfig": false
@@ -2163,18 +2120,6 @@
       "inConfig": false
     },
     {
-      "file": "/home/runner/workspace/client/src/components/ComingSoonCard.tsx",
-      "relPath": "client/src/components/ComingSoonCard.tsx",
-      "line": 30,
-      "original": "Coming Soon",
-      "classification": "SAFE_AUTOMATION",
-      "reason": "Static UI label — safe for mechanical extraction",
-      "proposedKey": "comingsooncard.coming_soon",
-      "isSharedComponent": true,
-      "inJSX": true,
-      "inConfig": false
-    },
-    {
       "file": "/home/runner/workspace/client/src/components/ConfirmEntriesModal.tsx",
       "relPath": "client/src/components/ConfirmEntriesModal.tsx",
       "line": 37,
@@ -2655,18 +2600,6 @@
       "inConfig": false
     },
     {
-      "file": "/home/runner/workspace/client/src/components/CreateWithChefButton.tsx",
-      "relPath": "client/src/components/CreateWithChefButton.tsx",
-      "line": 16,
-      "original": "With Chef",
-      "classification": "SAFE_AUTOMATION",
-      "reason": "Static UI label — safe for mechanical extraction",
-      "proposedKey": "createwithchefbutton.with_chef",
-      "isSharedComponent": true,
-      "inJSX": true,
-      "inConfig": false
-    },
-    {
       "file": "/home/runner/workspace/client/src/components/CreateWithChefModal.tsx",
       "relPath": "client/src/components/CreateWithChefModal.tsx",
       "line": 239,
@@ -3142,18 +3075,6 @@
       "classification": "CLINICAL_SAFETY",
       "reason": "Clinical/medical terminology — requires expert review",
       "proposedKey": "dailiesglucosecard.track_glucose_carbs",
-      "isSharedComponent": true,
-      "inJSX": true,
-      "inConfig": false
-    },
-    {
-      "file": "/home/runner/workspace/client/src/components/DailyMacroTotalsRow.tsx",
-      "relPath": "client/src/components/DailyMacroTotalsRow.tsx",
-      "line": 87,
-      "original": "Today:",
-      "classification": "SAFE_AUTOMATION",
-      "reason": "Static UI label — safe for mechanical extraction",
-      "proposedKey": "dailymacrototalsrow.today",
       "isSharedComponent": true,
       "inJSX": true,
       "inConfig": false
@@ -5931,18 +5852,6 @@
       "inConfig": false
     },
     {
-      "file": "/home/runner/workspace/client/src/components/EnhancedMealCard.tsx",
-      "relPath": "client/src/components/EnhancedMealCard.tsx",
-      "line": 270,
-      "original": "Medical Personalization:",
-      "classification": "CLINICAL_SAFETY",
-      "reason": "Clinical/medical terminology — requires expert review",
-      "proposedKey": "enhancedmealcard.medical_personalization",
-      "isSharedComponent": true,
-      "inJSX": true,
-      "inConfig": false
-    },
-    {
       "file": "/home/runner/workspace/client/src/components/ExportPhysicianReportButton.tsx",
       "relPath": "client/src/components/ExportPhysicianReportButton.tsx",
       "line": 69,
@@ -6253,18 +6162,6 @@
       "isSharedComponent": true,
       "inJSX": true,
       "inConfig": false
-    },
-    {
-      "file": "/home/runner/workspace/client/src/components/FavoriteButton.tsx",
-      "relPath": "client/src/components/FavoriteButton.tsx",
-      "line": 56,
-      "original": "Could not update favorites. Try again.",
-      "classification": "SAFE_AUTOMATION",
-      "reason": "Static UI label — safe for mechanical extraction",
-      "proposedKey": "favoritebutton.could_not_update_favorites",
-      "isSharedComponent": true,
-      "inJSX": false,
-      "inConfig": true
     },
     {
       "file": "/home/runner/workspace/client/src/components/FavoritesPickerModal.tsx",
@@ -12910,6 +12807,18 @@
       "classification": "SAFE_AUTOMATION",
       "reason": "Static UI label — safe for mechanical extraction",
       "proposedKey": "quicknotes.loading",
+      "isSharedComponent": true,
+      "inJSX": true,
+      "inConfig": false
+    },
+    {
+      "file": "/home/runner/workspace/client/src/components/RETIRED_EnhancedMealCard.tsx",
+      "relPath": "client/src/components/RETIRED_EnhancedMealCard.tsx",
+      "line": 270,
+      "original": "Medical Personalization:",
+      "classification": "CLINICAL_SAFETY",
+      "reason": "Clinical/medical terminology — requires expert review",
+      "proposedKey": "retiredenhancedmealcard.medical_personalization",
       "isSharedComponent": true,
       "inJSX": true,
       "inConfig": false
@@ -24721,8 +24630,92 @@
       "isSharedComponent": true,
       "inJSX": false,
       "inConfig": true
+    },
+    {
+      "file": "/home/runner/workspace/client/src/components/pro/ProClientFolderModal.tsx",
+      "relPath": "client/src/components/pro/ProClientFolderModal.tsx",
+      "line": 838,
+      "original": "Metabolic Recovery",
+      "classification": "SAFE_AUTOMATION",
+      "reason": "Static UI label — safe for mechanical extraction",
+      "proposedKey": "proclientfoldermodal.metabolic_recovery",
+      "isSharedComponent": true,
+      "inJSX": false,
+      "inConfig": true
+    },
+    {
+      "file": "/home/runner/workspace/client/src/components/pro/ProClientFolderModal.tsx",
+      "relPath": "client/src/components/pro/ProClientFolderModal.tsx",
+      "line": 862,
+      "original": "Hormonal & Metabolic:",
+      "classification": "SAFE_AUTOMATION",
+      "reason": "Static UI label — safe for mechanical extraction",
+      "proposedKey": "proclientfoldermodal.hormonal_metabolic",
+      "isSharedComponent": true,
+      "inJSX": true,
+      "inConfig": false
+    },
+    {
+      "file": "/home/runner/workspace/client/src/components/pro/ProClientFolderModal.tsx",
+      "relPath": "client/src/components/pro/ProClientFolderModal.tsx",
+      "line": 889,
+      "original": "· Active",
+      "classification": "SAFE_AUTOMATION",
+      "reason": "Static UI label — safe for mechanical extraction",
+      "proposedKey": "proclientfoldermodal.active",
+      "isSharedComponent": true,
+      "inJSX": true,
+      "inConfig": false
+    },
+    {
+      "file": "/home/runner/workspace/client/src/components/pro/ProClientFolderModal.tsx",
+      "relPath": "client/src/components/pro/ProClientFolderModal.tsx",
+      "line": 933,
+      "original": "Client Goal",
+      "classification": "SAFE_AUTOMATION",
+      "reason": "Static UI label — safe for mechanical extraction",
+      "proposedKey": "proclientfoldermodal.client_goal",
+      "isSharedComponent": true,
+      "inJSX": true,
+      "inConfig": false
+    },
+    {
+      "file": "/home/runner/workspace/client/src/components/pro/ProClientFolderModal.tsx",
+      "relPath": "client/src/components/pro/ProClientFolderModal.tsx",
+      "line": 952,
+      "original": "Provider Notes",
+      "classification": "SAFE_AUTOMATION",
+      "reason": "Static UI label — safe for mechanical extraction",
+      "proposedKey": "proclientfoldermodal.provider_notes",
+      "isSharedComponent": true,
+      "inJSX": true,
+      "inConfig": false
+    },
+    {
+      "file": "/home/runner/workspace/client/src/components/pro/ProClientFolderModal.tsx",
+      "relPath": "client/src/components/pro/ProClientFolderModal.tsx",
+      "line": 999,
+      "original": "🎤 Voice Message",
+      "classification": "SAFE_AUTOMATION",
+      "reason": "Static UI label — safe for mechanical extraction",
+      "proposedKey": "proclientfoldermodal.voice_message",
+      "isSharedComponent": true,
+      "inJSX": true,
+      "inConfig": false
+    },
+    {
+      "file": "/home/runner/workspace/client/src/components/pro/ProClientFolderModal.tsx",
+      "relPath": "client/src/components/pro/ProClientFolderModal.tsx",
+      "line": 1000,
+      "original": "max 60s",
+      "classification": "SAFE_AUTOMATION",
+      "reason": "Static UI label — safe for mechanical extraction",
+      "proposedKey": "proclientfoldermodal.max_60s",
+      "isSharedComponent": true,
+      "inJSX": true,
+      "inConfig": false
     }
   ],
-  "totalFindingsBeforeCap": 7442,
+  "totalFindingsBeforeCap": 7435,
   "aiWrapperNote": "openaiSafe.ts is not universal — ~30+ routes bypass it. Language injection requires separate per-route audit before implementation."
 }

@@ -2164,17 +2164,6 @@
       "next": "التالي",
       "morePages": "المزيد من الصفحات"
     },
-    "enhancedMealCard": {
-      "replace": "استبدال",
-      "replacing": "جارٍ الاستبدال...",
-      "replaceTitle": "استبدل بوصفة وجبة جديدة تمامًا",
-      "replacingTitle": "جارٍ استبدال الوجبة...",
-      "portionGuide": "دليل الحصص:",
-      "ingredients": "المكونات:",
-      "instructions": "التعليمات:",
-      "medicalSafety": "السلامة الطبية:",
-      "error": "خطأ:"
-    },
     "mealCard": {
       "noRecipe": "لا توجد وصفة",
       "addMeal": "إضافة وجبة",

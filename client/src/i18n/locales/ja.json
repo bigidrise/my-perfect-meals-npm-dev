@@ -2230,17 +2230,6 @@
       "next": "次へ",
       "morePages": "さらにページ"
     },
-    "enhancedMealCard": {
-      "replace": "置き換え",
-      "replacing": "置き換え中...",
-      "replaceTitle": "全く新しい食事レシピに置き換える",
-      "replacingTitle": "食事を置き換え中...",
-      "portionGuide": "ポーションガイド：",
-      "ingredients": "材料：",
-      "instructions": "手順：",
-      "medicalSafety": "医療安全性：",
-      "error": "エラー："
-    },
     "mealCard": {
       "noRecipe": "レシピなし",
       "addMeal": "食事を追加",

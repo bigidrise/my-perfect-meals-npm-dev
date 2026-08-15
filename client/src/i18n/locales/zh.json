@@ -2164,17 +2164,6 @@
       "next": "下一页",
       "morePages": "更多页面"
     },
-    "enhancedMealCard": {
-      "replace": "替换",
-      "replacing": "替换中...",
-      "replaceTitle": "用全新的餐食食谱替换",
-      "replacingTitle": "替换餐食中...",
-      "portionGuide": "份量指南：",
-      "ingredients": "食材：",
-      "instructions": "步骤：",
-      "medicalSafety": "医疗安全：",
-      "error": "错误："
-    },
     "mealCard": {
       "noRecipe": "无食谱",
       "addMeal": "添加餐食",
