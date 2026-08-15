@@ -12,8 +12,19 @@
 
 // ── Module mocks ─────────────────────────────────────────────────────────────
 // GroceryStoreCoachSheet imports several runtime-only modules (wouter, framer-motion,
-// zustand stores) that use ESM syntax Jest can't parse.  Mock them before any
-// imports so the test suite can import the pure helpers it actually needs.
+// zustand stores, AuthContext) that use ESM syntax Jest can't parse.  Mock them
+// before any imports so the test suite can import the pure helpers it needs.
+// Note: @/lib/sentry is automatically stubbed via jest.config.ts moduleNameMapper.
+
+jest.mock('react-dom', () => ({
+  ...jest.requireActual('react-dom'),
+  createPortal: (node: React.ReactNode) => node,
+}));
+
+jest.mock('@/components/MealRefinementSheet', () => ({
+  __esModule: true,
+  default: () => null,
+}));
 
 jest.mock('wouter', () => ({ useLocation: () => ['/', jest.fn()] }));
 jest.mock('framer-motion', () => ({
@@ -26,8 +37,21 @@ jest.mock('framer-motion', () => ({
   AnimatePresence: ({ children }: any) => children,
 }));
 jest.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: jest.fn() }) }));
-jest.mock('@/lib/api', () => ({ post: jest.fn() }));
+jest.mock('@/lib/api', () => ({ get: jest.fn(), post: jest.fn() }));
 jest.mock('@/stores/shoppingListStore', () => ({ useShoppingListStore: jest.fn(() => jest.fn()) }));
+jest.mock('@/contexts/AuthContext', () => ({
+  useAuth: jest.fn(() => ({ user: { id: 'test-user' } })),
+}));
+jest.mock('@/components/ui/pill-button', () => ({ PillButton: () => null }));
+jest.mock('@/hooks/useSpeechToText', () => ({
+  useSpeechToText: () => ({
+    state: 'idle',
+    text: '',
+    start: jest.fn(),
+    stop: jest.fn(),
+    reset: jest.fn(),
+  }),
+}));
 
 import React from 'react';
 import { render } from '@testing-library/react';
