@@ -1299,5 +1299,54 @@ describe("POST /api/grocery-coach/swap-ingredient — five-item test matrix", ()
       // NDE scan must have been invoked (at least for coachSuggestion + savedOption)
       expect(scanGeneratedOutputMock).toHaveBeenCalled();
     });
+
+    // ── B.11.5  Clinical diabetic carb ceiling blocks the saved product ───────
+    test("savedOption is null for a diabetic user when the saved product nutritionJson exceeds the 45 g carb ceiling", async () => {
+      // Diabetic user — no GLP-1 active.
+      activeEnvelope = makeEnvelope({ hasDiabetes: true });
+
+      // Saved product has 60 g carbs — well above the 45 g diabetic ceiling.
+      mockDbSgRows.push({
+        id:            "sg-4",
+        productName:   "White rice cake pack",
+        brand:         "Quaker",
+        category:      "Grains & Packaged",
+        productKey:    "white-rice-cake-quaker",
+        nutritionJson: { calories: 280, protein: 5, fat: 2, carbs: 60 },
+        productMeta:   null,
+        savedAt:       new Date(),
+      });
+
+      // AI returns a safe coachSuggestion but points savedOption at the high-carb saved product.
+      openAIResponseQueue.push(() => ({
+        coachSuggestion: {
+          item:     "Cauliflower rice",
+          quantity: "2",
+          unit:     "cups",
+          reason:   "Low-carb substitute, diabetic safe.",
+        },
+        alternatives: [
+          { item: "Zucchini noodles", quantity: "2", unit: "cups", reason: "Very low in carbs." },
+          { item: "Shirataki noodles", quantity: "1", unit: "pack", reason: "Near-zero carbs." },
+        ],
+        savedOption: {
+          item:     "White rice cake pack",
+          quantity: "1",
+          unit:     "pack",
+          reason:   "From your saved products.",
+        },
+        protocolNote: null,
+      }));
+
+      const res = await request(app)
+        .post("/api/grocery-coach/swap-ingredient")
+        .send(swapBody("brown rice"));
+
+      expect(res.status).toBe(200);
+      // Carb ceiling exceeded (60 g > 45 g) → savedOption must be null
+      expect(res.body.savedOption).toBeNull();
+      // Primary suggestion is still returned
+      expect(res.body.coachSuggestion.item).toBe("Cauliflower rice");
+    });
   });
 });
