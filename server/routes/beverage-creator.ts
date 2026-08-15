@@ -25,6 +25,9 @@ import {
 import { buildAcePromptBlock } from "../services/ace/buildAcePromptBlock";
 import { resolveGLP1GlobalContext } from "../services/glp1/resolveGLP1GlobalContext";
 import { getLanguageInstruction } from "../utils/languageInstruction";
+import { getDishAdaptationDirective, buildGuardrailContext } from "../services/dishAdaptation/dishAdaptationLayer";
+import { validateDishIdentity } from "../services/dishAdaptation/dishIdentityValidator";
+import type { DishAdaptationDirective } from "../services/dishAdaptation/types";
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -412,6 +415,40 @@ beverageCreatorRouter.post("/", async (req, res) => {
       }
     }
 
+    // ── Dish Adaptation Layer (Phase 5) ──────────────────────────────────────
+    // For named drinks, anchor identity and cross-reference active guardrails so
+    // "mojito + diabetic" adapts the mojito rather than replacing it. Only runs
+    // when the user has requested a specific named drink.
+    let _beverageDishDirective: DishAdaptationDirective | null = null;
+    const _beverageIdentifier = (
+      specificDrink?.trim() || (hasCustomDesc ? customBeverageDescription.trim() : "")
+    ).trim();
+    const _beverageIsNamed = !!_beverageIdentifier;
+    if (_beverageIsNamed) {
+      try {
+        const _beverageGuardrailCtx = buildGuardrailContext({
+          dietaryIdentity: beverageEnvelope.dietaryIdentity,
+          glp1Active: !!beverageGlp1ResolvedTargets,
+          allergies: beverageEnvelope.allergies,
+          overriddenAllergens:
+            _overriddenBeverageAllergens.length > 0 ? _overriddenBeverageAllergens : undefined,
+        });
+        _beverageDishDirective = await getDishAdaptationDirective(
+          _beverageIdentifier,
+          _beverageGuardrailCtx,
+          "first_pass",
+        );
+        if (_beverageDishDirective) {
+          console.log(
+            `🍽️ [DAL/Beverage] Directive ready for "${_beverageIdentifier}" — ` +
+            `${_beverageDishDirective.conflicts.length} guardrail conflict(s)`,
+          );
+        }
+      } catch (dalErr) {
+        console.warn("⚠️ [DAL/Beverage] Directive build failed — generation proceeds unenriched:", dalErr);
+      }
+    }
+
     // ── Adaptive Coaching Context (ACE) ────────────────────────────────────────
     // Injected AFTER all protocol/medical/behavioral blocks. Lowest priority tier.
     // Returns null when no check-in exists today → no-op, prompt unchanged.
@@ -437,7 +474,7 @@ beverageCreatorRouter.post("/", async (req, res) => {
     const prompt = `${beverageLangPrefix}
 You are a professional mixologist, nutritionist, and beverage chef inside the My Perfect Meals system.
 Generate a FULL structured beverage recipe.
-${beverageProtocolBlock ? `\n${beverageProtocolBlock}\n` : ""}${medicalBeverageBlock}${glp1CanonicalBlock}${cuisineOverrideBlock}${beverageBehavioralMemorySection ? `\n${beverageBehavioralMemorySection}\n` : ""}${dietCategoryStrategy.coachingBlock ? `\n${dietCategoryStrategy.coachingBlock}\n` : ""}${softOverrideBlock}${aceBlock}
+${beverageProtocolBlock ? `\n${beverageProtocolBlock}\n` : ""}${_beverageDishDirective ? `\n${_beverageDishDirective.adaptationBlock}\n` : ""}${medicalBeverageBlock}${glp1CanonicalBlock}${cuisineOverrideBlock}${beverageBehavioralMemorySection ? `\n${beverageBehavioralMemorySection}\n` : ""}${dietCategoryStrategy.coachingBlock ? `\n${dietCategoryStrategy.coachingBlock}\n` : ""}${softOverrideBlock}${aceBlock}
 The result MUST be a drink. Never generate solid food, meals, or desserts.
 
 Return JSON ONLY, following this exact schema:
@@ -627,6 +664,38 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
 
       // All three layers passed — output is clean
       break;
+    }
+
+    // ── Dish Identity Validator (Phase 5) ─────────────────────────────────────
+    // Only runs for named drinks. A catastrophic deviation (completely wrong
+    // culinary result) is surfaced as an explicit error — never silent fallback.
+    if (_beverageIsNamed && meal) {
+      try {
+        const identityResult = validateDishIdentity(_beverageIdentifier, meal, _beverageDishDirective);
+        if (identityResult.catastrophicDeviation) {
+          console.error(
+            `🚫 [DishIdentity/Beverage] "${meal.name}" is not "${_beverageIdentifier}" — rejecting (score=${identityResult.score})`,
+          );
+          const conflictSummary = (_beverageDishDirective?.conflicts ?? [])
+            .map(c => `${c.component} (${c.guardrail})`)
+            .join(", ");
+          return res.status(400).json({
+            error: "DISH_IDENTITY_FAILURE",
+            dishIdentityFailure: true,
+            message:
+              `We couldn't make "${_beverageIdentifier}" within your current constraints` +
+              (conflictSummary ? ` — conflicts: ${conflictSummary}` : "") +
+              `. Rather than serve you a different drink, we're being upfront: try adjusting your request or your safety settings.`,
+            conflicts: _beverageDishDirective?.conflicts ?? [],
+            retryable: true,
+          });
+        }
+        console.log(
+          `✅ [DishIdentity/Beverage] "${meal.name}" identity OK (score=${identityResult.score})`,
+        );
+      } catch (e) {
+        console.warn("⚠️ [DishIdentity/Beverage] Validation error — proceeding:", e);
+      }
     }
 
     const normalizedIngredients = normalizeIngredients(meal.ingredients || []);

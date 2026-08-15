@@ -1535,47 +1535,6 @@ async function start() {
     await runTrialGrantsMigration(dbTg);
   });
 
-  // ── Post-migration guard: verify trial_source column is actually present ──
-  // If the migration silently failed, fail loudly here rather than letting
-  // signup flows record no trial attribution at runtime.
-  {
-    const { db: dbTsGuard } = await import("./db");
-    const { assertTrialSourceColumn } = await import("./db/migrations/assertTrialSourceColumn");
-    await assertTrialSourceColumn(dbTsGuard);
-  }
-
-  // Ensure procare_training_completed exists before the guard runs.
-  // The column is also added in the deferred setTimeout migration block, but
-  // that runs async after start() returns — too late for the guard below.
-  await withBootRetry("ProCare training migration", async () => {
-    const { db: dbPtcMig } = await import("./db");
-    const { runProcareTrainingMigration } = await import("./db/migrations/runProcareTrainingMigration");
-    await runProcareTrainingMigration(dbPtcMig);
-  });
-
-  // ── Post-migration guard: verify procare_training_completed column ────────
-  {
-    const { db: dbPtcGuard } = await import("./db");
-    const { assertProcareTrainingCompletedColumn } = await import("./db/migrations/assertProcareTrainingCompletedColumn");
-    await assertProcareTrainingCompletedColumn(dbPtcGuard);
-  }
-
-  // Ensure performance_mode_enabled exists before the guard runs.
-  // Same reason as above — the deferred setTimeout block is not guaranteed
-  // to complete before this point on a fresh database.
-  await withBootRetry("Performance mode enabled migration", async () => {
-    const { db: dbPmeMig } = await import("./db");
-    const { runPerformanceModeEnabledMigration } = await import("./db/migrations/runPerformanceModeEnabledMigration");
-    await runPerformanceModeEnabledMigration(dbPmeMig);
-  });
-
-  // ── Post-migration guard: verify performance_mode_enabled column ──────────
-  {
-    const { db: dbPmeGuard } = await import("./db");
-    const { assertPerformanceModeEnabledColumn } = await import("./db/migrations/assertPerformanceModeEnabledColumn");
-    await assertPerformanceModeEnabledColumn(dbPmeGuard);
-  }
-
   await withBootRetry("Safety override correlation ID migration", async () => {
     const { db: dbSoc } = await import("./db");
     const { runSafetyOverrideCorrelationMigration } = await import("./db/migrations/runSafetyOverrideCorrelationMigration");
@@ -1634,79 +1593,8 @@ async function start() {
   // deferred setTimeout) so this assertion never races with its own migration.
   {
     const { db: dbColGuard } = await import("./db");
-    const { assertColumnsExist } = await import("./bootstrap/assertColumnsExist");
-    await assertColumnsExist(dbColGuard, [
-      {
-        table: "safety_override_audit_logs",
-        column: "correlation_id",
-        hint: "Safety PIN overrides will fail at runtime (logSafetyOverride writes this column)",
-      },
-      {
-        table: "users",
-        column: "procare_training_completed",
-        hint: "Phase 2 ProCare Studio gate — professionals without this column always fail the training check",
-      },
-      {
-        table: "saved_meals",
-        column: "saved_from_diabetic_builder",
-        hint: "Diabetic builder save flow — meal saves will 500 if this column is absent",
-      },
-      {
-        table: "users",
-        column: "performance_mode_enabled",
-        hint: "Performance Hub macro resolver — missing column causes incorrect macro targets for athletes",
-      },
-      {
-        table: "users",
-        column: "preferred_language",
-        hint: "i18n routing — missing column falls back to English for all users silently",
-      },
-      {
-        table: "users",
-        column: "clinical_context_response",
-        hint: "Clinical context screening gate — missing column bypasses medication/hormone screening",
-      },
-      // ── Clinical Labs Phase 5 columns ──────────────────────────────────────
-      // These columns were added in the Phase 5 migration. If absent the labs
-      // GET handler silently returns null for hormone/thyroid panels, breaking
-      // hormone-optimization, menopause, perimenopause, and thyroid subtype
-      // protocol resolution on the profile page.
-      {
-        table: "clinical_labs",
-        column: "reverse_t3",
-        hint: "Clinical Labs Phase 5 — thyroid panel; missing column silently drops T4→T3 conversion marker from lab results",
-      },
-      {
-        table: "clinical_labs",
-        column: "estradiol",
-        hint: "Clinical Labs Phase 5 — hormone panel; missing column silently drops menopause/perimenopause signal from lab results",
-      },
-      {
-        table: "clinical_labs",
-        column: "progesterone",
-        hint: "Clinical Labs Phase 5 — hormone panel; missing column silently drops luteal phase perimenopause marker from lab results",
-      },
-      {
-        table: "clinical_labs",
-        column: "shbg",
-        hint: "Clinical Labs Phase 5 — hormone panel; missing column silently drops sex hormone binding globulin from lab results",
-      },
-      {
-        table: "clinical_labs",
-        column: "lh",
-        hint: "Clinical Labs Phase 5 — hormone panel; missing column silently drops LH menopause marker from lab results",
-      },
-      {
-        table: "clinical_labs",
-        column: "fsh",
-        hint: "Clinical Labs Phase 5 — hormone panel; missing column silently drops FSH (primary menopause trigger) from lab results",
-      },
-      {
-        table: "clinical_labs",
-        column: "dhea_s",
-        hint: "Clinical Labs Phase 5 — hormone panel; missing column silently drops DHEA-S hormone-optimization trigger from lab results",
-      },
-    ]);
+    const { assertColumnsExist, CRITICAL_COLUMNS } = await import("./bootstrap/assertColumnsExist");
+    await assertColumnsExist(dbColGuard, CRITICAL_COLUMNS);
   }
 
   // 🎯 CRITICAL: API routes FIRST to prevent Vite middleware interference

@@ -1821,6 +1821,10 @@ export async function generateCravingMealOptions(
   cuisineOverride?: string,
   glp1Targets?: ResolvedGLP1Targets,
   overriddenAllergens?: string[],
+  /** Dish Adaptation Layer directive — when provided, its adaptationBlock is
+   *  injected into every generation attempt so the model adapts the requested
+   *  dish instead of replacing it. Built via getDishAdaptationDirective(). */
+  dishDirective?: import("./dishAdaptation/types").DishAdaptationDirective | null,
 ): Promise<UnifiedMeal[]> {
   const validMealType = normalizeMealType(mealType);
   const category = inferCravingCategory(cravingInput, validMealType);
@@ -2061,9 +2065,12 @@ export async function generateCravingMealOptions(
       ? `\n\nSECOND ATTEMPT — STRICT MODE: The previous response drifted from the dish family. You MUST generate 3 options that are clearly recognizable variations of "${dishFamily}". No exceptions.`
       : "";
     const hintAddendum = violationHint ? `\n\n${violationHint}` : "";
+    // Dish Adaptation Layer: identity anchor + explicit guardrail adaptations
+    // prepended so every attempt adapts the dish rather than replacing it.
+    const dalBlock = dishDirective?.adaptationBlock ? dishDirective.adaptationBlock + '\n\n' : '';
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
-      messages: [{ role: "user", content: (proceduralBlock ? proceduralBlock + '\n\n' : '') + prompt + stricter + hintAddendum }],
+      messages: [{ role: "user", content: dalBlock + (proceduralBlock ? proceduralBlock + '\n\n' : '') + prompt + stricter + hintAddendum }],
       temperature: stricterMode ? 0.6 : 0.85,
       max_tokens: 2500,
     });
@@ -2221,6 +2228,11 @@ export async function generateSingleCompliantFallback(
      *  explicit allergy block in the fallback prompt (the first-pass generator
      *  builds this itself; the fallback must do the same). */
     storedAllergies?: string[];
+    /** Dish Adaptation Layer directive built with callContext 'fallback' —
+     *  carries MORE explicit identity language than the first pass, including
+     *  the "do not return a different dish" line. The fallback must be more
+     *  specific about the requested dish, never less. */
+    dishDirective?: import("./dishAdaptation/types").DishAdaptationDirective | null;
   },
 ): Promise<UnifiedMeal | null> {
   const validMealType = normalizeMealType(mealType);
@@ -2249,6 +2261,7 @@ export async function generateSingleCompliantFallback(
 
   const prompt = [
     `You are a precision dietary chef. Generate exactly ONE meal that strictly complies with all dietary rules below.`,
+    options?.dishDirective?.adaptationBlock ?? '',
     dietBlock,
     allergyBlock,
     kosherBlock,

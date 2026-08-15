@@ -5137,6 +5137,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // 🎲 VARIETY ENGINE: Always generate 3 distinct options (Layers 1-4)
       const { generateCravingMealOptions, generateSingleCompliantFallback } = await import("./services/unifiedMealPipeline");
 
+      // ── Dish Adaptation Layer (Phase 3) ──────────────────────────────────
+      // Decompose the requested dish and cross-reference its components with
+      // the user's active guardrails, producing an identity anchor + explicit
+      // adaptation directives injected into generation. LRU-cached by
+      // dish + guardrail IDs — repeated requests make no extra LLM call.
+      const { getDishAdaptationDirective, buildGuardrailContext } = await import("./services/dishAdaptation/dishAdaptationLayer");
+      const _dalGuardrailCtx = buildGuardrailContext({
+        dietaryIdentity: [
+          ...protocolEnvelope.dietaryIdentity,
+          ...((user?.dietaryRestrictions as string[]) || []),
+        ],
+        glp1Active: !!_cravingGlp1Targets,
+        allergies: protocolEnvelope.allergies,
+        overriddenAllergens: _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
+      });
+      let _dishDirective: import("./services/dishAdaptation/types").DishAdaptationDirective | null = null;
+      try {
+        _dishDirective = await getDishAdaptationDirective(
+          rawCravingInput || "",
+          _dalGuardrailCtx,
+          "first_pass",
+        );
+      } catch (dalErr) {
+        console.warn("⚠️ [DAL] Directive build failed — generation proceeds unenriched:", dalErr);
+      }
+
       const bodyDietRestrictions = dietaryRestrictions
         ? (Array.isArray(dietaryRestrictions) ? dietaryRestrictions : [dietaryRestrictions]).filter(Boolean)
         : [];
@@ -5172,6 +5198,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         (cultureOverride && typeof cultureOverride === "string" && cultureOverride.trim()) ? cultureOverride.trim() : undefined,
         _cravingGlp1Targets,
         _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
+        _dishDirective,
       );
 
       if (!mealOptions || mealOptions.length === 0) {
@@ -5183,14 +5210,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // user's dietary identity, avoidances, or procedural rules after generation.
       // This is the universal safety net — covers ingredients, hidden terms,
       // combination violations, AND forbidden instruction phrases.
+      const _identityResults: Array<{ mealName: string; result: import("./services/dishAdaptation/types").DishIdentityResult }> = [];
       const cleanOptions = filterMealsByProtocol(mealOptions, protocolEnvelope, {
         generatorName: "craving_creator",
         skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
         overriddenAllergens: _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
+        dishIdentity: {
+          requestedDish: rawCravingInput || "",
+          directive: _dishDirective,
+          results: _identityResults,
+        },
       });
 
       if (cleanOptions.length === 0 && mealOptions.length > 0) {
         console.warn(`⚠️ [ProtocolEnvelope] ALL options violated protocol — attempting emergency compliant fallback`);
+        // Fallback directive carries MORE explicit dish-identity language, not less.
+        let _fallbackDirective: import("./services/dishAdaptation/types").DishAdaptationDirective | null = null;
+        try {
+          _fallbackDirective = await getDishAdaptationDirective(rawCravingInput || "", _dalGuardrailCtx, "fallback");
+        } catch { /* proceed unenriched */ }
         const fallbackMeal = await generateSingleCompliantFallback(
           cravingInput || "something delicious",
           targetMealType || "lunch",
@@ -5198,13 +5236,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
           {
             overriddenAllergens: _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
             storedAllergies: protocolEnvelope.allergies,
+            dishDirective: _fallbackDirective,
           },
         );
-        if (fallbackMeal) {
+        // HARD INVARIANT: never return a silently substituted dish. Validate
+        // the fallback's identity too — a catastrophic deviation is treated as
+        // failure, not served.
+        let fallbackIdentityOk = true;
+        if (fallbackMeal && rawCravingInput) {
+          try {
+            const { validateDishIdentity } = await import("./services/dishAdaptation/dishIdentityValidator");
+            const fbIdentity = validateDishIdentity(rawCravingInput, fallbackMeal, _fallbackDirective ?? _dishDirective);
+            _identityResults.push({ mealName: fallbackMeal.name ?? "(fallback)", result: fbIdentity });
+            if (fbIdentity.catastrophicDeviation) {
+              fallbackIdentityOk = false;
+              console.error(`🚫 [DishIdentity] Fallback "${fallbackMeal.name}" is not "${rawCravingInput}" — rejecting instead of silently substituting`);
+            }
+          } catch (e) {
+            console.warn("⚠️ [DishIdentity] Fallback validation error — keeping fallback:", e);
+          }
+        }
+        if (fallbackMeal && fallbackIdentityOk) {
           console.log(`✅ [ProtocolEnvelope] Emergency fallback succeeded: "${fallbackMeal.name}"`);
           cleanOptions.push(fallbackMeal);
         } else {
           console.error(`❌ [ProtocolEnvelope] Emergency fallback also failed — returning enforcement error`);
+          // If dish identity was the failure mode, say so explicitly — never a silent generic plate.
+          const _catastrophic = _identityResults.filter(r => r.result.catastrophicDeviation);
+          if (_catastrophic.length > 0 || !fallbackIdentityOk) {
+            const conflictSummary = (_dishDirective?.conflicts ?? [])
+              .map(c => `${c.component} (${c.guardrail})`)
+              .join(", ");
+            return res.status(400).json({
+              error: "DISH_IDENTITY_FAILURE",
+              dishIdentityFailure: true,
+              message: `We couldn't find a way to make ${rawCravingInput} within your current constraints${conflictSummary ? ` — the conflicts were: ${conflictSummary}` : ""}. Rather than serve you a different meal, we're being upfront: try adjusting your request or your safety settings.`,
+              conflicts: _dishDirective?.conflicts ?? [],
+              retryable: true,
+            });
+          }
           return res.status(400).json({
             error: "AVOIDANCE_VIOLATION_ALL_OPTIONS",
             message: "All generated options contained ingredients or instructions that conflict with your dietary protocol. Please try a different dish or adjust your craving description.",

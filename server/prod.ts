@@ -1127,6 +1127,56 @@ async function initializeApp() {
       console.error("⚠️ [INIT] Failed to register sandbox reset endpoint:", sbErr);
     }
 
+    // ── CRITICAL_COLUMNS pre-route preflight — all entries awaited before routes mount ──
+    // Every column in CRITICAL_COLUMNS is migrated here (idempotent ADD COLUMN IF NOT
+    // EXISTS) so the assertColumnsExist guard that follows cannot call process.exit(1)
+    // due to a column that was only migrated in the deferred 4-second callback.
+    // IMPORTANT: when adding a new entry to CRITICAL_COLUMNS in
+    // server/bootstrap/assertColumnsExist.ts, add its migration here too.
+    try {
+      const { db: dbPreflight } = await import("./db");
+      const { sql: sqlPreflight } = await import("drizzle-orm");
+      // safety_override_audit_logs.correlation_id
+      await dbPreflight.execute(sqlPreflight`ALTER TABLE safety_override_audit_logs ADD COLUMN IF NOT EXISTS correlation_id uuid`);
+      // users — ProCare, Performance, i18n, clinical context
+      await dbPreflight.execute(sqlPreflight`ALTER TABLE users ADD COLUMN IF NOT EXISTS procare_training_completed boolean NOT NULL DEFAULT false`);
+      await dbPreflight.execute(sqlPreflight`ALTER TABLE users ADD COLUMN IF NOT EXISTS performance_mode_enabled boolean NOT NULL DEFAULT false`);
+      await dbPreflight.execute(sqlPreflight`ALTER TABLE users ADD COLUMN IF NOT EXISTS preferred_language text DEFAULT 'auto'`);
+      await dbPreflight.execute(sqlPreflight`ALTER TABLE users ADD COLUMN IF NOT EXISTS clinical_context_response text`);
+      // saved_meals — diabetic builder
+      await dbPreflight.execute(sqlPreflight`ALTER TABLE saved_meals ADD COLUMN IF NOT EXISTS saved_from_diabetic_builder boolean NOT NULL DEFAULT false`);
+      // clinical_labs — Phase 5 hormone/thyroid panel
+      await dbPreflight.execute(sqlPreflight`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS reverse_t3 NUMERIC(6,2)`);
+      await dbPreflight.execute(sqlPreflight`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS estradiol NUMERIC(7,2)`);
+      await dbPreflight.execute(sqlPreflight`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS progesterone NUMERIC(6,3)`);
+      await dbPreflight.execute(sqlPreflight`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS shbg NUMERIC(6,1)`);
+      await dbPreflight.execute(sqlPreflight`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS lh NUMERIC(7,2)`);
+      await dbPreflight.execute(sqlPreflight`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS fsh NUMERIC(7,2)`);
+      await dbPreflight.execute(sqlPreflight`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS dhea_s NUMERIC(7,2)`);
+      console.log("✅ [INIT] CRITICAL_COLUMNS pre-route preflight migrations complete");
+    } catch (preflightErr: any) {
+      // Log but do not exit — the guard below will catch any genuinely absent column
+      // and terminate the process. A migration error here is likely transient (lock
+      // timeout, connection hiccup); the idempotent deferred block will retry.
+      console.error("❌ [INIT] CRITICAL_COLUMNS pre-route preflight migration failed:", preflightErr.message);
+    }
+
+    // ── Column guard — awaited before routes mount ───────────────────────────
+    // Runs assertColumnsExist for ALL CRITICAL_COLUMNS in the synchronous boot
+    // path so any missing column causes an immediate, fatal startup failure
+    // before the server begins serving API requests.
+    {
+      const { db: dbColGuardEarly } = await import("./db");
+      const { assertColumnsExist, CRITICAL_COLUMNS } = await import("./bootstrap/assertColumnsExist");
+      try {
+        await assertColumnsExist(dbColGuardEarly, CRITICAL_COLUMNS);
+        console.log("✅ [INIT] Column guard passed — all critical columns present before route mount");
+      } catch (guardErr: any) {
+        console.error("🚨 [INIT] Critical column(s) missing — halting process to prevent data loss:", guardErr.message);
+        process.exit(1);
+      }
+    }
+
     // Register main routes
     console.log("📋 [INIT] Registering main routes...");
     const { registerRoutes } = await import("./routes");
@@ -1912,80 +1962,9 @@ async function initializeApp() {
       // a missing column or an unreachable database.
       {
         const { db: dbColGuard } = await import("./db");
-        const { assertColumnsExist } = await import("./bootstrap/assertColumnsExist");
+        const { assertColumnsExist, CRITICAL_COLUMNS } = await import("./bootstrap/assertColumnsExist");
         try {
-        await assertColumnsExist(dbColGuard, [
-          {
-            table: "safety_override_audit_logs",
-            column: "correlation_id",
-            hint: "Safety PIN overrides will fail at runtime (logSafetyOverride writes this column)",
-          },
-          {
-            table: "users",
-            column: "procare_training_completed",
-            hint: "Phase 2 ProCare Studio gate — professionals without this column always fail the training check",
-          },
-          {
-            table: "saved_meals",
-            column: "saved_from_diabetic_builder",
-            hint: "Diabetic builder save flow — meal saves will 500 if this column is absent",
-          },
-          {
-            table: "users",
-            column: "performance_mode_enabled",
-            hint: "Performance Hub macro resolver — missing column causes incorrect macro targets for athletes",
-          },
-          {
-            table: "users",
-            column: "preferred_language",
-            hint: "i18n routing — missing column falls back to English for all users silently",
-          },
-          {
-            table: "users",
-            column: "clinical_context_response",
-            hint: "Clinical context screening gate — missing column bypasses medication/hormone screening",
-          },
-          // ── Clinical Labs Phase 5 columns ──────────────────────────────────────
-          // These columns were added in the Phase 5 migration. If absent the labs
-          // GET handler silently returns null for hormone/thyroid panels, breaking
-          // hormone-optimization, menopause, perimenopause, and thyroid subtype
-          // protocol resolution on the profile page.
-          {
-            table: "clinical_labs",
-            column: "reverse_t3",
-            hint: "Clinical Labs Phase 5 — thyroid panel; missing column silently drops T4→T3 conversion marker from lab results",
-          },
-          {
-            table: "clinical_labs",
-            column: "estradiol",
-            hint: "Clinical Labs Phase 5 — hormone panel; missing column silently drops menopause/perimenopause signal from lab results",
-          },
-          {
-            table: "clinical_labs",
-            column: "progesterone",
-            hint: "Clinical Labs Phase 5 — hormone panel; missing column silently drops luteal phase perimenopause marker from lab results",
-          },
-          {
-            table: "clinical_labs",
-            column: "shbg",
-            hint: "Clinical Labs Phase 5 — hormone panel; missing column silently drops sex hormone binding globulin from lab results",
-          },
-          {
-            table: "clinical_labs",
-            column: "lh",
-            hint: "Clinical Labs Phase 5 — hormone panel; missing column silently drops LH menopause marker from lab results",
-          },
-          {
-            table: "clinical_labs",
-            column: "fsh",
-            hint: "Clinical Labs Phase 5 — hormone panel; missing column silently drops FSH (primary menopause trigger) from lab results",
-          },
-          {
-            table: "clinical_labs",
-            column: "dhea_s",
-            hint: "Clinical Labs Phase 5 — hormone panel; missing column silently drops DHEA-S hormone-optimization trigger from lab results",
-          },
-        ]);
+          await assertColumnsExist(dbColGuard, CRITICAL_COLUMNS);
         } catch (colGuardErr: any) {
           // Fatal: a DB connection error OR a missing-column error both mean the
           // server cannot serve safely. Exit immediately so the deployment fails
