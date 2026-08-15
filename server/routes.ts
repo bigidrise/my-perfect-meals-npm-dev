@@ -1112,6 +1112,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         generationContext: typeof generationContext === 'string' ? generationContext : undefined,
         glp1Targets: serverGlp1Targets,
         preferredLanguage: (req as any).authUser?.preferredLanguage,
+        correlationId: (req as any).id,
       });
 
       const durationMs = Date.now() - startTime;

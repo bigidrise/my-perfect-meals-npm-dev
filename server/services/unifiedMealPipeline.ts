@@ -313,6 +313,13 @@ export interface MealGenerationRequest {
   glp1Targets?: ResolvedGLP1Targets;
   /** User's preferred language code (BCP-47). Forwarded to downstream generators. */
   preferredLanguage?: string;
+  /**
+   * Express request correlation ID (set by the request-id middleware).
+   * When present, passed through to enforceSafetyProfile so any override audit
+   * rows written during batch/unified generation are traceable back to the
+   * originating HTTP request.
+   */
+  correlationId?: string;
 }
 
 export interface MealGenerationResponse {
@@ -4196,7 +4203,7 @@ export async function generateMealUnified(
   // Skip if safety was already checked at route level (e.g., with override token)
   if (request.userId && !request.safetyAlreadyChecked) {
     const inputText = Array.isArray(request.input) ? request.input.join(' ') : request.input;
-    const safetyCheck = await enforceSafetyProfile(request.userId, inputText, `unified-${request.type}`);
+    const safetyCheck = await enforceSafetyProfile(request.userId, inputText, `unified-${request.type}`, { correlationId: request.correlationId });
     
     if (safetyCheck.result === 'BLOCKED') {
       console.log(`🚫 [SAFETY] Blocked request for user ${request.userId}: ${safetyCheck.blockedTerms.join(', ')}`);
