@@ -298,6 +298,12 @@ export function buildProtocolContextString(ctx: GroceryCoachContext): string {
     parts.push(ctx.macroContext);
   }
 
+  // Saved groceries — lets the AI know which products the user already buys
+  // so recommendations can reference or build on their existing choices.
+  if (ctx.savedGroceriesBlock) {
+    parts.push(ctx.savedGroceriesBlock);
+  }
+
   return parts.length
     ? parts.join("\n\n")
     : "No specific dietary or medical constraints on file — apply general healthy eating principles.";
@@ -335,18 +341,6 @@ export class ProductAdvisorEngine {
   ): Promise<SwapSelectionResult> {
     return this.provider.getSwapRecommendation(params, buildSwapPersonalization(ctx));
   }
-}
-
-/** Personalization string shared by cart-style advice, from the shared context. */
-function buildProtocolContextString(ctx: GroceryCoachContext): string {
-  const parts: string[] = [];
-  if (ctx.protocolContext) parts.push(ctx.protocolContext);
-  if (ctx.glp1RecommendationBlock) parts.push(ctx.glp1RecommendationBlock);
-  if (ctx.macroContext) parts.push(ctx.macroContext);
-  if (ctx.savedGroceriesBlock) parts.push(ctx.savedGroceriesBlock);
-  return parts.length
-    ? parts.join("\n")
-    : "No specific dietary or medical constraints on file — apply general healthy eating principles.";
 }
 
 /** Derive the swap personalization block set from the shared context. */
