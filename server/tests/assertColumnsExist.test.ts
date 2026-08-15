@@ -8,8 +8,11 @@
  *   D. Unit — all missing columns appear in a single thrown error
  *   E. Smoke — index.ts propagates column guard errors to process.exit
  *   F. Smoke — prod.ts does not silently discard column guard errors
- *   G. Unit — assertColumnsExist propagates DB connection errors (throws when db.execute rejects)
- *   H. Smoke — assertColumnsExist in prod.ts is not wrapped by withBootRetry so connection errors reach the fatal catch block
+ *   G. Smoke — both entry points reference CRITICAL_COLUMNS, not inline arrays
+ *   H. Coverage — every CRITICAL_COLUMNS entry has a preflight migration in both entry points
+ *   I. Sequencing — prod.ts CRITICAL_COLUMNS preflight and guard run before registerRoutes
+ *   J. Unit — assertColumnsExist propagates DB connection errors (throws when db.execute rejects)
+ *   K. Smoke — assertColumnsExist in prod.ts is not wrapped by withBootRetry so connection errors reach the fatal catch block
  */
 
 import { describe, it, expect, jest } from "@jest/globals";
@@ -152,6 +155,212 @@ describe("assertColumnsExist — unit", () => {
       .split("\n")
       .find((l) => l.includes("users.no_hint_column"))!;
     expect(bulletLine).not.toMatch(/ — .+/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// G — sync guard: both entry points must reference the shared CRITICAL_COLUMNS
+// ---------------------------------------------------------------------------
+
+describe("CRITICAL_COLUMNS sync guard", () => {
+  const root = path.resolve(__dirname, "../..");
+
+  it("G: assertColumnsExist.ts exports a non-empty CRITICAL_COLUMNS array", async () => {
+    const { CRITICAL_COLUMNS } = await import("../../server/bootstrap/assertColumnsExist");
+    expect(Array.isArray(CRITICAL_COLUMNS)).toBe(true);
+    expect(CRITICAL_COLUMNS.length).toBeGreaterThan(0);
+    // Every descriptor must have table and column
+    for (const descriptor of CRITICAL_COLUMNS) {
+      expect(typeof descriptor.table).toBe("string");
+      expect(descriptor.table.length).toBeGreaterThan(0);
+      expect(typeof descriptor.column).toBe("string");
+      expect(descriptor.column.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("G: index.ts uses CRITICAL_COLUMNS from the shared module, not an inline array", () => {
+    const src = fs.readFileSync(path.join(root, "server/index.ts"), "utf8");
+    // Must import CRITICAL_COLUMNS
+    expect(src).toMatch(/CRITICAL_COLUMNS/);
+    // Must call assertColumnsExist with CRITICAL_COLUMNS (not an inline array literal)
+    expect(src).toMatch(/assertColumnsExist\s*\(\s*\w+\s*,\s*CRITICAL_COLUMNS\s*\)/);
+  });
+
+  it("G: prod.ts uses CRITICAL_COLUMNS from the shared module, not an inline array", () => {
+    const src = fs.readFileSync(path.join(root, "server/prod.ts"), "utf8");
+    // Must import CRITICAL_COLUMNS
+    expect(src).toMatch(/CRITICAL_COLUMNS/);
+    // Must call assertColumnsExist with CRITICAL_COLUMNS (not an inline array literal)
+    expect(src).toMatch(/assertColumnsExist\s*\(\s*\w+\s*,\s*CRITICAL_COLUMNS\s*\)/);
+  });
+
+  it("G: neither index.ts nor prod.ts contain an inline ColumnDescriptor array for the column guard", () => {
+    const indexSrc = fs.readFileSync(path.join(root, "server/index.ts"), "utf8");
+    const prodSrc = fs.readFileSync(path.join(root, "server/prod.ts"), "utf8");
+
+    // If either file contains a hardcoded column guard array it will have a
+    // "table:" key inside the assertColumnsExist call block.  We detect this by
+    // checking for the pattern that used to be there: passing an array literal
+    // directly to assertColumnsExist.
+    const inlineArrayPattern = /assertColumnsExist\s*\([^)]*table\s*:/s;
+    expect(indexSrc).not.toMatch(inlineArrayPattern);
+    expect(prodSrc).not.toMatch(inlineArrayPattern);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// H — coverage: every CRITICAL_COLUMNS entry must have a preflight migration
+// in both entry points so the guard never races its own migration
+// ---------------------------------------------------------------------------
+
+describe("CRITICAL_COLUMNS preflight migration coverage", () => {
+  const root = path.resolve(__dirname, "../..");
+
+  // ── index.ts: uses a single withBootRetry block ──────────────────────────
+
+  /**
+   * Extracts the text of the withBootRetry("Critical column pre-flight
+   * migrations", ...) call block in index.ts.
+   */
+  function extractIndexPreflightBlock(src: string): string {
+    const marker = 'withBootRetry("Critical column pre-flight migrations"';
+    const start = src.indexOf(marker);
+    if (start === -1) {
+      throw new Error(
+        `Could not find withBootRetry("Critical column pre-flight migrations" in server/index.ts`,
+      );
+    }
+    let depth = 0;
+    let i = src.indexOf("{", start);
+    for (; i < src.length; i++) {
+      if (src[i] === "{") depth++;
+      else if (src[i] === "}") {
+        depth--;
+        if (depth === 0) break;
+      }
+    }
+    return src.slice(start, i + 1);
+  }
+
+  // ── prod.ts: uses the early pre-route preflight block ────────────────────
+
+  /**
+   * Extracts the text of the early CRITICAL_COLUMNS pre-route preflight block
+   * in prod.ts (the awaited block before `registerRoutes`, keyed by its unique
+   * marker comment).  This is the block that must cover every descriptor — the
+   * deferred withBootRetry block that follows is belt-and-suspenders only.
+   */
+  function extractProdEarlyPreflightBlock(src: string): string {
+    const marker =
+      "CRITICAL_COLUMNS pre-route preflight — all entries awaited before routes mount";
+    const start = src.indexOf(marker);
+    if (start === -1) {
+      throw new Error(
+        `Could not find CRITICAL_COLUMNS pre-route preflight marker in server/prod.ts`,
+      );
+    }
+    // Capture up to (but not including) the first `registerRoutes` after it
+    const registerIdx = src.indexOf("await registerRoutes(app)", start);
+    if (registerIdx === -1) {
+      throw new Error(
+        `Could not find await registerRoutes(app) after preflight marker in server/prod.ts`,
+      );
+    }
+    return src.slice(start, registerIdx);
+  }
+
+  it("H: index.ts preflight block covers every CRITICAL_COLUMNS entry", async () => {
+    const { CRITICAL_COLUMNS } = await import(
+      "../../server/bootstrap/assertColumnsExist"
+    );
+    const src = fs.readFileSync(path.join(root, "server/index.ts"), "utf8");
+    const block = extractIndexPreflightBlock(src);
+
+    const missing: string[] = [];
+    for (const descriptor of CRITICAL_COLUMNS) {
+      // Each guarded column must have an ADD COLUMN IF NOT EXISTS statement
+      // in the preflight block. We check for both the table and column name
+      // appearing together in the same block.
+      const tableOk = block.includes(descriptor.table);
+      const colOk = block.includes(descriptor.column);
+      if (!tableOk || !colOk) {
+        missing.push(`${descriptor.table}.${descriptor.column}`);
+      }
+    }
+
+    expect(missing).toEqual([]);
+  });
+
+  it("H: prod.ts early pre-route preflight block covers every CRITICAL_COLUMNS entry", async () => {
+    const { CRITICAL_COLUMNS } = await import(
+      "../../server/bootstrap/assertColumnsExist"
+    );
+    const src = fs.readFileSync(path.join(root, "server/prod.ts"), "utf8");
+    const block = extractProdEarlyPreflightBlock(src);
+
+    const missing: string[] = [];
+    for (const descriptor of CRITICAL_COLUMNS) {
+      const tableOk = block.includes(descriptor.table);
+      const colOk = block.includes(descriptor.column);
+      if (!tableOk || !colOk) {
+        missing.push(`${descriptor.table}.${descriptor.column}`);
+      }
+    }
+
+    expect(missing).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// I — sequencing: prod.ts clinical labs migrations run before registerRoutes
+// ---------------------------------------------------------------------------
+
+describe("prod.ts boot sequencing guard", () => {
+  const root = path.resolve(__dirname, "../..");
+
+  it("I: prod.ts runs CRITICAL_COLUMNS pre-route preflight migrations before registerRoutes", () => {
+    const src = fs.readFileSync(path.join(root, "server/prod.ts"), "utf8");
+
+    // The awaited pre-route preflight block must appear before registerRoutes
+    const preflightIdx = src.indexOf(
+      "CRITICAL_COLUMNS pre-route preflight — all entries awaited before routes mount",
+    );
+    const registerRoutesIdx = src.indexOf("await registerRoutes(app)");
+
+    expect(preflightIdx).toBeGreaterThan(-1);
+    expect(registerRoutesIdx).toBeGreaterThan(-1);
+    expect(preflightIdx).toBeLessThan(registerRoutesIdx);
+  });
+
+  it("I: prod.ts runs assertColumnsExist (column guard) before registerRoutes", () => {
+    const src = fs.readFileSync(path.join(root, "server/prod.ts"), "utf8");
+
+    // The early column guard block (with process.exit) must appear before registerRoutes
+    const earlyGuardIdx = src.indexOf(
+      "Column guard — awaited before routes mount",
+    );
+    const registerRoutesIdx = src.indexOf("await registerRoutes(app)");
+
+    expect(earlyGuardIdx).toBeGreaterThan(-1);
+    expect(registerRoutesIdx).toBeGreaterThan(-1);
+    expect(earlyGuardIdx).toBeLessThan(registerRoutesIdx);
+  });
+
+  it("I: prod.ts calls process.exit(1) when the early column guard fails", () => {
+    const src = fs.readFileSync(path.join(root, "server/prod.ts"), "utf8");
+
+    // Extract the early guard block (before registerRoutes) and confirm it exits
+    const guardMarker = "Column guard — awaited before routes mount";
+    const guardIdx = src.indexOf(guardMarker);
+    expect(guardIdx).toBeGreaterThan(-1);
+
+    // Find the closest process.exit(1) after the guard marker
+    const exitIdx = src.indexOf("process.exit(1)", guardIdx);
+    const registerRoutesIdx = src.indexOf("await registerRoutes(app)");
+
+    expect(exitIdx).toBeGreaterThan(-1);
+    // The process.exit must come before registerRoutes (still in the guard block)
+    expect(exitIdx).toBeLessThan(registerRoutesIdx);
   });
 });
 
@@ -400,60 +609,42 @@ describe("prod.ts — assertColumnsExist has a local fatal guard (source inspect
 
 // ---------------------------------------------------------------------------
 // I — regression: both boot paths (index.ts + prod.ts) have matching
-//     pre-flight ALTER statements for every column the guard asserts.
-//     A column asserted without a preceding migration causes a fresh-DB crash.
+//     pre-flight ALTER statements for every column in CRITICAL_COLUMNS.
+//     Both files use the shared constant, so "asserted columns" == CRITICAL_COLUMNS.
 // ---------------------------------------------------------------------------
 
-describe("boot path parity — every asserted column has a pre-flight ALTER in both index.ts and prod.ts", () => {
+describe("boot path parity — every CRITICAL_COLUMNS entry has a pre-flight ALTER in both index.ts and prod.ts", () => {
   const root = path.resolve(__dirname, "../..");
 
   /**
-   * Parse the column list passed to `assertColumnsExist(...)` from a source
-   * string, returning Set of "table.column" strings.
+   * Parse all `ALTER TABLE … ADD COLUMN IF NOT EXISTS` targets from the
+   * preflight section of the given source, returning Set of "table.column".
+   *
+   * For index.ts: uses the withBootRetry("Critical column pre-flight migrations") block.
+   * For prod.ts:  uses the early CRITICAL_COLUMNS pre-route preflight block.
    */
-  function parseAssertedColumns(src: string): Set<string> {
-    const start = src.indexOf("await assertColumnsExist(");
+  function parsePreflightColumns(src: string, filePath: string): Set<string> {
+    // prod.ts uses the early pre-route preflight block (before registerRoutes);
+    // index.ts uses the withBootRetry block.
+    const isProd = filePath.endsWith("prod.ts");
+    const marker = isProd
+      ? "CRITICAL_COLUMNS pre-route preflight — all entries awaited before routes mount"
+      : 'withBootRetry("Critical column pre-flight migrations"';
+
+    const start = src.indexOf(marker);
     expect(start).toBeGreaterThan(-1);
 
-    // Find the closing `]);` that ends the columns array
-    const end = src.indexOf("]);", start);
+    // Capture up to the nearest closing landmark: `await registerRoutes` for prod,
+    // `assertColumnsExist` call for index (the guard that follows the preflight).
+    const endMarker = isProd
+      ? "await registerRoutes(app)"
+      : "await assertColumnsExist(";
+    const end = src.indexOf(endMarker, start);
     expect(end).toBeGreaterThan(start);
 
     const block = src.slice(start, end);
 
-    // Extract table/column pairs from object literals
-    const tableRe = /table:\s*["']([^"']+)["']/g;
-    const columnRe = /column:\s*["']([^"']+)["']/g;
-
-    const tables: string[] = [];
-    const columns: string[] = [];
-    let m: RegExpExecArray | null;
-    while ((m = tableRe.exec(block)) !== null) tables.push(m[1]);
-    while ((m = columnRe.exec(block)) !== null) columns.push(m[1]);
-
-    const result = new Set<string>();
-    for (let i = 0; i < tables.length; i++) {
-      result.add(`${tables[i]}.${columns[i]}`);
-    }
-    return result;
-  }
-
-  /**
-   * Parse all `ALTER TABLE … ADD COLUMN IF NOT EXISTS` targets from a source
-   * string's pre-flight block, returning Set of "table.column" strings.
-   */
-  function parsePreflightColumns(src: string): Set<string> {
-    const start = src.indexOf("Critical column pre-flight migrations");
-    expect(start).toBeGreaterThan(-1);
-
-    // The pre-flight block ends at the closing `});` of the withBootRetry call
-    const end = src.indexOf("});", start);
-    expect(end).toBeGreaterThan(start);
-
-    const block = src.slice(start, end);
-
-    const re =
-      /ALTER TABLE\s+(\w+)\s+ADD COLUMN IF NOT EXISTS\s+(\w+)/g;
+    const re = /ALTER TABLE\s+(\w+)\s+ADD COLUMN IF NOT EXISTS\s+(\w+)/g;
     const result = new Set<string>();
     let m: RegExpExecArray | null;
     while ((m = re.exec(block)) !== null) {
@@ -462,40 +653,48 @@ describe("boot path parity — every asserted column has a pre-flight ALTER in b
     return result;
   }
 
-  it("I (index.ts): every column asserted by the guard is pre-migrated in the preflight block", () => {
-    const src = fs.readFileSync(path.join(root, "server/index.ts"), "utf8");
-
-    const asserted = parseAssertedColumns(src);
-    const preflight = parsePreflightColumns(src);
-
-    const missing = [...asserted].filter((col) => !preflight.has(col));
-    expect(missing).toEqual(
-      [],
-      // Custom message: list the columns that need a preflight ALTER in index.ts
+  it("I (index.ts): every CRITICAL_COLUMNS entry is pre-migrated in the preflight block", async () => {
+    const { CRITICAL_COLUMNS } = await import(
+      "../../server/bootstrap/assertColumnsExist"
     );
-  });
+    const filePath = path.join(root, "server/index.ts");
+    const src = fs.readFileSync(filePath, "utf8");
+    const preflight = parsePreflightColumns(src, filePath);
 
-  it("I (prod.ts): every column asserted by the guard is pre-migrated in the preflight block", () => {
-    const src = fs.readFileSync(path.join(root, "server/prod.ts"), "utf8");
+    const missing = CRITICAL_COLUMNS.filter(
+      (d) => !preflight.has(`${d.table}.${d.column}`),
+    ).map((d) => `${d.table}.${d.column}`);
 
-    const asserted = parseAssertedColumns(src);
-    const preflight = parsePreflightColumns(src);
-
-    const missing = [...asserted].filter((col) => !preflight.has(col));
     expect(missing).toEqual([]);
   });
 
-  it("I: both boot paths assert the same set of critical columns (no drift between index.ts and prod.ts)", () => {
+  it("I (prod.ts): every CRITICAL_COLUMNS entry is pre-migrated in the early pre-route preflight block", async () => {
+    const { CRITICAL_COLUMNS } = await import(
+      "../../server/bootstrap/assertColumnsExist"
+    );
+    const filePath = path.join(root, "server/prod.ts");
+    const src = fs.readFileSync(filePath, "utf8");
+    const preflight = parsePreflightColumns(src, filePath);
+
+    const missing = CRITICAL_COLUMNS.filter(
+      (d) => !preflight.has(`${d.table}.${d.column}`),
+    ).map((d) => `${d.table}.${d.column}`);
+
+    expect(missing).toEqual([]);
+  });
+
+  it("I: both boot paths use CRITICAL_COLUMNS as the single source of truth (no drift)", () => {
     const indexSrc = fs.readFileSync(path.join(root, "server/index.ts"), "utf8");
     const prodSrc = fs.readFileSync(path.join(root, "server/prod.ts"), "utf8");
 
-    const indexAsserted = parseAssertedColumns(indexSrc);
-    const prodAsserted = parseAssertedColumns(prodSrc);
+    // Both files must import and call assertColumnsExist with CRITICAL_COLUMNS —
+    // no inline descriptor arrays.
+    expect(indexSrc).toMatch(/assertColumnsExist\s*\(\s*\w+\s*,\s*CRITICAL_COLUMNS\s*\)/);
+    expect(prodSrc).toMatch(/assertColumnsExist\s*\(\s*\w+\s*,\s*CRITICAL_COLUMNS\s*\)/);
 
-    const onlyInIndex = [...indexAsserted].filter((c) => !prodAsserted.has(c));
-    const onlyInProd = [...prodAsserted].filter((c) => !indexAsserted.has(c));
-
-    expect(onlyInIndex).toEqual([]);
-    expect(onlyInProd).toEqual([]);
+    // Neither file should pass an inline array literal to assertColumnsExist
+    const inlinePattern = /assertColumnsExist\s*\([^)]*table\s*:/s;
+    expect(indexSrc).not.toMatch(inlinePattern);
+    expect(prodSrc).not.toMatch(inlinePattern);
   });
 });
