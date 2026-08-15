@@ -673,6 +673,7 @@ export const safetyOverrideAuditLogs = pgTable("safety_override_audit_logs", {
   safetyMode: text("safety_mode").$type<"CUSTOM_AUTHENTICATED">().notNull(), // always CUSTOM_AUTHENTICATED for overrides
   builderId: text("builder_id"), // which meal builder was used (craving, dessert, fridge-rescue, etc.)
   overrideReason: text("override_reason"), // optional user-provided reason
+  correlationId: text("correlation_id"), // request correlation ID for tracing override to a specific generation request
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => ({
   userIdx: index("idx_safety_override_user").on(t.userId),

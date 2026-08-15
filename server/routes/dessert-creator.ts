@@ -130,7 +130,8 @@ dessertCreatorRouter.post("/", async (req, res) => {
       const inputText = [specificDessert, flavorFamily, dessertCategory].filter(Boolean).join(' ');
       const safetyCheck = await enforceSafetyProfile(userId, inputText, "dessert-creator", {
         safetyMode: safetyMode || "STRICT",
-        overrideToken: overrideToken
+        overrideToken: overrideToken,
+        correlationId: (req as any).id
       });
       if (safetyCheck.result === "BLOCKED") {
         console.log(`🚫 [SAFETY] Blocked dessert for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
