@@ -208,12 +208,13 @@ jest.mock("../services/mealCardFinalizer", () => ({
   finalizeMealCard: jest.fn().mockResolvedValue({ id: "card-1" }),
 }));
 
-// ── Mock: productAdvisor ───────────────────────────────────────────────────────
-jest.mock("../services/productAdvisor", () => ({
-  getProductAdvisorEngine: jest.fn(() => ({
-    buildCartRecommendations: jest.fn().mockResolvedValue({ recommendations: [] }),
-  })),
-}));
+// ── productAdvisor: use the REAL module ────────────────────────────────────────
+// /swap-ingredient now delegates product selection to the Product Advisor
+// engine (shared with Find a Product). The engine's OpenAI call goes through
+// the mocked `openai` module above, so capturedCalls still records the prompt.
+jest.mock("../services/productAdvisor", () =>
+  jest.requireActual("../services/productAdvisor"),
+);
 
 // ── Swap result helpers ────────────────────────────────────────────────────────
 
