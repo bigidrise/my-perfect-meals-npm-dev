@@ -1363,8 +1363,13 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
            mounted underneath. Coach suggests; user taps "Use This" to confirm. */}
       {swapTarget && (
         <div style={{
-          position: "absolute", inset: 0, zIndex: 10,
+          position: "fixed", bottom: 0, left: 0, right: 0, margin: "0 auto",
+          width: "100%", maxWidth: 896, maxHeight: "92dvh",
+          zIndex: 10000,
           background: "linear-gradient(to bottom, #0d0d0d, #111111)",
+          borderTop: "1px solid rgba(249,115,22,0.3)",
+          borderLeft: "1px solid rgba(249,115,22,0.3)",
+          borderRight: "1px solid rgba(249,115,22,0.3)",
           borderRadius: "16px 16px 0 0",
           display: "flex", flexDirection: "column", overflow: "hidden",
         }}>
