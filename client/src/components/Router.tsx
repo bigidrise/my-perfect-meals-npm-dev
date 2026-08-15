@@ -1119,6 +1119,7 @@ export default function Router() {
         {/* Promotion Engine */}
         <Route path="/business-center/promotions" component={PromotionsHub} />
         <Route path="/join/promo/:token" component={PromoRedemption} />
+        <Route path="/join/studio" component={lazy(() => import("@/pages/JoinStudio"))} />
         <Route path="/admin/campaigns" component={GuardedAdminCampaignManager} />
         <Route path="/admin/bug-reports" component={GuardedBugReportsDashboard} />
         {/* Public partner pages — no login required */}

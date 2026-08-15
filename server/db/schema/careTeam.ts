@@ -1,4 +1,4 @@
-import { pgTable, varchar, uuid, timestamp, jsonb, boolean } from "drizzle-orm/pg-core";
+import { pgTable, varchar, uuid, timestamp, jsonb, boolean, text } from "drizzle-orm/pg-core";
 
 export type Permissions = {
   canViewMacros: boolean;
@@ -30,6 +30,7 @@ export const careInvite = pgTable("care_invite", {
   role: varchar("role", { length: 32 }).notNull(),
   permissions: jsonb("permissions").$type<Permissions>().notNull(),
   inviteCode: varchar("invite_code", { length: 24 }).notNull(),
+  urlToken: text("url_token").unique(),
   expiresAt: timestamp("expires_at").notNull(),
   accepted: boolean("accepted").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow(),

@@ -1090,6 +1090,16 @@ setTimeout(async () => {
   }
 }, 3200);
 
+// ProCare invite token migration — adds url_token to care_invite + studio_invites
+setTimeout(async () => {
+  try {
+    const { runProCareInviteTokenMigration } = await import("./db/migrations/runProCareInviteTokenMigration");
+    await runProCareInviteTokenMigration();
+  } catch (err: any) {
+    console.error("❌ ProCare invite token migration failed:", err.message);
+  }
+}, 3300);
+
 // Business tables boot migration — idempotent
 setTimeout(async () => {
   try {
