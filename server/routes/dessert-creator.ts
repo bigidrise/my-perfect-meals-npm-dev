@@ -20,6 +20,9 @@ import { resolveCreatorSystemForUser } from "../services/creatorSystems/resolveC
 import { applyCreatorTransformation } from "../services/creatorSystems/applyCreatorTransformation";
 import { emitActivityEvent } from "../services/coaching/activityEvents";
 import { generateMealImageUnified } from "../services/mealImageGenerator";
+import { getDishAdaptationDirective, buildGuardrailContext } from "../services/dishAdaptation/dishAdaptationLayer";
+import { validateDishIdentity } from "../services/dishAdaptation/dishIdentityValidator";
+import type { DishAdaptationDirective } from "../services/dishAdaptation/types";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -293,6 +296,39 @@ CELEBRATION CAKE REQUIREMENTS:
       ? customDessertDescription.trim()
       : (specificDessert || `${flavorFamily} ${dessertCategory}`);
 
+    // ── Dish Adaptation Layer (Phase 5) ──────────────────────────────────────
+    // For named desserts, anchor identity and cross-reference active guardrails
+    // so "cheesecake + diabetic" adapts the cheesecake rather than replacing it.
+    // Only runs when the user has requested a specific named dessert.
+    let _dessertDishDirective: DishAdaptationDirective | null = null;
+    const _dessertIsNamed = !!(specificDessert?.trim() || hasCustomDescription);
+    if (_dessertIsNamed) {
+      try {
+        const _dessertGuardrailCtx = buildGuardrailContext({
+          dietaryIdentity: [
+            ...dessertEnvelope.dietaryIdentity,
+            ...userDietaryRestrictions,
+          ],
+          allergies: dessertEnvelope.allergies,
+          overriddenAllergens:
+            _overriddenDessertAllergens.length > 0 ? _overriddenDessertAllergens : undefined,
+        });
+        _dessertDishDirective = await getDishAdaptationDirective(
+          dessertIdentifier,
+          _dessertGuardrailCtx,
+          "first_pass",
+        );
+        if (_dessertDishDirective) {
+          console.log(
+            `🍽️ [DAL/Dessert] Directive ready for "${dessertIdentifier}" — ` +
+            `${_dessertDishDirective.conflicts.length} guardrail conflict(s)`,
+          );
+        }
+      } catch (dalErr) {
+        console.warn("⚠️ [DAL/Dessert] Directive build failed — generation proceeds unenriched:", dalErr);
+      }
+    }
+
     const chefAdaptBlock = dietAdaptOverride === true
       ? `\n${buildChefAdaptationBlock(getPrimaryDiet(userDietaryRestrictions))}\n`
       : "";
@@ -318,7 +354,7 @@ CELEBRATION CAKE REQUIREMENTS:
     const prompt = `
 You are a master pastry chef + nutrition expert inside the My Perfect Meals system.
 Generate a FULL structured dessert recipe.
-${dessertProtocolBlock ? `\n${dessertProtocolBlock}\n` : ""}${sweetenerGuidance}${dessertBehavioralMemorySection ? `\n${dessertBehavioralMemorySection}\n` : ""}${chefAdaptBlock}${softOverrideBlock}${strictMode === true ? `\n${buildStrictModeBlock(dessertIdentifier)}\n` : ""}
+${dessertProtocolBlock ? `\n${dessertProtocolBlock}\n` : ""}${_dessertDishDirective ? `\n${_dessertDishDirective.adaptationBlock}\n` : ""}${sweetenerGuidance}${dessertBehavioralMemorySection ? `\n${dessertBehavioralMemorySection}\n` : ""}${chefAdaptBlock}${softOverrideBlock}${strictMode === true ? `\n${buildStrictModeBlock(dessertIdentifier)}\n` : ""}
 
 Return JSON ONLY, following this exact schema:
 
@@ -410,6 +446,38 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
         message: dessertScan.message,
         retryable: true,
       });
+    }
+
+    // ── Dish Identity Validator (Phase 5) ─────────────────────────────────────
+    // Only runs for named desserts. A catastrophic deviation (completely wrong
+    // culinary result) is surfaced as an explicit error — never silent fallback.
+    if (_dessertIsNamed && meal) {
+      try {
+        const identityResult = validateDishIdentity(dessertIdentifier, meal, _dessertDishDirective);
+        if (identityResult.catastrophicDeviation) {
+          console.error(
+            `🚫 [DishIdentity/Dessert] "${meal.name}" is not "${dessertIdentifier}" — rejecting (score=${identityResult.score})`,
+          );
+          const conflictSummary = (_dessertDishDirective?.conflicts ?? [])
+            .map(c => `${c.component} (${c.guardrail})`)
+            .join(", ");
+          return res.status(400).json({
+            error: "DISH_IDENTITY_FAILURE",
+            dishIdentityFailure: true,
+            message:
+              `We couldn't make "${dessertIdentifier}" within your current constraints` +
+              (conflictSummary ? ` — conflicts: ${conflictSummary}` : "") +
+              `. Rather than serve you a different dessert, we're being upfront: try adjusting your request or your safety settings.`,
+            conflicts: _dessertDishDirective?.conflicts ?? [],
+            retryable: true,
+          });
+        }
+        console.log(
+          `✅ [DishIdentity/Dessert] "${meal.name}" identity OK (score=${identityResult.score})`,
+        );
+      } catch (e) {
+        console.warn("⚠️ [DishIdentity/Dessert] Validation error — proceeding:", e);
+      }
     }
 
     // Normalize ingredients to U.S. measurements (oz, cups, tbsp, tsp)
