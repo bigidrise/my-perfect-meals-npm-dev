@@ -13,6 +13,12 @@
 import { validateDishIdentity } from "../services/dishAdaptation/dishIdentityValidator";
 import type { DishAdaptationDirective } from "../services/dishAdaptation/types";
 import type { GeneratedMealLike } from "../services/dishAdaptation/dishIdentityValidator";
+import {
+  resolveConflicts,
+  renderAdaptationBlock,
+  buildGuardrailContext,
+  normalizeAllergenKey,
+} from "../services/dishAdaptation/dishAdaptationLayer";
 
 // ── Shared fixture ───────────────────────────────────────────────────────────
 
@@ -384,6 +390,406 @@ describe("strawberry cheesecake — name-only check when no directive", () => {
     // absence from meal name AND name absence from full text.
     expect(result.catastrophicDeviation).toBe(true);
     expect(result.passed).toBe(false);
+  });
+});
+
+// ── Triple constraint: dairy allergy + egg allergy + diabetic ────────────────
+// The hardest acceptance case: every structurally critical ingredient is under
+// restriction. Dairy allergy removes cream cheese (the primary body); egg
+// allergy removes the binder/setter; diabetic removes sugar (which also
+// carries moisture and structure). The DAL must solve all three functional
+// roles simultaneously — a sliceable cheesecake, not a pudding/mousse escape.
+
+describe("triple-constraint cheesecake — dairy allergy + egg allergy + diabetic", () => {
+  const tripleCtx = buildGuardrailContext({
+    dietaryIdentity: ["diabetic"],
+    allergies: ["dairy", "egg"],
+  });
+  const decomposition = {
+    definingComponents: [
+      "cream cheese filling",
+      "graham cracker crust",
+      "strawberry topping",
+    ],
+    adaptableComponents: ["sugar / sweetener", "eggs", "vanilla"],
+    dishForm: "sliceable baked cake with crust",
+  };
+  const conflicts = resolveConflicts("strawberry cheesecake", decomposition, tripleCtx);
+
+  test("cream cheese conflict carries binder/setter role with an allergy-derived cashew + agar directive", () => {
+    const cc = conflicts.filter(
+      c => c.component === "cream cheese filling" && /allergy: no dairy/.test(c.guardrail),
+    );
+    expect(cc.length).toBeGreaterThan(0);
+    for (const c of cc) {
+      expect(c.functionalRole).toBe("binder/setter");
+      expect(c.directive).toMatch(/cashew/i);
+      expect(c.directive).toMatch(/agar|arrowroot/i);
+      expect(c.directive).toMatch(/set firm enough to slice/i);
+    }
+  });
+
+  test("egg conflict carries binder/setter role and the setter directive never recommends egg", () => {
+    const eggConflicts = conflicts.filter(c => /allergy: no egg/.test(c.guardrail));
+    expect(eggConflicts.length).toBeGreaterThan(0);
+    const roleTagged = eggConflicts.filter(c => c.functionalRole === "binder/setter");
+    expect(roleTagged.length).toBeGreaterThan(0);
+    for (const c of roleTagged) {
+      expect(c.directive).toMatch(/silken tofu|flax/i);
+      expect(c.roleRequirement).toMatch(/agar|arrowroot/i);
+      // Cross-contamination invariant: the setter recommendation itself must
+      // never be egg-based ("eggs were the setting agent" describes the
+      // problem; "use egg..." would be a violation).
+      expect(c.roleRequirement).not.toMatch(/use\s+(an?\s+)?eggs?\b/i);
+    }
+  });
+
+  test("sugar conflict carries the sweetener role from the diabetic profile", () => {
+    const sugar = conflicts.filter(
+      c => c.component === "sugar / sweetener" && /diabetic/.test(c.guardrail),
+    );
+    expect(sugar.length).toBeGreaterThan(0);
+    expect(sugar.some(c => c.functionalRole === "sweetener")).toBe(true);
+    const roleTagged = sugar.find(c => c.functionalRole === "sweetener");
+    expect(roleTagged!.roleRequirement).toMatch(/moisture and structure/i);
+  });
+
+  test("no cross-contamination: agar/setter directives never recommend dairy either", () => {
+    const setters = conflicts.filter(c => c.functionalRole === "binder/setter");
+    for (const c of setters) {
+      expect(c.roleRequirement).not.toMatch(/use\s+(cream cheese|dairy|milk|butter)/i);
+    }
+  });
+
+  test("adaptation block states the structural-integrity invariant for the triple constraint", () => {
+    const block = renderAdaptationBlock(
+      "strawberry cheesecake",
+      decomposition,
+      conflicts,
+      tripleCtx,
+      "first_pass",
+    );
+    expect(block).toContain("STRUCTURAL INTEGRITY");
+    // Key invariant from #1191 — must hold under triple constraint.
+    expect(block).toMatch(/never use an ingredient blocked by another rule to satisfy a structural role/i);
+    expect(block).toMatch(/Physical form \(must be preserved\): sliceable baked cake with crust/);
+    // All three functional roles addressed in one block.
+    expect(block).toMatch(/binder\/setter/);
+    expect(block).toMatch(/sweetener/);
+  });
+
+  // Full validator path using a directive assembled from the real conflicts.
+  const tripleDirective: DishAdaptationDirective = {
+    identityAnchor: "This IS strawberry cheesecake. Do not change the dish.",
+    definingComponents: decomposition.definingComponents,
+    adaptableComponents: decomposition.adaptableComponents,
+    dishForm: decomposition.dishForm,
+    conflicts,
+    adaptationBlock: renderAdaptationBlock(
+      "strawberry cheesecake",
+      decomposition,
+      conflicts,
+      tripleCtx,
+      "first_pass",
+    ),
+  };
+
+  test("validator passes a set, sliceable cashew cheesecake with almond crust", () => {
+    const meal: GeneratedMealLike = {
+      name: "Dairy-Free Egg-Free Strawberry Cheesecake",
+      description:
+        "A sliceable strawberry cheesecake with an almond flour crust and a cashew cream cheese filling set with agar, sweetened with monk fruit, topped with fresh strawberries.",
+      ingredients: [
+        { name: "cashew cream cheese filling" },
+        { name: "almond flour crust" },
+        { name: "agar-agar" },
+        { name: "monk fruit sweetener" },
+        { name: "fresh strawberry topping" },
+      ],
+    };
+    const result = validateDishIdentity("strawberry cheesecake", meal, tripleDirective);
+    expect(result.catastrophicDeviation).toBe(false);
+    expect(result.passed).toBe(true);
+  });
+
+  test.each([
+    {
+      label: "mousse",
+      meal: {
+        name: "Strawberry Cheesecake Mousse",
+        description: "An airy whipped coconut mousse with strawberry purée, served in cups.",
+        ingredients: [{ name: "coconut cream" }, { name: "strawberry purée" }, { name: "monk fruit" }],
+      },
+    },
+    {
+      label: "pudding",
+      meal: {
+        name: "Strawberry Cheesecake Pudding",
+        description: "A soft spoonable pudding with cheesecake flavor notes. No crust.",
+        ingredients: [{ name: "silken tofu" }, { name: "strawberry extract" }, { name: "erythritol" }],
+      },
+    },
+    {
+      label: "custard",
+      meal: {
+        name: "Strawberry Cheesecake Custard",
+        description: "A soft-set custard in ramekins with strawberry coulis.",
+        ingredients: [{ name: "cashew cream" }, { name: "arrowroot" }, { name: "strawberries" }],
+      },
+    },
+  ])("validator flags a $label escape under triple constraint as catastrophic", ({ meal }) => {
+    const result = validateDishIdentity("strawberry cheesecake", meal, tripleDirective);
+    expect(result.catastrophicDeviation).toBe(true);
+    expect(result.passed).toBe(false);
+  });
+});
+
+// ── Free-text allergen normalization ─────────────────────────────────────────
+// Users enter allergies as raw text; the DAL must normalize them to canonical
+// keys before the ALLERGEN_STRUCTURAL_RULES / ALLERGEN_SUBSTITUTES lookups so
+// phrasings like "dairy (milk)" and "egg whites" get the same binder/setter
+// structural protection as the bare canonical keys "dairy" and "egg".
+
+describe("normalizeAllergenKey — canonical key resolution from free-text input", () => {
+  test.each([
+    // dairy variants
+    { input: "dairy (milk)",  expected: "dairy" },
+    { input: "dairy(milk)",   expected: "dairy" },
+    // "cow's milk" / "cow milk" match "milk" by substring, then the
+    // structural-equivalence alias promotes "milk" → "dairy" so the
+    // cheesecake binder/setter rules fire correctly.
+    { input: "cow's milk",    expected: "dairy" },
+    { input: "cow milk",      expected: "dairy" },
+    { input: "full-fat dairy",expected: "dairy" },
+    // egg variants
+    { input: "egg whites",    expected: "egg"   },
+    { input: "egg yolks",     expected: "egg"   },
+    { input: "whole eggs",    expected: "egg"   },
+    // already-canonical keys pass through unchanged
+    { input: "dairy",         expected: "dairy" },
+    { input: "egg",           expected: "egg"   },
+    { input: "eggs",          expected: "eggs"  },
+    { input: "milk",          expected: "milk"  },
+    { input: "gluten",        expected: "gluten"},
+    { input: "wheat",         expected: "wheat" },
+  ])("'$input' → '$expected'", ({ input, expected }) => {
+    expect(normalizeAllergenKey(input)).toBe(expected);
+  });
+
+  test("returns undefined for truly unknown allergens", () => {
+    expect(normalizeAllergenKey("nightshade")).toBeUndefined();
+    expect(normalizeAllergenKey("latex")).toBeUndefined();
+  });
+});
+
+describe("free-text allergen phrasings — cheesecake structural protection", () => {
+  // The cheesecake decomposition used in the triple-constraint suite above,
+  // reused here to keep the dish context consistent.
+  const decomposition = {
+    definingComponents: [
+      "cream cheese filling",
+      "graham cracker crust",
+      "strawberry topping",
+    ],
+    adaptableComponents: ["sugar / sweetener", "eggs", "vanilla"],
+    dishForm: "sliceable baked cake with crust",
+  };
+
+  test('"dairy (milk)" allergy produces the same binder/setter conflict as "dairy"', () => {
+    const ctxFreeText = buildGuardrailContext({ allergies: ["dairy (milk)"] });
+    const ctxCanonical = buildGuardrailContext({ allergies: ["dairy"] });
+
+    const conflictsFreeText = resolveConflicts("strawberry cheesecake", decomposition, ctxFreeText);
+    const conflictsCanonical = resolveConflicts("strawberry cheesecake", decomposition, ctxCanonical);
+
+    // Both must produce at least one binder/setter conflict on the cream cheese filling.
+    const binderFreeText = conflictsFreeText.filter(
+      c => c.component === "cream cheese filling" && c.functionalRole === "binder/setter",
+    );
+    const binderCanonical = conflictsCanonical.filter(
+      c => c.component === "cream cheese filling" && c.functionalRole === "binder/setter",
+    );
+
+    expect(binderFreeText.length).toBeGreaterThan(0);
+    expect(binderFreeText.length).toBe(binderCanonical.length);
+
+    // The structural guidance (cashew + agar) must be present in both.
+    for (const c of binderFreeText) {
+      expect(c.directive).toMatch(/cashew/i);
+      expect(c.directive).toMatch(/agar|arrowroot/i);
+      expect(c.directive).toMatch(/set firm enough to slice/i);
+    }
+  });
+
+  test('"cow\'s milk" allergy produces a binder/setter conflict on cream cheese filling', () => {
+    const ctx = buildGuardrailContext({ allergies: ["cow's milk"] });
+    const conflicts = resolveConflicts("strawberry cheesecake", decomposition, ctx);
+
+    const binderConflicts = conflicts.filter(
+      c => c.component === "cream cheese filling" && c.functionalRole === "binder/setter",
+    );
+    expect(binderConflicts.length).toBeGreaterThan(0);
+    for (const c of binderConflicts) {
+      expect(c.directive).toMatch(/cashew/i);
+      expect(c.directive).toMatch(/agar|arrowroot/i);
+    }
+  });
+
+  test('"egg whites" allergy produces the same binder/setter conflict as "egg"', () => {
+    const ctxFreeText = buildGuardrailContext({ allergies: ["egg whites"] });
+    const ctxCanonical = buildGuardrailContext({ allergies: ["egg"] });
+
+    const conflictsFreeText = resolveConflicts("strawberry cheesecake", decomposition, ctxFreeText);
+    const conflictsCanonical = resolveConflicts("strawberry cheesecake", decomposition, ctxCanonical);
+
+    const binderFreeText = conflictsFreeText.filter(
+      c => c.functionalRole === "binder/setter" && /allergy: no egg whites/i.test(c.guardrail),
+    );
+    const binderCanonical = conflictsCanonical.filter(
+      c => c.functionalRole === "binder/setter" && /allergy: no egg/i.test(c.guardrail),
+    );
+
+    expect(binderFreeText.length).toBeGreaterThan(0);
+    expect(binderFreeText.length).toBe(binderCanonical.length);
+
+    for (const c of binderFreeText) {
+      expect(c.directive).toMatch(/silken tofu|flax/i);
+      expect(c.directive).toMatch(/agar|arrowroot/i);
+    }
+  });
+
+  test('guardrail label preserves the original free-text allergen name, not the canonical key', () => {
+    // The conflict's `guardrail` field is shown to users and in logs — it must
+    // reflect the name the user actually entered, not the normalized key.
+    const ctx = buildGuardrailContext({ allergies: ["dairy (milk)"] });
+    const conflicts = resolveConflicts("strawberry cheesecake", decomposition, ctx);
+
+    const dairyConflicts = conflicts.filter(c => c.guardrail.includes("allergy: no"));
+    expect(dairyConflicts.length).toBeGreaterThan(0);
+    for (const c of dairyConflicts) {
+      // Original string preserved in the label.
+      expect(c.guardrail).toContain("dairy (milk)");
+      // The canonical key must NOT appear as a stand-alone replacement in the label.
+      expect(c.guardrail).not.toBe("allergy: no dairy");
+    }
+  });
+});
+
+// ── Gluten/wheat free-text allergy normalization ─────────────────────────────
+// Users frequently enter wheat/gluten allergies as "wheat flour intolerance",
+// "wheat/gluten", or "gluten intolerance".  The system must:
+//   1. normalizeAllergenKey() — map the phrase to a canonical ALLERGEN_SUBSTITUTES key
+//   2. buildGuardrailContext() — activate the "gluten-free" guardrail so the
+//      structural flour-substitution rules fire for baked-goods components.
+// The guardrail path (not the ALLERGEN_STRUCTURAL_RULES path) is what carries
+// the functional structure guidance for gluten, because ALLERGEN_STRUCTURAL_RULES
+// only defines dairy/egg rules; the full gluten structural rules live in the
+// "gluten-free" GuardrailSubstitutionProfile (FLOUR_TRIGGERS etc.).
+
+describe("normalizeAllergenKey — gluten/wheat free-text phrasings", () => {
+  test.each([
+    // Compound phrasing — "wheat flour" contains "wheat" (substring match)
+    { input: "wheat flour",         expected: "wheat"  },
+    // Slash-separated — normalizer collapses to "wheat gluten"; "gluten" wins (longer)
+    { input: "wheat/gluten",        expected: "gluten" },
+    { input: "wheat / gluten",      expected: "gluten" },
+    // Qualifier suffix — "gluten intolerance" contains "gluten"
+    { input: "gluten intolerance",  expected: "gluten" },
+    // Sensitivity phrasing
+    { input: "gluten sensitivity",  expected: "gluten" },
+    // Wheat variants
+    { input: "wheat allergy",       expected: "wheat"  },
+    { input: "wheat intolerance",   expected: "wheat"  },
+    // Celiac / celiac-adjacent phrasing still contains "gluten"
+    { input: "celiac — no gluten",  expected: "gluten" },
+  ])("'$input' → '$expected'", ({ input, expected }) => {
+    expect(normalizeAllergenKey(input)).toBe(expected);
+  });
+
+  test("returned key always exists in ALLERGEN_SUBSTITUTES or ALLERGEN_STRUCTURAL_RULES", () => {
+    // Whatever key is returned for a gluten/wheat phrase must be a key the
+    // lookup tables actually know — otherwise the substitution silently falls back.
+    const { ALLERGEN_SUBSTITUTES, ALLERGEN_STRUCTURAL_RULES } = require("../../shared/dishAdaptation/guardrailSubstitutionMap");
+    const knownKeys = new Set([
+      ...Object.keys(ALLERGEN_SUBSTITUTES),
+      ...Object.keys(ALLERGEN_STRUCTURAL_RULES),
+    ]);
+
+    const phrasings = [
+      "wheat flour", "wheat/gluten", "gluten intolerance",
+      "gluten sensitivity", "wheat allergy",
+    ];
+    for (const p of phrasings) {
+      const key = normalizeAllergenKey(p);
+      expect(key).toBeDefined();
+      expect(knownKeys.has(key!)).toBe(true);
+    }
+  });
+});
+
+describe("buildGuardrailContext — gluten-free guardrail activation from free-text phrasings", () => {
+  // The regex `/gluten|wheat/i` in buildGuardrailContext must catch every one of
+  // these user-entered strings and add the "gluten-free" guardrail profile, which
+  // carries the FLOUR_TRIGGERS structural substitution rules for baked goods.
+
+  test.each([
+    { label: "wheat flour",        allergy: "wheat flour"        },
+    { label: "wheat/gluten",       allergy: "wheat/gluten"       },
+    { label: "gluten intolerance", allergy: "gluten intolerance" },
+    { label: "gluten sensitivity", allergy: "gluten sensitivity" },
+    { label: "wheat allergy",      allergy: "wheat allergy"      },
+    { label: "wheat intolerance",  allergy: "wheat intolerance"  },
+    // Bare canonical forms must still work (regression guard)
+    { label: "gluten (canonical)", allergy: "gluten"             },
+    { label: "wheat (canonical)",  allergy: "wheat"              },
+  ])("'$label' activates the gluten-free guardrail", ({ allergy }) => {
+    const ctx = buildGuardrailContext({ allergies: [allergy] });
+    const guardrailIds = ctx.guardrails.map(g => g.id);
+    expect(guardrailIds).toContain("gluten-free");
+  });
+
+  test("gluten-free guardrail fires wheat-flour structural rule for a bread component", () => {
+    // A dish whose components include "flour" must get the gluten-free structural
+    // directive (rice/almond flour + binder note) when the user entered "wheat flour"
+    // as their allergy — not a silent no-op.
+    const ctx = buildGuardrailContext({ allergies: ["wheat flour intolerance"] });
+    expect(ctx.guardrails.map(g => g.id)).toContain("gluten-free");
+
+    const breadDecomposition = {
+      definingComponents: ["flour base", "yeast", "salt"],
+      adaptableComponents: ["whole wheat flour", "water", "olive oil"],
+      dishForm: "leavened bread loaf",
+    };
+    const conflicts = resolveConflicts("whole wheat bread", breadDecomposition, ctx);
+
+    // At least one conflict must reference the gluten-free flour substitution.
+    const flourConflicts = conflicts.filter(
+      c => /gluten/i.test(c.guardrail) && /rice flour|almond flour/i.test(c.directive),
+    );
+    expect(flourConflicts.length).toBeGreaterThan(0);
+
+    // The structural role (binder/setter or structure) must be present so the
+    // LLM is told about the xanthan/psyllium binding requirement.
+    const structuralConflicts = conflicts.filter(
+      c => /gluten/i.test(c.guardrail) && c.functionalRole != null,
+    );
+    expect(structuralConflicts.length).toBeGreaterThan(0);
+    for (const c of structuralConflicts) {
+      expect(c.roleRequirement).toMatch(/binder|xanthan|psyllium|flax/i);
+    }
+  });
+
+  test("wheat/gluten slash-phrasing activates gluten-free AND the allergen stays active", () => {
+    // The allergy string must also survive into ctx.activeAllergens so that the
+    // allergen-path substitution lookup also runs alongside the guardrail path.
+    const ctx = buildGuardrailContext({ allergies: ["wheat/gluten"] });
+    expect(ctx.guardrails.map(g => g.id)).toContain("gluten-free");
+    expect(ctx.activeAllergens).toContain("wheat/gluten");
+  });
+
+  test("gluten-free guardrail is NOT activated by an unrelated allergy", () => {
+    const ctx = buildGuardrailContext({ allergies: ["peanut"] });
+    expect(ctx.guardrails.map(g => g.id)).not.toContain("gluten-free");
   });
 });
 
