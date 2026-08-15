@@ -7,22 +7,25 @@
 //           (no validation ran at all — legacy/cached meals predating the pipeline).
 //           [] = server said "nothing" → respect it, never fall back.
 // mealCompliant is gone. That system was the bug.
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProClient } from "@/contexts/ProClientContext";
 
-const DIET_CONFIG: Record<string, { label: string; color: string }> = {
-  kosher:         { label: "Kosher ✓",         color: "bg-amber-500/20 border-amber-400/40 text-amber-300" },
-  halal:          { label: "Halal ✓",           color: "bg-teal-500/20 border-teal-400/40 text-teal-300" },
-  vegan:          { label: "Vegan ✓",           color: "bg-green-500/20 border-green-400/40 text-green-300" },
-  vegetarian:     { label: "Vegetarian ✓",      color: "bg-emerald-500/20 border-emerald-400/40 text-emerald-300" },
-  pescatarian:    { label: "Pescatarian ✓",     color: "bg-blue-500/20 border-blue-400/40 text-blue-300" },
-  mediterranean:  { label: "Mediterranean ✓",   color: "bg-amber-500/20 border-amber-400/40 text-amber-300" },
-  paleo:          { label: "Paleo ✓",           color: "bg-orange-500/20 border-orange-400/40 text-orange-300" },
-  keto:           { label: "Keto ✓",            color: "bg-purple-500/20 border-purple-400/40 text-purple-300" },
-  carnivore:      { label: "Carnivore ✓",       color: "bg-red-500/20 border-red-400/40 text-red-300" },
-  "gluten-free":  { label: "Gluten-Free ✓",    color: "bg-yellow-500/20 border-yellow-400/40 text-yellow-300" },
-  "dairy-free":   { label: "Dairy-Free ✓",     color: "bg-cyan-500/20 border-cyan-400/40 text-cyan-300" },
-  custom:         { label: "Custom Diet ✓",     color: "bg-pink-500/20 border-pink-400/40 text-pink-300" },
+// `labelKey` is resolved via t() at render. `label` (literal) is used only for
+// clinical-registry-protected copy (e.g. "Gluten-Free ✓") that must not change.
+const DIET_CONFIG: Record<string, { labelKey?: string; label?: string; color: string }> = {
+  kosher:         { labelKey: "dietStyleBadge.kosher",        color: "bg-amber-500/20 border-amber-400/40 text-amber-300" },
+  halal:          { labelKey: "dietStyleBadge.halal",         color: "bg-teal-500/20 border-teal-400/40 text-teal-300" },
+  vegan:          { labelKey: "dietStyleBadge.vegan",         color: "bg-green-500/20 border-green-400/40 text-green-300" },
+  vegetarian:     { labelKey: "dietStyleBadge.vegetarian",    color: "bg-emerald-500/20 border-emerald-400/40 text-emerald-300" },
+  pescatarian:    { labelKey: "dietStyleBadge.pescatarian",   color: "bg-blue-500/20 border-blue-400/40 text-blue-300" },
+  mediterranean:  { labelKey: "dietStyleBadge.mediterranean", color: "bg-amber-500/20 border-amber-400/40 text-amber-300" },
+  paleo:          { labelKey: "dietStyleBadge.paleo",         color: "bg-orange-500/20 border-orange-400/40 text-orange-300" },
+  keto:           { labelKey: "dietStyleBadge.keto",          color: "bg-purple-500/20 border-purple-400/40 text-purple-300" },
+  carnivore:      { labelKey: "dietStyleBadge.carnivore",     color: "bg-red-500/20 border-red-400/40 text-red-300" },
+  "gluten-free":  { label: "Gluten-Free ✓",                  color: "bg-yellow-500/20 border-yellow-400/40 text-yellow-300" },
+  "dairy-free":   { labelKey: "dietStyleBadge.dairyFree",     color: "bg-cyan-500/20 border-cyan-400/40 text-cyan-300" },
+  custom:         { labelKey: "dietStyleBadge.custom",        color: "bg-pink-500/20 border-pink-400/40 text-pink-300" },
 };
 
 const SKIP = new Set(["no-restriction", "no_restriction", "none", ""]);
@@ -38,6 +41,7 @@ interface DietStyleBadgeProps {
 }
 
 export default function DietStyleBadge({ className = "", badges }: DietStyleBadgeProps) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { isProCareMode } = useProClient();
 
@@ -75,13 +79,13 @@ export default function DietStyleBadge({ className = "", badges }: DietStyleBadg
   return (
     <div className={`flex flex-wrap gap-1 ${className}`}>
       {activeKeys.map((key) => {
-        const { label, color } = DIET_CONFIG[key];
+        const { label, labelKey, color } = DIET_CONFIG[key];
         return (
           <span
             key={key}
             className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${color}`}
           >
-            {label}
+            {label ?? (labelKey ? t(labelKey) : "")}
           </span>
         );
       })}

@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { UniversalDialog } from "@/components/ui/universal-modal";
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -61,12 +62,12 @@ function resizeImageToBase64(file: File, maxPx = 900): Promise<string> {
   });
 }
 
-const SERVINGS_OPTIONS: { value: number; label: string }[] = [
-  { value: 1, label: "Just Me" },
-  { value: 2, label: "2 People" },
-  { value: 3, label: "3 People" },
-  { value: 4, label: "Family (4)" },
-  { value: 6, label: "Meal Prep (6)" },
+const SERVINGS_OPTIONS: { value: number; labelKey: string }[] = [
+  { value: 1, labelKey: "inspiration.servingsJustMe" },
+  { value: 2, labelKey: "inspiration.servings2" },
+  { value: 3, labelKey: "inspiration.servings3" },
+  { value: 4, labelKey: "inspiration.servingsFamily" },
+  { value: 6, labelKey: "inspiration.servingsMealPrep" },
 ];
 
 export default function InspirationCaptureModal({
@@ -78,6 +79,7 @@ export default function InspirationCaptureModal({
   profileName,
   onScanResult,
 }: InspirationCaptureModalProps) {
+  const { t } = useTranslation();
   const isSmartScan = destination === "smart-scan";
   const isCompanionScan = isSmartScan && profileType === "companion" && !!profileName;
   const [, setLocation] = useLocation();
@@ -110,11 +112,9 @@ export default function InspirationCaptureModal({
       openCopilot();
       setTimeout(() => {
         setLastResponse({
-          title: "Recipe Maker",
-          description:
-            "See it. Say it. Send it. We'll make it yours.",
-          spokenText:
-            "Recipe Maker is one of the most powerful tools in the app. The idea is simple: you see food somewhere — a TikTok, an Instagram save, a cookbook, a menu, or even just something in your imagination — and instead of letting that moment pass, you bring it here and we build it for you. You have four ways to bring in your idea. Choose Photo lets you pick any screenshot or saved food image from your gallery — that covers TikTok screenshots, Instagram saves, Pinterest boards, Facebook recipes, anything already on your device. Camera opens your device live so you can point it at a cookbook, a menu, or a screen. Speak lets you describe the meal out loud, exactly the way you would tell a friend about it. Type lets you paste a description or write out what you have in mind. Here is what makes Recipe Maker different: you do not need the recipe. If you can show it or describe it, we can create it. Once you submit your idea, Recipe Maker does not give you one result. It builds three completely personalized versions of your idea at the same time — same dish, three different interpretations — each one fully built around your macro targets, allergies, dietary identity, and every active health protocol on your account. You see all three, you can save any or all of them, and your choices stay on the dashboard until you decide to clear them. The app never removes them automatically.",
+          title: t("inspiration.copilotTitle"),
+          description: t("inspiration.copilotDescription"),
+          spokenText: t("inspiration.copilotSpokenText"),
           autoClose: true,
         });
       }, 300);
@@ -219,11 +219,11 @@ export default function InspirationCaptureModal({
           body: JSON.stringify(body),
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Analysis failed");
+        if (!res.ok) throw new Error(data.error || t("inspiration.analysisFailed"));
         onScanResult?.(data.result);
         handleClose();
       } catch (err: any) {
-        setErrorMsg(err.message || "Failed to analyze ingredients.");
+        setErrorMsg(err.message || t("inspiration.analyzeFailedMsg"));
         setPhase("error");
       }
     },
@@ -251,7 +251,7 @@ export default function InspirationCaptureModal({
         const base64 = await resizeImageToBase64(file);
         advanceToOptions(base64);
       } catch {
-        setErrorMsg("Could not read the image. Please try again.");
+        setErrorMsg(t("inspiration.imageReadError"));
         setPhase("error");
       } finally {
         if (fileInputRef.current) fileInputRef.current.value = "";
@@ -268,7 +268,7 @@ export default function InspirationCaptureModal({
         const base64 = await resizeImageToBase64(file);
         advanceToOptions(base64);
       } catch {
-        setErrorMsg("Could not read the image. Please try again.");
+        setErrorMsg(t("inspiration.imageReadError"));
         setPhase("error");
       } finally {
         if (uploadInputRef.current) uploadInputRef.current.value = "";
@@ -283,9 +283,8 @@ export default function InspirationCaptureModal({
       (window as any).webkitSpeechRecognition;
     if (!SR) {
       toast({
-        title: "Voice not supported",
-        description:
-          "Your browser doesn't support voice input. Try typing instead.",
+        title: t("inspiration.voiceNotSupportedTitle"),
+        description: t("inspiration.voiceNotSupportedDesc"),
         variant: "destructive",
       });
       switchMode("text");
@@ -312,8 +311,8 @@ export default function InspirationCaptureModal({
     recognition.onerror = () => {
       setIsListening(false);
       toast({
-        title: "Microphone error",
-        description: "Please try again.",
+        title: t("inspiration.micErrorTitle"),
+        description: t("inspiration.micErrorDesc"),
         variant: "destructive",
       });
     };
@@ -363,7 +362,7 @@ export default function InspirationCaptureModal({
         body: JSON.stringify(body),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Something went wrong");
+      if (!res.ok) throw new Error(data.error || t("inspiration.somethingWrong"));
 
       setResult(data);
       setPhase("preview");
@@ -385,7 +384,7 @@ export default function InspirationCaptureModal({
         try { localStorage.setItem("mpm.recipe.lastScan", JSON.stringify(persistable)); } catch {}
       }
     } catch (err: any) {
-      setErrorMsg(err.message || "Failed to create your personalized meal.");
+      setErrorMsg(err.message || t("inspiration.createFailedMsg"));
       setPhase("error");
     }
   }, [
@@ -414,16 +413,16 @@ export default function InspirationCaptureModal({
         body: JSON.stringify({ mealData: mealToSave }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to save");
+      if (!res.ok) throw new Error(data.error || t("inspiration.saveFailedError"));
       // Mark this option as saved — stays on the 3-card view so the user can save others too
       setSavedIndices(prev => Array.from(new Set([...prev, selectedOptionIndex])));
       toast({
-        title: "Saved!",
-        description: "Added to your Recipe Maker saves in Favorites.",
+        title: t("inspiration.savedTitle"),
+        description: t("inspiration.savedDesc"),
       });
     } catch (err: any) {
       toast({
-        title: "Save failed",
+        title: t("inspiration.saveFailedTitle"),
         description: err.message,
         variant: "destructive",
       });
@@ -451,12 +450,9 @@ export default function InspirationCaptureModal({
   const mealData = options?.[selectedOptionIndex] ?? result?.mealData;
 
   const healthModeHint = {
-    authentic:
-      "Keep the original flavors and ingredients as close as possible.",
-    balanced:
-      "Personalize to your profile while preserving the spirit of the dish.",
-    healthier:
-      "Optimize aggressively for nutrition while keeping the dish recognizable.",
+    authentic: t("inspiration.hintAuthentic"),
+    balanced: t("inspiration.hintBalanced"),
+    healthier: t("inspiration.hintHealthier"),
   };
 
   return (
@@ -481,16 +477,16 @@ export default function InspirationCaptureModal({
               )}
               <DialogTitle className="text-xl font-bold text-white">
                 {isSmartScan
-                  ? (isCompanionScan ? `Scan Food For ${profileName}` : "Product Scan")
-                  : (phase === "options" ? "Customize Your Meal" : "Recipe Maker")}
+                  ? (isCompanionScan ? t("inspiration.scanFoodFor", { name: profileName }) : t("inspiration.productScan"))
+                  : (phase === "options" ? t("inspiration.customizeMeal") : t("inspiration.recipeMaker"))}
               </DialogTitle>
             </div>
             <p className="text-white/60 text-sm text-center mt-1">
               {isSmartScan
-                ? (isCompanionScan ? `Analyze ingredients for ${profileName}` : "Analyze ingredients before you buy")
+                ? (isCompanionScan ? t("inspiration.analyzeForCompanion", { name: profileName }) : t("inspiration.analyzeBeforeBuy"))
                 : (phase === "options"
-                  ? "Adjust these before we generate your personalized version."
-                  : "Scan any meal idea and we'll personalize it for you.")}
+                  ? t("inspiration.optionsSubtitle")
+                  : t("inspiration.captureSubtitle"))}
             </p>
           </DialogHeader>
 
@@ -502,7 +498,7 @@ export default function InspirationCaptureModal({
                 <div className="relative overflow-hidden rounded-full inline-flex">
                   <PillButton active={mode === "upload"} onClick={() => switchMode("upload")}>
                     <ImagePlus className="h-3 w-3 mr-1" />
-                    Choose Photo
+                    {t("inspiration.choosePhoto")}
                   </PillButton>
                   <input
                     ref={uploadInputRef}
@@ -516,7 +512,7 @@ export default function InspirationCaptureModal({
                 <div className="relative overflow-hidden rounded-full inline-flex">
                   <PillButton active={mode === "camera"} onClick={() => switchMode("camera")}>
                     <Camera className="h-3 w-3 mr-1" />
-                    Camera
+                    {t("inspiration.cameraPill")}
                   </PillButton>
                   <input
                     ref={fileInputRef}
@@ -532,31 +528,30 @@ export default function InspirationCaptureModal({
                   onClick={() => switchMode("voice")}
                 >
                   <Mic className="h-3 w-3 mr-1" />
-                  Speak
+                  {t("inspiration.speakPill")}
                 </PillButton>
                 <PillButton
                   active={mode === "text"}
                   onClick={() => switchMode("text")}
                 >
                   <PenLine className="h-3 w-3 mr-1" />
-                  Type
+                  {t("inspiration.typePill")}
                 </PillButton>
               </div>
 
               {mode === "upload" && (
                 <div className="space-y-3">
                   <p className="text-white/60 text-sm text-center">
-                    Pick a screenshot, saved food photo, or image from your
-                    camera roll or gallery.
+                    {t("inspiration.uploadHint")}
                   </p>
                   <div className="relative overflow-hidden w-full rounded-xl">
                     <div className="w-full py-5 rounded-xl border-2 border-dashed border-orange-500/40 bg-orange-500/5 flex flex-col items-center gap-2">
                       <ImagePlus className="h-8 w-8 text-orange-400" />
                       <span className="text-sm font-medium text-orange-300">
-                        Choose from Gallery
+                        {t("inspiration.chooseFromGallery")}
                       </span>
                       <span className="text-xs text-white/40">
-                        Screenshots, saved photos, any food image
+                        {t("inspiration.galleryHint")}
                       </span>
                     </div>
                     <input
@@ -572,17 +567,16 @@ export default function InspirationCaptureModal({
               {mode === "camera" && (
                 <div className="space-y-3">
                   <p className="text-white/60 text-sm text-center">
-                    Point your camera at any recipe, menu, screen, or food
-                    photo.
+                    {t("inspiration.cameraHint")}
                   </p>
                   <div className="relative overflow-hidden w-full rounded-xl">
                     <div className="w-full py-5 rounded-xl border-2 border-dashed border-orange-500/40 bg-orange-500/5 flex flex-col items-center gap-2">
                       <Camera className="h-8 w-8 text-orange-400" />
                       <span className="text-sm font-medium text-orange-300">
-                        Open Camera
+                        {t("inspiration.openCamera")}
                       </span>
                       <span className="text-xs text-white/40">
-                        Take a live photo of any food idea
+                        {t("inspiration.cameraSubHint")}
                       </span>
                     </div>
                     <input
@@ -599,8 +593,7 @@ export default function InspirationCaptureModal({
               {mode === "voice" && (
                 <div className="space-y-3">
                   <p className="text-white/60 text-sm text-center">
-                    Describe the meal out loud — ingredients, style, anything
-                    you remember.
+                    {t("inspiration.voiceHint")}
                   </p>
                   <div className="flex flex-col items-center gap-3">
                     <button
@@ -618,7 +611,7 @@ export default function InspirationCaptureModal({
                       )}
                     </button>
                     <p className="text-xs text-white/50">
-                      {isListening ? "Tap to stop" : "Tap to speak"}
+                      {isListening ? t("inspiration.tapToStop") : t("inspiration.tapToSpeak")}
                     </p>
                   </div>
                   {voiceTranscript && (
@@ -636,7 +629,7 @@ export default function InspirationCaptureModal({
                       }}
                       className="w-full py-3 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-semibold transition-all active:scale-95"
                     >
-                      Next — Customize →
+                      {t("inspiration.nextCustomize")}
                     </button>
                   )}
                 </div>
@@ -645,12 +638,12 @@ export default function InspirationCaptureModal({
               {mode === "text" && (
                 <div className="space-y-3">
                   <p className="text-white/60 text-sm text-center">
-                    Type or paste a meal idea, recipe description, or dish name.
+                    {t("inspiration.textHint")}
                   </p>
                   <textarea
                     value={textInput}
                     onChange={(e) => setTextInput(e.target.value)}
-                    placeholder="e.g. Loaded buffalo chicken bowl with rice, avocado, and ranch…"
+                    placeholder={t("inspiration.textPlaceholder")}
                     rows={4}
                     className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white placeholder:text-white/30 resize-none focus:outline-none focus:border-orange-500/50 transition-all"
                   />
@@ -662,7 +655,7 @@ export default function InspirationCaptureModal({
                     disabled={!textInput.trim()}
                     className="w-full py-3 rounded-xl bg-orange-600 hover:bg-orange-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold transition-all active:scale-95"
                   >
-                    Next — Customize →
+                    {t("inspiration.nextCustomize")}
                   </button>
                 </div>
               )}
@@ -682,7 +675,7 @@ export default function InspirationCaptureModal({
               {/* Servings */}
               <div className="space-y-2">
                 <p className="text-xs font-semibold text-white/50 uppercase tracking-wider">
-                  Servings
+                  {t("inspiration.servingsHeading")}
                 </p>
                 <div className="flex gap-2 flex-wrap">
                   {SERVINGS_OPTIONS.map((opt) => (
@@ -691,7 +684,7 @@ export default function InspirationCaptureModal({
                       active={servings === opt.value}
                       onClick={() => setServings(opt.value)}
                     >
-                      {opt.label}
+                      {t(opt.labelKey)}
                     </PillButton>
                   ))}
                 </div>
@@ -700,26 +693,26 @@ export default function InspirationCaptureModal({
               {/* Adaptation style */}
               <div className="space-y-2">
                 <p className="text-xs font-semibold text-white/50 uppercase tracking-wider">
-                  Adaptation Style
+                  {t("inspiration.adaptationStyleHeading")}
                 </p>
                 <div className="flex gap-2 flex-wrap">
                   <PillButton
                     active={healthMode === "authentic"}
                     onClick={() => setHealthMode("authentic")}
                   >
-                    Authentic
+                    {t("inspiration.authentic")}
                   </PillButton>
                   <PillButton
                     active={healthMode === "balanced"}
                     onClick={() => setHealthMode("balanced")}
                   >
-                    Balanced
+                    {t("inspiration.balanced")}
                   </PillButton>
                   <PillButton
                     active={healthMode === "healthier"}
                     onClick={() => setHealthMode("healthier")}
                   >
-                    Healthier
+                    {t("inspiration.healthier")}
                   </PillButton>
                 </div>
                 <p className="text-xs text-white/35 leading-relaxed">
@@ -730,26 +723,26 @@ export default function InspirationCaptureModal({
               {/* Protein level */}
               <div className="space-y-2">
                 <p className="text-xs font-semibold text-white/50 uppercase tracking-wider">
-                  Protein Level
+                  {t("inspiration.proteinLevelHeading")}
                 </p>
                 <div className="flex gap-2 flex-wrap">
                   <PillButton
                     active={proteinPriority === "standard"}
                     onClick={() => setProteinPriority("standard")}
                   >
-                    Standard
+                    {t("inspiration.proteinStandard")}
                   </PillButton>
                   <PillButton
                     active={proteinPriority === "high"}
                     onClick={() => setProteinPriority("high")}
                   >
-                    High Protein
+                    {t("inspiration.proteinHigh")}
                   </PillButton>
                   <PillButton
                     active={proteinPriority === "athlete"}
                     onClick={() => setProteinPriority("athlete")}
                   >
-                    Athlete
+                    {t("inspiration.proteinAthlete")}
                   </PillButton>
                 </div>
               </div>
@@ -757,20 +750,20 @@ export default function InspirationCaptureModal({
               {/* Prep style */}
               <div className="space-y-2">
                 <p className="text-xs font-semibold text-white/50 uppercase tracking-wider">
-                  Prep Style
+                  {t("inspiration.prepStyleHeading")}
                 </p>
                 <div className="flex gap-2 flex-wrap">
                   <PillButton
                     active={prepStyle === "any"}
                     onClick={() => setPrepStyle("any")}
                   >
-                    Original Prep
+                    {t("inspiration.prepOriginal")}
                   </PillButton>
                   <PillButton
                     active={prepStyle === "easy"}
                     onClick={() => setPrepStyle("easy")}
                   >
-                    Easy Prep
+                    {t("inspiration.prepEasy")}
                   </PillButton>
                 </div>
               </div>
@@ -778,7 +771,7 @@ export default function InspirationCaptureModal({
               {/* Cuisine */}
               <div className="space-y-2">
                 <p className="text-xs font-semibold text-white/50 uppercase tracking-wider">
-                  Cuisine Style
+                  {t("inspiration.cuisineStyleHeading")}
                 </p>
                 <CuisineOverrideControl
                   overrideEnabled={cuisineOverrideEnabled}
@@ -792,7 +785,7 @@ export default function InspirationCaptureModal({
                 onClick={generate}
                 className="w-full py-3.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-base transition-all active:scale-95"
               >
-                Generate My Version
+                {t("inspiration.generateMyVersion")}
               </button>
             </div>
           )}
@@ -805,12 +798,12 @@ export default function InspirationCaptureModal({
               </div>
               <div className="text-center space-y-1">
                 <p className="text-white font-semibold">
-                  {isSmartScan ? "Analyzing ingredients…" : "Building your version…"}
+                  {isSmartScan ? t("inspiration.analyzingIngredients") : t("inspiration.buildingVersion")}
                 </p>
                 <p className="text-white/50 text-sm">
                   {isSmartScan
-                    ? (isCompanionScan ? `Checking against ${profileName}'s profile` : "Checking against your profile")
-                    : "Adapting to your nutritional profile"}
+                    ? (isCompanionScan ? t("inspiration.checkingCompanionProfile", { name: profileName }) : t("inspiration.checkingYourProfile"))
+                    : t("inspiration.adaptingProfile")}
                 </p>
               </div>
             </div>
@@ -825,16 +818,16 @@ export default function InspirationCaptureModal({
                 <div className="flex items-center justify-between">
                   <p className="text-green-400 font-semibold text-sm flex items-center gap-1.5">
                     <CheckCircle className="h-4 w-4 shrink-0" />
-                    {options.length} versions ready
+                    {t("inspiration.versionsReady", { count: options.length })}
                     {savedIndices.length > 0 && (
                       <span className="text-white/40 font-normal">
-                        · {savedIndices.length} saved
+                        {t("inspiration.savedCount", { count: savedIndices.length })}
                       </span>
                     )}
                   </p>
                   <button
                     onClick={clearScan}
-                    title="Delete this scan"
+                    title={t("inspiration.deleteScan")}
                     className="p-1.5 rounded-lg text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-all active:scale-95"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -842,8 +835,8 @@ export default function InspirationCaptureModal({
                 </div>
                 <p className="text-white/40 text-xs -mt-2">
                   {savedIndices.length > 0
-                    ? "Tap another to save it too, or close and come back later."
-                    : "Tap one to select, then save. Come back anytime — these stay here until you delete them."}
+                    ? t("inspiration.tapAnotherHint")
+                    : t("inspiration.tapSelectHint")}
                 </p>
 
                 {/* NDE adapted note */}
@@ -852,7 +845,7 @@ export default function InspirationCaptureModal({
                     <Sparkles className="h-4 w-4 text-orange-400 shrink-0 mt-0.5" />
                     <div className="space-y-0.5">
                       <div className="text-orange-400 font-semibold tracking-wide uppercase text-[10px]">
-                        Adapted for Today's Nutrition Strategy
+                        {t("inspiration.adaptedForStrategy")}
                       </div>
                       <div className="text-white/80 text-xs leading-relaxed">
                         {result.ndeSummary.adaptedNote}
@@ -917,13 +910,13 @@ export default function InspirationCaptureModal({
                           {opt.nutrition && (
                             <div className="flex gap-3 mt-2">
                               <span className="text-orange-400 text-xs font-bold">
-                                {opt.nutrition.calories} cal
+                                {t("inspiration.calValue", { value: opt.nutrition.calories })}
                               </span>
                               <span className="text-white/50 text-xs">
-                                {opt.nutrition.protein}g protein
+                                {t("inspiration.proteinValue", { value: opt.nutrition.protein })}
                               </span>
                               <span className="text-white/50 text-xs">
-                                {opt.nutrition.carbs}g carbs
+                                {t("inspiration.carbsValue", { value: opt.nutrition.carbs })}
                               </span>
                             </div>
                           )}
@@ -944,17 +937,17 @@ export default function InspirationCaptureModal({
                       {isSaving ? (
                         <>
                           <Loader2 className="h-4 w-4 animate-spin" />
-                          Saving…
+                          {t("inspiration.saving")}
                         </>
                       ) : savedIndices.includes(selectedOptionIndex) ? (
                         <>
                           <CheckCircle className="h-4 w-4" />
-                          Save Again
+                          {t("inspiration.saveAgain")}
                         </>
                       ) : (
                         <>
                           <Heart className="h-4 w-4" />
-                          Save This Version
+                          {t("inspiration.saveThisVersion")}
                         </>
                       )}
                     </button>
@@ -962,7 +955,7 @@ export default function InspirationCaptureModal({
                       onClick={handleTryMore}
                       className="px-4 py-2.5 rounded-xl bg-white/8 hover:bg-white/12 border border-white/10 text-white font-semibold text-sm transition-all active:scale-95"
                     >
-                      Try 3 More
+                      {t("inspiration.try3More")}
                     </button>
                   </div>
                   {savedIndices.length > 0 && (
@@ -970,7 +963,7 @@ export default function InspirationCaptureModal({
                       onClick={() => { onOpenChange(false); setLocation("/saved-meals"); }}
                       className="w-full py-2 text-center text-xs text-green-400/70 hover:text-green-300 transition-colors"
                     >
-                      View saved meals in Favorites →
+                      {t("inspiration.viewSavedMeals")}
                     </button>
                   )}
                 </div>
@@ -982,7 +975,7 @@ export default function InspirationCaptureModal({
                   <div className="flex items-center gap-2 justify-center">
                     <CheckCircle className="h-5 w-5 text-green-400" />
                     <p className="text-green-400 font-semibold text-sm">
-                      Your personalized version is ready.
+                      {t("inspiration.personalizedReady")}
                     </p>
                   </div>
 
@@ -991,7 +984,7 @@ export default function InspirationCaptureModal({
                       <Sparkles className="h-4 w-4 text-orange-400 shrink-0 mt-0.5" />
                       <div className="space-y-0.5">
                         <div className="text-orange-400 font-semibold tracking-wide uppercase text-[10px]">
-                          Adapted for Today's Nutrition Strategy
+                          {t("inspiration.adaptedForStrategy")}
                         </div>
                         <div className="text-white/80 text-xs leading-relaxed">
                           {result.ndeSummary.adaptedNote}
@@ -1022,10 +1015,10 @@ export default function InspirationCaptureModal({
                     {mealData.nutrition && (
                       <div className="grid grid-cols-4 gap-2">
                         {[
-                          { label: "Cal", value: mealData.nutrition.calories },
-                          { label: "Protein", value: `${mealData.nutrition.protein}g` },
-                          { label: "Carbs", value: `${mealData.nutrition.carbs}g` },
-                          { label: "Fat", value: `${mealData.nutrition.fat}g` },
+                          { label: t("inspiration.macroCal"), value: mealData.nutrition.calories },
+                          { label: t("inspiration.macroProtein"), value: `${mealData.nutrition.protein}g` },
+                          { label: t("inspiration.macroCarbs"), value: `${mealData.nutrition.carbs}g` },
+                          { label: t("inspiration.macroFat"), value: `${mealData.nutrition.fat}g` },
                         ].map((m) => (
                           <div
                             key={m.label}
@@ -1074,18 +1067,18 @@ export default function InspirationCaptureModal({
                         className="flex-1 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white font-semibold text-sm transition-all active:scale-95 flex items-center justify-center gap-2"
                       >
                         {isSaving ? (
-                          <><Loader2 className="h-4 w-4 animate-spin" />Saving…</>
+                          <><Loader2 className="h-4 w-4 animate-spin" />{t("inspiration.saving")}</>
                         ) : savedIndices.includes(0) ? (
-                          <><CheckCircle className="h-4 w-4" />Saved ✓</>
+                          <><CheckCircle className="h-4 w-4" />{t("inspiration.savedCheck")}</>
                         ) : (
-                          <><Heart className="h-4 w-4" />Save to Favorites</>
+                          <><Heart className="h-4 w-4" />{t("inspiration.saveToFavorites")}</>
                         )}
                       </button>
                       <button
                         onClick={clearScan}
                         className="px-4 py-2.5 rounded-xl bg-white/8 hover:bg-white/12 border border-white/10 text-white font-semibold text-sm transition-all active:scale-95"
                       >
-                        Scan Another
+                        {t("inspiration.scanAnother")}
                       </button>
                     </div>
                     {savedIndices.includes(0) && (
@@ -1093,7 +1086,7 @@ export default function InspirationCaptureModal({
                         onClick={() => { onOpenChange(false); setLocation("/saved-meals"); }}
                         className="w-full py-2 text-center text-xs text-green-400/70 hover:text-green-300 transition-colors"
                       >
-                        View in Favorites →
+                        {t("inspiration.viewInFavorites")}
                       </button>
                     )}
                   </div>

@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertCircle, CheckCircle2, AlertTriangle } from "lucide-react";
 import { apiRequest } from "@/lib/apiRequest";
@@ -48,6 +49,7 @@ function BulletRow({
   total: number;
   highlight?: "good" | "warn" | "neutral";
 }) {
+  const { t } = useTranslation();
   const pct = total > 0 ? value / total : 0;
   const tone = highlight ?? (pct >= 0.71 ? "good" : pct >= 0.43 ? "neutral" : "warn");
   const Icon = tone === "good" ? CheckCircle2 : tone === "warn" ? AlertTriangle : CheckCircle2;
@@ -58,15 +60,16 @@ function BulletRow({
       <span className="text-white/80">
         {label}{" "}
         <span className="font-semibold text-white">
-          {value} of {total}
+          {t("complianceCard.ofDays", { value, total })}
         </span>{" "}
-        days
+        {t("complianceCard.days")}
       </span>
     </div>
   );
 }
 
 export function ComplianceCard({ userId }: ComplianceCardProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -102,10 +105,10 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
     return (
       <Card className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-xl">
         <CardContent className="p-6 space-y-2">
-          <h3 className="text-white text-sm font-semibold">Nutrition Activity Summary</h3>
-          <p className="text-white/40 text-xs">Last 7 days</p>
+          <h3 className="text-white text-sm font-semibold">{t("complianceCard.title")}</h3>
+          <p className="text-white/40 text-xs">{t("complianceCard.last7Days")}</p>
           <p className="text-white/60 text-sm pt-1">
-            No nutrition activity recorded yet. Start logging meals to see your personalized activity summary here.
+            {t("complianceCard.noActivity")}
           </p>
         </CardContent>
       </Card>
@@ -116,8 +119,8 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
     return (
       <Card className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-xl">
         <CardContent className="p-6 space-y-2">
-          <h3 className="text-white text-sm font-semibold">Nutrition Activity Summary</h3>
-          <p className="text-white/60 text-xs">Set your macro targets to activate full nutrition tracking.</p>
+          <h3 className="text-white text-sm font-semibold">{t("complianceCard.title")}</h3>
+          <p className="text-white/60 text-xs">{t("complianceCard.setTargets")}</p>
         </CardContent>
       </Card>
     );
@@ -131,10 +134,10 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
     return (
       <Card className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-xl">
         <CardContent className="p-6 space-y-2">
-          <h3 className="text-white text-sm font-semibold">Nutrition Activity Summary</h3>
-          <p className="text-white/50 text-xs">Last {win} days</p>
+          <h3 className="text-white text-sm font-semibold">{t("complianceCard.title")}</h3>
+          <p className="text-white/50 text-xs">{t("complianceCard.lastNDays", { count: win })}</p>
           <p className="text-white/70 text-sm pt-1">
-            No meals logged yet. Start recording your meals to see your activity summary.
+            {t("complianceCard.noMeals")}
           </p>
         </CardContent>
       </Card>
@@ -147,21 +150,21 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
 
         {/* Header */}
         <div>
-          <h3 className="text-white text-sm font-semibold">Nutrition Activity Summary</h3>
-          <p className="text-white/40 text-xs">Last {win} days</p>
+          <h3 className="text-white text-sm font-semibold">{t("complianceCard.title")}</h3>
+          <p className="text-white/40 text-xs">{t("complianceCard.lastNDays", { count: win })}</p>
         </div>
 
         {/* Behavioral highlights — PRIMARY */}
         <div className="space-y-2">
-          <BulletRow label="Logged meals" value={data.loggedDays7} total={win} />
-          <BulletRow label="Protein goal met" value={data.proteinGoalDays ?? 0} total={win} />
-          <BulletRow label="Calories on target" value={data.calorieGoalDays ?? 0} total={win} />
+          <BulletRow label={t("complianceCard.loggedMeals")} value={data.loggedDays7} total={win} />
+          <BulletRow label={t("complianceCard.proteinGoalMet")} value={data.proteinGoalDays ?? 0} total={win} />
+          <BulletRow label={t("complianceCard.caloriesOnTarget")} value={data.calorieGoalDays ?? 0} total={win} />
           {(slots.breakfast + slots.lunch + slots.dinner > 0) && (
             <>
-              <BulletRow label="Breakfast logged" value={slots.breakfast} total={win} highlight="neutral" />
-              <BulletRow label="Lunch logged" value={slots.lunch} total={win} highlight="neutral" />
+              <BulletRow label={t("complianceCard.breakfastLogged")} value={slots.breakfast} total={win} highlight="neutral" />
+              <BulletRow label={t("complianceCard.lunchLogged")} value={slots.lunch} total={win} highlight="neutral" />
               <BulletRow
-                label="Dinner logged"
+                label={t("complianceCard.dinnerLogged")}
                 value={slots.dinner}
                 total={win}
                 highlight={slots.dinner < Math.max(slots.breakfast, slots.lunch) - 1 ? "warn" : "neutral"}
@@ -172,7 +175,7 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
 
         {/* Score — SECONDARY */}
         <div className="flex items-center gap-2 pt-1 border-t border-white/10">
-          <span className="text-white/50 text-xs">Consistency Score</span>
+          <span className="text-white/50 text-xs">{t("complianceCard.consistencyScore")}</span>
           <ScorePill score={score} />
         </div>
 
@@ -180,7 +183,7 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
         {data.biggestOpportunity && (
           <div className="bg-white/5 rounded-lg px-3 py-2 border border-white/10">
             <p className="text-white/40 text-[10px] font-semibold uppercase tracking-wide mb-0.5">
-              Biggest Opportunity
+              {t("complianceCard.biggestOpportunity")}
             </p>
             <p className="text-white/80 text-xs leading-snug">{data.biggestOpportunity}</p>
           </div>

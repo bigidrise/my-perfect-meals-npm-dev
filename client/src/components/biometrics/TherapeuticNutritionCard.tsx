@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -88,21 +89,21 @@ const PRESET_MEDICATIONS: Omit<EntryRow, "dose">[] = [
 ];
 
 const THERAPY_OPTIONS = [
-  { slug: "connective-tissue-recovery", label: "Connective Tissue Recovery" },
-  { slug: "gut-support",                label: "Gut Support" },
-  { slug: "red-light-therapy",          label: "Red Light Therapy" },
-  { slug: "sauna-recovery",             label: "Sauna / Heat Recovery" },
-  { slug: "cold-therapy",               label: "Cold Therapy / Ice Bath" },
-  { slug: "iv-therapy",                 label: "IV Nutrient Therapy" },
+  { slug: "connective-tissue-recovery", labelKey: "therapeuticCard.therapyOptions.connectiveTissue" },
+  { slug: "gut-support",                labelKey: "therapeuticCard.therapyOptions.gutSupport" },
+  { slug: "red-light-therapy",          labelKey: "therapeuticCard.therapyOptions.redLight" },
+  { slug: "sauna-recovery",             labelKey: "therapeuticCard.therapyOptions.sauna" },
+  { slug: "cold-therapy",               labelKey: "therapeuticCard.therapyOptions.cold" },
+  { slug: "iv-therapy",                 labelKey: "therapeuticCard.therapyOptions.iv" },
 ];
 
 const RECOVERY_GOAL_OPTIONS = [
-  { slug: "joint-recovery",         label: "Joint Recovery" },
-  { slug: "muscle-recovery",        label: "Muscle Recovery" },
-  { slug: "sleep-optimization",     label: "Sleep Optimization" },
-  { slug: "inflammation-reduction", label: "Inflammation Reduction" },
-  { slug: "gut-healing",            label: "Gut Healing" },
-  { slug: "stress-recovery",        label: "Stress & Adrenal Recovery" },
+  { slug: "joint-recovery",         labelKey: "therapeuticCard.recoveryGoals.joint" },
+  { slug: "muscle-recovery",        labelKey: "therapeuticCard.recoveryGoals.muscle" },
+  { slug: "sleep-optimization",     labelKey: "therapeuticCard.recoveryGoals.sleep" },
+  { slug: "inflammation-reduction", labelKey: "therapeuticCard.recoveryGoals.inflammation" },
+  { slug: "gut-healing",            labelKey: "therapeuticCard.recoveryGoals.gutHealing" },
+  { slug: "stress-recovery",        labelKey: "therapeuticCard.recoveryGoals.stress" },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -224,12 +225,13 @@ function CustomDoseRow({
   onUnitChange: (v: string) => void;
   onRemove: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center gap-1.5 pt-1 border-t border-white/10">
       <Input
         type="text"
         value={row.label}
-        placeholder="Name..."
+        placeholder={t("therapeuticCard.namePlaceholder")}
         onChange={(e) => onLabelChange(e.target.value)}
         className="bg-black/40 border-white/20 text-white placeholder:text-white/25 text-xs h-8 w-28 shrink-0"
       />
@@ -238,14 +240,14 @@ function CustomDoseRow({
         inputMode="decimal"
         step="any"
         value={row.dose}
-        placeholder="Dose"
+        placeholder={t("therapeuticCard.dosePlaceholder")}
         onChange={(e) => onDoseChange(e.target.value)}
         className="bg-black/40 border-white/20 text-white placeholder:text-white/25 text-sm h-8 flex-1 min-w-0"
       />
       <Input
         type="text"
         value={row.unit}
-        placeholder="unit"
+        placeholder={t("therapeuticCard.unitPlaceholder")}
         onChange={(e) => onUnitChange(e.target.value)}
         className="bg-black/40 border-white/20 text-white placeholder:text-white/25 text-xs h-8 w-16 shrink-0"
       />
@@ -275,6 +277,7 @@ function TherapeuticSection({
   count: number;
   children: React.ReactNode;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="rounded-xl border border-white/20 overflow-hidden bg-black/20">
       <button
@@ -288,7 +291,7 @@ function TherapeuticSection({
         <div className="flex items-center gap-2 shrink-0">
           {count > 0 && (
             <span className="text-[10px] font-semibold border rounded-full px-2 py-0.5 leading-none text-teal-300 bg-teal-500/10 border-teal-500/25">
-              {count} active
+              {t("therapeuticCard.activeCount", { count })}
             </span>
           )}
           {open
@@ -310,6 +313,7 @@ function TherapeuticSection({
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function TherapeuticNutritionCard() {
+  const { t } = useTranslation();
   const { toast } = useToast();
 
   const [peptideRows, setPeptideRows] = useState<EntryRow[]>(buildPresetRows(PRESET_PEPTIDES));
@@ -461,10 +465,10 @@ export default function TherapeuticNutritionCard() {
       if (data.modalContent) {
         setModalContent(data.modalContent);
       } else {
-        toast({ title: "Therapeutic Protocol Saved", description: "Context updated. All builders will honor your protocol." });
+        toast({ title: t("therapeuticCard.toast.savedTitle"), description: t("therapeuticCard.toast.savedDesc") });
       }
     } catch {
-      toast({ title: "Error", description: "Could not save. Please try again.", variant: "destructive" });
+      toast({ title: t("therapeuticCard.toast.errorTitle"), description: t("therapeuticCard.toast.errorDesc"), variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -487,15 +491,15 @@ export default function TherapeuticNutritionCard() {
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-white text-xl flex items-center gap-2">
             <Dna className="w-5 h-5 text-teal-400" />
-            Therapeutic Nutrition Intelligence
+            {t("therapeuticCard.title")}
             {isActive && (
               <PillButton active variant="emerald" className="ml-1 text-[8px]">
-                Active
+                {t("therapeuticCard.active")}
               </PillButton>
             )}
           </CardTitle>
           {lastSaved && (
-            <span className="text-[10px] text-white/30 shrink-0">Last: {lastSaved}</span>
+            <span className="text-[10px] text-white/30 shrink-0">{t("therapeuticCard.last", { date: lastSaved })}</span>
           )}
         </CardHeader>
 
@@ -507,13 +511,13 @@ export default function TherapeuticNutritionCard() {
           ) : (
             <>
               <p className="text-[11px] text-white/35 leading-relaxed pb-1">
-                Enter your dose for anything active. Dosage matters — the system uses it to build context around your protocol. Leave blank if not applicable.
+                {t("therapeuticCard.intro")}
               </p>
 
               {/* ── Peptides ──────────────────────────────────────────────── */}
               <TherapeuticSection
                 id="peptides"
-                label="Peptides"
+                label={t("therapeuticCard.sections.peptides")}
                 icon={<FlaskConical className="w-4 h-4" />}
                 iconColor="text-teal-400"
                 open={openSections.has("peptides")}
@@ -543,7 +547,7 @@ export default function TherapeuticNutritionCard() {
                     onClick={() => addCustomRow(setPeptideRows, "mcg/day")}
                     className="text-[9px] px-3"
                   >
-                    <Plus className="w-2.5 h-2.5 mr-1" /> Add custom peptide
+                    <Plus className="w-2.5 h-2.5 mr-1" /> {t("therapeuticCard.addPeptide")}
                   </PillButton>
                 </div>
               </TherapeuticSection>
@@ -551,7 +555,7 @@ export default function TherapeuticNutritionCard() {
               {/* ── Hormones ─────────────────────────────────────────────── */}
               <TherapeuticSection
                 id="hormones"
-                label="Hormones"
+                label={t("therapeuticCard.sections.hormones")}
                 icon={<Zap className="w-4 h-4" />}
                 iconColor="text-amber-400"
                 open={openSections.has("hormones")}
@@ -581,7 +585,7 @@ export default function TherapeuticNutritionCard() {
                     onClick={() => addCustomRow(setHormoneRows, "mg/week")}
                     className="text-[9px] px-3"
                   >
-                    <Plus className="w-2.5 h-2.5 mr-1" /> Add custom hormone
+                    <Plus className="w-2.5 h-2.5 mr-1" /> {t("therapeuticCard.addHormone")}
                   </PillButton>
                 </div>
               </TherapeuticSection>
@@ -589,7 +593,7 @@ export default function TherapeuticNutritionCard() {
               {/* ── Medications ──────────────────────────────────────────── */}
               <TherapeuticSection
                 id="medications"
-                label="Medications Impacting Nutrition"
+                label={t("therapeuticCard.sections.medications")}
                 icon={<Pill className="w-4 h-4" />}
                 iconColor="text-rose-400"
                 open={openSections.has("medications")}
@@ -619,7 +623,7 @@ export default function TherapeuticNutritionCard() {
                     onClick={() => addCustomRow(setMedicationRows, "mg/day")}
                     className="text-[9px] px-3"
                   >
-                    <Plus className="w-2.5 h-2.5 mr-1" /> Add custom medication
+                    <Plus className="w-2.5 h-2.5 mr-1" /> {t("therapeuticCard.addMedication")}
                   </PillButton>
                 </div>
               </TherapeuticSection>
@@ -627,14 +631,14 @@ export default function TherapeuticNutritionCard() {
               {/* ── Therapies ────────────────────────────────────────────── */}
               <TherapeuticSection
                 id="therapies"
-                label="Therapies"
+                label={t("therapeuticCard.sections.therapies")}
                 icon={<Heart className="w-4 h-4" />}
                 iconColor="text-sky-400"
                 open={openSections.has("therapies")}
                 onToggle={() => toggleSection("therapies")}
                 count={selectedTherapies.length}
               >
-                <p className="text-[10px] text-white/35">Select all that apply to your current protocol.</p>
+                <p className="text-[10px] text-white/35">{t("therapeuticCard.therapiesHint")}</p>
                 <div className="flex flex-wrap gap-2 pt-1">
                   {THERAPY_OPTIONS.map(opt => {
                     const active = selectedTherapies.includes(opt.slug);
@@ -646,7 +650,7 @@ export default function TherapeuticNutritionCard() {
                         onClick={() => setSelectedTherapies(arr => toggleSlug(arr, opt.slug))}
                         className="text-[9px] px-3 py-1"
                       >
-                        {opt.label}
+                        {t(opt.labelKey)}
                       </PillButton>
                     );
                   })}
@@ -656,14 +660,14 @@ export default function TherapeuticNutritionCard() {
               {/* ── Recovery Goals ───────────────────────────────────────── */}
               <TherapeuticSection
                 id="recovery"
-                label="Recovery Goals"
+                label={t("therapeuticCard.sections.recovery")}
                 icon={<Target className="w-4 h-4" />}
                 iconColor="text-emerald-400"
                 open={openSections.has("recovery")}
                 onToggle={() => toggleSection("recovery")}
                 count={selectedRecoveryGoals.length}
               >
-                <p className="text-[10px] text-white/35">Select your current recovery objectives.</p>
+                <p className="text-[10px] text-white/35">{t("therapeuticCard.recoveryHint")}</p>
                 <div className="flex flex-wrap gap-2 pt-1">
                   {RECOVERY_GOAL_OPTIONS.map(opt => {
                     const active = selectedRecoveryGoals.includes(opt.slug);
@@ -675,7 +679,7 @@ export default function TherapeuticNutritionCard() {
                         onClick={() => setSelectedRecoveryGoals(arr => toggleSlug(arr, opt.slug))}
                         className="text-[9px] px-3 py-1"
                       >
-                        {opt.label}
+                        {t(opt.labelKey)}
                       </PillButton>
                     );
                   })}
@@ -694,9 +698,9 @@ export default function TherapeuticNutritionCard() {
                   }`}
                 >
                   {saving ? (
-                    <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving…</>
+                    <><Loader2 className="w-3.5 h-3.5 animate-spin" /> {t("therapeuticCard.saving")}</>
                   ) : (
-                    <><Save className="w-3.5 h-3.5" /> Save Protocol</>
+                    <><Save className="w-3.5 h-3.5" /> {t("therapeuticCard.saveProtocol")}</>
                   )}
                 </PillButton>
                 {isDirty && (
@@ -704,13 +708,13 @@ export default function TherapeuticNutritionCard() {
                     onClick={handleCancel}
                     className="px-4 py-2.5 rounded-xl text-[11px]"
                   >
-                    Cancel
+                    {t("therapeuticCard.cancel")}
                   </PillButton>
                 )}
               </div>
 
               <p className="text-[10px] text-white/25 leading-relaxed text-center pt-1">
-                Clinical safety always takes priority. Selections inform meal generation only — not medical advice.
+                {t("therapeuticCard.footerNote")}
               </p>
             </>
           )}

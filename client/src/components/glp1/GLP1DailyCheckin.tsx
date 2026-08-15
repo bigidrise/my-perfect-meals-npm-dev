@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { PillButton } from "@/components/ui/pill-button";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronUp, AlertTriangle, CheckCircle, ClipboardList, Clock } from "lucide-react";
@@ -63,17 +64,17 @@ const DEFAULT_FORM: CheckinForm = {
 // HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
 
-function severityLabel(s: Severity): string {
-  return s === "none" ? "None" : s.charAt(0).toUpperCase() + s.slice(1);
+function severityLabelKey(s: Severity): string {
+  return `glp1Checkin.severity.${s}`;
 }
 
-function timeAgo(d: Date | null): string {
+function timeAgo(d: Date | null, t: (key: string, opts?: Record<string, unknown>) => string): string {
   if (!d) return "";
   const mins = Math.floor((Date.now() - d.getTime()) / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) return t("glp1Checkin.justNow");
+  if (mins < 60) return t("glp1Checkin.minutesAgo", { count: mins });
   const hrs = Math.floor(mins / 60);
-  return `${hrs}h ago`;
+  return t("glp1Checkin.hoursAgo", { count: hrs });
 }
 
 function hasAnySymptomsInForm(form: CheckinForm): boolean {
@@ -105,6 +106,7 @@ function SeverityRow({
   value: Severity;
   onChange: (v: Severity) => void;
 }) {
+  const { t } = useTranslation();
   const options: Severity[] = ["none", "mild", "moderate", "severe"];
   return (
     <div className="flex items-center justify-between gap-2 py-2 border-b border-white/5 last:border-0">
@@ -126,7 +128,7 @@ function SeverityRow({
                 : "bg-white/8 text-white/50 hover:bg-white/15"
             }`}
           >
-            {severityLabel(opt)}
+            {t(severityLabelKey(opt))}
           </button>
         ))}
       </div>
@@ -178,6 +180,7 @@ function AdaptationCard({
   entries: Array<{ adaptation: string; reason: string; evidenceRef: string }>;
   escalations: string[];
 }) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
 
   if (escalations.length === 0 && entries.length === 0) return null;
@@ -190,7 +193,7 @@ function AdaptationCard({
           <div>
             <p className="text-sm font-semibold text-red-300">Contact your healthcare provider</p>
             <p className="text-xs text-red-300/80 mt-0.5">
-              These symptoms may require medical evaluation. Please reach out to your care team.
+              {t("glp1Checkin.escalationCardBody")}
             </p>
           </div>
         </div>
@@ -203,7 +206,7 @@ function AdaptationCard({
             className="w-full flex items-center justify-between px-4 py-3 text-left"
           >
             <span className="text-sm font-medium text-white/90">
-              Today's nutrition adjustments ({entries.length})
+              {t("glp1Checkin.nutritionAdjustments", { count: entries.length })}
             </span>
             {expanded ? (
               <ChevronUp className="w-4 h-4 text-white/50" />
@@ -216,11 +219,11 @@ function AdaptationCard({
             <div className="px-4 pb-4 space-y-3">
               {entries.map((entry, i) => (
                 <div key={i} className="space-y-0.5">
-                  <p className="text-xs text-white/50 uppercase tracking-wide">Reason</p>
+                  <p className="text-xs text-white/50 uppercase tracking-wide">{t("glp1Checkin.reason")}</p>
                   <p className="text-sm text-white/80">{entry.reason}</p>
-                  <p className="text-xs text-white/50 uppercase tracking-wide mt-1.5">Adaptation</p>
+                  <p className="text-xs text-white/50 uppercase tracking-wide mt-1.5">{t("glp1Checkin.adaptation")}</p>
                   <p className="text-sm text-white">{entry.adaptation}</p>
-                  <p className="text-xs text-white/50 uppercase tracking-wide mt-1.5">Evidence</p>
+                  <p className="text-xs text-white/50 uppercase tracking-wide mt-1.5">{t("glp1Checkin.evidence")}</p>
                   <p className="text-xs text-white/50">{entry.evidenceRef}</p>
                 </div>
               ))}
@@ -237,6 +240,7 @@ function AdaptationCard({
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function GLP1DailyCheckin() {
+  const { t } = useTranslation();
   const { checkin, tolerance, isLoading, isSubmitting, lastUpdated, submit, error } =
     useGlp1HubCheckin();
 
@@ -313,13 +317,13 @@ export default function GLP1DailyCheckin() {
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <ClipboardList className="w-4 h-4 text-orange-400" />
-                <p className="text-sm font-semibold text-white">How are you feeling today?</p>
+                <p className="text-sm font-semibold text-white">{t("glp1Checkin.howFeeling")}</p>
               </div>
               <p className="text-xs text-white/50">
-                No symptom check-in submitted today. Your meals are using your standard medication profile.
+                {t("glp1Checkin.noCheckinToday")}
               </p>
               <p className="text-xs text-orange-300/70 mt-1">
-                Check in to adapt today's meals, shakes, and restaurant suggestions.
+                {t("glp1Checkin.checkInPrompt")}
               </p>
             </div>
             <Button
@@ -327,7 +331,7 @@ export default function GLP1DailyCheckin() {
               size="sm"
               className="bg-orange-600 hover:bg-orange-500 text-white text-xs font-semibold px-3 py-1.5 rounded-full flex-shrink-0"
             >
-              Check In
+              {t("glp1Checkin.checkIn")}
             </Button>
           </div>
         ) : hasEscalation ? (
@@ -339,7 +343,7 @@ export default function GLP1DailyCheckin() {
                   <p className="text-sm font-semibold text-red-300">Contact your healthcare provider</p>
                   <p className="text-xs text-white/50 mt-0.5 flex items-center gap-1">
                     <Clock className="w-3 h-3" />
-                    Updated {timeAgo(lastUpdated)}
+                    {t("glp1Checkin.updated", { time: timeAgo(lastUpdated, t) })}
                   </p>
                 </div>
               </div>
@@ -347,11 +351,11 @@ export default function GLP1DailyCheckin() {
                 onClick={handleOpen}
                 className="text-xs text-white/50 hover:text-white underline underline-offset-2 flex-shrink-0"
               >
-                Update
+                {t("glp1Checkin.update")}
               </button>
             </div>
             <div className="mt-2 text-xs text-red-300/80 leading-relaxed">
-              These symptoms may require medical evaluation. Contact your healthcare provider or care team promptly.
+              {t("glp1Checkin.escalationStatusBody")}
             </div>
           </div>
         ) : anyActiveSymptoms ? (
@@ -360,19 +364,19 @@ export default function GLP1DailyCheckin() {
               <div className="flex items-center gap-2 mb-1">
                 <div className="w-2 h-2 rounded-full bg-orange-400" />
                 <p className="text-sm font-semibold text-white">
-                  Meals adapting to today's symptoms
+                  {t("glp1Checkin.mealsAdapting")}
                 </p>
               </div>
               <p className="text-xs text-white/50 flex items-center gap-1">
                 <Clock className="w-3 h-3" />
-                Updated {timeAgo(lastUpdated)} · Tap to see adjustments
+                {t("glp1Checkin.updatedTapAdjustments", { time: timeAgo(lastUpdated, t) })}
               </p>
             </div>
             <button
               onClick={handleOpen}
               className="text-xs text-orange-300 hover:text-orange-200 underline underline-offset-2 flex-shrink-0"
             >
-              Update
+              {t("glp1Checkin.update")}
             </button>
           </div>
         ) : (
@@ -380,18 +384,18 @@ export default function GLP1DailyCheckin() {
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <CheckCircle className="w-4 h-4 text-green-400" />
-                <p className="text-sm font-semibold text-white">No symptoms reported today</p>
+                <p className="text-sm font-semibold text-white">{t("glp1Checkin.noSymptomsToday")}</p>
               </div>
               <p className="text-xs text-white/50 flex items-center gap-1">
                 <Clock className="w-3 h-3" />
-                Updated {timeAgo(lastUpdated)} · Standard medication profile active
+                {t("glp1Checkin.updatedStandardProfile", { time: timeAgo(lastUpdated, t) })}
               </p>
             </div>
             <button
               onClick={handleOpen}
               className="text-xs text-white/40 hover:text-white underline underline-offset-2 flex-shrink-0"
             >
-              Update
+              {t("glp1Checkin.update")}
             </button>
           </div>
         )}
@@ -412,45 +416,45 @@ export default function GLP1DailyCheckin() {
           {/* GI Symptoms */}
           <div>
             <p className="text-xs font-semibold text-orange-400 uppercase tracking-widest mb-3">
-              GI Symptoms — How severe today?
+              {t("glp1Checkin.giSymptomsHeader")}
             </p>
             <div className="space-y-0">
-              <SeverityRow label="Nausea"            value={form.nausea}       onChange={v => set("nausea", v)} />
-              <SeverityRow label="Constipation"       value={form.constipation}  onChange={v => set("constipation", v)} />
-              <SeverityRow label="Diarrhea"           value={form.diarrhea}      onChange={v => set("diarrhea", v)} />
-              <SeverityRow label="Heartburn/Reflux"   value={form.reflux}        onChange={v => set("reflux", v)} />
-              <SeverityRow label="Bloating"           value={form.bloating}      onChange={v => set("bloating", v)} />
-              <SeverityRow label="Early fullness"     value={form.earlyFullness} onChange={v => set("earlyFullness", v)} />
-              <SeverityRow label="Food aversions"     value={form.foodAversions} onChange={v => set("foodAversions", v)} />
+              <SeverityRow label={t("glp1Checkin.symptom.nausea")}       value={form.nausea}       onChange={v => set("nausea", v)} />
+              <SeverityRow label={t("glp1Checkin.symptom.constipation")}  value={form.constipation}  onChange={v => set("constipation", v)} />
+              <SeverityRow label={t("glp1Checkin.symptom.diarrhea")}      value={form.diarrhea}      onChange={v => set("diarrhea", v)} />
+              <SeverityRow label={t("glp1Checkin.symptom.reflux")}        value={form.reflux}        onChange={v => set("reflux", v)} />
+              <SeverityRow label={t("glp1Checkin.symptom.bloating")}      value={form.bloating}      onChange={v => set("bloating", v)} />
+              <SeverityRow label={t("glp1Checkin.symptom.earlyFullness")} value={form.earlyFullness} onChange={v => set("earlyFullness", v)} />
+              <SeverityRow label={t("glp1Checkin.symptom.foodAversions")} value={form.foodAversions} onChange={v => set("foodAversions", v)} />
             </div>
           </div>
 
           {/* Other Symptoms */}
           <div>
             <p className="text-xs font-semibold text-orange-400 uppercase tracking-widest mb-3">
-              Other Symptoms
+              {t("glp1Checkin.otherSymptomsHeader")}
             </p>
             <div className="space-y-0">
-              <SeverityRow label="Fatigue"   value={form.fatigue}   onChange={v => set("fatigue", v)} />
-              <SeverityRow label="Dizziness" value={form.dizziness} onChange={v => set("dizziness", v)} />
-              <SeverityRow label="Headache"  value={form.headache}  onChange={v => set("headache", v)} />
+              <SeverityRow label={t("glp1Checkin.symptom.fatigue")}   value={form.fatigue}   onChange={v => set("fatigue", v)} />
+              <SeverityRow label={t("glp1Checkin.symptom.dizziness")} value={form.dizziness} onChange={v => set("dizziness", v)} />
+              <SeverityRow label={t("glp1Checkin.symptom.headache")}  value={form.headache}  onChange={v => set("headache", v)} />
             </div>
           </div>
 
           {/* Vomiting */}
           <div>
             <p className="text-xs font-semibold text-orange-400 uppercase tracking-widest mb-3">
-              Vomiting Today
+              {t("glp1Checkin.vomitingHeader")}
             </p>
             <ChoiceRow
               label=""
               value={form.vomiting}
               onChange={v => set("vomiting", v)}
               options={[
-                { value: "none",            label: "None" },
-                { value: "once",            label: "Once" },
-                { value: "multiple",        label: "2–3 times" },
-                { value: "cant_keep_fluids", label: "4+ / Can't keep fluids" },
+                { value: "none",            label: t("glp1Checkin.vomiting.none") },
+                { value: "once",            label: t("glp1Checkin.vomiting.once") },
+                { value: "multiple",        label: t("glp1Checkin.vomiting.multiple") },
+                { value: "cant_keep_fluids", label: t("glp1Checkin.vomiting.cantKeepFluids") },
               ]}
             />
           </div>
@@ -458,58 +462,58 @@ export default function GLP1DailyCheckin() {
           {/* Functional Questions */}
           <div>
             <p className="text-xs font-semibold text-orange-400 uppercase tracking-widest mb-3">
-              A Few Quick Questions
+              {t("glp1Checkin.quickQuestionsHeader")}
             </p>
             <div className="space-y-0">
               <ChoiceRow
-                label="Can you keep fluids down?"
+                label={t("glp1Checkin.q.keepFluids")}
                 value={form.canKeepFluidsDown}
                 onChange={v => set("canKeepFluidsDown", v)}
                 options={[
-                  { value: "yes",             label: "Yes" },
-                  { value: "with_difficulty", label: "With difficulty" },
-                  { value: "no",              label: "No" },
+                  { value: "yes",             label: t("glp1Checkin.opt.yes") },
+                  { value: "with_difficulty", label: t("glp1Checkin.opt.withDifficulty") },
+                  { value: "no",              label: t("glp1Checkin.opt.no") },
                 ]}
               />
               <ChoiceRow
-                label="Can you eat without symptoms worsening?"
+                label={t("glp1Checkin.q.eatWithoutWorsening")}
                 value={form.canEatWithoutWorsening}
                 onChange={v => set("canEatWithoutWorsening", v)}
                 options={[
-                  { value: "yes",      label: "Yes" },
-                  { value: "partially", label: "Partially" },
-                  { value: "no",       label: "No" },
+                  { value: "yes",      label: t("glp1Checkin.opt.yes") },
+                  { value: "partially", label: t("glp1Checkin.opt.partially") },
+                  { value: "no",       label: t("glp1Checkin.opt.no") },
                 ]}
               />
               <ChoiceRow
-                label="Is your urine output much less than usual?"
+                label={t("glp1Checkin.q.reducedUrination")}
                 value={form.reducedUrination ? "yes" : "no"}
                 onChange={v => set("reducedUrination", v === "yes")}
                 options={[
-                  { value: "no",  label: "No" },
-                  { value: "yes", label: "Yes" },
+                  { value: "no",  label: t("glp1Checkin.opt.no") },
+                  { value: "yes", label: t("glp1Checkin.opt.yes") },
                 ]}
               />
               <ChoiceRow
-                label="How are your symptoms trending?"
+                label={t("glp1Checkin.q.symptomTrend")}
                 value={form.symptomTrend}
                 onChange={v => set("symptomTrend", v)}
                 options={[
-                  { value: "improving", label: "Improving" },
-                  { value: "same",      label: "Same" },
-                  { value: "worsening", label: "Worsening" },
-                  { value: "na",        label: "Not sure" },
+                  { value: "improving", label: t("glp1Checkin.trend.improving") },
+                  { value: "same",      label: t("glp1Checkin.trend.same") },
+                  { value: "worsening", label: t("glp1Checkin.trend.worsening") },
+                  { value: "na",        label: t("glp1Checkin.trend.na") },
                 ]}
               />
               <ChoiceRow
-                label="How is your appetite today?"
+                label={t("glp1Checkin.q.appetite")}
                 value={form.appetiteLevel}
                 onChange={v => set("appetiteLevel", v)}
                 options={[
-                  { value: "suppressed", label: "No appetite" },
-                  { value: "reduced",    label: "Reduced" },
-                  { value: "normal",     label: "Normal" },
-                  { value: "increased",  label: "Increased" },
+                  { value: "suppressed", label: t("glp1Checkin.appetite.suppressed") },
+                  { value: "reduced",    label: t("glp1Checkin.appetite.reduced") },
+                  { value: "normal",     label: t("glp1Checkin.appetite.normal") },
+                  { value: "increased",  label: t("glp1Checkin.appetite.increased") },
                 ]}
               />
             </div>
@@ -518,20 +522,20 @@ export default function GLP1DailyCheckin() {
           {/* Care Team Notify */}
           <div>
             <p className="text-xs font-semibold text-orange-400 uppercase tracking-widest mb-2">
-              Would you like your care team to know?
+              {t("glp1Checkin.notifyHeader")}
             </p>
             <p className="text-xs text-white/40 mb-3">
-              Optional — gives you control over who is notified today.
+              {t("glp1Checkin.notifyHelp")}
             </p>
             <ChoiceRow
               label=""
               value={form.notifyCareTeam}
               onChange={v => set("notifyCareTeam", v)}
               options={[
-                { value: "none",      label: "No, keep private" },
-                { value: "coach",     label: "Notify my coach" },
+                { value: "none",      label: t("glp1Checkin.notify.keepPrivate") },
+                { value: "coach",     label: t("glp1Checkin.notify.coach") },
                 { value: "physician", label: "Notify my physician" },
-                { value: "both",      label: "Notify both" },
+                { value: "both",      label: t("glp1Checkin.notify.both") },
               ]}
             />
           </div>
@@ -539,9 +543,8 @@ export default function GLP1DailyCheckin() {
           {/* Situational note */}
           <div className="rounded-xl bg-orange-500/8 border border-orange-500/20 px-3 py-3">
             <p className="text-xs text-orange-200/70 leading-relaxed">
-              <span className="font-semibold text-orange-300">This updates throughout the day.</span>{" "}
-              If you feel better later, come back and check in again — your meals will adapt immediately.
-              Your check-in resets each morning.
+              <span className="font-semibold text-orange-300">{t("glp1Checkin.updatesThroughoutDay")}</span>{" "}
+              {t("glp1Checkin.updatesThroughoutDayBody")}
             </p>
           </div>
 
@@ -555,14 +558,14 @@ export default function GLP1DailyCheckin() {
               onClick={() => setOpen(false)}
               className="flex-1 text-sm text-white/50 hover:text-white py-2.5 rounded-xl border border-white/10"
             >
-              Cancel
+              {t("glp1Checkin.cancel")}
             </button>
             <Button
               onClick={handleSubmit}
               disabled={isSubmitting}
               className="flex-1 bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold py-2.5 rounded-xl"
             >
-              {isSubmitting ? "Saving…" : "Save Check-In"}
+              {isSubmitting ? t("glp1Checkin.saving") : t("glp1Checkin.saveCheckIn")}
             </Button>
           </div>
         </div>

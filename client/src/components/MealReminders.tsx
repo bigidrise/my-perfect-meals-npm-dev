@@ -21,6 +21,7 @@ import {
   setupNotificationListeners,
 } from "@/services/mealReminderService";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 
 // ── TimeRow sub-component ────────────────────────────────────────────────────
 
@@ -43,6 +44,7 @@ function TimeRow({
   onLabelChange: (l: string) => void;
   onRemove: () => void;
 }) {
+  const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(slot.label);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -52,7 +54,7 @@ function TimeRow({
   }, [editing]);
 
   function commitLabel() {
-    const trimmed = draft.trim() || `Meal ${index + 1}`;
+    const trimmed = draft.trim() || t("mealReminders.mealN", { n: index + 1 });
     onLabelChange(trimmed);
     setDraft(trimmed);
     setEditing(false);
@@ -143,6 +145,7 @@ export default function MealReminders() {
   const [pipelineChecking, setPipelineChecking] = useState(false);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const isNative = Capacitor.isNativePlatform();
   const anyEnabled = slots.some((s) => s.enabled);
@@ -217,7 +220,7 @@ export default function MealReminders() {
       if (isNative) await syncToiOS(saved);
     } catch (e) {
       console.error("[MealReminders] save failed:", e);
-      toast({ title: "Couldn't save reminders", variant: "destructive" });
+      toast({ title: t("mealReminders.toastSaveFailed"), variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -232,8 +235,8 @@ export default function MealReminders() {
         const granted = await requestNotificationPermission();
         if (!granted) {
           toast({
-            title: "Notifications blocked",
-            description: "Go to iPhone Settings › My Perfect Meals › Allow Notifications",
+            title: t("mealReminders.toastBlockedTitle"),
+            description: t("mealReminders.toastBlockedIosDesc"),
             variant: "destructive",
           });
           return;
@@ -242,16 +245,16 @@ export default function MealReminders() {
       } else {
         const perm = getWebPushPermission();
         if (perm === "unsupported") {
-          toast({ title: "Not supported", description: "This browser doesn't support push notifications.", variant: "destructive" });
+          toast({ title: t("mealReminders.toastNotSupportedTitle"), description: t("mealReminders.toastNotSupportedDesc"), variant: "destructive" });
           return;
         }
         if (perm === "denied") {
-          toast({ title: "Notifications blocked", description: "Allow notifications via the lock icon in your address bar, then tap Check again.", variant: "destructive" });
+          toast({ title: t("mealReminders.toastBlockedTitle"), description: t("mealReminders.toastBlockedWebDesc"), variant: "destructive" });
           return;
         }
         const result = await enrollWebPush();
         if (!result.success) {
-          toast({ title: "Couldn't enable notifications", description: result.reason === "denied" ? "Permission denied." : "Try again in a moment.", variant: "destructive" });
+          toast({ title: t("mealReminders.toastEnableFailedTitle"), description: result.reason === "denied" ? t("mealReminders.toastPermissionDenied") : t("mealReminders.toastTryAgain"), variant: "destructive" });
           return;
         }
         // Re-run pipeline after enrollment
@@ -283,7 +286,7 @@ export default function MealReminders() {
     if (slots.length >= MAX_SLOTS) return;
     const n = slots.length + 1;
     const h = Math.min(6 + n * 3, 21);
-    persist([...slots, { label: `Meal ${n}`, time: `${h.toString().padStart(2, "0")}:00`, enabled: false }]);
+    persist([...slots, { label: t("mealReminders.mealN", { n }), time: `${h.toString().padStart(2, "0")}:00`, enabled: false }]);
   }
 
   // ── Derived status ─────────────────────────────────────────────────────────
@@ -318,8 +321,8 @@ export default function MealReminders() {
       {/* ── Header ── */}
       <div className="flex items-center gap-2">
         <Bell className="w-4 h-4 text-orange-400" />
-        <span className="text-white text-sm font-medium">Meal Reminders</span>
-        {saving && <span className="text-white/60 text-[10px] ml-auto">Saving…</span>}
+        <span className="text-white text-sm font-medium">{t("mealReminders.title")}</span>
+        {saving && <span className="text-white/60 text-[10px] ml-auto">{t("mealReminders.saving")}</span>}
       </div>
 
       {/* ── Delivery channel badge ── */}
@@ -330,7 +333,7 @@ export default function MealReminders() {
           <Globe className="w-3 h-3 text-white/60" />
         )}
         <span className="text-white/60 text-[11px]">
-          {isNative ? "Native iOS delivery" : "Web push delivery"}
+          {isNative ? t("mealReminders.nativeDelivery") : t("mealReminders.webDelivery")}
         </span>
       </div>
 
@@ -340,31 +343,31 @@ export default function MealReminders() {
           {status === "ready" && (
             <>
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-              <span className="text-emerald-400 text-xs font-medium">Notifications connected</span>
+              <span className="text-emerald-400 text-xs font-medium">{t("mealReminders.statusConnected")}</span>
             </>
           )}
           {status === "partial" && (
             <>
               <XCircle className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />
-              <span className="text-white text-xs">Not fully connected — toggle a slot to finish setup</span>
+              <span className="text-white text-xs">{t("mealReminders.statusPartial")}</span>
             </>
           )}
           {status === "pending" && (
             <>
               <BellOff className="w-3.5 h-3.5 text-white/60 flex-shrink-0" />
-              <span className="text-white/80 text-xs">Toggle a slot to enable notifications</span>
+              <span className="text-white/80 text-xs">{t("mealReminders.statusPending")}</span>
             </>
           )}
           {status === "blocked" && (
             <>
               <XCircle className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />
-              <span className="text-white text-xs font-medium">Notifications blocked in browser</span>
+              <span className="text-white text-xs font-medium">{t("mealReminders.statusBlocked")}</span>
             </>
           )}
           {status === "unsupported" && (
             <>
               <XCircle className="w-3.5 h-3.5 text-white/60 flex-shrink-0" />
-              <span className="text-white/80 text-xs">Not supported by this browser</span>
+              <span className="text-white/80 text-xs">{t("mealReminders.statusUnsupported")}</span>
             </>
           )}
         </div>
@@ -373,11 +376,11 @@ export default function MealReminders() {
       {/* ── Blocked: instructions + check again ── */}
       {status === "blocked" && (
         <div className="bg-white/5 rounded-lg p-3 space-y-2">
-          <p className="text-white text-[11px] leading-relaxed font-medium">To unblock:</p>
+          <p className="text-white text-[11px] leading-relaxed font-medium">{t("mealReminders.toUnblock")}</p>
           <ol className="text-white/80 text-[11px] leading-relaxed list-decimal list-inside space-y-0.5">
-            <li>Click the <strong className="text-white">🔒 lock</strong> in your browser's address bar</li>
-            <li>Set <strong className="text-white">Notifications</strong> to <strong className="text-white">Allow</strong></li>
-            <li>Tap <strong className="text-white">Check again</strong> below</li>
+            <li>{t("mealReminders.unblockStep1Before")} <strong className="text-white">{t("mealReminders.unblockLock")}</strong> {t("mealReminders.unblockStep1After")}</li>
+            <li>{t("mealReminders.unblockStep2Before")} <strong className="text-white">{t("mealReminders.unblockNotifications")}</strong> {t("mealReminders.unblockStep2Mid")} <strong className="text-white">{t("mealReminders.unblockAllow")}</strong></li>
+            <li>{t("mealReminders.unblockStep3Before")} <strong className="text-white">{t("mealReminders.checkAgain")}</strong> {t("mealReminders.unblockStep3After")}</li>
           </ol>
           <button
             onClick={() => runPipelineCheck()}
@@ -385,14 +388,14 @@ export default function MealReminders() {
             className="flex items-center gap-1.5 bg-orange-600 text-white text-xs rounded-lg px-3 py-1.5 font-medium disabled:opacity-60"
           >
             {pipelineChecking ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
-            Check again
+            {t("mealReminders.checkAgain")}
           </button>
         </div>
       )}
 
       {status === "unsupported" && (
         <p className="text-white/70 text-[11px] leading-relaxed">
-          Try Chrome or Edge on desktop. Safari on iOS requires the app instead.
+          {t("mealReminders.unsupportedHint")}
         </p>
       )}
 
@@ -404,7 +407,7 @@ export default function MealReminders() {
             className="flex items-center gap-1 text-white/50 text-[10px]"
           >
             {showDiagnostics ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-            Connection diagnostics
+            {t("mealReminders.connectionDiagnostics")}
           </button>
 
           {showDiagnostics && (
@@ -429,7 +432,7 @@ export default function MealReminders() {
               {pipelineChecking && (
                 <div className="flex items-center gap-1.5">
                   <Loader2 className="w-3 h-3 text-white/20 animate-spin" />
-                  <span className="text-[11px] text-white/25">Checking…</span>
+                  <span className="text-[11px] text-white/25">{t("mealReminders.checking")}</span>
                 </div>
               )}
             </div>
@@ -462,19 +465,19 @@ export default function MealReminders() {
           className="flex items-center gap-1.5 text-orange-400 text-xs transition-colors disabled:opacity-40"
         >
           <Plus className="w-3.5 h-3.5" />
-          Add meal reminder
+          {t("mealReminders.addReminder")}
         </button>
       )}
 
       {/* Footer hint */}
       <p className="text-white/60 text-[10px] leading-relaxed">
         {isNative
-          ? "Tap a label to rename it. Reminders are delivered through the iOS app."
+          ? t("mealReminders.footerNative")
           : isBlocked
-          ? "Set up times now — notifications will activate once permissions are granted."
+          ? t("mealReminders.footerBlocked")
           : anyEnabled
-          ? "Keep your browser open for reliable delivery."
-          : "Up to 6 reminders. Tap a label to rename."}
+          ? t("mealReminders.footerEnabled")
+          : t("mealReminders.footerDefault")}
       </p>
     </div>
   );

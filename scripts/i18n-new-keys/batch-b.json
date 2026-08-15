@@ -1,0 +1,4244 @@
+{
+  "ar": {
+    "athletePicker": {
+      "added": "أُضيفت!",
+      "addedCount": "أُضيفت {{count}}",
+      "addingTo": "إضافة إلى:",
+      "categories": {
+        "eggsShakes": "بيض ومخفوقات",
+        "fish": "سمك فيليه",
+        "poultry": "دجاج وديك رومي",
+        "redmeat": "لحم أحمر"
+      },
+      "copied": "تم النسخ!",
+      "copy": "نسخ",
+      "copyMealAria": "نسخ تفاصيل الوجبة",
+      "copySessionAria": "نسخ ملخص الجلسة",
+      "done": "تم",
+      "errorShort": "خطأ",
+      "fibrousNote": "الخضار الليفية غير محدودة — النشا فقط (أرز، شوفان، بطاطس)",
+      "gotIt": "فهمت!",
+      "headerTitle": "وجبات رياضيين جاهزة — {{slot}}",
+      "hiddenCount_one": "أُخفيت {{count}} وجبة — سيتجاوز النشا {{cap}}غ",
+      "hiddenCount_other": "أُخفيت {{count}} وجبات — سيتجاوز النشا {{cap}}غ",
+      "howToAria": "كيفية استخدام باني وجبات الرياضيين",
+      "info": {
+        "intro": "وجبات جاهزة، محسّنة للأداء الرياضي وبناء العضلات.",
+        "step1Label": "اختر فئة البروتين",
+        "step1Text": "(دجاج، لحم أحمر، سمك، بيض)",
+        "step2After": "هي بروتين + خضار ليفية فقط",
+        "step2Mid": "الوجبات تحتوي أرزًا أو شوفانًا أو بطاطس.",
+        "step3Label": "اضغط أي وجبة",
+        "step3Text": "لإضافتها فورًا",
+        "step4Label": "كل الماكرو",
+        "step4Text": "محسوبة وجاهزة للتتبّع",
+        "stepsLabel": "الخطوات:",
+        "tipAfter": "الخضار الليفية دائمًا غير محدودة.",
+        "tipBefore": "في الأيام منخفضة النشا استخدم وجبات",
+        "tipLabel": "💡 نصيحة:",
+        "tipMid": "في أيام إعادة التغذية أضف وجبات",
+        "title": "كيفية استخدام باني وجبات الرياضيين"
+      },
+      "lowStarchDay": "يوم منخفض النشا",
+      "mealCopyText": "{{title}} — {{cals}} سعرة · ب {{protein}}غ · ن {{starch}}غ · د {{fat}}غ",
+      "noCoachConnection": "لا اتصال بمدرّب نشط",
+      "noteDesc": "وجبات جاهزة، محسّنة للأداء الرياضي وبناء العضلات.",
+      "noteStep1": "اختر فئة البروتين (دجاج، لحم أحمر، سمك، بيض)",
+      "noteStep2After": "هي بروتين + خضار ليفية فقط",
+      "noteStep2Before": "الوجبات الموسومة",
+      "noteStep2Mid": "تحتوي أرزًا أو شوفانًا أو بطاطس —",
+      "noteStep3": "اضغط أي وجبة لإضافتها فورًا",
+      "noteStep4": "كل الماكرو محسوبة وجاهزة للتتبّع",
+      "noteTitle": "وجبات رياضيين جاهزة",
+      "refeedDay": "يوم إعادة التغذية",
+      "selectCategory": "اختر فئة البروتين:",
+      "selectCategoryShort": "اختر الفئة",
+      "sendCoachAria": "إرسال الملخص إلى المدرّب",
+      "sendFailed": "فشل الإرسال، أعد المحاولة",
+      "sendToCoach": "إرسال إلى المدرّب",
+      "sending": "جارٍ الإرسال…",
+      "sent": "تم الإرسال!",
+      "sessionTotal": "إجمالي الجلسة:",
+      "slots": {
+        "breakfast": "فطور",
+        "dinner": "عشاء",
+        "lunch": "غداء",
+        "meal4": "وجبة 4",
+        "meal5": "وجبة 5",
+        "meal6": "وجبة 6",
+        "snacks": "وجبات خفيفة"
+      },
+      "starch": "نشا",
+      "starchAllocation": "مخصّص النشا",
+      "starchCap": "حد النشا {{cap}}غ",
+      "starchUsage": "{{used}}غ / {{cap}}غ نشا",
+      "summaryText_one": "أُضيفت {{count}} وجبة — {{cals}} سعرة · ب {{protein}}غ · ك {{carbs}}غ · د {{fat}}غ",
+      "summaryText_other": "أُضيفت {{count}} وجبات — {{cals}} سعرة · ب {{protein}}غ · ك {{carbs}}غ · د {{fat}}غ",
+      "viewChatAria": "عرض الرسالة في محادثة المدرّب",
+      "viewInChat": "عرض في المحادثة"
+    },
+    "coachingSetup": {
+      "accountability": {
+        "encourage": {
+          "desc": "شجّعني عند التعثر",
+          "label": "شجّعني"
+        },
+        "pushHard": {
+          "desc": "حاسبني بصرامة",
+          "label": "ادفعني بقوة"
+        },
+        "remind": {
+          "desc": "تذكيرات لطيفة تكفي",
+          "label": "ذكّرني فقط"
+        },
+        "selfDirected": {
+          "desc": "أحفّز نفسي بنفسي",
+          "label": "ذاتي التوجيه"
+        }
+      },
+      "back": "رجوع",
+      "challenges": {
+        "consistency": "الاستمرارية",
+        "cravings": "الاشتهاء",
+        "emotionalEating": "الأكل العاطفي",
+        "knowledge": "معرفة ما آكل",
+        "mealPrep": "تحضير الوجبات",
+        "motivation": "الحافز",
+        "socialPressure": "الضغط الاجتماعي",
+        "time": "ضيق الوقت"
+      },
+      "error": "حدث خطأ ما. حاول مرة أخرى.",
+      "lifestyle": {
+        "budgetConscious": "مهتم بالميزانية",
+        "busySchedule": "جدول مزدحم",
+        "frequentTravel": "سفر متكرر",
+        "parent": "والد/مقدّم رعاية",
+        "pickyEater": "صعب الإرضاء",
+        "shiftWorker": "عمل بنظام ورديات",
+        "socialEater": "أكل اجتماعي",
+        "stressEater": "أكل عند التوتر"
+      },
+      "loading": "جارٍ تحميل ملفك...",
+      "motivations": {
+        "athletic": "الأداء الرياضي",
+        "confidence": "الثقة بالنفس",
+        "energy": "طاقة أكثر",
+        "family": "صحة العائلة",
+        "longevity": "طول العمر",
+        "mentalClarity": "صفاء ذهني",
+        "weightLoss": "خسارة الوزن"
+      },
+      "next": "التالي",
+      "saveProfile": "حفظ الملف",
+      "savedDesc": "ملف التدريب الخاص بك جاهز.",
+      "savedTitle": "تم حفظ الملف!",
+      "saving": "جارٍ الحفظ...",
+      "steps": {
+        "accountability": {
+          "subtitle": "اختر ما يحفّزك أكثر",
+          "title": "كيف نحاسبك؟"
+        },
+        "challenges": {
+          "subtitle": "كن صادقًا؛ يساعدنا على التركيز",
+          "title": "أكبر تحدياتك؟"
+        },
+        "lifestyle": {
+          "subtitle": "اختر الكل؛ سنكيّف النصائح",
+          "title": "ما نمط حياتك؟"
+        },
+        "motivations": {
+          "subtitle": "اختر كل ما ينطبق",
+          "title": "ما الذي يحرّكك؟"
+        },
+        "style": {
+          "subtitle": "اختر أسلوب التواصل المناسب لك",
+          "title": "كيف تريد أن يتم تدريبك؟"
+        }
+      },
+      "styles": {
+        "balanced": {
+          "desc": "مزيج من كل الأساليب",
+          "label": "متوازن"
+        },
+        "direct": {
+          "desc": "أخبرني بما أفعل دون لفّ",
+          "label": "مباشر"
+        },
+        "educational": {
+          "desc": "اشرح سبب كل خيار",
+          "label": "تعليمي"
+        },
+        "encouraging": {
+          "desc": "تعزيز إيجابي ودعم",
+          "label": "محفّز"
+        }
+      }
+    },
+    "competitionPicker": {
+      "badgeCarbs": "كربوهيدرات",
+      "categories": {
+        "eggsShakes": "بيض ومخفوقات",
+        "fish": "سمك فيليه",
+        "poultry": "دجاج وديك رومي",
+        "redmeat": "لحم أحمر"
+      },
+      "gotIt": "فهمت!",
+      "headerAddTo": "وجبات المنافسة - إضافة إلى {{slot}}",
+      "howToAria": "كيفية استخدام باني المنافسة",
+      "info": {
+        "intro": "وجبات رياضيين جاهزة، محسّنة للكتلة الخالية والأداء.",
+        "step1Label": "اختر فئة البروتين",
+        "step1Text": "(دجاج، لحم أحمر، سمك، بيض)",
+        "step2Label": "الوجبات موسومة",
+        "step2Text": "بـ«كربوهيدرات» أو «P+V» (بروتين + خضار)",
+        "step3Label": "اضغط أي وجبة",
+        "step3Text": "لإضافتها فورًا",
+        "step4Label": "كل الماكرو",
+        "step4Text": "محسوبة وجاهزة للتتبّع",
+        "stepsLabel": "الخطوات:",
+        "tipLabel": "💡 نصيحة:",
+        "tipText": "اختر حسب أهداف الكربوهيدرات: «كربوهيدرات» للطاقة و«P+V» للأيام منخفضة الكربوهيدرات.",
+        "title": "كيفية استخدام باني المنافسة"
+      },
+      "noteDesc": "وجبات رياضيين جاهزة، محسّنة للكتلة الخالية والأداء.",
+      "noteStep1": "اختر فئة البروتين (دجاج، لحم أحمر، سمك، بيض)",
+      "noteStep2": "الوجبات موسومة بـ«كربوهيدرات» أو «P+V» (بروتين + خضار)",
+      "noteStep3": "اضغط أي وجبة لإضافتها فورًا",
+      "noteStep4": "كل الماكرو محسوبة وجاهزة للتتبّع",
+      "noteTitle": "وجبات المنافسة",
+      "selectCategory": "اختر فئة البروتين:",
+      "selectCategoryShort": "اختر الفئة"
+    },
+    "complianceCard": {
+      "biggestOpportunity": "أكبر فرصة للتحسين",
+      "breakfastLogged": "إفطار مسجّل",
+      "caloriesOnTarget": "السعرات ضمن الهدف",
+      "consistencyScore": "درجة الالتزام",
+      "days": "أيام",
+      "dinnerLogged": "عشاء مسجّل",
+      "last7Days": "آخر 7 أيام",
+      "lastNDays": "آخر {{count}} أيام",
+      "loggedMeals": "وجبات مسجّلة",
+      "lunchLogged": "غداء مسجّل",
+      "noActivity": "لا نشاط بعد. سجّل وجبات لعرض ملخصك هنا.",
+      "noMeals": "لا وجبات مسجّلة بعد. سجّل وجباتك لعرض الملخص.",
+      "ofDays": "{{value}} من {{total}}",
+      "proteinGoalMet": "هدف البروتين",
+      "setTargets": "حدّد أهداف الماكرو لتفعيل التتبّع الكامل.",
+      "title": "ملخص النشاط الغذائي"
+    },
+    "mealPicker": {
+      "addTo": "إضافة إلى {{slot}}",
+      "cafeteria": "اقتراح عشوائي",
+      "categories": {
+        "fats": "دهون",
+        "fibrousCarbs": "كربوهيدرات ليفية",
+        "fruit": "فاكهة",
+        "proteins": "بروتينات",
+        "starchyCarbs": "كربوهيدرات نشوية"
+      },
+      "close": "إغلاق",
+      "generate": "توليد",
+      "generateCount": "توليد ({{count}})",
+      "generating": "جارٍ التوليد…",
+      "gotIt": "فهمت!",
+      "howToAria": "كيفية استخدام مُنتقي الوجبات",
+      "info": {
+        "addLabel": "اضغط للإضافة:",
+        "addText": "اضغط أي بطاقة لإضافتها فورًا إلى خانة {{slot}}",
+        "browseLabel": "تصفّح الوجبات:",
+        "browseText": "تصفّح قوالب وجباتنا المنتقاة",
+        "cafeteriaLabel": "خيار الاقتراح:",
+        "cafeteriaText": "اضغط «اقتراح عشوائي» لاقتراح سريع",
+        "intro": "طريقة سريعة لإضافة وجبات جاهزة إلى خطتك.",
+        "personalizedLabel": "مخصّص:",
+        "personalizedText": "تُفلتر الوجبات حسب الحساسية والتفضيلات",
+        "tipLabel": "💡 نصيحة:",
+        "tipText": "استخدم الاقتراح العشوائي لاقتراح صحي سريع دون تصفّح.",
+        "title": "كيفية استخدام مُنتقي الوجبات"
+      },
+      "lowerGlycemic": "تأثير سكري أقل",
+      "quickMeal": "وجبة {{slot}} سريعة",
+      "regularGi": "مؤشر عادي"
+    },
+    "mealReminders": {
+      "addReminder": "إضافة تذكير وجبة",
+      "checkAgain": "إعادة الفحص",
+      "checking": "جارٍ الفحص…",
+      "connectionDiagnostics": "تشخيص الاتصال",
+      "footerBlocked": "حدّد الأوقات الآن؛ ستُفعّل بعد منح الأذونات.",
+      "footerDefault": "حتى 6 تذكيرات. اضغط تسمية لإعادة التسمية.",
+      "footerEnabled": "أبقِ المتصفح مفتوحًا لتسليم موثوق.",
+      "footerNative": "اضغط تسمية لإعادة التسمية. تُرسل عبر تطبيق iOS.",
+      "mealN": "وجبة {{n}}",
+      "nativeDelivery": "تسليم iOS أصلي",
+      "saving": "جارٍ الحفظ…",
+      "statusBlocked": "الإشعارات محظورة في المتصفح",
+      "statusConnected": "الإشعارات متصلة",
+      "statusPartial": "غير متصل بالكامل — فعّل خانة لإتمام الإعداد",
+      "statusPending": "فعّل خانة لتشغيل الإشعارات",
+      "statusUnsupported": "غير مدعوم في هذا المتصفح",
+      "title": "تذكيرات الوجبات",
+      "toUnblock": "لإلغاء الحظر:",
+      "toastBlockedIosDesc": "إعدادات iPhone ‹ My Perfect Meals ‹ السماح بالإشعارات",
+      "toastBlockedTitle": "الإشعارات محظورة",
+      "toastBlockedWebDesc": "اسمح بالإشعارات من رمز القفل في شريط العنوان ثم اضغط إعادة الفحص.",
+      "toastEnableFailedTitle": "تعذّر تفعيل الإشعارات",
+      "toastNotSupportedDesc": "هذا المتصفح لا يدعم الإشعارات الفورية.",
+      "toastNotSupportedTitle": "غير مدعوم",
+      "toastPermissionDenied": "تم رفض الإذن.",
+      "toastSaveFailed": "تعذّر حفظ التذكيرات",
+      "toastTryAgain": "حاول بعد لحظات.",
+      "unblockAllow": "السماح",
+      "unblockLock": "🔒 القفل",
+      "unblockNotifications": "الإشعارات",
+      "unblockStep1After": "في شريط العنوان",
+      "unblockStep1Before": "اضغط على",
+      "unblockStep2Before": "اضبط",
+      "unblockStep2Mid": "على",
+      "unblockStep3After": "بالأسفل",
+      "unblockStep3Before": "اضغط",
+      "unsupportedHint": "استخدم Chrome أو Edge على الحاسوب. Safari على iOS يتطلب التطبيق.",
+      "webDelivery": "تسليم دفع عبر الويب"
+    }
+  },
+  "de": {
+    "athletePicker": {
+      "added": "Hinzugefügt!",
+      "addedCount": "{{count}} hinzugefügt",
+      "addingTo": "Hinzufügen zu:",
+      "categories": {
+        "eggsShakes": "Eier & Shakes",
+        "fish": "Filetfisch",
+        "poultry": "Hähnchen & Pute",
+        "redmeat": "Rotes Fleisch"
+      },
+      "copied": "Kopiert!",
+      "copy": "Kopieren",
+      "copyMealAria": "Mahlzeit-Details kopieren",
+      "copySessionAria": "Sitzungszusammenfassung kopieren",
+      "done": "Fertig",
+      "errorShort": "Fehler",
+      "fibrousNote": "Faserreiches Gemüse unbegrenzt – nur Stärke (Reis, Hafer, Kartoffeln)",
+      "gotIt": "verstanden!",
+      "headerTitle": "Fertige Athletenmahlzeiten — {{slot}}",
+      "hiddenCount_one": "{{count}} Mahlzeit ausgeblendet — Stärke überschritte {{cap}}g",
+      "hiddenCount_other": "{{count}} Mahlzeiten ausgeblendet — Stärke überschritte {{cap}}g",
+      "howToAria": "Athleten-Mahlzeit-Builder verwenden",
+      "info": {
+        "intro": "Fertige Mahlzeiten, optimiert für sportliche Leistung und Muskelaufbau.",
+        "step1Label": "Wähle deine Proteinkategorie",
+        "step1Text": "(Hähnchen, rotes Fleisch, Fisch, Eier)",
+        "step2After": "ist nur Protein + faserreiches Gemüse",
+        "step2Mid": "Mahlzeiten enthalten Reis, Hafer oder Kartoffeln.",
+        "step3Label": "Tippe eine Mahlzeit",
+        "step3Text": "um sie sofort hinzuzufügen",
+        "step4Label": "Alle Makros",
+        "step4Text": "sind berechnet und tracking-bereit",
+        "stepsLabel": "Schritte:",
+        "tipAfter": "Mahlzeiten hinzu. Faserreiches Gemüse ist immer unbegrenzt.",
+        "tipBefore": "An stärkearmen Tagen nutze",
+        "tipLabel": "💡 Tipp:",
+        "tipMid": "Mahlzeiten. An Refeed-Tagen füge",
+        "title": "Athleten-Mahlzeit-Builder verwenden"
+      },
+      "lowStarchDay": "Stärkearmer Tag",
+      "mealCopyText": "{{title}} — {{cals}} kcal · P {{protein}}g · S {{starch}}g · F {{fat}}g",
+      "noCoachConnection": "Keine aktive Coach-Verbindung",
+      "noteDesc": "Fertige Mahlzeiten, optimiert für sportliche Leistung und Muskelaufbau.",
+      "noteStep1": "Wähle deine Proteinkategorie (Hähnchen, rotes Fleisch, Fisch, Eier)",
+      "noteStep2After": "ist nur Protein + faserreiches Gemüse",
+      "noteStep2Before": "Mahlzeiten mit Label",
+      "noteStep2Mid": "enthalten Reis, Hafer oder Kartoffeln –",
+      "noteStep3": "Tippe eine Mahlzeit, um sie sofort hinzuzufügen",
+      "noteStep4": "Alle Makros sind berechnet und tracking-bereit",
+      "noteTitle": "Fertige Athletenmahlzeiten",
+      "refeedDay": "Refeed-Tag",
+      "selectCategory": "Proteinkategorie wählen:",
+      "selectCategoryShort": "Kategorie wählen",
+      "sendCoachAria": "Zusammenfassung an Coach senden",
+      "sendFailed": "Senden fehlgeschlagen, erneut versuchen",
+      "sendToCoach": "An Coach senden",
+      "sending": "Sende…",
+      "sent": "Gesendet!",
+      "sessionTotal": "Sitzungssumme:",
+      "slots": {
+        "breakfast": "Frühstück",
+        "dinner": "Abendessen",
+        "lunch": "Mittag",
+        "meal4": "Mahlzeit 4",
+        "meal5": "Mahlzeit 5",
+        "meal6": "Mahlzeit 6",
+        "snacks": "Snacks"
+      },
+      "starch": "Stärke",
+      "starchAllocation": "Stärke-Zuteilung",
+      "starchCap": "Limit {{cap}}g Stärke",
+      "starchUsage": "{{used}}g / {{cap}}g Stärke",
+      "summaryText_one": "{{count}} Mahlzeit hinzugefügt — {{cals}} kcal · P {{protein}}g · C {{carbs}}g · F {{fat}}g",
+      "summaryText_other": "{{count}} Mahlzeiten hinzugefügt — {{cals}} kcal · P {{protein}}g · C {{carbs}}g · F {{fat}}g",
+      "viewChatAria": "Nachricht im Coach-Chat ansehen",
+      "viewInChat": "Im Chat ansehen"
+    },
+    "coachingSetup": {
+      "accountability": {
+        "encourage": {
+          "desc": "Feuere mich an, wenn ich schwächle",
+          "label": "Motiviere mich"
+        },
+        "pushHard": {
+          "desc": "Halte mich streng in der Spur",
+          "label": "Fordere mich"
+        },
+        "remind": {
+          "desc": "Sanfte Erinnerungen reichen",
+          "label": "Nur erinnern"
+        },
+        "selfDirected": {
+          "desc": "Ich motiviere mich selbst",
+          "label": "Eigenständig"
+        }
+      },
+      "back": "Zurück",
+      "challenges": {
+        "consistency": "Dranbleiben",
+        "cravings": "Heißhunger",
+        "emotionalEating": "Emotionales Essen",
+        "knowledge": "Wissen, was essen",
+        "mealPrep": "Meal Prep",
+        "motivation": "Motivation",
+        "socialPressure": "Sozialer Druck",
+        "time": "Zu wenig Zeit"
+      },
+      "error": "Etwas ist schiefgelaufen. Bitte erneut versuchen.",
+      "lifestyle": {
+        "budgetConscious": "Budgetbewusst",
+        "busySchedule": "Voller Terminkalender",
+        "frequentTravel": "Viel unterwegs",
+        "parent": "Elternteil/Pflege",
+        "pickyEater": "Wählerisch",
+        "shiftWorker": "Schichtarbeit",
+        "socialEater": "Esse gesellig",
+        "stressEater": "Stressesser"
+      },
+      "loading": "Profil wird geladen...",
+      "motivations": {
+        "athletic": "Sportliche Leistung",
+        "confidence": "Selbstbewusst fühlen",
+        "energy": "Mehr Energie",
+        "family": "Familiengesundheit",
+        "longevity": "Langlebigkeit",
+        "mentalClarity": "Geistige Klarheit",
+        "weightLoss": "Abnehmen"
+      },
+      "next": "Weiter",
+      "saveProfile": "Profil speichern",
+      "savedDesc": "Dein Coaching-Profil ist bereit.",
+      "savedTitle": "Profil gespeichert!",
+      "saving": "Speichern...",
+      "steps": {
+        "accountability": {
+          "subtitle": "Wähle, was dich am meisten motiviert",
+          "title": "Wie halten wir dich in der Spur?"
+        },
+        "challenges": {
+          "subtitle": "Sei ehrlich – so treffen wir den Kern",
+          "title": "Deine größten Hürden?"
+        },
+        "lifestyle": {
+          "subtitle": "Wähle alles; wir passen die Tipps an",
+          "title": "Was beschreibt deinen Alltag?"
+        },
+        "motivations": {
+          "subtitle": "Wähle alles Zutreffende",
+          "title": "Was treibt dich an?"
+        },
+        "style": {
+          "subtitle": "Wähle den passenden Kommunikationsstil",
+          "title": "Wie möchtest du gecoacht werden?"
+        }
+      },
+      "styles": {
+        "balanced": {
+          "desc": "Ein Mix aller Ansätze",
+          "label": "Ausgewogen"
+        },
+        "direct": {
+          "desc": "Sag mir klar, was zu tun ist",
+          "label": "Direkt"
+        },
+        "educational": {
+          "desc": "Erklär das Warum jeder Entscheidung",
+          "label": "Erklärend"
+        },
+        "encouraging": {
+          "desc": "Positive Verstärkung und Unterstützung",
+          "label": "Ermutigend"
+        }
+      }
+    },
+    "competitionPicker": {
+      "badgeCarbs": "Carbs",
+      "categories": {
+        "eggsShakes": "Eier & Shakes",
+        "fish": "Filetfisch",
+        "poultry": "Hähnchen & Pute",
+        "redmeat": "Rotes Fleisch"
+      },
+      "gotIt": "verstanden!",
+      "headerAddTo": "Wettkampf-Mahlzeiten - Zu {{slot}} hinzufügen",
+      "howToAria": "Wettkampf-Builder verwenden",
+      "info": {
+        "intro": "Fertige Athletenmahlzeiten, optimiert für Magermasse und Leistung.",
+        "step1Label": "Wähle deine Proteinkategorie",
+        "step1Text": "(Hähnchen, rotes Fleisch, Fisch, Eier)",
+        "step2Label": "Mahlzeiten sind markiert",
+        "step2Text": "mit „Carbs\" oder „P+V\" (Protein + Gemüse)",
+        "step3Label": "Tippe eine Mahlzeit",
+        "step3Text": "um sie sofort hinzuzufügen",
+        "step4Label": "Alle Makros",
+        "step4Text": "sind berechnet und tracking-bereit",
+        "stepsLabel": "Schritte:",
+        "tipLabel": "💡 Tipp:",
+        "tipText": "Wähle nach deinen Carb-Zielen: „Carbs\" für Energie, „P+V\" für Low-Carb-Tage.",
+        "title": "Wettkampf-Builder verwenden"
+      },
+      "noteDesc": "Fertige Athletenmahlzeiten, optimiert für Magermasse und Leistung.",
+      "noteStep1": "Wähle deine Proteinkategorie (Hähnchen, rotes Fleisch, Fisch, Eier)",
+      "noteStep2": "Mahlzeiten sind mit „Carbs\" oder „P+V\" (Protein + Gemüse) markiert",
+      "noteStep3": "Tippe eine Mahlzeit, um sie sofort hinzuzufügen",
+      "noteStep4": "Alle Makros sind berechnet und tracking-bereit",
+      "noteTitle": "Wettkampf-Mahlzeiten",
+      "selectCategory": "Proteinkategorie wählen:",
+      "selectCategoryShort": "Kategorie wählen"
+    },
+    "complianceCard": {
+      "biggestOpportunity": "Größtes Potenzial",
+      "breakfastLogged": "Frühstück erfasst",
+      "caloriesOnTarget": "Kalorien im Ziel",
+      "consistencyScore": "Konstanz-Score",
+      "days": "Tagen",
+      "dinnerLogged": "Abendessen erfasst",
+      "last7Days": "Letzte 7 Tage",
+      "lastNDays": "Letzte {{count}} Tage",
+      "loggedMeals": "Mahlzeiten erfasst",
+      "lunchLogged": "Mittag erfasst",
+      "noActivity": "Noch keine Aktivität. Erfasse Mahlzeiten, um hier deine Übersicht zu sehen.",
+      "noMeals": "Noch keine Mahlzeiten erfasst. Erfasse Mahlzeiten für deine Übersicht.",
+      "ofDays": "{{value}} von {{total}}",
+      "proteinGoalMet": "Proteinziel erreicht",
+      "setTargets": "Lege deine Makroziele fest, um das volle Tracking zu aktivieren.",
+      "title": "Ernährungs-Aktivität"
+    },
+    "mealPicker": {
+      "addTo": "Zu {{slot}} hinzufügen",
+      "cafeteria": "Kantine",
+      "categories": {
+        "fats": "Fette",
+        "fibrousCarbs": "Faserreiche Carbs",
+        "fruit": "Obst",
+        "proteins": "Proteine",
+        "starchyCarbs": "Stärkehaltige Carbs"
+      },
+      "close": "Schließen",
+      "generate": "Erstellen",
+      "generateCount": "Erstellen ({{count}})",
+      "generating": "Erstelle…",
+      "gotIt": "verstanden!",
+      "howToAria": "Mahlzeit-Auswahl verwenden",
+      "info": {
+        "addLabel": "Zum Hinzufügen tippen:",
+        "addText": "Tippe eine Karte, um sie sofort zu {{slot}} hinzuzufügen",
+        "browseLabel": "Durchstöbern:",
+        "browseText": "Scrolle durch unsere Mahlzeitvorlagen",
+        "cafeteriaLabel": "Kantinen-Option:",
+        "cafeteriaText": "Tippe „Kantine\" für einen schnellen Zufallsvorschlag",
+        "intro": "Schnell fertige Mahlzeiten zu deinem Plan hinzufügen.",
+        "personalizedLabel": "Personalisiert:",
+        "personalizedText": "Mahlzeiten nach Allergien und Vorlieben gefiltert",
+        "tipLabel": "💡 Tipp:",
+        "tipText": "Nutze die Kantine für einen schnellen gesunden Vorschlag ohne Suchen.",
+        "title": "Mahlzeit-Auswahl verwenden"
+      },
+      "lowerGlycemic": "Geringere glykämische Wirkung",
+      "quickMeal": "Schnelle {{slot}}-Mahlzeit",
+      "regularGi": "Normaler GI"
+    },
+    "mealReminders": {
+      "addReminder": "Erinnerung hinzufügen",
+      "checkAgain": "Erneut prüfen",
+      "checking": "Prüfe…",
+      "connectionDiagnostics": "Verbindungsdiagnose",
+      "footerBlocked": "Zeiten jetzt festlegen; aktiv nach Freigabe der Berechtigung.",
+      "footerDefault": "Bis zu 6 Erinnerungen. Tippe ein Label zum Umbenennen.",
+      "footerEnabled": "Browser offen lassen für zuverlässige Zustellung.",
+      "footerNative": "Tippe ein Label zum Umbenennen. Zustellung über die iOS-App.",
+      "mealN": "Mahlzeit {{n}}",
+      "nativeDelivery": "Native iOS-Zustellung",
+      "saving": "Speichern…",
+      "statusBlocked": "Mitteilungen im Browser blockiert",
+      "statusConnected": "Mitteilungen verbunden",
+      "statusPartial": "Nicht ganz verbunden – Slot aktivieren zum Fertigstellen",
+      "statusPending": "Slot aktivieren, um Mitteilungen einzuschalten",
+      "statusUnsupported": "Von diesem Browser nicht unterstützt",
+      "title": "Mahlzeit-Erinnerungen",
+      "toUnblock": "Zum Freischalten:",
+      "toastBlockedIosDesc": "iPhone-Einstellungen › My Perfect Meals › Mitteilungen erlauben",
+      "toastBlockedTitle": "Benachrichtigungen blockiert",
+      "toastBlockedWebDesc": "Erlaube Mitteilungen übers Schloss-Symbol, dann Erneut prüfen tippen.",
+      "toastEnableFailedTitle": "Aktivierung fehlgeschlagen",
+      "toastNotSupportedDesc": "Dieser Browser unterstützt keine Push-Mitteilungen.",
+      "toastNotSupportedTitle": "Nicht unterstützt",
+      "toastPermissionDenied": "Berechtigung verweigert.",
+      "toastSaveFailed": "Speichern fehlgeschlagen",
+      "toastTryAgain": "Gleich erneut versuchen.",
+      "unblockAllow": "Erlauben",
+      "unblockLock": "🔒 Schloss",
+      "unblockNotifications": "Mitteilungen",
+      "unblockStep1After": "in der Adressleiste",
+      "unblockStep1Before": "Tippe auf das",
+      "unblockStep2Before": "Stelle",
+      "unblockStep2Mid": "auf",
+      "unblockStep3After": "unten",
+      "unblockStep3Before": "Tippe",
+      "unsupportedHint": "Nutze Chrome oder Edge am Desktop. Safari auf iOS braucht die App.",
+      "webDelivery": "Web-Push-Zustellung"
+    }
+  },
+  "en": {
+    "athletePicker": {
+      "added": "Added!",
+      "addedCount": "{{count}} added",
+      "addingTo": "Adding to:",
+      "categories": {
+        "eggsShakes": "Eggs & Shakes",
+        "fish": "Fillet Fish",
+        "poultry": "Chicken & Turkey",
+        "redmeat": "Red Meat"
+      },
+      "copied": "Copied!",
+      "copy": "Copy",
+      "copyMealAria": "Copy meal details",
+      "copySessionAria": "Copy session summary to clipboard",
+      "done": "Done",
+      "errorShort": "Error",
+      "fibrousNote": "Fibrous vegetables are unrestricted — starch only (rice, oats, potatoes)",
+      "gotIt": "got it!",
+      "headerTitle": "Premade Athlete Meals — {{slot}}",
+      "hiddenCount_one": "{{count}} meal hidden — starch would exceed {{cap}}g",
+      "hiddenCount_other": "{{count}} meals hidden — starch would exceed {{cap}}g",
+      "howToAria": "How to use Athlete Meal Builder",
+      "info": {
+        "intro": "Pre-designed meals optimized for athletic performance and muscle building.",
+        "step1Label": "Select your protein category",
+        "step1Text": "(Chicken, Red Meat, Fish, Eggs)",
+        "step2After": "is protein + fibrous vegetables only",
+        "step2Mid": "meals include rice, oats, or potatoes.",
+        "step3Label": "Click any meal",
+        "step3Text": "to add it to your board instantly",
+        "step4Label": "All macros",
+        "step4Text": "are pre-calculated and ready to track",
+        "stepsLabel": "Steps:",
+        "tipAfter": "meals. Fibrous vegetables are always unlimited.",
+        "tipBefore": "On low-starch days, use",
+        "tipLabel": "💡 Tip:",
+        "tipMid": "meals. On refeed days, add",
+        "title": "How to Use Athlete Meal Builder"
+      },
+      "lowStarchDay": "Low-Starch Day",
+      "mealCopyText": "{{title}} — {{cals}} cal · P {{protein}}g · S {{starch}}g · F {{fat}}g",
+      "noCoachConnection": "No active coach connection",
+      "noteDesc": "Pre-designed meals optimized for athletic performance and muscle building.",
+      "noteStep1": "Select your protein category (Chicken, Red Meat, Fish, Eggs)",
+      "noteStep2After": "is protein + fibrous vegetables only",
+      "noteStep2Before": "Meals tagged",
+      "noteStep2Mid": "include rice, oats, or potatoes —",
+      "noteStep3": "Click any meal to add it to your board instantly",
+      "noteStep4": "All macros are pre-calculated and ready to track",
+      "noteTitle": "Premade Athlete Meals",
+      "refeedDay": "Refeed Day",
+      "selectCategory": "Select Protein Category:",
+      "selectCategoryShort": "Select Category",
+      "sendCoachAria": "Send session summary to coach",
+      "sendFailed": "Failed to send — try again",
+      "sendToCoach": "Send to Coach",
+      "sending": "Sending…",
+      "sent": "Sent!",
+      "sessionTotal": "Session total:",
+      "slots": {
+        "breakfast": "Breakfast",
+        "dinner": "Dinner",
+        "lunch": "Lunch",
+        "meal4": "Meal 4",
+        "meal5": "Meal 5",
+        "meal6": "Meal 6",
+        "snacks": "Snacks"
+      },
+      "starch": "Starch",
+      "starchAllocation": "Starch Allocation",
+      "starchCap": "{{cap}}g starch cap",
+      "starchUsage": "{{used}}g / {{cap}}g starch",
+      "summaryText_one": "{{count}} meal added — {{cals}} cal · P {{protein}}g · C {{carbs}}g · F {{fat}}g",
+      "summaryText_other": "{{count}} meals added — {{cals}} cal · P {{protein}}g · C {{carbs}}g · F {{fat}}g",
+      "viewChatAria": "View message in coach chat",
+      "viewInChat": "View in Chat"
+    },
+    "coachingSetup": {
+      "accountability": {
+        "encourage": {
+          "desc": "Cheer me on when I slip",
+          "label": "Encourage Me"
+        },
+        "pushHard": {
+          "desc": "Hold me accountable strictly",
+          "label": "Push Me Hard"
+        },
+        "remind": {
+          "desc": "Gentle nudges are enough",
+          "label": "Just Remind Me"
+        },
+        "selfDirected": {
+          "desc": "I motivate myself",
+          "label": "Self-Directed"
+        }
+      },
+      "back": "Back",
+      "challenges": {
+        "consistency": "Staying Consistent",
+        "cravings": "Cravings",
+        "emotionalEating": "Emotional Eating",
+        "knowledge": "Knowing What to Eat",
+        "mealPrep": "Meal Prep",
+        "motivation": "Motivation",
+        "socialPressure": "Social Pressure",
+        "time": "Not Enough Time"
+      },
+      "error": "Something went wrong. Please try again.",
+      "lifestyle": {
+        "budgetConscious": "Budget-Conscious",
+        "busySchedule": "Busy Schedule",
+        "frequentTravel": "Frequent Travel",
+        "parent": "Parent / Caregiver",
+        "pickyEater": "Picky Eater",
+        "shiftWorker": "Shift Worker",
+        "socialEater": "Social Eater",
+        "stressEater": "Stress Eater"
+      },
+      "loading": "Loading your profile...",
+      "motivations": {
+        "athletic": "Athletic Performance",
+        "confidence": "Feel Confident",
+        "energy": "More Energy",
+        "family": "Family Health",
+        "longevity": "Longevity",
+        "mentalClarity": "Mental Clarity",
+        "weightLoss": "Weight Loss"
+      },
+      "next": "Next",
+      "saveProfile": "Save Profile",
+      "savedDesc": "Your coaching profile is ready.",
+      "savedTitle": "Profile saved!",
+      "saving": "Saving...",
+      "steps": {
+        "accountability": {
+          "subtitle": "Pick what motivates you most",
+          "title": "How should we hold you accountable?"
+        },
+        "challenges": {
+          "subtitle": "Be honest — this helps us focus on what actually matters",
+          "title": "What are your biggest challenges?"
+        },
+        "lifestyle": {
+          "subtitle": "Select all that apply — we'll tailor advice around these",
+          "title": "Which describe your lifestyle?"
+        },
+        "motivations": {
+          "subtitle": "Select all that apply",
+          "title": "What drives you?"
+        },
+        "style": {
+          "subtitle": "Choose the communication style that feels right for you",
+          "title": "How would you like to be coached?"
+        }
+      },
+      "styles": {
+        "balanced": {
+          "desc": "Mix of all approaches",
+          "label": "Balanced"
+        },
+        "direct": {
+          "desc": "Tell me what to do — no fluff",
+          "label": "Direct"
+        },
+        "educational": {
+          "desc": "Explain the why behind every choice",
+          "label": "Educational"
+        },
+        "encouraging": {
+          "desc": "Positive reinforcement and support",
+          "label": "Encouraging"
+        }
+      }
+    },
+    "competitionPicker": {
+      "badgeCarbs": "Carbs",
+      "categories": {
+        "eggsShakes": "Eggs & Shakes",
+        "fish": "Fillet Fish",
+        "poultry": "Chicken & Turkey",
+        "redmeat": "Red Meat"
+      },
+      "gotIt": "got it!",
+      "headerAddTo": "Competition Prep Meals - Add to {{slot}}",
+      "howToAria": "How to use Performance & Competition Builder",
+      "info": {
+        "intro": "Pre-designed athlete meals optimized for lean muscle building and performance.",
+        "step1Label": "Select your protein category",
+        "step1Text": "(Chicken, Red Meat, Fish, Eggs)",
+        "step2Label": "Meals are tagged",
+        "step2Text": "with \"Carbs\" or \"P+V\" (Protein + Veggies)",
+        "step3Label": "Click any meal",
+        "step3Text": "to add it to your board instantly",
+        "step4Label": "All macros",
+        "step4Text": "are pre-calculated and ready to track",
+        "stepsLabel": "Steps:",
+        "tipLabel": "💡 Tip:",
+        "tipText": "Choose meals based on your daily carb targets - use \"Carbs\" meals when you need energy, and \"P+V\" meals for lower-carb days!",
+        "title": "How to Use Performance & Competition Builder"
+      },
+      "noteDesc": "Pre-designed athlete meals optimized for lean muscle building and performance.",
+      "noteStep1": "Select your protein category (Chicken, Red Meat, Fish, Eggs)",
+      "noteStep2": "Meals are tagged with \"Carbs\" or \"P+V\" (Protein + Veggies)",
+      "noteStep3": "Click any meal to add it to your board instantly",
+      "noteStep4": "All macros are pre-calculated and ready to track",
+      "noteTitle": "Competition Prep Meals",
+      "selectCategory": "Select Protein Category:",
+      "selectCategoryShort": "Select Category"
+    },
+    "complianceCard": {
+      "biggestOpportunity": "Biggest Opportunity",
+      "breakfastLogged": "Breakfast logged",
+      "caloriesOnTarget": "Calories on target",
+      "consistencyScore": "Consistency Score",
+      "days": "days",
+      "dinnerLogged": "Dinner logged",
+      "last7Days": "Last 7 days",
+      "lastNDays": "Last {{count}} days",
+      "loggedMeals": "Logged meals",
+      "lunchLogged": "Lunch logged",
+      "noActivity": "No nutrition activity recorded yet. Start logging meals to see your personalized activity summary here.",
+      "noMeals": "No meals logged yet. Start recording your meals to see your activity summary.",
+      "ofDays": "{{value}} of {{total}}",
+      "proteinGoalMet": "Protein goal met",
+      "setTargets": "Set your macro targets to activate full nutrition tracking.",
+      "title": "Nutrition Activity Summary"
+    },
+    "mealPicker": {
+      "addTo": "Add to {{slot}}",
+      "cafeteria": "Cafeteria",
+      "categories": {
+        "fats": "Fats",
+        "fibrousCarbs": "Fibrous Carbs",
+        "fruit": "Fruit",
+        "proteins": "Proteins",
+        "starchyCarbs": "Starchy Carbs"
+      },
+      "close": "Close",
+      "generate": "Generate",
+      "generateCount": "Generate ({{count}})",
+      "generating": "Generating…",
+      "gotIt": "got it!",
+      "howToAria": "How to use Meal Picker",
+      "info": {
+        "addLabel": "Click to add:",
+        "addText": "Tap any meal card to add it instantly to your {{slot}} slot",
+        "browseLabel": "Browse meals:",
+        "browseText": "Scroll through our curated meal templates",
+        "cafeteriaLabel": "Cafeteria option:",
+        "cafeteriaText": "Click \"Cafeteria\" for a quick random meal suggestion",
+        "intro": "Quick and easy way to add pre-made meals to your plan.",
+        "personalizedLabel": "Personalized:",
+        "personalizedText": "Meals are filtered based on your allergies and preferences",
+        "tipLabel": "💡 Tip:",
+        "tipText": "Use the Cafeteria button when you want a quick healthy suggestion without browsing!",
+        "title": "How to Use Meal Picker"
+      },
+      "lowerGlycemic": "Lower glycemic impact",
+      "quickMeal": "Quick {{slot}} Meal",
+      "regularGi": "Regular GI"
+    },
+    "mealReminders": {
+      "addReminder": "Add meal reminder",
+      "checkAgain": "Check again",
+      "checking": "Checking…",
+      "connectionDiagnostics": "Connection diagnostics",
+      "footerBlocked": "Set up times now — notifications will activate once permissions are granted.",
+      "footerDefault": "Up to 6 reminders. Tap a label to rename.",
+      "footerEnabled": "Keep your browser open for reliable delivery.",
+      "footerNative": "Tap a label to rename it. Reminders are delivered through the iOS app.",
+      "mealN": "Meal {{n}}",
+      "nativeDelivery": "Native iOS delivery",
+      "saving": "Saving…",
+      "statusBlocked": "Notifications blocked in browser",
+      "statusConnected": "Notifications connected",
+      "statusPartial": "Not fully connected — toggle a slot to finish setup",
+      "statusPending": "Toggle a slot to enable notifications",
+      "statusUnsupported": "Not supported by this browser",
+      "title": "Meal Reminders",
+      "toUnblock": "To unblock:",
+      "toastBlockedIosDesc": "Go to iPhone Settings › My Perfect Meals › Allow Notifications",
+      "toastBlockedTitle": "Notifications blocked",
+      "toastBlockedWebDesc": "Allow notifications via the lock icon in your address bar, then tap Check again.",
+      "toastEnableFailedTitle": "Couldn't enable notifications",
+      "toastNotSupportedDesc": "This browser doesn't support push notifications.",
+      "toastNotSupportedTitle": "Not supported",
+      "toastPermissionDenied": "Permission denied.",
+      "toastSaveFailed": "Couldn't save reminders",
+      "toastTryAgain": "Try again in a moment.",
+      "unblockAllow": "Allow",
+      "unblockLock": "🔒 lock",
+      "unblockNotifications": "Notifications",
+      "unblockStep1After": "in your browser's address bar",
+      "unblockStep1Before": "Click the",
+      "unblockStep2Before": "Set",
+      "unblockStep2Mid": "to",
+      "unblockStep3After": "below",
+      "unblockStep3Before": "Tap",
+      "unsupportedHint": "Try Chrome or Edge on desktop. Safari on iOS requires the app instead.",
+      "webDelivery": "Web push delivery"
+    }
+  },
+  "es": {
+    "athletePicker": {
+      "added": "¡Añadida!",
+      "addedCount": "{{count}} añadidas",
+      "addingTo": "Añadiendo a:",
+      "categories": {
+        "eggsShakes": "Huevos y batidos",
+        "fish": "Pescado en filete",
+        "poultry": "Pollo y pavo",
+        "redmeat": "Carne roja"
+      },
+      "copied": "¡Copiado!",
+      "copy": "Copiar",
+      "copyMealAria": "Copiar detalles de la comida",
+      "copySessionAria": "Copiar resumen de la sesión",
+      "done": "Listo",
+      "errorShort": "Error",
+      "fibrousNote": "Las verduras fibrosas no tienen límite; solo almidón (arroz, avena, patatas)",
+      "gotIt": "¡Entendido!",
+      "headerTitle": "Comidas de atleta listas — {{slot}}",
+      "hiddenCount_one": "{{count}} comida oculta — el almidón superaría {{cap}}g",
+      "hiddenCount_other": "{{count}} comidas ocultas — el almidón superaría {{cap}}g",
+      "howToAria": "Cómo usar el creador de comidas de atleta",
+      "info": {
+        "intro": "Comidas listas, optimizadas para rendimiento atlético y desarrollo muscular.",
+        "step1Label": "Elige tu categoría de proteína",
+        "step1Text": "(pollo, carne roja, pescado, huevos)",
+        "step2After": "es solo proteína + verduras fibrosas",
+        "step2Mid": "las comidas incluyen arroz, avena o patatas.",
+        "step3Label": "Toca cualquier comida",
+        "step3Text": "para añadirla al instante",
+        "step4Label": "Todos los macros",
+        "step4Text": "están calculados y listos para registrar",
+        "stepsLabel": "Pasos:",
+        "tipAfter": "comidas. Las verduras fibrosas siempre son ilimitadas.",
+        "tipBefore": "En días bajos en almidón usa",
+        "tipLabel": "💡 Consejo:",
+        "tipMid": "comidas. En días de recarga añade",
+        "title": "Cómo usar el creador de comidas de atleta"
+      },
+      "lowStarchDay": "Día bajo en almidón",
+      "mealCopyText": "{{title}} — {{cals}} cal · P {{protein}}g · A {{starch}}g · G {{fat}}g",
+      "noCoachConnection": "Sin conexión con el coach",
+      "noteDesc": "Comidas listas, optimizadas para rendimiento atlético y desarrollo muscular.",
+      "noteStep1": "Elige tu categoría de proteína (pollo, carne roja, pescado, huevos)",
+      "noteStep2After": "es solo proteína + verduras fibrosas",
+      "noteStep2Before": "Las comidas con etiqueta",
+      "noteStep2Mid": "incluyen arroz, avena o patatas;",
+      "noteStep3": "Toca cualquier comida para añadirla al instante",
+      "noteStep4": "Todos los macros están calculados y listos para registrar",
+      "noteTitle": "Comidas de atleta listas",
+      "refeedDay": "Día de recarga",
+      "selectCategory": "Elige categoría de proteína:",
+      "selectCategoryShort": "Elegir categoría",
+      "sendCoachAria": "Enviar resumen al coach",
+      "sendFailed": "Error al enviar, reinténtalo",
+      "sendToCoach": "Enviar al coach",
+      "sending": "Enviando…",
+      "sent": "¡Enviado!",
+      "sessionTotal": "Total de la sesión:",
+      "slots": {
+        "breakfast": "Desayuno",
+        "dinner": "Cena",
+        "lunch": "Almuerzo",
+        "meal4": "Comida 4",
+        "meal5": "Comida 5",
+        "meal6": "Comida 6",
+        "snacks": "Snacks"
+      },
+      "starch": "Almidón",
+      "starchAllocation": "Asignación de almidón",
+      "starchCap": "tope {{cap}}g almidón",
+      "starchUsage": "{{used}}g / {{cap}}g almidón",
+      "summaryText_one": "{{count}} comida añadida — {{cals}} cal · P {{protein}}g · C {{carbs}}g · G {{fat}}g",
+      "summaryText_other": "{{count}} comidas añadidas — {{cals}} cal · P {{protein}}g · C {{carbs}}g · G {{fat}}g",
+      "viewChatAria": "Ver mensaje en el chat del coach",
+      "viewInChat": "Ver en el chat"
+    },
+    "coachingSetup": {
+      "accountability": {
+        "encourage": {
+          "desc": "Apóyame cuando falle",
+          "label": "Anímame"
+        },
+        "pushHard": {
+          "desc": "Hazme responsable con rigor",
+          "label": "Exígeme"
+        },
+        "remind": {
+          "desc": "Con recordatorios suaves basta",
+          "label": "Solo recuérdamelo"
+        },
+        "selfDirected": {
+          "desc": "Yo me motivo",
+          "label": "Autónomo"
+        }
+      },
+      "back": "Atrás",
+      "challenges": {
+        "consistency": "Ser constante",
+        "cravings": "Antojos",
+        "emotionalEating": "Comer emocional",
+        "knowledge": "Saber qué comer",
+        "mealPrep": "Preparar comidas",
+        "motivation": "Motivación",
+        "socialPressure": "Presión social",
+        "time": "Falta de tiempo"
+      },
+      "error": "Algo salió mal. Inténtalo de nuevo.",
+      "lifestyle": {
+        "budgetConscious": "Cuido el gasto",
+        "busySchedule": "Agenda ocupada",
+        "frequentTravel": "Viajo mucho",
+        "parent": "Padre/cuidador",
+        "pickyEater": "Quisquilloso",
+        "shiftWorker": "Trabajo por turnos",
+        "socialEater": "Como en grupo",
+        "stressEater": "Como por estrés"
+      },
+      "loading": "Cargando tu perfil...",
+      "motivations": {
+        "athletic": "Rendimiento atlético",
+        "confidence": "Sentirme seguro",
+        "energy": "Más energía",
+        "family": "Salud familiar",
+        "longevity": "Longevidad",
+        "mentalClarity": "Claridad mental",
+        "weightLoss": "Perder peso"
+      },
+      "next": "Siguiente",
+      "saveProfile": "Guardar perfil",
+      "savedDesc": "Tu perfil de asesoría está listo.",
+      "savedTitle": "¡Perfil guardado!",
+      "saving": "Guardando...",
+      "steps": {
+        "accountability": {
+          "subtitle": "Elige lo que más te impulsa",
+          "title": "¿Cómo te motivamos?"
+        },
+        "challenges": {
+          "subtitle": "Sé sincero: nos ayuda a enfocarnos",
+          "title": "¿Tus mayores retos?"
+        },
+        "lifestyle": {
+          "subtitle": "Elige todo lo que aplique; adaptaremos los consejos",
+          "title": "¿Cómo es tu estilo de vida?"
+        },
+        "motivations": {
+          "subtitle": "Elige todo lo que aplique",
+          "title": "¿Qué te impulsa?"
+        },
+        "style": {
+          "subtitle": "Elige el estilo de comunicación que prefieras",
+          "title": "¿Cómo quieres tu asesoría?"
+        }
+      },
+      "styles": {
+        "balanced": {
+          "desc": "Mezcla de todos los enfoques",
+          "label": "Equilibrado"
+        },
+        "direct": {
+          "desc": "Dime qué hacer, sin rodeos",
+          "label": "Directo"
+        },
+        "educational": {
+          "desc": "Explica el porqué de cada decisión",
+          "label": "Educativo"
+        },
+        "encouraging": {
+          "desc": "Refuerzo positivo y apoyo",
+          "label": "Motivador"
+        }
+      }
+    },
+    "competitionPicker": {
+      "badgeCarbs": "Carbos",
+      "categories": {
+        "eggsShakes": "Huevos y batidos",
+        "fish": "Pescado en filete",
+        "poultry": "Pollo y pavo",
+        "redmeat": "Carne roja"
+      },
+      "gotIt": "¡Entendido!",
+      "headerAddTo": "Comidas de competición - Añadir a {{slot}}",
+      "howToAria": "Cómo usar el creador de competición",
+      "info": {
+        "intro": "Comidas de atleta listas, optimizadas para masa magra y rendimiento.",
+        "step1Label": "Elige tu categoría de proteína",
+        "step1Text": "(pollo, carne roja, pescado, huevos)",
+        "step2Label": "Las comidas se etiquetan",
+        "step2Text": "con \"Carbos\" o \"P+V\" (proteína + verduras)",
+        "step3Label": "Toca cualquier comida",
+        "step3Text": "para añadirla al instante",
+        "step4Label": "Todos los macros",
+        "step4Text": "están calculados y listos para registrar",
+        "stepsLabel": "Pasos:",
+        "tipLabel": "💡 Consejo:",
+        "tipText": "Elige según tus objetivos de carbos: comidas \"Carbos\" para energía y \"P+V\" para días bajos en carbos.",
+        "title": "Cómo usar el creador de competición"
+      },
+      "noteDesc": "Comidas de atleta listas, optimizadas para masa magra y rendimiento.",
+      "noteStep1": "Elige tu categoría de proteína (pollo, carne roja, pescado, huevos)",
+      "noteStep2": "Las comidas se etiquetan \"Carbos\" o \"P+V\" (proteína + verduras)",
+      "noteStep3": "Toca cualquier comida para añadirla al instante",
+      "noteStep4": "Todos los macros están calculados y listos para registrar",
+      "noteTitle": "Comidas de competición",
+      "selectCategory": "Elige categoría de proteína:",
+      "selectCategoryShort": "Elegir categoría"
+    },
+    "complianceCard": {
+      "biggestOpportunity": "Mayor oportunidad",
+      "breakfastLogged": "Desayuno registrado",
+      "caloriesOnTarget": "Calorías en meta",
+      "consistencyScore": "Puntaje de constancia",
+      "days": "días",
+      "dinnerLogged": "Cena registrada",
+      "last7Days": "Últimos 7 días",
+      "lastNDays": "Últimos {{count}} días",
+      "loggedMeals": "Comidas registradas",
+      "lunchLogged": "Almuerzo registrado",
+      "noActivity": "Aún no hay actividad. Registra comidas para ver tu resumen personalizado aquí.",
+      "noMeals": "Aún no hay comidas registradas. Registra tus comidas para ver tu resumen.",
+      "ofDays": "{{value}} de {{total}}",
+      "proteinGoalMet": "Meta de proteína",
+      "setTargets": "Fija tus objetivos de macros para activar el seguimiento completo.",
+      "title": "Resumen de actividad nutricional"
+    },
+    "mealPicker": {
+      "addTo": "Añadir a {{slot}}",
+      "cafeteria": "Cafetería",
+      "categories": {
+        "fats": "Grasas",
+        "fibrousCarbs": "Carbos fibrosos",
+        "fruit": "Fruta",
+        "proteins": "Proteínas",
+        "starchyCarbs": "Carbos con almidón"
+      },
+      "close": "Cerrar",
+      "generate": "Generar",
+      "generateCount": "Generar ({{count}})",
+      "generating": "Generando…",
+      "gotIt": "¡Entendido!",
+      "howToAria": "Cómo usar el selector de comidas",
+      "info": {
+        "addLabel": "Toca para añadir:",
+        "addText": "Toca cualquier tarjeta para añadirla a tu franja {{slot}}",
+        "browseLabel": "Explora comidas:",
+        "browseText": "Recorre nuestras plantillas de comidas",
+        "cafeteriaLabel": "Opción cafetería:",
+        "cafeteriaText": "Toca \"Cafetería\" para una sugerencia rápida al azar",
+        "intro": "Forma rápida de añadir comidas ya listas a tu plan.",
+        "personalizedLabel": "Personalizado:",
+        "personalizedText": "Filtramos según tus alergias y preferencias",
+        "tipLabel": "💡 Consejo:",
+        "tipText": "Usa Cafetería cuando quieras una sugerencia sana rápida sin buscar.",
+        "title": "Cómo usar el selector de comidas"
+      },
+      "lowerGlycemic": "Menor impacto glucémico",
+      "quickMeal": "Comida rápida de {{slot}}",
+      "regularGi": "IG normal"
+    },
+    "mealReminders": {
+      "addReminder": "Añadir recordatorio",
+      "checkAgain": "Comprobar de nuevo",
+      "checking": "Comprobando…",
+      "connectionDiagnostics": "Diagnóstico de conexión",
+      "footerBlocked": "Configura horarios ya; se activarán al conceder permisos.",
+      "footerDefault": "Hasta 6 recordatorios. Toca una etiqueta para renombrar.",
+      "footerEnabled": "Mantén el navegador abierto para una entrega fiable.",
+      "footerNative": "Toca una etiqueta para renombrar. Se entregan por la app iOS.",
+      "mealN": "Comida {{n}}",
+      "nativeDelivery": "Entrega nativa iOS",
+      "saving": "Guardando…",
+      "statusBlocked": "Notificaciones bloqueadas en el navegador",
+      "statusConnected": "Notificaciones conectadas",
+      "statusPartial": "Sin conectar del todo: activa una franja para terminar",
+      "statusPending": "Activa una franja para habilitar notificaciones",
+      "statusUnsupported": "No compatible con este navegador",
+      "title": "Recordatorios de comidas",
+      "toUnblock": "Para desbloquear:",
+      "toastBlockedIosDesc": "Ve a Ajustes del iPhone › My Perfect Meals › Permitir notificaciones",
+      "toastBlockedTitle": "Notificaciones bloqueadas",
+      "toastBlockedWebDesc": "Permite notificaciones con el candado de la barra y toca Comprobar de nuevo.",
+      "toastEnableFailedTitle": "No se activaron las notificaciones",
+      "toastNotSupportedDesc": "Este navegador no admite notificaciones push.",
+      "toastNotSupportedTitle": "No compatible",
+      "toastPermissionDenied": "Permiso denegado.",
+      "toastSaveFailed": "No se pudieron guardar",
+      "toastTryAgain": "Inténtalo en un momento.",
+      "unblockAllow": "Permitir",
+      "unblockLock": "🔒 candado",
+      "unblockNotifications": "Notificaciones",
+      "unblockStep1After": "en la barra de direcciones",
+      "unblockStep1Before": "Toca el",
+      "unblockStep2Before": "Pon",
+      "unblockStep2Mid": "en",
+      "unblockStep3After": "abajo",
+      "unblockStep3Before": "Toca",
+      "unsupportedHint": "Usa Chrome o Edge en el escritorio. Safari en iOS requiere la app.",
+      "webDelivery": "Entrega push web"
+    }
+  },
+  "fr": {
+    "athletePicker": {
+      "added": "Ajouté !",
+      "addedCount": "{{count}} ajoutés",
+      "addingTo": "Ajout à :",
+      "categories": {
+        "eggsShakes": "Œufs et shakes",
+        "fish": "Poisson en filet",
+        "poultry": "Poulet et dinde",
+        "redmeat": "Viande rouge"
+      },
+      "copied": "Copié !",
+      "copy": "Copier",
+      "copyMealAria": "Copier les détails du repas",
+      "copySessionAria": "Copier le résumé de session",
+      "done": "OK",
+      "errorShort": "Erreur",
+      "fibrousNote": "Légumes fibreux illimités — amidon seulement (riz, avoine, pommes de terre)",
+      "gotIt": "compris !",
+      "headerTitle": "Repas d'athlète prêts — {{slot}}",
+      "hiddenCount_one": "{{count}} repas masqué — l'amidon dépasserait {{cap}}g",
+      "hiddenCount_other": "{{count}} repas masqués — l'amidon dépasserait {{cap}}g",
+      "howToAria": "Utiliser le créateur de repas d'athlète",
+      "info": {
+        "intro": "Repas prêts, optimisés pour la performance sportive et la prise de muscle.",
+        "step1Label": "Choisis ta catégorie de protéine",
+        "step1Text": "(poulet, viande rouge, poisson, œufs)",
+        "step2After": "c'est protéine + légumes fibreux uniquement",
+        "step2Mid": "les repas incluent riz, avoine ou pommes de terre.",
+        "step3Label": "Touche un repas",
+        "step3Text": "pour l'ajouter instantanément",
+        "step4Label": "Tous les macros",
+        "step4Text": "sont calculés et prêts à suivre",
+        "stepsLabel": "Étapes :",
+        "tipAfter": "repas. Les légumes fibreux sont toujours illimités.",
+        "tipBefore": "Les jours pauvres en amidon, utilise",
+        "tipLabel": "💡 Astuce :",
+        "tipMid": "repas. Les jours de recharge, ajoute",
+        "title": "Utiliser le créateur de repas d'athlète"
+      },
+      "lowStarchDay": "Jour pauvre en amidon",
+      "mealCopyText": "{{title}} — {{cals}} cal · P {{protein}}g · A {{starch}}g · L {{fat}}g",
+      "noCoachConnection": "Aucun coach connecté",
+      "noteDesc": "Repas prêts, optimisés pour la performance sportive et la prise de muscle.",
+      "noteStep1": "Choisis ta catégorie de protéine (poulet, viande rouge, poisson, œufs)",
+      "noteStep2After": "c'est protéine + légumes fibreux uniquement",
+      "noteStep2Before": "Les repas étiquetés",
+      "noteStep2Mid": "incluent riz, avoine ou pommes de terre —",
+      "noteStep3": "Touche un repas pour l'ajouter instantanément",
+      "noteStep4": "Tous les macros sont calculés et prêts à suivre",
+      "noteTitle": "Repas d'athlète prêts",
+      "refeedDay": "Jour de recharge",
+      "selectCategory": "Choisis la catégorie de protéine :",
+      "selectCategoryShort": "Choisir une catégorie",
+      "sendCoachAria": "Envoyer le résumé au coach",
+      "sendFailed": "Échec de l'envoi, réessaie",
+      "sendToCoach": "Envoyer au coach",
+      "sending": "Envoi…",
+      "sent": "Envoyé !",
+      "sessionTotal": "Total de la session :",
+      "slots": {
+        "breakfast": "Petit-déj.",
+        "dinner": "Dîner",
+        "lunch": "Déjeuner",
+        "meal4": "Repas 4",
+        "meal5": "Repas 5",
+        "meal6": "Repas 6",
+        "snacks": "En-cas"
+      },
+      "starch": "Amidon",
+      "starchAllocation": "Allocation d'amidon",
+      "starchCap": "limite {{cap}}g amidon",
+      "starchUsage": "{{used}}g / {{cap}}g amidon",
+      "summaryText_one": "{{count}} repas ajouté — {{cals}} cal · P {{protein}}g · G {{carbs}}g · L {{fat}}g",
+      "summaryText_other": "{{count}} repas ajoutés — {{cals}} cal · P {{protein}}g · G {{carbs}}g · L {{fat}}g",
+      "viewChatAria": "Voir le message dans le chat coach",
+      "viewInChat": "Voir dans le chat"
+    },
+    "coachingSetup": {
+      "accountability": {
+        "encourage": {
+          "desc": "Soutiens-moi quand je flanche",
+          "label": "Encourage-moi"
+        },
+        "pushHard": {
+          "desc": "Sois strict sur mes objectifs",
+          "label": "Pousse-moi"
+        },
+        "remind": {
+          "desc": "De simples rappels suffisent",
+          "label": "Rappelle-moi"
+        },
+        "selfDirected": {
+          "desc": "Je me motive seul",
+          "label": "Autonome"
+        }
+      },
+      "back": "Retour",
+      "challenges": {
+        "consistency": "Rester régulier",
+        "cravings": "Envies",
+        "emotionalEating": "Manger émotionnel",
+        "knowledge": "Savoir quoi manger",
+        "mealPrep": "Préparer les repas",
+        "motivation": "Motivation",
+        "socialPressure": "Pression sociale",
+        "time": "Manque de temps"
+      },
+      "error": "Une erreur est survenue. Réessaie.",
+      "lifestyle": {
+        "budgetConscious": "Attentif au budget",
+        "busySchedule": "Emploi du temps chargé",
+        "frequentTravel": "Voyages fréquents",
+        "parent": "Parent/aidant",
+        "pickyEater": "Difficile",
+        "shiftWorker": "Travail posté",
+        "socialEater": "Mange en société",
+        "stressEater": "Mange sous stress"
+      },
+      "loading": "Chargement de ton profil...",
+      "motivations": {
+        "athletic": "Performance sportive",
+        "confidence": "Confiance en soi",
+        "energy": "Plus d'énergie",
+        "family": "Santé familiale",
+        "longevity": "Longévité",
+        "mentalClarity": "Clarté mentale",
+        "weightLoss": "Perte de poids"
+      },
+      "next": "Suivant",
+      "saveProfile": "Enregistrer le profil",
+      "savedDesc": "Ton profil d'accompagnement est prêt.",
+      "savedTitle": "Profil enregistré !",
+      "saving": "Enregistrement...",
+      "steps": {
+        "accountability": {
+          "subtitle": "Choisis ce qui te motive le plus",
+          "title": "Comment te responsabiliser ?"
+        },
+        "challenges": {
+          "subtitle": "Sois honnête, ça nous aide à cibler",
+          "title": "Tes plus grands défis ?"
+        },
+        "lifestyle": {
+          "subtitle": "Sélectionne tout ; on adaptera nos conseils",
+          "title": "Ton mode de vie ?"
+        },
+        "motivations": {
+          "subtitle": "Sélectionne tout ce qui s'applique",
+          "title": "Qu'est-ce qui te motive ?"
+        },
+        "style": {
+          "subtitle": "Choisis le style de communication qui te convient",
+          "title": "Quel accompagnement veux-tu ?"
+        }
+      },
+      "styles": {
+        "balanced": {
+          "desc": "Un mélange de toutes les approches",
+          "label": "Équilibré"
+        },
+        "direct": {
+          "desc": "Dis-moi quoi faire, sans détour",
+          "label": "Direct"
+        },
+        "educational": {
+          "desc": "Explique le pourquoi de chaque choix",
+          "label": "Pédagogique"
+        },
+        "encouraging": {
+          "desc": "Renforcement positif et soutien",
+          "label": "Encourageant"
+        }
+      }
+    },
+    "competitionPicker": {
+      "badgeCarbs": "Glucides",
+      "categories": {
+        "eggsShakes": "Œufs et shakes",
+        "fish": "Poisson en filet",
+        "poultry": "Poulet et dinde",
+        "redmeat": "Viande rouge"
+      },
+      "gotIt": "compris !",
+      "headerAddTo": "Repas de compétition - Ajouter à {{slot}}",
+      "howToAria": "Utiliser le créateur compétition",
+      "info": {
+        "intro": "Repas d'athlète prêts, optimisés pour la masse maigre et la performance.",
+        "step1Label": "Choisis ta catégorie de protéine",
+        "step1Text": "(poulet, viande rouge, poisson, œufs)",
+        "step2Label": "Les repas sont étiquetés",
+        "step2Text": "« Glucides » ou « P+V » (protéine + légumes)",
+        "step3Label": "Touche un repas",
+        "step3Text": "pour l'ajouter instantanément",
+        "step4Label": "Tous les macros",
+        "step4Text": "sont calculés et prêts à suivre",
+        "stepsLabel": "Étapes :",
+        "tipLabel": "💡 Astuce :",
+        "tipText": "Choisis selon tes objectifs de glucides : « Glucides » pour l'énergie, « P+V » pour les jours faibles en glucides.",
+        "title": "Utiliser le créateur compétition"
+      },
+      "noteDesc": "Repas d'athlète prêts, optimisés pour la masse maigre et la performance.",
+      "noteStep1": "Choisis ta catégorie de protéine (poulet, viande rouge, poisson, œufs)",
+      "noteStep2": "Les repas sont étiquetés « Glucides » ou « P+V » (protéine + légumes)",
+      "noteStep3": "Touche un repas pour l'ajouter instantanément",
+      "noteStep4": "Tous les macros sont calculés et prêts à suivre",
+      "noteTitle": "Repas de compétition",
+      "selectCategory": "Choisis la catégorie de protéine :",
+      "selectCategoryShort": "Choisir une catégorie"
+    },
+    "complianceCard": {
+      "biggestOpportunity": "Priorité principale",
+      "breakfastLogged": "Petit-déj. enregistré",
+      "caloriesOnTarget": "Calories dans la cible",
+      "consistencyScore": "Score de régularité",
+      "days": "jours",
+      "dinnerLogged": "Dîner enregistré",
+      "last7Days": "7 derniers jours",
+      "lastNDays": "{{count}} derniers jours",
+      "loggedMeals": "Repas enregistrés",
+      "lunchLogged": "Déjeuner enregistré",
+      "noActivity": "Aucune activité pour l'instant. Enregistre des repas pour voir ton résumé ici.",
+      "noMeals": "Aucun repas enregistré. Enregistre tes repas pour voir ton résumé.",
+      "ofDays": "{{value}} sur {{total}}",
+      "proteinGoalMet": "Objectif protéines",
+      "setTargets": "Définis tes objectifs de macros pour activer le suivi complet.",
+      "title": "Résumé d'activité nutritionnelle"
+    },
+    "mealPicker": {
+      "addTo": "Ajouter à {{slot}}",
+      "cafeteria": "Cafétéria",
+      "categories": {
+        "fats": "Lipides",
+        "fibrousCarbs": "Glucides fibreux",
+        "fruit": "Fruits",
+        "proteins": "Protéines",
+        "starchyCarbs": "Glucides amidonnés"
+      },
+      "close": "Fermer",
+      "generate": "Générer",
+      "generateCount": "Générer ({{count}})",
+      "generating": "Génération…",
+      "gotIt": "compris !",
+      "howToAria": "Utiliser le sélecteur de repas",
+      "info": {
+        "addLabel": "Toucher pour ajouter :",
+        "addText": "Touche une carte pour l'ajouter à ton créneau {{slot}}",
+        "browseLabel": "Parcourir :",
+        "browseText": "Parcours nos modèles de repas",
+        "cafeteriaLabel": "Option cafétéria :",
+        "cafeteriaText": "Touche « Cafétéria » pour une suggestion aléatoire rapide",
+        "intro": "Un moyen simple d'ajouter des repas prêts à ton plan.",
+        "personalizedLabel": "Personnalisé :",
+        "personalizedText": "Repas filtrés selon tes allergies et préférences",
+        "tipLabel": "💡 Astuce :",
+        "tipText": "Utilise Cafétéria pour une suggestion saine et rapide sans chercher.",
+        "title": "Utiliser le sélecteur de repas"
+      },
+      "lowerGlycemic": "Impact glycémique moindre",
+      "quickMeal": "Repas rapide {{slot}}",
+      "regularGi": "IG normal"
+    },
+    "mealReminders": {
+      "addReminder": "Ajouter un rappel",
+      "checkAgain": "Revérifier",
+      "checking": "Vérification…",
+      "connectionDiagnostics": "Diagnostic de connexion",
+      "footerBlocked": "Configure les horaires ; ça s'activera après l'autorisation.",
+      "footerDefault": "Jusqu'à 6 rappels. Touche un libellé pour renommer.",
+      "footerEnabled": "Garde le navigateur ouvert pour un envoi fiable.",
+      "footerNative": "Touche un libellé pour renommer. Envoi via l'app iOS.",
+      "mealN": "Repas {{n}}",
+      "nativeDelivery": "Envoi natif iOS",
+      "saving": "Enregistrement…",
+      "statusBlocked": "Notifications bloquées dans le navigateur",
+      "statusConnected": "Notifications connectées",
+      "statusPartial": "Pas totalement connecté — active un créneau pour finir",
+      "statusPending": "Active un créneau pour activer les notifications",
+      "statusUnsupported": "Non pris en charge par ce navigateur",
+      "title": "Rappels de repas",
+      "toUnblock": "Pour débloquer :",
+      "toastBlockedIosDesc": "Réglages iPhone › My Perfect Meals › Autoriser les notifications",
+      "toastBlockedTitle": "Notifications bloquées",
+      "toastBlockedWebDesc": "Autorise les notifications via le cadenas de la barre, puis touche Revérifier.",
+      "toastEnableFailedTitle": "Activation impossible",
+      "toastNotSupportedDesc": "Ce navigateur ne gère pas les notifications push.",
+      "toastNotSupportedTitle": "Non pris en charge",
+      "toastPermissionDenied": "Autorisation refusée.",
+      "toastSaveFailed": "Enregistrement impossible",
+      "toastTryAgain": "Réessaie dans un instant.",
+      "unblockAllow": "Autoriser",
+      "unblockLock": "🔒 cadenas",
+      "unblockNotifications": "Notifications",
+      "unblockStep1After": "dans la barre d'adresse",
+      "unblockStep1Before": "Touche le",
+      "unblockStep2Before": "Mets",
+      "unblockStep2Mid": "sur",
+      "unblockStep3After": "ci-dessous",
+      "unblockStep3Before": "Touche",
+      "unsupportedHint": "Utilise Chrome ou Edge sur ordinateur. Safari sur iOS requiert l'app.",
+      "webDelivery": "Envoi push web"
+    }
+  },
+  "hi": {
+    "athletePicker": {
+      "added": "जोड़ा गया!",
+      "addedCount": "{{count}} जोड़ा गया",
+      "addingTo": "जोड़ा जा रहा है:",
+      "categories": {
+        "eggsShakes": "अंडे और शेक",
+        "fish": "फ़िललेट मछली",
+        "poultry": "चिकन और टर्की",
+        "redmeat": "लाल मांस"
+      },
+      "copied": "कॉपी किया गया!",
+      "copy": "कॉपी करें",
+      "copyMealAria": "भोजन विवरण कॉपी करें",
+      "copySessionAria": "सत्र सारांश क्लिपबोर्ड पर कॉपी करें",
+      "done": "पूर्ण",
+      "errorShort": "त्रुटि",
+      "fibrousNote": "रेशेदार सब्जियां असीमित हैं — केवल स्टार्च (चावल, ओट्स, आलू)",
+      "gotIt": "समझ गया!",
+      "headerTitle": "पहले से बने एथलीट भोजन — {{slot}}",
+      "hiddenCount_one": "{{count}} भोजन छिपा — स्टार्च {{cap}}g से अधिक हो जाएगा",
+      "hiddenCount_other": "{{count}} भोजन छिपे — स्टार्च {{cap}}g से अधिक हो जाएगा",
+      "howToAria": "एथलीट भोजन निर्माता का उपयोग कैसे करें",
+      "info": {
+        "intro": "एथलेटिक प्रदर्शन और मांसपेशी निर्माण के लिए अनुकूलित पूर्व-डिज़ाइन किए गए भोजन।",
+        "step1Label": "अपनी प्रोटीन श्रेणी चुनें",
+        "step1Text": "(चिकन, लाल मांस, मछली, अंडे)",
+        "step2After": "केवल प्रोटीन + रेशेदार सब्जियां है",
+        "step2Mid": "भोजन में चावल, ओट्स, या आलू शामिल हैं।",
+        "step3Label": "किसी भी भोजन पर क्लिक करें",
+        "step3Text": "इसे तुरंत अपने बोर्ड में जोड़ने के लिए",
+        "step4Label": "सभी मैक्रो",
+        "step4Text": "पहले से गणना किए गए और ट्रैक करने के लिए तैयार हैं",
+        "stepsLabel": "चरण:",
+        "tipAfter": "भोजन। रेशेदार सब्जियां हमेशा असीमित होती हैं।",
+        "tipBefore": "कम-स्टार्च दिनों में, उपयोग करें",
+        "tipLabel": "💡 सुझाव:",
+        "tipMid": "भोजन। रीफ़ीड दिनों में, जोड़ें",
+        "title": "एथलीट भोजन निर्माता का उपयोग कैसे करें"
+      },
+      "lowStarchDay": "कम-स्टार्च दिन",
+      "mealCopyText": "{{title}} — {{cals}} कैलोरी · P {{protein}}g · S {{starch}}g · F {{fat}}g",
+      "noCoachConnection": "कोई सक्रिय कोच कनेक्शन नहीं",
+      "noteDesc": "एथलेटिक प्रदर्शन और मांसपेशी निर्माण के लिए अनुकूलित पूर्व-डिज़ाइन किए गए भोजन।",
+      "noteStep1": "अपनी प्रोटीन श्रेणी चुनें (चिकन, लाल मांस, मछली, अंडे)",
+      "noteStep2After": "केवल प्रोटीन + रेशेदार सब्जियां है",
+      "noteStep2Before": "टैग किए गए भोजन",
+      "noteStep2Mid": "में चावल, ओट्स, या आलू शामिल हैं —",
+      "noteStep3": "इसे तुरंत अपने बोर्ड में जोड़ने के लिए किसी भी भोजन पर क्लिक करें",
+      "noteStep4": "सभी मैक्रो पहले से गणना किए गए और ट्रैक करने के लिए तैयार हैं",
+      "noteTitle": "पहले से बने एथलीट भोजन",
+      "refeedDay": "रीफ़ीड दिन",
+      "selectCategory": "प्रोटीन श्रेणी चुनें:",
+      "selectCategoryShort": "श्रेणी चुनें",
+      "sendCoachAria": "सत्र सारांश कोच को भेजें",
+      "sendFailed": "भेजने में विफल — पुनः प्रयास करें",
+      "sendToCoach": "कोच को भेजें",
+      "sending": "भेजा जा रहा है…",
+      "sent": "भेजा गया!",
+      "sessionTotal": "सत्र कुल:",
+      "slots": {
+        "breakfast": "नाश्ता",
+        "dinner": "रात का भोजन",
+        "lunch": "दोपहर का भोजन",
+        "meal4": "भोजन 4",
+        "meal5": "भोजन 5",
+        "meal6": "भोजन 6",
+        "snacks": "स्नैक्स"
+      },
+      "starch": "स्टार्च",
+      "starchAllocation": "स्टार्च आवंटन",
+      "starchCap": "{{cap}}g स्टार्च सीमा",
+      "starchUsage": "{{used}}g / {{cap}}g स्टार्च",
+      "summaryText_one": "{{count}} भोजन जोड़ा गया — {{cals}} कैलोरी · P {{protein}}g · C {{carbs}}g · F {{fat}}g",
+      "summaryText_other": "{{count}} भोजन जोड़े गए — {{cals}} कैलोरी · P {{protein}}g · C {{carbs}}g · F {{fat}}g",
+      "viewChatAria": "कोच चैट में संदेश देखें",
+      "viewInChat": "चैट में देखें"
+    },
+    "coachingSetup": {
+      "accountability": {
+        "encourage": {
+          "desc": "जब मैं चूकूं तो मेरा उत्साह बढ़ाएं",
+          "label": "मुझे प्रोत्साहित करें"
+        },
+        "pushHard": {
+          "desc": "मुझे सख्ती से जवाबदेह रखें",
+          "label": "मुझे कठोरता से प्रेरित करें"
+        },
+        "remind": {
+          "desc": "हल्के संकेत ही काफी हैं",
+          "label": "बस मुझे याद दिलाएं"
+        },
+        "selfDirected": {
+          "desc": "मैं खुद को प्रेरित करता हूं",
+          "label": "स्व-निर्देशित"
+        }
+      },
+      "back": "वापस",
+      "challenges": {
+        "consistency": "निरंतरता बनाए रखना",
+        "cravings": "लालसा",
+        "emotionalEating": "भावनात्मक भोजन",
+        "knowledge": "क्या खाना है यह जानना",
+        "mealPrep": "भोजन तैयारी",
+        "motivation": "प्रेरणा",
+        "socialPressure": "सामाजिक दबाव",
+        "time": "पर्याप्त समय नहीं"
+      },
+      "error": "कुछ गलत हो गया। कृपया पुनः प्रयास करें।",
+      "lifestyle": {
+        "budgetConscious": "बजट के प्रति सजग",
+        "busySchedule": "व्यस्त दिनचर्या",
+        "frequentTravel": "बार-बार यात्रा",
+        "parent": "माता-पिता / देखभालकर्ता",
+        "pickyEater": "चूजी खाने वाला",
+        "shiftWorker": "शिफ्ट कर्मचारी",
+        "socialEater": "सामाजिक भोजनकर्ता",
+        "stressEater": "तनाव में खाने वाला"
+      },
+      "loading": "आपकी प्रोफ़ाइल लोड हो रही है...",
+      "motivations": {
+        "athletic": "एथलेटिक प्रदर्शन",
+        "confidence": "आत्मविश्वास महसूस करना",
+        "energy": "अधिक ऊर्जा",
+        "family": "पारिवारिक स्वास्थ्य",
+        "longevity": "दीर्घायु",
+        "mentalClarity": "मानसिक स्पष्टता",
+        "weightLoss": "वजन घटाना"
+      },
+      "next": "अगला",
+      "saveProfile": "प्रोफ़ाइल सहेजें",
+      "savedDesc": "आपकी कोचिंग प्रोफ़ाइल तैयार है।",
+      "savedTitle": "प्रोफ़ाइल सहेजी गई!",
+      "saving": "सहेजा जा रहा है...",
+      "steps": {
+        "accountability": {
+          "subtitle": "वह चुनें जो आपको सबसे अधिक प्रेरित करता है",
+          "title": "हम आपको कैसे जवाबदेह रखें?"
+        },
+        "challenges": {
+          "subtitle": "ईमानदार रहें — यह हमें उस पर ध्यान केंद्रित करने में मदद करता है जो वास्तव में मायने रखता है",
+          "title": "आपकी सबसे बड़ी चुनौतियां क्या हैं?"
+        },
+        "lifestyle": {
+          "subtitle": "जो भी लागू हो सभी चुनें — हम इनके आसपास सलाह तैयार करेंगे",
+          "title": "कौन सी आपकी जीवनशैली का वर्णन करती है?"
+        },
+        "motivations": {
+          "subtitle": "जो भी लागू हो सभी चुनें",
+          "title": "आपको क्या प्रेरित करता है?"
+        },
+        "style": {
+          "subtitle": "वह संचार शैली चुनें जो आपके लिए सही लगे",
+          "title": "आप कैसे कोचिंग पाना चाहेंगे?"
+        }
+      },
+      "styles": {
+        "balanced": {
+          "desc": "सभी दृष्टिकोणों का मिश्रण",
+          "label": "संतुलित"
+        },
+        "direct": {
+          "desc": "मुझे बताएं क्या करना है — कोई लाग-लपेट नहीं",
+          "label": "प्रत्यक्ष"
+        },
+        "educational": {
+          "desc": "हर विकल्प के पीछे का कारण समझाएं",
+          "label": "शैक्षिक"
+        },
+        "encouraging": {
+          "desc": "सकारात्मक प्रोत्साहन और समर्थन",
+          "label": "प्रोत्साहक"
+        }
+      }
+    },
+    "competitionPicker": {
+      "badgeCarbs": "कार्ब्स",
+      "categories": {
+        "eggsShakes": "अंडे और शेक",
+        "fish": "फ़िललेट मछली",
+        "poultry": "चिकन और टर्की",
+        "redmeat": "लाल मांस"
+      },
+      "gotIt": "समझ गया!",
+      "headerAddTo": "प्रतियोगिता तैयारी भोजन - {{slot}} में जोड़ें",
+      "howToAria": "प्रदर्शन और प्रतियोगिता निर्माता का उपयोग कैसे करें",
+      "info": {
+        "intro": "दुबली मांसपेशी निर्माण और प्रदर्शन के लिए अनुकूलित पूर्व-डिज़ाइन किए गए एथलीट भोजन।",
+        "step1Label": "अपनी प्रोटीन श्रेणी चुनें",
+        "step1Text": "(चिकन, लाल मांस, मछली, अंडे)",
+        "step2Label": "भोजन को टैग किया गया है",
+        "step2Text": "«कार्ब्स» या «P+V» (प्रोटीन + सब्जियां) के साथ",
+        "step3Label": "किसी भी भोजन पर क्लिक करें",
+        "step3Text": "इसे तुरंत अपने बोर्ड में जोड़ने के लिए",
+        "step4Label": "सभी मैक्रो",
+        "step4Text": "पहले से गणना किए गए और ट्रैक करने के लिए तैयार हैं",
+        "stepsLabel": "चरण:",
+        "tipLabel": "💡 सुझाव:",
+        "tipText": "अपने दैनिक कार्ब लक्ष्यों के आधार पर भोजन चुनें - जब आपको ऊर्जा की आवश्यकता हो तो «कार्ब्स» भोजन का उपयोग करें, और कम-कार्ब दिनों के लिए «P+V» भोजन!",
+        "title": "प्रदर्शन और प्रतियोगिता निर्माता का उपयोग कैसे करें"
+      },
+      "noteDesc": "दुबली मांसपेशी निर्माण और प्रदर्शन के लिए अनुकूलित पूर्व-डिज़ाइन किए गए एथलीट भोजन।",
+      "noteStep1": "अपनी प्रोटीन श्रेणी चुनें (चिकन, लाल मांस, मछली, अंडे)",
+      "noteStep2": "भोजन को «कार्ब्स» या «P+V» (प्रोटीन + सब्जियां) के साथ टैग किया गया है",
+      "noteStep3": "इसे तुरंत अपने बोर्ड में जोड़ने के लिए किसी भी भोजन पर क्लिक करें",
+      "noteStep4": "सभी मैक्रो पहले से गणना किए गए और ट्रैक करने के लिए तैयार हैं",
+      "noteTitle": "प्रतियोगिता तैयारी भोजन",
+      "selectCategory": "प्रोटीन श्रेणी चुनें:",
+      "selectCategoryShort": "श्रेणी चुनें"
+    },
+    "complianceCard": {
+      "biggestOpportunity": "सबसे बड़ा अवसर",
+      "breakfastLogged": "नाश्ता लॉग किया गया",
+      "caloriesOnTarget": "कैलोरी लक्ष्य पर",
+      "consistencyScore": "निरंतरता स्कोर",
+      "days": "दिन",
+      "dinnerLogged": "रात का भोजन लॉग किया गया",
+      "last7Days": "पिछले 7 दिन",
+      "lastNDays": "पिछले {{count}} दिन",
+      "loggedMeals": "लॉग किए गए भोजन",
+      "lunchLogged": "दोपहर का भोजन लॉग किया गया",
+      "noActivity": "अभी तक कोई पोषण गतिविधि दर्ज नहीं की गई। यहां अपना व्यक्तिगत गतिविधि सारांश देखने के लिए भोजन लॉग करना शुरू करें।",
+      "noMeals": "अभी तक कोई भोजन लॉग नहीं किया गया। अपनी गतिविधि सारांश देखने के लिए अपने भोजन रिकॉर्ड करना शुरू करें।",
+      "ofDays": "{{total}} में से {{value}}",
+      "proteinGoalMet": "प्रोटीन लक्ष्य पूरा",
+      "setTargets": "पूर्ण पोषण ट्रैकिंग सक्रिय करने के लिए अपने मैक्रो लक्ष्य निर्धारित करें।",
+      "title": "पोषण गतिविधि सारांश"
+    },
+    "mealPicker": {
+      "addTo": "{{slot}} में जोड़ें",
+      "cafeteria": "कैफेटेरिया",
+      "categories": {
+        "fats": "वसा",
+        "fibrousCarbs": "रेशेदार कार्ब्स",
+        "fruit": "फल",
+        "proteins": "प्रोटीन",
+        "starchyCarbs": "स्टार्चयुक्त कार्ब्स"
+      },
+      "close": "बंद करें",
+      "generate": "उत्पन्न करें",
+      "generateCount": "उत्पन्न करें ({{count}})",
+      "generating": "उत्पन्न हो रहा है…",
+      "gotIt": "समझ गया!",
+      "howToAria": "भोजन चयनकर्ता का उपयोग कैसे करें",
+      "info": {
+        "addLabel": "जोड़ने के लिए क्लिक करें:",
+        "addText": "इसे तुरंत अपने {{slot}} स्लॉट में जोड़ने के लिए किसी भी भोजन कार्ड पर टैप करें",
+        "browseLabel": "भोजन ब्राउज़ करें:",
+        "browseText": "हमारे चुनिंदा भोजन टेम्पलेट्स के माध्यम से स्क्रॉल करें",
+        "cafeteriaLabel": "कैफेटेरिया विकल्प:",
+        "cafeteriaText": "त्वरित यादृच्छिक भोजन सुझाव के लिए «कैफेटेरिया» पर क्लिक करें",
+        "intro": "अपनी योजना में पहले से बने भोजन जोड़ने का त्वरित और आसान तरीका।",
+        "personalizedLabel": "व्यक्तिगत:",
+        "personalizedText": "भोजन आपकी एलर्जी और प्राथमिकताओं के आधार पर फ़िल्टर किए जाते हैं",
+        "tipLabel": "💡 सुझाव:",
+        "tipText": "जब आप बिना ब्राउज़ किए त्वरित स्वस्थ सुझाव चाहते हैं तो कैफेटेरिया बटन का उपयोग करें!",
+        "title": "भोजन चयनकर्ता का उपयोग कैसे करें"
+      },
+      "lowerGlycemic": "कम ग्लाइसेमिक प्रभाव",
+      "quickMeal": "त्वरित {{slot}} भोजन",
+      "regularGi": "सामान्य GI"
+    },
+    "mealReminders": {
+      "addReminder": "भोजन रिमाइंडर जोड़ें",
+      "checkAgain": "पुनः जांचें",
+      "checking": "जांच हो रही है…",
+      "connectionDiagnostics": "कनेक्शन डायग्नोस्टिक्स",
+      "footerBlocked": "अभी समय सेट करें — अनुमति मिलते ही सूचनाएं सक्रिय हो जाएंगी।",
+      "footerDefault": "6 रिमाइंडर तक। नाम बदलने के लिए लेबल पर टैप करें।",
+      "footerEnabled": "विश्वसनीय डिलीवरी के लिए अपना ब्राउज़र खुला रखें।",
+      "footerNative": "नाम बदलने के लिए लेबल पर टैप करें। रिमाइंडर iOS ऐप के माध्यम से दिए जाते हैं।",
+      "mealN": "भोजन {{n}}",
+      "nativeDelivery": "मूल iOS डिलीवरी",
+      "saving": "सहेजा जा रहा है…",
+      "statusBlocked": "ब्राउज़र में सूचनाएं अवरुद्ध",
+      "statusConnected": "सूचनाएं जुड़ी हुई हैं",
+      "statusPartial": "पूरी तरह से जुड़ा नहीं — सेटअप पूरा करने के लिए एक स्लॉट टॉगल करें",
+      "statusPending": "सूचनाएं सक्षम करने के लिए एक स्लॉट टॉगल करें",
+      "statusUnsupported": "इस ब्राउज़र द्वारा समर्थित नहीं",
+      "title": "भोजन रिमाइंडर",
+      "toUnblock": "अनब्लॉक करने के लिए:",
+      "toastBlockedIosDesc": "iPhone सेटिंग्स › My Perfect Meals › सूचनाओं की अनुमति दें पर जाएं",
+      "toastBlockedTitle": "सूचनाएं अवरुद्ध",
+      "toastBlockedWebDesc": "अपने एड्रेस बार में लॉक आइकन के माध्यम से सूचनाओं की अनुमति दें, फिर पुनः जांचें पर टैप करें।",
+      "toastEnableFailedTitle": "सूचनाएं सक्षम नहीं की जा सकीं",
+      "toastNotSupportedDesc": "यह ब्राउज़र पुश सूचनाओं का समर्थन नहीं करता।",
+      "toastNotSupportedTitle": "समर्थित नहीं",
+      "toastPermissionDenied": "अनुमति अस्वीकृत।",
+      "toastSaveFailed": "रिमाइंडर सहेजे नहीं जा सके",
+      "toastTryAgain": "एक पल में पुनः प्रयास करें।",
+      "unblockAllow": "अनुमति दें",
+      "unblockLock": "🔒 लॉक",
+      "unblockNotifications": "सूचनाएं",
+      "unblockStep1After": "अपने ब्राउज़र के एड्रेस बार में",
+      "unblockStep1Before": "क्लिक करें",
+      "unblockStep2Before": "सेट करें",
+      "unblockStep2Mid": "को",
+      "unblockStep3After": "नीचे",
+      "unblockStep3Before": "टैप करें",
+      "unsupportedHint": "डेस्कटॉप पर Chrome या Edge आज़माएं। iOS पर Safari के लिए ऐप की आवश्यकता है।",
+      "webDelivery": "वेब पुश डिलीवरी"
+    }
+  },
+  "it": {
+    "athletePicker": {
+      "added": "Aggiunto!",
+      "addedCount": "{{count}} aggiunti",
+      "addingTo": "Aggiungi a:",
+      "categories": {
+        "eggsShakes": "Uova e shake",
+        "fish": "Pesce a filetto",
+        "poultry": "Pollo e tacchino",
+        "redmeat": "Carne rossa"
+      },
+      "copied": "Copiato!",
+      "copy": "Copia",
+      "copyMealAria": "Copia i dettagli del pasto",
+      "copySessionAria": "Copia il riepilogo della sessione",
+      "done": "Fatto",
+      "errorShort": "Errore",
+      "fibrousNote": "Verdure fibrose illimitate — solo amido (riso, avena, patate)",
+      "gotIt": "capito!",
+      "headerTitle": "Pasti da atleta pronti — {{slot}}",
+      "hiddenCount_one": "{{count}} pasto nascosto — l'amido supererebbe {{cap}}g",
+      "hiddenCount_other": "{{count}} pasti nascosti — l'amido supererebbe {{cap}}g",
+      "howToAria": "Usare il builder pasti da atleta",
+      "info": {
+        "intro": "Pasti pronti, ottimizzati per prestazione atletica e sviluppo muscolare.",
+        "step1Label": "Scegli la categoria proteica",
+        "step1Text": "(pollo, carne rossa, pesce, uova)",
+        "step2After": "è solo proteina + verdure fibrose",
+        "step2Mid": "i pasti includono riso, avena o patate.",
+        "step3Label": "Tocca un pasto",
+        "step3Text": "per aggiungerlo subito",
+        "step4Label": "Tutti i macro",
+        "step4Text": "sono calcolati e pronti da tracciare",
+        "stepsLabel": "Passi:",
+        "tipAfter": "pasti. Le verdure fibrose sono sempre illimitate.",
+        "tipBefore": "Nei giorni a basso amido usa",
+        "tipLabel": "💡 Suggerimento:",
+        "tipMid": "pasti. Nei giorni di ricarica aggiungi",
+        "title": "Usare il builder pasti da atleta"
+      },
+      "lowStarchDay": "Giorno a basso amido",
+      "mealCopyText": "{{title}} — {{cals}} cal · P {{protein}}g · A {{starch}}g · G {{fat}}g",
+      "noCoachConnection": "Nessun coach connesso",
+      "noteDesc": "Pasti pronti, ottimizzati per prestazione atletica e sviluppo muscolare.",
+      "noteStep1": "Scegli la categoria proteica (pollo, carne rossa, pesce, uova)",
+      "noteStep2After": "è solo proteina + verdure fibrose",
+      "noteStep2Before": "I pasti con etichetta",
+      "noteStep2Mid": "includono riso, avena o patate —",
+      "noteStep3": "Tocca un pasto per aggiungerlo subito",
+      "noteStep4": "Tutti i macro sono calcolati e pronti da tracciare",
+      "noteTitle": "Pasti da atleta pronti",
+      "refeedDay": "Giorno di ricarica",
+      "selectCategory": "Scegli categoria proteica:",
+      "selectCategoryShort": "Scegli categoria",
+      "sendCoachAria": "Invia il riepilogo al coach",
+      "sendFailed": "Invio non riuscito, riprova",
+      "sendToCoach": "Invia al coach",
+      "sending": "Invio…",
+      "sent": "Inviato!",
+      "sessionTotal": "Totale sessione:",
+      "slots": {
+        "breakfast": "Colazione",
+        "dinner": "Cena",
+        "lunch": "Pranzo",
+        "meal4": "Pasto 4",
+        "meal5": "Pasto 5",
+        "meal6": "Pasto 6",
+        "snacks": "Snack"
+      },
+      "starch": "Amido",
+      "starchAllocation": "Quota di amido",
+      "starchCap": "limite {{cap}}g amido",
+      "starchUsage": "{{used}}g / {{cap}}g amido",
+      "summaryText_one": "{{count}} pasto aggiunto — {{cals}} cal · P {{protein}}g · C {{carbs}}g · G {{fat}}g",
+      "summaryText_other": "{{count}} pasti aggiunti — {{cals}} cal · P {{protein}}g · C {{carbs}}g · G {{fat}}g",
+      "viewChatAria": "Vedi il messaggio nella chat coach",
+      "viewInChat": "Vedi in chat"
+    },
+    "coachingSetup": {
+      "accountability": {
+        "encourage": {
+          "desc": "Sostienimi quando cedo",
+          "label": "Incoraggiami"
+        },
+        "pushHard": {
+          "desc": "Sii severo sugli obiettivi",
+          "label": "Spingimi"
+        },
+        "remind": {
+          "desc": "Bastano promemoria gentili",
+          "label": "Solo ricordamelo"
+        },
+        "selfDirected": {
+          "desc": "Mi motivo da solo",
+          "label": "Autonomo"
+        }
+      },
+      "back": "Indietro",
+      "challenges": {
+        "consistency": "Essere costante",
+        "cravings": "Voglie",
+        "emotionalEating": "Fame emotiva",
+        "knowledge": "Sapere cosa mangiare",
+        "mealPrep": "Preparare i pasti",
+        "motivation": "Motivazione",
+        "socialPressure": "Pressione sociale",
+        "time": "Poco tempo"
+      },
+      "error": "Qualcosa è andato storto. Riprova.",
+      "lifestyle": {
+        "budgetConscious": "Attento al budget",
+        "busySchedule": "Agenda piena",
+        "frequentTravel": "Viaggio spesso",
+        "parent": "Genitore/caregiver",
+        "pickyEater": "Schizzinoso",
+        "shiftWorker": "Lavoro a turni",
+        "socialEater": "Mangio in compagnia",
+        "stressEater": "Mangio per stress"
+      },
+      "loading": "Caricamento profilo...",
+      "motivations": {
+        "athletic": "Prestazione sportiva",
+        "confidence": "Sentirmi sicuro",
+        "energy": "Più energia",
+        "family": "Salute della famiglia",
+        "longevity": "Longevità",
+        "mentalClarity": "Lucidità mentale",
+        "weightLoss": "Perdere peso"
+      },
+      "next": "Avanti",
+      "saveProfile": "Salva profilo",
+      "savedDesc": "Il tuo profilo di coaching è pronto.",
+      "savedTitle": "Profilo salvato!",
+      "saving": "Salvataggio...",
+      "steps": {
+        "accountability": {
+          "subtitle": "Scegli ciò che ti motiva di più",
+          "title": "Come teniamo il tuo impegno?"
+        },
+        "challenges": {
+          "subtitle": "Sii sincero: ci aiuta a puntare al punto",
+          "title": "Le tue sfide più grandi?"
+        },
+        "lifestyle": {
+          "subtitle": "Seleziona tutto; adatteremo i consigli",
+          "title": "Il tuo stile di vita?"
+        },
+        "motivations": {
+          "subtitle": "Seleziona tutto ciò che vale",
+          "title": "Cosa ti spinge?"
+        },
+        "style": {
+          "subtitle": "Scegli lo stile di comunicazione giusto per te",
+          "title": "Come vuoi essere seguito?"
+        }
+      },
+      "styles": {
+        "balanced": {
+          "desc": "Un mix di tutti gli approcci",
+          "label": "Equilibrato"
+        },
+        "direct": {
+          "desc": "Dimmi cosa fare, senza giri",
+          "label": "Diretto"
+        },
+        "educational": {
+          "desc": "Spiega il perché di ogni scelta",
+          "label": "Educativo"
+        },
+        "encouraging": {
+          "desc": "Rinforzo positivo e supporto",
+          "label": "Incoraggiante"
+        }
+      }
+    },
+    "competitionPicker": {
+      "badgeCarbs": "Carbo",
+      "categories": {
+        "eggsShakes": "Uova e shake",
+        "fish": "Pesce a filetto",
+        "poultry": "Pollo e tacchino",
+        "redmeat": "Carne rossa"
+      },
+      "gotIt": "capito!",
+      "headerAddTo": "Pasti da gara - Aggiungi a {{slot}}",
+      "howToAria": "Usare il builder gara",
+      "info": {
+        "intro": "Pasti da atleta pronti, ottimizzati per massa magra e prestazione.",
+        "step1Label": "Scegli la categoria proteica",
+        "step1Text": "(pollo, carne rossa, pesce, uova)",
+        "step2Label": "I pasti sono etichettati",
+        "step2Text": "\"Carbo\" o \"P+V\" (proteina + verdure)",
+        "step3Label": "Tocca un pasto",
+        "step3Text": "per aggiungerlo subito",
+        "step4Label": "Tutti i macro",
+        "step4Text": "sono calcolati e pronti da tracciare",
+        "stepsLabel": "Passi:",
+        "tipLabel": "💡 Suggerimento:",
+        "tipText": "Scegli in base ai tuoi carbo: \"Carbo\" per energia, \"P+V\" per giorni low-carb.",
+        "title": "Usare il builder gara"
+      },
+      "noteDesc": "Pasti da atleta pronti, ottimizzati per massa magra e prestazione.",
+      "noteStep1": "Scegli la categoria proteica (pollo, carne rossa, pesce, uova)",
+      "noteStep2": "I pasti sono etichettati \"Carbo\" o \"P+V\" (proteina + verdure)",
+      "noteStep3": "Tocca un pasto per aggiungerlo subito",
+      "noteStep4": "Tutti i macro sono calcolati e pronti da tracciare",
+      "noteTitle": "Pasti da gara",
+      "selectCategory": "Scegli categoria proteica:",
+      "selectCategoryShort": "Scegli categoria"
+    },
+    "complianceCard": {
+      "biggestOpportunity": "Priorità principale",
+      "breakfastLogged": "Colazione registrata",
+      "caloriesOnTarget": "Calorie nel target",
+      "consistencyScore": "Punteggio costanza",
+      "days": "giorni",
+      "dinnerLogged": "Cena registrata",
+      "last7Days": "Ultimi 7 giorni",
+      "lastNDays": "Ultimi {{count}} giorni",
+      "loggedMeals": "Pasti registrati",
+      "lunchLogged": "Pranzo registrato",
+      "noActivity": "Nessuna attività ancora. Registra i pasti per vedere qui il tuo riepilogo.",
+      "noMeals": "Nessun pasto registrato. Registra i pasti per vedere il riepilogo.",
+      "ofDays": "{{value}} di {{total}}",
+      "proteinGoalMet": "Obiettivo proteine",
+      "setTargets": "Imposta gli obiettivi macro per attivare il tracciamento completo.",
+      "title": "Riepilogo attività nutrizionale"
+    },
+    "mealPicker": {
+      "addTo": "Aggiungi a {{slot}}",
+      "cafeteria": "Mensa",
+      "categories": {
+        "fats": "Grassi",
+        "fibrousCarbs": "Carbo fibrosi",
+        "fruit": "Frutta",
+        "proteins": "Proteine",
+        "starchyCarbs": "Carbo amidacei"
+      },
+      "close": "Chiudi",
+      "generate": "Genera",
+      "generateCount": "Genera ({{count}})",
+      "generating": "Generazione…",
+      "gotIt": "capito!",
+      "howToAria": "Usare il selettore pasti",
+      "info": {
+        "addLabel": "Tocca per aggiungere:",
+        "addText": "Tocca una scheda per aggiungerla allo slot {{slot}}",
+        "browseLabel": "Sfoglia i pasti:",
+        "browseText": "Scorri i nostri modelli di pasto",
+        "cafeteriaLabel": "Opzione mensa:",
+        "cafeteriaText": "Tocca \"Mensa\" per un suggerimento casuale veloce",
+        "intro": "Modo rapido per aggiungere pasti pronti al tuo piano.",
+        "personalizedLabel": "Personalizzato:",
+        "personalizedText": "Pasti filtrati in base ad allergie e preferenze",
+        "tipLabel": "💡 Suggerimento:",
+        "tipText": "Usa Mensa per un suggerimento sano e veloce senza cercare.",
+        "title": "Usare il selettore pasti"
+      },
+      "lowerGlycemic": "Minore impatto glicemico",
+      "quickMeal": "Pasto veloce {{slot}}",
+      "regularGi": "IG normale"
+    },
+    "mealReminders": {
+      "addReminder": "Aggiungi promemoria",
+      "checkAgain": "Ricontrolla",
+      "checking": "Controllo…",
+      "connectionDiagnostics": "Diagnostica connessione",
+      "footerBlocked": "Imposta gli orari ora; si attiveranno dopo il permesso.",
+      "footerDefault": "Fino a 6 promemoria. Tocca un'etichetta per rinominare.",
+      "footerEnabled": "Tieni il browser aperto per una consegna affidabile.",
+      "footerNative": "Tocca un'etichetta per rinominare. Consegna tramite l'app iOS.",
+      "mealN": "Pasto {{n}}",
+      "nativeDelivery": "Consegna nativa iOS",
+      "saving": "Salvataggio…",
+      "statusBlocked": "Notifiche bloccate nel browser",
+      "statusConnected": "Notifiche connesse",
+      "statusPartial": "Non del tutto connesso: attiva uno slot per finire",
+      "statusPending": "Attiva uno slot per abilitare le notifiche",
+      "statusUnsupported": "Non supportato da questo browser",
+      "title": "Promemoria pasti",
+      "toUnblock": "Per sbloccare:",
+      "toastBlockedIosDesc": "Impostazioni iPhone › My Perfect Meals › Consenti notifiche",
+      "toastBlockedTitle": "Notifiche bloccate",
+      "toastBlockedWebDesc": "Consenti le notifiche dal lucchetto nella barra, poi tocca Ricontrolla.",
+      "toastEnableFailedTitle": "Impossibile attivare le notifiche",
+      "toastNotSupportedDesc": "Questo browser non supporta le notifiche push.",
+      "toastNotSupportedTitle": "Non supportato",
+      "toastPermissionDenied": "Permesso negato.",
+      "toastSaveFailed": "Impossibile salvare",
+      "toastTryAgain": "Riprova tra poco.",
+      "unblockAllow": "Consenti",
+      "unblockLock": "🔒 lucchetto",
+      "unblockNotifications": "Notifiche",
+      "unblockStep1After": "nella barra degli indirizzi",
+      "unblockStep1Before": "Tocca il",
+      "unblockStep2Before": "Imposta",
+      "unblockStep2Mid": "su",
+      "unblockStep3After": "sotto",
+      "unblockStep3Before": "Tocca",
+      "unsupportedHint": "Usa Chrome o Edge su desktop. Safari su iOS richiede l'app.",
+      "webDelivery": "Consegna push web"
+    }
+  },
+  "ja": {
+    "athletePicker": {
+      "added": "追加済み！",
+      "addedCount": "{{count}}件追加",
+      "addingTo": "追加先：",
+      "categories": {
+        "eggsShakes": "卵・シェイク",
+        "fish": "切り身魚",
+        "poultry": "鶏肉・七面鳥",
+        "redmeat": "赤身肉"
+      },
+      "copied": "コピー済み！",
+      "copy": "コピー",
+      "copyMealAria": "食事の詳細をコピー",
+      "copySessionAria": "セッション概要をコピー",
+      "done": "完了",
+      "errorShort": "エラー",
+      "fibrousNote": "食物繊維野菜は無制限—でんぷんのみ（米、オーツ、いも）",
+      "gotIt": "了解！",
+      "headerTitle": "既製アスリート食 — {{slot}}",
+      "hiddenCount_one": "{{count}}食非表示—でんぷんが{{cap}}gを超えます",
+      "hiddenCount_other": "{{count}}食非表示—でんぷんが{{cap}}gを超えます",
+      "howToAria": "アスリート食ビルダーの使い方",
+      "info": {
+        "intro": "競技パフォーマンスと筋肥大に最適化した既製食。",
+        "step1Label": "タンパク質カテゴリを選択",
+        "step1Text": "（鶏、赤身、魚、卵）",
+        "step2After": "はタンパク質＋食物繊維野菜のみ",
+        "step2Mid": "の食事は米・オーツ・いもを含む。",
+        "step3Label": "食事をタップ",
+        "step3Text": "してすぐボードに追加",
+        "step4Label": "マクロ",
+        "step4Text": "は計算済みで追跡可能",
+        "stepsLabel": "手順：",
+        "tipAfter": "食を追加。食物繊維野菜は常に無制限。",
+        "tipBefore": "低でんぷん日は",
+        "tipLabel": "💡 ヒント：",
+        "tipMid": "食を。リフィード日は",
+        "title": "アスリート食ビルダーの使い方"
+      },
+      "lowStarchDay": "低でんぷん日",
+      "mealCopyText": "{{title}} — {{cals}} kcal · P {{protein}}g · S {{starch}}g · F {{fat}}g",
+      "noCoachConnection": "有効なコーチ接続なし",
+      "noteDesc": "競技パフォーマンスと筋肥大に最適化した既製食。",
+      "noteStep1": "タンパク質カテゴリを選択（鶏、赤身、魚、卵）",
+      "noteStep2After": "はタンパク質＋食物繊維野菜のみ",
+      "noteStep2Before": "表示が",
+      "noteStep2Mid": "の食事は米・オーツ・いもを含む—",
+      "noteStep3": "食事をタップしてすぐボードに追加",
+      "noteStep4": "マクロは計算済みで追跡可能",
+      "noteTitle": "既製アスリート食",
+      "refeedDay": "リフィード日",
+      "selectCategory": "タンパク質カテゴリを選択：",
+      "selectCategoryShort": "カテゴリを選択",
+      "sendCoachAria": "概要をコーチに送信",
+      "sendFailed": "送信失敗、再試行を",
+      "sendToCoach": "コーチに送信",
+      "sending": "送信中…",
+      "sent": "送信済み！",
+      "sessionTotal": "セッション合計：",
+      "slots": {
+        "breakfast": "朝食",
+        "dinner": "夕食",
+        "lunch": "昼食",
+        "meal4": "食事4",
+        "meal5": "食事5",
+        "meal6": "食事6",
+        "snacks": "間食"
+      },
+      "starch": "でんぷん",
+      "starchAllocation": "でんぷん配分",
+      "starchCap": "でんぷん上限 {{cap}}g",
+      "starchUsage": "{{used}}g / {{cap}}g でんぷん",
+      "summaryText_one": "{{count}}食追加 — {{cals}} kcal · P {{protein}}g · C {{carbs}}g · F {{fat}}g",
+      "summaryText_other": "{{count}}食追加 — {{cals}} kcal · P {{protein}}g · C {{carbs}}g · F {{fat}}g",
+      "viewChatAria": "コーチチャットでメッセージを見る",
+      "viewInChat": "チャットで見る"
+    },
+    "coachingSetup": {
+      "accountability": {
+        "encourage": {
+          "desc": "くじけたら励まして",
+          "label": "応援して"
+        },
+        "pushHard": {
+          "desc": "厳しく目標を管理して",
+          "label": "厳しく"
+        },
+        "remind": {
+          "desc": "軽い通知で十分",
+          "label": "リマインドだけ"
+        },
+        "selfDirected": {
+          "desc": "自分で自分をやる気にする",
+          "label": "自主的"
+        }
+      },
+      "back": "戻る",
+      "challenges": {
+        "consistency": "継続する",
+        "cravings": "食欲",
+        "emotionalEating": "感情的な食事",
+        "knowledge": "何を食べるか",
+        "mealPrep": "作り置き",
+        "motivation": "モチベ",
+        "socialPressure": "周囲の影響",
+        "time": "時間不足"
+      },
+      "error": "問題が発生しました。もう一度お試しください。",
+      "lifestyle": {
+        "budgetConscious": "予算重視",
+        "busySchedule": "多忙な予定",
+        "frequentTravel": "よく出張",
+        "parent": "親・介護者",
+        "pickyEater": "好き嫌い",
+        "shiftWorker": "シフト勤務",
+        "socialEater": "外食が多い",
+        "stressEater": "ストレス食い"
+      },
+      "loading": "プロフィールを読み込み中…",
+      "motivations": {
+        "athletic": "競技パフォーマンス",
+        "confidence": "自信を持つ",
+        "energy": "活力アップ",
+        "family": "家族の健康",
+        "longevity": "長寿",
+        "mentalClarity": "頭の明晰さ",
+        "weightLoss": "減量"
+      },
+      "next": "次へ",
+      "saveProfile": "プロフィールを保存",
+      "savedDesc": "コーチングプロフィールの準備完了。",
+      "savedTitle": "保存しました！",
+      "saving": "保存中…",
+      "steps": {
+        "accountability": {
+          "subtitle": "一番やる気が出る方法を選んで",
+          "title": "どう管理する？"
+        },
+        "challenges": {
+          "subtitle": "正直に。重要な点に集中できます",
+          "title": "最大の課題は？"
+        },
+        "lifestyle": {
+          "subtitle": "全て選択。助言を最適化します",
+          "title": "生活スタイルは？"
+        },
+        "motivations": {
+          "subtitle": "当てはまるものを全て選択",
+          "title": "あなたの原動力は？"
+        },
+        "style": {
+          "subtitle": "しっくりくる伝え方を選んで",
+          "title": "どんな指導が良い？"
+        }
+      },
+      "styles": {
+        "balanced": {
+          "desc": "すべての方法をミックス",
+          "label": "バランス"
+        },
+        "direct": {
+          "desc": "やるべきことを率直に教えて",
+          "label": "ストレート"
+        },
+        "educational": {
+          "desc": "選択の理由を説明して",
+          "label": "解説"
+        },
+        "encouraging": {
+          "desc": "前向きな声かけとサポート",
+          "label": "励まし"
+        }
+      }
+    },
+    "competitionPicker": {
+      "badgeCarbs": "糖質",
+      "categories": {
+        "eggsShakes": "卵・シェイク",
+        "fish": "切り身魚",
+        "poultry": "鶏肉・七面鳥",
+        "redmeat": "赤身肉"
+      },
+      "gotIt": "了解！",
+      "headerAddTo": "大会準備食 - {{slot}}に追加",
+      "howToAria": "パフォーマンス＆大会ビルダーの使い方",
+      "info": {
+        "intro": "除脂肪と成果に最適化した既製アスリート食。",
+        "step1Label": "タンパク質カテゴリを選択",
+        "step1Text": "（鶏、赤身、魚、卵）",
+        "step2Label": "食事は表示",
+        "step2Text": "「糖質」か「P+V」（タンパク質＋野菜）",
+        "step3Label": "食事をタップ",
+        "step3Text": "してすぐボードに追加",
+        "step4Label": "マクロ",
+        "step4Text": "は計算済みで追跡可能",
+        "stepsLabel": "手順：",
+        "tipLabel": "💡 ヒント：",
+        "tipText": "糖質目標に合わせて選択：エネルギーには「糖質」、低糖質日は「P+V」。",
+        "title": "パフォーマンス＆大会ビルダーの使い方"
+      },
+      "noteDesc": "除脂肪と成果に最適化した既製アスリート食。",
+      "noteStep1": "タンパク質カテゴリを選択（鶏、赤身、魚、卵）",
+      "noteStep2": "食事は「糖質」か「P+V」（タンパク質＋野菜）で表示",
+      "noteStep3": "食事をタップしてすぐボードに追加",
+      "noteStep4": "マクロは計算済みで追跡可能",
+      "noteTitle": "大会準備食",
+      "selectCategory": "タンパク質カテゴリを選択：",
+      "selectCategoryShort": "カテゴリを選択"
+    },
+    "complianceCard": {
+      "biggestOpportunity": "最大の改善点",
+      "breakfastLogged": "朝食記録",
+      "caloriesOnTarget": "カロリー達成",
+      "consistencyScore": "継続スコア",
+      "days": "日",
+      "dinnerLogged": "夕食記録",
+      "last7Days": "過去7日間",
+      "lastNDays": "過去{{count}}日間",
+      "loggedMeals": "食事記録",
+      "lunchLogged": "昼食記録",
+      "noActivity": "まだ記録がありません。食事を記録すると概要が表示されます。",
+      "noMeals": "食事の記録がありません。記録すると概要が表示されます。",
+      "ofDays": "{{value}} / {{total}}",
+      "proteinGoalMet": "タンパク質達成",
+      "setTargets": "マクロ目標を設定すると完全な追跡が有効になります。",
+      "title": "栄養アクティビティ概要"
+    },
+    "mealPicker": {
+      "addTo": "{{slot}}に追加",
+      "cafeteria": "おまかせ",
+      "categories": {
+        "fats": "脂質",
+        "fibrousCarbs": "食物繊維糖質",
+        "fruit": "果物",
+        "proteins": "タンパク質",
+        "starchyCarbs": "でんぷん質糖質"
+      },
+      "close": "閉じる",
+      "generate": "生成",
+      "generateCount": "生成（{{count}}）",
+      "generating": "生成中…",
+      "gotIt": "了解！",
+      "howToAria": "食事ピッカーの使い方",
+      "info": {
+        "addLabel": "タップで追加：",
+        "addText": "カードをタップして{{slot}}枠にすぐ追加",
+        "browseLabel": "食事を見る：",
+        "browseText": "厳選した食事テンプレを閲覧",
+        "cafeteriaLabel": "おまかせ：",
+        "cafeteriaText": "「おまかせ」で手早くランダム提案",
+        "intro": "できあいの食事をプランに手早く追加。",
+        "personalizedLabel": "パーソナライズ：",
+        "personalizedText": "アレルギーと好みで食事を絞り込み",
+        "tipLabel": "💡 ヒント：",
+        "tipText": "探さず手早く健康的な提案が欲しい時はおまかせを。",
+        "title": "食事ピッカーの使い方"
+      },
+      "lowerGlycemic": "血糖への影響が低め",
+      "quickMeal": "クイック{{slot}}",
+      "regularGi": "通常GI"
+    },
+    "mealReminders": {
+      "addReminder": "リマインダーを追加",
+      "checkAgain": "再確認",
+      "checking": "確認中…",
+      "connectionDiagnostics": "接続診断",
+      "footerBlocked": "時間を設定しましょう。権限付与後に有効化されます。",
+      "footerDefault": "最大6件。ラベルをタップで名称変更。",
+      "footerEnabled": "確実な配信のためブラウザを開いたままに。",
+      "footerNative": "ラベルをタップで名称変更。iOSアプリで配信されます。",
+      "mealN": "食事{{n}}",
+      "nativeDelivery": "iOSネイティブ配信",
+      "saving": "保存中…",
+      "statusBlocked": "ブラウザで通知がブロック中",
+      "statusConnected": "通知が接続済み",
+      "statusPartial": "未完了—枠をオンにして設定を完了",
+      "statusPending": "枠をオンにして通知を有効化",
+      "statusUnsupported": "このブラウザは非対応",
+      "title": "食事リマインダー",
+      "toUnblock": "解除するには：",
+      "toastBlockedIosDesc": "iPhone設定 › My Perfect Meals › 通知を許可",
+      "toastBlockedTitle": "通知がブロック中",
+      "toastBlockedWebDesc": "アドレスバーの鍵アイコンから通知を許可し、再確認をタップ。",
+      "toastEnableFailedTitle": "通知を有効にできません",
+      "toastNotSupportedDesc": "このブラウザはプッシュ通知に対応していません。",
+      "toastNotSupportedTitle": "非対応",
+      "toastPermissionDenied": "権限が拒否されました。",
+      "toastSaveFailed": "リマインダーを保存できません",
+      "toastTryAgain": "少し待って再試行してください。",
+      "unblockAllow": "許可",
+      "unblockLock": "🔒 鍵",
+      "unblockNotifications": "通知",
+      "unblockStep1After": "をタップ",
+      "unblockStep1Before": "アドレスバーの",
+      "unblockStep2Before": "",
+      "unblockStep2Mid": "を",
+      "unblockStep3After": "をタップ",
+      "unblockStep3Before": "下の",
+      "unsupportedHint": "デスクトップのChromeかEdgeを使用。iOSのSafariはアプリが必要です。",
+      "webDelivery": "Webプッシュ配信"
+    }
+  },
+  "ko": {
+    "athletePicker": {
+      "added": "추가됨!",
+      "addedCount": "{{count}}개 추가",
+      "addingTo": "추가 대상:",
+      "categories": {
+        "eggsShakes": "달걀·셰이크",
+        "fish": "필렛 생선",
+        "poultry": "닭고기·칠면조",
+        "redmeat": "붉은 고기"
+      },
+      "copied": "복사됨!",
+      "copy": "복사",
+      "copyMealAria": "식사 상세 복사",
+      "copySessionAria": "세션 요약 복사",
+      "done": "완료",
+      "errorShort": "오류",
+      "fibrousNote": "섬유 채소는 무제한 — 전분만(쌀, 귀리, 감자)",
+      "gotIt": "확인!",
+      "headerTitle": "완성 선수 식사 — {{slot}}",
+      "hiddenCount_one": "{{count}}개 숨김 — 전분이 {{cap}}g을 초과",
+      "hiddenCount_other": "{{count}}개 숨김 — 전분이 {{cap}}g을 초과",
+      "howToAria": "선수 식사 빌더 사용법",
+      "info": {
+        "intro": "운동 퍼포먼스와 근육 성장에 최적화된 완성 식사.",
+        "step1Label": "단백질 카테고리 선택",
+        "step1Text": "(닭, 붉은 고기, 생선, 달걀)",
+        "step2After": "는 단백질+섬유 채소만",
+        "step2Mid": "식사는 쌀·귀리·감자 포함.",
+        "step3Label": "식사를 누르기",
+        "step3Text": "보드에 바로 추가",
+        "step4Label": "모든 매크로",
+        "step4Text": "계산되어 추적 준비 완료",
+        "stepsLabel": "단계:",
+        "tipAfter": "식사를 추가. 섬유 채소는 항상 무제한.",
+        "tipBefore": "저전분일엔",
+        "tipLabel": "💡 팁:",
+        "tipMid": "식사를. 리피드일엔",
+        "title": "선수 식사 빌더 사용법"
+      },
+      "lowStarchDay": "저전분일",
+      "mealCopyText": "{{title}} — {{cals}} kcal · P {{protein}}g · S {{starch}}g · F {{fat}}g",
+      "noCoachConnection": "활성 코치 연결 없음",
+      "noteDesc": "운동 퍼포먼스와 근육 성장에 최적화된 완성 식사.",
+      "noteStep1": "단백질 카테고리 선택(닭, 붉은 고기, 생선, 달걀)",
+      "noteStep2After": "는 단백질+섬유 채소만",
+      "noteStep2Before": "표시가",
+      "noteStep2Mid": "인 식사는 쌀·귀리·감자 포함 —",
+      "noteStep3": "식사를 눌러 보드에 바로 추가",
+      "noteStep4": "모든 매크로가 계산되어 추적 준비 완료",
+      "noteTitle": "완성 선수 식사",
+      "refeedDay": "리피드 데이",
+      "selectCategory": "단백질 카테고리 선택:",
+      "selectCategoryShort": "카테고리 선택",
+      "sendCoachAria": "세션 요약을 코치에게 전송",
+      "sendFailed": "전송 실패, 다시 시도",
+      "sendToCoach": "코치에게 전송",
+      "sending": "전송 중…",
+      "sent": "전송됨!",
+      "sessionTotal": "세션 합계:",
+      "slots": {
+        "breakfast": "아침",
+        "dinner": "저녁",
+        "lunch": "점심",
+        "meal4": "식사 4",
+        "meal5": "식사 5",
+        "meal6": "식사 6",
+        "snacks": "간식"
+      },
+      "starch": "전분",
+      "starchAllocation": "전분 배분",
+      "starchCap": "전분 상한 {{cap}}g",
+      "starchUsage": "{{used}}g / {{cap}}g 전분",
+      "summaryText_one": "{{count}}개 추가됨 — {{cals}} kcal · P {{protein}}g · C {{carbs}}g · F {{fat}}g",
+      "summaryText_other": "{{count}}개 추가됨 — {{cals}} kcal · P {{protein}}g · C {{carbs}}g · F {{fat}}g",
+      "viewChatAria": "코치 채팅에서 메시지 보기",
+      "viewInChat": "채팅에서 보기"
+    },
+    "coachingSetup": {
+      "accountability": {
+        "encourage": {
+          "desc": "흔들릴 때 응원해줘요",
+          "label": "응원해줘요"
+        },
+        "pushHard": {
+          "desc": "엄격하게 관리해줘요",
+          "label": "강하게 밀어줘요"
+        },
+        "remind": {
+          "desc": "가벼운 알림이면 충분해요",
+          "label": "알림만 줘요"
+        },
+        "selfDirected": {
+          "desc": "스스로 동기부여해요",
+          "label": "자기주도"
+        }
+      },
+      "back": "뒤로",
+      "challenges": {
+        "consistency": "꾸준함 유지",
+        "cravings": "식욕",
+        "emotionalEating": "감정적 식사",
+        "knowledge": "뭘 먹을지 모름",
+        "mealPrep": "식단 준비",
+        "motivation": "동기",
+        "socialPressure": "사회적 압박",
+        "time": "시간 부족"
+      },
+      "error": "문제가 발생했어요. 다시 시도해 주세요.",
+      "lifestyle": {
+        "budgetConscious": "예산 중시",
+        "busySchedule": "바쁜 일정",
+        "frequentTravel": "잦은 출장",
+        "parent": "부모/돌봄자",
+        "pickyEater": "편식",
+        "shiftWorker": "교대 근무",
+        "socialEater": "모임 식사 잦음",
+        "stressEater": "스트레스성 식사"
+      },
+      "loading": "프로필 불러오는 중…",
+      "motivations": {
+        "athletic": "운동 능력",
+        "confidence": "자신감",
+        "energy": "활력 증진",
+        "family": "가족 건강",
+        "longevity": "장수",
+        "mentalClarity": "정신적 명료함",
+        "weightLoss": "체중 감량"
+      },
+      "next": "다음",
+      "saveProfile": "프로필 저장",
+      "savedDesc": "코칭 프로필이 준비됐어요.",
+      "savedTitle": "프로필 저장됨!",
+      "saving": "저장 중…",
+      "steps": {
+        "accountability": {
+          "subtitle": "가장 동기부여되는 방식을 골라요",
+          "title": "어떻게 관리해 드릴까요?"
+        },
+        "challenges": {
+          "subtitle": "솔직하게—핵심에 집중하도록 도와줘요",
+          "title": "가장 큰 어려움은?"
+        },
+        "lifestyle": {
+          "subtitle": "모두 선택하면 조언을 맞춰드려요",
+          "title": "생활 방식은?"
+        },
+        "motivations": {
+          "subtitle": "해당되는 것 모두 선택",
+          "title": "무엇이 당신을 움직이나요?"
+        },
+        "style": {
+          "subtitle": "편한 소통 방식을 골라요",
+          "title": "어떤 코칭을 원하세요?"
+        }
+      },
+      "styles": {
+        "balanced": {
+          "desc": "모든 방식을 골고루",
+          "label": "균형형"
+        },
+        "direct": {
+          "desc": "뭘 할지 군더더기 없이 알려줘요",
+          "label": "직설적"
+        },
+        "educational": {
+          "desc": "모든 선택의 이유를 설명해요",
+          "label": "설명형"
+        },
+        "encouraging": {
+          "desc": "긍정적 지지와 응원",
+          "label": "격려형"
+        }
+      }
+    },
+    "competitionPicker": {
+      "badgeCarbs": "탄수",
+      "categories": {
+        "eggsShakes": "달걀·셰이크",
+        "fish": "필렛 생선",
+        "poultry": "닭고기·칠면조",
+        "redmeat": "붉은 고기"
+      },
+      "gotIt": "확인!",
+      "headerAddTo": "대회 준비 식사 - {{slot}}에 추가",
+      "howToAria": "퍼포먼스 & 대회 빌더 사용법",
+      "info": {
+        "intro": "제지방과 퍼포먼스에 최적화된 완성 선수 식사.",
+        "step1Label": "단백질 카테고리 선택",
+        "step1Text": "(닭, 붉은 고기, 생선, 달걀)",
+        "step2Label": "식사 표시",
+        "step2Text": "「탄수」 또는 「P+V」(단백질+채소)",
+        "step3Label": "식사를 누르기",
+        "step3Text": "보드에 바로 추가",
+        "step4Label": "모든 매크로",
+        "step4Text": "계산되어 추적 준비 완료",
+        "stepsLabel": "단계:",
+        "tipLabel": "💡 팁:",
+        "tipText": "탄수 목표에 맞게 선택: 에너지엔 「탄수」, 저탄수일엔 「P+V」.",
+        "title": "퍼포먼스 & 대회 빌더 사용법"
+      },
+      "noteDesc": "제지방과 퍼포먼스에 최적화된 완성 선수 식사.",
+      "noteStep1": "단백질 카테고리 선택(닭, 붉은 고기, 생선, 달걀)",
+      "noteStep2": "식사는 「탄수」 또는 「P+V」(단백질+채소)로 표시",
+      "noteStep3": "식사를 눌러 보드에 바로 추가",
+      "noteStep4": "모든 매크로가 계산되어 추적 준비 완료",
+      "noteTitle": "대회 준비 식사",
+      "selectCategory": "단백질 카테고리 선택:",
+      "selectCategoryShort": "카테고리 선택"
+    },
+    "complianceCard": {
+      "biggestOpportunity": "가장 큰 개선점",
+      "breakfastLogged": "아침 기록",
+      "caloriesOnTarget": "칼로리 달성",
+      "consistencyScore": "꾸준함 점수",
+      "days": "일",
+      "dinnerLogged": "저녁 기록",
+      "last7Days": "최근 7일",
+      "lastNDays": "최근 {{count}}일",
+      "loggedMeals": "식사 기록",
+      "lunchLogged": "점심 기록",
+      "noActivity": "아직 활동이 없어요. 식사를 기록하면 요약이 표시돼요.",
+      "noMeals": "기록된 식사가 없어요. 식사를 기록하면 요약이 표시돼요.",
+      "ofDays": "{{value}} / {{total}}",
+      "proteinGoalMet": "단백질 달성",
+      "setTargets": "매크로 목표를 설정하면 전체 추적이 켜져요.",
+      "title": "영양 활동 요약"
+    },
+    "mealPicker": {
+      "addTo": "{{slot}}에 추가",
+      "cafeteria": "랜덤 추천",
+      "categories": {
+        "fats": "지방",
+        "fibrousCarbs": "섬유 탄수",
+        "fruit": "과일",
+        "proteins": "단백질",
+        "starchyCarbs": "전분 탄수"
+      },
+      "close": "닫기",
+      "generate": "생성",
+      "generateCount": "생성 ({{count}})",
+      "generating": "생성 중…",
+      "gotIt": "확인!",
+      "howToAria": "식사 선택기 사용법",
+      "info": {
+        "addLabel": "눌러서 추가:",
+        "addText": "카드를 눌러 {{slot}} 슬롯에 바로 추가",
+        "browseLabel": "식사 둘러보기:",
+        "browseText": "엄선한 식사 템플릿을 살펴보세요",
+        "cafeteriaLabel": "랜덤 추천:",
+        "cafeteriaText": "「랜덤 추천」으로 빠른 무작위 제안",
+        "intro": "미리 만든 식사를 계획에 빠르게 추가해요.",
+        "personalizedLabel": "맞춤형:",
+        "personalizedText": "알레르기와 선호에 따라 식사를 필터링",
+        "tipLabel": "💡 팁:",
+        "tipText": "둘러보기 없이 빠른 건강 제안이 필요하면 랜덤 추천을 쓰세요.",
+        "title": "식사 선택기 사용법"
+      },
+      "lowerGlycemic": "혈당 영향 낮음",
+      "quickMeal": "빠른 {{slot}} 식사",
+      "regularGi": "일반 GI"
+    },
+    "mealReminders": {
+      "addReminder": "식사 알림 추가",
+      "checkAgain": "다시 확인",
+      "checking": "확인 중…",
+      "connectionDiagnostics": "연결 진단",
+      "footerBlocked": "시간을 먼저 설정하세요. 권한 부여 후 활성화돼요.",
+      "footerDefault": "최대 6개. 라벨을 눌러 이름 변경.",
+      "footerEnabled": "안정적 전송을 위해 브라우저를 열어 두세요.",
+      "footerNative": "라벨을 눌러 이름 변경. iOS 앱으로 전송돼요.",
+      "mealN": "식사 {{n}}",
+      "nativeDelivery": "iOS 네이티브 전송",
+      "saving": "저장 중…",
+      "statusBlocked": "브라우저에서 알림 차단됨",
+      "statusConnected": "알림 연결됨",
+      "statusPartial": "완전히 연결 안 됨 — 슬롯을 켜서 설정 완료",
+      "statusPending": "슬롯을 켜서 알림을 활성화",
+      "statusUnsupported": "이 브라우저는 미지원",
+      "title": "식사 알림",
+      "toUnblock": "차단 해제하려면:",
+      "toastBlockedIosDesc": "iPhone 설정 › My Perfect Meals › 알림 허용",
+      "toastBlockedTitle": "알림이 차단됨",
+      "toastBlockedWebDesc": "주소창 자물쇠에서 알림을 허용한 뒤 다시 확인을 누르세요.",
+      "toastEnableFailedTitle": "알림을 켤 수 없어요",
+      "toastNotSupportedDesc": "이 브라우저는 푸시 알림을 지원하지 않아요.",
+      "toastNotSupportedTitle": "미지원",
+      "toastPermissionDenied": "권한이 거부됐어요.",
+      "toastSaveFailed": "알림을 저장할 수 없어요",
+      "toastTryAgain": "잠시 후 다시 시도하세요.",
+      "unblockAllow": "허용",
+      "unblockLock": "🔒 자물쇠",
+      "unblockNotifications": "알림",
+      "unblockStep1After": "를 누르세요",
+      "unblockStep1Before": "주소창의",
+      "unblockStep2Before": "",
+      "unblockStep2Mid": "을",
+      "unblockStep3After": "누르기",
+      "unblockStep3Before": "아래의",
+      "unsupportedHint": "데스크톱에서 Chrome이나 Edge를 사용하세요. iOS Safari는 앱이 필요해요.",
+      "webDelivery": "웹 푸시 전송"
+    }
+  },
+  "pt": {
+    "athletePicker": {
+      "added": "Adicionada!",
+      "addedCount": "{{count}} adicionadas",
+      "addingTo": "Adicionando a:",
+      "categories": {
+        "eggsShakes": "Ovos e shakes",
+        "fish": "Peixe em filé",
+        "poultry": "Frango e peru",
+        "redmeat": "Carne vermelha"
+      },
+      "copied": "Copiado!",
+      "copy": "Copiar",
+      "copyMealAria": "Copiar detalhes da refeição",
+      "copySessionAria": "Copiar resumo da sessão",
+      "done": "Concluir",
+      "errorShort": "Erro",
+      "fibrousNote": "Vegetais fibrosos são ilimitados — só amido (arroz, aveia, batata)",
+      "gotIt": "entendi!",
+      "headerTitle": "Refeições de atleta prontas — {{slot}}",
+      "hiddenCount_one": "{{count}} refeição oculta — o amido passaria de {{cap}}g",
+      "hiddenCount_other": "{{count}} refeições ocultas — o amido passaria de {{cap}}g",
+      "howToAria": "Usar o criador de refeições de atleta",
+      "info": {
+        "intro": "Refeições prontas, otimizadas para desempenho atlético e ganho muscular.",
+        "step1Label": "Escolha sua categoria de proteína",
+        "step1Text": "(frango, carne vermelha, peixe, ovos)",
+        "step2After": "é só proteína + vegetais fibrosos",
+        "step2Mid": "as refeições incluem arroz, aveia ou batata.",
+        "step3Label": "Toque numa refeição",
+        "step3Text": "para adicioná-la na hora",
+        "step4Label": "Todos os macros",
+        "step4Text": "já estão calculados e prontos",
+        "stepsLabel": "Passos:",
+        "tipAfter": "refeições. Vegetais fibrosos são sempre ilimitados.",
+        "tipBefore": "Em dias com pouco amido use",
+        "tipLabel": "💡 Dica:",
+        "tipMid": "refeições. Em dias de recarga adicione",
+        "title": "Usar o criador de refeições de atleta"
+      },
+      "lowStarchDay": "Dia com pouco amido",
+      "mealCopyText": "{{title}} — {{cals}} cal · P {{protein}}g · A {{starch}}g · G {{fat}}g",
+      "noCoachConnection": "Sem conexão com o coach",
+      "noteDesc": "Refeições prontas, otimizadas para desempenho atlético e ganho muscular.",
+      "noteStep1": "Escolha sua categoria de proteína (frango, carne vermelha, peixe, ovos)",
+      "noteStep2After": "é só proteína + vegetais fibrosos",
+      "noteStep2Before": "Refeições marcadas",
+      "noteStep2Mid": "incluem arroz, aveia ou batata —",
+      "noteStep3": "Toque numa refeição para adicioná-la na hora",
+      "noteStep4": "Todos os macros já estão calculados e prontos",
+      "noteTitle": "Refeições de atleta prontas",
+      "refeedDay": "Dia de recarga",
+      "selectCategory": "Escolha a categoria de proteína:",
+      "selectCategoryShort": "Escolher categoria",
+      "sendCoachAria": "Enviar resumo ao coach",
+      "sendFailed": "Falha ao enviar, tente de novo",
+      "sendToCoach": "Enviar ao coach",
+      "sending": "Enviando…",
+      "sent": "Enviado!",
+      "sessionTotal": "Total da sessão:",
+      "slots": {
+        "breakfast": "Café da manhã",
+        "dinner": "Jantar",
+        "lunch": "Almoço",
+        "meal4": "Refeição 4",
+        "meal5": "Refeição 5",
+        "meal6": "Refeição 6",
+        "snacks": "Lanches"
+      },
+      "starch": "Amido",
+      "starchAllocation": "Cota de amido",
+      "starchCap": "limite {{cap}}g amido",
+      "starchUsage": "{{used}}g / {{cap}}g amido",
+      "summaryText_one": "{{count}} refeição adicionada — {{cals}} cal · P {{protein}}g · C {{carbs}}g · G {{fat}}g",
+      "summaryText_other": "{{count}} refeições adicionadas — {{cals}} cal · P {{protein}}g · C {{carbs}}g · G {{fat}}g",
+      "viewChatAria": "Ver mensagem no chat do coach",
+      "viewInChat": "Ver no chat"
+    },
+    "coachingSetup": {
+      "accountability": {
+        "encourage": {
+          "desc": "Me apoie quando eu falhar",
+          "label": "Me incentive"
+        },
+        "pushHard": {
+          "desc": "Seja rígido com minhas metas",
+          "label": "Me cobre"
+        },
+        "remind": {
+          "desc": "Lembretes leves bastam",
+          "label": "Só me lembre"
+        },
+        "selfDirected": {
+          "desc": "Eu me motivo sozinho",
+          "label": "Autônomo"
+        }
+      },
+      "back": "Voltar",
+      "challenges": {
+        "consistency": "Manter constância",
+        "cravings": "Desejos",
+        "emotionalEating": "Comer emocional",
+        "knowledge": "Saber o que comer",
+        "mealPrep": "Preparar refeições",
+        "motivation": "Motivação",
+        "socialPressure": "Pressão social",
+        "time": "Falta de tempo"
+      },
+      "error": "Algo deu errado. Tente novamente.",
+      "lifestyle": {
+        "budgetConscious": "Atento ao orçamento",
+        "busySchedule": "Agenda cheia",
+        "frequentTravel": "Viajo muito",
+        "parent": "Pai/cuidador",
+        "pickyEater": "Exigente",
+        "shiftWorker": "Trabalho por turnos",
+        "socialEater": "Como em grupo",
+        "stressEater": "Como por estresse"
+      },
+      "loading": "Carregando seu perfil...",
+      "motivations": {
+        "athletic": "Desempenho atlético",
+        "confidence": "Sentir confiança",
+        "energy": "Mais energia",
+        "family": "Saúde da família",
+        "longevity": "Longevidade",
+        "mentalClarity": "Clareza mental",
+        "weightLoss": "Perder peso"
+      },
+      "next": "Avançar",
+      "saveProfile": "Salvar perfil",
+      "savedDesc": "Seu perfil de coaching está pronto.",
+      "savedTitle": "Perfil salvo!",
+      "saving": "Salvando...",
+      "steps": {
+        "accountability": {
+          "subtitle": "Escolha o que mais te motiva",
+          "title": "Como te cobramos?"
+        },
+        "challenges": {
+          "subtitle": "Seja sincero: ajuda a focar no que importa",
+          "title": "Seus maiores desafios?"
+        },
+        "lifestyle": {
+          "subtitle": "Selecione tudo; vamos adaptar as dicas",
+          "title": "Seu estilo de vida?"
+        },
+        "motivations": {
+          "subtitle": "Selecione tudo que se aplica",
+          "title": "O que te move?"
+        },
+        "style": {
+          "subtitle": "Escolha o estilo de comunicação ideal para você",
+          "title": "Como quer ser orientado?"
+        }
+      },
+      "styles": {
+        "balanced": {
+          "desc": "Mistura de todas as abordagens",
+          "label": "Equilibrado"
+        },
+        "direct": {
+          "desc": "Diga o que fazer, sem rodeios",
+          "label": "Direto"
+        },
+        "educational": {
+          "desc": "Explique o porquê de cada escolha",
+          "label": "Educativo"
+        },
+        "encouraging": {
+          "desc": "Reforço positivo e apoio",
+          "label": "Encorajador"
+        }
+      }
+    },
+    "competitionPicker": {
+      "badgeCarbs": "Carbo",
+      "categories": {
+        "eggsShakes": "Ovos e shakes",
+        "fish": "Peixe em filé",
+        "poultry": "Frango e peru",
+        "redmeat": "Carne vermelha"
+      },
+      "gotIt": "entendi!",
+      "headerAddTo": "Refeições de competição - Adicionar a {{slot}}",
+      "howToAria": "Usar o criador de competição",
+      "info": {
+        "intro": "Refeições de atleta prontas, otimizadas para massa magra e desempenho.",
+        "step1Label": "Escolha sua categoria de proteína",
+        "step1Text": "(frango, carne vermelha, peixe, ovos)",
+        "step2Label": "As refeições são marcadas",
+        "step2Text": "\"Carbo\" ou \"P+V\" (proteína + vegetais)",
+        "step3Label": "Toque numa refeição",
+        "step3Text": "para adicioná-la na hora",
+        "step4Label": "Todos os macros",
+        "step4Text": "já estão calculados e prontos",
+        "stepsLabel": "Passos:",
+        "tipLabel": "💡 Dica:",
+        "tipText": "Escolha pelos seus carbos: \"Carbo\" para energia e \"P+V\" para dias low-carb.",
+        "title": "Usar o criador de competição"
+      },
+      "noteDesc": "Refeições de atleta prontas, otimizadas para massa magra e desempenho.",
+      "noteStep1": "Escolha sua categoria de proteína (frango, carne vermelha, peixe, ovos)",
+      "noteStep2": "As refeições são marcadas \"Carbo\" ou \"P+V\" (proteína + vegetais)",
+      "noteStep3": "Toque numa refeição para adicioná-la na hora",
+      "noteStep4": "Todos os macros já estão calculados e prontos",
+      "noteTitle": "Refeições de competição",
+      "selectCategory": "Escolha a categoria de proteína:",
+      "selectCategoryShort": "Escolher categoria"
+    },
+    "complianceCard": {
+      "biggestOpportunity": "Maior oportunidade",
+      "breakfastLogged": "Café registrado",
+      "caloriesOnTarget": "Calorias na meta",
+      "consistencyScore": "Pontuação de constância",
+      "days": "dias",
+      "dinnerLogged": "Jantar registrado",
+      "last7Days": "Últimos 7 dias",
+      "lastNDays": "Últimos {{count}} dias",
+      "loggedMeals": "Refeições registradas",
+      "lunchLogged": "Almoço registrado",
+      "noActivity": "Nenhuma atividade ainda. Registre refeições para ver seu resumo aqui.",
+      "noMeals": "Nenhuma refeição registrada. Registre refeições para ver seu resumo.",
+      "ofDays": "{{value}} de {{total}}",
+      "proteinGoalMet": "Meta de proteína",
+      "setTargets": "Defina suas metas de macros para ativar o rastreamento completo.",
+      "title": "Resumo de atividade nutricional"
+    },
+    "mealPicker": {
+      "addTo": "Adicionar a {{slot}}",
+      "cafeteria": "Cafeteria",
+      "categories": {
+        "fats": "Gorduras",
+        "fibrousCarbs": "Carbo fibrosos",
+        "fruit": "Frutas",
+        "proteins": "Proteínas",
+        "starchyCarbs": "Carbo amiláceos"
+      },
+      "close": "Fechar",
+      "generate": "Gerar",
+      "generateCount": "Gerar ({{count}})",
+      "generating": "Gerando…",
+      "gotIt": "entendi!",
+      "howToAria": "Usar o seletor de refeições",
+      "info": {
+        "addLabel": "Toque para adicionar:",
+        "addText": "Toque num cartão para adicioná-lo ao horário {{slot}}",
+        "browseLabel": "Explorar refeições:",
+        "browseText": "Percorra nossos modelos de refeição",
+        "cafeteriaLabel": "Opção cafeteria:",
+        "cafeteriaText": "Toque em \"Cafeteria\" para uma sugestão aleatória rápida",
+        "intro": "Jeito rápido de adicionar refeições prontas ao seu plano.",
+        "personalizedLabel": "Personalizado:",
+        "personalizedText": "Refeições filtradas por alergias e preferências",
+        "tipLabel": "💡 Dica:",
+        "tipText": "Use a Cafeteria para uma sugestão saudável rápida sem procurar.",
+        "title": "Usar o seletor de refeições"
+      },
+      "lowerGlycemic": "Menor impacto glicêmico",
+      "quickMeal": "Refeição rápida {{slot}}",
+      "regularGi": "IG normal"
+    },
+    "mealReminders": {
+      "addReminder": "Adicionar lembrete",
+      "checkAgain": "Verificar de novo",
+      "checking": "Verificando…",
+      "connectionDiagnostics": "Diagnóstico de conexão",
+      "footerBlocked": "Configure os horários já; ativa após conceder permissões.",
+      "footerDefault": "Até 6 lembretes. Toque num rótulo para renomear.",
+      "footerEnabled": "Mantenha o navegador aberto para entrega confiável.",
+      "footerNative": "Toque num rótulo para renomear. Entrega pelo app iOS.",
+      "mealN": "Refeição {{n}}",
+      "nativeDelivery": "Entrega nativa iOS",
+      "saving": "Salvando…",
+      "statusBlocked": "Notificações bloqueadas no navegador",
+      "statusConnected": "Notificações conectadas",
+      "statusPartial": "Não totalmente conectado — ative um horário para concluir",
+      "statusPending": "Ative um horário para habilitar notificações",
+      "statusUnsupported": "Sem suporte neste navegador",
+      "title": "Lembretes de refeição",
+      "toUnblock": "Para desbloquear:",
+      "toastBlockedIosDesc": "Ajustes do iPhone › My Perfect Meals › Permitir notificações",
+      "toastBlockedTitle": "Notificações bloqueadas",
+      "toastBlockedWebDesc": "Permita notificações pelo cadeado na barra e toque em Verificar de novo.",
+      "toastEnableFailedTitle": "Não foi possível ativar",
+      "toastNotSupportedDesc": "Este navegador não suporta notificações push.",
+      "toastNotSupportedTitle": "Sem suporte",
+      "toastPermissionDenied": "Permissão negada.",
+      "toastSaveFailed": "Não foi possível salvar",
+      "toastTryAgain": "Tente novamente em instantes.",
+      "unblockAllow": "Permitir",
+      "unblockLock": "🔒 cadeado",
+      "unblockNotifications": "Notificações",
+      "unblockStep1After": "na barra de endereço",
+      "unblockStep1Before": "Toque no",
+      "unblockStep2Before": "Defina",
+      "unblockStep2Mid": "como",
+      "unblockStep3After": "abaixo",
+      "unblockStep3Before": "Toque",
+      "unsupportedHint": "Use Chrome ou Edge no desktop. Safari no iOS exige o app.",
+      "webDelivery": "Entrega push web"
+    }
+  },
+  "ru": {
+    "athletePicker": {
+      "added": "Добавлено!",
+      "addedCount": "{{count}} добавлено",
+      "addingTo": "Добавление в:",
+      "categories": {
+        "eggsShakes": "Яйца и коктейли",
+        "fish": "Филе рыбы",
+        "poultry": "Курица и индейка",
+        "redmeat": "Красное мясо"
+      },
+      "copied": "Скопировано!",
+      "copy": "Копировать",
+      "copyMealAria": "Скопировать детали блюда",
+      "copySessionAria": "Скопировать сводку сессии в буфер обмена",
+      "done": "Готово",
+      "errorShort": "Ошибка",
+      "fibrousNote": "Волокнистые овощи не ограничены — только крахмал (рис, овёс, картофель)",
+      "gotIt": "понятно!",
+      "headerTitle": "Готовые блюда для спортсменов — {{slot}}",
+      "hiddenCount_one": "{{count}} блюдо скрыто — крахмал превысит {{cap}}g",
+      "hiddenCount_other": "{{count}} блюд скрыто — крахмал превысит {{cap}}g",
+      "howToAria": "Как использовать конструктор блюд для спортсменов",
+      "info": {
+        "intro": "Готовые блюда, оптимизированные для спортивных результатов и наращивания мышц.",
+        "step1Label": "Выберите категорию белка",
+        "step1Text": "(Курица, Красное мясо, Рыба, Яйца)",
+        "step2After": "это только белок + волокнистые овощи",
+        "step2Mid": "блюда включают рис, овёс или картофель.",
+        "step3Label": "Нажмите на любое блюдо",
+        "step3Text": "чтобы мгновенно добавить его на доску",
+        "step4Label": "Все макросы",
+        "step4Text": "предварительно рассчитаны и готовы к отслеживанию",
+        "stepsLabel": "Шаги:",
+        "tipAfter": "блюда. Волокнистые овощи всегда без ограничений.",
+        "tipBefore": "В дни с низким содержанием крахмала используйте",
+        "tipLabel": "💡 Совет:",
+        "tipMid": "блюда. В дни загрузки добавляйте",
+        "title": "Как использовать конструктор блюд для спортсменов"
+      },
+      "lowStarchDay": "День с низким содержанием крахмала",
+      "mealCopyText": "{{title}} — {{cals}} ккал · P {{protein}}g · S {{starch}}g · F {{fat}}g",
+      "noCoachConnection": "Нет активного подключения к тренеру",
+      "noteDesc": "Готовые блюда, оптимизированные для спортивных результатов и наращивания мышц.",
+      "noteStep1": "Выберите категорию белка (Курица, Красное мясо, Рыба, Яйца)",
+      "noteStep2After": "это только белок + волокнистые овощи",
+      "noteStep2Before": "Блюда с меткой",
+      "noteStep2Mid": "включают рис, овёс или картофель —",
+      "noteStep3": "Нажмите на любое блюдо, чтобы мгновенно добавить его на доску",
+      "noteStep4": "Все макросы предварительно рассчитаны и готовы к отслеживанию",
+      "noteTitle": "Готовые блюда для спортсменов",
+      "refeedDay": "День загрузки",
+      "selectCategory": "Выберите категорию белка:",
+      "selectCategoryShort": "Выберите категорию",
+      "sendCoachAria": "Отправить сводку сессии тренеру",
+      "sendFailed": "Не удалось отправить — попробуйте снова",
+      "sendToCoach": "Отправить тренеру",
+      "sending": "Отправка…",
+      "sent": "Отправлено!",
+      "sessionTotal": "Итого за сессию:",
+      "slots": {
+        "breakfast": "Завтрак",
+        "dinner": "Ужин",
+        "lunch": "Обед",
+        "meal4": "Приём пищи 4",
+        "meal5": "Приём пищи 5",
+        "meal6": "Приём пищи 6",
+        "snacks": "Перекусы"
+      },
+      "starch": "Крахмал",
+      "starchAllocation": "Распределение крахмала",
+      "starchCap": "Лимит крахмала {{cap}}g",
+      "starchUsage": "{{used}}g / {{cap}}g крахмала",
+      "summaryText_one": "{{count}} приём пищи добавлен — {{cals}} ккал · P {{protein}}g · C {{carbs}}g · F {{fat}}g",
+      "summaryText_other": "{{count}} приёмов пищи добавлено — {{cals}} ккал · P {{protein}}g · C {{carbs}}g · F {{fat}}g",
+      "viewChatAria": "Посмотреть сообщение в чате с тренером",
+      "viewInChat": "Посмотреть в чате"
+    },
+    "coachingSetup": {
+      "accountability": {
+        "encourage": {
+          "desc": "Подбадривайте меня, когда я срываюсь",
+          "label": "Ободряйте меня"
+        },
+        "pushHard": {
+          "desc": "Строго держите меня подотчётным",
+          "label": "Подталкивайте меня сильно"
+        },
+        "remind": {
+          "desc": "Достаточно мягких подсказок",
+          "label": "Просто напоминайте"
+        },
+        "selfDirected": {
+          "desc": "Я мотивирую себя сам",
+          "label": "Самостоятельный"
+        }
+      },
+      "back": "Назад",
+      "challenges": {
+        "consistency": "Сохранение постоянства",
+        "cravings": "Тяга к еде",
+        "emotionalEating": "Эмоциональное переедание",
+        "knowledge": "Знание, что есть",
+        "mealPrep": "Подготовка еды",
+        "motivation": "Мотивация",
+        "socialPressure": "Социальное давление",
+        "time": "Недостаточно времени"
+      },
+      "error": "Что-то пошло не так. Пожалуйста, попробуйте ещё раз.",
+      "lifestyle": {
+        "budgetConscious": "Экономный",
+        "busySchedule": "Плотный график",
+        "frequentTravel": "Частые поездки",
+        "parent": "Родитель / опекун",
+        "pickyEater": "Привередливый в еде",
+        "shiftWorker": "Сменная работа",
+        "socialEater": "Общественное питание",
+        "stressEater": "Заедание стресса"
+      },
+      "loading": "Загрузка вашего профиля...",
+      "motivations": {
+        "athletic": "Спортивные результаты",
+        "confidence": "Чувствовать уверенность",
+        "energy": "Больше энергии",
+        "family": "Здоровье семьи",
+        "longevity": "Долголетие",
+        "mentalClarity": "Ясность ума",
+        "weightLoss": "Снижение веса"
+      },
+      "next": "Далее",
+      "saveProfile": "Сохранить профиль",
+      "savedDesc": "Ваш профиль коучинга готов.",
+      "savedTitle": "Профиль сохранён!",
+      "saving": "Сохранение...",
+      "steps": {
+        "accountability": {
+          "subtitle": "Выберите то, что мотивирует вас больше всего",
+          "title": "Как нам держать вас подотчётным?"
+        },
+        "challenges": {
+          "subtitle": "Будьте честны — это помогает нам сосредоточиться на том, что действительно важно",
+          "title": "Каковы ваши самые большие трудности?"
+        },
+        "lifestyle": {
+          "subtitle": "Выберите всё подходящее — мы адаптируем советы под это",
+          "title": "Что описывает ваш образ жизни?"
+        },
+        "motivations": {
+          "subtitle": "Выберите всё подходящее",
+          "title": "Что вами движет?"
+        },
+        "style": {
+          "subtitle": "Выберите стиль общения, который вам подходит",
+          "title": "Как бы вы хотели, чтобы вас тренировали?"
+        }
+      },
+      "styles": {
+        "balanced": {
+          "desc": "Сочетание всех подходов",
+          "label": "Сбалансированный"
+        },
+        "direct": {
+          "desc": "Скажите мне, что делать — без лишних слов",
+          "label": "Прямой"
+        },
+        "educational": {
+          "desc": "Объясните причину каждого выбора",
+          "label": "Образовательный"
+        },
+        "encouraging": {
+          "desc": "Позитивное подкрепление и поддержка",
+          "label": "Поддерживающий"
+        }
+      }
+    },
+    "competitionPicker": {
+      "badgeCarbs": "Углеводы",
+      "categories": {
+        "eggsShakes": "Яйца и коктейли",
+        "fish": "Филе рыбы",
+        "poultry": "Курица и индейка",
+        "redmeat": "Красное мясо"
+      },
+      "gotIt": "понятно!",
+      "headerAddTo": "Блюда для подготовки к соревнованиям - Добавить в {{slot}}",
+      "howToAria": "Как использовать конструктор производительности и соревнований",
+      "info": {
+        "intro": "Готовые блюда для спортсменов, оптимизированные для набора сухой мышечной массы и производительности.",
+        "step1Label": "Выберите категорию белка",
+        "step1Text": "(Курица, Красное мясо, Рыба, Яйца)",
+        "step2Label": "Блюда помечены",
+        "step2Text": "как «Углеводы» или «P+V» (Белок + Овощи)",
+        "step3Label": "Нажмите на любое блюдо",
+        "step3Text": "чтобы мгновенно добавить его на доску",
+        "step4Label": "Все макросы",
+        "step4Text": "предварительно рассчитаны и готовы к отслеживанию",
+        "stepsLabel": "Шаги:",
+        "tipLabel": "💡 Совет:",
+        "tipText": "Выбирайте блюда в зависимости от ваших ежедневных целей по углеводам - используйте блюда «Углеводы», когда нужна энергия, и блюда «P+V» для дней с низким содержанием углеводов!",
+        "title": "Как использовать конструктор производительности и соревнований"
+      },
+      "noteDesc": "Готовые блюда для спортсменов, оптимизированные для набора сухой мышечной массы и производительности.",
+      "noteStep1": "Выберите категорию белка (Курица, Красное мясо, Рыба, Яйца)",
+      "noteStep2": "Блюда помечены как «Углеводы» или «P+V» (Белок + Овощи)",
+      "noteStep3": "Нажмите на любое блюдо, чтобы мгновенно добавить его на доску",
+      "noteStep4": "Все макросы предварительно рассчитаны и готовы к отслеживанию",
+      "noteTitle": "Блюда для подготовки к соревнованиям",
+      "selectCategory": "Выберите категорию белка:",
+      "selectCategoryShort": "Выберите категорию"
+    },
+    "complianceCard": {
+      "biggestOpportunity": "Наибольшая возможность",
+      "breakfastLogged": "Завтрак записан",
+      "caloriesOnTarget": "Калории в норме",
+      "consistencyScore": "Оценка постоянства",
+      "days": "дней",
+      "dinnerLogged": "Ужин записан",
+      "last7Days": "Последние 7 дней",
+      "lastNDays": "Последние {{count}} дней",
+      "loggedMeals": "Записанные приёмы пищи",
+      "lunchLogged": "Обед записан",
+      "noActivity": "Активность питания ещё не зафиксирована. Начните вести журнал приёмов пищи, чтобы увидеть здесь свою персональную сводку активности.",
+      "noMeals": "Приёмы пищи ещё не записаны. Начните записывать приёмы пищи, чтобы увидеть сводку активности.",
+      "ofDays": "{{value}} из {{total}}",
+      "proteinGoalMet": "Цель по белку достигнута",
+      "setTargets": "Установите целевые макросы, чтобы активировать полное отслеживание питания.",
+      "title": "Сводка активности питания"
+    },
+    "mealPicker": {
+      "addTo": "Добавить в {{slot}}",
+      "cafeteria": "Кафетерий",
+      "categories": {
+        "fats": "Жиры",
+        "fibrousCarbs": "Волокнистые углеводы",
+        "fruit": "Фрукты",
+        "proteins": "Белки",
+        "starchyCarbs": "Крахмалистые углеводы"
+      },
+      "close": "Закрыть",
+      "generate": "Сгенерировать",
+      "generateCount": "Сгенерировать ({{count}})",
+      "generating": "Генерация…",
+      "gotIt": "понятно!",
+      "howToAria": "Как использовать выбор блюд",
+      "info": {
+        "addLabel": "Нажмите, чтобы добавить:",
+        "addText": "Нажмите на любую карточку блюда, чтобы мгновенно добавить его в слот {{slot}}",
+        "browseLabel": "Просмотр блюд:",
+        "browseText": "Прокрутите наши подобранные шаблоны блюд",
+        "cafeteriaLabel": "Опция кафетерия:",
+        "cafeteriaText": "Нажмите «Кафетерий» для быстрого случайного предложения блюда",
+        "intro": "Быстрый и простой способ добавить готовые блюда в ваш план.",
+        "personalizedLabel": "Персонализировано:",
+        "personalizedText": "Блюда фильтруются на основе ваших аллергий и предпочтений",
+        "tipLabel": "💡 Совет:",
+        "tipText": "Используйте кнопку Кафетерий, когда хотите быстрое здоровое предложение без просмотра!",
+        "title": "Как использовать выбор блюд"
+      },
+      "lowerGlycemic": "Более низкое гликемическое влияние",
+      "quickMeal": "Быстрый приём пищи {{slot}}",
+      "regularGi": "Обычный ГИ"
+    },
+    "mealReminders": {
+      "addReminder": "Добавить напоминание о еде",
+      "checkAgain": "Проверить снова",
+      "checking": "Проверка…",
+      "connectionDiagnostics": "Диагностика соединения",
+      "footerBlocked": "Установите время сейчас — уведомления активируются, как только будут предоставлены разрешения.",
+      "footerDefault": "До 6 напоминаний. Нажмите на метку, чтобы переименовать.",
+      "footerEnabled": "Держите браузер открытым для надёжной доставки.",
+      "footerNative": "Нажмите на метку, чтобы переименовать. Напоминания доставляются через приложение iOS.",
+      "mealN": "Приём пищи {{n}}",
+      "nativeDelivery": "Нативная доставка iOS",
+      "saving": "Сохранение…",
+      "statusBlocked": "Уведомления заблокированы в браузере",
+      "statusConnected": "Уведомления подключены",
+      "statusPartial": "Не полностью подключено — переключите слот, чтобы завершить настройку",
+      "statusPending": "Переключите слот, чтобы включить уведомления",
+      "statusUnsupported": "Не поддерживается этим браузером",
+      "title": "Напоминания о еде",
+      "toUnblock": "Чтобы разблокировать:",
+      "toastBlockedIosDesc": "Перейдите в Настройки iPhone › My Perfect Meals › Разрешить уведомления",
+      "toastBlockedTitle": "Уведомления заблокированы",
+      "toastBlockedWebDesc": "Разрешите уведомления через значок замка в адресной строке, затем нажмите Проверить снова.",
+      "toastEnableFailedTitle": "Не удалось включить уведомления",
+      "toastNotSupportedDesc": "Этот браузер не поддерживает push-уведомления.",
+      "toastNotSupportedTitle": "Не поддерживается",
+      "toastPermissionDenied": "Доступ запрещён.",
+      "toastSaveFailed": "Не удалось сохранить напоминания",
+      "toastTryAgain": "Попробуйте через мгновение.",
+      "unblockAllow": "Разрешить",
+      "unblockLock": "🔒 замок",
+      "unblockNotifications": "Уведомления",
+      "unblockStep1After": "в адресной строке браузера",
+      "unblockStep1Before": "Нажмите на",
+      "unblockStep2Before": "Установите",
+      "unblockStep2Mid": "на",
+      "unblockStep3After": "ниже",
+      "unblockStep3Before": "Нажмите",
+      "unsupportedHint": "Попробуйте Chrome или Edge на компьютере. Safari на iOS требует приложение.",
+      "webDelivery": "Веб-push доставка"
+    }
+  },
+  "tl": {
+    "athletePicker": {
+      "added": "Naidagdag!",
+      "addedCount": "{{count}} ang naidagdag",
+      "addingTo": "Idinadagdag sa:",
+      "categories": {
+        "eggsShakes": "Itlog at Shakes",
+        "fish": "Fillet na Isda",
+        "poultry": "Manok at Pabo",
+        "redmeat": "Pulang Karne"
+      },
+      "copied": "Nakopya!",
+      "copy": "Kopyahin",
+      "copyMealAria": "Kopyahin ang mga detalye ng pagkain",
+      "copySessionAria": "Kopyahin ang buod ng session sa clipboard",
+      "done": "Tapos",
+      "errorShort": "Error",
+      "fibrousNote": "Walang limitasyon ang mga fibrous na gulay — starch lamang (kanin, oats, patatas)",
+      "gotIt": "naintindihan!",
+      "headerTitle": "Mga Premade na Pagkain para sa Atleta — {{slot}}",
+      "hiddenCount_one": "{{count}} pagkain ang nakatago — lalampas ang starch sa {{cap}}g",
+      "hiddenCount_other": "{{count}} na pagkain ang nakatago — lalampas ang starch sa {{cap}}g",
+      "howToAria": "Paano gamitin ang Athlete Meal Builder",
+      "info": {
+        "intro": "Mga premade na pagkain na na-optimize para sa athletic performance at pagbuo ng kalamnan.",
+        "step1Label": "Piliin ang iyong kategorya ng protina",
+        "step1Text": "(Manok, Pulang Karne, Isda, Itlog)",
+        "step2After": "ay protina + fibrous na gulay lamang",
+        "step2Mid": "na mga pagkain ay may kanin, oats, o patatas.",
+        "step3Label": "I-click ang anumang pagkain",
+        "step3Text": "para agad itong maidagdag sa iyong board",
+        "step4Label": "Lahat ng macro",
+        "step4Text": "ay pre-calculated at handa nang subaybayan",
+        "stepsLabel": "Mga Hakbang:",
+        "tipAfter": "na pagkain. Palaging walang limitasyon ang mga fibrous na gulay.",
+        "tipBefore": "Sa mga araw na mababa sa starch, gamitin ang mga",
+        "tipLabel": "💡 Tip:",
+        "tipMid": "na pagkain. Sa mga araw ng refeed, magdagdag ng mga",
+        "title": "Paano Gamitin ang Athlete Meal Builder"
+      },
+      "lowStarchDay": "Araw na Mababa sa Starch",
+      "mealCopyText": "{{title}} — {{cals}} cal · P {{protein}}g · S {{starch}}g · F {{fat}}g",
+      "noCoachConnection": "Walang aktibong koneksyon sa coach",
+      "noteDesc": "Mga premade na pagkain na na-optimize para sa athletic performance at pagbuo ng kalamnan.",
+      "noteStep1": "Piliin ang iyong kategorya ng protina (Manok, Pulang Karne, Isda, Itlog)",
+      "noteStep2After": "ay protina + fibrous na gulay lamang",
+      "noteStep2Before": "Ang mga pagkaing may tatak na",
+      "noteStep2Mid": "ay may kanin, oats, o patatas —",
+      "noteStep3": "I-click ang anumang pagkain para agad itong maidagdag sa iyong board",
+      "noteStep4": "Lahat ng macro ay pre-calculated at handa nang subaybayan",
+      "noteTitle": "Mga Premade na Pagkain para sa Atleta",
+      "refeedDay": "Araw ng Refeed",
+      "selectCategory": "Piliin ang Kategorya ng Protina:",
+      "selectCategoryShort": "Piliin ang Kategorya",
+      "sendCoachAria": "Ipadala ang buod ng session sa coach",
+      "sendFailed": "Nabigong maipadala — subukang muli",
+      "sendToCoach": "Ipadala sa Coach",
+      "sending": "Ipinapadala…",
+      "sent": "Naipadala!",
+      "sessionTotal": "Kabuuan ng session:",
+      "slots": {
+        "breakfast": "Almusal",
+        "dinner": "Hapunan",
+        "lunch": "Tanghalian",
+        "meal4": "Pagkain 4",
+        "meal5": "Pagkain 5",
+        "meal6": "Pagkain 6",
+        "snacks": "Meryenda"
+      },
+      "starch": "Starch",
+      "starchAllocation": "Alokasyon ng Starch",
+      "starchCap": "{{cap}}g na limitasyon ng starch",
+      "starchUsage": "{{used}}g / {{cap}}g starch",
+      "summaryText_one": "{{count}} pagkain ang naidagdag — {{cals}} cal · P {{protein}}g · C {{carbs}}g · F {{fat}}g",
+      "summaryText_other": "{{count}} na pagkain ang naidagdag — {{cals}} cal · P {{protein}}g · C {{carbs}}g · F {{fat}}g",
+      "viewChatAria": "Tingnan ang mensahe sa coach chat",
+      "viewInChat": "Tingnan sa Chat"
+    },
+    "coachingSetup": {
+      "accountability": {
+        "encourage": {
+          "desc": "Suportahan mo ako kapag nadapa ako",
+          "label": "Hikayatin Mo Ako"
+        },
+        "pushHard": {
+          "desc": "Panagutin mo ako nang mahigpit",
+          "label": "Itulak Mo Ako nang Husto"
+        },
+        "remind": {
+          "desc": "Sapat na ang mahinahong paalala",
+          "label": "Paalalahanan Mo Lang Ako"
+        },
+        "selfDirected": {
+          "desc": "Ako mismo ang nagbibigay-sigla sa sarili ko",
+          "label": "Kusang-loob"
+        }
+      },
+      "back": "Bumalik",
+      "challenges": {
+        "consistency": "Pananatiling Tuloy-tuloy",
+        "cravings": "Pananabik sa Pagkain",
+        "emotionalEating": "Pagkaing Emosyonal",
+        "knowledge": "Pag-alam Kung Ano ang Kakainin",
+        "mealPrep": "Paghahanda ng Pagkain",
+        "motivation": "Pagganyak",
+        "socialPressure": "Panlipunang Presyon",
+        "time": "Kulang sa Oras"
+      },
+      "error": "May nangyaring mali. Pakisubukang muli.",
+      "lifestyle": {
+        "budgetConscious": "Maingat sa Badyet",
+        "busySchedule": "Abalang Iskedyul",
+        "frequentTravel": "Madalas na Paglalakbay",
+        "parent": "Magulang / Tagapag-alaga",
+        "pickyEater": "Mapili sa Pagkain",
+        "shiftWorker": "Manggagawang May Shift",
+        "socialEater": "Kumakain nang May Kasama",
+        "stressEater": "Kumakain Kapag Stressed"
+      },
+      "loading": "Nilo-load ang iyong profile...",
+      "motivations": {
+        "athletic": "Pagganap sa Isports",
+        "confidence": "Makaramdam ng Kumpiyansa",
+        "energy": "Mas Maraming Enerhiya",
+        "family": "Kalusugan ng Pamilya",
+        "longevity": "Mahabang Buhay",
+        "mentalClarity": "Kalinawan ng Isip",
+        "weightLoss": "Pagbaba ng Timbang"
+      },
+      "next": "Susunod",
+      "saveProfile": "I-save ang Profile",
+      "savedDesc": "Handa na ang iyong coaching profile.",
+      "savedTitle": "Na-save ang profile!",
+      "saving": "Sine-save...",
+      "steps": {
+        "accountability": {
+          "subtitle": "Piliin kung ano ang pinakanagbibigay-sigla sa iyo",
+          "title": "Paano ka namin dapat panagutin?"
+        },
+        "challenges": {
+          "subtitle": "Maging tapat — nakatutulong ito na tumutok kami sa tunay na mahalaga",
+          "title": "Ano ang iyong pinakamalalaking hamon?"
+        },
+        "lifestyle": {
+          "subtitle": "Piliin lahat ng naaangkop — iaangkop namin ang payo batay dito",
+          "title": "Alin ang naglalarawan sa iyong pamumuhay?"
+        },
+        "motivations": {
+          "subtitle": "Piliin lahat ng naaangkop",
+          "title": "Ano ang nagtutulak sa iyo?"
+        },
+        "style": {
+          "subtitle": "Piliin ang istilo ng komunikasyon na bagay sa iyo",
+          "title": "Paano mo gustong ma-coach?"
+        }
+      },
+      "styles": {
+        "balanced": {
+          "desc": "Pinaghalong lahat ng pamamaraan",
+          "label": "Balanse"
+        },
+        "direct": {
+          "desc": "Sabihin mo lang kung ano ang gagawin — walang paligoy-ligoy",
+          "label": "Direkta"
+        },
+        "educational": {
+          "desc": "Ipaliwanag ang dahilan sa likod ng bawat pagpili",
+          "label": "Pang-edukasyon"
+        },
+        "encouraging": {
+          "desc": "Positibong pampalakas-loob at suporta",
+          "label": "Nakapagpapasigla"
+        }
+      }
+    },
+    "competitionPicker": {
+      "badgeCarbs": "Carbs",
+      "categories": {
+        "eggsShakes": "Itlog at Shakes",
+        "fish": "Fillet na Isda",
+        "poultry": "Manok at Pabo",
+        "redmeat": "Pulang Karne"
+      },
+      "gotIt": "naintindihan!",
+      "headerAddTo": "Mga Pagkain sa Paghahanda sa Kompetisyon - Idagdag sa {{slot}}",
+      "howToAria": "Paano gamitin ang Performance & Competition Builder",
+      "info": {
+        "intro": "Mga premade na pagkain para sa atleta na na-optimize para sa lean muscle building at pagganap.",
+        "step1Label": "Piliin ang iyong kategorya ng protina",
+        "step1Text": "(Manok, Pulang Karne, Isda, Itlog)",
+        "step2Label": "May tatak ang mga pagkain",
+        "step2Text": "na «Carbs» o «P+V» (Protina + Gulay)",
+        "step3Label": "I-click ang anumang pagkain",
+        "step3Text": "para agad itong maidagdag sa iyong board",
+        "step4Label": "Lahat ng macro",
+        "step4Text": "ay pre-calculated at handa nang subaybayan",
+        "stepsLabel": "Mga Hakbang:",
+        "tipLabel": "💡 Tip:",
+        "tipText": "Pumili ng mga pagkain batay sa iyong pang-araw-araw na carb target - gamitin ang mga pagkaing «Carbs» kapag kailangan mo ng enerhiya, at mga pagkaing «P+V» para sa mga araw na mababa ang carb!",
+        "title": "Paano Gamitin ang Performance & Competition Builder"
+      },
+      "noteDesc": "Mga premade na pagkain para sa atleta na na-optimize para sa lean muscle building at pagganap.",
+      "noteStep1": "Piliin ang iyong kategorya ng protina (Manok, Pulang Karne, Isda, Itlog)",
+      "noteStep2": "Ang mga pagkain ay may tatak na «Carbs» o «P+V» (Protina + Gulay)",
+      "noteStep3": "I-click ang anumang pagkain para agad itong maidagdag sa iyong board",
+      "noteStep4": "Lahat ng macro ay pre-calculated at handa nang subaybayan",
+      "noteTitle": "Mga Pagkain sa Paghahanda sa Kompetisyon",
+      "selectCategory": "Piliin ang Kategorya ng Protina:",
+      "selectCategoryShort": "Piliin ang Kategorya"
+    },
+    "complianceCard": {
+      "biggestOpportunity": "Pinakamalaking Oportunidad",
+      "breakfastLogged": "Naka-log ang almusal",
+      "caloriesOnTarget": "Nasa target ang kalorya",
+      "consistencyScore": "Iskor ng Pagkakatugma",
+      "days": "araw",
+      "dinnerLogged": "Naka-log ang hapunan",
+      "last7Days": "Huling 7 araw",
+      "lastNDays": "Huling {{count}} na araw",
+      "loggedMeals": "Mga naka-log na pagkain",
+      "lunchLogged": "Naka-log ang tanghalian",
+      "noActivity": "Wala pang naitatalang aktibidad sa nutrisyon. Simulan ang pag-log ng pagkain para makita rito ang iyong personalisadong buod ng aktibidad.",
+      "noMeals": "Wala pang naka-log na pagkain. Simulan ang pagtatala ng iyong mga pagkain para makita ang iyong buod ng aktibidad.",
+      "ofDays": "{{value}} sa {{total}}",
+      "proteinGoalMet": "Naabot ang layunin sa protina",
+      "setTargets": "Itakda ang iyong mga macro target para paganahin ang buong pagsubaybay sa nutrisyon.",
+      "title": "Buod ng Aktibidad sa Nutrisyon"
+    },
+    "mealPicker": {
+      "addTo": "Idagdag sa {{slot}}",
+      "cafeteria": "Kapiterya",
+      "categories": {
+        "fats": "Mga Taba",
+        "fibrousCarbs": "Fibrous na Carbs",
+        "fruit": "Prutas",
+        "proteins": "Mga Protina",
+        "starchyCarbs": "Starchy na Carbs"
+      },
+      "close": "Isara",
+      "generate": "Bumuo",
+      "generateCount": "Bumuo ({{count}})",
+      "generating": "Bumubuo…",
+      "gotIt": "naintindihan!",
+      "howToAria": "Paano gamitin ang Meal Picker",
+      "info": {
+        "addLabel": "I-click para idagdag:",
+        "addText": "Pindutin ang anumang meal card para agad itong maidagdag sa iyong {{slot}} slot",
+        "browseLabel": "Mag-browse ng pagkain:",
+        "browseText": "Mag-scroll sa aming mga piling meal template",
+        "cafeteriaLabel": "Opsyon sa kapiterya:",
+        "cafeteriaText": "I-click ang «Kapiterya» para sa mabilis na random na mungkahi ng pagkain",
+        "intro": "Mabilis at madaling paraan para magdagdag ng mga premade na pagkain sa iyong plano.",
+        "personalizedLabel": "Personalisado:",
+        "personalizedText": "Sina-salaan ang mga pagkain batay sa iyong mga allergy at kagustuhan",
+        "tipLabel": "💡 Tip:",
+        "tipText": "Gamitin ang Kapiterya na button kapag gusto mo ng mabilis at malusog na mungkahi nang hindi nagba-browse!",
+        "title": "Paano Gamitin ang Meal Picker"
+      },
+      "lowerGlycemic": "Mas mababang epekto sa glycemic",
+      "quickMeal": "Mabilis na Pagkain sa {{slot}}",
+      "regularGi": "Regular na GI"
+    },
+    "mealReminders": {
+      "addReminder": "Magdagdag ng paalala sa pagkain",
+      "checkAgain": "Suriin muli",
+      "checking": "Sinusuri…",
+      "connectionDiagnostics": "Diagnostics ng koneksyon",
+      "footerBlocked": "Itakda ang mga oras ngayon — mag-a-activate ang mga notipikasyon kapag naibigay na ang mga pahintulot.",
+      "footerDefault": "Hanggang 6 na paalala. Pindutin ang label para palitan ang pangalan.",
+      "footerEnabled": "Panatilihing bukas ang iyong browser para sa maaasahang paghahatid.",
+      "footerNative": "Pindutin ang label para palitan ang pangalan. Inihahatid ang mga paalala sa pamamagitan ng iOS app.",
+      "mealN": "Pagkain {{n}}",
+      "nativeDelivery": "Native na paghahatid ng iOS",
+      "saving": "Sine-save…",
+      "statusBlocked": "Naka-block ang mga notipikasyon sa browser",
+      "statusConnected": "Nakakonekta ang mga notipikasyon",
+      "statusPartial": "Hindi ganap na nakakonekta — i-toggle ang isang slot para tapusin ang setup",
+      "statusPending": "I-toggle ang isang slot para paganahin ang mga notipikasyon",
+      "statusUnsupported": "Hindi suportado ng browser na ito",
+      "title": "Mga Paalala sa Pagkain",
+      "toUnblock": "Para i-unblock:",
+      "toastBlockedIosDesc": "Pumunta sa iPhone Settings › My Perfect Meals › Payagan ang mga Notipikasyon",
+      "toastBlockedTitle": "Naka-block ang mga notipikasyon",
+      "toastBlockedWebDesc": "Payagan ang mga notipikasyon sa pamamagitan ng lock icon sa iyong address bar, pagkatapos ay pindutin ang Suriin muli.",
+      "toastEnableFailedTitle": "Hindi ma-enable ang mga notipikasyon",
+      "toastNotSupportedDesc": "Hindi sinusuportahan ng browser na ito ang push notifications.",
+      "toastNotSupportedTitle": "Hindi suportado",
+      "toastPermissionDenied": "Tinanggihan ang pahintulot.",
+      "toastSaveFailed": "Hindi ma-save ang mga paalala",
+      "toastTryAgain": "Subukang muli sa ilang sandali.",
+      "unblockAllow": "Payagan",
+      "unblockLock": "🔒 kandado",
+      "unblockNotifications": "Mga Notipikasyon",
+      "unblockStep1After": "sa address bar ng iyong browser",
+      "unblockStep1Before": "I-click ang",
+      "unblockStep2Before": "Itakda ang",
+      "unblockStep2Mid": "sa",
+      "unblockStep3After": "sa ibaba",
+      "unblockStep3Before": "Pindutin ang",
+      "unsupportedHint": "Subukan ang Chrome o Edge sa desktop. Ang Safari sa iOS ay nangangailangan ng app.",
+      "webDelivery": "Web push na paghahatid"
+    }
+  },
+  "vi": {
+    "athletePicker": {
+      "added": "Đã thêm!",
+      "addedCount": "Đã thêm {{count}}",
+      "addingTo": "Đang thêm vào:",
+      "categories": {
+        "eggsShakes": "Trứng và sữa lắc",
+        "fish": "Cá phi lê",
+        "poultry": "Gà và gà tây",
+        "redmeat": "Thịt đỏ"
+      },
+      "copied": "Đã sao chép!",
+      "copy": "Sao chép",
+      "copyMealAria": "Sao chép chi tiết bữa ăn",
+      "copySessionAria": "Sao chép tóm tắt phiên vào bảng nhớ tạm",
+      "done": "Xong",
+      "errorShort": "Lỗi",
+      "fibrousNote": "Rau giàu chất xơ không giới hạn — chỉ tinh bột (gạo, yến mạch, khoai tây)",
+      "gotIt": "đã hiểu!",
+      "headerTitle": "Bữa ăn vận động viên làm sẵn — {{slot}}",
+      "hiddenCount_one": "Đã ẩn {{count}} bữa ăn — tinh bột sẽ vượt quá {{cap}}g",
+      "hiddenCount_other": "Đã ẩn {{count}} bữa ăn — tinh bột sẽ vượt quá {{cap}}g",
+      "howToAria": "Cách sử dụng Bộ tạo Bữa ăn Vận động viên",
+      "info": {
+        "intro": "Bữa ăn được thiết kế sẵn, tối ưu cho hiệu suất thể thao và xây dựng cơ bắp.",
+        "step1Label": "Chọn danh mục chất đạm của bạn",
+        "step1Text": "(Gà, Thịt đỏ, Cá, Trứng)",
+        "step2After": "chỉ là đạm + rau giàu chất xơ",
+        "step2Mid": "bữa ăn bao gồm gạo, yến mạch hoặc khoai tây.",
+        "step3Label": "Nhấp vào bất kỳ bữa ăn nào",
+        "step3Text": "để thêm ngay vào bảng của bạn",
+        "step4Label": "Tất cả macro",
+        "step4Text": "đã được tính sẵn và sẵn sàng theo dõi",
+        "stepsLabel": "Các bước:",
+        "tipAfter": "bữa ăn. Rau giàu chất xơ luôn không giới hạn.",
+        "tipBefore": "Vào những ngày ít tinh bột, dùng",
+        "tipLabel": "💡 Mẹo:",
+        "tipMid": "bữa ăn. Vào ngày nạp lại, thêm",
+        "title": "Cách sử dụng Bộ tạo Bữa ăn Vận động viên"
+      },
+      "lowStarchDay": "Ngày ít tinh bột",
+      "mealCopyText": "{{title}} — {{cals}} cal · P {{protein}}g · S {{starch}}g · F {{fat}}g",
+      "noCoachConnection": "Không có kết nối huấn luyện viên nào đang hoạt động",
+      "noteDesc": "Bữa ăn được thiết kế sẵn, tối ưu cho hiệu suất thể thao và xây dựng cơ bắp.",
+      "noteStep1": "Chọn danh mục chất đạm của bạn (Gà, Thịt đỏ, Cá, Trứng)",
+      "noteStep2After": "chỉ là đạm + rau giàu chất xơ",
+      "noteStep2Before": "Bữa ăn được gắn nhãn",
+      "noteStep2Mid": "bao gồm gạo, yến mạch hoặc khoai tây —",
+      "noteStep3": "Nhấp vào bất kỳ bữa ăn nào để thêm ngay vào bảng của bạn",
+      "noteStep4": "Tất cả macro đã được tính sẵn và sẵn sàng theo dõi",
+      "noteTitle": "Bữa ăn vận động viên làm sẵn",
+      "refeedDay": "Ngày nạp lại",
+      "selectCategory": "Chọn danh mục chất đạm:",
+      "selectCategoryShort": "Chọn danh mục",
+      "sendCoachAria": "Gửi tóm tắt phiên cho huấn luyện viên",
+      "sendFailed": "Gửi thất bại — thử lại",
+      "sendToCoach": "Gửi cho huấn luyện viên",
+      "sending": "Đang gửi…",
+      "sent": "Đã gửi!",
+      "sessionTotal": "Tổng phiên:",
+      "slots": {
+        "breakfast": "Bữa sáng",
+        "dinner": "Bữa tối",
+        "lunch": "Bữa trưa",
+        "meal4": "Bữa ăn 4",
+        "meal5": "Bữa ăn 5",
+        "meal6": "Bữa ăn 6",
+        "snacks": "Đồ ăn nhẹ"
+      },
+      "starch": "Tinh bột",
+      "starchAllocation": "Phân bổ tinh bột",
+      "starchCap": "Giới hạn tinh bột {{cap}}g",
+      "starchUsage": "{{used}}g / {{cap}}g tinh bột",
+      "summaryText_one": "Đã thêm {{count}} bữa ăn — {{cals}} cal · P {{protein}}g · C {{carbs}}g · F {{fat}}g",
+      "summaryText_other": "Đã thêm {{count}} bữa ăn — {{cals}} cal · P {{protein}}g · C {{carbs}}g · F {{fat}}g",
+      "viewChatAria": "Xem tin nhắn trong trò chuyện với huấn luyện viên",
+      "viewInChat": "Xem trong trò chuyện"
+    },
+    "coachingSetup": {
+      "accountability": {
+        "encourage": {
+          "desc": "Cổ vũ tôi khi tôi vấp ngã",
+          "label": "Động viên tôi"
+        },
+        "pushHard": {
+          "desc": "Buộc tôi chịu trách nhiệm nghiêm ngặt",
+          "label": "Thúc đẩy tôi mạnh mẽ"
+        },
+        "remind": {
+          "desc": "Nhắc nhở nhẹ nhàng là đủ",
+          "label": "Chỉ cần nhắc tôi"
+        },
+        "selfDirected": {
+          "desc": "Tôi tự tạo động lực cho mình",
+          "label": "Tự định hướng"
+        }
+      },
+      "back": "Quay lại",
+      "challenges": {
+        "consistency": "Duy trì sự nhất quán",
+        "cravings": "Thèm ăn",
+        "emotionalEating": "Ăn theo cảm xúc",
+        "knowledge": "Biết nên ăn gì",
+        "mealPrep": "Chuẩn bị bữa ăn",
+        "motivation": "Động lực",
+        "socialPressure": "Áp lực xã hội",
+        "time": "Không đủ thời gian"
+      },
+      "error": "Đã xảy ra lỗi. Vui lòng thử lại.",
+      "lifestyle": {
+        "budgetConscious": "Tiết kiệm ngân sách",
+        "busySchedule": "Lịch trình bận rộn",
+        "frequentTravel": "Đi lại thường xuyên",
+        "parent": "Cha mẹ / Người chăm sóc",
+        "pickyEater": "Kén ăn",
+        "shiftWorker": "Làm việc theo ca",
+        "socialEater": "Ăn uống giao tiếp",
+        "stressEater": "Ăn khi căng thẳng"
+      },
+      "loading": "Đang tải hồ sơ của bạn...",
+      "motivations": {
+        "athletic": "Thành tích thể thao",
+        "confidence": "Cảm thấy tự tin",
+        "energy": "Nhiều năng lượng hơn",
+        "family": "Sức khỏe gia đình",
+        "longevity": "Tuổi thọ",
+        "mentalClarity": "Sự minh mẫn tinh thần",
+        "weightLoss": "Giảm cân"
+      },
+      "next": "Tiếp theo",
+      "saveProfile": "Lưu hồ sơ",
+      "savedDesc": "Hồ sơ huấn luyện của bạn đã sẵn sàng.",
+      "savedTitle": "Đã lưu hồ sơ!",
+      "saving": "Đang lưu...",
+      "steps": {
+        "accountability": {
+          "subtitle": "Chọn điều tạo động lực cho bạn nhất",
+          "title": "Chúng tôi nên giữ bạn chịu trách nhiệm như thế nào?"
+        },
+        "challenges": {
+          "subtitle": "Hãy thành thật — điều này giúp chúng tôi tập trung vào điều thực sự quan trọng",
+          "title": "Thách thức lớn nhất của bạn là gì?"
+        },
+        "lifestyle": {
+          "subtitle": "Chọn tất cả những điều phù hợp — chúng tôi sẽ điều chỉnh lời khuyên theo đó",
+          "title": "Điều nào mô tả lối sống của bạn?"
+        },
+        "motivations": {
+          "subtitle": "Chọn tất cả những điều phù hợp",
+          "title": "Điều gì thúc đẩy bạn?"
+        },
+        "style": {
+          "subtitle": "Chọn phong cách giao tiếp phù hợp với bạn",
+          "title": "Bạn muốn được huấn luyện như thế nào?"
+        }
+      },
+      "styles": {
+        "balanced": {
+          "desc": "Kết hợp tất cả các cách tiếp cận",
+          "label": "Cân bằng"
+        },
+        "direct": {
+          "desc": "Nói cho tôi biết phải làm gì — không rườm rà",
+          "label": "Trực tiếp"
+        },
+        "educational": {
+          "desc": "Giải thích lý do đằng sau mỗi lựa chọn",
+          "label": "Giáo dục"
+        },
+        "encouraging": {
+          "desc": "Củng cố và hỗ trợ tích cực",
+          "label": "Động viên"
+        }
+      }
+    },
+    "competitionPicker": {
+      "badgeCarbs": "Carb",
+      "categories": {
+        "eggsShakes": "Trứng và sữa lắc",
+        "fish": "Cá phi lê",
+        "poultry": "Gà và gà tây",
+        "redmeat": "Thịt đỏ"
+      },
+      "gotIt": "đã hiểu!",
+      "headerAddTo": "Bữa ăn chuẩn bị thi đấu - Thêm vào {{slot}}",
+      "howToAria": "Cách sử dụng Bộ tạo Hiệu suất & Thi đấu",
+      "info": {
+        "intro": "Bữa ăn cho vận động viên được thiết kế sẵn, tối ưu cho việc xây dựng cơ nạc và hiệu suất.",
+        "step1Label": "Chọn danh mục chất đạm của bạn",
+        "step1Text": "(Gà, Thịt đỏ, Cá, Trứng)",
+        "step2Label": "Bữa ăn được gắn nhãn",
+        "step2Text": "«Carb» hoặc «P+V» (Đạm + Rau)",
+        "step3Label": "Nhấp vào bất kỳ bữa ăn nào",
+        "step3Text": "để thêm ngay vào bảng của bạn",
+        "step4Label": "Tất cả macro",
+        "step4Text": "đã được tính sẵn và sẵn sàng theo dõi",
+        "stepsLabel": "Các bước:",
+        "tipLabel": "💡 Mẹo:",
+        "tipText": "Chọn bữa ăn dựa trên mục tiêu carb hàng ngày của bạn - dùng bữa «Carb» khi bạn cần năng lượng, và bữa «P+V» cho những ngày ít carb!",
+        "title": "Cách sử dụng Bộ tạo Hiệu suất & Thi đấu"
+      },
+      "noteDesc": "Bữa ăn cho vận động viên được thiết kế sẵn, tối ưu cho việc xây dựng cơ nạc và hiệu suất.",
+      "noteStep1": "Chọn danh mục chất đạm của bạn (Gà, Thịt đỏ, Cá, Trứng)",
+      "noteStep2": "Bữa ăn được gắn nhãn «Carb» hoặc «P+V» (Đạm + Rau)",
+      "noteStep3": "Nhấp vào bất kỳ bữa ăn nào để thêm ngay vào bảng của bạn",
+      "noteStep4": "Tất cả macro đã được tính sẵn và sẵn sàng theo dõi",
+      "noteTitle": "Bữa ăn chuẩn bị thi đấu",
+      "selectCategory": "Chọn danh mục chất đạm:",
+      "selectCategoryShort": "Chọn danh mục"
+    },
+    "complianceCard": {
+      "biggestOpportunity": "Cơ hội lớn nhất",
+      "breakfastLogged": "Đã ghi bữa sáng",
+      "caloriesOnTarget": "Calo đúng mục tiêu",
+      "consistencyScore": "Điểm nhất quán",
+      "days": "ngày",
+      "dinnerLogged": "Đã ghi bữa tối",
+      "last7Days": "7 ngày qua",
+      "lastNDays": "{{count}} ngày qua",
+      "loggedMeals": "Bữa ăn đã ghi",
+      "lunchLogged": "Đã ghi bữa trưa",
+      "noActivity": "Chưa ghi nhận hoạt động dinh dưỡng nào. Bắt đầu ghi lại bữa ăn để xem tóm tắt hoạt động cá nhân của bạn tại đây.",
+      "noMeals": "Chưa ghi lại bữa ăn nào. Bắt đầu ghi lại bữa ăn để xem tóm tắt hoạt động của bạn.",
+      "ofDays": "{{value}} trên {{total}}",
+      "proteinGoalMet": "Đạt mục tiêu protein",
+      "setTargets": "Đặt mục tiêu macro của bạn để kích hoạt theo dõi dinh dưỡng đầy đủ.",
+      "title": "Tóm tắt hoạt động dinh dưỡng"
+    },
+    "mealPicker": {
+      "addTo": "Thêm vào {{slot}}",
+      "cafeteria": "Căng tin",
+      "categories": {
+        "fats": "Chất béo",
+        "fibrousCarbs": "Carb giàu chất xơ",
+        "fruit": "Trái cây",
+        "proteins": "Chất đạm",
+        "starchyCarbs": "Tinh bột giàu carb"
+      },
+      "close": "Đóng",
+      "generate": "Tạo",
+      "generateCount": "Tạo ({{count}})",
+      "generating": "Đang tạo…",
+      "gotIt": "đã hiểu!",
+      "howToAria": "Cách sử dụng Bộ chọn bữa ăn",
+      "info": {
+        "addLabel": "Nhấp để thêm:",
+        "addText": "Nhấn vào bất kỳ thẻ bữa ăn nào để thêm ngay vào khe {{slot}} của bạn",
+        "browseLabel": "Duyệt bữa ăn:",
+        "browseText": "Cuộn qua các mẫu bữa ăn được tuyển chọn của chúng tôi",
+        "cafeteriaLabel": "Tùy chọn căng tin:",
+        "cafeteriaText": "Nhấp «Căng tin» để có gợi ý bữa ăn ngẫu nhiên nhanh chóng",
+        "intro": "Cách nhanh chóng và dễ dàng để thêm bữa ăn làm sẵn vào kế hoạch của bạn.",
+        "personalizedLabel": "Cá nhân hóa:",
+        "personalizedText": "Bữa ăn được lọc dựa trên dị ứng và sở thích của bạn",
+        "tipLabel": "💡 Mẹo:",
+        "tipText": "Sử dụng nút Căng tin khi bạn muốn có gợi ý lành mạnh nhanh chóng mà không cần duyệt!",
+        "title": "Cách sử dụng Bộ chọn bữa ăn"
+      },
+      "lowerGlycemic": "Tác động đường huyết thấp hơn",
+      "quickMeal": "Bữa {{slot}} nhanh",
+      "regularGi": "GI thông thường"
+    },
+    "mealReminders": {
+      "addReminder": "Thêm lời nhắc bữa ăn",
+      "checkAgain": "Kiểm tra lại",
+      "checking": "Đang kiểm tra…",
+      "connectionDiagnostics": "Chẩn đoán kết nối",
+      "footerBlocked": "Thiết lập thời gian ngay — thông báo sẽ kích hoạt khi được cấp quyền.",
+      "footerDefault": "Tối đa 6 lời nhắc. Nhấn vào nhãn để đổi tên.",
+      "footerEnabled": "Giữ trình duyệt của bạn mở để gửi đáng tin cậy.",
+      "footerNative": "Nhấn vào nhãn để đổi tên. Lời nhắc được gửi qua ứng dụng iOS.",
+      "mealN": "Bữa ăn {{n}}",
+      "nativeDelivery": "Gửi qua iOS gốc",
+      "saving": "Đang lưu…",
+      "statusBlocked": "Thông báo bị chặn trong trình duyệt",
+      "statusConnected": "Đã kết nối thông báo",
+      "statusPartial": "Chưa kết nối đầy đủ — bật một khe để hoàn tất thiết lập",
+      "statusPending": "Bật một khe để kích hoạt thông báo",
+      "statusUnsupported": "Không được trình duyệt này hỗ trợ",
+      "title": "Lời nhắc bữa ăn",
+      "toUnblock": "Để bỏ chặn:",
+      "toastBlockedIosDesc": "Vào Cài đặt iPhone › My Perfect Meals › Cho phép thông báo",
+      "toastBlockedTitle": "Thông báo bị chặn",
+      "toastBlockedWebDesc": "Cho phép thông báo qua biểu tượng khóa trong thanh địa chỉ, sau đó nhấn Kiểm tra lại.",
+      "toastEnableFailedTitle": "Không thể bật thông báo",
+      "toastNotSupportedDesc": "Trình duyệt này không hỗ trợ thông báo đẩy.",
+      "toastNotSupportedTitle": "Không được hỗ trợ",
+      "toastPermissionDenied": "Quyền bị từ chối.",
+      "toastSaveFailed": "Không thể lưu lời nhắc",
+      "toastTryAgain": "Thử lại sau giây lát.",
+      "unblockAllow": "Cho phép",
+      "unblockLock": "🔒 khóa",
+      "unblockNotifications": "Thông báo",
+      "unblockStep1After": "trong thanh địa chỉ trình duyệt của bạn",
+      "unblockStep1Before": "Nhấp vào",
+      "unblockStep2Before": "Đặt",
+      "unblockStep2Mid": "thành",
+      "unblockStep3After": "bên dưới",
+      "unblockStep3Before": "Nhấn",
+      "unsupportedHint": "Hãy thử Chrome hoặc Edge trên máy tính. Safari trên iOS yêu cầu ứng dụng.",
+      "webDelivery": "Gửi qua web push"
+    }
+  },
+  "zh": {
+    "athletePicker": {
+      "added": "已添加！",
+      "addedCount": "已添加{{count}}",
+      "addingTo": "添加到：",
+      "categories": {
+        "eggsShakes": "鸡蛋与奶昔",
+        "fish": "鱼柳",
+        "poultry": "鸡肉与火鸡",
+        "redmeat": "红肉"
+      },
+      "copied": "已复制！",
+      "copy": "复制",
+      "copyMealAria": "复制餐食详情",
+      "copySessionAria": "复制本次摘要到剪贴板",
+      "done": "完成",
+      "errorShort": "错误",
+      "fibrousNote": "纤维蔬菜不限量——仅限淀粉（米饭、燕麦、土豆）",
+      "gotIt": "知道了！",
+      "headerTitle": "现成运动员餐 — {{slot}}",
+      "hiddenCount_one": "已隐藏{{count}}餐——淀粉会超过{{cap}}g",
+      "hiddenCount_other": "已隐藏{{count}}餐——淀粉会超过{{cap}}g",
+      "howToAria": "如何使用运动员餐构建器",
+      "info": {
+        "intro": "现成餐食，专为运动表现与增肌优化。",
+        "step1Label": "选择你的蛋白质类别",
+        "step1Text": "（鸡肉、红肉、鱼、蛋）",
+        "step2After": "仅为蛋白质+纤维蔬菜",
+        "step2Mid": "餐含米饭、燕麦或土豆。",
+        "step3Label": "点击任意餐",
+        "step3Text": "即可立即加入面板",
+        "step4Label": "所有宏量",
+        "step4Text": "已算好，可直接追踪",
+        "stepsLabel": "步骤：",
+        "tipAfter": "餐。纤维蔬菜始终不限量。",
+        "tipBefore": "低淀粉日请用",
+        "tipLabel": "💡 提示：",
+        "tipMid": "餐。补碳日则加入",
+        "title": "如何使用运动员餐构建器"
+      },
+      "lowStarchDay": "低淀粉日",
+      "mealCopyText": "{{title}} — {{cals}} 卡 · 蛋 {{protein}}g · 淀 {{starch}}g · 脂 {{fat}}g",
+      "noCoachConnection": "没有可用的教练连接",
+      "noteDesc": "现成餐食，专为运动表现与增肌优化。",
+      "noteStep1": "选择你的蛋白质类别（鸡肉、红肉、鱼、蛋）",
+      "noteStep2After": "仅为蛋白质+纤维蔬菜",
+      "noteStep2Before": "标记为",
+      "noteStep2Mid": "的餐含米饭、燕麦或土豆——",
+      "noteStep3": "点击任意餐即可立即加入面板",
+      "noteStep4": "所有宏量已算好，可直接追踪",
+      "noteTitle": "现成运动员餐",
+      "refeedDay": "补碳日",
+      "selectCategory": "选择蛋白质类别：",
+      "selectCategoryShort": "选择类别",
+      "sendCoachAria": "将本次摘要发送给教练",
+      "sendFailed": "发送失败，请重试",
+      "sendToCoach": "发送给教练",
+      "sending": "发送中…",
+      "sent": "已发送！",
+      "sessionTotal": "本次合计：",
+      "slots": {
+        "breakfast": "早餐",
+        "dinner": "晚餐",
+        "lunch": "午餐",
+        "meal4": "第4餐",
+        "meal5": "第5餐",
+        "meal6": "第6餐",
+        "snacks": "加餐"
+      },
+      "starch": "淀粉",
+      "starchAllocation": "淀粉配额",
+      "starchCap": "淀粉上限 {{cap}}g",
+      "starchUsage": "{{used}}g / {{cap}}g 淀粉",
+      "summaryText_one": "已添加{{count}}餐 — {{cals}} 卡 · 蛋 {{protein}}g · 碳 {{carbs}}g · 脂 {{fat}}g",
+      "summaryText_other": "已添加{{count}}餐 — {{cals}} 卡 · 蛋 {{protein}}g · 碳 {{carbs}}g · 脂 {{fat}}g",
+      "viewChatAria": "在教练聊天中查看消息",
+      "viewInChat": "在聊天中查看"
+    },
+    "coachingSetup": {
+      "accountability": {
+        "encourage": {
+          "desc": "我懈怠时为我加油",
+          "label": "鼓励我"
+        },
+        "pushHard": {
+          "desc": "严格督促我完成目标",
+          "label": "严格督促我"
+        },
+        "remind": {
+          "desc": "温和提醒就够了",
+          "label": "只需提醒我"
+        },
+        "selfDirected": {
+          "desc": "我自己激励自己",
+          "label": "自我驱动"
+        }
+      },
+      "back": "返回",
+      "challenges": {
+        "consistency": "保持坚持",
+        "cravings": "嘴馋",
+        "emotionalEating": "情绪化进食",
+        "knowledge": "不知吃什么",
+        "mealPrep": "备餐",
+        "motivation": "动力",
+        "socialPressure": "社交压力",
+        "time": "时间不够"
+      },
+      "error": "出错了，请重试。",
+      "lifestyle": {
+        "budgetConscious": "注重预算",
+        "busySchedule": "日程繁忙",
+        "frequentTravel": "经常出差",
+        "parent": "父母/照护者",
+        "pickyEater": "挑食",
+        "shiftWorker": "轮班工作",
+        "socialEater": "常聚餐",
+        "stressEater": "压力型进食"
+      },
+      "loading": "正在加载你的资料…",
+      "motivations": {
+        "athletic": "运动表现",
+        "confidence": "更自信",
+        "energy": "更有活力",
+        "family": "家人健康",
+        "longevity": "长寿",
+        "mentalClarity": "头脑清晰",
+        "weightLoss": "减重"
+      },
+      "next": "下一步",
+      "saveProfile": "保存资料",
+      "savedDesc": "你的指导资料已就绪。",
+      "savedTitle": "资料已保存！",
+      "saving": "保存中…",
+      "steps": {
+        "accountability": {
+          "subtitle": "选出最能激励你的方式",
+          "title": "如何督促你？"
+        },
+        "challenges": {
+          "subtitle": "请如实回答，帮我们抓住重点",
+          "title": "你最大的挑战？"
+        },
+        "lifestyle": {
+          "subtitle": "全选适用项，我们会据此调整建议",
+          "title": "你的生活方式？"
+        },
+        "motivations": {
+          "subtitle": "选择所有适用项",
+          "title": "是什么在驱动你？"
+        },
+        "style": {
+          "subtitle": "选择你喜欢的沟通风格",
+          "title": "你想要怎样的指导？"
+        }
+      },
+      "styles": {
+        "balanced": {
+          "desc": "融合各种方式",
+          "label": "均衡"
+        },
+        "direct": {
+          "desc": "直接告诉我该怎么做",
+          "label": "直接"
+        },
+        "educational": {
+          "desc": "解释每个选择的原因",
+          "label": "讲解"
+        },
+        "encouraging": {
+          "desc": "正向激励与支持",
+          "label": "鼓励"
+        }
+      }
+    },
+    "competitionPicker": {
+      "badgeCarbs": "碳水",
+      "categories": {
+        "eggsShakes": "鸡蛋与奶昔",
+        "fish": "鱼柳",
+        "poultry": "鸡肉与火鸡",
+        "redmeat": "红肉"
+      },
+      "gotIt": "知道了！",
+      "headerAddTo": "竞赛备赛餐 - 添加到{{slot}}",
+      "howToAria": "如何使用备赛构建器",
+      "info": {
+        "intro": "现成运动员餐，专为增肌塑形与表现优化。",
+        "step1Label": "选择你的蛋白质类别",
+        "step1Text": "（鸡肉、红肉、鱼、蛋）",
+        "step2Label": "餐食标记为",
+        "step2Text": "「碳水」或「P+V」（蛋白质+蔬菜）",
+        "step3Label": "点击任意餐",
+        "step3Text": "即可立即加入面板",
+        "step4Label": "所有宏量",
+        "step4Text": "已算好，可直接追踪",
+        "stepsLabel": "步骤：",
+        "tipLabel": "💡 提示：",
+        "tipText": "按每日碳水目标选择：「碳水」餐补能量，「P+V」餐用于低碳日。",
+        "title": "如何使用备赛构建器"
+      },
+      "noteDesc": "现成运动员餐，专为增肌塑形与表现优化。",
+      "noteStep1": "选择你的蛋白质类别（鸡肉、红肉、鱼、蛋）",
+      "noteStep2": "餐食标记为「碳水」或「P+V」（蛋白质+蔬菜）",
+      "noteStep3": "点击任意餐即可立即加入面板",
+      "noteStep4": "所有宏量已算好，可直接追踪",
+      "noteTitle": "竞赛备赛餐",
+      "selectCategory": "选择蛋白质类别：",
+      "selectCategoryShort": "选择类别"
+    },
+    "complianceCard": {
+      "biggestOpportunity": "最大提升点",
+      "breakfastLogged": "已记早餐",
+      "caloriesOnTarget": "热量达标",
+      "consistencyScore": "坚持得分",
+      "days": "天",
+      "dinnerLogged": "已记晚餐",
+      "last7Days": "近7天",
+      "lastNDays": "近{{count}}天",
+      "loggedMeals": "已记录用餐",
+      "lunchLogged": "已记午餐",
+      "noActivity": "暂无活动。记录用餐即可在此查看你的个性化摘要。",
+      "noMeals": "尚未记录用餐。记录用餐以查看摘要。",
+      "ofDays": "{{value}} / {{total}}",
+      "proteinGoalMet": "蛋白质达标",
+      "setTargets": "设置宏量目标以启用完整追踪。",
+      "title": "营养活动摘要"
+    },
+    "mealPicker": {
+      "addTo": "添加到{{slot}}",
+      "cafeteria": "随机餐",
+      "categories": {
+        "fats": "脂肪",
+        "fibrousCarbs": "纤维碳水",
+        "fruit": "水果",
+        "proteins": "蛋白质",
+        "starchyCarbs": "淀粉碳水"
+      },
+      "close": "关闭",
+      "generate": "生成",
+      "generateCount": "生成（{{count}}）",
+      "generating": "生成中…",
+      "gotIt": "知道了！",
+      "howToAria": "如何使用用餐选择器",
+      "info": {
+        "addLabel": "点击添加：",
+        "addText": "点击任意餐卡即可立即加入你的{{slot}}时段",
+        "browseLabel": "浏览餐食：",
+        "browseText": "浏览我们精选的餐食模板",
+        "cafeteriaLabel": "随机餐选项：",
+        "cafeteriaText": "点击「随机餐」获取快速随机建议",
+        "intro": "快速便捷地把现成餐加入你的计划。",
+        "personalizedLabel": "个性化：",
+        "personalizedText": "餐食按你的过敏与偏好筛选",
+        "tipLabel": "💡 提示：",
+        "tipText": "想快速获得健康建议又不想浏览时，就用随机餐。",
+        "title": "如何使用用餐选择器"
+      },
+      "lowerGlycemic": "较低升糖影响",
+      "quickMeal": "快速{{slot}}餐",
+      "regularGi": "普通升糖"
+    },
+    "mealReminders": {
+      "addReminder": "添加用餐提醒",
+      "checkAgain": "重新检查",
+      "checking": "检查中…",
+      "connectionDiagnostics": "连接诊断",
+      "footerBlocked": "先设好时间；授予权限后即会启用。",
+      "footerDefault": "最多6条提醒。点击标签可重命名。",
+      "footerEnabled": "保持浏览器打开以稳定接收。",
+      "footerNative": "点击标签可重命名。提醒通过 iOS App 发送。",
+      "mealN": "第{{n}}餐",
+      "nativeDelivery": "iOS 原生推送",
+      "saving": "保存中…",
+      "statusBlocked": "浏览器已阻止通知",
+      "statusConnected": "通知已连接",
+      "statusPartial": "尚未完全连接——开启一个时段以完成设置",
+      "statusPending": "开启一个时段以启用通知",
+      "statusUnsupported": "此浏览器不支持",
+      "title": "用餐提醒",
+      "toUnblock": "解除阻止：",
+      "toastBlockedIosDesc": "前往 iPhone 设置 › My Perfect Meals › 允许通知",
+      "toastBlockedTitle": "通知已被阻止",
+      "toastBlockedWebDesc": "通过地址栏的锁形图标允许通知，然后点击重新检查。",
+      "toastEnableFailedTitle": "无法启用通知",
+      "toastNotSupportedDesc": "此浏览器不支持推送通知。",
+      "toastNotSupportedTitle": "不支持",
+      "toastPermissionDenied": "权限被拒绝。",
+      "toastSaveFailed": "无法保存提醒",
+      "toastTryAgain": "请稍后重试。",
+      "unblockAllow": "允许",
+      "unblockLock": "🔒 锁形图标",
+      "unblockNotifications": "通知",
+      "unblockStep1After": "（在地址栏中）",
+      "unblockStep1Before": "点击",
+      "unblockStep2Before": "将",
+      "unblockStep2Mid": "设为",
+      "unblockStep3After": "",
+      "unblockStep3Before": "点击下方的",
+      "unsupportedHint": "请在电脑上使用 Chrome 或 Edge。iOS 上的 Safari 需改用 App。",
+      "webDelivery": "网页推送"
+    }
+  }
+}

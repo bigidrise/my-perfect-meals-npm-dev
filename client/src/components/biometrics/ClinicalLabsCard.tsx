@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -127,9 +128,9 @@ function evalStatus(form: LabValues, checks: FieldCheck[]) {
     if (c.dir === "either" && (n > c.hi || n < c.lo)) elevated++;
   }
   if (entered === 0) return null;
-  if (elevated === 0) return { label: "Normal",    cls: "text-emerald-400 bg-emerald-500/10 border-emerald-500/25" };
-  if (elevated === 1) return { label: "Needs review", cls: "text-amber-400 bg-amber-500/10 border-amber-500/25" };
-  return { label: `${elevated} elevated`, cls: "text-red-400 bg-red-500/10 border-red-500/25" };
+  if (elevated === 0) return { labelKey: "clinicalLabs.status.normal",      cls: "text-emerald-400 bg-emerald-500/10 border-emerald-500/25" };
+  if (elevated === 1) return { labelKey: "clinicalLabs.status.needsReview", cls: "text-amber-400 bg-amber-500/10 border-amber-500/25" };
+  return { labelKey: "clinicalLabs.status.elevated", labelParams: { count: elevated }, cls: "text-red-400 bg-red-500/10 border-red-500/25" };
 }
 
 // ---------------------------------------------------------------------------
@@ -185,6 +186,7 @@ function CollapsibleSection({
   onToggle: () => void;
   onChange: (k: keyof LabValues, v: string) => void;
 }) {
+  const { t } = useTranslation();
   const status = evalStatus(form, section.checks);
 
   return (
@@ -200,7 +202,7 @@ function CollapsibleSection({
         <div className="flex items-center gap-2 shrink-0">
           {status && (
             <span className={`text-[10px] font-semibold border rounded-full px-2 py-0.5 leading-none ${status.cls}`}>
-              {status.label}
+              {t(status.labelKey, status.labelParams)}
             </span>
           )}
           {open
@@ -226,6 +228,7 @@ interface ClinicalLabsCardProps {
 }
 
 export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [form, setForm] = useState<LabValues>(EMPTY_LABS);
   const [saving, setSaving] = useState(false);
@@ -346,7 +349,7 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
       ([k, v]) => k !== "notes" && k !== "lab_date" && (v as string).trim() !== ""
     );
     if (!hasAnyValue) {
-      toast({ title: "Enter at least one lab value before saving", variant: "destructive" });
+      toast({ title: t("clinicalLabs.toast.enterOne"), variant: "destructive" });
       return;
     }
 
@@ -427,7 +430,7 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
         toast({ title: "Clinical Labs Saved", description: "Your lab values have been recorded." });
       }
     } catch {
-      toast({ title: "Failed to save labs", variant: "destructive" });
+      toast({ title: t("clinicalLabs.toast.failed"), variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -560,7 +563,7 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
   const SECTIONS: SectionDef[] = [
     {
       id: "cardiac",
-      label: "Cardiac & Metabolic",
+      label: t("clinicalLabs.sections.cardiac"),
       icon: <Heart className="w-4 h-4" />,
       iconColor: "text-rose-400",
       checks: [
@@ -571,41 +574,41 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
       ],
       content: (f, oc) => (
         <>
-          <LabField label="LDL"          name="ldl"          value={f.ldl}          unit="mg/dL" placeholder="e.g. 145" onChange={oc} />
-          <LabField label="HDL"          name="hdl"          value={f.hdl}          unit="mg/dL" placeholder="e.g. 55"  onChange={oc} />
-          <LabField label="Triglycerides" name="triglycerides" value={f.triglycerides} unit="mg/dL" placeholder="e.g. 130" onChange={oc} />
+          <LabField label={t("clinicalLabs.fields.ldl")}          name="ldl"          value={f.ldl}          unit="mg/dL" placeholder="e.g. 145" onChange={oc} />
+          <LabField label={t("clinicalLabs.fields.hdl")}          name="hdl"          value={f.hdl}          unit="mg/dL" placeholder="e.g. 55"  onChange={oc} />
+          <LabField label={t("clinicalLabs.fields.triglycerides")} name="triglycerides" value={f.triglycerides} unit="mg/dL" placeholder="e.g. 130" onChange={oc} />
           {tgHdlRatio && (
             <div className="flex items-center gap-2">
-              <span className="text-xs text-white/50 w-36 shrink-0">TG/HDL Ratio</span>
+              <span className="text-xs text-white/50 w-36 shrink-0">{t("clinicalLabs.fields.tgHdlRatio")}</span>
               <div className="flex items-center gap-2 flex-1">
                 <span className="text-sm text-white/80 font-mono">{tgHdlRatio}</span>
                 <span className={`text-[10px] border rounded-full px-1.5 py-0.5 leading-none font-semibold ${parseFloat(tgHdlRatio) > 3.5 ? "text-amber-400 bg-amber-500/10 border-amber-500/25" : "text-emerald-400 bg-emerald-500/10 border-emerald-500/25"}`}>
-                  {parseFloat(tgHdlRatio) > 3.5 ? "Elevated" : "Normal"}
+                  {parseFloat(tgHdlRatio) > 3.5 ? t("clinicalLabs.elevated") : t("clinicalLabs.normal")}
                 </span>
               </div>
             </div>
           )}
           {/* Blood Pressure — dual input */}
           <div className="flex items-center gap-2">
-            <span className="text-xs text-white/50 w-36 shrink-0">Blood Pressure</span>
+            <span className="text-xs text-white/50 w-36 shrink-0">{t("clinicalLabs.fields.bloodPressure")}</span>
             <div className="flex items-center gap-1 flex-1">
               <Input
                 type="number" inputMode="numeric"
-                value={f.blood_pressure_systolic} placeholder="Sys"
+                value={f.blood_pressure_systolic} placeholder={t("clinicalLabs.fields.sys")}
                 onChange={(e) => oc("blood_pressure_systolic", e.target.value)}
                 className="bg-black/40 border-white/20 text-white placeholder:text-white/25 text-sm h-8 focus:bg-black/40 focus:text-white caret-white"
               />
               <span className="text-white/30 text-sm">/</span>
               <Input
                 type="number" inputMode="numeric"
-                value={f.blood_pressure_diastolic} placeholder="Dia"
+                value={f.blood_pressure_diastolic} placeholder={t("clinicalLabs.fields.dia")}
                 onChange={(e) => oc("blood_pressure_diastolic", e.target.value)}
                 className="bg-black/40 border-white/20 text-white placeholder:text-white/25 text-sm h-8 focus:bg-black/40 focus:text-white caret-white"
               />
               <span className="text-[10px] text-white/30 shrink-0">mmHg</span>
             </div>
           </div>
-          <LabField label="Ejection Fraction" name="ejection_fraction" value={f.ejection_fraction} unit="%" placeholder="e.g. 55" onChange={oc} />
+          <LabField label={t("clinicalLabs.fields.ejectionFraction")} name="ejection_fraction" value={f.ejection_fraction} unit="%" placeholder="e.g. 55" onChange={oc} />
         </>
       ),
     },
@@ -621,7 +624,7 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
       ],
       content: (f, oc) => (
         <>
-          <LabField label="A1C"             name="a1c"             value={f.a1c}             unit="%"       placeholder="e.g. 6.2" onChange={oc} />
+          <LabField label={t("clinicalLabs.fields.a1c")}             name="a1c"             value={f.a1c}             unit="%"       placeholder="e.g. 6.2" onChange={oc} />
           <LabField label="Fasting Glucose" name="glucose"         value={f.glucose}         unit="mg/dL"   placeholder="e.g. 95"  onChange={oc} />
           <LabField label="Fasting Insulin" name="fasting_insulin" value={f.fasting_insulin} unit="µIU/mL" placeholder="e.g. 10"  onChange={oc} />
         </>
@@ -629,7 +632,7 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
     },
     {
       id: "hormonal",
-      label: "Hormonal / Stress & Sex Hormones",
+      label: t("clinicalLabs.sections.hormonal"),
       icon: <Brain className="w-4 h-4" />,
       iconColor: "text-amber-400",
       checks: [
@@ -647,7 +650,7 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
           <LabField label="DHEA-S"              name="dhea_s"             value={f.dhea_s}             unit="µg/dL" placeholder="e.g. 180"  onChange={oc} />
           {/* Divider — Menopause / Perimenopause panel */}
           <div className="pt-1 border-t border-white/10">
-            <p className="text-[10px] text-white/30 mb-3">Menopause / Perimenopause Panel</p>
+            <p className="text-[10px] text-white/30 mb-3">{t("clinicalLabs.menopausePanel")}</p>
           </div>
           <LabField label="Estradiol (E2)"      name="estradiol"          value={f.estradiol}          unit="pg/mL" placeholder="e.g. 65"   onChange={oc} />
           <LabField label="Progesterone"        name="progesterone"       value={f.progesterone}       unit="ng/mL" placeholder="e.g. 1.5"  onChange={oc} />
@@ -659,7 +662,7 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
     },
     {
       id: "liver",
-      label: "Liver Panel",
+      label: t("clinicalLabs.sections.liver"),
       icon: <Beaker className="w-4 h-4" />,
       iconColor: "text-amber-500",
       checks: [
@@ -679,7 +682,7 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
     },
     {
       id: "thyroid",
-      label: "Thyroid Panel",
+      label: t("clinicalLabs.sections.thyroid"),
       icon: <Activity className="w-4 h-4" />,
       iconColor: "text-teal-400",
       checks: [
@@ -703,7 +706,7 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
     },
     {
       id: "kidney",
-      label: "Kidney / Renal",
+      label: t("clinicalLabs.sections.kidney"),
       icon: <Wind className="w-4 h-4" />,
       iconColor: "text-blue-400",
       checks: [
@@ -720,7 +723,7 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
     },
     {
       id: "inflammation",
-      label: "Inflammation & Recovery",
+      label: t("clinicalLabs.sections.inflammation"),
       icon: <Flame className="w-4 h-4" />,
       iconColor: "text-orange-400",
       checks: [
@@ -742,10 +745,10 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-white text-xl flex items-center gap-2">
             <FlaskConical className="w-5 h-5 text-cyan-400" />
-            Clinical Labs
+            {t("clinicalLabs.title")}
           </CardTitle>
           {lastSaved && (
-            <span className="text-[10px] text-white/30">Last: {lastSaved}</span>
+            <span className="text-[10px] text-white/30">{t("clinicalLabs.last", { date: lastSaved })}</span>
           )}
         </CardHeader>
         <CardContent className="space-y-2">
@@ -757,7 +760,7 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
             <>
               {/* Lab Date — always visible */}
               <div className="flex items-center gap-2 pb-2 mb-1 border-b border-white/10">
-                <span className="text-xs text-white/50 w-36 shrink-0">Lab Date</span>
+                <span className="text-xs text-white/50 w-36 shrink-0">{t("clinicalLabs.labDate")}</span>
                 <Input
                   type="date"
                   value={form.lab_date}
@@ -790,10 +793,10 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
                 let oncologyStatus: { label: string; cls: string } | null = null;
                 if (prealbuminEntered) {
                   oncologyStatus = prealbuminLow
-                    ? { label: "Needs attention", cls: "text-rose-300 bg-rose-500/10 border-rose-400/30" }
-                    : { label: "Normal", cls: "text-emerald-400 bg-emerald-500/10 border-emerald-500/25" };
+                    ? { label: t("clinicalLabs.oncology.needsAttention"), cls: "text-rose-300 bg-rose-500/10 border-rose-400/30" }
+                    : { label: t("clinicalLabs.normal"), cls: "text-emerald-400 bg-emerald-500/10 border-emerald-500/25" };
                 } else if (oncologyCtx?.enabled) {
-                  oncologyStatus = { label: isPhysicianControlled ? "Physician-guided" : "Active", cls: "text-rose-300 bg-rose-500/10 border-rose-400/30" };
+                  oncologyStatus = { label: isPhysicianControlled ? t("clinicalLabs.oncology.physicianGuided") : t("clinicalLabs.active"), cls: "text-rose-300 bg-rose-500/10 border-rose-400/30" };
                 }
 
                 const open = openSections.has("oncology");
@@ -806,7 +809,7 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
                     >
                       <div className="flex items-center gap-2.5">
                         <Ribbon className="w-4 h-4 text-rose-400 shrink-0" />
-                        <span className="text-sm font-medium text-rose-200/90">Oncology & Recovery</span>
+                        <span className="text-sm font-medium text-rose-200/90">{t("clinicalLabs.sections.oncology")}</span>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         {oncologyStatus && (
@@ -902,11 +905,11 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
 
               {/* Notes — always visible */}
               <div className="flex items-start gap-2 pt-2">
-                <span className="text-xs text-white/50 w-36 shrink-0 pt-2">Notes</span>
+                <span className="text-xs text-white/50 w-36 shrink-0 pt-2">{t("clinicalLabs.notes")}</span>
                 <textarea
                   value={form.notes}
                   onChange={(e) => handleChange("notes", e.target.value)}
-                  placeholder="Optional provider notes..."
+                  placeholder={t("clinicalLabs.notesPlaceholder")}
                   rows={2}
                   className="flex-1 bg-black/40 border border-white/20 rounded-md px-3 py-2 text-sm text-white placeholder:text-white/25 resize-none focus:outline-none focus:border-white/40"
                 />
@@ -918,16 +921,16 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
                 className="w-full bg-cyan-700 hover:bg-cyan-600 text-white font-semibold mt-2"
               >
                 {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-                Save Lab Values
+                {t("clinicalLabs.saveButton")}
               </Button>
               {justSaved && (
                 <div className="flex items-center justify-center gap-2 rounded-lg bg-green-900/40 border border-green-500/40 px-4 py-2 mt-1">
                   <svg className="w-4 h-4 text-green-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
-                  <span className="text-sm font-medium text-green-300">Lab values saved successfully</span>
+                  <span className="text-sm font-medium text-green-300">{t("clinicalLabs.savedSuccess")}</span>
                 </div>
               )}
               {lastSaved && !justSaved && (
-                <p className="text-xs text-white/50 text-center mt-1">Last saved: {lastSaved}</p>
+                <p className="text-xs text-white/50 text-center mt-1">{t("clinicalLabs.lastSaved", { date: lastSaved })}</p>
               )}
             </>
           )}

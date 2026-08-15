@@ -2442,6 +2442,1496 @@
       "percentOfTarget": "{{n}}% ng target",
       "remainingCal": "{{n}} natitira",
       "remainingG": "{{n}}g natitira"
+    },
+    "enhancedMealCard": {
+      "replace": "Palitan",
+      "replacing": "Pinapalitan...",
+      "replaceTitle": "Palitan ng ganap na bagong recipe ng pagkain",
+      "replacingTitle": "Pinapalitan ang pagkain...",
+      "portionGuide": "Gabay sa Sukat ng Pagkain:",
+      "ingredients": "Mga Sangkap:",
+      "instructions": "Mga Tagubilin:",
+      "medicalSafety": "Medikal na Kaligtasan:",
+      "error": "Pagkakamali:"
+    }
+  },
+  "remainingMacros": {
+    "remainingToday": "Natitira ngayong araw",
+    "protein": "Protina",
+    "starchy": "Almirol",
+    "fibrous": "Hibla",
+    "fat": "Taba",
+    "setMacrosPrompt": "Itakda ang iyong macros para makita kung ano ang natitira ngayong araw.",
+    "saveDay": "I-save ang araw sa biometrics",
+    "targetsUpdated": "Na-update ang mga target sa gitna ng araw",
+    "targetsUpdatedReason": "Na-update ang mga target sa gitna ng araw — {{reason}}",
+    "dismiss": "I-dismiss",
+    "overLimit": "⚠ lampas sa limit",
+    "limit": "★ limit",
+    "coach": {
+      "title": "Macro Coach",
+      "subtitle": "Paano basahin ang natitirang mga target",
+      "proteinTitle": "Protina",
+      "proteinBody": "Abutin ang target na ito para protektahan ang kalamnan at manatiling busog.",
+      "proteinBullet1": "Unahin ang mga lean na pinagkukunan sa bawat kain.",
+      "proteinBullet2": "Ikalat ang inyong intake sa buong araw.",
+      "carbsTitle": "Carbs",
+      "carbsBody": "Pasiglahin ang training gamit ang almirol na carbs, punuan ng hibla.",
+      "carbsBullet1": "Ang almirol na carbs ang gasolina ng performance.",
+      "carbsBullet2": "Tumutulong ang hibla sa panunaw at kabusugan.",
+      "fatTitle": "Taba",
+      "fatBody": "Panatilihing katamtaman ang taba para balansehin ang enerhiya at hormone.",
+      "fatBullet1": "Pumili ng malusog na taba.",
+      "fatBullet2": "Bantayan ang bahagi — mataas sa kalorya ang taba.",
+      "closingTitle": "Manatiling flexible",
+      "closingBody": "Ang mga target ay umaayon sa iyong araw — lumapit at maging pare-pareho.",
+      "infoAria": "Ano ang ibig sabihin ng mga numerong ito?",
+      "info": "Info",
+      "starchyTitle": "Almirol na Carbs — Ang iyong Pangunahing Target",
+      "starchy1": "Manatili sa o mas mababa sa iyong pang-araw-araw na limitasyon.",
+      "starchy2": "Ang paglampas ay nagpapabagal sa iyong progreso — mahalaga ito.",
+      "starchy3": "Ang pagiging kulang ay ganap na okay. Huwag pilitin.",
+      "flexTitle": "Protina at Hibla — Manatiling Flexible",
+      "flex1": "Ang kaunting taas o baba ay walang sinisira.",
+      "flex2": "Huwag habulin ang perpeksyon sa dalawang ito.",
+      "fat1": "Natural na tumataas ang taba ayon sa iyong mga pagpiling pagkain.",
+      "fat2": "Ang dietary fat ay hindi sanhi ng pagdagdag ng taba — huwag masyadong pagtuunan.",
+      "closing1": "Tumutok sa pananatili sa loob ng iyong starch target at hayaang mahulog sa lugar ang iba.",
+      "closing2": "Hindi mo kailangang maging perpekto. Kailangan mong maging pare-pareho."
+    }
+  },
+  "performanceSetup": {
+    "toast": {
+      "compSaved": "Na-save ang competition prep protocol.",
+      "athleticSaved": "Na-save ang athletic performance protocol.",
+      "activated": "Na-activate ang protocol",
+      "errorTitle": "Error",
+      "errorDesc": "Hindi ma-save. Pakisubukan muli."
+    },
+    "stepCount": "Hakbang {{current}} ng {{total}}",
+    "back": "Bumalik",
+    "next": "Susunod",
+    "saving": "Sini-save...",
+    "activateProtocol": "I-activate ang Protocol",
+    "optional": "(opsyonal)",
+    "track": {
+      "title": "Alin ang naglalarawan sa iyong layunin?",
+      "subtitle": "Ang bawat track ay gumagamit ng ganap na kakaibang protocol engine.",
+      "athleticTitle": "Athletic Performance",
+      "athleticDesc": "MMA, boxing, wrestling, football, CrossFit, endurance, tactical. Ang layunin ay performance — fueling, recovery, adaptation.",
+      "compTitle": "Competition Prep",
+      "compDesc": "Bodybuilding, physique, powerlifting meet, fight camp, wrestling season. Ang petsa ng iyong event ang awtomatikong nagpapatakbo sa bawat phase."
+    },
+    "goals": {
+      "title": "Ano ang iyong pangunahing layunin?",
+      "subtitle": "Tinutukoy nito ang priyoridad ng macro at energy density ng pagkain.",
+      "fatLoss": {
+        "label": "Pagbawas ng Taba",
+        "desc": "Maging mas hubog habang pinapanatili ang performance"
+      },
+      "muscleGain": {
+        "label": "Pagtaas ng Kalamnan",
+        "desc": "Hypertrophy at anabolism"
+      },
+      "maintenance": {
+        "label": "Pagpapanatili",
+        "desc": "Katatagan ng komposisyon ng katawan"
+      },
+      "performance": {
+        "label": "Peak Performance",
+        "desc": "Output, bilis at lakas"
+      }
+    },
+    "trainingType": {
+      "title": "Anong uri ng training ang ginagawa mo?",
+      "subtitle": "Piliin ang iyong pangunahing sport o disiplina.",
+      "otherPlaceholder": "Ibang {{group}} sport…"
+    },
+    "trainingTypes": {
+      "strength": "Lakas",
+      "hypertrophy": "Hypertrophy",
+      "powerlifting": "Powerlifting",
+      "olympicLifting": "Olympic Lifting",
+      "mma": "MMA",
+      "boxing": "Boxing",
+      "wrestling": "Wrestling",
+      "bjj": "BJJ",
+      "crossfit": "CrossFit",
+      "running": "Pagtakbo",
+      "cycling": "Cycling",
+      "triathlon": "Triathlon",
+      "tactical": "Tactical / Militar",
+      "generalFitness": "Pangkalahatang Fitness"
+    },
+    "athleticGroups": {
+      "iron": "Iron Sports",
+      "combat": "Combat Sports",
+      "mixed": "Halo-halo",
+      "endurance": "Endurance",
+      "other": "Iba pa"
+    },
+    "frequency": {
+      "title": "Gaano ka kadalas mag-training?",
+      "subtitle": "Mga session kada linggo (hindi kasama ang rest days).",
+      "twoADayQuestion": "Nag-ttraining ka ba nang dalawang beses sa isang araw?",
+      "twoADayDesc": "Ina-activate ang gabay sa recovery meal sa pagitan ng mga session",
+      "yes": "Oo",
+      "no": "Hindi"
+    },
+    "freqs": {
+      "oneTwo": "1–2 araw",
+      "threeFour": "3–4 araw",
+      "fiveSix": "5–6 araw",
+      "sevenPlus": "7+ (araw-araw)"
+    },
+    "cardio": {
+      "title": "Ano ang iyong cardio focus?",
+      "subtitle": "Tinutukoy ang timing ng carb at pangangailangan sa glycolytic fuel.",
+      "none": {
+        "label": "Walang Cardio",
+        "desc": "Puro lakas o teknik na focus — walang cardiovascular"
+      },
+      "recovery": {
+        "label": "Paglalakad / Recovery",
+        "desc": "Magaan na kilos lang — lakad, stretching, magaang bike"
+      },
+      "zone2": {
+        "label": "Magaan na Cardio",
+        "desc": "Komportableng bilis na kaya pang mag-usap — nagtatayo ng aerobic base"
+      },
+      "tempo": {
+        "label": "Katamtamang Cardio",
+        "desc": "Tuloy-tuloy at mapaghamong pagsisikap — hingal pero kayang panatilihin"
+      },
+      "threshold": {
+        "label": "Matinding Cardio",
+        "desc": "Mataas na intensidad na tuloy-tuloy — malapit sa limit"
+      },
+      "hiit": {
+        "label": "Sprint Intervals",
+        "desc": "Maiikling all-out burst at pahinga — pinakamataas na pagsisikap"
+      },
+      "mixed": {
+        "label": "Halong Cardio",
+        "desc": "Nag-iiba bawat session — madaling araw at mahihirap na araw"
+      }
+    },
+    "phase": {
+      "title": "Nasaan ka sa iyong training cycle?",
+      "subtitle": "Kinakalibrate ng iyong phase ang mga macro target at pagpili ng pagkain."
+    },
+    "phases": {
+      "offSeason": {
+        "label": "Off-Season",
+        "desc": "Nakatuon sa volume, pagbuo ng pundasyon"
+      },
+      "preSeason": {
+        "label": "Pre-Season",
+        "desc": "Pagtaas ng kondisyon"
+      },
+      "inSeason": {
+        "label": "In-Season",
+        "desc": "Pagpapanatili ng performance"
+      },
+      "weightCut": {
+        "label": "Weight Cut",
+        "desc": "Panandaliang deficit + rehydration"
+      },
+      "recovery": {
+        "label": "Recovery",
+        "desc": "Anti-inflammatory, priyoridad ang pag-repair"
+      }
+    },
+    "duration": {
+      "title": "Gaano katagal ang karaniwan mong session?",
+      "subtitle": "Ginagamit para tayahin ang pagkaubos ng glycogen at pangangailangan sa recovery nutrition."
+    },
+    "durations": {
+      "under30": {
+        "label": "Wala pang 30 min",
+        "desc": "Maikli / accessory session"
+      },
+      "thirtySixty": {
+        "label": "30–60 min",
+        "desc": "Karaniwang training block"
+      },
+      "sixtyNinety": {
+        "label": "60–90 min",
+        "desc": "Buong session na may warm-up at cool-down"
+      },
+      "ninetyPlus": {
+        "label": "90 min+",
+        "desc": "High-volume o multi-disiplinang session"
+      }
+    },
+    "recoveryStep": {
+      "title": "Kumusta ang recovery mo ngayon?",
+      "subtitle": "Ang kasalukuyang recovery mo ang nagtatakda sa timing ng protina, anti-inflammatory priorities at calorie density."
+    },
+    "recovery": {
+      "good": {
+        "label": "Mabuti",
+        "desc": "Mahimbing na tulog, kaunting soreness, sagana sa enerhiya"
+      },
+      "average": {
+        "label": "Katamtaman",
+        "desc": "May kaunting pagod pero kayang pamahalaan"
+      },
+      "poor": {
+        "label": "Mahina",
+        "desc": "Pagod, matinding soreness, kulang sa tulog"
+      }
+    },
+    "adaptationStep": {
+      "title": "Ano ang iyong athletic focus?",
+      "subtitle": "Piliin kung para saan ka nag-training — kinakalibrate nito ang timing ng carb, suporta sa energy system at istruktura ng pagkain."
+    },
+    "adaptation": {
+      "endurance": {
+        "label": "Endurance",
+        "desc": "Buuin ang aerobic engine — mas mahabang pagsisikap, mas mataas na stamina"
+      },
+      "conditioning": {
+        "label": "Conditioning",
+        "desc": "All-around fitness sa maraming energy system"
+      },
+      "speed": {
+        "label": "Bilis",
+        "desc": "Mas mabilis na sprint — focus sa explosive fast-twitch"
+      },
+      "power": {
+        "label": "Power",
+        "desc": "Igalaw ang mabigat nang mabilis — lakas at pagsabog"
+      },
+      "workCapacity": {
+        "label": "Work Capacity",
+        "desc": "Gumawa nang mas marami, mag-recover nang mas mabilis — kayanin ang mataas na volume"
+      },
+      "activeRecovery": {
+        "label": "Active Recovery",
+        "desc": "Mag-restore at mag-recharge — anti-inflammatory, CNS reset"
+      }
+    },
+    "schedule": {
+      "title": "Itakda ang lingguhang training schedule",
+      "subtitle": "Awtomatikong nag-aayos ang iyong nutrisyon araw-araw ayon sa tini-train mo. Bawat uri ng session ay nagbabago sa mga target ng carb, calorie at protina.",
+      "trainingPhase": "Training Phase",
+      "weekSchedule": "Iskedyul ng Linggo",
+      "howItWorksTitle": "Paano ito gumagana",
+      "howItWorksBody": "Binabasa ng MPM ang iyong iskedyul tuwing umaga at awtomatikong ina-adjust ang mga macro target. Nagdadagdag ng carbs ang power days, nagbabawas ang recovery days. Hindi kailangan ng manual na pag-aayos."
+    },
+    "sessionTypes": {
+      "strength": {
+        "label": "Lakas",
+        "short": "Lks",
+        "desc": "Resistance training — katamtamang suporta sa carb"
+      },
+      "power": {
+        "label": "Power",
+        "short": "Pwr",
+        "desc": "Explosive output — aktibo ang dagdag na carb at protina"
+      },
+      "endurance": {
+        "label": "Endurance",
+        "short": "End",
+        "desc": "Una ang aerobic fuel — mas mataas na availability ng carb"
+      },
+      "sportPractice": {
+        "label": "Sport Practice",
+        "short": "Prc",
+        "desc": "Halong pangangailangan — katamtamang suporta sa carb"
+      },
+      "competition": {
+        "label": "Kompetisyon",
+        "short": "Kmp",
+        "desc": "Fueling sa araw ng laro — pinakamataas na availability ng carb"
+      },
+      "recovery": {
+        "label": "Recovery",
+        "short": "Rec",
+        "desc": "Diin sa pag-repair — mas kaunting carb, priyoridad ang anti-inflammatory"
+      },
+      "off": {
+        "label": "Rest Day",
+        "short": "Off",
+        "desc": "Ganap na pahinga — mas mababang target ng calorie"
+      }
+    },
+    "apnPhases": {
+      "stabilization": {
+        "label": "Stabilization",
+        "desc": "Phase ng pundasyon — kalidad ng galaw, katatagan ng core"
+      },
+      "strength": {
+        "label": "Lakas",
+        "desc": "Pagbuo ng pinakamataas na kapasidad ng lakas"
+      },
+      "power": {
+        "label": "Power",
+        "desc": "Explosive output — lakas beses bilis"
+      },
+      "peaking": {
+        "label": "Peaking",
+        "desc": "Pino-polish bago ang kompetisyon — taas ang intensidad, baba ang volume"
+      },
+      "inSeason": {
+        "label": "In-Season",
+        "desc": "Panatilihin ang performance sa buong kalendaryo ng laro"
+      },
+      "offSeason": {
+        "label": "Off-Season",
+        "desc": "Pagbuo ng pundasyon at recovery sa pagitan ng mga season"
+      }
+    },
+    "days": {
+      "mon": "Lun",
+      "tue": "Mar",
+      "wed": "Miy",
+      "thu": "Huw",
+      "fri": "Biy",
+      "sat": "Sab",
+      "sun": "Lin"
+    },
+    "compGroups": {
+      "physique": "Physique",
+      "strength": "Strength Sports",
+      "combat": "Combat Sports",
+      "functional": "Functional / Halo-halo",
+      "endurance": "Endurance"
+    },
+    "compTypeStep": {
+      "title": "Anong uri ng kompetisyon?",
+      "subtitle": "Ang bawat uri ng kompetisyon ay gumagamit ng ibang prep timeline at peak week protocol."
+    },
+    "compTypes": {
+      "bodybuilding": "Bodybuilding",
+      "mensPhysique": "Men's Physique",
+      "classicPhysique": "Classic Physique",
+      "figure": "Figure",
+      "bikini": "Bikini",
+      "wellness": "Wellness",
+      "powerliftingMeet": "Powerlifting Meet",
+      "strongman": "Strongman",
+      "olympicWeightlifting": "Olympic Weightlifting",
+      "fightCamp": "Fight Camp",
+      "wrestlingSeason": "Wrestling Season",
+      "crossfitCompetition": "CrossFit Competition",
+      "hyrox": "Hyrox",
+      "marathon": "Marathon",
+      "triathlon": "Triathlon",
+      "spartanRace": "Spartan Race"
+    },
+    "eventStep": {
+      "title": "Kailan ang iyong event?",
+      "subtitle": "Ang petsa ng iyong event ang awtomatikong nagpapatakbo sa bawat phase — walang hulaan.",
+      "eventDate": "Petsa ng Event",
+      "pickDate": "Pumili ng petsa ng event",
+      "weeksOut": "{{count}} linggo na lang",
+      "division": "Dibisyon",
+      "divisionPlaceholder": "hal. Open, Masters 35+, 93kg class..."
+    },
+    "weightStep": {
+      "title": "Impormasyon ng Timbang",
+      "subtitle": "Opsyonal — tumutulong sa protocol na magbigay ng tumpak na gabay sa cut strategy at calorie targets.",
+      "currentWeight": "Kasalukuyang Timbang",
+      "currentPlaceholder": "hal. 185 lbs, 84 kg...",
+      "targetWeight": "Target na Timbang / Klase",
+      "targetPlaceholder": "hal. 175 lbs, 83kg class, stage-ready...",
+      "howItWorksTitle": "Paano ito gumagana",
+      "howItWorksBody": "Awtomatikong kinakalkula ng MPM ang iyong kasalukuyang phase mula sa petsa ng event. Habang papalapit ang event, nagbabago ang mga protocol. Ang kalendaryo ang nagpapasya — hindi ang AI."
+    }
+  },
+  "therapeuticCard": {
+    "title": "Therapeutic Nutrition Intelligence",
+    "active": "Aktibo",
+    "last": "Huli: {{date}}",
+    "intro": "Ilagay ang dosis para sa lahat ng aktibo. Mahalaga ang dosis — ginagamit ito ng system para hubugin ang konteksto ng iyong protocol. Iwanang blangko kung hindi naaangkop.",
+    "activeCount": "{{count}} aktibo",
+    "namePlaceholder": "Pangalan...",
+    "dosePlaceholder": "Dosis",
+    "unitPlaceholder": "yunit",
+    "sections": {
+      "peptides": "Peptides",
+      "hormones": "Hormones",
+      "medications": "Mga Gamot na Nakakaapekto sa Nutrisyon",
+      "therapies": "Mga Terapiya",
+      "recovery": "Mga Layunin sa Recovery"
+    },
+    "addPeptide": "Magdagdag ng custom na peptide",
+    "addHormone": "Magdagdag ng custom na hormone",
+    "addMedication": "Magdagdag ng custom na gamot",
+    "therapiesHint": "Piliin ang lahat ng naaangkop sa iyong kasalukuyang protocol.",
+    "recoveryHint": "Piliin ang iyong kasalukuyang mga layunin sa recovery.",
+    "saveProtocol": "I-save ang Protocol",
+    "saving": "Sini-save…",
+    "cancel": "Kanselahin",
+    "footerNote": "Laging nangunguna ang clinical safety. Ang mga pinili ay nakakaapekto lamang sa paggawa ng pagkain — hindi medikal na payo.",
+    "therapyOptions": {
+      "connectiveTissue": "Recovery ng Connective Tissue",
+      "gutSupport": "Suporta sa Bituka",
+      "redLight": "Red Light Therapy",
+      "sauna": "Sauna / Heat Recovery",
+      "cold": "Cold Therapy / Ice Bath",
+      "iv": "IV Nutrient Therapy"
+    },
+    "recoveryGoals": {
+      "joint": "Recovery ng Kasukasuan",
+      "muscle": "Recovery ng Kalamnan",
+      "sleep": "Pag-optimize ng Tulog",
+      "inflammation": "Pagbawas ng Inflammation",
+      "gutHealing": "Paggaling ng Bituka",
+      "stress": "Recovery sa Stress at Adrenal"
+    },
+    "toast": {
+      "savedTitle": "Na-save ang therapeutic protocol",
+      "savedDesc": "Na-update ang konteksto. Igagalang ng lahat ng generator ang iyong protocol.",
+      "errorTitle": "Error",
+      "errorDesc": "Hindi ma-save. Pakisubukan muli."
+    }
+  },
+  "clinicalLabs": {
+    "title": "Clinical Labs",
+    "last": "Huli: {{date}}",
+    "lastSaved": "Huling na-save: {{date}}",
+    "labDate": "Petsa ng Lab",
+    "notes": "Mga Tala",
+    "notesPlaceholder": "Opsyonal na tala ng provider...",
+    "saveButton": "I-save ang mga Lab Value",
+    "savedSuccess": "Matagumpay na na-save ang mga lab value",
+    "normal": "Normal",
+    "elevated": "Mataas",
+    "active": "Aktibo",
+    "menopausePanel": "Menopause / Perimenopause Panel",
+    "status": {
+      "normal": "Normal",
+      "needsReview": "Kailangan ng Review",
+      "elevated": "{{count}} mataas"
+    },
+    "sections": {
+      "cardiac": "Cardiac & Metabolic",
+      "hormonal": "Hormonal / Stress & Sex Hormones",
+      "liver": "Liver Panel",
+      "thyroid": "Thyroid Panel",
+      "kidney": "Kidney / Renal",
+      "inflammation": "Inflammation & Recovery",
+      "oncology": "Oncology & Recovery"
+    },
+    "fields": {
+      "ldl": "LDL",
+      "hdl": "HDL",
+      "triglycerides": "Triglycerides",
+      "tgHdlRatio": "TG/HDL Ratio",
+      "bloodPressure": "Presyon ng Dugo",
+      "sys": "Sys",
+      "dia": "Dia",
+      "ejectionFraction": "Ejection Fraction",
+      "a1c": "A1C"
+    },
+    "oncology": {
+      "needsAttention": "Kailangan ng Atensyon",
+      "physicianGuided": "Ginagabayan ng Doktor"
+    },
+    "toast": {
+      "enterOne": "Maglagay ng kahit isang lab value bago mag-save",
+      "failed": "Nabigo ang pag-save ng labs"
+    }
+  },
+  "ingredientSheet": {
+    "grade": {
+      "a": "Napakahusay na Tugma",
+      "b": "Mahusay na Tugma",
+      "c": "May Ilang Konsiderasyon",
+      "d": "Kapansin-pansing mga Salungatan"
+    },
+    "verdict": {
+      "buy": "Sabi ng Chef: Sige lang!",
+      "caution": "Sabi ng Chef: Para lang malaman mo...",
+      "skip": "Sabi ng Chef: Baka pag-isipang muli"
+    },
+    "decoder": {
+      "title": "Plain-Language Decoder",
+      "legend": "🟢 Karaniwang ligtas · 🟡 Mabuting malaman · 🔴 Sumasalungat sa iyong profile"
+    },
+    "alignsWith": "Kaayon ng iyong mga layunin",
+    "watchFor": "Bantayan",
+    "howItScores": "Paano ito nagsko-score para sa iyong mga protocol",
+    "howItScoresForYou": "Paano ito nagsko-score para sa iyo",
+    "add": "Idagdag",
+    "added": "Naidagdag",
+    "alternatives": {
+      "alsoWorthKnowing": "Mabuti ring Malaman",
+      "evenBetter": "Mas Magagandang Pagpipilian",
+      "betterOptions": "Mas magagandang opsyon ng produkto para sa iyo",
+      "profileMatched": "Tugma sa Profile",
+      "brandedNote": "Batay sa kaalaman sa produkto — maaaring magbago ang pormulasyon at availability.",
+      "categoryNote": "Gabay ayon sa kategorya batay sa iyong health profile — hanapin ang mga katangiang ito sa mga label."
+    },
+    "profileFactorsHeading": "Mga profile factor na gumagabay sa analysis na ito",
+    "scoreCards": {
+      "kids": "Mga Bata",
+      "adults": "Mga Adulto",
+      "diet": "Ang iyong Diyeta",
+      "goal": "Ang iyong Layunin"
+    },
+    "barcode": {
+      "dbMatch": "Tugma sa database · Open Food Facts",
+      "notInDb": "Wala sa database · Tinaya ng AI",
+      "notFound": "Hindi nahanap ang barcode — analysis batay sa kaalaman ng AI sa produkto"
+    },
+    "tier": {
+      "quick": "Mabilis na Analysis",
+      "verified": "Verified na Label Analysis",
+      "full": "Buong Product Advisor",
+      "subKnowledge": "Batay sa kaalaman · Walang na-scan na label",
+      "subLabelScanned": "Na-scan ang label · {{name}}",
+      "subProductUnknown": "Na-scan ang label · Hindi kilalang produkto",
+      "subLabel": "Na-scan ang label",
+      "subFull": "Produkto + Label + Profile"
+    },
+    "scanLabelUp": "I-scan ang Label ↑",
+    "highestConfidence": "Pinakamataas na Kumpiyansa",
+    "whatMattersMost": "Ang pinakamahalaga para sa iyo",
+    "analysisProfile": {
+      "heading": "Ang iyong Analysis Profile",
+      "basedOn": "Ang rekomendasyong ito ay batay sa:",
+      "deeperTitle": "Gusto ng mas malalim na personalisasyon?",
+      "deeperBody": "Magdagdag ng mga lab value tulad ng A1C, fasting glucose, cholesterol, triglycerides, kidney o inflammation markers.",
+      "updateProfile": "I-update ang Health Profile →",
+      "disclaimer": "Ang mga rekomendasyon ay nabubuo mula sa komposisyon ng sangkap, nutritional facts at iyong health profile. Ang MPM ay hindi tumatanggap ng bayad mula sa mga gumagawa ng pagkain at ang mga rekomendasyon ay hindi kailanman naiimpluwensyahan ng brand partnership.",
+      "emptyState": "Magdagdag ng mga health goal at kondisyon sa iyong profile para makakuha ng ganap na personalisadong analysis."
+    },
+    "header": {
+      "companionScan": "Companion Product Scan",
+      "intelligence": "Ingredient Intelligence",
+      "notIdentified": "Hindi natukoy ang produkto",
+      "scanningFor": "Nag-scan para kay {{name}}",
+      "frontLabelDetected": "Natukoy ang front label",
+      "byNameAnalysis": "Analysis ayon sa pangalan",
+      "fullAnalysis": "Buong analysis"
+    },
+    "analyzeThisProduct": "Suriin ang produktong ito",
+    "scanIngredientsLabel": "I-scan ang ingredients / nutrition label",
+    "analyzeDisclaimer": "Ang \"Suriin ang produktong ito\" ay gumagamit ng kaalaman ng AI sa produktong ito — hindi live na label scan. Maaaring magbago ang pormulasyon. I-scan ang ingredient panel para sa verified na resulta.",
+    "analyzing": "Sinusuri ang {{name}}…",
+    "checkingProfile": "Sinusuri laban sa iyong health profile",
+    "byNameBanner": {
+      "title": "Mabilis na analysis — hindi verified na label scan",
+      "body": "Batay sa kaalaman sa produkto sa panahon ng training data. Maaaring magbago ang pormulasyon.",
+      "scanLink": "I-scan ang label para sa verified na resulta."
+    },
+    "lowQuality": {
+      "title": "Mababa ang kalidad ng larawan",
+      "body": "Kunan muli nang nakikita nang buo, naka-focus at maliwanag ang ingredient panel para sa mas tumpak na analysis."
+    },
+    "labelFound": {
+      "title": "Nahanap ang nutrition label",
+      "body": "Sabihin o i-type ang pangalan ng produkto para makakuha ng branded na alternatibong akma sa iyong profile."
+    },
+    "incomplete": {
+      "title": "Hindi kumpleto ang analysis",
+      "lowImage": "Hindi sapat ang linaw ng larawan para mag-score. Tiyaking nakikita nang buo at maliwanag ang ingredient panel, tapos subukan muli.",
+      "needMore": "Kailangan ng mas maraming impormasyon para makabuo ng grade. I-scan ang ingredient panel o gamitin ang product lookup."
+    },
+    "personalized": "Personalisado sa iyong health profile",
+    "generalAnalysis": "Pangkalahatang analysis — magdagdag ng health goals para sa personalisadong resulta",
+    "sections": {
+      "considerations": "Mga konsiderasyon sa sangkap",
+      "mayNotAlign": "Maaaring hindi umayon sa iyong mga layunin",
+      "worksWellFor": "Mahusay para sa",
+      "familyNotes": "Mga tala para sa pamilya"
+    },
+    "detectedIngredients": "Mga natukoy na sangkap",
+    "scanForVerified": "I-scan ang label para sa verified na analysis",
+    "addNamedToList": "Idagdag si {{name}} sa listahan",
+    "addToList": "Idagdag sa listahan",
+    "saveScan": "I-save ang scan",
+    "saveToGroceries": "I-save sa groceries",
+    "savedToGroceries": "Na-save sa groceries",
+    "toast": {
+      "removedTitle": "Inalis sa groceries",
+      "removedDesc": "Inalis si {{name}} sa iyong mga paborito.",
+      "removeFailTitle": "Hindi maalis",
+      "tryAgain": "Pakisubukan muli.",
+      "alreadySaved": "Naka-save na",
+      "savedTitle": "Na-save sa groceries",
+      "savedDesc": "Nasa iyong grocery favorites na si {{name}}.",
+      "saveFailTitle": "Hindi ma-save",
+      "addedToList": "Naidagdag sa iyong grocery list"
+    }
+  },
+  "athletePicker": {
+    "added": "Naidagdag!",
+    "addedCount": "{{count}} ang naidagdag",
+    "addingTo": "Idinadagdag sa:",
+    "categories": {
+      "eggsShakes": "Itlog at Shakes",
+      "fish": "Fillet na Isda",
+      "poultry": "Manok at Pabo",
+      "redmeat": "Pulang Karne"
+    },
+    "copied": "Nakopya!",
+    "copy": "Kopyahin",
+    "copyMealAria": "Kopyahin ang mga detalye ng pagkain",
+    "copySessionAria": "Kopyahin ang buod ng session sa clipboard",
+    "done": "Tapos",
+    "errorShort": "Error",
+    "fibrousNote": "Walang limitasyon ang mga fibrous na gulay — starch lamang (kanin, oats, patatas)",
+    "gotIt": "naintindihan!",
+    "headerTitle": "Mga Premade na Pagkain para sa Atleta — {{slot}}",
+    "hiddenCount_one": "{{count}} pagkain ang nakatago — lalampas ang starch sa {{cap}}g",
+    "hiddenCount_other": "{{count}} na pagkain ang nakatago — lalampas ang starch sa {{cap}}g",
+    "howToAria": "Paano gamitin ang Athlete Meal Builder",
+    "info": {
+      "intro": "Mga premade na pagkain na na-optimize para sa athletic performance at pagbuo ng kalamnan.",
+      "step1Label": "Piliin ang iyong kategorya ng protina",
+      "step1Text": "(Manok, Pulang Karne, Isda, Itlog)",
+      "step2After": "ay protina + fibrous na gulay lamang",
+      "step2Mid": "na mga pagkain ay may kanin, oats, o patatas.",
+      "step3Label": "I-click ang anumang pagkain",
+      "step3Text": "para agad itong maidagdag sa iyong board",
+      "step4Label": "Lahat ng macro",
+      "step4Text": "ay pre-calculated at handa nang subaybayan",
+      "stepsLabel": "Mga Hakbang:",
+      "tipAfter": "na pagkain. Palaging walang limitasyon ang mga fibrous na gulay.",
+      "tipBefore": "Sa mga araw na mababa sa starch, gamitin ang mga",
+      "tipLabel": "💡 Tip:",
+      "tipMid": "na pagkain. Sa mga araw ng refeed, magdagdag ng mga",
+      "title": "Paano Gamitin ang Athlete Meal Builder"
+    },
+    "lowStarchDay": "Araw na Mababa sa Starch",
+    "mealCopyText": "{{title}} — {{cals}} cal · P {{protein}}g · S {{starch}}g · F {{fat}}g",
+    "noCoachConnection": "Walang aktibong koneksyon sa coach",
+    "noteDesc": "Mga premade na pagkain na na-optimize para sa athletic performance at pagbuo ng kalamnan.",
+    "noteStep1": "Piliin ang iyong kategorya ng protina (Manok, Pulang Karne, Isda, Itlog)",
+    "noteStep2After": "ay protina + fibrous na gulay lamang",
+    "noteStep2Before": "Ang mga pagkaing may tatak na",
+    "noteStep2Mid": "ay may kanin, oats, o patatas —",
+    "noteStep3": "I-click ang anumang pagkain para agad itong maidagdag sa iyong board",
+    "noteStep4": "Lahat ng macro ay pre-calculated at handa nang subaybayan",
+    "noteTitle": "Mga Premade na Pagkain para sa Atleta",
+    "refeedDay": "Araw ng Refeed",
+    "selectCategory": "Piliin ang Kategorya ng Protina:",
+    "selectCategoryShort": "Piliin ang Kategorya",
+    "sendCoachAria": "Ipadala ang buod ng session sa coach",
+    "sendFailed": "Nabigong maipadala — subukang muli",
+    "sendToCoach": "Ipadala sa Coach",
+    "sending": "Ipinapadala…",
+    "sent": "Naipadala!",
+    "sessionTotal": "Kabuuan ng session:",
+    "slots": {
+      "breakfast": "Almusal",
+      "dinner": "Hapunan",
+      "lunch": "Tanghalian",
+      "meal4": "Pagkain 4",
+      "meal5": "Pagkain 5",
+      "meal6": "Pagkain 6",
+      "snacks": "Meryenda"
+    },
+    "starch": "Starch",
+    "starchAllocation": "Alokasyon ng Starch",
+    "starchCap": "{{cap}}g na limitasyon ng starch",
+    "starchUsage": "{{used}}g / {{cap}}g starch",
+    "summaryText_one": "{{count}} pagkain ang naidagdag — {{cals}} cal · P {{protein}}g · C {{carbs}}g · F {{fat}}g",
+    "summaryText_other": "{{count}} na pagkain ang naidagdag — {{cals}} cal · P {{protein}}g · C {{carbs}}g · F {{fat}}g",
+    "viewChatAria": "Tingnan ang mensahe sa coach chat",
+    "viewInChat": "Tingnan sa Chat"
+  },
+  "coachingSetup": {
+    "accountability": {
+      "encourage": {
+        "desc": "Suportahan mo ako kapag nadapa ako",
+        "label": "Hikayatin Mo Ako"
+      },
+      "pushHard": {
+        "desc": "Panagutin mo ako nang mahigpit",
+        "label": "Itulak Mo Ako nang Husto"
+      },
+      "remind": {
+        "desc": "Sapat na ang mahinahong paalala",
+        "label": "Paalalahanan Mo Lang Ako"
+      },
+      "selfDirected": {
+        "desc": "Ako mismo ang nagbibigay-sigla sa sarili ko",
+        "label": "Kusang-loob"
+      }
+    },
+    "back": "Bumalik",
+    "challenges": {
+      "consistency": "Pananatiling Tuloy-tuloy",
+      "cravings": "Pananabik sa Pagkain",
+      "emotionalEating": "Pagkaing Emosyonal",
+      "knowledge": "Pag-alam Kung Ano ang Kakainin",
+      "mealPrep": "Paghahanda ng Pagkain",
+      "motivation": "Pagganyak",
+      "socialPressure": "Panlipunang Presyon",
+      "time": "Kulang sa Oras"
+    },
+    "error": "May nangyaring mali. Pakisubukang muli.",
+    "lifestyle": {
+      "budgetConscious": "Maingat sa Badyet",
+      "busySchedule": "Abalang Iskedyul",
+      "frequentTravel": "Madalas na Paglalakbay",
+      "parent": "Magulang / Tagapag-alaga",
+      "pickyEater": "Mapili sa Pagkain",
+      "shiftWorker": "Manggagawang May Shift",
+      "socialEater": "Kumakain nang May Kasama",
+      "stressEater": "Kumakain Kapag Stressed"
+    },
+    "loading": "Nilo-load ang iyong profile...",
+    "motivations": {
+      "athletic": "Pagganap sa Isports",
+      "confidence": "Makaramdam ng Kumpiyansa",
+      "energy": "Mas Maraming Enerhiya",
+      "family": "Kalusugan ng Pamilya",
+      "longevity": "Mahabang Buhay",
+      "mentalClarity": "Kalinawan ng Isip",
+      "weightLoss": "Pagbaba ng Timbang"
+    },
+    "next": "Susunod",
+    "saveProfile": "I-save ang Profile",
+    "savedDesc": "Handa na ang iyong coaching profile.",
+    "savedTitle": "Na-save ang profile!",
+    "saving": "Sine-save...",
+    "steps": {
+      "accountability": {
+        "subtitle": "Piliin kung ano ang pinakanagbibigay-sigla sa iyo",
+        "title": "Paano ka namin dapat panagutin?"
+      },
+      "challenges": {
+        "subtitle": "Maging tapat — nakatutulong ito na tumutok kami sa tunay na mahalaga",
+        "title": "Ano ang iyong pinakamalalaking hamon?"
+      },
+      "lifestyle": {
+        "subtitle": "Piliin lahat ng naaangkop — iaangkop namin ang payo batay dito",
+        "title": "Alin ang naglalarawan sa iyong pamumuhay?"
+      },
+      "motivations": {
+        "subtitle": "Piliin lahat ng naaangkop",
+        "title": "Ano ang nagtutulak sa iyo?"
+      },
+      "style": {
+        "subtitle": "Piliin ang istilo ng komunikasyon na bagay sa iyo",
+        "title": "Paano mo gustong ma-coach?"
+      }
+    },
+    "styles": {
+      "balanced": {
+        "desc": "Pinaghalong lahat ng pamamaraan",
+        "label": "Balanse"
+      },
+      "direct": {
+        "desc": "Sabihin mo lang kung ano ang gagawin — walang paligoy-ligoy",
+        "label": "Direkta"
+      },
+      "educational": {
+        "desc": "Ipaliwanag ang dahilan sa likod ng bawat pagpili",
+        "label": "Pang-edukasyon"
+      },
+      "encouraging": {
+        "desc": "Positibong pampalakas-loob at suporta",
+        "label": "Nakapagpapasigla"
+      }
+    }
+  },
+  "competitionPicker": {
+    "badgeCarbs": "Carbs",
+    "categories": {
+      "eggsShakes": "Itlog at Shakes",
+      "fish": "Fillet na Isda",
+      "poultry": "Manok at Pabo",
+      "redmeat": "Pulang Karne"
+    },
+    "gotIt": "naintindihan!",
+    "headerAddTo": "Mga Pagkain sa Paghahanda sa Kompetisyon - Idagdag sa {{slot}}",
+    "howToAria": "Paano gamitin ang Performance & Competition Builder",
+    "info": {
+      "intro": "Mga premade na pagkain para sa atleta na na-optimize para sa lean muscle building at pagganap.",
+      "step1Label": "Piliin ang iyong kategorya ng protina",
+      "step1Text": "(Manok, Pulang Karne, Isda, Itlog)",
+      "step2Label": "May tatak ang mga pagkain",
+      "step2Text": "na «Carbs» o «P+V» (Protina + Gulay)",
+      "step3Label": "I-click ang anumang pagkain",
+      "step3Text": "para agad itong maidagdag sa iyong board",
+      "step4Label": "Lahat ng macro",
+      "step4Text": "ay pre-calculated at handa nang subaybayan",
+      "stepsLabel": "Mga Hakbang:",
+      "tipLabel": "💡 Tip:",
+      "tipText": "Pumili ng mga pagkain batay sa iyong pang-araw-araw na carb target - gamitin ang mga pagkaing «Carbs» kapag kailangan mo ng enerhiya, at mga pagkaing «P+V» para sa mga araw na mababa ang carb!",
+      "title": "Paano Gamitin ang Performance & Competition Builder"
+    },
+    "noteDesc": "Mga premade na pagkain para sa atleta na na-optimize para sa lean muscle building at pagganap.",
+    "noteStep1": "Piliin ang iyong kategorya ng protina (Manok, Pulang Karne, Isda, Itlog)",
+    "noteStep2": "Ang mga pagkain ay may tatak na «Carbs» o «P+V» (Protina + Gulay)",
+    "noteStep3": "I-click ang anumang pagkain para agad itong maidagdag sa iyong board",
+    "noteStep4": "Lahat ng macro ay pre-calculated at handa nang subaybayan",
+    "noteTitle": "Mga Pagkain sa Paghahanda sa Kompetisyon",
+    "selectCategory": "Piliin ang Kategorya ng Protina:",
+    "selectCategoryShort": "Piliin ang Kategorya"
+  },
+  "complianceCard": {
+    "biggestOpportunity": "Pinakamalaking Oportunidad",
+    "breakfastLogged": "Naka-log ang almusal",
+    "caloriesOnTarget": "Nasa target ang kalorya",
+    "consistencyScore": "Iskor ng Pagkakatugma",
+    "days": "araw",
+    "dinnerLogged": "Naka-log ang hapunan",
+    "last7Days": "Huling 7 araw",
+    "lastNDays": "Huling {{count}} na araw",
+    "loggedMeals": "Mga naka-log na pagkain",
+    "lunchLogged": "Naka-log ang tanghalian",
+    "noActivity": "Wala pang naitatalang aktibidad sa nutrisyon. Simulan ang pag-log ng pagkain para makita rito ang iyong personalisadong buod ng aktibidad.",
+    "noMeals": "Wala pang naka-log na pagkain. Simulan ang pagtatala ng iyong mga pagkain para makita ang iyong buod ng aktibidad.",
+    "ofDays": "{{value}} sa {{total}}",
+    "proteinGoalMet": "Naabot ang layunin sa protina",
+    "setTargets": "Itakda ang iyong mga macro target para paganahin ang buong pagsubaybay sa nutrisyon.",
+    "title": "Buod ng Aktibidad sa Nutrisyon"
+  },
+  "mealPicker": {
+    "addTo": "Idagdag sa {{slot}}",
+    "cafeteria": "Kapiterya",
+    "categories": {
+      "fats": "Mga Taba",
+      "fibrousCarbs": "Fibrous na Carbs",
+      "fruit": "Prutas",
+      "proteins": "Mga Protina",
+      "starchyCarbs": "Starchy na Carbs"
+    },
+    "close": "Isara",
+    "generate": "Bumuo",
+    "generateCount": "Bumuo ({{count}})",
+    "generating": "Bumubuo…",
+    "gotIt": "naintindihan!",
+    "howToAria": "Paano gamitin ang Meal Picker",
+    "info": {
+      "addLabel": "I-click para idagdag:",
+      "addText": "Pindutin ang anumang meal card para agad itong maidagdag sa iyong {{slot}} slot",
+      "browseLabel": "Mag-browse ng pagkain:",
+      "browseText": "Mag-scroll sa aming mga piling meal template",
+      "cafeteriaLabel": "Opsyon sa kapiterya:",
+      "cafeteriaText": "I-click ang «Kapiterya» para sa mabilis na random na mungkahi ng pagkain",
+      "intro": "Mabilis at madaling paraan para magdagdag ng mga premade na pagkain sa iyong plano.",
+      "personalizedLabel": "Personalisado:",
+      "personalizedText": "Sina-salaan ang mga pagkain batay sa iyong mga allergy at kagustuhan",
+      "tipLabel": "💡 Tip:",
+      "tipText": "Gamitin ang Kapiterya na button kapag gusto mo ng mabilis at malusog na mungkahi nang hindi nagba-browse!",
+      "title": "Paano Gamitin ang Meal Picker"
+    },
+    "lowerGlycemic": "Mas mababang epekto sa glycemic",
+    "quickMeal": "Mabilis na Pagkain sa {{slot}}",
+    "regularGi": "Regular na GI"
+  },
+  "mealReminders": {
+    "addReminder": "Magdagdag ng paalala sa pagkain",
+    "checkAgain": "Suriin muli",
+    "checking": "Sinusuri…",
+    "connectionDiagnostics": "Diagnostics ng koneksyon",
+    "footerBlocked": "Itakda ang mga oras ngayon — mag-a-activate ang mga notipikasyon kapag naibigay na ang mga pahintulot.",
+    "footerDefault": "Hanggang 6 na paalala. Pindutin ang label para palitan ang pangalan.",
+    "footerEnabled": "Panatilihing bukas ang iyong browser para sa maaasahang paghahatid.",
+    "footerNative": "Pindutin ang label para palitan ang pangalan. Inihahatid ang mga paalala sa pamamagitan ng iOS app.",
+    "mealN": "Pagkain {{n}}",
+    "nativeDelivery": "Native na paghahatid ng iOS",
+    "saving": "Sine-save…",
+    "statusBlocked": "Naka-block ang mga notipikasyon sa browser",
+    "statusConnected": "Nakakonekta ang mga notipikasyon",
+    "statusPartial": "Hindi ganap na nakakonekta — i-toggle ang isang slot para tapusin ang setup",
+    "statusPending": "I-toggle ang isang slot para paganahin ang mga notipikasyon",
+    "statusUnsupported": "Hindi suportado ng browser na ito",
+    "title": "Mga Paalala sa Pagkain",
+    "toUnblock": "Para i-unblock:",
+    "toastBlockedIosDesc": "Pumunta sa iPhone Settings › My Perfect Meals › Payagan ang mga Notipikasyon",
+    "toastBlockedTitle": "Naka-block ang mga notipikasyon",
+    "toastBlockedWebDesc": "Payagan ang mga notipikasyon sa pamamagitan ng lock icon sa iyong address bar, pagkatapos ay pindutin ang Suriin muli.",
+    "toastEnableFailedTitle": "Hindi ma-enable ang mga notipikasyon",
+    "toastNotSupportedDesc": "Hindi sinusuportahan ng browser na ito ang push notifications.",
+    "toastNotSupportedTitle": "Hindi suportado",
+    "toastPermissionDenied": "Tinanggihan ang pahintulot.",
+    "toastSaveFailed": "Hindi ma-save ang mga paalala",
+    "toastTryAgain": "Subukang muli sa ilang sandali.",
+    "unblockAllow": "Payagan",
+    "unblockLock": "🔒 kandado",
+    "unblockNotifications": "Mga Notipikasyon",
+    "unblockStep1After": "sa address bar ng iyong browser",
+    "unblockStep1Before": "I-click ang",
+    "unblockStep2Before": "Itakda ang",
+    "unblockStep2Mid": "sa",
+    "unblockStep3After": "sa ibaba",
+    "unblockStep3Before": "Pindutin ang",
+    "unsupportedHint": "Subukan ang Chrome o Edge sa desktop. Ang Safari sa iOS ay nangangailangan ng app.",
+    "webDelivery": "Web push na paghahatid"
+  },
+  "kitchenPartner": {
+    "optSignatureLabel": "Signature Kitchen",
+    "optSignatureDesc": "Ang iyong personal na branded na kusina sa loob ng platform",
+    "optProductLabel": "Integrasyon ng Produkto",
+    "optProductDesc": "Isama ang iyong brand, mga produkto, o supplement",
+    "optWhiteLabelLabel": "White Label",
+    "optWhiteLabelDesc": "Isang ganap na branded na karanasan sa platform",
+    "optRestaurantLabel": "Grupo ng Restawran",
+    "optRestaurantDesc": "Partnership na maraming lokasyon o franchise",
+    "optAthleteLabel": "Athlete Kitchen",
+    "optAthleteDesc": "Kulinaryong pagkakakilanlan para sa performance at sports",
+    "stepIdentity": "Pagkakakilanlan",
+    "stepCulinary": "Kulinaryong Pagkakakilanlan",
+    "stepPlatform": "Platform",
+    "stepInterest": "Interes",
+    "stepSubmit": "Isumite",
+    "partnershipReview": "Pagsusuri ng Partnership",
+    "errorGeneric": "May nangyaring mali. Pakisubukang muli.",
+    "errorConnection": "Hindi maisumite. Suriin ang iyong koneksyon at subukang muli.",
+    "identityHeading": "Ikwento mo ang tungkol sa iyo.",
+    "identitySub": "Pangunahing pagkakakilanlan at impormasyon sa pakikipag-ugnayan.",
+    "fullNameLabel": "Buong Pangalan",
+    "fullNamePlaceholder": "Ang iyong buong pangalan",
+    "brandLabel": "Chef / Pangalan ng Brand",
+    "brandPlaceholder": "Ang iyong pampublikong kulinaryong brand",
+    "emailLabel": "Email",
+    "phoneLabel": "Telepono",
+    "locationLabel": "Lokasyon",
+    "locationPlaceholder": "Lungsod, estado / bansa",
+    "culinaryHeading": "Ang iyong kulinaryong pagkakakilanlan.",
+    "culinarySub": "Ito ang humuhubog kung paano itatayo ang iyong kusina sa loob ng platform.",
+    "cuisineFocusLabel": "Pokus ng Lutuin",
+    "cuisineFocusPlaceholder": "hal. Southern, Hapon, Mediterranean",
+    "cookingPhilosophyLabel": "Pilosopiya sa Pagluluto",
+    "cookingPhilosophyPlaceholder": "Paano mo ilalarawan ang iyong pananaw sa pagkain?",
+    "signatureStylesLabel": "Mga Signature na Estilo",
+    "signatureStylesPlaceholder": "hal. mataas sa protina, comfort food, plant-forward",
+    "wellnessPhilosophyLabel": "Pilosopiya sa Kalusugan",
+    "wellnessPhilosophyPlaceholder": "Paano nakakaapekto ang kalusugan at nutrisyon sa iyong pagluluto?",
+    "platformHeading": "Nasaan ang iyong audience?",
+    "platformSub": "Ibahagi ang iyong presensya sa social at web. Opsyonal ang lahat ng field.",
+    "websiteLabel": "Website",
+    "interestHeading": "Ano ang interes mo?",
+    "interestSub": "Piliin lahat ng naaangkop. Maaaring higit sa isa.",
+    "readyHeading": "Handa nang isumite.",
+    "readySub": "Personal na sinusuri ng aming team ang bawat aplikasyon. Makikipag-ugnayan kami sa loob ng 3–5 araw ng trabaho.",
+    "summaryHeading": "Buod ng Aplikasyon",
+    "summaryName": "Pangalan",
+    "summaryBrand": "Brand",
+    "summaryEmail": "Email",
+    "summaryCuisine": "Lutuin",
+    "summaryInterest": "Interes",
+    "consentText": "Sa pagsusumite, sumasang-ayon ka na maaaring gamitin ng My Perfect Meals ang impormasyong ibinigay mo upang suriin ang iyong aplikasyon sa partnership. Walang anumang pangako hangga't hindi napipirmahan ang pormal na kasunduan.",
+    "submitting": "Isinusumite…",
+    "requestReview": "Humiling ng Pagsusuri sa Partnership",
+    "successHeading": "Natanggap ang aplikasyon.",
+    "successSub": "Susuriin ng aming team ang iyong aplikasyon at makikipag-ugnayan sa loob ng 3–5 araw ng trabaho. Personal naming sinusuri ang bawat aplikasyon.",
+    "contactAt": "Makikipag-ugnayan kami sa iyo sa",
+    "done": "Tapos na",
+    "back": "Bumalik",
+    "next": "Susunod"
+  },
+  "safetyPin": {
+    "title": "Safety PIN",
+    "sessionExpired": "Nag-expire ang session — mag-log out at muling mag-log in para pamahalaan ang PIN mo",
+    "statusSet": "Nakatakda ang PIN — naka-enable ang karagdagang proteksyon",
+    "statusUnset": "Walang nakatakdang PIN — magtakda ng isa para sa karagdagang proteksyon",
+    "changePin": "Palitan ang PIN",
+    "removePin": "Alisin ang PIN",
+    "setPin": "Magtakda ng Safety PIN",
+    "enterPin": "Ilagay ang PIN",
+    "confirmPin": "Kumpirmahin ang PIN",
+    "currentPin": "Kasalukuyang PIN",
+    "newPin": "Bagong PIN",
+    "confirmNewPin": "Kumpirmahin ang bagong PIN",
+    "removePrompt": "Ilagay ang kasalukuyang PIN mo para alisin ito.",
+    "fourDigits": "4 na digit",
+    "hidePin": "Itago ang PIN",
+    "showPin": "Ipakita ang PIN",
+    "cancel": "Kanselahin",
+    "setPinBtn": "Itakda ang PIN",
+    "changePinBtn": "Palitan ang PIN",
+    "removePinBtn": "Alisin ang PIN",
+    "errorFourDigits": "Dapat eksaktong 4 na digit ang PIN",
+    "errorNoMatch": "Hindi magkatugma ang mga PIN",
+    "errorNewFourDigits": "Dapat 4 na digit ang bagong PIN",
+    "errorNewNoMatch": "Hindi magkatugma ang mga bagong PIN",
+    "errorSetFailed": "Nabigong itakda ang PIN",
+    "errorSetRetry": "Hindi naitakda ang PIN. Pakisubukang muli.",
+    "errorChangeFailed": "Nabigong palitan ang PIN",
+    "errorChangeRetry": "Hindi napalitan ang PIN. Pakisubukang muli.",
+    "errorRemoveFailed": "Nabigong alisin ang PIN",
+    "errorRemoveRetry": "Hindi naalis ang PIN. Pakisubukang muli.",
+    "setToastTitle": "Naitakda ang Safety PIN",
+    "setToastDesc": "Nagawa na ang iyong Safety PIN.",
+    "changeToastTitle": "Napalitan ang PIN",
+    "changeToastDesc": "Na-update na ang iyong Safety PIN.",
+    "removeToastTitle": "Naalis ang PIN",
+    "removeToastDesc": "Naalis na ang iyong Safety PIN."
+  },
+  "mfa": {
+    "errorStartSetup": "Hindi masimulan ang setup. Pakisubukang muli.",
+    "errorInvalidCode": "Di-wastong code. Subukang muli.",
+    "errorDisableInvalid": "Di-wastong code. Hindi na-disable ang MFA.",
+    "loading": "Naglo-load…",
+    "enabledTitle": "Na-enable ang two-factor authentication",
+    "saveBackupPrompt": "I-save ang iyong mga backup code bago isara ang pahinang ito.",
+    "backupCodesHeading": "Mga Backup Code — i-save ngayon",
+    "copied": "Nakopya!",
+    "copyAllCodes": "Kopyahin lahat",
+    "backupCodesNote": "Isang beses lang magagamit ang bawat code. Itago ang mga ito sa ligtas na lugar. Kung mawalan ka ng access sa iyong authenticator app, kakailanganin mo ang isa sa mga ito para mag-sign in.",
+    "savedBackupBtn": "Na-save ko na ang aking mga backup code",
+    "onTitle": "Naka-on ang two-factor authentication",
+    "enabledOn": "Na-enable noong {{date}}",
+    "disable2fa": "I-disable ang 2FA",
+    "disableTitle": "I-disable ang two-factor authentication",
+    "disablePrompt": "Ilagay ang kasalukuyang authenticator code mo para kumpirmahin.",
+    "cancel": "Kanselahin",
+    "disabling": "Dini-disable…",
+    "scanTitle": "I-scan gamit ang iyong authenticator app",
+    "scanApps": "Maganda ang gana ng Google Authenticator, Authy, o 1Password.",
+    "qrAlt": "I-scan ang QR code na ito gamit ang iyong authenticator app",
+    "manualKeyPrompt": "Hindi ma-scan? Ilagay ang key na ito nang manu-mano:",
+    "addedAccountNext": "Naidagdag ko na ang account — susunod",
+    "confirmTitle": "Kumpirmahin ang iyong authenticator code",
+    "confirmPrompt": "Ilagay ang 6-digit na code mula sa iyong app para i-activate ang 2FA.",
+    "activating": "Ina-activate…",
+    "activate2fa": "I-activate ang 2FA",
+    "back": "Bumalik",
+    "defaultTitle": "Two-factor authentication",
+    "defaultSubtitle": "Magdagdag ng pangalawang layer ng seguridad sa iyong account.",
+    "settingUp": "Sine-set up…",
+    "enable2fa": "I-enable ang 2FA"
+  },
+  "createWithChef": {
+    "mealCreatedTitle": "Nagawa ang pagkain!",
+    "mealCreatedDesc": "Handa na ang {{name}} para sa iyo",
+    "generationFailedTitle": "Nabigo ang paggawa",
+    "signInTitle": "Mangyaring mag-sign in",
+    "signInDesc": "Kailangan mong naka-sign in para gumawa ng pagkain",
+    "guestLimitTitle": "Naabot ang limitasyon ng bisita",
+    "guestLimitDesc": "Gumawa ng libreng account para magpatuloy sa paggawa ng pagkain",
+    "describeMealTitle": "Ilarawan ang iyong pagkain",
+    "describeMealDesc": "Sabihin sa Chef kung ano ang gusto mo",
+    "enterAlternativeTitle": "Maglagay ng alternatibo",
+    "enterAlternativeDesc": "Sabihin sa amin kung ano ang gusto mo sa halip",
+    "placeholderBreakfast": "hal. 'protein pancakes', 'matamis na itlog na may prutas', 'low-carb na omelette'",
+    "placeholderLunch": "hal. 'grilled chicken salad', 'high-protein na wrap', 'Mediterranean bowl'",
+    "placeholderDinner": "hal. 'low-carb na tacos', 'steak na may gulay', 'salmon na may kanin'",
+    "placeholderDefault": "hal. 'isang bagay na magaan at masustansya', 'high-protein na pagkain'",
+    "title": "Gumawa gamit ang AI Chef",
+    "subtitle": "Sabihin sa Chef kung ano ang gusto mo para sa {{mealType}}",
+    "starchLimitTitle": "Naabot ang Limitasyon ng Starchy Carbs",
+    "starchUsedSingular": "Nagamit mo na ang iyong starch meal para ngayon ({{used}} sa {{max}}).",
+    "starchUsedPlural": "Nagamit mo na ang iyong mga starch meal para ngayon ({{used}} sa {{max}}).",
+    "youRequested": "Hiniling mo:",
+    "fibrousPrefix": "Gusto mo bang pumili ng",
+    "fibrousCarb": "fibrous carb",
+    "fibrousSuffix": "sa halip, o hayaan ang Chef na pumili para sa iyo?",
+    "fibrousPlaceholder": "hal. broccoli, asparagus, cauliflower...",
+    "generating": "Ginagawa...",
+    "useMyChoice": "Gamitin ang aking pinili",
+    "or": "o",
+    "chefsChoice": "Pili ng Chef",
+    "chefSubstituteHint": "Papalitan ito ng Chef ng masarap na fibrous carb na opsyon",
+    "inputHint": "Ilarawan ang gusto mo at gagawa ang Chef ng personalized na pagkain para sa iyo",
+    "orbCheckingSafety": "Sinusuri ang safety profile…",
+    "orbFinishing": "Nagdaragdag ng huling hipo…",
+    "orbPreparing": "Inihahanda ng Chef ang iyong pagkain…",
+    "mealSafety": "Kaligtasan ng Pagkain",
+    "ingredientControl": "Kontrol sa Sangkap",
+    "todaysStarchMeals": "Mga Starch Meal Ngayon:",
+    "starchUsedCount": "{{used}} / {{max}} nagamit",
+    "generateBtn": "Bumuo ng AI Meal",
+    "stop": "Itigil",
+    "cancel": "Kanselahin"
+  },
+  "profileSheet": {
+    "invalidFileTitle": "Di-wastong file",
+    "invalidFileDesc": "Pumili ng file na larawan.",
+    "fileTooLargeTitle": "Masyadong malaki ang file",
+    "fileTooLargeDesc": "Pumili ng larawang wala pang 5MB.",
+    "photoUpdatedTitle": "Na-update ang larawan",
+    "photoUpdatedDesc": "Na-update na ang iyong profile photo.",
+    "uploadFailedTitle": "Nabigo ang pag-upload",
+    "uploadFailedDesc": "Nabigong i-upload ang larawan.",
+    "cameraErrorTitle": "Error sa camera",
+    "cameraErrorDesc": "Hindi ma-access ang camera o mga larawan.",
+    "restoringTitle": "Ibinabalik ang mga Pagbili...",
+    "restoringDesc": "Naghahanap ng aktibong subscription...",
+    "restoredTitle": "Naibalik ang mga Pagbili",
+    "restoredDesc": "Matagumpay na naibalik ang iyong subscription.",
+    "restoreCompleteTitle": "Kumpleto ang Pagbalik",
+    "restoreCompleteDesc": "Walang natagpuang aktibong subscription. Kung sa tingin mo ay error ito, makipag-ugnayan sa support.",
+    "restoreFailedTitle": "Nabigo ang Pagbalik",
+    "restoreFailedDesc": "Hindi maibalik ang mga pagbili. Pakisubukang muli.",
+    "accountDeletedTitle": "Na-delete ang Account",
+    "accountDeletedDesc": "Permanenteng na-delete ang iyong account at lahat ng data.",
+    "deleteFailedDesc": "Nabigong i-delete ang account. Pakisubukang muli.",
+    "deleteAccount": "I-delete ang Account",
+    "deleteDialogTitle": "I-delete nang Permanente ang Account?",
+    "deleteDialogIntro": "Hindi na maibabalik ang aksyong ito. Permanenteng i-delete nito:",
+    "deleteItemAccount": "Ang iyong account at impormasyon ng profile",
+    "deleteItemMeals": "Lahat ng meal plan at naka-save na recipe",
+    "deleteItemBiometrics": "Biometrics at data ng pagsubaybay sa kalusugan",
+    "deleteItemBilling": "Kasaysayan ng subscription at pagbabayad",
+    "deleting": "Dine-delete...",
+    "deleteMyAccount": "I-delete ang Aking Account"
+  },
+  "inspiration": {
+    "servingsJustMe": "Ako lang",
+    "servings2": "2 tao",
+    "servings3": "3 tao",
+    "servingsFamily": "Pamilya (4)",
+    "servingsMealPrep": "Meal Prep (6)",
+    "copilotTitle": "Recipe Maker",
+    "copilotDescription": "Tingnan. Sabihin. Ipadala. Gagawin naming sa iyo.",
+    "copilotSpokenText": "Ang Recipe Maker ay isa sa pinakamakapangyarihang tool sa app. Simple ang ideya: may nakita kang pagkain kahit saan — isang TikTok, isang naka-save sa Instagram, isang cookbook, isang menu, o kahit isang bagay lang sa iyong imahinasyon — at sa halip na palipasin ang sandaling iyon, dadalhin mo ito rito at gagawin namin ito para sa iyo. May apat na paraan para ipasok ang iyong ideya. Hinahayaan ka ng Choose Photo na pumili ng anumang screenshot o naka-save na larawan ng pagkain mula sa iyong gallery — mga screenshot sa TikTok, mga save sa Instagram, mga board sa Pinterest, mga recipe sa Facebook, anumang nasa iyong device na. Binubuksan ng Camera ang iyong device nang live para maituro mo ito sa isang cookbook, menu, o screen. Hinahayaan ka ng Speak na ilarawan ang pagkain nang malakas, tulad ng pagsasabi mo sa isang kaibigan. Hinahayaan ka ng Type na i-paste ang isang paglalarawan o isulat ang nasa isip mo. Ito ang dahilan kung bakit iba ang Recipe Maker: hindi mo kailangan ang recipe. Kung maipapakita o mailalarawan mo ito, magagawa namin ito. Kapag naisumite mo na ang iyong ideya, hindi ka bibigyan ng Recipe Maker ng isang resulta. Bumubuo ito ng tatlong ganap na personalized na bersyon ng iyong ideya nang sabay-sabay — parehong putahe, tatlong interpretasyon — bawat isa ay nakaayon sa iyong macro targets, allergy, dietary identity, at bawat aktibong health protocol sa iyong account. Makikita mo silang tatlo, maaari mong i-save ang alinman o lahat, at nananatili ang iyong mga pinili sa dashboard hanggang sa magpasya kang burahin ang mga ito. Hindi kailanman inaalis ng app ang mga ito nang awtomatiko.",
+    "hintAuthentic": "Panatilihin ang orihinal na lasa at sangkap hangga't maaari.",
+    "hintBalanced": "I-personalize ayon sa iyong profile habang pinapanatili ang diwa ng putahe.",
+    "hintHealthier": "Agresibong i-optimize ang nutrisyon habang nananatiling nakikilala ang putahe.",
+    "analysisFailed": "Nabigo ang pagsusuri",
+    "analyzeFailedMsg": "Nabigong suriin ang mga sangkap.",
+    "imageReadError": "Hindi mabasa ang larawan. Pakisubukang muli.",
+    "voiceNotSupportedTitle": "Hindi suportado ang boses",
+    "voiceNotSupportedDesc": "Hindi sinusuportahan ng iyong browser ang voice input. Subukang mag-type.",
+    "micErrorTitle": "Error sa mikropono",
+    "micErrorDesc": "Pakisubukang muli.",
+    "somethingWrong": "May nangyaring mali",
+    "createFailedMsg": "Nabigong gawin ang iyong personalized na pagkain.",
+    "saveFailedError": "Nabigong i-save",
+    "savedTitle": "Na-save!",
+    "savedDesc": "Naidagdag sa iyong mga Recipe Maker save sa Favorites.",
+    "saveFailedTitle": "Nabigo ang pag-save",
+    "scanFoodFor": "Mag-scan ng Pagkain para kay {{name}}",
+    "productScan": "Product Scan",
+    "customizeMeal": "I-customize ang Iyong Pagkain",
+    "recipeMaker": "Recipe Maker",
+    "analyzeForCompanion": "Suriin ang mga sangkap para kay {{name}}",
+    "analyzeBeforeBuy": "Suriin ang mga sangkap bago bumili",
+    "optionsSubtitle": "Ayusin ang mga ito bago namin buuin ang iyong personalized na bersyon.",
+    "captureSubtitle": "Mag-scan ng anumang ideya ng pagkain at ipe-personalize namin ito para sa iyo.",
+    "choosePhoto": "Pumili ng Larawan",
+    "cameraPill": "Camera",
+    "speakPill": "Magsalita",
+    "typePill": "Mag-type",
+    "uploadHint": "Pumili ng screenshot, naka-save na larawan ng pagkain, o larawan mula sa iyong camera roll o gallery.",
+    "chooseFromGallery": "Pumili mula sa Gallery",
+    "galleryHint": "Mga screenshot, naka-save na larawan, anumang larawan ng pagkain",
+    "cameraHint": "Ituro ang iyong camera sa anumang recipe, menu, screen, o larawan ng pagkain.",
+    "openCamera": "Buksan ang Camera",
+    "cameraSubHint": "Kumuha ng live na larawan ng anumang ideya ng pagkain",
+    "voiceHint": "Ilarawan ang pagkain nang malakas — mga sangkap, estilo, anumang natatandaan mo.",
+    "tapToStop": "I-tap para itigil",
+    "tapToSpeak": "I-tap para magsalita",
+    "nextCustomize": "Susunod — I-customize →",
+    "textHint": "Mag-type o mag-paste ng ideya ng pagkain, paglalarawan ng recipe, o pangalan ng putahe.",
+    "textPlaceholder": "hal. Loaded buffalo chicken bowl na may kanin, avocado, at ranch…",
+    "servingsHeading": "Mga Serving",
+    "adaptationStyleHeading": "Estilo ng Pag-angkop",
+    "authentic": "Authentic",
+    "balanced": "Balanse",
+    "healthier": "Mas Malusog",
+    "proteinLevelHeading": "Antas ng Protina",
+    "proteinStandard": "Standard",
+    "proteinHigh": "Mataas na Protina",
+    "proteinAthlete": "Athlete",
+    "prepStyleHeading": "Estilo ng Paghahanda",
+    "prepOriginal": "Orihinal na Paghahanda",
+    "prepEasy": "Madaling Paghahanda",
+    "cuisineStyleHeading": "Estilo ng Lutuin",
+    "generateMyVersion": "Buuin ang Aking Bersyon",
+    "analyzingIngredients": "Sinusuri ang mga sangkap…",
+    "buildingVersion": "Binubuo ang iyong bersyon…",
+    "checkingCompanionProfile": "Kinukumpara sa profile ni {{name}}",
+    "checkingYourProfile": "Kinukumpara sa iyong profile",
+    "adaptingProfile": "Ina-angkop sa iyong nutritional profile",
+    "versionsReady": "{{count}} bersyon na handa na",
+    "savedCount": " · {{count}} na-save",
+    "deleteScan": "I-delete ang scan na ito",
+    "tapAnotherHint": "I-tap ang iba para i-save din ito, o isara at bumalik mamaya.",
+    "tapSelectHint": "I-tap ang isa para piliin, tapos i-save. Bumalik anumang oras — nananatili ang mga ito hanggang burahin mo.",
+    "adaptedForStrategy": "Inangkop para sa Nutrition Strategy Ngayon",
+    "calValue": "{{value}} cal",
+    "proteinValue": "{{value}}g protina",
+    "carbsValue": "{{value}}g carbs",
+    "saving": "Sine-save…",
+    "saveAgain": "I-save Ulit",
+    "saveThisVersion": "I-save ang Bersyong Ito",
+    "try3More": "3 Pa",
+    "viewSavedMeals": "Tingnan ang naka-save na pagkain sa Favorites →",
+    "personalizedReady": "Handa na ang iyong personalized na bersyon.",
+    "macroCal": "Cal",
+    "macroProtein": "Protina",
+    "macroCarbs": "Carbs",
+    "macroFat": "Taba",
+    "savedCheck": "Na-save ✓",
+    "saveToFavorites": "I-save sa Favorites",
+    "scanAnother": "Mag-scan ng Iba",
+    "viewInFavorites": "Tingnan sa Favorites →"
+  },
+  "parentsCorner": {
+    "title": "Sulok ng mga Magulang",
+    "yourChild": "ang anak mo",
+    "helpingBuildHabits": "Tinutulungan si {{name}} na bumuo ng malulusog na gawi",
+    "backToBeginnings": "Bumalik sa My Perfect Beginnings",
+    "startFresh": "Magsimulang muli",
+    "startNewConversation": "Magsimula ng bagong usapan",
+    "clearConfirm": "Burahin ang usapang ito at magsimulang muli?",
+    "clear": "Burahin",
+    "cancel": "Kanselahin",
+    "dismiss": "Isara",
+    "boundaryLanguage": "Makakapagbigay ako ng gabay sa nutrisyon na batay sa ebidensiya para sa pamilya mo. Para sa mga usaping medikal, ang pediatrician o rehistradong pediatric dietitian ang laging tamang susunod na hakbang — sasabihin ko kapag kailangan iyon.",
+    "todaysTip": "Tip ngayon",
+    "loadingConversation": "Kinakarga ang usapan mo…",
+    "commonQuestions": "Karaniwang tanong",
+    "browseCommonQuestions": "Tingnan ang mga karaniwang tanong",
+    "followUp": "Follow-up",
+    "makeItNow": "Gawin ngayon",
+    "thinking": "Nag-iisip…",
+    "emptyPrompt": "Pindutin ang card sa itaas o magtanong sa ibaba.",
+    "askAnything": "Magtanong ng kahit ano",
+    "inputPlaceholder": "I-type ang tanong mo rito…",
+    "send": "Ipadala",
+    "noResponse": "Paumanhin, walang natanggap na sagot. Subukang muli.",
+    "connectionError": "May maliit na problema ngayon. Suriin ang koneksyon mo at subukang muli.",
+    "stage": {
+      "earlyInfant": "Maagang sanggol",
+      "beginningFoods": "Simula ng solid",
+      "youngToddler": "Batang toddler",
+      "toddler": "Toddler",
+      "preschool": "Preschool",
+      "earlySchoolAge": "Maagang edad-eskuwela",
+      "growingChild": "Lumalaking bata"
+    },
+    "cards": {
+      "babyWontEat": {
+        "label": "Ayaw kumain ng baby ko.",
+        "question": "Ayaw kumain ng baby ko. Ano'ng gagawin ko?"
+      },
+      "toddlerHatesVegetables": {
+        "label": "Ayaw ng anak ko sa gulay.",
+        "question": "Ayaw ng anak ko sa gulay. Paano siya mapapakain ng mas marami?"
+      },
+      "lunchPacking": {
+        "label": "Anong iempake sa tanghalian?",
+        "question": "Anong mga ideya para sa masustansiya at kaakit-akit na tanghalian?"
+      },
+      "healthySnacks": {
+        "label": "Malulusog na meryenda pagkatapos ng klase.",
+        "question": "Anong mga ideya sa malusog na meryenda pagkatapos ng klase?"
+      },
+      "calcium": {
+        "label": "Sapat ba ang calcium ng anak ko?",
+        "question": "Sapat ba ang calcium ng anak ko? Paano ko masisiguro?"
+      },
+      "introducingFoods": {
+        "label": "Paano magpakilala ng bagong pagkain?",
+        "question": "Paano ko maipakikilala ang bagong pagkain nang hindi nagiging away?"
+      },
+      "youngAthlete": {
+        "label": "Anong kakainin ng batang atleta ko?",
+        "question": "Naglalaro ng sports ang anak ko. Ano'ng kakainin bago at pagkatapos ng training?"
+      },
+      "waterIntake": {
+        "label": "Gaano karaming tubig ang kailangan ng anak ko?",
+        "question": "Gaano karaming tubig dapat inumin ng anak ko araw-araw?"
+      },
+      "pizza": {
+        "label": "Puwede pa bang kumain ng pizza ang anak ko?",
+        "question": "Puwede pa bang kumain ng pizza at iba pang masasarap ang anak ko, o dapat mas maging mahigpit ako?"
+      }
+    }
+  },
+  "bodyComposition": {
+    "title": "Itala ang body composition",
+    "bodyFatPct": "% ng taba ng katawan",
+    "bodyFatPlaceholder": "hal. 18.5",
+    "goalBodyFatPct": "Target na % ng taba (opsyonal)",
+    "goalBodyFatPlaceholder": "hal. 15",
+    "scanMethod": "Paraan ng pagsukat",
+    "pickMethod": "Pumili ng paraan",
+    "date": "Petsa",
+    "save": "I-save",
+    "saving": "Sine-save...",
+    "notLoggedIn": "Hindi naka-log in",
+    "notLoggedInDesc": "Mag-log in para i-save ang datos ng body composition mo.",
+    "invalidBodyFat": "Di-wastong body fat",
+    "invalidBodyFatDesc": "Ang porsyento ng taba ay dapat nasa pagitan ng 1% at 70%.",
+    "saved": "Na-save",
+    "savedDesc": "Matagumpay na naitala ang body composition.",
+    "saveFailed": "Nabigo ang pag-save",
+    "saveFailedDesc": "Hindi ma-save ang datos mo. Subukang muli."
+  },
+  "sponsorEnded": {
+    "launchProCare": "Ilunsad ang sarili mong ProCare account",
+    "openStudio": "Buksan ang sarili mong studio",
+    "completeVerification": "Kumpletuhin ang credential verification",
+    "continueTraining": "Ipagpatuloy ang Platform Mastery training",
+    "startOwnPractice": "Simulan ang sarili kong negosyo",
+    "continueAsClient": "Magpatuloy bilang kliyente",
+    "continueAsClientDesc": "Patuloy na gamitin ang MPM bilang indibidwal na miyembro",
+    "continueWithFree": "Magpatuloy gamit ang Free",
+    "continueWithFreeDesc": "Basic na paggawa ng pagkain — laging libre",
+    "joinAnotherOrg": "Sumali sa ibang organisasyon",
+    "joinAnotherOrgDesc": "Tanggapin ang imbitasyon mula sa ibang negosyo",
+    "accessEnded": "Natapos na ang access mo na sinusuportahan ng {{business}}",
+    "accessEndedBody": "Nariyan pa rin ang personal mong account, kasaysayan ng pagkain, progreso sa Academy, at mga sertipikasyon. Piliin kung paano magpapatuloy."
+  },
+  "dietStyleBadge": {
+    "kosher": "Kosher ✓",
+    "halal": "Halal ✓",
+    "vegan": "Vegan ✓",
+    "vegetarian": "Vegetarian ✓",
+    "pescatarian": "Pescatarian ✓",
+    "mediterranean": "Mediterranean ✓",
+    "paleo": "Paleo ✓",
+    "keto": "Keto ✓",
+    "carnivore": "Carnivore ✓",
+    "dairyFree": "Walang dairy ✓",
+    "custom": "Custom na diyeta ✓"
+  },
+  "pregnancySupport": {
+    "title": "I-set up ang My Perfect Pregnancy",
+    "intro": "Pinepersonalize nito ang gabay sa nutrisyon mo. Nananatiling pribado ang impormasyon mo at humuhubog sa bawat mungkahi sa pagkain, pagsusuri sa kaligtasan ng pagkain, at tugon ng coaching.",
+    "whereAreYou": "Nasaan ka sa paglalakbay mo?",
+    "breastfeedingQuestion": "Nagpapasuso ka ba ngayon?",
+    "breastfeedingHelp": "Tinutukoy nito ang daan ng nutrisyon mo. Magkaiba ang priyoridad ng pagpapasuso at postpartum recovery — hiwalay naming hinahawakan ang mga ito.",
+    "yesBreastfeeding": "Oo, nagpapasuso",
+    "noBreastfeeding": "Hindi, hindi nagpapasuso",
+    "breastfeedingNote": "Makakatanggap ka ng nutrisyon para sa paggawa ng gatas kasama ang recovery layer para sa paggaling.",
+    "postpartumNote": "Makakatanggap ka ng nakatuong postpartum recovery protocol — fiber, anti-inflammatory na pagkain, suportang hormonal, at recomposition ng katawan. Walang crash diet.",
+    "trackByDueDate": "Subaybayan ayon sa due date?",
+    "trackByDueDateHelp": "Kapag inilagay mo ang due date, awtomatikong mag-a-update ang linggo at trimester mo. Puwede mong laktawan at manwal na subaybayan.",
+    "yesEnterDueDate": "Oo, ilagay ang due date",
+    "skipManual": "Laktawan — manwal na yugto lang",
+    "dueDatePlaceholder": "Due date (YYYY-MM-DD)",
+    "activeSymptoms": "May mga aktibong sintomas?",
+    "activeSymptomsHelp": "Piliin lahat ng naaangkop — iaangkop ang mga pagkain mo.",
+    "disclaimerPart1": "Nagbibigay ang My Perfect Pregnancy ng pangkalahatang edukasyon sa nutrisyon at suporta sa istruktura ng pagkain lamang. Hindi ito",
+    "disclaimerNotSubstitute": "kapalit",
+    "disclaimerPart2": "ng iyong OB/GYN, midwife, o rehistradong dietitian. Sundin lagi muna ang mga rekomendasyon ng iyong propesyonal sa kalusugan.",
+    "saveButton": "I-save ang setup ng pagbubuntis",
+    "savingButton": "Sine-save…",
+    "savedButton": "✓ Na-save!",
+    "turnOff": "I-off ang pregnancy nutrition",
+    "turnOffConfirm": "I-off ang pregnancy nutrition?",
+    "turnOffHelp": "Aalisin nito ang gabay na para sa pagbubuntis mula sa mga pagkain at coaching mo. Puwede mong i-on muli anumang oras — walang panghuhusga, walang tanong.",
+    "turningOff": "Ino-off…",
+    "yesTurnOff": "Oo, i-off",
+    "keepItOn": "Panatilihing naka-on",
+    "stage": {
+      "tryingToConceive": {
+        "label": "Sinusubukang magbuntis",
+        "desc": "Nutrisyon bago maglihi"
+      },
+      "trimester1": {
+        "label": "Unang trimester",
+        "desc": "Linggo 1–13 · Folate, pagduduwal"
+      },
+      "trimester2": {
+        "label": "Ikalawang trimester",
+        "desc": "Linggo 14–27 · Protina, calcium, DHA"
+      },
+      "trimester3": {
+        "label": "Ikatlong trimester",
+        "desc": "Linggo 28–40 · Iron, DHA, paghahanda"
+      },
+      "breastfeeding": {
+        "label": "Pagpapasuso",
+        "desc": "Paggawa ng gatas, DHA, iodine, calcium"
+      },
+      "postpartum": {
+        "label": "Postpartum",
+        "desc": "Pagbawi, recomposition, hormones, lakas"
+      }
+    },
+    "symptom": {
+      "nausea": "Pagduduwal",
+      "heartburn": "Heartburn",
+      "constipation": "Konstipasyon",
+      "fatigue": "Pagkapagod",
+      "foodAversions": "Pandidiri sa pagkain",
+      "swelling": "Pamamaga",
+      "shortnessOfBreath": "Hirap huminga",
+      "lowAppetite": "Mababang gana"
+    }
+  },
+  "glp1Checkin": {
+    "howFeeling": "Kumusta ang pakiramdam mo ngayon?",
+    "noCheckinToday": "Walang symptom check-in ngayon. Ginagamit ng mga pagkain mo ang standard medication profile mo.",
+    "checkInPrompt": "Mag-check in para iangkop ang mga pagkain, shake, at mungkahi ng restawran ngayon.",
+    "checkIn": "Mag-check in",
+    "update": "I-update",
+    "updated": "Na-update {{time}}",
+    "escalationStatusBody": "Maaaring kailanganin ng mga sintomas na ito ang medikal na pagsusuri. Makipag-ugnayan agad sa propesyonal o care team mo.",
+    "mealsAdapting": "Umaangkop ang mga pagkain sa sintomas ngayon",
+    "updatedTapAdjustments": "Na-update {{time}} · Pindutin para makita ang mga pagbabago",
+    "noSymptomsToday": "Walang iniulat na sintomas ngayon",
+    "updatedStandardProfile": "Na-update {{time}} · Aktibo ang standard profile",
+    "escalationCardBody": "Maaaring kailanganin ng mga sintomas na ito ang medikal na pagsusuri. Makipag-ugnayan sa care team mo.",
+    "nutritionAdjustments": "Mga pagbabago sa nutrisyon ngayon ({{count}})",
+    "reason": "Dahilan",
+    "adaptation": "Pag-angkop",
+    "evidence": "Ebidensiya",
+    "justNow": "kani-kanina lang",
+    "minutesAgo": "{{count}} min ang nakalipas",
+    "hoursAgo": "{{count}} oras ang nakalipas",
+    "giSymptomsHeader": "Mga sintomas sa GI — Gaano kalala ngayon?",
+    "otherSymptomsHeader": "Iba pang sintomas",
+    "vomitingHeader": "Pagsusuka ngayon",
+    "quickQuestionsHeader": "Ilang mabilis na tanong",
+    "notifyHeader": "Gusto mo bang malaman ng care team mo?",
+    "notifyHelp": "Opsyonal — ikaw ang magpapasya kung sino ang aabisuhan ngayon.",
+    "updatesThroughoutDay": "Nag-a-update ito sa buong araw.",
+    "updatesThroughoutDayBody": "Kung gumaan ka mamaya, mag-check in ulit — agad na aangkop ang mga pagkain mo. Nire-reset ang check-in mo tuwing umaga.",
+    "cancel": "Kanselahin",
+    "saving": "Sine-save…",
+    "saveCheckIn": "I-save ang check-in",
+    "severity": {
+      "none": "Wala",
+      "mild": "Banayad",
+      "moderate": "Katamtaman",
+      "severe": "Malubha"
+    },
+    "symptom": {
+      "nausea": "Pagduduwal",
+      "constipation": "Konstipasyon",
+      "diarrhea": "Pagtatae",
+      "reflux": "Heartburn/reflux",
+      "bloating": "Kabag",
+      "earlyFullness": "Maagang pagkabusog",
+      "foodAversions": "Pandidiri sa pagkain",
+      "fatigue": "Pagkapagod",
+      "dizziness": "Pagkahilo",
+      "headache": "Sakit ng ulo"
+    },
+    "vomiting": {
+      "none": "Wala",
+      "once": "Isang beses",
+      "multiple": "2–3 beses",
+      "cantKeepFluids": "4+ / Hindi makapagtago ng likido"
+    },
+    "q": {
+      "keepFluids": "Nakakapagtago ka ba ng likido?",
+      "eatWithoutWorsening": "Nakakakain ka ba nang hindi lumalala ang sintomas?",
+      "reducedUrination": "Mas kaunti ba nang malaki ang pag-ihi kaysa dati?",
+      "symptomTrend": "Paano ang takbo ng mga sintomas mo?",
+      "appetite": "Kumusta ang gana mo ngayon?"
+    },
+    "opt": {
+      "yes": "Oo",
+      "no": "Hindi",
+      "withDifficulty": "Nahihirapan",
+      "partially": "Bahagya"
+    },
+    "trend": {
+      "improving": "Gumagaling",
+      "same": "Pareho",
+      "worsening": "Lumalala",
+      "na": "Hindi sigurado"
+    },
+    "appetite": {
+      "suppressed": "Walang gana",
+      "reduced": "Nabawasan",
+      "normal": "Normal",
+      "increased": "Tumaas"
+    },
+    "notify": {
+      "keepPrivate": "Hindi, gawing pribado",
+      "coach": "Abisuhan ang coach ko",
+      "both": "Abisuhan pareho"
     }
   }
 }
