@@ -138,7 +138,8 @@ beverageCreatorRouter.post("/", async (req, res) => {
       const inputText = [customBeverageDescription, specificDrink, flavorFamily, beverageCategory].filter(Boolean).join(' ');
       const safetyCheck = await enforceSafetyProfile(userId, inputText, "beverage-creator", {
         safetyMode: safetyMode || "STRICT",
-        overrideToken: overrideToken
+        overrideToken: overrideToken,
+        correlationId: (req as any).id
       });
       if (safetyCheck.result === "BLOCKED") {
         console.log(`🚫 [SAFETY] Blocked beverage for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);

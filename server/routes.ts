@@ -4180,7 +4180,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (resolvedUserId) {
         // Authenticated user - use their profile from DB
         const safetyCheck = await enforceSafetyProfile(resolvedUserId, input, builderId, {
-          safetyMode: "STRICT"
+          safetyMode: "STRICT",
+          correlationId: (req as any).id
         });
         
         return res.json({
@@ -4954,7 +4955,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
       if (userId && craving) {
-        const safetyCheck = await enforceSafetyProfile(userId, craving, "generate-craving-meal");
+        const safetyCheck = await enforceSafetyProfile(userId, craving, "generate-craving-meal", {
+          correlationId: (req as any).id
+        });
         if (safetyCheck.result === "BLOCKED") {
           console.log(`🚫 [SAFETY] Blocked request for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
           return res.status(400).json({
@@ -5343,7 +5346,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
       if (cravingInput) {
-        const safetyCheck = await enforceSafetyProfile(userId, cravingInput, "meals-craving-creator-enforced");
+        const safetyCheck = await enforceSafetyProfile(userId, cravingInput, "meals-craving-creator-enforced", {
+          correlationId: (req as any).id
+        });
         if (safetyCheck.result === "BLOCKED") {
           console.log(`🚫 [SAFETY] Blocked enforced craving for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
           return res.status(400).json({
@@ -5647,7 +5652,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
       if (userId && preferences) {
-        const safetyCheck = await enforceSafetyProfile(userId, preferences, "meals-kids");
+        const safetyCheck = await enforceSafetyProfile(userId, preferences, "meals-kids", {
+          correlationId: (req as any).id
+        });
         if (safetyCheck.result === "BLOCKED") {
           console.log(`🚫 [SAFETY] Blocked kids meal for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
           return res.status(400).json({
@@ -5748,7 +5755,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
       if (userId && cravingInput) {
-        const safetyCheck = await enforceSafetyProfile(userId, cravingInput, "meals-ai-creator");
+        const safetyCheck = await enforceSafetyProfile(userId, cravingInput, "meals-ai-creator", {
+          correlationId: (req as any).id
+        });
         if (safetyCheck.result === "BLOCKED") {
           console.log(`🚫 [SAFETY] Blocked ai-creator for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
           return res.status(400).json({

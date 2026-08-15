@@ -37,6 +37,7 @@ chefPairingsRouter.post("/", async (req, res) => {
       const safetyCheck = await enforceSafetyProfile(userId, inputText, "chef-pairings", {
         safetyMode: safetyMode || "STRICT",
         overrideToken: overrideToken,
+        correlationId: (req as any).id,
       });
       if (safetyCheck.result === "BLOCKED") {
         console.log(`[CHEF-PAIRINGS] Blocked for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
