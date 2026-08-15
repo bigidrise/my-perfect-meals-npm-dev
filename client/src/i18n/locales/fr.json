@@ -69,10 +69,10 @@
     "log": "Enregistrer",
     "logMeal": "Enregistrer le Repas",
     "addToCalendar": "Ajouter au calendrier",
-    "bringBackChef": "Faire revenir le chef",
+    "bringBackChef": "Ramenez votre chef",
     "comingSoon": "Bientôt disponible",
-    "withChef": "Avec le Chef",
-    "today": "Aujourd'hui :"
+    "today": "Aujourd'hui :",
+    "withChef": "Avec le Chef"
   },
   "language": {
     "pageTitle": "Langue",
@@ -398,7 +398,7 @@
     "noInstructions": "Aucune instruction fournie",
     "couldNotUpdateFavorites": "Impossible de mettre à jour les favoris. Réessayez."
   },
-  "shopping": {
+"shopping": {
     "pageTitle": "Liste de Courses Intelligente",
     "syncing": "synchronisation…",
     "voiceAdd": "Ajouter par voix",
@@ -453,24 +453,30 @@
     "findProduct": {
       "tabBuildMeal": "Créer un repas",
       "tabFindProduct": "Trouver un produit",
-      "inputLabel": "Que cherchez-vous à acheter ?",
+      "inputLabel": "Que cherchez-vous à acheter ?",
       "inputPlaceholder": "ex. sauce spaghetti, barres protéinées, lait…",
-      "voiceStart": "Dictez votre demande",
-      "voiceStop": "Arrêter l'écoute",
-      "voiceUnsupported": "La saisie vocale n'est pas prise en charge sur cet appareil",
+      "voiceStart": "Parlez votre demande",
+      "voiceStop": "Arrêter d’écouter",
+      "voiceUnsupported": "La saisie vocale n’est pas prise en charge sur cet appareil",
       "searching": "Recherche des meilleurs produits pour vous…",
-      "resultsFor": "Meilleurs choix pour « {{query}} »",
+      "resultsFor": "Meilleurs choix pour « {{query}} »",
       "usualPick": "Votre choix habituel",
       "alternatives": "Alternatives",
       "save": "Enregistrer",
       "saved": "Enregistré ✓",
       "saving": "Enregistrement…",
       "addToList": "Ajouter à la liste de courses",
-      "added": "Ajouté !",
+      "added": "Ajouté !",
       "compareAnother": "Comparer un autre",
-      "errorGeneric": "Impossible d'obtenir des conseils produits pour le moment. Veuillez réessayer.",
-      "noResults": "Aucun conseil de marque pour cet article — essayez un produit emballé plus précis.",
-      "avoid": "À éviter"
+      "errorGeneric": "Impossible d’obtenir des conseils produit maintenant. Veuillez réessayer.",
+      "noResults": "Aucun conseil de marque disponible pour cet article — essayez un produit emballé plus spécifique.",
+      "avoid": "Éviter"
+    },
+    "smartCart": {
+      "pick": "Choisir",
+      "picked": "✓ Choisi",
+      "brandsSummary_one": "1 marque sélectionnée — appuyez sur « Tout ajouter » pour l’inclure dans votre liste",
+      "brandsSummary_other": "{{count}} marques sélectionnées — appuyez sur « Tout ajouter » pour les inclure dans votre liste"
     }
   },
   "restaurant": {
@@ -1662,7 +1668,15 @@
       "step3Desc": "Votre formation est terminée. Activez votre studio professionnel et commencez à travailler avec vos clients.",
       "step3Phase2Title": "Phase 2 : Outils avancés",
       "step3Phase2Desc": "Débloquez des outils cliniques et de coaching avancés pour un accompagnement client plus approfondi.",
-      "step3Button": "Activer le studio"
+      "step3Button": "Activer le studio",
+      "personalProfileStep": "Configurez votre profil nutritionnel personnel",
+      "firstMealPlan": "Générez votre premier plan de repas alimenté par l'IA",
+      "learningItems": {
+        "clientMgmt": "Gestion des clients et des plans de soins",
+        "questionnaires": "Questionnaires professionnels",
+        "communication": "Communication entre le studio et le client",
+        "revenue": "Construire des revenus récurrents"
+      }
     },
     "launchpad": {
       "certifiedBadge": "Certifié",
@@ -1671,7 +1685,52 @@
       "enterStudio": "Entrer dans le studio",
       "quickLinks": "Liens rapides",
       "resumeCertification": "Reprendre la certification",
-      "resumePhase2": "Reprendre la Phase 2"
+      "resumePhase2": "Reprendre la Phase 2",
+      "gridCards": {
+        "clientStudio": {
+          "label": "Studio client",
+          "sub": "Gérer les clients et les plans de repas"
+        },
+        "businessCenter": {
+          "label": "Centre d'affaires",
+          "sub": "Affilié, Académie, Partenaires"
+        },
+        "certifications": {
+          "label": "Certifications",
+          "sub": "Voir et développer votre formation"
+        },
+        "affiliateProgram": {
+          "label": "Programme d'affiliation",
+          "sub": "Gagnez 25 % par référence"
+        }
+      },
+      "quickLink": {
+        "questionnaires": "Questionnaires",
+        "businessCenter": "Centre d'affaires",
+        "certifications": "Mes certifications",
+        "affiliate": "Tableau de bord des affiliés"
+      },
+      "stepRow": {
+        "personalProfile": {
+          "label": "Profil personnel",
+          "sub": "Découvrez MPM en tant qu'utilisateur"
+        },
+        "phase1": {
+          "label": "Phase 1 — Fondamentaux de la plateforme",
+          "sub": "Maîtrisez chaque fonctionnalité de la plateforme"
+        },
+        "phase2": {
+          "label": "Phase 2 — Réussite en affaires et ProCare",
+          "sub": "Construisez et développez votre pratique"
+        }
+      },
+      "personalProfileSetup": "Configuration du profil personnel",
+      "phase1Label": "Phase 1 — Fondamentaux de la plateforme",
+      "welcomeBack": "Bienvenue à nouveau",
+      "percentComplete": "{{pct}}% Complété",
+      "stepOf": "Étape {{completed}} sur {{total}}",
+      "current": "Actuel",
+      "backToBC": "Centre d'affaires"
     },
     "welcome": {
       "back": "Retour",
@@ -1683,7 +1742,56 @@
       "completeUnlock": "Complétez pour débloquer",
       "continueButton": "Continuer",
       "phase2Label": "Phase 2",
-      "progress": "Progression"
+      "progress": "Progression",
+      "sections": {
+        "overview": {
+          "title": "Bienvenue chez ProCare",
+          "subtitle": "Votre rôle sur la plateforme",
+          "highlight": "ProCare est un outil qui étend votre pratique — pas un substitut à votre formation clinique.",
+          "b1": "ProCare vous offre un espace de travail dédié pour gérer les clients, construire des plans de repas personnalisés et suivre les progrès — le tout au sein de My Perfect Meals.",
+          "b2": "En tant que professionnel ProCare, vous opérez au sein d'une hiérarchie structurée : les exigences médicales ont toujours la priorité, suivies de l'identité diététique, des préférences culturelles et des préférences comportementales.",
+          "b3": "Vous êtes responsable des conseils que vous fournissez. La plateforme amplifie votre expertise — elle ne remplace pas votre jugement professionnel.",
+          "b4": "Vos clients verront des plans de repas, un suivi diététique et des plats générés par l'IA adaptés aux protocoles que vous définissez. Votre travail consiste à définir ces protocoles avec précision et à les mettre à jour au fur et à mesure que les besoins du client évoluent."
+        },
+        "clients": {
+          "title": "Gestion des clients",
+          "subtitle": "Intégration et soins continus",
+          "highlight": "Gardez les profils des clients à jour. Des protocoles obsolètes entraînent des repas générés par l'IA mal alignés.",
+          "b1": "Les clients sont ajoutés à votre liste depuis le Studio. Vous pouvez les inviter par e-mail, assigner des créateurs de repas et configurer leur profil diététique depuis votre tableau de bord ProCare.",
+          "b2": "Chaque client a une carte de protocole individuelle où vous définissez leurs objectifs caloriques et macro, les restrictions diététiques, le mode clinique (le cas échéant) et les préférences culinaires.",
+          "b3": "Les tableaux de repas vous permettent de pré-construire ou d'approuver des repas pour vos clients. Les clients peuvent voir et enregistrer les repas approuvés directement dans leur application.",
+          "b4": "Utilisez la fonction de messagerie pour communiquer avec les clients à l'intérieur de la plateforme. Les notes sur tablette vous offrent un espace privé pour documenter les progrès et les observations des clients.",
+          "b5": "Les données des clients — y compris les biométriques, les journaux de repas et les notes de progrès — ne sont visibles que par vous et le client. Elles ne sont jamais partagées avec d'autres professionnels ou tiers."
+        },
+        "safety": {
+          "title": "Sécurité et garde-fous des protocoles",
+          "subtitle": "Comment la plateforme protège vos clients",
+          "highlight": "En cas de doute, optez pour le paramètre le plus restrictif. Les clients peuvent toujours demander plus de flexibilité lors d'une session de suivi.",
+          "b1": "La hiérarchie des contraintes à 4 niveaux régit toute génération de repas par l'IA : (1) Les exigences médicales sont absolues. (2) L'identité diététique est appliquée. (3) Les préférences culturelles et culinaires façonnent la sortie. (4) Les préférences comportementales sont appliquées en dernier.",
+          "b2": "Les valeurs macro ne sont jamais inventées par l'IA. Si un macro est inconnu, il est laissé comme null — pas estimé ou rempli.",
+          "b3": "Les modes cliniquement sensibles — tels que le soutien en oncologie et les protocoles anti-inflammatoires — imposent des restrictions strictes sur les ingrédients au niveau de la génération. Celles-ci ne peuvent pas être désactivées par le client.",
+          "b4": "Les préférences de chaleur, d'épices et de texture peuvent être contournées par des règles de sécurité clinique lorsque l'état médical rend certains ingrédients dangereux.",
+          "b5": "Si vous assignez un protocole clinique, assurez-vous d'avoir la base professionnelle pour le faire. Les protocoles de niveau médecin nécessitent un accès de rôle médecin."
+        },
+        "standards": {
+          "title": "Normes professionnelles",
+          "subtitle": "Éthique, responsabilité et meilleures pratiques",
+          "highlight": "Votre réputation professionnelle est l'actif le plus important dans votre pratique ProCare. La plateforme vous reflète.",
+          "b1": "Vous avez attesté lors de l'inscription de l'exactitude de vos références professionnelles. La fausse représentation des références est un motif de retrait immédiat de la plateforme.",
+          "b2": "N'utilisez jamais ProCare pour diagnostiquer, traiter ou guérir une condition médicale. Les conseils nutritionnels sont de soutien, pas curatifs.",
+          "b3": "Maintenez des profils clients précis et à jour. Documentez les changements lorsque la situation médicale, les objectifs ou l'identité alimentaire d'un client évoluent.",
+          "b4": "Respectez l'autonomie des clients. ProCare vous permet de recommander et de restreindre, mais les clients conservent le droit de prendre leurs propres décisions alimentaires en dehors des garde-fous cliniquement appliqués.",
+          "b5": "Si vous soupçonnez qu'un client est en crise médicale, instruisez-le de contacter immédiatement les services d'urgence. La plateforme n'est pas un outil d'intervention en cas de crise."
+        },
+        "complete": {
+          "title": "Vous êtes prêt",
+          "subtitle": "Reconnaissance finale",
+          "highlight": "Bienvenue sur ProCare. Vos clients comptent sur vous.",
+          "b1": "Vous avez examiné les principes opérationnels fondamentaux de ProCare, le flux de travail de gestion des clients, les garde-fous de sécurité et les normes professionnelles.",
+          "b2": "En complétant cette formation, vous reconnaissez que vous comprenez vos responsabilités en tant que professionnel ProCare et que vous utiliserez la plateforme conformément à ces principes.",
+          "b3": "Votre Studio se déverrouillera immédiatement après avoir complété cette formation. Vous pouvez commencer à ajouter des clients, à créer des plans de repas et à configurer des protocoles clients immédiatement."
+        }
+      }
     },
     "rewards": {
       "back": "Retour",
@@ -1707,7 +1815,25 @@
       "nextStepsTitle": "Vos prochaines étapes",
       "subtitle": "Vous avez terminé la certification ProCare et débloqué l'accès complet à votre studio professionnel.",
       "title": "Certification terminée",
-      "unlockedTitle": "Studio débloqué"
+      "unlockedTitle": "Studio débloqué",
+      "features": {
+        "studio": "Studio professionnel",
+        "clientMgmt": "Gestion des clients",
+        "carePlans": "Plans de soins",
+        "questionnaires": "Questionnaires professionnels",
+        "businessCenter": "Centre d'affaires",
+        "affiliateResources": "Ressources affiliées",
+        "marketing": "Matériaux marketing",
+        "education": "Formation continue"
+      },
+      "nextStep": {
+        "profile": "Complétez votre profil professionnel",
+        "firstClient": "Créez votre premier client",
+        "inviteClient": "Invitez votre premier client sur la plateforme",
+        "mealPlan": "Construisez votre premier plan de repas",
+        "affiliate": "Configurez votre compte affilié pour gagner des commissions",
+        "businessCenter": "Explorez le Centre d'affaires"
+      }
     }
   },
   "trainerCareTeam": {
@@ -2398,12 +2524,12 @@
       "appName": "My Perfect Meals",
       "features": "Fonctionnalités",
       "howItWorks": "Comment ça marche",
-      "pricing": "Tarifs",
+      "pricing": "Tarification",
       "signIn": "Se connecter"
     },
     "errorBoundary": {
-      "title": "Une erreur s'est produite",
-      "description": "Nous avons du mal à charger cette page. Veuillez actualiser et réessayer.",
+      "title": "Quelque chose a mal tourné",
+      "description": "Nous avons des problèmes pour charger cette page. Veuillez actualiser et réessayer.",
       "refresh": "Actualiser la page"
     },
     "dateSlotPicker": {
@@ -2416,13 +2542,13 @@
       "snack": "Collation"
     },
     "dailyNutritionTracker": {
-      "title": "Progrès nutritionnel quotidien",
+      "title": "Suivi Nutritionnel Quotidien",
       "description": "Suivez votre apport nutritionnel quotidien",
       "calories": "Calories",
       "protein": "Protéines",
       "carbohydrates": "Glucides",
-      "fat": "Lipides",
-      "onTrack": "Vous êtes sur la bonne voie pour atteindre vos objectifs quotidiens !"
+      "fat": "Graisses",
+      "onTrack": "Sur la bonne voie avec vos objectifs quotidiens !"
     },
     "pagination": {
       "label": "pagination",
@@ -2431,39 +2557,6 @@
       "nextPage": "Aller à la page suivante",
       "next": "Suivant",
       "morePages": "Plus de pages"
-    },
-    "mealCard": {
-      "noRecipe": "Aucune recette",
-      "addMeal": "Ajouter un repas",
-      "serving": "Portion :",
-      "ingredients": "Ingrédients :",
-      "cookingInstructions": "Instructions de cuisson :",
-      "protein": "Protéines",
-      "carbs": "Glucides",
-      "fat": "Lipides"
-    },
-    "nutritionSummary": {
-      "title": "Résumé nutritionnel",
-      "empty": "Générez un plan de repas pour voir votre résumé nutritionnel",
-      "weeklyOverview": "Vue d'ensemble hebdomadaire",
-      "totalCalories": "Calories totales",
-      "dailyAverage": "Moyenne quotidienne",
-      "totalProtein": "Protéines totales",
-      "daysPlanned": "Jours planifiés",
-      "dailyTargets": "Objectifs quotidiens",
-      "calories": "Calories",
-      "protein": "Protéines",
-      "carbohydrates": "Glucides",
-      "fat": "Lipides",
-      "targetMet": "Objectif atteint",
-      "goalProgress": "Progression des objectifs",
-      "fitnessGoal": "Objectif de remise en forme",
-      "activityLevel": "Niveau d'activité",
-      "dietaryPreferences": "Préférences alimentaires",
-      "balanceScore": "Score d'équilibre",
-      "percentOfTarget": "{{n}}% de l'objectif",
-      "remainingCal": "{{n}} restantes",
-      "remainingG": "{{n}}g restants"
     },
     "enhancedMealCard": {
       "replace": "Remplacer",
@@ -2475,6 +2568,39 @@
       "instructions": "Instructions :",
       "medicalSafety": "Sécurité médicale :",
       "error": "Erreur :"
+    },
+    "mealCard": {
+      "noRecipe": "Pas de recette",
+      "addMeal": "Ajouter un repas",
+      "serving": "Portion :",
+      "ingredients": "Ingrédients :",
+      "cookingInstructions": "Instructions de cuisson :",
+      "protein": "Protéines",
+      "carbs": "Glucides",
+      "fat": "Graisses"
+    },
+    "nutritionSummary": {
+      "title": "Résumé Nutritionnel",
+      "empty": "Générez un plan de repas pour voir votre résumé nutritionnel",
+      "weeklyOverview": "Aperçu Hebdomadaire",
+      "totalCalories": "Total des Calories",
+      "dailyAverage": "Moyenne Quotidienne",
+      "totalProtein": "Total des Protéines",
+      "daysPlanned": "Jours Planifiés",
+      "dailyTargets": "Objectifs Quotidiens",
+      "calories": "Calories",
+      "protein": "Protéines",
+      "carbohydrates": "Glucides",
+      "fat": "Graisses",
+      "targetMet": "Objectif atteint",
+      "goalProgress": "Progrès vers l'objectif",
+      "fitnessGoal": "Objectif de Fitness",
+      "activityLevel": "Niveau d'Activité",
+      "dietaryPreferences": "Préférences Alimentaires",
+      "balanceScore": "Score d'Équilibre",
+      "percentOfTarget": "{{n}}% de l'objectif",
+      "remainingCal": "{{n}} restantes",
+      "remainingG": "{{n}}g restants"
     }
   },
   "remainingMacros": {
@@ -2874,7 +3000,7 @@
     "unitPlaceholder": "unité",
     "sections": {
       "peptides": "Peptides",
-      "hormones": "Hormones",
+      "hormones": "Hormones endocriniennes",
       "medications": "Médicaments affectant la nutrition",
       "therapies": "Thérapies",
       "recovery": "Objectifs de récupération"
@@ -3992,6 +4118,79 @@
     "errorLoadDetails": "Could not load invitation details. Please try again.",
     "errorLoadDetailsNetwork": "Could not load invitation details. Please check your connection and try again.",
     "errorConnectionIssue": "Connection error. Please check your connection and try again.",
-    "errorGenericFallback": "Something went wrong. Please try again."
+    "errorGenericFallback": "Something went wrong. Please try again.",
+    "connecting": "Connexion au studio…",
+    "tokenNotFound": "Aucun jeton d'invitation trouvé. Veuillez utiliser le lien de votre e-mail d'invitation.",
+    "notFound": "Cette invitation n'a pas été trouvée. Elle a peut-être expiré ou a déjà été utilisée.",
+    "loadError": "Impossible de charger les détails de l'invitation. Veuillez réessayer.",
+    "loadErrorRetry": "Impossible de charger les détails de l'invitation. Veuillez vérifier votre connexion et réessayer.",
+    "connectionError": "Erreur de connexion. Veuillez vérifier votre connexion et réessayer.",
+    "defaultError": "Quelque chose a mal tourné. Veuillez réessayer.",
+    "invitationTitle": "Invitation ProCare",
+    "invitedBy": "{{proName}} vous a invité à rejoindre leur {{spaceLabel}} ProCare.",
+    "sentTo": "Cette invitation a été envoyée à {{email}}. Assurez-vous d'être connecté avec ce compte.",
+    "joinNote": "Une fois connecté, votre {{roleLabel}} peut guider votre nutrition et vos progrès à travers la plateforme.",
+    "successMessage": "Vous avez rejoint avec succès {{studioName}}. Votre entraîneur peut maintenant travailler avec vous à travers la plateforme.",
+    "wrongAccountMessage": "Cette invitation a été envoyée à {{email}}. Vous êtes actuellement connecté avec un autre compte.",
+    "wrongAccountNote": "Déconnectez-vous et connectez-vous avec la bonne adresse e-mail, puis cliquez à nouveau sur le lien d'invitation.",
+    "expiredMessage": "Cette invitation a expiré. Demandez à votre entraîneur d'en envoyer une nouvelle. Cela ne prend qu'un instant.",
+    "backupCodeNote": "Vous pouvez également entrer votre code de secours manuellement dans les paramètres de l'application.",
+    "alreadyAcceptedTitle": "Déjà connecté",
+    "alreadyAcceptedMessage": "Cette invitation a déjà été utilisée. Si vous ne voyez pas le studio de votre entraîneur, essayez de rafraîchir l'application.",
+    "subscriptionRequiredMessage": "Se connecter avec un fournisseur ProCare nécessite un abonnement clinique.",
+    "trainerNotSubscribedMessage": "L'abonnement ProCare de votre entraîneur n'est pas actuellement actif. Faites-leur savoir et demandez-leur de vous réinviter une fois que cela sera résolu.",
+    "spaceLabel": {
+      "studio": "Studio",
+      "clinic": "Clinique"
+    },
+    "roleLabel": {
+      "trainer": "entraîneur",
+      "doctor": "médecin"
+    },
+    "anotherAddress": "une autre adresse",
+    "labelStudio": "Studio",
+    "labelClinic": "Clinique",
+    "roleTrainer": "entraîneur",
+    "roleDoctor": "médecin"
+  },
+  "businessCenterSection": {
+    "backBtn": "Business Suite",
+    "affiliate": {
+      "title": "Opportunités affiliées",
+      "description": "Le programme d'affiliation et la certification sont en cours de finalisation. Une fois lancés, vous pourrez gagner des commissions, accéder à des ressources marketing et suivre vos références — le tout dans My Perfect Meals.",
+      "eta": "Lancement avec certification d'affiliation"
+    },
+    "academy": {
+      "title": "Académie du succès commercial",
+      "description": "Un programme complet pour construire et développer votre entreprise de coaching nutritionnel en utilisant la plateforme My Perfect Meals. Cours, évaluations et références — bientôt disponibles.",
+      "eta": "Lancement avec certification de plateforme"
+    },
+    "industry": {
+      "title": "Partenariats industriels et stratégiques",
+      "description": "Nous collaborons avec des entreprises de suppléments, des marques de nutrition, des organisations de fitness, des organismes de certification et des plateformes logicielles pour créer des intégrations significatives et des opportunités co-marquées.",
+      "eta": "Contactez-nous pour explorer un partenariat stratégique"
+    },
+    "whiteLabel": {
+      "title": "Opportunités de marque blanche",
+      "description": "Intéressé par la licence de la plateforme My Perfect Meals pour votre organisation ou votre marque ? Nous serions ravis d'en discuter. Les partenariats de marque blanche sont gérés personnellement — contactez-nous ci-dessous.",
+      "eta": "Contactez-nous pour commencer une conversation"
+    },
+    "partnerships": {
+      "title": "Partenariats en santé et clinique",
+      "description": "Nous travaillons avec des médecins, des diététiciens agréés, des cliniques, des hôpitaux et des organisations de soins aux patients pour intégrer My Perfect Meals dans les flux de travail cliniques et de soins.",
+      "eta": "Contactez-nous pour explorer les options de partenariat clinique"
+    }
+  },
+  "procareInfo": {
+    "title": "Coaching ProCare",
+    "back": "Retour",
+    "backToPlans": "Retour aux Plans",
+    "description": "Parfois, la partie la plus difficile de la nutrition est de savoir quelle décision prendre sur le moment. ProCare vous met en relation avec un coach professionnel dans le système My Perfect Meals.",
+    "bullets": {
+      "messaging": "Messagerie directe avec votre coach",
+      "guidance": "Orientation structurée pour la prise de décision",
+      "macros": "Aide pour ajuster les repas et les macros",
+      "support": "Soutien lorsque la vie réelle devient compliquée"
+    }
   }
 }

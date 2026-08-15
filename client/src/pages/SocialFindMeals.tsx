@@ -295,6 +295,7 @@ export default function MealFinder() {
           .slice(0, 64),
         name: r.meal.name,
         imageUrl: r.meal.imageUrl,
+        ...(Array.isArray(r.meal.ingredients) && r.meal.ingredients.length > 0 ? { ingredients: r.meal.ingredients } : {}),
       })),
     [results],
   );

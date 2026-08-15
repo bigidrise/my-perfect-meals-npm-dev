@@ -5522,8 +5522,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Image generation endpoint
   app.post("/api/generate-image", requireAuth, requireActiveAccess, async (req, res) => {
-    const { handleImageGeneration } = await import("./services/imageService");
-    await handleImageGeneration(req, res);
+    try {
+      const { name, type, ingredients } = req.body;
+      if (!name || !type) {
+        return res.status(400).json({ error: 'Name and type are required' });
+      }
+      const { generateMealImageUnified } = await import("./services/mealImageGenerator");
+      const sourceType = type === "beverage" ? "beverage" : "meal";
+      const imageUrl = await generateMealImageUnified(name, ingredients ?? [], sourceType);
+      if (imageUrl) {
+        res.json({ imageUrl });
+      } else {
+        res.status(500).json({ error: 'Failed to generate image' });
+      }
+    } catch (error) {
+      console.error('Image generation endpoint error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
 
   // Per-meal image endpoint — called by client after user selects a specific meal.
@@ -6221,12 +6236,12 @@ Provide recommendations in JSON format with the following structure:
 
       // Generate image for the recommendation
       try {
-        const { generateImage } = await import("./services/imageService");
-        const imageUrl = await generateImage({
-          name: recommendation.name,
-          description: recommendation.description || recommendation.name,
-          type: 'beverage'
-        });
+        const { generateMealImageUnified } = await import("./services/mealImageGenerator");
+        const imageUrl = await generateMealImageUnified(
+          recommendation.name,
+          [],
+          'beverage'
+        );
 
         if (imageUrl) {
           recommendation.imageUrl = imageUrl;

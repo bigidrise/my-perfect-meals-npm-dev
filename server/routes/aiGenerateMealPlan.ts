@@ -1,6 +1,4 @@
 import express from "express";
-// DO NOT call generateImage() from imageService directly.
-// Use generateMealImageUnified only.
 import { generateMealImageUnified } from "../services/mealImageGenerator";
 const router = express.Router();
 
@@ -60,8 +58,6 @@ async function generateMeal(opts: {
 
   if (generateImages) {
     try {
-      // DO NOT call image generation directly.
-      // Use generateMealImageUnified only.
       (meal as any).imageUrl = await generateMealImageUnified(
         meal.name,
         meal.ingredients,

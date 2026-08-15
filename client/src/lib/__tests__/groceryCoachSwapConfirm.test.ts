@@ -48,7 +48,10 @@ jest.mock("@/lib/sentry", () => ({
 jest.mock("@/components/ui/pill-button", () => ({ PillButton: () => null }));
 jest.mock("@/components/MealRefinementSheet", () => ({ default: () => null }));
 
-import { applySwapToShoppingList } from "@/components/shopping/GroceryStoreCoachSheet";
+import {
+  applySwapToShoppingList,
+  applySwapToPickedBrands,
+} from "@/components/shopping/GroceryStoreCoachSheet";
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -444,3 +447,128 @@ describe("applySwapToShoppingList — Use This works when alternatives is empty 
     expect(secondPass.map((r) => r.item)).toEqual(firstPass.map((r) => r.item));
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// applySwapToPickedBrands — summary bar hides after swap removes last pick
+//
+// When the user accepts a swap via "Use This", the swapped-out ingredient name
+// is no longer in the shopping list. If the user had a brand picked for that
+// ingredient, the pick must be removed from pickedBrands so the summary bar
+// count is accurate and the bar hides when no active picks remain.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("applySwapToPickedBrands — summary bar accuracy after swap", () => {
+
+  interface BrandPick { brand: string; }
+
+  function makePick(brand: string): BrandPick { return { brand }; }
+
+  // ── 1. Removes the pick for the swapped-out ingredient ───────────────────
+  test("removes the pick for the swapped-out ingredient", () => {
+    const picks = new Map<string, BrandPick>([
+      ["chicken breast", makePick("Brand A")],
+    ]);
+
+    const result = applySwapToPickedBrands(picks, "Chicken breast");
+
+    expect(result.has("chicken breast")).toBe(false);
+    expect(result.size).toBe(0);
+  });
+
+  // ── 2. Summary bar hides when the replaced ingredient was the only pick ───
+  test("result is empty when the swapped-out ingredient was the only picked brand", () => {
+    const picks = new Map<string, BrandPick>([
+      ["chicken breast", makePick("Brand A")],
+    ]);
+
+    const result = applySwapToPickedBrands(picks, "Chicken breast");
+
+    // pickedBrands.size === 0 → the summary bar renders nothing
+    expect(result.size).toBe(0);
+  });
+
+  // ── 3. Other picks are untouched ─────────────────────────────────────────
+  test("other picks survive when only the swapped-out ingredient is removed", () => {
+    const picks = new Map<string, BrandPick>([
+      ["chicken breast", makePick("Brand A")],
+      ["brown rice",     makePick("Brand B")],
+      ["olive oil",      makePick("Brand C")],
+    ]);
+
+    const result = applySwapToPickedBrands(picks, "Chicken breast");
+
+    expect(result.has("chicken breast")).toBe(false);
+    expect(result.get("brown rice")?.brand).toBe("Brand B");
+    expect(result.get("olive oil")?.brand).toBe("Brand C");
+    expect(result.size).toBe(2);
+  });
+
+  // ── 4. Key matching is case-insensitive ───────────────────────────────────
+  test("lookup is case-insensitive — swappedOutItem is lowercased before deletion", () => {
+    const picks = new Map<string, BrandPick>([
+      ["brown rice", makePick("Brand B")],
+    ]);
+
+    // Even though the key was stored lowercase, passing a mixed-case item name
+    // must still find and remove the entry.
+    const result = applySwapToPickedBrands(picks, "Brown Rice");
+
+    expect(result.has("brown rice")).toBe(false);
+    expect(result.size).toBe(0);
+  });
+
+  // ── 5. No-op when the swapped-out ingredient had no pick ─────────────────
+  test("returns the same Map instance unchanged when the key is not present", () => {
+    const picks = new Map<string, BrandPick>([
+      ["brown rice", makePick("Brand B")],
+    ]);
+
+    const result = applySwapToPickedBrands(picks, "Chicken breast"); // not in map
+
+    // Same reference — no allocation, no mutation
+    expect(result).toBe(picks);
+    expect(result.size).toBe(1);
+  });
+
+  // ── 6. Empty map stays empty ──────────────────────────────────────────────
+  test("returns the same empty Map when there were no picks at all", () => {
+    const picks = new Map<string, BrandPick>();
+
+    const result = applySwapToPickedBrands(picks, "Chicken breast");
+
+    expect(result).toBe(picks);
+    expect(result.size).toBe(0);
+  });
+
+  // ── 7. Does not mutate the original Map ───────────────────────────────────
+  test("returns a new Map — does not mutate the original", () => {
+    const picks = new Map<string, BrandPick>([
+      ["chicken breast", makePick("Brand A")],
+      ["brown rice",     makePick("Brand B")],
+    ]);
+
+    const result = applySwapToPickedBrands(picks, "Chicken breast");
+
+    // Original still has both entries
+    expect(picks.size).toBe(2);
+    expect(picks.has("chicken breast")).toBe(true);
+    // Result is a different object
+    expect(result).not.toBe(picks);
+  });
+
+  // ── 8. End-to-end: pick A, swap A → B, bar hides ─────────────────────────
+  test("end-to-end: pick a brand for ingredient A, swap A out, bar count drops to zero", () => {
+    // Simulate: user picks Brand A for "Chicken breast"
+    let picks = new Map<string, BrandPick>([
+      ["chicken breast", makePick("Brand A")],
+    ]);
+    expect(picks.size).toBe(1); // bar shows "1 brand selected"
+
+    // Simulate: user accepts a swap → "Chicken breast" replaced by "Turkey breast"
+    picks = applySwapToPickedBrands(picks, "Chicken breast");
+
+    // pickedBrands.size === 0 → {pickedBrands.size > 0 && <bar/>} renders nothing
+    expect(picks.size).toBe(0);
+  });
+});
+

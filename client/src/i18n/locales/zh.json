@@ -69,10 +69,10 @@
     "log": "记录",
     "logMeal": "记录餐食",
     "addToCalendar": "添加到日历",
-    "bringBackChef": "唤回厨师",
+    "bringBackChef": "带回你的厨师",
     "comingSoon": "即将推出",
-    "withChef": "与厨师一起",
-    "today": "今天："
+    "today": "今天：",
+    "withChef": "与厨师一起"
   },
   "language": {
     "pageTitle": "语言",
@@ -396,7 +396,7 @@
     "ingredientsServes": "食材（供{{count}}人份）",
     "noIngredients": "未提供食材",
     "noInstructions": "未提供说明",
-    "couldNotUpdateFavorites": "无法更新收藏。请重试。"
+    "couldNotUpdateFavorites": "无法更新收藏。请再试一次。"
   },
   "shopping": {
     "pageTitle": "智能购物清单",
@@ -451,26 +451,32 @@
     "scannedProduct": "已扫描产品",
     "tapView": "点击查看 →",
     "findProduct": {
-      "tabBuildMeal": "制作一餐",
+      "tabBuildMeal": "创建餐食",
       "tabFindProduct": "查找产品",
-      "inputLabel": "你想买什么？",
-      "inputPlaceholder": "例如：意面酱、蛋白棒、牛奶……",
-      "voiceStart": "语音输入",
+      "inputLabel": "您在寻找购买什么？",
+      "inputPlaceholder": "例如：意面酱、蛋白棒、牛奶…",
+      "voiceStart": "说出您的请求",
       "voiceStop": "停止收听",
       "voiceUnsupported": "此设备不支持语音输入",
-      "searching": "正在为你寻找最佳产品……",
-      "resultsFor": "“{{query}}”的最佳选择",
-      "usualPick": "你的常用之选",
-      "alternatives": "其他选择",
+      "searching": "正在为您搜索最佳产品…",
+      "resultsFor": "「{{query}}」的最佳推荐",
+      "usualPick": "您的常见选择",
+      "alternatives": "替代品",
       "save": "保存",
       "saved": "已保存 ✓",
-      "saving": "保存中……",
+      "saving": "保存中…",
       "addToList": "添加到购物清单",
       "added": "已添加！",
-      "compareAnother": "比较其他产品",
-      "errorGeneric": "暂时无法获取产品建议，请重试。",
-      "noResults": "没有找到该商品的品牌建议——请尝试更具体的包装产品。",
+      "compareAnother": "对比其他",
+      "errorGeneric": "目前无法获取产品建议。请重试。",
+      "noResults": "该商品没有品牌建议 — 请尝试更具体的包装产品。",
       "avoid": "避免"
+    },
+    "smartCart": {
+      "pick": "选择",
+      "picked": "✓ 已选",
+      "brandsSummary_one": "已选 1 个品牌 — 点击「全部添加」将其加入清单",
+      "brandsSummary_other": "已选 {{count}} 个品牌 — 点击「全部添加」将其加入清单"
     }
   },
   "restaurant": {
@@ -1416,7 +1422,15 @@
       "step3Desc": "您的培训已完成。激活您的专业工作室并开始与客户合作。",
       "step3Phase2Title": "第二阶段：高级工具",
       "step3Phase2Desc": "解锁高级临床和指导工具，以获得更深入的客户支持。",
-      "step3Button": "激活工作室"
+      "step3Button": "激活工作室",
+      "personalProfileStep": "设置您的个人营养档案",
+      "firstMealPlan": "生成您的第一个AI驱动的餐饮计划",
+      "learningItems": {
+        "clientMgmt": "管理客户和护理计划",
+        "questionnaires": "专业问卷",
+        "communication": "工作室和客户沟通",
+        "revenue": "建立经常性收入"
+      }
     },
     "launchpad": {
       "certifiedBadge": "已认证",
@@ -1425,7 +1439,52 @@
       "enterStudio": "进入工作室",
       "quickLinks": "快速链接",
       "resumeCertification": "继续认证",
-      "resumePhase2": "继续第二阶段"
+      "resumePhase2": "继续第二阶段",
+      "gridCards": {
+        "clientStudio": {
+          "label": "客户工作室",
+          "sub": "管理客户和餐饮计划"
+        },
+        "businessCenter": {
+          "label": "商业中心",
+          "sub": "联盟、学院、合作伙伴"
+        },
+        "certifications": {
+          "label": "认证",
+          "sub": "查看并扩展您的培训"
+        },
+        "affiliateProgram": {
+          "label": "联盟计划",
+          "sub": "每个推荐赚取25%"
+        }
+      },
+      "quickLink": {
+        "questionnaires": "问卷",
+        "businessCenter": "商业中心",
+        "certifications": "我的认证",
+        "affiliate": "联盟仪表板"
+      },
+      "stepRow": {
+        "personalProfile": {
+          "label": "个人档案",
+          "sub": "作为用户体验MPM"
+        },
+        "phase1": {
+          "label": "第一阶段 — 平台基础",
+          "sub": "掌握每个平台功能"
+        },
+        "phase2": {
+          "label": "第二阶段 — 商业与ProCare成功",
+          "sub": "建立和发展您的实践"
+        }
+      },
+      "personalProfileSetup": "个人档案设置",
+      "phase1Label": "第一阶段 — 平台基础",
+      "welcomeBack": "欢迎回来",
+      "percentComplete": "{{pct}}% 完成",
+      "stepOf": "第 {{completed}} 步，共 {{total}} 步",
+      "current": "当前",
+      "backToBC": "商业中心"
     },
     "welcome": {
       "back": "返回",
@@ -1437,7 +1496,56 @@
       "completeUnlock": "完成后解锁",
       "continueButton": "继续",
       "phase2Label": "第二阶段",
-      "progress": "进度"
+      "progress": "进度",
+      "sections": {
+        "overview": {
+          "title": "欢迎来到ProCare",
+          "subtitle": "您在平台上的角色",
+          "highlight": "ProCare是一个扩展您实践的工具，而不是您临床培训的替代品。",
+          "b1": "ProCare为您提供一个专用工作区，以管理客户、构建个性化餐饮计划并监测进展 — 所有这些都在My Perfect Meals内完成。",
+          "b2": "作为ProCare专业人士，您在一个结构化的层级内运作：医疗要求始终优先，其次是饮食身份、文化偏好和行为偏好。",
+          "b3": "您对提供的指导负责。该平台增强了您的专业知识 — 它并不取代您的专业判断。",
+          "b4": "您的客户将看到餐饮计划、饮食跟踪和根据您设定的协议生成的AI菜肴。您的工作是准确设定这些协议，并根据客户需求的变化进行更新。"
+        },
+        "clients": {
+          "title": "客户管理",
+          "subtitle": "入职和持续护理",
+          "highlight": "保持客户档案的最新状态。过时的协议会导致AI生成的餐饮不匹配。",
+          "b1": "客户从工作室添加到您的名册。您可以通过电子邮件邀请他们，分配餐饮构建者，并从您的ProCare仪表板配置他们的饮食档案。",
+          "b2": "每个客户都有一个单独的协议卡，您可以在其中设置他们的卡路里和宏目标、饮食限制、临床模式（如适用）和菜系偏好。",
+          "b3": "餐饮板让您为客户预先构建或批准餐饮。客户可以直接在他们的应用中查看和记录已批准的餐饮。",
+          "b4": "使用消息功能在平台内与客户沟通。平板笔记为您提供一个私人空间，以记录客户的进展和观察。",
+          "b5": "客户数据 — 包括生物特征、餐饮日志和进展记录 — 仅对您和客户可见。绝不会与其他专业人士或第三方共享。"
+        },
+        "safety": {
+          "title": "安全与协议保护",
+          "subtitle": "平台如何保护您的客户",
+          "highlight": "在不确定时，倾向于选择更严格的设置。客户可以在后续会议中请求更多灵活性。",
+          "b1": "4层约束层级管理所有AI餐饮生成：（1）医疗要求是绝对的。（2）饮食身份是强制执行的。（3）文化和菜系偏好影响输出。（4）行为偏好最后应用。",
+          "b2": "宏观值从未由AI编造。如果宏观值未知，则保持为null — 不进行估算或填充。",
+          "b3": "临床敏感模式 — 如肿瘤支持和抗炎协议 — 在生成级别强制执行严格的成分限制。这些不能被客户禁用。",
+          "b4": "当医疗状况使某些输入不安全时，热量、香料和质地偏好可以被临床安全规则覆盖。",
+          "b5": "如果您分配临床协议，请确保您有专业基础来这样做。医生级别的协议需要医生角色访问权限。"
+        },
+        "standards": {
+          "title": "专业标准",
+          "subtitle": "伦理、问责和最佳实践",
+          "highlight": "您的专业声誉是您在ProCare实践中最重要的资产。该平台反映了您。",
+          "b1": "您在注册时证明了您的专业资格的准确性。虚假陈述资格将导致立即从平台移除。",
+          "b2": "切勿使用ProCare来诊断、治疗或治愈医疗状况。营养指导是支持性的，而不是治愈性的。",
+          "b3": "保持准确、最新的客户档案。当客户的医疗情况、目标或饮食身份发生变化时，记录更改。",
+          "b4": "尊重客户自主权。ProCare允许您推荐和限制，但客户保留在临床强制保护框架之外做出自己的饮食决策的权利。",
+          "b5": "如果您怀疑客户处于医疗危机中，请指示他们立即联系紧急服务。该平台不是危机干预工具。"
+        },
+        "complete": {
+          "title": "您准备好了",
+          "subtitle": "最终确认",
+          "highlight": "欢迎来到ProCare。您的客户在依赖您。",
+          "b1": "您已审查ProCare的核心操作原则、客户管理工作流程、安全保护措施和专业标准。",
+          "b2": "通过完成此培训，您确认您理解作为ProCare专业人员的责任，并将根据这些原则使用该平台。",
+          "b3": "在您完成此培训后，您的工作室将立即解锁。您可以立即开始添加客户、构建餐单和配置客户协议。"
+        }
+      }
     },
     "rewards": {
       "back": "返回",
@@ -1461,7 +1569,25 @@
       "nextStepsTitle": "您的后续步骤",
       "subtitle": "您已完成 ProCare 认证并解锁了对您专业工作室的完全访问权限。",
       "title": "认证完成",
-      "unlockedTitle": "工作室已解锁"
+      "unlockedTitle": "工作室已解锁",
+      "features": {
+        "studio": "专业工作室",
+        "clientMgmt": "客户管理",
+        "carePlans": "护理计划",
+        "questionnaires": "专业问卷",
+        "businessCenter": "商业中心",
+        "affiliateResources": "附属资源",
+        "marketing": "营销材料",
+        "education": "继续教育"
+      },
+      "nextStep": {
+        "profile": "完成您的专业档案",
+        "firstClient": "创建您的第一个客户",
+        "inviteClient": "邀请您的第一个客户加入平台",
+        "mealPlan": "构建您的第一个餐单",
+        "affiliate": "设置您的附属账户以赚取佣金",
+        "businessCenter": "探索商业中心"
+      }
     }
   },
   "trainerCareTeam": {
@@ -2150,55 +2276,66 @@
   "sharedComponents": {
     "navigation": {
       "appName": "My Perfect Meals",
-      "features": "功能特点",
-      "howItWorks": "工作原理",
+      "features": "功能",
+      "howItWorks": "如何运作",
       "pricing": "定价",
       "signIn": "登录"
     },
     "errorBoundary": {
-      "title": "出现了问题",
-      "description": "我们在加载此页面时遇到了问题。请刷新并重试。",
+      "title": "出了点问题",
+      "description": "我们在加载此页面时遇到问题。请刷新并重试。",
       "refresh": "刷新页面"
     },
     "dateSlotPicker": {
-      "placeholder": "选择餐食时段"
+      "placeholder": "选择餐点时间"
     },
     "mealSlots": {
       "breakfast": "早餐",
       "lunch": "午餐",
       "dinner": "晚餐",
-      "snack": "零食"
+      "snack": "小吃"
     },
     "dailyNutritionTracker": {
       "title": "每日营养进度",
-      "description": "追踪您的每日营养摄入",
+      "description": "跟踪您的每日营养摄入",
       "calories": "卡路里",
       "protein": "蛋白质",
       "carbohydrates": "碳水化合物",
       "fat": "脂肪",
-      "onTrack": "您正在朝着每日目标稳步前进！"
+      "onTrack": "您的每日目标正在按计划进行！"
     },
     "pagination": {
       "label": "分页",
-      "previousPage": "转到上一页",
+      "previousPage": "前往上一页",
       "previous": "上一页",
-      "nextPage": "转到下一页",
+      "nextPage": "前往下一页",
       "next": "下一页",
       "morePages": "更多页面"
     },
+    "enhancedMealCard": {
+      "replace": "替换",
+      "replacing": "正在替换...",
+      "replaceTitle": "用全新的餐点食谱替换",
+      "replacingTitle": "正在替换餐点...",
+      "portionGuide": "份量指南：",
+      "ingredients": "成分：",
+      "instructions": "说明：",
+      "medicalSafety": "医疗安全：",
+      "error": "错误："
+    },
     "mealCard": {
-      "noRecipe": "无食谱",
-      "addMeal": "添加餐食",
+      "noRecipe": "没有食谱",
+      "addMeal": "添加餐点",
       "serving": "份量：",
-      "ingredients": "食材：",
+      "ingredients": "成分：",
       "cookingInstructions": "烹饪说明：",
       "protein": "蛋白质",
       "carbs": "碳水化合物",
       "fat": "脂肪"
     },
     "nutritionSummary": {
-      "title": "营养摘要",
-      "empty": "生成餐食计划以查看您的营养摘要",
+      "title": "营养总结",
+      "empty": "生成餐计划以查看您的营养总结",
       "weeklyOverview": "每周概览",
       "totalCalories": "总卡路里",
       "dailyAverage": "每日平均",
@@ -2209,138 +2346,127 @@
       "protein": "蛋白质",
       "carbohydrates": "碳水化合物",
       "fat": "脂肪",
-      "targetMet": "已达目标",
+      "targetMet": "目标已达成",
       "goalProgress": "目标进度",
       "fitnessGoal": "健身目标",
       "activityLevel": "活动水平",
       "dietaryPreferences": "饮食偏好",
-      "balanceScore": "均衡评分",
-      "percentOfTarget": "目标的{{n}}%",
-      "remainingCal": "还剩{{n}}",
-      "remainingG": "还剩{{n}}g"
-    },
-    "enhancedMealCard": {
-      "replace": "替换",
-      "replacing": "替换中...",
-      "replaceTitle": "用全新的餐食食谱替换",
-      "replacingTitle": "替换餐食中...",
-      "portionGuide": "份量指南：",
-      "ingredients": "食材：",
-      "instructions": "步骤：",
-      "medicalSafety": "医疗安全：",
-      "error": "错误："
+      "balanceScore": "平衡得分",
+      "percentOfTarget": "{{n}}% 的目标",
+      "remainingCal": "{{n}} 剩余",
+      "remainingG": "{{n}}g 剩余"
     }
   },
   "remainingMacros": {
-    "remainingToday": "今日剩余",
+    "remainingToday": "今天剩余",
     "protein": "蛋白质",
     "starchy": "淀粉类",
     "fibrous": "纤维类",
     "fat": "脂肪",
-    "setMacrosPrompt": "设置你的宏量目标，查看今日剩余。",
-    "saveDay": "保存当日到生物指标",
-    "targetsUpdated": "目标已在当天更新",
-    "targetsUpdatedReason": "目标已在当天更新 — {{reason}}",
-    "dismiss": "忽略",
-    "overLimit": "⚠ 超出上限",
-    "limit": "★ 上限",
+    "setMacrosPrompt": "设置你的宏量营养素以查看今天剩余的量。",
+    "saveDay": "保存日常到生物统计数据",
+    "targetsUpdated": "目标在中午更新",
+    "targetsUpdatedReason": "目标在中午更新 — {{reason}}",
+    "dismiss": "关闭",
+    "overLimit": "⚠ 超过限制",
+    "limit": "★ 限制",
     "coach": {
-      "title": "宏量教练",
-      "subtitle": "如何解读你的剩余目标",
+      "title": "宏量营养素教练",
+      "subtitle": "如何阅读你的剩余目标",
       "proteinTitle": "蛋白质",
-      "proteinBody": "达到此目标以保护肌肉并保持饱腹。",
-      "proteinBullet1": "每餐优先选择瘦肉来源。",
-      "proteinBullet2": "全天分散摄入。",
+      "proteinBody": "达到这个目标以保护肌肉并保持饱腹感。",
+      "proteinBullet1": "优先选择每餐的瘦肉来源。",
+      "proteinBullet2": "在一天中分散摄入量。",
       "carbsTitle": "碳水化合物",
-      "carbsBody": "用淀粉类碳水为训练供能，用纤维类补充。",
-      "carbsBullet1": "淀粉类碳水提供运动能量。",
-      "carbsBullet2": "纤维类碳水有助消化和饱腹。",
+      "carbsBody": "用淀粉类碳水化合物为训练提供能量，搭配纤维类。",
+      "carbsBullet1": "淀粉类碳水化合物提升表现。",
+      "carbsBullet2": "纤维类碳水化合物有助于消化和饱腹感。",
       "fatTitle": "脂肪",
-      "fatBody": "脂肪保持适量以平衡能量与激素。",
-      "fatBullet1": "优先选择健康脂肪。",
-      "fatBullet2": "注意分量 — 脂肪热量高。",
+      "fatBody": "保持脂肪适中以平衡能量和激素。",
+      "fatBullet1": "偏好健康脂肪。",
+      "fatBullet2": "注意份量 — 脂肪热量密集。",
       "closingTitle": "保持灵活",
-      "closingBody": "目标会随你的一天调整 — 尽量接近并保持一致。",
+      "closingBody": "目标根据你的一天进行调整 — 接近并保持一致。",
       "infoAria": "这些数字是什么意思？",
       "info": "信息",
-      "starchyTitle": "淀粉类碳水 — 你的主要目标",
-      "starchy1": "保持在每日上限或以下。",
-      "starchy2": "超标会拖慢进度 — 这一项很重要。",
-      "starchy3": "低于目标完全没问题，不必勉强。",
-      "flexTitle": "蛋白质与纤维 — 保持灵活",
-      "flex1": "略高或略低都不会有影响。",
-      "flex2": "不必在这两项上追求完美。",
-      "fat1": "脂肪会随你的食物选择自然增加。",
-      "fat2": "膳食脂肪并非增脂的元凶 — 不要过度纠结。",
-      "closing1": "专注于把淀粉控制在目标内，其余的自然会到位。",
-      "closing2": "你不必做到完美，只需保持一致。"
+      "starchyTitle": "淀粉类碳水化合物 — 你的主要目标",
+      "starchy1": "保持在或低于你的每日上限。",
+      "starchy2": "超过会减缓你的进展 — 这个很重要。",
+      "starchy3": "处于低谷是完全可以的。不要强迫自己。",
+      "flexTitle": "蛋白质和纤维 — 保持灵活",
+      "flex1": "稍微高或低不会破坏任何东西。",
+      "flex2": "不要追求这两者的完美。",
+      "fat1": "脂肪会随着你的食物选择自然上升。",
+      "fat2": "膳食脂肪不是脂肪增加的驱动因素 — 不要过于关注它。",
+      "closing1": "专注于保持在你的淀粉目标内，让其他的自然成型。",
+      "closing2": "你不需要完美。你需要一致。"
     }
   },
   "performanceSetup": {
     "toast": {
-      "compSaved": "备赛方案已保存。",
-      "athleticSaved": "运动表现方案已保存。",
-      "activated": "方案已激活",
+      "compSaved": "比赛准备协议已保存。",
+      "athleticSaved": "运动表现协议已保存。",
+      "activated": "协议已激活",
       "errorTitle": "错误",
-      "errorDesc": "无法保存，请重试。"
+      "errorDesc": "无法保存。请再试一次。"
     },
     "stepCount": "第 {{current}} 步，共 {{total}} 步",
     "back": "返回",
     "next": "下一步",
     "saving": "保存中...",
-    "activateProtocol": "激活方案",
+    "activateProtocol": "激活协议",
     "optional": "（可选）",
     "track": {
       "title": "什么描述了你的目标？",
-      "subtitle": "每条路径使用完全不同的方案引擎。",
+      "subtitle": "每个轨道使用完全不同的协议引擎。",
       "athleticTitle": "运动表现",
-      "athleticDesc": "MMA、拳击、摔跤、橄榄球、CrossFit、耐力、战术。目标是表现 — 供能、恢复、适应。",
-      "compTitle": "备赛准备",
-      "compDesc": "健美、健体、力量举比赛、格斗训练营、摔跤赛季。你的赛事日期自动驱动每个阶段。"
+      "athleticDesc": "综合格斗、拳击、摔跤、足球、CrossFit、耐力、战术。目标是表现 — 供能、恢复、适应。",
+      "compTitle": "比赛准备",
+      "compDesc": "健美、体型、力量举比赛、格斗训练、摔跤赛季。你的赛事日期自动驱动每个阶段。"
     },
     "goals": {
       "title": "你的主要目标是什么？",
-      "subtitle": "这决定宏量优先级和餐食能量密度。",
+      "subtitle": "这决定了宏量营养素的优先级和餐食能量密度。",
       "fatLoss": {
-        "label": "减脂",
-        "desc": "在保持表现的同时变精瘦"
+        "label": "脂肪减少",
+        "desc": "在保持表现的同时减脂"
       },
       "muscleGain": {
-        "label": "增肌",
-        "desc": "肌肥大与合成代谢"
+        "label": "肌肉增加",
+        "desc": "肌肉肥大和合成"
       },
       "maintenance": {
         "label": "维持",
-        "desc": "体成分稳定"
+        "desc": "身体成分稳定"
       },
       "performance": {
         "label": "巅峰表现",
-        "desc": "输出、速度与力量"
+        "desc": "输出、速度和力量"
       }
     },
     "trainingType": {
-      "title": "你进行哪种类型的训练？",
+      "title": "你进行什么类型的训练？",
       "subtitle": "选择你的主要运动或项目。",
-      "otherPlaceholder": "其他{{group}}运动…"
+      "otherPlaceholder": "其他 {{group}} 运动…"
     },
     "trainingTypes": {
       "strength": "力量",
-      "hypertrophy": "增肌",
+      "hypertrophy": "肌肉肥大",
       "powerlifting": "力量举",
       "olympicLifting": "奥林匹克举重",
-      "mma": "MMA",
+      "mma": "综合格斗",
       "boxing": "拳击",
       "wrestling": "摔跤",
-      "bjj": "BJJ",
+      "bjj": "巴西柔术",
       "crossfit": "CrossFit",
       "running": "跑步",
       "cycling": "骑行",
-      "triathlon": "铁人三项",
+      "triathlon": "三项全能",
       "tactical": "战术 / 军事",
-      "generalFitness": "一般健身"
+      "generalFitness": "综合健身"
     },
     "athleticGroups": {
-      "iron": "铁类运动",
+      "iron": "铁人运动",
       "combat": "格斗运动",
       "mixed": "混合",
       "endurance": "耐力",
@@ -2348,9 +2474,9 @@
     },
     "frequency": {
       "title": "你多久训练一次？",
-      "subtitle": "每周训练次数（不含休息日）。",
+      "subtitle": "每周训练次数（不包括休息日）。",
       "twoADayQuestion": "你每天训练两次吗？",
-      "twoADayDesc": "启用两次训练之间的恢复餐指导",
+      "twoADayDesc": "在训练间隔提供恢复餐指导",
       "yes": "是",
       "no": "否"
     },
@@ -2361,202 +2487,202 @@
       "sevenPlus": "7+（每天）"
     },
     "cardio": {
-      "title": "你的有氧重点是什么？",
-      "subtitle": "决定碳水时机和糖酵解供能需求。",
+      "title": "你的有氧运动重点是什么？",
+      "subtitle": "决定碳水化合物的时机和糖原燃料需求。",
       "none": {
-        "label": "无有氧",
-        "desc": "纯力量或技术重点 — 无心血管训练"
+        "label": "没有有氧运动",
+        "desc": "纯力量或技能重点 — 没有心血管锻炼"
       },
       "recovery": {
         "label": "步行 / 恢复",
         "desc": "仅轻度活动 — 散步、拉伸、轻松骑行"
       },
       "zone2": {
-        "label": "轻松有氧",
-        "desc": "能边运动边交谈的舒适配速 — 建立有氧基础"
+        "label": "轻度有氧",
+        "desc": "舒适的速度可以进行对话 — 建立有氧基础"
       },
       "tempo": {
         "label": "中等有氧",
-        "desc": "稳定而有挑战的努力 — 呼吸急促但可持续"
+        "desc": "稳定、具有挑战性的努力 — 呼吸急促但可持续"
       },
       "threshold": {
         "label": "高强度有氧",
-        "desc": "高强度持续努力 — 接近极限"
+        "desc": "高强度持续努力 — 接近你的极限"
       },
       "hiit": {
         "label": "冲刺间歇",
-        "desc": "短时全力爆发加休息 — 最大努力"
+        "desc": "短时间全力以赴的爆发与休息期 — 最大努力"
       },
       "mixed": {
         "label": "混合有氧",
-        "desc": "因训练而异 — 有轻松日也有高强度日"
+        "desc": "根据训练会有所不同 — 有些轻松的日子，有些艰难的日子"
       }
     },
     "phase": {
-      "title": "你处于训练周期的哪个阶段？",
+      "title": "你在训练周期的哪个阶段？",
       "subtitle": "你的阶段校准宏量目标和食物选择。"
     },
     "phases": {
       "offSeason": {
         "label": "休赛期",
-        "desc": "注重训练量，打基础"
+        "desc": "以体积为重点，建立基础"
       },
       "preSeason": {
         "label": "季前",
-        "desc": "体能提升"
+        "desc": "适应性提升"
       },
       "inSeason": {
         "label": "赛季中",
-        "desc": "保持表现"
+        "desc": "表现维护"
       },
       "weightCut": {
         "label": "减重",
-        "desc": "短期热量赤字 + 补水"
+        "desc": "短期赤字 + 重新补水"
       },
       "recovery": {
         "label": "恢复",
-        "desc": "抗炎、修复优先"
+        "desc": "抗炎，修复优先"
       }
     },
     "duration": {
-      "title": "你的典型训练时长是多少？",
+      "title": "你通常的训练时长是多长？",
       "subtitle": "用于计算糖原消耗和恢复营养需求。"
     },
     "durations": {
       "under30": {
-        "label": "30 分钟以内",
-        "desc": "短时 / 辅助训练"
+        "label": "少于30分钟",
+        "desc": "短期/辅助训练"
       },
       "thirtySixty": {
-        "label": "30–60 分钟",
-        "desc": "标准训练块"
+        "label": "30–60分钟",
+        "desc": "标准训练周期"
       },
       "sixtyNinety": {
-        "label": "60–90 分钟",
-        "desc": "含热身与放松的完整训练"
+        "label": "60–90分钟",
+        "desc": "完整训练，包括热身和放松"
       },
       "ninetyPlus": {
-        "label": "90 分钟以上",
-        "desc": "大训练量或多项目训练"
+        "label": "90分钟以上",
+        "desc": "高强度或多学科训练"
       }
     },
     "recoveryStep": {
-      "title": "你目前的恢复状况如何？",
-      "subtitle": "你的恢复状态影响蛋白时机、抗炎优先级和热量密度。"
+      "title": "你现在的恢复情况如何？",
+      "subtitle": "你当前的恢复状态影响蛋白质摄入时机、抗炎优先级和卡路里密度。"
     },
     "recovery": {
       "good": {
         "label": "良好",
-        "desc": "睡眠好、酸痛少、精力充沛"
+        "desc": "睡眠良好，低酸痛，高能量"
       },
       "average": {
         "label": "一般",
         "desc": "有些疲劳但可控"
       },
       "poor": {
-        "label": "较差",
-        "desc": "疲惫、酸痛严重、睡眠不足"
+        "label": "差",
+        "desc": "疲惫，高酸痛，缺乏睡眠"
       }
     },
     "adaptationStep": {
       "title": "你的运动重点是什么？",
-      "subtitle": "选择你的训练目标 — 这会校准碳水时机、能量系统支持和餐食构成。"
+      "subtitle": "选择你正在训练的目标——这会调整碳水化合物摄入时机、能量系统支持和餐食组成。"
     },
     "adaptation": {
       "endurance": {
         "label": "耐力",
-        "desc": "打造有氧引擎 — 更长的努力、更好的耐力"
+        "desc": "提升你的有氧能力——更长的努力，更好的耐力"
       },
       "conditioning": {
-        "label": "体能",
-        "desc": "跨多能量系统的全面体能"
+        "label": "适应性",
+        "desc": "多种能量系统的全面健身"
       },
       "speed": {
         "label": "速度",
-        "desc": "冲刺更快 — 爆发性快肌纤维训练重点"
+        "desc": "更快冲刺——爆发性、快肌训练重点"
       },
       "power": {
-        "label": "爆发力",
-        "desc": "快速移动重物 — 力量与爆发结合"
+        "label": "力量",
+        "desc": "快速移动重物——力量与爆发力结合"
       },
       "workCapacity": {
         "label": "工作能力",
-        "desc": "做更多、恢复更快 — 应对高训练量"
+        "desc": "多做，恢复更快——应对高训练量"
       },
       "activeRecovery": {
         "label": "主动恢复",
-        "desc": "修复与充电 — 抗炎、中枢神经重置"
+        "desc": "修复和充电——抗炎，中枢神经系统重置"
       }
     },
     "schedule": {
-      "title": "设置你的每周训练计划",
-      "subtitle": "你的营养每天根据训练内容自动调整。每种训练类型都会改变你的碳水、热量和蛋白目标。",
+      "title": "设定你的每周训练计划",
+      "subtitle": "你的营养会根据你训练的内容自动调整。每种训练类型都会改变你的碳水化合物、卡路里和蛋白质目标。",
       "trainingPhase": "训练阶段",
-      "weekSchedule": "一周计划",
-      "howItWorksTitle": "工作原理",
-      "howItWorksBody": "MPM 每天早上读取你的计划并自动调整宏量目标。爆发日增加碳水，恢复日减少碳水，无需手动调整。"
+      "weekSchedule": "周计划",
+      "howItWorksTitle": "这如何运作",
+      "howItWorksBody": "MPM每天早上读取你的计划并自动调整你的宏观目标。力量日增加碳水化合物。恢复日减少碳水化合物。无需手动调整。"
     },
     "sessionTypes": {
       "strength": {
         "label": "力量",
-        "short": "力",
-        "desc": "抗阻训练 — 适度碳水支持"
+        "short": "Str",
+        "desc": "抗阻训练——适度的碳水化合物支持"
       },
       "power": {
-        "label": "爆发力",
-        "short": "爆",
-        "desc": "爆发性输出 — 额外碳水和蛋白激活"
+        "label": "力量",
+        "short": "Pwr",
+        "desc": "爆发性输出——额外的碳水化合物和蛋白质活跃"
       },
       "endurance": {
         "label": "耐力",
-        "short": "耐",
-        "desc": "有氧燃料优先 — 提升碳水可用性"
+        "short": "End",
+        "desc": "有氧燃料优先——提高碳水化合物可用性"
       },
       "sportPractice": {
-        "label": "专项训练",
-        "short": "专",
-        "desc": "混合需求 — 适度碳水支持"
+        "label": "运动练习",
+        "short": "Sport",
+        "desc": "混合需求——适度的碳水化合物支持"
       },
       "competition": {
         "label": "比赛",
-        "short": "赛",
-        "desc": "比赛日供能 — 最大碳水可用性"
+        "short": "Comp",
+        "desc": "比赛日补给——最大碳水化合物可用性"
       },
       "recovery": {
         "label": "恢复",
-        "short": "复",
-        "desc": "注重修复 — 减少碳水、抗炎优先"
+        "short": "Rec",
+        "desc": "修复重点——减少碳水化合物，抗炎优先"
       },
       "off": {
         "label": "休息日",
-        "short": "休",
-        "desc": "完全休息 — 降低热量目标"
+        "short": "Off",
+        "desc": "完全休息——减少卡路里目标"
       }
     },
     "apnPhases": {
       "stabilization": {
-        "label": "稳定",
-        "desc": "基础阶段 — 动作质量、核心稳定"
+        "label": "稳定化",
+        "desc": "基础阶段——运动质量，核心稳定性"
       },
       "strength": {
         "label": "力量",
-        "desc": "构建最大力量能力"
+        "desc": "建立最大力量能力"
       },
       "power": {
-        "label": "爆发力",
-        "desc": "爆发性输出 — 力量乘以速度"
+        "label": "力量",
+        "desc": "爆发性输出——力量乘以速度"
       },
       "peaking": {
         "label": "巅峰",
-        "desc": "赛前调整 — 强度上升、训练量下降"
+        "desc": "赛前调整——强度提高，体积减少"
       },
       "inSeason": {
         "label": "赛季中",
-        "desc": "在整个比赛日程中保持表现"
+        "desc": "通过比赛日历维持表现"
       },
       "offSeason": {
-        "label": "休赛期",
-        "desc": "赛季间打基础与恢复"
+        "label": "赛季外",
+        "desc": "赛季间的基础建设和恢复"
       }
     },
     "days": {
@@ -2569,60 +2695,60 @@
       "sun": "周日"
     },
     "compGroups": {
-      "physique": "健体",
+      "physique": "体型",
       "strength": "力量运动",
       "combat": "格斗运动",
-      "functional": "功能 / 混合",
+      "functional": "功能性/混合",
       "endurance": "耐力"
     },
     "compTypeStep": {
-      "title": "哪种类型的比赛？",
-      "subtitle": "每种比赛类型使用不同的备赛时间线和巅峰周方案。"
+      "title": "什么类型的比赛？",
+      "subtitle": "每种比赛类型使用不同的准备时间表和巅峰周协议。"
     },
     "compTypes": {
       "bodybuilding": "健美",
-      "mensPhysique": "男子健体",
-      "classicPhysique": "古典健体",
-      "figure": "比基尼形体",
+      "mensPhysique": "男子体型",
+      "classicPhysique": "经典体型",
+      "figure": "健身",
       "bikini": "比基尼",
-      "wellness": "健康形体",
-      "powerliftingMeet": "力量举比赛",
-      "strongman": "大力士",
+      "wellness": "健康",
+      "powerliftingMeet": "举重比赛",
+      "strongman": "强人",
       "olympicWeightlifting": "奥林匹克举重",
-      "fightCamp": "格斗训练营",
+      "fightCamp": "战斗训练营",
       "wrestlingSeason": "摔跤赛季",
-      "crossfitCompetition": "CrossFit 比赛",
+      "crossfitCompetition": "CrossFit比赛",
       "hyrox": "Hyrox",
       "marathon": "马拉松",
       "triathlon": "铁人三项",
-      "spartanRace": "斯巴达勇士赛"
+      "spartanRace": "斯巴达赛"
     },
     "eventStep": {
-      "title": "你的赛事在什么时候？",
-      "subtitle": "你的赛事日期自动驱动每个阶段 — 无需猜测。",
-      "eventDate": "赛事日期",
-      "pickDate": "选择赛事日期",
-      "weeksOut": "还有 {{count}} 周",
-      "division": "级别",
-      "divisionPlaceholder": "例如 公开组、35+ 大师组、93 公斤级..."
+      "title": "你的活动是什么时候？",
+      "subtitle": "你的活动日期会自动驱动每个阶段——无需猜测。",
+      "eventDate": "活动日期",
+      "pickDate": "选择活动日期",
+      "weeksOut": "{{count}}周前",
+      "division": "分组",
+      "divisionPlaceholder": "例如：公开组，35岁以上大师组，93公斤级..."
     },
     "weightStep": {
       "title": "体重信息",
-      "subtitle": "可选 — 帮助你的方案对减重策略和热量目标给出精确指导。",
+      "subtitle": "可选——帮助你的协议提供关于减重策略和卡路里目标的精确指导。",
       "currentWeight": "当前体重",
-      "currentPlaceholder": "例如 185 lbs、84 kg...",
-      "targetWeight": "目标体重 / 级别",
-      "targetPlaceholder": "例如 175 lbs、83 公斤级、上台状态...",
-      "howItWorksTitle": "工作原理",
-      "howItWorksBody": "MPM 根据你的赛事日期自动计算当前阶段。随着赛事临近，方案随之调整。由日历决定 — 而非 AI。"
+      "currentPlaceholder": "例如：185磅，84公斤...",
+      "targetWeight": "目标体重 / 类别",
+      "targetPlaceholder": "例如：175磅，83公斤类别，准备好比赛...",
+      "howItWorksTitle": "这如何运作",
+      "howItWorksBody": "MPM会根据您的活动日期自动计算您当前的阶段。随着活动的临近，协议会发生变化。日历决定——而不是人工智能。"
     }
   },
   "therapeuticCard": {
     "title": "治疗营养智能",
-    "active": "启用",
-    "last": "上次：{{date}}",
-    "intro": "为所有启用项输入你的剂量。剂量很重要 — 系统用它构建你方案的上下文。不适用时留空。",
-    "activeCount": "{{count}} 项启用",
+    "active": "活跃",
+    "last": "最后一次：{{date}}",
+    "intro": "输入您任何活跃项目的剂量。剂量很重要——系统会用它来构建您协议的上下文。如果不适用，请留空。",
+    "activeCount": "{{count}} 活跃",
     "namePlaceholder": "名称...",
     "dosePlaceholder": "剂量",
     "unitPlaceholder": "单位",
@@ -2636,12 +2762,12 @@
     "addPeptide": "添加自定义肽",
     "addHormone": "添加自定义激素",
     "addMedication": "添加自定义药物",
-    "therapiesHint": "选择所有适用于你当前方案的项目。",
-    "recoveryHint": "选择你当前的恢复目标。",
-    "saveProtocol": "保存方案",
+    "therapiesHint": "选择所有适用于您当前协议的项目。",
+    "recoveryHint": "选择您当前的恢复目标。",
+    "saveProtocol": "保存协议",
     "saving": "保存中…",
     "cancel": "取消",
-    "footerNote": "临床安全始终优先。选择仅用于生成餐食 — 非医疗建议。",
+    "footerNote": "临床安全始终优先。选择仅用于餐食生成——不是医疗建议。",
     "therapyOptions": {
       "connectiveTissue": "结缔组织恢复",
       "gutSupport": "肠道支持",
@@ -2654,49 +2780,49 @@
       "joint": "关节恢复",
       "muscle": "肌肉恢复",
       "sleep": "睡眠优化",
-      "inflammation": "减轻炎症",
-      "gutHealing": "肠道修复",
+      "inflammation": "炎症减少",
+      "gutHealing": "肠道愈合",
       "stress": "压力与肾上腺恢复"
     },
     "toast": {
       "savedTitle": "治疗方案已保存",
-      "savedDesc": "上下文已更新。所有生成器都将遵循你的方案。",
+      "savedDesc": "上下文已更新。所有构建者将遵循您的协议。",
       "errorTitle": "错误",
-      "errorDesc": "无法保存，请重试。"
+      "errorDesc": "无法保存。请再试一次。"
     }
   },
   "clinicalLabs": {
-    "title": "临床化验",
-    "last": "上次：{{date}}",
-    "lastSaved": "上次保存：{{date}}",
-    "labDate": "化验日期",
+    "title": "临床实验室",
+    "last": "最后一次：{{date}}",
+    "lastSaved": "最后保存：{{date}}",
+    "labDate": "实验室日期",
     "notes": "备注",
-    "notesPlaceholder": "可选的医生备注...",
-    "saveButton": "保存化验值",
-    "savedSuccess": "化验值保存成功",
+    "notesPlaceholder": "可选的提供者备注...",
+    "saveButton": "保存实验室数值",
+    "savedSuccess": "实验室数值成功保存",
     "normal": "正常",
-    "elevated": "偏高",
-    "active": "启用",
-    "menopausePanel": "更年期 / 围绝经期检测",
+    "elevated": "升高",
+    "active": "活跃",
+    "menopausePanel": "更年期 / 围绝经期面板",
     "status": {
       "normal": "正常",
-      "needsReview": "需复查",
-      "elevated": "{{count}} 项偏高"
+      "needsReview": "需要审核",
+      "elevated": "{{count}} 升高"
     },
     "sections": {
       "cardiac": "心脏与代谢",
       "hormonal": "激素 / 压力与性激素",
-      "liver": "肝功能",
-      "thyroid": "甲状腺检测",
-      "kidney": "肾 / 肾功能",
+      "liver": "肝脏面板",
+      "thyroid": "甲状腺面板",
+      "kidney": "肾脏 / 肾功能",
       "inflammation": "炎症与恢复",
-      "oncology": "肿瘤与恢复"
+      "oncology": "肿瘤学与恢复"
     },
     "fields": {
       "ldl": "LDL",
       "hdl": "HDL",
       "triglycerides": "甘油三酯",
-      "tgHdlRatio": "TG/HDL 比值",
+      "tgHdlRatio": "TG/HDL比率",
       "bloodPressure": "血压",
       "sys": "收缩压",
       "dia": "舒张压",
@@ -2704,954 +2830,952 @@
       "a1c": "A1C"
     },
     "oncology": {
-      "needsAttention": "需关注",
+      "needsAttention": "需要关注",
       "physicianGuided": "医生指导"
     },
     "toast": {
-      "enterOne": "保存前请至少输入一个化验值",
-      "failed": "保存化验失败"
+      "enterOne": "保存前请至少输入一个实验室数值",
+      "failed": "保存实验室失败"
     }
   },
   "ingredientSheet": {
     "grade": {
-      "a": "高度契合",
-      "b": "良好契合",
-      "c": "一些注意事项",
-      "d": "明显冲突"
+      "a": "优秀对齐",
+      "b": "良好对齐",
+      "c": "一些考虑因素",
+      "d": "显著冲突"
     },
     "verdict": {
-      "buy": "主厨说：放心买！",
-      "caution": "主厨说：提个醒...",
-      "skip": "主厨说：也许再想想"
+      "buy": "厨师说：去吧！",
+      "caution": "厨师说：提醒一下...",
+      "skip": "厨师说：也许再考虑一下"
     },
     "decoder": {
-      "title": "通俗解读器",
-      "legend": "🟢 通常安全 · 🟡 值得了解 · 🔴 与你的档案冲突"
+      "title": "简单英语解码器",
+      "legend": "🟢 一般安全 · 🟡 值得知道 · 🔴 与您的个人资料冲突"
     },
-    "alignsWith": "契合你的目标",
-    "watchFor": "需留意",
-    "howItScores": "它在你的方案中的评分",
-    "howItScoresForYou": "它对你的评分",
+    "alignsWith": "与您的目标一致",
+    "watchFor": "注意",
+    "howItScores": "它对您的协议评分如何",
+    "howItScoresForYou": "它对您评分如何",
     "add": "添加",
     "added": "已添加",
     "alternatives": {
-      "alsoWorthKnowing": "也值得了解",
+      "alsoWorthKnowing": "也值得知道",
       "evenBetter": "更好的选择",
-      "betterOptions": "更适合你的产品选择",
-      "profileMatched": "匹配档案",
-      "brandedNote": "基于产品知识 — 配方和供应可能变化。",
-      "categoryNote": "基于你的健康档案的品类指导 — 在标签上查找这些特征。"
+      "betterOptions": "更适合您的产品选项",
+      "profileMatched": "与个人资料匹配",
+      "brandedNote": "基于产品知识——配方和可用性可能会变化。",
+      "categoryNote": "根据您的健康档案提供类别指导——在标签上寻找这些特征。"
     },
-    "profileFactorsHeading": "驱动此分析的档案因素",
+    "profileFactorsHeading": "驱动此分析的个人资料因素",
     "scoreCards": {
       "kids": "儿童",
       "adults": "成人",
-      "diet": "你的饮食",
-      "goal": "你的目标"
+      "diet": "您的饮食",
+      "goal": "您的目标"
     },
     "barcode": {
-      "dbMatch": "数据库匹配 · Open Food Facts",
-      "notInDb": "不在数据库中 · AI 估算",
-      "notFound": "未找到条码 — 分析基于 AI 产品知识"
+      "dbMatch": "数据库匹配 · 开放食品事实",
+      "notInDb": "不在数据库中 · 人工智能估计",
+      "notFound": "未找到条形码——分析基于人工智能产品知识"
     },
     "tier": {
       "quick": "快速分析",
-      "verified": "已验证标签分析",
+      "verified": "验证标签分析",
       "full": "完整产品顾问",
-      "subKnowledge": "基于知识 · 未扫描标签",
-      "subLabelScanned": "已扫描标签 · {{name}}",
-      "subProductUnknown": "已扫描标签 · 产品未知",
-      "subLabel": "已扫描标签",
-      "subFull": "产品 + 标签 + 档案"
+      "subKnowledge": "基于知识 · 无标签扫描",
+      "subLabelScanned": "标签扫描 · {{name}}",
+      "subProductUnknown": "标签扫描 · 产品未知",
+      "subLabel": "标签扫描",
+      "subFull": "产品 + 标签 + 个人资料"
     },
     "scanLabelUp": "扫描标签 ↑",
-    "highestConfidence": "最高置信度",
-    "whatMattersMost": "对你最重要的",
+    "highestConfidence": "最高信心",
+    "whatMattersMost": "对您最重要的",
     "analysisProfile": {
-      "heading": "你的分析档案",
+      "heading": "您的分析个人资料",
       "basedOn": "此推荐基于：",
       "deeperTitle": "想要更深入的个性化？",
-      "deeperBody": "添加化验值，如 A1C、空腹血糖、胆固醇、甘油三酯、肾脏或炎症标志物。",
+      "deeperBody": "添加实验室值，如A1C、空腹血糖、胆固醇、甘油三酯、肾脏标志物或炎症标志物。",
       "updateProfile": "更新健康档案 →",
-      "disclaimer": "推荐依据成分构成、营养成分和你的健康档案生成。MPM 不接受食品制造商的报酬，推荐绝不受品牌合作影响。",
-      "emptyState": "在档案中添加健康目标和状况，以获得完全个性化的分析。"
+      "disclaimer": "建议是根据成分组成、营养成分和您的健康档案生成的。MPM不从食品制造商那里获得报酬，建议从不受品牌合作的影响。",
+      "emptyState": "在您的档案中添加健康目标和状况，以获得完全个性化的分析。"
     },
     "header": {
       "companionScan": "伴侣产品扫描",
       "intelligence": "成分智能",
       "notIdentified": "未识别产品",
-      "scanningFor": "正在为 {{name}} 扫描",
-      "frontLabelDetected": "检测到正面标签",
+      "scanningFor": "正在扫描{{name}}",
+      "frontLabelDetected": "检测到前标签",
       "byNameAnalysis": "按名称分析",
       "fullAnalysis": "完整分析"
     },
     "analyzeThisProduct": "分析此产品",
-    "scanIngredientsLabel": "扫描成分 / 营养标签",
-    "analyzeDisclaimer": "“分析此产品”使用关于该产品的 AI 知识 — 非实时标签扫描。配方可能变化。扫描成分表以获得已验证结果。",
-    "analyzing": "正在分析 {{name}}…",
-    "checkingProfile": "对照你的健康档案检查",
+    "scanIngredientsLabel": "扫描成分/营养标签",
+    "analyzeDisclaimer": "“分析此产品”使用对该产品的AI知识——而不是实时标签扫描。产品配方可能会改变。扫描成分面板以获得经过验证的结果。",
+    "analyzing": "正在分析{{name}}…",
+    "checkingProfile": "与您的健康档案进行检查",
     "byNameBanner": {
-      "title": "快速分析 — 非已验证标签扫描",
-      "body": "基于训练数据中的产品知识。配方可能变化。",
-      "scanLink": "扫描标签以获得已验证结果。"
+      "title": "快速分析——不是经过验证的标签扫描",
+      "body": "基于截至训练数据的产品知识。产品配方可能会改变。",
+      "scanLink": "扫描标签以获得经过验证的结果。"
     },
     "lowQuality": {
-      "title": "图像质量偏低",
-      "body": "请在成分表完整可见、对焦清晰、光线充足的情况下重拍，以获得更准确的分析。"
+      "title": "图像质量较低",
+      "body": "请重新拍摄，确保完整的成分面板可见、对焦清晰且光线良好，以便进行更准确的分析。"
     },
     "labelFound": {
       "title": "找到营养标签",
-      "body": "说出或输入产品名称，以获得针对你档案定制的品牌替代品。"
+      "body": "说出或输入产品名称，以接收个性化的品牌替代品。"
     },
     "incomplete": {
       "title": "分析不完整",
-      "lowImage": "图像不够清晰，无法评分。请确保成分表完整可见且光线充足，然后重试。",
-      "needMore": "需要更多信息才能生成评级。请尝试扫描成分表或使用产品查询。"
+      "lowImage": "图像不够清晰，无法评分。确保完整的成分面板可见且光线充足，然后再试一次。",
+      "needMore": "需要更多信息以生成评分。尝试扫描成分面板或使用产品查找。"
     },
-    "personalized": "针对你的健康档案个性化",
-    "generalAnalysis": "一般分析 — 添加健康目标以获得个性化结果",
+    "personalized": "个性化为您的健康档案",
+    "generalAnalysis": "一般分析——添加健康目标以获得个性化结果",
     "sections": {
-      "considerations": "成分注意事项",
-      "mayNotAlign": "可能不符合你的目标",
+      "considerations": "成分考虑",
+      "mayNotAlign": "可能与您的目标不一致",
       "worksWellFor": "适合",
       "familyNotes": "家庭备注"
     },
     "detectedIngredients": "检测到的成分",
-    "scanForVerified": "扫描标签以进行已验证分析",
-    "addNamedToList": "将 {{name}} 加入清单",
-    "addToList": "加入清单",
+    "scanForVerified": "扫描标签以进行经过验证的标签分析",
+    "addNamedToList": "将{{name}}添加到列表",
+    "addToList": "添加到列表",
     "saveScan": "保存扫描",
-    "saveToGroceries": "保存到购物清单",
-    "savedToGroceries": "已保存到购物清单",
+    "saveToGroceries": "保存到杂货",
+    "savedToGroceries": "已保存到杂货",
     "toast": {
-      "removedTitle": "已从购物清单移除",
-      "removedDesc": "{{name}} 已从你的收藏中移除。",
+      "removedTitle": "已从杂货中移除",
+      "removedDesc": "{{name}}已从您的书签中移除。",
       "removeFailTitle": "无法移除",
-      "tryAgain": "请重试。",
+      "tryAgain": "请再试一次。",
       "alreadySaved": "已保存",
-      "savedTitle": "已保存到购物清单",
-      "savedDesc": "{{name}} 已在你的购物收藏中。",
+      "savedTitle": "已保存到杂货",
+      "savedDesc": "{{name}}在您的杂货书签中。",
       "saveFailTitle": "无法保存",
-      "addedToList": "已加入你的购物清单"
+      "addedToList": "已添加到您的杂货清单"
     }
   },
   "athletePicker": {
     "added": "已添加！",
-    "addedCount": "已添加{{count}}",
+    "addedCount": "{{count}}已添加",
     "addingTo": "添加到：",
     "categories": {
-      "eggsShakes": "鸡蛋与奶昔",
-      "fish": "鱼柳",
-      "poultry": "鸡肉与火鸡",
+      "eggsShakes": "鸡蛋和奶昔",
+      "fish": "鱼片",
+      "poultry": "鸡肉和火鸡",
       "redmeat": "红肉"
     },
     "copied": "已复制！",
     "copy": "复制",
-    "copyMealAria": "复制餐食详情",
-    "copySessionAria": "复制本次摘要到剪贴板",
+    "copyMealAria": "复制餐点详情",
+    "copySessionAria": "将会话摘要复制到剪贴板",
     "done": "完成",
     "errorShort": "错误",
-    "fibrousNote": "纤维蔬菜不限量——仅限淀粉（米饭、燕麦、土豆）",
-    "gotIt": "知道了！",
-    "headerTitle": "现成运动员餐 — {{slot}}",
-    "hiddenCount_one": "已隐藏{{count}}餐——淀粉会超过{{cap}}g",
-    "hiddenCount_other": "已隐藏{{count}}餐——淀粉会超过{{cap}}g",
-    "howToAria": "如何使用运动员餐构建器",
+    "fibrousNote": "纤维蔬菜不受限制——仅限淀粉（米饭、燕麦、土豆）",
+    "gotIt": "明白了！",
+    "headerTitle": "预制运动员餐——{{slot}}",
+    "hiddenCount_one": "{{count}}餐隐藏——淀粉将超过{{cap}}g",
+    "hiddenCount_other": "{{count}}餐隐藏——淀粉将超过{{cap}}g",
+    "howToAria": "如何使用运动员餐饮生成器",
     "info": {
-      "intro": "现成餐食，专为运动表现与增肌优化。",
-      "step1Label": "选择你的蛋白质类别",
-      "step1Text": "（鸡肉、红肉、鱼、蛋）",
-      "step2After": "仅为蛋白质+纤维蔬菜",
-      "step2Mid": "餐含米饭、燕麦或土豆。",
-      "step3Label": "点击任意餐",
-      "step3Text": "即可立即加入面板",
-      "step4Label": "所有宏量",
-      "step4Text": "已算好，可直接追踪",
+      "intro": "预设计的餐点优化了运动表现和肌肉增长。",
+      "step1Label": "选择您的蛋白质类别",
+      "step1Text": "（鸡肉、红肉、鱼、鸡蛋）",
+      "step2After": "仅含蛋白质+纤维蔬菜",
+      "step2Mid": "餐点包括米饭、燕麦或土豆。",
+      "step3Label": "点击任何餐点",
+      "step3Text": "立即将其添加到您的板上",
+      "step4Label": "所有宏量营养素",
+      "step4Text": "均已预先计算并准备跟踪",
       "stepsLabel": "步骤：",
-      "tipAfter": "餐。纤维蔬菜始终不限量。",
-      "tipBefore": "低淀粉日请用",
+      "tipAfter": "餐点。纤维蔬菜始终无限制。",
+      "tipBefore": "在低淀粉日，使用",
       "tipLabel": "💡 提示：",
-      "tipMid": "餐。补碳日则加入",
+      "tipMid": "餐点。在补充日，添加",
       "title": "如何使用运动员餐构建器"
     },
     "lowStarchDay": "低淀粉日",
-    "mealCopyText": "{{title}} — {{cals}} 卡 · 蛋 {{protein}}g · 淀 {{starch}}g · 脂 {{fat}}g",
-    "noCoachConnection": "没有可用的教练连接",
-    "noteDesc": "现成餐食，专为运动表现与增肌优化。",
-    "noteStep1": "选择你的蛋白质类别（鸡肉、红肉、鱼、蛋）",
-    "noteStep2After": "仅为蛋白质+纤维蔬菜",
-    "noteStep2Before": "标记为",
-    "noteStep2Mid": "的餐含米饭、燕麦或土豆——",
-    "noteStep3": "点击任意餐即可立即加入面板",
-    "noteStep4": "所有宏量已算好，可直接追踪",
-    "noteTitle": "现成运动员餐",
-    "refeedDay": "补碳日",
+    "mealCopyText": "{{title}} — {{cals}}卡路里 · P {{protein}}g · S {{starch}}g · F {{fat}}g",
+    "noCoachConnection": "没有活动教练连接",
+    "noteDesc": "预设计的餐点优化了运动表现和肌肉增长。",
+    "noteStep1": "选择您的蛋白质类别（鸡肉、红肉、鱼、鸡蛋）",
+    "noteStep2After": "仅含蛋白质+纤维蔬菜",
+    "noteStep2Before": "标记的餐点",
+    "noteStep2Mid": "包括米饭、燕麦或土豆——",
+    "noteStep3": "点击任何餐点立即将其添加到您的板上",
+    "noteStep4": "所有宏量营养素均已预先计算并准备跟踪",
+    "noteTitle": "预制运动员餐",
+    "refeedDay": "补充日",
     "selectCategory": "选择蛋白质类别：",
     "selectCategoryShort": "选择类别",
-    "sendCoachAria": "将本次摘要发送给教练",
-    "sendFailed": "发送失败，请重试",
+    "sendCoachAria": "将会话摘要发送给教练",
+    "sendFailed": "发送失败——请再试一次",
     "sendToCoach": "发送给教练",
     "sending": "发送中…",
     "sent": "已发送！",
-    "sessionTotal": "本次合计：",
+    "sessionTotal": "会话总计：",
     "slots": {
       "breakfast": "早餐",
       "dinner": "晚餐",
       "lunch": "午餐",
-      "meal4": "第4餐",
-      "meal5": "第5餐",
-      "meal6": "第6餐",
-      "snacks": "加餐"
+      "meal4": "餐点4",
+      "meal5": "餐点5",
+      "meal6": "餐点6",
+      "snacks": "零食"
     },
     "starch": "淀粉",
-    "starchAllocation": "淀粉配额",
-    "starchCap": "淀粉上限 {{cap}}g",
-    "starchUsage": "{{used}}g / {{cap}}g 淀粉",
-    "summaryText_one": "已添加{{count}}餐 — {{cals}} 卡 · 蛋 {{protein}}g · 碳 {{carbs}}g · 脂 {{fat}}g",
-    "summaryText_other": "已添加{{count}}餐 — {{cals}} 卡 · 蛋 {{protein}}g · 碳 {{carbs}}g · 脂 {{fat}}g",
+    "starchAllocation": "淀粉分配",
+    "starchCap": "{{cap}}g淀粉上限",
+    "starchUsage": "{{used}}g / {{cap}}g淀粉",
+    "summaryText_one": "{{count}}餐已添加——{{cals}}卡路里 · P {{protein}}g · C {{carbs}}g · F {{fat}}g",
+    "summaryText_other": "{{count}}餐已添加——{{cals}}卡路里 · P {{protein}}g · C {{carbs}}g · F {{fat}}g",
     "viewChatAria": "在教练聊天中查看消息",
     "viewInChat": "在聊天中查看"
   },
   "coachingSetup": {
     "accountability": {
       "encourage": {
-        "desc": "我懈怠时为我加油",
+        "desc": "当我失误时为我加油",
         "label": "鼓励我"
       },
       "pushHard": {
-        "desc": "严格督促我完成目标",
-        "label": "严格督促我"
+        "desc": "严格让我负责",
+        "label": "推我一把"
       },
       "remind": {
-        "desc": "温和提醒就够了",
+        "desc": "温和的推动就足够了",
         "label": "只需提醒我"
       },
       "selfDirected": {
-        "desc": "我自己激励自己",
-        "label": "自我驱动"
+        "desc": "我激励自己",
+        "label": "自我导向"
       }
     },
     "back": "返回",
     "challenges": {
-      "consistency": "保持坚持",
-      "cravings": "嘴馋",
-      "emotionalEating": "情绪化进食",
-      "knowledge": "不知吃什么",
-      "mealPrep": "备餐",
-      "motivation": "动力",
-      "socialPressure": "社交压力",
+      "consistency": "保持一致",
+      "cravings": "渴望",
+      "emotionalEating": "情绪饮食",
+      "knowledge": "知道该吃什么",
+      "mealPrep": "餐前准备",
+      "motivation": "动机",
+      "socialPressure": "社会压力",
       "time": "时间不够"
     },
-    "error": "出错了，请重试。",
+    "error": "出了点问题。请再试一次。",
     "lifestyle": {
-      "budgetConscious": "注重预算",
-      "busySchedule": "日程繁忙",
-      "frequentTravel": "经常出差",
-      "parent": "父母/照护者",
-      "pickyEater": "挑食",
-      "shiftWorker": "轮班工作",
-      "socialEater": "常聚餐",
-      "stressEater": "压力型进食"
+      "budgetConscious": "预算意识",
+      "busySchedule": "繁忙的日程",
+      "frequentTravel": "频繁旅行",
+      "parent": "父母/看护人",
+      "pickyEater": "挑食者",
+      "shiftWorker": "轮班工作者",
+      "socialEater": "社交饮食者",
+      "stressEater": "压力饮食者"
     },
-    "loading": "正在加载你的资料…",
+    "loading": "正在加载您的个人资料...",
     "motivations": {
       "athletic": "运动表现",
-      "confidence": "更自信",
-      "energy": "更有活力",
-      "family": "家人健康",
+      "confidence": "感到自信",
+      "energy": "更多能量",
+      "family": "家庭健康",
       "longevity": "长寿",
-      "mentalClarity": "头脑清晰",
-      "weightLoss": "减重"
+      "mentalClarity": "心理清晰",
+      "weightLoss": "减肥"
     },
     "next": "下一步",
-    "saveProfile": "保存资料",
-    "savedDesc": "你的指导资料已就绪。",
-    "savedTitle": "资料已保存！",
-    "saving": "保存中…",
+    "saveProfile": "保存个人资料",
+    "savedDesc": "您的教练个人资料已准备好。",
+    "savedTitle": "个人资料已保存！",
+    "saving": "正在保存...",
     "steps": {
       "accountability": {
-        "subtitle": "选出最能激励你的方式",
-        "title": "如何督促你？"
+        "subtitle": "选择最能激励您的内容",
+        "title": "我们应该如何让您负责？"
       },
       "challenges": {
-        "subtitle": "请如实回答，帮我们抓住重点",
-        "title": "你最大的挑战？"
+        "subtitle": "诚实一点——这有助于我们专注于真正重要的事情",
+        "title": "您最大的挑战是什么？"
       },
       "lifestyle": {
-        "subtitle": "全选适用项，我们会据此调整建议",
-        "title": "你的生活方式？"
+        "subtitle": "选择所有适用的选项——我们将围绕这些定制建议",
+        "title": "哪些描述了您的生活方式？"
       },
       "motivations": {
-        "subtitle": "选择所有适用项",
-        "title": "是什么在驱动你？"
+        "subtitle": "选择所有适用的选项",
+        "title": "是什么驱动您？"
       },
       "style": {
-        "subtitle": "选择你喜欢的沟通风格",
-        "title": "你想要怎样的指导？"
+        "subtitle": "选择适合您的沟通风格",
+        "title": "您希望如何接受指导？"
       }
     },
     "styles": {
       "balanced": {
-        "desc": "融合各种方式",
-        "label": "均衡"
+        "desc": "各种方法的结合",
+        "label": "平衡"
       },
       "direct": {
-        "desc": "直接告诉我该怎么做",
+        "desc": "告诉我该做什么——没有废话",
         "label": "直接"
       },
       "educational": {
-        "desc": "解释每个选择的原因",
-        "label": "讲解"
+        "desc": "解释每个选择背后的原因",
+        "label": "教育性"
       },
       "encouraging": {
-        "desc": "正向激励与支持",
+        "desc": "积极的强化和支持",
         "label": "鼓励"
       }
     }
   },
   "competitionPicker": {
-    "badgeCarbs": "碳水",
+    "badgeCarbs": "碳水化合物",
     "categories": {
-      "eggsShakes": "鸡蛋与奶昔",
-      "fish": "鱼柳",
-      "poultry": "鸡肉与火鸡",
+      "eggsShakes": "鸡蛋和奶昔",
+      "fish": "鱼片",
+      "poultry": "鸡肉和火鸡",
       "redmeat": "红肉"
     },
-    "gotIt": "知道了！",
-    "headerAddTo": "竞赛备赛餐 - 添加到{{slot}}",
-    "howToAria": "如何使用备赛构建器",
+    "gotIt": "明白了！",
+    "headerAddTo": "比赛准备餐 - 添加到 {{slot}}",
+    "howToAria": "如何使用表现与比赛构建器",
     "info": {
-      "intro": "现成运动员餐，专为增肌塑形与表现优化。",
-      "step1Label": "选择你的蛋白质类别",
-      "step1Text": "（鸡肉、红肉、鱼、蛋）",
-      "step2Label": "餐食标记为",
-      "step2Text": "「碳水」或「P+V」（蛋白质+蔬菜）",
-      "step3Label": "点击任意餐",
-      "step3Text": "即可立即加入面板",
-      "step4Label": "所有宏量",
-      "step4Text": "已算好，可直接追踪",
+      "intro": "预设计的运动员餐优化用于瘦肌肉构建和表现。",
+      "step1Label": "选择您的蛋白质类别",
+      "step1Text": "（鸡肉、红肉、鱼、鸡蛋）",
+      "step2Label": "餐点标记为",
+      "step2Text": "“碳水化合物”或“P+V”（蛋白质 + 蔬菜）",
+      "step3Label": "点击任何餐点",
+      "step3Text": "立即将其添加到您的板上",
+      "step4Label": "所有宏量营养素",
+      "step4Text": "都已预先计算并准备好跟踪",
       "stepsLabel": "步骤：",
       "tipLabel": "💡 提示：",
-      "tipText": "按每日碳水目标选择：「碳水」餐补能量，「P+V」餐用于低碳日。",
-      "title": "如何使用备赛构建器"
+      "tipText": "根据您的每日碳水化合物目标选择餐点——在需要能量时使用“碳水化合物”餐点，在低碳水化合物日使用“P+V”餐点！",
+      "title": "如何使用表现与比赛构建器"
     },
-    "noteDesc": "现成运动员餐，专为增肌塑形与表现优化。",
-    "noteStep1": "选择你的蛋白质类别（鸡肉、红肉、鱼、蛋）",
-    "noteStep2": "餐食标记为「碳水」或「P+V」（蛋白质+蔬菜）",
-    "noteStep3": "点击任意餐即可立即加入面板",
-    "noteStep4": "所有宏量已算好，可直接追踪",
-    "noteTitle": "竞赛备赛餐",
+    "noteDesc": "预设计的运动员餐优化用于瘦肌肉构建和表现。",
+    "noteStep1": "选择您的蛋白质类别（鸡肉、红肉、鱼、鸡蛋）",
+    "noteStep2": "餐点标记为“碳水化合物”或“P+V”（蛋白质 + 蔬菜）",
+    "noteStep3": "点击任何餐点立即将其添加到您的板上",
+    "noteStep4": "所有宏量营养素都已预先计算并准备好跟踪",
+    "noteTitle": "比赛准备餐",
     "selectCategory": "选择蛋白质类别：",
     "selectCategoryShort": "选择类别"
   },
   "complianceCard": {
-    "biggestOpportunity": "最大提升点",
-    "breakfastLogged": "已记早餐",
-    "caloriesOnTarget": "热量达标",
-    "consistencyScore": "坚持得分",
-    "days": "天",
-    "dinnerLogged": "已记晚餐",
-    "last7Days": "近7天",
-    "lastNDays": "近{{count}}天",
-    "loggedMeals": "已记录用餐",
-    "lunchLogged": "已记午餐",
-    "noActivity": "暂无活动。记录用餐即可在此查看你的个性化摘要。",
-    "noMeals": "尚未记录用餐。记录用餐以查看摘要。",
-    "ofDays": "{{value}} / {{total}}",
-    "proteinGoalMet": "蛋白质达标",
-    "setTargets": "设置宏量目标以启用完整追踪。",
+    "biggestOpportunity": "最大机会",
+    "breakfastLogged": "早餐已记录",
+    "caloriesOnTarget": "卡路里目标",
+    "consistencyScore": "一致性得分",
+    "days": "天数",
+    "dinnerLogged": "晚餐已记录",
+    "last7Days": "过去7天",
+    "lastNDays": "过去{{count}}天",
+    "loggedMeals": "已记录的餐点",
+    "lunchLogged": "午餐已记录",
+    "noActivity": "尚未记录任何营养活动。开始记录餐点以查看您的个性化活动摘要。",
+    "noMeals": "尚未记录任何餐点。开始记录您的餐点以查看您的活动摘要。",
+    "ofDays": "{{value}} 的 {{total}}",
+    "proteinGoalMet": "蛋白质目标已达成",
+    "setTargets": "设置您的宏量营养素目标以激活完整的营养跟踪。",
     "title": "营养活动摘要"
   },
   "mealPicker": {
-    "addTo": "添加到{{slot}}",
-    "cafeteria": "随机餐",
+    "addTo": "添加到 {{slot}}",
+    "cafeteria": "自助餐",
     "categories": {
       "fats": "脂肪",
-      "fibrousCarbs": "纤维碳水",
+      "fibrousCarbs": "纤维碳水化合物",
       "fruit": "水果",
       "proteins": "蛋白质",
-      "starchyCarbs": "淀粉碳水"
+      "starchyCarbs": "淀粉碳水化合物"
     },
     "close": "关闭",
     "generate": "生成",
     "generateCount": "生成（{{count}}）",
-    "generating": "生成中…",
-    "gotIt": "知道了！",
-    "howToAria": "如何使用用餐选择器",
+    "generating": "正在生成…",
+    "gotIt": "明白了！",
+    "howToAria": "如何使用餐点选择器",
     "info": {
       "addLabel": "点击添加：",
-      "addText": "点击任意餐卡即可立即加入你的{{slot}}时段",
-      "browseLabel": "浏览餐食：",
-      "browseText": "浏览我们精选的餐食模板",
-      "cafeteriaLabel": "随机餐选项：",
-      "cafeteriaText": "点击「随机餐」获取快速随机建议",
-      "intro": "快速便捷地把现成餐加入你的计划。",
+      "addText": "点击任何餐点卡片立即将其添加到您的 {{slot}} 插槽",
+      "browseLabel": "浏览餐点：",
+      "browseText": "滚动浏览我们精心策划的餐点模板",
+      "cafeteriaLabel": "自助餐选项：",
+      "cafeteriaText": "点击“自助餐”以快速随机餐点建议",
+      "intro": "快速简便地将预制餐点添加到您的计划中。",
       "personalizedLabel": "个性化：",
-      "personalizedText": "餐食按你的过敏与偏好筛选",
+      "personalizedText": "餐点根据您的过敏和偏好进行筛选",
       "tipLabel": "💡 提示：",
-      "tipText": "想快速获得健康建议又不想浏览时，就用随机餐。",
-      "title": "如何使用用餐选择器"
+      "tipText": "当您想要快速健康建议而不想浏览时，请使用自助餐按钮！",
+      "title": "如何使用餐点选择器"
     },
-    "lowerGlycemic": "较低升糖影响",
-    "quickMeal": "快速{{slot}}餐",
-    "regularGi": "普通升糖"
+    "lowerGlycemic": "降低血糖影响",
+    "quickMeal": "快速 {{slot}} 餐",
+    "regularGi": "常规 GI"
   },
   "mealReminders": {
-    "addReminder": "添加用餐提醒",
-    "checkAgain": "重新检查",
-    "checking": "检查中…",
+    "addReminder": "添加餐点提醒",
+    "checkAgain": "再次检查",
+    "checking": "正在检查…",
     "connectionDiagnostics": "连接诊断",
-    "footerBlocked": "先设好时间；授予权限后即会启用。",
-    "footerDefault": "最多6条提醒。点击标签可重命名。",
-    "footerEnabled": "保持浏览器打开以稳定接收。",
-    "footerNative": "点击标签可重命名。提醒通过 iOS App 发送。",
-    "mealN": "第{{n}}餐",
-    "nativeDelivery": "iOS 原生推送",
+    "footerBlocked": "现在设置时间 — 一旦授予权限，通知将激活。",
+    "footerDefault": "最多 6 个提醒。点击标签以重命名。",
+    "footerEnabled": "保持浏览器打开以确保可靠的交付。",
+    "footerNative": "点击标签以重命名。提醒通过 iOS 应用程序发送。",
+    "mealN": "餐点 {{n}}",
+    "nativeDelivery": "原生 iOS 交付",
     "saving": "保存中…",
-    "statusBlocked": "浏览器已阻止通知",
+    "statusBlocked": "浏览器中阻止了通知",
     "statusConnected": "通知已连接",
-    "statusPartial": "尚未完全连接——开启一个时段以完成设置",
-    "statusPending": "开启一个时段以启用通知",
+    "statusPartial": "未完全连接 — 切换一个插槽以完成设置",
+    "statusPending": "切换一个插槽以启用通知",
     "statusUnsupported": "此浏览器不支持",
-    "title": "用餐提醒",
-    "toUnblock": "解除阻止：",
+    "title": "餐点提醒",
+    "toUnblock": "要解除阻止：",
     "toastBlockedIosDesc": "前往 iPhone 设置 › My Perfect Meals › 允许通知",
-    "toastBlockedTitle": "通知已被阻止",
-    "toastBlockedWebDesc": "通过地址栏的锁形图标允许通知，然后点击重新检查。",
+    "toastBlockedTitle": "通知被阻止",
+    "toastBlockedWebDesc": "通过地址栏中的锁定图标允许通知，然后点击再次检查。",
     "toastEnableFailedTitle": "无法启用通知",
     "toastNotSupportedDesc": "此浏览器不支持推送通知。",
     "toastNotSupportedTitle": "不支持",
     "toastPermissionDenied": "权限被拒绝。",
     "toastSaveFailed": "无法保存提醒",
-    "toastTryAgain": "请稍后重试。",
+    "toastTryAgain": "请稍后再试。",
     "unblockAllow": "允许",
-    "unblockLock": "🔒 锁形图标",
-    "unblockNotifications": "通知",
-    "unblockStep1After": "（在地址栏中）",
-    "unblockStep1Before": "点击",
-    "unblockStep2Before": "将",
-    "unblockStep2Mid": "设为",
-    "unblockStep3After": "按钮",
-    "unblockStep3Before": "点击下方的",
-    "unsupportedHint": "请在电脑上使用 Chrome 或 Edge。iOS 上的 Safari 需改用 App。",
-    "webDelivery": "网页推送"
+    "unblockLock": "🔒 锁定",
+    "unblockNotifications": "浏览器地址栏中的通知",
+    "unblockStep1After": "点击",
+    "unblockStep1Before": "设置",
+    "unblockStep2Before": "为",
+    "unblockStep2Mid": "以下",
+    "unblockStep3After": "点击",
+    "unblockStep3Before": "在桌面上尝试 Chrome 或 Edge。iOS 上的 Safari 需要使用应用程序。",
+    "unsupportedHint": "网页推送交付",
+    "webDelivery": "Signature Kitchen"
   },
   "kitchenPartner": {
-    "optSignatureLabel": "招牌厨房",
-    "optSignatureDesc": "在平台内打造你的专属品牌厨房",
-    "optProductLabel": "产品整合",
-    "optProductDesc": "整合你的品牌、产品或补剂",
-    "optWhiteLabelLabel": "白标",
-    "optWhiteLabelDesc": "完全品牌化的平台体验",
-    "optRestaurantLabel": "餐饮集团",
-    "optRestaurantDesc": "多门店或连锁合作",
-    "optAthleteLabel": "运动员厨房",
-    "optAthleteDesc": "针对表现与运动的烹饪特色",
-    "stepIdentity": "身份",
-    "stepCulinary": "烹饪特色",
-    "stepPlatform": "平台",
-    "stepInterest": "意向",
-    "stepSubmit": "提交",
-    "partnershipReview": "合作审核",
-    "errorGeneric": "出错了，请重试。",
-    "errorConnection": "无法提交。请检查网络后重试。",
-    "identityHeading": "介绍一下你自己。",
-    "identitySub": "基本身份与联系信息。",
-    "fullNameLabel": "全名",
-    "fullNamePlaceholder": "你的全名",
-    "brandLabel": "主厨 / 品牌名称",
-    "brandPlaceholder": "你的公开烹饪品牌",
-    "emailLabel": "邮箱",
-    "phoneLabel": "电话",
-    "locationLabel": "所在地",
-    "locationPlaceholder": "城市、省 / 国家",
-    "culinaryHeading": "你的烹饪特色。",
-    "culinarySub": "这将决定你的厨房在平台内的构建方式。",
-    "cuisineFocusLabel": "菜系重点",
-    "cuisineFocusPlaceholder": "例如：南方菜、日式、地中海",
-    "cookingPhilosophyLabel": "烹饪理念",
-    "cookingPhilosophyPlaceholder": "你如何描述自己对食物的态度？",
-    "signatureStylesLabel": "招牌风格",
-    "signatureStylesPlaceholder": "例如：高蛋白、暖心美食、以植物为主",
-    "wellnessPhilosophyLabel": "健康理念",
-    "wellnessPhilosophyPlaceholder": "健康与营养如何融入你的烹饪？",
-    "platformHeading": "你的受众在哪里？",
-    "platformSub": "分享你的社交与网络平台。所有字段均为可选。",
-    "websiteLabel": "网站",
+    "optSignatureLabel": "您在平台内的个人品牌厨房",
+    "optSignatureDesc": "产品集成",
+    "optProductLabel": "集成您的品牌、产品或补充剂",
+    "optProductDesc": "白标",
+    "optWhiteLabelLabel": "完全品牌化的平台体验",
+    "optWhiteLabelDesc": "餐厅集团",
+    "optRestaurantLabel": "多地点或特许经营合作",
+    "optRestaurantDesc": "运动员厨房",
+    "optAthleteLabel": "性能和运动特定的烹饪身份",
+    "optAthleteDesc": "身份",
+    "stepIdentity": "烹饪身份",
+    "stepCulinary": "平台",
+    "stepPlatform": "兴趣",
+    "stepInterest": "提交",
+    "stepSubmit": "合作伙伴审核",
+    "partnershipReview": "出现问题。请再试一次。",
+    "errorGeneric": "无法提交。请检查您的连接并再试一次。",
+    "errorConnection": "告诉我们关于您自己的信息。",
+    "identityHeading": "基本身份和联系信息。",
+    "identitySub": "全名",
+    "fullNameLabel": "您的全名",
+    "fullNamePlaceholder": "厨师 / 品牌名称",
+    "brandLabel": "您的公共烹饪品牌",
+    "brandPlaceholder": "电子邮件",
+    "emailLabel": "电话",
+    "phoneLabel": "位置",
+    "locationLabel": "城市，州 / 国家",
+    "locationPlaceholder": "您的烹饪身份。",
+    "culinaryHeading": "这决定了您的厨房在平台内的构建方式。",
+    "culinarySub": "菜系重点",
+    "cuisineFocusLabel": "例如：南方、日本、地中海",
+    "cuisineFocusPlaceholder": "烹饪哲学",
+    "cookingPhilosophyLabel": "您如何描述自己对食物的看法？",
+    "cookingPhilosophyPlaceholder": "标志性风格",
+    "signatureStylesLabel": "例如：高蛋白、舒适食品、植物为主",
+    "signatureStylesPlaceholder": "健康哲学",
+    "wellnessPhilosophyLabel": "健康和营养如何影响您的烹饪？",
+    "wellnessPhilosophyPlaceholder": "您的受众在哪里？",
+    "platformHeading": "分享您的社交和网络存在。所有字段可选。",
+    "platformSub": "网站",
+    "websiteLabel": "您感兴趣的是什么？",
     "interestHeading": "你对什么感兴趣？",
-    "interestSub": "选择所有适用项，可多选。",
-    "readyHeading": "准备提交。",
-    "readySub": "我们的团队会亲自审核每份申请。3–5 个工作日内回复你。",
-    "summaryHeading": "申请摘要",
-    "summaryName": "姓名",
-    "summaryBrand": "品牌",
-    "summaryEmail": "邮箱",
-    "summaryCuisine": "菜系",
-    "summaryInterest": "意向",
-    "consentText": "提交即表示你同意 My Perfect Meals 使用你提供的信息评估你的合作申请。在签署正式协议前不作任何承诺。",
-    "submitting": "提交中…",
-    "requestReview": "申请合作审核",
-    "successHeading": "申请已收到。",
-    "successSub": "我们的团队将审核你的申请并在 3–5 个工作日内联系你。我们会亲自审核每份申请。",
-    "contactAt": "我们将通过以下方式联系你",
-    "done": "完成",
-    "back": "返回",
-    "next": "下一步"
+    "interestSub": "准备提交。",
+    "readyHeading": "我们的合作伙伴团队会亲自审核每个申请。您将在 3-5 个工作日内收到我们的回复。",
+    "readySub": "申请摘要",
+    "summaryHeading": "姓名",
+    "summaryName": "品牌",
+    "summaryBrand": "电子邮件",
+    "summaryEmail": "菜系",
+    "summaryCuisine": "兴趣",
+    "summaryInterest": "通过提交，您同意 My Perfect Meals 可以使用您提供的信息来评估您的合作申请。在签署正式协议之前没有任何承诺。",
+    "consentText": "正在提交…",
+    "submitting": "请求合作伙伴审核",
+    "requestReview": "申请已收到。",
+    "successHeading": "我们的合作伙伴团队将审核您的申请并在 3-5 个工作日内与您联系。我们会亲自审核每个申请。",
+    "successSub": "我们将通过以下方式与您联系",
+    "contactAt": "完成",
+    "done": "返回",
+    "back": "下一步",
+    "next": "安全 PIN"
   },
   "safetyPin": {
-    "title": "安全 PIN",
-    "sessionExpired": "会话已过期——请退出并重新登录以管理你的 PIN",
-    "statusSet": "已设置 PIN——已启用额外保护",
-    "statusUnset": "未设置 PIN——设置一个以获得额外保护",
-    "changePin": "更改 PIN",
-    "removePin": "移除 PIN",
-    "setPin": "设置安全 PIN",
-    "enterPin": "输入 PIN",
-    "confirmPin": "确认 PIN",
-    "currentPin": "当前 PIN",
-    "newPin": "新 PIN",
-    "confirmNewPin": "确认新 PIN",
-    "removePrompt": "输入当前 PIN 以移除它。",
-    "fourDigits": "4 位数字",
-    "hidePin": "隐藏 PIN",
+    "title": "会话已过期 - 请注销并重新登录以管理您的 PIN",
+    "sessionExpired": "PIN 已设置 - 启用额外保护",
+    "statusSet": "未设置 PIN - 设置一个以获得额外保护",
+    "statusUnset": "更改 PIN",
+    "changePin": "删除 PIN",
+    "removePin": "设置安全 PIN",
+    "setPin": "输入 PIN",
+    "enterPin": "确认 PIN",
+    "confirmPin": "当前 PIN",
+    "currentPin": "新 PIN",
+    "newPin": "确认新 PIN",
+    "confirmNewPin": "输入您当前的 PIN 以将其删除。",
+    "removePrompt": "4 位数字",
+    "fourDigits": "隐藏 PIN",
     "showPin": "显示 PIN",
     "cancel": "取消",
     "setPinBtn": "设置 PIN",
     "changePinBtn": "更改 PIN",
     "removePinBtn": "移除 PIN",
-    "errorFourDigits": "PIN 必须正好为 4 位数字",
+    "errorFourDigits": "PIN 必须是 4 位数字",
     "errorNoMatch": "PIN 不匹配",
-    "errorNewFourDigits": "新 PIN 必须为 4 位数字",
+    "errorNewFourDigits": "新 PIN 必须是 4 位数字",
     "errorNewNoMatch": "新 PIN 不匹配",
     "errorSetFailed": "设置 PIN 失败",
-    "errorSetRetry": "无法设置 PIN，请重试。",
+    "errorSetRetry": "无法设置 PIN。请再试一次。",
     "errorChangeFailed": "更改 PIN 失败",
-    "errorChangeRetry": "无法更改 PIN，请重试。",
+    "errorChangeRetry": "无法更改 PIN。请再试一次。",
     "errorRemoveFailed": "移除 PIN 失败",
-    "errorRemoveRetry": "无法移除 PIN，请重试。",
+    "errorRemoveRetry": "无法移除 PIN。请再试一次。",
     "setToastTitle": "安全 PIN 已设置",
-    "setToastDesc": "你的安全 PIN 已创建。",
+    "setToastDesc": "您的安全 PIN 已创建。",
     "changeToastTitle": "PIN 已更改",
-    "changeToastDesc": "你的安全 PIN 已更新。",
+    "changeToastDesc": "您的安全 PIN 已更新。",
     "removeToastTitle": "PIN 已移除",
-    "removeToastDesc": "你的安全 PIN 已移除。"
+    "removeToastDesc": "您的安全 PIN 已移除。",
+    "hidePin": "隐藏 PIN"
   },
   "mfa": {
-    "errorStartSetup": "无法开始设置，请重试。",
-    "errorInvalidCode": "验证码无效，请重试。",
-    "errorDisableInvalid": "验证码无效。未停用 MFA。",
+    "errorStartSetup": "启动设置失败。请再试一次。",
+    "errorInvalidCode": "无效代码。请再试一次。",
+    "errorDisableInvalid": "无效代码。MFA 未禁用。",
     "loading": "加载中…",
-    "enabledTitle": "已启用双重验证",
-    "saveBackupPrompt": "关闭此页面前请保存你的备用码。",
-    "backupCodesHeading": "备用码——请立即保存",
+    "enabledTitle": "双重身份验证已启用",
+    "saveBackupPrompt": "在关闭此页面之前，请保存您的备份代码。",
+    "backupCodesHeading": "备份代码 — 现在保存这些",
     "copied": "已复制！",
-    "copyAllCodes": "复制全部",
-    "backupCodesNote": "每个码只能使用一次。请妥善保存。如果你无法使用验证器应用，需要其中一个来登录。",
-    "savedBackupBtn": "我已保存备用码",
-    "onTitle": "双重验证已开启",
-    "enabledOn": "于 {{date}} 启用",
-    "disable2fa": "停用 2FA",
-    "disableTitle": "停用双重验证",
-    "disablePrompt": "输入当前验证器验证码以确认。",
+    "copyAllCodes": "复制所有代码",
+    "backupCodesNote": "每个代码只能使用一次。请将它们存放在安全的地方。如果您失去对身份验证器应用的访问，您将需要其中一个代码才能登录。",
+    "savedBackupBtn": "我已保存我的备份代码",
+    "onTitle": "双重身份验证已开启",
+    "enabledOn": "启用时间 {{date}}",
+    "disable2fa": "禁用 2FA",
+    "disableTitle": "禁用双重身份验证",
+    "disablePrompt": "输入您当前的身份验证器代码以确认。",
     "cancel": "取消",
-    "disabling": "停用中…",
-    "scanTitle": "用验证器应用扫描",
+    "disabling": "正在禁用…",
+    "scanTitle": "使用您的身份验证器应用扫描",
     "scanApps": "Google Authenticator、Authy 或 1Password 都很好用。",
-    "qrAlt": "用验证器应用扫描此二维码",
+    "qrAlt": "使用您的身份验证器应用扫描此二维码",
     "manualKeyPrompt": "无法扫描？手动输入此密钥：",
-    "addedAccountNext": "我已添加账户——下一步",
-    "confirmTitle": "确认你的验证器验证码",
-    "confirmPrompt": "输入应用中的 6 位验证码以激活 2FA。",
-    "activating": "激活中…",
+    "addedAccountNext": "我已添加账户 — 下一步",
+    "confirmTitle": "确认您的身份验证器代码",
+    "confirmPrompt": "输入您应用中的 6 位代码以激活 2FA。",
+    "activating": "正在激活…",
     "activate2fa": "激活 2FA",
     "back": "返回",
-    "defaultTitle": "双重验证",
-    "defaultSubtitle": "为你的账户添加第二层安全保护。",
-    "settingUp": "设置中…",
+    "defaultTitle": "双重身份验证",
+    "defaultSubtitle": "为您的账户添加第二层安全性。",
+    "settingUp": "正在设置…",
     "enable2fa": "启用 2FA"
   },
   "createWithChef": {
-    "mealCreatedTitle": "餐点已生成！",
-    "mealCreatedDesc": "{{name}} 已为你准备好",
+    "mealCreatedTitle": "餐点已创建！",
+    "mealCreatedDesc": "{{name}} 已为您准备好",
     "generationFailedTitle": "生成失败",
     "signInTitle": "请登录",
-    "signInDesc": "你需要登录才能创建餐点",
-    "guestLimitTitle": "已达访客上限",
-    "guestLimitDesc": "创建免费账户以继续生成餐点",
-    "describeMealTitle": "请描述你的餐点",
-    "describeMealDesc": "告诉主厨你想吃什么",
-    "enterAlternativeTitle": "请输入替代方案",
-    "enterAlternativeDesc": "告诉我们你想要什么",
-    "placeholderBreakfast": "例如：'蛋白煎饼'、'水果甜蛋'、'低碳水煎蛋卷'",
-    "placeholderLunch": "例如：'烤鸡沙拉'、'高蛋白卷饼'、'地中海碗餐'",
-    "placeholderDinner": "例如：'低碳水塔可'、'牛排配蔬菜'、'三文鱼配米饭'",
-    "placeholderDefault": "例如：'清淡健康的东西'、'高蛋白餐'",
-    "title": "用 AI Chef 创建",
-    "subtitle": "告诉主厨你的{{mealType}}想吃什么",
-    "starchLimitTitle": "淀粉类碳水已达上限",
-    "starchUsedSingular": "你今天的淀粉餐已用完（{{used}}/{{max}}）。",
-    "starchUsedPlural": "你今天的淀粉餐已用完（{{used}}/{{max}}）。",
-    "youRequested": "你请求的是：",
-    "fibrousPrefix": "你想改选一种",
-    "fibrousCarb": "纤维碳水",
-    "fibrousSuffix": "，还是让主厨为你选择？",
-    "fibrousPlaceholder": "例如：西兰花、芦笋、花椰菜……",
-    "generating": "生成中……",
+    "signInDesc": "您需要登录才能创建餐点",
+    "guestLimitTitle": "访客限制已达到",
+    "guestLimitDesc": "创建一个免费账户以继续生成餐点",
+    "describeMealTitle": "请描述您的餐点",
+    "describeMealDesc": "告诉厨师您想要什么",
+    "enterAlternativeTitle": "请输入替代选项",
+    "enterAlternativeDesc": "告诉我们您想要什么",
+    "placeholderBreakfast": "例如，“蛋白质煎饼”，“水果甜蛋”，“低碳水化合物煎蛋卷”",
+    "placeholderLunch": "例如，“烤鸡沙拉”，“高蛋白卷”，“地中海碗”",
+    "placeholderDinner": "例如，“低碳水化合物玉米饼”，“牛排配蔬菜”，“三文鱼配米饭”",
+    "placeholderDefault": "例如，“一些清淡健康的东西”，“高蛋白餐”",
+    "title": "与 AI 厨师一起创建",
+    "subtitle": "告诉厨师您想要的 {{mealType}}",
+    "starchLimitTitle": "淀粉类碳水化合物限制已达到",
+    "starchUsedSingular": "您今天已经使用了淀粉餐（{{used}} / {{max}}）。",
+    "starchUsedPlural": "您今天已经使用了您的淀粉餐（{{used}} / {{max}}）。",
+    "youRequested": "您请求了：",
+    "fibrousPrefix": "您想选择一个",
+    "fibrousCarb": "纤维碳水化合物",
+    "fibrousSuffix": "作为替代，还是让厨师为您选择？",
+    "fibrousPlaceholder": "例如，西兰花、芦笋、花椰菜…",
+    "generating": "正在生成…",
     "useMyChoice": "使用我的选择",
     "or": "或",
-    "chefsChoice": "主厨之选",
-    "chefSubstituteHint": "主厨将用美味的纤维碳水替代",
-    "inputHint": "描述你想吃的，主厨会为你创建个性化餐点",
-    "orbCheckingSafety": "正在检查安全档案…",
-    "orbFinishing": "正在做最后润色…",
-    "orbPreparing": "主厨正在准备你的餐点…",
+    "chefsChoice": "厨师的选择 - 为我选择",
+    "chefSubstituteHint": "厨师将用美味的纤维碳水化合物选项替代",
+    "inputHint": "描述您渴望的食物，厨师将为您创建个性化餐点",
+    "orbCheckingSafety": "正在检查安全配置文件…",
+    "orbFinishing": "添加最后的修饰…",
+    "orbPreparing": "厨师正在准备您的餐点…",
     "mealSafety": "餐点安全",
-    "ingredientControl": "食材控制",
-    "todaysStarchMeals": "今日淀粉餐：",
-    "starchUsedCount": "已用 {{used}} / {{max}}",
+    "ingredientControl": "成分控制",
+    "todaysStarchMeals": "今天的淀粉餐：",
+    "starchUsedCount": "{{used}} / {{max}} 已使用",
     "generateBtn": "生成 AI 餐点",
     "stop": "停止",
     "cancel": "取消"
   },
   "profileSheet": {
-    "invalidFileTitle": "文件无效",
-    "invalidFileDesc": "请选择图片文件。",
+    "invalidFileTitle": "无效文件",
+    "invalidFileDesc": "请选择一个图像文件。",
     "fileTooLargeTitle": "文件过大",
-    "fileTooLargeDesc": "请选择小于 5MB 的图片。",
+    "fileTooLargeDesc": "请选择一个小于 5MB 的图像。",
     "photoUpdatedTitle": "照片已更新",
-    "photoUpdatedDesc": "你的头像已更新。",
+    "photoUpdatedDesc": "您的个人资料照片已更新。",
     "uploadFailedTitle": "上传失败",
-    "uploadFailedDesc": "照片上传失败。",
+    "uploadFailedDesc": "上传照片失败。",
     "cameraErrorTitle": "相机错误",
     "cameraErrorDesc": "无法访问相机或照片。",
     "restoringTitle": "正在恢复购买…",
-    "restoringDesc": "正在查找有效订阅…",
+    "restoringDesc": "正在查找活动订阅…",
     "restoredTitle": "购买已恢复",
-    "restoredDesc": "你的订阅已成功恢复。",
+    "restoredDesc": "您的订阅已成功恢复。",
     "restoreCompleteTitle": "恢复完成",
-    "restoreCompleteDesc": "未找到有效订阅。如认为有误，请联系客服。",
+    "restoreCompleteDesc": "未找到活动订阅。如果您认为这是错误，请联系支持。",
     "restoreFailedTitle": "恢复失败",
-    "restoreFailedDesc": "无法恢复购买，请重试。",
+    "restoreFailedDesc": "无法恢复购买。请再试一次。",
     "accountDeletedTitle": "账户已删除",
-    "accountDeletedDesc": "你的账户及所有数据已被永久删除。",
-    "deleteFailedDesc": "删除账户失败，请重试。",
+    "accountDeletedDesc": "您的账户和所有数据已被永久删除。",
+    "deleteFailedDesc": "删除账户失败。请再试一次。",
     "deleteAccount": "删除账户",
     "deleteDialogTitle": "永久删除账户？",
-    "deleteDialogIntro": "此操作无法撤销。将永久删除：",
-    "deleteItemAccount": "你的账户与个人资料信息",
-    "deleteItemMeals": "所有餐单与已保存的食谱",
-    "deleteItemBiometrics": "体征与健康追踪数据",
-    "deleteItemBilling": "订阅与付款记录",
-    "deleting": "删除中…",
+    "deleteDialogIntro": "此操作无法撤消。这将永久删除：",
+    "deleteItemAccount": "您的账户和个人资料信息",
+    "deleteItemMeals": "所有餐计划和保存的食谱",
+    "deleteItemBiometrics": "生物特征和健康追踪数据",
+    "deleteItemBilling": "订阅和支付历史",
+    "deleting": "删除中...",
     "deleteMyAccount": "删除我的账户"
   },
   "inspiration": {
-    "servingsJustMe": "仅我一人",
-    "servings2": "2 人",
-    "servings3": "3 人",
-    "servingsFamily": "家庭（4 人）",
-    "servingsMealPrep": "备餐（6 人）",
-    "copilotTitle": "Recipe Maker",
-    "copilotDescription": "看到它。说出来。发送它。我们为你实现。",
-    "copilotSpokenText": "Recipe Maker 是应用中最强大的工具之一。理念很简单：你在某处看到食物——一个 TikTok、一个 Instagram 收藏、一本食谱、一份菜单，甚至只是脑海中的想法——与其让这一刻溜走，不如把它带到这里，我们为你实现。你有四种方式提交你的想法。Choose Photo 让你从相册中选择任意截图或已保存的食物图片——包括 TikTok 截图、Instagram 收藏、Pinterest 画板、Facebook 食谱，凡是设备上已有的都行。Camera 会实时打开相机，让你对准食谱、菜单或屏幕。Speak 让你像告诉朋友一样大声描述这道菜。Type 让你粘贴描述或写下你的想法。这就是 Recipe Maker 的不同之处：你不需要食谱。只要你能展示或描述，我们就能创建。提交想法后，Recipe Maker 不会只给你一个结果。它会同时构建你想法的三个完全个性化版本——同一道菜，三种诠释——每一个都完全围绕你的宏量目标、过敏、饮食身份以及账户中每个生效的健康方案。你可以看到全部三个，可以保存其中任意或全部，你的选择会一直留在仪表盘上，直到你决定清除。应用绝不会自动移除它们。",
-    "hintAuthentic": "尽可能保留原始风味与食材。",
-    "hintBalanced": "在保留菜品精髓的同时按你的档案个性化。",
-    "hintHealthier": "在保持菜品可辨识的同时大力优化营养。",
+    "servingsJustMe": "只有我",
+    "servings2": "2人",
+    "servings3": "3人",
+    "servingsFamily": "家庭（4人）",
+    "servingsMealPrep": "餐食准备（6人）",
+    "copilotTitle": "食谱制作器",
+    "copilotDescription": "看见它。说出来。发送它。我们会让它成为你的。",
+    "copilotSpokenText": "食谱制作器是应用中最强大的工具之一。这个想法很简单：你在某个地方看到食物——一个TikTok，一个Instagram保存，一个食谱书，一个菜单，甚至只是你想象中的东西——而不是让那个瞬间过去，你把它带到这里，我们为你构建它。你有四种方式来引入你的想法。选择照片让你从图库中选择任何截图或保存的食物图片——这包括TikTok截图、Instagram保存、Pinterest板、Facebook食谱，任何已经在你设备上的东西。相机打开你的设备实时画面，这样你可以对着食谱书、菜单或屏幕指。说出让你大声描述这顿饭，正如你会告诉朋友的那样。输入让你粘贴描述或写出你心中所想。这里是食谱制作器不同之处：你不需要食谱。如果你能展示或描述它，我们就能创造它。一旦你提交你的想法，食谱制作器不会给你一个结果。它同时构建三个完全个性化的版本——同一道菜，三种不同的诠释——每一个都完全围绕你的宏观目标、过敏、饮食身份和你账户上的每个活跃健康协议构建。你可以看到所有三个版本，可以保存任何一个或全部，它们会一直保留在仪表板上，直到你决定清除它们。应用程序不会自动删除它们。",
+    "hintAuthentic": "尽量保持原有的风味和成分。",
+    "hintBalanced": "在保留菜肴精神的同时个性化到你的个人资料。",
+    "hintHealthier": "在保持菜肴可识别的同时，积极优化营养。",
     "analysisFailed": "分析失败",
-    "analyzeFailedMsg": "分析食材失败。",
-    "imageReadError": "无法读取图片，请重试。",
+    "analyzeFailedMsg": "未能分析成分。",
+    "imageReadError": "无法读取图像。请再试一次。",
     "voiceNotSupportedTitle": "不支持语音",
-    "voiceNotSupportedDesc": "你的浏览器不支持语音输入，请改用打字。",
+    "voiceNotSupportedDesc": "你的浏览器不支持语音输入。请尝试输入。",
     "micErrorTitle": "麦克风错误",
-    "micErrorDesc": "请重试。",
-    "somethingWrong": "出错了",
-    "createFailedMsg": "创建你的个性化餐点失败。",
+    "micErrorDesc": "请再试一次。",
+    "somethingWrong": "出现问题",
+    "createFailedMsg": "未能创建你的个性化餐食。",
     "saveFailedError": "保存失败",
     "savedTitle": "已保存！",
-    "savedDesc": "已添加到收藏夹中的 Recipe Maker 保存项。",
+    "savedDesc": "已添加到你的食谱制作器收藏夹中。",
     "saveFailedTitle": "保存失败",
-    "scanFoodFor": "为 {{name}} 扫描食物",
+    "scanFoodFor": "扫描食物以获取{{name}}",
     "productScan": "产品扫描",
-    "customizeMeal": "自定义你的餐点",
-    "recipeMaker": "Recipe Maker",
-    "analyzeForCompanion": "为 {{name}} 分析食材",
-    "analyzeBeforeBuy": "购买前分析食材",
-    "optionsSubtitle": "在我们生成你的个性化版本前先调整这些。",
-    "captureSubtitle": "扫描任意餐点想法，我们为你个性化。",
+    "customizeMeal": "自定义你的餐食",
+    "recipeMaker": "食谱制作器",
+    "analyzeForCompanion": "分析{{name}}的成分",
+    "analyzeBeforeBuy": "在购买前分析成分",
+    "optionsSubtitle": "在我们生成你的个性化版本之前调整这些。",
+    "captureSubtitle": "扫描任何餐食想法，我们会为你个性化。",
     "choosePhoto": "选择照片",
     "cameraPill": "相机",
-    "speakPill": "说话",
-    "typePill": "打字",
-    "uploadHint": "从相机胶卷或相册中选择截图、已保存的食物照片或图片。",
-    "chooseFromGallery": "从相册选择",
-    "galleryHint": "截图、已保存照片、任意食物图片",
-    "cameraHint": "将相机对准任意食谱、菜单、屏幕或食物照片。",
+    "speakPill": "说出",
+    "typePill": "输入",
+    "uploadHint": "选择一个截图、保存的食物照片或来自您的相册或图库的图像。",
+    "chooseFromGallery": "从图库中选择",
+    "galleryHint": "截图、保存的照片、任何食物图像",
+    "cameraHint": "将相机对准任何食谱、菜单、屏幕或食物照片。",
     "openCamera": "打开相机",
-    "cameraSubHint": "为任意食物想法实时拍照",
-    "voiceHint": "大声描述这道菜——食材、风格，任何你记得的。",
+    "cameraSubHint": "拍摄任何食物想法的实时照片",
+    "voiceHint": "大声描述这顿饭——成分、风格、你记得的任何东西。",
     "tapToStop": "点击停止",
     "tapToSpeak": "点击说话",
     "nextCustomize": "下一步 — 自定义 →",
-    "textHint": "输入或粘贴餐点想法、食谱描述或菜名。",
-    "textPlaceholder": "例如：布法罗辣鸡饭碗配牛油果和牧场酱……",
-    "servingsHeading": "份量",
-    "adaptationStyleHeading": "调整风格",
-    "authentic": "原味",
+    "textHint": "输入或粘贴餐食想法、食谱描述或菜名。",
+    "textPlaceholder": "例如：装满水牛鸡肉碗，配米饭、鳄梨和牧场酱…",
+    "servingsHeading": "份数",
+    "adaptationStyleHeading": "适应风格",
+    "authentic": "正宗",
     "balanced": "均衡",
     "healthier": "更健康",
     "proteinLevelHeading": "蛋白质水平",
     "proteinStandard": "标准",
     "proteinHigh": "高蛋白",
     "proteinAthlete": "运动员",
-    "prepStyleHeading": "制作方式",
-    "prepOriginal": "原始做法",
-    "prepEasy": "简易做法",
+    "prepStyleHeading": "准备风格",
+    "prepOriginal": "原始准备",
+    "prepEasy": "简单准备",
     "cuisineStyleHeading": "菜系风格",
     "generateMyVersion": "生成我的版本",
-    "analyzingIngredients": "正在分析食材…",
+    "analyzingIngredients": "正在分析成分…",
     "buildingVersion": "正在构建你的版本…",
-    "checkingCompanionProfile": "正在与 {{name}} 的档案比对",
-    "checkingYourProfile": "正在与你的档案比对",
-    "adaptingProfile": "正在适配你的营养档案",
-    "versionsReady": "{{count}} 个版本已就绪",
-    "savedCount": " · 已保存 {{count}} 个",
+    "checkingCompanionProfile": "与{{name}}的个人资料进行检查",
+    "checkingYourProfile": "与您的个人资料进行检查",
+    "adaptingProfile": "适应你的营养个人资料",
+    "versionsReady": "{{count}}个版本已准备好",
+    "savedCount": "· {{count}}已保存",
     "deleteScan": "删除此扫描",
-    "tapAnotherHint": "点击另一个也可保存，或先关闭稍后再来。",
-    "tapSelectHint": "点击一个进行选择再保存。随时回来——在你删除前它们会一直保留。",
-    "adaptedForStrategy": "已适配今日营养策略",
-    "calValue": "{{value}} 千卡",
-    "proteinValue": "{{value}} 克蛋白质",
-    "carbsValue": "{{value}} 克碳水",
+    "tapAnotherHint": "点击另一个也保存，或关闭稍后再来。",
+    "tapSelectHint": "点击一个选择，然后保存。随时回来——这些会保留在这里，直到你删除它们。",
+    "adaptedForStrategy": "为今天的营养策略进行了调整",
+    "calValue": "{{value}}卡路里",
+    "proteinValue": "{{value}}克蛋白",
+    "carbsValue": "{{value}}克碳水化合物",
     "saving": "保存中…",
     "saveAgain": "再次保存",
     "saveThisVersion": "保存此版本",
-    "try3More": "再来 3 个",
-    "viewSavedMeals": "在收藏夹查看已保存的餐点 →",
-    "personalizedReady": "你的个性化版本已就绪。",
-    "macroCal": "千卡",
+    "try3More": "再试3个",
+    "viewSavedMeals": "在收藏夹中查看已保存的餐食 →",
+    "personalizedReady": "你的个性化版本已准备好。",
+    "macroCal": "卡路里",
     "macroProtein": "蛋白质",
-    "macroCarbs": "碳水",
+    "macroCarbs": "碳水化合物",
     "macroFat": "脂肪",
-    "savedCheck": "已保存 ✓",
+    "savedCheck": "已保存✓",
     "saveToFavorites": "保存到收藏夹",
     "scanAnother": "扫描另一个",
-    "viewInFavorites": "在收藏夹查看 →"
+    "viewInFavorites": "在收藏夹中查看 →"
   },
   "parentsCorner": {
-    "title": "家长专区",
-    "yourChild": "您的孩子",
-    "helpingBuildHabits": "帮助{{name}}养成健康习惯",
-    "backToBeginnings": "返回 My Perfect Beginnings",
+    "title": "家长角落",
+    "yourChild": "你的孩子",
+    "helpingBuildHabits": "帮助{{name}}建立健康习惯",
+    "backToBeginnings": "返回我的完美开始",
     "startFresh": "重新开始",
-    "startNewConversation": "开始新对话",
+    "startNewConversation": "开始新的对话",
     "clearConfirm": "清除此对话并重新开始？",
     "clear": "清除",
     "cancel": "取消",
     "dismiss": "关闭",
-    "boundaryLanguage": "我可以为您的家庭提供循证营养指导。若有医疗问题，孩子的儿科医生或注册儿科营养师始终是正确的下一步——需要时我会提醒您。",
-    "todaysTip": "今日贴士",
-    "loadingConversation": "正在加载您的对话…",
+    "boundaryLanguage": "我可以分享基于证据的营养指导来支持你的家庭。对于医疗问题，你孩子的儿科医生或注册儿科营养师始终是正确的下一步——如果有需要那样的对话，我会告诉你。",
+    "todaysTip": "今天的提示",
+    "loadingConversation": "正在加载你的对话…",
     "commonQuestions": "常见问题",
     "browseCommonQuestions": "浏览常见问题",
-    "followUp": "追问",
-    "makeItNow": "立即制作",
+    "followUp": "后续",
+    "makeItNow": "现在就做",
     "thinking": "思考中…",
-    "emptyPrompt": "点击上方卡片，或在下方提问。",
-    "askAnything": "随便问",
-    "inputPlaceholder": "在此输入您的问题…",
+    "emptyPrompt": "点击上面的卡片或在下面问任何问题。",
+    "askAnything": "问任何问题",
+    "inputPlaceholder": "在这里输入你的问题…",
     "send": "发送",
-    "noResponse": "抱歉，未收到回复。请重试。",
-    "connectionError": "现在有点问题。请检查网络后重试。",
+    "noResponse": "对不起，我没有收到回复。请再试一次。",
+    "connectionError": "我现在有点问题。请检查你的连接并再试一次。",
     "stage": {
-      "earlyInfant": "婴儿早期",
-      "beginningFoods": "开始添加辅食",
-      "youngToddler": "低龄幼儿",
+      "earlyInfant": "早期婴儿",
+      "beginningFoods": "开始食物",
+      "youngToddler": "幼儿",
       "toddler": "幼儿",
       "preschool": "学龄前",
-      "earlySchoolAge": "学龄初期",
+      "earlySchoolAge": "早期学龄",
       "growingChild": "成长中的孩子"
     },
     "cards": {
       "babyWontEat": {
-        "label": "宝宝不肯吃。",
-        "question": "宝宝不肯吃。我该怎么办？"
+        "label": "我的宝宝不吃东西。",
+        "question": "我的宝宝不吃东西。我该怎么办？"
       },
       "toddlerHatesVegetables": {
-        "label": "孩子讨厌蔬菜。",
-        "question": "孩子讨厌蔬菜。怎样让他多吃点？"
+        "label": "我的幼儿讨厌蔬菜。",
+        "question": "我的幼儿讨厌蔬菜。我该如何让他们多吃？"
       },
       "lunchPacking": {
-        "label": "午餐带什么好？",
-        "question": "有哪些健康又诱人的午餐搭配点子？"
+        "label": "我该为午餐准备什么？",
+        "question": "有什么健康又吸引人的午餐打包建议？"
       },
       "healthySnacks": {
         "label": "放学后的健康零食。",
-        "question": "放学后有哪些健康零食点子？"
+        "question": "放学后有哪些健康零食的建议？"
       },
       "calcium": {
-        "label": "孩子钙够吗？",
-        "question": "孩子摄入的钙够吗？如何确保？"
+        "label": "我的孩子摄入的钙够吗？",
+        "question": "我的孩子摄入的钙够吗？我该如何确保？"
       },
       "introducingFoods": {
-        "label": "如何引入新食物？",
-        "question": "如何引入新食物又不变成拉锯战？"
+        "label": "我该如何引入新食物？",
+        "question": "我该如何引入新食物而不让它变成争斗？"
       },
       "youngAthlete": {
-        "label": "小运动员该吃什么？",
-        "question": "孩子参加运动。训练前后该吃什么？"
+        "label": "我的年轻运动员应该吃什么？",
+        "question": "我的孩子参加运动。他们在训练前后应该吃什么？"
       },
       "waterIntake": {
-        "label": "孩子需要喝多少水？",
-        "question": "孩子每天该喝多少水？"
+        "label": "我的孩子需要多少水？",
+        "question": "我的孩子每天应该喝多少水？"
       },
       "pizza": {
-        "label": "孩子还能吃披萨吗？",
-        "question": "孩子还能吃披萨等有趣的食物吗，还是我该更严格？"
+        "label": "我的孩子还能吃披萨吗？",
+        "question": "我的孩子还能吃披萨和其他有趣的食物，还是我应该更严格？"
       }
     }
   },
   "bodyComposition": {
     "title": "记录身体成分",
-    "bodyFatPct": "体脂率 %",
+    "bodyFatPct": "体脂百分比",
     "bodyFatPlaceholder": "例如 18.5",
-    "goalBodyFatPct": "目标体脂率 %（可选）",
+    "goalBodyFatPct": "目标体脂百分比（可选）",
     "goalBodyFatPlaceholder": "例如 15",
-    "scanMethod": "测量方法",
-    "pickMethod": "选择方法",
+    "scanMethod": "扫描方法",
+    "pickMethod": "选择一种方法",
     "date": "日期",
     "save": "保存",
     "saving": "保存中...",
     "notLoggedIn": "未登录",
     "notLoggedInDesc": "请登录以保存您的身体成分数据。",
-    "invalidBodyFat": "体脂无效",
-    "invalidBodyFatDesc": "体脂率必须在 1% 到 70% 之间。",
+    "invalidBodyFat": "无效的体脂",
+    "invalidBodyFatDesc": "体脂百分比必须在1%到70%之间。",
     "saved": "已保存",
-    "savedDesc": "身体成分已成功记录。",
+    "savedDesc": "身体成分记录成功。",
     "saveFailed": "保存失败",
-    "saveFailedDesc": "无法保存您的数据。请重试。"
+    "saveFailedDesc": "无法保存您的身体成分数据。请再试一次。"
   },
   "sponsorEnded": {
-    "launchProCare": "开通您的独立 ProCare 账户",
+    "launchProCare": "启动您的独立ProCare账户",
     "openStudio": "打开您的独立工作室",
-    "completeVerification": "完成资质验证",
-    "continueTraining": "继续 Platform Mastery 培训",
-    "startOwnPractice": "开创我自己的业务",
-    "continueAsClient": "以客户身份继续",
-    "continueAsClientDesc": "继续以个人会员使用 MPM",
-    "continueWithFree": "继续使用 Free",
-    "continueWithFreeDesc": "基础餐食生成——始终免费",
-    "joinAnotherOrg": "加入其他机构",
-    "joinAnotherOrgDesc": "接受另一家企业的邀请",
-    "accessEnded": "由 {{business}} 赞助的访问权限已结束",
-    "accessEndedBody": "您的个人账户、餐食历史、Academy 进度和证书都还在。请选择如何继续。"
+    "completeVerification": "完成凭证验证",
+    "continueTraining": "继续平台掌握培训",
+    "startOwnPractice": "开始我的实践",
+    "continueAsClient": "继续作为客户",
+    "continueAsClientDesc": "继续使用MPM作为个人会员",
+    "continueWithFree": "继续使用免费版",
+    "continueWithFreeDesc": "基本餐食生成 — 永远免费",
+    "joinAnotherOrg": "加入其他组织",
+    "joinAnotherOrgDesc": "接受来自不同企业的邀请",
+    "accessEnded": "您的{{business}}赞助访问已结束",
+    "accessEndedBody": "您的个人账户、餐食历史、学院进度和认证仍在这里。选择您希望如何继续。"
   },
   "dietStyleBadge": {
-    "kosher": "洁食 ✓",
+    "kosher": "犹太洁食 ✓",
     "halal": "清真 ✓",
-    "vegan": "纯素 ✓",
-    "vegetarian": "素食 ✓",
-    "pescatarian": "鱼素 ✓",
-    "mediterranean": "地中海 ✓",
-    "paleo": "原始饮食 ✓",
-    "keto": "生酮 ✓",
-    "carnivore": "肉食 ✓",
+    "vegan": "素食者 ✓",
+    "vegetarian": "素食者 ✓",
+    "pescatarian": "海鲜素食者 ✓",
+    "mediterranean": "地中海饮食 ✓",
+    "paleo": "古饮食 ✓",
+    "keto": "生酮饮食 ✓",
+    "carnivore": "食肉者 ✓",
     "dairyFree": "无乳制品 ✓",
     "custom": "自定义饮食 ✓"
   },
   "pregnancySupport": {
-    "title": "My Perfect Pregnancy 设置",
-    "intro": "这有助于个性化您的营养指导。您的信息保持私密，并会影响每一次餐食建议、食品安全检查和辅导回应。",
-    "whereAreYou": "您处于旅程的哪个阶段？",
-    "breastfeedingQuestion": "您目前在母乳喂养吗？",
-    "breastfeedingHelp": "这会决定您的营养方向。母乳喂养与产后恢复的重点不同——我们分别处理。",
-    "yesBreastfeeding": "是，母乳喂养",
-    "noBreastfeeding": "否，未母乳喂养",
-    "breastfeedingNote": "您将获得促进泌乳的营养，以及一层帮助愈合与重建的恢复方案。",
-    "postpartumNote": "您将获得专门的产后恢复方案——纤维、抗炎饮食、激素支持和身体重塑。不节食。",
+    "title": "我的完美怀孕设置",
+    "intro": "这有助于个性化您的营养指导。您的信息保持私密，并影响每个餐食建议、食品安全检查和辅导回应。",
+    "whereAreYou": "您在旅程中的哪个阶段？",
+    "breastfeedingQuestion": "您目前在哺乳吗？",
+    "breastfeedingHelp": "这会影响您的营养轨迹。哺乳和产后恢复有不同的优先事项 — 我们会分别处理。",
+    "yesBreastfeeding": "是的，正在哺乳",
+    "noBreastfeeding": "不，未哺乳",
+    "breastfeedingNote": "您将获得乳汁生产营养以及用于愈合和重建的恢复层。",
+    "postpartumNote": "您将获得专门的产后恢复方案 — 纤维、抗炎饮食、激素支持和身体重组。没有快速减肥。",
     "trackByDueDate": "按预产期跟踪？",
-    "trackByDueDateHelp": "输入预产期后，当前周数和孕期会自动更新。您也可跳过并手动跟踪。",
-    "yesEnterDueDate": "是，输入预产期",
-    "skipManual": "跳过——仅手动阶段",
+    "trackByDueDateHelp": "当您输入预产期时，您的当前周和孕期会自动更新。您可以跳过此步骤并手动跟踪。",
+    "yesEnterDueDate": "是的，输入预产期",
+    "skipManual": "跳过 — 仅手动阶段",
     "dueDatePlaceholder": "预产期（YYYY-MM-DD）",
-    "activeSymptoms": "有活跃症状吗？",
-    "activeSymptomsHelp": "选择所有适用项——餐食建议会随之调整。",
-    "disclaimerPart1": "My Perfect Pregnancy 仅提供一般营养教育和餐食结构支持。它不能",
-    "disclaimerNotSubstitute": "替代",
-    "disclaimerPart2": "您的 OB/GYN、助产士或注册营养师。请始终优先遵从您的医疗专业人员的建议。",
-    "saveButton": "保存我的孕期设置",
-    "savingButton": "保存中…",
-    "savedButton": "✓ 已保存！",
-    "turnOff": "关闭孕期营养",
-    "turnOffConfirm": "关闭孕期营养？",
-    "turnOffHelp": "这将从您的餐食和辅导中移除孕期专属指导。您可随时重新开启——不评判、不追问。",
-    "turningOff": "正在关闭…",
-    "yesTurnOff": "是，关闭",
-    "keepItOn": "保持开启",
+    "activeSymptoms": "有任何活跃症状吗？",
+    "activeSymptomsHelp": "选择所有适用的 — 您的餐食建议将适应以支持它们。",
+    "disclaimerPart1": "My Perfect Pregnancy仅提供一般营养教育和食品结构支持。它不是您OB/GYN、助产士或注册营养师的替代品。始终首先遵循您的医疗提供者的建议。",
+    "disclaimerNotSubstitute": "保存我的怀孕设置",
+    "disclaimerPart2": "保存中...",
+    "saveButton": "✓ 已保存！",
+    "savingButton": "关闭怀孕营养",
+    "savedButton": "关闭怀孕营养？",
+    "turnOff": "这将从您的餐食和辅导中移除怀孕特定的指导。您可以在准备好时随时重新开启 — 不会评判，没有问题。",
+    "turnOffConfirm": "正在关闭...",
+    "turnOffHelp": "是的，关闭",
+    "turningOff": "保持开启",
+    "yesTurnOff": "尝试怀孕",
+    "keepItOn": "备孕营养",
     "stage": {
       "tryingToConceive": {
-        "label": "备孕中",
-        "desc": "孕前营养"
+        "label": "第一孕期",
+        "desc": "第1–13周 · 叶酸、恶心支持"
       },
       "trimester1": {
-        "label": "孕早期",
-        "desc": "第 1–13 周 · 叶酸、缓解恶心"
+        "label": "第二孕期",
+        "desc": "第14–27周 · 蛋白质、钙、DHA"
       },
       "trimester2": {
-        "label": "孕中期",
-        "desc": "第 14–27 周 · 蛋白质、钙、DHA"
+        "label": "第三孕期",
+        "desc": "第28–40周 · 铁、DHA、分娩准备"
       },
       "trimester3": {
-        "label": "孕晚期",
-        "desc": "第 28–40 周 · 铁、DHA、产前准备"
+        "label": "哺乳",
+        "desc": "乳汁生产、DHA、碘、钙"
       },
       "breastfeeding": {
-        "label": "母乳喂养",
-        "desc": "泌乳、DHA、碘、钙"
+        "label": "产后",
+        "desc": "恢复、身体重组、激素支持、力量"
       },
       "postpartum": {
-        "label": "产后",
-        "desc": "恢复、身体重塑、激素支持、力量"
+        "label": "恶心",
+        "desc": "胃灼热"
       }
     },
     "symptom": {
-      "nausea": "恶心",
-      "heartburn": "烧心",
-      "constipation": "便秘",
-      "fatigue": "疲劳",
-      "foodAversions": "食物厌恶",
-      "swelling": "水肿",
-      "shortnessOfBreath": "气短",
-      "lowAppetite": "食欲不振"
+      "nausea": "便秘",
+      "heartburn": "疲劳",
+      "constipation": "食物厌恶",
+      "fatigue": "肿胀",
+      "foodAversions": "呼吸急促",
+      "swelling": "肿胀",
+      "shortnessOfBreath": "您今天感觉怎么样？",
+      "lowAppetite": "今天没有提交症状检查。您的餐食使用的是您的标准药物档案。"
     }
   },
   "glp1Checkin": {
-    "howFeeling": "您今天感觉如何？",
-    "noCheckinToday": "今天还未提交症状签到。您的餐食正使用标准用药档案。",
-    "checkInPrompt": "签到以调整今天的餐食、奶昔和餐厅建议。",
-    "checkIn": "签到",
+    "howFeeling": "检查以调整今天的餐食、奶昔和餐厅建议。",
+    "noCheckinToday": "检查",
+    "checkInPrompt": "更新",
+    "checkIn": "打卡",
     "update": "更新",
-    "updated": "更新于{{time}}",
-    "escalationStatusBody": "这些症状可能需要就医评估。请尽快联系您的医疗专业人员或护理团队。",
-    "mealsAdapting": "餐食正在适应今天的症状",
+    "mealsAdapting": "餐点适应今天的症状",
     "updatedTapAdjustments": "更新于{{time}} · 点击查看调整",
-    "noSymptomsToday": "今天未报告症状",
-    "updatedStandardProfile": "更新于{{time}} · 标准用药档案启用",
-    "escalationCardBody": "这些症状可能需要就医评估。请联系您的护理团队。",
-    "nutritionAdjustments": "今日营养调整（{{count}}）",
+    "noSymptomsToday": "今天没有报告症状",
+    "updatedStandardProfile": "更新于{{time}} · 标准药物档案已激活",
+    "escalationCardBody": "这些症状可能需要医学评估。请联系您的护理团队。",
+    "nutritionAdjustments": "今天的营养调整（{{count}}）",
     "reason": "原因",
-    "adaptation": "调整",
-    "evidence": "依据",
+    "adaptation": "适应",
+    "evidence": "证据",
     "justNow": "刚刚",
-    "minutesAgo": "{{count}} 分钟前",
-    "hoursAgo": "{{count}} 小时前",
-    "giSymptomsHeader": "胃肠症状——今天有多严重？",
+    "minutesAgo": "{{count}}分钟前",
+    "hoursAgo": "{{count}}小时前",
+    "giSymptomsHeader": "胃肠症状 — 今天有多严重？",
     "otherSymptomsHeader": "其他症状",
     "vomitingHeader": "今天呕吐",
-    "quickQuestionsHeader": "几个简短问题",
-    "notifyHeader": "要让护理团队知道吗？",
-    "notifyHelp": "可选——由您决定今天通知谁。",
-    "updatesThroughoutDay": "这会全天更新。",
-    "updatesThroughoutDayBody": "如果稍后好转，欢迎再次签到——餐食会立即调整。签到每天早上重置。",
+    "quickQuestionsHeader": "几个快速问题",
+    "notifyHeader": "您希望您的护理团队知道吗？",
+    "notifyHelp": "可选 — 让您控制今天通知谁。",
+    "updatesThroughoutDay": "这会在一天中不断更新。",
+    "updatesThroughoutDayBody": "如果您稍后感觉好些，请回来再次检查 — 您的餐点会立即适应。您的签到每天早上重置。",
     "cancel": "取消",
     "saving": "保存中…",
     "saveCheckIn": "保存签到",
@@ -3665,7 +3789,7 @@
       "nausea": "恶心",
       "constipation": "便秘",
       "diarrhea": "腹泻",
-      "reflux": "烧心/反流",
+      "reflux": "胃灼热/反流",
       "bloating": "腹胀",
       "earlyFullness": "早饱",
       "foodAversions": "食物厌恶",
@@ -3676,13 +3800,13 @@
     "vomiting": {
       "none": "无",
       "once": "一次",
-      "multiple": "2–3 次",
-      "cantKeepFluids": "4+ 次 / 无法留住液体"
+      "multiple": "2-3次",
+      "cantKeepFluids": "4次以上 / 无法保持液体"
     },
     "q": {
-      "keepFluids": "能留住液体吗？",
-      "eatWithoutWorsening": "能进食而症状不加重吗？",
-      "reducedUrination": "排尿是否明显比平时少？",
+      "keepFluids": "您能保持液体吗？",
+      "eatWithoutWorsening": "您能在没有症状加重的情况下进食吗？",
+      "reducedUrination": "您的尿量是否比平时少得多？",
       "symptomTrend": "您的症状趋势如何？",
       "appetite": "您今天的食欲如何？"
     },
@@ -3693,59 +3817,134 @@
       "partially": "部分"
     },
     "trend": {
-      "improving": "好转",
-      "same": "不变",
-      "worsening": "加重",
+      "improving": "改善",
+      "same": "相同",
+      "worsening": "恶化",
       "na": "不确定"
     },
     "appetite": {
-      "suppressed": "无食欲",
-      "reduced": "减弱",
+      "suppressed": "没有食欲",
+      "reduced": "减少",
       "normal": "正常",
-      "increased": "增强"
+      "increased": "增加"
     },
     "notify": {
-      "keepPrivate": "否，保持私密",
+      "keepPrivate": "不，保持私密",
       "coach": "通知我的教练",
-      "both": "两者都通知"
-    }
+      "both": "同时通知两者"
+    },
+    "updated": "已更新 {{time}}",
+    "escalationStatusBody": "这些症状可能需要医学评估。请及时联系您的医疗服务提供者或护理团队。"
   },
   "joinStudio": {
+    "loading": "加载您的邀请…",
+    "connecting": "正在连接到工作室…",
+    "tokenNotFound": "未找到邀请令牌。请使用您邀请电子邮件中的链接。",
+    "notFound": "未找到此邀请。它可能已过期或已被使用。",
+    "loadError": "无法加载邀请详情。请再试一次。",
+    "loadErrorRetry": "无法加载邀请详情。请检查您的连接并再试一次。",
+    "connectionError": "连接错误。请检查您的连接并再试一次。",
+    "defaultError": "出现问题。请再试一次。",
+    "invitationTitle": "ProCare邀请",
+    "invitedBy": "{{proName}}邀请您加入他们的ProCare {{spaceLabel}}。",
+    "sentTo": "此邀请已发送至{{email}}。请确保您使用该帐户登录。",
+    "joinButton": "加入{{spaceLabel}}",
+    "joinNote": "连接后，您的{{roleLabel}}可以通过平台指导您的营养和进展。",
+    "successTitle": "您已连接！",
+    "successMessage": "您已成功加入{{studioName}}。您的教练现在可以通过平台与您合作。",
+    "goToApp": "前往My Perfect Meals",
+    "wrongAccountTitle": "错误的帐户",
+    "wrongAccountMessage": "此邀请已发送至{{email}}。您当前使用的是不同的帐户登录。",
+    "wrongAccountNote": "请注销并使用正确的电子邮件地址登录，然后再次点击邀请链接。",
+    "backToApp": "返回应用",
+    "expiredTitle": "邀请已过期",
+    "expiredMessage": "此邀请已过期。请让您的教练发送一个新的。只需片刻。",
+    "backupCodeNote": "您也可以在应用设置中手动输入您的备份代码。",
+    "alreadyAcceptedTitle": "已连接",
+    "alreadyAcceptedMessage": "邀请已被使用。如果您没有看到您的教练工作室，请尝试刷新应用。",
+    "subscriptionRequiredTitle": "需要订阅",
+    "subscriptionRequiredMessage": "与ProCare提供者连接需要临床订阅。",
+    "viewPlans": "查看计划",
+    "trainerNotSubscribedTitle": "教练未订阅",
+    "trainerNotSubscribedMessage": "您的教练ProCare订阅当前未激活。请告知他们，并在解决后请他们重新邀请您。",
+    "errorTitle": "出现问题",
+    "spaceLabel": {
+      "studio": "工作室",
+      "clinic": "诊所"
+    },
+    "roleLabel": {
+      "trainer": "教练",
+      "doctor": "医生"
+    },
     "appName": "My Perfect Meals",
-    "loading": "Loading your invitation…",
     "joining": "Connecting you to the studio…",
     "inviteTitle": "ProCare Invitation",
     "invitedBySuffix": " has invited you to join their ProCare {{spaceLabel}}.",
     "inviteAddress": "This invitation was sent to",
     "inviteAddressSuffix": "Make sure you’re signed in with that account.",
-    "joinButton": "Join {{spaceLabel}}",
     "joinDisclaimer": "Once connected, your {{roleLabel}} can guide your nutrition and progress through the platform.",
-    "successTitle": "You’re Connected!",
     "successBody": "You’ve successfully joined {{studioName}}. Your trainer can now work with you through the platform.",
-    "goToApp": "Go to My Perfect Meals",
-    "wrongAccountTitle": "Wrong Account",
     "wrongAccountAddress": "This invitation was sent to",
     "wrongAccountDiffAccount": "You’re currently signed in with a different account.",
     "wrongAccountHint": "Sign out and sign in with the correct email address, then click the invitation link again.",
-    "backToApp": "Back to App",
-    "expiredTitle": "Invitation Expired",
     "expiredBody": "This invitation has expired. Ask your trainer to send a new one — it only takes a moment.",
     "backupCodeHint": "You can also enter your backup code manually:",
     "backupCodePath": "More → Connect with Access Code",
     "alreadyConnectedTitle": "Already Connected",
     "alreadyConnectedBody": "This invitation has already been used. If you’re not seeing your trainer’s studio, try refreshing the app.",
-    "subscriptionRequiredTitle": "Subscription Required",
     "subscriptionRequiredBody": "Connecting with a ProCare provider requires a Clinical (Ultimate) subscription.",
-    "viewPlans": "View Plans",
-    "trainerNotSubscribedTitle": "Trainer Not Subscribed",
     "trainerNotSubscribedBody": "Your trainer’s ProCare subscription is not currently active. Let them know and ask them to re-invite you once it’s resolved.",
-    "errorTitle": "Something Went Wrong",
     "errorFallback": "Please try again.",
     "errorNoToken": "No invitation token found. Please use the link from your invitation email.",
     "errorNotFound": "This invitation was not found. It may have expired or already been used.",
     "errorLoadDetails": "Could not load invitation details. Please try again.",
     "errorLoadDetailsNetwork": "Could not load invitation details. Please check your connection and try again.",
     "errorConnectionIssue": "Connection error. Please check your connection and try again.",
-    "errorGenericFallback": "Something went wrong. Please try again."
+    "errorGenericFallback": "Something went wrong. Please try again.",
+    "anotherAddress": "另一个地址",
+    "labelStudio": "工作室",
+    "labelClinic": "诊所",
+    "roleTrainer": "教练",
+    "roleDoctor": "医生"
+  },
+  "businessCenterSection": {
+    "backBtn": "商业套件",
+    "affiliate": {
+      "title": "附属机会",
+      "description": "附属计划和认证正在最终确定中。一旦推出，您将能够赚取佣金、访问营销资产并跟踪您的推荐 — 所有这些都在My Perfect Meals内。",
+      "eta": "与附属认证一起推出"
+    },
+    "academy": {
+      "title": "商业成功学院",
+      "description": "一个完整的课程，用于使用My Perfect Meals平台构建和扩展您的营养辅导业务。课程、评估和资格 — 即将推出。",
+      "eta": "与平台认证一起推出"
+    },
+    "industry": {
+      "title": "行业与战略合作伙伴关系",
+      "description": "我们与补充公司、营养品牌、健身组织、认证机构和软件平台合作，建立有意义的集成和联合品牌机会。",
+      "eta": "联系我们以探索战略合作伙伴关系"
+    },
+    "whiteLabel": {
+      "title": "白标机会",
+      "description": "有兴趣为您的组织或品牌许可My Perfect Meals平台吗？我们很乐意交谈。白标合作伙伴关系由专人处理 — 请在下面联系。",
+      "eta": "联系我们以开始对话"
+    },
+    "partnerships": {
+      "title": "医疗保健与临床合作伙伴关系",
+      "description": "我们与医生、注册营养师、诊所、医院和患者护理组织合作，将My Perfect Meals集成到临床和护理工作流程中。",
+      "eta": "联系我们以探索临床合作伙伴选项"
+    }
+  },
+  "procareInfo": {
+    "title": "ProCare辅导",
+    "back": "返回",
+    "backToPlans": "返回计划",
+    "description": "有时候，营养中最困难的部分是知道在当下做出什么决定。ProCare 将您与 My Perfect Meals 系统中的专业教练连接起来。",
+    "bullets": {
+      "messaging": "与您的教练直接消息",
+      "guidance": "结构化的决策指导",
+      "macros": "帮助调整餐点和宏量营养素",
+      "support": "当现实生活变得复杂时提供支持"
+    }
   }
 }

@@ -6,6 +6,9 @@ const config: Config = {
   roots: ["<rootDir>/server/tests", "<rootDir>/client/src/lib/__tests__"],
   moduleFileExtensions: ["ts", "tsx", "js", "json"],
   moduleNameMapper: {
+    // Sentry uses `import.meta.env` which Jest cannot parse; redirect all
+    // suites to a no-op stub so they don't fail on transitive imports.
+    "^@/lib/sentry$": "<rootDir>/client/src/lib/__mocks__/sentry.ts",
     "^@/(.*)$": "<rootDir>/client/src/$1",
     "^@shared/(.*)$": "<rootDir>/shared/$1",
   },

@@ -1465,6 +1465,16 @@ async function initializeApp() {
         }
       }, 5400);
 
+      // Meal image validation — validation columns on meal_image_cache
+      setTimeout(async () => {
+        try {
+          const { runMealImageValidationMigration } = await import("./db/migrations/runMealImageValidationMigration");
+          await runMealImageValidationMigration();
+        } catch (err: any) {
+          console.error("❌ [prod] Meal image validation boot migration failed:", err.message);
+        }
+      }, 5500);
+
       // Daily Nutrition State migration (#690)
       // Adds: daily_nutrition_prescriptions meal-plan snapshot cols + macro_logs.board_item_reference
       setTimeout(async () => {

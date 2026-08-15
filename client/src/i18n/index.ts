@@ -15,6 +15,7 @@ import hi from "./locales/hi.json";
 import ru from "./locales/ru.json";
 import vi from "./locales/vi.json";
 import tl from "./locales/tl.json";
+import xq from "./locales/xq.json";
 
 /** Languages that read right-to-left. */
 const RTL_LANGS = new Set(["ar", "he", "fa", "ur"]);
@@ -43,6 +44,7 @@ i18n.use(initReactI18next).init({
     ru: { ...ru, translation: ru },
     vi: { ...vi, translation: vi },
     tl: { ...tl, translation: tl },
+    xq: { ...xq, translation: xq },
   },
   lng: "en",
   fallbackLng: "en",
@@ -52,6 +54,14 @@ i18n.use(initReactI18next).init({
 // Apply direction immediately for the initial language, then track all changes.
 applyDocumentDir(i18n.language);
 i18n.on("languageChanged", applyDocumentDir);
+
+// Expose on window so Playwright and other test tools can call i18n.changeLanguage().
+// Both keys are supported: window.i18n (our convention) and window.i18next (used in
+// some existing e2e specs that reference the i18next instance by its library name).
+if (typeof window !== "undefined") {
+  (window as any).i18n = i18n;
+  (window as any).i18next = i18n;
+}
 
 export default i18n;
 

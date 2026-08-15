@@ -70,9 +70,9 @@
     "logMeal": "I-log ang Pagkain",
     "addToCalendar": "Idagdag sa kalendaryo",
     "bringBackChef": "Ibalik ang iyong chef",
-    "comingSoon": "Malapit nang dumating",
-    "withChef": "Kasama ang Chef",
-    "today": "Ngayon:"
+    "comingSoon": "Malapit na",
+    "today": "Ngayon:",
+    "withChef": "Kasama si Chef"
   },
   "language": {
     "pageTitle": "Wika",
@@ -396,7 +396,7 @@
     "ingredientsServes": "Mga Sangkap (para sa {{count}})",
     "noIngredients": "Walang ibinigay na mga sangkap",
     "noInstructions": "Walang ibinigay na mga tagubilin",
-    "couldNotUpdateFavorites": "Hindi ma-update ang mga paborito. Subukang muli."
+    "couldNotUpdateFavorites": "Hindi ma-update ang mga paborito. Subukan muli."
   },
   "shopping": {
     "pageTitle": "Matalinong Listahan ng Pamimili",
@@ -453,24 +453,30 @@
     "findProduct": {
       "tabBuildMeal": "Gumawa ng Pagkain",
       "tabFindProduct": "Maghanap ng Produkto",
-      "inputLabel": "Ano ang binibili mo?",
-      "inputPlaceholder": "hal. spaghetti sauce, protein bars, gatas…",
-      "voiceStart": "Sabihin ang iyong hiling",
+      "inputLabel": "Ano ang iyong hinahanap na bilhin?",
+      "inputPlaceholder": "hal. sarsa ng spaghetti, protein bars, gatas…",
+      "voiceStart": "Sabihin ang iyong kahilingan",
       "voiceStop": "Itigil ang pakikinig",
-      "voiceUnsupported": "Hindi suportado ang voice input sa device na ito",
-      "searching": "Hinahanap ang pinakamahusay na mga produkto para sa iyo…",
+      "voiceUnsupported": "Hindi sinusuportahan ang voice input sa device na ito",
+      "searching": "Naghahanap ng pinakamahusay na produkto para sa iyo…",
       "resultsFor": "Pinakamahusay na pagpipilian para sa “{{query}}”",
-      "usualPick": "Ang karaniwan mong pinipili",
+      "usualPick": "Ang iyong karaniwang pinili",
       "alternatives": "Mga alternatibo",
       "save": "I-save",
-      "saved": "Na-save ✓",
-      "saving": "Sine-save…",
-      "addToList": "Idagdag sa Listahan ng Bibilhin",
+      "saved": "Nai-save ✓",
+      "saving": "Sinasave…",
+      "addToList": "Idagdag sa Shopping List",
       "added": "Naidagdag!",
-      "compareAnother": "Ikumpara ang Iba",
+      "compareAnother": "Ikumpara ang Isa Pa",
       "errorGeneric": "Hindi makuha ang payo sa produkto ngayon. Pakisubukang muli.",
-      "noResults": "Walang payo sa brand para sa item na iyan — subukan ang mas tiyak na nakapaketeng produkto.",
+      "noResults": "Walang available na payo sa brand para sa item na iyon — subukan ang mas tiyak na naka-package na produkto.",
       "avoid": "Iwasan"
+    },
+    "smartCart": {
+      "pick": "Piliin",
+      "picked": "✓ Napili",
+      "brandsSummary_one": "1 brand ang napili — i-tap ang ‘Idagdag Lahat’ para isama ito sa iyong listahan",
+      "brandsSummary_other": "{{count}} brand ang napili — i-tap ang ‘Idagdag Lahat’ para isama ang mga ito sa iyong listahan"
     }
   },
   "restaurant": {
@@ -1662,7 +1668,15 @@
       "step3Desc": "Tapos na ang iyong pagsasanay. I-activate ang iyong propesyonal na studio at magsimulang makipagtulungan sa mga kliyente.",
       "step3Phase2Title": "Yugto 2: Mga Advanced na Tool",
       "step3Phase2Desc": "I-unlock ang mga advanced na klinikal at coaching tool para sa mas malalim na suporta sa kliyente.",
-      "step3Button": "I-activate ang studio"
+      "step3Button": "I-activate ang studio",
+      "personalProfileStep": "I-set up ang iyong personal na nutrition profile",
+      "firstMealPlan": "Bumuo ng iyong unang AI-powered meal plan",
+      "learningItems": {
+        "clientMgmt": "Pamamahala ng mga kliyente at care plans",
+        "questionnaires": "Mga propesyonal na questionnaire",
+        "communication": "Komunikasyon sa Studio at kliyente",
+        "revenue": "Pagbuo ng paulit-ulit na kita"
+      }
     },
     "launchpad": {
       "certifiedBadge": "Sertipikado",
@@ -1671,7 +1685,52 @@
       "enterStudio": "Pumasok sa Studio",
       "quickLinks": "Mga mabilisang link",
       "resumeCertification": "Ipagpatuloy ang sertipikasyon",
-      "resumePhase2": "Ipagpatuloy ang Yugto 2"
+      "resumePhase2": "Ipagpatuloy ang Yugto 2",
+      "gridCards": {
+        "clientStudio": {
+          "label": "Client Studio",
+          "sub": "Pamahalaan ang mga kliyente at meal plans"
+        },
+        "businessCenter": {
+          "label": "Business Center",
+          "sub": "Affiliate, Academy, Partners"
+        },
+        "certifications": {
+          "label": "Mga Sertipikasyon",
+          "sub": "Tingnan at palawakin ang iyong pagsasanay"
+        },
+        "affiliateProgram": {
+          "label": "Affiliate Program",
+          "sub": "Kumita ng 25% sa bawat referral"
+        }
+      },
+      "quickLink": {
+        "questionnaires": "Mga Questionnaire",
+        "businessCenter": "Business Center",
+        "certifications": "Aking mga Sertipikasyon",
+        "affiliate": "Affiliate Dashboard"
+      },
+      "stepRow": {
+        "personalProfile": {
+          "label": "Personal na Profile",
+          "sub": "Maranasan ang MPM bilang isang user"
+        },
+        "phase1": {
+          "label": "Phase 1 — Mga Batayan ng Platform",
+          "sub": "Masterin ang bawat tampok ng platform"
+        },
+        "phase2": {
+          "label": "Phase 2 — Tagumpay sa Negosyo at ProCare",
+          "sub": "Bumuo at palaguin ang iyong praktis"
+        }
+      },
+      "personalProfileSetup": "Setup ng Personal na Profile",
+      "phase1Label": "Phase 1 — Mga Batayan ng Platform",
+      "welcomeBack": "Maligayang pagbabalik",
+      "percentComplete": "{{pct}}% Kumpleto",
+      "stepOf": "Hakbang {{completed}} ng {{total}}",
+      "current": "Kasalukuyan",
+      "backToBC": "Business Center"
     },
     "welcome": {
       "back": "Bumalik",
@@ -1683,7 +1742,56 @@
       "completeUnlock": "Kumpletuhin para ma-unlock",
       "continueButton": "Magpatuloy",
       "phase2Label": "Yugto 2",
-      "progress": "Pag-unlad"
+      "progress": "Pag-unlad",
+      "sections": {
+        "overview": {
+          "title": "Maligayang pagdating sa ProCare",
+          "subtitle": "Ang iyong papel sa platform",
+          "highlight": "Ang ProCare ay isang tool na nagpapalawak ng iyong praktis — hindi kapalit ng iyong klinikal na pagsasanay.",
+          "b1": "Ang ProCare ay nagbibigay sa iyo ng isang nakalaang workspace upang pamahalaan ang mga kliyente, bumuo ng mga personalized na meal plans, at subaybayan ang progreso — lahat sa loob ng My Perfect Meals.",
+          "b2": "Bilang isang propesyonal sa ProCare, ikaw ay kumikilos sa loob ng isang nakabalangkas na hierarchy: ang mga medikal na kinakailangan ay laging may priyoridad, kasunod ang dietary identity, cultural preference, at behavioral preference.",
+          "b3": "Ikaw ang responsable para sa gabay na iyong ibinibigay. Ang platform ay nagpapalakas ng iyong kadalubhasaan — hindi nito pinapalitan ang iyong propesyonal na paghatol.",
+          "b4": "Makikita ng iyong mga kliyente ang mga meal plans, dietary tracking, at mga AI-generated na pagkain na naaayon sa mga protocol na iyong itinakda. Ang iyong trabaho ay itakda ang mga protocol na iyon nang tama at i-update ang mga ito habang umuunlad ang mga pangangailangan ng kliyente."
+        },
+        "clients": {
+          "title": "Pamamahala ng Kliyente",
+          "subtitle": "Onboarding at patuloy na pangangalaga",
+          "highlight": "Panatilihing kasalukuyan ang mga profile ng kliyente. Ang mga stale na protocol ay nagdudulot ng hindi pagkakatugma sa mga AI-generated na pagkain.",
+          "b1": "Ang mga kliyente ay idinadagdag sa iyong roster mula sa Studio. Maaari mo silang imbitahan sa pamamagitan ng email, magtalaga ng mga meal builders, at i-configure ang kanilang dietary profile mula sa iyong ProCare dashboard.",
+          "b2": "Bawat kliyente ay may indibidwal na protocol card kung saan itinatakda mo ang kanilang calorie at macro targets, dietary restrictions, clinical mode (kung naaangkop), at mga kagustuhan sa cuisine.",
+          "b3": "Ang mga meal boards ay nagpapahintulot sa iyo na pre-build o aprubahan ang mga pagkain para sa iyong mga kliyente. Maaaring tingnan at i-log ng mga kliyente ang mga aprubadong pagkain nang direkta sa kanilang app.",
+          "b4": "Gamitin ang messaging feature upang makipag-ugnayan sa mga kliyente sa loob ng platform. Ang mga tablet notes ay nagbibigay sa iyo ng isang pribadong espasyo upang idokumento ang progreso at mga obserbasyon ng kliyente.",
+          "b5": "Ang data ng kliyente — kabilang ang biometrics, meal logs, at progress notes — ay nakikita lamang sa iyo at sa kliyente. Hindi ito kailanman ibinabahagi sa ibang mga propesyonal o ikatlong partido."
+        },
+        "safety": {
+          "title": "Kaligtasan at Protocol Guardrails",
+          "subtitle": "Paano pinoprotektahan ng platform ang iyong mga kliyente",
+          "highlight": "Kapag may pagdududa, mas mabuting magkamali sa panig ng mas mahigpit na setting. Ang mga kliyente ay palaging maaaring humiling ng higit na kakayahang umangkop sa isang follow-up session.",
+          "b1": "Ang 4-Layer Constraint Hierarchy ay namamahala sa lahat ng AI meal generation: (1) Ang mga medikal na kinakailangan ay absolute. (2) Ang dietary identity ay ipinatutupad. (3) Ang mga cultural at cuisine preferences ay humuhubog sa output. (4) Ang mga behavioral preferences ay inilalapat sa huli.",
+          "b2": "Ang mga halaga ng macro ay hindi kailanman imbento ng AI. Kung ang isang macro ay hindi alam, ito ay iiwanang null — hindi tinatayang o pinuno.",
+          "b3": "Ang mga klinikal na sensitibong mode — tulad ng Oncology Support at Anti-Inflammatory protocols — ay nagpapatupad ng mahigpit na mga paghihigpit sa sangkap sa antas ng henerasyon. Ang mga ito ay hindi maaaring i-disable ng kliyente.",
+          "b4": "Ang mga kagustuhan sa init, pampalasa, at texture ay maaaring mapawalang-bisa ng mga patakaran sa kaligtasan ng klinikal kapag ang isang medikal na kondisyon ay ginagawang hindi ligtas ang ilang mga input.",
+          "b5": "Kung magbibigay ka ng isang klinikal na protocol, tiyakin na mayroon kang propesyonal na batayan upang gawin ito. Ang mga protocol sa antas ng doktor ay nangangailangan ng access sa papel ng doktor."
+        },
+        "standards": {
+          "title": "Mga Propesyonal na Pamantayan",
+          "subtitle": "Etika, pananagutan, at pinakamahusay na mga kasanayan",
+          "highlight": "Ang iyong propesyonal na reputasyon ang pinakamahalagang asset sa iyong ProCare practice. Ang platform ay sumasalamin sa iyo.",
+          "b1": "Ikaw ay nagpatunay sa pag-sign up sa katumpakan ng iyong mga propesyonal na kredensyal. Ang maling representasyon ng mga kredensyal ay dahilan para sa agarang pagtanggal mula sa platform.",
+          "b2": "Huwag kailanman gamitin ang ProCare upang mag-diagnose, mag-treatment, o magpagaling ng isang medikal na kondisyon. Ang nutritional guidance ay sumusuporta, hindi nakapagpapagaling.",
+          "b3": "Panatilihin ang tumpak, napapanahong mga profile ng kliyente. I-dokumento ang mga pagbabago kapag ang medikal na sitwasyon, mga layunin, o dietary identity ng kliyente ay nagbago.",
+          "b4": "Igagalang ang awtonomiya ng kliyente. Pinapayagan ka ng ProCare na magrekomenda at magpataw ng mga paghihigpit, ngunit ang mga kliyente ay may karapatang gumawa ng kanilang sariling mga desisyon sa pagkain sa labas ng mga klinikal na ipinapatupad na mga guardrails.",
+          "b5": "Kung sa tingin mo ay nasa krisis ang isang kliyente, utusan silang makipag-ugnayan sa mga serbisyong pang-emergency agad. Ang platform ay hindi isang tool para sa interbensyon sa krisis."
+        },
+        "complete": {
+          "title": "Handa Ka Na",
+          "subtitle": "Pangwakas na pagkilala",
+          "highlight": "Maligayang pagdating sa ProCare. Umaasa ang iyong mga kliyente sa iyo.",
+          "b1": "Nirepaso mo ang mga pangunahing prinsipyo ng operasyon ng ProCare, daloy ng pamamahala ng kliyente, mga guardrails sa kaligtasan, at mga propesyonal na pamantayan.",
+          "b2": "Sa pamamagitan ng pagkumpleto ng pagsasanay na ito, kinikilala mo na nauunawaan mo ang iyong mga responsibilidad bilang isang propesyonal sa ProCare at gagamitin mo ang platform alinsunod sa mga prinsipyong ito.",
+          "b3": "Ang iyong Studio ay agad na magbubukas pagkatapos mong kumpletuhin ang pagsasanay na ito. Maaari ka nang magsimulang magdagdag ng mga kliyente, bumuo ng mga meal plan, at i-configure ang mga protocol ng kliyente kaagad."
+        }
+      }
     },
     "rewards": {
       "back": "Bumalik",
@@ -1707,7 +1815,25 @@
       "nextStepsTitle": "Ang iyong mga susunod na hakbang",
       "subtitle": "Nakumpleto mo na ang sertipikasyon sa ProCare at na-unlock ang ganap na access sa iyong propesyonal na studio.",
       "title": "Kumpleto na ang Sertipikasyon",
-      "unlockedTitle": "Naka-unlock na ang Studio"
+      "unlockedTitle": "Naka-unlock na ang Studio",
+      "features": {
+        "studio": "Propesyonal na Studio",
+        "clientMgmt": "Pamamahala ng Kliyente",
+        "carePlans": "Mga Plano ng Pangangalaga",
+        "questionnaires": "Mga Propesyonal na Questionnaire",
+        "businessCenter": "Sentro ng Negosyo",
+        "affiliateResources": "Mga Mapagkukunan ng Affiliate",
+        "marketing": "Mga Materyales sa Marketing",
+        "education": "Patuloy na Edukasyon"
+      },
+      "nextStep": {
+        "profile": "Kumpletuhin ang iyong propesyonal na profile",
+        "firstClient": "Lumikha ng iyong unang kliyente",
+        "inviteClient": "Imbitahan ang iyong unang kliyente sa platform",
+        "mealPlan": "Bumuo ng iyong unang meal plan",
+        "affiliate": "I-set up ang iyong affiliate account upang kumita ng komisyon",
+        "businessCenter": "Tuklasin ang Sentro ng Negosyo"
+      }
     }
   },
   "trainerCareTeam": {
@@ -2402,8 +2528,8 @@
       "signIn": "Mag-sign In"
     },
     "errorBoundary": {
-      "title": "May naganap na mali",
-      "description": "Nagkakaroon kami ng problema sa pag-load ng pahinang ito. Mangyaring i-refresh at subukan muli.",
+      "title": "May nangyaring mali",
+      "description": "May problema kami sa pag-load ng pahinang ito. Pakirefresh at subukang muli.",
       "refresh": "I-refresh ang Pahina"
     },
     "dateSlotPicker": {
@@ -2413,57 +2539,24 @@
       "breakfast": "Almusal",
       "lunch": "Tanghalian",
       "dinner": "Hapunan",
-      "snack": "Meryenda"
+      "snack": "Merienda"
     },
     "dailyNutritionTracker": {
-      "title": "Pang-araw-araw na Progreso sa Nutrisyon",
-      "description": "Subaybayan ang iyong pang-araw-araw na pagsasabuhay ng nutrisyon",
+      "title": "Araw-araw na Pag-unlad sa Nutrisyon",
+      "description": "Subaybayan ang iyong araw-araw na pagkuha ng nutrisyon",
       "calories": "Mga Calorie",
       "protein": "Protina",
-      "carbohydrates": "Mga Karbohidrato",
+      "carbohydrates": "Carbohydrates",
       "fat": "Taba",
-      "onTrack": "Nasa tamang landas ka patungo sa iyong mga pang-araw-araw na layunin!"
+      "onTrack": "Nasa tamang landas sa iyong mga layunin sa araw-araw!"
     },
     "pagination": {
-      "label": "pahina-pahina",
+      "label": "pagsusunod-sunod",
       "previousPage": "Pumunta sa nakaraang pahina",
       "previous": "Nakaraan",
       "nextPage": "Pumunta sa susunod na pahina",
       "next": "Susunod",
-      "morePages": "Marami pang pahina"
-    },
-    "mealCard": {
-      "noRecipe": "Walang recipe",
-      "addMeal": "Magdagdag ng pagkain",
-      "serving": "Sukat ng Pagkain:",
-      "ingredients": "Mga Sangkap:",
-      "cookingInstructions": "Mga Tagubilin sa Pagluluto:",
-      "protein": "Protina",
-      "carbs": "Mga Karbohidrato",
-      "fat": "Taba"
-    },
-    "nutritionSummary": {
-      "title": "Buod ng Nutrisyon",
-      "empty": "Gumawa ng plano sa pagkain upang makita ang iyong buod ng nutrisyon",
-      "weeklyOverview": "Lingguhang Pangkalahatang-tanaw",
-      "totalCalories": "Kabuuang Mga Calorie",
-      "dailyAverage": "Pang-araw-araw na Average",
-      "totalProtein": "Kabuuang Protina",
-      "daysPlanned": "Mga Araw na Pinlano",
-      "dailyTargets": "Pang-araw-araw na Mga Target",
-      "calories": "Mga Calorie",
-      "protein": "Protina",
-      "carbohydrates": "Mga Karbohidrato",
-      "fat": "Taba",
-      "targetMet": "Naabot ang target",
-      "goalProgress": "Progreso sa Layunin",
-      "fitnessGoal": "Layunin sa Fitness",
-      "activityLevel": "Antas ng Aktibidad",
-      "dietaryPreferences": "Mga Kagustuhan sa Pagkain",
-      "balanceScore": "Marka ng Balanse",
-      "percentOfTarget": "{{n}}% ng target",
-      "remainingCal": "{{n}} natitira",
-      "remainingG": "{{n}}g natitira"
+      "morePages": "Higit pang mga pahina"
     },
     "enhancedMealCard": {
       "replace": "Palitan",
@@ -2475,6 +2568,39 @@
       "instructions": "Mga Tagubilin:",
       "medicalSafety": "Medikal na Kaligtasan:",
       "error": "Pagkakamali:"
+    },
+    "mealCard": {
+      "noRecipe": "Walang resipe",
+      "addMeal": "Magdagdag ng pagkain",
+      "serving": "Paghahain:",
+      "ingredients": "Mga Sangkap:",
+      "cookingInstructions": "Mga Tagubilin sa Pagluluto:",
+      "protein": "Protina",
+      "carbs": "Carbs",
+      "fat": "Taba"
+    },
+    "nutritionSummary": {
+      "title": "Buod ng Nutrisyon",
+      "empty": "Gumawa ng plano ng pagkain upang makita ang iyong buod ng nutrisyon",
+      "weeklyOverview": "Lingguhang Pangkalahatang-ideya",
+      "totalCalories": "Kabuuang Calorie",
+      "dailyAverage": "Araw-araw na Average",
+      "totalProtein": "Kabuuang Protina",
+      "daysPlanned": "Mga Araw na Naka-iskedyul",
+      "dailyTargets": "Araw-araw na Target",
+      "calories": "Mga Calorie",
+      "protein": "Protina",
+      "carbohydrates": "Carbohydrates",
+      "fat": "Taba",
+      "targetMet": "Namit ang target",
+      "goalProgress": "Pag-unlad ng Layunin",
+      "fitnessGoal": "Layunin sa Kalusugan",
+      "activityLevel": "Antas ng Aktibidad",
+      "dietaryPreferences": "Mga Kagustuhan sa Diet",
+      "balanceScore": "Iskor ng Balanse",
+      "percentOfTarget": "{{n}}% ng target",
+      "remainingCal": "{{n}} natitira",
+      "remainingG": "{{n}}g natitira"
     }
   },
   "remainingMacros": {
@@ -2874,7 +3000,7 @@
     "unitPlaceholder": "yunit",
     "sections": {
       "peptides": "Peptides",
-      "hormones": "Hormones",
+      "hormones": "Hormona",
       "medications": "Mga Gamot na Nakakaapekto sa Nutrisyon",
       "therapies": "Mga Terapiya",
       "recovery": "Mga Layunin sa Recovery"
@@ -2891,10 +3017,10 @@
     "therapyOptions": {
       "connectiveTissue": "Recovery ng Connective Tissue",
       "gutSupport": "Suporta sa Bituka",
-      "redLight": "Red Light Therapy",
+      "redLight": "Pula na Liwanag na Terapiya",
       "sauna": "Sauna / Heat Recovery",
-      "cold": "Cold Therapy / Ice Bath",
-      "iv": "IV Nutrient Therapy"
+      "cold": "Malamig na Terapiya / Paliguan ng Yelo",
+      "iv": "IV Nutrient Terapiya"
     },
     "recoveryGoals": {
       "joint": "Recovery ng Kasukasuan",
@@ -2931,9 +3057,9 @@
     },
     "sections": {
       "cardiac": "Cardiac & Metabolic",
-      "hormonal": "Hormonal / Stress & Sex Hormones",
+      "hormonal": "Hormonal / Stress at Sex Hormones",
       "liver": "Liver Panel",
-      "thyroid": "Thyroid Panel",
+      "thyroid": "Panel ng Thyroid",
       "kidney": "Kidney / Renal",
       "inflammation": "Inflammation & Recovery",
       "oncology": "Oncology & Recovery"
@@ -2941,7 +3067,7 @@
     "fields": {
       "ldl": "LDL",
       "hdl": "HDL",
-      "triglycerides": "Triglycerides",
+      "triglycerides": "Trigliserida",
       "tgHdlRatio": "TG/HDL Ratio",
       "bloodPressure": "Presyon ng Dugo",
       "sys": "Sys",
@@ -3712,7 +3838,7 @@
       "earlyInfant": "Maagang sanggol",
       "beginningFoods": "Simula ng solid",
       "youngToddler": "Batang toddler",
-      "toddler": "Toddler",
+      "toddler": "Sanggol na Naglalakad",
       "preschool": "Preschool",
       "earlySchoolAge": "Maagang edad-eskuwela",
       "growingChild": "Lumalaking bata"
@@ -3992,6 +4118,79 @@
     "errorLoadDetails": "Could not load invitation details. Please try again.",
     "errorLoadDetailsNetwork": "Could not load invitation details. Please check your connection and try again.",
     "errorConnectionIssue": "Connection error. Please check your connection and try again.",
-    "errorGenericFallback": "Something went wrong. Please try again."
+    "errorGenericFallback": "Something went wrong. Please try again.",
+    "connecting": "Kumokonekta sa studio…",
+    "tokenNotFound": "Walang natagpuang token ng imbitasyon. Mangyaring gamitin ang link mula sa iyong imbitasyon sa email.",
+    "notFound": "Ang imbitasyong ito ay hindi natagpuan. Maaaring ito ay nag-expire na o nagamit na.",
+    "loadError": "Hindi ma-load ang mga detalye ng imbitasyon. Mangyaring subukan muli.",
+    "loadErrorRetry": "Hindi ma-load ang mga detalye ng imbitasyon. Mangyaring suriin ang iyong koneksyon at subukan muli.",
+    "connectionError": "Error sa koneksyon. Mangyaring suriin ang iyong koneksyon at subukan muli.",
+    "defaultError": "May nangyaring mali. Mangyaring subukan muli.",
+    "invitationTitle": "ProCare Imbitasyon",
+    "invitedBy": "Inimbitahan ka ni {{proName}} na sumali sa kanilang ProCare {{spaceLabel}}.",
+    "sentTo": "Ang imbitasyong ito ay ipinadala sa {{email}}. Tiyaking naka-sign in ka gamit ang account na iyon.",
+    "joinNote": "Kapag nakakonekta, ang iyong {{roleLabel}} ay makakapag-gabay sa iyong nutrisyon at progreso sa pamamagitan ng platform.",
+    "successMessage": "Matagumpay kang sumali sa {{studioName}}. Maari nang makipagtulungan ang iyong trainer sa iyo sa pamamagitan ng platform.",
+    "wrongAccountMessage": "Ang imbitasyong ito ay ipinadala sa {{email}}. Kasalukuyan kang naka-sign in gamit ang ibang account.",
+    "wrongAccountNote": "Mag-sign out at mag-sign in gamit ang tamang email address, pagkatapos ay i-click muli ang link ng imbitasyon.",
+    "expiredMessage": "Ang imbitasyong ito ay nag-expire na. Hilingin sa iyong trainer na magpadala ng bago. Sandali lamang ito.",
+    "backupCodeNote": "Maaari mo ring manu-manong ilagay ang iyong backup code sa mga setting ng app.",
+    "alreadyAcceptedTitle": "Nakakonekta na",
+    "alreadyAcceptedMessage": "Ang imbitasyong ito ay nagamit na. Kung hindi mo nakikita ang studio ng iyong trainer, subukan ang pag-refresh ng app.",
+    "subscriptionRequiredMessage": "Ang pagkonekta sa isang ProCare provider ay nangangailangan ng Clinical subscription.",
+    "trainerNotSubscribedMessage": "Ang subscription ng iyong trainer sa ProCare ay kasalukuyang hindi aktibo. Sabihin sa kanila at hilingin na muling imbitahan ka kapag ito ay naayos na.",
+    "spaceLabel": {
+      "studio": "Studio",
+      "clinic": "Klinika"
+    },
+    "roleLabel": {
+      "trainer": "trainer",
+      "doctor": "doktor"
+    },
+    "anotherAddress": "isa pang address",
+    "labelStudio": "Studio",
+    "labelClinic": "Klinika",
+    "roleTrainer": "tagapagsanay",
+    "roleDoctor": "doktor"
+  },
+  "businessCenterSection": {
+    "backBtn": "Business Suite",
+    "affiliate": {
+      "title": "Mga Oportunidad sa Affiliate",
+      "description": "Ang affiliate program at sertipikasyon ay pinapinalisa. Kapag nailunsad, makakakuha ka ng komisyon, ma-access ang mga asset sa marketing, at masubaybayan ang iyong mga referral — lahat sa loob ng My Perfect Meals.",
+      "eta": "Nailunsad kasama ang Affiliate Certification"
+    },
+    "academy": {
+      "title": "Business Success Academy",
+      "description": "Isang buong kurikulum para sa pagbuo at pagpapalawak ng iyong negosyo sa nutrition coaching gamit ang platform ng My Perfect Meals. Mga kurso, pagsusuri, at kredensyal — darating na.",
+      "eta": "Nailunsad kasama ang Platform Certification"
+    },
+    "industry": {
+      "title": "Mga Industriya at Estratehikong Pakikipagsosyo",
+      "description": "Nakikipagtulungan kami sa mga kumpanya ng suplemento, mga tatak ng nutrisyon, mga organisasyon ng fitness, mga katawan ng sertipikasyon, at mga platform ng software upang bumuo ng makabuluhang mga integrasyon at mga pagkakataon ng co-branding.",
+      "eta": "Makipag-ugnayan sa amin upang tuklasin ang isang estratehikong pakikipagsosyo"
+    },
+    "whiteLabel": {
+      "title": "Mga Oportunidad sa White Label",
+      "description": "Interesado sa pag-license ng platform ng My Perfect Meals para sa iyong organisasyon o tatak? Gusto naming makipag-usap. Ang mga white label na pakikipagsosyo ay pinangangasiwaan nang personal — makipag-ugnayan sa ibaba.",
+      "eta": "Makipag-ugnayan sa amin upang simulan ang isang pag-uusap"
+    },
+    "partnerships": {
+      "title": "Healthcare at Klinikal na Pakikipagsosyo",
+      "description": "Nakikipagtulungan kami sa mga doktor, rehistradong dietitian, mga klinika, ospital, at mga organisasyon ng pangangalaga sa pasyente upang isama ang My Perfect Meals sa mga klinikal at pangangalaga na daloy ng trabaho.",
+      "eta": "Makipag-ugnayan sa amin upang tuklasin ang mga pagpipilian sa klinikal na pakikipagsosyo"
+    }
+  },
+  "procareInfo": {
+    "title": "ProCare Coaching",
+    "back": "Balik",
+    "backToPlans": "Balik sa mga Plano",
+    "description": "Minsan ang pinakamahirap na bahagi ng nutrisyon ay ang malaman kung anong desisyon ang gagawin sa oras na iyon. Ang ProCare ay nag-uugnay sa iyo sa isang propesyonal na coach sa loob ng sistemang My Perfect Meals.",
+    "bullets": {
+      "messaging": "Direktang mensahe sa iyong coach",
+      "guidance": "Naka-istrukturang gabay sa desisyon",
+      "macros": "Tulong sa pag-aayos ng mga pagkain at macros",
+      "support": "Suporta kapag ang totoong buhay ay nagiging kumplikado"
+    }
   }
 }

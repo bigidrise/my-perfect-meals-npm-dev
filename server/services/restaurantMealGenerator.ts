@@ -3,8 +3,6 @@
 // DO NOT MODIFY - PRODUCTION-READY SYSTEM LOCKED FOR TESTING
 import { type User } from "@shared/schema";
 import OpenAI from 'openai';
-// DO NOT call generateImage() from imageService directly.
-// Use generateMealImageUnified only.
 import { generateMealImageUnified } from './mealImageGenerator';
 import { convertStructuredIngredients } from "../utils/unitConverter";
 
@@ -167,8 +165,6 @@ export async function generateRestaurantMeals(request: RestaurantMealRequest): P
   for (const meal of fallbackMeals) {
     try {
       console.log(`🖼️ Generating image for ${meal.name}...`);
-      // DO NOT call image generation directly.
-      // Use generateMealImageUnified only.
       const imageUrl = await generateMealImageUnified(meal.name, meal.ingredients || [], 'meal');
       meal.imageUrl = imageUrl;
       console.log(`✅ Image generated for ${meal.name}: ${imageUrl}`);

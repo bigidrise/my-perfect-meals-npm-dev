@@ -1185,19 +1185,13 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
         // Generate image for meal
         let imageUrl: string | null = null;
         try {
-          const { generateImage } = await import("./imageService");
+          const { generateMealImageUnified } = await import("./mealImageGenerator");
           const _imageName = normalizeMealName(selected.name);
-          imageUrl = await generateImage({
-            name: _imageName,
-            description: buildDishTypeHint(_imageName),
-            type: 'meal',
-            style: 'kid-friendly',
-            ingredients: selected.ingredients.map(ing => ing.name),
-            calories: nutrition.calories,
-            protein: nutrition.protein,
-            carbs: nutrition.carbs,
-            fat: nutrition.fat,
-          });
+          imageUrl = await generateMealImageUnified(
+            _imageName,
+            selected.ingredients.map(ing => ing.name),
+            'meal'
+          );
           console.log(`📸 Generated kid-friendly image for ${selected.name}`);
         } catch (error) {
           console.log(`❌ Image generation failed for ${selected.name}:`, error);
@@ -1578,19 +1572,13 @@ User request: ${craving}`;
   // Generate image for meal with kid-friendly styling
   let imageUrl: string | null = null;
   try {
-    const { generateImage } = await import("./imageService");
+    const { generateMealImageUnified } = await import("./mealImageGenerator");
     const _imageName = normalizeMealName(selected.name);
-    imageUrl = await generateImage({
-      name: _imageName,
-      description: buildDishTypeHint(_imageName),
-      type: 'meal',
-      style: isKidMeal ? 'kid-friendly' : 'homemade',
-      ingredients: selected.ingredients.map(ing => ing.name),
-      calories: nutrition.calories,
-      protein: nutrition.protein,
-      carbs: nutrition.carbs,
-      fat: nutrition.fat,
-    });
+    imageUrl = await generateMealImageUnified(
+      _imageName,
+      selected.ingredients.map(ing => ing.name),
+      'meal'
+    );
     console.log(`📸 Generated ${isKidMeal ? 'kid-friendly ' : ''}image for ${selected.name}`);
   } catch (error) {
     telemetry.tagFallback(sessionId, "image_generation_failed", `Image failed for ${selected.name}`);
