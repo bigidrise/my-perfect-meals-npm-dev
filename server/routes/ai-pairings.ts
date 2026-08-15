@@ -116,6 +116,7 @@ router.post("/", async (req, res) => {
     const safetyCheck = await enforceSafetyProfile(userId, input, "pairings-ai", {
       safetyMode: safetyMode || "STRICT",
       overrideToken,
+      correlationId: (req as any).id,
     });
 
     if (safetyCheck.result === "BLOCKED" || safetyCheck.result === "AMBIGUOUS") {

@@ -51,6 +51,7 @@ import {
   type GlucoseState,
 } from "./diabeticContextService";
 import { buildUniversalConditionGuidance } from "./universalMedicalGuidance";
+import { validateDishIdentity } from "./dishAdaptation/dishIdentityValidator";
 import { deriveCompPrepStatus } from "./protocol/competitionPrepDateEngine";
 import { sanitizeIdentifiers } from "./promptSanitizer";
 import { logAudit } from "../lib/auditLog";
@@ -2186,19 +2187,31 @@ export function scanGeneratedOutput(
     instructions?: string | string[];
   },
   envelope: UserProtocolEnvelope,
-  context?: { generatorName?: string; skipAdaptableConflicts?: boolean }
+  context?: { generatorName?: string; skipAdaptableConflicts?: boolean; overriddenAllergens?: string[] }
 ): ProtocolScanResult {
   const generatorName = context?.generatorName || "unknown_generator";
   const mealText = extractMealTextForScan(meal);
   const instructionsText = extractInstructionsText(meal);
 
   // ── Ingredient-level scan ─────────────────────────────────────────────────
-  const ingredientViolations = scanForHiddenDietaryViolations(
+  const rawIngredientViolations = scanForHiddenDietaryViolations(
     mealText,
     envelope.dietaryIdentity,
     envelope.avoidances,
     { skipMeatDairyCombinationCheck: context?.skipAdaptableConflicts === true }
   );
+
+  // ── Allergen override filter — suppress violations for explicitly authorized allergens only.
+  // All other allergies, dietary restrictions, medical rules, and protocol constraints remain active.
+  const ingredientViolations = context?.overriddenAllergens?.length
+    ? rawIngredientViolations.filter(v => {
+        const termLower = v.term.toLowerCase();
+        return !context.overriddenAllergens!.some(oa => {
+          const oaLower = oa.toLowerCase();
+          return termLower.includes(oaLower) || oaLower.includes(termLower);
+        });
+      })
+    : rawIngredientViolations;
 
   // ── Instruction-level scan ────────────────────────────────────────────────
   const instructionViolations = scanInstructionsForViolations(
@@ -2291,11 +2304,54 @@ export function filterMealsByProtocol<T extends {
 }>(
   meals: T[],
   envelope: UserProtocolEnvelope,
-  context?: { generatorName?: string; skipAdaptableConflicts?: boolean }
+  context?: {
+    generatorName?: string;
+    skipAdaptableConflicts?: boolean;
+    overriddenAllergens?: string[];
+    /**
+     * Dish Adaptation Layer — when the surface received a named dish, the
+     * dish identity validator runs alongside the protocol scan. Meals with a
+     * catastrophic identity deviation (a completely different dish) are
+     * removed — a silently substituted meal must never reach the user.
+     * Results are pushed into `results` so callers can build an explicit
+     * dishIdentityFailure error instead of a silent generic fallback.
+     */
+    dishIdentity?: {
+      requestedDish: string;
+      directive?: import("./dishAdaptation/types").DishAdaptationDirective | null;
+      results?: Array<{ mealName: string; result: import("./dishAdaptation/types").DishIdentityResult }>;
+    };
+  }
 ): T[] {
   return meals.filter(meal => {
     const result = scanGeneratedOutput(meal, envelope, context);
-    return result.passed;
+    if (!result.passed) return false;
+
+    // ── Dish identity validation (Phase 4 — Dish Adaptation Layer) ────────
+    const di = context?.dishIdentity;
+    if (di?.requestedDish) {
+      try {
+        const identity = validateDishIdentity(di.requestedDish, meal, di.directive);
+        di.results?.push({ mealName: meal.name ?? "(unnamed)", result: identity });
+        if (identity.catastrophicDeviation) {
+          console.warn(
+            `🚫 [DishIdentity:${context?.generatorName ?? "unknown"}] "${meal.name}" REJECTED — ` +
+            `not "${di.requestedDish}" (score ${identity.score}): ${identity.failures.join("; ")}`
+          );
+          return false;
+        }
+        if (!identity.passed) {
+          console.warn(
+            `⚠️ [DishIdentity:${context?.generatorName ?? "unknown"}] "${meal.name}" weak identity match ` +
+            `for "${di.requestedDish}" (score ${identity.score}) — kept (non-catastrophic)`
+          );
+        }
+      } catch (err) {
+        // Validator errors never drop a protocol-compliant meal.
+        console.warn(`⚠️ [DishIdentity] Validator error for "${meal.name}":`, err);
+      }
+    }
+    return true;
   });
 }
 

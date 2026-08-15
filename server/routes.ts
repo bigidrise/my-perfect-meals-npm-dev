@@ -1112,6 +1112,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         generationContext: typeof generationContext === 'string' ? generationContext : undefined,
         glp1Targets: serverGlp1Targets,
         preferredLanguage: (req as any).authUser?.preferredLanguage,
+        correlationId: (req as any).id,
       });
 
       const durationMs = Date.now() - startTime;
@@ -4180,7 +4181,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (resolvedUserId) {
         // Authenticated user - use their profile from DB
         const safetyCheck = await enforceSafetyProfile(resolvedUserId, input, builderId, {
-          safetyMode: "STRICT"
+          safetyMode: "STRICT",
+          correlationId: (req as any).id
         });
         
         return res.json({
@@ -4888,7 +4890,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (userId && inputText) {
         const safetyCheck = await enforceSafetyProfile(userId, inputText, "craving-creator-generate", {
           safetyMode: safetyMode || "STRICT",
-          overrideToken: overrideToken
+          overrideToken: overrideToken,
+          correlationId: (req as any).id
         });
         if (safetyCheck.result === "BLOCKED") {
           console.log(`🚫 [SAFETY] Blocked request for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
@@ -4953,7 +4956,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
       if (userId && craving) {
-        const safetyCheck = await enforceSafetyProfile(userId, craving, "generate-craving-meal");
+        const safetyCheck = await enforceSafetyProfile(userId, craving, "generate-craving-meal", {
+          correlationId: (req as any).id
+        });
         if (safetyCheck.result === "BLOCKED") {
           console.log(`🚫 [SAFETY] Blocked request for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
           return res.status(400).json({
@@ -5030,10 +5035,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
       let dietAdapted = false;
       let dietNotice = "";
+      // Declared here so it survives the safety block scope and reaches generation + filtering.
+      // Allergen-specific only — one authorized ingredient's enforcement is suspended per request.
+      // All other allergies, GLP-1, diabetic, dietary identity, and protocol rules remain active.
+      let _overriddenAllergens: string[] = [];
       if (userId && cravingInput) {
         const safetyCheck = await enforceSafetyProfile(userId, cravingInput, "meals-craving-creator", {
           safetyMode: safetyMode || "STRICT",
-          overrideToken: overrideToken
+          overrideToken: overrideToken,
+          correlationId: (req as any).id
         });
         if (safetyCheck.result === "BLOCKED") {
           console.log(`🚫 [SAFETY] Blocked request for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
@@ -5057,6 +5067,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (safetyCheck.result === "DIET_ADAPT") {
           dietAdapted = true;
           dietNotice = safetyCheck.message;
+        }
+        if (safetyCheck.overriddenAllergen) {
+          _overriddenAllergens = [safetyCheck.overriddenAllergen];
+          console.log(`[AllergyOverride] Request-scoped override active — allergen: ${safetyCheck.overriddenAllergen}, user: ${userId}, correlationId: ${safetyCheck.correlationId}`);
         }
       }
 
@@ -5123,6 +5137,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // 🎲 VARIETY ENGINE: Always generate 3 distinct options (Layers 1-4)
       const { generateCravingMealOptions, generateSingleCompliantFallback } = await import("./services/unifiedMealPipeline");
 
+      // ── Dish Adaptation Layer (Phase 3) ──────────────────────────────────
+      // Decompose the requested dish and cross-reference its components with
+      // the user's active guardrails, producing an identity anchor + explicit
+      // adaptation directives injected into generation. LRU-cached by
+      // dish + guardrail IDs — repeated requests make no extra LLM call.
+      const { getDishAdaptationDirective, buildGuardrailContext } = await import("./services/dishAdaptation/dishAdaptationLayer");
+      const _dalGuardrailCtx = buildGuardrailContext({
+        dietaryIdentity: [
+          ...protocolEnvelope.dietaryIdentity,
+          ...((user?.dietaryRestrictions as string[]) || []),
+        ],
+        glp1Active: !!_cravingGlp1Targets,
+        allergies: protocolEnvelope.allergies,
+        overriddenAllergens: _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
+      });
+      let _dishDirective: import("./services/dishAdaptation/types").DishAdaptationDirective | null = null;
+      try {
+        _dishDirective = await getDishAdaptationDirective(
+          rawCravingInput || "",
+          _dalGuardrailCtx,
+          "first_pass",
+        );
+      } catch (dalErr) {
+        console.warn("⚠️ [DAL] Directive build failed — generation proceeds unenriched:", dalErr);
+      }
+
       const bodyDietRestrictions = dietaryRestrictions
         ? (Array.isArray(dietaryRestrictions) ? dietaryRestrictions : [dietaryRestrictions]).filter(Boolean)
         : [];
@@ -5157,6 +5197,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         (generationMode === 'recipe' ? 'recipe' : 'meal'),
         (cultureOverride && typeof cultureOverride === "string" && cultureOverride.trim()) ? cultureOverride.trim() : undefined,
         _cravingGlp1Targets,
+        _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
+        _dishDirective,
       );
 
       if (!mealOptions || mealOptions.length === 0) {
@@ -5168,23 +5210,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // user's dietary identity, avoidances, or procedural rules after generation.
       // This is the universal safety net — covers ingredients, hidden terms,
       // combination violations, AND forbidden instruction phrases.
+      const _identityResults: Array<{ mealName: string; result: import("./services/dishAdaptation/types").DishIdentityResult }> = [];
       const cleanOptions = filterMealsByProtocol(mealOptions, protocolEnvelope, {
         generatorName: "craving_creator",
         skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
+        overriddenAllergens: _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
+        dishIdentity: {
+          requestedDish: rawCravingInput || "",
+          directive: _dishDirective,
+          results: _identityResults,
+        },
       });
 
       if (cleanOptions.length === 0 && mealOptions.length > 0) {
         console.warn(`⚠️ [ProtocolEnvelope] ALL options violated protocol — attempting emergency compliant fallback`);
+        // Fallback directive carries MORE explicit dish-identity language, not less.
+        let _fallbackDirective: import("./services/dishAdaptation/types").DishAdaptationDirective | null = null;
+        try {
+          _fallbackDirective = await getDishAdaptationDirective(rawCravingInput || "", _dalGuardrailCtx, "fallback");
+        } catch { /* proceed unenriched */ }
         const fallbackMeal = await generateSingleCompliantFallback(
           cravingInput || "something delicious",
           targetMealType || "lunch",
           protocolEnvelope.dietaryIdentity,
+          {
+            overriddenAllergens: _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
+            storedAllergies: protocolEnvelope.allergies,
+            dishDirective: _fallbackDirective,
+          },
         );
-        if (fallbackMeal) {
+        // HARD INVARIANT: never return a silently substituted dish. Validate
+        // the fallback's identity too — a catastrophic deviation is treated as
+        // failure, not served.
+        let fallbackIdentityOk = true;
+        if (fallbackMeal && rawCravingInput) {
+          try {
+            const { validateDishIdentity } = await import("./services/dishAdaptation/dishIdentityValidator");
+            const fbIdentity = validateDishIdentity(rawCravingInput, fallbackMeal, _fallbackDirective ?? _dishDirective);
+            _identityResults.push({ mealName: fallbackMeal.name ?? "(fallback)", result: fbIdentity });
+            if (fbIdentity.catastrophicDeviation) {
+              fallbackIdentityOk = false;
+              console.error(`🚫 [DishIdentity] Fallback "${fallbackMeal.name}" is not "${rawCravingInput}" — rejecting instead of silently substituting`);
+            }
+          } catch (e) {
+            console.warn("⚠️ [DishIdentity] Fallback validation error — keeping fallback:", e);
+          }
+        }
+        if (fallbackMeal && fallbackIdentityOk) {
           console.log(`✅ [ProtocolEnvelope] Emergency fallback succeeded: "${fallbackMeal.name}"`);
           cleanOptions.push(fallbackMeal);
         } else {
           console.error(`❌ [ProtocolEnvelope] Emergency fallback also failed — returning enforcement error`);
+          // If dish identity was the failure mode, say so explicitly — never a silent generic plate.
+          const _catastrophic = _identityResults.filter(r => r.result.catastrophicDeviation);
+          if (_catastrophic.length > 0 || !fallbackIdentityOk) {
+            const conflictSummary = (_dishDirective?.conflicts ?? [])
+              .map(c => `${c.component} (${c.guardrail})`)
+              .join(", ");
+            return res.status(400).json({
+              error: "DISH_IDENTITY_FAILURE",
+              dishIdentityFailure: true,
+              message: `We couldn't find a way to make ${rawCravingInput} within your current constraints${conflictSummary ? ` — the conflicts were: ${conflictSummary}` : ""}. Rather than serve you a different meal, we're being upfront: try adjusting your request or your safety settings.`,
+              conflicts: _dishDirective?.conflicts ?? [],
+              retryable: true,
+            });
+          }
           return res.status(400).json({
             error: "AVOIDANCE_VIOLATION_ALL_OPTIONS",
             message: "All generated options contained ingredients or instructions that conflict with your dietary protocol. Please try a different dish or adjust your craving description.",
@@ -5331,7 +5421,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
       if (cravingInput) {
-        const safetyCheck = await enforceSafetyProfile(userId, cravingInput, "meals-craving-creator-enforced");
+        const safetyCheck = await enforceSafetyProfile(userId, cravingInput, "meals-craving-creator-enforced", {
+          correlationId: (req as any).id
+        });
         if (safetyCheck.result === "BLOCKED") {
           console.log(`🚫 [SAFETY] Blocked enforced craving for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
           return res.status(400).json({
@@ -5635,7 +5727,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
       if (userId && preferences) {
-        const safetyCheck = await enforceSafetyProfile(userId, preferences, "meals-kids");
+        const safetyCheck = await enforceSafetyProfile(userId, preferences, "meals-kids", {
+          correlationId: (req as any).id
+        });
         if (safetyCheck.result === "BLOCKED") {
           console.log(`🚫 [SAFETY] Blocked kids meal for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
           return res.status(400).json({
@@ -5736,7 +5830,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
       if (userId && cravingInput) {
-        const safetyCheck = await enforceSafetyProfile(userId, cravingInput, "meals-ai-creator");
+        const safetyCheck = await enforceSafetyProfile(userId, cravingInput, "meals-ai-creator", {
+          correlationId: (req as any).id
+        });
         if (safetyCheck.result === "BLOCKED") {
           console.log(`🚫 [SAFETY] Blocked ai-creator for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
           return res.status(400).json({

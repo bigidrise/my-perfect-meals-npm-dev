@@ -81,6 +81,7 @@ router.post("/", async (req, res) => {
     const safetyCheck = await enforceSafetyProfile(userId, safetyInput, "wine-list-helper", {
       safetyMode: safetyMode || "STRICT",
       overrideToken,
+      correlationId: (req as any).id,
     });
 
     if (safetyCheck.result === "BLOCKED" || safetyCheck.result === "AMBIGUOUS") {

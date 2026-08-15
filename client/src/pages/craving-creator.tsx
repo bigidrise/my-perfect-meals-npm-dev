@@ -233,6 +233,7 @@ export default function CravingCreator() {
   const quickTour = useQuickTour("craving-creator");
   const [useOnboarding, setUseOnboarding] = useState(true); // ENFORCED: Always use onboarding for medical safety
   const [cravingInput, setCravingInput] = useState("");
+  const [dishFailureAlert, setDishFailureAlert] = useState<{ show: boolean; message: string }>({ show: false, message: "" });
   const [dietaryRestrictions, setDietaryRestrictions] = useState("");
   const [savedMeals, setSavedMeals] = useState(new Set<string>());
   const [generatedMeals, setGeneratedMeals] = useState<MealData[]>([]);
@@ -545,6 +546,7 @@ export default function CravingCreator() {
     continueAnywayRef.current = false;
     console.log("🔥 handleGenerateMeal called - craving:", cravingInput);
     setDietAdaptedNotice(null);
+    setDishFailureAlert({ show: false, message: "" });
 
     if (!cravingInput.trim()) {
       console.log("❌ Empty craving input - showing toast");
@@ -653,8 +655,26 @@ export default function CravingCreator() {
       clearSafetyAlert();
 
       if (!response.ok) {
+        stopProgressTicker();
+        setIsGenerating(false);
         if (data.error === "ALLERGY_SAFETY_BLOCK") {
           throw new Error(`🚨 Safety Alert: ${data.message}`);
+        }
+        if (data.dishIdentityFailure) {
+          setDishFailureAlert({
+            show: true,
+            message: data.message || "This dish can't be made compliant with your current settings. Try adjusting your request or safety settings.",
+          });
+          return;
+        }
+        if (data.error === "AVOIDANCE_VIOLATION_ALL_OPTIONS") {
+          toast({
+            title: "No compliant options found",
+            description: data.message || "All generated options conflicted with your dietary protocol. Please try a different dish or adjust your craving description.",
+            variant: "destructive",
+            duration: 10000,
+          });
+          return;
         }
         throw new Error(data.message || "Failed to generate meal");
       }
@@ -719,13 +739,13 @@ export default function CravingCreator() {
           title: "⚠️ ALLERGY ALERT",
           description: formatAllergyAlertDescription(errorMsg),
           variant: "warning",
+          duration: 10000,
         });
       } else {
         toast({
-          title: "⚠️ ALLERGY ALERT",
-          description:
-            "SafetyGuard™ detected a potential concern. Try a different meal or adjust your request.",
-          variant: "warning",
+          title: "Couldn't generate meal",
+          description: errorMsg || "Something went wrong. Please try again.",
+          variant: "destructive",
         });
       }
     } finally {
@@ -949,7 +969,7 @@ export default function CravingCreator() {
                         data-testid="cravingcreator-input-box"
                         data-wt="cc-description-input"
                         value={cravingInput}
-                        onChange={(e) => setCravingInput(e.target.value)}
+                        onChange={(e) => { setCravingInput(e.target.value); if (dishFailureAlert.show) setDishFailureAlert({ show: false, message: "" }); }}
                         placeholder="e.g., I want something creamy chocolate with peanut butter swirl and crunchy topping - BE SPECIFIC and describe what you crave!"
                         className="w-full px-3 py-2 pr-10 bg-black text-white placeholder:text-white/50 border border-white/30 rounded-lg h-20 resize-none text-sm"
                         maxLength={300}
@@ -1265,6 +1285,34 @@ export default function CravingCreator() {
                         ? t("checkingSafety")
                         : t("createBtn")}
                     </GlassButton>
+                  )}
+
+                  {/* Dish Identity Failure — persistent inline alert */}
+                  {dishFailureAlert.show && (
+                    <div className="mt-3 rounded-lg border border-orange-500/40 bg-orange-950/50 px-4 py-3 flex flex-col gap-2">
+                      <div className="flex items-start gap-2">
+                        <span className="text-orange-400 mt-0.5 shrink-0">⚠️</span>
+                        <p className="text-sm text-orange-200 leading-snug">
+                          {dishFailureAlert.message}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleGenerateMeal()}
+                          disabled={isGenerating}
+                          className="flex-1 py-1.5 rounded-md bg-orange-600 hover:bg-orange-500 text-white text-xs font-semibold transition-colors flex items-center justify-center gap-1.5"
+                        >
+                          <RotateCcw className="h-3 w-3" />
+                          Try Again
+                        </button>
+                        <button
+                          onClick={() => setDishFailureAlert({ show: false, message: "" })}
+                          className="px-3 py-1.5 rounded-md bg-white/10 hover:bg-white/20 text-white/70 text-xs transition-colors"
+                        >
+                          Dismiss
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </CardContent>
               </Card>

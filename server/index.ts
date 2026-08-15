@@ -1535,6 +1535,68 @@ async function start() {
     await runTrialGrantsMigration(dbTg);
   });
 
+  await withBootRetry("Safety override correlation ID migration", async () => {
+    const { db: dbSoc } = await import("./db");
+    const { runSafetyOverrideCorrelationMigration } = await import("./db/migrations/runSafetyOverrideCorrelationMigration");
+    await runSafetyOverrideCorrelationMigration(dbSoc);
+  });
+
+  // ── Post-migration guard: verify correlation_id column is actually present ──
+  // If the migration silently failed or was rolled back, fail loudly here rather
+  // than letting logSafetyOverride produce a 500 at runtime.
+  {
+    const { db: dbGuard } = await import("./db");
+    const { assertCorrelationIdColumn } = await import("./db/migrations/assertCorrelationIdColumn");
+    await assertCorrelationIdColumn(dbGuard);
+  }
+
+  // ── Inline migrations for columns that the guard will assert ─────────────
+  // These ALTER TABLE statements are also present in the deferred setTimeout
+  // block below, but that block runs ~2.5 s after module evaluation — after
+  // start() has already called assertColumnsExist. Running them here first
+  // (inside start(), fully awaited) ensures the columns exist before the
+  // guard fires, even on a fresh database. Each statement is idempotent.
+  await withBootRetry("Critical column pre-flight migrations", async () => {
+    const { db: dbPre } = await import("./db");
+    const { sql: sqlPre } = await import("drizzle-orm");
+    // Phase 2 ProCare Studio gate
+    await dbPre.execute(sqlPre`ALTER TABLE users ADD COLUMN IF NOT EXISTS procare_training_completed boolean NOT NULL DEFAULT false`);
+    // Performance Hub macro resolver
+    await dbPre.execute(sqlPre`ALTER TABLE users ADD COLUMN IF NOT EXISTS performance_mode_enabled boolean NOT NULL DEFAULT false`);
+    // i18n routing
+    await dbPre.execute(sqlPre`ALTER TABLE users ADD COLUMN IF NOT EXISTS preferred_language text DEFAULT 'auto'`);
+    // Clinical context screening gate
+    await dbPre.execute(sqlPre`ALTER TABLE users ADD COLUMN IF NOT EXISTS clinical_context_response text`);
+    // Diabetic builder save flow (dev path only — prod.ts has this in schemaMigPromise)
+    await dbPre.execute(sqlPre`ALTER TABLE saved_meals ADD COLUMN IF NOT EXISTS saved_from_diabetic_builder boolean NOT NULL DEFAULT false`);
+    // Safety override correlation ID — guard asserts this; this ALTER ensures
+    // the column exists even if the dedicated migration ran before the table existed
+    await dbPre.execute(sqlPre`ALTER TABLE safety_override_audit_logs ADD COLUMN IF NOT EXISTS correlation_id text`);
+    // Clinical Labs Phase 5 — hormone + thyroid panel columns
+    // Must mirror the same ALTERs in prod.ts so the guard fires consistently
+    // on both boot paths. Each statement is idempotent (IF NOT EXISTS).
+    await dbPre.execute(sqlPre`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS reverse_t3 numeric`);
+    await dbPre.execute(sqlPre`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS estradiol numeric`);
+    await dbPre.execute(sqlPre`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS progesterone numeric`);
+    await dbPre.execute(sqlPre`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS shbg numeric`);
+    await dbPre.execute(sqlPre`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS lh numeric`);
+    await dbPre.execute(sqlPre`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS fsh numeric`);
+    await dbPre.execute(sqlPre`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS dhea_s numeric`);
+    console.log("✅ [guard-pre] Critical column pre-flight migrations complete");
+  });
+
+  // ── Extended column guard: critical columns added by recent migrations ──────
+  // Any column listed here gates an important runtime flow. If a migration
+  // silently failed the startup guard throws a descriptive error so the problem
+  // is visible immediately rather than surfacing as a cryptic 500 at runtime.
+  // NOTE: every column listed here MUST be migrated inline above (not in a
+  // deferred setTimeout) so this assertion never races with its own migration.
+  {
+    const { db: dbColGuard } = await import("./db");
+    const { assertColumnsExist, CRITICAL_COLUMNS } = await import("./bootstrap/assertColumnsExist");
+    await assertColumnsExist(dbColGuard, CRITICAL_COLUMNS);
+  }
+
   // 🎯 CRITICAL: API routes FIRST to prevent Vite middleware interference
   await registerRoutes(app);
 

@@ -644,6 +644,40 @@ async function initializeApp() {
       );
     }
 
+    // ── Synchronous guard-backing migrations ─────────────────────────────────
+    // schemaMigPromise above is raced against a 6 s timeout, so its ALTERs
+    // may not have completed before the guards below run.  Re-applying all
+    // three critical idempotent migrations here guarantees every guarded
+    // column is present when its guard fires, regardless of whether the race
+    // timed out.
+    //
+    // runTrialGrantsMigration is placed last in schemaMigPromise and is
+    // therefore the most likely to be cut off by the 6 s timeout — it MUST
+    // be re-run here before assertTrialSourceColumn fires.
+    {
+      const { db: dbSyncMig } = await import("./db");
+      const { runTrialGrantsMigration } = await import("./db/migrations/runTrialGrantsMigration");
+      const { runProcareTrainingMigration } = await import("./db/migrations/runProcareTrainingMigration");
+      const { runPerformanceModeEnabledMigration } = await import("./db/migrations/runPerformanceModeEnabledMigration");
+      await runTrialGrantsMigration(dbSyncMig as any);
+      await runProcareTrainingMigration(dbSyncMig as any);
+      await runPerformanceModeEnabledMigration(dbSyncMig as any);
+    }
+
+    // ── Post-migration guards: verify critical columns are actually present ─
+    // These run outside the migration try/catch so a timed-out or failed
+    // migration that left columns absent causes a loud initialization failure
+    // rather than a silent runtime error.
+    {
+      const { assertTrialSourceColumn } = await import("./db/migrations/assertTrialSourceColumn");
+      const { assertProcareTrainingCompletedColumn } = await import("./db/migrations/assertProcareTrainingCompletedColumn");
+      const { assertPerformanceModeEnabledColumn } = await import("./db/migrations/assertPerformanceModeEnabledColumn");
+      const { db: dbGuards } = await import("./db");
+      await assertTrialSourceColumn(dbGuards as any);
+      await assertProcareTrainingCompletedColumn(dbGuards as any);
+      await assertPerformanceModeEnabledColumn(dbGuards as any);
+    }
+
     // Run data migrations (grandfather + cert-bridge) in the background.
     // Awaiting schemaMigPromise first guarantees required columns exist before
     // we attempt the UPDATE/INSERT, even when boot timed out early.
@@ -1091,6 +1125,56 @@ async function initializeApp() {
       console.log("✅ [INIT] Sandbox reset endpoint registered");
     } catch (sbErr) {
       console.error("⚠️ [INIT] Failed to register sandbox reset endpoint:", sbErr);
+    }
+
+    // ── CRITICAL_COLUMNS pre-route preflight — all entries awaited before routes mount ──
+    // Every column in CRITICAL_COLUMNS is migrated here (idempotent ADD COLUMN IF NOT
+    // EXISTS) so the assertColumnsExist guard that follows cannot call process.exit(1)
+    // due to a column that was only migrated in the deferred 4-second callback.
+    // IMPORTANT: when adding a new entry to CRITICAL_COLUMNS in
+    // server/bootstrap/assertColumnsExist.ts, add its migration here too.
+    try {
+      const { db: dbPreflight } = await import("./db");
+      const { sql: sqlPreflight } = await import("drizzle-orm");
+      // safety_override_audit_logs.correlation_id
+      await dbPreflight.execute(sqlPreflight`ALTER TABLE safety_override_audit_logs ADD COLUMN IF NOT EXISTS correlation_id uuid`);
+      // users — ProCare, Performance, i18n, clinical context
+      await dbPreflight.execute(sqlPreflight`ALTER TABLE users ADD COLUMN IF NOT EXISTS procare_training_completed boolean NOT NULL DEFAULT false`);
+      await dbPreflight.execute(sqlPreflight`ALTER TABLE users ADD COLUMN IF NOT EXISTS performance_mode_enabled boolean NOT NULL DEFAULT false`);
+      await dbPreflight.execute(sqlPreflight`ALTER TABLE users ADD COLUMN IF NOT EXISTS preferred_language text DEFAULT 'auto'`);
+      await dbPreflight.execute(sqlPreflight`ALTER TABLE users ADD COLUMN IF NOT EXISTS clinical_context_response text`);
+      // saved_meals — diabetic builder
+      await dbPreflight.execute(sqlPreflight`ALTER TABLE saved_meals ADD COLUMN IF NOT EXISTS saved_from_diabetic_builder boolean NOT NULL DEFAULT false`);
+      // clinical_labs — Phase 5 hormone/thyroid panel
+      await dbPreflight.execute(sqlPreflight`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS reverse_t3 NUMERIC(6,2)`);
+      await dbPreflight.execute(sqlPreflight`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS estradiol NUMERIC(7,2)`);
+      await dbPreflight.execute(sqlPreflight`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS progesterone NUMERIC(6,3)`);
+      await dbPreflight.execute(sqlPreflight`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS shbg NUMERIC(6,1)`);
+      await dbPreflight.execute(sqlPreflight`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS lh NUMERIC(7,2)`);
+      await dbPreflight.execute(sqlPreflight`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS fsh NUMERIC(7,2)`);
+      await dbPreflight.execute(sqlPreflight`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS dhea_s NUMERIC(7,2)`);
+      console.log("✅ [INIT] CRITICAL_COLUMNS pre-route preflight migrations complete");
+    } catch (preflightErr: any) {
+      // Log but do not exit — the guard below will catch any genuinely absent column
+      // and terminate the process. A migration error here is likely transient (lock
+      // timeout, connection hiccup); the idempotent deferred block will retry.
+      console.error("❌ [INIT] CRITICAL_COLUMNS pre-route preflight migration failed:", preflightErr.message);
+    }
+
+    // ── Column guard — awaited before routes mount ───────────────────────────
+    // Runs assertColumnsExist for ALL CRITICAL_COLUMNS in the synchronous boot
+    // path so any missing column causes an immediate, fatal startup failure
+    // before the server begins serving API requests.
+    {
+      const { db: dbColGuardEarly } = await import("./db");
+      const { assertColumnsExist, CRITICAL_COLUMNS } = await import("./bootstrap/assertColumnsExist");
+      try {
+        await assertColumnsExist(dbColGuardEarly, CRITICAL_COLUMNS);
+        console.log("✅ [INIT] Column guard passed — all critical columns present before route mount");
+      } catch (guardErr: any) {
+        console.error("🚨 [INIT] Critical column(s) missing — halting process to prevent data loss:", guardErr.message);
+        process.exit(1);
+      }
     }
 
     // Register main routes
@@ -1801,6 +1885,95 @@ async function initializeApp() {
         `);
       });
 
+      // Safety override correlation ID — add correlation_id to safety_override_audit_logs
+      await withBootRetry("Safety override correlation ID migration", async () => {
+        const { db: dbSoc } = await import("./db");
+        const { runSafetyOverrideCorrelationMigration } = await import("./db/migrations/runSafetyOverrideCorrelationMigration");
+        await runSafetyOverrideCorrelationMigration(dbSoc as any);
+      });
+
+      // ── Post-migration guard: verify correlation_id column is actually present ──
+      // If the migration silently failed or was rolled back, fail loudly here rather
+      // than letting logSafetyOverride produce a 500 at runtime.
+      //
+      // IMPORTANT: this block runs inside a deferred setTimeout callback, so any
+      // thrown error would become an unhandled rejection that is only logged — the
+      // server would keep serving a broken safety surface. We therefore catch the
+      // guard error explicitly and call process.exit(1) to make the failure fatal.
+      {
+        const { db: dbGuard } = await import("./db");
+        const { assertCorrelationIdColumn } = await import("./db/migrations/assertCorrelationIdColumn");
+        try {
+          await assertCorrelationIdColumn(dbGuard as any);
+        } catch (guardErr: any) {
+          console.error("🚨 [FATAL] Startup guard failed — shutting down:", guardErr.message);
+          process.exit(1);
+        }
+      }
+
+      // ── Inline migrations for columns that the guard will assert ────────────
+      // schemaMigPromise above is raced against a 6-second timeout and may
+      // still be running in the background when we reach this point. Running
+      // the five critical ALTERs here (fully awaited, with retries) guarantees
+      // they are committed before assertColumnsExist fires, even when
+      // schemaMigPromise is slow or has not yet reached these statements.
+      // All statements are idempotent (IF NOT EXISTS).
+      await withBootRetry("Critical column pre-flight migrations", async () => {
+        const { db: dbPre } = await import("./db");
+        const { sql: sqlPre } = await import("drizzle-orm");
+        // Phase 2 ProCare Studio gate
+        await dbPre.execute(sqlPre`ALTER TABLE users ADD COLUMN IF NOT EXISTS procare_training_completed boolean NOT NULL DEFAULT false`);
+        // Performance Hub macro resolver
+        await dbPre.execute(sqlPre`ALTER TABLE users ADD COLUMN IF NOT EXISTS performance_mode_enabled boolean NOT NULL DEFAULT false`);
+        // i18n routing
+        await dbPre.execute(sqlPre`ALTER TABLE users ADD COLUMN IF NOT EXISTS preferred_language text DEFAULT 'auto'`);
+        // Clinical context screening gate
+        await dbPre.execute(sqlPre`ALTER TABLE users ADD COLUMN IF NOT EXISTS clinical_context_response text`);
+        // Diabetic builder save flow
+        await dbPre.execute(sqlPre`ALTER TABLE saved_meals ADD COLUMN IF NOT EXISTS saved_from_diabetic_builder boolean NOT NULL DEFAULT false`);
+        // Safety override correlation ID — guard asserts this; this ALTER ensures
+        // the column exists even if the dedicated migration ran before the table existed
+        await dbPre.execute(sqlPre`ALTER TABLE safety_override_audit_logs ADD COLUMN IF NOT EXISTS correlation_id text`);
+        // Clinical Labs Phase 5 — hormone + thyroid panel columns
+        // These are asserted by the guard below; add them here so fresh deployments
+        // that haven't run the manual Phase 5 migration script still pass the guard.
+        await dbPre.execute(sqlPre`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS reverse_t3 numeric`);
+        await dbPre.execute(sqlPre`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS estradiol numeric`);
+        await dbPre.execute(sqlPre`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS progesterone numeric`);
+        await dbPre.execute(sqlPre`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS shbg numeric`);
+        await dbPre.execute(sqlPre`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS lh numeric`);
+        await dbPre.execute(sqlPre`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS fsh numeric`);
+        await dbPre.execute(sqlPre`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS dhea_s numeric`);
+        console.log("✅ [guard-pre] Critical column pre-flight migrations complete");
+      });
+
+      // ── Extended column guard: critical columns added by recent migrations ──
+      // Any column listed here gates an important runtime flow. A descriptive
+      // error thrown here surfaces migration failures immediately at boot
+      // rather than as cryptic 500s or silent data loss at runtime.
+      // NOTE: every column listed here MUST be migrated in the preflight block
+      // above so this assertion never races with its own migration.
+      //
+      // IMPORTANT: this block runs inside a deferred setTimeout callback, so any
+      // unhandled error here becomes an unhandled rejection that is only logged —
+      // the server would keep serving with missing critical columns. We therefore
+      // catch ALL errors (including DB connection failures) and call process.exit(1)
+      // unconditionally to make any guard failure fatal, whether the root cause is
+      // a missing column or an unreachable database.
+      {
+        const { db: dbColGuard } = await import("./db");
+        const { assertColumnsExist, CRITICAL_COLUMNS } = await import("./bootstrap/assertColumnsExist");
+        try {
+          await assertColumnsExist(dbColGuard, CRITICAL_COLUMNS);
+        } catch (colGuardErr: any) {
+          // Fatal: a DB connection error OR a missing-column error both mean the
+          // server cannot serve safely. Exit immediately so the deployment fails
+          // visibly rather than silently serving broken or data-loss-prone endpoints.
+          console.error("🚨 [FATAL] Column guard failed — shutting down:", colGuardErr.message);
+          process.exit(1);
+        }
+      }
+
       // Universal Meal Refinement — original_meal_snapshot column (Stage 1)
       setTimeout(async () => {
         try {
@@ -1830,5 +2003,12 @@ async function initializeApp() {
   } catch (error) {
     console.error("❌ [INIT] Initialization failed:", error);
     initError = error instanceof Error ? error : new Error(String(error));
+    // Any initialization failure — whether a missing column, a DB connection
+    // error (ECONNREFUSED, SSL failure, pool exhaustion), or any other boot
+    // error — is fatal. Serving traffic after a failed boot causes silent data
+    // loss, incorrect 500s, or security gaps. Crash loudly so the deployment
+    // fails visibly instead of silently degrading.
+    console.error("🚨 [INIT] Boot failed — halting process to prevent serving broken state:", initError.message);
+    process.exit(1);
   }
 }

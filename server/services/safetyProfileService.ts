@@ -6,11 +6,13 @@ import { db } from "../db";
 import { users } from "../../shared/schema";
 import { eq } from "drizzle-orm";
 import { ALLERGEN_EXPANSION, RESTRICTION_EXPANSION, maskPlantMilks, maskNutButters } from "./allergyGuardrails";
-import { SafetyMode, validateAndConsumeOverrideToken, logSafetyOverride } from "./safetyPinService";
+import { SafetyMode, claimOverrideToken, commitOverrideToken, rollbackOverrideToken, logSafetyOverride } from "./safetyPinService";
 
 export interface SafetyOptions {
   safetyMode?: SafetyMode;
   overrideToken?: string;
+  /** Express request correlation ID — stored in the audit row to trace the override back to the generation request */
+  correlationId?: string;
 }
 
 export type SafetyResult = "SAFE" | "AMBIGUOUS" | "BLOCKED" | "DIET_ADAPT";
@@ -22,6 +24,12 @@ export interface SafetyAssessment {
   ambiguousTerms: string[];
   message: string;
   suggestion?: string;
+  /** The specific allergen the user was authenticated to override, if any.
+   *  Only present when result === "SAFE" and an override token was consumed.
+   *  All other allergy/protocol rules remain fully active for this request. */
+  overriddenAllergen?: string;
+  /** Request correlation ID echoed back from the audit row so callers can log it at the point of use */
+  correlationId?: string;
 }
 
 export interface SafetyProfile {
@@ -407,6 +415,7 @@ export async function enforceSafetyProfile(
 ): Promise<SafetyAssessment> {
   const safetyMode = options?.safetyMode || "STRICT";
   const overrideToken = options?.overrideToken;
+  const correlationId = options?.correlationId;
   
   const profile = await loadSafetyProfile(userId);
   
@@ -438,17 +447,31 @@ export async function enforceSafetyProfile(
   if (allergyMatches.length > 0) {
     // Check for authenticated override with valid one-time token
     if (safetyMode === "CUSTOM_AUTHENTICATED" && overrideToken) {
-      const tokenData = validateAndConsumeOverrideToken(overrideToken, userId);
+      // Atomically claim the token — moves it to reserved so any concurrent
+      // request with the same token is rejected before the audit insert begins.
+      const tokenData = claimOverrideToken(overrideToken, userId);
 
       if (tokenData) {
-        await logSafetyOverride(userId, userText, tokenData.allergen, builderId);
-        console.log(`[SafetyGuard] Authenticated override used for user ${userId}, allergen: ${tokenData.allergen}`);
+        // Audit insert must succeed before the override is authorized.
+        // On success, commit (permanently delete). On failure, roll back so
+        // the token is restored and the user can retry without re-entering PIN.
+        try {
+          await logSafetyOverride(userId, userText, tokenData.allergen, builderId, undefined, correlationId);
+          commitOverrideToken(overrideToken);
+        } catch (auditErr) {
+          rollbackOverrideToken(overrideToken);
+          console.error(`[SafetyGuard] AUDIT INSERT FAILED for user ${userId}, allergen: ${tokenData.allergen}, correlationId: ${correlationId} — token rolled back for retry`, auditErr);
+          throw auditErr;
+        }
+        console.log(`[SafetyGuard] Authenticated override used for user ${userId}, allergen: ${tokenData.allergen}, correlationId: ${correlationId}`);
         return {
           result: "SAFE",
           blockedTerms: [],
           blockedCategories: [],
           ambiguousTerms: [],
-          message: "Allergen override authorized with Safety PIN - proceeding with user consent"
+          message: "Allergen override authorized with Safety PIN - proceeding with user consent",
+          overriddenAllergen: tokenData.allergen,
+          correlationId,
         };
       } else {
         console.log(`[SafetyGuard] Invalid/expired override token for user ${userId}`);
@@ -476,17 +499,30 @@ export async function enforceSafetyProfile(
 
   if (ambiguousDishes.length > 0) {
     if (safetyMode === "CUSTOM_AUTHENTICATED" && overrideToken) {
-      const tokenData = validateAndConsumeOverrideToken(overrideToken, userId);
+      // Atomically claim the token — moves it to reserved so any concurrent
+      // request with the same token is rejected before the audit insert begins.
+      const tokenData = claimOverrideToken(overrideToken, userId);
 
       if (tokenData) {
-        await logSafetyOverride(userId, userText, tokenData.allergen, builderId);
-        console.log(`[SafetyGuard] Authenticated override for AMBIGUOUS dish, user ${userId}, allergen: ${tokenData.allergen}`);
+        // On success, commit (permanently delete). On failure, roll back so
+        // the token is restored and the user can retry without re-entering PIN.
+        try {
+          await logSafetyOverride(userId, userText, tokenData.allergen, builderId, undefined, correlationId);
+          commitOverrideToken(overrideToken);
+        } catch (auditErr) {
+          rollbackOverrideToken(overrideToken);
+          console.error(`[SafetyGuard] AUDIT INSERT FAILED (ambiguous path) for user ${userId}, allergen: ${tokenData.allergen}, correlationId: ${correlationId} — token rolled back for retry`, auditErr);
+          throw auditErr;
+        }
+        console.log(`[SafetyGuard] Authenticated override for AMBIGUOUS dish, user ${userId}, allergen: ${tokenData.allergen}, correlationId: ${correlationId}`);
         return {
           result: "SAFE",
           blockedTerms: [],
           blockedCategories: [],
           ambiguousTerms: [],
-          message: "Ambiguous dish override authorized with Safety PIN - proceeding with user consent"
+          message: "Ambiguous dish override authorized with Safety PIN - proceeding with user consent",
+          overriddenAllergen: tokenData.allergen,
+          correlationId,
         };
       } else {
         console.log(`[SafetyGuard] Invalid/expired override token for AMBIGUOUS check, user ${userId}`);

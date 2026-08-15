@@ -163,6 +163,7 @@ export default function PairingsAI() {
               ? formatAllergyAlertDescription(err)
               : err.safety.message || "Safety check failed",
             variant: "destructive",
+            duration: 10000,
           });
           setIsGenerating(false);
           return;

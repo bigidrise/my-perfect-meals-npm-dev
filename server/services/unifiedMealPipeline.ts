@@ -313,6 +313,13 @@ export interface MealGenerationRequest {
   glp1Targets?: ResolvedGLP1Targets;
   /** User's preferred language code (BCP-47). Forwarded to downstream generators. */
   preferredLanguage?: string;
+  /**
+   * Express request correlation ID (set by the request-id middleware).
+   * When present, passed through to enforceSafetyProfile so any override audit
+   * rows written during batch/unified generation are traceable back to the
+   * originating HTTP request.
+   */
+  correlationId?: string;
 }
 
 export interface MealGenerationResponse {
@@ -1813,6 +1820,11 @@ export async function generateCravingMealOptions(
   generationMode: 'meal' | 'recipe' = 'meal',
   cuisineOverride?: string,
   glp1Targets?: ResolvedGLP1Targets,
+  overriddenAllergens?: string[],
+  /** Dish Adaptation Layer directive — when provided, its adaptationBlock is
+   *  injected into every generation attempt so the model adapts the requested
+   *  dish instead of replacing it. Built via getDishAdaptationDirective(). */
+  dishDirective?: import("./dishAdaptation/types").DishAdaptationDirective | null,
 ): Promise<UnifiedMeal[]> {
   const validMealType = normalizeMealType(mealType);
   const category = inferCravingCategory(cravingInput, validMealType);
@@ -1857,9 +1869,18 @@ export async function generateCravingMealOptions(
 
       const allergies: string[] = (u?.allergies as string[]) || [];
       _varietyAllergies = allergies;
-      if (allergies.length > 0) {
-        allergyBlock = `\n🚨 ALLERGEN BLOCK — ABSOLUTE MEDICAL SAFETY REQUIREMENT:\nThis user has confirmed allergies to: ${allergies.join(', ')}.\nDo NOT include these ingredients or any derivative/hidden form in ANY of the 3 options. This overrides all other instructions.`;
-        console.log(`[VARIETY ENGINE] Allergy block active for user ${userId}: ${allergies.length} items`);
+      // Remove explicitly authorized override allergen from the block sent to OpenAI.
+      // The override is request-scoped only — it does not modify the stored profile.
+      const enforcedAllergies = overriddenAllergens?.length
+        ? allergies.filter(a => !overriddenAllergens.some(oa =>
+            a.toLowerCase().includes(oa.toLowerCase()) || oa.toLowerCase().includes(a.toLowerCase())
+          ))
+        : allergies;
+      if (enforcedAllergies.length > 0) {
+        allergyBlock = `\n🚨 ALLERGEN BLOCK — ABSOLUTE MEDICAL SAFETY REQUIREMENT:\nThis user has confirmed allergies to: ${enforcedAllergies.join(', ')}.\nDo NOT include these ingredients or any derivative/hidden form in ANY of the 3 options. This overrides all other instructions.`;
+        console.log(`[VARIETY ENGINE] Allergy block active for user ${userId}: ${enforcedAllergies.length} items enforced` + (overriddenAllergens?.length ? ` (${overriddenAllergens.join(', ')} overridden by user consent)` : ''));
+      } else if (allergies.length > 0 && overriddenAllergens?.length) {
+        console.log(`[VARIETY ENGINE] All allergies overridden by user consent for user ${userId}: ${overriddenAllergens.join(', ')}`);
       }
 
       const healthConditions: string[] = (u?.healthConditions as string[]) || [];
@@ -2044,9 +2065,12 @@ export async function generateCravingMealOptions(
       ? `\n\nSECOND ATTEMPT — STRICT MODE: The previous response drifted from the dish family. You MUST generate 3 options that are clearly recognizable variations of "${dishFamily}". No exceptions.`
       : "";
     const hintAddendum = violationHint ? `\n\n${violationHint}` : "";
+    // Dish Adaptation Layer: identity anchor + explicit guardrail adaptations
+    // prepended so every attempt adapts the dish rather than replacing it.
+    const dalBlock = dishDirective?.adaptationBlock ? dishDirective.adaptationBlock + '\n\n' : '';
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
-      messages: [{ role: "user", content: (proceduralBlock ? proceduralBlock + '\n\n' : '') + prompt + stricter + hintAddendum }],
+      messages: [{ role: "user", content: dalBlock + (proceduralBlock ? proceduralBlock + '\n\n' : '') + prompt + stricter + hintAddendum }],
       temperature: stricterMode ? 0.6 : 0.85,
       max_tokens: 2500,
     });
@@ -2195,6 +2219,21 @@ export async function generateSingleCompliantFallback(
   cravingInput: string,
   mealType: string,
   dietaryIdentity: string[],
+  options?: {
+    /** Allergens the user has authenticated-overridden for this request.
+     *  These are removed from the allergy prohibition block so the fallback
+     *  does not re-block an ingredient the user explicitly unlocked. */
+    overriddenAllergens?: string[];
+    /** Full stored allergy list from the protocol envelope. Used to build an
+     *  explicit allergy block in the fallback prompt (the first-pass generator
+     *  builds this itself; the fallback must do the same). */
+    storedAllergies?: string[];
+    /** Dish Adaptation Layer directive built with callContext 'fallback' —
+     *  carries MORE explicit identity language than the first pass, including
+     *  the "do not return a different dish" line. The fallback must be more
+     *  specific about the requested dish, never less. */
+    dishDirective?: import("./dishAdaptation/types").DishAdaptationDirective | null;
+  },
 ): Promise<UnifiedMeal | null> {
   const validMealType = normalizeMealType(mealType);
   const kosherIntent = detectKosherCategoryIntent(dietaryIdentity, cravingInput);
@@ -2210,9 +2249,21 @@ export async function generateSingleCompliantFallback(
     `✅ Every single ingredient must be dairy-free. No exceptions.`,
   ].join('\n') : '';
 
+  // Build an allergy block that respects any authenticated override for this request.
+  // Without this the fallback would silently re-block an ingredient the user unlocked.
+  const overridden = (options?.overriddenAllergens ?? []).map(a => a.toLowerCase());
+  const enforcedAllergies = (options?.storedAllergies ?? []).filter(
+    a => !overridden.some(o => o.includes(a.toLowerCase()) || a.toLowerCase().includes(o))
+  );
+  const allergyBlock = enforcedAllergies.length > 0
+    ? `ALLERGEN BLOCK — This user has confirmed allergies to: ${enforcedAllergies.join(', ')}. Do NOT include these ingredients or any derivative/hidden form in the meal.`
+    : '';
+
   const prompt = [
     `You are a precision dietary chef. Generate exactly ONE meal that strictly complies with all dietary rules below.`,
+    options?.dishDirective?.adaptationBlock ?? '',
     dietBlock,
+    allergyBlock,
     kosherBlock,
     meatDairyGuard,
     `The meal must be: ${cravingInput}`,
@@ -4186,7 +4237,7 @@ export async function generateMealUnified(
   // Skip if safety was already checked at route level (e.g., with override token)
   if (request.userId && !request.safetyAlreadyChecked) {
     const inputText = Array.isArray(request.input) ? request.input.join(' ') : request.input;
-    const safetyCheck = await enforceSafetyProfile(request.userId, inputText, `unified-${request.type}`);
+    const safetyCheck = await enforceSafetyProfile(request.userId, inputText, `unified-${request.type}`, { correlationId: request.correlationId });
     
     if (safetyCheck.result === 'BLOCKED') {
       console.log(`🚫 [SAFETY] Blocked request for user ${request.userId}: ${safetyCheck.blockedTerms.join(', ')}`);
