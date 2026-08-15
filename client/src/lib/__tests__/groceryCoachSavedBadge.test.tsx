@@ -115,6 +115,8 @@ describe('SmartCartAdviceBody — "★ Saved" badge', () => {
         savedProductKeys={savedKeys}
         savingKey={null}
         onSave={() => {}}
+        pickedBrands={new Map()}
+        onPick={() => {}}
       />,
     );
 
@@ -129,6 +131,8 @@ describe('SmartCartAdviceBody — "★ Saved" badge', () => {
         savedProductKeys={new Set()}
         savingKey={null}
         onSave={() => {}}
+        pickedBrands={new Map()}
+        onPick={() => {}}
       />,
     );
 
@@ -146,6 +150,8 @@ describe('SmartCartAdviceBody — "★ Saved" badge', () => {
         savedProductKeys={savedKeys}
         savingKey={null}
         onSave={() => {}}
+        pickedBrands={new Map()}
+        onPick={() => {}}
       />,
     );
 
@@ -166,6 +172,8 @@ describe('SmartCartAdviceBody — "★ Saved" badge', () => {
         savedProductKeys={savedKeys}
         savingKey={null}
         onSave={() => {}}
+        pickedBrands={new Map()}
+        onPick={() => {}}
       />,
     );
 
@@ -186,6 +194,8 @@ describe('SmartCartAdviceBody — personalization banner', () => {
         savedProductKeys={savedKeys}
         savingKey={null}
         onSave={() => {}}
+        pickedBrands={new Map()}
+        onPick={() => {}}
       />,
     );
 
@@ -201,6 +211,8 @@ describe('SmartCartAdviceBody — personalization banner', () => {
         savedProductKeys={new Set()}
         savingKey={null}
         onSave={() => {}}
+        pickedBrands={new Map()}
+        onPick={() => {}}
       />,
     );
 
@@ -214,6 +226,8 @@ describe('SmartCartAdviceBody — personalization banner', () => {
         savedProductKeys={new Set(['name::somekey::somevalue'])}
         savingKey={null}
         onSave={() => {}}
+        pickedBrands={new Map()}
+        onPick={() => {}}
       />,
     );
 
@@ -230,6 +244,8 @@ describe('SmartCartAdviceBody — personalization banner', () => {
         savedProductKeys={savedKeys}
         savingKey={null}
         onSave={() => {}}
+        pickedBrands={new Map()}
+        onPick={() => {}}
       />,
     );
 

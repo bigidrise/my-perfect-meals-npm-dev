@@ -225,6 +225,21 @@ export function applySwapToShoppingList(
       : s,
   );
 }
+
+/**
+ * Resolves the display name for one shopping-list item.
+ * When the user has picked a brand for that ingredient, the brand name is
+ * returned; otherwise the original generic ingredient name is returned.
+ *
+ * @internal exported for unit tests
+ */
+export function resolveItemName(
+  itemName: string,
+  pickedBrands: Map<string, { brand: string }>,
+): string {
+  const pick = pickedBrands.get(itemName.toLowerCase());
+  return pick ? pick.brand : itemName;
+}
 const GRADE_COLOR: Record<string, string> = {
   A: "rgba(16,185,129,0.9)",
   B: "rgba(251,191,36,0.9)",
@@ -706,17 +721,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   }, [SESSION_KEY]);
 
   const handlePickBrand = useCallback((ingredient: string, brand: BrandRecommendation) => {
-    setPickedBrands((prev) => {
-      const next = new Map(prev);
-      const key = ingredient.toLowerCase();
-      // Toggle off if the same brand is tapped again
-      if (next.get(key)?.brand === brand.brand) {
-        next.delete(key);
-      } else {
-        next.set(key, brand);
-      }
-      return next;
-    });
+    setPickedBrands((prev) => togglePickedBrand(prev, ingredient, brand));
   }, []);
 
   const handleAddToList = useCallback(() => {
@@ -724,15 +729,12 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     const mealName = result.meal?.name || "Grocery Coach";
     // Build list — wherever the user picked a brand, substitute it for the generic.
     const toItems = (arr: Array<{ item: string; quantity: string; unit: string }>): UniversalIngredient[] =>
-      arr.map((s) => {
-        const pick = pickedBrands.get(s.item.toLowerCase());
-        return {
-          name: pick ? pick.brand : s.item,
-          quantity: parseFloat(s.quantity) || 1,
-          unit: s.unit || "",
-          sourceMeals: [mealName],
-        };
-      });
+      arr.map((s) => ({
+        name: resolveItemName(s.item, pickedBrands),
+        quantity: parseFloat(s.quantity) || 1,
+        unit: s.unit || "",
+        sourceMeals: [mealName],
+      }));
     const allItems = [
       ...toItems(result.shoppingList),
       ...toItems(result.ownedIngredients ?? []),
@@ -2165,4 +2167,26 @@ interface SmartCartAdviceBodyProps {
   onSave: (ingredient: string, category: string, brand: BrandRecommendation) => void;
   pickedBrands: Map<string, BrandRecommendation>;
   onPick: (ingredient: string, brand: BrandRecommendation) => void;
+}
+
+/**
+ * Pure reducer for the pickedBrands Map.
+ * Tapping the same brand a second time removes the pick (toggle-off).
+ * Tapping a different brand replaces the existing pick.
+ *
+ * @internal exported for unit tests
+ */
+export function togglePickedBrand<T extends { brand: string }>(
+  prev: Map<string, T>,
+  ingredient: string,
+  brand: T,
+): Map<string, T> {
+  const next = new Map(prev);
+  const key = ingredient.toLowerCase();
+  if (next.get(key)?.brand === brand.brand) {
+    next.delete(key);
+  } else {
+    next.set(key, brand);
+  }
+  return next;
 }
