@@ -32,7 +32,7 @@ describe("DAL functional-role reasoning", () => {
     expect(block).toMatch(/never use an ingredient blocked by another rule/i);
   });
 
-  it("vegetarian lard crust: fat substitution carries no setter role and no agar directive", () => {
+  it("vegetarian lard crust: fat substitution carries fat/flakiness role, not setter — no agar directive", () => {
     const ctx = buildGuardrailContext({ dietaryIdentity: ["vegetarian"] });
     const decomposition = {
       definingComponents: ["lard pastry crust", "fruit filling"],
@@ -43,8 +43,11 @@ describe("DAL functional-role reasoning", () => {
     const lard = conflicts.filter(c => c.component === "lard pastry crust" && /lard/.test(c.guardrail));
     expect(lard.length).toBeGreaterThan(0);
     for (const c of lard) {
-      expect(c.functionalRole).toBeUndefined();
+      // Lard is a fat-in-pastry ingredient, not a setter; it gets fat/flakiness role.
+      expect(c.functionalRole).toBe("fat/flakiness");
+      // Fat/flakiness substitution must never recommend a setting agent (agar/gelatin).
       expect(c.directive).not.toMatch(/agar|gelatin/i);
+      // Must recommend a solid fat that can replicate flakiness.
       expect(c.directive).toMatch(/plant-based shortening|coconut oil/i);
     }
   });

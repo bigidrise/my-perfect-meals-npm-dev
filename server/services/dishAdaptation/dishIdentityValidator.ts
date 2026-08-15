@@ -62,13 +62,30 @@ function tokenMatches(token: string, haystackTokens: Set<string>, haystackText: 
 // (cheesecake → parfait, stew → soup, sandwich → bowl) is NOT the requested
 // dish. Families are mutually exclusive presentation formats; keywords are
 // matched on word boundaries.
+//
+// When adding keywords, keep them tightly scoped: a keyword in this table will
+// flag ANY generated meal whose NAME contains it as a foreign format for any
+// dish that doesn't also include that keyword in its own name. Prefer multi-word
+// keywords over single words that appear in legitimate ingredient names.
 const FORM_FAMILIES: Record<string, string[]> = {
-  "baked-cake": ["cake", "cheesecake", "pie", "tart", "torte", "crust", "brownie", "brownies"],
-  "layered-cup": ["parfait", "parfaits", "trifle", "verrine"],
-  "mousse-pudding": ["mousse", "pudding", "custard", "flan", "panna cotta"],
-  "frozen": ["sorbet", "popsicle", "popsicles", "ice cream", "nice cream", "frozen yogurt"],
+  "baked-cake": [
+    "cake", "cheesecake", "pie", "tart", "tartlet", "torte", "crust",
+    "brownie", "brownies", "galette", "clafoutis",
+  ],
+  "layered-cup": ["parfait", "parfaits", "trifle", "verrine", "verrines", "shooter", "shooters"],
+  "mousse-pudding": [
+    "mousse", "pudding", "custard", "flan", "panna cotta",
+    "semifreddo", "fool", "syllabub",
+  ],
+  "frozen": [
+    "sorbet", "popsicle", "popsicles", "ice cream", "nice cream",
+    "frozen yogurt", "gelato", "granita", "icebox",
+  ],
   "drink": ["smoothie", "shake", "milkshake", "juice", "latte", "drinkable"],
   "bites": ["bites", "balls", "truffles", "bars", "poppers"],
+  // "deconstructed" is always a form-collapse escape: serving separate components
+  // of a dish is not the same as serving the dish, regardless of naming.
+  "deconstructed": ["deconstructed"],
   "bowl": ["bowl", "bowls"],
   "soup": ["soup", "broth", "bisque", "chowder", "brothy"],
   "stew": ["stew", "braise", "braised", "gumbo", "goulash", "chili"],
@@ -198,6 +215,54 @@ export function validateDishIdentity(
         `form mismatch: "${requestedDish}" must be ${dishForm ?? `a ${Array.from(allowedForms).join("/")} format`}, ` +
         `but the generated meal "${meal.name ?? "(unnamed)"}" is a different format (${foreign.join(", ")})`,
       );
+    }
+  }
+
+  // ── 3b. Description lead-sentence form check ────────────────────────────
+  // A model may name the dish correctly ("Strawberry Cheesecake") but reveal
+  // the true physical format in the opening description ("A creamy parfait
+  // with cheesecake-inspired layers…"). This check scans the first 80 chars
+  // of the description for foreign form families.
+  //
+  // Suppression rule: if a foreign form keyword is immediately preceded by a
+  // container/vessel signal ("in a bowl", "into a glass", "with a cup"), it is
+  // a preparation or serving note — not the food's own format — and is ignored.
+  // This prevents false positives from descriptions like "Serve each slice in
+  // a bowl with strawberries" or "Mix filling in a large bowl."
+  if (!formMismatch && allowedForms.size > 0 && meal.description) {
+    const lead = meal.description.slice(0, 80).toLowerCase();
+    const leadFamilies = detectFormFamilies(lead);
+    const foreignInLead = Array.from(leadFamilies).filter(f => !allowedForms.has(f));
+    if (foreignInLead.length > 0) {
+      const CONTAINER_SIGNALS = [
+        "in a ", "in an ", "into a ", "into an ",
+        "using a ", "with a ", "with an ",
+        "inside a ", "inside an ", "from a ",
+      ];
+      // Families whose keywords double as common preparation verbs ("bake", "gratin")
+      // are skipped in the description check to prevent false positives from
+      // instructions like "Bake until set." They remain active for the name check.
+      const DESCRIPTION_SKIP_FAMILIES = new Set(["casserole"]);
+      // Normalize the lead for index lookup so punctuation boundaries
+      // (e.g. "bowl." vs. " bowl ") don't prevent container-signal detection.
+      const normLead = ` ${lead.replace(/[^a-z0-9]+/g, " ")} `;
+      const genuineForms = foreignInLead.filter(family => {
+        if (DESCRIPTION_SKIP_FAMILIES.has(family)) return false;
+        return FORM_FAMILIES[family].some(keyword => {
+          const normKeyword = keyword.replace(/[^a-z0-9]+/g, " ");
+          const idx = normLead.indexOf(` ${normKeyword} `);
+          if (idx < 0) return false;
+          const before = normLead.slice(Math.max(0, idx - 25), idx + 1);
+          return !CONTAINER_SIGNALS.some(s => before.includes(s));
+        });
+      });
+      if (genuineForms.length > 0) {
+        formMismatch = true;
+        failures.push(
+          `form mismatch in description: "${requestedDish}" is a ${Array.from(allowedForms).join("/")} format, ` +
+          `but the description reveals a different format (${genuineForms.join(", ")})`,
+        );
+      }
     }
   }
 

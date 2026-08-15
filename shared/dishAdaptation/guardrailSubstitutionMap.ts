@@ -46,6 +46,7 @@ export type FunctionalRole =
   | "structure"
   | "sweetener"
   | "fat/richness"
+  | "fat/flakiness"
   | "leavening";
 
 export interface SubstitutionRule {
@@ -228,6 +229,24 @@ export const GUARDRAIL_SUBSTITUTION_MAP: Record<GuardrailId, GuardrailSubstituti
       { blocked: "gelatin", triggers: ["gelatin"], substitute: "agar-agar", functionalRole: "setter", roleRequirement: "agar sets firmer and less elastic than gelatin — use roughly 1 tsp agar powder per cup of liquid and boil to activate, so the dessert still sets and slices cleanly" },
       { blocked: "animal stock", triggers: ["stock", "broth"], substitute: "vegetable broth" },
       { blocked: "mayonnaise / worcestershire", triggers: ["mayonnaise", "mayo", "worcestershire"], substitute: "vegan mayonnaise / vegan worcestershire sauce" },
+      // ── Fat-in-pastry: butter creates flakiness through cold solid fat pockets.
+      // Vegan butter works if handled cold; coconut oil is a lower-flakiness fallback.
+      {
+        blocked: "butter in a pastry, pie crust, or flaky dough",
+        triggers: ["pastry crust", "pie crust", "flaky", "shortcrust", "puff pastry", "croissant", "laminated dough"],
+        substitute: "cold vegan butter (e.g. Miyoko's or Earth Balance), kept solid throughout mixing",
+        functionalRole: "fat/flakiness",
+        roleRequirement: "butter creates flakiness by forming cold solid fat pockets that steam apart in the oven — the vegan substitute must remain solid during mixing; work it in quickly and keep everything cold so distinct fat layers survive into the oven and produce flaky layers, not a greasy crumb",
+      },
+      // ── Leavening: eggs in a baked cake/muffin/quick bread trap air and expand
+      // during baking; a plain flax egg replicates binding but not lift.
+      {
+        blocked: "eggs as leavening in a baked cake, muffin, or quick bread",
+        triggers: ["leavening", "egg lift", "whipped egg", "beaten egg"],
+        substitute: "aquafaba (3 tbsp per egg, whipped to soft peaks for aeration) OR baking soda + apple cider vinegar (½ tsp soda + 1 tsp vinegar per egg for CO₂ lift)",
+        functionalRole: "leavening",
+        roleRequirement: "eggs were trapping air and providing CO₂ expansion during baking — aquafaba whipped to soft peaks replicates the air-trapping role; baking soda + vinegar supplies CO₂; a dense, flat result means the leavening substitute was insufficient — combine both methods for tall, airy bakes",
+      },
     ],
   },
 
@@ -240,7 +259,13 @@ export const GUARDRAIL_SUBSTITUTION_MAP: Record<GuardrailId, GuardrailSubstituti
       { blocked: "meat / poultry / seafood", triggers: ["beef", "pork", "chicken", "fish", "shrimp", "seafood", "meat", "protein/seafood"], substitute: "tofu, tempeh, eggs, legumes, or dairy-based protein" },
       { blocked: "animal stock / bone broth", triggers: ["stock", "broth"], substitute: "vegetable broth" },
       { blocked: "gelatin", triggers: ["gelatin"], substitute: "agar-agar", functionalRole: "setter", roleRequirement: "agar must be boiled to activate and sets firmer than gelatin — dose ~1 tsp powder per cup of liquid so the dish still sets and slices cleanly" },
-      { blocked: "lard / tallow / suet", triggers: ["lard", "tallow", "suet"], substitute: "plant-based shortening or coconut oil" },
+      {
+        blocked: "lard / tallow / suet in a pastry or crust",
+        triggers: ["lard", "tallow", "suet", "pastry", "pie crust", "shortcrust"],
+        substitute: "plant-based shortening (Crisco or similar) or cold coconut oil",
+        functionalRole: "fat/flakiness",
+        roleRequirement: "lard's low melting point creates flakiness by staying solid during mixing and melting rapidly in the oven — substitute with solid plant-based shortening, kept cold, worked in quickly so fat pockets survive into the oven and produce distinct flaky layers rather than a dense crumb",
+      },
       { blocked: "fish sauce / anchovies", triggers: ["fish sauce", "anchov"], substitute: "soy sauce / capers" },
     ],
   },
