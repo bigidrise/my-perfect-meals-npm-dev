@@ -644,6 +644,40 @@ async function initializeApp() {
       );
     }
 
+    // ── Synchronous guard-backing migrations ─────────────────────────────────
+    // schemaMigPromise above is raced against a 6 s timeout, so its ALTERs
+    // may not have completed before the guards below run.  Re-applying all
+    // three critical idempotent migrations here guarantees every guarded
+    // column is present when its guard fires, regardless of whether the race
+    // timed out.
+    //
+    // runTrialGrantsMigration is placed last in schemaMigPromise and is
+    // therefore the most likely to be cut off by the 6 s timeout — it MUST
+    // be re-run here before assertTrialSourceColumn fires.
+    {
+      const { db: dbSyncMig } = await import("./db");
+      const { runTrialGrantsMigration } = await import("./db/migrations/runTrialGrantsMigration");
+      const { runProcareTrainingMigration } = await import("./db/migrations/runProcareTrainingMigration");
+      const { runPerformanceModeEnabledMigration } = await import("./db/migrations/runPerformanceModeEnabledMigration");
+      await runTrialGrantsMigration(dbSyncMig as any);
+      await runProcareTrainingMigration(dbSyncMig as any);
+      await runPerformanceModeEnabledMigration(dbSyncMig as any);
+    }
+
+    // ── Post-migration guards: verify critical columns are actually present ─
+    // These run outside the migration try/catch so a timed-out or failed
+    // migration that left columns absent causes a loud initialization failure
+    // rather than a silent runtime error.
+    {
+      const { assertTrialSourceColumn } = await import("./db/migrations/assertTrialSourceColumn");
+      const { assertProcareTrainingCompletedColumn } = await import("./db/migrations/assertProcareTrainingCompletedColumn");
+      const { assertPerformanceModeEnabledColumn } = await import("./db/migrations/assertPerformanceModeEnabledColumn");
+      const { db: dbGuards } = await import("./db");
+      await assertTrialSourceColumn(dbGuards as any);
+      await assertProcareTrainingCompletedColumn(dbGuards as any);
+      await assertPerformanceModeEnabledColumn(dbGuards as any);
+    }
+
     // Run data migrations (grandfather + cert-bridge) in the background.
     // Awaiting schemaMigPromise first guarantees required columns exist before
     // we attempt the UPDATE/INSERT, even when boot timed out early.
@@ -1811,10 +1845,20 @@ async function initializeApp() {
       // ── Post-migration guard: verify correlation_id column is actually present ──
       // If the migration silently failed or was rolled back, fail loudly here rather
       // than letting logSafetyOverride produce a 500 at runtime.
+      //
+      // IMPORTANT: this block runs inside a deferred setTimeout callback, so any
+      // thrown error would become an unhandled rejection that is only logged — the
+      // server would keep serving a broken safety surface. We therefore catch the
+      // guard error explicitly and call process.exit(1) to make the failure fatal.
       {
         const { db: dbGuard } = await import("./db");
         const { assertCorrelationIdColumn } = await import("./db/migrations/assertCorrelationIdColumn");
-        await assertCorrelationIdColumn(dbGuard as any);
+        try {
+          await assertCorrelationIdColumn(dbGuard as any);
+        } catch (guardErr: any) {
+          console.error("🚨 [FATAL] Startup guard failed — shutting down:", guardErr.message);
+          process.exit(1);
+        }
       }
 
       // ── Inline migrations for columns that the guard will assert ────────────
@@ -1879,6 +1923,46 @@ async function initializeApp() {
             table: "users",
             column: "clinical_context_response",
             hint: "Clinical context screening gate — missing column bypasses medication/hormone screening",
+          },
+          // ── Clinical Labs Phase 5 columns ──────────────────────────────────────
+          // These columns were added in the Phase 5 migration. If absent the labs
+          // GET handler silently returns null for hormone/thyroid panels, breaking
+          // hormone-optimization, menopause, perimenopause, and thyroid subtype
+          // protocol resolution on the profile page.
+          {
+            table: "clinical_labs",
+            column: "reverse_t3",
+            hint: "Clinical Labs Phase 5 — thyroid panel; missing column silently drops T4→T3 conversion marker from lab results",
+          },
+          {
+            table: "clinical_labs",
+            column: "estradiol",
+            hint: "Clinical Labs Phase 5 — hormone panel; missing column silently drops menopause/perimenopause signal from lab results",
+          },
+          {
+            table: "clinical_labs",
+            column: "progesterone",
+            hint: "Clinical Labs Phase 5 — hormone panel; missing column silently drops luteal phase perimenopause marker from lab results",
+          },
+          {
+            table: "clinical_labs",
+            column: "shbg",
+            hint: "Clinical Labs Phase 5 — hormone panel; missing column silently drops sex hormone binding globulin from lab results",
+          },
+          {
+            table: "clinical_labs",
+            column: "lh",
+            hint: "Clinical Labs Phase 5 — hormone panel; missing column silently drops LH menopause marker from lab results",
+          },
+          {
+            table: "clinical_labs",
+            column: "fsh",
+            hint: "Clinical Labs Phase 5 — hormone panel; missing column silently drops FSH (primary menopause trigger) from lab results",
+          },
+          {
+            table: "clinical_labs",
+            column: "dhea_s",
+            hint: "Clinical Labs Phase 5 — hormone panel; missing column silently drops DHEA-S hormone-optimization trigger from lab results",
           },
         ]);
       }
