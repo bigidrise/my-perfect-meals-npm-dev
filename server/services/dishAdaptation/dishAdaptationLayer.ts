@@ -19,6 +19,7 @@ import OpenAI from "openai";
 import {
   GUARDRAIL_SUBSTITUTION_MAP,
   ALLERGEN_SUBSTITUTES,
+  ALLERGEN_STRUCTURAL_RULES,
   type GuardrailId,
 } from "../../../shared/dishAdaptation/guardrailSubstitutionMap";
 import type {
@@ -183,8 +184,34 @@ export function resolveConflicts(
     const a = allergen.toLowerCase();
     if (overridden.some(o => o.includes(a) || a.includes(o))) continue;
     const substitute = ALLERGEN_SUBSTITUTES[a];
-    if (!substitute) continue;
+    const structuralRules = ALLERGEN_STRUCTURAL_RULES[a] ?? [];
+    if (!substitute && structuralRules.length === 0) continue;
     for (const { c } of allComponents) {
+      // Role-aware structural rules win over the generic allergen substitute —
+      // an allergy that removes a binder/setter needs a functional substitute,
+      // not just a compliant one (same bias as the guardrail path above).
+      const matchingStructural = structuralRules.filter(rule =>
+        componentMatchesTriggers(c, rule.triggers),
+      );
+      if (matchingStructural.length > 0) {
+        for (const rule of matchingStructural) {
+          const dedupeKey = `allergy|${a}|${rule.blocked}|${c}`;
+          if (seen.has(dedupeKey)) continue;
+          seen.add(dedupeKey);
+          const roleReq = rule.functionalRole && rule.roleRequirement
+            ? ` FUNCTIONAL REQUIREMENT (${rule.functionalRole}): ${rule.roleRequirement}.`
+            : "";
+          conflicts.push({
+            component: c,
+            guardrail: `allergy: no ${allergen}`,
+            directive: `Use ${rule.substitute}.${rule.note ? ` (${rule.note})` : ""}${roleReq} The dish is still ${dishName}.`,
+            functionalRole: rule.functionalRole,
+            roleRequirement: rule.roleRequirement,
+          });
+        }
+        continue;
+      }
+      if (!substitute) continue;
       if (!c.toLowerCase().includes(a)) continue;
       const dedupeKey = `allergy|${a}|${c}`;
       if (seen.has(dedupeKey)) continue;

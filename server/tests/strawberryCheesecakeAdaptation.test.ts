@@ -13,6 +13,11 @@
 import { validateDishIdentity } from "../services/dishAdaptation/dishIdentityValidator";
 import type { DishAdaptationDirective } from "../services/dishAdaptation/types";
 import type { GeneratedMealLike } from "../services/dishAdaptation/dishIdentityValidator";
+import {
+  resolveConflicts,
+  renderAdaptationBlock,
+  buildGuardrailContext,
+} from "../services/dishAdaptation/dishAdaptationLayer";
 
 // ── Shared fixture ───────────────────────────────────────────────────────────
 
@@ -382,6 +387,157 @@ describe("strawberry cheesecake — name-only check when no directive", () => {
 
     // Without defining components the catastrophic check requires BOTH name
     // absence from meal name AND name absence from full text.
+    expect(result.catastrophicDeviation).toBe(true);
+    expect(result.passed).toBe(false);
+  });
+});
+
+// ── Triple constraint: dairy allergy + egg allergy + diabetic ────────────────
+// The hardest acceptance case: every structurally critical ingredient is under
+// restriction. Dairy allergy removes cream cheese (the primary body); egg
+// allergy removes the binder/setter; diabetic removes sugar (which also
+// carries moisture and structure). The DAL must solve all three functional
+// roles simultaneously — a sliceable cheesecake, not a pudding/mousse escape.
+
+describe("triple-constraint cheesecake — dairy allergy + egg allergy + diabetic", () => {
+  const tripleCtx = buildGuardrailContext({
+    dietaryIdentity: ["diabetic"],
+    allergies: ["dairy", "egg"],
+  });
+  const decomposition = {
+    definingComponents: [
+      "cream cheese filling",
+      "graham cracker crust",
+      "strawberry topping",
+    ],
+    adaptableComponents: ["sugar / sweetener", "eggs", "vanilla"],
+    dishForm: "sliceable baked cake with crust",
+  };
+  const conflicts = resolveConflicts("strawberry cheesecake", decomposition, tripleCtx);
+
+  test("cream cheese conflict carries binder/setter role with an allergy-derived cashew + agar directive", () => {
+    const cc = conflicts.filter(
+      c => c.component === "cream cheese filling" && /allergy: no dairy/.test(c.guardrail),
+    );
+    expect(cc.length).toBeGreaterThan(0);
+    for (const c of cc) {
+      expect(c.functionalRole).toBe("binder/setter");
+      expect(c.directive).toMatch(/cashew/i);
+      expect(c.directive).toMatch(/agar|arrowroot/i);
+      expect(c.directive).toMatch(/set firm enough to slice/i);
+    }
+  });
+
+  test("egg conflict carries binder/setter role and the setter directive never recommends egg", () => {
+    const eggConflicts = conflicts.filter(c => /allergy: no egg/.test(c.guardrail));
+    expect(eggConflicts.length).toBeGreaterThan(0);
+    const roleTagged = eggConflicts.filter(c => c.functionalRole === "binder/setter");
+    expect(roleTagged.length).toBeGreaterThan(0);
+    for (const c of roleTagged) {
+      expect(c.directive).toMatch(/silken tofu|flax/i);
+      expect(c.roleRequirement).toMatch(/agar|arrowroot/i);
+      // Cross-contamination invariant: the setter recommendation itself must
+      // never be egg-based ("eggs were the setting agent" describes the
+      // problem; "use egg..." would be a violation).
+      expect(c.roleRequirement).not.toMatch(/use\s+(an?\s+)?eggs?\b/i);
+    }
+  });
+
+  test("sugar conflict carries the sweetener role from the diabetic profile", () => {
+    const sugar = conflicts.filter(
+      c => c.component === "sugar / sweetener" && /diabetic/.test(c.guardrail),
+    );
+    expect(sugar.length).toBeGreaterThan(0);
+    expect(sugar.some(c => c.functionalRole === "sweetener")).toBe(true);
+    const roleTagged = sugar.find(c => c.functionalRole === "sweetener");
+    expect(roleTagged!.roleRequirement).toMatch(/moisture and structure/i);
+  });
+
+  test("no cross-contamination: agar/setter directives never recommend dairy either", () => {
+    const setters = conflicts.filter(c => c.functionalRole === "binder/setter");
+    for (const c of setters) {
+      expect(c.roleRequirement).not.toMatch(/use\s+(cream cheese|dairy|milk|butter)/i);
+    }
+  });
+
+  test("adaptation block states the structural-integrity invariant for the triple constraint", () => {
+    const block = renderAdaptationBlock(
+      "strawberry cheesecake",
+      decomposition,
+      conflicts,
+      tripleCtx,
+      "first_pass",
+    );
+    expect(block).toContain("STRUCTURAL INTEGRITY");
+    // Key invariant from #1191 — must hold under triple constraint.
+    expect(block).toMatch(/never use an ingredient blocked by another rule to satisfy a structural role/i);
+    expect(block).toMatch(/Physical form \(must be preserved\): sliceable baked cake with crust/);
+    // All three functional roles addressed in one block.
+    expect(block).toMatch(/binder\/setter/);
+    expect(block).toMatch(/sweetener/);
+  });
+
+  // Full validator path using a directive assembled from the real conflicts.
+  const tripleDirective: DishAdaptationDirective = {
+    identityAnchor: "This IS strawberry cheesecake. Do not change the dish.",
+    definingComponents: decomposition.definingComponents,
+    adaptableComponents: decomposition.adaptableComponents,
+    dishForm: decomposition.dishForm,
+    conflicts,
+    adaptationBlock: renderAdaptationBlock(
+      "strawberry cheesecake",
+      decomposition,
+      conflicts,
+      tripleCtx,
+      "first_pass",
+    ),
+  };
+
+  test("validator passes a set, sliceable cashew cheesecake with almond crust", () => {
+    const meal: GeneratedMealLike = {
+      name: "Dairy-Free Egg-Free Strawberry Cheesecake",
+      description:
+        "A sliceable strawberry cheesecake with an almond flour crust and a cashew cream cheese filling set with agar, sweetened with monk fruit, topped with fresh strawberries.",
+      ingredients: [
+        { name: "cashew cream cheese filling" },
+        { name: "almond flour crust" },
+        { name: "agar-agar" },
+        { name: "monk fruit sweetener" },
+        { name: "fresh strawberry topping" },
+      ],
+    };
+    const result = validateDishIdentity("strawberry cheesecake", meal, tripleDirective);
+    expect(result.catastrophicDeviation).toBe(false);
+    expect(result.passed).toBe(true);
+  });
+
+  test.each([
+    {
+      label: "mousse",
+      meal: {
+        name: "Strawberry Cheesecake Mousse",
+        description: "An airy whipped coconut mousse with strawberry purée, served in cups.",
+        ingredients: [{ name: "coconut cream" }, { name: "strawberry purée" }, { name: "monk fruit" }],
+      },
+    },
+    {
+      label: "pudding",
+      meal: {
+        name: "Strawberry Cheesecake Pudding",
+        description: "A soft spoonable pudding with cheesecake flavor notes. No crust.",
+        ingredients: [{ name: "silken tofu" }, { name: "strawberry extract" }, { name: "erythritol" }],
+      },
+    },
+    {
+      label: "custard",
+      meal: {
+        name: "Strawberry Cheesecake Custard",
+        description: "A soft-set custard in ramekins with strawberry coulis.",
+        ingredients: [{ name: "cashew cream" }, { name: "arrowroot" }, { name: "strawberries" }],
+      },
+    },
+  ])("validator flags a $label escape under triple constraint as catastrophic", ({ meal }) => {
+    const result = validateDishIdentity("strawberry cheesecake", meal, tripleDirective);
     expect(result.catastrophicDeviation).toBe(true);
     expect(result.passed).toBe(false);
   });

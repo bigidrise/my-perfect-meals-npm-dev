@@ -300,6 +300,38 @@ export const GUARDRAIL_SUBSTITUTION_MAP: Record<GuardrailId, GuardrailSubstituti
   },
 };
 
+/**
+ * Role-aware structural rules for allergens. When an allergy (not a dietary
+ * identity) removes a structurally critical ingredient — dairy in a set
+ * filling, eggs as the binder/setter — the substitute must perform the same
+ * structural function, exactly as the vegan-profile rules require. These
+ * mirror the vegan binder/setter rules so a dairy or egg ALLERGY gets the same
+ * functional-role reasoning that a vegan dietary identity gets.
+ *
+ * Cross-contamination invariant: no roleRequirement here may recommend an
+ * ingredient blocked by another common rule — in particular the egg-setter
+ * rule must never suggest egg, and the dairy rule must never suggest dairy.
+ */
+export const ALLERGEN_STRUCTURAL_RULES: Record<string, SubstitutionRule[]> = {
+  dairy: [
+    {
+      blocked: "dairy in a set filling or custard (binder/setter role)",
+      triggers: ["cream cheese", "cheesecake", "cheese filling", "custard", "mousse", "panna cotta", "flan", "cream filling"],
+      substitute: "a cashew-cream-cheese base (soaked cashews blended with coconut cream and lemon)",
+      functionalRole: "binder/setter",
+      roleRequirement: "the filling must set firm enough to slice — use agar or arrowroot as the setter, since removing the dairy also removes the protein network that made it set",
+    },
+  ],
+  egg: [
+    {
+      blocked: "eggs as the binder/setter in a baked or set dish",
+      triggers: ["egg", "custard", "meringue", "cheesecake", "quiche", "frittata"],
+      substitute: "silken tofu blended smooth, or a flax binder (ground flaxseed + water)",
+      functionalRole: "binder/setter",
+      roleRequirement: "eggs were the setting agent — add agar (for a firm set) or arrowroot/cornstarch (for a soft set) so the dish holds its shape when portioned",
+    },
+  ],
+};
 /** Allergen → substitution rule, extracted from allergyGuardrails.ts getSafeSubstitute. */
 export const ALLERGEN_SUBSTITUTES: Record<string, string> = {
   shrimp: "chicken or tofu",
