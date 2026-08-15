@@ -250,6 +250,14 @@ Write cooking instructions.`,
   // ── 8. Clinical provenance metadata ────────────────────────────────────────
   const clinicalProvenance = buildClinicalProvenance(envelope);
 
+  // Sanitize: never write a raw base64 blob into JSONB — it bloats the row to
+  // ~2 MB and the favorites endpoint strips it anyway (data: URLs are unsafe).
+  // Store null here; the migration script will back-fill a permanent URL later.
+  if (imageUrl?.startsWith("data:")) {
+    console.warn(`[MealCardFinalizer] base64 imageUrl detected — storing null to avoid JSONB bloat (meal: "${meal.name}")`);
+    imageUrl = null;
+  }
+
   // ── 9. Compose mealData blob ───────────────────────────────────────────────
   const mealData = {
     title: meal.name,
