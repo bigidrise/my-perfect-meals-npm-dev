@@ -793,6 +793,102 @@ describe("buildGuardrailContext — gluten-free guardrail activation from free-t
   });
 });
 
+// ── Override phrasing mismatch: "dairy" override vs "dairy (milk)" allergy ───
+// When a user overrides an allergen the stored phrasing may differ from the
+// active allergy phrasing (e.g. override "dairy" vs allergy "dairy (milk)", or
+// the reverse).  The bidirectional substring check must handle all combos so
+// the override always wins — no conflict should be generated for an overridden
+// allergen regardless of which side uses the parenthetical form.
+
+describe("allergen override phrasing mismatch — override always wins", () => {
+  const decomposition = {
+    definingComponents: [
+      "cream cheese filling",
+      "graham cracker crust",
+      "strawberry topping",
+    ],
+    adaptableComponents: ["sugar / sweetener", "eggs", "vanilla"],
+    dishForm: "sliceable baked cake with crust",
+  };
+
+  // ── buildGuardrailContext filtering ────────────────────────────────────────
+
+  test('override "dairy", allergy "dairy (milk)" → activeAllergens is empty (filtered at buildGuardrailContext)', () => {
+    const ctx = buildGuardrailContext({
+      allergies: ["dairy (milk)"],
+      overriddenAllergens: ["dairy"],
+    });
+    expect(ctx.activeAllergens).toHaveLength(0);
+  });
+
+  test('override "dairy (milk)", allergy "dairy" → activeAllergens is empty (filtered at buildGuardrailContext)', () => {
+    const ctx = buildGuardrailContext({
+      allergies: ["dairy"],
+      overriddenAllergens: ["dairy (milk)"],
+    });
+    expect(ctx.activeAllergens).toHaveLength(0);
+  });
+
+  // ── resolveConflicts secondary guard ───────────────────────────────────────
+  // Even when resolveConflicts receives a ctx that still lists the allergen in
+  // activeAllergens (e.g. assembled outside buildGuardrailContext), the
+  // override guard inside resolveConflicts must catch the phrasing mismatch.
+
+  test('resolveConflicts: override "dairy", allergen "dairy (milk)" in activeAllergens → no dairy conflict', () => {
+    const ctx = {
+      guardrails: [],
+      activeAllergens: ["dairy (milk)"],
+      overriddenAllergens: ["dairy"],
+    };
+    const conflicts = resolveConflicts("strawberry cheesecake", decomposition, ctx);
+    const dairyConflicts = conflicts.filter(c => /allergy.*dairy/i.test(c.guardrail));
+    expect(dairyConflicts).toHaveLength(0);
+  });
+
+  test('resolveConflicts: override "dairy (milk)", allergen "dairy" in activeAllergens → no dairy conflict', () => {
+    const ctx = {
+      guardrails: [],
+      activeAllergens: ["dairy"],
+      overriddenAllergens: ["dairy (milk)"],
+    };
+    const conflicts = resolveConflicts("strawberry cheesecake", decomposition, ctx);
+    const dairyConflicts = conflicts.filter(c => /allergy.*dairy/i.test(c.guardrail));
+    expect(dairyConflicts).toHaveLength(0);
+  });
+
+  // ── Full pipeline round-trips ───────────────────────────────────────────────
+
+  test('end-to-end: override "dairy", allergy "dairy (milk)" → zero conflicts from resolveConflicts', () => {
+    const ctx = buildGuardrailContext({
+      allergies: ["dairy (milk)"],
+      overriddenAllergens: ["dairy"],
+    });
+    const conflicts = resolveConflicts("strawberry cheesecake", decomposition, ctx);
+    const dairyConflicts = conflicts.filter(c => /allergy.*dairy/i.test(c.guardrail));
+    expect(dairyConflicts).toHaveLength(0);
+  });
+
+  test('end-to-end: override "dairy (milk)", allergy "dairy" → zero conflicts from resolveConflicts', () => {
+    const ctx = buildGuardrailContext({
+      allergies: ["dairy"],
+      overriddenAllergens: ["dairy (milk)"],
+    });
+    const conflicts = resolveConflicts("strawberry cheesecake", decomposition, ctx);
+    const dairyConflicts = conflicts.filter(c => /allergy.*dairy/i.test(c.guardrail));
+    expect(dairyConflicts).toHaveLength(0);
+  });
+
+  // Non-overridden allergy must still generate conflicts (regression guard).
+  test('non-overridden "dairy (milk)" allergy still generates a conflict', () => {
+    const ctx = buildGuardrailContext({
+      allergies: ["dairy (milk)"],
+      // no overriddenAllergens
+    });
+    const conflicts = resolveConflicts("strawberry cheesecake", decomposition, ctx);
+    const dairyConflicts = conflicts.filter(c => /allergy.*dairy/i.test(c.guardrail));
+    expect(dairyConflicts.length).toBeGreaterThan(0);
+  });
+});
 // ── Score assertions ─────────────────────────────────────────────────────────
 
 describe("strawberry cheesecake — score correctness", () => {
