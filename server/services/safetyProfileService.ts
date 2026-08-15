@@ -11,6 +11,8 @@ import { SafetyMode, validateAndConsumeOverrideToken, logSafetyOverride } from "
 export interface SafetyOptions {
   safetyMode?: SafetyMode;
   overrideToken?: string;
+  /** Express request correlation ID — stored in the audit row to trace the override back to the generation request */
+  correlationId?: string;
 }
 
 export type SafetyResult = "SAFE" | "AMBIGUOUS" | "BLOCKED" | "DIET_ADAPT";
@@ -26,6 +28,8 @@ export interface SafetyAssessment {
    *  Only present when result === "SAFE" and an override token was consumed.
    *  All other allergy/protocol rules remain fully active for this request. */
   overriddenAllergen?: string;
+  /** Request correlation ID echoed back from the audit row so callers can log it at the point of use */
+  correlationId?: string;
 }
 
 export interface SafetyProfile {
@@ -411,6 +415,7 @@ export async function enforceSafetyProfile(
 ): Promise<SafetyAssessment> {
   const safetyMode = options?.safetyMode || "STRICT";
   const overrideToken = options?.overrideToken;
+  const correlationId = options?.correlationId;
   
   const profile = await loadSafetyProfile(userId);
   
@@ -445,8 +450,16 @@ export async function enforceSafetyProfile(
       const tokenData = validateAndConsumeOverrideToken(overrideToken, userId);
 
       if (tokenData) {
-        await logSafetyOverride(userId, userText, tokenData.allergen, builderId);
-        console.log(`[SafetyGuard] Authenticated override used for user ${userId}, allergen: ${tokenData.allergen}`);
+        // Audit insert must succeed before the override is authorized.
+        // If it fails, rethrow so the route returns a 500 — no generation proceeds
+        // without an audit record.
+        try {
+          await logSafetyOverride(userId, userText, tokenData.allergen, builderId, undefined, correlationId);
+        } catch (auditErr) {
+          console.error(`[SafetyGuard] AUDIT INSERT FAILED for user ${userId}, allergen: ${tokenData.allergen}, correlationId: ${correlationId}`, auditErr);
+          throw auditErr;
+        }
+        console.log(`[SafetyGuard] Authenticated override used for user ${userId}, allergen: ${tokenData.allergen}, correlationId: ${correlationId}`);
         return {
           result: "SAFE",
           blockedTerms: [],
@@ -454,6 +467,7 @@ export async function enforceSafetyProfile(
           ambiguousTerms: [],
           message: "Allergen override authorized with Safety PIN - proceeding with user consent",
           overriddenAllergen: tokenData.allergen,
+          correlationId,
         };
       } else {
         console.log(`[SafetyGuard] Invalid/expired override token for user ${userId}`);
@@ -484,8 +498,16 @@ export async function enforceSafetyProfile(
       const tokenData = validateAndConsumeOverrideToken(overrideToken, userId);
 
       if (tokenData) {
-        await logSafetyOverride(userId, userText, tokenData.allergen, builderId);
-        console.log(`[SafetyGuard] Authenticated override for AMBIGUOUS dish, user ${userId}, allergen: ${tokenData.allergen}`);
+        // Audit insert must succeed before the override is authorized.
+        // If it fails, rethrow so the route returns a 500 — no generation proceeds
+        // without an audit record.
+        try {
+          await logSafetyOverride(userId, userText, tokenData.allergen, builderId, undefined, correlationId);
+        } catch (auditErr) {
+          console.error(`[SafetyGuard] AUDIT INSERT FAILED (ambiguous path) for user ${userId}, allergen: ${tokenData.allergen}, correlationId: ${correlationId}`, auditErr);
+          throw auditErr;
+        }
+        console.log(`[SafetyGuard] Authenticated override for AMBIGUOUS dish, user ${userId}, allergen: ${tokenData.allergen}, correlationId: ${correlationId}`);
         return {
           result: "SAFE",
           blockedTerms: [],
@@ -493,6 +515,7 @@ export async function enforceSafetyProfile(
           ambiguousTerms: [],
           message: "Ambiguous dish override authorized with Safety PIN - proceeding with user consent",
           overriddenAllergen: tokenData.allergen,
+          correlationId,
         };
       } else {
         console.log(`[SafetyGuard] Invalid/expired override token for AMBIGUOUS check, user ${userId}`);

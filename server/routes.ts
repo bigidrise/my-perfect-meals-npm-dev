@@ -4888,7 +4888,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (userId && inputText) {
         const safetyCheck = await enforceSafetyProfile(userId, inputText, "craving-creator-generate", {
           safetyMode: safetyMode || "STRICT",
-          overrideToken: overrideToken
+          overrideToken: overrideToken,
+          correlationId: (req as any).id
         });
         if (safetyCheck.result === "BLOCKED") {
           console.log(`🚫 [SAFETY] Blocked request for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
@@ -5037,7 +5038,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (userId && cravingInput) {
         const safetyCheck = await enforceSafetyProfile(userId, cravingInput, "meals-craving-creator", {
           safetyMode: safetyMode || "STRICT",
-          overrideToken: overrideToken
+          overrideToken: overrideToken,
+          correlationId: (req as any).id
         });
         if (safetyCheck.result === "BLOCKED") {
           console.log(`🚫 [SAFETY] Blocked request for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
@@ -5064,7 +5066,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         if (safetyCheck.overriddenAllergen) {
           _overriddenAllergens = [safetyCheck.overriddenAllergen];
-          console.log(`[AllergyOverride] Request-scoped override active — allergen: ${safetyCheck.overriddenAllergen}, user: ${userId}`);
+          console.log(`[AllergyOverride] Request-scoped override active — allergen: ${safetyCheck.overriddenAllergen}, user: ${userId}, correlationId: ${safetyCheck.correlationId}`);
         }
       }
 

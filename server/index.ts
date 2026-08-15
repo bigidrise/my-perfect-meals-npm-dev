@@ -1535,6 +1535,12 @@ async function start() {
     await runTrialGrantsMigration(dbTg);
   });
 
+  await withBootRetry("Safety override correlation ID migration", async () => {
+    const { db: dbSoc } = await import("./db");
+    const { runSafetyOverrideCorrelationMigration } = await import("./db/migrations/runSafetyOverrideCorrelationMigration");
+    await runSafetyOverrideCorrelationMigration(dbSoc);
+  });
+
   // 🎯 CRITICAL: API routes FIRST to prevent Vite middleware interference
   await registerRoutes(app);
 

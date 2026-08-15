@@ -1801,6 +1801,13 @@ async function initializeApp() {
         `);
       });
 
+      // Safety override correlation ID — add correlation_id to safety_override_audit_logs
+      await withBootRetry("Safety override correlation ID migration", async () => {
+        const { db: dbSoc } = await import("./db");
+        const { runSafetyOverrideCorrelationMigration } = await import("./db/migrations/runSafetyOverrideCorrelationMigration");
+        await runSafetyOverrideCorrelationMigration(dbSoc as any);
+      });
+
       // Universal Meal Refinement — original_meal_snapshot column (Stage 1)
       setTimeout(async () => {
         try {

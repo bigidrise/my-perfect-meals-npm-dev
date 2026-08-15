@@ -275,7 +275,8 @@ export async function logSafetyOverride(
   mealRequest: string,
   allergenTriggered: string,
   builderId?: string,
-  overrideReason?: string
+  overrideReason?: string,
+  correlationId?: string
 ): Promise<void> {
   await db.insert(safetyOverrideAuditLogs).values({
     userId,
@@ -283,7 +284,8 @@ export async function logSafetyOverride(
     allergenTriggered,
     safetyMode: "CUSTOM_AUTHENTICATED",
     builderId,
-    overrideReason
+    overrideReason,
+    correlationId
   });
 }
 
