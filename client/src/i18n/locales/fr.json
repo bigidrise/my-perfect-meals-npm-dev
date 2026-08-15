@@ -449,7 +449,29 @@
     "savedForReview": "Enregistré pour examen",
     "savedForReviewDesc": "Vous pouvez revoir cette analyse à tout moment depuis cette page.",
     "scannedProduct": "Produit scanné",
-    "tapView": "Appuyez pour voir →"
+    "tapView": "Appuyez pour voir →",
+    "findProduct": {
+      "tabBuildMeal": "Créer un repas",
+      "tabFindProduct": "Trouver un produit",
+      "inputLabel": "Que cherchez-vous à acheter ?",
+      "inputPlaceholder": "ex. sauce spaghetti, barres protéinées, lait…",
+      "voiceStart": "Dictez votre demande",
+      "voiceStop": "Arrêter l'écoute",
+      "voiceUnsupported": "La saisie vocale n'est pas prise en charge sur cet appareil",
+      "searching": "Recherche des meilleurs produits pour vous…",
+      "resultsFor": "Meilleurs choix pour « {{query}} »",
+      "usualPick": "Votre choix habituel",
+      "alternatives": "Alternatives",
+      "save": "Enregistrer",
+      "saved": "Enregistré ✓",
+      "saving": "Enregistrement…",
+      "addToList": "Ajouter à la liste de courses",
+      "added": "Ajouté !",
+      "compareAnother": "Comparer un autre",
+      "errorGeneric": "Impossible d'obtenir des conseils produits pour le moment. Veuillez réessayer.",
+      "noResults": "Aucun conseil de marque pour cet article — essayez un produit emballé plus précis.",
+      "avoid": "À éviter"
+    }
   },
   "restaurant": {
     "pageTitle": "Assistant Restaurant",

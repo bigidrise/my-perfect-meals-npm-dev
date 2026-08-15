@@ -617,23 +617,25 @@ const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
   {
     id: "grocery-store-coach",
     title: "Grocery Store Coach",
-    subtitle: "AI meal planning help while you're standing in the store",
+    subtitle: "AI help in the aisle — build a meal or find the right product to buy",
     icon: ShoppingCart,
     content: {
       sections: [
         {
           heading: "What It Is",
-          text: "Grocery Store Coach is a real-time AI assistant that helps you plan a meal right from the grocery store aisle. Describe what you want — tonight's dinner, a high-protein meal, something heart-healthy, a family dish — and the Coach builds a complete, personalized meal recommendation along with a ready-to-add shopping list and a full recipe card, all in seconds.",
+          text: "Grocery Store Coach is a real-time AI assistant with two modes for the grocery store aisle. Build a Meal: describe what you want — tonight's dinner, a high-protein meal, something heart-healthy, a family dish — and the Coach builds a complete, personalized meal recommendation along with a ready-to-add shopping list and a full recipe card, all in seconds. Find a Product: ask what to buy — 'spaghetti sauce', 'protein bars', 'milk' — and the Coach recommends specific real brands ranked and graded for your exact health profile, with your usual saved pick pinned on top when you have one.",
         },
         {
           heading: "The Moment",
-          text: "You're standing in the store with no plan. You know you need to grab food for dinner but you're not sure what to make. That's exactly what this is built for.",
+          text: "You're standing in the store with no plan — or staring at a wall of twenty sauces with no idea which one fits your health profile. Both of those moments are exactly what this is built for.",
         },
         {
           heading: "How It Works",
           list: [
             "Tap the Coach button on the shopping list page",
-            "Choose a quick-start option — or type your own request in plain language",
+            "Pick a mode: Build a Meal for a full recommendation, or Find a Product for brand advice on a single item",
+            "In Find a Product, type or speak what you're shopping for — you get ranked brand picks with grades, personalized reasons, and one-tap Save or Add to List",
+            "In Build a Meal, choose a quick-start option — or type your own request in plain language",
             "Set how many people you're cooking for using the serving size control",
             "The Coach builds a full meal recommendation with name, description, macros, and a categorized shopping list",
             "While you review the recommendation, the Coach automatically generates your complete recipe card — cooking instructions, full nutrition breakdown, and your shopping list",

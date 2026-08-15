@@ -449,7 +449,29 @@
     "savedForReview": "Đã lưu để xem lại",
     "savedForReviewDesc": "Bạn có thể xem lại bản quét này bất cứ lúc nào từ trang này.",
     "scannedProduct": "Sản phẩm đã quét",
-    "tapView": "Chạm để xem →"
+    "tapView": "Chạm để xem →",
+    "findProduct": {
+      "tabBuildMeal": "Tạo bữa ăn",
+      "tabFindProduct": "Tìm sản phẩm",
+      "inputLabel": "Bạn đang muốn mua gì?",
+      "inputPlaceholder": "vd: sốt mì Ý, thanh protein, sữa…",
+      "voiceStart": "Nói yêu cầu của bạn",
+      "voiceStop": "Dừng nghe",
+      "voiceUnsupported": "Thiết bị này không hỗ trợ nhập bằng giọng nói",
+      "searching": "Đang tìm những sản phẩm tốt nhất cho bạn…",
+      "resultsFor": "Lựa chọn tốt nhất cho “{{query}}”",
+      "usualPick": "Lựa chọn quen thuộc của bạn",
+      "alternatives": "Lựa chọn thay thế",
+      "save": "Lưu",
+      "saved": "Đã lưu ✓",
+      "saving": "Đang lưu…",
+      "addToList": "Thêm vào danh sách mua sắm",
+      "added": "Đã thêm!",
+      "compareAnother": "So sánh sản phẩm khác",
+      "errorGeneric": "Hiện không thể lấy tư vấn sản phẩm. Vui lòng thử lại.",
+      "noResults": "Không có tư vấn thương hiệu cho mặt hàng này — hãy thử một sản phẩm đóng gói cụ thể hơn.",
+      "avoid": "Tránh"
+    }
   },
   "restaurant": {
     "pageTitle": "Trợ lý nhà hàng",

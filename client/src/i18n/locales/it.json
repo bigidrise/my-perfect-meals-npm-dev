@@ -449,7 +449,29 @@
     "savedForReview": "Salvato per la revisione",
     "savedForReviewDesc": "Puoi rivedere questa scansione in qualsiasi momento da questa pagina.",
     "scannedProduct": "Prodotto Scansionato",
-    "tapView": "Tocca per visualizzare →"
+    "tapView": "Tocca per visualizzare →",
+    "findProduct": {
+      "tabBuildMeal": "Crea un pasto",
+      "tabFindProduct": "Trova un prodotto",
+      "inputLabel": "Cosa stai cercando di comprare?",
+      "inputPlaceholder": "es. sugo per spaghetti, barrette proteiche, latte…",
+      "voiceStart": "Pronuncia la tua richiesta",
+      "voiceStop": "Interrompi l'ascolto",
+      "voiceUnsupported": "L'input vocale non è supportato su questo dispositivo",
+      "searching": "Stiamo trovando i prodotti migliori per te…",
+      "resultsFor": "Le migliori scelte per “{{query}}”",
+      "usualPick": "La tua scelta abituale",
+      "alternatives": "Alternative",
+      "save": "Salva",
+      "saved": "Salvato ✓",
+      "saving": "Salvataggio…",
+      "addToList": "Aggiungi alla lista della spesa",
+      "added": "Aggiunto!",
+      "compareAnother": "Confronta un altro",
+      "errorGeneric": "Impossibile ottenere consigli sui prodotti al momento. Riprova.",
+      "noResults": "Nessun consiglio di marca per questo articolo — prova un prodotto confezionato più specifico.",
+      "avoid": "Evita"
+    }
   },
   "restaurant": {
     "pageTitle": "Assistente Ristorante",

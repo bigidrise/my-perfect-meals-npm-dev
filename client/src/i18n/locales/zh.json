@@ -449,7 +449,29 @@
     "savedForReview": "已保存待审阅",
     "savedForReviewDesc": "您可以随时从本页面重新查看此扫描记录。",
     "scannedProduct": "已扫描产品",
-    "tapView": "点击查看 →"
+    "tapView": "点击查看 →",
+    "findProduct": {
+      "tabBuildMeal": "制作一餐",
+      "tabFindProduct": "查找产品",
+      "inputLabel": "你想买什么？",
+      "inputPlaceholder": "例如：意面酱、蛋白棒、牛奶……",
+      "voiceStart": "语音输入",
+      "voiceStop": "停止收听",
+      "voiceUnsupported": "此设备不支持语音输入",
+      "searching": "正在为你寻找最佳产品……",
+      "resultsFor": "“{{query}}”的最佳选择",
+      "usualPick": "你的常用之选",
+      "alternatives": "其他选择",
+      "save": "保存",
+      "saved": "已保存 ✓",
+      "saving": "保存中……",
+      "addToList": "添加到购物清单",
+      "added": "已添加！",
+      "compareAnother": "比较其他产品",
+      "errorGeneric": "暂时无法获取产品建议，请重试。",
+      "noResults": "没有找到该商品的品牌建议——请尝试更具体的包装产品。",
+      "avoid": "避免"
+    }
   },
   "restaurant": {
     "pageTitle": "餐厅助手",

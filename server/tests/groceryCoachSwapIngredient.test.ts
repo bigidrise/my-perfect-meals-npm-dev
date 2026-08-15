@@ -1105,6 +1105,44 @@ describe("POST /api/grocery-coach/swap-ingredient — five-item test matrix", ()
 
   // ── B.11 savedOption — saved grocery favorites ────────────────────────────
   describe("savedOption — saved grocery favorites", () => {
+    // ── B.11.0  System prompt injection — saved product name reaches AI ───────
+    // This is the foundational guard: if the injection at groceryCoach.ts line 718
+    // is ever silently dropped, the AI can never return a savedOption from real
+    // saved groceries. This test verifies the data path:
+    //   mockDbSgRows → buildGroceryCoachContext → savedRows → savedProductNames
+    //   → system prompt → capturedCalls[0].systemContent
+    test("system prompt contains the saved product name and 'saved products' phrase when mockDbSgRows is populated", async () => {
+      // Populate saved groceries with a clearly identifiable product name.
+      mockDbSgRows.push({
+        id:            "sg-inject-1",
+        productName:   "Siggi's Plain Yogurt",
+        brand:         "Siggi's",
+        category:      "Dairy & Eggs",
+        productKey:    "siggis-plain-yogurt",
+        nutritionJson: { calories: 110, protein: 17, fat: 0, carbs: 8 },
+        productMeta:   null,
+        savedAt:       new Date(),
+      });
+
+      openAIResponseQueue.push(() =>
+        makeValidSwapResult({ coachItem: "Skyr", alt0Item: "Cottage cheese", alt1Item: "Kefir" }),
+      );
+
+      await request(app)
+        .post("/api/grocery-coach/swap-ingredient")
+        .send(swapBody("greek yogurt"));
+
+      // The saved product name must appear in the system prompt so the AI knows
+      // to consider it as a savedOption candidate.
+      const systemPrompt = capturedCalls[0].systemContent;
+      expect(systemPrompt).toContain("Siggi's Plain Yogurt");
+
+      // The surrounding phrase that frames the list must also be present,
+      // confirming the entire injection block (line 718 of groceryCoach.ts)
+      // was included — not just the product name by coincidence.
+      expect(systemPrompt).toContain("saved products");
+    });
+
     // ── B.11.1  Happy path: matching saved product surfaces as savedOption ───
     test("savedOption is non-null with correct item name and reason when a saved product matches the AI suggestion", async () => {
       // Populate saved groceries with a product that matches what the AI returns.

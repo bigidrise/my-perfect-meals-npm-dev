@@ -449,7 +449,29 @@
     "savedForReview": "Zur Überprüfung gespeichert",
     "savedForReviewDesc": "Du kannst diesen Scan jederzeit von dieser Seite aus erneut aufrufen.",
     "scannedProduct": "Gescanntes Produkt",
-    "tapView": "Zum Ansehen tippen →"
+    "tapView": "Zum Ansehen tippen →",
+    "findProduct": {
+      "tabBuildMeal": "Mahlzeit erstellen",
+      "tabFindProduct": "Produkt finden",
+      "inputLabel": "Wonach suchst du?",
+      "inputPlaceholder": "z. B. Spaghettisoße, Proteinriegel, Milch…",
+      "voiceStart": "Anfrage sprechen",
+      "voiceStop": "Zuhören beenden",
+      "voiceUnsupported": "Spracheingabe wird auf diesem Gerät nicht unterstützt",
+      "searching": "Wir finden die besten Produkte für dich…",
+      "resultsFor": "Beste Auswahl für „{{query}}“",
+      "usualPick": "Deine übliche Wahl",
+      "alternatives": "Alternativen",
+      "save": "Speichern",
+      "saved": "Gespeichert ✓",
+      "saving": "Speichern…",
+      "addToList": "Zur Einkaufsliste hinzufügen",
+      "added": "Hinzugefügt!",
+      "compareAnother": "Weiteres vergleichen",
+      "errorGeneric": "Produktempfehlungen sind derzeit nicht verfügbar. Bitte versuche es erneut.",
+      "noResults": "Keine Markenempfehlung für diesen Artikel — versuche ein spezifischeres verpacktes Produkt.",
+      "avoid": "Vermeiden"
+    }
   },
   "restaurant": {
     "pageTitle": "Restaurant-Assistent",

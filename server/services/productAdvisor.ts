@@ -29,11 +29,18 @@ export interface AvoidRecommendation {
   reason: string;
 }
 
+export interface UsualPick {
+  brand: string;
+  reason: string;
+}
 export interface IngredientAdvice {
   ingredient: string;
   category: string;
   recommended: BrandRecommendation[];
   avoid: AvoidRecommendation[];
+  /** Present when a saved grocery matches this ingredient's category —
+   * pinned above the ranked alternatives as "Your usual pick". */
+  usualPick?: UsualPick | null;
 }
 
 export interface CartRecommendationResult {
@@ -123,6 +130,8 @@ CORE RULES:
 - Avoid brands in "avoid" should be COMMON brands the user might reach for by default (not obscure ones).
 - If the user has no specific conditions, focus on ingredient quality and macros relevant to their fitness goal.
 - Grade rubric: A = strong alignment, B = acceptable with minor notes, C = use with caution given their protocol.
+- CATEGORY PRESERVATION: every recommendation MUST stay in the exact product category the user asked for. If they ask for "spaghetti sauce", recommend spaghetti/marinara sauces only; "milk" means milk or direct milk alternatives. Never drift to unrelated products, even ones that are "healthier" for their protocol.
+- USUAL PICK: if the user's SAVED GROCERY FAVORITES (when provided in the health profile) contain a product in the SAME category as a requested ingredient, return it in the "usualPick" field for that ingredient with a short personalized reason acknowledging it's their saved favorite. The usualPick must NOT also appear in "recommended" — the ranked list must be genuinely different alternatives so the user sees new options alongside their usual choice. If no saved favorite matches the category, omit "usualPick" entirely. Saved favorites influence but never dominate: still give the strongest alternatives for their protocol.
 
 RESPONSE FORMAT — strict JSON only, no markdown:
 {
@@ -130,6 +139,7 @@ RESPONSE FORMAT — strict JSON only, no markdown:
     {
       "ingredient": "Marinara Sauce",
       "category": "Sauce",
+      "usualPick": { "brand": "Carbone Marinara", "reason": "Your saved favorite — still a solid fit for your cardiac protocol" },
       "recommended": [
         { "brand": "Rao's Marinara", "rank": 1, "grade": "A", "reason": "Low sodium and zero seed oils — ideal for your cardiac and anti-inflammatory protocols" },
         { "brand": "Victoria Marinara", "rank": 2, "grade": "A", "reason": "Clean ingredient list, sodium level fits your cardiac limit" },
@@ -277,36 +287,82 @@ const defaultContextLoader: ContextLoader = (userId) =>
 // Turns a GroceryCoachContext into the protocol string sent to the AI provider.
 // Centralised here so tests can assert on the same string the AI sees.
 
+/** Personalization string shared by cart-style advice, from the shared context. */
 export function buildProtocolContextString(ctx: GroceryCoachContext): string {
   const parts: string[] = [];
-
-  // Base protocol context from enforceBeforeGenerate (allergy hard-stops,
-  // dietary identity, medical conditions, avoidances, fitness goal, clinical
-  // guidance blocks from conditionGuidanceBlocks[]).
-  if (ctx.protocolContext) {
-    parts.push(ctx.protocolContext);
+  if (ctx.protocolContext?.trim()) parts.push(ctx.protocolContext.trim());
+  if (ctx.glp1RecommendationBlock?.trim()) parts.push(ctx.glp1RecommendationBlock.trim());
+  if (ctx.macroContext) parts.push(ctx.macroContext);
+  if (ctx.savedGroceriesBlock?.trim()) {
+    parts.push(
+      "=== SAVED GROCERY FAVORITES (the user's usual picks — see USUAL PICK rule) ===\n" +
+      ctx.savedGroceriesBlock.trim(),
+    );
   }
-
-  // GLP-1 resolved targets — only present when the service is healthy AND
-  // the user is actively on GLP-1 medication.
-  if (ctx.glp1RecommendationBlock) {
-    parts.push(ctx.glp1RecommendationBlock);
-  }
-
-  // Macro targets (calories, protein, fat, carbs).
-  if (ctx.macroContext) {
-    parts.push(ctx.macroContext);
-  }
-
-  // Saved groceries — lets the AI know which products the user already buys
-  // so recommendations can reference or build on their existing choices.
-  if (ctx.savedGroceriesBlock) {
-    parts.push(ctx.savedGroceriesBlock);
-  }
-
   return parts.length
     ? parts.join("\n\n")
     : "No specific dietary or medical constraints on file — apply general healthy eating principles.";
+}
+
+/**
+ * Thrown when a clinically required context (GLP-1 targets) cannot be resolved.
+ * Product advice is FAIL-CLOSED for GLP-1 users — same policy as /recommend.
+ * Routes should map this to a 503 with retryable: true.
+ */
+export class ClinicalContextUnavailableError extends Error {
+  readonly retryable = true;
+  constructor(message = "Clinical guidance temporarily unavailable. Please try again.") {
+    super(message);
+    this.name = "ClinicalContextUnavailableError";
+  }
+}
+
+const normalizeBrand = (s: string): string => s.trim().toLowerCase();
+
+/** True when a model-asserted usualPick brand matches a compliant saved row. */
+function matchesSavedRow(brand: string, ctx: GroceryCoachContext): boolean {
+  const b = normalizeBrand(brand);
+  if (!b) return false;
+  return ctx.compliantSavedRows.some((row) => {
+    const candidates = [row.brand, row.productName].filter(
+      (n): n is string => Boolean(n),
+    );
+    return candidates.some((n) => {
+      const c = normalizeBrand(n);
+      return c === b || c.includes(b) || b.includes(c);
+    });
+  });
+}
+
+/**
+ * Server-side validation of the model-asserted usualPick:
+ * - Drop it unless the brand matches one of the user's COMPLIANT saved rows
+ *   (the model can hallucinate a "usual pick" the user never saved, or one
+ *   that was filtered out for protocol non-compliance).
+ * - Deduplicate: the usualPick must not also appear in `recommended`.
+ */
+export function sanitizeUsualPicks(
+  result: CartRecommendationResult,
+  ctx: GroceryCoachContext,
+): CartRecommendationResult {
+  return {
+    ...result,
+    advice: result.advice.map((item) => {
+      const pick = item.usualPick;
+      if (!pick || !pick.brand || !matchesSavedRow(pick.brand, ctx)) {
+        const { usualPick: _drop, ...rest } = item;
+        return rest as IngredientAdvice;
+      }
+      const pickBrand = normalizeBrand(pick.brand);
+      return {
+        ...item,
+        usualPick: pick,
+        recommended: item.recommended.filter(
+          (r) => normalizeBrand(r.brand) !== pickBrand,
+        ),
+      };
+    }),
+  };
 }
 
 export class ProductAdvisorEngine {
@@ -325,9 +381,22 @@ export class ProductAdvisorEngine {
     // Smart Cart) — never rebuild protocol context from the raw envelope here.
     // contextLoader defaults to buildGroceryCoachContext; tests inject a mock.
     const ctx = await this.contextLoader(userId);
+
+    // FAIL-CLOSED for GLP-1 — same policy as /recommend. Never send a generic
+    // or incomplete clinical profile to the model during a resolver outage.
+    if (ctx.glp1Failed) {
+      throw new ClinicalContextUnavailableError();
+    }
+    if (ctx.glp1Active && !ctx.glp1Targets) {
+      throw new ClinicalContextUnavailableError(
+        "GLP-1 clinical targets temporarily unavailable. Please try again.",
+      );
+    }
+
     const protocolContext = buildProtocolContextString(ctx);
 
-    return this.provider.getCartRecommendations(ingredients, protocolContext, store);
+    const raw = await this.provider.getCartRecommendations(ingredients, protocolContext, store);
+    return sanitizeUsualPicks(raw, ctx);
   }
 
   /**

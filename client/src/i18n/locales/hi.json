@@ -449,7 +449,29 @@
     "savedForReview": "समीक्षा के लिए सहेजा गया",
     "savedForReviewDesc": "आप इस स्कैन को किसी भी समय इस पेज से दोबारा देख सकते हैं।",
     "scannedProduct": "स्कैन किया गया उत्पाद",
-    "tapView": "देखने के लिए टैप करें →"
+    "tapView": "देखने के लिए टैप करें →",
+    "findProduct": {
+      "tabBuildMeal": "भोजन बनाएं",
+      "tabFindProduct": "उत्पाद खोजें",
+      "inputLabel": "आप क्या खरीदना चाहते हैं?",
+      "inputPlaceholder": "जैसे: स्पेगेटी सॉस, प्रोटीन बार, दूध…",
+      "voiceStart": "बोलकर बताएं",
+      "voiceStop": "सुनना बंद करें",
+      "voiceUnsupported": "इस डिवाइस पर वॉयस इनपुट समर्थित नहीं है",
+      "searching": "आपके लिए सबसे अच्छे उत्पाद खोजे जा रहे हैं…",
+      "resultsFor": "“{{query}}” के लिए सर्वश्रेष्ठ विकल्प",
+      "usualPick": "आपकी सामान्य पसंद",
+      "alternatives": "विकल्प",
+      "save": "सहेजें",
+      "saved": "सहेजा गया ✓",
+      "saving": "सहेजा जा रहा है…",
+      "addToList": "शॉपिंग सूची में जोड़ें",
+      "added": "जोड़ा गया!",
+      "compareAnother": "दूसरा तुलना करें",
+      "errorGeneric": "अभी उत्पाद सलाह नहीं मिल सकी। कृपया फिर से प्रयास करें।",
+      "noResults": "इस वस्तु के लिए कोई ब्रांड सलाह उपलब्ध नहीं — कोई अधिक विशिष्ट पैकेज्ड उत्पाद आज़माएं।",
+      "avoid": "बचें"
+    }
   },
   "restaurant": {
     "pageTitle": "रेस्तरां सहायक",
@@ -4054,7 +4076,6 @@
       "both": "दोनों को बताएं"
     }
   },
-
   "joinStudio": {
     "appName": "My Perfect Meals",
     "loading": "Loading your invitation…",

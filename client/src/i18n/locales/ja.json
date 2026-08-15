@@ -449,7 +449,29 @@
     "savedForReview": "確認用に保存しました",
     "savedForReviewDesc": "このスキャン結果は、このページからいつでも確認できます。",
     "scannedProduct": "スキャンした商品",
-    "tapView": "タップして表示 →"
+    "tapView": "タップして表示 →",
+    "findProduct": {
+      "tabBuildMeal": "食事を作る",
+      "tabFindProduct": "商品を探す",
+      "inputLabel": "何をお探しですか？",
+      "inputPlaceholder": "例：パスタソース、プロテインバー、牛乳…",
+      "voiceStart": "音声で入力",
+      "voiceStop": "音声入力を停止",
+      "voiceUnsupported": "このデバイスでは音声入力はサポートされていません",
+      "searching": "あなたに最適な商品を探しています…",
+      "resultsFor": "「{{query}}」のおすすめ",
+      "usualPick": "いつものお気に入り",
+      "alternatives": "その他の選択肢",
+      "save": "保存",
+      "saved": "保存済み ✓",
+      "saving": "保存中…",
+      "addToList": "買い物リストに追加",
+      "added": "追加しました！",
+      "compareAnother": "別の商品を比較",
+      "errorGeneric": "現在、商品のアドバイスを取得できません。もう一度お試しください。",
+      "noResults": "この商品のブランド情報が見つかりませんでした。より具体的な包装商品でお試しください。",
+      "avoid": "避ける"
+    }
   },
   "restaurant": {
     "pageTitle": "レストランアシスタント",
