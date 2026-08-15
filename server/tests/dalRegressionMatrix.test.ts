@@ -692,3 +692,84 @@ describe("naturalistic dishForm — no directive (no dishForm at all)", () => {
     expect(r.formMismatch).toBe(false);
   });
 });
+
+// ── Ingredient-modifier suppression ──────────────────────────────────────────
+// Form-family keywords used as ingredient adjectives (e.g. "chili sauce",
+// "chili powder", "soup dumplings") must NOT trigger the description
+// lead-sentence form check. Real format statements ("A hearty chili with…")
+// must still be caught.
+
+describe("ingredient-modifier suppression — chili as sauce/powder adjective", () => {
+  const enchiladasCase = byLabel("enchiladas");
+
+  it("description opening with 'red chili sauce' is not flagged as stew format", () => {
+    // Historically this caused a false-positive catastrophic rejection because
+    // 'chili' is in the stew family and the suppression only covered vessel signals.
+    const r = validateDishIdentity(enchiladasCase.request, {
+      name: "Dairy-Free Chicken Enchiladas",
+      description: "Red chili sauce covers corn tortillas rolled around shredded chicken.",
+      ingredients: [{ name: "corn tortillas" }, { name: "shredded chicken" }, { name: "red chili sauce" }],
+    }, enchiladasCase.directive);
+    expect(r.formMismatch).toBe(false);
+    expect(r.catastrophicDeviation).toBe(false);
+    expect(r.passed).toBe(true);
+  });
+
+  it("description opening with 'chili powder' is not flagged as stew format", () => {
+    const r = validateDishIdentity(enchiladasCase.request, {
+      name: "Spiced Chicken Enchiladas",
+      description: "Chili powder and cumin coat the shredded chicken filling inside corn tortillas.",
+      ingredients: [{ name: "corn tortillas" }, { name: "shredded chicken" }, { name: "chili powder" }],
+    }, enchiladasCase.directive);
+    expect(r.formMismatch).toBe(false);
+    expect(r.catastrophicDeviation).toBe(false);
+    expect(r.passed).toBe(true);
+  });
+
+  it("description opening with a genuine stew format statement is still flagged", () => {
+    // "A hearty chili with…" — 'chili' is the dish noun, not a modifier.
+    const r = validateDishIdentity(enchiladasCase.request, {
+      name: "Chicken Enchiladas",
+      description: "A hearty chili with shredded chicken and corn tortillas.",
+      ingredients: [{ name: "corn tortillas" }, { name: "shredded chicken" }],
+    }, enchiladasCase.directive);
+    expect(r.formMismatch).toBe(true);
+    expect(r.catastrophicDeviation).toBe(true);
+  });
+
+  it("modifier occurrence before a genuine format occurrence does not hide the mismatch", () => {
+    // "Chili powder seasons this hearty chili with…" — the first 'chili' is
+    // suppressed as a modifier, but the second 'chili' is a real format claim
+    // and must still be caught.
+    const r = validateDishIdentity(enchiladasCase.request, {
+      name: "Chicken Enchiladas",
+      description: "Chili powder seasons this hearty chili with chicken inside.",
+      ingredients: [{ name: "corn tortillas" }, { name: "shredded chicken" }],
+    }, enchiladasCase.directive);
+    expect(r.formMismatch).toBe(true);
+    expect(r.catastrophicDeviation).toBe(true);
+  });
+});
+
+describe("ingredient-modifier suppression — soup as compound dish name", () => {
+  // 'soup' is in the soup family; 'soup dumplings' should not be rejected as
+  // a soup-format meal for a dish like wontons or dumplings.
+  const dumplingDirective = directive({
+    identityAnchor: "This IS soup dumplings (xiaolongbao).",
+    definingComponents: ["thin dough wrapper", "pork filling", "broth inside"],
+    adaptableComponents: ["pork fat level"],
+    dishForm: "steamed filled dumplings with broth inside",
+    conflicts: [],
+  });
+
+  it("description of soup dumplings is not flagged as soup format", () => {
+    const r = validateDishIdentity("soup dumplings", {
+      name: "Pork Soup Dumplings",
+      description: "Soup dumplings filled with seasoned pork and rich broth, steamed in bamboo.",
+      ingredients: [{ name: "thin dough wrapper" }, { name: "pork filling" }, { name: "broth" }],
+    }, dumplingDirective);
+    expect(r.formMismatch).toBe(false);
+    expect(r.catastrophicDeviation).toBe(false);
+    expect(r.passed).toBe(true);
+  });
+});
