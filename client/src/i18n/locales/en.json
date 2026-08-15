@@ -3846,7 +3846,7 @@
     "errorLoadDetailsNetwork": "Could not load invitation details. Please check your connection and try again.",
     "errorConnectionIssue": "Connection error. Please check your connection and try again.",
     "errorGenericFallback": "Something went wrong. Please try again."
-  }
+  },
   "businessCenterSection": {
     "backBtn": "Business Suite",
     "affiliate": {
