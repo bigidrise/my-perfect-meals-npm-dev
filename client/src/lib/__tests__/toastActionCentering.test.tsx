@@ -89,6 +89,47 @@ describe('ToastAction — vertical centering when title and description are pres
     expect(actionButton).toHaveClass('self-center');
   });
 
+  it('keeps self-center on ToastAction inside a destructive variant toast', () => {
+    const { getByRole } = render(
+      <ToastProvider>
+        <Toast open variant="destructive">
+          <div className="grid gap-1">
+            <ToastTitle>Action failed</ToastTitle>
+            <ToastDescription>
+              We could not complete the request. Please try again later.
+            </ToastDescription>
+          </div>
+          <ToastAction altText="Retry">Retry</ToastAction>
+        </Toast>
+        <ToastViewport />
+      </ToastProvider>,
+    );
+
+    const actionButton = getByRole('button', { name: 'Retry' });
+    expect(actionButton).toHaveClass('self-center');
+  });
+
+  it('keeps self-center on ToastAction inside a warning variant toast', () => {
+    const { getByRole } = render(
+      <ToastProvider>
+        <Toast open variant="warning">
+          <div className="grid gap-1">
+            <ToastTitle>Storage almost full</ToastTitle>
+            <ToastDescription>
+              You are approaching your storage limit. Free up space to avoid
+              losing new data.
+            </ToastDescription>
+          </div>
+          <ToastAction altText="Manage storage">Manage storage</ToastAction>
+        </Toast>
+        <ToastViewport />
+      </ToastProvider>,
+    );
+
+    const actionButton = getByRole('button', { name: 'Manage storage' });
+    expect(actionButton).toHaveClass('self-center');
+  });
+
   it('Toaster action wrapper div also applies self-center', () => {
     // toaster.tsx wraps the action element in <div className="self-center">.
     // This test mirrors that pattern to confirm the wrapper carries the class.
