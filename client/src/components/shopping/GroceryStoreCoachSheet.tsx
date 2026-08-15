@@ -845,6 +845,9 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       };
     });
     setResultOwnerKey(SESSION_KEY); // result still belongs to this user's session
+    // Clear any brand pick for the swapped-out ingredient so the summary bar
+    // count stays accurate and hides when no active picks remain.
+    setPickedBrands((prev) => applySwapToPickedBrands(prev, swapTarget.item));
     const replaced = swapTarget.item;
     const chosen = swapSelected.item;
     setSwapTarget(null);
@@ -2189,6 +2192,29 @@ interface SmartCartAdviceBodyProps {
   onSave: (ingredient: string, category: string, brand: BrandRecommendation) => void;
   pickedBrands: Map<string, BrandRecommendation>;
   onPick: (ingredient: string, brand: BrandRecommendation) => void;
+}
+
+/**
+ * Pure helper that removes the brand pick for a swapped-out ingredient.
+ *
+ * When the user accepts a swap via "Use This", the old ingredient name is no
+ * longer in the shopping list. Its key in pickedBrands must be removed so the
+ * summary bar count reflects only active picks and can hide when the count
+ * reaches zero.
+ *
+ * Returns the same Map instance when the key was not present (no allocation).
+ *
+ * @internal exported for unit tests
+ */
+export function applySwapToPickedBrands<T>(
+  pickedBrands: Map<string, T>,
+  swappedOutItem: string,
+): Map<string, T> {
+  const key = swappedOutItem.toLowerCase();
+  if (!pickedBrands.has(key)) return pickedBrands;
+  const next = new Map(pickedBrands);
+  next.delete(key);
+  return next;
 }
 
 /**
