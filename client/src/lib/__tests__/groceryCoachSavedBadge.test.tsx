@@ -8,6 +8,7 @@
  *  1. The "★ Saved" pill badge renders on the matching brand card.
  *  2. The "Personalized from your Saved Groceries" banner appears when ≥1
  *     saved item is present in the advice, and is absent when none are saved.
+ *  3. The Pick / "✓ Picked" button labels render correctly and fire onPick.
  */
 
 // ── Module mocks ─────────────────────────────────────────────────────────────
@@ -42,7 +43,12 @@ jest.mock('@/stores/shoppingListStore', () => ({ useShoppingListStore: jest.fn((
 jest.mock('@/contexts/AuthContext', () => ({
   useAuth: jest.fn(() => ({ user: { id: 'test-user' } })),
 }));
-jest.mock('@/components/ui/pill-button', () => ({ PillButton: () => null }));
+jest.mock('@/components/ui/pill-button', () => ({
+  PillButton: ({ children, onClick, active }: any) => {
+    const React = require('react');
+    return React.createElement('button', { onClick, 'data-active': active }, children);
+  },
+}));
 jest.mock('@/hooks/useSpeechToText', () => ({
   useSpeechToText: () => ({
     state: 'idle',
@@ -50,6 +56,22 @@ jest.mock('@/hooks/useSpeechToText', () => ({
     start: jest.fn(),
     stop: jest.fn(),
     reset: jest.fn(),
+  }),
+}));
+jest.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string, opts?: any) => {
+      // Return predictable English strings so assertions don't depend on locale files.
+      const map: Record<string, string> = {
+        'smartCart.pick': 'Pick',
+        'smartCart.picked': '✓ Picked',
+        'smartCart.brandsSummary': opts?.count === 1
+          ? `1 brand selected`
+          : `${opts?.count ?? 0} brands selected`,
+      };
+      return map[key] ?? key;
+    },
+    i18n: { language: 'en', changeLanguage: jest.fn() },
   }),
 }));
 
@@ -89,6 +111,10 @@ function makeKeys(...pairs: Array<[brand: string, ingredient: string]>): Set<str
   return new Set(pairs.map(([b, i]) => computeClientProductKey(b, i)));
 }
 
+/** Empty pick state — used as the default for tests that don't exercise picks. */
+const NO_PICKS = new Map<string, any>();
+const NO_OP_PICK = () => {};
+
 // ── computeClientProductKey ───────────────────────────────────────────────────
 
 describe('computeClientProductKey', () => {
@@ -115,8 +141,8 @@ describe('SmartCartAdviceBody — "★ Saved" badge', () => {
         savedProductKeys={savedKeys}
         savingKey={null}
         onSave={() => {}}
-        pickedBrands={new Map()}
-        onPick={() => {}}
+        pickedBrands={NO_PICKS}
+        onPick={NO_OP_PICK}
       />,
     );
 
@@ -131,8 +157,8 @@ describe('SmartCartAdviceBody — "★ Saved" badge', () => {
         savedProductKeys={new Set()}
         savingKey={null}
         onSave={() => {}}
-        pickedBrands={new Map()}
-        onPick={() => {}}
+        pickedBrands={NO_PICKS}
+        onPick={NO_OP_PICK}
       />,
     );
 
@@ -150,8 +176,8 @@ describe('SmartCartAdviceBody — "★ Saved" badge', () => {
         savedProductKeys={savedKeys}
         savingKey={null}
         onSave={() => {}}
-        pickedBrands={new Map()}
-        onPick={() => {}}
+        pickedBrands={NO_PICKS}
+        onPick={NO_OP_PICK}
       />,
     );
 
@@ -172,8 +198,8 @@ describe('SmartCartAdviceBody — "★ Saved" badge', () => {
         savedProductKeys={savedKeys}
         savingKey={null}
         onSave={() => {}}
-        pickedBrands={new Map()}
-        onPick={() => {}}
+        pickedBrands={NO_PICKS}
+        onPick={NO_OP_PICK}
       />,
     );
 
@@ -194,8 +220,8 @@ describe('SmartCartAdviceBody — personalization banner', () => {
         savedProductKeys={savedKeys}
         savingKey={null}
         onSave={() => {}}
-        pickedBrands={new Map()}
-        onPick={() => {}}
+        pickedBrands={NO_PICKS}
+        onPick={NO_OP_PICK}
       />,
     );
 
@@ -211,8 +237,8 @@ describe('SmartCartAdviceBody — personalization banner', () => {
         savedProductKeys={new Set()}
         savingKey={null}
         onSave={() => {}}
-        pickedBrands={new Map()}
-        onPick={() => {}}
+        pickedBrands={NO_PICKS}
+        onPick={NO_OP_PICK}
       />,
     );
 
@@ -226,8 +252,8 @@ describe('SmartCartAdviceBody — personalization banner', () => {
         savedProductKeys={new Set(['name::somekey::somevalue'])}
         savingKey={null}
         onSave={() => {}}
-        pickedBrands={new Map()}
-        onPick={() => {}}
+        pickedBrands={NO_PICKS}
+        onPick={NO_OP_PICK}
       />,
     );
 
@@ -244,11 +270,71 @@ describe('SmartCartAdviceBody — personalization banner', () => {
         savedProductKeys={savedKeys}
         savingKey={null}
         onSave={() => {}}
-        pickedBrands={new Map()}
-        onPick={() => {}}
+        pickedBrands={NO_PICKS}
+        onPick={NO_OP_PICK}
       />,
     );
 
     expect(getByTestId('personalization-banner')).toBeInTheDocument();
+  });
+});
+
+// ── SmartCartAdviceBody — Pick / Picked button ────────────────────────────────
+
+describe('SmartCartAdviceBody — Pick / Picked button', () => {
+  it('renders "Pick" label when no brand is picked for that ingredient', () => {
+    const { getAllByText } = render(
+      <SmartCartAdviceBody
+        advice={[OLIVE_OIL_ADVICE]}
+        savedProductKeys={new Set()}
+        savingKey={null}
+        onSave={() => {}}
+        pickedBrands={NO_PICKS}
+        onPick={NO_OP_PICK}
+      />,
+    );
+
+    // One Pick button per recommended brand (3 for olive oil)
+    const pickBtns = getAllByText('Pick');
+    expect(pickBtns.length).toBe(3);
+  });
+
+  it('renders "✓ Picked" on the picked brand and "Pick" on the rest', () => {
+    const picked = new Map<string, any>([
+      ['olive oil', { brand: 'California Olive Ranch', rank: 1, grade: 'A', reason: '' }],
+    ]);
+
+    const { getByText, getAllByText } = render(
+      <SmartCartAdviceBody
+        advice={[OLIVE_OIL_ADVICE]}
+        savedProductKeys={new Set()}
+        savingKey={null}
+        onSave={() => {}}
+        pickedBrands={picked}
+        onPick={NO_OP_PICK}
+      />,
+    );
+
+    expect(getByText('✓ Picked')).toBeInTheDocument();
+    // Remaining two brands still show "Pick"
+    expect(getAllByText('Pick').length).toBe(2);
+  });
+
+  it('calls onPick with the ingredient and brand when the Pick button is clicked', () => {
+    const onPick = jest.fn();
+
+    const { getAllByText } = render(
+      <SmartCartAdviceBody
+        advice={[OLIVE_OIL_ADVICE]}
+        savedProductKeys={new Set()}
+        savingKey={null}
+        onSave={() => {}}
+        pickedBrands={NO_PICKS}
+        onPick={onPick}
+      />,
+    );
+
+    getAllByText('Pick')[0].click();
+    expect(onPick).toHaveBeenCalledWith('Olive Oil', OLIVE_OIL_ADVICE.recommended[0]);
   });
 });

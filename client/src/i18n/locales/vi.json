@@ -471,6 +471,12 @@
       "errorGeneric": "Không thể lấy tư vấn sản phẩm ngay bây giờ. Vui lòng thử lại.",
       "noResults": "Không có tư vấn thương hiệu nào cho mặt hàng đó — hãy thử một sản phẩm đóng gói cụ thể hơn.",
       "avoid": "Tránh"
+    },
+    "smartCart": {
+      "pick": "Chọn",
+      "picked": "✓ Đã chọn",
+      "brandsSummary_one": "Đã chọn 1 thương hiệu — nhấn ‘Thêm tất cả’ để thêm vào danh sách",
+      "brandsSummary_other": "Đã chọn {{count}} thương hiệu — nhấn ‘Thêm tất cả’ để thêm vào danh sách"
     }
   },
   "restaurant": {

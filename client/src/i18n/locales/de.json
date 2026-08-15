@@ -471,6 +471,12 @@
       "errorGeneric": "Produktberatung momentan nicht verfügbar. Bitte erneut versuchen.",
       "noResults": "Keine Markenempfehlung für diesen Artikel — bitte ein spezifischeres Verpackungsprodukt angeben.",
       "avoid": "Vermeiden"
+    },
+    "smartCart": {
+      "pick": "Wählen",
+      "picked": "✓ Gewählt",
+      "brandsSummary_one": "1 Marke ausgewählt — tippe auf „Alle hinzufügen“, um sie in deine Liste aufzunehmen",
+      "brandsSummary_other": "{{count}} Marken ausgewählt — tippe auf „Alle hinzufügen“, um sie in deine Liste aufzunehmen"
     }
   },
   "restaurant": {

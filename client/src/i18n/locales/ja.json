@@ -471,6 +471,12 @@
       "errorGeneric": "現在、商品アドバイスを取得できません。もう一度お試しください。",
       "noResults": "その商品のブランドアドバイスは利用できません。より具体的なパッケージ商品をお試しください。",
       "avoid": "避ける"
+    },
+    "smartCart": {
+      "pick": "選ぶ",
+      "picked": "✓ 選択済",
+      "brandsSummary_one": "1ブランド選択済み — 「すべて追加」でリストに追加",
+      "brandsSummary_other": "{{count}}ブランド選択済み — 「すべて追加」でリストに追加"
     }
   },
   "restaurant": {

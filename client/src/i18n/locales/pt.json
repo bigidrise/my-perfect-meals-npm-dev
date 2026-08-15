@@ -471,6 +471,12 @@
       "errorGeneric": "Não foi possível obter conselhos de produto agora. Tente novamente.",
       "noResults": "Nenhum conselho de marca disponível para esse item — tente um produto embalado mais específico.",
       "avoid": "Evitar"
+    },
+    "smartCart": {
+      "pick": "Escolher",
+      "picked": "✓ Escolhido",
+      "brandsSummary_one": "1 marca selecionada — toque em “Adicionar tudo” para incluí-la na sua lista",
+      "brandsSummary_other": "{{count}} marcas selecionadas — toque em “Adicionar tudo” para incluí-las na sua lista"
     }
   },
   "restaurant": {

@@ -524,7 +524,13 @@
     "continueToBiometrics": "[Côöntíïnûüéè tôö Bíïôöméètríïcs ŦŦŦ]",
     "proLabel": "[Prôö ŦŦŦ]",
     "emptyList": "[Yôöûür shôöppíïng líïst íïs éèmpty ŦŦŦ]",
-    "emptyListHint": "[Páãstéè íïtéèms ôör qûüíïck áãdd tôö géèt stáãrtéèd ŦŦŦ]"
+    "emptyListHint": "[Páãstéè íïtéèms ôör qûüíïck áãdd tôö géèt stáãrtéèd ŦŦŦ]",
+    "smartCart": {
+      "pick": "Pîck",
+      "picked": "✓ Pîckêd",
+      "brandsSummary_one": "1 brând sëlìtêd — tâp “Âdd Âll” tô înclûdê ît în yôûr lîst",
+      "brandsSummary_other": "{{count}} brânds sëlìtêd — tâp “Âdd Âll” tô înclûdê thîm în yôûr lîst"
+    }
   },
   "restaurant": {
     "pageTitle": "[Réèstáãûüráãnt ÁÃssíïstáãnt ŦŦŦ]",

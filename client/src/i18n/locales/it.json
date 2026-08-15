@@ -398,7 +398,7 @@
     "noInstructions": "Nessuna istruzione fornita",
     "couldNotUpdateFavorites": "Impossibile aggiornare i preferiti. Riprova."
   },
-  "shopping": {
+"shopping": {
     "pageTitle": "Lista della Spesa Intelligente",
     "syncing": "sincronizzazione…",
     "voiceAdd": "Aggiungi con voce",
@@ -471,6 +471,12 @@
       "errorGeneric": "Impossibile ottenere consigli sul prodotto ora. Riprova.",
       "noResults": "Nessun consiglio di marca disponibile per quell’articolo — prova un prodotto confezionato più specifico.",
       "avoid": "Evitare"
+    },
+    "smartCart": {
+      "pick": "Scegli",
+      "picked": "✓ Scelto",
+      "brandsSummary_one": "1 marca selezionata — tocca “Aggiungi tutto” per includerla nella tua lista",
+      "brandsSummary_other": "{{count}} marche selezionate — tocca “Aggiungi tutto” per includerle nella tua lista"
     }
   },
   "restaurant": {

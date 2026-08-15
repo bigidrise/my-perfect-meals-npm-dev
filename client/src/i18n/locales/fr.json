@@ -398,7 +398,7 @@
     "noInstructions": "Aucune instruction fournie",
     "couldNotUpdateFavorites": "Impossible de mettre à jour les favoris. Réessayez."
   },
-  "shopping": {
+"shopping": {
     "pageTitle": "Liste de Courses Intelligente",
     "syncing": "synchronisation…",
     "voiceAdd": "Ajouter par voix",
@@ -471,6 +471,12 @@
       "errorGeneric": "Impossible d’obtenir des conseils produit maintenant. Veuillez réessayer.",
       "noResults": "Aucun conseil de marque disponible pour cet article — essayez un produit emballé plus spécifique.",
       "avoid": "Éviter"
+    },
+    "smartCart": {
+      "pick": "Choisir",
+      "picked": "✓ Choisi",
+      "brandsSummary_one": "1 marque sélectionnée — appuyez sur « Tout ajouter » pour l’inclure dans votre liste",
+      "brandsSummary_other": "{{count}} marques sélectionnées — appuyez sur « Tout ajouter » pour les inclure dans votre liste"
     }
   },
   "restaurant": {

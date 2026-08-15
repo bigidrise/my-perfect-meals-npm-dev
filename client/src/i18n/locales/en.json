@@ -539,6 +539,12 @@
       "errorGeneric": "Couldn't get product advice right now. Please try again.",
       "noResults": "No brand advice available for that item — try a more specific packaged product.",
       "avoid": "Avoid"
+    },
+    "smartCart": {
+      "pick": "Pick",
+      "picked": "✓ Picked",
+      "brandsSummary_one": "1 brand selected — tap “Add All” to include it in your list",
+      "brandsSummary_other": "{{count}} brands selected — tap “Add All” to include them in your list"
     }
   },
   "restaurant": {

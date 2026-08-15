@@ -471,6 +471,12 @@
       "errorGeneric": "Hindi makuha ang payo sa produkto ngayon. Pakisubukang muli.",
       "noResults": "Walang available na payo sa brand para sa item na iyon — subukan ang mas tiyak na naka-package na produkto.",
       "avoid": "Iwasan"
+    },
+    "smartCart": {
+      "pick": "Piliin",
+      "picked": "✓ Napili",
+      "brandsSummary_one": "1 brand ang napili — i-tap ang ‘Idagdag Lahat’ para isama ito sa iyong listahan",
+      "brandsSummary_other": "{{count}} brand ang napili — i-tap ang ‘Idagdag Lahat’ para isama ang mga ito sa iyong listahan"
     }
   },
   "restaurant": {

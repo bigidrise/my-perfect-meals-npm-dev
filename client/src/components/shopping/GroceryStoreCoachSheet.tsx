@@ -261,6 +261,7 @@ function groupByCategory(items: ShoppingListItem[]): Record<string, ShoppingList
   return groups;
 }
 
+// hint: Logic changed on both sides. Requires understanding intent of each change.
 export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -1643,7 +1644,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                     <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 10, background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)" }}>
                       <CheckCircle2 style={{ width: 14, height: 14, color: "#34d399", flexShrink: 0 }} />
                       <span style={{ color: "#34d399", fontSize: 12, fontWeight: 600 }}>
-                        {pickedBrands.size} brand{pickedBrands.size !== 1 ? "s" : ""} selected — tap "Add All" to include {pickedBrands.size !== 1 ? "them" : "it"} in your list
+                        {t("smartCart.brandsSummary", { count: pickedBrands.size })}
                       </span>
                     </div>
                   )}
@@ -2035,6 +2036,7 @@ export function SmartCartAdviceBody({
   pickedBrands,
   onPick,
 }: SmartCartAdviceBodyProps) {
+  const { t } = useTranslation("shopping");
   const hasSavedItems = advice.some((a) =>
     a.recommended.some((b) => savedProductKeys.has(computeClientProductKey(b.brand, a.ingredient)))
   );
@@ -2125,7 +2127,7 @@ export function SmartCartAdviceBody({
                           onClick={() => onPick(a.ingredient, brand)}
                           style={{ minWidth: 72 }}
                         >
-                          {isPicked ? "✓ Picked" : "Pick"}
+                          {isPicked ? t("smartCart.picked") : t("smartCart.pick")}
                         </PillButton>
                       );
                     })()}

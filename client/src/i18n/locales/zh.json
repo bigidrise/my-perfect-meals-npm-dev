@@ -471,6 +471,12 @@
       "errorGeneric": "目前无法获取产品建议。请重试。",
       "noResults": "该商品没有品牌建议 — 请尝试更具体的包装产品。",
       "avoid": "避免"
+    },
+    "smartCart": {
+      "pick": "选择",
+      "picked": "✓ 已选",
+      "brandsSummary_one": "已选 1 个品牌 — 点击「全部添加」将其加入清单",
+      "brandsSummary_other": "已选 {{count}} 个品牌 — 点击「全部添加」将其加入清单"
     }
   },
   "restaurant": {
