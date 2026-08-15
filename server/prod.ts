@@ -1912,5 +1912,12 @@ async function initializeApp() {
   } catch (error) {
     console.error("❌ [INIT] Initialization failed:", error);
     initError = error instanceof Error ? error : new Error(String(error));
+    // Column guard failures are fatal: serving traffic with missing critical
+    // columns causes silent data loss or 500s. Crash loudly so the deployment
+    // fails visibly instead of silently degrading.
+    if (initError.message.startsWith("🚨 STARTUP GUARD:")) {
+      console.error("🚨 [INIT] Critical column(s) missing — halting process to prevent data loss.");
+      process.exit(1);
+    }
   }
 }
