@@ -274,14 +274,14 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
 
   const [productAdvice, setProductAdvice] = useState<ProductAdviceResult | null>(null);
   const [advisorLoading, setAdvisorLoading] = useState(false);
-  const [brandsAdded, setBrandsAdded] = useState(false);
   // Saved groceries — keys of items the user has already saved
   const [savedProductKeys, setSavedProductKeys] = useState<Set<string>>(new Set());
   const [savingKey, setSavingKey] = useState<string | null>(null);
   // Smart Cart "show saved only" toggle
   const [showSavedOnly, setShowSavedOnly] = useState(false);
-  // Count of top-brand picks added so the "View List" banner shows the right number
-  const [brandsAddedCount, setBrandsAddedCount] = useState(0);
+  // Smart Cart picks — one brand selected per ingredient for this shopping trip
+  // key = ingredient name (lowercase), value = the chosen BrandRecommendation
+  const [pickedBrands, setPickedBrands] = useState<Map<string, BrandRecommendation>>(new Map());
   // Per-ingredient swap state
   const [swapTarget, setSwapTarget] = useState<ShoppingListItem | null>(null);
   const [swapResult, setSwapResult] = useState<SwapResult | null>(null);
@@ -411,11 +411,10 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       setMealCard(null);
       // productAdvice preserved intentionally — Smart Cart repopulates on reopen.
       setAdvisorLoading(false);
-      setBrandsAdded(false);
+      setPickedBrands(new Map());
       setSavedProductKeys(new Set());
       setSavingKey(null);
       setShowSavedOnly(false);
-      setBrandsAddedCount(0);
       setSwapTarget(null);
       setSwapResult(null);
       setSwapLoading(false);
@@ -554,7 +553,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     const gen = sessionGenRef.current; // capture before first await
     setAdvisorLoading(true);
     setProductAdvice(null);
-    setBrandsAdded(false);
+    setPickedBrands(new Map());
     try {
       const ingredients = shoppingList.map((s) => s.item);
       const data = await post("/api/grocery-coach/product-advisor", { ingredients });
@@ -622,7 +621,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     setPhase("loading");
     setAddedToList(false);
     setProductAdvice(null);
-    setBrandsAdded(false);
+    setPickedBrands(new Map());
     setShowSavedOnly(false);
     setPreRefinedResult(null);
 
@@ -693,11 +692,10 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     setMealCard(null);
     setProductAdvice(null);
     setAdvisorLoading(false);
-    setBrandsAdded(false);
+    setPickedBrands(new Map());
     setSavedProductKeys(new Set());
     setSavingKey(null);
     setShowSavedOnly(false);
-    setBrandsAddedCount(0);
     setSwapTarget(null);
     setSwapResult(null);
     setSwapLoading(false);
@@ -707,48 +705,46 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     setSwapError(null);
   }, [SESSION_KEY]);
 
+  const handlePickBrand = useCallback((ingredient: string, brand: BrandRecommendation) => {
+    setPickedBrands((prev) => {
+      const next = new Map(prev);
+      const key = ingredient.toLowerCase();
+      // Toggle off if the same brand is tapped again
+      if (next.get(key)?.brand === brand.brand) {
+        next.delete(key);
+      } else {
+        next.set(key, brand);
+      }
+      return next;
+    });
+  }, []);
+
   const handleAddToList = useCallback(() => {
     if (!result?.shoppingList?.length) return;
-    // Include shoppingList (items to buy) AND ownedIngredients (recipe items the
-    // LLM assumed you already have) — this ensures the full ingredient list always
-    // reaches the shopping list, even if the model inferred some as "owned".
+    const mealName = result.meal?.name || "Grocery Coach";
+    // Build list — wherever the user picked a brand, substitute it for the generic.
     const toItems = (arr: Array<{ item: string; quantity: string; unit: string }>): UniversalIngredient[] =>
-      arr.map((s) => ({
-        name: s.item,
-        quantity: parseFloat(s.quantity) || 1,
-        unit: s.unit || "",
-        sourceMeals: [result.meal?.name || "Grocery Coach"],
-      }));
+      arr.map((s) => {
+        const pick = pickedBrands.get(s.item.toLowerCase());
+        return {
+          name: pick ? pick.brand : s.item,
+          quantity: parseFloat(s.quantity) || 1,
+          unit: s.unit || "",
+          sourceMeals: [mealName],
+        };
+      });
     const allItems = [
       ...toItems(result.shoppingList),
       ...toItems(result.ownedIngredients ?? []),
     ];
     addItems(allItems);
     setAddedToList(true);
-    toast({ title: "Added to shopping list!", description: `${allItems.length} items added.` });
-  }, [result, addItems, toast]);
-
-  const handleAddBrandsToList = useCallback(() => {
-    if (!productAdvice?.advice?.length || !result) return;
-    const items: UniversalIngredient[] = [];
-    for (const advice of productAdvice.advice) {
-      const top = advice.recommended.find((r) => r.rank === 1);
-      if (top) {
-        items.push({
-          name: top.brand,
-          quantity: 1,
-          unit: "",
-          sourceMeals: [result.meal?.name || "Grocery Coach"],
-        });
-      }
-    }
-    if (items.length) {
-      addItems(items);
-      setBrandsAdded(true);
-      setBrandsAddedCount(items.length);
-      toast({ title: "Top picks added!", description: `${items.length} brand recommendation${items.length !== 1 ? "s" : ""} added to your list.` });
-    }
-  }, [productAdvice, result, addItems, toast]);
+    const pickedCount = pickedBrands.size;
+    const desc = pickedCount > 0
+      ? `${allItems.length} items added — ${pickedCount} with your brand selection.`
+      : `${allItems.length} items added.`;
+    toast({ title: "Added to shopping list!", description: desc });
+  }, [result, pickedBrands, addItems, toast]);
 
   const finalizeCard = useCallback(async (coachResult: CoachResult) => {
     const gen = sessionGenRef.current; // capture before first await
@@ -1564,6 +1560,8 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                               savedProductKeys={savedProductKeys}
                               savingKey={savingKey}
                               onSave={handleSaveGrocery}
+                              pickedBrands={pickedBrands}
+                              onPick={handlePickBrand}
                             />
 
                             {/* Summary avoid block */}
@@ -1625,39 +1623,13 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                     )}
                   </button>
 
-                  {/* Add top brand picks */}
-                  {hasAdvice && (
-                    <button
-                      onClick={handleAddBrandsToList}
-                      disabled={brandsAdded}
-                      style={{
-                        width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                        padding: "14px 0", borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: brandsAdded ? "default" : "pointer",
-                        background: brandsAdded ? "rgba(5,150,105,0.15)" : "rgba(234,88,12,0.15)",
-                        border: brandsAdded ? "1px solid rgba(52,211,153,0.3)" : "1px solid rgba(249,115,22,0.35)",
-                        color: brandsAdded ? "#34d399" : "#fb923c",
-                      }}
-                    >
-                      {brandsAdded ? (
-                        <><CheckCircle2 style={{ width: 16, height: 16 }} /> Top Picks Added!</>
-                      ) : (
-                        <><Sparkles style={{ width: 16, height: 16 }} /> Add Top Brand Picks to List</>
-                      )}
-                    </button>
-                  )}
-
-                  {/* View Shopping List — confirmation banner shown after top picks are added */}
-                  {brandsAdded && brandsAddedCount > 0 && (
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "10px 14px", borderRadius: 10, background: "rgba(5,150,105,0.1)", border: "1px solid rgba(52,211,153,0.25)" }}>
-                      <span style={{ color: "#34d399", fontSize: 13, fontWeight: 600 }}>
-                        {brandsAddedCount} item{brandsAddedCount !== 1 ? "s" : ""} added to your Shopping List
+                  {/* Picked-brand summary — shown when the user has selected ≥1 brand */}
+                  {pickedBrands.size > 0 && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 10, background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)" }}>
+                      <CheckCircle2 style={{ width: 14, height: 14, color: "#34d399", flexShrink: 0 }} />
+                      <span style={{ color: "#34d399", fontSize: 12, fontWeight: 600 }}>
+                        {pickedBrands.size} brand{pickedBrands.size !== 1 ? "s" : ""} selected — tap "Add All" to include {pickedBrands.size !== 1 ? "them" : "it"} in your list
                       </span>
-                      <button
-                        onClick={() => onOpenChange(false)}
-                        style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 8, background: "rgba(52,211,153,0.15)", border: "1px solid rgba(52,211,153,0.3)", color: "#34d399", fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}
-                      >
-                        View List →
-                      </button>
                     </div>
                   )}
 
@@ -2045,6 +2017,8 @@ export function SmartCartAdviceBody({
   savedProductKeys,
   savingKey,
   onSave,
+  pickedBrands,
+  onPick,
 }: SmartCartAdviceBodyProps) {
   const hasSavedItems = advice.some((a) =>
     a.recommended.some((b) => savedProductKeys.has(computeClientProductKey(b.brand, a.ingredient)))
@@ -2125,15 +2099,32 @@ export function SmartCartAdviceBody({
                       {brand.reason}
                     </div>
                   </div>
-                  <PillButton
-                    active={isSaved}
-                    variant="amber"
-                    onClick={() => onSave(a.ingredient, a.category, brand)}
-                    disabled={isSaved || isSaving}
-                    style={{ flexShrink: 0, alignSelf: "flex-start", marginTop: 2 }}
-                  >
-                    {isSaved ? "Saved ✓" : isSaving ? "Saving…" : "Save"}
-                  </PillButton>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0, alignSelf: "flex-start", marginTop: 2 }}>
+                    {/* Pick — selects this brand for the current shopping trip */}
+                    {(() => {
+                      const isPicked = pickedBrands.get(a.ingredient.toLowerCase())?.brand === brand.brand;
+                      return (
+                        <PillButton
+                          active={isPicked}
+                          variant="emerald"
+                          onClick={() => onPick(a.ingredient, brand)}
+                          style={{ minWidth: 72 }}
+                        >
+                          {isPicked ? "✓ Picked" : "Pick"}
+                        </PillButton>
+                      );
+                    })()}
+                    {/* Save — remembers this product in Saved Groceries for future sessions */}
+                    <PillButton
+                      active={isSaved}
+                      variant="amber"
+                      onClick={() => onSave(a.ingredient, a.category, brand)}
+                      disabled={isSaved || isSaving}
+                      style={{ minWidth: 72 }}
+                    >
+                      {isSaved ? "Saved ✓" : isSaving ? "Saving…" : "Save"}
+                    </PillButton>
+                  </div>
                 </div>
               );
             })}
@@ -2172,4 +2163,6 @@ interface SmartCartAdviceBodyProps {
   savedProductKeys: Set<string>;
   savingKey: string | null;
   onSave: (ingredient: string, category: string, brand: BrandRecommendation) => void;
+  pickedBrands: Map<string, BrandRecommendation>;
+  onPick: (ingredient: string, brand: BrandRecommendation) => void;
 }
