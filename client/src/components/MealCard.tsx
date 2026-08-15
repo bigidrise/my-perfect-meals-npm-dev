@@ -14,7 +14,8 @@ import { formatIngredientWithGrams } from "@/utils/unitConversions";
 import MealCardActions from "@/components/MealCardActions";
 import { StarchMealBadge } from "@/components/StarchMealBadge";
 import DietStyleBadge from "@/components/DietStyleBadge";
-import MealClassificationPill, { type DietClassification } from "@/components/MealClassificationPill";
+import MealClassificationPill from "@/components/MealClassificationPill";
+import { type Meal, type DietClassification } from "@/types/meal";
 import KosherProTip from "@/components/KosherProTip";
 import BuilderSourcePill from "@/components/BuilderSourcePill";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
@@ -30,47 +31,8 @@ import { useTranslation } from "react-i18next";
 // UUID v4 guard — used to validate savedMealId before hitting the translation endpoint
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// Keep your Meal type colocated here (WeeklyMealBoard imports from this file)
-export type Meal = {
-  id: string;
-  /** Saved-meal UUID — present when the meal was added to the board from Favorites */
-  savedMealId?: string;
-  title?: string;
-  name?: string;
-  description?: string;
-  servings?: number;
-  ingredients?: any[];
-  instructions?: any[];
-  nutrition?: { calories: number; protein: number; carbs: number; fat: number; starchyCarbs?: number; fibrousCarbs?: number };
-  orderIndex?: number;
-  entryType?: "quick" | "recipe";
-  brand?: string;
-  servingDesc?: string;
-  includeInShoppingList?: boolean;
-  badges?: string[];
-  imageUrl?: string;
-  cookingTime?: string;
-  difficulty?: string;
-  medicalBadges?: any[];
-  starchyCarbs?: number;
-  fibrousCarbs?: number;
-  dietClassification?: DietClassification | null;
-  builderType?: string;
-  diabeticMemory?: { generatedBglMgdl: number; glucoseContext: string; protocolTypeLabel: string; bglBucket: string; recommendedBglRange: string; generatedAt: string; source: string; };
-  appliedProtocol?: {
-    track: "competition" | "athletic";
-    competitionType?: string;
-    competitionTypeLabel?: string;
-    currentPhase?: string;
-    currentPhaseLabel?: string;
-    weeksOut?: number;
-    category?: string;
-    trainingType?: string;
-    trainingFrequency?: string;
-    primaryGoal?: string;
-    trainingPhase?: string;
-  } | null;
-};
+// Meal type is canonical at @/types/meal — re-exported here for backward compat
+export type { Meal } from "@/types/meal";
 
 type Slot = "breakfast" | "lunch" | "dinner" | "snacks";
 

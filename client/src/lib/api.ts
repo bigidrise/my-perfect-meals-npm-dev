@@ -187,7 +187,7 @@ export async function apiPost<T = any>(urlPath: string, body: any): Promise<T> {
 }
 
 // Weekly Calendar API functions
-import type { Meal } from "@/components/MealCard";
+import type { Meal } from "@/types/meal";
 
 export async function getWeekPlan(): Promise<
   Record<string, Record<string, Meal | null>>

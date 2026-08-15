@@ -10,17 +10,10 @@
 //     this gate before the data reaches the client (null is returned on mismatch)
 //   - Pro Care Mode: hidden (matches DietStyleBadge behaviour)
 import { useProClient } from "@/contexts/ProClientContext";
+import type { DietClassification } from "@/types/meal";
 
-export interface DietClassification {
-  kosherCategory?: "meat" | "dairy" | "pareve";
-  halalFlags?: {
-    alcoholFree: boolean;
-    porkFree: boolean;
-  };
-  veganFlags?: {
-    plantBased: boolean;
-  };
-}
+// Re-export for backward compatibility
+export type { DietClassification };
 
 interface MealClassificationPillProps {
   dietClassification?: DietClassification | null;
