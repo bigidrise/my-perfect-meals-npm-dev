@@ -163,10 +163,10 @@ function ResumeCertification({
 
   const currentLesson =
     !personalDone
-      ? "Personal Profile Setup"
+      ? t("procare.launchpad.personalProfileSetup")
       : phase1.status !== "completed"
-        ? "Phase 1 — Platform Fundamentals"
-        : "Phase 2 — Business & ProCare Success";
+        ? t("procare.launchpad.phase1Label")
+        : t("procare.launchpad.phase2Label");
 
   const continueBtn = (
     <button
@@ -187,18 +187,18 @@ function ResumeCertification({
             className="flex items-center gap-1.5 text-orange-400 text-sm font-medium mb-6"
           >
             <ArrowLeft className="h-4 w-4" />
-            Business Center
+            {t("procare.launchpad.backToBC")}
           </button>
         )}
         <motion.div className="text-center mb-8" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-          <p className="text-white/50 text-sm mb-1">Welcome back{firstName ? `, ${firstName}` : ""}.</p>
+          <p className="text-white/50 text-sm mb-1">{t("procare.launchpad.welcomeBack")}{firstName ? `, ${firstName}` : ""}.</p>
           <h1 className="text-2xl font-black mb-2">{t("procare.launchpad.certProgress")}</h1>
 
           {/* Progress bar */}
           <div className="mx-auto max-w-xs mb-2">
             <div className="flex justify-between text-xs text-white/50 mb-1">
-              <span>{pct}% Complete</span>
-              <span>Step {completedSteps} of {totalSteps}</span>
+              <span>{t("procare.launchpad.percentComplete", { pct })}</span>
+              <span>{t("procare.launchpad.stepOf", { completed: completedSteps, total: totalSteps })}</span>
             </div>
             <div className="h-2.5 bg-white/10 rounded-full overflow-hidden">
               <div
@@ -209,30 +209,30 @@ function ResumeCertification({
           </div>
 
           <p className="text-xs text-white/40 mt-2">
-            Current: <span className="text-orange-300 font-medium">{currentLesson}</span>
+            {t("procare.launchpad.current")}: <span className="text-orange-300 font-medium">{currentLesson}</span>
           </p>
         </motion.div>
 
         <motion.div className="space-y-3 mb-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
           <StepRow
             number="1"
-            label="Personal Profile"
-            sublabel="Experience MPM as a user"
+            label={t("procare.launchpad.stepRow.personalProfile.label")}
+            sublabel={t("procare.launchpad.stepRow.personalProfile.sub")}
             done={personalDone}
             inProgress={!personalDone}
           />
           <StepRow
             number="2"
-            label="Phase 1 — Platform Fundamentals"
-            sublabel="Master every platform feature"
+            label={t("procare.launchpad.stepRow.phase1.label")}
+            sublabel={t("procare.launchpad.stepRow.phase1.sub")}
             done={phase1.status === "completed"}
             inProgress={phase1.status === "in_progress" && personalDone}
             locked={!personalDone && phase1.status !== "completed"}
           />
           <StepRow
             number="3"
-            label="Phase 2 — Business & ProCare Success"
-            sublabel="Build and grow your practice"
+            label={t("procare.launchpad.stepRow.phase2.label")}
+            sublabel={t("procare.launchpad.stepRow.phase2.sub")}
             done={phase2.status === "completed"}
             inProgress={phase2.status === "in_progress" && phase1.status === "completed"}
             locked={phase1.status !== "completed"}
@@ -319,7 +319,7 @@ function CertifiedDashboard({ user, isDesktop, onBack, onEnterStudio }: { user: 
             className="flex items-center gap-1.5 text-orange-400 text-sm font-medium mb-6"
           >
             <ArrowLeft className="h-4 w-4" />
-            Business Center
+            {t("procare.launchpad.backToBC")}
           </button>
         )}
         <motion.div className="flex items-center gap-3 mb-6" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
@@ -327,7 +327,7 @@ function CertifiedDashboard({ user, isDesktop, onBack, onEnterStudio }: { user: 
             <Trophy className="w-6 h-6 text-orange-400" />
           </div>
           <div>
-            <p className="text-white/50 text-xs">Welcome back, {firstName}</p>
+            <p className="text-white/50 text-xs">{t("procare.launchpad.welcomeBack")}, {firstName}</p>
             <div className="flex items-center gap-1.5">
               <h1 className="text-lg font-black">{t("procare.launchpad.dashboard")}</h1>
               <Star className="w-3.5 h-3.5 text-orange-400 fill-orange-400" />
@@ -338,10 +338,10 @@ function CertifiedDashboard({ user, isDesktop, onBack, onEnterStudio }: { user: 
 
         <div className="grid grid-cols-2 gap-3 mb-6">
           {[
-            { icon: Users, label: "Client Studio", sub: "Manage clients & meal plans", route: user?.professionalRole === "physician" ? "/pro/physician-clients" : "/pro/clients", accent: "bg-orange-500/20", iconColor: "text-orange-400" },
-            { icon: Briefcase, label: "Business Center", sub: "Affiliate, Academy, Partners", route: "/business-center", accent: "bg-blue-500/20", iconColor: "text-blue-400" },
-            { icon: GraduationCap, label: "Certifications", sub: "View & expand your training", route: "/business-center/academy", accent: "bg-emerald-500/20", iconColor: "text-emerald-400" },
-            { icon: TrendingUp, label: "Affiliate Program", sub: "Earn 25% per referral", route: "/business-center/affiliate", accent: "bg-amber-500/20", iconColor: "text-amber-400" },
+            { icon: Users, label: t("procare.launchpad.gridCards.clientStudio.label"), sub: t("procare.launchpad.gridCards.clientStudio.sub"), route: user?.professionalRole === "physician" ? "/pro/physician-clients" : "/pro/clients", accent: "bg-orange-500/20", iconColor: "text-orange-400" },
+            { icon: Briefcase, label: t("procare.launchpad.gridCards.businessCenter.label"), sub: t("procare.launchpad.gridCards.businessCenter.sub"), route: "/business-center", accent: "bg-blue-500/20", iconColor: "text-blue-400" },
+            { icon: GraduationCap, label: t("procare.launchpad.gridCards.certifications.label"), sub: t("procare.launchpad.gridCards.certifications.sub"), route: "/business-center/academy", accent: "bg-emerald-500/20", iconColor: "text-emerald-400" },
+            { icon: TrendingUp, label: t("procare.launchpad.gridCards.affiliateProgram.label"), sub: t("procare.launchpad.gridCards.affiliateProgram.sub"), route: "/business-center/affiliate", accent: "bg-amber-500/20", iconColor: "text-amber-400" },
           ].map((item, i) => {
             const Icon = item.icon;
             return (
@@ -372,10 +372,10 @@ function CertifiedDashboard({ user, isDesktop, onBack, onEnterStudio }: { user: 
           <p className="text-xs font-semibold text-orange-400 mb-2">{t("procare.launchpad.quickLinks")}</p>
           <div className="space-y-2">
             {[
-              { label: "📋 Questionnaires", route: user?.professionalRole === "physician" ? "/pro/physician-clients" : "/pro/clients" },
-              { label: "📊 Business Center", route: "/business-center" },
-              { label: "🎓 My Certifications", route: "/business-center/academy" },
-              { label: "💰 Affiliate Dashboard", route: "/business-center/affiliate/dashboard" },
+              { label: `📋 ${t("procare.launchpad.quickLink.questionnaires")}`, route: user?.professionalRole === "physician" ? "/pro/physician-clients" : "/pro/clients" },
+              { label: `📊 ${t("procare.launchpad.quickLink.businessCenter")}`, route: "/business-center" },
+              { label: `🎓 ${t("procare.launchpad.quickLink.certifications")}`, route: "/business-center/academy" },
+              { label: `💰 ${t("procare.launchpad.quickLink.affiliate")}`, route: "/business-center/affiliate/dashboard" },
             ].map((link, i) => (
               <button
                 key={i}

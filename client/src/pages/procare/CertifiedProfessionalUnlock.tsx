@@ -7,33 +7,32 @@ import { Trophy, Star, Users, ClipboardList, Briefcase, TrendingUp, ArrowRight, 
 import { apiRequest } from "@/lib/queryClient";
 import { useTranslation } from "react-i18next";
 
-// i18n: leave for content team
-const UNLOCKED_ITEMS = [
-  { icon: "🏢", label: "Professional Studio" },
-  { icon: "👥", label: "Client Management" },
-  { icon: "📋", label: "Care Plans" },
-  { icon: "📝", label: "Professional Questionnaires" },
-  { icon: "💼", label: "Business Center" },
-  { icon: "💰", label: "Affiliate Resources" },
-  { icon: "📣", label: "Marketing Materials" },
-  { icon: "🎓", label: "Continuing Education" },
-];
-
-// i18n: leave for content team
-const NEXT_STEPS = [
-  "Complete your professional profile",
-  "Create your first client",
-  "Invite your first client to the platform",
-  "Build your first meal plan",
-  "Set up your affiliate account to earn commissions",
-  "Explore the Business Center",
-];
-
 export default function CertifiedProfessionalUnlock() {
   const [, setLocation] = useLocation();
   const { user, refreshUser } = useAuth();
   const isDesktop = useIsDesktop();
   const { t } = useTranslation();
+
+  const UNLOCKED_ITEMS = [
+    { icon: "🏢", label: t("procare.certifiedUnlock.features.studio") },
+    { icon: "👥", label: t("procare.certifiedUnlock.features.clientMgmt") },
+    { icon: "📋", label: t("procare.certifiedUnlock.features.carePlans") },
+    { icon: "📝", label: t("procare.certifiedUnlock.features.questionnaires") },
+    { icon: "💼", label: t("procare.certifiedUnlock.features.businessCenter") },
+    { icon: "💰", label: t("procare.certifiedUnlock.features.affiliateResources") },
+    { icon: "📣", label: t("procare.certifiedUnlock.features.marketing") },
+    { icon: "🎓", label: t("procare.certifiedUnlock.features.education") },
+  ];
+
+  const NEXT_STEPS = [
+    t("procare.certifiedUnlock.nextStep.profile"),
+    t("procare.certifiedUnlock.nextStep.firstClient"),
+    t("procare.certifiedUnlock.nextStep.inviteClient"),
+    t("procare.certifiedUnlock.nextStep.mealPlan"),
+    t("procare.certifiedUnlock.nextStep.affiliate"),
+    t("procare.certifiedUnlock.nextStep.businessCenter"),
+  ];
+
   const [refreshing, setRefreshing] = useState(true);
 
   useEffect(() => {
