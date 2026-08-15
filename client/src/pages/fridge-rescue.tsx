@@ -587,6 +587,7 @@ const FridgeRescuePage = () => {
           title: "Generation Failed",
           description: "Failed to generate meals. Please try again.",
           variant: "destructive",
+          duration: 10000,
         });
       }
     } finally {
