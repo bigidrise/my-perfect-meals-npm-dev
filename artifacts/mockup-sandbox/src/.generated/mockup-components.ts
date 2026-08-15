@@ -17,8 +17,8 @@ export const modules: ModuleMap = {
   "./components/mockups/protocol-options/OptionBMobile.tsx": () => import("../components/mockups/protocol-options/OptionBMobile.tsx"),
   "./components/mockups/protocol-options/OptionCDesktop.tsx": () => import("../components/mockups/protocol-options/OptionCDesktop.tsx"),
   "./components/mockups/protocol-options/OptionCMobile.tsx": () => import("../components/mockups/protocol-options/OptionCMobile.tsx"),
+  "./components/mockups/profile/ProfileThyroid.tsx": () => import("../components/mockups/profile/ProfileThyroid.tsx"),
   "./components/mockups/shopping-scan/ResultSheet.tsx": () => import("../components/mockups/shopping-scan/ResultSheet.tsx"),
   "./components/mockups/shopping-scan/ShoppingPage.tsx": () => import("../components/mockups/shopping-scan/ShoppingPage.tsx"),
-  "./components/mockups/profile/ProfileThyroid.tsx": () => import("../components/mockups/profile/ProfileThyroid.tsx"),
   "./components/mockups/weekly/WeeklyProtocolBar.tsx": () => import("../components/mockups/weekly/WeeklyProtocolBar.tsx")
 };
