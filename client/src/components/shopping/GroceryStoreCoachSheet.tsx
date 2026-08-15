@@ -178,6 +178,32 @@ export function buildAllIngredients(data: {
     })),
   ];
 }
+
+/**
+ * Pure swap transformation applied when the user taps "Use This".
+ *
+ * Replaces the targeted shopping-list item with the selected swap suggestion.
+ * All other items are returned unchanged. Nothing is mutated until this
+ * function is called — the overlay just selects; this commit makes it real.
+ *
+ * @internal exported for unit tests
+ */
+export function applySwapToShoppingList(
+  shoppingList: ShoppingListItem[],
+  target: Pick<ShoppingListItem, "item" | "category">,
+  selected: Pick<SwapSuggestion, "item" | "quantity" | "unit">,
+): ShoppingListItem[] {
+  return shoppingList.map((s) =>
+    s.item === target.item && s.category === target.category
+      ? {
+          ...s,
+          item: selected.item,
+          quantity: selected.quantity ?? s.quantity,
+          unit: selected.unit ?? s.unit,
+        }
+      : s,
+  );
+}
 const GRADE_COLOR: Record<string, string> = {
   A: "rgba(16,185,129,0.9)",
   B: "rgba(251,191,36,0.9)",
@@ -295,7 +321,6 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
         if (session.preRefinedResult) setPreRefinedResult(session.preRefinedResult);
         setResultOwnerKey(SESSION_KEY); // result now belongs to this user's key
         setPhase("result");
-        onOpenChange(true); // active session restored — bring the sheet back up
 
         if (session.productAdvice?.advice?.length) {
           // Verify the saved advice still covers the same ingredients as the
@@ -652,16 +677,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       if (!prev) return prev;
       return {
         ...prev,
-        shoppingList: prev.shoppingList.map((s) =>
-          s.item === swapTarget.item && s.category === swapTarget.category
-            ? {
-                ...s,
-                item: swapSelected.item,
-                quantity: swapSelected.quantity ?? s.quantity,
-                unit: swapSelected.unit ?? s.unit,
-              }
-            : s
-        ),
+        shoppingList: applySwapToShoppingList(prev.shoppingList, swapTarget, swapSelected),
       };
     });
     setResultOwnerKey(SESSION_KEY); // result still belongs to this user's session
