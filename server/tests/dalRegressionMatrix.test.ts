@@ -1,486 +1,531 @@
 /**
- * Task #1210 — Broad DAL regression matrix.
+ * DAL broad regression matrix — Task #1210
  *
- * Validates dish-identity protection across a diverse set of dishes under
- * stacked constraints. No live LLM calls — all directives are synthetic
- * fixtures that reflect realistic DAL decompositions.
+ * Validates the Dish Adaptation Layer identity validator against a diverse set
+ * of dishes whose identity depends on very different cooking chemistry and
+ * structural components. All fixtures are synthetic — no live LLM. Each dish
+ * gets a realistic mocked DAL directive and is run against:
+ *   1. a correctly adapted version        → passed, no catastrophic deviation
+ *   2. a form-collapse escape             → catastrophicDeviation = true
+ *   3. a completely wrong dish            → catastrophicDeviation = true
  *
- * Dishes tested:
- *   Savory:  mac and cheese, fried chicken, pizza, lasagna, jambalaya
- *   Baked:   pancakes, brownies, biscuits
- *   Other:   curry, ice cream
- *
- * For each dish: a correct adaptation passes; a form-collapse escape fails.
+ * Plus dedicated stacked-constraint scenarios for mac and cheese, fried
+ * chicken, pizza, lasagna, jambalaya, and brownies.
  */
 
-import { validateDishIdentity } from "../services/dishAdaptation/dishIdentityValidator";
-import {
-  resolveConflicts,
-  buildGuardrailContext,
-} from "../services/dishAdaptation/dishAdaptationLayer";
+import { validateDishIdentity, type GeneratedMealLike } from "../services/dishAdaptation/dishIdentityValidator";
 import type { DishAdaptationDirective } from "../services/dishAdaptation/types";
 
-// ── Helper ───────────────────────────────────────────────────────────────────
-
-function directive(
-  definingComponents: string[],
-  adaptableComponents: string[],
-  dishForm: string,
-): DishAdaptationDirective {
+function directive(partial: Partial<DishAdaptationDirective>): DishAdaptationDirective {
   return {
-    identityAnchor: "Do not change the dish.",
-    definingComponents,
-    adaptableComponents,
-    dishForm,
+    identityAnchor: "This IS the requested dish. Do not change the dish.",
+    definingComponents: [],
+    adaptableComponents: [],
     conflicts: [],
     adaptationBlock: "",
+    ...partial,
   };
 }
 
-// ── 1. Mac and cheese (gluten-free + dairy-free + diabetic) ──────────────────
+interface DishCase {
+  label: string;
+  request: string;
+  directive: DishAdaptationDirective;
+  adapted: GeneratedMealLike;
+  collapse: GeneratedMealLike;
+  wrong: GeneratedMealLike;
+}
 
-describe("mac and cheese — gluten-free + dairy-free + diabetic", () => {
-  const d = directive(
-    ["macaroni pasta", "cheese sauce", "creamy texture"],
-    ["butter", "milk", "flour roux", "cheddar cheese"],
-    "sauced pasta dish",
-  );
-
-  it("gluten-free chickpea mac with cashew cheese sauce passes", () => {
-    const r = validateDishIdentity("mac and cheese", {
-      name: "Gluten-Free Dairy-Free Mac and Cheese",
-      description: "Chickpea pasta tossed in a creamy cashew-based cheese sauce with nutritional yeast, seasoned and baked until bubbling.",
-      ingredients: [
-        { name: "chickpea pasta" },
-        { name: "cashew cheese sauce" },
-        { name: "nutritional yeast" },
-        { name: "arrowroot thickener" },
+const CASES: DishCase[] = [
+  // ── Savory ────────────────────────────────────────────────────────────────
+  {
+    label: "pizza (vegan + gluten-free)",
+    request: "pizza",
+    directive: directive({
+      identityAnchor: "This IS pizza.",
+      definingComponents: ["gluten-free crust", "tomato sauce", "melted vegan cheese toppings"],
+      adaptableComponents: ["flour in crust", "cheese type"],
+      dishForm: "flat baked crust with sauce and toppings",
+      conflicts: [
+        { component: "wheat crust", guardrail: "gluten-free: no wheat flour", directive: "Use a gluten-free flour crust. The dish is still pizza." },
+        { component: "mozzarella", guardrail: "vegan: no dairy", directive: "Use melted vegan cheese. The dish is still pizza." },
       ],
-    }, d);
-    expect(r.catastrophicDeviation).toBe(false);
-    expect(r.passed).toBe(true);
-  });
-
-  // NOTE: "Mac and Cheese Salad" keeps the dish name → nameScore=1 → not catastrophic.
-  // Form-collapse by format substitution on nameless-format dishes is task #1216.
-  // These tests use complete dish replacements that diverge on both name AND components.
-
-  it("a completely different dish returned instead of mac and cheese is catastrophic", () => {
-    // "Garden Pasta Salad" shares "pasta" with one component but not the defining
-    // cheese-sauce and creamy-texture components → componentScore ≤ 1/3 → catastrophic.
-    const r = validateDishIdentity("mac and cheese", {
-      name: "Garden Pasta Salad",
-      description: "Chilled rotini tossed with cherry tomatoes, cucumber, olives, and a light lemon vinaigrette.",
-      ingredients: [{ name: "rotini pasta" }, { name: "cherry tomatoes" }, { name: "cucumber" }, { name: "lemon vinaigrette" }],
-    }, d);
-    expect(r.catastrophicDeviation).toBe(true);
-    expect(r.passed).toBe(false);
-  });
-
-  it("an unrelated dish (tomato bisque) returned instead of mac and cheese is catastrophic", () => {
-    const r = validateDishIdentity("mac and cheese", {
-      name: "Tomato Bisque",
-      description: "A creamy blended tomato soup with fresh basil and a swirl of olive oil.",
-      ingredients: [{ name: "tomatoes" }, { name: "vegetable broth" }, { name: "basil" }],
-    }, d);
-    expect(r.catastrophicDeviation).toBe(true);
-    expect(r.passed).toBe(false);
-  });
-});
-
-// ── 2. Fried chicken (GLP-1 + anti-inflammatory) ────────────────────────────
-
-describe("fried chicken — GLP-1 + anti-inflammatory", () => {
-  const d = directive(
-    ["chicken pieces", "crispy coating", "seasoned exterior"],
-    ["frying method", "breading", "oil type"],
-    "coated baked or fried chicken pieces",
-  );
-
-  it("oven-baked crispy chicken with almond flour coating passes", () => {
-    const r = validateDishIdentity("fried chicken", {
-      name: "Crispy Baked Fried Chicken",
-      description: "Chicken pieces coated in seasoned almond flour and baked at high heat until crispy, replicating fried texture without deep-frying.",
-      ingredients: [
-        { name: "chicken thighs" },
-        { name: "almond flour coating" },
-        { name: "paprika seasoning" },
-        { name: "avocado oil spray" },
-      ],
-    }, d);
-    expect(r.catastrophicDeviation).toBe(false);
-    expect(r.passed).toBe(true);
-  });
-
-  // "Fried Chicken Wrap" keeps the dish name → nameScore=1 → not caught as catastrophic.
-  // Format-word-less dishes rely on name + component divergence; wrap-format detection
-  // for such dishes is tracked in task #1216.
-  it("an entirely different dish returned instead of fried chicken is catastrophic", () => {
-    const r = validateDishIdentity("fried chicken", {
-      name: "Rice Paper Vegetable Rolls",
-      description: "Fresh julienned vegetables and tofu wrapped in rice paper, served with peanut dipping sauce.",
-      ingredients: [{ name: "rice paper" }, { name: "julienned vegetables" }, { name: "tofu" }, { name: "peanut sauce" }],
-    }, d);
-    expect(r.catastrophicDeviation).toBe(true);
-    expect(r.passed).toBe(false);
-  });
-
-  it("completely different dish (salmon fillet) is catastrophic", () => {
-    const r = validateDishIdentity("fried chicken", {
-      name: "Pan-Seared Salmon Fillet",
-      description: "A perfectly seared salmon fillet with lemon and herbs.",
-      ingredients: [{ name: "salmon" }, { name: "lemon" }, { name: "olive oil" }],
-    }, d);
-    expect(r.catastrophicDeviation).toBe(true);
-    expect(r.passed).toBe(false);
-  });
-});
-
-// ── 3. Pizza (vegan + gluten-free) ──────────────────────────────────────────
-
-describe("pizza — vegan + gluten-free", () => {
-  const d = directive(
-    ["pizza crust", "tomato sauce", "toppings layer"],
-    ["cheese", "meat toppings", "flour in crust"],
-    "flat round pizza with crust and toppings",
-  );
-
-  it("gluten-free crust with vegan cheese and vegetable toppings passes", () => {
-    const r = validateDishIdentity("pizza", {
+    }),
+    adapted: {
       name: "Vegan Gluten-Free Pizza",
-      description: "A crispy gluten-free pizza crust topped with tomato sauce, cashew mozzarella, roasted peppers, and fresh basil.",
-      ingredients: [
-        { name: "gluten-free pizza crust" },
-        { name: "tomato sauce" },
-        { name: "cashew mozzarella" },
-        { name: "roasted pepper toppings" },
-      ],
-    }, d);
-    expect(r.catastrophicDeviation).toBe(false);
-    expect(r.passed).toBe(true);
-  });
-
-  it("pizza deconstructed into a bowl is form-collapse", () => {
-    const r = validateDishIdentity("pizza", {
+      description: "A crisp gluten-free crust topped with tomato sauce and melted vegan cheese.",
+      ingredients: [{ name: "gluten-free flour crust" }, { name: "tomato sauce" }, { name: "vegan mozzarella" }, { name: "basil" }],
+    },
+    collapse: {
       name: "Deconstructed Pizza Bowl",
-      description: "Pizza toppings served in a bowl over cauliflower rice instead of a crust.",
-      ingredients: [{ name: "cauliflower rice" }, { name: "tomato sauce" }, { name: "vegan cheese" }],
-    }, d);
-    expect(r.catastrophicDeviation).toBe(true);
-    expect(r.passed).toBe(false);
-  });
-
-  it("pizza converted to a flatbread is form-collapse", () => {
-    const r = validateDishIdentity("pizza", {
-      name: "Mediterranean Flatbread",
-      description: "A thin flatbread with hummus, olives, and cucumber — inspired by pizza.",
-      ingredients: [{ name: "flatbread" }, { name: "hummus" }, { name: "olives" }],
-    }, d);
-    // "flatbread" not in any known form family → catastrophic must be detected via name divergence
-    expect(r.passed).toBe(false);
-  });
-});
-
-// ── 4. Lasagna (vegan + gluten-free) ────────────────────────────────────────
-
-describe("lasagna — vegan + gluten-free", () => {
-  // dishForm "casserole" is the form anchor: lasagna IS a baked casserole, so the
-  // validator allows casserole-family outputs but rejects soup/stew/salad escapes.
-  const d = directive(
-    ["layered pasta sheets", "tomato meat sauce", "cheese layer", "bechamel layer"],
-    ["meat", "dairy cheese", "flour in sauce", "egg in pasta"],
-    "casserole",
-  );
-
-  it("zucchini-sheet lasagna with lentil ragu and cashew bechamel passes", () => {
-    const r = validateDishIdentity("lasagna", {
+      description: "Pizza components layered in a bowl with toppings and sauce.",
+      ingredients: [{ name: "tomato sauce" }, { name: "vegan cheese" }, { name: "croutons" }],
+    },
+    wrong: {
+      name: "Beef Stir Fry",
+      description: "Sliced beef with broccoli, ginger, and sesame over greens.",
+      ingredients: [{ name: "beef strips" }, { name: "broccoli" }, { name: "ginger" }],
+    },
+  },
+  {
+    label: "lasagna (vegan + gluten-free)",
+    request: "lasagna",
+    directive: directive({
+      identityAnchor: "This IS lasagna.",
+      definingComponents: ["lasagna pasta sheets", "ricotta-style layer", "tomato sauce"],
+      adaptableComponents: ["pasta flour", "cheese layers"],
+      dishForm: "layered pasta bake with stacked sheets",
+      conflicts: [
+        { component: "wheat pasta sheets", guardrail: "gluten-free: no wheat", directive: "Use gluten-free lasagna sheets. The dish is still lasagna." },
+        { component: "ricotta", guardrail: "vegan: no dairy", directive: "Use cashew ricotta. The dish is still lasagna." },
+      ],
+    }),
+    adapted: {
       name: "Vegan Gluten-Free Lasagna",
-      description: "Layered lasagna with thin zucchini pasta sheets, a hearty lentil-tomato ragu, and a creamy cashew bechamel, baked until golden.",
-      ingredients: [
-        { name: "zucchini pasta sheets" },
-        { name: "lentil tomato ragu" },
-        { name: "cashew bechamel" },
-        { name: "tomato sauce layer" },
-      ],
-    }, d);
-    expect(r.catastrophicDeviation).toBe(false);
-    expect(r.passed).toBe(true);
-  });
-
-  it("lasagna converted to a soup is form-collapse (soup is foreign to casserole form)", () => {
-    const r = validateDishIdentity("lasagna", {
+      description: "Layered gluten-free pasta sheets with cashew ricotta and tomato sauce, baked and stacked.",
+      ingredients: [{ name: "gluten-free lasagna sheets" }, { name: "cashew ricotta" }, { name: "tomato sauce" }],
+    },
+    collapse: {
       name: "Lasagna Soup",
-      description: "A thin brothy soup with lasagna noodles, tomato broth, and floating vegan cheese.",
-      ingredients: [{ name: "lasagna noodles" }, { name: "tomato broth" }, { name: "vegan ricotta" }],
-    }, d);
-    expect(r.catastrophicDeviation).toBe(true);
-    expect(r.passed).toBe(false);
-  });
-});
-
-// ── 5. Jambalaya (diabetic + kidney disease) ─────────────────────────────────
-
-describe("jambalaya — diabetic + kidney disease", () => {
-  const d = directive(
-    ["rice base", "cajun protein", "holy trinity vegetables", "spiced tomato broth"],
-    ["white rice", "andouille sausage", "shrimp", "salt"],
-    "thick chunky stew",
-  );
-
-  it("cauliflower rice jambalaya with chicken and low-sodium seasoning passes", () => {
-    const r = validateDishIdentity("jambalaya", {
-      name: "Diabetic-Friendly Low-Sodium Jambalaya",
-      description: "A hearty jambalaya stew with cauliflower rice, chicken thighs, bell peppers, celery, onion, and low-sodium Cajun spices.",
-      ingredients: [
-        { name: "cauliflower rice" },
-        { name: "chicken thighs" },
-        { name: "bell peppers" },
-        { name: "celery" },
-        { name: "low-sodium cajun seasoning" },
-        { name: "tomato" },
+      description: "All the lasagna flavors simmered together and ladled up.",
+      ingredients: [{ name: "pasta pieces" }, { name: "tomato sauce" }, { name: "cashew ricotta" }],
+    },
+    wrong: {
+      name: "Grilled Fish Tacos",
+      description: "Grilled white fish with cabbage and lime crema in tortillas.",
+      ingredients: [{ name: "white fish" }, { name: "corn tortillas" }, { name: "cabbage" }],
+    },
+  },
+  {
+    label: "fried chicken (GLP-1 + anti-inflammatory)",
+    request: "fried chicken",
+    directive: directive({
+      identityAnchor: "This IS fried chicken.",
+      definingComponents: ["chicken pieces", "crispy coating", "seasoned crust"],
+      adaptableComponents: ["cooking method", "coating flour"],
+      dishForm: "crispy crust coated chicken pieces",
+      conflicts: [
+        { component: "deep frying", guardrail: "GLP-1: no heavy fried fats", directive: "Oven-bake or air-fry the coated chicken. The dish is still fried chicken." },
+        { component: "wheat flour coating", guardrail: "anti-inflammatory: limit refined wheat", directive: "Use almond-flour coating. The dish is still fried chicken." },
       ],
-    }, d);
-    expect(r.catastrophicDeviation).toBe(false);
-    expect(r.passed).toBe(true);
-  });
-
-  it("jambalaya converted to a soup is form-collapse", () => {
-    const r = validateDishIdentity("jambalaya", {
+    }),
+    adapted: {
+      name: "Oven-Baked Crispy Fried Chicken",
+      description: "Chicken pieces in a crispy almond-flour crust, oven-baked until golden and juicy.",
+      ingredients: [{ name: "chicken thighs" }, { name: "almond flour coating" }, { name: "paprika seasoning" }],
+    },
+    collapse: {
+      name: "Crispy Chicken Salad",
+      description: "Chopped chicken over greens with a light dressing.",
+      ingredients: [{ name: "chicken breast" }, { name: "mixed greens" }, { name: "vinaigrette" }],
+    },
+    wrong: {
+      name: "Poached Salmon with Dill",
+      description: "Gently poached salmon with dill and lemon.",
+      ingredients: [{ name: "salmon fillet" }, { name: "dill" }, { name: "lemon" }],
+    },
+  },
+  {
+    label: "mac and cheese (gluten-free + dairy-free + diabetic)",
+    request: "mac and cheese",
+    directive: directive({
+      identityAnchor: "This IS mac and cheese.",
+      definingComponents: ["elbow macaroni pasta", "creamy cheese-style sauce", "tender coated noodles"],
+      adaptableComponents: ["pasta flour", "cheese sauce base", "carb load"],
+      dishForm: "casserole-style baked pasta coated in sauce",
+      conflicts: [
+        { component: "wheat macaroni", guardrail: "gluten-free: no wheat", directive: "Use gluten-free elbow pasta. The dish is still mac and cheese." },
+        { component: "dairy cheese sauce", guardrail: "dairy-free: no dairy", directive: "Use cashew cheese sauce. The dish is still mac and cheese." },
+        { component: "refined pasta portion", guardrail: "diabetic: control carbs", directive: "Use a smaller portion of low-carb pasta. The dish is still mac and cheese." },
+      ],
+    }),
+    adapted: {
+      name: "Gluten-Free Dairy-Free Mac and Cheese",
+      description: "Creamy cashew cheese sauce coating gluten-free elbow macaroni, finished until golden.",
+      ingredients: [{ name: "gluten-free elbow macaroni" }, { name: "cashew cheese sauce" }, { name: "nutritional yeast" }],
+    },
+    collapse: {
+      name: "Mac and Cheese Soup",
+      description: "Cheesy pasta simmered thin and ladled into cups.",
+      ingredients: [{ name: "elbow pasta" }, { name: "cashew cheese sauce" }],
+    },
+    wrong: {
+      name: "Grilled Salmon and Asparagus",
+      description: "Grilled salmon fillet with roasted asparagus and lemon.",
+      ingredients: [{ name: "salmon" }, { name: "asparagus" }, { name: "lemon" }],
+    },
+  },
+  {
+    label: "enchiladas",
+    request: "chicken enchiladas",
+    directive: directive({
+      identityAnchor: "This IS chicken enchiladas.",
+      definingComponents: ["corn tortillas", "shredded chicken filling", "red chili sauce"],
+      adaptableComponents: ["cheese topping", "sauce sodium"],
+      dishForm: "rolled corn tortillas baked in sauce, casserole dish",
+      conflicts: [],
+    }),
+    adapted: {
+      name: "Dairy-Free Chicken Enchiladas",
+      description: "Corn tortillas rolled around shredded chicken, covered in red enchilada sauce.",
+      ingredients: [{ name: "corn tortillas" }, { name: "shredded chicken" }, { name: "red chili sauce" }],
+    },
+    collapse: {
+      name: "Chicken Enchilada Bowl",
+      description: "Enchilada flavors served over a base in a bowl.",
+      ingredients: [{ name: "shredded chicken" }, { name: "red chili sauce" }, { name: "corn" }],
+    },
+    wrong: {
+      name: "Pesto Zucchini Noodles",
+      description: "Spiralized zucchini tossed with basil pesto and pine nuts.",
+      ingredients: [{ name: "zucchini" }, { name: "basil pesto" }, { name: "pine nuts" }],
+    },
+  },
+  {
+    label: "jambalaya (diabetic + kidney disease)",
+    request: "jambalaya",
+    directive: directive({
+      identityAnchor: "This IS jambalaya.",
+      definingComponents: ["andouille sausage", "shrimp", "trinity vegetables (onion, celery, bell pepper)", "rice base"],
+      adaptableComponents: ["rice type", "sodium level"],
+      dishForm: "hearty one-pot rice stew",
+      conflicts: [
+        { component: "white rice base", guardrail: "diabetic: no white rice / any rice", directive: "Use cauliflower rice. The dish is still jambalaya." },
+        { component: "andouille sodium", guardrail: "kidney disease: limit sodium and phosphorus", directive: "Use low-sodium andouille-style sausage. The dish is still jambalaya." },
+      ],
+    }),
+    adapted: {
+      name: "Diabetic-Friendly Cauliflower Rice Jambalaya",
+      description: "A hearty one-pot jambalaya stew with cauliflower rice, shrimp, low-sodium andouille, and the trinity of onion, celery, and bell pepper.",
+      ingredients: [{ name: "cauliflower rice" }, { name: "shrimp" }, { name: "low-sodium andouille sausage" }, { name: "onion" }, { name: "celery" }, { name: "bell pepper" }],
+    },
+    collapse: {
       name: "Jambalaya Soup",
-      description: "A thin brothy soup with jambalaya flavors and rice floating in stock.",
-      ingredients: [{ name: "chicken broth" }, { name: "rice" }, { name: "peppers" }],
-    }, d);
-    expect(r.catastrophicDeviation).toBe(true);
-    expect(r.passed).toBe(false);
-  });
-});
-
-// ── 6. Brownies (vegan + gluten-free) ───────────────────────────────────────
-
-describe("brownies — vegan + gluten-free", () => {
-  const d = directive(
-    ["chocolate base", "fudgy dense texture", "brownie square format"],
-    ["eggs", "butter", "flour", "sugar"],
-    "dense fudgy baked brownie squares",
-  );
-
-  it("black bean brownies with flax eggs and almond flour pass", () => {
-    const r = validateDishIdentity("brownies", {
-      name: "Vegan Gluten-Free Fudgy Brownies",
-      description: "Dense, fudgy brownie squares made with black beans, cocoa, almond flour, flax eggs, and coconut oil. Rich chocolate flavor without dairy or gluten.",
-      ingredients: [
-        { name: "black bean base" },
-        { name: "cocoa powder" },
-        { name: "almond flour" },
-        { name: "flax eggs" },
-        { name: "coconut oil" },
-        { name: "monk fruit sweetener" },
+      description: "Jambalaya flavors thinned out and ladled up.",
+      ingredients: [{ name: "shrimp" }, { name: "andouille" }, { name: "cauliflower rice" }],
+    },
+    wrong: {
+      name: "Beef Stroganoff",
+      description: "Sliced beef and mushrooms over egg noodles.",
+      ingredients: [{ name: "beef" }, { name: "mushrooms" }, { name: "egg noodles" }],
+    },
+  },
+  // ── Baked ────────────────────────────────────────────────────────────────
+  {
+    label: "pancakes",
+    request: "pancakes",
+    directive: directive({
+      identityAnchor: "This IS pancakes.",
+      definingComponents: ["flour batter", "griddle-cooked rounds", "fluffy interior"],
+      adaptableComponents: ["flour type", "sweetener"],
+      dishForm: "griddle cake stack, round and fluffy",
+      conflicts: [],
+    }),
+    adapted: {
+      name: "Fluffy Gluten-Free Pancakes",
+      description: "Round griddle-cooked rounds made from oat flour batter, stacked and fluffy.",
+      ingredients: [{ name: "oat flour batter" }, { name: "eggs" }, { name: "maple syrup" }],
+    },
+    collapse: {
+      name: "Pancake Smoothie Bowl",
+      description: "Pancake-flavored blend served thick in a bowl.",
+      ingredients: [{ name: "oats" }, { name: "banana" }, { name: "almond milk" }],
+    },
+    wrong: {
+      name: "Beef Tacos",
+      description: "Seasoned beef in corn shells with lettuce and salsa.",
+      ingredients: [{ name: "ground beef" }, { name: "corn shells" }, { name: "salsa" }],
+    },
+  },
+  {
+    label: "biscuits",
+    request: "biscuits",
+    directive: directive({
+      identityAnchor: "This IS biscuits.",
+      definingComponents: ["flour dough", "fat layers", "flaky crumb"],
+      adaptableComponents: ["flour type", "fat type"],
+      dishForm: "individual baked rounds with golden crust",
+      conflicts: [],
+    }),
+    adapted: {
+      name: "Flaky Almond Flour Biscuits",
+      description: "Tender rounds made from almond flour dough with layered fat for a flaky crumb.",
+      ingredients: [{ name: "almond flour dough" }, { name: "cold vegan butter fat" }, { name: "baking powder" }],
+    },
+    collapse: {
+      name: "Biscuit Dough Energy Bites",
+      description: "No-bake rolled rounds of dough.",
+      ingredients: [{ name: "almond flour" }, { name: "coconut oil" }],
+    },
+    wrong: {
+      name: "Minestrone Soup",
+      description: "Vegetable soup with beans and pasta shells.",
+      ingredients: [{ name: "beans" }, { name: "carrot" }, { name: "pasta shells" }],
+    },
+  },
+  {
+    label: "brownies (vegan + gluten-free)",
+    request: "brownies",
+    directive: directive({
+      identityAnchor: "This IS brownies.",
+      definingComponents: ["chocolate cocoa base", "fudgy dense crumb", "flour binder"],
+      adaptableComponents: ["flour type", "egg replacer", "sweetener"],
+      dishForm: "dense fudgy sliceable baked squares",
+      conflicts: [
+        { component: "wheat flour", guardrail: "gluten-free: no wheat", directive: "Use almond flour. The dish is still brownies." },
+        { component: "eggs and butter", guardrail: "vegan: no animal products", directive: "Use flax eggs and coconut oil. The dish is still brownies." },
       ],
-    }, d);
-    expect(r.catastrophicDeviation).toBe(false);
-    expect(r.passed).toBe(true);
-  });
-
-  it("brownies converted to energy balls is form-collapse", () => {
-    const r = validateDishIdentity("brownies", {
+    }),
+    adapted: {
+      name: "Vegan Gluten-Free Brownies",
+      description: "Dense, fudgy chocolate cocoa squares made with almond flour binder and flax eggs.",
+      ingredients: [{ name: "cocoa powder" }, { name: "almond flour" }, { name: "flax eggs" }, { name: "coconut oil" }],
+    },
+    collapse: {
       name: "Brownie Energy Balls",
-      description: "Small no-bake energy balls with brownie flavors — cocoa, dates, and oats rolled into balls.",
-      ingredients: [{ name: "dates" }, { name: "cocoa" }, { name: "oats" }],
-    }, d);
-    expect(r.catastrophicDeviation).toBe(true);
-    expect(r.passed).toBe(false);
-  });
+      description: "Rolled no-bake chocolate rounds.",
+      ingredients: [{ name: "cocoa powder" }, { name: "dates" }, { name: "almond flour" }],
+    },
+    wrong: {
+      name: "Mango Sorbet",
+      description: "Frozen blended mango with lime.",
+      ingredients: [{ name: "mango" }, { name: "lime" }],
+    },
+  },
+  {
+    label: "bread",
+    request: "bread",
+    directive: directive({
+      identityAnchor: "This IS bread.",
+      definingComponents: ["flour dough", "yeast rise", "sliceable crumb"],
+      adaptableComponents: ["flour type"],
+      dishForm: "baked sliceable loaf of bread",
+      conflicts: [],
+    }),
+    adapted: {
+      name: "Gluten-Free Sandwich Bread",
+      description: "A sliceable loaf from gluten-free flour dough with a yeast rise and tender crumb.",
+      ingredients: [{ name: "gluten-free flour dough" }, { name: "yeast" }, { name: "olive oil" }],
+    },
+    collapse: {
+      name: "Bread Pudding",
+      description: "Cubed bread soaked and set into a soft spoonable dessert.",
+      ingredients: [{ name: "bread cubes" }, { name: "custard base" }],
+    },
+    wrong: {
+      name: "Vegetable Omelette",
+      description: "Eggs folded around spinach and peppers.",
+      ingredients: [{ name: "eggs" }, { name: "spinach" }, { name: "peppers" }],
+    },
+  },
+  // ── Other ────────────────────────────────────────────────────────────────
+  {
+    label: "curry",
+    request: "chicken curry",
+    directive: directive({
+      identityAnchor: "This IS chicken curry.",
+      definingComponents: ["chicken pieces", "spiced curry sauce", "aromatic base"],
+      adaptableComponents: ["cream base", "rice accompaniment"],
+      dishForm: "saucy stew-like curry served over rice",
+      conflicts: [],
+    }),
+    adapted: {
+      name: "Coconut Chicken Curry",
+      description: "Tender chicken pieces simmered in a spiced coconut curry sauce over an aromatic base.",
+      ingredients: [{ name: "chicken thighs" }, { name: "coconut milk curry sauce" }, { name: "ginger garlic aromatic base" }],
+    },
+    collapse: {
+      name: "Chicken Curry Salad Wrap",
+      description: "Curried chicken folded into a cold tortilla with greens.",
+      ingredients: [{ name: "chicken" }, { name: "curry mayo" }, { name: "tortilla" }],
+    },
+    wrong: {
+      name: "Caprese Plate",
+      description: "Fresh mozzarella with sliced heirloom fruit, basil, and balsamic.",
+      ingredients: [{ name: "mozzarella" }, { name: "basil" }, { name: "balsamic glaze" }],
+    },
+  },
+  {
+    label: "ice cream",
+    request: "ice cream",
+    directive: directive({
+      identityAnchor: "This IS ice cream.",
+      definingComponents: ["churned cream base", "sweetener", "vanilla flavor"],
+      adaptableComponents: ["dairy base", "sweetener type"],
+      dishForm: "churned scoopable ice cream",
+      conflicts: [],
+    }),
+    adapted: {
+      name: "Dairy-Free Vanilla Ice Cream",
+      description: "Churned coconut cream base with vanilla and a low-glycemic sweetener, scoopable and smooth.",
+      ingredients: [{ name: "coconut cream base" }, { name: "monk fruit sweetener" }, { name: "vanilla bean" }],
+    },
+    collapse: {
+      name: "Vanilla Ice Cream Milkshake",
+      description: "Blended thin and served with a straw.",
+      ingredients: [{ name: "coconut cream" }, { name: "vanilla" }, { name: "almond milk" }],
+    },
+    wrong: {
+      name: "Grilled Ribeye Steak",
+      description: "Char-grilled ribeye with rosemary and sea salt.",
+      ingredients: [{ name: "ribeye steak" }, { name: "rosemary" }],
+    },
+  },
+];
 
-  it("brownies converted to a mousse is form-collapse", () => {
-    const r = validateDishIdentity("brownies", {
-      name: "Chocolate Brownie Mousse",
-      description: "A light airy mousse with rich brownie-inspired chocolate flavor.",
-      ingredients: [{ name: "aquafaba mousse" }, { name: "dark chocolate" }],
-    }, d);
-    expect(r.catastrophicDeviation).toBe(true);
-    expect(r.passed).toBe(false);
-  });
-});
+// ── Core 3-scenario matrix over every dish ──────────────────────────────────
 
-// ── 7. Pancakes (vegan) ──────────────────────────────────────────────────────
-
-describe("pancakes — vegan", () => {
-  const d = directive(
-    ["flat round pancake stack", "fluffy interior", "golden exterior"],
-    ["eggs", "milk", "butter"],
-    "stacked flat round pancakes",
-  );
-
-  it("aquafaba + oat milk pancake stack passes", () => {
-    const r = validateDishIdentity("pancakes", {
-      name: "Vegan Fluffy Pancakes",
-      description: "A stack of golden, fluffy pancakes made with oat milk, whipped aquafaba for lift, and vegan butter.",
-      ingredients: [
-        { name: "oat milk" },
-        { name: "whipped aquafaba" },
-        { name: "all-purpose flour" },
-        { name: "vegan butter" },
-      ],
-    }, d);
+describe.each(CASES)("DAL regression matrix — $label", (c) => {
+  it("passes a correctly adapted version", () => {
+    const r = validateDishIdentity(c.request, c.adapted, c.directive);
     expect(r.catastrophicDeviation).toBe(false);
+    expect(r.formMismatch).toBe(false);
     expect(r.passed).toBe(true);
   });
 
-  // "Pancake Smoothie Bowl" keeps the word "Pancake" → nameScore=1 → not catastrophic.
-  // Format-word-less dish protection is task #1216. Test a complete dish replacement instead.
-  it("an entirely different dish returned instead of pancakes is catastrophic", () => {
-    const r = validateDishIdentity("pancakes", {
-      name: "Tropical Acai Bowl",
-      description: "A thick blended acai smoothie base topped with granola, sliced banana, and coconut flakes.",
-      ingredients: [{ name: "acai puree" }, { name: "banana" }, { name: "granola" }, { name: "coconut flakes" }],
-    }, d);
+  it("flags a form-collapse escape as catastrophic", () => {
+    const r = validateDishIdentity(c.request, c.collapse, c.directive);
+    expect(r.formMismatch).toBe(true);
+    expect(r.catastrophicDeviation).toBe(true);
+    expect(r.passed).toBe(false);
+  });
+
+  it("flags a completely wrong dish as catastrophic", () => {
+    const r = validateDishIdentity(c.request, c.wrong, c.directive);
     expect(r.catastrophicDeviation).toBe(true);
     expect(r.passed).toBe(false);
   });
 });
 
-// ── 8. Curry (vegan + GLP-1) ────────────────────────────────────────────────
+// ── Stacked-constraint specifics ─────────────────────────────────────────────
 
-describe("curry — vegan + GLP-1", () => {
-  const d = directive(
-    ["spiced sauce", "protein component", "aromatic base"],
-    ["cream", "oil quantity", "starch side"],
-    "thick chunky stew",
-  );
+const byLabel = (prefix: string) => CASES.find(c => c.label.startsWith(prefix))!;
 
-  it("tofu tikka masala-style curry with light coconut cream passes", () => {
-    const r = validateDishIdentity("curry", {
-      name: "Vegan GLP-1 Friendly Tikka Masala Curry",
-      description: "A fragrant tofu curry in a spiced tomato-coconut sauce with onion, garlic, ginger, and a small portion of cauliflower rice.",
-      ingredients: [
-        { name: "tofu" },
-        { name: "spiced tomato sauce" },
-        { name: "light coconut cream" },
-        { name: "aromatic base" },
-      ],
-    }, d);
-    expect(r.catastrophicDeviation).toBe(false);
+describe("stacked constraints — mac and cheese (GF + DF + diabetic)", () => {
+  const c = byLabel("mac and cheese");
+
+  it("must not escape into a salad", () => {
+    const r = validateDishIdentity(c.request, {
+      name: "Mac and Cheese Pasta Salad",
+      description: "Cold pasta with a cheese-style dressing over greens.",
+      ingredients: [{ name: "elbow pasta" }, { name: "cashew dressing" }],
+    }, c.directive);
+    expect(r.formMismatch).toBe(true);
+    expect(r.catastrophicDeviation).toBe(true);
+  });
+
+  it("triple-constraint adapted version keeps full identity (no component failures)", () => {
+    const r = validateDishIdentity(c.request, c.adapted, c.directive);
     expect(r.passed).toBe(true);
-  });
-
-  it("curry converted to a soup is form-collapse", () => {
-    const r = validateDishIdentity("curry", {
-      name: "Curry Soup",
-      description: "A thin brothy soup with curry spices and floating vegetables.",
-      ingredients: [{ name: "broth" }, { name: "curry powder" }, { name: "vegetables" }],
-    }, d);
-    expect(r.catastrophicDeviation).toBe(true);
-    expect(r.passed).toBe(false);
+    expect(r.failures).toHaveLength(0);
+    expect(r.score).toBeGreaterThanOrEqual(0.5);
   });
 });
 
-// ── 9. Ice cream (vegan + lower-sugar) ──────────────────────────────────────
+describe("stacked constraints — fried chicken (GLP-1 + anti-inflammatory)", () => {
+  const c = byLabel("fried chicken");
 
-describe("ice cream — vegan + lower-sugar", () => {
-  const d = directive(
-    ["frozen creamy base", "smooth texture", "scoopable consistency"],
-    ["dairy cream", "egg yolks", "sugar"],
-    "frozen",
-  );
+  it("must not escape into a wrap", () => {
+    const r = validateDishIdentity(c.request, {
+      name: "Crispy Chicken Wrap",
+      description: "Chicken and greens rolled in a tortilla.",
+      ingredients: [{ name: "chicken" }, { name: "tortilla" }, { name: "greens" }],
+    }, c.directive);
+    expect(r.formMismatch).toBe(true);
+    expect(r.catastrophicDeviation).toBe(true);
+  });
 
-  it("coconut milk nice cream with monk fruit passes", () => {
-    const r = validateDishIdentity("ice cream", {
-      name: "Vegan Low-Sugar Coconut Ice Cream",
-      description: "A scoopable frozen coconut milk ice cream sweetened with monk fruit, with smooth, creamy texture achieved through churning.",
-      ingredients: [
-        { name: "full-fat coconut milk" },
-        { name: "monk fruit sweetener" },
-        { name: "vanilla extract" },
-      ],
-    }, d);
-    expect(r.catastrophicDeviation).toBe(false);
+  it("baked/air-fried adaptation stays fried chicken", () => {
+    const r = validateDishIdentity(c.request, c.adapted, c.directive);
     expect(r.passed).toBe(true);
-  });
-
-  it("ice cream converted to a smoothie is form-collapse", () => {
-    const r = validateDishIdentity("ice cream", {
-      name: "Ice Cream Smoothie",
-      description: "A blended cold smoothie with creamy ice cream notes.",
-      ingredients: [{ name: "banana" }, { name: "coconut milk" }, { name: "vanilla" }],
-    }, d);
-    expect(r.catastrophicDeviation).toBe(true);
-    expect(r.passed).toBe(false);
+    expect(r.failures).toHaveLength(0);
   });
 });
 
-// ── 10. Biscuits (vegan + gluten-free) ──────────────────────────────────────
+describe("stacked constraints — pizza (vegan + gluten-free)", () => {
+  const c = byLabel("pizza");
 
-describe("biscuits — vegan + gluten-free", () => {
-  const d = directive(
-    ["flaky layered biscuit", "buttery exterior", "tender crumb"],
-    ["butter", "milk", "wheat flour"],
-    "baked-cake",
-  );
+  it("flatbread with sauce on the side is not pizza", () => {
+    const r = validateDishIdentity(c.request, {
+      name: "Gluten-Free Flatbread with Marinara Dip",
+      description: "A plain flatbread served with a marinara dipping cup and vegetables on the side.",
+      ingredients: [{ name: "flatbread" }, { name: "marinara dip" }, { name: "raw vegetables" }],
+    }, c.directive);
+    expect(r.catastrophicDeviation).toBe(true);
+    expect(r.passed).toBe(false);
+  });
 
-  it("almond flour biscuits with cold vegan butter pass", () => {
-    const r = validateDishIdentity("biscuits", {
-      name: "Vegan Gluten-Free Flaky Biscuits",
-      description: "Tall, flaky biscuits made with a blend of almond and tapioca flour, cold vegan butter worked in for layers, and oat milk. Baked golden.",
-      ingredients: [
-        { name: "almond flour" },
-        { name: "tapioca flour" },
-        { name: "cold vegan butter" },
-        { name: "oat milk" },
-      ],
-    }, d);
-    expect(r.catastrophicDeviation).toBe(false);
+  it("adapted pizza keeps crust + toppings identity", () => {
+    const r = validateDishIdentity(c.request, c.adapted, c.directive);
     expect(r.passed).toBe(true);
-  });
-
-  it("biscuits converted to bars is form-collapse", () => {
-    const r = validateDishIdentity("biscuits", {
-      name: "Biscuit Bars",
-      description: "Flat pressed biscuit bars — all the flavor without the flaky layers.",
-      ingredients: [{ name: "oat flour" }, { name: "vegan butter" }, { name: "oat milk" }],
-    }, d);
-    expect(r.catastrophicDeviation).toBe(true);
-    expect(r.passed).toBe(false);
+    expect(r.failures).toHaveLength(0);
   });
 });
 
-// ── Cross-cutting: resolve conflicts for stacked guardrail pairs ─────────────
+describe("stacked constraints — lasagna (vegan + gluten-free)", () => {
+  const c = byLabel("lasagna");
 
-describe("stacked guardrail resolution — no cross-contamination in structural directives", () => {
-  it("vegan + gluten-free lasagna: structure directive for gluten-free pasta never recommends wheat", () => {
-    const ctx = buildGuardrailContext({ dietaryIdentity: ["vegan", "gluten-free"] });
-    const decomp = {
-      definingComponents: ["pasta sheets", "tomato sauce"],
-      adaptableComponents: ["egg in pasta", "flour in pasta", "dairy cheese"],
-    };
-    const conflicts = resolveConflicts("lasagna", decomp, ctx);
-    // Only check the flour conflict — the egg conflict fires the vegan egg rule (flax egg),
-    // which is correct but doesn't mention gluten-free flour options.
-    const flourConflicts = conflicts.filter(c => c.component === "flour in pasta");
-    for (const c of flourConflicts) {
-      // "wheat" may appear to DESCRIBE what's being replaced (e.g. "wheat gluten was the
-      // structural network"). The directive must NOT recommend wheat as the substitute.
-      expect(c.directive).not.toMatch(/\buse wheat\b|\badd wheat flour\b|\bwith wheat flour\b/i);
-      // The substitute itself must be a gluten-free option.
-      expect(c.directive).toMatch(/rice flour|almond flour|gluten.free/i);
-    }
-    // "egg in pasta" is caught by the gluten-free pasta rule (rice/chickpea pasta),
-    // not a vegan egg rule — correct, since pasta is the structural starch component.
+  it("a deconstructed crumble is not lasagna", () => {
+    const r = validateDishIdentity(c.request, {
+      name: "Deconstructed Lasagna Crumble",
+      description: "Lasagna components crumbled and scattered on a plate.",
+      ingredients: [{ name: "pasta shards" }, { name: "tomato sauce" }, { name: "cashew ricotta" }],
+    }, c.directive);
+    expect(r.formMismatch).toBe(true);
+    expect(r.catastrophicDeviation).toBe(true);
   });
 
-  it("diabetic + kidney disease jambalaya: sodium directive never suggests salt substitute (kidney restriction)", () => {
-    const ctx = buildGuardrailContext({ dietaryIdentity: ["diabetic", "kidney disease"] });
-    const decomp = {
-      definingComponents: ["rice base", "cajun protein", "spiced broth"],
-      adaptableComponents: ["white rice", "sodium seasoning", "salt"],
-    };
-    const conflicts = resolveConflicts("jambalaya", decomp, ctx);
-    const saltConflicts = conflicts.filter(c =>
-      /sodium|salt/i.test(c.component) && /kidney/i.test(c.guardrail),
-    );
-    for (const c of saltConflicts) {
-      // Kidney protocol replaces salt with herbs/lemon — must not suggest salt substitute products
-      expect(c.directive).toMatch(/herb|lemon|garlic|vinegar/i);
-      expect(c.directive).not.toMatch(/salt substitute|potassium chloride/i);
-    }
+  it("adapted lasagna keeps the layered pasta format", () => {
+    const r = validateDishIdentity(c.request, c.adapted, c.directive);
+    expect(r.passed).toBe(true);
+    expect(r.failures).toHaveLength(0);
+  });
+});
+
+describe("stacked constraints — jambalaya (diabetic + kidney disease)", () => {
+  const c = byLabel("jambalaya");
+
+  it("directive resolves the rice conflict by stating cauliflower rice while preserving the dish", () => {
+    const riceConflict = c.directive.conflicts.find(k => k.component.includes("rice"));
+    expect(riceConflict).toBeDefined();
+    expect(riceConflict!.directive.toLowerCase()).toContain("cauliflower rice");
+    expect(riceConflict!.directive.toLowerCase()).toContain("still jambalaya");
+  });
+
+  it("cauliflower-rice adaptation still validates as jambalaya (stew/rice format)", () => {
+    const r = validateDishIdentity(c.request, c.adapted, c.directive);
+    expect(r.passed).toBe(true);
+    expect(r.failures).toHaveLength(0);
+    expect(r.formMismatch).toBe(false);
+  });
+});
+
+describe("stacked constraints — brownies (vegan + gluten-free)", () => {
+  const c = byLabel("brownies");
+
+  it("must not escape into a mousse", () => {
+    const r = validateDishIdentity(c.request, {
+      name: "Brownie Batter Mousse",
+      description: "Whipped chocolate mousse with brownie flavors.",
+      ingredients: [{ name: "cocoa" }, { name: "aquafaba" }],
+    }, c.directive);
+    expect(r.formMismatch).toBe(true);
+    expect(r.catastrophicDeviation).toBe(true);
+  });
+
+  it("must not escape into a bar", () => {
+    const r = validateDishIdentity(c.request, {
+      name: "Chocolate Brownie Bars",
+      description: "Chewy pressed bars with cocoa.",
+      ingredients: [{ name: "cocoa" }, { name: "oats" }, { name: "dates" }],
+    }, c.directive);
+    expect(r.formMismatch).toBe(true);
+    expect(r.catastrophicDeviation).toBe(true);
+  });
+
+  it("adapted brownies stay brownie-format", () => {
+    const r = validateDishIdentity(c.request, c.adapted, c.directive);
+    expect(r.passed).toBe(true);
+    expect(r.failures).toHaveLength(0);
   });
 });
